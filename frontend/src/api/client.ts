@@ -350,6 +350,48 @@ export async function apiCodifFamiliasCommit() {
   );
 }
 
+// ---------- Codificación: modelo task-oriented ----------
+
+export type PreguntaStatus =
+  | "no-aplica"
+  | "requiere-config"
+  | "sin-datos"
+  | "no-iniciado"
+  | "en-curso"
+  | "completo";
+
+export type PreguntaSubtipo =
+  | "select_one_padre"
+  | "select_one_hijo"
+  | "select_one_sin_modo"
+  | "select_multiple"
+  | "integer"
+  | "text";
+
+export type PreguntaAbierta = {
+  parent: string;
+  parent_label: string;
+  tipo: "select_one" | "select_multiple" | "integer" | "text" | string;
+  subtipo: PreguntaSubtipo;
+  modo_so: "" | "padre" | "hijo";
+  text_col: string;
+  parent_col: string;
+  list_norm: string;
+  col_efectiva: string;
+  n_respuestas: number;
+  n_unicas: number;
+  n_codificadas: number;
+  status: PreguntaStatus;
+  habilitada: boolean;
+  preview: string[];
+};
+
+export async function apiCodifPreguntasAbiertas() {
+  return handle<{ ok: true; preguntas: PreguntaAbierta[] }>(
+    await fetch("/api/codificacion/preguntas-abiertas", { headers: headers() })
+  );
+}
+
 export type CodigosSheetMeta = { name: string; tipo: string; n: number };
 
 export type CodigosColRole = "id" | "ref" | "recod" | "control" | "aux" | "computed" | "pad";

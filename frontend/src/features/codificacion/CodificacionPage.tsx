@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download } from "lucide-react";
+import { Download, SlidersHorizontal } from "lucide-react";
 import {
   apiCodifAplicar,
   AplicarResult,
@@ -11,6 +11,10 @@ import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
 import { FamiliasEditor } from "./FamiliasEditor";
 import { CodigosEditor } from "./CodigosEditor";
+import { PreguntasLanding } from "./PreguntasLanding";
+
+type Mode = "task" | "advanced";
+const MODE_KEY = "pulso.codif.mode";
 
 export default function CodificacionPage() {
   const { state, refresh } = useSession();
@@ -18,8 +22,15 @@ export default function CodificacionPage() {
 
   const [adaptados, setAdaptados] = useState<{ data: string; inst: string } | null>(null);
   const [aplicarJobId, setAplicarJobId] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>(() => (localStorage.getItem(MODE_KEY) === "advanced" ? "advanced" : "task"));
 
   const prereqOk = !!state?.xlsform && !!state?.data;
+
+  function toggleMode() {
+    const next: Mode = mode === "task" ? "advanced" : "task";
+    setMode(next);
+    localStorage.setItem(MODE_KEY, next);
+  }
 
   async function onAplicar() {
     setError("");
@@ -40,22 +51,35 @@ export default function CodificacionPage() {
     setAplicarJobId(null);
     void refresh();
   }
-
-  function onAplicarError(msg: string) {
-    setError(msg);
-    setAplicarJobId(null);
-  }
-
-  function onAplicarCancelled() {
-    setAplicarJobId(null);
-  }
+  function onAplicarError(msg: string) { setError(msg); setAplicarJobId(null); }
+  function onAplicarCancelled() { setAplicarJobId(null); }
 
   return (
     <section>
-      <h1 className="pulso-page-title">Fase 3 — Codificación de preguntas abiertas</h1>
-      <p className="pulso-page-lead">
-        Agrupa las respuestas abiertas en familias, asigna códigos dentro de la app, y genera el dataset + instrumento adaptados. Todo se autoguarda.
-      </p>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 20, marginBottom: 8 }}>
+        <div style={{ flex: 1 }}>
+          <h1 className="pulso-page-title">Fase 3 — Codificación de preguntas abiertas</h1>
+          <p className="pulso-page-lead">
+            {mode === "task"
+              ? "Codifica cada pregunta abierta agrupando respuestas y asignando códigos. La app detecta y clasifica automáticamente."
+              : "Vista avanzada: edita familias y plantilla de códigos como tablas. Útil para configurar padre/hijo y casos no cubiertos por el flujo guiado."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleMode}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            fontSize: 12, padding: "6px 12px",
+            border: "1px solid var(--pulso-border)", borderRadius: 6,
+            background: "white", cursor: "pointer", whiteSpace: "nowrap",
+          }}
+          title={mode === "task" ? "Cambiar a modo avanzado (tabla)" : "Volver al modo guiado"}
+        >
+          <SlidersHorizontal size={13} />
+          {mode === "task" ? "Modo avanzado" : "Modo guiado"}
+        </button>
+      </div>
 
       {!prereqOk && (
         <div style={{ marginBottom: 12 }}>
@@ -63,44 +87,57 @@ export default function CodificacionPage() {
         </div>
       )}
 
-      <Panel
-        eyebrow="Paso 1"
-        title="Editar familias"
-        hint="La app sugiere un borrador de familias desde tu XLSForm y tu data. Activa/desactiva filas, marca select_one como padre/hijo, y ajusta las columnas del dataset. El progreso se autoguarda cada 2 segundos."
-      >
-        {prereqOk ? (
-          <FamiliasEditor />
-        ) : (
-          <em style={{ color: "var(--pulso-text-soft)", fontSize: 13 }}>
-            Carga primero XLSForm y data en Fase 1.
-          </em>
-        )}
-      </Panel>
-
-      <Panel
-        eyebrow="Paso 2"
-        title="Asignar códigos"
-        hint="Para cada respuesta observada, escribe el código final en la columna *_recod. Los códigos nuevos se declaran en el bloque auxiliar (nuevo_codigo / nueva_etiqueta). Las ediciones se autoguardan directo al xlsx de la plantilla."
-      >
-        {prereqOk ? (
-          <CodigosEditor onApply={onAplicar} applyBusy={!!aplicarJobId} />
-        ) : (
-          <em style={{ color: "var(--pulso-text-soft)", fontSize: 13 }}>
-            Carga primero XLSForm y data en Fase 1.
-          </em>
-        )}
-        {aplicarJobId && (
-          <div style={{ marginTop: 12 }}>
-            <JobProgress<AplicarResult>
-              label="Aplicando codificación"
-              jobId={aplicarJobId}
-              onDone={onAplicarDone}
-              onError={onAplicarError}
-              onCancelled={onAplicarCancelled}
-            />
+      {mode === "task" && prereqOk && (
+        <>
+          <PreguntasLanding />
+          <div style={{ marginTop: 24, padding: 14, background: "var(--pulso-surface)", borderRadius: 6, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 13 }}>
+              Cuando termines de codificar, aplica los cambios para generar los archivos adaptados.
+            </div>
+            <div style={{ flex: 1 }} />
+            <button
+              className="pulso-primary"
+              disabled={!!aplicarJobId}
+              onClick={() => void onAplicar()}
+            >
+              Aplicar codificación
+            </button>
           </div>
-        )}
-      </Panel>
+          {aplicarJobId && (
+            <div style={{ marginTop: 12 }}>
+              <JobProgress<AplicarResult>
+                label="Aplicando codificación"
+                jobId={aplicarJobId}
+                onDone={onAplicarDone}
+                onError={onAplicarError}
+                onCancelled={onAplicarCancelled}
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {mode === "advanced" && prereqOk && (
+        <>
+          <Panel eyebrow="Paso 1" title="Editar familias (tabla)">
+            <FamiliasEditor />
+          </Panel>
+          <Panel eyebrow="Paso 2" title="Asignar códigos (tabla)">
+            <CodigosEditor onApply={onAplicar} applyBusy={!!aplicarJobId} />
+            {aplicarJobId && (
+              <div style={{ marginTop: 12 }}>
+                <JobProgress<AplicarResult>
+                  label="Aplicando codificación"
+                  jobId={aplicarJobId}
+                  onDone={onAplicarDone}
+                  onError={onAplicarError}
+                  onCancelled={onAplicarCancelled}
+                />
+              </div>
+            )}
+          </Panel>
+        </>
+      )}
 
       {adaptados && (
         <Panel eyebrow="Resultado" title="Archivos adaptados">
