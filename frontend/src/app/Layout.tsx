@@ -11,7 +11,7 @@ function useNavItems(): NavItem[] {
     { to: "/validacion", label: "2. Validación", done: !!state?.auditoria_run, disabled: !state?.xlsform },
     { to: "/codificacion", label: "3. Codificación", done: !!state?.codif_aplicado, disabled: !state?.xlsform || !state?.data },
     { to: "/analitica", label: "4. Analítica", done: !!state?.analitica_prep_ok, disabled: !state?.xlsform || !state?.data },
-    { to: "/graficos", label: "5. Gráficos", disabled: true },
+    { to: "/graficos", label: "5. Gráficos", done: !!state?.graficos_ppt_ok || !!state?.graficos_word_ok, disabled: !state?.analitica_prep_ok },
     { to: "/dashboard", label: "6. Dashboard", disabled: true },
   ];
 }

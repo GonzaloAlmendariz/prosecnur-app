@@ -5,6 +5,7 @@ import CargaPage from "../features/carga/CargaPage";
 import ValidacionPage from "../features/validacion/ValidacionPage";
 import CodificacionPage from "../features/codificacion/CodificacionPage";
 import AnaliticaPage from "../features/analitica/AnaliticaPage";
+import GraficosPage from "../features/graficos/GraficosPage";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
             <Route path="/validacion" element={<ValidacionPage />} />
             <Route path="/codificacion" element={<CodificacionPage />} />
             <Route path="/analitica" element={<AnaliticaPage />} />
+            <Route path="/graficos" element={<GraficosPage />} />
             <Route path="*" element={<Navigate to="/carga" replace />} />
           </Route>
         </Routes>

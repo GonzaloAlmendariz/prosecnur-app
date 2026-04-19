@@ -62,7 +62,9 @@ mount_sistema <- function(pr) {
         analitica_cruces_ok = isTRUE(s$analitica_cruces_ok),
         analitica_spss_ok = isTRUE(s$analitica_spss_ok),
         analitica_enumeradores_ok = isTRUE(s$analitica_enumeradores_ok),
-        analitica_fuente = s$analitica_fuente %||% NA_character_
+        analitica_fuente = s$analitica_fuente %||% NA_character_,
+        graficos_ppt_ok = isTRUE(s$graficos_ppt_ok),
+        graficos_word_ok = isTRUE(s$graficos_word_ok)
       )
     })) |>
     plumber::pr_post("/api/files/upload", wrap_endpoint(function(req, res, file = NULL, kind = NULL) {

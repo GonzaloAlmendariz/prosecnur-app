@@ -61,6 +61,8 @@ export type SessionState = {
   analitica_spss_ok: boolean;
   analitica_enumeradores_ok: boolean;
   analitica_fuente: string | null;
+  graficos_ppt_ok: boolean;
+  graficos_word_ok: boolean;
 };
 
 export async function apiSessionState() {
@@ -283,6 +285,85 @@ export async function apiAnaliticaCruces(cruces: string, modo: "estandar" | "dim
 export async function apiAnaliticaSpss() {
   return handle<{ ok: true; file_id: string; size: number }>(
     await fetch("/api/analitica/spss", { method: "POST", headers: headers() })
+  );
+}
+
+// ---------- Gráficos (PPT/Word) ----------
+
+export type SlideType =
+  | "p_slide_title"
+  | "p_slide_section"
+  | "p_slide_1"
+  | "p_slide_2"
+  | "p_slide_text_l"
+  | "p_slide_text_r";
+
+export type GraficadorRef = {
+  graficador: string;
+  args: Record<string, unknown>;
+};
+
+export type SlidePayload = Record<string, unknown>;
+
+export type Slide = {
+  id: string;
+  tipo: SlideType;
+  payload: SlidePayload;
+};
+
+export type PlanJson = {
+  slides: Slide[];
+};
+
+export type Registry = {
+  slides: { name: string; categoria: string; slots: string[]; args: string[] }[];
+  graficadores: { name: string; args: string[] }[];
+};
+
+export type VarInfo = {
+  name: string;
+  label: string;
+  tipo: string;
+  seccion: string;
+};
+
+export async function apiGraficosRegistry() {
+  return handle<Registry>(await fetch("/api/graficos/registry", { headers: headers() }));
+}
+
+export async function apiGraficosVariables() {
+  return handle<{ variables: VarInfo[] }>(
+    await fetch("/api/graficos/variables", { headers: headers() })
+  );
+}
+
+export async function apiGraficosValidar(plan: PlanJson) {
+  return handle<{ ok: boolean; errors: string[]; warnings: string[]; n_slides: number }>(
+    await fetch("/api/graficos/validar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ plan }),
+    })
+  );
+}
+
+export async function apiGraficosPpt(plan: PlanJson, presets?: Record<string, unknown>, w_presets?: Record<string, unknown>) {
+  return handle<{ ok: true; file_id: string; size: number; n_slides: number }>(
+    await fetch("/api/graficos/ppt", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ plan, presets, w_presets }),
+    })
+  );
+}
+
+export async function apiGraficosWord(plan: PlanJson, presets?: Record<string, unknown>, w_presets?: Record<string, unknown>) {
+  return handle<{ ok: true; file_id: string; size: number; n_slides: number }>(
+    await fetch("/api/graficos/word", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ plan, presets, w_presets }),
+    })
   );
 }
 
