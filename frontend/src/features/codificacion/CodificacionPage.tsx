@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Download, Upload, Play, Check } from "lucide-react";
 import {
   apiCodifAplicar,
   apiCodifFamiliasAplicar,
@@ -8,15 +9,8 @@ import {
   downloadUrl,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
-
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section style={{ border: "1px solid #e3e3e8", borderRadius: 8, padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
-      <h3 style={{ marginTop: 0 }}>{title}</h3>
-      {children}
-    </section>
-  );
-}
+import { Panel } from "../../components/Panel";
+import { Alert } from "../../components/Alert";
 
 export default function CodificacionPage() {
   const { state, refresh } = useSession();
@@ -76,91 +70,91 @@ export default function CodificacionPage() {
 
   return (
     <section>
-      <h1 style={{ marginTop: 0 }}>Fase 3 — Codificación de preguntas abiertas</h1>
-      <p style={{ color: "#666" }}>
+      <h1 className="pulso-page-title">Fase 3 — Codificación de preguntas abiertas</h1>
+      <p className="pulso-page-lead">
         Agrupa las respuestas abiertas en familias, asigna códigos y genera el dataset + instrumento adaptados.
         Las familias y la plantilla de códigos se editan en Excel fuera de la app; aquí solo se exportan, suben y aplican.
       </p>
 
       {!prereqOk && (
-        <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", padding: "0.75rem 1rem", borderRadius: 6, marginBottom: "1rem", fontSize: 14 }}>
-          Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de codificar.
+        <div style={{ marginBottom: 12 }}>
+          <Alert kind="warn">Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de codificar.</Alert>
         </div>
       )}
 
-      <Panel title="Paso 1 — Generar plantilla de familias">
-        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-          El backend inspecciona las variables de texto y genera un Excel con sugerencias de familias. Edítalo para
-          agrupar las respuestas abiertas en categorías.
-        </p>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <button disabled={!prereqOk || !!busy} onClick={onGenerarFamilias}>
-            Generar plantilla
+      <Panel eyebrow="Paso 1" title="Generar plantilla de familias" hint="El backend inspecciona las variables de texto y genera un Excel con sugerencias de familias. Edítalo para agrupar las respuestas abiertas en categorías.">
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <button className="pulso-primary" disabled={!prereqOk || !!busy} onClick={onGenerarFamilias}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Play size={14} /> Generar plantilla
           </button>
           {familiasFileId && (
-            <a href={downloadUrl(familiasFileId)} style={{ fontSize: 14 }}>familias.xlsx →</a>
+            <a href={downloadUrl(familiasFileId)} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Download size={13} /> familias.xlsx
+            </a>
           )}
         </div>
       </Panel>
 
-      <Panel title="Paso 2 — Subir familias editadas → genera plantilla de códigos">
-        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-          Sube el Excel con las familias ya agrupadas. El backend lo procesa y genera una segunda plantilla lista para
-          que asignes un código por cada respuesta abierta.
-        </p>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <input
-            type="file"
-            accept=".xlsx"
-            disabled={!prereqOk || !!busy}
-            onChange={(e) => onSubirFamilias(e.target.files?.[0])}
-          />
+      <Panel eyebrow="Paso 2" title="Subir familias editadas" hint="Sube el Excel con las familias ya agrupadas. El backend genera una segunda plantilla lista para que asignes un código por cada respuesta abierta.">
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <label style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Upload size={14} color="var(--pulso-text-soft)" />
+            <input
+              type="file"
+              accept=".xlsx"
+              disabled={!prereqOk || !!busy}
+              onChange={(e) => onSubirFamilias(e.target.files?.[0])}
+            />
+          </label>
           {plantillaCodifFileId && (
-            <a href={downloadUrl(plantillaCodifFileId)} style={{ fontSize: 14 }}>plantilla_codificacion.xlsx →</a>
+            <a href={downloadUrl(plantillaCodifFileId)} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Download size={13} /> plantilla_codificacion.xlsx
+            </a>
           )}
         </div>
       </Panel>
 
-      <Panel title="Paso 3 — Subir plantilla de códigos editada">
-        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-          Una vez que codificaste cada respuesta, sube el Excel final. No se genera descarga aquí — solo se registra
-          para el Paso 4.
-        </p>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <input
-            type="file"
-            accept=".xlsx"
-            disabled={!plantillaCodifFileId || !!busy}
-            onChange={(e) => onSubirCodigos(e.target.files?.[0])}
-          />
+      <Panel eyebrow="Paso 3" title="Subir plantilla de códigos editada" hint="Una vez que codificaste cada respuesta, sube el Excel final. No se genera descarga aquí — solo se registra para el Paso 4.">
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <label style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Upload size={14} color="var(--pulso-text-soft)" />
+            <input
+              type="file"
+              accept=".xlsx"
+              disabled={!plantillaCodifFileId || !!busy}
+              onChange={(e) => onSubirCodigos(e.target.files?.[0])}
+            />
+          </label>
           {codigosUploaded && (
-            <span style={{ fontSize: 13, color: "#555" }}>
-              ✓ {codigosUploaded.name} ({Math.round(codigosUploaded.size / 1024)} KB)
+            <span style={{ fontSize: 13, color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Check size={14} color="#10b981" /> {codigosUploaded.name} ({Math.round(codigosUploaded.size / 1024)} KB)
             </span>
           )}
         </div>
       </Panel>
 
-      <Panel title="Paso 4 — Aplicar codificación y descargar adaptados">
-        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-          Genera la base de datos y el instrumento adaptados con los códigos aplicados. Estos serán los insumos de
-          las fases siguientes.
-        </p>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <button disabled={!codigosUploaded || !!busy} onClick={onAplicar}>
-            Aplicar codificación
+      <Panel eyebrow="Paso 4" title="Aplicar codificación y descargar adaptados" hint="Genera la base de datos y el instrumento adaptados con los códigos aplicados. Serán los insumos de las fases siguientes.">
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <button className="pulso-primary" disabled={!codigosUploaded || !!busy} onClick={onAplicar}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Play size={14} /> Aplicar codificación
           </button>
           {adaptados && (
             <>
-              <a href={downloadUrl(adaptados.data)} style={{ fontSize: 14 }}>data_adaptada.xlsx →</a>
-              <a href={downloadUrl(adaptados.inst)} style={{ fontSize: 14 }}>instrumento_adaptado.xlsx →</a>
+              <a href={downloadUrl(adaptados.data)} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <Download size={13} /> data_adaptada.xlsx
+              </a>
+              <a href={downloadUrl(adaptados.inst)} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <Download size={13} /> instrumento_adaptado.xlsx
+              </a>
             </>
           )}
         </div>
       </Panel>
 
-      {busy && <div style={{ color: "#0066cc" }}>{busy}</div>}
-      {error && <div style={{ color: "#c00" }}>⚠ {error}</div>}
+      {busy && <Alert kind="info">{busy}</Alert>}
+      {error && <Alert kind="error">{error}</Alert>}
     </section>
   );
 }

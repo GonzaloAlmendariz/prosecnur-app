@@ -152,9 +152,13 @@ export async function apiCargaData(file_id: string) {
 }
 
 export async function apiLoadDemo() {
-  return handle<{ ok: true; session_id: string; n_preguntas: number; n_filas: number; n_columnas: number }>(
-    await fetch("/api/system/demo", { method: "POST", headers: headers() })
-  );
+  return handle<{
+    ok: true;
+    session_id: string;
+    resumen_instrumento: { n_preguntas: number; n_secciones: number; secciones: string[]; n_listas_opciones: number };
+    n_filas: number;
+    n_columnas: number;
+  }>(await fetch("/api/system/demo", { method: "POST", headers: headers() }));
 }
 
 export async function apiShutdown() {

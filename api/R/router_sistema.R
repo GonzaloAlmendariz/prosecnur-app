@@ -45,10 +45,11 @@ mount_sistema <- function(pr) {
       session_set(sid, "analitica_prep_ok", TRUE)
       session_set(sid, "analitica_fuente", "demo")
 
+      resumen <- summarize_instrumento(inst)
       list(
         ok = TRUE,
         session_id = sid,
-        n_preguntas = if (!is.null(inst$survey)) nrow(inst$survey) else 0L,
+        resumen_instrumento = resumen,
         n_filas = nrow(data_df),
         n_columnas = ncol(data_df)
       )

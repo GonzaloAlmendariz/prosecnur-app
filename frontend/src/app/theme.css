@@ -90,3 +90,126 @@ a { color: var(--pulso-primary); }
     radial-gradient(920px 420px at 104% -4%, rgba(0,36,87,0.04), transparent 62%),
     var(--pulso-bg);
 }
+
+/* Tipografía */
+h1.pulso-page-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--pulso-primary);
+  margin: 0 0 4px 0;
+}
+.pulso-page-lead {
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  margin: 0 0 20px 0;
+  max-width: 780px;
+}
+.pulso-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--pulso-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pulso-section-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--pulso-text-soft);
+  font-weight: 600;
+}
+
+/* Alerts */
+.pulso-alert {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid transparent;
+}
+.pulso-alert-info {
+  background: rgba(0, 36, 87, 0.04);
+  border-color: var(--pulso-primary-border);
+  color: var(--pulso-primary);
+}
+.pulso-alert-warn {
+  background: #fefce8;
+  border-color: #fde68a;
+  color: #854d0e;
+}
+.pulso-alert-error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+/* Panel */
+.pulso-panel {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  box-shadow: var(--pulso-shadow-low);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.pulso-panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.pulso-panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--pulso-primary);
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.pulso-panel-hint {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  margin: 0 0 10px 0;
+}
+
+/* Bot\u00f3n "ghost" secundario */
+button.pulso-ghost {
+  background: transparent;
+  border: 1px dashed var(--pulso-primary-border);
+  color: var(--pulso-primary);
+}
+button.pulso-ghost:hover:not(:disabled) {
+  background: rgba(0, 36, 87, 0.04);
+}
+
+/* Icon button */
+button.pulso-icon {
+  padding: 4px 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  min-width: 26px;
+  min-height: 26px;
+}
+button.pulso-icon:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-primary-border);
+}
+button.pulso-icon-danger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}

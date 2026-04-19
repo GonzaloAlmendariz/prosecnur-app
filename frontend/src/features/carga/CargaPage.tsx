@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FileSpreadsheet, Database, PlayCircle } from "lucide-react";
 import {
   apiCargaData,
   apiCargaInstrumento,
@@ -9,6 +10,8 @@ import {
   Seccion,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
+import { Panel } from "../../components/Panel";
+import { Alert } from "../../components/Alert";
 import SeccionesPanel from "./SeccionesPanel";
 import PreguntasPanel from "./PreguntasPanel";
 
@@ -17,18 +20,9 @@ type DataPreview = Awaited<ReturnType<typeof apiCargaData>>["preview"];
 
 function Status({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ fontSize: 13, color: "#555" }}>
-      <strong>{label}:</strong> {value}
+    <div style={{ fontSize: 13, color: "var(--pulso-text-soft)" }}>
+      <strong style={{ color: "var(--pulso-text)" }}>{label}:</strong> {value}
     </div>
-  );
-}
-
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section style={{ border: "1px solid #e3e3e8", borderRadius: 8, padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
-      <h3 style={{ marginTop: 0 }}>{title}</h3>
-      {children}
-    </section>
   );
 }
 
@@ -42,16 +36,11 @@ export default function CargaPage() {
 
   async function onLoadDemo() {
     setError("");
-    setBusy("cargando demo GIZ…");
+    setBusy("cargando datos de prueba…");
     try {
       const out = await apiLoadDemo();
       localStorage.setItem("pulso.sessionId", out.session_id);
-      setInstrumento({
-        n_preguntas: out.n_preguntas,
-        n_secciones: 0,
-        secciones: [],
-        n_listas_opciones: 0,
-      } as InstrumentoResumen);
+      setInstrumento(out.resumen_instrumento);
       setDataPreview({
         n_filas: out.n_filas,
         n_columnas: out.n_columnas,
@@ -78,7 +67,7 @@ export default function CargaPage() {
       if (kind === "xlsform") {
         const r = await apiCargaInstrumento(up.file_id);
         setInstrumento(r.resumen);
-        setEstructura(null); // reset viz until user opens it
+        setEstructura(null);
       } else {
         const r = await apiCargaData(up.file_id);
         setDataPreview(r.preview);
@@ -97,31 +86,44 @@ export default function CargaPage() {
     }
   }, [state?.instrumento_parsed, estructura]);
 
-  const xlsformReady = !!state?.xlsform && !!state?.instrumento_parsed;
-
   return (
     <section>
-      <h1 style={{ marginTop: 0 }}>Fase 1 — Carga de insumos</h1>
-      <p style={{ color: "var(--pulso-text-soft)" }}>
-        Sube el XLSForm (instrumento) y la base de datos del estudio. El backend los parsea y muestra un resumen;
-        abajo puedes inspeccionar interactivamente la estructura del instrumento antes de pasar a la validación.
+      <h1 className="pulso-page-title">Fase 1 — Carga de insumos</h1>
+      <p className="pulso-page-lead">
+        Sube el XLSForm (instrumento) y la base de datos. El backend los parsea y muestra un resumen; abajo
+        puedes inspeccionar interactivamente la estructura del instrumento antes de pasar a Validación.
       </p>
 
       <div
-        className="pulso-card"
         style={{
-          padding: "1rem 1.25rem", marginBottom: "1.25rem",
-          display: "flex", alignItems: "center", gap: 14,
-          background: "linear-gradient(175deg, rgba(255,255,255,0.96), rgba(247,251,255,0.90))",
-          borderColor: "var(--pulso-primary-border)",
+          display: "grid",
+          gridTemplateColumns: "auto 1fr auto",
+          alignItems: "center",
+          gap: 16,
+          padding: "16px 18px",
+          marginBottom: 20,
+          borderRadius: "var(--pulso-radius)",
+          border: "1px solid var(--pulso-primary-border)",
+          background: "linear-gradient(135deg, rgba(0,36,87,0.08), rgba(0,36,87,0.02))",
+          boxShadow: "var(--pulso-shadow-soft)",
         }}
       >
-        <div style={{ flex: 1 }}>
+        <div
+          style={{
+            width: 44, height: 44, borderRadius: 999,
+            background: "var(--pulso-primary)", color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 6px 18px rgba(0,36,87,0.35)",
+          }}
+        >
+          <PlayCircle size={22} />
+        </div>
+        <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: "var(--pulso-primary)" }}>
             ¿Solo quieres explorar la app?
           </div>
           <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginTop: 2 }}>
-            Carga un conjunto de datos de prueba (proyecto GIZ, 1 631 encuestas) y recorre todas las fases sin subir archivos propios.
+            Carga datos de prueba (proyecto GIZ · 1 631 encuestas) y recorre todas las fases en menos de cinco segundos.
           </div>
         </div>
         <button className="pulso-primary" disabled={!!busy} onClick={onLoadDemo}>
@@ -129,11 +131,11 @@ export default function CargaPage() {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginTop: "1.5rem" }}>
-        <Panel title="XLSForm (instrumento)">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+        <Panel title={<><FileSpreadsheet size={14} /> XLSForm (instrumento)</>}>
           <input type="file" accept=".xlsx,.xls" onChange={(e) => onPick("xlsform", e.target.files?.[0])} />
           {instrumento && (
-            <div style={{ marginTop: "1rem", fontSize: 14 }}>
+            <div style={{ marginTop: 14, fontSize: 13, display: "grid", gap: 4 }}>
               <Status label="Preguntas" value={String(instrumento.n_preguntas)} />
               <Status label="Secciones" value={String(instrumento.n_secciones)} />
               <Status label="Listas de opciones" value={String(instrumento.n_listas_opciones)} />
@@ -141,40 +143,42 @@ export default function CargaPage() {
           )}
         </Panel>
 
-        <Panel title="Base de datos">
+        <Panel title={<><Database size={14} /> Base de datos</>}>
           <input type="file" accept=".xlsx,.xls,.csv,.sav" onChange={(e) => onPick("data", e.target.files?.[0])} />
           {dataPreview && (
-            <div style={{ marginTop: "1rem", fontSize: 14 }}>
+            <div style={{ marginTop: 14, fontSize: 13, display: "grid", gap: 4 }}>
               <Status label="Filas" value={String(dataPreview.n_filas)} />
               <Status label="Columnas" value={String(dataPreview.n_columnas)} />
-              <details style={{ marginTop: "0.5rem" }}>
-                <summary>Ver columnas</summary>
-                <ul>
-                  {dataPreview.columnas.map((c, i) => (
-                    <li key={i}>
-                      {c.nombre} <em style={{ color: "#888" }}>({c.tipo})</em>
-                    </li>
-                  ))}
-                </ul>
-              </details>
+              {dataPreview.columnas.length > 0 && (
+                <details style={{ marginTop: 4 }}>
+                  <summary style={{ cursor: "pointer" }}>Ver columnas</summary>
+                  <ul style={{ maxHeight: 180, overflow: "auto" }}>
+                    {dataPreview.columnas.map((c, i) => (
+                      <li key={i}>
+                        {c.nombre} <em style={{ color: "var(--pulso-text-soft)" }}>({c.tipo})</em>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
             </div>
           )}
         </Panel>
       </div>
 
-      {xlsformReady && estructura && (
+      {state?.instrumento_parsed && estructura && (
         <>
-          <Panel title="Mapa de secciones">
+          <Panel eyebrow="Instrumento" title="Mapa de secciones" hint="Cada fila es una sección del XLSForm con su lógica de visibilidad (relevant).">
             <SeccionesPanel secciones={estructura.secciones} />
           </Panel>
-          <Panel title="Mapa de preguntas">
+          <Panel eyebrow="Instrumento" title="Mapa de preguntas" hint="Cada celda es una pregunta. Los chips indican las reglas declaradas en el XLSForm.">
             <PreguntasPanel preguntas={estructura.preguntas} secciones={estructura.secciones} />
           </Panel>
         </>
       )}
 
-      {busy && <div style={{ color: "#0066cc", marginTop: "1rem" }}>{busy}</div>}
-      {error && <div style={{ color: "#c00", marginTop: "1rem" }}>⚠ {error}</div>}
+      {busy && <Alert kind="info">{busy}</Alert>}
+      {error && <Alert kind="error">{error}</Alert>}
     </section>
   );
 }

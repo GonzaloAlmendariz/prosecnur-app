@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Palette, Download, Save, Upload, RotateCcw, FileText } from "lucide-react";
 import {
   apiGraficosPpt,
   apiGraficosWord,
@@ -6,6 +7,7 @@ import {
   downloadUrl,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
+import { Alert } from "../../components/Alert";
 import { usePlanStore } from "./store";
 import TimelinePanel from "./TimelinePanel";
 import SlideEditor from "./SlideEditor";
@@ -69,41 +71,71 @@ export default function GraficosPage() {
   }
 
   return (
-    <section style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 2rem)" }}>
-      <h1 style={{ marginTop: 0, marginBottom: "0.25rem" }}>Fase 5 — Reportes gráficos</h1>
-      <p style={{ color: "#666", fontSize: 13, marginTop: 0, marginBottom: "0.75rem" }}>
-        Editor bloque por bloque: timeline de slides a la izquierda, editor del slide seleccionado al centro, preview próximamente a la derecha.
+    <section style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 96px)" }}>
+      <h1 className="pulso-page-title">Fase 5 — Reportes gráficos</h1>
+      <p className="pulso-page-lead" style={{ marginBottom: 10 }}>
+        Editor bloque por bloque: timeline a la izquierda, editor del slide al centro, preview de la secuencia a la derecha.
       </p>
 
       {!prepOk && (
-        <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", padding: "0.5rem 0.75rem", borderRadius: 6, marginBottom: "0.5rem", fontSize: 13 }}>
-          Primero prepara los datos en <strong>4. Analítica</strong>. La exportación requiere <code>rp_data</code> + <code>rp_inst</code> en sesión.
+        <div style={{ marginBottom: 10 }}>
+          <Alert kind="warn">
+            Primero prepara los datos en <strong>4. Analítica</strong>. La exportación requiere <code>rp_data</code> + <code>rp_inst</code> en sesión.
+          </Alert>
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap", padding: "0.5rem 0", borderBottom: "1px solid #e3e3e8", marginBottom: "0.5rem" }}>
-        <button onClick={() => setPresetsOpen("ppt")} title="Estilos globales del PPT">🎨 Presets PPT</button>
-        <button onClick={() => setPresetsOpen("word")} title="Estilos globales del Word">🎨 Presets Word</button>
-        <span style={{ width: 1, height: 20, background: "#e3e3e8" }} />
-        <button onClick={() => onExport("ppt")} disabled={!prepOk || plan.slides.length === 0 || !!busy}>
-          Exportar .pptx
+      <div style={{
+        display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap",
+        padding: "10px 14px", marginBottom: 10,
+        background: "var(--pulso-surface)", border: "1px solid var(--pulso-border)",
+        borderRadius: "var(--pulso-radius)", boxShadow: "var(--pulso-shadow-low)",
+      }}>
+        <button onClick={() => setPresetsOpen("ppt")} title="Estilos globales del PPT"
+          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Palette size={13} /> Presets PPT
         </button>
-        {pptFileId && <a href={downloadUrl(pptFileId)} style={{ fontSize: 13 }}>reporte.pptx →</a>}
-        <button onClick={() => onExport("word")} disabled={!prepOk || plan.slides.length === 0 || !!busy}>
-          Exportar .docx
+        <button onClick={() => setPresetsOpen("word")} title="Estilos globales del Word"
+          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Palette size={13} /> Presets Word
         </button>
-        {docxFileId && <a href={downloadUrl(docxFileId)} style={{ fontSize: 13 }}>reporte.docx →</a>}
+        <span style={{ width: 1, height: 22, background: "var(--pulso-border)" }} />
+        <button className="pulso-primary" onClick={() => onExport("ppt")} disabled={!prepOk || plan.slides.length === 0 || !!busy}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <FileText size={13} /> Exportar .pptx
+        </button>
+        {pptFileId && (
+          <a href={downloadUrl(pptFileId)} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <Download size={13} /> reporte.pptx
+          </a>
+        )}
+        <button className="pulso-primary" onClick={() => onExport("word")} disabled={!prepOk || plan.slides.length === 0 || !!busy}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <FileText size={13} /> Exportar .docx
+        </button>
+        {docxFileId && (
+          <a href={downloadUrl(docxFileId)} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <Download size={13} /> reporte.docx
+          </a>
+        )}
         <span style={{ flex: 1 }} />
-        <button onClick={onSaveJson} disabled={plan.slides.length === 0}>Guardar JSON</button>
-        <label style={{ fontSize: 12 }}>
-          Cargar JSON: <input type="file" accept=".json" onChange={(e) => onLoadJson(e.target.files?.[0])} />
+        <button onClick={onSaveJson} disabled={plan.slides.length === 0}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Save size={13} /> Guardar JSON
+        </button>
+        <label style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Upload size={13} color="var(--pulso-text-soft)" />
+          <input type="file" accept=".json" onChange={(e) => onLoadJson(e.target.files?.[0])} />
         </label>
-        <button onClick={resetPlan} disabled={plan.slides.length === 0} style={{ color: "#c00" }}>Reset plan</button>
+        <button onClick={resetPlan} disabled={plan.slides.length === 0}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#991b1b" }}>
+          <RotateCcw size={13} /> Reset
+        </button>
       </div>
 
       {presetsOpen && <PresetsModal kind={presetsOpen} onClose={() => setPresetsOpen(null)} />}
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden", border: "1px solid #e3e3e8", borderRadius: 6 }}>
+      <div style={{ display: "flex", flex: 1, overflow: "hidden", border: "1px solid var(--pulso-border)", borderRadius: "var(--pulso-radius)", background: "var(--pulso-surface)", boxShadow: "var(--pulso-shadow-low)" }}>
         <TimelinePanel />
         <SlideEditor />
         <aside style={{ width: 420, borderLeft: "1px solid #e3e3e8", padding: "1rem", overflowY: "auto", background: "#fafbfc" }}>
@@ -141,13 +173,9 @@ export default function GraficosPage() {
         </aside>
       </div>
 
-      {busy && <div style={{ color: "#0066cc", fontSize: 13, marginTop: "0.5rem" }}>{busy}</div>}
-      {warns.length > 0 && (
-        <div style={{ color: "#92400e", fontSize: 12, marginTop: "0.5rem" }}>
-          ⚠ {warns.join(" · ")}
-        </div>
-      )}
-      {error && <div style={{ color: "#c00", fontSize: 13, marginTop: "0.5rem" }}>⚠ {error}</div>}
+      {busy && <div style={{ marginTop: 10 }}><Alert kind="info">{busy}</Alert></div>}
+      {warns.length > 0 && <div style={{ marginTop: 10 }}><Alert kind="warn">{warns.join(" · ")}</Alert></div>}
+      {error && <div style={{ marginTop: 10 }}><Alert kind="error">{error}</Alert></div>}
     </section>
   );
 }

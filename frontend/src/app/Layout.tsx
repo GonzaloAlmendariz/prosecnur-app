@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { Check, ChevronRight, Power } from "lucide-react";
 import { useSession } from "../lib/SessionContext";
 import { apiShutdown } from "../api/client";
 
@@ -69,7 +70,7 @@ function NavItem({ it }: { it: NavItem }) {
         {it.n}
       </span>
       <span>{it.label}</span>
-      {it.done && <span style={{ fontSize: 11 }}>✓</span>}
+      {it.done && <Check size={13} strokeWidth={3} />}
     </NavLink>
   );
 }
@@ -84,7 +85,7 @@ function SessionChip() {
           sid {sessionId.slice(0, 6)}…
         </span>
       )}
-      {error && <span style={{ color: "#b91c1c" }}>⚠ {error}</span>}
+      {error && <span style={{ color: "#b91c1c" }}>{error}</span>}
     </div>
   );
 }
@@ -104,18 +105,21 @@ export default function Layout() {
         }}
       >
         <Brand />
-        <nav style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <nav style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           {items.map((it, i) => (
-            <div key={it.to} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div key={it.to} style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <NavItem it={it} />
-              {i < items.length - 1 && <span style={{ color: "#c2c8d4", fontSize: 13 }}>›</span>}
+              {i < items.length - 1 && <ChevronRight size={14} color="#c2c8d4" />}
             </div>
           ))}
         </nav>
         <div style={{ flex: 1 }} />
         <SessionChip />
-        <button onClick={() => apiShutdown().then(() => window.close()).catch(() => {})} style={{ fontSize: 12 }}>
-          Cerrar
+        <button
+          onClick={() => apiShutdown().then(() => window.close()).catch(() => {})}
+          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}
+        >
+          <Power size={13} /> Cerrar
         </button>
       </header>
       <main style={{ padding: "1.75rem 2rem", maxWidth: 1440, margin: "0 auto", width: "100%" }}>

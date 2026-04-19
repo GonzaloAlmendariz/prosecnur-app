@@ -58,14 +58,14 @@ export default function PreguntasPanel({ preguntas, secciones }: { preguntas: Pr
   const seccionLabel = Object.fromEntries(secciones.map((s) => [s.name, s.label]));
 
   return (
-    <div style={{ marginTop: "0.5rem" }}>
-      <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-        Cada celda es una pregunta; los chips en la esquina señalan qué reglas ya están declaradas en el XLSForm
-        (<Chip k="required" /> obligatoria, <Chip k="relevant" /> visible-si, <Chip k="constraint" /> restricción,
-        <Chip k="calculate" /> calculada). El color indica la sección. Pasa el mouse para ver la etiqueta completa,
-        click para ver detalle abajo.
-      </p>
-
+    <div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center", fontSize: 11, color: "var(--pulso-text-soft)" }}>
+        <span>Chips:</span>
+        <Chip k="required" /> obligatoria
+        <Chip k="relevant" /> visible-si
+        <Chip k="constraint" /> restricción
+        <Chip k="calculate" /> calculada
+      </div>
       <div style={{ display: "flex", gap: 12, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
         <select value={f.seccion} onChange={(e) => setF({ ...f, seccion: e.target.value })} style={{ fontSize: 13 }}>
           <option value="">Todas las secciones</option>

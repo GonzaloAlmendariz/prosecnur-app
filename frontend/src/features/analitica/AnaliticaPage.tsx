@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Download, Play, BookOpen, BarChart2, Grid3x3, FileText, Users } from "lucide-react";
 import {
   apiAnaliticaCodebook,
   apiAnaliticaCruces,
@@ -9,20 +10,13 @@ import {
   downloadUrl,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
-
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section style={{ border: "1px solid #e3e3e8", borderRadius: 8, padding: "1rem 1.25rem", marginBottom: "1.25rem" }}>
-      <h3 style={{ marginTop: 0 }}>{title}</h3>
-      {children}
-    </section>
-  );
-}
+import { Panel } from "../../components/Panel";
+import { Alert } from "../../components/Alert";
 
 function Status({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 13, color: "#555" }}>
-      <strong>{label}:</strong> {value}
+    <div style={{ fontSize: 13, color: "var(--pulso-text-soft)" }}>
+      <strong style={{ color: "var(--pulso-text)" }}>{label}:</strong> {value}
     </div>
   );
 }
@@ -82,33 +76,35 @@ export default function AnaliticaPage() {
 
   function DL({ id, label }: { id?: string; label: string }) {
     if (!id) return null;
-    return <a href={downloadUrl(id)} style={{ fontSize: 14 }}>{label} →</a>;
+    return (
+      <a href={downloadUrl(id)} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}>
+        <Download size={13} /> {label}
+      </a>
+    );
   }
 
   const prepOk = !!state?.analitica_prep_ok;
 
   return (
     <section>
-      <h1 style={{ marginTop: 0 }}>Fase 4 — Preparación y reportes analíticos</h1>
-      <p style={{ color: "#666" }}>
-        Procesa la data con etiquetas y medidas SPSS, y genera los entregables Excel/SPSS/PDF.
-        Si ya aplicaste codificación en Fase 3, se usan los adaptados automáticamente.
+      <h1 className="pulso-page-title">Fase 4 — Preparación y reportes analíticos</h1>
+      <p className="pulso-page-lead">
+        Procesa la data con etiquetas y medidas SPSS y genera los entregables Excel/SPSS/PDF. Si ya aplicaste
+        codificación en Fase 3, se usan los adaptados automáticamente.
       </p>
 
       {!prereqOk && (
-        <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", padding: "0.75rem 1rem", borderRadius: 6, marginBottom: "1rem", fontSize: 14 }}>
-          Necesitas cargar XLSForm y base de datos en <strong>1. Carga</strong> antes de preparar.
+        <div style={{ marginBottom: 12 }}>
+          <Alert kind="warn">Necesitas cargar XLSForm y base de datos en <strong>1. Carga</strong> antes de preparar.</Alert>
         </div>
       )}
 
-      <Panel title="Paso 1 — Preparar datos para reporte">
-        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-          Ejecuta <code>reporte_instrumento()</code> + <code>reporte_data()</code> para aplicar etiquetas, value-labels
-          y medidas SPSS. Este resultado queda en memoria y alimenta todos los entregables siguientes.
-        </p>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <button disabled={!prereqOk || !!busy} onClick={onPreparar}>
-            {prepOk ? "Volver a preparar" : "Preparar"}
+      <Panel eyebrow="Paso 1" title="Preparar datos para reporte"
+        hint={<><code>reporte_instrumento()</code> + <code>reporte_data()</code> aplican etiquetas, value-labels y medidas SPSS. El resultado queda en memoria y alimenta todos los entregables.</>}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <button className="pulso-primary" disabled={!prereqOk || !!busy} onClick={onPreparar}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Play size={14} /> {prepOk ? "Volver a preparar" : "Preparar"}
           </button>
           {prep && (
             <>
@@ -120,83 +116,76 @@ export default function AnaliticaPage() {
         </div>
       </Panel>
 
-      <Panel title="Paso 2 — Libro de códigos">
-        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-          Diccionario de variables con etiquetas y valores válidos (Excel).
-        </p>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <button disabled={!prepOk || !!busy} onClick={onCodebook}>Generar codebook</button>
+      <Panel eyebrow="Paso 2" title={<><BookOpen size={14} /> Libro de códigos</>} hint="Diccionario de variables con etiquetas y valores válidos (Excel).">
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <button disabled={!prepOk || !!busy} onClick={onCodebook}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Play size={14} /> Generar codebook
+          </button>
           <DL id={downloads.codebook} label="codebook.xlsx" />
         </div>
       </Panel>
 
-      <Panel title="Paso 3 — Frecuencias">
-        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-          Tablas univariadas por variable (estilo SPSS), exportadas en un Excel multi-hoja.
-        </p>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <button disabled={!prepOk || !!busy} onClick={onFrecuencias}>Generar frecuencias</button>
+      <Panel eyebrow="Paso 3" title={<><BarChart2 size={14} /> Frecuencias</>} hint="Tablas univariadas por variable (estilo SPSS) en un Excel multi-hoja.">
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <button disabled={!prepOk || !!busy} onClick={onFrecuencias}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Play size={14} /> Generar frecuencias
+          </button>
           <DL id={downloads.frecuencias} label="frecuencias.xlsx" />
         </div>
       </Panel>
 
-      <Panel title="Paso 4 — Cruces (tablas 2D)">
-        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-          Indica la variable contra la cual se cruzarán el resto de preguntas (p. ej. <code>servicio</code>,
-          <code>p1</code>, <code>distrito</code>). Puede tardar varios minutos en corpus grandes.
-        </p>
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ fontSize: 13 }}>
-            Variable:{" "}
-            <input
-              value={cruceVar}
-              onChange={(e) => setCruceVar(e.target.value)}
-              style={{ fontSize: 13, padding: "2px 6px", width: 140 }}
-            />
+      <Panel eyebrow="Paso 4" title={<><Grid3x3 size={14} /> Cruces (tablas 2D)</>}
+        hint={<>Indica la variable contra la cual se cruzarán el resto de preguntas (p. ej. <code>servicio</code>, <code>p1</code>, <code>distrito</code>). Puede tardar varios minutos en corpus grandes.</>}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <label style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            Variable
+            <input value={cruceVar} onChange={(e) => setCruceVar(e.target.value)} style={{ width: 140 }} />
           </label>
-          <label style={{ fontSize: 13 }}>
-            Modo:{" "}
+          <label style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            Modo
             <select value={cruceModo} onChange={(e) => setCruceModo(e.target.value as "estandar" | "dimensiones")}>
               <option value="estandar">estandar</option>
               <option value="dimensiones">dimensiones</option>
             </select>
           </label>
-          <button disabled={!prepOk || !!busy || !cruceVar} onClick={onCruces}>Generar cruces</button>
+          <button disabled={!prepOk || !!busy || !cruceVar} onClick={onCruces}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Play size={14} /> Generar cruces
+          </button>
           <DL id={downloads.cruces} label="cruces.xlsx" />
         </div>
       </Panel>
 
-      <Panel title="Paso 5 — SPSS (.sav + .sps)">
-        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-          Exporta el dataset etiquetado como <code>.sav</code> y la sintaxis de niveles como <code>.sps</code>,
-          empaquetados en un zip.
-        </p>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <button disabled={!prepOk || !!busy} onClick={onSpss}>Exportar SPSS</button>
+      <Panel eyebrow="Paso 5" title={<><FileText size={14} /> SPSS (.sav + .sps)</>}
+        hint={<>Exporta el dataset etiquetado como <code>.sav</code> y la sintaxis de niveles como <code>.sps</code>, empaquetados en un zip.</>}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <button disabled={!prepOk || !!busy} onClick={onSpss}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Play size={14} /> Exportar SPSS
+          </button>
           <DL id={downloads.spss} label="spss.zip" />
         </div>
       </Panel>
 
-      <Panel title="Paso 6 — Reporte de enumeradores (PDF)">
-        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-          Indica la columna que identifica al enumerador/encuestador en tus datos.
-        </p>
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ fontSize: 13 }}>
-            Columna:{" "}
-            <input
-              value={colEnum}
-              onChange={(e) => setColEnum(e.target.value)}
-              style={{ fontSize: 13, padding: "2px 6px", width: 180 }}
-            />
+      <Panel eyebrow="Paso 6" title={<><Users size={14} /> Reporte de enumeradores (PDF)</>}
+        hint="Indica la columna que identifica al enumerador/encuestador en tus datos.">
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <label style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            Columna
+            <input value={colEnum} onChange={(e) => setColEnum(e.target.value)} style={{ width: 180 }} />
           </label>
-          <button disabled={!prepOk || !!busy || !colEnum} onClick={onEnumeradores}>Generar reporte</button>
+          <button disabled={!prepOk || !!busy || !colEnum} onClick={onEnumeradores}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Play size={14} /> Generar reporte
+          </button>
           <DL id={downloads.enumeradores} label="enumeradores.pdf" />
         </div>
       </Panel>
 
-      {busy && <div style={{ color: "#0066cc" }}>{busy}</div>}
-      {error && <div style={{ color: "#c00" }}>⚠ {error}</div>}
+      {busy && <Alert kind="info">{busy}</Alert>}
+      {error && <Alert kind="error">{error}</Alert>}
     </section>
   );
 }

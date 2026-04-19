@@ -9,11 +9,7 @@ export default function SeccionesPanel({ secciones }: { secciones: Seccion[] }) 
     return <em style={{ color: "#888" }}>Sin secciones detectadas.</em>;
   }
   return (
-    <div style={{ marginTop: "0.5rem" }}>
-      <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-        Cada fila es una sección del XLSForm. Las etiquetas a la derecha indican su tipo y su lógica de visibilidad
-        (<code>relevant</code>). Una flecha conecta cada sección con la lógica que la activa.
-      </p>
+    <div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {secciones.map((s, i) => {
           const cond = s.relevant ? sustituir_refs(s.relevant) : null;

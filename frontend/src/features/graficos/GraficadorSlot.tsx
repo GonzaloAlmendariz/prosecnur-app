@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Plus, Replace, X } from "lucide-react";
 import { GraficadorRef } from "../../api/client";
 import { usePlanStore } from "./store";
 import GraficadorPicker, { GraficadorMeta } from "./GraficadorPicker";
@@ -23,13 +24,16 @@ export default function GraficadorSlot({ slideId, slotName, value }: Props) {
   if (!value || !value.graficador) {
     return (
       <div style={{
-        marginBottom: "0.75rem", padding: "0.75rem", border: "1px dashed #d1d5db", borderRadius: 6,
-        background: "#fafafa", fontSize: 13,
+        marginBottom: 10, padding: 10, border: "1px dashed var(--pulso-border)", borderRadius: 6,
+        background: "var(--pulso-surface-2)", fontSize: 13,
       }}>
-        <div style={{ color: "#6b7280", marginBottom: 6 }}>
+        <div style={{ color: "var(--pulso-text-soft)", marginBottom: 6 }}>
           <strong>Slot: {slotName}</strong> · sin graficador
         </div>
-        <button onClick={() => setPickerOpen(true)} style={{ fontSize: 13 }}>+ Agregar graficador</button>
+        <button className="pulso-ghost" onClick={() => setPickerOpen(true)}
+          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Plus size={13} /> Agregar graficador
+        </button>
         {pickerOpen && <GraficadorPicker onPick={onPick} onCancel={() => setPickerOpen(false)} />}
       </div>
     );
@@ -37,17 +41,23 @@ export default function GraficadorSlot({ slideId, slotName, value }: Props) {
 
   return (
     <div style={{
-      marginBottom: "0.75rem", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: 6,
-      background: "#f8fafc",
+      marginBottom: 10, padding: 10, border: "1px solid var(--pulso-primary-border)", borderRadius: 6,
+      background: "rgba(0,36,87,0.03)",
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <div>
-          <strong style={{ fontSize: 13 }}>Slot: {slotName}</strong>{" "}
-          <code style={{ fontSize: 12, background: "#e2e8f0", padding: "1px 6px", borderRadius: 3 }}>{value.graficador}</code>
+          <strong style={{ fontSize: 13, color: "var(--pulso-primary)" }}>Slot: {slotName}</strong>{" "}
+          <code style={{ fontSize: 11, background: "#fff", border: "1px solid var(--pulso-primary-border)", padding: "2px 6px", borderRadius: 3, color: "var(--pulso-primary)" }}>{value.graficador}</code>
         </div>
         <div style={{ display: "flex", gap: 4 }}>
-          <button onClick={() => setPickerOpen(true)} style={{ fontSize: 11 }}>Cambiar</button>
-          <button onClick={() => setSlot(slideId, slotName, null)} style={{ fontSize: 11, color: "#c00" }}>Quitar</button>
+          <button onClick={() => setPickerOpen(true)}
+            style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <Replace size={12} /> Cambiar
+          </button>
+          <button onClick={() => setSlot(slideId, slotName, null)}
+            className="pulso-icon pulso-icon-danger" title="Quitar graficador">
+            <X size={13} />
+          </button>
         </div>
       </div>
       <GraficadorForm graf={value} onArgs={(patch) => updateArgs(slideId, slotName, patch)} />

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Download, Upload, Play, Search } from "lucide-react";
 import {
   apiUpload,
   apiValidacionAuditoria,
@@ -11,15 +12,8 @@ import {
   PlanRow,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
-
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section style={{ border: "1px solid #e3e3e8", borderRadius: 8, padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
-      <h3 style={{ marginTop: 0 }}>{title}</h3>
-      {children}
-    </section>
-  );
-}
+import { Panel } from "../../components/Panel";
+import { Alert } from "../../components/Alert";
 
 function KeyValueTable({ rows }: { rows: Record<string, unknown>[] }) {
   if (!rows || rows.length === 0) return <em style={{ color: "#888" }}>sin resultados</em>;
@@ -117,30 +111,31 @@ export default function ValidacionPage() {
 
   return (
     <section>
-      <h1 style={{ marginTop: 0 }}>Fase 2 — Validación</h1>
-      <p style={{ color: "#666" }}>
+      <h1 className="pulso-page-title">Fase 2 — Validación</h1>
+      <p className="pulso-page-lead">
         Construye el plan de limpieza desde el XLSForm, edítalo offline si quieres, y audita la base de datos contra las reglas.
       </p>
 
       {!xlsformReady && (
-        <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", padding: "0.75rem 1rem", borderRadius: 6, marginBottom: "1rem", fontSize: 14 }}>
-          Necesitas cargar el XLSForm primero en <strong>1. Carga</strong>.
+        <div style={{ marginBottom: 12 }}>
+          <Alert kind="warn">Necesitas cargar el XLSForm primero en <strong>1. Carga</strong>.</Alert>
         </div>
       )}
 
-      <Panel title="Paso 1 — Construir plan de limpieza">
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <button disabled={!xlsformReady || !!busy} onClick={onBuildPlan}>
-            {nReglas == null ? "Construir plan" : "Reconstruir"}
+      <Panel eyebrow="Paso 1" title="Construir plan de limpieza">
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <button className="pulso-primary" disabled={!xlsformReady || !!busy} onClick={onBuildPlan}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Play size={14} /> {nReglas == null ? "Construir plan" : "Reconstruir"}
           </button>
           {nReglas != null && (
             <>
-              <span style={{ color: "#555" }}>{nReglas} reglas generadas</span>
-              <button disabled={!!busy} onClick={onExport} style={{ marginLeft: "auto" }}>
-                Descargar Excel
+              <span style={{ color: "var(--pulso-text-soft)", fontSize: 13 }}>{nReglas} reglas generadas</span>
+              <button disabled={!!busy} onClick={onExport} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Download size={14} /> Descargar Excel
               </button>
               {exportFileId && (
-                <a href={downloadUrl(exportFileId)} style={{ fontSize: 14 }}>plan_limpieza.xlsx →</a>
+                <a href={downloadUrl(exportFileId)} style={{ fontSize: 13 }}>plan_limpieza.xlsx</a>
               )}
             </>
           )}
@@ -159,11 +154,9 @@ export default function ValidacionPage() {
         )}
       </Panel>
 
-      <Panel title="Paso 2 — Importar plan editado (opcional)">
-        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
-          Si editaste el Excel exportado arriba, súbelo aquí para reemplazar el plan en memoria antes de auditar.
-        </p>
-        <label style={{ fontSize: 14 }}>
+      <Panel eyebrow="Paso 2" title="Importar plan editado (opcional)" hint="Si editaste el Excel exportado arriba, súbelo aquí para reemplazar el plan en memoria antes de auditar.">
+        <label style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <Upload size={14} color="var(--pulso-text-soft)" />
           <input
             type="file"
             accept=".xlsx"
@@ -173,10 +166,11 @@ export default function ValidacionPage() {
         </label>
       </Panel>
 
-      <Panel title="Paso 3 — Auditar consistencia de la base de datos">
-        {!dataReady && <div style={{ fontSize: 13, color: "#999", marginBottom: "0.5rem" }}>Requiere una base de datos cargada.</div>}
-        <button disabled={!dataReady || nReglas == null || !!busy} onClick={onAudit}>
-          Ejecutar auditoría
+      <Panel eyebrow="Paso 3" title="Auditar consistencia de la base de datos">
+        {!dataReady && <div style={{ fontSize: 13, color: "var(--pulso-text-soft)", marginBottom: 8 }}>Requiere una base de datos cargada.</div>}
+        <button className="pulso-primary" disabled={!dataReady || nReglas == null || !!busy} onClick={onAudit}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Play size={14} /> Ejecutar auditoría
         </button>
         {total != null && (
           <div style={{ marginTop: "1rem", fontSize: 15 }}>
@@ -184,11 +178,12 @@ export default function ValidacionPage() {
           </div>
         )}
         {topReglas && topReglas.length > 0 && (
-          <div style={{ marginTop: "1rem" }}>
-            <h4>Reglas con más inconsistencias</h4>
+          <div style={{ marginTop: 14 }}>
+            <div className="pulso-section-title">Reglas con más inconsistencias</div>
             <KeyValueTable rows={topReglas} />
-            <div style={{ marginTop: "0.75rem", fontSize: 13 }}>
-              Drill-down por <code>id_regla</code>:{" "}
+            <div style={{ marginTop: 12, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <Search size={14} color="var(--pulso-text-soft)" />
+              <span>Drill-down por <code>id_regla</code>:</span>
               <input
                 placeholder="ej. R_001"
                 onKeyDown={(e) => {
@@ -200,8 +195,8 @@ export default function ValidacionPage() {
               />
             </div>
             {reglaDetalle && (
-              <div style={{ marginTop: "0.75rem" }}>
-                <strong>Detalle regla {reglaDetalle.id}:</strong>
+              <div style={{ marginTop: 12 }}>
+                <div className="pulso-section-title">Detalle regla {reglaDetalle.id}</div>
                 <KeyValueTable rows={reglaDetalle.rows} />
               </div>
             )}
@@ -209,13 +204,13 @@ export default function ValidacionPage() {
         )}
       </Panel>
 
-      <p style={{ fontSize: 13, color: "#888" }}>
+      <p style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
         ¿Necesitas revisar la estructura del XLSForm (secciones, preguntas, reglas declaradas)? Los mapas interactivos
         están ahora en <strong>1. Carga</strong>.
       </p>
 
-      {busy && <div style={{ color: "#0066cc" }}>{busy}</div>}
-      {error && <div style={{ color: "#c00" }}>⚠ {error}</div>}
+      {busy && <Alert kind="info">{busy}</Alert>}
+      {error && <Alert kind="error">{error}</Alert>}
     </section>
   );
 }
