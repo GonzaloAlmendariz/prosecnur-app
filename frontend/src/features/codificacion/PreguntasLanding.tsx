@@ -1,11 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
   ArrowRight,
   Check,
   ChevronDown,
   ChevronRight as ChevronRightIcon,
   CircleAlert,
+  GripVertical,
   Link2,
   Link2Off,
   Search,
@@ -39,8 +52,14 @@ export function PreguntasLanding() {
   const [filter, setFilter] = useState<Filter>("codificables");
   const [query, setQuery] = useState<string>("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [pairingFor, setPairingFor] = useState<PreguntaAbierta | null>(null);
+  const [pairingFor, setPairingFor] = useState<{ parent: PreguntaAbierta; preselectedChild?: string } | null>(null);
   const [busyPair, setBusyPair] = useState<string>("");
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor)
+  );
 
   async function refresh() {
     try {
@@ -108,9 +127,9 @@ export function PreguntasLanding() {
 
   async function onConfirmPair(result: PairingResult) {
     if (!pairingFor) return;
-    setBusyPair(pairingFor.parent);
+    setBusyPair(pairingFor.parent.parent);
     try {
-      await apiCodifPareja(pairingFor.parent, result.child_col, result.modo_so, result.dummy_col);
+      await apiCodifPareja(pairingFor.parent.parent, result.child_col, result.modo_so, result.dummy_col);
       setPairingFor(null);
       await refresh();
     } catch (e) {
@@ -119,6 +138,30 @@ export function PreguntasLanding() {
       setBusyPair("");
     }
   }
+
+  function onDragStart(e: DragStartEvent) {
+    setActiveDragId(String(e.active.id));
+  }
+
+  function onDragEnd(e: DragEndEvent) {
+    setActiveDragId(null);
+    const { active, over } = e;
+    if (!over || !data) return;
+    const childParent = String(active.id);
+    const parentParent = String(over.id);
+    if (childParent === parentParent) return;
+    const parentPregunta = data.find((p) => p.parent === parentParent);
+    const childPregunta = data.find((p) => p.parent === childParent);
+    if (!parentPregunta || !childPregunta) return;
+    // child_col: preferir col_efectiva (la columna de texto del huérfana)
+    const childCol = childPregunta.col_efectiva || childPregunta.parent;
+    setPairingFor({ parent: parentPregunta, preselectedChild: childCol });
+  }
+
+  const activePregunta = useMemo(() => {
+    if (!activeDragId || !data) return null;
+    return data.find((p) => p.parent === activeDragId) ?? null;
+  }, [activeDragId, data]);
 
   async function onDesemparejar(parent: string) {
     setBusyPair(parent);
@@ -145,6 +188,7 @@ export function PreguntasLanding() {
   if (!data) return <Alert kind="info">Detectando preguntas abiertas…</Alert>;
 
   return (
+    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
     <div>
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <FilterChip label={`Codificables (${counts.codificables})`} active={filter === "codificables"} onClick={() => setFilter("codificables")} />
@@ -173,19 +217,48 @@ export function PreguntasLanding() {
           preguntas={s.preguntas}
           collapsed={collapsed.has(s.id)}
           onToggle={() => toggleSection(s.id)}
-          onPair={(p) => setPairingFor(p)}
+          onPair={(p) => setPairingFor({ parent: p })}
           onUnpair={onDesemparejar}
           busyPair={busyPair}
+          dragActive={!!activeDragId}
         />
       ))}
 
       {pairingFor && (
         <PairingDialog
-          pregunta={pairingFor}
+          pregunta={pairingFor.parent}
+          preselectedChild={pairingFor.preselectedChild}
           onConfirm={onConfirmPair}
           onCancel={() => setPairingFor(null)}
         />
       )}
+    </div>
+
+    <DragOverlay dropAnimation={null}>
+      {activePregunta ? <DragOverlayCard p={activePregunta} /> : null}
+    </DragOverlay>
+    </DndContext>
+  );
+}
+
+function DragOverlayCard({ p }: { p: PreguntaAbierta }) {
+  const ts = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
+  return (
+    <div
+      style={{
+        border: "1px solid var(--pulso-primary)",
+        borderLeft: `4px solid ${ts.border}`,
+        borderRadius: 8,
+        padding: 10,
+        background: "white",
+        boxShadow: "var(--pulso-shadow-med)",
+        minWidth: 220, maxWidth: 280,
+        display: "flex", flexDirection: "column", gap: 4,
+        transform: "rotate(-2deg)",
+      }}
+    >
+      <div style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: ts.fg }}>{p.parent}</div>
+      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{truncate(p.parent_label, 60)}</div>
     </div>
   );
 }
@@ -224,9 +297,10 @@ type SectionProps = {
   onPair: (p: PreguntaAbierta) => void;
   onUnpair: (parent: string) => void;
   busyPair: string;
+  dragActive: boolean;
 };
 
-function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair }: SectionProps) {
+function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive }: SectionProps) {
   const porEmparejar = preguntas.filter((p) => {
     const arq = arquetipoOf(p);
     return (arq === "pareja-so" || arq === "pareja-sm") && !isPaired(p);
@@ -270,6 +344,7 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
               onPair={() => onPair(p)}
               onUnpair={() => onUnpair(p.parent)}
               busy={busyPair === p.parent}
+              dragActive={dragActive}
             />
           ))}
         </div>
@@ -283,26 +358,45 @@ type CardProps = {
   onPair: () => void;
   onUnpair: () => void;
   busy: boolean;
+  dragActive: boolean;
 };
 
-function PreguntaCard({ p, onPair, onUnpair, busy }: CardProps) {
+function PreguntaCard({ p, onPair, onUnpair, busy, dragActive }: CardProps) {
   const arq = arquetipoOf(p);
   const tipoStyle = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
   const paired = isPaired(p);
 
+  // Drag (huérfanas) / Drop (parejas sin emparejar) wiring
+  const isOrphan = arq === "huerfana";
+  const isDropTarget = (arq === "pareja-so" || arq === "pareja-sm") && !paired;
+  const draggable = useDraggable({ id: p.parent, disabled: !isOrphan });
+  const droppable = useDroppable({ id: p.parent, disabled: !isDropTarget });
+
   const ts = tipoStyle;
+  const dropHighlight = dragActive && isDropTarget;
+  const dropOver = droppable.isOver && isDropTarget;
   const common: React.CSSProperties = {
-    border: "1px solid var(--pulso-border)",
+    border: dropOver
+      ? `2px dashed var(--drag-valid-border)`
+      : dropHighlight
+      ? `1px dashed var(--drag-valid-border)`
+      : "1px solid var(--pulso-border)",
     borderLeft: `4px solid ${ts.border}`,
     borderRadius: 8,
     padding: 14,
-    background: "white",
+    background: dropOver ? "var(--drag-valid-bg)" : "white",
     display: "flex",
     flexDirection: "column",
     gap: 8,
     minHeight: 170,
     position: "relative",
+    transition: "background 120ms, border-color 120ms",
+    opacity: draggable.isDragging ? 0.4 : 1,
   };
+  // Attach dnd-kit ref/listeners to the wrapping article.
+  const ref = isOrphan ? draggable.setNodeRef : isDropTarget ? droppable.setNodeRef : undefined;
+  const listeners = isOrphan ? draggable.listeners : undefined;
+  const attributes = isOrphan ? draggable.attributes : undefined;
 
   // --- HEADER común ---
   const header = (
@@ -351,7 +445,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy }: CardProps) {
   // CASE 1: auto (integer)
   if (arq === "auto") {
     return (
-      <article style={common}>
+      <article ref={ref} {...listeners} {...attributes} style={common}>
         {header}
         {label}
         {tipoRow}
@@ -372,7 +466,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy }: CardProps) {
   // CASE 2: solitaria (text puro)
   if (arq === "solitaria") {
     return (
-      <article style={common}>
+      <article ref={ref} {...listeners} {...attributes} style={common}>
         {header}
         {label}
         {tipoRow}
@@ -384,17 +478,32 @@ function PreguntaCard({ p, onPair, onUnpair, busy }: CardProps) {
     );
   }
 
-  // CASE 3: huerfana (text con patrón _otro)
+  // CASE 3: huerfana (text con patrón _otro) — draggable
   if (arq === "huerfana") {
     return (
-      <article style={{ ...common, borderStyle: "dashed", borderColor: ts.border, background: "#fafaf7" }}>
+      <article
+        ref={ref}
+        {...listeners}
+        {...attributes}
+        style={{
+          ...common,
+          borderStyle: draggable.isDragging ? "solid" : "dashed",
+          borderColor: ts.border,
+          background: "#fafaf7",
+          cursor: draggable.isDragging ? "grabbing" : "grab",
+        }}
+        aria-label={`${p.parent} — arrastrable para emparejar con su pregunta padre`}
+      >
+        <div style={{ position: "absolute", top: 10, right: 10, color: "var(--pulso-text-soft)", opacity: 0.5 }}>
+          <GripVertical size={14} />
+        </div>
         {header}
         {label}
         {tipoRow}
         {stats}
         <div style={{ flex: 1 }} />
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-          Probablemente es el "Otros, especifique" de una pregunta cerrada. Emparejala desde la card padre.
+        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <GripVertical size={11} /> Arrastrá sobre su pregunta padre para emparejar
         </div>
       </article>
     );
@@ -403,7 +512,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy }: CardProps) {
   // CASE 4: config-so (SO sin modo y sin candidatos)
   if (arq === "config-so") {
     return (
-      <article style={common}>
+      <article ref={ref} {...listeners} {...attributes} style={common}>
         {header}
         {label}
         {tipoRow}
@@ -419,7 +528,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy }: CardProps) {
   // CASE 5: no-aplica
   if (arq === "no-aplica") {
     return (
-      <article style={{ ...common, opacity: 0.55 }}>
+      <article ref={ref} {...listeners} {...attributes} style={{ ...common, opacity: 0.55 }}>
         {header}
         {label}
         {tipoRow}
@@ -436,7 +545,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy }: CardProps) {
     // Emparejada
     const modoLabel = p.modo_so === "padre" ? "MODO PADRE" : p.modo_so === "hijo" ? "MODO HIJO" : "EMPAREJADA";
     return (
-      <article style={common}>
+      <article ref={ref} {...listeners} {...attributes} style={common}>
         {header}
         {label}
         {tipoRow}
@@ -481,7 +590,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy }: CardProps) {
   const hasCands = p.candidatos_texto && p.candidatos_texto.length > 0;
 
   return (
-    <article style={common}>
+    <article ref={ref} {...listeners} {...attributes} style={common}>
       {header}
       {label}
       {tipoRow}

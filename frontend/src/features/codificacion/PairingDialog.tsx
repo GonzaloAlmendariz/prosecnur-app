@@ -10,12 +10,14 @@ export type PairingResult = {
 
 type Props = {
   pregunta: PreguntaAbierta;
+  preselectedChild?: string;
   onConfirm: (r: PairingResult) => void;
   onCancel: () => void;
 };
 
-export function PairingDialog({ pregunta, onConfirm, onCancel }: Props) {
+export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel }: Props) {
   const [childCol, setChildCol] = useState<string>(() => {
+    if (preselectedChild) return preselectedChild;
     const pj = pregunta.pareja;
     if (pj && typeof pj === "object" && "child_col" in pj && pj.child_col) return pj.child_col;
     if (pregunta.candidatos_texto && pregunta.candidatos_texto.length > 0) return pregunta.candidatos_texto[0].col;
@@ -31,7 +33,11 @@ export function PairingDialog({ pregunta, onConfirm, onCancel }: Props) {
     return "";
   });
   const [columnas, setColumnas] = useState<string[]>([]);
-  const [showAllCols, setShowAllCols] = useState(false);
+  const [showAllCols, setShowAllCols] = useState(() => {
+    if (!preselectedChild) return false;
+    const candsCols = (pregunta.candidatos_texto ?? []).map((c) => c.col);
+    return !candsCols.includes(preselectedChild);
+  });
 
   useEffect(() => {
     (async () => {
