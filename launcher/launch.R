@@ -3,10 +3,20 @@
 # Run from the repo root: `Rscript launcher/launch.R`
 # or via the OS wrappers in launcher/ (.command, .sh, .bat).
 
-repo_root <- normalizePath(file.path(dirname(sys.frame(1)$ofile %||% "."), ".."), mustWork = FALSE)
-if (!dir.exists(repo_root)) repo_root <- normalizePath(".", mustWork = FALSE)
-
 `%||%` <- function(a, b) if (is.null(a)) b else a
+
+.script_path <- local({
+  args <- commandArgs(trailingOnly = FALSE)
+  fmatch <- "--file="
+  hit <- args[startsWith(args, fmatch)]
+  if (length(hit) > 0) sub(fmatch, "", hit[1]) else NA_character_
+})
+repo_root <- if (!is.na(.script_path)) {
+  normalizePath(file.path(dirname(.script_path), ".."), mustWork = FALSE)
+} else {
+  normalizePath(".", mustWork = FALSE)
+}
+if (!dir.exists(repo_root)) repo_root <- normalizePath(".", mustWork = FALSE)
 
 Sys.setenv(PULSO_REPO_ROOT = repo_root)
 

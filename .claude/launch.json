@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Frontend (Vite dev server)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "frontend", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "Backend (Plumber API)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": ["launcher/launch.R"],
+      "port": 8787
+    }
+  ]
+}

@@ -6,6 +6,7 @@
 #' @export
 build_plumber_app <- function(static_dir = system.file("www", package = "prosecnurapp")) {
   pr <- plumber::pr() |>
+    plumber::pr_set_serializer(plumber::serializer_unboxed_json()) |>
     plumber::pr_set_error(function(req, res, err) handle_api_error(req, res, err))
 
   pr <- mount_sistema(pr)
@@ -49,6 +50,6 @@ run_app <- function(host = "127.0.0.1", port = 8787L,
   }
 
   message(sprintf("[prosecnur-app] Listening on %s", url))
-  plumber::pr_run(pr, host = host, port = port, swagger = FALSE,
-                  docs = FALSE, quiet = FALSE)
+  plumber::pr_set_docs(pr, FALSE)
+  plumber::pr_run(pr, host = host, port = port, quiet = FALSE)
 }
