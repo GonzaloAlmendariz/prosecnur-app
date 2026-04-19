@@ -1,3 +1,49 @@
+estructura_instrumento <- function(inst) {
+  sm <- inst$meta$section_map
+  secciones <- if (is.null(sm) || nrow(sm) == 0) list() else {
+    out <- vector("list", nrow(sm))
+    for (i in seq_len(nrow(sm))) {
+      out[[i]] <- list(
+        name = as.character(sm$group_name[i]),
+        label = as.character(sm$group_label[i] %||% sm$group_name[i]),
+        is_repeat = isTRUE(sm$is_repeat[i]),
+        is_conditional = isTRUE(sm$is_conditional[i]),
+        relevant = if (is.na(sm$group_relevant[i])) NA else as.character(sm$group_relevant[i]),
+        prefix = as.character(sm$prefix[i] %||% "")
+      )
+    }
+    out
+  }
+
+  survey <- inst$survey
+  skip_types <- c("begin_group", "end_group", "begin_repeat", "end_repeat",
+                  "start", "end", "today", "deviceid", "note", "calculate")
+  has_value <- function(x) !is.na(x) & nzchar(trimws(as.character(x)))
+
+  preguntas <- list()
+  if (!is.null(survey) && nrow(survey) > 0) {
+    for (i in seq_len(nrow(survey))) {
+      tb <- as.character(survey$type_base[i] %||% "")
+      tt <- as.character(survey$type[i] %||% "")
+      if (tb %in% skip_types || tt %in% skip_types) next
+      if (!nzchar(as.character(survey$name[i] %||% ""))) next
+      preguntas[[length(preguntas) + 1]] <- list(
+        name = as.character(survey$name[i]),
+        label = as.character(survey$label[i] %||% survey$name[i]),
+        tipo = tb,
+        seccion = as.character(survey$group_name[i] %||% ""),
+        required = has_value(survey$required[i]) && tolower(trimws(as.character(survey$required[i]))) %in%
+          c("true", "true()", "yes", "si", "s"),
+        relevant = has_value(survey$relevant[i]),
+        constraint = has_value(survey$constraint[i]),
+        calculate = has_value(survey$calculation[i])
+      )
+    }
+  }
+
+  list(secciones = secciones, preguntas = preguntas)
+}
+
 summarize_instrumento <- function(inst) {
   survey <- inst$survey
   choices <- inst$choices
@@ -50,6 +96,18 @@ mount_carga <- function(pr) {
       session_set(sid, "instrumento", inst)
       resumen <- summarize_instrumento(inst)
       list(ok = TRUE, resumen = resumen)
+    })) |>
+    plumber::pr_get("/api/carga/instrumento/estructura", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      inst <- if (!is.null(s$inst_limpieza)) s$inst_limpieza else {
+        meta_files <- Filter(function(f) f$kind == "xlsform", s$files)
+        if (length(meta_files) == 0) stop_api(409, "E_NO_XLSFORM", "No XLSForm uploaded yet")
+        x <- prosecnur::leer_xlsform_limpieza(meta_files[[length(meta_files)]]$path, verbose = FALSE)
+        session_set(sid, "inst_limpieza", x)
+        x
+      }
+      estructura_instrumento(inst)
     })) |>
     plumber::pr_post("/api/carga/data", wrap_endpoint(function(req, res, file_id = NULL) {
       sid <- session_header(req)

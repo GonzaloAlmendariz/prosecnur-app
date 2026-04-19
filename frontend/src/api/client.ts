@@ -93,6 +93,32 @@ export async function apiCargaInstrumento(file_id: string) {
   );
 }
 
+export type Seccion = {
+  name: string;
+  label: string;
+  is_repeat: boolean;
+  is_conditional: boolean;
+  relevant: string | null;
+  prefix: string;
+};
+
+export type Pregunta = {
+  name: string;
+  label: string;
+  tipo: string;
+  seccion: string;
+  required: boolean;
+  relevant: boolean;
+  constraint: boolean;
+  calculate: boolean;
+};
+
+export async function apiInstrumentoEstructura() {
+  return handle<{ secciones: Seccion[]; preguntas: Pregunta[] }>(
+    await fetch("/api/carga/instrumento/estructura", { headers: headers() })
+  );
+}
+
 export async function apiCargaData(file_id: string) {
   return handle<{
     ok: true;

@@ -7,8 +7,6 @@ import {
   apiValidacionExportPlan,
   apiValidacionImportPlan,
   downloadUrl,
-  graficoPreguntasUrl,
-  graficoSeccionesUrl,
   PlanResumen,
   PlanRow,
 } from "../../api/client";
@@ -61,9 +59,6 @@ export default function ValidacionPage() {
   const [total, setTotal] = useState<number | null>(null);
   const [topReglas, setTopReglas] = useState<Record<string, unknown>[] | null>(null);
   const [reglaDetalle, setReglaDetalle] = useState<{ id: string; rows: Record<string, unknown>[] } | null>(null);
-
-  const [showSecciones, setShowSecciones] = useState(false);
-  const [showPreguntas, setShowPreguntas] = useState(false);
 
   const xlsformReady = !!state?.xlsform;
   const dataReady = !!state?.data;
@@ -134,10 +129,22 @@ export default function ValidacionPage() {
       )}
 
       <Panel title="Paso 1 — Construir plan de limpieza">
-        <button disabled={!xlsformReady || !!busy} onClick={onBuildPlan}>
-          {nReglas == null ? "Construir plan" : "Reconstruir"}
-        </button>
-        {nReglas != null && <span style={{ marginLeft: "1rem", color: "#555" }}>{nReglas} reglas generadas</span>}
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
+          <button disabled={!xlsformReady || !!busy} onClick={onBuildPlan}>
+            {nReglas == null ? "Construir plan" : "Reconstruir"}
+          </button>
+          {nReglas != null && (
+            <>
+              <span style={{ color: "#555" }}>{nReglas} reglas generadas</span>
+              <button disabled={!!busy} onClick={onExport} style={{ marginLeft: "auto" }}>
+                Descargar Excel
+              </button>
+              {exportFileId && (
+                <a href={downloadUrl(exportFileId)} style={{ fontSize: 14 }}>plan_limpieza.xlsx →</a>
+              )}
+            </>
+          )}
+        </div>
         {resumen && resumen.length > 0 && (
           <details open style={{ marginTop: "1rem" }}>
             <summary>Resumen por tipo de observación</summary>
@@ -152,27 +159,18 @@ export default function ValidacionPage() {
         )}
       </Panel>
 
-      <Panel title="Paso 2 — Exportar / importar plan editado (opcional)">
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <button disabled={nReglas == null || !!busy} onClick={onExport}>
-            Exportar a Excel
-          </button>
-          {exportFileId && (
-            <a href={downloadUrl(exportFileId)} style={{ fontSize: 14 }}>
-              Descargar plan_limpieza.xlsx
-            </a>
-          )}
-          <label style={{ fontSize: 14 }}>
-            Importar plan editado:{" "}
-            <input
-              type="file"
-              accept=".xlsx"
-              disabled={!!busy}
-              onChange={(e) => onImport(e.target.files?.[0])}
-              style={{ marginLeft: 4 }}
-            />
-          </label>
-        </div>
+      <Panel title="Paso 2 — Importar plan editado (opcional)">
+        <p style={{ fontSize: 13, color: "#666", marginTop: 0 }}>
+          Si editaste el Excel exportado arriba, súbelo aquí para reemplazar el plan en memoria antes de auditar.
+        </p>
+        <label style={{ fontSize: 14 }}>
+          <input
+            type="file"
+            accept=".xlsx"
+            disabled={!!busy}
+            onChange={(e) => onImport(e.target.files?.[0])}
+          />
+        </label>
       </Panel>
 
       <Panel title="Paso 3 — Auditar consistencia de la base de datos">
@@ -211,30 +209,10 @@ export default function ValidacionPage() {
         )}
       </Panel>
 
-      <Panel title="Visualizaciones del instrumento">
-        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-          <button disabled={!xlsformReady} onClick={() => setShowSecciones((v) => !v)}>
-            {showSecciones ? "Ocultar" : "Ver"} mapa de secciones
-          </button>
-          <button disabled={!xlsformReady} onClick={() => setShowPreguntas((v) => !v)}>
-            {showPreguntas ? "Ocultar" : "Ver"} mapa de preguntas
-          </button>
-        </div>
-        {showSecciones && (
-          <img
-            src={graficoSeccionesUrl()}
-            alt="Mapa de secciones del XLSForm"
-            style={{ maxWidth: "100%", marginTop: "1rem", border: "1px solid #eee" }}
-          />
-        )}
-        {showPreguntas && (
-          <img
-            src={graficoPreguntasUrl()}
-            alt="Mapa de preguntas y reglas"
-            style={{ maxWidth: "100%", marginTop: "1rem", border: "1px solid #eee" }}
-          />
-        )}
-      </Panel>
+      <p style={{ fontSize: 13, color: "#888" }}>
+        ¿Necesitas revisar la estructura del XLSForm (secciones, preguntas, reglas declaradas)? Los mapas interactivos
+        están ahora en <strong>1. Carga</strong>.
+      </p>
 
       {busy && <div style={{ color: "#0066cc" }}>{busy}</div>}
       {error && <div style={{ color: "#c00" }}>⚠ {error}</div>}
