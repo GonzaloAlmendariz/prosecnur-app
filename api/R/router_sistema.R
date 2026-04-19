@@ -31,6 +31,28 @@ mount_sistema <- function(pr) {
       ok <- session_delete(sid)
       list(ok = ok)
     })) |>
+    plumber::pr_get("/api/session/state", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid, required = FALSE)
+      if (is.null(s)) {
+        res$status <- 404
+        return(list(error = list(code = "E_NO_SESSION", message = "Session not found")))
+      }
+      files_by_kind <- split(
+        unname(s$files),
+        vapply(s$files, function(f) f$kind, character(1))
+      )
+      list(
+        session_id = s$id,
+        created_at = format(s$created_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+        xlsform = !is.null(files_by_kind$xlsform) && length(files_by_kind$xlsform) > 0,
+        data = (!is.null(files_by_kind$data) || !is.null(files_by_kind$sav)),
+        instrumento_parsed = !is.null(s$instrumento),
+        data_previewed = !is.null(s$data_raw_meta),
+        plan_built = !is.null(s$plan_result),
+        auditoria_run = !is.null(s$evaluacion)
+      )
+    })) |>
     plumber::pr_post("/api/files/upload", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {

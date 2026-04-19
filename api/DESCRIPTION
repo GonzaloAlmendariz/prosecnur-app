@@ -20,7 +20,8 @@ Imports:
     uuid,
     readxl,
     haven,
-    ps
+    ps,
+    ggplot2
 Suggests:
     testthat (>= 3.0.0)
 RoxygenNote: 7.3.2
