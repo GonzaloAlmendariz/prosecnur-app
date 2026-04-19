@@ -2,32 +2,89 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useSession } from "../lib/SessionContext";
 import { apiShutdown } from "../api/client";
 
-type NavItem = { to: string; label: string; done?: boolean; disabled?: boolean };
+type NavItem = { to: string; n: number; label: string; done?: boolean; disabled?: boolean };
 
 function useNavItems(): NavItem[] {
   const { state } = useSession();
   return [
-    { to: "/carga", label: "1. Carga", done: !!state?.xlsform && !!state?.data },
-    { to: "/validacion", label: "2. Validación", done: !!state?.auditoria_run, disabled: !state?.xlsform },
-    { to: "/codificacion", label: "3. Codificación", done: !!state?.codif_aplicado, disabled: !state?.xlsform || !state?.data },
-    { to: "/analitica", label: "4. Analítica", done: !!state?.analitica_prep_ok, disabled: !state?.xlsform || !state?.data },
-    { to: "/graficos", label: "5. Gráficos", done: !!state?.graficos_ppt_ok || !!state?.graficos_word_ok, disabled: !state?.analitica_prep_ok },
-    { to: "/dashboard", label: "6. Dashboard", disabled: true },
+    { to: "/carga", n: 1, label: "Carga", done: !!state?.xlsform && !!state?.data },
+    { to: "/validacion", n: 2, label: "Validación", done: !!state?.auditoria_run, disabled: !state?.xlsform },
+    { to: "/codificacion", n: 3, label: "Codificación", done: !!state?.codif_aplicado, disabled: !state?.xlsform || !state?.data },
+    { to: "/analitica", n: 4, label: "Analítica", done: !!state?.analitica_prep_ok, disabled: !state?.xlsform || !state?.data },
+    { to: "/graficos", n: 5, label: "Gráficos", done: !!state?.graficos_ppt_ok || !!state?.graficos_word_ok, disabled: !state?.analitica_prep_ok },
   ];
 }
 
-function SessionBadge() {
+function Brand() {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+      <div style={{ fontWeight: 700, fontSize: 16, color: "var(--pulso-primary)", letterSpacing: -0.3 }}>
+        Pulso Report
+      </div>
+      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace,monospace" }}>
+        prosecnur
+      </div>
+    </div>
+  );
+}
+
+function NavItem({ it }: { it: NavItem }) {
+  return (
+    <NavLink
+      to={it.to}
+      style={({ isActive }) => {
+        const active = isActive;
+        const base: React.CSSProperties = {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "8px 14px",
+          borderRadius: 999,
+          textDecoration: "none",
+          fontSize: 13,
+          fontWeight: 600,
+          border: "1px solid transparent",
+          transition: "all 120ms",
+          pointerEvents: it.disabled ? "none" : "auto",
+        };
+        if (it.disabled) {
+          return { ...base, color: "#c2c8d4", background: "transparent" };
+        }
+        if (active) {
+          return { ...base, background: "var(--pulso-primary)", color: "#fff", boxShadow: "0 4px 10px rgba(0,36,87,0.18)" };
+        }
+        return { ...base, color: "var(--pulso-text)", background: "var(--pulso-surface)", border: "1px solid var(--pulso-border)" };
+      }}
+    >
+      <span
+        style={{
+          minWidth: 20, height: 20, borderRadius: 999,
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          fontSize: 11, fontWeight: 700,
+          background: it.disabled ? "#edf0f6" : "rgba(255,255,255,0.18)",
+          color: "inherit",
+          border: "1px solid rgba(255,255,255,0.22)",
+        }}
+      >
+        {it.n}
+      </span>
+      <span>{it.label}</span>
+      {it.done && <span style={{ fontSize: 11 }}>✓</span>}
+    </NavLink>
+  );
+}
+
+function SessionChip() {
   const { sessionId, version, error } = useSession();
   return (
-    <div style={{ fontSize: 12, color: "#666", marginBottom: "1rem" }}>
-      <div><strong>Pulso Report</strong></div>
-      <div style={{ color: "#999" }}>{version}</div>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+      {version && <span>{version}</span>}
       {sessionId && (
-        <div style={{ color: "#aaa", marginTop: 4, fontFamily: "ui-monospace,monospace", fontSize: 11 }}>
-          sid: {sessionId.slice(0, 8)}…
-        </div>
+        <span style={{ fontFamily: "ui-monospace,monospace" }}>
+          sid {sessionId.slice(0, 6)}…
+        </span>
       )}
-      {error && <div style={{ color: "#c00", marginTop: 4 }}>⚠ {error}</div>}
+      {error && <span style={{ color: "#b91c1c" }}>⚠ {error}</span>}
     </div>
   );
 }
@@ -35,43 +92,33 @@ function SessionBadge() {
 export default function Layout() {
   const items = useNavItems();
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", fontFamily: "system-ui,sans-serif" }}>
-      <aside style={{ background: "#f6f6f8", borderRight: "1px solid #e3e3e8", padding: "1.25rem 1rem" }}>
-        <SessionBadge />
-        <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {items.map((it) => (
-            <NavLink
-              key={it.to}
-              to={it.to}
-              style={({ isActive }) => ({
-                padding: "0.5rem 0.75rem",
-                borderRadius: 6,
-                textDecoration: "none",
-                color: it.disabled ? "#bbb" : isActive ? "#fff" : "#333",
-                background: isActive ? "#0066cc" : "transparent",
-                pointerEvents: it.disabled ? "none" : "auto",
-                fontSize: 14,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              })}
-            >
-              <span>{it.label}</span>
-              {it.done && <span style={{ color: "#10b981", fontSize: 12 }}>✓</span>}
-            </NavLink>
+    <div className="pulso-shell">
+      <header
+        style={{
+          display: "flex", alignItems: "center", gap: 18,
+          padding: "12px 24px",
+          background: "var(--pulso-surface)",
+          borderBottom: "1px solid var(--pulso-border)",
+          boxShadow: "var(--pulso-shadow-low)",
+          position: "sticky", top: 0, zIndex: 50,
+        }}
+      >
+        <Brand />
+        <nav style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {items.map((it, i) => (
+            <div key={it.to} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <NavItem it={it} />
+              {i < items.length - 1 && <span style={{ color: "#c2c8d4", fontSize: 13 }}>›</span>}
+            </div>
           ))}
         </nav>
-
-        <div style={{ marginTop: "2rem", fontSize: 12 }}>
-          <button
-            onClick={() => apiShutdown().then(() => window.close()).catch(() => {})}
-            style={{ width: "100%", padding: "0.5rem", fontSize: 12 }}
-          >
-            Cerrar aplicación
-          </button>
-        </div>
-      </aside>
-      <main style={{ padding: "2rem 2.5rem", maxWidth: 1100 }}>
+        <div style={{ flex: 1 }} />
+        <SessionChip />
+        <button onClick={() => apiShutdown().then(() => window.close()).catch(() => {})} style={{ fontSize: 12 }}>
+          Cerrar
+        </button>
+      </header>
+      <main style={{ padding: "1.75rem 2rem", maxWidth: 1440, margin: "0 auto", width: "100%" }}>
         <Outlet />
       </main>
     </div>

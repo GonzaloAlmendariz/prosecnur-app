@@ -151,6 +151,12 @@ export async function apiCargaData(file_id: string) {
   );
 }
 
+export async function apiLoadDemo() {
+  return handle<{ ok: true; session_id: string; n_preguntas: number; n_filas: number; n_columnas: number }>(
+    await fetch("/api/system/demo", { method: "POST", headers: headers() })
+  );
+}
+
 export async function apiShutdown() {
   return handle<{ ok: boolean; message: string }>(
     await fetch("/api/system/shutdown", { method: "POST", headers: headers() })

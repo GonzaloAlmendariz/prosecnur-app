@@ -3,6 +3,7 @@ import {
   apiCargaData,
   apiCargaInstrumento,
   apiInstrumentoEstructura,
+  apiLoadDemo,
   apiUpload,
   Pregunta,
   Seccion,
@@ -39,6 +40,34 @@ export default function CargaPage() {
   const [error, setError] = useState<string>("");
   const [busy, setBusy] = useState<string>("");
 
+  async function onLoadDemo() {
+    setError("");
+    setBusy("cargando demo GIZ…");
+    try {
+      const out = await apiLoadDemo();
+      localStorage.setItem("pulso.sessionId", out.session_id);
+      setInstrumento({
+        n_preguntas: out.n_preguntas,
+        n_secciones: 0,
+        secciones: [],
+        n_listas_opciones: 0,
+      } as InstrumentoResumen);
+      setDataPreview({
+        n_filas: out.n_filas,
+        n_columnas: out.n_columnas,
+        columnas: [],
+        preview_filas: [],
+      } as DataPreview);
+      await refresh();
+      const r = await apiInstrumentoEstructura();
+      setEstructura(r);
+    } catch (e: unknown) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function onPick(kind: "xlsform" | "data", file?: File) {
     if (!file) return;
     setError("");
@@ -73,10 +102,32 @@ export default function CargaPage() {
   return (
     <section>
       <h1 style={{ marginTop: 0 }}>Fase 1 — Carga de insumos</h1>
-      <p style={{ color: "#666" }}>
+      <p style={{ color: "var(--pulso-text-soft)" }}>
         Sube el XLSForm (instrumento) y la base de datos del estudio. El backend los parsea y muestra un resumen;
         abajo puedes inspeccionar interactivamente la estructura del instrumento antes de pasar a la validación.
       </p>
+
+      <div
+        className="pulso-card"
+        style={{
+          padding: "1rem 1.25rem", marginBottom: "1.25rem",
+          display: "flex", alignItems: "center", gap: 14,
+          background: "linear-gradient(175deg, rgba(255,255,255,0.96), rgba(247,251,255,0.90))",
+          borderColor: "var(--pulso-primary-border)",
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--pulso-primary)" }}>
+            ¿Solo quieres explorar la app?
+          </div>
+          <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginTop: 2 }}>
+            Carga un conjunto de datos de prueba (proyecto GIZ, 1 631 encuestas) y recorre todas las fases sin subir archivos propios.
+          </div>
+        </div>
+        <button className="pulso-primary" disabled={!!busy} onClick={onLoadDemo}>
+          Cargar datos de prueba
+        </button>
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginTop: "1.5rem" }}>
         <Panel title="XLSForm (instrumento)">

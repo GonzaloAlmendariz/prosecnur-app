@@ -17,6 +17,42 @@ mount_sistema <- function(pr) {
       .shutdown_flag$value <- TRUE
       list(ok = TRUE, message = "Shutdown requested")
     })) |>
+    plumber::pr_post("/api/system/demo", wrap_endpoint(function(req, res) {
+      sid <- session_create()
+      res$setHeader("X-Pulso-Session", sid)
+      samples_dir <- system.file("samples", package = "prosecnurapp")
+      if (!nzchar(samples_dir) || !dir.exists(samples_dir)) {
+        samples_dir <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api", "inst", "samples")
+      }
+      inst_path <- file.path(samples_dir, "demo_instrumento.xlsx")
+      data_path <- file.path(samples_dir, "demo_data.xlsx")
+      if (!file.exists(inst_path) || !file.exists(data_path)) {
+        stop_api(500, "E_DEMO_MISSING", sprintf("Samples no encontrados en %s", samples_dir))
+      }
+      xls_meta <- save_upload(sid, "xlsform", "demo_instrumento.xlsx", readBin(inst_path, "raw", n = file.info(inst_path)$size))
+      dat_meta <- save_upload(sid, "data",    "demo_data.xlsx",        readBin(data_path, "raw", n = file.info(data_path)$size))
+
+      inst <- prosecnur::leer_instrumento_xlsform(xls_meta$path)
+      session_set(sid, "instrumento", inst)
+
+      data_df <- readxl::read_excel(dat_meta$path)
+      session_set(sid, "data_raw_meta", list(file_id = dat_meta$file_id, path = dat_meta$path, ext = "xlsx"))
+
+      rp_inst <- prosecnur::reporte_instrumento(path = xls_meta$path)
+      rp_data <- prosecnur::reporte_data(data_df, instrumento = rp_inst)
+      session_set(sid, "rp_inst", rp_inst)
+      session_set(sid, "rp_data", rp_data)
+      session_set(sid, "analitica_prep_ok", TRUE)
+      session_set(sid, "analitica_fuente", "demo")
+
+      list(
+        ok = TRUE,
+        session_id = sid,
+        n_preguntas = if (!is.null(inst$survey)) nrow(inst$survey) else 0L,
+        n_filas = nrow(data_df),
+        n_columnas = ncol(data_df)
+      )
+    })) |>
     plumber::pr_post("/api/session", wrap_endpoint(function(req, res) {
       existing <- session_header(req)
       if (!is.null(existing) && !is.null(session_get(existing, required = FALSE))) {

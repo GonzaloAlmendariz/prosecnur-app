@@ -1,0 +1,92 @@
+:root {
+  --pulso-primary: #002457;
+  --pulso-primary-soft: rgba(0, 36, 87, 0.08);
+  --pulso-primary-border: rgba(0, 36, 87, 0.18);
+  --pulso-primary-focus: rgba(0, 36, 87, 0.15);
+  --pulso-surface: #ffffff;
+  --pulso-surface-2: #fafbff;
+  --pulso-bg: #f5f6fa;
+  --pulso-border: #e6e9f2;
+  --pulso-text: #1f2933;
+  --pulso-text-soft: #5f6b7a;
+  --pulso-header-row: #f1f3f9;
+  --pulso-shadow-low: 0 1px 2px rgba(0, 36, 87, 0.04);
+  --pulso-shadow-soft: 0 6px 18px rgba(0, 36, 87, 0.06);
+  --pulso-shadow-med: 0 14px 30px rgba(0, 36, 87, 0.08);
+  --pulso-radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--pulso-bg);
+  color: var(--pulso-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, box-shadow 120ms;
+}
+button:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-primary-border);
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+button.pulso-primary {
+  background: var(--pulso-primary);
+  color: #fff;
+  border-color: var(--pulso-primary);
+}
+button.pulso-primary:hover:not(:disabled) {
+  background: #013371;
+  border-color: #013371;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  color: var(--pulso-text);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: #fff;
+  font-size: 13px;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+a { color: var(--pulso-primary); }
+
+.pulso-card {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(1150px 520px at -8% -12%, rgba(0,36,87,0.06), transparent 58%),
+    radial-gradient(920px 420px at 104% -4%, rgba(0,36,87,0.04), transparent 62%),
+    var(--pulso-bg);
+}
