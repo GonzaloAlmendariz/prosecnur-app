@@ -2,37 +2,52 @@ import { useState } from "react";
 import { Download } from "lucide-react";
 import {
   apiCodifAplicar,
+  AplicarResult,
   downloadUrl,
-  FamiliasCommitResponse,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Panel } from "../../components/Panel";
 import { Alert } from "../../components/Alert";
+import { JobProgress } from "../../components/JobProgress";
 import { FamiliasEditor } from "./FamiliasEditor";
 import { CodigosEditor } from "./CodigosEditor";
 
 export default function CodificacionPage() {
   const { state, refresh } = useSession();
-  const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  const [familiasCommit, setFamiliasCommit] = useState<FamiliasCommitResponse | null>(null);
   const [adaptados, setAdaptados] = useState<{ data: string; inst: string } | null>(null);
+  const [aplicarJobId, setAplicarJobId] = useState<string | null>(null);
 
   const prereqOk = !!state?.xlsform && !!state?.data;
 
   async function onAplicar() {
     setError("");
-    setBusy("aplicando codificación…");
+    setAdaptados(null);
     try {
       const out = await apiCodifAplicar();
-      setAdaptados({ data: out.data_adaptada.file_id, inst: out.instrumento_adaptado.file_id });
-      await refresh();
+      setAplicarJobId(out.job_id);
     } catch (e) {
       setError((e as Error).message);
-    } finally {
-      setBusy("");
     }
+  }
+
+  function onAplicarDone(data: AplicarResult) {
+    setAdaptados({
+      data: data.data_adaptada.file_id,
+      inst: data.instrumento_adaptado.file_id,
+    });
+    setAplicarJobId(null);
+    void refresh();
+  }
+
+  function onAplicarError(msg: string) {
+    setError(msg);
+    setAplicarJobId(null);
+  }
+
+  function onAplicarCancelled() {
+    setAplicarJobId(null);
   }
 
   return (
@@ -54,7 +69,7 @@ export default function CodificacionPage() {
         hint="La app sugiere un borrador de familias desde tu XLSForm y tu data. Activa/desactiva filas, marca select_one como padre/hijo, y ajusta las columnas del dataset. El progreso se autoguarda cada 2 segundos."
       >
         {prereqOk ? (
-          <FamiliasEditor onCommitted={(res) => setFamiliasCommit(res)} />
+          <FamiliasEditor />
         ) : (
           <em style={{ color: "var(--pulso-text-soft)", fontSize: 13 }}>
             Carga primero XLSForm y data en Fase 1.
@@ -68,11 +83,22 @@ export default function CodificacionPage() {
         hint="Para cada respuesta observada, escribe el código final en la columna *_recod. Los códigos nuevos se declaran en el bloque auxiliar (nuevo_codigo / nueva_etiqueta). Las ediciones se autoguardan directo al xlsx de la plantilla."
       >
         {prereqOk ? (
-          <CodigosEditor onApply={onAplicar} applyBusy={!!busy} />
+          <CodigosEditor onApply={onAplicar} applyBusy={!!aplicarJobId} />
         ) : (
           <em style={{ color: "var(--pulso-text-soft)", fontSize: 13 }}>
             Carga primero XLSForm y data en Fase 1.
           </em>
+        )}
+        {aplicarJobId && (
+          <div style={{ marginTop: 12 }}>
+            <JobProgress<AplicarResult>
+              label="Aplicando codificación"
+              jobId={aplicarJobId}
+              onDone={onAplicarDone}
+              onError={onAplicarError}
+              onCancelled={onAplicarCancelled}
+            />
+          </div>
         )}
       </Panel>
 
@@ -89,7 +115,6 @@ export default function CodificacionPage() {
         </Panel>
       )}
 
-      {busy && <Alert kind="info">{busy}</Alert>}
       {error && <Alert kind="error">{error}</Alert>}
     </section>
   );

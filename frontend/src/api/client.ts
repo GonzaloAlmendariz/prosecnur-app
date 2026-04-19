@@ -550,10 +550,14 @@ export async function apiAnaliticaEnumeradores(col_enumerador: string) {
   );
 }
 
+export type AplicarResult = {
+  ok: true;
+  data_adaptada: { file_id: string; size: number };
+  instrumento_adaptado: { file_id: string; size: number };
+};
+
 export async function apiCodifAplicar() {
-  return handle<{
-    ok: true;
-    data_adaptada: { file_id: string; size: number };
-    instrumento_adaptado: { file_id: string; size: number };
-  }>(await fetch("/api/codificacion/aplicar", { method: "POST", headers: headers() }));
+  return handle<{ ok: true; job_id: string; kind: string }>(
+    await fetch("/api/codificacion/aplicar", { method: "POST", headers: headers() })
+  );
 }

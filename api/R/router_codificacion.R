@@ -395,36 +395,58 @@ mount_codificacion <- function(pr) {
       xls <- .require_xlsform_path(sid)
       dat <- .require_data_path(sid)
       codes_fid <- s$codif_plantilla_codigos_file_id
-      if (is.null(codes_fid)) stop_api(409, "E_NO_CODES", "Primero sube la plantilla de códigos editada")
+      if (is.null(codes_fid)) stop_api(409, "E_NO_CODES",
+        "Primero genera la plantilla de códigos (Paso 2) y ajusta los recod desde la app.")
       codes_meta <- get_file(sid, codes_fid)
       fam_fid <- s$codif_familias_file_id
       fam_path <- if (!is.null(fam_fid)) get_file(sid, fam_fid)$path else NULL
 
-      data_out <- file.path(s$dir, "downloads", sprintf("data_adaptada_%s.xlsx", uuid::UUIDgenerate()))
-      inst_out <- file.path(s$dir, "downloads", sprintf("instrumento_adaptado_%s.xlsx", uuid::UUIDgenerate()))
+      data_out <- file.path(s$dir, "downloads",
+        sprintf("data_adaptada_%s.xlsx", uuid::UUIDgenerate()))
+      inst_out <- file.path(s$dir, "downloads",
+        sprintf("instrumento_adaptado_%s.xlsx", uuid::UUIDgenerate()))
 
-      prosecnur::ppra_adaptar_data(
-        path_instrumento = xls$path,
-        path_datos       = dat$path,
-        path_plantilla   = codes_meta$path,
-        out_path         = data_out,
-        path_familias    = fam_path
+      job_id <- job_submit(
+        sid = sid,
+        kind = "codificacion.aplicar",
+        func = function(xls_path, data_path, codes_path, fam_path, data_out, inst_out) {
+          prosecnur::ppra_adaptar_data(
+            path_instrumento = xls_path,
+            path_datos       = data_path,
+            path_plantilla   = codes_path,
+            out_path         = data_out,
+            path_familias    = fam_path
+          )
+          prosecnur::ppra_adaptar_instrumento(
+            path_instrumento_in  = xls_path,
+            path_data_adaptada   = data_out,
+            path_instrumento_out = inst_out,
+            path_plantilla       = codes_path
+          )
+          list(data_out = data_out, inst_out = inst_out)
+        },
+        args = list(
+          xls_path = xls$path,
+          data_path = dat$path,
+          codes_path = codes_meta$path,
+          fam_path = fam_path,
+          data_out = data_out,
+          inst_out = inst_out
+        ),
+        on_complete = function(j) {
+          paths <- j$result_data
+          data_meta <- .register_output_file(j$sid, "data_adaptada", paths$data_out)
+          inst_meta <- .register_output_file(j$sid, "instrumento_adaptado", paths$inst_out)
+          session_set(j$sid, "codif_data_adaptada_fid", data_meta$file_id)
+          session_set(j$sid, "codif_inst_adaptado_fid", inst_meta$file_id)
+          session_set(j$sid, "codif_aplicado", TRUE)
+          list(
+            ok = TRUE,
+            data_adaptada = list(file_id = data_meta$file_id, size = data_meta$size),
+            instrumento_adaptado = list(file_id = inst_meta$file_id, size = inst_meta$size)
+          )
+        }
       )
-      prosecnur::ppra_adaptar_instrumento(
-        path_instrumento_in  = xls$path,
-        path_data_adaptada   = data_out,
-        path_instrumento_out = inst_out,
-        path_plantilla       = codes_meta$path
-      )
-      data_meta <- .register_output_file(sid, "data_adaptada", data_out)
-      inst_meta <- .register_output_file(sid, "instrumento_adaptado", inst_out)
-      session_set(sid, "codif_data_adaptada_fid", data_meta$file_id)
-      session_set(sid, "codif_inst_adaptado_fid", inst_meta$file_id)
-      session_set(sid, "codif_aplicado", TRUE)
-      list(
-        ok = TRUE,
-        data_adaptada = list(file_id = data_meta$file_id, size = data_meta$size),
-        instrumento_adaptado = list(file_id = inst_meta$file_id, size = inst_meta$size)
-      )
+      list(ok = TRUE, job_id = job_id, kind = "codificacion.aplicar")
     }))
 }
