@@ -50,7 +50,12 @@ mount_sistema <- function(pr) {
         instrumento_parsed = !is.null(s$instrumento),
         data_previewed = !is.null(s$data_raw_meta),
         plan_built = !is.null(s$plan_result),
-        auditoria_run = !is.null(s$evaluacion)
+        auditoria_run = !is.null(s$evaluacion),
+        codif_familias_generated = isTRUE(s$codif_familias_generated),
+        codif_familias_loaded = !is.null(s$codif_familias_file_id),
+        codif_plantilla_template = isTRUE(s$codif_plantilla_template),
+        codif_plantilla_codigos_loaded = !is.null(s$codif_plantilla_codigos_file_id),
+        codif_aplicado = isTRUE(s$codif_aplicado)
       )
     })) |>
     plumber::pr_post("/api/files/upload", wrap_endpoint(function(req, res, file = NULL, kind = NULL) {
@@ -88,6 +93,12 @@ mount_sistema <- function(pr) {
     plumber::pr_get("/api/files/<file_id>/download", wrap_endpoint(function(req, res, file_id) {
       sid <- session_header(req)
       meta <- get_file(sid, file_id)
-      plumber::include_file(meta$path, res, content_type = mime::guess_type(meta$path))
+      n <- file.info(meta$path)$size
+      bytes <- readBin(meta$path, what = "raw", n = n)
+      res$setHeader("Content-Type", mime::guess_type(meta$path))
+      res$setHeader("Content-Length", as.character(n))
+      res$setHeader("Content-Disposition", sprintf('attachment; filename="%s"', meta$original_name))
+      res$body <- bytes
+      res
     }))
 }

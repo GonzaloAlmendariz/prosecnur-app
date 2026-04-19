@@ -9,7 +9,7 @@ function useNavItems(): NavItem[] {
   return [
     { to: "/carga", label: "1. Carga", done: !!state?.xlsform && !!state?.data },
     { to: "/validacion", label: "2. Validación", done: !!state?.auditoria_run, disabled: !state?.xlsform },
-    { to: "/codificacion", label: "3. Codificación", disabled: true },
+    { to: "/codificacion", label: "3. Codificación", done: !!state?.codif_aplicado, disabled: !state?.xlsform || !state?.data },
     { to: "/analitica", label: "4. Analítica", disabled: true },
     { to: "/graficos", label: "5. Gráficos", disabled: true },
     { to: "/dashboard", label: "6. Dashboard", disabled: true },

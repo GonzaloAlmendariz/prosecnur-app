@@ -49,6 +49,11 @@ export type SessionState = {
   data_previewed: boolean;
   plan_built: boolean;
   auditoria_run: boolean;
+  codif_familias_generated: boolean;
+  codif_familias_loaded: boolean;
+  codif_plantilla_template: boolean;
+  codif_plantilla_codigos_loaded: boolean;
+  codif_aplicado: boolean;
 };
 
 export async function apiSessionState() {
@@ -208,4 +213,40 @@ export function graficoPreguntasUrl() {
 
 export function downloadUrl(file_id: string) {
   return `/api/files/${file_id}/download`;
+}
+
+// ---------- Codificación ----------
+
+export async function apiCodifPlantillaFamilias() {
+  return handle<{ ok: true; file_id: string; size: number }>(
+    await fetch("/api/codificacion/plantilla-familias", { method: "POST", headers: headers() })
+  );
+}
+
+export async function apiCodifFamiliasAplicar(file_id: string) {
+  return handle<{ ok: true; file_id: string; size: number }>(
+    await fetch("/api/codificacion/familias/aplicar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id }),
+    })
+  );
+}
+
+export async function apiCodifPlantillaCodigosSubir(file_id: string) {
+  return handle<{ ok: true; original_name: string; size: number }>(
+    await fetch("/api/codificacion/plantilla-codigos/subir", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id }),
+    })
+  );
+}
+
+export async function apiCodifAplicar() {
+  return handle<{
+    ok: true;
+    data_adaptada: { file_id: string; size: number };
+    instrumento_adaptado: { file_id: string; size: number };
+  }>(await fetch("/api/codificacion/aplicar", { method: "POST", headers: headers() }));
 }

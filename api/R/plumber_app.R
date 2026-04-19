@@ -12,6 +12,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
   pr <- mount_sistema(pr)
   pr <- mount_carga(pr)
   pr <- mount_validacion(pr)
+  pr <- mount_codificacion(pr)
 
   if (nzchar(static_dir) && dir.exists(static_dir)) {
     pr <- plumber::pr_static(pr, "/", static_dir)
