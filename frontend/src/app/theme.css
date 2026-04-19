@@ -14,6 +14,25 @@
   --pulso-shadow-soft: 0 6px 18px rgba(0, 36, 87, 0.06);
   --pulso-shadow-med: 0 14px 30px rgba(0, 36, 87, 0.08);
   --pulso-radius: 10px;
+  /* Tipo colors — mirrored from prosecnur xlsx exportar_plantilla
+   * (exportar_plantilla_codificacion_xlsx). Keeps visual language
+   * consistent for analysts already trained on the xlsx flow. */
+  --tipo-sm-bg: #E2F0D9;
+  --tipo-sm-border: #9cc47f;
+  --tipo-sm-fg: #2d6720;
+  --tipo-so-bg: #D9E1F2;
+  --tipo-so-border: #8fa3d0;
+  --tipo-so-fg: #1e3a6b;
+  --tipo-int-bg: #E6D9F2;
+  --tipo-int-border: #a48ac9;
+  --tipo-int-fg: #4a2d66;
+  --tipo-text-bg: #FFF2CC;
+  --tipo-text-border: #d5b866;
+  --tipo-text-fg: #7a5a00;
+  /* Drag & drop */
+  --drag-valid-bg: rgba(0, 36, 87, 0.06);
+  --drag-valid-border: var(--pulso-primary);
+  --drag-invalid-bg: rgba(165, 31, 31, 0.04);
 }
 
 * { box-sizing: border-box; }

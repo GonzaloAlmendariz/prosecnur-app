@@ -74,7 +74,7 @@ mount_analitica <- function(pr) {
     })) |>
     plumber::pr_post("/api/analitica/codebook", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
-      ctx <- .load_rp_data(sid); s <- session_get(sid)
+      ctx <- .load_rp_data(sid)
       out_path <- file.path(s$dir, "downloads", sprintf("codebook_%s.xlsx", uuid::UUIDgenerate()))
       prosecnur::reporte_codebook(ctx$rp_data, path_xlsx = out_path)
       meta <- .register_output_file(sid, "codebook", out_path)
@@ -83,7 +83,7 @@ mount_analitica <- function(pr) {
     })) |>
     plumber::pr_post("/api/analitica/frecuencias", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
-      ctx <- .load_rp_data(sid); s <- session_get(sid)
+      ctx <- .load_rp_data(sid)
       out_path <- file.path(s$dir, "downloads", sprintf("frecuencias_%s.xlsx", uuid::UUIDgenerate()))
       prosecnur::reporte_frecuencias(
         data = ctx$rp_data, instrumento = ctx$rp_inst,
@@ -99,45 +99,98 @@ mount_analitica <- function(pr) {
       if (is.null(cruces) || !nzchar(as.character(cruces[[1]] %||% ""))) {
         stop_api(400, "E_NO_CRUCES", "Indica al menos una variable de cruce (ej. 'servicio')")
       }
-      ctx <- .load_rp_data(sid); s <- session_get(sid)
-      out_path <- file.path(s$dir, "downloads", sprintf("cruces_%s.xlsx", uuid::UUIDgenerate()))
+      ctx <- .load_rp_data(sid)
       cruces_val <- if (length(cruces) == 1) as.character(cruces[[1]]) else as.character(cruces)
-      prosecnur::reporte_cruces(
-        data = ctx$rp_data, instrumento = ctx$rp_inst,
-        SECCIONES = NULL, cruces = cruces_val, modo = modo,
-        path_xlsx = out_path
+      rp_data_path <- job_save_rds(sid, "rp_data", ctx$rp_data)
+      rp_inst_path <- job_save_rds(sid, "rp_inst", ctx$rp_inst)
+      job_id <- job_submit(
+        sid = sid,
+        kind = "analitica.cruces",
+        func = function(rp_data_path, rp_inst_path, cruces_val, modo, result_path) {
+          prosecnur::reporte_cruces(
+            data = readRDS(rp_data_path),
+            instrumento = readRDS(rp_inst_path),
+            SECCIONES = NULL,
+            cruces = cruces_val,
+            modo = modo,
+            path_xlsx = result_path
+          )
+          list(path = result_path)
+        },
+        args = list(
+          rp_data_path = rp_data_path,
+          rp_inst_path = rp_inst_path,
+          cruces_val = cruces_val,
+          modo = modo
+        ),
+        result_filename = sprintf("cruces_%s.xlsx", uuid::UUIDgenerate()),
+        on_complete = function(j) {
+          meta <- .register_output_file(j$sid, "cruces", j$result_path)
+          session_set(j$sid, "analitica_cruces_ok", TRUE)
+          list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+        }
       )
-      meta <- .register_output_file(sid, "cruces", out_path)
-      session_set(sid, "analitica_cruces_ok", TRUE)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+      list(ok = TRUE, job_id = job_id, kind = "analitica.cruces")
     })) |>
     plumber::pr_post("/api/analitica/spss", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
-      ctx <- .load_rp_data(sid); s <- session_get(sid)
-      sav_path <- file.path(s$dir, "downloads", sprintf("datos_%s.sav", uuid::UUIDgenerate()))
-      sps_path <- file.path(s$dir, "downloads", sprintf("niveles_%s.sps", uuid::UUIDgenerate()))
-      prosecnur::reporte_spss(ctx$rp_data, path_sav = sav_path, path_sps = sps_path)
-      zip_path <- file.path(s$dir, "downloads", sprintf("spss_%s.zip", uuid::UUIDgenerate()))
-      .zip_files(zip_path, c(sav_path, sps_path), c("datos.sav", "niveles_medida.sps"))
-      meta <- .register_output_file(sid, "spss_bundle", zip_path)
-      session_set(sid, "analitica_spss_ok", TRUE)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+      ctx <- .load_rp_data(sid)
+      rp_data_path <- job_save_rds(sid, "rp_data", ctx$rp_data)
+      job_id <- job_submit(
+        sid = sid,
+        kind = "analitica.spss",
+        func = function(rp_data_path, result_path) {
+          td <- tempfile()
+          dir.create(td)
+          old <- getwd()
+          on.exit({ setwd(old); unlink(td, recursive = TRUE) }, add = TRUE)
+          sav_path <- file.path(td, "datos.sav")
+          sps_path <- file.path(td, "niveles_medida.sps")
+          prosecnur::reporte_spss(readRDS(rp_data_path), path_sav = sav_path, path_sps = sps_path)
+          setwd(td)
+          zip::zip(result_path, files = c("datos.sav", "niveles_medida.sps"))
+          list(path = result_path)
+        },
+        args = list(rp_data_path = rp_data_path),
+        result_filename = sprintf("spss_%s.zip", uuid::UUIDgenerate()),
+        on_complete = function(j) {
+          meta <- .register_output_file(j$sid, "spss_bundle", j$result_path)
+          session_set(j$sid, "analitica_spss_ok", TRUE)
+          list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+        }
+      )
+      list(ok = TRUE, job_id = job_id, kind = "analitica.spss")
     })) |>
     plumber::pr_post("/api/analitica/enumeradores", wrap_endpoint(function(req, res, col_enumerador = NULL) {
       sid <- session_header(req)
       if (is.null(col_enumerador) || !nzchar(as.character(col_enumerador))) {
         stop_api(400, "E_NO_COL_ENUM", "Indica col_enumerador (ej. 'Enumerator_name')")
       }
-      ctx <- .load_rp_data(sid); s <- session_get(sid)
-      out_path <- file.path(s$dir, "downloads", sprintf("enumeradores_%s.pdf", uuid::UUIDgenerate()))
-      prosecnur::reporte_enumeradores(
-        data = ctx$rp_data,
-        col_enumerador = as.character(col_enumerador),
-        output_file = out_path,
-        quiet = TRUE
+      ctx <- .load_rp_data(sid)
+      rp_data_path <- job_save_rds(sid, "rp_data", ctx$rp_data)
+      job_id <- job_submit(
+        sid = sid,
+        kind = "analitica.enumeradores",
+        func = function(rp_data_path, col_enumerador, result_path) {
+          prosecnur::reporte_enumeradores(
+            data = readRDS(rp_data_path),
+            col_enumerador = as.character(col_enumerador),
+            output_file = result_path,
+            quiet = TRUE
+          )
+          list(path = result_path)
+        },
+        args = list(
+          rp_data_path = rp_data_path,
+          col_enumerador = as.character(col_enumerador)
+        ),
+        result_filename = sprintf("enumeradores_%s.pdf", uuid::UUIDgenerate()),
+        on_complete = function(j) {
+          meta <- .register_output_file(j$sid, "enumeradores", j$result_path)
+          session_set(j$sid, "analitica_enumeradores_ok", TRUE)
+          list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+        }
       )
-      meta <- .register_output_file(sid, "enumeradores", out_path)
-      session_set(sid, "analitica_enumeradores_ok", TRUE)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+      list(ok = TRUE, job_id = job_id, kind = "analitica.enumeradores")
     }))
 }

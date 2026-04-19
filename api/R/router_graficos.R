@@ -178,22 +178,88 @@ mount_graficos <- function(pr) {
       plan <- .normalize_plan(plan)
       validation <- .validar_plan_json(plan)
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
-      slides_r <- lapply(plan$slides, .rebuild_slide)
-      plan_r <- do.call(prosecnur::p_plan, list(slides = slides_r))
-      presets_r <- .build_presets(presets)
-
-      out_path <- file.path(s$dir, "downloads", sprintf("reporte_%s.pptx", uuid::UUIDgenerate()))
-      prosecnur::reporte_ppt_plan(
-        data = s$rp_data,
-        instrumento = s$rp_inst,
-        path_ppt = out_path,
-        presets = presets_r,
-        plan = plan_r,
-        mensajes_progreso = FALSE
+      rp_data_path <- job_save_rds(sid, "rp_data", s$rp_data)
+      rp_inst_path <- job_save_rds(sid, "rp_inst", s$rp_inst)
+      job_id <- job_submit(
+        sid = sid,
+        kind = "graficos.ppt",
+        func = function(rp_data_path, rp_inst_path, plan, presets, result_path) {
+          `%||%` <- function(a, b) if (is.null(a)) b else a
+          slide_registry <- list(
+            p_slide_title       = list(grafs = c()),
+            p_slide_section     = list(grafs = c()),
+            p_slide_1           = list(grafs = c("plot")),
+            p_slide_2           = list(grafs = c("left", "right")),
+            p_slide_text_l      = list(grafs = c("plot")),
+            p_slide_text_r      = list(grafs = c("plot")),
+            p_slide_poblacion_2 = list(grafs = c("left", "right")),
+            p_slide_poblacion_4 = list(grafs = c("up_left", "up_right", "bottom_left", "bottom_right")),
+            p_slide_poblacion_5 = list(grafs = c("pic1", "pic2", "pic3", "pic4", "pic5")),
+            p_slide_poblacion_6 = list(grafs = c("pic1", "pic2", "pic3", "pic4", "pic5", "pic6"))
+          )
+          graficador_registry <- c(
+            "p_barras_agrupadas", "p_barras_apiladas", "p_barras_multiapiladas",
+            "p_pie", "p_donut", "p_numerico", "p_boxplot", "p_media_rango",
+            "p_radar_tabla"
+          )
+          as_json_list <- function(x) {
+            if (is.null(x)) return(NULL)
+            if (is.data.frame(x)) return(as.list(x))
+            if (is.list(x)) return(x)
+            as.list(x)
+          }
+          rebuild_graf <- function(g) {
+            if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
+            if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
+            fn <- getExportedValue("prosecnur", g$graficador)
+            do.call(fn, as.list(g$args %||% list()))
+          }
+          rebuild_slide <- function(s) {
+            s <- as.list(s)
+            tipo <- as.character(s$tipo %||% "")
+            if (!nzchar(tipo)) stop("Slide sin tipo")
+            if (!(tipo %in% names(slide_registry))) stop(sprintf("Tipo de slide no registrado: %s", tipo))
+            fn <- getExportedValue("prosecnur", tipo)
+            payload <- as_json_list(s$payload) %||% list()
+            payload <- lapply(payload, function(v) if (is.list(v) && length(v) == 1 && is.null(names(v))) v[[1]] else v)
+            for (slot_name in slide_registry[[tipo]]$grafs) {
+              if (!is.null(payload[[slot_name]])) {
+                payload[[slot_name]] <- rebuild_graf(as_json_list(payload[[slot_name]]))
+              }
+            }
+            allowed_args <- names(formals(fn))
+            payload <- payload[names(payload) %in% allowed_args]
+            do.call(fn, payload)
+          }
+          build_presets <- function(presets_json) {
+            if (is.null(presets_json) || length(presets_json) == 0) return(NULL)
+            do.call(prosecnur::p_presets, lapply(presets_json, as.list))
+          }
+          slides_r <- lapply(plan$slides, rebuild_slide)
+          prosecnur::reporte_ppt_plan(
+            data = readRDS(rp_data_path),
+            instrumento = readRDS(rp_inst_path),
+            path_ppt = result_path,
+            presets = build_presets(presets),
+            plan = do.call(prosecnur::p_plan, list(slides = slides_r)),
+            mensajes_progreso = FALSE
+          )
+          list(path = result_path, n_slides = length(slides_r))
+        },
+        args = list(
+          rp_data_path = rp_data_path,
+          rp_inst_path = rp_inst_path,
+          plan = plan,
+          presets = presets
+        ),
+        result_filename = sprintf("reporte_%s.pptx", uuid::UUIDgenerate()),
+        on_complete = function(j) {
+          meta <- .register_output_file(j$sid, "reporte_ppt", j$result_path)
+          session_set(j$sid, "graficos_ppt_ok", TRUE)
+          list(ok = TRUE, file_id = meta$file_id, size = meta$size, n_slides = j$result_data$n_slides)
+        }
       )
-      meta <- .register_output_file(sid, "reporte_ppt", out_path)
-      session_set(sid, "graficos_ppt_ok", TRUE)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size, n_slides = length(slides_r))
+      list(ok = TRUE, job_id = job_id, kind = "graficos.ppt")
     })) |>
     plumber::pr_post("/api/graficos/word", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL) {
       sid <- session_header(req)
@@ -202,23 +268,93 @@ mount_graficos <- function(pr) {
       plan <- .normalize_plan(plan)
       validation <- .validar_plan_json(plan)
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
-      slides_r <- lapply(plan$slides, .rebuild_slide)
-      plan_r <- do.call(prosecnur::p_plan, list(slides = slides_r))
-      presets_r <- .build_presets(presets)
-      w_presets_r <- .build_w_presets(w_presets)
-
-      out_path <- file.path(s$dir, "downloads", sprintf("reporte_%s.docx", uuid::UUIDgenerate()))
-      prosecnur::reporte_word_plan(
-        data = s$rp_data,
-        instrumento = s$rp_inst,
-        path_docx = out_path,
-        presets_ppt = presets_r,
-        presets_word = w_presets_r,
-        plan = plan_r,
-        mensajes_progreso = FALSE
+      rp_data_path <- job_save_rds(sid, "rp_data", s$rp_data)
+      rp_inst_path <- job_save_rds(sid, "rp_inst", s$rp_inst)
+      job_id <- job_submit(
+        sid = sid,
+        kind = "graficos.word",
+        func = function(rp_data_path, rp_inst_path, plan, presets, w_presets, result_path) {
+          `%||%` <- function(a, b) if (is.null(a)) b else a
+          slide_registry <- list(
+            p_slide_title       = list(grafs = c()),
+            p_slide_section     = list(grafs = c()),
+            p_slide_1           = list(grafs = c("plot")),
+            p_slide_2           = list(grafs = c("left", "right")),
+            p_slide_text_l      = list(grafs = c("plot")),
+            p_slide_text_r      = list(grafs = c("plot")),
+            p_slide_poblacion_2 = list(grafs = c("left", "right")),
+            p_slide_poblacion_4 = list(grafs = c("up_left", "up_right", "bottom_left", "bottom_right")),
+            p_slide_poblacion_5 = list(grafs = c("pic1", "pic2", "pic3", "pic4", "pic5")),
+            p_slide_poblacion_6 = list(grafs = c("pic1", "pic2", "pic3", "pic4", "pic5", "pic6"))
+          )
+          graficador_registry <- c(
+            "p_barras_agrupadas", "p_barras_apiladas", "p_barras_multiapiladas",
+            "p_pie", "p_donut", "p_numerico", "p_boxplot", "p_media_rango",
+            "p_radar_tabla"
+          )
+          as_json_list <- function(x) {
+            if (is.null(x)) return(NULL)
+            if (is.data.frame(x)) return(as.list(x))
+            if (is.list(x)) return(x)
+            as.list(x)
+          }
+          rebuild_graf <- function(g) {
+            if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
+            if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
+            fn <- getExportedValue("prosecnur", g$graficador)
+            do.call(fn, as.list(g$args %||% list()))
+          }
+          rebuild_slide <- function(s) {
+            s <- as.list(s)
+            tipo <- as.character(s$tipo %||% "")
+            if (!nzchar(tipo)) stop("Slide sin tipo")
+            if (!(tipo %in% names(slide_registry))) stop(sprintf("Tipo de slide no registrado: %s", tipo))
+            fn <- getExportedValue("prosecnur", tipo)
+            payload <- as_json_list(s$payload) %||% list()
+            payload <- lapply(payload, function(v) if (is.list(v) && length(v) == 1 && is.null(names(v))) v[[1]] else v)
+            for (slot_name in slide_registry[[tipo]]$grafs) {
+              if (!is.null(payload[[slot_name]])) {
+                payload[[slot_name]] <- rebuild_graf(as_json_list(payload[[slot_name]]))
+              }
+            }
+            allowed_args <- names(formals(fn))
+            payload <- payload[names(payload) %in% allowed_args]
+            do.call(fn, payload)
+          }
+          build_presets <- function(presets_json) {
+            if (is.null(presets_json) || length(presets_json) == 0) return(NULL)
+            do.call(prosecnur::p_presets, lapply(presets_json, as.list))
+          }
+          build_w_presets <- function(w_json) {
+            if (is.null(w_json) || length(w_json) == 0) return(NULL)
+            do.call(prosecnur::w_presets, lapply(w_json, as.list))
+          }
+          slides_r <- lapply(plan$slides, rebuild_slide)
+          prosecnur::reporte_word_plan(
+            data = readRDS(rp_data_path),
+            instrumento = readRDS(rp_inst_path),
+            path_docx = result_path,
+            presets_ppt = build_presets(presets),
+            presets_word = build_w_presets(w_presets),
+            plan = do.call(prosecnur::p_plan, list(slides = slides_r)),
+            mensajes_progreso = FALSE
+          )
+          list(path = result_path, n_slides = length(slides_r))
+        },
+        args = list(
+          rp_data_path = rp_data_path,
+          rp_inst_path = rp_inst_path,
+          plan = plan,
+          presets = presets,
+          w_presets = w_presets
+        ),
+        result_filename = sprintf("reporte_%s.docx", uuid::UUIDgenerate()),
+        on_complete = function(j) {
+          meta <- .register_output_file(j$sid, "reporte_word", j$result_path)
+          session_set(j$sid, "graficos_word_ok", TRUE)
+          list(ok = TRUE, file_id = meta$file_id, size = meta$size, n_slides = j$result_data$n_slides)
+        }
       )
-      meta <- .register_output_file(sid, "reporte_word", out_path)
-      session_set(sid, "graficos_word_ok", TRUE)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size, n_slides = length(slides_r))
+      list(ok = TRUE, job_id = job_id, kind = "graficos.word")
     }))
 }

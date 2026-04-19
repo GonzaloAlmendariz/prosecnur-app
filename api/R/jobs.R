@@ -1,5 +1,14 @@
 .jobs <- new.env(parent = emptyenv())
 
+job_save_rds <- function(sid, prefix, value) {
+  sess <- session_get(sid)
+  input_dir <- file.path(sess$dir, "jobs", "inputs")
+  dir.create(input_dir, showWarnings = FALSE, recursive = TRUE)
+  path <- file.path(input_dir, sprintf("%s_%s.rds", prefix, uuid::UUIDgenerate()))
+  saveRDS(value, path, version = 3)
+  path
+}
+
 job_submit <- function(sid,
                        kind,
                        func,

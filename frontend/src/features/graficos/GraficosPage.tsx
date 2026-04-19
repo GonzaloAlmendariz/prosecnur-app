@@ -8,11 +8,14 @@ import {
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
+import { JobProgress } from "../../components/JobProgress";
 import { usePlanStore } from "./store";
 import TimelinePanel from "./TimelinePanel";
 import SlideEditor from "./SlideEditor";
 import SlidePreviewMockup from "./SlidePreviewMockup";
 import PresetsModal from "./PresetsModal";
+
+type ExportResult = { ok: true; file_id: string; size: number; n_slides: number };
 
 export default function GraficosPage() {
   const { state, refresh } = useSession();
@@ -29,24 +32,41 @@ export default function GraficosPage() {
   const [pptFileId, setPptFileId] = useState<string | null>(null);
   const [docxFileId, setDocxFileId] = useState<string | null>(null);
   const [presetsOpen, setPresetsOpen] = useState<"ppt" | "word" | null>(null);
+  const [exportJob, setExportJob] = useState<{ kind: "ppt" | "word"; id: string } | null>(null);
 
   const prepOk = !!state?.analitica_prep_ok;
 
   async function onExport(kind: "ppt" | "word") {
-    setError(""); setWarns([]); setBusy(`exportando ${kind}…`);
+    setError(""); setWarns([]); setBusy(`validando ${kind}…`);
     try {
       const v = await apiGraficosValidar(plan);
       setWarns(v.warnings);
       if (!v.ok) { setError(v.errors.join("; ")); return; }
       const fn = kind === "ppt" ? apiGraficosPpt : apiGraficosWord;
       const out = await fn(plan, presets, wPresets);
-      if (kind === "ppt") setPptFileId(out.file_id); else setDocxFileId(out.file_id);
-      await refresh();
+      setExportJob({ kind, id: out.job_id });
     } catch (e: unknown) {
       setError((e as Error).message);
     } finally {
       setBusy("");
     }
+  }
+
+  function onExportDone(data: ExportResult) {
+    if (!exportJob) return;
+    if (exportJob.kind === "ppt") setPptFileId(data.file_id);
+    else setDocxFileId(data.file_id);
+    setExportJob(null);
+    void refresh();
+  }
+
+  function onExportError(message: string) {
+    setError(message);
+    setExportJob(null);
+  }
+
+  function onExportCancelled() {
+    setExportJob(null);
   }
 
   function onSaveJson() {
@@ -100,7 +120,7 @@ export default function GraficosPage() {
           <Palette size={13} /> Presets Word
         </button>
         <span style={{ width: 1, height: 22, background: "var(--pulso-border)" }} />
-        <button className="pulso-primary" onClick={() => onExport("ppt")} disabled={!prepOk || plan.slides.length === 0 || !!busy}
+        <button className="pulso-primary" onClick={() => onExport("ppt")} disabled={!prepOk || plan.slides.length === 0 || !!busy || !!exportJob}
           style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <FileText size={13} /> Exportar .pptx
         </button>
@@ -109,7 +129,7 @@ export default function GraficosPage() {
             <Download size={13} /> reporte.pptx
           </a>
         )}
-        <button className="pulso-primary" onClick={() => onExport("word")} disabled={!prepOk || plan.slides.length === 0 || !!busy}
+        <button className="pulso-primary" onClick={() => onExport("word")} disabled={!prepOk || plan.slides.length === 0 || !!busy || !!exportJob}
           style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <FileText size={13} /> Exportar .docx
         </button>
@@ -132,6 +152,18 @@ export default function GraficosPage() {
           <RotateCcw size={13} /> Reset
         </button>
       </div>
+
+      {exportJob && (
+        <div style={{ marginBottom: 10 }}>
+          <JobProgress<ExportResult>
+            label={exportJob.kind === "ppt" ? "Exportando PPT" : "Exportando Word"}
+            jobId={exportJob.id}
+            onDone={onExportDone}
+            onError={onExportError}
+            onCancelled={onExportCancelled}
+          />
+        </div>
+      )}
 
       {presetsOpen && <PresetsModal kind={presetsOpen} onClose={() => setPresetsOpen(null)} />}
 

@@ -170,6 +170,8 @@ export async function apiShutdown() {
 // ---------- Jobs (async queue) ----------
 
 export type JobStatus = "running" | "done" | "error" | "cancelled";
+export type JobStart = { ok: true; job_id: string; kind: string };
+export type FileJobResult = { ok: true; file_id: string; size: number };
 
 // The API unboxed-JSON serializer turns R's NULL into {}.
 // result_data / error are therefore either the real payload or an empty object.
@@ -368,6 +370,18 @@ export type PreguntaSubtipo =
   | "integer"
   | "text";
 
+export type CandidatoTexto = {
+  col: string;
+  parent_detectado: string;
+  confianza: number; // 0-1
+};
+
+export type ParejaCommitteada = {
+  child_col: string;
+  modo_so: "" | "padre" | "hijo";
+  dummy_col: string;
+};
+
 export type PreguntaAbierta = {
   parent: string;
   parent_label: string;
@@ -384,11 +398,56 @@ export type PreguntaAbierta = {
   status: PreguntaStatus;
   habilitada: boolean;
   preview: string[];
+  section: string;
+  section_label: string;
+  q_order: number | null;
+  candidatos_texto: CandidatoTexto[];
+  pareja: ParejaCommitteada | Record<string, never> | null;
 };
+
+export type Arquetipo = "auto" | "solitaria" | "pareja-so" | "pareja-sm" | "huerfana" | "config-so" | "no-aplica";
+
+export function arquetipoOf(p: PreguntaAbierta): Arquetipo {
+  if (p.status === "no-aplica") return "no-aplica";
+  if (p.tipo === "integer") return "auto";
+  if (p.tipo === "select_multiple") return "pareja-sm";
+  if (p.tipo === "select_one") {
+    if (p.modo_so === "padre" || p.modo_so === "hijo") return "pareja-so";
+    if (p.candidatos_texto && p.candidatos_texto.length > 0) return "pareja-so";
+    return "config-so";
+  }
+  if (p.tipo === "text") {
+    // Heuristic: text with candidate name pattern ending in _otro probably
+    // belongs to an SO/SM — treat as huerfana for pairing UX. Simple rule:
+    // ends with _otro(s)/_especifique.
+    if (/_(otros?|especifique|detail|desc(ripcion)?)$/i.test(p.parent)) return "huerfana";
+    return "solitaria";
+  }
+  return "solitaria";
+}
 
 export async function apiCodifPreguntasAbiertas() {
   return handle<{ ok: true; preguntas: PreguntaAbierta[] }>(
     await fetch("/api/codificacion/preguntas-abiertas", { headers: headers() })
+  );
+}
+
+export async function apiCodifPareja(parent: string, child_col: string, modo_so?: "padre" | "hijo", dummy_col?: string) {
+  return handle<{ ok: true; parent: string; child_col: string; modo_so: string; dummy_col: string }>(
+    await fetch("/api/codificacion/pareja", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ parent, child_col, modo_so, dummy_col }),
+    })
+  );
+}
+
+export async function apiCodifDesemparejar(parent: string) {
+  return handle<{ ok: true; parent: string }>(
+    await fetch(`/api/codificacion/pareja?parent=${encodeURIComponent(parent)}`, {
+      method: "DELETE",
+      headers: headers(),
+    })
   );
 }
 
@@ -484,7 +543,7 @@ export async function apiAnaliticaFrecuencias() {
 }
 
 export async function apiAnaliticaCruces(cruces: string, modo: "estandar" | "dimensiones" = "estandar") {
-  return handle<{ ok: true; file_id: string; size: number }>(
+  return handle<JobStart>(
     await fetch("/api/analitica/cruces", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -494,7 +553,7 @@ export async function apiAnaliticaCruces(cruces: string, modo: "estandar" | "dim
 }
 
 export async function apiAnaliticaSpss() {
-  return handle<{ ok: true; file_id: string; size: number }>(
+  return handle<JobStart>(
     await fetch("/api/analitica/spss", { method: "POST", headers: headers() })
   );
 }
@@ -563,7 +622,7 @@ export async function apiGraficosValidar(plan: PlanJson) {
 }
 
 export async function apiGraficosPpt(plan: PlanJson, presets?: Record<string, unknown>, w_presets?: Record<string, unknown>) {
-  return handle<{ ok: true; file_id: string; size: number; n_slides: number }>(
+  return handle<JobStart>(
     await fetch("/api/graficos/ppt", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -573,7 +632,7 @@ export async function apiGraficosPpt(plan: PlanJson, presets?: Record<string, un
 }
 
 export async function apiGraficosWord(plan: PlanJson, presets?: Record<string, unknown>, w_presets?: Record<string, unknown>) {
-  return handle<{ ok: true; file_id: string; size: number; n_slides: number }>(
+  return handle<JobStart>(
     await fetch("/api/graficos/word", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -583,7 +642,7 @@ export async function apiGraficosWord(plan: PlanJson, presets?: Record<string, u
 }
 
 export async function apiAnaliticaEnumeradores(col_enumerador: string) {
-  return handle<{ ok: true; file_id: string; size: number }>(
+  return handle<JobStart>(
     await fetch("/api/analitica/enumeradores", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),

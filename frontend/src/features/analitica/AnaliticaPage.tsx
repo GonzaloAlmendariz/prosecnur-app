@@ -8,10 +8,12 @@ import {
   apiAnaliticaPreparar,
   apiAnaliticaSpss,
   downloadUrl,
+  FileJobResult,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Panel } from "../../components/Panel";
 import { Alert } from "../../components/Alert";
+import { JobProgress } from "../../components/JobProgress";
 
 function Status({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -28,11 +30,17 @@ export default function AnaliticaPage() {
 
   const [prep, setPrep] = useState<{ fuente: string; n_filas: number; n_columnas: number } | null>(null);
   const [downloads, setDownloads] = useState<Record<string, string>>({});
+  const [jobs, setJobs] = useState<Record<string, string | null>>({
+    cruces: null,
+    spss: null,
+    enumeradores: null,
+  });
   const [cruceVar, setCruceVar] = useState("servicio");
   const [cruceModo, setCruceModo] = useState<"estandar" | "dimensiones">("estandar");
   const [colEnum, setColEnum] = useState("Enumerator_name");
 
   const prereqOk = !!state?.xlsform && !!state?.data;
+  const hasJob = Object.values(jobs).some(Boolean);
 
   async function run<T>(label: string, fn: () => Promise<T>): Promise<T | undefined> {
     setError("");
@@ -62,16 +70,31 @@ export default function AnaliticaPage() {
     if (out) setDownloads((d) => ({ ...d, frecuencias: out.file_id }));
   }
   async function onCruces() {
-    const out = await run(`generando cruces (${cruceVar})…`, () => apiAnaliticaCruces(cruceVar, cruceModo));
-    if (out) setDownloads((d) => ({ ...d, cruces: out.file_id }));
+    const out = await run(`iniciando cruces (${cruceVar})…`, () => apiAnaliticaCruces(cruceVar, cruceModo));
+    if (out) setJobs((j) => ({ ...j, cruces: out.job_id }));
   }
   async function onSpss() {
-    const out = await run("exportando SPSS (sav+sps)…", () => apiAnaliticaSpss());
-    if (out) setDownloads((d) => ({ ...d, spss: out.file_id }));
+    const out = await run("iniciando exportación SPSS…", () => apiAnaliticaSpss());
+    if (out) setJobs((j) => ({ ...j, spss: out.job_id }));
   }
   async function onEnumeradores() {
-    const out = await run("generando reporte de enumeradores…", () => apiAnaliticaEnumeradores(colEnum));
-    if (out) setDownloads((d) => ({ ...d, enumeradores: out.file_id }));
+    const out = await run("iniciando reporte de enumeradores…", () => apiAnaliticaEnumeradores(colEnum));
+    if (out) setJobs((j) => ({ ...j, enumeradores: out.job_id }));
+  }
+
+  function onJobDone(key: "cruces" | "spss" | "enumeradores", data: FileJobResult) {
+    setDownloads((d) => ({ ...d, [key]: data.file_id }));
+    setJobs((j) => ({ ...j, [key]: null }));
+    void refresh();
+  }
+
+  function onJobError(key: "cruces" | "spss" | "enumeradores", message: string) {
+    setError(message);
+    setJobs((j) => ({ ...j, [key]: null }));
+  }
+
+  function onJobCancelled(key: "cruces" | "spss" | "enumeradores") {
+    setJobs((j) => ({ ...j, [key]: null }));
   }
 
   function DL({ id, label }: { id?: string; label: string }) {
@@ -102,7 +125,7 @@ export default function AnaliticaPage() {
       <Panel eyebrow="Paso 1" title="Preparar datos para reporte"
         hint={<><code>reporte_instrumento()</code> + <code>reporte_data()</code> aplican etiquetas, value-labels y medidas SPSS. El resultado queda en memoria y alimenta todos los entregables.</>}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <button className="pulso-primary" disabled={!prereqOk || !!busy} onClick={onPreparar}
+          <button className="pulso-primary" disabled={!prereqOk || !!busy || hasJob} onClick={onPreparar}
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <Play size={14} /> {prepOk ? "Volver a preparar" : "Preparar"}
           </button>
@@ -118,7 +141,7 @@ export default function AnaliticaPage() {
 
       <Panel eyebrow="Paso 2" title={<><BookOpen size={14} /> Libro de códigos</>} hint="Diccionario de variables con etiquetas y valores válidos (Excel).">
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <button disabled={!prepOk || !!busy} onClick={onCodebook}
+          <button disabled={!prepOk || !!busy || hasJob} onClick={onCodebook}
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <Play size={14} /> Generar codebook
           </button>
@@ -128,7 +151,7 @@ export default function AnaliticaPage() {
 
       <Panel eyebrow="Paso 3" title={<><BarChart2 size={14} /> Frecuencias</>} hint="Tablas univariadas por variable (estilo SPSS) en un Excel multi-hoja.">
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <button disabled={!prepOk || !!busy} onClick={onFrecuencias}
+          <button disabled={!prepOk || !!busy || hasJob} onClick={onFrecuencias}
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <Play size={14} /> Generar frecuencias
           </button>
@@ -150,23 +173,45 @@ export default function AnaliticaPage() {
               <option value="dimensiones">dimensiones</option>
             </select>
           </label>
-          <button disabled={!prepOk || !!busy || !cruceVar} onClick={onCruces}
+          <button disabled={!prepOk || !!busy || !!jobs.cruces || !cruceVar} onClick={onCruces}
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <Play size={14} /> Generar cruces
           </button>
           <DL id={downloads.cruces} label="cruces.xlsx" />
         </div>
+        {jobs.cruces && (
+          <div style={{ marginTop: 12 }}>
+            <JobProgress<FileJobResult>
+              label="Generando cruces"
+              jobId={jobs.cruces}
+              onDone={(data) => onJobDone("cruces", data)}
+              onError={(msg) => onJobError("cruces", msg)}
+              onCancelled={() => onJobCancelled("cruces")}
+            />
+          </div>
+        )}
       </Panel>
 
       <Panel eyebrow="Paso 5" title={<><FileText size={14} /> SPSS (.sav + .sps)</>}
         hint={<>Exporta el dataset etiquetado como <code>.sav</code> y la sintaxis de niveles como <code>.sps</code>, empaquetados en un zip.</>}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <button disabled={!prepOk || !!busy} onClick={onSpss}
+          <button disabled={!prepOk || !!busy || !!jobs.spss} onClick={onSpss}
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <Play size={14} /> Exportar SPSS
           </button>
           <DL id={downloads.spss} label="spss.zip" />
         </div>
+        {jobs.spss && (
+          <div style={{ marginTop: 12 }}>
+            <JobProgress<FileJobResult>
+              label="Exportando SPSS"
+              jobId={jobs.spss}
+              onDone={(data) => onJobDone("spss", data)}
+              onError={(msg) => onJobError("spss", msg)}
+              onCancelled={() => onJobCancelled("spss")}
+            />
+          </div>
+        )}
       </Panel>
 
       <Panel eyebrow="Paso 6" title={<><Users size={14} /> Reporte de enumeradores (PDF)</>}
@@ -176,12 +221,23 @@ export default function AnaliticaPage() {
             Columna
             <input value={colEnum} onChange={(e) => setColEnum(e.target.value)} style={{ width: 180 }} />
           </label>
-          <button disabled={!prepOk || !!busy || !colEnum} onClick={onEnumeradores}
+          <button disabled={!prepOk || !!busy || !!jobs.enumeradores || !colEnum} onClick={onEnumeradores}
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <Play size={14} /> Generar reporte
           </button>
           <DL id={downloads.enumeradores} label="enumeradores.pdf" />
         </div>
+        {jobs.enumeradores && (
+          <div style={{ marginTop: 12 }}>
+            <JobProgress<FileJobResult>
+              label="Generando reporte de enumeradores"
+              jobId={jobs.enumeradores}
+              onDone={(data) => onJobDone("enumeradores", data)}
+              onError={(msg) => onJobError("enumeradores", msg)}
+              onCancelled={() => onJobCancelled("enumeradores")}
+            />
+          </div>
+        )}
       </Panel>
 
       {busy && <Alert kind="info">{busy}</Alert>}
