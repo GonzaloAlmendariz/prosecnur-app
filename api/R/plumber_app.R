@@ -42,16 +42,47 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
 #' @param port Port. Default `8787`.
 #' @param static_dir Path to frontend build.
 #' @param open_browser If TRUE, opens the default browser after boot.
+#' @param shutdown_grace_secs Segundos máximos para esperar jobs activos antes
+#'   de matar el proceso cuando se recibe /api/system/shutdown.
 #' @export
 run_app <- function(host = "127.0.0.1", port = 8787L,
                     static_dir = system.file("www", package = "prosecnurapp"),
-                    open_browser = TRUE) {
+                    open_browser = TRUE,
+                    shutdown_grace_secs = 5) {
   pr <- build_plumber_app(static_dir = static_dir)
   url <- sprintf("http://%s:%d/", host, port)
 
   if (open_browser) {
     later::later(function() utils::browseURL(url), delay = 1.5)
   }
+
+  tick_interval <- 0.5
+  shutdown_deadline <- NULL
+
+  tick <- function() {
+    job_poll_all()
+
+    if (shutdown_requested()) {
+      if (is.null(shutdown_deadline)) {
+        shutdown_deadline <<- Sys.time() + shutdown_grace_secs
+        message("[prosecnur-app] Shutdown requested — esperando hasta ",
+                shutdown_grace_secs, "s a que terminen jobs activos.")
+      }
+      running <- jobs_count_running()
+      past_deadline <- Sys.time() >= shutdown_deadline
+      if (running == 0L || past_deadline) {
+        if (running > 0L) {
+          message(sprintf("[prosecnur-app] Timeout con %d job(s) activos, matando.", running))
+          jobs_kill_all()
+        }
+        message("[prosecnur-app] Shutdown: quit().")
+        quit(save = "no", status = 0)
+      }
+    }
+
+    later::later(tick, delay = tick_interval)
+  }
+  later::later(tick, delay = tick_interval)
 
   message(sprintf("[prosecnur-app] Listening on %s", url))
   plumber::pr_set_docs(pr, FALSE)
