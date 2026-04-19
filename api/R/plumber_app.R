@@ -10,6 +10,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     plumber::pr_set_error(function(req, res, err) handle_api_error(req, res, err))
 
   pr <- mount_sistema(pr)
+  pr <- mount_jobs(pr)
   pr <- mount_carga(pr)
   pr <- mount_validacion(pr)
   pr <- mount_codificacion(pr)
