@@ -167,6 +167,40 @@ export async function apiShutdown() {
   );
 }
 
+// ---------- Jobs (async queue) ----------
+
+export type JobStatus = "running" | "done" | "error" | "cancelled";
+
+// The API unboxed-JSON serializer turns R's NULL into {}.
+// result_data / error are therefore either the real payload or an empty object.
+export type JobSnapshot<T = unknown> = {
+  id: string;
+  kind: string;
+  status: JobStatus;
+  started_at: string;
+  finished_at: string | null;
+  has_file_result: boolean;
+  result_filename: string | null;
+  result_data: T | Record<string, never>;
+  error: string | Record<string, never>;
+};
+
+export async function apiJobStatus<T = unknown>(id: string) {
+  return handle<JobSnapshot<T>>(
+    await fetch(`/api/jobs/${encodeURIComponent(id)}`, { headers: headers() })
+  );
+}
+
+export async function apiJobCancel(id: string) {
+  return handle<{ ok: boolean }>(
+    await fetch(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST", headers: headers() })
+  );
+}
+
+export function jobResultUrl(id: string) {
+  return `/api/jobs/${encodeURIComponent(id)}/result`;
+}
+
 // ---------- Validación ----------
 
 export type PlanResumen = { "Tipo de observación": string; n_reglas: number };
@@ -203,13 +237,17 @@ export async function apiValidacionImportPlan(file_id: string) {
   );
 }
 
+export type AuditoriaResult = {
+  ok: true;
+  total_inconsistencias: number | null;
+  resumen: Record<string, unknown>[] | null;
+  top_reglas: Record<string, unknown>[] | null;
+};
+
 export async function apiValidacionAuditoria() {
-  return handle<{
-    ok: true;
-    total_inconsistencias: number | null;
-    resumen: Record<string, unknown>[] | null;
-    top_reglas: Record<string, unknown>[] | null;
-  }>(await fetch("/api/validacion/auditoria", { method: "POST", headers: headers() }));
+  return handle<{ ok: true; job_id: string; kind: string }>(
+    await fetch("/api/validacion/auditoria", { method: "POST", headers: headers() })
+  );
 }
 
 export async function apiValidacionAuditoriaRegla(id_regla: string | string[]) {

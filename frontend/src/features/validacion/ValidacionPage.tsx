@@ -7,6 +7,7 @@ import {
   apiValidacionBuildPlan,
   apiValidacionExportPlan,
   apiValidacionImportPlan,
+  AuditoriaResult,
   downloadUrl,
   PlanResumen,
   PlanRow,
@@ -14,6 +15,7 @@ import {
 import { useSession } from "../../lib/SessionContext";
 import { Panel } from "../../components/Panel";
 import { Alert } from "../../components/Alert";
+import { JobProgress } from "../../components/JobProgress";
 
 function KeyValueTable({ rows }: { rows: Record<string, unknown>[] }) {
   if (!rows || rows.length === 0) return <em style={{ color: "#888" }}>sin resultados</em>;
@@ -53,6 +55,7 @@ export default function ValidacionPage() {
   const [total, setTotal] = useState<number | null>(null);
   const [topReglas, setTopReglas] = useState<Record<string, unknown>[] | null>(null);
   const [reglaDetalle, setReglaDetalle] = useState<{ id: string; rows: Record<string, unknown>[] } | null>(null);
+  const [auditJobId, setAuditJobId] = useState<string | null>(null);
 
   const xlsformReady = !!state?.xlsform;
   const dataReady = !!state?.data;
@@ -98,10 +101,32 @@ export default function ValidacionPage() {
   }
 
   async function onAudit() {
-    const out = await run("ejecutando auditoría…", () => apiValidacionAuditoria());
-    if (!out) return;
-    setTotal(out.total_inconsistencias);
-    setTopReglas(out.top_reglas);
+    setError("");
+    setTotal(null);
+    setTopReglas(null);
+    setReglaDetalle(null);
+    try {
+      const out = await apiValidacionAuditoria();
+      setAuditJobId(out.job_id);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  function onAuditDone(data: AuditoriaResult) {
+    setTotal(data.total_inconsistencias);
+    setTopReglas(data.top_reglas);
+    setAuditJobId(null);
+    void refresh();
+  }
+
+  function onAuditError(msg: string) {
+    setError(msg);
+    setAuditJobId(null);
+  }
+
+  function onAuditCancelled() {
+    setAuditJobId(null);
   }
 
   async function onDrill(id: string) {
@@ -168,10 +193,21 @@ export default function ValidacionPage() {
 
       <Panel eyebrow="Paso 3" title="Auditar consistencia de la base de datos">
         {!dataReady && <div style={{ fontSize: 13, color: "var(--pulso-text-soft)", marginBottom: 8 }}>Requiere una base de datos cargada.</div>}
-        <button className="pulso-primary" disabled={!dataReady || nReglas == null || !!busy} onClick={onAudit}
+        <button className="pulso-primary" disabled={!dataReady || nReglas == null || !!busy || !!auditJobId} onClick={onAudit}
           style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <Play size={14} /> Ejecutar auditoría
         </button>
+        {auditJobId && (
+          <div style={{ marginTop: 12 }}>
+            <JobProgress<AuditoriaResult>
+              label="Ejecutando auditoría"
+              jobId={auditJobId}
+              onDone={onAuditDone}
+              onError={onAuditError}
+              onCancelled={onAuditCancelled}
+            />
+          </div>
+        )}
         {total != null && (
           <div style={{ marginTop: "1rem", fontSize: 15 }}>
             <strong>Total de inconsistencias:</strong> {total}

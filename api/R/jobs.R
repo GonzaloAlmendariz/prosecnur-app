@@ -5,6 +5,7 @@ job_submit <- function(sid,
                        func,
                        args = list(),
                        result_filename = NULL,
+                       on_complete = NULL,
                        libpath = .libPaths()) {
   sess <- session_get(sid)
   jobs_dir <- file.path(sess$dir, "jobs")
@@ -40,6 +41,8 @@ job_submit <- function(sid,
     status = "running",
     result_path = result_path,
     result_data = NULL,
+    result_public = NULL,
+    on_complete = on_complete,
     error = NULL
   )
   job_id
@@ -66,6 +69,15 @@ job_poll <- function(job_id) {
   } else {
     j$status <- "done"
     j$result_data <- result
+    j$result_public <- result
+    if (!is.null(j$on_complete)) {
+      public <- tryCatch(j$on_complete(j), error = function(e) {
+        j$status <- "error"
+        j$error <- sprintf("on_complete failed: %s", conditionMessage(e))
+        NULL
+      })
+      if (!is.null(public)) j$result_public <- public
+    }
   }
   .jobs[[job_id]] <- j
   j
@@ -130,7 +142,7 @@ job_snapshot <- function(j) {
     } else {
       NA_character_
     },
-    result_data = j$result_data,
+    result_data = j$result_public,
     error = j$error
   )
 }

@@ -213,3 +213,11 @@ button.pulso-icon-danger:hover:not(:disabled) {
   border-color: #fecaca;
   color: #991b1b;
 }
+
+@keyframes pulso-spin-kf {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.pulso-spin {
+  animation: pulso-spin-kf 1s linear infinite;
+}

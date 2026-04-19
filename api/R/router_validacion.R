@@ -144,35 +144,55 @@ mount_validacion <- function(pr) {
       if (is.null(s$plan_result)) stop_api(409, "E_NO_PLAN", "Build or import the plan first")
       data_meta <- .require_data_file(sid)
 
-      datos <- .read_data_for_validation(data_meta$path, data_meta$ext)
-      ev <- prosecnur::evaluar_consistencia(
-        datos = datos,
-        plan = s$plan_result$plan,
-        contar_na_como_inconsistencia = FALSE
+      job_id <- job_submit(
+        sid = sid,
+        kind = "validacion.auditoria",
+        func = function(data_path, data_ext, plan) {
+          datos <- switch(data_ext,
+            xlsx = readxl::read_excel(data_path),
+            xls  = readxl::read_excel(data_path),
+            csv  = utils::read.csv(data_path, stringsAsFactors = FALSE),
+            sav  = haven::read_sav(data_path),
+            stop(sprintf("Unsupported data extension: %s", data_ext))
+          )
+          ev <- prosecnur::evaluar_consistencia(
+            datos = datos,
+            plan = plan,
+            contar_na_como_inconsistencia = FALSE
+          )
+          total_raw <- tryCatch(prosecnur::total_inconsistencias(ev), error = function(e) NULL)
+          total_scalar <- if (is.numeric(total_raw) && length(total_raw) == 1) {
+            as.integer(total_raw)
+          } else if (is.list(total_raw) && !is.null(total_raw$cabecera)) {
+            ca <- total_raw$cabecera
+            as.integer(if (is.data.frame(ca)) ca$Total_inconsistencias[1] else ca[[1]]$Total_inconsistencias)
+          } else NA_integer_
+          top <- tryCatch({
+            r <- ev$resumen
+            if (!is.null(r) && "n_inconsistencias" %in% names(r)) {
+              r <- r[order(-r$n_inconsistencias), , drop = FALSE]
+              utils::head(r, 20)
+            } else r
+          }, error = function(e) NULL)
+          list(ev = ev, total = total_scalar, top = top, resumen = ev$resumen)
+        },
+        args = list(
+          data_path = data_meta$path,
+          data_ext = data_meta$ext,
+          plan = s$plan_result$plan
+        ),
+        on_complete = function(j) {
+          raw <- j$result_data
+          session_set(j$sid, "evaluacion", raw$ev)
+          list(
+            ok = TRUE,
+            total_inconsistencias = raw$total,
+            resumen = if (!is.null(raw$resumen)) .plan_rows_preview(raw$resumen, n = 200) else list(),
+            top_reglas = if (!is.null(raw$top)) .plan_rows_preview(raw$top, n = 20) else list()
+          )
+        }
       )
-      session_set(sid, "evaluacion", ev)
-      total_raw <- tryCatch(prosecnur::total_inconsistencias(ev), error = function(e) NULL)
-      total_scalar <- if (is.numeric(total_raw) && length(total_raw) == 1) {
-        as.integer(total_raw)
-      } else if (is.list(total_raw) && !is.null(total_raw$cabecera)) {
-        ca <- total_raw$cabecera
-        as.integer(if (is.data.frame(ca)) ca$Total_inconsistencias[1] else ca[[1]]$Total_inconsistencias)
-      } else NA_integer_
-
-      top <- tryCatch({
-        r <- ev$resumen
-        if (!is.null(r) && "n_inconsistencias" %in% names(r)) {
-          r <- r[order(-r$n_inconsistencias), , drop = FALSE]
-          utils::head(r, 20)
-        } else r
-      }, error = function(e) NULL)
-
-      list(
-        ok = TRUE,
-        total_inconsistencias = total_scalar,
-        resumen = if (!is.null(ev$resumen)) .plan_rows_preview(ev$resumen, n = 200) else list(),
-        top_reglas = if (!is.null(top)) .plan_rows_preview(top, n = 20) else list()
-      )
+      list(ok = TRUE, job_id = job_id, kind = "validacion.auditoria")
     })) |>
     plumber::pr_post("/api/validacion/auditoria/regla", wrap_endpoint(function(req, res, id_regla = NULL) {
       sid <- session_header(req)
