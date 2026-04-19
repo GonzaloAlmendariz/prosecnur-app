@@ -75,6 +75,79 @@
   x
 }
 
+# Normalize open text responses for similarity grouping: trim whitespace,
+# collapse multiple spaces, lowercase, strip accents. Used to dedupe
+# visually-equivalent answers ("No sé", "no se ", "NO SE" → "no se").
+.normalize_text <- function(s) {
+  if (length(s) == 0) return(character(0))
+  x <- as.character(s)
+  x[is.na(x)] <- ""
+  x <- tolower(trimws(x))
+  x <- gsub("\\s+", " ", x)
+  # strip accents via iconv to ASCII//TRANSLIT fallback
+  x <- iconv(x, from = "UTF-8", to = "ASCII//TRANSLIT", sub = "byte")
+  # TRANSLIT may leave byte-sequences like <U+00BF> for chars it can't map;
+  # drop them together with other non-printable residues.
+  x <- gsub("<[^>]+>", "", x)
+  x
+}
+
+# Given a pregunta row from the draft and the raw data.frame, compute
+# response stats: which column to read, total non-empty, unique dedup.
+.pregunta_stats <- function(row, data_df) {
+  tipo <- as.character(row$tipo %||% "")
+  modo_so <- as.character(row$modo_so %||% "")
+  parent <- as.character(row$parent %||% "")
+  # Pick the relevant column per type, with fallback to parent name
+  explicit <- if (tipo == "text") row$text_col %||% row$parent_col
+    else if (tipo == "select_one" && modo_so == "hijo") row$text_col
+    else if (tipo == "select_one" && modo_so == "padre") row$parent_col
+    else if (tipo %in% c("select_multiple", "integer")) row$parent_col
+    else NA_character_
+  .safe_str <- function(x) {
+    if (is.null(x) || length(x) == 0L) return("")
+    v <- as.character(x)[[1]]
+    if (is.na(v)) "" else v
+  }
+  col_name <- .safe_str(explicit)
+  parent <- .safe_str(parent)
+  # Fallback: for tipos that read a value column (not text), the variable
+  # name itself typically matches a data column.
+  if (col_name == "" && tipo %in% c("integer", "select_multiple") && parent != "") {
+    col_name <- parent
+  }
+  if (col_name == "" && tipo == "select_one" && modo_so == "padre" && parent != "") {
+    col_name <- parent
+  }
+  if (col_name == "" && tipo == "text" && parent != "") {
+    col_name <- parent
+  }
+  if (col_name == "" || !col_name %in% names(data_df)) {
+    return(list(col = col_name, n_respuestas = 0L, n_unicas = 0L, preview = character(0)))
+  }
+  vals <- data_df[[col_name]]
+  if (is.factor(vals)) vals <- as.character(vals)
+  vals <- as.character(vals)
+  vals <- vals[!is.na(vals)]
+  if (length(vals) > 0) vals <- vals[nzchar(trimws(vals))]
+  n_resp <- length(vals)
+  if (n_resp == 0L) {
+    return(list(col = col_name, n_respuestas = 0L, n_unicas = 0L, preview = character(0)))
+  }
+  normed <- .normalize_text(vals)
+  normed_nz <- normed[nzchar(normed)]
+  uniq <- unique(normed_nz)
+  tab <- sort(table(normed_nz), decreasing = TRUE)
+  preview <- head(names(tab), 5)
+  if (length(preview) > 0) Encoding(preview) <- "UTF-8"
+  list(
+    col = col_name,
+    n_respuestas = as.integer(n_resp),
+    n_unicas = as.integer(length(uniq)),
+    preview = preview
+  )
+}
+
 # Classify each column of a "codigos" data sheet by its role. Editable
 # columns are {recod, control, aux} — the rest are reference only.
 .codigos_col_role <- function(colname) {
@@ -166,6 +239,70 @@ mount_codificacion <- function(pr) {
       session_set(sid, "codif_data", data_df)
       session_set(sid, "codif_familias_generated", TRUE)
       list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+    })) |>
+    plumber::pr_get("/api/codificacion/preguntas-abiertas", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      # Ensure we have the draft (will auto-generate suggestion if absent)
+      draft <- s$codif_familias_draft
+      if (is.null(draft)) {
+        # Generate suggestion just like GET /familias/draft does
+        df <- .familias_suggest_tibble(sid)
+        rows <- .familias_rows_from_df(df)
+        draft <- list(
+          rows = rows,
+          source = "suggestion",
+          updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+        )
+        session_set(sid, "codif_familias_draft", draft)
+        session_set(sid, "codif_familias_generated", TRUE)
+      }
+      data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
+      if (is.null(s$codif_data)) session_set(sid, "codif_data", data_df)
+
+      preguntas <- lapply(draft$rows, function(r) {
+        tipo <- as.character(r$tipo %||% "")
+        modo_so <- as.character(r$modo_so %||% "")
+        use_flag <- isTRUE(r$use)
+        stats <- .pregunta_stats(r, data_df)
+        subtipo <- if (tipo == "select_one") {
+          if (modo_so == "padre") "select_one_padre"
+          else if (modo_so == "hijo") "select_one_hijo"
+          else "select_one_sin_modo"
+        } else tipo
+        # Best-effort status: without commit/recod info, default to no-iniciado.
+        # Once we have actual recod state, we'll upgrade this from session.
+        recoded <- s$codif_respuestas_recod[[as.character(r$parent)]] %||% list()
+        n_cod <- length(recoded)
+        # SO sin modo asignado aún no es codificable (el analista debe
+        # decidir padre/hijo). Lo marcamos como requiere-configuracion.
+        needs_config <- tipo == "select_one" && !modo_so %in% c("padre", "hijo")
+        status <- if (!use_flag) "no-aplica"
+          else if (needs_config) "requiere-config"
+          else if (stats$n_respuestas == 0L) "sin-datos"
+          else if (n_cod == 0L) "no-iniciado"
+          else if (n_cod < stats$n_unicas) "en-curso"
+          else "completo"
+        list(
+          parent = as.character(r$parent %||% ""),
+          parent_label = as.character(r$parent_label %||% ""),
+          tipo = tipo,
+          subtipo = subtipo,
+          modo_so = modo_so,
+          text_col = as.character(r$text_col %||% ""),
+          parent_col = as.character(r$parent_col %||% ""),
+          list_norm = as.character(r$list_norm %||% ""),
+          col_efectiva = stats$col,
+          n_respuestas = stats$n_respuestas,
+          n_unicas = stats$n_unicas,
+          n_codificadas = as.integer(n_cod),
+          status = status,
+          habilitada = use_flag,
+          preview = stats$preview
+        )
+      })
+      # Keep all preguntas: UI decides whether to surface no-aplica ones.
+      list(ok = TRUE, preguntas = preguntas)
     })) |>
     plumber::pr_get("/api/codificacion/columnas", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
