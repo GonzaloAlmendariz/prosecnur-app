@@ -350,9 +350,48 @@ export async function apiCodifFamiliasCommit() {
   );
 }
 
+export type CodigosSheetMeta = { name: string; tipo: string; n: number };
+
+export type CodigosColRole = "id" | "ref" | "recod" | "control" | "aux" | "computed" | "pad";
+
+export type CodigosColMeta = { name: string; role: CodigosColRole };
+
+export type CodigosSheetResponse = {
+  ok: true;
+  name: string;
+  tech_row: string[];
+  label_row: string[];
+  rows: string[][];
+  col_meta: CodigosColMeta[];
+};
+
+export type CodigoPatch = { row: number; col_index: number; value: string };
+
 export async function apiCodifPlantillaCodigosGenerar() {
-  return handle<{ ok: true; file_id: string; size: number }>(
+  return handle<{ ok: true; file_id: string; size: number; sheets: CodigosSheetMeta[] }>(
     await fetch("/api/codificacion/plantilla-codigos/generar", { method: "POST", headers: headers() })
+  );
+}
+
+export async function apiCodifCodigosSheets() {
+  return handle<{ ok: true; sheets: CodigosSheetMeta[] }>(
+    await fetch("/api/codificacion/codigos/sheets", { headers: headers() })
+  );
+}
+
+export async function apiCodifCodigosSheet(name: string) {
+  return handle<CodigosSheetResponse>(
+    await fetch(`/api/codificacion/codigos/sheet?name=${encodeURIComponent(name)}`, { headers: headers() })
+  );
+}
+
+export async function apiCodifCodigosPatches(name: string, patches: CodigoPatch[]) {
+  return handle<{ ok: true; applied: number; updated_at: string }>(
+    await fetch("/api/codificacion/codigos/sheet/patches", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ name, patches }),
+    })
   );
 }
 
