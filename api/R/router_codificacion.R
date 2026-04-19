@@ -63,6 +63,18 @@
   rows
 }
 
+# jsonlite::fromJSON doesn't set Encoding() on character elements. When a
+# UTF-8 body round-trips through session + toJSON, unmarked bytes get escaped
+# as <c2><bf> etc. Fix by walking the parsed structure and marking strings.
+.mark_utf8 <- function(x) {
+  if (is.character(x)) {
+    Encoding(x) <- "UTF-8"
+    return(x)
+  }
+  if (is.list(x)) return(lapply(x, .mark_utf8))
+  x
+}
+
 isTRUE_vec <- function(x) {
   vapply(x, function(v) {
     if (is.logical(v)) isTRUE(v)
@@ -139,6 +151,13 @@ mount_codificacion <- function(pr) {
       session_set(sid, "codif_familias_generated", TRUE)
       list(ok = TRUE, file_id = meta$file_id, size = meta$size)
     })) |>
+    plumber::pr_get("/api/codificacion/columnas", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
+      if (is.null(s$codif_data)) session_set(sid, "codif_data", data_df)
+      list(ok = TRUE, columnas = as.character(names(data_df)))
+    })) |>
     plumber::pr_get("/api/codificacion/familias/draft", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)
@@ -165,13 +184,14 @@ mount_codificacion <- function(pr) {
     plumber::pr_post("/api/codificacion/familias/draft", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       session_get(sid)
-      body_raw <- req$postBody %||% (if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else "")
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
       if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
       parsed <- tryCatch(
         jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
-      rows <- parsed$rows
+      rows <- .mark_utf8(parsed$rows)
       if (is.null(rows)) stop_api(400, "E_MISSING_ROWS", "Body debe incluir 'rows' (lista de filas de familias)")
       if (!is.list(rows)) stop_api(400, "E_BAD_ROWS", "'rows' debe ser una lista JSON")
       draft <- list(
@@ -212,6 +232,24 @@ mount_codificacion <- function(pr) {
         n_huerfanos = nrow(split$textos_huerfanos %||% data.frame()),
         resumen = if (!is.null(resumen)) .familias_rows_from_df(resumen) else list()
       )
+    })) |>
+    plumber::pr_post("/api/codificacion/plantilla-codigos/generar", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      split <- s$codif_familias_split
+      if (is.null(split)) stop_api(409, "E_NO_SPLIT",
+        "Primero valida el borrador de familias (POST /api/codificacion/familias/commit).")
+      inst <- s$codif_inst %||% prosecnur::leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
+      data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
+      dat <- list(raw = data_df)
+      plantilla <- prosecnur::construir_plantilla_desde_familias(inst = inst, dat = dat, split = split)
+      out_path <- file.path(s$dir, "downloads",
+        sprintf("plantilla_codificacion_%s.xlsx", uuid::UUIDgenerate()))
+      dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
+      prosecnur::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = out_path, inst = inst)
+      meta <- .register_output_file(sid, "plantilla_codif_template", out_path)
+      session_set(sid, "codif_plantilla_template", TRUE)
+      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
     })) |>
     plumber::pr_post("/api/codificacion/familias/aplicar", wrap_endpoint(function(req, res, file_id = NULL) {
       sid <- session_header(req)

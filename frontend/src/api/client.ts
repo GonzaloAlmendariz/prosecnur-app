@@ -274,6 +274,88 @@ export function downloadUrl(file_id: string) {
 
 // ---------- Codificación ----------
 
+// ---------- Codificación: modelo canónico JSON ----------
+
+export type FamiliaRow = {
+  use: boolean;
+  q_order: number;
+  tipo: "select_one" | "select_multiple" | "integer" | "text" | string;
+  modo_so: "" | "padre" | "hijo";
+  parent: string;
+  parent_label: string;
+  list_norm: string;
+  parent_col: string;
+  other_dummy_col: string;
+  text_col: string;
+  parent_col_cands?: string;
+  other_dummy_cands?: string;
+  text_col_cands?: string;
+  dummy_cands?: string;
+};
+
+export type FamiliasDraftResponse = {
+  ok: true;
+  rows: FamiliaRow[];
+  source: "suggestion" | "draft";
+  updated_at: string;
+};
+
+export type FamiliasCommitResumen = {
+  total_filas_excel: number;
+  aceptadas_total: number;
+  aceptadas_sm: number;
+  aceptadas_so: number;
+  aceptadas_int: number;
+  aceptadas_text: number;
+  excluidas: number;
+  textos_adoptados: number;
+  textos_huerfanos: number;
+};
+
+export type FamiliasCommitResponse = {
+  ok: true;
+  n_select_one: number;
+  n_select_multiple: number;
+  n_integer: number;
+  n_text: number;
+  n_huerfanos: number;
+  resumen: FamiliasCommitResumen[];
+};
+
+export async function apiCodifColumnas() {
+  return handle<{ ok: true; columnas: string[] }>(
+    await fetch("/api/codificacion/columnas", { headers: headers() })
+  );
+}
+
+export async function apiCodifFamiliasDraftGet() {
+  return handle<FamiliasDraftResponse>(
+    await fetch("/api/codificacion/familias/draft", { headers: headers() })
+  );
+}
+
+export async function apiCodifFamiliasDraftSave(rows: FamiliaRow[]) {
+  return handle<{ ok: true; n_rows: number; updated_at: string }>(
+    await fetch("/api/codificacion/familias/draft", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ rows }),
+    })
+  );
+}
+
+export async function apiCodifFamiliasCommit() {
+  return handle<FamiliasCommitResponse>(
+    await fetch("/api/codificacion/familias/commit", { method: "POST", headers: headers() })
+  );
+}
+
+export async function apiCodifPlantillaCodigosGenerar() {
+  return handle<{ ok: true; file_id: string; size: number }>(
+    await fetch("/api/codificacion/plantilla-codigos/generar", { method: "POST", headers: headers() })
+  );
+}
+
 export async function apiCodifPlantillaFamilias() {
   return handle<{ ok: true; file_id: string; size: number }>(
     await fetch("/api/codificacion/plantilla-familias", { method: "POST", headers: headers() })
