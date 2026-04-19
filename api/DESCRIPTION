@@ -22,7 +22,8 @@ Imports:
     haven,
     ps,
     ggplot2,
-    dplyr
+    dplyr,
+    zip
 Suggests:
     testthat (>= 3.0.0)
 RoxygenNote: 7.3.2

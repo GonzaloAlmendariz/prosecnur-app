@@ -110,6 +110,8 @@ mount_codificacion <- function(pr) {
       )
       data_meta <- .register_output_file(sid, "data_adaptada", data_out)
       inst_meta <- .register_output_file(sid, "instrumento_adaptado", inst_out)
+      session_set(sid, "codif_data_adaptada_fid", data_meta$file_id)
+      session_set(sid, "codif_inst_adaptado_fid", inst_meta$file_id)
       session_set(sid, "codif_aplicado", TRUE)
       list(
         ok = TRUE,

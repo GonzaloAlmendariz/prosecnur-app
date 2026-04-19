@@ -55,7 +55,14 @@ mount_sistema <- function(pr) {
         codif_familias_loaded = !is.null(s$codif_familias_file_id),
         codif_plantilla_template = isTRUE(s$codif_plantilla_template),
         codif_plantilla_codigos_loaded = !is.null(s$codif_plantilla_codigos_file_id),
-        codif_aplicado = isTRUE(s$codif_aplicado)
+        codif_aplicado = isTRUE(s$codif_aplicado),
+        analitica_prep_ok = isTRUE(s$analitica_prep_ok),
+        analitica_codebook_ok = isTRUE(s$analitica_codebook_ok),
+        analitica_frecuencias_ok = isTRUE(s$analitica_frecuencias_ok),
+        analitica_cruces_ok = isTRUE(s$analitica_cruces_ok),
+        analitica_spss_ok = isTRUE(s$analitica_spss_ok),
+        analitica_enumeradores_ok = isTRUE(s$analitica_enumeradores_ok),
+        analitica_fuente = s$analitica_fuente %||% NA_character_
       )
     })) |>
     plumber::pr_post("/api/files/upload", wrap_endpoint(function(req, res, file = NULL, kind = NULL) {

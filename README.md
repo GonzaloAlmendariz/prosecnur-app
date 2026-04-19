@@ -15,6 +15,7 @@ Roadmap completo: `../.claude/plans/pulso-report-podr-a-desarrollarse-recursive-
 - R ≥ 4.1
 - Node ≥ 20 con pnpm
 - El paquete `prosecnur` disponible localmente (por defecto en `../prosecnur`)
+- (Opcional) [Quarto CLI](https://quarto.org) para el reporte de enumeradores en PDF (Fase 4)
 
 ## Primer arranque
 

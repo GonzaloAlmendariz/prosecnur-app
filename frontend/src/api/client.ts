@@ -54,6 +54,13 @@ export type SessionState = {
   codif_plantilla_template: boolean;
   codif_plantilla_codigos_loaded: boolean;
   codif_aplicado: boolean;
+  analitica_prep_ok: boolean;
+  analitica_codebook_ok: boolean;
+  analitica_frecuencias_ok: boolean;
+  analitica_cruces_ok: boolean;
+  analitica_spss_ok: boolean;
+  analitica_enumeradores_ok: boolean;
+  analitica_fuente: string | null;
 };
 
 export async function apiSessionState() {
@@ -239,6 +246,52 @@ export async function apiCodifPlantillaCodigosSubir(file_id: string) {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ file_id }),
+    })
+  );
+}
+
+// ---------- Analítica ----------
+
+export async function apiAnaliticaPreparar() {
+  return handle<{ ok: true; fuente: string; n_filas: number; n_columnas: number }>(
+    await fetch("/api/analitica/preparar", { method: "POST", headers: headers() })
+  );
+}
+
+export async function apiAnaliticaCodebook() {
+  return handle<{ ok: true; file_id: string; size: number }>(
+    await fetch("/api/analitica/codebook", { method: "POST", headers: headers() })
+  );
+}
+
+export async function apiAnaliticaFrecuencias() {
+  return handle<{ ok: true; file_id: string; size: number }>(
+    await fetch("/api/analitica/frecuencias", { method: "POST", headers: headers() })
+  );
+}
+
+export async function apiAnaliticaCruces(cruces: string, modo: "estandar" | "dimensiones" = "estandar") {
+  return handle<{ ok: true; file_id: string; size: number }>(
+    await fetch("/api/analitica/cruces", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ cruces, modo }),
+    })
+  );
+}
+
+export async function apiAnaliticaSpss() {
+  return handle<{ ok: true; file_id: string; size: number }>(
+    await fetch("/api/analitica/spss", { method: "POST", headers: headers() })
+  );
+}
+
+export async function apiAnaliticaEnumeradores(col_enumerador: string) {
+  return handle<{ ok: true; file_id: string; size: number }>(
+    await fetch("/api/analitica/enumeradores", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ col_enumerador }),
     })
   );
 }
