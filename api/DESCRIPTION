@@ -23,7 +23,8 @@ Imports:
     ps,
     ggplot2,
     dplyr,
-    zip
+    zip,
+    openxlsx
 Suggests:
     testthat (>= 3.0.0)
 RoxygenNote: 7.3.2
