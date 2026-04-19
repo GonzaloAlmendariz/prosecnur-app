@@ -9,10 +9,13 @@ import { useSession } from "../../lib/SessionContext";
 import { usePlanStore } from "./store";
 import TimelinePanel from "./TimelinePanel";
 import SlideEditor from "./SlideEditor";
+import SlidePreviewMockup from "./SlidePreviewMockup";
+import PresetsModal from "./PresetsModal";
 
 export default function GraficosPage() {
   const { state, refresh } = useSession();
   const plan = usePlanStore((s) => s.plan);
+  const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
   const presets = usePlanStore((s) => s.presets);
   const wPresets = usePlanStore((s) => s.wPresets);
   const loadPlan = usePlanStore((s) => s.loadPlan);
@@ -23,6 +26,7 @@ export default function GraficosPage() {
   const [warns, setWarns] = useState<string[]>([]);
   const [pptFileId, setPptFileId] = useState<string | null>(null);
   const [docxFileId, setDocxFileId] = useState<string | null>(null);
+  const [presetsOpen, setPresetsOpen] = useState<"ppt" | "word" | null>(null);
 
   const prepOk = !!state?.analitica_prep_ok;
 
@@ -78,6 +82,9 @@ export default function GraficosPage() {
       )}
 
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap", padding: "0.5rem 0", borderBottom: "1px solid #e3e3e8", marginBottom: "0.5rem" }}>
+        <button onClick={() => setPresetsOpen("ppt")} title="Estilos globales del PPT">🎨 Presets PPT</button>
+        <button onClick={() => setPresetsOpen("word")} title="Estilos globales del Word">🎨 Presets Word</button>
+        <span style={{ width: 1, height: 20, background: "#e3e3e8" }} />
         <button onClick={() => onExport("ppt")} disabled={!prepOk || plan.slides.length === 0 || !!busy}>
           Exportar .pptx
         </button>
@@ -94,17 +101,43 @@ export default function GraficosPage() {
         <button onClick={resetPlan} disabled={plan.slides.length === 0} style={{ color: "#c00" }}>Reset plan</button>
       </div>
 
+      {presetsOpen && <PresetsModal kind={presetsOpen} onClose={() => setPresetsOpen(null)} />}
+
       <div style={{ display: "flex", flex: 1, overflow: "hidden", border: "1px solid #e3e3e8", borderRadius: 6 }}>
         <TimelinePanel />
         <SlideEditor />
-        <aside style={{ width: 320, borderLeft: "1px solid #e3e3e8", padding: "1rem", overflowY: "auto", background: "#fafbfc" }}>
-          <h3 style={{ marginTop: 0, fontSize: 14 }}>Preview</h3>
-          <div style={{ fontSize: 12, color: "#888" }}>
-            Render por slide en iteración siguiente. Por ahora:
+        <aside style={{ width: 420, borderLeft: "1px solid #e3e3e8", padding: "1rem", overflowY: "auto", background: "#fafbfc" }}>
+          <h3 style={{ marginTop: 0, fontSize: 14 }}>Preview de la secuencia</h3>
+          <div style={{ fontSize: 11, color: "#888", marginBottom: "0.75rem" }}>
+            Maquetación aproximada de cada slide. Click selecciona el slide en el editor.
           </div>
-          <pre style={{ fontSize: 11, marginTop: "0.75rem", padding: "0.5rem", background: "#fff", border: "1px solid #eee", borderRadius: 4, overflow: "auto", maxHeight: 400 }}>
-{JSON.stringify(plan, null, 2)}
-          </pre>
+          {plan.slides.length === 0 ? (
+            <div style={{ fontSize: 12, color: "#888" }}>
+              Agrega slides en el timeline para ver su maquetación.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+              {plan.slides.map((s, i) => (
+                <div
+                  key={s.id}
+                  onClick={() => usePlanStore.setState({ selectedSlideId: s.id })}
+                  style={{
+                    cursor: "pointer",
+                    padding: 4,
+                    borderRadius: 8,
+                    background: selectedSlideId === s.id ? "#dbeafe" : "transparent",
+                    transition: "background 120ms",
+                  }}
+                >
+                  <div style={{ fontSize: 10, color: "#6b7280", fontFamily: "ui-monospace,monospace", marginBottom: 3, display: "flex", justifyContent: "space-between" }}>
+                    <span>#{i + 1} · {s.tipo.replace("p_slide_", "")}</span>
+                    {selectedSlideId === s.id && <span style={{ color: "#1e40af" }}>editando</span>}
+                  </div>
+                  <SlidePreviewMockup slide={s} />
+                </div>
+              ))}
+            </div>
+          )}
         </aside>
       </div>
 

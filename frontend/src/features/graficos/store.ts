@@ -25,6 +25,10 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   p_slide_2: { title: "", left: null, right: null, base: "", footer: "" },
   p_slide_text_l: { title: "", plot: null, text: "", base: "", footer: "" },
   p_slide_text_r: { title: "", plot: null, text: "", base: "", footer: "" },
+  p_slide_poblacion_2: { title: "", left: null, right: null, tag: "", center_note: "", base: "", footer: "" },
+  p_slide_poblacion_4: { title: "", up_left: null, up_right: null, bottom_left: null, bottom_right: null, tag: "", center_note: "", base: "", footer: "" },
+  p_slide_poblacion_5: { title: "", pic1: null, pic2: null, pic3: null, pic4: null, pic5: null, tag: "", footer: "" },
+  p_slide_poblacion_6: { title: "", pic1: null, pic2: null, pic3: null, pic4: null, pic5: null, pic6: null, tag: "", footer: "" },
 };
 
 function newId() {

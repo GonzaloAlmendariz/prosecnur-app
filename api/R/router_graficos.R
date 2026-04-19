@@ -1,10 +1,14 @@
 .SLIDE_REGISTRY <- list(
-  p_slide_title   = list(cat = "estructural", grafs = c()),
-  p_slide_section = list(cat = "estructural", grafs = c()),
-  p_slide_1       = list(cat = "contenido",   grafs = c("plot")),
-  p_slide_2       = list(cat = "contenido",   grafs = c("left", "right")),
-  p_slide_text_l  = list(cat = "contenido",   grafs = c("plot")),
-  p_slide_text_r  = list(cat = "contenido",   grafs = c("plot"))
+  p_slide_title       = list(cat = "estructural", grafs = c()),
+  p_slide_section     = list(cat = "estructural", grafs = c()),
+  p_slide_1           = list(cat = "contenido",   grafs = c("plot")),
+  p_slide_2           = list(cat = "contenido",   grafs = c("left", "right")),
+  p_slide_text_l      = list(cat = "contenido",   grafs = c("plot")),
+  p_slide_text_r      = list(cat = "contenido",   grafs = c("plot")),
+  p_slide_poblacion_2 = list(cat = "poblacion",   grafs = c("left", "right")),
+  p_slide_poblacion_4 = list(cat = "poblacion",   grafs = c("up_left", "up_right", "bottom_left", "bottom_right")),
+  p_slide_poblacion_5 = list(cat = "poblacion",   grafs = c("pic1", "pic2", "pic3", "pic4", "pic5")),
+  p_slide_poblacion_6 = list(cat = "poblacion",   grafs = c("pic1", "pic2", "pic3", "pic4", "pic5", "pic6"))
 )
 
 .GRAFICADOR_REGISTRY <- c(

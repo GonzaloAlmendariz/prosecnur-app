@@ -64,26 +64,39 @@ function SectionEditor({ slide }: { slide: Slide }) {
 function SlideConGraficosEditor({ slide, slots }: { slide: Slide; slots: string[] }) {
   const update = usePlanStore((s) => s.updateSlidePayload);
   const p = slide.payload as Record<string, string>;
+  const payloadMap = slide.payload as Record<string, GraficadorRef | null | undefined>;
   return (
     <>
       <Field label="Título"><TextInput value={p.title ?? ""} onChange={(v) => update(slide.id, { title: v })} /></Field>
-      {"subtitle" in (slide.payload || {}) && (
-        <Field label="Subtítulo"><TextInput value={p.subtitle ?? ""} onChange={(v) => update(slide.id, { subtitle: v })} /></Field>
-      )}
       <Field label="Base (nota inferior)"><TextInput value={p.base ?? ""} onChange={(v) => update(slide.id, { base: v })} placeholder="N=1631" /></Field>
       <Field label="Pie (fuente)"><TextInput value={p.footer ?? ""} onChange={(v) => update(slide.id, { footer: v })} placeholder="Fuente: Pulso PUCP" /></Field>
-      {slots.includes("plot") && (
-        <GraficadorSlot slideId={slide.id} slotName="plot" value={(slide.payload as Record<string, GraficadorRef | null | undefined>).plot} />
-      )}
-      {slots.includes("left") && (
-        <GraficadorSlot slideId={slide.id} slotName="left" value={(slide.payload as Record<string, GraficadorRef | null | undefined>).left} />
-      )}
-      {slots.includes("right") && (
-        <GraficadorSlot slideId={slide.id} slotName="right" value={(slide.payload as Record<string, GraficadorRef | null | undefined>).right} />
-      )}
+      {slots.map((slotName) => (
+        <GraficadorSlot key={slotName} slideId={slide.id} slotName={slotName} value={payloadMap[slotName]} />
+      ))}
       {(slide.tipo === "p_slide_text_l" || slide.tipo === "p_slide_text_r") && (
         <Field label="Texto adjunto"><TextArea value={p.text ?? ""} onChange={(v) => update(slide.id, { text: v })} rows={5} /></Field>
       )}
+    </>
+  );
+}
+
+function SlidePoblacionEditor({ slide, slots }: { slide: Slide; slots: string[] }) {
+  const update = usePlanStore((s) => s.updateSlidePayload);
+  const p = slide.payload as Record<string, string>;
+  const payloadMap = slide.payload as Record<string, GraficadorRef | null | undefined>;
+  const conCenterNote = slide.tipo === "p_slide_poblacion_2" || slide.tipo === "p_slide_poblacion_4";
+  return (
+    <>
+      <Field label="Título"><TextInput value={p.title ?? ""} onChange={(v) => update(slide.id, { title: v })} /></Field>
+      <Field label="Tag (etiqueta lateral)"><TextInput value={p.tag ?? ""} onChange={(v) => update(slide.id, { tag: v })} /></Field>
+      {conCenterNote && (
+        <Field label="Center note" help="Nota al centro del layout (solo en poblacion_2 y poblacion_4)."><TextInput value={p.center_note ?? ""} onChange={(v) => update(slide.id, { center_note: v })} /></Field>
+      )}
+      <Field label="Base"><TextInput value={p.base ?? ""} onChange={(v) => update(slide.id, { base: v })} placeholder="N=1631" /></Field>
+      <Field label="Pie (footer)"><TextInput value={p.footer ?? ""} onChange={(v) => update(slide.id, { footer: v })} /></Field>
+      {slots.map((slotName) => (
+        <GraficadorSlot key={slotName} slideId={slide.id} slotName={slotName} value={payloadMap[slotName]} />
+      ))}
     </>
   );
 }
@@ -108,6 +121,10 @@ export default function SlideEditor() {
     case "p_slide_2":       body = <SlideConGraficosEditor slide={slide} slots={["left", "right"]} />; break;
     case "p_slide_text_l":  body = <SlideConGraficosEditor slide={slide} slots={["plot"]} />; break;
     case "p_slide_text_r":  body = <SlideConGraficosEditor slide={slide} slots={["plot"]} />; break;
+    case "p_slide_poblacion_2": body = <SlidePoblacionEditor slide={slide} slots={["left", "right"]} />; break;
+    case "p_slide_poblacion_4": body = <SlidePoblacionEditor slide={slide} slots={["up_left", "up_right", "bottom_left", "bottom_right"]} />; break;
+    case "p_slide_poblacion_5": body = <SlidePoblacionEditor slide={slide} slots={["pic1", "pic2", "pic3", "pic4", "pic5"]} />; break;
+    case "p_slide_poblacion_6": body = <SlidePoblacionEditor slide={slide} slots={["pic1", "pic2", "pic3", "pic4", "pic5", "pic6"]} />; break;
   }
 
   return (

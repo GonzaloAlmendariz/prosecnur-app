@@ -15,6 +15,8 @@ export const GRAFICADOR_CATALOG: { categoria: string; items: GraficadorMeta[] }[
         defaultArgs: { var: "", cruces: null, titulo: "" } },
       { name: "p_barras_apiladas", label: "Barras 100% apiladas", descripcion: "1 variable · cruces opcional · distribución 100%",
         defaultArgs: { var: "", cruces: null, titulo: "" } },
+      { name: "p_barras_multiapiladas", label: "Barras multiapiladas", descripcion: "Múltiples variables o bloques · modo var/cruce/var_cruce/multilista",
+        defaultArgs: { modo: "var", var: "", vars: null, cruces: null, titulo: "", wrap_y: 50, top2box: false } },
       { name: "p_pie", label: "Pie (torta)", descripcion: "1 variable dicotómica o con pocas categorías",
         defaultArgs: { var: "", titulo: "" } },
       { name: "p_donut", label: "Donut", descripcion: "1 variable · rosquilla con valor central",
@@ -30,6 +32,13 @@ export const GRAFICADOR_CATALOG: { categoria: string; items: GraficadorMeta[] }[
         defaultArgs: { var: "", cruce: null, titulo: "" } },
       { name: "p_media_rango", label: "Media + rango", descripcion: "Media con intervalos por grupo",
         defaultArgs: { var: "", cruce: null, titulo: "" } },
+    ],
+  },
+  {
+    categoria: "Comparativo (multi-variable)",
+    items: [
+      { name: "p_radar_tabla", label: "Radar + tabla", descripcion: "Radar con tabla lateral · modos sm (lista de vars) y box (1 var)",
+        defaultArgs: { modo: "sm", var: null, vars: [], cruce: null, titulo: "", titulo_tabla: "", top_n: null } },
     ],
   },
 ];

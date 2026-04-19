@@ -8,11 +8,16 @@ const SLIDE_LABEL: Record<SlideType, string> = {
   p_slide_2: "2 gráficos",
   p_slide_text_l: "Gráfico + texto (izq)",
   p_slide_text_r: "Gráfico + texto (der)",
+  p_slide_poblacion_2: "Población · 2 gráficos",
+  p_slide_poblacion_4: "Población · 4 gráficos",
+  p_slide_poblacion_5: "Población · 5 gráficos",
+  p_slide_poblacion_6: "Población · 6 gráficos",
 };
 
 const SLIDE_GROUPS: { label: string; items: SlideType[] }[] = [
   { label: "Estructurales", items: ["p_slide_title", "p_slide_section"] },
   { label: "Con gráficos", items: ["p_slide_1", "p_slide_2", "p_slide_text_l", "p_slide_text_r"] },
+  { label: "Población (comparación por grupos)", items: ["p_slide_poblacion_2", "p_slide_poblacion_4", "p_slide_poblacion_5", "p_slide_poblacion_6"] },
 ];
 
 export default function TimelinePanel() {

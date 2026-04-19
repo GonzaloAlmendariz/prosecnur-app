@@ -296,7 +296,11 @@ export type SlideType =
   | "p_slide_1"
   | "p_slide_2"
   | "p_slide_text_l"
-  | "p_slide_text_r";
+  | "p_slide_text_r"
+  | "p_slide_poblacion_2"
+  | "p_slide_poblacion_4"
+  | "p_slide_poblacion_5"
+  | "p_slide_poblacion_6";
 
 export type GraficadorRef = {
   graficador: string;
