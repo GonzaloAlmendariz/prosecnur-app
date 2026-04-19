@@ -39,11 +39,10 @@ read_data_preview <- function(path, ext, n_preview = 100L) {
 
 mount_carga <- function(pr) {
   pr |>
-    plumber::pr_post("/api/carga/instrumento", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/carga/instrumento", wrap_endpoint(function(req, res, file_id = NULL) {
       sid <- session_header(req)
-      body <- jsonlite::fromJSON(rawToChar(req$bodyRaw), simplifyVector = TRUE)
-      if (is.null(body$file_id)) stop_api(400, "E_MISSING_FILE_ID", "Body must include file_id")
-      meta <- get_file(sid, body$file_id)
+      if (is.null(file_id) || !nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Body must include file_id")
+      meta <- get_file(sid, file_id)
       if (!(meta$kind %in% c("xlsform"))) {
         stop_api(400, "E_WRONG_KIND", "file must have kind='xlsform'")
       }
@@ -52,16 +51,15 @@ mount_carga <- function(pr) {
       resumen <- summarize_instrumento(inst)
       list(ok = TRUE, resumen = resumen)
     })) |>
-    plumber::pr_post("/api/carga/data", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/carga/data", wrap_endpoint(function(req, res, file_id = NULL) {
       sid <- session_header(req)
-      body <- jsonlite::fromJSON(rawToChar(req$bodyRaw), simplifyVector = TRUE)
-      if (is.null(body$file_id)) stop_api(400, "E_MISSING_FILE_ID", "Body must include file_id")
-      meta <- get_file(sid, body$file_id)
+      if (is.null(file_id) || !nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Body must include file_id")
+      meta <- get_file(sid, file_id)
       if (!(meta$kind %in% c("data", "sav"))) {
         stop_api(400, "E_WRONG_KIND", "file must have kind in {'data','sav'}")
       }
       preview <- read_data_preview(meta$path, meta$ext)
-      session_set(sid, "data_raw_meta", list(file_id = body$file_id, path = meta$path, ext = meta$ext))
+      session_set(sid, "data_raw_meta", list(file_id = file_id, path = meta$path, ext = meta$ext))
       list(ok = TRUE, preview = preview)
     }))
 }

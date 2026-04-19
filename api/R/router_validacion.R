@@ -37,8 +37,17 @@
 
 .plan_rows_preview <- function(plan, n = 50) {
   df <- utils::head(plan, n)
-  jsonlite::toJSON(df, na = "null", dataframe = "rows", auto_unbox = TRUE) |>
-    jsonlite::fromJSON(simplifyVector = FALSE)
+  rows <- vector("list", nrow(df))
+  for (i in seq_len(nrow(df))) {
+    row <- as.list(df[i, , drop = FALSE])
+    row <- lapply(row, function(v) {
+      if (length(v) == 0) NA
+      else if (length(v) == 1) unname(v)
+      else unname(v)
+    })
+    rows[[i]] <- row
+  }
+  rows
 }
 
 .ggplot_to_png <- function(gg, width = 14, height = 10, dpi = 120) {
@@ -47,38 +56,44 @@
   tmp
 }
 
+# prosecnur's GraficarSecciones/GraficarPreguntas use grid::unit() without the
+# namespace prefix and without declaring grid as an Import. Attach it explicitly.
+.with_grid <- function(fn) {
+  suppressPackageStartupMessages(requireNamespace("grid"))
+  if (!"package:grid" %in% search()) attachNamespace("grid")
+  fn()
+}
+
 mount_validacion <- function(pr) {
   pr |>
-    plumber::pr_post("/api/validacion/plan", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/validacion/plan", wrap_endpoint(function(req, res, incluir = NULL, idioma = "es") {
       sid <- session_header(req)
-      body <- tryCatch(
-        jsonlite::fromJSON(rawToChar(req$bodyRaw %||% charToRaw("{}")), simplifyVector = TRUE),
-        error = function(e) list()
-      )
-      meta <- .require_xlsform(sid)
-      .ensure_inst_limpieza(sid)
+      .require_xlsform(sid)
+      inst <- .ensure_inst_limpieza(sid)
 
-      incluir <- body$incluir %||% list(
-        requeridos = TRUE, otros = TRUE, relevantes = TRUE,
-        restricciones = TRUE, calculos = TRUE, controles = TRUE,
-        constantes = TRUE, atipicos = TRUE
-      )
-      config <- prosecnur::acnur_config()
+      incluir_final <- if (is.null(incluir)) list(
+        required = TRUE, other = TRUE, relevant = TRUE,
+        constraint = TRUE, calculate = TRUE, choice_filter = TRUE,
+        repeat_min1 = FALSE, tiempo_ventana = FALSE
+      ) else as.list(incluir)
 
-      plan_result <- prosecnur::construir_plan_limpieza(
-        ruta_xlsform = meta$path,
-        idioma = body$idioma %||% "es",
-        config = config,
-        incluir = incluir,
-        silencioso = TRUE
+      plan <- prosecnur::generar_plan_limpieza(x = inst, incluir = incluir_final)
+      resumen <- tryCatch(
+        dplyr::arrange(
+          dplyr::count(plan, `Tipo de observación`, name = "n_reglas"),
+          dplyr::desc(n_reglas)
+        ),
+        error = function(e) NULL
       )
+      plan_result <- list(plan = plan, resumen = resumen,
+                          secciones = inst$meta$section_map, meta = inst$meta)
       session_set(sid, "plan_result", plan_result)
 
       list(
         ok = TRUE,
-        n_reglas = nrow(plan_result$plan),
-        resumen = .plan_rows_preview(plan_result$resumen, n = 50),
-        plan_preview = .plan_rows_preview(plan_result$plan, n = 50)
+        n_reglas = nrow(plan),
+        resumen = if (!is.null(resumen)) .plan_rows_preview(resumen, n = 50) else list(),
+        plan_preview = .plan_rows_preview(plan, n = 50)
       )
     })) |>
     plumber::pr_post("/api/validacion/plan/export", wrap_endpoint(function(req, res) {
@@ -107,11 +122,10 @@ mount_validacion <- function(pr) {
       session_set(sid, "files", files)
       list(ok = TRUE, file_id = file_id, size = meta$size)
     })) |>
-    plumber::pr_post("/api/validacion/plan/import", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/validacion/plan/import", wrap_endpoint(function(req, res, file_id = NULL) {
       sid <- session_header(req)
-      body <- jsonlite::fromJSON(rawToChar(req$bodyRaw), simplifyVector = TRUE)
-      if (is.null(body$file_id)) stop_api(400, "E_MISSING_FILE_ID", "Body must include file_id")
-      meta <- get_file(sid, body$file_id)
+      if (is.null(file_id) || !nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Body must include file_id")
+      meta <- get_file(sid, file_id)
       plan_df <- prosecnur::cargar_plan_excel(meta$path)
 
       prev <- session_get(sid)$plan_result
@@ -137,7 +151,13 @@ mount_validacion <- function(pr) {
         contar_na_como_inconsistencia = FALSE
       )
       session_set(sid, "evaluacion", ev)
-      total <- tryCatch(prosecnur::total_inconsistencias(ev), error = function(e) NA_integer_)
+      total_raw <- tryCatch(prosecnur::total_inconsistencias(ev), error = function(e) NULL)
+      total_scalar <- if (is.numeric(total_raw) && length(total_raw) == 1) {
+        as.integer(total_raw)
+      } else if (is.list(total_raw) && !is.null(total_raw$cabecera)) {
+        ca <- total_raw$cabecera
+        as.integer(if (is.data.frame(ca)) ca$Total_inconsistencias[1] else ca[[1]]$Total_inconsistencias)
+      } else NA_integer_
 
       top <- tryCatch({
         r <- ev$resumen
@@ -149,33 +169,31 @@ mount_validacion <- function(pr) {
 
       list(
         ok = TRUE,
-        total_inconsistencias = total,
-        resumen = if (!is.null(ev$resumen)) .plan_rows_preview(ev$resumen, n = 200) else NULL,
-        top_reglas = if (!is.null(top)) .plan_rows_preview(top, n = 20) else NULL
+        total_inconsistencias = total_scalar,
+        resumen = if (!is.null(ev$resumen)) .plan_rows_preview(ev$resumen, n = 200) else list(),
+        top_reglas = if (!is.null(top)) .plan_rows_preview(top, n = 20) else list()
       )
     })) |>
-    plumber::pr_post("/api/validacion/auditoria/regla", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/validacion/auditoria/regla", wrap_endpoint(function(req, res, id_regla = NULL) {
       sid <- session_header(req)
       s <- session_get(sid)
       if (is.null(s$evaluacion)) stop_api(409, "E_NO_AUDITORIA", "Run auditoría first with POST /api/validacion/auditoria")
-      body <- jsonlite::fromJSON(rawToChar(req$bodyRaw), simplifyVector = TRUE)
-      if (is.null(body$id_regla)) stop_api(400, "E_MISSING_ID_REGLA", "Body must include id_regla")
-      ids <- body$id_regla
+      if (is.null(id_regla)) stop_api(400, "E_MISSING_ID_REGLA", "Body must include id_regla")
       inst <- tryCatch(.ensure_inst_limpieza(sid), error = function(e) NULL)
-      detalle <- prosecnur::auditar_regla(s$evaluacion, ids = ids, inst = inst, verbose = FALSE)
+      detalle <- prosecnur::auditar_regla(s$evaluacion, ids = id_regla, inst = inst, verbose = FALSE)
       list(ok = TRUE, detalle = .plan_rows_preview(detalle, n = 200))
     })) |>
     plumber::pr_get("/api/validacion/graficos/secciones", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       inst <- .ensure_inst_limpieza(sid)
-      gg <- prosecnur::GraficarSecciones(inst)
+      gg <- .with_grid(function() prosecnur::GraficarSecciones(inst))
       png <- .ggplot_to_png(gg, width = 16, height = 10)
       plumber::include_file(png, res, content_type = "image/png")
     })) |>
     plumber::pr_get("/api/validacion/graficos/preguntas", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       inst <- .ensure_inst_limpieza(sid)
-      gg <- prosecnur::GraficarPreguntas(inst)
+      gg <- .with_grid(function() prosecnur::GraficarPreguntas(inst))
       png <- .ggplot_to_png(gg, width = 16, height = 10)
       plumber::include_file(png, res, content_type = "image/png")
     }))

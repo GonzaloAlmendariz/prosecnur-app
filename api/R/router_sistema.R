@@ -53,19 +53,35 @@ mount_sistema <- function(pr) {
         auditoria_run = !is.null(s$evaluacion)
       )
     })) |>
-    plumber::pr_post("/api/files/upload", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/files/upload", wrap_endpoint(function(req, res, file = NULL, kind = NULL) {
       sid <- session_header(req)
       if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
         sid <- session_create()
         res$setHeader("X-Pulso-Session", sid)
       }
-      parts <- parse_multipart_upload(req)
-      if (is.null(parts$file)) stop_api(400, "E_NO_FILE_FIELD", "Missing 'file' field in multipart body")
-      if (is.null(parts$kind)) stop_api(400, "E_NO_KIND_FIELD", "Missing 'kind' field in multipart body")
-      kind <- as.character(parts$kind)
-      file_part <- parts$file
-      original <- file_part$filename %||% "upload.bin"
-      meta <- save_upload(sid, kind, original, file_part$value)
+      if (is.null(file)) stop_api(400, "E_NO_FILE_FIELD", "Missing 'file' field in multipart body")
+
+      extracted <- if (is.raw(file)) {
+        list(bytes = file, original = "upload.bin")
+      } else if (is.list(file) && length(file) >= 1 && is.raw(file[[1]])) {
+        list(bytes = file[[1]], original = names(file)[1] %||% "upload.bin")
+      } else if (is.list(file) && is.raw(file$value)) {
+        list(bytes = file$value, original = file$filename %||% "upload.bin")
+      } else {
+        stop_api(400, "E_BAD_FILE", "Could not extract file bytes from multipart payload")
+      }
+
+      kind_str <- if (is.character(kind) && length(kind) >= 1 && nzchar(kind[[1]])) {
+        as.character(kind[[1]])
+      } else {
+        q <- req$args %||% list()
+        as.character(q$kind %||% req$QUERY_STRING %||% "")
+      }
+      if (!nzchar(kind_str)) {
+        stop_api(400, "E_NO_KIND_FIELD",
+          "Missing 'kind'. Pass it as query param (?kind=xlsform) or form field with Content-Type: text/plain.")
+      }
+      meta <- save_upload(sid, kind_str, extracted$original, extracted$bytes)
       res$status <- 201
       meta
     })) |>

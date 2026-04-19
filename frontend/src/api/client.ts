@@ -60,14 +60,19 @@ export type UploadKind = "xlsform" | "data" | "sav" | "plan_limpieza" | "plantil
 export async function apiUpload(file: File, kind: UploadKind) {
   const fd = new FormData();
   fd.append("file", file);
-  fd.append("kind", kind);
   return handle<{
     file_id: string;
     kind: UploadKind;
     original_name: string;
     size: number;
     ext: string;
-  }>(await fetch("/api/files/upload", { method: "POST", headers: headers(), body: fd }));
+  }>(
+    await fetch(`/api/files/upload?kind=${encodeURIComponent(kind)}`, {
+      method: "POST",
+      headers: headers(),
+      body: fd,
+    })
+  );
 }
 
 export async function apiCargaInstrumento(file_id: string) {

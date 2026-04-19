@@ -21,7 +21,8 @@ Imports:
     readxl,
     haven,
     ps,
-    ggplot2
+    ggplot2,
+    dplyr
 Suggests:
     testthat (>= 3.0.0)
 RoxygenNote: 7.3.2

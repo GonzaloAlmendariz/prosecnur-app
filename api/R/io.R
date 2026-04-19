@@ -51,3 +51,26 @@ parse_multipart_upload <- function(req) {
 }
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
+
+# Multipart text fields arrive inconsistently in plumber (as character, list, or
+# empty list) depending on the client's Content-Type. This helper normalizes them
+# by first reading the auto-parsed value and, if empty, re-parsing the raw body.
+.extract_text_field <- function(value, req, field_name) {
+  if (is.character(value) && length(value) >= 1 && nzchar(value[[1]])) return(as.character(value[[1]]))
+  if (is.raw(value)) return(rawToChar(value))
+  if (is.list(value) && length(value) > 0) {
+    v <- value[[1]]
+    if (is.character(v) && length(v) >= 1) return(as.character(v[[1]]))
+    if (is.raw(v)) return(rawToChar(v))
+  }
+  body <- req$bodyRaw
+  ctype <- req$HTTP_CONTENT_TYPE %||% req$CONTENT_TYPE %||% ""
+  if (!grepl("multipart/form-data", ctype, fixed = TRUE) || is.null(body)) return("")
+  parts <- tryCatch(webutils::parse_multipart(body, content_type = ctype), error = function(e) NULL)
+  raw_val <- parts[[field_name]]
+  if (is.null(raw_val)) return("")
+  if (is.raw(raw_val)) return(rawToChar(raw_val))
+  if (is.list(raw_val) && is.raw(raw_val$value)) return(rawToChar(raw_val$value))
+  if (is.character(raw_val)) return(as.character(raw_val[[1]]))
+  ""
+}
