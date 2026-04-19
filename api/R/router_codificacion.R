@@ -75,6 +75,22 @@
   x
 }
 
+# Classify each column of a "codigos" data sheet by its role. Editable
+# columns are {recod, control, aux} — the rest are reference only.
+.codigos_col_role <- function(colname) {
+  nm <- as.character(colname %||% "")
+  if (nm == "") return("pad")
+  if (nm %in% c("_uuid", "_index", "Código pulso", "Codigo pulso")) return("id")
+  if (grepl("_recod$", nm)) return("recod")
+  if (nm %in% c("Control", "Control / notas")) return("control")
+  if (nm %in% c("nuevo_codigo", "nueva_etiqueta")) return("aux")
+  if (nm %in% c("Seleccionadas", "Seleccionadas_cod")) return("computed")
+  if (grepl("_cands$", nm)) return("ref")
+  if (grepl("_label$", nm)) return("ref")
+  if (nm %in% c("parent_label", "parent_col", "parent_col_cands")) return("ref")
+  "ref"
+}
+
 isTRUE_vec <- function(x) {
   vapply(x, function(v) {
     if (is.logical(v)) isTRUE(v)
@@ -249,7 +265,103 @@ mount_codificacion <- function(pr) {
       prosecnur::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = out_path, inst = inst)
       meta <- .register_output_file(sid, "plantilla_codif_template", out_path)
       session_set(sid, "codif_plantilla_template", TRUE)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+      # Auto-register as THE codes template so Paso 4 (aplicar) can work
+      # even if the analyst edits everything in-app without re-uploading.
+      session_set(sid, "codif_plantilla_codigos_file_id", meta$file_id)
+      # Cache sheet metadata so the UI can navigate sheets without reparsing
+      nav <- plantilla$navegacion
+      sheets_meta <- lapply(seq_len(nrow(nav)), function(i) {
+        list(
+          name = as.character(nav$hoja[i]),
+          tipo = as.character(nav$tipo[i]),
+          n = as.integer(nav$n[i])
+        )
+      })
+      session_set(sid, "codif_codigos_sheets_meta", sheets_meta)
+      list(ok = TRUE, file_id = meta$file_id, size = meta$size, sheets = sheets_meta)
+    })) |>
+    plumber::pr_get("/api/codificacion/codigos/sheets", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      meta <- s$codif_codigos_sheets_meta
+      if (is.null(meta)) stop_api(409, "E_NO_PLANTILLA",
+        "Primero genera la plantilla (POST /api/codificacion/plantilla-codigos/generar).")
+      list(ok = TRUE, sheets = meta)
+    })) |>
+    plumber::pr_get("/api/codificacion/codigos/sheet", wrap_endpoint(function(req, res, name = NULL) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      if (is.null(name) || !nzchar(name)) stop_api(400, "E_NO_SHEET", "Falta 'name' como query param.")
+      fid <- s$codif_plantilla_codigos_file_id
+      if (is.null(fid)) stop_api(409, "E_NO_PLANTILLA", "Genera primero la plantilla.")
+      meta <- get_file(sid, fid)
+      df <- readxl::read_excel(meta$path, sheet = name, col_names = FALSE, .name_repair = "minimal")
+      if (nrow(df) < 2) stop_api(500, "E_SHEET_BAD", sprintf("Hoja %s no tiene headers.", name))
+      tech_row <- as.character(unlist(df[1, , drop = TRUE]))
+      label_row <- as.character(unlist(df[2, , drop = TRUE]))
+      tech_row[is.na(tech_row)] <- ""
+      label_row[is.na(label_row)] <- ""
+      data_rows <- if (nrow(df) > 2) {
+        lapply(3:nrow(df), function(i) {
+          vals <- unname(unlist(df[i, , drop = TRUE], use.names = FALSE))
+          lapply(vals, function(v) {
+            if (is.na(v)) return("")
+            s <- as.character(v)
+            Encoding(s) <- "UTF-8"
+            s
+          })
+        })
+      } else list()
+      Encoding(tech_row) <- "UTF-8"
+      Encoding(label_row) <- "UTF-8"
+      col_meta <- lapply(tech_row, function(cn) list(name = cn, role = .codigos_col_role(cn)))
+      list(
+        ok = TRUE,
+        name = name,
+        tech_row = as.list(tech_row),
+        label_row = as.list(label_row),
+        rows = data_rows,
+        col_meta = col_meta
+      )
+    })) |>
+    plumber::pr_post("/api/codificacion/codigos/sheet/patches", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      name <- parsed$name
+      patches <- .mark_utf8(parsed$patches)
+      if (is.null(name) || !nzchar(name)) stop_api(400, "E_NO_SHEET", "Body debe incluir 'name'.")
+      if (is.null(patches) || length(patches) == 0L) return(list(ok = TRUE, applied = 0L))
+      fid <- s$codif_plantilla_codigos_file_id
+      if (is.null(fid)) stop_api(409, "E_NO_PLANTILLA", "Genera primero la plantilla.")
+      meta <- get_file(sid, fid)
+      wb <- openxlsx::loadWorkbook(meta$path)
+      # Each patch: {row (0-indexed data row => xlsx row = row+3), col_index (0-indexed), value}
+      applied <- 0L
+      for (p in patches) {
+        xlsx_row <- as.integer(p$row) + 3L
+        xlsx_col <- as.integer(p$col_index) + 1L
+        val <- p$value
+        if (is.null(val)) val <- ""
+        openxlsx::writeData(wb, sheet = name, x = as.character(val),
+                            startCol = xlsx_col, startRow = xlsx_row, colNames = FALSE)
+        applied <- applied + 1L
+      }
+      openxlsx::saveWorkbook(wb, meta$path, overwrite = TRUE)
+      # refresh size in file metadata
+      files <- s$files
+      if (!is.null(files[[fid]])) {
+        files[[fid]]$size <- as.integer(file.info(meta$path)$size)
+        files[[fid]]$uploaded_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+        session_set(sid, "files", files)
+      }
+      list(ok = TRUE, applied = applied, updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
     plumber::pr_post("/api/codificacion/familias/aplicar", wrap_endpoint(function(req, res, file_id = NULL) {
       sid <- session_header(req)
