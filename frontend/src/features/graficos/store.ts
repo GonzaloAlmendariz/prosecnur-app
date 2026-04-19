@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { PlanJson, Slide, SlideType } from "../../api/client";
+import type { GraficadorRef, PlanJson, Slide, SlideType } from "../../api/client";
 
 type PlanStore = {
   plan: PlanJson;
@@ -11,6 +11,8 @@ type PlanStore = {
   removeSlide: (id: string) => void;
   moveSlide: (id: string, direction: "up" | "down") => void;
   updateSlidePayload: (id: string, patch: Record<string, unknown>) => void;
+  setSlot: (id: string, slot: string, graf: GraficadorRef | null) => void;
+  updateSlotArgs: (id: string, slot: string, patch: Record<string, unknown>) => void;
   select: (id: string | null) => void;
   loadPlan: (plan: PlanJson) => void;
   reset: () => void;
@@ -69,6 +71,32 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         slides: state.plan.slides.map((s) =>
           s.id === id ? { ...s, payload: { ...s.payload, ...patch } } : s
         ),
+      },
+    }));
+  },
+
+  setSlot: (id, slot, graf) => {
+    set((state) => ({
+      plan: {
+        slides: state.plan.slides.map((s) =>
+          s.id === id
+            ? { ...s, payload: { ...s.payload, [slot]: graf ?? undefined } }
+            : s
+        ),
+      },
+    }));
+  },
+
+  updateSlotArgs: (id, slot, patch) => {
+    set((state) => ({
+      plan: {
+        slides: state.plan.slides.map((s) => {
+          if (s.id !== id) return s;
+          const current = s.payload[slot] as GraficadorRef | undefined;
+          if (!current) return s;
+          const merged: GraficadorRef = { graficador: current.graficador, args: { ...current.args, ...patch } };
+          return { ...s, payload: { ...s.payload, [slot]: merged } };
+        }),
       },
     }));
   },

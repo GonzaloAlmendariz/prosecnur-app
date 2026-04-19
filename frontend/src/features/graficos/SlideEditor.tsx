@@ -1,5 +1,6 @@
-import { Slide } from "../../api/client";
+import { GraficadorRef, Slide } from "../../api/client";
 import { usePlanStore } from "./store";
+import GraficadorSlot from "./GraficadorSlot";
 
 function Field({ label, children, help }: { label: string; children: React.ReactNode; help?: string }) {
   return (
@@ -30,20 +31,6 @@ function TextArea({ value, onChange, rows = 3 }: { value: string; onChange: (v: 
       rows={rows}
       style={{ padding: "4px 6px", fontSize: 13, border: "1px solid #d1d5db", borderRadius: 4, fontFamily: "inherit" }}
     />
-  );
-}
-
-function GraficadorSlotPlaceholder({ slotName }: { slotName: string }) {
-  return (
-    <div style={{
-      marginBottom: "0.75rem", padding: "0.75rem", border: "1px dashed #d1d5db", borderRadius: 6,
-      background: "#fafafa", fontSize: 13, color: "#6b7280"
-    }}>
-      <strong>Slot: {slotName}</strong>
-      <div style={{ fontSize: 12, marginTop: 4 }}>
-        ⚠ Los graficadores se agregan en una iteración siguiente. Por ahora este slide renderizará sin gráfico (la exportación fallará en slides con gráficos requeridos).
-      </div>
-    </div>
   );
 }
 
@@ -85,9 +72,15 @@ function SlideConGraficosEditor({ slide, slots }: { slide: Slide; slots: string[
       )}
       <Field label="Base (nota inferior)"><TextInput value={p.base ?? ""} onChange={(v) => update(slide.id, { base: v })} placeholder="N=1631" /></Field>
       <Field label="Pie (fuente)"><TextInput value={p.footer ?? ""} onChange={(v) => update(slide.id, { footer: v })} placeholder="Fuente: Pulso PUCP" /></Field>
-      {slots.includes("plot") && <GraficadorSlotPlaceholder slotName="plot" />}
-      {slots.includes("left") && <GraficadorSlotPlaceholder slotName="left" />}
-      {slots.includes("right") && <GraficadorSlotPlaceholder slotName="right" />}
+      {slots.includes("plot") && (
+        <GraficadorSlot slideId={slide.id} slotName="plot" value={(slide.payload as Record<string, GraficadorRef | null | undefined>).plot} />
+      )}
+      {slots.includes("left") && (
+        <GraficadorSlot slideId={slide.id} slotName="left" value={(slide.payload as Record<string, GraficadorRef | null | undefined>).left} />
+      )}
+      {slots.includes("right") && (
+        <GraficadorSlot slideId={slide.id} slotName="right" value={(slide.payload as Record<string, GraficadorRef | null | undefined>).right} />
+      )}
       {(slide.tipo === "p_slide_text_l" || slide.tipo === "p_slide_text_r") && (
         <Field label="Texto adjunto"><TextArea value={p.text ?? ""} onChange={(v) => update(slide.id, { text: v })} rows={5} /></Field>
       )}
