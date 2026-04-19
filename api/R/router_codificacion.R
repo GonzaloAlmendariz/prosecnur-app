@@ -25,9 +25,10 @@
 .register_output_file <- function(sid, kind, path) {
   s <- session_get(sid)
   file_id <- uuid::UUIDgenerate()
+  original_name <- sub("^[0-9a-fA-F-]{36}__", "", basename(path))
   meta <- list(
     file_id = file_id, kind = kind,
-    original_name = basename(path), path = path,
+    original_name = original_name, path = path,
     size = as.integer(file.info(path)$size),
     ext = tools::file_ext(path),
     uploaded_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
@@ -90,6 +91,106 @@
   # drop them together with other non-printable residues.
   x <- gsub("<[^>]+>", "", x)
   x
+}
+
+# Walk inst$survey and build a per-question map of {section, section_label,
+# q_order}. Sections come from begin_group/end_group markers and nest via
+# a stack. Only the innermost section is recorded per pregunta.
+.section_map <- function(inst) {
+  sv <- inst$survey
+  if (is.null(sv) || nrow(sv) == 0L) return(data.frame(name = character(0), section = character(0), section_label = character(0), q_order = integer(0), stringsAsFactors = FALSE))
+  # Pull label (prefer Spanish if survey_raw has label::Spanish (es))
+  label_raw <- rep("", nrow(sv))
+  if (!is.null(inst$survey_raw)) {
+    lab_idx <- grep("^label", tolower(names(inst$survey_raw)))
+    if (length(lab_idx) > 0L) {
+      sp_idx <- grep("spanish|español", tolower(names(inst$survey_raw)[lab_idx]))
+      pick <- if (length(sp_idx) > 0L) lab_idx[sp_idx[1]] else lab_idx[1]
+      lab_col <- as.character(inst$survey_raw[[pick]])
+      if (length(lab_col) == nrow(sv)) label_raw <- lab_col
+    }
+  }
+  if (all(label_raw == "") && "label" %in% names(sv)) label_raw <- as.character(sv$label)
+  label_raw[is.na(label_raw)] <- ""
+  Encoding(label_raw) <- "UTF-8"
+
+  stack_name <- character(0)
+  stack_label <- character(0)
+  n <- nrow(sv)
+  section <- character(n)
+  section_label <- character(n)
+  for (i in seq_len(n)) {
+    t <- as.character(sv$type[i] %||% "")
+    nm <- as.character(sv$name[i] %||% "")
+    lb <- label_raw[i]
+    if (t == "begin_group" || t == "begin_repeat") {
+      stack_name <- c(stack_name, nm)
+      stack_label <- c(stack_label, if (nzchar(lb)) lb else nm)
+    } else if (t == "end_group" || t == "end_repeat") {
+      if (length(stack_name) > 0L) {
+        stack_name <- stack_name[-length(stack_name)]
+        stack_label <- stack_label[-length(stack_label)]
+      }
+    } else {
+      section[i] <- if (length(stack_name) > 0L) stack_name[length(stack_name)] else ""
+      section_label[i] <- if (length(stack_label) > 0L) stack_label[length(stack_label)] else ""
+    }
+  }
+  data.frame(
+    name = as.character(sv$name),
+    section = section,
+    section_label = section_label,
+    q_order = if ("q_order" %in% names(sv)) as.integer(sv$q_order) else seq_len(n),
+    stringsAsFactors = FALSE
+  )
+}
+
+# For a SO/SM pregunta, score candidate text columns in data that could be
+# its "Otros, especifique". Higher = more confident.
+# Rules:
+#   1.0  -  column named exactly <parent>_otro(s) | <parent>_especifique | <parent>_detail
+#   0.6  -  starts with parent name but doesn't match pattern
+#   0.3  -  same section, any text-type column
+.candidatos_texto_for <- function(parent, data_df, section_info, all_text_rows) {
+  if (!nzchar(parent)) return(list())
+  data_cols <- names(data_df)
+  # Use PCRE \Q...\E to quote the parent name literally — avoids having to
+  # hand-escape each regex metachar (brackets, dots, plus, etc.).
+  quoted_parent <- sprintf("\\Q%s\\E", parent)
+  strong_suffixes <- c("otro", "otros", "especifique", "detail", "desc", "descripcion")
+  strong_rx <- sprintf("^%s[_ \\-]*(%s)s?$", quoted_parent, paste(strong_suffixes, collapse = "|"))
+  prefix_rx <- sprintf("^%s[_ \\-]", quoted_parent)
+  # Drop NA-name rows (begin_group/end_group markers) to keep `==` safe.
+  si <- section_info[!is.na(section_info$name), , drop = FALSE]
+  parent_section <- ""
+  hit <- si$section[si$name == parent]
+  if (length(hit) > 0L) parent_section <- as.character(hit[1])
+
+  cands <- list()
+  for (col in data_cols) {
+    text_row <- all_text_rows[all_text_rows$name == col, , drop = FALSE]
+    if (nrow(text_row) == 0L) next
+    score <- 0
+    col_sec_hit <- si$section[si$name == col]
+    col_section <- if (length(col_sec_hit) > 0L) as.character(col_sec_hit[1]) else ""
+    strong_match <- tryCatch(grepl(strong_rx, col, ignore.case = TRUE, perl = TRUE), error = function(e) FALSE)
+    prefix_match <- tryCatch(grepl(prefix_rx, col, ignore.case = TRUE, perl = TRUE), error = function(e) FALSE)
+    if (isTRUE(strong_match)) score <- 1.0
+    else if (isTRUE(prefix_match)) score <- 0.6
+    else if (nzchar(parent_section) && col_section == parent_section) score <- 0.3
+    if (score > 0) {
+      cands[[length(cands) + 1L]] <- list(
+        col = col,
+        parent_detectado = parent,
+        confianza = score
+      )
+    }
+  }
+  if (length(cands) > 1L) {
+    scores <- vapply(cands, function(c) c$confianza, numeric(1))
+    cands <- cands[order(-scores)]
+  }
+  head(cands, 5)
 }
 
 # Given a pregunta row from the draft and the raw data.frame, compute
@@ -259,10 +360,22 @@ mount_codificacion <- function(pr) {
       }
       data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
       if (is.null(s$codif_data)) session_set(sid, "codif_data", data_df)
+      inst <- s$codif_inst %||% prosecnur::leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
+      if (is.null(s$codif_inst)) session_set(sid, "codif_inst", inst)
+
+      section_info <- .section_map(inst)
+      # Survey rows of type text, needed to filter candidatos_texto to actual
+      # open-text vars that exist in the instrument.
+      text_rows <- if (!is.null(inst$survey)) {
+        is_text <- as.character(inst$survey$type) == "text"
+        if (any(is_text)) data.frame(name = as.character(inst$survey$name[is_text]), stringsAsFactors = FALSE)
+        else data.frame(name = character(0), stringsAsFactors = FALSE)
+      } else data.frame(name = character(0), stringsAsFactors = FALSE)
 
       preguntas <- lapply(draft$rows, function(r) {
         tipo <- as.character(r$tipo %||% "")
         modo_so <- as.character(r$modo_so %||% "")
+        parent <- as.character(r$parent %||% "")
         use_flag <- isTRUE(r$use)
         stats <- .pregunta_stats(r, data_df)
         subtipo <- if (tipo == "select_one") {
@@ -270,12 +383,8 @@ mount_codificacion <- function(pr) {
           else if (modo_so == "hijo") "select_one_hijo"
           else "select_one_sin_modo"
         } else tipo
-        # Best-effort status: without commit/recod info, default to no-iniciado.
-        # Once we have actual recod state, we'll upgrade this from session.
-        recoded <- s$codif_respuestas_recod[[as.character(r$parent)]] %||% list()
+        recoded <- s$codif_respuestas_recod[[parent]] %||% list()
         n_cod <- length(recoded)
-        # SO sin modo asignado aún no es codificable (el analista debe
-        # decidir padre/hijo). Lo marcamos como requiere-configuracion.
         needs_config <- tipo == "select_one" && !modo_so %in% c("padre", "hijo")
         status <- if (!use_flag) "no-aplica"
           else if (needs_config) "requiere-config"
@@ -283,13 +392,41 @@ mount_codificacion <- function(pr) {
           else if (n_cod == 0L) "no-iniciado"
           else if (n_cod < stats$n_unicas) "en-curso"
           else "completo"
+
+        # XLSForm metadata (section + q_order)
+        sec_row <- section_info[!is.na(section_info$name) & section_info$name == parent, , drop = FALSE]
+        section <- if (nrow(sec_row) > 0L) as.character(sec_row$section[1]) else ""
+        section_label <- if (nrow(sec_row) > 0L) as.character(sec_row$section_label[1]) else ""
+        q_order_raw <- if (nrow(sec_row) > 0L) sec_row$q_order[1] else NA_integer_
+        if (length(q_order_raw) == 0L || is.na(q_order_raw)) {
+          q_order_raw <- tryCatch(as.integer(r$q_order %||% NA), error = function(e) NA_integer_)
+        }
+        if (length(q_order_raw) == 0L || is.na(q_order_raw)) q_order_raw <- NA_integer_
+        if (is.na(section)) section <- ""
+        if (is.na(section_label)) section_label <- ""
+
+        # Candidatos de texto solo para SO/SM que no tienen text_col aún asignado
+        text_col_current <- as.character(r$text_col %||% "")
+        candidatos <- if (tipo %in% c("select_one", "select_multiple") && !nzchar(text_col_current)) {
+          .candidatos_texto_for(parent, data_df, section_info, text_rows)
+        } else list()
+
+        # Pareja committeada: si text_col no está vacío, hay emparejamiento
+        pareja <- if (nzchar(text_col_current)) {
+          list(
+            child_col = text_col_current,
+            modo_so = modo_so,
+            dummy_col = as.character(r$other_dummy_col %||% "")
+          )
+        } else NULL
+
         list(
-          parent = as.character(r$parent %||% ""),
+          parent = parent,
           parent_label = as.character(r$parent_label %||% ""),
           tipo = tipo,
           subtipo = subtipo,
           modo_so = modo_so,
-          text_col = as.character(r$text_col %||% ""),
+          text_col = text_col_current,
           parent_col = as.character(r$parent_col %||% ""),
           list_norm = as.character(r$list_norm %||% ""),
           col_efectiva = stats$col,
@@ -298,11 +435,76 @@ mount_codificacion <- function(pr) {
           n_codificadas = as.integer(n_cod),
           status = status,
           habilitada = use_flag,
-          preview = stats$preview
+          preview = stats$preview,
+          section = section,
+          section_label = section_label,
+          q_order = if (is.na(q_order_raw)) NA_integer_ else as.integer(q_order_raw),
+          candidatos_texto = candidatos,
+          pareja = pareja
         )
       })
-      # Keep all preguntas: UI decides whether to surface no-aplica ones.
       list(ok = TRUE, preguntas = preguntas)
+    })) |>
+    plumber::pr_post("/api/codificacion/pareja", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      parent <- as.character(parsed$parent %||% "")
+      child_col <- as.character(parsed$child_col %||% "")
+      modo_so <- as.character(parsed$modo_so %||% "")
+      dummy_col <- as.character(parsed$dummy_col %||% "")
+      if (!nzchar(parent)) stop_api(400, "E_NO_PARENT", "Falta 'parent'.")
+      if (!nzchar(child_col)) stop_api(400, "E_NO_CHILD", "Falta 'child_col'.")
+      draft <- s$codif_familias_draft
+      if (is.null(draft)) stop_api(409, "E_NO_DRAFT", "Primero genera el draft de familias.")
+      rows <- draft$rows
+      hit <- FALSE
+      for (i in seq_along(rows)) {
+        if (as.character(rows[[i]]$parent %||% "") == parent) {
+          rows[[i]]$text_col <- child_col
+          if (nzchar(modo_so)) rows[[i]]$modo_so <- modo_so
+          if (nzchar(dummy_col)) rows[[i]]$other_dummy_col <- dummy_col
+          rows[[i]]$use <- TRUE
+          hit <- TRUE
+          break
+        }
+      }
+      if (!hit) stop_api(404, "E_NO_PARENT_ROW", sprintf("No se encontró fila para parent='%s'.", parent))
+      draft$rows <- rows
+      draft$source <- "draft"
+      draft$updated_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+      session_set(sid, "codif_familias_draft", draft)
+      list(ok = TRUE, parent = parent, child_col = child_col, modo_so = modo_so, dummy_col = dummy_col)
+    })) |>
+    plumber::pr_delete("/api/codificacion/pareja", wrap_endpoint(function(req, res, parent = NULL) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      parent <- as.character(parent %||% "")
+      if (!nzchar(parent)) stop_api(400, "E_NO_PARENT", "Falta 'parent' como query param.")
+      draft <- s$codif_familias_draft
+      if (is.null(draft)) stop_api(409, "E_NO_DRAFT", "No hay draft.")
+      rows <- draft$rows
+      hit <- FALSE
+      for (i in seq_along(rows)) {
+        if (as.character(rows[[i]]$parent %||% "") == parent) {
+          rows[[i]]$text_col <- ""
+          rows[[i]]$modo_so <- ""
+          rows[[i]]$other_dummy_col <- ""
+          hit <- TRUE
+          break
+        }
+      }
+      if (!hit) stop_api(404, "E_NO_PARENT_ROW", sprintf("No se encontró fila para parent='%s'.", parent))
+      draft$rows <- rows
+      draft$updated_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+      session_set(sid, "codif_familias_draft", draft)
+      list(ok = TRUE, parent = parent)
     })) |>
     plumber::pr_get("/api/codificacion/columnas", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
