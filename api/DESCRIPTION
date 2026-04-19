@@ -1,0 +1,27 @@
+Package: prosecnurapp
+Type: Package
+Title: Backend API for Pulso Report (prosecnur-app)
+Version: 0.1.0
+Authors@R: person("Gonzalo", "Almendariz", email = "gonzaloalmendariz@gmail.com", role = c("aut", "cre"))
+Description: Plumber REST API that exposes the prosecnur analytical engine to a local web frontend.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1)
+Imports:
+    plumber (>= 1.2.0),
+    prosecnur (>= 0.1.0),
+    jsonlite,
+    webutils,
+    mime,
+    httpuv,
+    later,
+    callr,
+    uuid,
+    readxl,
+    haven,
+    ps
+Suggests:
+    testthat (>= 3.0.0)
+RoxygenNote: 7.3.2
+Config/testthat/edition: 3

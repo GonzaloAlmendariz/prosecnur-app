@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+renv/library/
+renv/local/
+renv/staging/
+.Rprofile.local
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.log
+
+# Frontend build output is served from api/inst/www, but git-ignored (regenerated)
+api/inst/www/*
+!api/inst/www/.gitkeep
+
+# Editor
+.vscode/
+.idea/
+
+# Tests
+/tests/e2e/results/
+/tests/e2e/playwright-report/
