@@ -934,7 +934,20 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
           ? <>Los textos de <code style={{ fontFamily: "monospace" }}>{padre.pareja && "child_col" in padre.pareja ? padre.pareja.child_col : ""}</code> se codifican cuando esta opción fue marcada. Haz click en la opción para quitar la selección.</>
           : <>La columna que marca "Otros" es la que indica cuándo el respondente escribió texto libre en <code style={{ fontFamily: "monospace" }}>{padre.pareja && "child_col" in padre.pareja ? padre.pareja.child_col : ""}</code>. Haz click en la opción que corresponde.</>}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <div
+        style={{
+          display: "flex", flexDirection: "column", gap: 3,
+          // Cap de altura para listas largas (SM con 10+ opciones). Scroll
+          // interno minimalista con scrollbar slim del navegador. Umbral
+          // ~7 items visibles (32px cada uno + 3px gap).
+          maxHeight: opciones.length > 7 ? 252 : undefined,
+          overflowY: opciones.length > 7 ? "auto" : undefined,
+          // Scrollbar discreto (webkit + firefox)
+          scrollbarWidth: "thin",
+          scrollbarColor: "var(--pulso-border) transparent",
+          paddingRight: opciones.length > 7 ? 4 : 0,
+        }}
+      >
         {opciones.map((o) => {
           const isSelected = selectedCol === o.col_dummy && o.col_dummy !== "";
           const disabled = busy || !o.existe_en_data;
