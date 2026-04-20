@@ -684,6 +684,104 @@ isTRUE_vec <- function(x) {
   invisible(TRUE)
 }
 
+# SM: cada grupo "existente" activa (=1) la columna <parent>/<codigo>_recod
+# de la opción existente para las filas cuyo texto libre cae en el grupo.
+# Cada grupo "nuevo" crea una columna nueva <parent>/<codigo>_recod al
+# extremo derecho de la hoja y marca las filas correspondientes. ppra
+# reconoce la nueva columna por el patrón del nombre técnico (prosecnur
+# docs "En select_multiple, la columna nueva puede quedar antes o después
+# de Control / notas; el adaptador la reconoce por el nombre técnico").
+.patch_sm_sheet <- function(wb, sheet, parent_col, text_col, grupos, data_df) {
+  h <- .read_sheet_headers(wb, sheet)
+  if (is.null(h)) return(invisible(FALSE))
+  if (is.na(h$uuid_idx) || !nzchar(text_col)) return(invisible(FALSE))
+
+  uuid_col_data <- .resolve_uuid_col(data_df)
+  if (is.na(uuid_col_data) || !text_col %in% names(data_df)) return(invisible(FALSE))
+
+  # Map codigo existente → col_idx en la hoja (lee las <parent>/<N>_recod).
+  tech_row <- h$tech_row
+  existing_code_to_col <- list()
+  rx <- sprintf("^\\Q%s\\E/([^/]+)_recod$", parent_col)
+  for (j in seq_along(tech_row)) {
+    m <- regmatches(tech_row[j], regexec(rx, tech_row[j], perl = TRUE))[[1]]
+    if (length(m) >= 2L && nzchar(m[2]) && m[2] != "ejemplo") {
+      existing_code_to_col[[m[2]]] <- j
+    }
+  }
+
+  # Índice de la última columna ocupada en row 1 (para append de columnas
+  # nuevas). Buscamos la última no-vacía.
+  last_col <- max(which(nzchar(tech_row)), 0L, na.rm = TRUE)
+
+  lookup <- .match_grupos(grupos)
+  text_to_code <- lookup$text_to_code
+  # Para SM necesitamos saber si un codigo es "nuevo" o "existente".
+  origen_by_code <- new.env(parent = emptyenv())
+  new_code_to_etiqueta <- list()
+  for (g in grupos) {
+    codigo <- as.character(g$codigo %||% "")
+    if (!nzchar(codigo)) next
+    origen <- as.character(g$origen %||% "")
+    assign(codigo, origen, envir = origen_by_code)
+    if (identical(origen, "nuevo")) {
+      etiqueta <- as.character(g$etiqueta %||% codigo)
+      new_code_to_etiqueta[[codigo]] <- etiqueta
+    }
+  }
+
+  # Reservamos columnas nuevas a la derecha por cada código nuevo.
+  new_code_to_col <- list()
+  for (codigo in names(new_code_to_etiqueta)) {
+    # Si el código ya existe como opción, no creamos nueva (usaremos la
+    # existente — lo cual en la práctica no debería pasar si la UI respeta
+    # origen=nuevo, pero somos defensivos).
+    if (!is.null(existing_code_to_col[[codigo]])) {
+      new_code_to_col[[codigo]] <- existing_code_to_col[[codigo]]
+      next
+    }
+    last_col <- last_col + 1L
+    new_code_to_col[[codigo]] <- last_col
+    # Header row 1 + label row 2
+    openxlsx::writeData(
+      wb, sheet = sheet, x = sprintf("%s/%s_recod", parent_col, codigo),
+      startCol = last_col, startRow = 1L, colNames = FALSE
+    )
+    openxlsx::writeData(
+      wb, sheet = sheet, x = as.character(new_code_to_etiqueta[[codigo]]),
+      startCol = last_col, startRow = 2L, colNames = FALSE
+    )
+  }
+
+  # Recorrer filas de data y marcar.
+  uuid_to_text <- setNames(as.character(data_df[[text_col]]),
+                           as.character(data_df[[uuid_col_data]]))
+  df <- h$df
+  if (nrow(df) >= 3L) {
+    for (i in 3:nrow(df)) {
+      uid <- as.character(df[i, h$uuid_idx])
+      if (is.na(uid) || !nzchar(uid)) next
+      t <- uuid_to_text[uid]
+      if (is.null(t) || length(t) == 0L) next
+      t <- t[[1]]
+      if (is.na(t) || !nzchar(trimws(t))) next
+      tn <- .normalize_text(t)[1]
+      if (!nzchar(tn) || !exists(tn, envir = text_to_code, inherits = FALSE)) next
+      codigo <- get(tn, envir = text_to_code, inherits = FALSE)
+      if (!nzchar(codigo)) next
+      # Resuelve col destino: prioridad a existente si el codigo coincide,
+      # si no a la nueva. Si nada, skip.
+      col_idx <- existing_code_to_col[[codigo]] %||% new_code_to_col[[codigo]]
+      if (is.null(col_idx)) next
+      openxlsx::writeData(
+        wb, sheet = sheet, x = 1L,
+        startCol = col_idx, startRow = i, colNames = FALSE
+      )
+    }
+  }
+  invisible(TRUE)
+}
+
 # Integer reglas: por cada fila lee el valor crudo, chequea reglas
 # (between/gte/lte) en el orden declarado y escribe el código de la
 # primera que matchee. Los códigos (todos origen="nuevo" para integer) se
@@ -797,8 +895,15 @@ isTRUE_vec <- function(x) {
       pc <- if (nzchar(parent_col)) parent_col else parent
       ok <- .patch_integer_sheet(wb, sheet, pc, grupos, data_df)
       if (isTRUE(ok)) patched <- c(patched, parent) else skipped <- c(skipped, parent)
+    } else if (tipo == "select_multiple") {
+      # SM: cada grupo activa una columna <parent>/<code>_recod. Nuevas
+      # columnas se crean al extremo derecho de la hoja.
+      sheet <- parent
+      pc <- if (nzchar(parent_col)) parent_col else parent
+      if (!nzchar(text_col)) { skipped <- c(skipped, parent); next }
+      ok <- .patch_sm_sheet(wb, sheet, pc, text_col, grupos, data_df)
+      if (isTRUE(ok)) patched <- c(patched, parent) else skipped <- c(skipped, parent)
     } else {
-      # TODO B3.5c: select_multiple
       skipped <- c(skipped, parent)
     }
   }
@@ -1434,6 +1539,28 @@ mount_codificacion <- function(pr) {
           }, integer(1))
         } else integer(0)
 
+        # Para text-based (SO-hijo, SO-padre, SM, text) cada grupo$respuestas
+        # es una lista de textos_normalizados. Queremos mostrar filas afectadas
+        # (no solo textos únicos). Normalizamos la columna fuente una vez y
+        # sumamos matches por grupo.
+        text_src_col <- if (tipo == "select_one" && modo_so == "hijo") text_col
+                        else if (tipo == "select_one" && modo_so == "padre") text_col
+                        else if (tipo == "select_multiple") text_col
+                        else if (tipo == "text") (if (nzchar(text_col)) text_col else parent)
+                        else ""
+        text_counts <- if (nzchar(text_src_col) && text_src_col %in% names(data_df)) {
+          raw <- as.character(data_df[[text_src_col]])
+          normed <- .normalize_text(raw)
+          vapply(grupos, function(g) {
+            resps <- g$respuestas %||% list()
+            if (length(resps) == 0L) return(0L)
+            norms <- vapply(resps, function(t) .normalize_text(as.character(t))[1], character(1))
+            norms <- norms[nzchar(norms)]
+            if (length(norms) == 0L) return(0L)
+            as.integer(sum(normed %in% norms))
+          }, integer(1))
+        } else integer(0)
+
         n_nuevos <- 0L
         n_reuso <- 0L
         n_resp_afect <- 0L
@@ -1446,6 +1573,8 @@ mount_codificacion <- function(pr) {
           origen <- as.character(g$origen %||% "")
           n_resps <- if (tipo == "integer" && length(int_counts) >= i_g) {
             as.integer(int_counts[i_g])
+          } else if (length(text_counts) >= i_g) {
+            as.integer(text_counts[i_g])
           } else {
             as.integer(length(g$respuestas %||% list()))
           }
@@ -1488,6 +1617,7 @@ mount_codificacion <- function(pr) {
           bridge_soportado = (tipo == "select_one" && modo_so == "hijo") ||
                              (tipo == "select_one" && modo_so == "padre") ||
                              (tipo == "integer") ||
+                             (tipo == "select_multiple" && nzchar(text_col)) ||
                              (tipo == "text" && nzchar(text_col))
         )
       }

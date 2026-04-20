@@ -342,6 +342,6 @@ function CodigoRow({ c, kind }: { c: { codigo: string; etiqueta: string; n_respu
 
 function motivoNoSoportado(p: PlanPregunta): string {
   if (p.tipo === "text" && !p.text_col) return "texto sin pareja SO/SM";
-  if (p.tipo === "select_multiple") return "SM aún no implementado en el bridge";
+  if (p.tipo === "select_multiple" && !p.text_col) return "SM sin 'Otros, especifique' emparejado";
   return "configuración no reconocida";
 }
