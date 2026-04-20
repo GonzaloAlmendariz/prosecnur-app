@@ -292,6 +292,47 @@
   )
 }
 
+# Given a parent/child_col pair, enumerate unique responses in data with
+# frequency + uuids (for audit). Used by the detail view of text / SO-hijo
+# to let the analyst group responses into coded families.
+.respuestas_unicas <- function(col, data_df) {
+  if (!nzchar(col) || !col %in% names(data_df)) return(list())
+  vals <- data_df[[col]]
+  if (is.factor(vals)) vals <- as.character(vals)
+  vals <- as.character(vals)
+  # Resolve uuid column — prosecnur conventions
+  uuid_col <- NULL
+  for (cn in c("_uuid", "uuid", "Pulso_code")) {
+    if (cn %in% names(data_df)) { uuid_col <- cn; break }
+  }
+  uuids <- if (!is.null(uuid_col)) as.character(data_df[[uuid_col]]) else as.character(seq_along(vals))
+
+  keep_idx <- !is.na(vals) & nzchar(trimws(vals))
+  vals <- vals[keep_idx]
+  uuids <- uuids[keep_idx]
+  if (length(vals) == 0L) return(list())
+
+  normed <- .normalize_text(vals)
+  keys <- unique(normed)
+  out <- lapply(keys, function(k) {
+    ixs <- which(normed == k)
+    raws <- vals[ixs]
+    raw_tab <- sort(table(raws), decreasing = TRUE)
+    display <- names(raw_tab)[1]
+    Encoding(display) <- "UTF-8"
+    uuids_sample <- uuids[ixs[seq_len(min(10L, length(ixs)))]]
+    list(
+      texto_normalizado = k,
+      texto = display,
+      variantes = as.integer(length(raw_tab)),
+      frecuencia = as.integer(length(ixs)),
+      uuids = uuids_sample
+    )
+  })
+  freqs <- vapply(out, function(o) o$frecuencia, integer(1))
+  out[order(-freqs)]
+}
+
 # Classify each column of a "codigos" data sheet by its role. Editable
 # columns are {recod, control, aux} — the rest are reference only.
 .codigos_col_role <- function(colname) {
@@ -533,6 +574,78 @@ mount_codificacion <- function(pr) {
       draft$updated_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
       session_set(sid, "codif_familias_draft", draft)
       list(ok = TRUE, parent = parent, child_col = child_col, modo_so = modo_so, dummy_col = dummy_col)
+    })) |>
+    plumber::pr_get("/api/codificacion/respuestas", wrap_endpoint(function(req, res, parent = NULL) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      parent <- as.character(parent %||% "")
+      if (!nzchar(parent)) stop_api(400, "E_NO_PARENT", "Falta 'parent' como query param.")
+      draft <- s$codif_familias_draft
+      if (is.null(draft)) stop_api(409, "E_NO_DRAFT", "Primero cargá la fase 3.")
+      # Find row
+      row <- NULL
+      for (r in draft$rows) {
+        if (as.character(r$parent %||% "") == parent) { row <- r; break }
+      }
+      if (is.null(row)) stop_api(404, "E_NO_PREGUNTA", sprintf("No encontré la pregunta '%s'.", parent))
+
+      data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
+      if (is.null(s$codif_data)) session_set(sid, "codif_data", data_df)
+
+      tipo <- as.character(row$tipo %||% "")
+      modo_so <- as.character(row$modo_so %||% "")
+      # La columna efectiva para text/SO-hijo: text_col; SO-padre/integer: parent_col
+      col <- if (tipo == "text" || (tipo == "select_one" && modo_so == "hijo")) {
+        as.character(row$text_col %||% "")
+      } else if (tipo == "select_one" && modo_so == "padre") {
+        as.character(row$parent_col %||% "")
+      } else if (tipo %in% c("integer", "select_multiple")) {
+        as.character(row$parent_col %||% "")
+      } else ""
+      if (!nzchar(col)) col <- parent  # fallback naming
+      respuestas <- .respuestas_unicas(col, data_df)
+
+      grupos <- s$codif_grupos_recod[[parent]] %||% list()
+      list(
+        ok = TRUE,
+        parent = parent,
+        col_efectiva = col,
+        tipo = tipo,
+        modo_so = modo_so,
+        respuestas = respuestas,
+        grupos = grupos
+      )
+    })) |>
+    plumber::pr_post("/api/codificacion/grupos", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      parent <- as.character(parsed$parent %||% "")
+      grupos <- .mark_utf8(parsed$grupos)
+      if (!nzchar(parent)) stop_api(400, "E_NO_PARENT", "Falta 'parent'.")
+      if (is.null(grupos)) grupos <- list()
+      all_grupos <- s$codif_grupos_recod %||% list()
+      all_grupos[[parent]] <- grupos
+      session_set(sid, "codif_grupos_recod", all_grupos)
+      # Also store summary for status calculation
+      recod <- s$codif_respuestas_recod %||% list()
+      # cuenta respuestas distintas con grupo asignado
+      cod_set <- character(0)
+      for (g in grupos) {
+        for (t in g$respuestas %||% list()) {
+          cod_set <- c(cod_set, as.character(t))
+        }
+      }
+      recod[[parent]] <- as.list(unique(cod_set))
+      session_set(sid, "codif_respuestas_recod", recod)
+      list(ok = TRUE, parent = parent, n_grupos = length(grupos), n_codificadas = length(unique(cod_set)),
+           updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
     plumber::pr_delete("/api/codificacion/pareja", wrap_endpoint(function(req, res, parent = NULL) {
       sid <- session_header(req)
