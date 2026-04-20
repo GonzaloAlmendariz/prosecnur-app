@@ -284,6 +284,16 @@ export function RespuestasCodificador({ parent }: Props) {
       <div style={{ display: "grid", gridTemplateColumns: "minmax(320px, 1fr) minmax(340px, 1fr)", gap: 16, alignItems: "flex-start" }}>
         {/* LEFT — respuestas */}
         <section>
+          <div style={{
+            fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
+            color: "var(--pulso-text-soft)", marginBottom: 10,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+          }}>
+            <span>Respuestas únicas</span>
+            <span style={{ fontSize: 11, fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "var(--pulso-text-soft)" }}>
+              {codificadas} de {respuestas?.length ?? 0} codificadas
+            </span>
+          </div>
           {/* Counter SM "Otros" — visible solo para select_multiple con
               dummy_col resuelto. Aclara de dónde vienen los textos
               (personas que marcaron Otros) y cuánto queda sin codificar. */}
@@ -338,7 +348,12 @@ export function RespuestasCodificador({ parent }: Props) {
               </button>
             )}
           </div>
-          <div style={{ border: "1px solid var(--pulso-border)", borderRadius: 6, maxHeight: 540, overflowY: "auto" }}>
+          <div style={{
+            border: "1px solid var(--pulso-border)", borderRadius: 6,
+            maxHeight: 540, overflowY: "auto",
+            scrollbarWidth: "thin",
+            scrollbarColor: "var(--pulso-border) transparent",
+          }}>
             {visibleRespuestas.length === 0 && (
               <div style={{ padding: 14, fontSize: 13, color: "var(--pulso-text-soft)", textAlign: "center" }}>
                 No hay respuestas que coincidan.
@@ -395,15 +410,32 @@ export function RespuestasCodificador({ parent }: Props) {
 
         {/* RIGHT — grupos */}
         <section>
-          <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", marginBottom: 10 }}>
-            Grupos de codificación
+          <div style={{
+            fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
+            color: "var(--pulso-text-soft)", marginBottom: 10,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+          }}>
+            <span>Grupos de codificación</span>
+            <span style={{ fontSize: 11, fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "var(--pulso-text-soft)" }}>
+              {grupos.length} {grupos.length === 1 ? "grupo" : "grupos"}
+            </span>
           </div>
           {grupos.length === 0 && (
             <div style={{ padding: 18, border: "2px dashed var(--pulso-border)", borderRadius: 8, textAlign: "center", fontSize: 13, color: "var(--pulso-text-soft)" }}>
               Crea tu primer grupo con <strong>+ Nuevo grupo</strong> o marca una respuesta para crearlo automáticamente.
             </div>
           )}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* Scroll interno independiente de la columna de respuestas. Cap
+              en 540px + scrollbar minimalista para que ambas columnas
+              puedan desplazarse en paralelo sin arrastrar a la otra. */}
+          <div style={{
+            display: "flex", flexDirection: "column", gap: 10,
+            maxHeight: grupos.length > 3 ? 540 : undefined,
+            overflowY: grupos.length > 3 ? "auto" : undefined,
+            paddingRight: grupos.length > 3 ? 6 : 0,
+            scrollbarWidth: "thin",
+            scrollbarColor: "var(--pulso-border) transparent",
+          }}>
             {grupos.map((g, idx) => (
               <GrupoCard
                 key={g.id}
@@ -431,34 +463,72 @@ export function RespuestasCodificador({ parent }: Props) {
 
 function QuickAssignDropdown({ grupos, onPick }: { grupos: Grupo[]; onPick: (gid: string) => void }) {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Click-outside + Escape cierran el menú. Patrón estándar para dropdowns
+  // controlados — más robusto que onMouseLeave (que se pierde si el cursor
+  // sale rápido del área). El botón padre también cierra al reclickear
+  // gracias al toggle `setOpen((v) => !v)`.
+  useEffect(() => {
+    if (!open) return;
+    function onDocMouseDown(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={rootRef} style={{ position: "relative" }}>
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-        style={{ fontSize: 10, padding: "2px 6px", display: "inline-flex", alignItems: "center", gap: 3 }}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        style={{
+          fontSize: 10, padding: "2px 6px",
+          display: "inline-flex", alignItems: "center", gap: 3,
+          background: open ? "var(--pulso-primary-soft)" : undefined,
+          borderColor: open ? "var(--pulso-primary)" : undefined,
+        }}
         title="Asignar a grupo existente"
       >
         <ArrowDownToLine size={10} /> asignar
       </button>
       {open && (
         <div
-          onMouseLeave={() => setOpen(false)}
+          role="menu"
           style={{
             position: "absolute", right: 0, top: "100%", marginTop: 2, zIndex: 10,
             background: "white", border: "1px solid var(--pulso-border)",
             borderRadius: 6, boxShadow: "var(--pulso-shadow-med)",
-            minWidth: 180, padding: 4,
+            minWidth: 200, maxHeight: 280, overflowY: "auto",
+            padding: 4,
           }}
         >
+          {grupos.length === 0 && (
+            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", padding: "6px 8px", fontStyle: "italic" }}>
+              Todavía no hay grupos creados.
+            </div>
+          )}
           {grupos.map((g) => (
             <button
               key={g.id}
               type="button"
-              onClick={() => { onPick(g.id); setOpen(false); }}
+              role="menuitem"
+              onClick={(e) => { e.stopPropagation(); onPick(g.id); setOpen(false); }}
               style={{
                 display: "block", width: "100%", textAlign: "left",
-                fontSize: 11, padding: "4px 8px", border: "none", background: "transparent",
+                fontSize: 11, padding: "5px 8px", border: "none", background: "transparent",
                 cursor: "pointer", borderRadius: 4,
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "var(--pulso-surface-2)")}
