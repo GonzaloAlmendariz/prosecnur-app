@@ -45,6 +45,7 @@ export default function PreguntaDetalle() {
   const codificableTexto =
     arq === "solitaria" ||
     arq === "adoptada" ||
+    arq === "huerfana" ||
     (arq === "pareja-so" && pregunta.modo_so === "hijo");
 
   return (

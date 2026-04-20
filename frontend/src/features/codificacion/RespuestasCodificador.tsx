@@ -9,7 +9,39 @@ import {
   ArrowDownToLine,
   X,
   Wand2,
+  Sparkles,
 } from "lucide-react";
+
+// Classic Levenshtein edit distance (iterative, O(n*m) space O(n)).
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const m = a.length, n = b.length;
+  let prev = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  let curr = new Array(n + 1).fill(0);
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= n; j++) {
+      curr[j] = Math.min(
+        curr[j - 1] + 1,
+        prev[j] + 1,
+        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+      );
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[n];
+}
+
+// Similarity 0-1 normalized by the longer string.
+function similarity(a: string, b: string): number {
+  const la = a.length, lb = b.length;
+  if (la === 0 && lb === 0) return 1;
+  const dist = levenshtein(a, b);
+  return 1 - dist / Math.max(la, lb);
+}
 import {
   apiCodifGrupos,
   apiCodifRespuestas,
@@ -247,11 +279,13 @@ export function RespuestasCodificador({ parent }: Props) {
                 key={g.id}
                 grupo={g}
                 respuestas={respuestas}
+                asignacion={asignacion}
                 active={g.id === activeGroupId}
                 onActivate={() => setActiveGroupId(g.id)}
                 onUpdate={(patch) => updateGroup(g.id, patch)}
                 onDelete={() => deleteGroup(g.id)}
                 onRemoveRespuesta={(t) => updateGroup(g.id, { respuestas: g.respuestas.filter((r) => r !== t) })}
+                onAddRespuesta={(t) => updateGroup(g.id, { respuestas: [...g.respuestas, t] })}
               />
             ))}
           </div>
@@ -305,17 +339,40 @@ function QuickAssignDropdown({ grupos, onPick }: { grupos: Grupo[]; onPick: (gid
   );
 }
 
-function GrupoCard({ grupo, respuestas, active, onActivate, onUpdate, onDelete, onRemoveRespuesta }: {
+function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate, onDelete, onRemoveRespuesta, onAddRespuesta }: {
   grupo: Grupo;
   respuestas: RespuestaUnica[];
+  asignacion: Map<string, Grupo>;
   active: boolean;
   onActivate: () => void;
   onUpdate: (p: Partial<Grupo>) => void;
   onDelete: () => void;
   onRemoveRespuesta: (texto_normalizado: string) => void;
+  onAddRespuesta: (texto_normalizado: string) => void;
 }) {
   const respByNorm = useMemo(() => new Map(respuestas.map((r) => [r.texto_normalizado, r])), [respuestas]);
   const total = grupo.respuestas.reduce((sum, t) => sum + (respByNorm.get(t)?.frecuencia ?? 0), 0);
+
+  // Similitud: para cada respuesta SIN asignar, computar max similitud a las
+  // respuestas asignadas al grupo. Top 6 con similarity >= 0.5. Solo cuando
+  // el grupo está activo y tiene al menos una respuesta.
+  const sugerencias = useMemo(() => {
+    if (!active || grupo.respuestas.length === 0) return [];
+    const seeds = grupo.respuestas;
+    const hits: Array<{ t: RespuestaUnica; sim: number }> = [];
+    for (const r of respuestas) {
+      if (asignacion.has(r.texto_normalizado)) continue;
+      let maxSim = 0;
+      for (const s of seeds) {
+        const sim = similarity(r.texto_normalizado, s);
+        if (sim > maxSim) maxSim = sim;
+        if (maxSim >= 0.99) break;
+      }
+      if (maxSim >= 0.35) hits.push({ t: r, sim: maxSim });
+    }
+    hits.sort((a, b) => b.sim - a.sim);
+    return hits.slice(0, 6);
+  }, [active, grupo.respuestas, respuestas, asignacion]);
   return (
     <article
       onClick={active ? undefined : onActivate}
@@ -399,8 +456,51 @@ function GrupoCard({ grupo, respuestas, active, onActivate, onUpdate, onDelete, 
           })}
         </div>
       )}
+
+      {active && sugerencias.length > 0 && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            marginTop: 10, padding: 8, borderTop: "1px dashed var(--pulso-border)",
+          }}
+        >
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", marginBottom: 6, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <Sparkles size={11} /> Sugerencias similares
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {sugerencias.map(({ t, sim }) => {
+              const pct = Math.round(sim * 100);
+              const simColor = sim >= 0.85 ? "#166534" : sim >= 0.7 ? "#8a5000" : "#6b7280";
+              return (
+                <button
+                  key={t.texto_normalizado}
+                  type="button"
+                  onClick={() => onAddRespuesta(t.texto_normalizado)}
+                  title={`${pct}% similar — click para agregar al grupo`}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    background: "#fff7e8", border: "1px dashed #f0d799",
+                    borderRadius: 12, padding: "2px 8px", fontSize: 11,
+                    color: "var(--pulso-text)", cursor: "pointer",
+                  }}
+                >
+                  <Plus size={10} />
+                  <span>{truncateText(t.texto, 22)}</span>
+                  {t.frecuencia > 0 && <span style={{ color: "var(--pulso-text-soft)", fontSize: 9 }}>×{t.frecuencia}</span>}
+                  <span style={{ color: simColor, fontSize: 9, fontWeight: 700 }}>{pct}%</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </article>
   );
+}
+
+function truncateText(s: string, n: number) {
+  if (!s) return "";
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
 function SaveBadge({ status }: { status: SaveStatus }) {
