@@ -460,6 +460,49 @@ export async function apiCodifPareja(parent: string, child_col: string, modo_so?
   );
 }
 
+// ---------- Codificación: agrupamiento de respuestas ----------
+
+export type RespuestaUnica = {
+  texto_normalizado: string;
+  texto: string;
+  variantes: number;
+  frecuencia: number;
+  uuids: string[];
+};
+
+export type Grupo = {
+  id: string;
+  codigo: string;
+  etiqueta: string;
+  respuestas: string[]; // texto_normalizado
+};
+
+export type RespuestasResponse = {
+  ok: true;
+  parent: string;
+  col_efectiva: string;
+  tipo: string;
+  modo_so: string;
+  respuestas: RespuestaUnica[];
+  grupos: Grupo[];
+};
+
+export async function apiCodifRespuestas(parent: string) {
+  return handle<RespuestasResponse>(
+    await fetch(`/api/codificacion/respuestas?parent=${encodeURIComponent(parent)}`, { headers: headers() })
+  );
+}
+
+export async function apiCodifGrupos(parent: string, grupos: Grupo[]) {
+  return handle<{ ok: true; parent: string; n_grupos: number; n_codificadas: number; updated_at: string }>(
+    await fetch("/api/codificacion/grupos", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ parent, grupos }),
+    })
+  );
+}
+
 export async function apiCodifDesemparejar(parent: string) {
   return handle<{ ok: true; parent: string }>(
     await fetch(`/api/codificacion/pareja?parent=${encodeURIComponent(parent)}`, {
