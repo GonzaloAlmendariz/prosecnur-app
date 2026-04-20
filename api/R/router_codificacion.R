@@ -1315,11 +1315,20 @@ mount_codificacion <- function(pr) {
       if (is.null(draft)) stop_api(409, "E_NO_DRAFT", "Primero genera el draft de familias.")
       rows <- draft$rows
       hit <- FALSE
+      # El cliente puede enviar `dummy_col` con un valor explícito para
+      # setearla, o pasar el flag `clear_dummy:true` para limpiarla sin
+      # desemparejar. Distinguir "no enviado" (no tocar) de "enviado
+      # vacío" (limpiar) es útil para el toggle de SM "Otros".
+      clear_dummy <- isTRUE(parsed$clear_dummy)
       for (i in seq_along(rows)) {
         if (as.character(rows[[i]]$parent %||% "") == parent) {
           rows[[i]]$text_col <- child_col
           if (nzchar(modo_so)) rows[[i]]$modo_so <- modo_so
-          if (nzchar(dummy_col)) rows[[i]]$other_dummy_col <- dummy_col
+          if (clear_dummy) {
+            rows[[i]]$other_dummy_col <- ""
+          } else if (nzchar(dummy_col)) {
+            rows[[i]]$other_dummy_col <- dummy_col
+          }
           rows[[i]]$use <- TRUE
           hit <- TRUE
           break

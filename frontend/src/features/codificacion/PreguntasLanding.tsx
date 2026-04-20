@@ -193,10 +193,18 @@ export function PreguntasLanding() {
     try {
       const pj = padre.pareja && typeof padre.pareja === "object" && "child_col" in padre.pareja ? padre.pareja : null;
       if (!pj?.child_col) return;
-      await apiCodifPareja(padre.parent, pj.child_col, undefined, dummy_col);
+      // Si el usuario clickeó la opción ya seleccionada, deseleccionarla
+      // (toggle). Si clickeó otra, reemplazarla.
+      const alreadySelected = pj.dummy_col && pj.dummy_col === dummy_col;
+      if (alreadySelected) {
+        await apiCodifPareja(padre.parent, pj.child_col, undefined, "", { clear_dummy: true });
+        announce(`Selección de "Otros" quitada en ${padre.parent}.`);
+      } else {
+        await apiCodifPareja(padre.parent, pj.child_col, undefined, dummy_col);
+        announce(`Columna "Otros" configurada en ${padre.parent}.`);
+      }
       await refresh();
       glowCard(padre.parent);
-      announce(`Columna "Otros" configurada en ${padre.parent}.`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -822,19 +830,23 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
           />
         </div>
 
-        {/* SM sin dummy → selector inline con todas las opciones */}
-        {needsDummy && p.opciones_sm && p.opciones_sm.length > 0 && (
+        {/* SM: picker de "Otros, especifique". Siempre visible cuando hay
+            pareja y opciones disponibles. La opción actualmente marcada
+            se muestra activa (borde primary + ícono ✓); al clickearla
+            de nuevo se deselecciona (toggle). */}
+        {p.opciones_sm && p.opciones_sm.length > 0 && (
           <SmDummyPicker
             padre={p}
             opciones={p.opciones_sm}
             busy={busy}
+            selectedCol={pareja.dummy_col || ""}
             onSelect={(col) => onSetDummy(p, col)}
           />
         )}
 
-        {/* SM con dummy ya resuelto → banner prominente con código + label */}
-        {!needsDummy && pareja.dummy_col && (() => {
-          const opcion = (p.opciones_sm ?? []).find((o) => o.col_dummy === pareja.dummy_col);
+        {/* Caso sin opciones_sm: no podemos ofrecer el picker; mostramos
+            la columna de dummy en un banner informativo (fallback raro). */}
+        {(!p.opciones_sm || p.opciones_sm.length === 0) && !needsDummy && pareja.dummy_col && (() => {
           return (
             <div style={{
               marginTop: 8, padding: "8px 10px",
@@ -844,26 +856,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
               display: "flex", alignItems: "center", gap: 8,
             }}>
               <Check size={14} color="var(--tipo-sm-fg)" />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--tipo-sm-fg)" }}>
-                  Opción "Otros, especifique"
-                </div>
-                <div style={{ fontSize: 12, color: "var(--pulso-text)", marginTop: 2, display: "flex", gap: 6, alignItems: "baseline", flexWrap: "wrap" }}>
-                  {opcion ? (
-                    <>
-                      <span style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--tipo-sm-fg)" }}>código {opcion.codigo}</span>
-                      <span style={{ color: "var(--pulso-text-soft)" }}>·</span>
-                      <span style={{ fontWeight: 500 }}>{opcion.label}</span>
-                      <span style={{ color: "var(--pulso-text-soft)" }}>·</span>
-                      <code style={{ fontFamily: "monospace", fontSize: 11, color: "var(--pulso-text-soft)" }}>{pareja.dummy_col}</code>
-                    </>
-                  ) : (
-                    <>
-                      <code style={{ fontFamily: "monospace", fontSize: 11 }}>{pareja.dummy_col}</code>
-                    </>
-                  )}
-                </div>
-              </div>
+              <code style={{ fontFamily: "monospace", fontSize: 11 }}>{pareja.dummy_col}</code>
             </div>
           );
         })()}
@@ -912,62 +905,93 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   );
 }
 
-function SmDummyPicker({ padre, opciones, busy, onSelect }: { padre: PreguntaAbierta; opciones: OpcionSM[]; busy: boolean; onSelect: (col: string) => void }) {
+function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
+  padre: PreguntaAbierta;
+  opciones: OpcionSM[];
+  busy: boolean;
+  selectedCol: string;
+  onSelect: (col: string) => void;
+}) {
+  const hasSelection = !!selectedCol;
+  const borderColor = hasSelection ? "var(--tipo-sm-border)" : "#f0d799";
+  const bg = hasSelection ? "var(--tipo-sm-bg)" : "#fff4e0";
+  const eyebrowColor = hasSelection ? "var(--tipo-sm-fg)" : "#8a5000";
   return (
     <div style={{
       marginTop: 8,
       padding: 10,
-      background: "#fff4e0",
-      border: "1px solid #f0d799",
+      background: bg,
+      border: `1px solid ${borderColor}`,
       borderRadius: 6,
       fontSize: 12,
     }}>
-      <div style={{ color: "#8a5000", fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
-        <CircleAlert size={12} /> ¿Cuál de estas opciones es "Otros, especifique"?
+      <div style={{ color: eyebrowColor, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 4, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.3 }}>
+        {hasSelection ? <Check size={12} /> : <CircleAlert size={12} />}
+        {hasSelection ? 'Opción "Otros, especifique"' : '¿Cuál opción es "Otros, especifique"?'}
       </div>
-      <div style={{ fontSize: 11, color: "#8a5000", opacity: 0.85, marginBottom: 8, lineHeight: 1.4 }}>
-        La columna que marca "Otros" es la que indica cuándo el respondente escribió texto libre en <code style={{ fontFamily: "monospace" }}>{padre.pareja && "child_col" in padre.pareja ? padre.pareja.child_col : ""}</code>. Hacé click en la opción que corresponde.
+      <div style={{ fontSize: 11, color: eyebrowColor, opacity: 0.85, marginBottom: 8, lineHeight: 1.4 }}>
+        {hasSelection
+          ? <>Los textos de <code style={{ fontFamily: "monospace" }}>{padre.pareja && "child_col" in padre.pareja ? padre.pareja.child_col : ""}</code> se codifican cuando esta opción fue marcada. Haz click en la opción para quitar la selección.</>
+          : <>La columna que marca "Otros" es la que indica cuándo el respondente escribió texto libre en <code style={{ fontFamily: "monospace" }}>{padre.pareja && "child_col" in padre.pareja ? padre.pareja.child_col : ""}</code>. Haz click en la opción que corresponde.</>}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {opciones.map((o) => {
+          const isSelected = selectedCol === o.col_dummy && o.col_dummy !== "";
           const disabled = busy || !o.existe_en_data;
-          const sugerida = o.es_otros_sugerido;
+          const sugerida = o.es_otros_sugerido && !hasSelection;
+          // Priorización de estilos: seleccionada > sugerida > normal.
+          const borderCol = isSelected ? "var(--pulso-primary)" : sugerida ? "#d68a00" : "var(--pulso-border)";
+          const bgCol = isSelected ? "var(--pulso-primary-soft)" : sugerida ? "#fff9ef" : "white";
+          const title = disabled && !o.existe_en_data
+            ? `La columna ${o.col_dummy} no existe en tu dataset`
+            : isSelected
+            ? `Click para deseleccionar (actualmente marcada como "Otros")`
+            : `Usar ${o.col_dummy} como columna "Otros"`;
           return (
             <button
               key={o.codigo}
               type="button"
               disabled={disabled}
               onClick={() => onSelect(o.col_dummy)}
-              title={disabled && !o.existe_en_data ? `La columna ${o.col_dummy} no existe en tu dataset` : `Usar ${o.col_dummy} como columna "Otros"`}
+              aria-pressed={isSelected}
+              title={title}
               style={{
                 textAlign: "left",
                 display: "grid",
-                gridTemplateColumns: "34px 1fr auto",
+                gridTemplateColumns: "18px 34px 1fr auto",
                 alignItems: "center",
                 gap: 8,
                 padding: "6px 8px",
-                background: sugerida ? "#fff9ef" : "white",
-                border: sugerida ? "1px solid #d68a00" : "1px solid var(--pulso-border)",
+                background: bgCol,
+                border: `1px solid ${borderCol}`,
                 borderRadius: 5,
                 cursor: disabled ? "not-allowed" : "pointer",
                 opacity: disabled && !o.existe_en_data ? 0.5 : 1,
                 fontSize: 11,
               }}
             >
-              <code style={{ fontFamily: "monospace", fontWeight: 700, color: sugerida ? "#8a5000" : "var(--pulso-text-soft)" }}>{o.codigo}</code>
-              <span style={{ color: "var(--pulso-text)" }}>{truncate(o.label, 70)}</span>
-              {sugerida && (
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16 }}>
+                {isSelected ? <Check size={12} color="var(--pulso-primary)" /> : null}
+              </span>
+              <code style={{ fontFamily: "monospace", fontWeight: 700, color: isSelected ? "var(--pulso-primary)" : sugerida ? "#8a5000" : "var(--pulso-text-soft)" }}>{o.codigo}</code>
+              <span style={{ color: "var(--pulso-text)", fontWeight: isSelected ? 600 : 400 }}>{truncate(o.label, 70)}</span>
+              {sugerida && !isSelected && (
                 <span style={{ fontSize: 9, fontWeight: 700, color: "#8a5000", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                   ← Probable
+                </span>
+              )}
+              {isSelected && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--pulso-primary)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+                  Seleccionada
                 </span>
               )}
             </button>
           );
         })}
       </div>
-      {opciones.every((o) => !o.es_otros_sugerido) && (
+      {!hasSelection && opciones.every((o) => !o.es_otros_sugerido) && (
         <div style={{ fontSize: 10, color: "#8a5000", marginTop: 6, fontStyle: "italic" }}>
-          No detecté una opción "Otros" en el instrumento. Elegí la que corresponde según tu criterio.
+          No detecté una opción "Otros" en el instrumento. Elige la que corresponde según tu criterio.
         </div>
       )}
     </div>

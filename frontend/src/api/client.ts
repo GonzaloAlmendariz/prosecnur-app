@@ -462,12 +462,18 @@ export async function apiCodifPreguntasAbiertas() {
   );
 }
 
-export async function apiCodifPareja(parent: string, child_col: string, modo_so?: "padre" | "hijo", dummy_col?: string) {
+export async function apiCodifPareja(
+  parent: string,
+  child_col: string,
+  modo_so?: "padre" | "hijo",
+  dummy_col?: string,
+  opts?: { clear_dummy?: boolean },
+) {
   return handle<{ ok: true; parent: string; child_col: string; modo_so: string; dummy_col: string }>(
     await fetch("/api/codificacion/pareja", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ parent, child_col, modo_so, dummy_col }),
+      body: JSON.stringify({ parent, child_col, modo_so, dummy_col, clear_dummy: opts?.clear_dummy }),
     })
   );
 }
