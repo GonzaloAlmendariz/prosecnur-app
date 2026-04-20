@@ -29,6 +29,7 @@ import {
 import {
   apiCodifColumnas,
   apiCodifDesemparejar,
+  apiCodifMarcar,
   apiCodifPareja,
   apiCodifPreguntasAbiertas,
   Arquetipo,
@@ -54,7 +55,7 @@ function prefersReducedMotion(): boolean {
 
 function escapeAttr(s: string): string { return s.replace(/"/g, '\\"'); }
 
-type Filter = "codificables" | "todas" | "por-emparejar" | "completas";
+type Filter = "para-codificar" | "todas" | "por-emparejar" | "completas";
 
 const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label: string }> = {
   select_multiple: { bg: "var(--tipo-sm-bg)", border: "var(--tipo-sm-border)", fg: "var(--tipo-sm-fg)", label: "Múltiple" },
@@ -66,7 +67,7 @@ const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label
 export function PreguntasLanding() {
   const [data, setData] = useState<PreguntaAbierta[] | null>(null);
   const [error, setError] = useState<string>("");
-  const [filter, setFilter] = useState<Filter>("codificables");
+  const [filter, setFilter] = useState<Filter>("para-codificar");
   const [query, setQuery] = useState<string>("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [pairingFor, setPairingFor] = useState<{ parent: PreguntaAbierta; preselectedChild?: string } | null>(null);
@@ -225,17 +226,17 @@ export function PreguntasLanding() {
   }, [data]);
 
   const counts = useMemo(() => {
-    if (!data) return { total: 0, codificables: 0, porEmparejar: 0, completas: 0, noAplica: 0 };
-    let codificables = 0, porEmparejar = 0, completas = 0, noAplica = 0;
+    if (!data) return { total: 0, paraCodificar: 0, porEmparejar: 0, completas: 0, noAplica: 0 };
+    let paraCodificar = 0, porEmparejar = 0, completas = 0, noAplica = 0;
     for (const p of data) {
       const arq = arquetipoOf(p, adoptedBy);
       if (p.status === "no-aplica") noAplica++;
       else if (p.status === "completo") completas++;
-      if (["no-iniciado", "en-curso", "completo"].includes(p.status)) codificables++;
+      if (p.marcada) paraCodificar++;
       if ((arq === "pareja-so" || arq === "pareja-sm") && !isPaired(p)) porEmparejar++;
     }
-    return { total: data.length, codificables, porEmparejar, completas, noAplica };
-  }, [data]);
+    return { total: data.length, paraCodificar, porEmparejar, completas, noAplica };
+  }, [data, adoptedBy]);
 
   const visibleSections = useMemo(() => {
     if (!data) return [];
@@ -248,7 +249,7 @@ export function PreguntasLanding() {
         return (arq === "pareja-so" || arq === "pareja-sm") && !isPaired(p);
       }
       if (filter === "completas") return p.status === "completo";
-      if (filter === "codificables") return ["no-iniciado", "en-curso", "completo"].includes(p.status);
+      if (filter === "para-codificar") return p.marcada;
       return true; // todas
     };
     const matchesQ = (p: PreguntaAbierta): boolean => {
@@ -312,6 +313,18 @@ export function PreguntasLanding() {
     }
   }
 
+  async function onToggleMarcada(parent: string, marcada: boolean) {
+    setBusyPair(parent);
+    try {
+      await apiCodifMarcar(parent, marcada);
+      await refresh();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusyPair("");
+    }
+  }
+
   function toggleSection(id: string) {
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -328,7 +341,7 @@ export function PreguntasLanding() {
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
     <div>
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-        <FilterChip label={`Codificables (${counts.codificables})`} active={filter === "codificables"} onClick={() => setFilter("codificables")} />
+        <FilterChip label={`Para codificar (${counts.paraCodificar})`} active={filter === "para-codificar"} onClick={() => setFilter("para-codificar")} />
         <FilterChip label={`Por emparejar (${counts.porEmparejar})`} active={filter === "por-emparejar"} onClick={() => setFilter("por-emparejar")} accent={counts.porEmparejar > 0} />
         <FilterChip label={`Completas (${counts.completas})`} active={filter === "completas"} onClick={() => setFilter("completas")} />
         <FilterChip label={`Todas (${counts.total})`} active={filter === "todas"} onClick={() => setFilter("todas")} />
@@ -362,6 +375,7 @@ export function PreguntasLanding() {
           recentlyAdopted={recentlyAdopted}
           onSetDummy={setDummyForSm}
           onScrollToPadre={scrollToPadre}
+          onToggleMarcada={onToggleMarcada}
         />
       ))}
 
@@ -445,9 +459,10 @@ type SectionProps = {
   recentlyAdopted: Set<string>;
   onSetDummy: (padre: PreguntaAbierta, dummy_col: string) => void;
   onScrollToPadre: (parent?: string) => void;
+  onToggleMarcada: (parent: string, marcada: boolean) => void;
 };
 
-function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onScrollToPadre }: SectionProps) {
+function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onScrollToPadre, onToggleMarcada }: SectionProps) {
   const porEmparejar = preguntas.filter((p) => {
     const arq = arquetipoOf(p, adoptedBy);
     return (arq === "pareja-so" || arq === "pareja-sm") && !isPaired(p);
@@ -496,6 +511,7 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
               recentlyAdopted={recentlyAdopted}
               onSetDummy={onSetDummy}
               onScrollToPadre={onScrollToPadre}
+              onToggleMarcada={(m) => onToggleMarcada(p.parent, m)}
             />
           ))}
         </div>
@@ -514,11 +530,52 @@ type CardProps = {
   recentlyAdopted: Set<string>;
   onSetDummy: (padre: PreguntaAbierta, dummy_col: string) => void;
   onScrollToPadre: (parent?: string) => void;
+  onToggleMarcada: (marcada: boolean) => void;
 };
 
-function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onScrollToPadre }: CardProps) {
+function MarcarFooter({ p, arq, busy, onToggleMarcada }: { p: PreguntaAbierta; arq: Arquetipo; busy: boolean; onToggleMarcada: (m: boolean) => void }) {
+  // Emparejadas: auto-marcada, inmutable mientras haya pareja.
+  if (p.marcada_auto) {
+    return (
+      <div style={{ marginTop: 8, padding: "6px 8px", borderTop: "1px solid var(--pulso-border)", display: "flex", alignItems: "center", gap: 6 }}>
+        <Check size={12} color="#166534" />
+        <span style={{ fontSize: 11, color: "#166534", fontWeight: 600 }}>En codificación automáticamente</span>
+      </div>
+    );
+  }
+  // Adoptadas, config-so, no-aplica: no mostrar toggle.
+  if (arq === "adoptada" || arq === "no-aplica" || arq === "config-so") return null;
+  // Resto: toggle explícito.
+  const labelOn = "✓ Incluida en codificación";
+  const labelOff = "Incluir en codificación";
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        marginTop: 8, padding: "6px 8px",
+        borderTop: "1px solid var(--pulso-border)",
+        display: "flex", alignItems: "center", gap: 8,
+      }}
+    >
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: busy ? "wait" : "pointer", fontSize: 11, fontWeight: 600, color: p.marcada ? "#166534" : "var(--pulso-text-soft)" }}>
+        <input
+          type="checkbox"
+          checked={p.marcada}
+          disabled={busy}
+          onChange={(e) => onToggleMarcada(e.target.checked)}
+          style={{ cursor: busy ? "wait" : "pointer" }}
+          aria-label={p.marcada ? `Quitar ${p.parent} del flujo de codificación` : `Incluir ${p.parent} en el flujo de codificación`}
+        />
+        {p.marcada ? labelOn : labelOff}
+      </label>
+    </div>
+  );
+}
+
+function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onScrollToPadre, onToggleMarcada }: CardProps) {
   const arq = arquetipoOf(p, adoptedBy);
   const tipoStyle = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
+  const marcarFooter = <MarcarFooter p={p} arq={arq} busy={busy} onToggleMarcada={onToggleMarcada} />;
   const paired = isPaired(p);
 
   // Drag (huérfanas) / Drop (parejas sin emparejar) wiring
@@ -633,6 +690,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         >
           ↗ Gestionar desde {padre?.parent ?? "padre"}
         </button>
+        {marcarFooter}
       </article>
     );
   }
@@ -654,6 +712,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
           <div style={{ flex: 1 }} />
           {detailLink}
         </div>
+        {marcarFooter}
       </article>
     );
   }
@@ -669,6 +728,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         {preview}
         <div style={{ flex: 1 }} />
         <div style={{ display: "flex", justifyContent: "flex-end" }}>{detailLink}</div>
+        {marcarFooter}
       </article>
     );
   }
@@ -700,6 +760,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center", gap: 4 }}>
           <GripVertical size={11} /> Arrastrá sobre su pregunta padre para emparejar
         </div>
+        {marcarFooter}
       </article>
     );
   }
@@ -716,6 +777,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
           <Settings2 size={12} />
           <span>Sin candidatos de "Otros" automáticos. Configurá en modo avanzado.</span>
         </div>
+        {marcarFooter}
       </article>
     );
   }
@@ -729,6 +791,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         {tipoRow}
         <div style={{ flex: 1 }} />
         <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>Desactivada</span>
+        {marcarFooter}
       </article>
     );
   }
@@ -787,12 +850,41 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
           />
         )}
 
-        {/* SM con dummy ya resuelto → línea compacta */}
-        {!needsDummy && pareja.dummy_col && (
-          <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 2, display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <Check size={10} color="#166534" /> "Otros" = <code style={{ fontFamily: "monospace" }}>{pareja.dummy_col}</code>
-          </div>
-        )}
+        {/* SM con dummy ya resuelto → banner prominente con código + label */}
+        {!needsDummy && pareja.dummy_col && (() => {
+          const opcion = (p.opciones_sm ?? []).find((o) => o.col_dummy === pareja.dummy_col);
+          return (
+            <div style={{
+              marginTop: 8, padding: "8px 10px",
+              background: "var(--tipo-sm-bg)",
+              border: "1px solid var(--tipo-sm-border)",
+              borderRadius: 6,
+              display: "flex", alignItems: "center", gap: 8,
+            }}>
+              <Check size={14} color="var(--tipo-sm-fg)" />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--tipo-sm-fg)" }}>
+                  Opción "Otros, especifique"
+                </div>
+                <div style={{ fontSize: 12, color: "var(--pulso-text)", marginTop: 2, display: "flex", gap: 6, alignItems: "baseline", flexWrap: "wrap" }}>
+                  {opcion ? (
+                    <>
+                      <span style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--tipo-sm-fg)" }}>código {opcion.codigo}</span>
+                      <span style={{ color: "var(--pulso-text-soft)" }}>·</span>
+                      <span style={{ fontWeight: 500 }}>{opcion.label}</span>
+                      <span style={{ color: "var(--pulso-text-soft)" }}>·</span>
+                      <code style={{ fontFamily: "monospace", fontSize: 11, color: "var(--pulso-text-soft)" }}>{pareja.dummy_col}</code>
+                    </>
+                  ) : (
+                    <>
+                      <code style={{ fontFamily: "monospace", fontSize: 11 }}>{pareja.dummy_col}</code>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         <div style={{ flex: 1 }} />
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -805,6 +897,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
           <div style={{ flex: 1 }} />
           {!needsDummy && detailLink}
         </div>
+        {marcarFooter}
       </article>
     );
   }

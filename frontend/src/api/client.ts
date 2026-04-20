@@ -412,7 +412,19 @@ export type PreguntaAbierta = {
   candidatos_texto: CandidatoTexto[];
   pareja: ParejaCommitteada | Record<string, never> | null;
   opciones_sm?: OpcionSM[];
+  marcada: boolean;
+  marcada_auto: boolean;
 };
+
+export async function apiCodifMarcar(parent: string, marcada: boolean) {
+  return handle<{ ok: true; parent: string; marcada: boolean }>(
+    await fetch("/api/codificacion/marcar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ parent, marcada }),
+    })
+  );
+}
 
 export type Arquetipo = "auto" | "solitaria" | "pareja-so" | "pareja-sm" | "huerfana" | "adoptada" | "config-so" | "no-aplica";
 

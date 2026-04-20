@@ -456,6 +456,8 @@ mount_codificacion <- function(pr) {
         else data.frame(name = character(0), stringsAsFactors = FALSE)
       } else data.frame(name = character(0), stringsAsFactors = FALSE)
 
+      marcadas_set <- s$codif_marcadas %||% list()
+
       preguntas <- lapply(draft$rows, function(r) {
         tipo <- as.character(r$tipo %||% "")
         modo_so <- as.character(r$modo_so %||% "")
@@ -533,7 +535,15 @@ mount_codificacion <- function(pr) {
           q_order = if (is.na(q_order_raw)) NA_integer_ else as.integer(q_order_raw),
           candidatos_texto = candidatos,
           pareja = pareja,
-          opciones_sm = opciones_sm
+          opciones_sm = opciones_sm,
+          # 'marcada': ¿la pregunta entra en el flujo de codificación?
+          # - Auto TRUE e inmutable si tiene pareja committeada.
+          # - Auto FALSE para adoptadas (su padre las codifica) y para SO
+          #   aún sin modo.
+          # - Toggle explícito (codif_marcadas) para integer, SO-padre sin
+          #   hija, SM sin hija, y text-solitaria/huerfana.
+          marcada = !is.null(pareja) || isTRUE(marcadas_set[[parent]]),
+          marcada_auto = !is.null(pareja)
         )
       })
       list(ok = TRUE, preguntas = preguntas)
@@ -670,6 +680,28 @@ mount_codificacion <- function(pr) {
       draft$updated_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
       session_set(sid, "codif_familias_draft", draft)
       list(ok = TRUE, parent = parent)
+    })) |>
+    plumber::pr_post("/api/codificacion/marcar", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      parent <- as.character(parsed$parent %||% "")
+      marcada <- isTRUE(parsed$marcada)
+      if (!nzchar(parent)) stop_api(400, "E_NO_PARENT", "Falta 'parent'.")
+      set <- s$codif_marcadas %||% list()
+      if (marcada) {
+        if (!parent %in% names(set)) set[[parent]] <- TRUE
+      } else {
+        set[[parent]] <- NULL
+      }
+      session_set(sid, "codif_marcadas", set)
+      list(ok = TRUE, parent = parent, marcada = marcada)
     })) |>
     plumber::pr_get("/api/codificacion/columnas", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
