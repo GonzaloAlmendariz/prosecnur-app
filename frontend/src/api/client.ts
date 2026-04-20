@@ -483,9 +483,20 @@ export type RespuestaUnica = {
   uuids: string[];
 };
 
-export type ReglaIntegerRango = { tipo: "range"; min: number | null; max: number | null };
-export type ReglaIntegerValores = { tipo: "values"; values: string[] };
-export type ReglaInteger = ReglaIntegerRango | ReglaIntegerValores;
+// Reglas de rango para preguntas numéricas. Siempre rangos, nunca valores
+// sueltos. Tres formas con lenguaje humano:
+//   between — "de X a Y" (ambos inclusive; ambos obligatorios)
+//   gte     — "X o más" (mínimo inclusive, sin tope superior)
+//   lte     — "X o menos" (máximo inclusive, sin tope inferior)
+// Si un valor requerido está ausente, la regla no cubre nada (no hay
+// "sin límite implícito": una regla incompleta es una regla no confirmada).
+export type ReglaIntegerBetween = { tipo: "between"; min: number | null; max: number | null };
+export type ReglaIntegerGte = { tipo: "gte"; value: number | null };
+export type ReglaIntegerLte = { tipo: "lte"; value: number | null };
+export type ReglaInteger = ReglaIntegerBetween | ReglaIntegerGte | ReglaIntegerLte;
+
+// Backwards compat type alias (not used by new code but kept for legacy grupos)
+export type ReglaIntegerRango = ReglaIntegerBetween;
 
 export type Grupo = {
   id: string;
