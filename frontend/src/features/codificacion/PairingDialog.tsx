@@ -164,41 +164,47 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
           )}
         </div>
 
-        {/* Paso 2 SO: modo */}
+        {/* Paso 2 SO: qué codificar */}
         {isSO && childCol && (
           <div style={{ marginBottom: 16 }}>
-            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 2 · Modo de codificación</div>
+            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 2 · ¿Qué vas a codificar?</div>
+            <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginBottom: 10 }}>
+              Una pregunta de opción única con "Otros, especifique" tiene dos datos: las opciones originales (1, 2, 3…) y el texto libre de quienes marcaron "Otros". Elige qué vas a agrupar y codificar.
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <ModoOption
                 value="hijo"
                 current={modoSo}
                 onChange={setModoSo}
-                title="Modo hijo (recomendado)"
-                description={`Creas categorías nuevas a partir del texto de "${childCol}". Ideal cuando la opción "Otros" tenía texto libre con variantes (ej. muchas respuestas distintas).`}
+                title="Codificar el texto libre (recomendado)"
+                description={`Agrupas las respuestas de texto que escribieron quienes eligieron "Otros" en ${pregunta.parent}. Ejemplo: "peruano", "peruana", "Perú" → código 1 "Peruano". Las opciones originales (1, 2, 3…) quedan tal cual.`}
               />
               <ModoOption
                 value="padre"
                 current={modoSo}
                 onChange={setModoSo}
-                title="Modo padre"
-                description={`Reescribes los valores del propio ${pregunta.parent} (recategorizás los niveles originales). "${childCol}" queda como referencia.`}
+                title="Reagrupar las opciones originales"
+                description={`Reasignas códigos a las opciones ya existentes de ${pregunta.parent} (por ejemplo, juntas "Peruana" y "Otra" en una sola categoría). "${childCol}" queda como contexto de consulta.`}
               />
             </div>
           </div>
         )}
 
-        {/* Paso 2 SM: dummy col */}
+        {/* Paso 2 SM: dummy col — SM no tiene modo padre/hijo, solo dummy */}
         {isSM && childCol && (
           <div style={{ marginBottom: 16 }}>
-            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 2 · Columna "Otros" marcada (dummy)</div>
-            <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginBottom: 10 }}>
-              En select_multiple la respuesta "Otros" suele tener una columna dummy que indica si fue marcada (ej. <code style={{ fontFamily: "monospace" }}>{pregunta.parent}/99</code>). Seleccionala para que la codificación sepa cuándo mirar el texto.
+            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 2 · ¿Cuál opción es "Otros, especifique"?</div>
+            <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginBottom: 10, lineHeight: 1.5 }}>
+              A diferencia de opción única, en preguntas múltiples solo vas a codificar el texto libre
+              (<code style={{ fontFamily: "monospace" }}>{childCol}</code>). Pero primero indícanos cuál de las
+              opciones de {pregunta.parent} corresponde a "Otros, especifique". La app solo considera los
+              registros donde esa opción fue marcada — el resto no tiene texto para codificar.
             </div>
             <input
               list="dummy-cols"
               value={dummyCol}
               onChange={(e) => setDummyCol(e.target.value)}
-              placeholder={`p.ej. ${pregunta.parent}/99`}
+              placeholder={`ej. ${pregunta.parent}/99`}
               style={{ width: "100%", fontSize: 13, fontFamily: "monospace", padding: "6px 10px" }}
             />
             <datalist id="dummy-cols">
@@ -207,7 +213,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
             </datalist>
             {dummyCandidates.length > 0 && (
               <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 4 }}>
-                Sugeridas: {dummyCandidates.slice(0, 4).join(" · ")}
+                Sugeridas por la app: {dummyCandidates.slice(0, 4).join(" · ")}
               </div>
             )}
           </div>

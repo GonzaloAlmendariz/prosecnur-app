@@ -797,11 +797,11 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     const isSM = p.tipo === "select_multiple";
     const needsDummy = isSM && !pareja.dummy_col;
     const modoLabel = needsDummy
-      ? "Necesita dummy"
+      ? "Falta opción 'Otros'"
       : p.modo_so === "padre"
-      ? "Modo padre"
+      ? "Se recodifican las opciones"
       : p.modo_so === "hijo"
-      ? "Modo hijo"
+      ? "Se codifica el texto libre"
       : "Emparejada";
     const fresh = recentlyAdopted.has(p.parent);
 
@@ -828,9 +828,17 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         {label}
         {tipoRow}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 16px 1fr", alignItems: "center", gap: 6, marginTop: 4 }}>
-          <PairedSide title={p.parent} subtitle={p.modo_so === "padre" ? "(recodifica valores)" : "(referencia)"} tone="primary" />
+          <PairedSide
+            title={p.parent}
+            subtitle={p.modo_so === "padre" ? "opciones que se recodifican" : p.modo_so === "hijo" ? "pregunta original" : "pregunta"}
+            tone="primary"
+          />
           <Link2 size={12} color="var(--pulso-primary)" />
-          <PairedSide title={pareja.child_col} subtitle={p.modo_so === "hijo" ? "(texto recodificado)" : "(auxiliar)"} tone="soft" />
+          <PairedSide
+            title={pareja.child_col}
+            subtitle={p.modo_so === "hijo" ? "texto que se codifica" : p.modo_so === "padre" ? "contexto de consulta" : "texto asociado"}
+            tone="soft"
+          />
         </div>
 
         {/* SM sin dummy → selector inline con todas las opciones */}
