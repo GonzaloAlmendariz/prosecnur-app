@@ -599,7 +599,12 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     display: "flex",
     flexDirection: "column",
     gap: 8,
-    minHeight: 170,
+    // Cards con altura uniforme: min-height generoso + stretch vertical
+    // para que CSS Grid estire todas las cards de una fila al alto de la
+    // más alta. Combinado con el picker SM con scroll interno a 4 opciones
+    // (no 7), esto mantiene las cards con variación mínima.
+    minHeight: 210,
+    height: "100%",
     position: "relative",
     transition: "background 120ms, border-color 120ms",
     opacity: draggable.isDragging ? 0.4 : 1,
@@ -937,15 +942,15 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
       <div
         style={{
           display: "flex", flexDirection: "column", gap: 3,
-          // Cap de altura para listas largas (SM con 10+ opciones). Scroll
-          // interno minimalista con scrollbar slim del navegador. Umbral
-          // ~7 items visibles (32px cada uno + 3px gap).
-          maxHeight: opciones.length > 7 ? 252 : undefined,
-          overflowY: opciones.length > 7 ? "auto" : undefined,
-          // Scrollbar discreto (webkit + firefox)
+          // Cap más agresivo para no dominar el alto de la card en el
+          // paso 1 Organizar. ~4 items visibles (32px + 3px gap = 35px
+          // cada uno → 140px de área de scroll). El resto con scroll
+          // interno minimalista.
+          maxHeight: opciones.length > 4 ? 144 : undefined,
+          overflowY: opciones.length > 4 ? "auto" : undefined,
           scrollbarWidth: "thin",
           scrollbarColor: "var(--pulso-border) transparent",
-          paddingRight: opciones.length > 7 ? 4 : 0,
+          paddingRight: opciones.length > 4 ? 4 : 0,
         }}
       >
         {opciones.map((o) => {
