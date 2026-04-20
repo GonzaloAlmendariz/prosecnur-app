@@ -145,6 +145,49 @@
   )
 }
 
+# For a SM pregunta, return the full list of choice options with their
+# code + label + the dummy column each one corresponds to. Lets the UI
+# show "1 · Presencial, 2 · Telefónica, ..., 99 · Otros" so a non-technical
+# analyst can click the actual "Otros" option instead of guessing which
+# column name ("p7/99"?) is the right dummy.
+.opciones_sm <- function(parent, list_name, inst, data_df) {
+  if (!nzchar(list_name) || is.null(inst$choices)) return(list())
+  ch <- inst$choices[as.character(inst$choices$list_name) == list_name, , drop = FALSE]
+  if (nrow(ch) == 0L) return(list())
+  # Label preference: label from choices (already UTF-8).
+  lbls <- as.character(ch$label %||% ch$name)
+  Encoding(lbls) <- "UTF-8"
+  codes <- as.character(ch$name)
+  cols_data <- names(data_df)
+  # Candidate dummy column patterns (SurveyCTO and ODK variants).
+  build_cols <- function(code) {
+    c(
+      sprintf("%s/%s", parent, code),
+      sprintf("%s_%s", parent, code),
+      sprintf("%s.%s", parent, code)
+    )
+  }
+  lapply(seq_len(nrow(ch)), function(i) {
+    code <- codes[i]
+    label <- lbls[i]
+    candidates <- build_cols(code)
+    col_dummy <- candidates[candidates %in% cols_data][1] %||% ""
+    if (is.na(col_dummy)) col_dummy <- ""
+    # Heuristic: is this the "Otros" option? label contains "otro"/"otra"
+    # (case-insensitive after strip accents), or it's the last code >= 70.
+    label_norm <- tolower(iconv(label, from = "UTF-8", to = "ASCII//TRANSLIT", sub = ""))
+    es_otros <- grepl("\\b(otro|otra|otros|otras|especifi[qc]ue)", label_norm) ||
+                suppressWarnings(as.integer(code)) %in% c(70L, 95L, 98L, 99L)
+    list(
+      codigo = code,
+      label = label,
+      col_dummy = col_dummy,
+      existe_en_data = nzchar(col_dummy),
+      es_otros_sugerido = isTRUE(es_otros)
+    )
+  })
+}
+
 # For a SO/SM pregunta, score candidate text columns in data that could be
 # its "Otros, especifique". Higher = more confident.
 # Rules:
@@ -420,6 +463,14 @@ mount_codificacion <- function(pr) {
           )
         } else NULL
 
+        # Opciones enriquecidas para SM: permiten a la UI mostrar un selector
+        # con codigo + label de cada opcion del instrumento, asi el analista
+        # elige "Otros" por semantica y no por nombre de columna cryptico.
+        opciones_sm <- if (tipo == "select_multiple") {
+          list_norm_r <- as.character(r$list_norm %||% "")
+          .opciones_sm(parent, list_norm_r, inst, data_df)
+        } else list()
+
         list(
           parent = parent,
           parent_label = as.character(r$parent_label %||% ""),
@@ -440,7 +491,8 @@ mount_codificacion <- function(pr) {
           section_label = section_label,
           q_order = if (is.na(q_order_raw)) NA_integer_ else as.integer(q_order_raw),
           candidatos_texto = candidatos,
-          pareja = pareja
+          pareja = pareja,
+          opciones_sm = opciones_sm
         )
       })
       list(ok = TRUE, preguntas = preguntas)

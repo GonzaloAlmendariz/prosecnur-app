@@ -27,15 +27,32 @@ import {
   Wand2,
 } from "lucide-react";
 import {
+  apiCodifColumnas,
   apiCodifDesemparejar,
   apiCodifPareja,
   apiCodifPreguntasAbiertas,
   Arquetipo,
   arquetipoOf,
+  guessDummyColFromOpciones,
+  OpcionSM,
   PreguntaAbierta,
 } from "../../api/client";
 import { Alert } from "../../components/Alert";
 import { PairingDialog, PairingResult } from "./PairingDialog";
+
+const srOnlyStyle: React.CSSProperties = {
+  position: "absolute",
+  width: 1, height: 1,
+  padding: 0, margin: -1,
+  overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap",
+  border: 0,
+};
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+function escapeAttr(s: string): string { return s.replace(/"/g, '\\"'); }
 
 type Filter = "codificables" | "todas" | "por-emparejar" | "completas";
 
@@ -55,6 +72,9 @@ export function PreguntasLanding() {
   const [pairingFor, setPairingFor] = useState<{ parent: PreguntaAbierta; preselectedChild?: string } | null>(null);
   const [busyPair, setBusyPair] = useState<string>("");
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [columnas, setColumnas] = useState<string[]>([]);
+  const [recentlyAdopted, setRecentlyAdopted] = useState<Set<string>>(new Set());
+  const [liveMsg, setLiveMsg] = useState<string>("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -70,7 +90,120 @@ export function PreguntasLanding() {
     }
   }
 
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => {
+    void refresh();
+    (async () => {
+      try { const r = await apiCodifColumnas(); setColumnas(r.columnas); } catch {}
+    })();
+  }, []);
+
+  // Reverse-lookup: child_col → padre. Deriva "adoptada" para las text ya
+  // emparejadas (quita ruido del listado y muestra la relación en el padre).
+  const adoptedBy = useMemo(() => {
+    const m = new Map<string, PreguntaAbierta>();
+    if (!data) return m;
+    for (const p of data) {
+      const pj = p.pareja;
+      if (pj && typeof pj === "object" && "child_col" in pj && pj.child_col) {
+        m.set(pj.child_col, p);
+      }
+    }
+    return m;
+  }, [data]);
+
+  function announce(msg: string) {
+    setLiveMsg(msg);
+    setTimeout(() => setLiveMsg(""), 800);
+  }
+
+  async function animateAdoption(srcParent: string, dstParent: string) {
+    if (prefersReducedMotion()) return;
+    const srcEl = document.querySelector(`[data-parent="${escapeAttr(srcParent)}"]`) as HTMLElement | null;
+    const dstEl = document.querySelector(`[data-parent="${escapeAttr(dstParent)}"]`) as HTMLElement | null;
+    if (!srcEl || !dstEl) return;
+    const srcRect = srcEl.getBoundingClientRect();
+    const dstRect = dstEl.getBoundingClientRect();
+    const dx = dstRect.left + dstRect.width / 2 - (srcRect.left + srcRect.width / 2);
+    const dy = dstRect.top + dstRect.height / 2 - (srcRect.top + srcRect.height / 2);
+
+    const clone = srcEl.cloneNode(true) as HTMLElement;
+    clone.style.position = "fixed";
+    clone.style.left = `${srcRect.left}px`;
+    clone.style.top = `${srcRect.top}px`;
+    clone.style.width = `${srcRect.width}px`;
+    clone.style.zIndex = "50";
+    clone.style.pointerEvents = "none";
+    clone.style.transition = "transform var(--anim-dur-med) var(--anim-ease-expressive), opacity var(--anim-dur-med) var(--anim-ease-smooth), filter var(--anim-dur-med) var(--anim-ease-smooth)";
+    document.body.appendChild(clone);
+    srcEl.style.opacity = "0";
+    requestAnimationFrame(() => {
+      clone.style.transform = `translate(${dx}px, ${dy}px) scale(0.4)`;
+      clone.style.opacity = "0";
+      clone.style.filter = "blur(1px)";
+    });
+    await new Promise((r) => setTimeout(r, 320));
+    clone.remove();
+  }
+
+  function glowCard(parent: string) {
+    if (prefersReducedMotion()) return;
+    const el = document.querySelector(`[data-parent="${escapeAttr(parent)}"]`);
+    if (!el) return;
+    el.classList.remove("pulso-card-glow");
+    void (el as HTMLElement).offsetWidth; // restart animation
+    el.classList.add("pulso-card-glow");
+    setTimeout(() => el.classList.remove("pulso-card-glow"), 1200);
+  }
+
+  function scrollToPadre(parent?: string) {
+    if (!parent) return;
+    const el = document.querySelector(`[data-parent="${escapeAttr(parent)}"]`) as HTMLElement | null;
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    glowCard(parent);
+  }
+
+  async function adoptDirect(padre: PreguntaAbierta, childCol: string, opcionesSm?: OpcionSM[]) {
+    setBusyPair(padre.parent);
+    try {
+      const modo_so = padre.tipo === "select_one" ? "hijo" : undefined;
+      const dummy_col = padre.tipo === "select_multiple"
+        ? (padre.pareja && typeof padre.pareja === "object" && "dummy_col" in padre.pareja && padre.pareja.dummy_col
+            ? padre.pareja.dummy_col
+            : guessDummyColFromOpciones(opcionesSm))
+        : undefined;
+      await apiCodifPareja(padre.parent, childCol, modo_so, dummy_col);
+      setRecentlyAdopted((s) => new Set(s).add(padre.parent));
+      setTimeout(() => setRecentlyAdopted((s) => { const n = new Set(s); n.delete(padre.parent); return n; }), 1000);
+      await refresh();
+      glowCard(padre.parent);
+      if (padre.tipo === "select_multiple" && !dummy_col) {
+        announce(`${childCol} adoptada por ${padre.parent}. Falta indicar cuál opción es "Otros".`);
+      } else {
+        announce(`${childCol} adoptada por ${padre.parent}${modo_so ? " en modo hijo" : ""}.`);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusyPair("");
+    }
+  }
+
+  async function setDummyForSm(padre: PreguntaAbierta, dummy_col: string) {
+    setBusyPair(padre.parent);
+    try {
+      const pj = padre.pareja && typeof padre.pareja === "object" && "child_col" in padre.pareja ? padre.pareja : null;
+      if (!pj?.child_col) return;
+      await apiCodifPareja(padre.parent, pj.child_col, undefined, dummy_col);
+      await refresh();
+      glowCard(padre.parent);
+      announce(`Columna "Otros" configurada en ${padre.parent}.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusyPair("");
+    }
+  }
 
   const bySection = useMemo(() => {
     if (!data) return [];
@@ -95,7 +228,7 @@ export function PreguntasLanding() {
     if (!data) return { total: 0, codificables: 0, porEmparejar: 0, completas: 0, noAplica: 0 };
     let codificables = 0, porEmparejar = 0, completas = 0, noAplica = 0;
     for (const p of data) {
-      const arq = arquetipoOf(p);
+      const arq = arquetipoOf(p, adoptedBy);
       if (p.status === "no-aplica") noAplica++;
       else if (p.status === "completo") completas++;
       if (["no-iniciado", "en-curso", "completo"].includes(p.status)) codificables++;
@@ -108,7 +241,9 @@ export function PreguntasLanding() {
     if (!data) return [];
     const q = query.trim().toLowerCase();
     const wants = (p: PreguntaAbierta): boolean => {
-      const arq = arquetipoOf(p);
+      const arq = arquetipoOf(p, adoptedBy);
+      // Ocultar adoptadas de filtros operativos (solo visibles en "todas")
+      if (arq === "adoptada" && filter !== "todas") return false;
       if (filter === "por-emparejar") {
         return (arq === "pareja-so" || arq === "pareja-sm") && !isPaired(p);
       }
@@ -143,7 +278,7 @@ export function PreguntasLanding() {
     setActiveDragId(String(e.active.id));
   }
 
-  function onDragEnd(e: DragEndEvent) {
+  async function onDragEnd(e: DragEndEvent) {
     setActiveDragId(null);
     const { active, over } = e;
     if (!over || !data) return;
@@ -153,9 +288,11 @@ export function PreguntasLanding() {
     const parentPregunta = data.find((p) => p.parent === parentParent);
     const childPregunta = data.find((p) => p.parent === childParent);
     if (!parentPregunta || !childPregunta) return;
-    // child_col: preferir col_efectiva (la columna de texto del huérfana)
     const childCol = childPregunta.col_efectiva || childPregunta.parent;
-    setPairingFor({ parent: parentPregunta, preselectedChild: childCol });
+    // Fly animation + POST directo (sin modal). El user podrá ajustar modo
+    // o dummy desde la card emparejada.
+    await animateAdoption(childPregunta.parent, parentPregunta.parent);
+    await adoptDirect(parentPregunta, childCol, parentPregunta.opciones_sm);
   }
 
   const activePregunta = useMemo(() => {
@@ -221,8 +358,14 @@ export function PreguntasLanding() {
           onUnpair={onDesemparejar}
           busyPair={busyPair}
           dragActive={!!activeDragId}
+          adoptedBy={adoptedBy}
+          recentlyAdopted={recentlyAdopted}
+          onSetDummy={setDummyForSm}
+          onScrollToPadre={scrollToPadre}
         />
       ))}
+
+      <div aria-live="polite" aria-atomic="true" style={srOnlyStyle}>{liveMsg}</div>
 
       {pairingFor && (
         <PairingDialog
@@ -298,11 +441,15 @@ type SectionProps = {
   onUnpair: (parent: string) => void;
   busyPair: string;
   dragActive: boolean;
+  adoptedBy: Map<string, PreguntaAbierta>;
+  recentlyAdopted: Set<string>;
+  onSetDummy: (padre: PreguntaAbierta, dummy_col: string) => void;
+  onScrollToPadre: (parent?: string) => void;
 };
 
-function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive }: SectionProps) {
+function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onScrollToPadre }: SectionProps) {
   const porEmparejar = preguntas.filter((p) => {
-    const arq = arquetipoOf(p);
+    const arq = arquetipoOf(p, adoptedBy);
     return (arq === "pareja-so" || arq === "pareja-sm") && !isPaired(p);
   }).length;
   const completas = preguntas.filter((p) => p.status === "completo").length;
@@ -345,6 +492,10 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
               onUnpair={() => onUnpair(p.parent)}
               busy={busyPair === p.parent}
               dragActive={dragActive}
+              adoptedBy={adoptedBy}
+              recentlyAdopted={recentlyAdopted}
+              onSetDummy={onSetDummy}
+              onScrollToPadre={onScrollToPadre}
             />
           ))}
         </div>
@@ -359,10 +510,14 @@ type CardProps = {
   onUnpair: () => void;
   busy: boolean;
   dragActive: boolean;
+  adoptedBy: Map<string, PreguntaAbierta>;
+  recentlyAdopted: Set<string>;
+  onSetDummy: (padre: PreguntaAbierta, dummy_col: string) => void;
+  onScrollToPadre: (parent?: string) => void;
 };
 
-function PreguntaCard({ p, onPair, onUnpair, busy, dragActive }: CardProps) {
-  const arq = arquetipoOf(p);
+function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onScrollToPadre }: CardProps) {
+  const arq = arquetipoOf(p, adoptedBy);
   const tipoStyle = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
   const paired = isPaired(p);
 
@@ -442,10 +597,50 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive }: CardProps) {
     </NavLink>
   );
 
+  // CASE 0: adoptada (text que ya es hija de una SO/SM)
+  if (arq === "adoptada") {
+    const padre = adoptedBy.get(p.col_efectiva || p.parent);
+    return (
+      <article
+        data-parent={p.parent}
+        style={{
+          ...common,
+          background: "var(--adoptada-bg)",
+          borderLeft: `4px solid ${ts.border}`,
+          border: `1px solid var(--adoptada-border)`,
+          opacity: 0.92,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+          <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "var(--adoptada-fg)" }}>{p.parent}</div>
+          <div style={{ flex: 1 }} />
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 6px", borderRadius: 4, background: "white", color: "var(--adoptada-fg)", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", border: "1px solid var(--adoptada-border)" }}>
+            <Check size={10} /> Adoptada por {padre?.parent ?? "padre"}
+          </span>
+        </div>
+        {label}
+        {tipoRow}
+        {stats}
+        <div style={{ flex: 1 }} />
+        <button
+          type="button"
+          onClick={() => onScrollToPadre(padre?.parent)}
+          style={{
+            fontSize: 11, color: "var(--pulso-primary)", background: "transparent",
+            border: "none", textAlign: "left", padding: 0, cursor: "pointer",
+            display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 600,
+          }}
+        >
+          ↗ Gestionar desde {padre?.parent ?? "padre"}
+        </button>
+      </article>
+    );
+  }
+
   // CASE 1: auto (integer)
   if (arq === "auto") {
     return (
-      <article ref={ref} {...listeners} {...attributes} style={common}>
+      <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={common}>
         {header}
         {label}
         {tipoRow}
@@ -466,7 +661,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive }: CardProps) {
   // CASE 2: solitaria (text puro)
   if (arq === "solitaria") {
     return (
-      <article ref={ref} {...listeners} {...attributes} style={common}>
+      <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={common}>
         {header}
         {label}
         {tipoRow}
@@ -512,7 +707,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive }: CardProps) {
   // CASE 4: config-so (SO sin modo y sin candidatos)
   if (arq === "config-so") {
     return (
-      <article ref={ref} {...listeners} {...attributes} style={common}>
+      <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={common}>
         {header}
         {label}
         {tipoRow}
@@ -528,7 +723,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive }: CardProps) {
   // CASE 5: no-aplica
   if (arq === "no-aplica") {
     return (
-      <article ref={ref} {...listeners} {...attributes} style={{ ...common, opacity: 0.55 }}>
+      <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={{ ...common, opacity: 0.55 }}>
         {header}
         {label}
         {tipoRow}
@@ -542,11 +737,38 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive }: CardProps) {
   const pareja = p.pareja && typeof p.pareja === "object" && "child_col" in p.pareja ? p.pareja : null;
 
   if (paired && pareja) {
-    // Emparejada
-    const modoLabel = p.modo_so === "padre" ? "MODO PADRE" : p.modo_so === "hijo" ? "MODO HIJO" : "EMPAREJADA";
+    // Emparejada. SM sin dummy_col queda en estado "necesita-dummy" visible.
+    const isSM = p.tipo === "select_multiple";
+    const needsDummy = isSM && !pareja.dummy_col;
+    const modoLabel = needsDummy
+      ? "Necesita dummy"
+      : p.modo_so === "padre"
+      ? "Modo padre"
+      : p.modo_so === "hijo"
+      ? "Modo hijo"
+      : "Emparejada";
+    const fresh = recentlyAdopted.has(p.parent);
+
     return (
-      <article ref={ref} {...listeners} {...attributes} style={common}>
-        {header}
+      <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={common}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+          <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: ts.fg }}>{p.parent}</div>
+          <div style={{ flex: 1 }} />
+          <span
+            className={fresh ? "pulso-badge-fresh" : undefined}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 3,
+              padding: "2px 6px", borderRadius: 4,
+              background: needsDummy ? "#fff4e0" : "#dcfce7",
+              color: needsDummy ? "#8a5000" : "#166534",
+              fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+              textTransform: "uppercase", whiteSpace: "nowrap",
+              border: needsDummy ? "1px solid #f0d799" : "none",
+            }}
+          >
+            {needsDummy ? <CircleAlert size={10} /> : <Link2 size={10} />} {modoLabel}
+          </span>
+        </div>
         {label}
         {tipoRow}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 16px 1fr", alignItems: "center", gap: 6, marginTop: 4 }}>
@@ -554,33 +776,34 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive }: CardProps) {
           <Link2 size={12} color="var(--pulso-primary)" />
           <PairedSide title={pareja.child_col} subtitle={p.modo_so === "hijo" ? "(texto recodificado)" : "(auxiliar)"} tone="soft" />
         </div>
-        {pareja.dummy_col && (
-          <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 2 }}>
-            col "Otros": <code style={{ fontFamily: "monospace" }}>{pareja.dummy_col}</code>
+
+        {/* SM sin dummy → selector inline con todas las opciones */}
+        {needsDummy && p.opciones_sm && p.opciones_sm.length > 0 && (
+          <SmDummyPicker
+            padre={p}
+            opciones={p.opciones_sm}
+            busy={busy}
+            onSelect={(col) => onSetDummy(p, col)}
+          />
+        )}
+
+        {/* SM con dummy ya resuelto → línea compacta */}
+        {!needsDummy && pareja.dummy_col && (
+          <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 2, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <Check size={10} color="#166534" /> "Otros" = <code style={{ fontFamily: "monospace" }}>{pareja.dummy_col}</code>
           </div>
         )}
-        <div style={{ fontSize: 10, color: "var(--pulso-primary)", fontWeight: 700, letterSpacing: 0.5 }}>{modoLabel}</div>
+
         <div style={{ flex: 1 }} />
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button
-            type="button"
-            onClick={onPair}
-            disabled={busy}
-            style={{ fontSize: 11, padding: "3px 8px" }}
-            title="Cambiar modo o cambiar hija"
-          >
+          <button type="button" onClick={onPair} disabled={busy} style={{ fontSize: 11, padding: "3px 8px" }} title="Cambiar modo o cambiar hija">
             Cambiar
           </button>
-          <button
-            type="button"
-            onClick={onUnpair}
-            disabled={busy}
-            style={{ fontSize: 11, padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}
-          >
+          <button type="button" onClick={onUnpair} disabled={busy} style={{ fontSize: 11, padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Link2Off size={11} /> Desemparejar
           </button>
           <div style={{ flex: 1 }} />
-          {detailLink}
+          {!needsDummy && detailLink}
         </div>
       </article>
     );
@@ -590,7 +813,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive }: CardProps) {
   const hasCands = p.candidatos_texto && p.candidatos_texto.length > 0;
 
   return (
-    <article ref={ref} {...listeners} {...attributes} style={common}>
+    <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={common}>
       {header}
       {label}
       {tipoRow}
@@ -628,6 +851,68 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive }: CardProps) {
         <div style={{ flex: 1 }} />
       </div>
     </article>
+  );
+}
+
+function SmDummyPicker({ padre, opciones, busy, onSelect }: { padre: PreguntaAbierta; opciones: OpcionSM[]; busy: boolean; onSelect: (col: string) => void }) {
+  return (
+    <div style={{
+      marginTop: 8,
+      padding: 10,
+      background: "#fff4e0",
+      border: "1px solid #f0d799",
+      borderRadius: 6,
+      fontSize: 12,
+    }}>
+      <div style={{ color: "#8a5000", fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
+        <CircleAlert size={12} /> ¿Cuál de estas opciones es "Otros, especifique"?
+      </div>
+      <div style={{ fontSize: 11, color: "#8a5000", opacity: 0.85, marginBottom: 8, lineHeight: 1.4 }}>
+        La columna que marca "Otros" es la que indica cuándo el respondente escribió texto libre en <code style={{ fontFamily: "monospace" }}>{padre.pareja && "child_col" in padre.pareja ? padre.pareja.child_col : ""}</code>. Hacé click en la opción que corresponde.
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        {opciones.map((o) => {
+          const disabled = busy || !o.existe_en_data;
+          const sugerida = o.es_otros_sugerido;
+          return (
+            <button
+              key={o.codigo}
+              type="button"
+              disabled={disabled}
+              onClick={() => onSelect(o.col_dummy)}
+              title={disabled && !o.existe_en_data ? `La columna ${o.col_dummy} no existe en tu dataset` : `Usar ${o.col_dummy} como columna "Otros"`}
+              style={{
+                textAlign: "left",
+                display: "grid",
+                gridTemplateColumns: "34px 1fr auto",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 8px",
+                background: sugerida ? "#fff9ef" : "white",
+                border: sugerida ? "1px solid #d68a00" : "1px solid var(--pulso-border)",
+                borderRadius: 5,
+                cursor: disabled ? "not-allowed" : "pointer",
+                opacity: disabled && !o.existe_en_data ? 0.5 : 1,
+                fontSize: 11,
+              }}
+            >
+              <code style={{ fontFamily: "monospace", fontWeight: 700, color: sugerida ? "#8a5000" : "var(--pulso-text-soft)" }}>{o.codigo}</code>
+              <span style={{ color: "var(--pulso-text)" }}>{truncate(o.label, 70)}</span>
+              {sugerida && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: "#8a5000", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+                  ← Probable
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {opciones.every((o) => !o.es_otros_sugerido) && (
+        <div style={{ fontSize: 10, color: "#8a5000", marginTop: 6, fontStyle: "italic" }}>
+          No detecté una opción "Otros" en el instrumento. Elegí la que corresponde según tu criterio.
+        </div>
+      )}
+    </div>
   );
 }
 

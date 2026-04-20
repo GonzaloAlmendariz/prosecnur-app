@@ -33,6 +33,37 @@
   --drag-valid-bg: rgba(0, 36, 87, 0.06);
   --drag-valid-border: var(--pulso-primary);
   --drag-invalid-bg: rgba(165, 31, 31, 0.04);
+  /* Adopted state */
+  --adoptada-bg: #F0F4FA;
+  --adoptada-border: #C9D4E8;
+  --adoptada-fg: #5f6b7a;
+  --adopt-glow: rgba(0, 36, 87, 0.22);
+  --adopt-flash-bg: rgba(0, 36, 87, 0.08);
+  /* Animation durations/easings */
+  --anim-dur-short: 180ms;
+  --anim-dur-med: 320ms;
+  --anim-dur-long: 520ms;
+  --anim-ease-expressive: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --anim-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes pulso-card-glow-kf {
+  0%   { box-shadow: 0 0 0 0 var(--adopt-glow); background: white; }
+  30%  { box-shadow: 0 0 0 8px var(--adopt-glow); background: var(--adopt-flash-bg); }
+  100% { box-shadow: 0 0 0 0 transparent; background: white; }
+}
+.pulso-card-glow {
+  animation: pulso-card-glow-kf var(--anim-dur-long) var(--anim-ease-smooth);
+}
+@keyframes pulso-badge-fadein-kf {
+  0% { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.pulso-badge-fresh {
+  animation: pulso-badge-fadein-kf var(--anim-dur-short) var(--anim-ease-expressive);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulso-card-glow, .pulso-badge-fresh { animation: none !important; }
 }
 
 * { box-sizing: border-box; }

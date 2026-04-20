@@ -382,6 +382,14 @@ export type ParejaCommitteada = {
   dummy_col: string;
 };
 
+export type OpcionSM = {
+  codigo: string;
+  label: string;
+  col_dummy: string;
+  existe_en_data: boolean;
+  es_otros_sugerido: boolean;
+};
+
 export type PreguntaAbierta = {
   parent: string;
   parent_label: string;
@@ -403,11 +411,12 @@ export type PreguntaAbierta = {
   q_order: number | null;
   candidatos_texto: CandidatoTexto[];
   pareja: ParejaCommitteada | Record<string, never> | null;
+  opciones_sm?: OpcionSM[];
 };
 
-export type Arquetipo = "auto" | "solitaria" | "pareja-so" | "pareja-sm" | "huerfana" | "config-so" | "no-aplica";
+export type Arquetipo = "auto" | "solitaria" | "pareja-so" | "pareja-sm" | "huerfana" | "adoptada" | "config-so" | "no-aplica";
 
-export function arquetipoOf(p: PreguntaAbierta): Arquetipo {
+export function arquetipoOf(p: PreguntaAbierta, adoptedBy?: Map<string, PreguntaAbierta>): Arquetipo {
   if (p.status === "no-aplica") return "no-aplica";
   if (p.tipo === "integer") return "auto";
   if (p.tipo === "select_multiple") return "pareja-sm";
@@ -417,13 +426,22 @@ export function arquetipoOf(p: PreguntaAbierta): Arquetipo {
     return "config-so";
   }
   if (p.tipo === "text") {
-    // Heuristic: text with candidate name pattern ending in _otro probably
-    // belongs to an SO/SM — treat as huerfana for pairing UX. Simple rule:
-    // ends with _otro(s)/_especifique.
+    // If this text column has been adopted by an SO/SM parent, it's no
+    // longer orphan — it's officially a child. Check via reverse lookup.
+    const col = p.col_efectiva || p.parent;
+    if (adoptedBy && adoptedBy.has(col)) return "adoptada";
     if (/_(otros?|especifique|detail|desc(ripcion)?)$/i.test(p.parent)) return "huerfana";
     return "solitaria";
   }
   return "solitaria";
+}
+
+// Infer dummy_col for an SM from its opciones: prefer the option flagged
+// es_otros_sugerido whose col_dummy exists in data.
+export function guessDummyColFromOpciones(opciones: OpcionSM[] | undefined): string {
+  if (!opciones || opciones.length === 0) return "";
+  const sugerida = opciones.find((o) => o.es_otros_sugerido && o.existe_en_data);
+  return sugerida?.col_dummy ?? "";
 }
 
 export async function apiCodifPreguntasAbiertas() {
