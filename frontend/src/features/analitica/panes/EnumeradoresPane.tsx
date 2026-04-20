@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Download, Phone, Play, Plus, Trash2, Users, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Phone, Plus, Trash2, Users, X } from "lucide-react";
 import {
   apiAnaliticaColumnValues,
   apiAnaliticaEnumeradores,
   apiAnaliticaVariables,
-  downloadUrl,
-  FileJobResult,
   ValorColumna,
   VariableInstrumento,
 } from "../../../api/client";
-import { Alert } from "../../../components/Alert";
-import { JobProgress } from "../../../components/JobProgress";
 import { Panel } from "../../../components/Panel";
 import {
   CondicionOperador,
@@ -21,6 +17,7 @@ import {
   useAnaliticaStore,
 } from "../store";
 import { VariableSelect } from "../VariableSelect";
+import { Section, GenerateFooter } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
 
 // EnumeradoresPane — rediseñado.
@@ -236,61 +233,24 @@ export function EnumeradoresPane() {
         </Section>
 
         {/* 5. Generar */}
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--pulso-border)", paddingTop: 14 }}>
-          <button
-            className="pulso-primary"
-            onClick={onGenerate}
-            disabled={run.busy || !!run.jobId || !puedeGenerar}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-          >
-            <Play size={14} /> {run.jobId ? "Generando…" : "Generar reporte"}
-          </button>
-          {!puedeGenerar && (
-            <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
-              {!enumer.col_enumerador
-                ? "Selecciona primero la columna del enumerador."
-                : "Agrega al menos una regla o cambia el modo a «Sin modalidad» / «Por columna»."}
-            </span>
-          )}
-          {run.fileId && (
-            <a
-              href={downloadUrl(run.fileId)}
-              style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}
-            >
-              <Download size={13} /> enumeradores.pdf
-            </a>
-          )}
-        </div>
-        {run.jobId && (
-          <JobProgress<FileJobResult>
-            label="Generando reporte de enumeradores"
-            jobId={run.jobId}
-            onDone={run.onJobDone}
-            onError={run.onJobError}
-            onCancelled={run.onJobCancelled}
-          />
-        )}
-        {run.error && <Alert kind="error">{run.error}</Alert>}
+        <GenerateFooter
+          label="Generar reporte"
+          busy={run.busy}
+          jobId={run.jobId}
+          fileId={run.fileId}
+          downloadName="enumeradores.pdf"
+          error={run.error}
+          onGenerate={onGenerate}
+          disabled={!puedeGenerar}
+          disabledHint={!enumer.col_enumerador
+            ? "Selecciona primero la columna del enumerador."
+            : "Agrega al menos una regla o cambia el modo a «Sin modalidad» / «Por columna»."}
+          onJobDone={run.onJobDone}
+          onJobError={run.onJobError}
+          onJobCancelled={run.onJobCancelled}
+        />
       </div>
     </Panel>
-  );
-}
-
-// ---- Section wrapper (jerarquía visual consistente) ------------------------
-
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>{title}</div>
-        {subtitle && (
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.4 }}>
-            {subtitle}
-          </div>
-        )}
-      </div>
-      <div>{children}</div>
-    </section>
   );
 }
 

@@ -1,13 +1,12 @@
-import { Database, Download, Play } from "lucide-react";
-import { apiAnaliticaSpss, downloadUrl, FileJobResult } from "../../../api/client";
-import { Alert } from "../../../components/Alert";
+import { Database } from "lucide-react";
+import { apiAnaliticaSpss } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
-import { JobProgress } from "../../../components/JobProgress";
+import { Section, GenerateFooter } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
 
-// Bases — exporta el dataset etiquetado como .sav + sintaxis .sps en zip.
-// No tiene argumentos configurables; siempre usa la data preparada en
-// el estado actual (respetando el toggle de fuente del header global).
+// BasesPane — exporta el dataset etiquetado como .sav + sintaxis .sps.
+// Sin args configurables: el output siempre es la base preparada en el
+// header (según el toggle Auto/Codificada/Original).
 
 export function BasesPane() {
   const run = useReporteRun();
@@ -20,53 +19,68 @@ export function BasesPane() {
     <Panel
       eyebrow="Reporte"
       title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Database size={16} /> Bases</span>}
-      hint={<>Exporta el dataset etiquetado como <code>.sav</code> (lee SPSS) y la sintaxis de niveles como <code>.sps</code>, empaquetados en un zip.</>}
+      hint="Base de datos etiquetada lista para SPSS. Incluye todas las variables con sus value-labels y measures ya aplicados."
     >
-      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <button
-          className="pulso-primary"
-          onClick={onGenerate}
-          disabled={run.busy || !!run.jobId}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+      <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+        <Section
+          title="Qué incluye el export"
+          subtitle="Un zip con dos archivos, listos para abrir en SPSS sin configuración adicional."
         >
-          <Play size={14} /> {run.jobId ? "Exportando…" : "Exportar bases"}
-        </button>
-        {run.fileId && (
-          <a
-            href={downloadUrl(run.fileId)}
-            style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}
-          >
-            <Download size={13} /> bases.zip
-          </a>
-        )}
-      </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <FileBadge
+              name="datos.sav"
+              desc="Dataset con etiquetas de variable, value-labels y nivel de medida (nominal / ordinal / escala)."
+            />
+            <FileBadge
+              name="niveles_medida.sps"
+              desc="Sintaxis de respaldo con las declaraciones de measure / label por variable. Sirve si tu versión de SPSS pierde los atributos al abrir el .sav."
+            />
+          </div>
+        </Section>
 
-      {run.jobId && (
-        <div style={{ marginTop: 12 }}>
-          <JobProgress<FileJobResult>
-            label="Exportando bases"
-            jobId={run.jobId}
-            onDone={run.onJobDone}
-            onError={run.onJobError}
-            onCancelled={run.onJobCancelled}
-          />
-        </div>
-      )}
+        <Section
+          title="Qué fuente se exporta"
+          subtitle={<>
+            La base exportada depende del toggle de fuente del encabezado superior. Si está en <strong>Auto</strong> y ya aplicaste codificación en Fase 3, se exporta la versión con las variables <code>*_recod</code>.
+          </>}
+        >
+          <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: "10px 12px", background: "var(--pulso-surface)", borderRadius: 6, lineHeight: 1.5 }}>
+            Este reporte no tiene más opciones. Si necesitas filtrar variables o casos, hazlo desde SPSS una vez descargado.
+          </div>
+        </Section>
 
-      {run.error && (
-        <div style={{ marginTop: 10 }}>
-          <Alert kind="error">{run.error}</Alert>
-        </div>
-      )}
-
-      <div
-        style={{
-          marginTop: 14, fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5,
-          padding: "8px 12px", background: "var(--pulso-surface)", borderRadius: 6,
-        }}
-      >
-        No hay opciones extra: el archivo incluye todas las variables del instrumento con value-labels y measures SPSS correspondientes. Si quieres filtrar variables o columnas, hazlo desde SPSS una vez descargada la base.
+        <GenerateFooter
+          label="Exportar bases"
+          busy={run.busy}
+          jobId={run.jobId}
+          fileId={run.fileId}
+          downloadName="bases.zip"
+          error={run.error}
+          onGenerate={onGenerate}
+          onJobDone={run.onJobDone}
+          onJobError={run.onJobError}
+          onJobCancelled={run.onJobCancelled}
+        />
       </div>
     </Panel>
+  );
+}
+
+function FileBadge({ name, desc }: { name: string; desc: string }) {
+  return (
+    <div
+      style={{
+        display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "start",
+        padding: "10px 12px",
+        background: "var(--pulso-surface)",
+        border: "1px solid var(--pulso-border)",
+        borderRadius: 6,
+      }}
+    >
+      <code style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 12, color: "var(--pulso-primary)", background: "var(--pulso-primary-soft)", padding: "3px 8px", borderRadius: 4 }}>
+        {name}
+      </code>
+      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>{desc}</div>
+    </div>
   );
 }

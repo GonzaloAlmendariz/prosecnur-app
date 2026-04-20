@@ -1,9 +1,11 @@
-import { BookOpen, Download, Play } from "lucide-react";
-import { apiAnaliticaCodebook, downloadUrl } from "../../../api/client";
-import { Alert } from "../../../components/Alert";
+import { BookOpen } from "lucide-react";
+import { apiAnaliticaCodebook } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
 import { useAnaliticaStore } from "../store";
+import { Section, GenerateFooter } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
+
+// CodebookPane — simple: qué códigos especiales ocultar si no aparecen.
 
 export function CodebookPane() {
   const codebook = useAnaliticaStore((s) => s.config.codebook);
@@ -24,61 +26,61 @@ export function CodebookPane() {
     await run.runSync(() => apiAnaliticaCodebook());
   }
 
+  const codigosMeta: Array<{ code: number; label: string }> = [
+    { code: 95, label: "No contesta" },
+    { code: 96, label: "No aplica" },
+    { code: 97, label: "No sabe" },
+    { code: 98, label: "Otro" },
+    { code: 99, label: "Otros" },
+  ];
+
   return (
     <Panel
       eyebrow="Reporte"
       title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><BookOpen size={16} /> Libro de códigos</span>}
-      hint={<>Diccionario de variables con etiquetas y valores válidos. Puedes ocultar los códigos reservados (<code>NS/NR/No aplica</code>) cuando no aparecen en la data.</>}
+      hint="Excel con el diccionario completo del instrumento: nombre técnico, etiqueta, tipo, valores válidos y labels por cada variable."
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div>
-          <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Códigos solo si están presentes</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+        <Section
+          title="1. Códigos especiales"
+          subtitle={<>
+            Los códigos <code>95</code>–<code>99</code> son convenciones Pulso para respuestas especiales (NS/NR/NA). Las variables marcadas aquí <strong>solo los muestran si al menos un respondiente los marcó</strong>. Así evitas que la tabla final traiga filas vacías.
+          </>}
+        >
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {[95, 96, 97, 98, 99].map((n) => (
-              <label
-                key={n}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "4px 10px", borderRadius: 999,
-                  border: `1px solid ${codes.includes(n) ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-                  background: codes.includes(n) ? "var(--pulso-primary-soft)" : "white",
-                  fontSize: 12, cursor: "pointer",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={codes.includes(n)}
-                  onChange={() => toggle(n)}
-                  style={{ margin: 0 }}
-                />
-                <code style={{ fontFamily: "monospace", fontWeight: 700 }}>{n}</code>
-              </label>
-            ))}
+            {codigosMeta.map((c) => {
+              const active = codes.includes(c.code);
+              return (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => toggle(c.code)}
+                  title={c.label}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "6px 12px", borderRadius: 8,
+                    border: `1px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+                    background: active ? "var(--pulso-primary-soft)" : "white",
+                    cursor: "pointer", fontSize: 12,
+                  }}
+                >
+                  <input type="checkbox" checked={active} onChange={() => toggle(c.code)} style={{ margin: 0 }} />
+                  <code style={{ fontFamily: "monospace", fontWeight: 700, color: active ? "var(--pulso-primary)" : "var(--pulso-text)" }}>{c.code}</code>
+                  <span style={{ color: "var(--pulso-text-soft)" }}>{c.label}</span>
+                </button>
+              );
+            })}
           </div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 6, lineHeight: 1.4 }}>
-            Convención Pulso: 95 = No contesta · 96 = No aplica · 97 = No sabe · 98 = Otro · 99 = Otros.
-          </div>
-        </div>
+        </Section>
 
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--pulso-border)", paddingTop: 14 }}>
-          <button
-            className="pulso-primary"
-            onClick={onGenerate}
-            disabled={run.busy}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-          >
-            <Play size={14} /> {run.busy ? "Generando…" : "Generar codebook"}
-          </button>
-          {run.fileId && (
-            <a
-              href={downloadUrl(run.fileId)}
-              style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}
-            >
-              <Download size={13} /> codebook.xlsx
-            </a>
-          )}
-        </div>
-        {run.error && <Alert kind="error">{run.error}</Alert>}
+        <GenerateFooter
+          label="Generar libro de códigos"
+          busy={run.busy}
+          fileId={run.fileId}
+          downloadName="libro_de_codigos.xlsx"
+          error={run.error}
+          onGenerate={onGenerate}
+        />
       </div>
     </Panel>
   );
