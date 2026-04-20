@@ -704,6 +704,14 @@ export async function apiAnaliticaVariables() {
   );
 }
 
+export type ValorColumna = { value: string; label: string };
+
+export async function apiAnaliticaColumnValues(name: string) {
+  return handle<{ ok: true; column: string; n_total: number; truncated: boolean; values: ValorColumna[] }>(
+    await fetch(`/api/analitica/column-values?name=${encodeURIComponent(name)}`, { headers: headers() })
+  );
+}
+
 export async function apiAnaliticaCodebook() {
   return handle<{ ok: true; file_id: string; size: number }>(
     await fetch("/api/analitica/codebook", { method: "POST", headers: headers() })

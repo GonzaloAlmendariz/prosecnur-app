@@ -341,6 +341,48 @@ mount_analitica <- function(pr) {
       variables <- .variables_desde_instrumento(ctx$rp_inst)
       list(ok = TRUE, variables = variables)
     })) |>
+    plumber::pr_get("/api/analitica/column-values", wrap_endpoint(function(req, res, name = NULL) {
+      # Devuelve valores únicos de una columna del data preparado, con
+      # sus labels si la columna es select_one/select_multiple (usa los
+      # value_labels aplicados por reporte_data). Alimenta el query
+      # builder de reglas en EnumeradoresPane.
+      sid <- session_header(req)
+      ctx <- .load_rp_data(sid)
+      col <- as.character(name %||% "")
+      if (!nzchar(col)) stop_api(400, "E_NO_COL", "Falta query param `name`.")
+      if (!col %in% names(ctx$rp_data)) {
+        stop_api(404, "E_COL_NOT_FOUND", sprintf("La columna '%s' no existe en la data.", col))
+      }
+      v <- ctx$rp_data[[col]]
+      # Labels si es factor / haven_labelled.
+      lbls <- NULL
+      if (inherits(v, "haven_labelled")) {
+        lab_attr <- attr(v, "labels")
+        if (!is.null(lab_attr)) {
+          lbls <- setNames(names(lab_attr), as.character(lab_attr))
+        }
+      } else if (is.factor(v)) {
+        lbls <- setNames(levels(v), as.character(seq_along(levels(v))))
+      }
+      v_chr <- as.character(v)
+      v_chr <- v_chr[!is.na(v_chr) & nzchar(v_chr)]
+      uniq <- unique(v_chr)
+      # Ordenar: numéricos si se puede, si no alfabético.
+      num_sort <- suppressWarnings(as.numeric(uniq))
+      uniq <- if (all(!is.na(num_sort))) uniq[order(num_sort)] else sort(uniq)
+      # Cap: máximo 200 valores únicos (más allá no aporta para un picker).
+      truncated <- length(uniq) > 200L
+      if (truncated) uniq <- head(uniq, 200L)
+      values <- lapply(uniq, function(x) {
+        lab <- if (!is.null(lbls) && x %in% names(lbls)) as.character(lbls[[x]]) else ""
+        Encoding(lab) <- "UTF-8"
+        list(value = x, label = lab)
+      })
+      list(
+        ok = TRUE, column = col, n_total = length(unique(v_chr)),
+        truncated = truncated, values = values
+      )
+    })) |>
     plumber::pr_post("/api/analitica/config/import", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
@@ -607,19 +649,78 @@ mount_analitica <- function(pr) {
       if (!ordenar_por %in% c("total","nombre")) ordenar_por <- "total"
       modalidad_default <- as.character(ec$modalidad_default %||% "Presencial")
 
-      # modalidad_reglas: lista de {patron, modalidad} del store →
-      # data.frame que prosecnur espera.
+      # modalidad_reglas en el store usa el schema nuevo:
+      #   { id, condiciones: [{columna, operador, valor}], modalidad }
+      # Con fallback al schema legacy {patron, modalidad} para configs
+      # pre-rediseño. Compilamos una `modalidad_fn(data)` que evalúa las
+      # reglas en orden; la primera que matchea gana. Si no hay reglas
+      # útiles, el pipeline cae en `col_modalidad` o `modalidad_default`.
       reglas_list <- ec$modalidad_reglas %||% list()
+      modalidad_fn <- NULL
       modalidad_reglas_df <- NULL
       if (length(reglas_list) > 0L) {
-        patrones <- vapply(reglas_list, function(r) as.character(r$patron %||% ""), character(1))
-        modas <- vapply(reglas_list, function(r) as.character(r$modalidad %||% ""), character(1))
-        keep <- nzchar(patrones) & nzchar(modas)
-        if (any(keep)) {
-          modalidad_reglas_df <- data.frame(
-            patron = patrones[keep], modalidad = modas[keep],
-            stringsAsFactors = FALSE
+        # Normalizar: si vienen reglas con `patron` (legacy), converlas a
+        # una condición equivalente contra `col_enumerador`.
+        reglas_norm <- list()
+        for (r in reglas_list) {
+          modalidad <- as.character(r$modalidad %||% "")
+          if (!nzchar(modalidad)) next
+          conds <- r$condiciones %||% list()
+          if (length(conds) == 0L && nzchar(as.character(r$patron %||% ""))) {
+            conds <- list(list(columna = col_en, operador = "==", valor = as.character(r$patron)))
+          }
+          # Validar condiciones: columna y operador obligatorios.
+          conds_validas <- list()
+          for (c in conds) {
+            col_cond <- as.character(c$columna %||% "")
+            op <- as.character(c$operador %||% "==")
+            if (!nzchar(col_cond)) next
+            if (!op %in% c("==","!=","in","not_in")) next
+            # `valor` puede ser string o lista (para in/not_in).
+            val_raw <- c$valor
+            val <- if (is.list(val_raw)) unlist(val_raw, use.names = FALSE) else val_raw
+            val <- as.character(val %||% "")
+            val <- val[!is.na(val) & nzchar(val)]
+            if (length(val) == 0L) next
+            conds_validas[[length(conds_validas) + 1L]] <- list(
+              columna = col_cond, operador = op, valor = val
+            )
+          }
+          if (length(conds_validas) == 0L) next
+          reglas_norm[[length(reglas_norm) + 1L]] <- list(
+            condiciones = conds_validas, modalidad = modalidad
           )
+        }
+        if (length(reglas_norm) > 0L) {
+          # Cerramos sobre las reglas normalizadas para producir una fn
+          # que toma data y devuelve un vector character de modalidades.
+          modalidad_fn <- local({
+            reglas <- reglas_norm
+            function(data) {
+              n <- nrow(data)
+              out <- rep(NA_character_, n)
+              for (regla in reglas) {
+                match_vec <- rep(TRUE, n)
+                for (cond in regla$condiciones) {
+                  col <- data[[cond$columna]]
+                  if (is.null(col)) { match_vec <- rep(FALSE, n); break }
+                  col_chr <- as.character(col)
+                  valor <- as.character(cond$valor)
+                  match_vec <- match_vec & switch(cond$operador,
+                    "==" = col_chr == valor[1],
+                    "!=" = col_chr != valor[1],
+                    "in" = col_chr %in% valor,
+                    "not_in" = !(col_chr %in% valor),
+                    rep(FALSE, n)
+                  )
+                  if (!any(match_vec)) break
+                }
+                hit <- which(match_vec & is.na(out))
+                if (length(hit)) out[hit] <- regla$modalidad
+              }
+              out
+            }
+          })
         }
       }
 
@@ -629,7 +730,7 @@ mount_analitica <- function(pr) {
         kind = "analitica.enumeradores",
         func = function(rp_data_path, col_en, cols_corte, col_modalidad,
                         modalidades_esp, mostrar_vacias, titulo, min_enc,
-                        ordenar_por, modalidad_default, modalidad_reglas_df,
+                        ordenar_por, modalidad_default, modalidad_fn,
                         result_path) {
           args <- list(
             data = readRDS(rp_data_path),
@@ -645,7 +746,7 @@ mount_analitica <- function(pr) {
           if (length(cols_corte) > 0L) args$cols_corte <- cols_corte
           if (nzchar(col_modalidad)) args$col_modalidad <- col_modalidad
           if (length(modalidades_esp) > 0L) args$modalidades_esperadas <- modalidades_esp
-          if (!is.null(modalidad_reglas_df)) args$modalidad_reglas <- modalidad_reglas_df
+          if (!is.null(modalidad_fn)) args$modalidad_fn <- modalidad_fn
           do.call(prosecnur::reporte_enumeradores, args)
           list(path = result_path)
         },
@@ -660,7 +761,7 @@ mount_analitica <- function(pr) {
           min_enc = min_enc,
           ordenar_por = ordenar_por,
           modalidad_default = modalidad_default,
-          modalidad_reglas_df = modalidad_reglas_df
+          modalidad_fn = modalidad_fn
         ),
         result_filename = sprintf("enumeradores_%s.pdf", uuid::UUIDgenerate()),
         on_complete = function(j) {

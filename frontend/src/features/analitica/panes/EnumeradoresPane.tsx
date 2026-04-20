@@ -1,16 +1,57 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Plus, Users, X } from "lucide-react";
-import { apiAnaliticaVariables, VariableInstrumento } from "../../../api/client";
+import { ChevronDown, ChevronRight, Download, Phone, Play, Plus, Trash2, Users, X } from "lucide-react";
+import {
+  apiAnaliticaColumnValues,
+  apiAnaliticaEnumeradores,
+  apiAnaliticaVariables,
+  downloadUrl,
+  FileJobResult,
+  ValorColumna,
+  VariableInstrumento,
+} from "../../../api/client";
+import { Alert } from "../../../components/Alert";
+import { JobProgress } from "../../../components/JobProgress";
 import { Panel } from "../../../components/Panel";
-import { useAnaliticaStore, ModalidadRegla } from "../store";
+import {
+  CondicionOperador,
+  CondicionRegla,
+  MODALIDADES_PULSO,
+  ModalidadRegla,
+  ModalidadValor,
+  useAnaliticaStore,
+} from "../store";
+import { VariableSelect } from "../VariableSelect";
+import { useReporteRun } from "../useReporteRun";
 
-// Enumeradores — dropdowns para col_enumerador y col_modalidad (desde
-// /variables), multiselect para cols_corte, tabla editable de
-// modalidad_reglas, y campos simples de título/min/ordenar.
+// EnumeradoresPane — rediseñado.
+// Flujo:
+// 1. Quién: dropdown de variable con los nombres del enumerador.
+// 2. Modalidad: tres opciones de resolución:
+//    - "Ninguna": se reporta solo producción total.
+//    - "Por columna": apunta a una columna del dataset que ya trae
+//      la modalidad por fila.
+//    - "Por reglas": query builder. Cada regla = condiciones AND
+//      (columna, operador, valor) → modalidad. Primera regla que
+//      matchea gana; si no matchea ninguna → default.
+// 3. Desagregación: multiselect de cortes (sexo, aula, turno, etc.).
+// 4. Ordenación + mínimo + título + mostrar vacías.
+// 5. Generar.
+
+type ModoModalidad = "ninguna" | "columna" | "reglas";
+
+function detectarModo(
+  colModalidad: string | undefined,
+  reglas: ModalidadRegla[],
+): ModoModalidad {
+  if (reglas.length > 0) return "reglas";
+  if (colModalidad && colModalidad.length > 0) return "columna";
+  return "ninguna";
+}
 
 export function EnumeradoresPane() {
   const enumer = useAnaliticaStore((s) => s.config.enumeradores);
   const setEnumer = useAnaliticaStore((s) => s.setEnumeradores);
+  const run = useReporteRun();
 
   const [variables, setVariables] = useState<VariableInstrumento[]>([]);
   useEffect(() => {
@@ -22,271 +63,703 @@ export function EnumeradoresPane() {
     })();
   }, []);
 
-  const varNames = useMemo(() => variables.map((v) => v.name), [variables]);
+  const [modo, setModo] = useState<ModoModalidad>(() =>
+    detectarModo(enumer.col_modalidad, enumer.modalidad_reglas),
+  );
 
-  function setCortes(next: string[]) {
-    setEnumer({ cols_corte: next });
-  }
-  function toggleCorte(name: string) {
-    setCortes(enumer.cols_corte.includes(name) ? enumer.cols_corte.filter((x) => x !== name) : [...enumer.cols_corte, name]);
+  // Cambiar de modo limpia los campos incompatibles (sin sorprender al
+  // analista: al volver a un modo previo el store ya tiene el estado).
+  function cambiarModo(nuevo: ModoModalidad) {
+    setModo(nuevo);
+    if (nuevo === "ninguna") {
+      setEnumer({ col_modalidad: undefined, modalidad_reglas: [] });
+    } else if (nuevo === "columna") {
+      setEnumer({ modalidad_reglas: [] });
+    } else if (nuevo === "reglas") {
+      setEnumer({ col_modalidad: undefined });
+    }
   }
 
-  function setReglas(next: ModalidadRegla[]) {
-    setEnumer({ modalidad_reglas: next });
+  async function onGenerate() {
+    await run.runAsync(() => apiAnaliticaEnumeradores(enumer.col_enumerador));
   }
-  function addRegla() {
-    setReglas([...enumer.modalidad_reglas, { patron: "", modalidad: "" }]);
-  }
-  function updateRegla(i: number, patch: Partial<ModalidadRegla>) {
-    setReglas(enumer.modalidad_reglas.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
-  }
-  function removeRegla(i: number) {
-    setReglas(enumer.modalidad_reglas.filter((_, idx) => idx !== i));
-  }
+
+  const puedeGenerar = !!enumer.col_enumerador && (modo !== "reglas" || enumer.modalidad_reglas.length > 0);
 
   return (
     <Panel
-      eyebrow="Configuración"
-      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Users size={14} /> Reporte de enumeradores</span>}
-      hint="PDF con producción por enumerador, opcionalmente desagregada por corte (sexo, turno, distrito, etc.)."
+      eyebrow="Reporte"
+      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Users size={16} /> Enumeradores</span>}
+      hint={<>PDF con la producción de cada enumerador. Si defines una modalidad (<strong>Presencial</strong> / <strong>Telefónica</strong>), el reporte genera además una página por modalidad.</>}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-        {/* Col enumerador */}
-        <div>
-          <div className="pulso-section-eyebrow" style={{ marginBottom: 4 }}>Columna que identifica al enumerador</div>
-          <input
-            list="vars-enum"
-            type="text"
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {/* 1. Columna del enumerador */}
+        <Section title="1. Identificación del enumerador" subtitle="La columna que guarda el nombre o ID de quién levantó la encuesta.">
+          <VariableSelect
+            variables={variables}
             value={enumer.col_enumerador}
-            onChange={(e) => setEnumer({ col_enumerador: e.target.value })}
-            placeholder="ej. Enumerator_name"
-            style={{ width: "100%", maxWidth: 420, fontSize: 13, fontFamily: "monospace" }}
+            onChange={(v) => setEnumer({ col_enumerador: v })}
+            placeholder="Seleccionar columna del enumerador…"
           />
-          <datalist id="vars-enum">
-            {varNames.map((n) => <option key={n} value={n} />)}
-          </datalist>
-        </div>
+        </Section>
 
-        {/* Cols corte */}
-        <div>
-          <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Columnas de corte (desagregación)</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
-            {enumer.cols_corte.length === 0 && (
-              <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>Ninguna — se reporta el total por enumerador.</span>
-            )}
-            {enumer.cols_corte.map((c) => (
-              <span
-                key={c}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "3px 4px 3px 10px", borderRadius: 999,
-                  background: "var(--pulso-primary-soft)",
-                  border: "1px solid var(--pulso-primary)",
-                  fontSize: 11, fontFamily: "monospace", color: "var(--pulso-primary)",
-                }}
-              >
-                {c}
-                <button type="button" onClick={() => toggleCorte(c)} className="pulso-icon" aria-label={`Quitar ${c}`} style={{ minWidth: 16, minHeight: 16 }}>
-                  <X size={10} />
-                </button>
-              </span>
-            ))}
-          </div>
-          <input
-            list="vars-all-corte"
-            type="text"
-            placeholder="Escribe para añadir (Enter)…"
-            style={{ width: "100%", maxWidth: 420, fontSize: 13, fontFamily: "monospace" }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                const v = (e.target as HTMLInputElement).value.trim();
-                if (v && !enumer.cols_corte.includes(v)) toggleCorte(v);
-                (e.target as HTMLInputElement).value = "";
-                e.preventDefault();
-              }
-            }}
-          />
-          <datalist id="vars-all-corte">
-            {varNames.map((n) => <option key={n} value={n} />)}
-          </datalist>
-        </div>
-
-        {/* Col modalidad + default */}
-        <div>
-          <div className="pulso-section-eyebrow" style={{ marginBottom: 4 }}>Columna de modalidad (opcional)</div>
-          <input
-            list="vars-mod"
-            type="text"
-            value={enumer.col_modalidad ?? ""}
-            onChange={(e) => setEnumer({ col_modalidad: e.target.value || undefined })}
-            placeholder="ej. modalidad_encuesta"
-            style={{ width: "100%", maxWidth: 420, fontSize: 13, fontFamily: "monospace" }}
-          />
-          <datalist id="vars-mod">
-            {varNames.map((n) => <option key={n} value={n} />)}
-          </datalist>
-        </div>
-
-        {/* Modalidad reglas (colapsable) */}
-        <Collapsible title={`Reglas de modalidad (${enumer.modalidad_reglas.length})`} defaultOpen={enumer.modalidad_reglas.length > 0}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-              Cada regla mapea un <strong>patrón</strong> (ej. <code>TEL_*</code>) al nombre de una <strong>modalidad</strong>. Si una fila no matchea ninguna regla ni tiene valor en la columna de modalidad, se usa el default.
-            </div>
-            {enumer.modalidad_reglas.map((r, i) => (
-              <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <input
-                  type="text"
-                  value={r.patron}
-                  onChange={(e) => updateRegla(i, { patron: e.target.value })}
-                  placeholder="patrón (glob, ej. TEL_*)"
-                  style={{ flex: 1, fontSize: 13, fontFamily: "monospace" }}
-                />
-                <span style={{ color: "var(--pulso-text-soft)", fontSize: 12 }}>→</span>
-                <input
-                  type="text"
-                  value={r.modalidad}
-                  onChange={(e) => updateRegla(i, { modalidad: e.target.value })}
-                  placeholder="modalidad"
-                  style={{ flex: 1, fontSize: 13 }}
-                />
+        {/* 2. Modalidad */}
+        <Section
+          title="2. Modalidad de levantamiento"
+          subtitle="Define cómo asignar Presencial / Telefónica a cada encuesta. Si no tiene sentido para tu proyecto, elige «Sin modalidad» y el reporte mostrará solo el total por enumerador."
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {(
+                [
+                  { key: "ninguna", label: "Sin modalidad", icon: "—" },
+                  { key: "columna", label: "Por columna existente", icon: "→" },
+                  { key: "reglas", label: "Por reglas", icon: "≡" },
+                ] as const
+              ).map((opt) => (
                 <button
+                  key={opt.key}
                   type="button"
-                  onClick={() => removeRegla(i)}
-                  className="pulso-icon pulso-icon-danger"
-                  title="Quitar regla"
-                  aria-label="Quitar"
+                  onClick={() => cambiarModo(opt.key)}
+                  style={{
+                    padding: "8px 14px", borderRadius: 6,
+                    border: `1px solid ${modo === opt.key ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+                    background: modo === opt.key ? "var(--pulso-primary-soft)" : "white",
+                    color: modo === opt.key ? "var(--pulso-primary)" : "var(--pulso-text)",
+                    cursor: "pointer", fontSize: 12, fontWeight: 600,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}
                 >
-                  <X size={12} />
+                  <span style={{ fontSize: 11, opacity: 0.7 }}>{opt.icon}</span>
+                  {opt.label}
                 </button>
+              ))}
+            </div>
+
+            {modo === "ninguna" && (
+              <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5, padding: "8px 12px", background: "var(--pulso-surface)", borderRadius: 6 }}>
+                El reporte tendrá una sola página con la producción total por enumerador. Sin desglose por modalidad.
               </div>
-            ))}
-            <button
-              type="button"
-              onClick={addRegla}
-              style={{ alignSelf: "flex-start", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}
-            >
-              <Plus size={12} /> Agregar regla
-            </button>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 6 }}>
-              <span className="pulso-section-eyebrow">Default</span>
+            )}
+
+            {modo === "columna" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+                  Selecciona una columna del dataset que indique la modalidad por fila. Los valores que no coincidan con las modalidades esperadas se agrupan como "otras".
+                </div>
+                <VariableSelect
+                  variables={variables}
+                  value={enumer.col_modalidad ?? ""}
+                  onChange={(v) => setEnumer({ col_modalidad: v || undefined })}
+                  allowClear
+                  placeholder="Seleccionar columna de modalidad…"
+                />
+              </div>
+            )}
+
+            {modo === "reglas" && (
+              <ReglasBuilder
+                reglas={enumer.modalidad_reglas}
+                modalidadDefault={enumer.modalidad_default}
+                variables={variables}
+                onReglas={(reglas) => setEnumer({ modalidad_reglas: reglas })}
+                onDefault={(d) => setEnumer({ modalidad_default: d })}
+              />
+            )}
+          </div>
+        </Section>
+
+        {/* 3. Desagregación */}
+        <Section
+          title="3. Cortes adicionales (opcional)"
+          subtitle="Agrupa la producción por otra dimensión además de modalidad (p. ej. distrito, turno)."
+        >
+          <CortesPicker
+            seleccionados={enumer.cols_corte}
+            variables={variables.filter((v) => v.name !== enumer.col_enumerador && v.name !== enumer.col_modalidad)}
+            onToggle={(name) => {
+              const next = enumer.cols_corte.includes(name)
+                ? enumer.cols_corte.filter((x) => x !== name)
+                : [...enumer.cols_corte, name];
+              setEnumer({ cols_corte: next });
+            }}
+            onClear={() => setEnumer({ cols_corte: [] })}
+          />
+        </Section>
+
+        {/* 4. Detalles del reporte */}
+        <Section title="4. Detalles del reporte">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 220 }}>
+              <span className="pulso-section-eyebrow">Título</span>
               <input
                 type="text"
-                value={enumer.modalidad_default}
-                onChange={(e) => setEnumer({ modalidad_default: e.target.value })}
-                placeholder="Presencial"
-                style={{ maxWidth: 180, fontSize: 13 }}
+                value={enumer.titulo}
+                onChange={(e) => setEnumer({ titulo: e.target.value })}
+                style={{ fontSize: 13, padding: "6px 10px" }}
               />
-            </div>
-          </div>
-        </Collapsible>
-
-        {/* Modalidades esperadas + mostrar_vacias */}
-        <div>
-          <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Modalidades esperadas</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
-            {enumer.modalidades_esperadas.map((m) => (
-              <span
-                key={m}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "3px 4px 3px 10px", borderRadius: 999,
-                  background: "white",
-                  border: "1px solid var(--pulso-border)",
-                  fontSize: 11,
-                }}
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span className="pulso-section-eyebrow">Mínimo de encuestas</span>
+              <input
+                type="number"
+                value={enumer.min_encuestas}
+                onChange={(e) => setEnumer({ min_encuestas: Number(e.target.value) || 0 })}
+                min={0}
+                style={{ width: 110, fontSize: 13, padding: "6px 10px" }}
+              />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span className="pulso-section-eyebrow">Ordenar por</span>
+              <select
+                value={enumer.ordenar_por}
+                onChange={(e) => setEnumer({ ordenar_por: e.target.value as "total" | "nombre" })}
+                style={{ fontSize: 13, padding: "6px 10px" }}
               >
-                {m}
-                <button type="button" onClick={() => setEnumer({ modalidades_esperadas: enumer.modalidades_esperadas.filter((x) => x !== m) })} className="pulso-icon" aria-label={`Quitar ${m}`} style={{ minWidth: 16, minHeight: 16 }}>
-                  <X size={10} />
-                </button>
-              </span>
-            ))}
+                <option value="total">Producción total</option>
+                <option value="nombre">Nombre</option>
+              </select>
+            </label>
           </div>
-          <input
-            type="text"
-            placeholder="Añadir modalidad y Enter…"
-            style={{ maxWidth: 280, fontSize: 13 }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                const v = (e.target as HTMLInputElement).value.trim();
-                if (v && !enumer.modalidades_esperadas.includes(v)) {
-                  setEnumer({ modalidades_esperadas: [...enumer.modalidades_esperadas, v] });
-                }
-                (e.target as HTMLInputElement).value = "";
-                e.preventDefault();
-              }
-            }}
-          />
-          <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer", marginTop: 10 }}>
-            <input
-              type="checkbox"
-              checked={enumer.mostrar_vacias}
-              onChange={(e) => setEnumer({ mostrar_vacias: e.target.checked })}
-            />
-            <span>Mostrar modalidades esperadas sin encuestas</span>
-          </label>
-        </div>
+          {modo !== "ninguna" && (
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, cursor: "pointer", marginTop: 10 }}>
+              <input
+                type="checkbox"
+                checked={enumer.mostrar_vacias}
+                onChange={(e) => setEnumer({ mostrar_vacias: e.target.checked })}
+              />
+              <span style={{ color: "var(--pulso-text-soft)" }}>
+                Mostrar modalidades sin encuestas en el reporte
+              </span>
+            </label>
+          )}
+        </Section>
 
-        {/* Título + ordenar + min_encuestas */}
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 220 }}>
-            <span className="pulso-section-eyebrow">Título del reporte</span>
-            <input
-              type="text"
-              value={enumer.titulo}
-              onChange={(e) => setEnumer({ titulo: e.target.value })}
-              style={{ fontSize: 13 }}
-            />
-          </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span className="pulso-section-eyebrow">Mínimo encuestas</span>
-            <input
-              type="number"
-              value={enumer.min_encuestas}
-              onChange={(e) => setEnumer({ min_encuestas: Number(e.target.value) || 0 })}
-              min={0}
-              style={{ width: 100, fontSize: 13 }}
-            />
-          </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span className="pulso-section-eyebrow">Ordenar por</span>
-            <select
-              value={enumer.ordenar_por}
-              onChange={(e) => setEnumer({ ordenar_por: e.target.value as "total" | "nombre" })}
-              style={{ fontSize: 13, padding: "4px 8px" }}
+        {/* 5. Generar */}
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--pulso-border)", paddingTop: 14 }}>
+          <button
+            className="pulso-primary"
+            onClick={onGenerate}
+            disabled={run.busy || !!run.jobId || !puedeGenerar}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+          >
+            <Play size={14} /> {run.jobId ? "Generando…" : "Generar reporte"}
+          </button>
+          {!puedeGenerar && (
+            <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
+              {!enumer.col_enumerador
+                ? "Selecciona primero la columna del enumerador."
+                : "Agrega al menos una regla o cambia el modo a «Sin modalidad» / «Por columna»."}
+            </span>
+          )}
+          {run.fileId && (
+            <a
+              href={downloadUrl(run.fileId)}
+              style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}
             >
-              <option value="total">Producción total</option>
-              <option value="nombre">Nombre</option>
-            </select>
-          </label>
+              <Download size={13} /> enumeradores.pdf
+            </a>
+          )}
         </div>
+        {run.jobId && (
+          <JobProgress<FileJobResult>
+            label="Generando reporte de enumeradores"
+            jobId={run.jobId}
+            onDone={run.onJobDone}
+            onError={run.onJobError}
+            onCancelled={run.onJobCancelled}
+          />
+        )}
+        {run.error && <Alert kind="error">{run.error}</Alert>}
       </div>
     </Panel>
   );
 }
 
-function Collapsible({ title, defaultOpen, children }: { title: string; defaultOpen: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen);
+// ---- Section wrapper (jerarquía visual consistente) ------------------------
+
+function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div style={{ border: "1px solid var(--pulso-border)", borderRadius: 6, background: "var(--pulso-surface)" }}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
+    <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>{title}</div>
+        {subtitle && (
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.4 }}>
+            {subtitle}
+          </div>
+        )}
+      </div>
+      <div>{children}</div>
+    </section>
+  );
+}
+
+// ---- Reglas builder --------------------------------------------------------
+
+function ReglasBuilder({
+  reglas, modalidadDefault, variables, onReglas, onDefault,
+}: {
+  reglas: ModalidadRegla[];
+  modalidadDefault: string;
+  variables: VariableInstrumento[];
+  onReglas: (r: ModalidadRegla[]) => void;
+  onDefault: (d: string) => void;
+}) {
+  function addRegla() {
+    onReglas([
+      ...reglas,
+      {
+        id: `r_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        condiciones: [],
+        modalidad: "Presencial",
+      },
+    ]);
+  }
+  function updateRegla(id: string, patch: Partial<ModalidadRegla>) {
+    onReglas(reglas.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  }
+  function removeRegla(id: string) {
+    onReglas(reglas.filter((r) => r.id !== id));
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+        Cada regla tiene una o más <strong>condiciones</strong> (todas deben cumplirse). Las reglas se evalúan en orden;
+        la primera que se cumple asigna la modalidad. Si ninguna matchea, se usa la modalidad <strong>por defecto</strong>.
+      </div>
+
+      {reglas.length === 0 && (
+        <div style={{ padding: 14, border: "1px dashed var(--pulso-border)", borderRadius: 6, textAlign: "center", fontSize: 12, color: "var(--pulso-text-soft)" }}>
+          Aún no hay reglas. Haz click en <strong>+ Agregar regla</strong> para empezar.
+        </div>
+      )}
+
+      {reglas.map((regla, idx) => (
+        <ReglaCard
+          key={regla.id}
+          regla={regla}
+          index={idx}
+          variables={variables}
+          onUpdate={(patch) => updateRegla(regla.id, patch)}
+          onRemove={() => removeRegla(regla.id)}
+        />
+      ))}
+
+      <div>
+        <button type="button" onClick={addRegla} style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <Plus size={12} /> Agregar regla
+        </button>
+      </div>
+
+      <div
         style={{
-          width: "100%", textAlign: "left",
-          padding: "8px 12px",
-          display: "flex", alignItems: "center", gap: 6,
-          background: "transparent", border: "none", cursor: "pointer",
-          fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3,
-          color: "var(--pulso-text-soft)",
+          display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+          background: "var(--pulso-surface)", borderRadius: 6, border: "1px solid var(--pulso-border)",
         }}
-        aria-expanded={open}
       >
-        {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-        {title}
-      </button>
-      {open && <div style={{ padding: "4px 14px 12px", background: "white" }}>{children}</div>}
+        <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "var(--pulso-text-soft)" }}>
+          Si ninguna regla matchea →
+        </span>
+        <ModalidadPills value={modalidadDefault} onChange={onDefault} />
+      </div>
+    </div>
+  );
+}
+
+function ReglaCard({
+  regla, index, variables, onUpdate, onRemove,
+}: {
+  regla: ModalidadRegla;
+  index: number;
+  variables: VariableInstrumento[];
+  onUpdate: (patch: Partial<ModalidadRegla>) => void;
+  onRemove: () => void;
+}) {
+  const [open, setOpen] = useState(true);
+
+  function addCond() {
+    onUpdate({
+      condiciones: [...regla.condiciones, { columna: "", operador: "==", valor: "" }],
+    });
+  }
+  function updateCond(i: number, patch: Partial<CondicionRegla>) {
+    onUpdate({
+      condiciones: regla.condiciones.map((c, idx) => (idx === i ? { ...c, ...patch } : c)),
+    });
+  }
+  function removeCond(i: number) {
+    onUpdate({ condiciones: regla.condiciones.filter((_, idx) => idx !== i) });
+  }
+
+  const resumen = regla.condiciones.length === 0
+    ? "sin condiciones"
+    : regla.condiciones.map((c) => `${c.columna || "?"} ${c.operador} ${Array.isArray(c.valor) ? `[${c.valor.length}]` : (c.valor || "?")}`).join(" Y ");
+
+  return (
+    <article
+      style={{
+        border: "1px solid var(--pulso-border)",
+        borderRadius: 8,
+        background: "white",
+      }}
+    >
+      <header
+        style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "8px 12px",
+          background: "var(--pulso-surface)",
+          borderBottom: open ? "1px solid var(--pulso-border)" : "none",
+          borderRadius: "8px 8px 0 0",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="pulso-icon"
+          aria-label={open ? "Colapsar" : "Expandir"}
+        >
+          {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        </button>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.3 }}>
+          Regla {index + 1}
+        </span>
+        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {resumen} → <ModalidadPrint v={regla.modalidad} />
+        </span>
+        <button type="button" onClick={onRemove} className="pulso-icon pulso-icon-danger" title="Eliminar regla" aria-label="Eliminar">
+          <Trash2 size={12} />
+        </button>
+      </header>
+
+      {open && (
+        <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
+          {regla.condiciones.map((cond, i) => (
+            <CondicionRow
+              key={i}
+              cond={cond}
+              variables={variables}
+              onUpdate={(patch) => updateCond(i, patch)}
+              onRemove={() => removeCond(i)}
+              showAnd={i > 0}
+            />
+          ))}
+          <button type="button" onClick={addCond} style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, alignSelf: "flex-start" }}>
+            <Plus size={11} /> {regla.condiciones.length === 0 ? "Agregar condición" : "Agregar otra condición (Y)"}
+          </button>
+
+          <div
+            style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "8px 0 0", borderTop: "1px dashed var(--pulso-border)",
+            }}
+          >
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "var(--pulso-text-soft)" }}>
+              entonces modalidad →
+            </span>
+            <ModalidadPills
+              value={regla.modalidad}
+              onChange={(m) => onUpdate({ modalidad: m })}
+            />
+          </div>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function CondicionRow({
+  cond, variables, onUpdate, onRemove, showAnd,
+}: {
+  cond: CondicionRegla;
+  variables: VariableInstrumento[];
+  onUpdate: (patch: Partial<CondicionRegla>) => void;
+  onRemove: () => void;
+  showAnd: boolean;
+}) {
+  const [valores, setValores] = useState<ValorColumna[]>([]);
+  const [loadingVals, setLoadingVals] = useState(false);
+
+  // Al cambiar `columna`, precargamos sus valores únicos para sugerir.
+  useEffect(() => {
+    if (!cond.columna) { setValores([]); return; }
+    let cancelled = false;
+    setLoadingVals(true);
+    (async () => {
+      try {
+        const r = await apiAnaliticaColumnValues(cond.columna);
+        if (!cancelled) setValores(r.values);
+      } catch {/* no-op */}
+      finally { if (!cancelled) setLoadingVals(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [cond.columna]);
+
+  const isMulti = cond.operador === "in" || cond.operador === "not_in";
+  const valorArray = Array.isArray(cond.valor) ? cond.valor : (cond.valor ? [cond.valor] : []);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {showAnd && (
+        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-primary)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+          Y
+        </span>
+      )}
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <VariableSelect
+            variables={variables}
+            value={cond.columna}
+            onChange={(v) => onUpdate({ columna: v, valor: isMulti ? [] : "" })}
+            placeholder="Columna…"
+          />
+        </div>
+        <select
+          value={cond.operador}
+          onChange={(e) => {
+            const nuevo = e.target.value as CondicionOperador;
+            const nuevoEsMulti = nuevo === "in" || nuevo === "not_in";
+            const mismoTipo = nuevoEsMulti === isMulti;
+            onUpdate({
+              operador: nuevo,
+              valor: mismoTipo ? cond.valor : (nuevoEsMulti ? [] : ""),
+            });
+          }}
+          style={{ fontSize: 12, padding: "6px 8px", minWidth: 100 }}
+        >
+          <option value="==">es igual a</option>
+          <option value="!=">es distinto de</option>
+          <option value="in">está en</option>
+          <option value="not_in">no está en</option>
+        </select>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <ValorInput
+            isMulti={isMulti}
+            valor={isMulti ? valorArray : (valorArray[0] ?? "")}
+            valores={valores}
+            loading={loadingVals}
+            disabled={!cond.columna}
+            onChange={(v) => onUpdate({ valor: v })}
+          />
+        </div>
+        <button type="button" onClick={onRemove} className="pulso-icon pulso-icon-danger" title="Quitar condición" aria-label="Quitar">
+          <X size={11} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ValorInput({
+  isMulti, valor, valores, loading, disabled, onChange,
+}: {
+  isMulti: boolean;
+  valor: string | string[];
+  valores: ValorColumna[];
+  loading: boolean;
+  disabled: boolean;
+  onChange: (v: string | string[]) => void;
+}) {
+  if (disabled) {
+    return (
+      <input
+        type="text"
+        value=""
+        disabled
+        placeholder="Selecciona una columna…"
+        style={{ width: "100%", fontSize: 12, padding: "6px 10px", background: "var(--pulso-surface-2)" }}
+      />
+    );
+  }
+
+  if (isMulti) {
+    const lista = valor as string[];
+    return (
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", padding: "4px 6px", border: "1px solid var(--pulso-border)", borderRadius: 6, background: "white", minHeight: 32 }}>
+        {lista.map((v) => (
+          <span
+            key={v}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 2,
+              padding: "1px 4px 1px 8px", borderRadius: 999,
+              background: "var(--pulso-primary-soft)",
+              border: "1px solid var(--pulso-primary)",
+              fontSize: 11, fontFamily: "monospace", color: "var(--pulso-primary)",
+            }}
+          >
+            {v}
+            <button type="button" onClick={() => onChange(lista.filter((x) => x !== v))} className="pulso-icon" aria-label={`Quitar ${v}`} style={{ minWidth: 16, minHeight: 16 }}>
+              <X size={10} />
+            </button>
+          </span>
+        ))}
+        <select
+          value=""
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v && !lista.includes(v)) onChange([...lista, v]);
+          }}
+          style={{ fontSize: 12, padding: "4px 6px", border: "none", background: "transparent", flex: 1, minWidth: 100 }}
+          disabled={loading}
+        >
+          <option value="">{loading ? "Cargando…" : "+ añadir valor…"}</option>
+          {valores.filter((v) => !lista.includes(v.value)).map((v) => (
+            <option key={v.value} value={v.value}>
+              {v.value}{v.label ? ` — ${v.label}` : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  // Operador ==/!=: select simple (si hay pocos valores únicos) o input.
+  if (valores.length > 0 && valores.length <= 50) {
+    return (
+      <select
+        value={valor as string}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ width: "100%", fontSize: 12, padding: "6px 10px" }}
+      >
+        <option value="">{loading ? "Cargando…" : "— seleccionar —"}</option>
+        {valores.map((v) => (
+          <option key={v.value} value={v.value}>
+            {v.value}{v.label ? ` — ${v.label}` : ""}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  return (
+    <input
+      type="text"
+      value={valor as string}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={loading ? "Cargando…" : "Valor"}
+      list="vals-hint"
+      style={{ width: "100%", fontSize: 12, padding: "6px 10px" }}
+    />
+  );
+}
+
+// ---- Modalidades (pills + iconos) ------------------------------------------
+
+function ModalidadPills({ value, onChange }: { value: string; onChange: (v: ModalidadValor) => void }) {
+  return (
+    <div style={{ display: "inline-flex", gap: 4 }}>
+      {MODALIDADES_PULSO.map((m) => {
+        const active = value === m;
+        const icon = m === "Telefónica" ? <Phone size={11} /> : m === "Presencial" ? <Users size={11} /> : <span style={{ fontSize: 11, opacity: 0.6 }}>—</span>;
+        return (
+          <button
+            key={m}
+            type="button"
+            onClick={() => onChange(m)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              padding: "4px 10px", borderRadius: 999,
+              border: `1px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+              background: active ? "var(--pulso-primary-soft)" : "white",
+              color: active ? "var(--pulso-primary)" : "var(--pulso-text)",
+              cursor: "pointer", fontSize: 11, fontWeight: 600,
+            }}
+          >
+            {icon}
+            {m}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ModalidadPrint({ v }: { v: string }) {
+  const color = v === "Telefónica" ? "#4338ca" : v === "Presencial" ? "#166534" : "var(--pulso-text-soft)";
+  return <strong style={{ color, fontWeight: 700 }}>{v}</strong>;
+}
+
+// ---- Cortes picker ---------------------------------------------------------
+
+function CortesPicker({
+  seleccionados, variables, onToggle, onClear,
+}: {
+  seleccionados: string[];
+  variables: VariableInstrumento[];
+  onToggle: (name: string) => void;
+  onClear: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const seleccionadosSet = useMemo(() => new Set(seleccionados), [seleccionados]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        {seleccionados.length === 0 && (
+          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
+            Sin cortes adicionales.
+          </span>
+        )}
+        {seleccionados.map((c) => {
+          const v = variables.find((x) => x.name === c);
+          return (
+            <span
+              key={c}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "3px 4px 3px 10px", borderRadius: 999,
+                background: "var(--pulso-primary-soft)",
+                border: "1px solid var(--pulso-primary)",
+                fontSize: 11, color: "var(--pulso-primary)",
+                maxWidth: 260,
+              }}
+              title={v?.label}
+            >
+              <code style={{ fontFamily: "monospace", fontWeight: 700 }}>{c}</code>
+              <button type="button" onClick={() => onToggle(c)} className="pulso-icon" aria-label={`Quitar ${c}`} style={{ minWidth: 16, minHeight: 16 }}>
+                <X size={10} />
+              </button>
+            </span>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <button type="button" onClick={() => setOpen((v) => !v)} style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <Plus size={12} /> {open ? "Cerrar selector" : "Agregar corte"}
+        </button>
+        {seleccionados.length > 0 && (
+          <button type="button" onClick={onClear} style={{ fontSize: 12 }}>Quitar todos</button>
+        )}
+      </div>
+      {open && (
+        <div style={{ border: "1px solid var(--pulso-border)", borderRadius: 6, padding: 6, maxHeight: 240, overflowY: "auto", scrollbarWidth: "thin", scrollbarColor: "var(--pulso-border) transparent" }}>
+          {variables.length === 0 ? (
+            <div style={{ padding: 10, fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center" }}>Sin variables disponibles.</div>
+          ) : (
+            variables.map((v) => {
+              const active = seleccionadosSet.has(v.name);
+              return (
+                <label
+                  key={v.name}
+                  style={{
+                    display: "grid", gridTemplateColumns: "14px 1fr auto", alignItems: "center", gap: 8,
+                    padding: "4px 6px", borderRadius: 4, cursor: "pointer",
+                    background: active ? "var(--pulso-primary-soft)" : "transparent",
+                  }}
+                  onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--pulso-surface-2)"; }}
+                  onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
+                >
+                  <input type="checkbox" checked={active} onChange={() => onToggle(v.name)} style={{ margin: 0 }} />
+                  <div style={{ minWidth: 0 }}>
+                    <code style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 12, color: active ? "var(--pulso-primary)" : "var(--pulso-text)" }}>{v.name}</code>
+                    <span style={{ marginLeft: 6, fontSize: 11, color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.label}</span>
+                  </div>
+                  <span style={{ fontSize: 9, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.3 }}>{v.tipo}</span>
+                </label>
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
   );
 }

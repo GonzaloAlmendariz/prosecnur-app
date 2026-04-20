@@ -49,9 +49,34 @@ export type CrucesConfig = {
   };
 };
 
+// Modalidad típica en Pulso: sólo 3 valores. La UI los ofrece como
+// pills en el query builder, pero el schema acepta string libre para
+// compat con proyectos que usen otras etiquetas.
+export const MODALIDADES_PULSO = ["Presencial", "Telefónica", "Sin modalidad"] as const;
+export type ModalidadValor = typeof MODALIDADES_PULSO[number] | string;
+
+export type CondicionOperador = "==" | "!=" | "in" | "not_in";
+
+export type CondicionRegla = {
+  columna: string;
+  operador: CondicionOperador;
+  // Para `==` / `!=`: un solo valor. Para `in` / `not_in`: lista de valores.
+  valor: string | string[];
+};
+
+// Cada regla es un conjunto de condiciones AND. Las reglas se evalúan
+// en orden; la primera que matchea gana. El backend compila una
+// `modalidad_fn` dinámica desde este schema.
+// `patron` legacy se mantiene para retrocompatibilidad con proyectos
+// exportados antes del rediseño de enumeradores.
 export type ModalidadRegla = {
-  patron: string;
-  modalidad: string;
+  id: string;
+  condiciones: CondicionRegla[];
+  modalidad: ModalidadValor;
+  // Legacy (pre-rediseño): patrón glob contra el nombre del enumerador.
+  // Si `condiciones` está vacío pero `patron` existe, se trata como
+  // equivalente a [{columna: col_enumerador, operador: "==", valor: patron}].
+  patron?: string;
 };
 
 export type EnumeradoresConfig = {
