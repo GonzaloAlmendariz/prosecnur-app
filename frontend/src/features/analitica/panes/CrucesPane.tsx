@@ -1,30 +1,35 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeftRight, ArrowUpDown, Grid3x3, Plus, Sparkles, X } from "lucide-react";
+import { AlertTriangle, Filter, Grid3x3, Plus, X } from "lucide-react";
 import {
+  apiAnaliticaColumnValues,
   apiAnaliticaCruces,
   apiAnaliticaVariables,
+  ValorColumna,
   VariableInstrumento,
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
-import { useAnaliticaStore } from "../store";
+import { CruceVarConfig, useAnaliticaStore } from "../store";
 import { VariableSelect } from "../VariableSelect";
-import { Section, Collapsible, GenerateFooter } from "../PaneKit";
+import { Section, GenerateFooter } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
 
-// CrucesPane — rediseñado.
-// Modo "dimensiones" y toggle de significancia se excluyeron: la
-// significancia siempre aplica con α=0.05 (chi²) en el modo estándar,
-// y "dimensiones" se gestiona en un módulo separado.
-// Pasos:
-// 1. Variables a cruzar (contra todas las demás).
-// 2. Presentación (incluir total).
-// 3. Formato condicional (semáforo).
-// 4. Brechas max − min (opcional).
-// 5. Generar.
+// CrucesPane — rediseño final.
+// 1. Variables a cruzar con posibilidad de excluir categorías específicas
+//    cuando la variable es cruce (columna). La exclusión filtra filas
+//    globalmente del data antes de generar — lo comunicamos en la UI.
+// 2. Presentación (solo incluir_total).
+// 3. Generar.
+//
+// Semáforo y brechas se removieron del UI: su uso natural es en el
+// módulo de dimensiones, aún no integrado. La config persiste en el
+// store y los endpoints siguen aceptándola, para reusarla ahí.
 
 export function CrucesPane() {
   const cruces = useAnaliticaStore((s) => s.config.cruces);
   const setCruces = useAnaliticaStore((s) => s.setCruces);
+  const addCruceVar = useAnaliticaStore((s) => s.addCruceVar);
+  const removeCruceVar = useAnaliticaStore((s) => s.removeCruceVar);
+  const setCruceVarExcluidas = useAnaliticaStore((s) => s.setCruceVarExcluidas);
   const run = useReporteRun();
 
   const [variables, setVariables] = useState<VariableInstrumento[]>([]);
@@ -38,31 +43,22 @@ export function CrucesPane() {
   }, []);
 
   async function onGenerate() {
-    // Fuerza modo estándar + sig por defecto antes de lanzar.
+    // Forzar modo estándar + sig default antes de lanzar.
     if (cruces.modo !== "estandar" || !cruces.show_sig || cruces.alpha !== 0.05) {
       setCruces({ modo: "estandar", show_sig: true, alpha: 0.05 });
     }
     await run.runAsync(() => apiAnaliticaCruces());
   }
 
-  function addVar(v: string) {
-    const clean = v.trim();
-    if (!clean || cruces.cruces_vars.includes(clean)) return;
-    setCruces({ cruces_vars: [...cruces.cruces_vars, clean] });
-  }
-  function removeVar(v: string) {
-    setCruces({ cruces_vars: cruces.cruces_vars.filter((x) => x !== v) });
-  }
-
   const nVars = cruces.cruces_vars.length;
   const nResto = Math.max(0, variables.length - nVars);
 
-  // Sugerencias: variables categóricas comunes para cruzar (select_one),
-  // que no estén ya en cruces_vars.
+  // Sugerencias: select_one no seleccionadas.
   const sugeridas = useMemo(() => {
+    const picked = new Set(cruces.cruces_vars.map((cv) => cv.name));
     return variables
       .filter((v) => v.tipo === "select_one")
-      .filter((v) => !cruces.cruces_vars.includes(v.name))
+      .filter((v) => !picked.has(v.name))
       .slice(0, 4);
   }, [variables, cruces.cruces_vars]);
 
@@ -77,15 +73,16 @@ export function CrucesPane() {
         <Section
           title="1. Variables a cruzar"
           subtitle={<>
-            Cada variable que listes aquí <strong>define las columnas</strong> de un bloque de tablas. Se cruza contra todas las demás variables del instrumento. Típicamente: sexo, distrito, servicio, grupo etario.
+            Cada variable que elijas <strong>define las columnas</strong> de un bloque de tablas y se cruza contra todas las demás del instrumento. Típicamente: sexo, distrito, servicio, grupo etario. Puedes excluir categorías específicas de cada variable cuando tengan casi ninguna respuesta.
           </>}
         >
           <VariableChips
             selected={cruces.cruces_vars}
             variables={variables}
             sugeridas={sugeridas}
-            onAdd={addVar}
-            onRemove={removeVar}
+            onAdd={addCruceVar}
+            onRemove={removeCruceVar}
+            onSetExcluidas={setCruceVarExcluidas}
           />
           {nVars > 0 && (
             <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 8 }}>
@@ -115,145 +112,7 @@ export function CrucesPane() {
           </label>
         </Section>
 
-        {/* 3. Formato condicional */}
-        <Section
-          title="3. Formato condicional"
-          subtitle="Resalta las celdas con colores según el valor. Útil cuando las tablas se miran en grande."
-        >
-          <Collapsible
-            title="Semáforo por umbrales"
-            summary={cruces.semaforo.activo ? `activo · cortes ${cruces.semaforo.cortes[0]}% / ${cruces.semaforo.cortes[1]}%` : "desactivado"}
-            defaultOpen={cruces.semaforo.activo}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={cruces.semaforo.activo}
-                  onChange={(e) => setCruces({ semaforo: { ...cruces.semaforo, activo: e.target.checked } })}
-                  style={{ marginTop: 3 }}
-                />
-                <div>
-                  <div style={{ fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 5 }}>
-                    <Sparkles size={13} color="#b45309" /> Aplicar semáforo
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-                    Colorea cada celda porcentual según esté por debajo, en el medio o sobre los umbrales.
-                  </div>
-                </div>
-              </label>
-
-              {cruces.semaforo.activo && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingLeft: 26 }}>
-                  <div>
-                    <div className="pulso-section-eyebrow" style={{ marginBottom: 4 }}>Cortes (0–100%)</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <ColorSwatch color={cruces.semaforo.colores?.rojo ?? "#F8D7DA"} />
-                      <span style={{ fontSize: 11 }}>&lt;</span>
-                      <input
-                        type="number"
-                        value={cruces.semaforo.cortes[0] ?? 50}
-                        min={0} max={100}
-                        onChange={(e) => setCruces({
-                          semaforo: {
-                            ...cruces.semaforo,
-                            cortes: [Number(e.target.value) || 0, cruces.semaforo.cortes[1] ?? 75],
-                          },
-                        })}
-                        style={{ width: 60, fontSize: 12, textAlign: "center" }}
-                      />
-                      <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>%</span>
-                      <ColorSwatch color={cruces.semaforo.colores?.amarillo ?? "#FFF3CD"} />
-                      <span style={{ fontSize: 11 }}>≥</span>
-                      <input
-                        type="number"
-                        value={cruces.semaforo.cortes[1] ?? 75}
-                        min={0} max={100}
-                        onChange={(e) => setCruces({
-                          semaforo: {
-                            ...cruces.semaforo,
-                            cortes: [cruces.semaforo.cortes[0] ?? 50, Number(e.target.value) || 0],
-                          },
-                        })}
-                        style={{ width: 60, fontSize: 12, textAlign: "center" }}
-                      />
-                      <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>%</span>
-                      <ColorSwatch color={cruces.semaforo.colores?.verde ?? "#D4EDDA"} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="pulso-section-eyebrow" style={{ marginBottom: 4 }}>Colores</div>
-                    <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                      {(
-                        [
-                          { k: "rojo", label: "Bajo", default: "#F8D7DA" },
-                          { k: "amarillo", label: "Medio", default: "#FFF3CD" },
-                          { k: "verde", label: "Alto", default: "#D4EDDA" },
-                        ] as const
-                      ).map((c) => (
-                        <label key={c.k} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-                          <input
-                            type="color"
-                            value={cruces.semaforo.colores?.[c.k] ?? c.default}
-                            onChange={(e) => setCruces({
-                              semaforo: {
-                                ...cruces.semaforo,
-                                colores: {
-                                  ...(cruces.semaforo.colores ?? { rojo: "#F8D7DA", amarillo: "#FFF3CD", verde: "#D4EDDA" }),
-                                  [c.k]: e.target.value,
-                                },
-                              },
-                            })}
-                            style={{ width: 36, height: 24, padding: 0, border: "1px solid var(--pulso-border)", borderRadius: 4, cursor: "pointer" }}
-                          />
-                          <span style={{ color: "var(--pulso-text-soft)" }}>{c.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <SemaforoPreview cortes={cruces.semaforo.cortes} colores={cruces.semaforo.colores} />
-                </div>
-              )}
-            </div>
-          </Collapsible>
-        </Section>
-
-        {/* 4. Brechas max − min */}
-        <Section
-          title="4. Brechas"
-          subtitle={<>
-            Muestra la <strong>diferencia entre la categoría más alta y la más baja</strong> en cada fila o columna. Útil para detectar desigualdades a simple vista.
-          </>}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={cruces.brecha.filas}
-                onChange={(e) => setCruces({ brecha: { ...cruces.brecha, filas: e.target.checked } })}
-              />
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                <ArrowLeftRight size={12} color="var(--pulso-text-soft)" />
-                Brecha por fila (diferencia entre columnas)
-              </span>
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={cruces.brecha.cols}
-                onChange={(e) => setCruces({ brecha: { ...cruces.brecha, cols: e.target.checked } })}
-              />
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                <ArrowUpDown size={12} color="var(--pulso-text-soft)" />
-                Brecha por columna (diferencia entre filas)
-              </span>
-            </label>
-          </div>
-        </Section>
-
-        {/* 5. Generar */}
+        {/* 3. Generar */}
         <GenerateFooter
           label="Generar cruces"
           busy={run.busy}
@@ -273,25 +132,29 @@ export function CrucesPane() {
   );
 }
 
-// -- Variable chips + picker ------------------------------------------------
+// -- Variable chips + picker (schema v2 con exclusiones) ---------------------
 
 function VariableChips({
-  selected, variables, sugeridas, onAdd, onRemove,
+  selected, variables, sugeridas, onAdd, onRemove, onSetExcluidas,
 }: {
-  selected: string[];
+  selected: CruceVarConfig[];
   variables: VariableInstrumento[];
   sugeridas: VariableInstrumento[];
   onAdd: (name: string) => void;
   onRemove: (name: string) => void;
+  onSetExcluidas: (name: string, excluidas: string[]) => void;
 }) {
   const [adding, setAdding] = useState(false);
   const [pendingVar, setPendingVar] = useState("");
+  const [editingExclusion, setEditingExclusion] = useState<string | null>(null);
 
   function commit() {
-    if (pendingVar && !selected.includes(pendingVar)) onAdd(pendingVar);
+    if (pendingVar) onAdd(pendingVar);
     setPendingVar("");
     setAdding(false);
   }
+
+  const editingCr = selected.find((cv) => cv.name === editingExclusion) ?? null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -301,48 +164,73 @@ function VariableChips({
         </div>
       )}
       {selected.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {selected.map((v) => {
-            const meta = variables.find((x) => x.name === v);
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {selected.map((cv) => {
+            const meta = variables.find((x) => x.name === cv.name);
+            const nExcl = cv.excluidas?.length ?? 0;
             return (
-              <span
-                key={v}
-                title={meta?.label}
+              <div
+                key={cv.name}
                 style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "4px 4px 4px 12px", borderRadius: 999,
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "8px 10px",
                   background: "var(--pulso-primary-soft)",
                   border: "1px solid var(--pulso-primary)",
-                  fontSize: 12, color: "var(--pulso-primary)",
-                  maxWidth: 320,
+                  borderRadius: 8,
+                  fontSize: 12,
                 }}
               >
-                <code style={{ fontFamily: "monospace", fontWeight: 700 }}>{v}</code>
+                <code style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--pulso-primary)" }}>{cv.name}</code>
                 {meta?.label && (
-                  <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    · {meta.label.slice(0, 36)}
+                  <span style={{ color: "var(--pulso-text-soft)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    · {meta.label}
                   </span>
                 )}
                 <button
                   type="button"
-                  onClick={() => onRemove(v)}
+                  onClick={() => setEditingExclusion(editingExclusion === cv.name ? null : cv.name)}
+                  title="Excluir categorías cuando esta variable sea cruce"
+                  style={{
+                    fontSize: 11, padding: "3px 8px",
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    borderRadius: 4,
+                    border: `1px solid ${nExcl > 0 ? "#b45309" : "var(--pulso-border)"}`,
+                    background: nExcl > 0 ? "#fff7e8" : "white",
+                    color: nExcl > 0 ? "#8a5000" : "var(--pulso-text)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <Filter size={11} />
+                  {nExcl === 0 ? "Excluir…" : `${nExcl} excluida${nExcl === 1 ? "" : "s"}`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemove(cv.name)}
                   className="pulso-icon"
-                  aria-label={`Quitar ${v}`}
-                  style={{ minWidth: 18, minHeight: 18 }}
+                  aria-label={`Quitar ${cv.name}`}
+                  style={{ minWidth: 20, minHeight: 20 }}
                 >
                   <X size={11} />
                 </button>
-              </span>
+              </div>
             );
           })}
         </div>
+      )}
+
+      {editingCr && (
+        <ExclusionEditor
+          cruceVar={editingCr}
+          onChange={(excl) => onSetExcluidas(editingCr.name, excl)}
+          onClose={() => setEditingExclusion(null)}
+        />
       )}
 
       {adding ? (
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 260 }}>
             <VariableSelect
-              variables={variables.filter((v) => !selected.includes(v.name))}
+              variables={variables.filter((v) => !selected.some((cv) => cv.name === v.name))}
               value={pendingVar}
               onChange={setPendingVar}
               placeholder="Seleccionar variable a cruzar…"
@@ -389,54 +277,137 @@ function VariableChips({
   );
 }
 
-// -- Semáforo preview -------------------------------------------------------
+// -- Exclusion editor --------------------------------------------------------
 
-function SemaforoPreview({ cortes, colores }: { cortes: number[]; colores?: { rojo: string; amarillo: string; verde: string } }) {
-  const [lo, hi] = [cortes[0] ?? 50, cortes[1] ?? 75];
-  const samples = [15, (lo + 10) | 0, ((lo + hi) / 2) | 0, hi + 10, 92];
-  const c = colores ?? { rojo: "#F8D7DA", amarillo: "#FFF3CD", verde: "#D4EDDA" };
+function ExclusionEditor({
+  cruceVar, onChange, onClose,
+}: {
+  cruceVar: CruceVarConfig;
+  onChange: (excl: string[]) => void;
+  onClose: () => void;
+}) {
+  const [valores, setValores] = useState<ValorColumna[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const excluidas = cruceVar.excluidas ?? [];
 
-  function colorFor(v: number) {
-    if (v < lo) return c.rojo;
-    if (v >= hi) return c.verde;
-    return c.amarillo;
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const r = await apiAnaliticaColumnValues(cruceVar.name);
+        if (!cancelled) setValores(r.values);
+      } catch (e) {
+        if (!cancelled) setError((e as Error).message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [cruceVar.name]);
+
+  function toggle(value: string) {
+    onChange(excluidas.includes(value) ? excluidas.filter((x) => x !== value) : [...excluidas, value]);
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <div className="pulso-section-eyebrow" style={{ fontSize: 10 }}>Vista previa</div>
-      <div style={{ display: "flex", gap: 4 }}>
-        {samples.map((s) => (
-          <div
-            key={s}
-            style={{
-              flex: 1, minWidth: 40,
-              padding: "6px 8px",
-              background: colorFor(s),
-              border: "1px solid rgba(0,0,0,0.1)",
-              borderRadius: 4,
-              fontSize: 12,
-              fontFamily: "monospace",
-              fontWeight: 700,
-              textAlign: "center",
-              color: "rgba(0,0,0,0.7)",
-            }}
-          >
-            {s}%
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ColorSwatch({ color }: { color: string }) {
-  return (
-    <span
+    <div
       style={{
-        display: "inline-block", width: 14, height: 14, borderRadius: 3,
-        background: color, border: "1px solid rgba(0,0,0,0.15)",
+        border: "1px solid var(--pulso-border)",
+        borderRadius: 8,
+        background: "white",
+        padding: 12,
+        display: "flex", flexDirection: "column", gap: 10,
       }}
-    />
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Filter size={14} color="#b45309" />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12, fontWeight: 700 }}>
+            Excluir categorías de <code style={{ fontFamily: "monospace" }}>{cruceVar.name}</code>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+            Las categorías marcadas aquí <strong>no aparecerán como columnas</strong> cuando esta variable sea cruce. Útil para ocultar categorías con casi nula frecuencia.
+          </div>
+        </div>
+        <button type="button" onClick={onClose} className="pulso-icon" aria-label="Cerrar" style={{ minWidth: 24, minHeight: 24 }}>
+          <X size={13} />
+        </button>
+      </div>
+
+      <div
+        style={{
+          display: "flex", alignItems: "flex-start", gap: 8,
+          padding: "8px 10px",
+          background: "#fff7e8",
+          border: "1px solid #f0d799",
+          borderRadius: 6,
+          fontSize: 11, color: "#8a5000", lineHeight: 1.5,
+        }}
+      >
+        <AlertTriangle size={12} style={{ marginTop: 2, flexShrink: 0 }} />
+        <div>
+          <strong>Limitación conocida:</strong> al excluir una categoría, las filas con ese valor se filtran antes de generar todas las tablas. Eso significa que la categoría <em>tampoco aparece como fila</em> cuando la variable es cruzada por otra. En Frecuencias y Libro de códigos la categoría sigue visible con normalidad.
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ fontSize: 11, color: "#b91c1c", padding: "6px 10px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 4 }}>
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center", padding: 10 }}>Cargando categorías…</div>
+      ) : valores.length === 0 ? (
+        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center", padding: 10 }}>
+          Esta variable no tiene categorías distintas en la data.
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "flex", flexDirection: "column", gap: 3,
+            maxHeight: 280, overflowY: "auto",
+            border: "1px solid var(--pulso-border)", borderRadius: 6,
+            padding: 4,
+            scrollbarWidth: "thin", scrollbarColor: "var(--pulso-border) transparent",
+          }}
+        >
+          {valores.map((v) => {
+            const active = excluidas.includes(v.value);
+            return (
+              <label
+                key={v.value}
+                style={{
+                  display: "grid", gridTemplateColumns: "14px 1fr", gap: 8, alignItems: "center",
+                  padding: "4px 8px", borderRadius: 4,
+                  background: active ? "#fff7e8" : "transparent",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--pulso-surface-2)"; }}
+                onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
+              >
+                <input type="checkbox" checked={active} onChange={() => toggle(v.value)} style={{ margin: 0 }} />
+                <div style={{ minWidth: 0 }}>
+                  <code style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 11, color: active ? "#8a5000" : "var(--pulso-text)" }}>{v.value}</code>
+                  {v.label && (
+                    <span style={{ marginLeft: 6, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+                      {v.label}
+                    </span>
+                  )}
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      )}
+
+      {excluidas.length > 0 && (
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <button type="button" onClick={() => onChange([])} style={{ fontSize: 11 }}>Quitar todas las exclusiones</button>
+        </div>
+      )}
+    </div>
   );
 }

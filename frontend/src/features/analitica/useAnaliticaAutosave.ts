@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { apiAnaliticaConfigGet, apiAnaliticaConfigPut } from "../../api/client";
-import { useAnaliticaStore, AnaliticaConfig, DEFAULT_CONFIG } from "./store";
+import { useAnaliticaStore, AnaliticaConfig, DEFAULT_CONFIG, normalizeCrucesVars } from "./store";
 
 // Misma mecánica que el autosave de RespuestasCodificador en Fase 3:
 // - Al montar, hidrata desde backend con merge sobre DEFAULT_CONFIG (por si
@@ -15,18 +15,21 @@ const DEBOUNCE_MS = 2000;
 
 function mergeWithDefaults(remote: unknown): AnaliticaConfig {
   if (!remote || typeof remote !== "object") return DEFAULT_CONFIG;
-  const r = remote as Partial<AnaliticaConfig>;
+  const r = remote as Partial<AnaliticaConfig> & { cruces?: { cruces_vars?: unknown } };
   // Shallow-merge por sección para tolerar schemas parciales / versiones
   // viejas. No merge recursivo — si el backend no trajo `cruces`, usamos
   // el default completo.
   return {
     ...DEFAULT_CONFIG,
     ...r,
+    variables_excluidas: Array.isArray(r.variables_excluidas) ? r.variables_excluidas : [],
     codebook: { ...DEFAULT_CONFIG.codebook, ...(r.codebook ?? {}) },
     frecuencias: { ...DEFAULT_CONFIG.frecuencias, ...(r.frecuencias ?? {}) },
     cruces: {
       ...DEFAULT_CONFIG.cruces,
       ...(r.cruces ?? {}),
+      // Migración v1 (string[]) → v2 ({name,excluidas}[]). Acepta ambos.
+      cruces_vars: normalizeCrucesVars((r.cruces as { cruces_vars?: unknown })?.cruces_vars),
       brecha: { ...DEFAULT_CONFIG.cruces.brecha, ...(r.cruces?.brecha ?? {}) },
       semaforo: { ...DEFAULT_CONFIG.cruces.semaforo, ...(r.cruces?.semaforo ?? {}) },
     },

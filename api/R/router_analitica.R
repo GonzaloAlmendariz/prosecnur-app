@@ -237,6 +237,60 @@
   suppressWarnings(as.integer(v))
 }
 
+# Filtra columnas del data frame según lista de nombres a excluir.
+# Preserva atributos de nivel top del data frame (importante para
+# haven_labelled / reporte_data). Ignora silenciosamente nombres que
+# no existen.
+.excluir_cols <- function(data, excluidas) {
+  if (length(excluidas) == 0L) return(data)
+  drop <- intersect(as.character(excluidas), names(data))
+  if (length(drop) == 0L) return(data)
+  keep <- setdiff(names(data), drop)
+  out <- data[, keep, drop = FALSE]
+  # Preserva atributos top-level (instrumento_reporte, etc.)
+  for (nm in setdiff(names(attributes(data)), c("names","row.names","class"))) {
+    attr(out, nm) <- attr(data, nm)
+  }
+  out
+}
+
+# Lee `cruces_vars` de la config (schema v2 o v1 legacy) y devuelve
+# una lista `list(name -> c(valores_excluidos))`. Para v1 las excluidas
+# son siempre vacías.
+.cruces_vars_parse <- function(raw) {
+  if (is.null(raw) || length(raw) == 0L) return(list())
+  out <- list()
+  for (el in raw) {
+    if (is.character(el)) {
+      nm <- as.character(el)[1]
+      if (nzchar(nm)) out[[nm]] <- character(0)
+    } else if (is.list(el)) {
+      nm <- as.character(el$name %||% "")
+      if (!nzchar(nm)) next
+      excl <- .as_chr_vec(el$excluidas)
+      out[[nm]] <- excl
+    }
+  }
+  out
+}
+
+# Aplica las exclusiones por variable de cruce (filtra filas). Nota: es
+# un filtro GLOBAL — los casos con valor excluido en una variable no
+# aparecerán en ninguna tabla. Esto se comunica al usuario desde la UI.
+.excluir_cruce_rows <- function(data, cruces_map) {
+  if (length(cruces_map) == 0L) return(data)
+  keep <- rep(TRUE, nrow(data))
+  for (nm in names(cruces_map)) {
+    excl <- cruces_map[[nm]]
+    if (length(excl) == 0L) next
+    if (!nm %in% names(data)) next
+    vals <- as.character(data[[nm]])
+    keep <- keep & !(vals %in% excl)
+  }
+  if (all(keep)) return(data)
+  data[keep, , drop = FALSE]
+}
+
 # Default de configuración (mirrors defaults del frontend store.ts).
 # Se usa cuando el session store no tiene aún una config grabada.
 .analitica_default_config <- function() {
@@ -245,12 +299,13 @@
     fuente_preferida = "auto",
     secciones = list(),
     numericas = list(),
+    variables_excluidas = list(),
     codebook = list(
       codigos_solo_si_presentes = as.list(c(96L, 97L, 98L, 99L))
     ),
     frecuencias = list(
       secciones_activas = list(),
-      orden = "desc",
+      orden = "original",
       mostrar_todo = FALSE
     ),
     cruces = list(
@@ -426,17 +481,20 @@ mount_analitica <- function(pr) {
       )
     })) |>
     plumber::pr_post("/api/analitica/codebook", wrap_endpoint(function(req, res) {
-      # Codebook lee `codigos_solo_si_presentes` del config del store.
+      # Codebook lee `codigos_solo_si_presentes` del config del store y
+      # aplica el filtro global de `variables_excluidas`.
       sid <- session_header(req)
       s <- session_get(sid)
       ctx <- .load_rp_data(sid)
       cfg <- .analitica_get_config(sid)
       cb_cfg <- cfg$codebook %||% list()
       codes <- .as_int_vec(cb_cfg$codigos_solo_si_presentes)
+      excluidas <- .as_chr_vec(cfg$variables_excluidas)
+      data_out <- .excluir_cols(ctx$rp_data, excluidas)
       out_path <- file.path(s$dir, "downloads", sprintf("codebook_%s.xlsx", uuid::UUIDgenerate()))
       dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
       prosecnur::reporte_codebook(
-        data = ctx$rp_data,
+        data = data_out,
         path_xlsx = out_path,
         codigos_solo_si_presentes = if (length(codes) > 0L) codes else NULL
       )
@@ -467,11 +525,23 @@ mount_analitica <- function(pr) {
       numericas_arg <- if (length(num_override) > 0L) num_override else num_global
 
       codes_codebook <- .as_int_vec((cfg$codebook %||% list())$codigos_solo_si_presentes)
+      excluidas <- .as_chr_vec(cfg$variables_excluidas)
+      data_out <- .excluir_cols(ctx$rp_data, excluidas)
+
+      # Si hay secciones, filtrar también `variables` dentro de cada
+      # sección para que las excluidas no aparezcan. Nota: las secciones
+      # son el contenedor lógico del reporte; si una sección queda vacía
+      # tras excluir, se omite.
+      if (length(excluidas) > 0L && is.list(secs) && length(secs) > 0L) {
+        secs <- lapply(secs, function(v) setdiff(v, excluidas))
+        secs <- secs[vapply(secs, length, integer(1)) > 0L]
+        if (length(secs) == 0L) secs <- NULL
+      }
 
       out_path <- file.path(s$dir, "downloads", sprintf("frecuencias_%s.xlsx", uuid::UUIDgenerate()))
       dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
       prosecnur::reporte_frecuencias(
-        data = ctx$rp_data, instrumento = ctx$rp_inst,
+        data = data_out, instrumento = ctx$rp_inst,
         secciones = secs,
         path_xlsx = out_path,
         orden = orden,
@@ -493,15 +563,19 @@ mount_analitica <- function(pr) {
       cfg <- .analitica_get_config(sid)
       cc <- cfg$cruces %||% list()
 
-      # Resolver cruces_vars: query param > config.
-      cruces_val <- if (!is.null(cruces) && nzchar(as.character(cruces[[1]] %||% ""))) {
-        if (length(cruces) == 1) as.character(cruces[[1]]) else as.character(cruces)
+      # Resolver cruces_vars: query param > config. Schema v2 del config
+      # es [{name, excluidas?}]; v1 era string[]. `.cruces_vars_parse`
+      # acepta ambos y devuelve `list(name -> excluidas)`.
+      cruces_map <- if (!is.null(cruces) && nzchar(as.character(cruces[[1]] %||% ""))) {
+        raw_names <- if (length(cruces) == 1) as.character(cruces[[1]]) else as.character(cruces)
+        setNames(replicate(length(raw_names), character(0), simplify = FALSE), raw_names)
       } else {
-        .as_chr_vec(cc$cruces_vars)
+        .cruces_vars_parse(cc$cruces_vars)
       }
+      cruces_val <- names(cruces_map)
       if (length(cruces_val) == 0L) {
         stop_api(400, "E_NO_CRUCES",
-          "Agrega al menos una variable en Diseñar → Cruces antes de generar.")
+          "Agrega al menos una variable en Cruces antes de generar.")
       }
 
       modo_val <- as.character(modo %||% cc$modo %||% "estandar")
@@ -526,7 +600,12 @@ mount_analitica <- function(pr) {
       if (length(sem_cortes) == 0L) sem_cortes <- c(50L, 75L)
       sem_colores <- sem$colores %||% list()
 
-      rp_data_path <- job_save_rds(sid, "rp_data", ctx$rp_data)
+      # Filtrar filas según exclusiones de categorías por variable de
+      # cruce. Es un filtro global (afecta a todas las tablas); la UI
+      # comunica este trade-off al analista.
+      data_cruces <- .excluir_cruce_rows(ctx$rp_data, cruces_map)
+
+      rp_data_path <- job_save_rds(sid, "rp_data", data_cruces)
       rp_inst_path <- job_save_rds(sid, "rp_inst", ctx$rp_inst)
       job_id <- job_submit(
         sid = sid,

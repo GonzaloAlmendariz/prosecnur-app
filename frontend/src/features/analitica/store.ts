@@ -31,8 +31,20 @@ export type FrecuenciasConfig = {
 
 export type SemaforoModo = "grupos" | "degradado_automatico" | "degradado_manual";
 
+// Cada variable de cruce puede tener una lista de categorías excluidas
+// que aplican cuando la variable aparece como columna de cruce. Nota:
+// prosecnur filtra globalmente las filas antes de generar las tablas,
+// así que los valores excluidos tampoco aparecen cuando la variable es
+// fila de otra tabla. La UI explica este trade-off.
+export type CruceVarConfig = {
+  name: string;
+  excluidas?: string[];
+};
+
 export type CrucesConfig = {
-  cruces_vars: string[];
+  // Schema v2: lista de objetos. El store acepta legacy `string[]` y lo
+  // convierte al montar (ver `normalizeCrucesVars`).
+  cruces_vars: CruceVarConfig[];
   modo: "estandar" | "dimensiones";
   show_sig: boolean;
   alpha: number;
@@ -97,6 +109,11 @@ export type AnaliticaConfig = {
   fuente_preferida: FuentePreferida;
   secciones: SeccionConfig[];
   numericas: string[];
+  // Variables que se excluyen globalmente de Codebook y Frecuencias.
+  // No afecta a Cruces ni Enumeradores. La UI expone este bucket desde
+  // ambos panes (Codebook y Frecuencias) para que el usuario pueda
+  // sincronizar qué variables reporta en ambos sitios.
+  variables_excluidas: string[];
   codebook: CodebookConfig;
   frecuencias: FrecuenciasConfig;
   cruces: CrucesConfig;
@@ -110,12 +127,15 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
   fuente_preferida: "auto",
   secciones: [],
   numericas: [],
+  variables_excluidas: [],
   codebook: {
     codigos_solo_si_presentes: [96, 97, 98, 99],
   },
   frecuencias: {
     secciones_activas: [],
-    orden: "desc",
+    // Default "original": respeta el orden del instrumento. Más cómodo
+    // para revisar la base con alguien que conoce el XLSForm.
+    orden: "original",
     mostrar_todo: false,
     numericas_override: undefined,
   },
@@ -171,11 +191,18 @@ type AnaliticaStore = {
   mergeSecciones: (sourceId: string, targetId: string) => void;
 
   setNumericas: (v: string[]) => void;
+  setVariablesExcluidas: (v: string[]) => void;
+  toggleVariableExcluida: (name: string) => void;
 
   setCodebook: (patch: Partial<CodebookConfig>) => void;
   setFrecuencias: (patch: Partial<FrecuenciasConfig>) => void;
   setCruces: (patch: Partial<CrucesConfig>) => void;
   setEnumeradores: (patch: Partial<EnumeradoresConfig>) => void;
+
+  // Setters específicos de cruces_vars (schema v2: [{name, excluidas}]).
+  addCruceVar: (name: string) => void;
+  removeCruceVar: (name: string) => void;
+  setCruceVarExcluidas: (name: string, excluidas: string[]) => void;
 };
 
 function dirty(partial: Partial<AnaliticaStore>): Partial<AnaliticaStore> {
@@ -250,6 +277,16 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
   setNumericas: (numericas) =>
     set((s) => dirty({ config: { ...s.config, numericas } })),
 
+  setVariablesExcluidas: (variables_excluidas) =>
+    set((s) => dirty({ config: { ...s.config, variables_excluidas } })),
+
+  toggleVariableExcluida: (name) =>
+    set((s) => {
+      const list = s.config.variables_excluidas;
+      const next = list.includes(name) ? list.filter((x) => x !== name) : [...list, name];
+      return dirty({ config: { ...s.config, variables_excluidas: next } });
+    }),
+
   setCodebook: (patch) =>
     set((s) => dirty({ config: { ...s.config, codebook: { ...s.config.codebook, ...patch } } })),
 
@@ -263,4 +300,63 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
     set((s) =>
       dirty({ config: { ...s.config, enumeradores: { ...s.config.enumeradores, ...patch } } }),
     ),
+
+  addCruceVar: (name) =>
+    set((s) => {
+      const clean = name.trim();
+      if (!clean) return s;
+      if (s.config.cruces.cruces_vars.some((cv) => cv.name === clean)) return s;
+      return dirty({
+        config: {
+          ...s.config,
+          cruces: { ...s.config.cruces, cruces_vars: [...s.config.cruces.cruces_vars, { name: clean }] },
+        },
+      });
+    }),
+
+  removeCruceVar: (name) =>
+    set((s) =>
+      dirty({
+        config: {
+          ...s.config,
+          cruces: { ...s.config.cruces, cruces_vars: s.config.cruces.cruces_vars.filter((cv) => cv.name !== name) },
+        },
+      }),
+    ),
+
+  setCruceVarExcluidas: (name, excluidas) =>
+    set((s) =>
+      dirty({
+        config: {
+          ...s.config,
+          cruces: {
+            ...s.config.cruces,
+            cruces_vars: s.config.cruces.cruces_vars.map((cv) =>
+              cv.name === name ? { ...cv, excluidas: excluidas.length > 0 ? excluidas : undefined } : cv,
+            ),
+          },
+        },
+      }),
+    ),
 }));
+
+// ----- Migración schema v2 cruces_vars --------------------------------------
+// Convierte legacy `cruces_vars: string[]` a `CruceVarConfig[]`. Se aplica
+// al hidratar la config del backend para no romper JSONs exportados antes
+// del rediseño.
+export function normalizeCrucesVars(raw: unknown): CruceVarConfig[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((x) => {
+      if (typeof x === "string") return { name: x };
+      if (x && typeof x === "object" && "name" in x && typeof (x as { name: unknown }).name === "string") {
+        const o = x as { name: string; excluidas?: unknown };
+        const excl = Array.isArray(o.excluidas)
+          ? o.excluidas.map(String).filter((s) => s.length > 0)
+          : undefined;
+        return { name: o.name, excluidas: excl };
+      }
+      return null;
+    })
+    .filter((x): x is CruceVarConfig => !!x && !!x.name);
+}

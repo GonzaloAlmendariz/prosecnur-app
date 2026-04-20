@@ -1,16 +1,29 @@
+import { useEffect, useState } from "react";
 import { BookOpen } from "lucide-react";
-import { apiAnaliticaCodebook } from "../../../api/client";
+import { apiAnaliticaCodebook, apiAnaliticaVariables, VariableInstrumento } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
 import { useAnaliticaStore } from "../store";
 import { Section, GenerateFooter } from "../PaneKit";
+import { VariablesExcluidas } from "../VariablesExcluidas";
 import { useReporteRun } from "../useReporteRun";
 
-// CodebookPane — simple: qué códigos especiales ocultar si no aparecen.
+// CodebookPane. Comparte el bucket de `variables_excluidas` con
+// Frecuencias — la selección se sincroniza automáticamente.
 
 export function CodebookPane() {
   const codebook = useAnaliticaStore((s) => s.config.codebook);
   const setCodebook = useAnaliticaStore((s) => s.setCodebook);
   const run = useReporteRun();
+
+  const [variables, setVariables] = useState<VariableInstrumento[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await apiAnaliticaVariables();
+        setVariables(r.variables);
+      } catch {/* no-op */}
+    })();
+  }, []);
 
   const codes = codebook.codigos_solo_si_presentes;
 
@@ -71,6 +84,15 @@ export function CodebookPane() {
               );
             })}
           </div>
+        </Section>
+
+        <Section
+          title="2. Variables a incluir"
+          subtitle={<>
+            Por defecto el codebook incluye todas las variables del instrumento. Usa el colapsable para excluir las que no aportan al análisis (metadata, campos técnicos, timestamps). La selección se <strong>comparte con Frecuencias</strong>.
+          </>}
+        >
+          <VariablesExcluidas variables={variables} />
         </Section>
 
         <GenerateFooter

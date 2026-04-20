@@ -10,6 +10,7 @@ import { Panel } from "../../../components/Panel";
 import { useAnaliticaStore, SeccionConfig } from "../store";
 import { VariableSelect } from "../VariableSelect";
 import { Section, GenerateFooter } from "../PaneKit";
+import { VariablesExcluidas } from "../VariablesExcluidas";
 import { useReporteRun } from "../useReporteRun";
 
 // FrecuenciasPane — rediseñado.
@@ -75,8 +76,21 @@ export function FrecuenciasPane() {
     await run.runSync(() => apiAnaliticaFrecuencias());
   }
 
-  // Numéricas: override local o global.
-  const numericas = frec.numericas_override ?? numericasGlobal;
+  // Numéricas:
+  //   - `numericas_override === undefined` → usa el default auto-detectado
+  //     (todas las variables `integer` / `decimal` del instrumento).
+  //   - `numericas_override === []` → el usuario dijo explícitamente "ninguna".
+  //   - `numericas_override === [...]` → selección manual.
+  // Nota: para que el backend recibe la lista que el usuario ve, siempre
+  // enviamos el array resuelto (auto o manual). Al primer addNumerica /
+  // removeNumerica promovemos de "auto" a selección manual tomando como
+  // base la lista auto-detectada actual.
+  const numericasAuto = useMemo(
+    () => variables.filter((v) => v.tipo === "integer" || v.tipo === "decimal").map((v) => v.name),
+    [variables],
+  );
+  const numericas = frec.numericas_override ?? (numericasGlobal.length > 0 ? numericasGlobal : numericasAuto);
+
   function addNumerica(v: string) {
     if (!v || numericas.includes(v)) return;
     setFrec({ numericas_override: [...numericas, v] });
@@ -84,6 +98,10 @@ export function FrecuenciasPane() {
   function removeNumerica(v: string) {
     setFrec({ numericas_override: numericas.filter((x) => x !== v) });
   }
+  function resetToAuto() {
+    setFrec({ numericas_override: undefined });
+  }
+  const usandoAuto = frec.numericas_override === undefined && numericasGlobal.length === 0;
 
   const seccionesVisibles = secciones.filter((s) => !s.oculto);
   const selected = new Set(frec.secciones_activas);
@@ -197,17 +215,44 @@ export function FrecuenciasPane() {
             Las variables marcadas aquí se muestran con <strong>media, desviación, mínimo, máximo y percentiles</strong> en lugar de una tabla de frecuencias. Útil para edades, ingresos, tiempos de espera, etc.
           </>}
         >
-          <NumericasPicker
-            numericas={numericas}
-            variables={variables}
-            onAdd={addNumerica}
-            onRemove={removeNumerica}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {usandoAuto && numericas.length > 0 && (
+              <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic", lineHeight: 1.4 }}>
+                Detección automática: todas las variables <code>integer</code> y <code>decimal</code> del instrumento están seleccionadas por defecto. Edita la lista para ajustar.
+              </div>
+            )}
+            <NumericasPicker
+              numericas={numericas}
+              variables={variables}
+              onAdd={addNumerica}
+              onRemove={removeNumerica}
+            />
+            {!usandoAuto && (
+              <button
+                type="button"
+                onClick={resetToAuto}
+                style={{ alignSelf: "flex-start", fontSize: 11, padding: "3px 8px" }}
+                title="Volver a la detección automática (integer + decimal)"
+              >
+                Restaurar detección automática
+              </button>
+            )}
+          </div>
+        </Section>
+
+        {/* 3. Variables excluidas (bucket compartido con Codebook) */}
+        <Section
+          title="3. Variables a incluir"
+          subtitle={<>
+            Por defecto se incluyen todas las variables del instrumento. Usa el colapsable para excluir las que no aportan (metadata, timestamps, campos técnicos). La selección se <strong>comparte con el Libro de códigos</strong>.
+          </>}
+        >
+          <VariablesExcluidas variables={variables} />
         </Section>
 
         {/* 3. Presentación */}
         <Section
-          title="3. Presentación"
+          title="4. Presentación"
           subtitle="Cómo se ordenan las respuestas dentro de cada tabla del reporte."
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -257,7 +302,7 @@ export function FrecuenciasPane() {
           </div>
         </Section>
 
-        {/* 4. Generar */}
+        {/* 5. Generar */}
         <GenerateFooter
           label="Generar frecuencias"
           busy={run.busy}
