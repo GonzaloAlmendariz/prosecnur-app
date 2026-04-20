@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, Save } from "lucide-react";
 import {
   apiCodifPreguntasAbiertas,
   arquetipoOf,
@@ -12,8 +12,7 @@ import { IntegerCodificador } from "./IntegerCodificador";
 
 type Props = {
   onBackToOrganizar: () => void;
-  onApply: () => void;
-  applyBusy: boolean;
+  onSaveAndContinue: () => void;
 };
 
 const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label: string }> = {
@@ -23,7 +22,7 @@ const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label
   text: { bg: "var(--tipo-text-bg)", border: "var(--tipo-text-border)", fg: "var(--tipo-text-fg)", label: "Texto abierto" },
 };
 
-export function CodificarWizard({ onBackToOrganizar, onApply, applyBusy }: Props) {
+export function CodificarWizard({ onBackToOrganizar, onSaveAndContinue }: Props) {
   const [data, setData] = useState<PreguntaAbierta[] | null>(null);
   const [error, setError] = useState<string>("");
   const [activeParent, setActiveParent] = useState<string | null>(null);
@@ -106,11 +105,11 @@ export function CodificarWizard({ onBackToOrganizar, onApply, applyBusy }: Props
           <button
             type="button"
             className="pulso-primary"
-            disabled={applyBusy}
-            onClick={onApply}
-            style={{ fontSize: 13 }}
+            onClick={onSaveAndContinue}
+            style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6, justifyContent: "center" }}
+            title="Los grupos se guardan automáticamente. Pasá al paso 3 para adaptar el dataset."
           >
-            Aplicar codificación
+            <Save size={13} /> Guardar y continuar
           </button>
         </div>
       </aside>

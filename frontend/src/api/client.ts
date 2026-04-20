@@ -761,3 +761,44 @@ export async function apiCodifAplicar() {
     await fetch("/api/codificacion/aplicar", { method: "POST", headers: headers() })
   );
 }
+
+// ---- Plan de adaptación (paso 3) ------------------------------------------
+
+export type PlanCodigoItem = {
+  codigo: string;
+  etiqueta: string;
+  n_respuestas: number;
+};
+
+export type PlanPregunta = {
+  parent: string;
+  parent_label: string;
+  tipo: string;
+  modo_so: string;
+  text_col: string;
+  nueva_variable: string;
+  n_grupos: number;
+  n_codigos_nuevos: number;
+  n_codigos_reutilizados: number;
+  n_respuestas_afectadas: number;
+  codigos_nuevos: PlanCodigoItem[];
+  codigos_reutilizados: PlanCodigoItem[];
+  bridge_soportado: boolean;
+};
+
+export type PlanAdaptacion = {
+  ok: true;
+  preguntas: PlanPregunta[];
+  totales: {
+    n_preguntas: number;
+    n_variables_nuevas: number;
+    n_codigos_nuevos: number;
+    n_codigos_reutilizados: number;
+  };
+};
+
+export async function apiCodifPlanAdaptacion() {
+  return handle<PlanAdaptacion>(
+    await fetch("/api/codificacion/plan-adaptacion", { headers: headers() })
+  );
+}

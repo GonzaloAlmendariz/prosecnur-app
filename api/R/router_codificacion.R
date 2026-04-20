@@ -441,14 +441,18 @@ isTRUE_vec <- function(x) {
 # (grupos of responses → code, integer rules, SM dummy). The xlsx only exists
 # as a transport layer for ppra_adaptar_* — never displayed to the user.
 #
-# This first iteration (B3.5a) handles only the "text-like" cases where the
-# mapping is (normalized_text → code) 1-to-1:
+# Handled arquetipos:
 #   * text solitaria / huerfana (no adopted): sheet named after the parent,
-#     recod col <parent>_recod
+#     recod col <parent>_recod (B3.5a)
 #   * select_one modo=hijo: sheet named after the SO parent, recod col
-#     <text_col>_recod (the adopted "otros" text column)
+#     <text_col>_recod (the adopted "otros" text column) (B3.5a)
+#   * select_one modo=padre: sheet named after the SO parent, recod col
+#     <parent>_recod. Non-otros rows copy <parent>; otros rows (con texto)
+#     reciben el codigo del grupo. (B3.5b)
+#   * integer: sheet named after the integer variable, recod col
+#     <parent>_recod, asignado segun la primer regla (between/gte/lte) que
+#     matchee el valor original. (B3.5b)
 #
-# TODO B3.5b: SO padre (mix original codes + new codes from "Otros" text) + integer ranges
 # TODO B3.5c: SM (existing options as booleans + new option columns)
 
 # Match a response text to its code, using the same normalization the UI used
@@ -473,15 +477,56 @@ isTRUE_vec <- function(x) {
   list(text_to_code = text_to_code, new_codes = new_codes)
 }
 
-# Patch a single sheet of the plantilla xlsx to fill one *_recod column
-# based on (text in source_col of data_df) → grupo.codigo lookup. Also
-# writes the nuevo_codigo / nueva_etiqueta aux block for origen=="nuevo"
-# groups. Silently skips if required headers are missing.
-.patch_text_sheet <- function(wb, sheet, recod_col, source_col, grupos, data_df) {
-  # skipEmptyCols=FALSE is critical: some plantilla sheets have a blank
-  # separator column between Control and the aux block. The default
-  # (TRUE) sometimes collapses it, shifting column indices and writing
-  # aux block data to the wrong column. Always read preserving positions.
+# Extract integer reglas (between/gte/lte) per grupo into a list of matcher
+# closures. Each matcher returns codigo when the value fits, else NA.
+# Rules are checked in the declared order; first hit wins.
+.compile_integer_rules <- function(grupos) {
+  out <- list()
+  new_codes <- list()
+  for (g in grupos) {
+    codigo <- as.character(g$codigo %||% "")
+    if (!nzchar(codigo)) next
+    etiqueta <- as.character(g$etiqueta %||% "")
+    origen <- as.character(g$origen %||% "")
+    regla <- g$regla
+    if (is.null(regla)) next
+    tipo <- as.character(regla$tipo %||% "")
+    if (tipo == "between") {
+      lo <- suppressWarnings(as.numeric(regla$min))
+      hi <- suppressWarnings(as.numeric(regla$max))
+      if (!is.finite(lo) || !is.finite(hi)) next
+      out[[length(out) + 1L]] <- list(
+        codigo = codigo,
+        match = local({ lo_ <- lo; hi_ <- hi
+          function(v) is.finite(v) && v >= lo_ && v <= hi_
+        })
+      )
+    } else if (tipo == "gte") {
+      lo <- suppressWarnings(as.numeric(regla$min))
+      if (!is.finite(lo)) next
+      out[[length(out) + 1L]] <- list(
+        codigo = codigo,
+        match = local({ lo_ <- lo; function(v) is.finite(v) && v >= lo_ })
+      )
+    } else if (tipo == "lte") {
+      hi <- suppressWarnings(as.numeric(regla$max))
+      if (!is.finite(hi)) next
+      out[[length(out) + 1L]] <- list(
+        codigo = codigo,
+        match = local({ hi_ <- hi; function(v) is.finite(v) && v <= hi_ })
+      )
+    } else next
+    if (identical(origen, "nuevo") && nzchar(etiqueta)) {
+      new_codes[[codigo]] <- etiqueta
+    }
+  }
+  list(rules = out, new_codes = new_codes)
+}
+
+# Shared: open a sheet's header rows and resolve column indices we may
+# need to write into. Returns NULL on structural errors so the caller can
+# skip the pregunta silently.
+.read_sheet_headers <- function(wb, sheet) {
   df <- tryCatch(
     openxlsx::readWorkbook(
       wb, sheet = sheet,
@@ -489,39 +534,70 @@ isTRUE_vec <- function(x) {
     ),
     error = function(e) NULL
   )
-  if (is.null(df) || nrow(df) < 2L) return(invisible(FALSE))
+  if (is.null(df) || nrow(df) < 2L) return(NULL)
   tech_row <- as.character(df[1, , drop = TRUE])
   tech_row[is.na(tech_row)] <- ""
+  list(
+    df = df,
+    tech_row = tech_row,
+    uuid_idx = unname(which(tech_row == "_uuid")[1]),
+    nuevo_cod_idx = unname(which(tech_row == "nuevo_codigo")[1]),
+    nueva_et_idx  = unname(which(tech_row == "nueva_etiqueta")[1])
+  )
+}
 
-  # `which(...)` can inherit names from the tech_row vector; openxlsx::writeData
-  # treats a named startCol as an Excel-letter reference, which silently
-  # shifts writes. Always strip names.
-  uuid_idx      <- unname(which(tech_row == "_uuid")[1])
-  recod_idx     <- unname(which(tech_row == recod_col)[1])
-  if (length(uuid_idx) == 0L || is.na(uuid_idx) ||
-      length(recod_idx) == 0L || is.na(recod_idx)) return(invisible(FALSE))
+# Shared: write the nuevo_codigo / nueva_etiqueta aux block (SO / integer
+# only — SM declares new codes via new columns, not an aux block).
+.write_aux_block <- function(wb, sheet, nuevo_cod_idx, nueva_et_idx, new_codes) {
+  if (length(new_codes) == 0L) return(invisible(FALSE))
+  if (length(nuevo_cod_idx) == 0L || is.na(nuevo_cod_idx) ||
+      length(nueva_et_idx) == 0L  || is.na(nueva_et_idx)) return(invisible(FALSE))
+  codes_vec <- names(new_codes)
+  labels_vec <- vapply(codes_vec, function(k) as.character(new_codes[[k]]), character(1))
+  for (i in seq_along(codes_vec)) {
+    openxlsx::writeData(
+      wb, sheet = sheet, x = codes_vec[i],
+      startCol = nuevo_cod_idx, startRow = 2L + i, colNames = FALSE
+    )
+    openxlsx::writeData(
+      wb, sheet = sheet, x = unname(labels_vec[i]),
+      startCol = nueva_et_idx, startRow = 2L + i, colNames = FALSE
+    )
+  }
+  invisible(TRUE)
+}
 
-  nuevo_cod_idx <- unname(which(tech_row == "nuevo_codigo")[1])
-  nueva_et_idx  <- unname(which(tech_row == "nueva_etiqueta")[1])
+# Shared: resolve the uuid column on the raw dataset. prosecnur accepts
+# multiple naming conventions (ODK, Pulso, internal).
+.resolve_uuid_col <- function(data_df) {
+  for (cn in c("_uuid", "uuid", "Pulso_code")) {
+    if (cn %in% names(data_df)) return(cn)
+  }
+  NA_character_
+}
+
+# Patch a single sheet of the plantilla xlsx to fill one *_recod column
+# based on (text in source_col of data_df) → grupo.codigo lookup. Also
+# writes the nuevo_codigo / nueva_etiqueta aux block for origen=="nuevo"
+# groups. Silently skips if required headers are missing.
+.patch_text_sheet <- function(wb, sheet, recod_col, source_col, grupos, data_df) {
+  h <- .read_sheet_headers(wb, sheet)
+  if (is.null(h)) return(invisible(FALSE))
+  recod_idx <- unname(which(h$tech_row == recod_col)[1])
+  if (is.na(h$uuid_idx) || is.na(recod_idx)) return(invisible(FALSE))
+
+  uuid_col_data <- .resolve_uuid_col(data_df)
+  if (is.na(uuid_col_data) || !source_col %in% names(data_df)) return(invisible(FALSE))
 
   lookup <- .match_grupos(grupos)
   text_to_code <- lookup$text_to_code
-  new_codes <- lookup$new_codes
+  uuid_to_response <- setNames(as.character(data_df[[source_col]]),
+                               as.character(data_df[[uuid_col_data]]))
 
-  # Build uuid → raw response map from the source dataset.
-  uuid_col_data <- NULL
-  for (cn in c("_uuid", "uuid", "Pulso_code")) {
-    if (cn %in% names(data_df)) { uuid_col_data <- cn; break }
-  }
-  if (is.null(uuid_col_data) || !source_col %in% names(data_df)) return(invisible(FALSE))
-  u_raw <- as.character(data_df[[uuid_col_data]])
-  r_raw <- as.character(data_df[[source_col]])
-  uuid_to_response <- setNames(r_raw, u_raw)
-
-  # Walk data rows in the sheet (xlsx row i == df row i, starting at 3).
+  df <- h$df
   if (nrow(df) >= 3L) {
     for (i in 3:nrow(df)) {
-      uid <- as.character(df[i, uuid_idx])
+      uid <- as.character(df[i, h$uuid_idx])
       if (is.na(uid) || !nzchar(uid)) next
       resp <- uuid_to_response[uid]
       if (is.null(resp) || length(resp) == 0L) next
@@ -538,27 +614,122 @@ isTRUE_vec <- function(x) {
       )
     }
   }
+  .write_aux_block(wb, sheet, h$nuevo_cod_idx, h$nueva_et_idx, lookup$new_codes)
+  invisible(TRUE)
+}
 
-  # Aux block: declare new codes once (prosecnur requires unique codigo →
-  # etiqueta). We overwrite from row 3 downwards — the block starts empty
-  # in a fresh plantilla so there's nothing to preserve.
-  if (length(new_codes) > 0L &&
-      !is.na(nuevo_cod_idx) && length(nuevo_cod_idx) > 0L &&
-      !is.na(nueva_et_idx)  && length(nueva_et_idx) > 0L) {
-    codes_vec <- names(new_codes)
-    labels_vec <- vapply(codes_vec, function(k) as.character(new_codes[[k]]), character(1))
-    for (i in seq_along(codes_vec)) {
+# SO modo padre: integra los textos libres como nuevas opciones del mismo
+# <parent>. Para cada fila: si hay texto en <text_col> y está cubierto por
+# algún grupo → recod = grupo.codigo. Si no, recod = <parent> original
+# (las opciones originales se mantienen). Los códigos nuevos (origen="nuevo")
+# se declaran en el bloque aux.
+.patch_so_padre_sheet <- function(wb, sheet, parent_col, text_col, grupos, data_df) {
+  h <- .read_sheet_headers(wb, sheet)
+  if (is.null(h)) return(invisible(FALSE))
+  recod_col <- paste0(parent_col, "_recod")
+  recod_idx <- unname(which(h$tech_row == recod_col)[1])
+  if (is.na(h$uuid_idx) || is.na(recod_idx)) return(invisible(FALSE))
+
+  uuid_col_data <- .resolve_uuid_col(data_df)
+  if (is.na(uuid_col_data) || !parent_col %in% names(data_df)) return(invisible(FALSE))
+
+  lookup <- .match_grupos(grupos)
+  text_to_code <- lookup$text_to_code
+
+  uuid_to_parent <- setNames(as.character(data_df[[parent_col]]),
+                             as.character(data_df[[uuid_col_data]]))
+  uuid_to_text <- if (nzchar(text_col) && text_col %in% names(data_df)) {
+    setNames(as.character(data_df[[text_col]]),
+             as.character(data_df[[uuid_col_data]]))
+  } else NULL
+
+  df <- h$df
+  if (nrow(df) >= 3L) {
+    for (i in 3:nrow(df)) {
+      uid <- as.character(df[i, h$uuid_idx])
+      if (is.na(uid) || !nzchar(uid)) next
+      value_to_write <- NA_character_
+
+      # 1) Free-text grupo match wins (treats the "otros" case).
+      if (!is.null(uuid_to_text)) {
+        t <- uuid_to_text[uid]
+        if (!is.null(t) && length(t) > 0L) {
+          t <- t[[1]]
+          if (!is.na(t) && nzchar(trimws(t))) {
+            tn <- .normalize_text(t)[1]
+            if (nzchar(tn) && exists(tn, envir = text_to_code, inherits = FALSE)) {
+              value_to_write <- get(tn, envir = text_to_code, inherits = FALSE)
+            }
+          }
+        }
+      }
+
+      # 2) Fallback: copy <parent> as-is (non-otros respondents keep their code).
+      if (is.na(value_to_write)) {
+        pv <- uuid_to_parent[uid]
+        if (!is.null(pv) && length(pv) > 0L) {
+          pv <- pv[[1]]
+          if (!is.na(pv) && nzchar(trimws(pv))) value_to_write <- as.character(pv)
+        }
+      }
+
+      if (is.na(value_to_write) || !nzchar(value_to_write)) next
       openxlsx::writeData(
-        wb, sheet = sheet, x = codes_vec[i],
-        startCol = nuevo_cod_idx, startRow = 2L + i, colNames = FALSE
-      )
-      openxlsx::writeData(
-        wb, sheet = sheet, x = labels_vec[i],
-        startCol = nueva_et_idx, startRow = 2L + i, colNames = FALSE
+        wb, sheet = sheet, x = value_to_write,
+        startCol = recod_idx, startRow = i, colNames = FALSE
       )
     }
   }
+  .write_aux_block(wb, sheet, h$nuevo_cod_idx, h$nueva_et_idx, lookup$new_codes)
+  invisible(TRUE)
+}
 
+# Integer reglas: por cada fila lee el valor crudo, chequea reglas
+# (between/gte/lte) en el orden declarado y escribe el código de la
+# primera que matchee. Los códigos (todos origen="nuevo" para integer) se
+# declaran en el bloque aux.
+.patch_integer_sheet <- function(wb, sheet, parent_col, grupos, data_df) {
+  h <- .read_sheet_headers(wb, sheet)
+  if (is.null(h)) return(invisible(FALSE))
+  recod_col <- paste0(parent_col, "_recod")
+  recod_idx <- unname(which(h$tech_row == recod_col)[1])
+  if (is.na(h$uuid_idx) || is.na(recod_idx)) return(invisible(FALSE))
+
+  uuid_col_data <- .resolve_uuid_col(data_df)
+  if (is.na(uuid_col_data) || !parent_col %in% names(data_df)) return(invisible(FALSE))
+
+  comp <- .compile_integer_rules(grupos)
+  rules <- comp$rules
+  if (length(rules) == 0L) {
+    # Nada para codificar (grupos sin reglas) — solo escribir aux si hay.
+    .write_aux_block(wb, sheet, h$nuevo_cod_idx, h$nueva_et_idx, comp$new_codes)
+    return(invisible(TRUE))
+  }
+
+  uuid_to_val <- setNames(suppressWarnings(as.numeric(data_df[[parent_col]])),
+                          as.character(data_df[[uuid_col_data]]))
+
+  df <- h$df
+  if (nrow(df) >= 3L) {
+    for (i in 3:nrow(df)) {
+      uid <- as.character(df[i, h$uuid_idx])
+      if (is.na(uid) || !nzchar(uid)) next
+      v <- uuid_to_val[uid]
+      if (is.null(v) || length(v) == 0L) next
+      v <- v[[1]]
+      if (!is.finite(v)) next
+      codigo <- ""
+      for (r in rules) {
+        if (isTRUE(r$match(v))) { codigo <- r$codigo; break }
+      }
+      if (!nzchar(codigo)) next
+      openxlsx::writeData(
+        wb, sheet = sheet, x = codigo,
+        startCol = recod_idx, startRow = i, colNames = FALSE
+      )
+    }
+  }
+  .write_aux_block(wb, sheet, h$nuevo_cod_idx, h$nueva_et_idx, comp$new_codes)
   invisible(TRUE)
 }
 
@@ -599,27 +770,35 @@ isTRUE_vec <- function(x) {
     text_col <- as.character(row$text_col %||% "")
     parent_col <- as.character(row$parent_col %||% "")
 
-    # Dispatch per arquetipo — for B3.5a only the text-like cases.
+    # Dispatch per arquetipo.
     if (tipo == "text") {
-      # Text solitaria / huerfana not adopted by SO/SM. Sheet == parent
-      # (its own text column), recod col == <parent>_recod. The source
-      # column on the data frame is the parent (or text_col if it's a
-      # draft where text_col was set explicitly).
+      # Text solitaria / huerfana not adopted. Sheet == parent.
       sheet <- parent
       source_col <- if (nzchar(text_col)) text_col else parent
       recod_col <- paste0(source_col, "_recod")
       ok <- .patch_text_sheet(wb, sheet, recod_col, source_col, grupos, data_df)
       if (isTRUE(ok)) patched <- c(patched, parent) else skipped <- c(skipped, parent)
     } else if (tipo == "select_one" && modo_so == "hijo") {
-      # SO hijo: the "Otros" text goes into an independent coded variable.
-      # Sheet == SO parent (e.g. "p3"), recod col == <text_col>_recod.
+      # SO hijo: texto se codifica en <text_col>_recod.
       sheet <- parent
       if (!nzchar(text_col)) { skipped <- c(skipped, parent); next }
       recod_col <- paste0(text_col, "_recod")
       ok <- .patch_text_sheet(wb, sheet, recod_col, text_col, grupos, data_df)
       if (isTRUE(ok)) patched <- c(patched, parent) else skipped <- c(skipped, parent)
+    } else if (tipo == "select_one" && modo_so == "padre") {
+      # SO padre: mezcla opciones originales + nuevas del texto "Otros".
+      sheet <- parent
+      pc <- if (nzchar(parent_col)) parent_col else parent
+      ok <- .patch_so_padre_sheet(wb, sheet, pc, text_col, grupos, data_df)
+      if (isTRUE(ok)) patched <- c(patched, parent) else skipped <- c(skipped, parent)
+    } else if (tipo == "integer") {
+      # Integer: valor original → match de regla (between/gte/lte) → código.
+      sheet <- parent
+      pc <- if (nzchar(parent_col)) parent_col else parent
+      ok <- .patch_integer_sheet(wb, sheet, pc, grupos, data_df)
+      if (isTRUE(ok)) patched <- c(patched, parent) else skipped <- c(skipped, parent)
     } else {
-      # TODO B3.5b/c: SO padre, integer, SM
+      # TODO B3.5c: select_multiple
       skipped <- c(skipped, parent)
     }
   }
@@ -1178,6 +1357,151 @@ mount_codificacion <- function(pr) {
       meta <- get_file(sid, file_id)
       session_set(sid, "codif_plantilla_codigos_file_id", file_id)
       list(ok = TRUE, original_name = meta$original_name, size = meta$size)
+    })) |>
+    plumber::pr_get("/api/codificacion/plan-adaptacion", wrap_endpoint(function(req, res) {
+      # Resumen pre-adaptación: qué preguntas van a entrar, cuántas
+      # variables nuevas se crean, cuántos códigos nuevos y reutilizados,
+      # cuántas filas afecta cada pregunta. Sirve al paso 3 "Adaptar" para
+      # que el analista vea el diff antes de lanzar el job.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      draft <- s$codif_familias_draft
+      if (is.null(draft)) return(list(ok = TRUE, preguntas = list(), totales = list(
+        n_preguntas = 0L, n_variables_nuevas = 0L, n_codigos_nuevos = 0L, n_codigos_reutilizados = 0L
+      )))
+
+      data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
+      if (is.null(s$codif_data)) session_set(sid, "codif_data", data_df)
+      marcadas_set <- s$codif_marcadas %||% list()
+      grupos_map <- s$codif_grupos_recod %||% list()
+
+      preguntas <- list()
+      tot_vars_nuevas <- 0L
+      tot_codigos_nuevos <- 0L
+      tot_codigos_reuso <- 0L
+
+      for (r in (draft$rows %||% list())) {
+        parent <- as.character(r$parent %||% "")
+        if (!nzchar(parent)) next
+        tipo <- as.character(r$tipo %||% "")
+        modo_so <- as.character(r$modo_so %||% "")
+        text_col <- as.character(r$text_col %||% "")
+
+        use_flag <- isTRUE(r$use)
+        is_marcada <- !is.null(r$text_col) && nzchar(text_col)  # auto-marcada por pareja
+        is_manual <- isTRUE(marcadas_set[[parent]])
+        if (!use_flag && !is_manual && !is_marcada) next
+
+        grupos <- grupos_map[[parent]] %||% list()
+        if (length(grupos) == 0L) next  # sin trabajo declarado, no entra al plan
+
+        # Derivar nombre de variable nueva según arquetipo.
+        nueva_var <- if (tipo == "select_one" && modo_so == "hijo" && nzchar(text_col)) {
+          paste0(text_col, "_recod")
+        } else if (tipo == "select_one" && modo_so == "padre") {
+          paste0(parent, "_recod")
+        } else if (tipo == "integer") {
+          paste0(parent, "_recod")
+        } else if (tipo == "text") {
+          paste0(if (nzchar(text_col)) text_col else parent, "_recod")
+        } else if (tipo == "select_multiple") {
+          paste0(parent, "/*_recod")
+        } else ""
+
+        # Integer usa reglas, no "respuestas" explícitas. Para que el plan
+        # no muestre "0 respuestas", contamos las filas de data que cumplen
+        # cada regla al momento de armar el resumen.
+        int_counts <- if (tipo == "integer" && parent %in% names(data_df)) {
+          vals <- suppressWarnings(as.numeric(data_df[[parent]]))
+          vals <- vals[is.finite(vals)]
+          vapply(grupos, function(g) {
+            regla <- g$regla; if (is.null(regla)) return(0L)
+            t <- as.character(regla$tipo %||% "")
+            if (t == "between") {
+              lo <- suppressWarnings(as.numeric(regla$min))
+              hi <- suppressWarnings(as.numeric(regla$max))
+              if (!is.finite(lo) || !is.finite(hi)) return(0L)
+              sum(vals >= lo & vals <= hi)
+            } else if (t == "gte") {
+              lo <- suppressWarnings(as.numeric(regla$min))
+              if (!is.finite(lo)) return(0L)
+              sum(vals >= lo)
+            } else if (t == "lte") {
+              hi <- suppressWarnings(as.numeric(regla$max))
+              if (!is.finite(hi)) return(0L)
+              sum(vals <= hi)
+            } else 0L
+          }, integer(1))
+        } else integer(0)
+
+        n_nuevos <- 0L
+        n_reuso <- 0L
+        n_resp_afect <- 0L
+        codigos_nuevos <- list()
+        codigos_reuso <- list()
+        for (i_g in seq_along(grupos)) {
+          g <- grupos[[i_g]]
+          codigo <- as.character(g$codigo %||% "")
+          etiqueta <- as.character(g$etiqueta %||% "")
+          origen <- as.character(g$origen %||% "")
+          n_resps <- if (tipo == "integer" && length(int_counts) >= i_g) {
+            as.integer(int_counts[i_g])
+          } else {
+            as.integer(length(g$respuestas %||% list()))
+          }
+          if (!nzchar(codigo)) next
+          if (identical(origen, "existente")) {
+            if (n_resps > 0L) {
+              n_reuso <- n_reuso + 1L
+              codigos_reuso[[length(codigos_reuso) + 1L]] <- list(
+                codigo = codigo, etiqueta = etiqueta, n_respuestas = n_resps
+              )
+            }
+          } else {
+            n_nuevos <- n_nuevos + 1L
+            codigos_nuevos[[length(codigos_nuevos) + 1L]] <- list(
+              codigo = codigo, etiqueta = etiqueta, n_respuestas = n_resps
+            )
+          }
+          n_resp_afect <- n_resp_afect + n_resps
+        }
+
+        if (n_nuevos == 0L && n_reuso == 0L) next
+
+        tot_vars_nuevas <- tot_vars_nuevas + 1L
+        tot_codigos_nuevos <- tot_codigos_nuevos + n_nuevos
+        tot_codigos_reuso <- tot_codigos_reuso + n_reuso
+
+        preguntas[[length(preguntas) + 1L]] <- list(
+          parent = parent,
+          parent_label = as.character(r$parent_label %||% ""),
+          tipo = tipo,
+          modo_so = modo_so,
+          text_col = text_col,
+          nueva_variable = nueva_var,
+          n_grupos = as.integer(length(grupos)),
+          n_codigos_nuevos = as.integer(n_nuevos),
+          n_codigos_reutilizados = as.integer(n_reuso),
+          n_respuestas_afectadas = as.integer(n_resp_afect),
+          codigos_nuevos = codigos_nuevos,
+          codigos_reutilizados = codigos_reuso,
+          bridge_soportado = (tipo == "select_one" && modo_so == "hijo") ||
+                             (tipo == "select_one" && modo_so == "padre") ||
+                             (tipo == "integer") ||
+                             (tipo == "text" && nzchar(text_col))
+        )
+      }
+
+      list(
+        ok = TRUE,
+        preguntas = preguntas,
+        totales = list(
+          n_preguntas = as.integer(length(preguntas)),
+          n_variables_nuevas = as.integer(tot_vars_nuevas),
+          n_codigos_nuevos = as.integer(tot_codigos_nuevos),
+          n_codigos_reutilizados = as.integer(tot_codigos_reuso)
+        )
+      )
     })) |>
     plumber::pr_post("/api/codificacion/aplicar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
