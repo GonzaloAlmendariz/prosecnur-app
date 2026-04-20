@@ -4,11 +4,11 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  ListPlus,
   Plus,
   Search,
   Trash2,
   AlertCircle,
-  ArrowDownToLine,
   X,
   Wand2,
   Sparkles,
@@ -496,13 +496,16 @@ function QuickAssignDropdown({ grupos, onPick }: { grupos: Grupo[]; onPick: (gid
         aria-haspopup="menu"
         style={{
           fontSize: 10, padding: "2px 6px",
-          display: "inline-flex", alignItems: "center", gap: 3,
+          display: "inline-flex", alignItems: "center", gap: 4,
           background: open ? "var(--pulso-primary-soft)" : undefined,
           borderColor: open ? "var(--pulso-primary)" : undefined,
+          color: open ? "var(--pulso-primary)" : undefined,
         }}
         title="Asignar a grupo existente"
       >
-        <ArrowDownToLine size={10} /> asignar
+        <ListPlus size={11} />
+        <span>asignar</span>
+        <ChevronDown size={9} style={{ marginLeft: 1, opacity: 0.7, transform: open ? "rotate(180deg)" : undefined, transition: "transform 120ms" }} />
       </button>
       {open && (
         <div
