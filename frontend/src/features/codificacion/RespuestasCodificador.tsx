@@ -603,7 +603,7 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
             <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 13, color: "var(--pulso-primary)", minWidth: 32, textAlign: "center", flexShrink: 0 }}>
               {grupo.codigo}
             </span>
-            <span style={{ flex: 1, fontSize: 13, fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{grupo.etiqueta}</span>
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 500, minWidth: 0, lineHeight: 1.35 }}>{grupo.etiqueta}</span>
             <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", background: "#eef3ff", padding: "2px 6px", borderRadius: 3, flexShrink: 0 }}>
               Existente
             </span>

@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Check, ChevronRight, Power } from "lucide-react";
+import { ChevronRight, Power } from "lucide-react";
 import { useSession } from "../lib/SessionContext";
 import { apiShutdown } from "../api/client";
 
@@ -70,7 +70,6 @@ function NavItem({ it }: { it: NavItem }) {
         {it.n}
       </span>
       <span>{it.label}</span>
-      {it.done && <Check size={13} strokeWidth={3} />}
     </NavLink>
   );
 }
