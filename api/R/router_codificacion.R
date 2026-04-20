@@ -631,12 +631,17 @@ mount_codificacion <- function(pr) {
 
       tipo <- as.character(row$tipo %||% "")
       modo_so <- as.character(row$modo_so %||% "")
-      # La columna efectiva para text/SO-hijo: text_col; SO-padre/integer: parent_col
+      # Columna efectiva: en text / SO-hijo / SM con text_col la cosa a
+      # codificar es el texto libre (p. ej. el "Otros, especifique"); en
+      # SO-padre y SM sin text_col / integer es el valor crudo.
       col <- if (tipo == "text" || (tipo == "select_one" && modo_so == "hijo")) {
         as.character(row$text_col %||% "")
       } else if (tipo == "select_one" && modo_so == "padre") {
         as.character(row$parent_col %||% "")
-      } else if (tipo %in% c("integer", "select_multiple")) {
+      } else if (tipo == "select_multiple") {
+        tc <- as.character(row$text_col %||% "")
+        if (nzchar(tc)) tc else as.character(row$parent_col %||% "")
+      } else if (tipo == "integer") {
         as.character(row$parent_col %||% "")
       } else ""
       if (!nzchar(col)) col <- parent  # fallback naming

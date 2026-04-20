@@ -25,7 +25,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
   });
   const [modoSo, setModoSo] = useState<"padre" | "hijo">(() => {
     if (pregunta.modo_so === "padre" || pregunta.modo_so === "hijo") return pregunta.modo_so;
-    return "hijo";
+    return "padre";
   });
   const [dummyCol, setDummyCol] = useState<string>(() => {
     const pj = pregunta.pareja;
@@ -173,18 +173,18 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <ModoOption
-                value="hijo"
-                current={modoSo}
-                onChange={setModoSo}
-                title="Codificar el texto libre (recomendado)"
-                description={`Agrupas las respuestas de texto que escribieron quienes eligieron "Otros" en ${pregunta.parent}. Ejemplo: "peruano", "peruana", "Perú" → código 1 "Peruano". Las opciones originales (1, 2, 3…) quedan tal cual.`}
-              />
-              <ModoOption
                 value="padre"
                 current={modoSo}
                 onChange={setModoSo}
-                title="Reagrupar las opciones originales"
-                description={`Reasignas códigos a las opciones ya existentes de ${pregunta.parent} (por ejemplo, juntas "Peruana" y "Otra" en una sola categoría). "${childCol}" queda como contexto de consulta.`}
+                title="Integrar el texto a las opciones originales (recomendado)"
+                description={`Los textos de "${childCol}" se vuelven nuevas opciones de ${pregunta.parent}. Ejemplo: si alguien eligió "Otra" y escribió "Venezolana", esa persona queda con código 2 "Venezolana" en ${pregunta.parent}. Lo no categorizable queda como "Otros".`}
+              />
+              <ModoOption
+                value="hijo"
+                current={modoSo}
+                onChange={setModoSo}
+                title="Codificar el texto como campo separado"
+                description={`Los textos de "${childCol}" se codifican en un campo aparte (${childCol}_recod) con sus propias categorías. Las opciones originales de ${pregunta.parent} no cambian. Útil cuando el texto representa otra dimensión distinta.`}
               />
             </div>
           </div>

@@ -799,9 +799,9 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     const modoLabel = needsDummy
       ? "Falta opción 'Otros'"
       : p.modo_so === "padre"
-      ? "Se recodifican las opciones"
+      ? "Texto se integra a las opciones"
       : p.modo_so === "hijo"
-      ? "Se codifica el texto libre"
+      ? "Texto se codifica aparte"
       : "Emparejada";
     const fresh = recentlyAdopted.has(p.parent);
 
@@ -830,13 +830,13 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         <div style={{ display: "grid", gridTemplateColumns: "1fr 16px 1fr", alignItems: "center", gap: 6, marginTop: 4 }}>
           <PairedSide
             title={p.parent}
-            subtitle={p.modo_so === "padre" ? "opciones que se recodifican" : p.modo_so === "hijo" ? "pregunta original" : "pregunta"}
+            subtitle={p.modo_so === "padre" ? "recibe nuevas opciones" : p.modo_so === "hijo" ? "queda tal cual" : "pregunta"}
             tone="primary"
           />
           <Link2 size={12} color="var(--pulso-primary)" />
           <PairedSide
             title={pareja.child_col}
-            subtitle={p.modo_so === "hijo" ? "texto que se codifica" : p.modo_so === "padre" ? "contexto de consulta" : "texto asociado"}
+            subtitle={p.modo_so === "padre" ? "texto se agrupa en opciones" : p.modo_so === "hijo" ? "se codifica en campo aparte" : "texto asociado"}
             tone="soft"
           />
         </div>

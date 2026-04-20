@@ -194,14 +194,17 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
 
   // Todos los arquetipos que codifican valores discretos o texto abierto
   // usan el mismo RespuestasCodificador (agrupar respuestas \u2192 c\u00f3digo).
-  // SO sin modo decidido se trata como "codificar valores originales"
-  // (modo padre impl\u00edcito) cuando el analista la marc\u00f3 manualmente.
+  // SM emparejada con text_col se codifica igual que SO-hijo (los textos
+  // libres de quienes marcaron "Otros"); el bridge xlsx final genera las
+  // nuevas columnas dummy. SO sin modo se trata como codificar valores
+  // originales (modo padre impl\u00edcito) cuando el analista la marc\u00f3.
   const codificableInline =
     arq === "solitaria" ||
     arq === "adoptada" ||
     arq === "huerfana" ||
     arq === "auto" || // integer
     arq === "pareja-so" ||
+    arq === "pareja-sm" || // SM con text_col
     arq === "config-so";
 
   return (
@@ -244,7 +247,6 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
             Esta pregunta tiene <strong>{p.n_respuestas}</strong> respuestas
             ({<strong>{p.n_unicas}</strong>} únicas) en la columna <code style={{ fontFamily: "monospace" }}>{p.col_efectiva}</code>.
             <br /><br />
-            {arq === "pareja-sm" && "Las preguntas de opción múltiple tienen su vista de codificación por opciones (en desarrollo, próximo commit)."}
             {arq === "no-aplica" && "Esta pregunta está desactivada."}
           </div>
         </div>
