@@ -751,7 +751,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         {stats}
         <div style={{ flex: 1 }} />
         <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-          <GripVertical size={11} /> Arrastra sobre su pregunta padre para emparejar
+          <GripVertical size={11} /> Arrástrala sobre la pregunta cerrada de donde proviene este texto, o marca para codificarla sola
         </div>
         {marcarFooter}
       </article>
@@ -1039,7 +1039,7 @@ function badgeConfig(arq: Arquetipo, paired: boolean, _tipoStyle: { bg: string; 
   // de la card (candidatos sugeridos, toggle "Incluir") indica la acción.
   if (arq === "auto") return { label: "Auto", bg: "#e6d9f2", fg: "#4a2d66", icon: Sparkles };
   if (arq === "solitaria") return { label: "Solitaria", bg: "#f3f4f6", fg: "#4b5563", icon: Check };
-  if (arq === "huerfana") return { label: "Huérfana", bg: "#fef3c7", fg: "#78350f", icon: CircleAlert };
+  if (arq === "huerfana") return { label: "Texto libre", bg: "#fef3c7", fg: "#78350f", icon: CircleAlert };
   if (arq === "adoptada") return { label: "Adoptada", bg: "#f0f4fa", fg: "#5f6b7a", icon: Link2 };
   if (arq === "no-aplica") return { label: "Inactiva", bg: "#f3f4f6", fg: "#9ca3af", icon: Check };
   if ((arq === "pareja-so" || arq === "pareja-sm") && paired) {
