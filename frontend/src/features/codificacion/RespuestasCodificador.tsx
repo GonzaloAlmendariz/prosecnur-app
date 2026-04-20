@@ -243,7 +243,14 @@ export function RespuestasCodificador({ parent }: Props) {
                     aria-label={`${assigned ? "Quitar" : "Agregar"} "${r.texto}" ${assigned ? `del grupo ${grupo!.etiqueta || grupo!.codigo}` : "al grupo activo"}`}
                   />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "var(--pulso-text)" }}>{r.texto}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: "var(--pulso-text)" }}>
+                      {r.label ? (
+                        <>
+                          <code style={{ fontFamily: "monospace", color: "var(--pulso-primary)", marginRight: 6 }}>{r.texto}</code>
+                          {r.label}
+                        </>
+                      ) : r.texto}
+                    </div>
                     <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", display: "flex", gap: 8 }}>
                       <span><strong>{r.frecuencia}</strong> {r.frecuencia === 1 ? "vez" : "veces"}</span>
                       {r.variantes > 1 && <span>{r.variantes} variantes</span>}
@@ -270,7 +277,7 @@ export function RespuestasCodificador({ parent }: Props) {
           </div>
           {grupos.length === 0 && (
             <div style={{ padding: 18, border: "2px dashed var(--pulso-border)", borderRadius: 8, textAlign: "center", fontSize: 13, color: "var(--pulso-text-soft)" }}>
-              Creá tu primer grupo con <strong>+ Nuevo grupo</strong> o marcá una respuesta para crearlo automáticamente.
+              Crea tu primer grupo con <strong>+ Nuevo grupo</strong> o marca una respuesta para crearlo automáticamente.
             </div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -420,7 +427,7 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
       </div>
       {grupo.respuestas.length === 0 && (
         <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic", padding: "6px 0" }}>
-          Aún sin respuestas. Marcá respuestas a la izquierda para agregarlas.
+          Aún sin respuestas. Marca respuestas a la izquierda para agregarlas.
         </div>
       )}
       {grupo.respuestas.length > 0 && (

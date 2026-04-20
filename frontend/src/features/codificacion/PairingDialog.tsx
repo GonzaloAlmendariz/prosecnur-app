@@ -174,14 +174,14 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
                 current={modoSo}
                 onChange={setModoSo}
                 title="Modo hijo (recomendado)"
-                description={`Creás categorías nuevas a partir del texto de "${childCol}". Ideal cuando la opción "Otros" tenía texto libre con variantes (ej. muchas respuestas distintas).`}
+                description={`Creas categorías nuevas a partir del texto de "${childCol}". Ideal cuando la opción "Otros" tenía texto libre con variantes (ej. muchas respuestas distintas).`}
               />
               <ModoOption
                 value="padre"
                 current={modoSo}
                 onChange={setModoSo}
                 title="Modo padre"
-                description={`Reescribís los valores del propio ${pregunta.parent} (recategorizás los niveles originales). "${childCol}" queda como referencia.`}
+                description={`Reescribes los valores del propio ${pregunta.parent} (recategorizás los niveles originales). "${childCol}" queda como referencia.`}
               />
             </div>
           </div>

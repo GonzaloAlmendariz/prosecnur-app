@@ -38,15 +38,15 @@ export default function PreguntaDetalle() {
   const arq = arquetipoOf(pregunta);
   const ts = TIPO_STYLE[pregunta.tipo] ?? TIPO_STYLE.text;
 
-  // Arquetipos donde el analista codifica agrupando texto:
-  //  - solitaria: text puro (Pulso_code)
-  //  - pareja-so con modo_so=hijo: text_col del "Otros" recodifica
-  //  - adoptada: la hija (text) de una SO/SM — su vista de codificación también va acá
-  const codificableTexto =
+  // Todos los arquetipos que codifican valores discretos o texto abierto
+  // usan el mismo RespuestasCodificador. Quedan afuera SM (columnar) y
+  // SO sin modo decidido.
+  const codificableInline =
     arq === "solitaria" ||
     arq === "adoptada" ||
     arq === "huerfana" ||
-    (arq === "pareja-so" && pregunta.modo_so === "hijo");
+    arq === "auto" || // integer
+    (arq === "pareja-so" && (pregunta.modo_so === "hijo" || pregunta.modo_so === "padre"));
 
   return (
     <section>
@@ -74,11 +74,11 @@ export default function PreguntaDetalle() {
       </div>
       <p className="pulso-page-lead">{pregunta.parent_label}</p>
 
-      {codificableTexto ? (
+      {codificableInline ? (
         <Panel
           eyebrow="Codificador"
-          title="Agrupá respuestas y asigná códigos"
-          hint={`Marcá las respuestas que pertenecen a un mismo concepto, agrupalas y asignales un código + etiqueta. Las respuestas con texto idéntico (tras normalizar acentos y mayúsculas) ya están agrupadas automáticamente. La columna que leemos es ${pregunta.col_efectiva}.`}
+          title="Agrupa respuestas y asigna códigos"
+          hint={`Marca las respuestas que pertenecen a un mismo concepto, agrúpalas y asígnales un código + etiqueta. Las respuestas con texto idéntico (tras normalizar acentos y mayúsculas) ya están agrupadas automáticamente. La columna que leemos es ${pregunta.col_efectiva}.`}
         >
           <RespuestasCodificador parent={pregunta.parent} />
         </Panel>
@@ -88,10 +88,10 @@ export default function PreguntaDetalle() {
             Esta pregunta tiene <strong>{pregunta.n_respuestas}</strong> respuestas
             ({<strong>{pregunta.n_unicas}</strong>} únicas) en la columna <code style={{ fontFamily: "monospace" }}>{pregunta.col_efectiva}</code>.
             <br /><br />
-            {arq === "auto" && "Las preguntas numéricas (integer) se recodifican con un flujo específico que llega en B3.3."}
-            {arq === "pareja-sm" && "Las preguntas de opción múltiple tienen su propia vista de codificación por opciones en B3.4."}
-            {(arq === "pareja-so" && pregunta.modo_so === "padre") && "El modo padre recodifica los valores originales — llega en B3.3."}
-            {(arq === "pareja-so" && !pregunta.modo_so) && "Falta decidir modo padre/hijo. Volvé al listado para emparejar con su 'Otros especifique'."}
+            {arq === "pareja-sm" && "Las preguntas de opción múltiple tienen su propia vista de codificación por opciones (próximo commit)."}
+            {(arq === "pareja-so" && !pregunta.modo_so) && "Falta decidir modo padre/hijo. Vuelve al listado para emparejar con su 'Otros, especifique'."}
+            {arq === "config-so" && "Configura esta pregunta desde el listado principal."}
+            {arq === "no-aplica" && "Esta pregunta está desactivada."}
           </div>
           {pregunta.preview && pregunta.preview.length > 0 && (
             <div style={{ marginTop: 16 }}>

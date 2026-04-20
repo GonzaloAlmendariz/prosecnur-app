@@ -60,8 +60,8 @@ export default function CodificacionPage() {
       <h1 className="pulso-page-title">Fase 3 — Codificación de preguntas abiertas</h1>
       <p className="pulso-page-lead">
         {step === "organizar"
-          ? "Organizá todas las preguntas: empareja SO/SM con sus 'Otros, especifique' y marcá las que querés codificar."
-          : "Codificá una por una las preguntas marcadas. Agrupá respuestas similares y asigná un código a cada grupo."}
+          ? "Organiza todas las preguntas: empareja SO/SM con sus 'Otros, especifique' y marca las que quieres codificar."
+          : "Codifica una por una las preguntas marcadas. Agrupa respuestas similares y asigna un código a cada grupo."}
       </p>
 
       {prereqOk && (
@@ -81,7 +81,7 @@ export default function CodificacionPage() {
           <PreguntasLanding />
           <div style={{ marginTop: 24, padding: 14, background: "var(--pulso-surface)", borderRadius: 6, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <div style={{ fontSize: 13 }}>
-              Cuando termines de emparejar y marcar, pasá a codificar cada pregunta.
+              Cuando termines de emparejar y marcar, pasa a codificar cada pregunta.
             </div>
             <div style={{ flex: 1 }} />
             <button className="pulso-primary" onClick={() => goStep("codificar")}>

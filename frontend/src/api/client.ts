@@ -477,6 +477,7 @@ export async function apiCodifPareja(parent: string, child_col: string, modo_so?
 export type RespuestaUnica = {
   texto_normalizado: string;
   texto: string;
+  label?: string; // Human label from inst$choices when SO/SM
   variantes: number;
   frecuencia: number;
   uuids: string[];

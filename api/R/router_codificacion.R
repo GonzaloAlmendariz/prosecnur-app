@@ -292,10 +292,25 @@
   )
 }
 
+# Build a code→label lookup for a choice list. Used to decorate SO/SM
+# responses with their human label (e.g. 1 → "Hombre"). Returns an empty
+# named list when list_name is empty or not found.
+.choices_lookup <- function(inst, list_name) {
+  if (is.null(inst$choices) || !nzchar(list_name %||% "")) return(character(0))
+  ch <- inst$choices
+  hit <- as.character(ch$list_name) == list_name
+  if (!any(hit)) return(character(0))
+  codes <- as.character(ch$name[hit])
+  labels <- as.character(ch$label[hit])
+  Encoding(labels) <- "UTF-8"
+  names(labels) <- codes
+  labels
+}
+
 # Given a parent/child_col pair, enumerate unique responses in data with
 # frequency + uuids (for audit). Used by the detail view of text / SO-hijo
 # to let the analyst group responses into coded families.
-.respuestas_unicas <- function(col, data_df) {
+.respuestas_unicas <- function(col, data_df, labels_lookup = character(0)) {
   if (!nzchar(col) || !col %in% names(data_df)) return(list())
   vals <- data_df[[col]]
   if (is.factor(vals)) vals <- as.character(vals)
@@ -321,9 +336,21 @@
     display <- names(raw_tab)[1]
     Encoding(display) <- "UTF-8"
     uuids_sample <- uuids[ixs[seq_len(min(10L, length(ixs)))]]
+    # Human label via choice list if available (SO/SM: the value is a code
+    # like "1" whose display label lives in inst$choices). For text/int
+    # without labels_lookup we pass "" and the UI hides the label.
+    label <- ""
+    if (length(labels_lookup) > 0L) {
+      lab <- labels_lookup[display]
+      if (!is.null(lab) && !is.na(lab) && nzchar(lab)) {
+        label <- as.character(lab)
+        Encoding(label) <- "UTF-8"
+      }
+    }
     list(
       texto_normalizado = k,
       texto = display,
+      label = label,
       variantes = as.integer(length(raw_tab)),
       frecuencia = as.integer(length(ixs)),
       uuids = uuids_sample
@@ -613,7 +640,18 @@ mount_codificacion <- function(pr) {
         as.character(row$parent_col %||% "")
       } else ""
       if (!nzchar(col)) col <- parent  # fallback naming
-      respuestas <- .respuestas_unicas(col, data_df)
+      # Decorate with choice labels when the column holds SO/SM codes that
+      # have a human label in inst$choices. For SO-padre the list is the
+      # one declared in the instrument; for SO-hijo, the text_col already
+      # contains free text so the lookup returns nothing (no harm).
+      inst <- s$codif_inst
+      list_name_for_lookup <- if (tipo %in% c("select_one", "select_multiple")) {
+        as.character(row$list_norm %||% "")
+      } else ""
+      labels_lookup <- if (!is.null(inst) && nzchar(list_name_for_lookup)) {
+        .choices_lookup(inst, list_name_for_lookup)
+      } else character(0)
+      respuestas <- .respuestas_unicas(col, data_df, labels_lookup)
 
       grupos <- s$codif_grupos_recod[[parent]] %||% list()
       list(

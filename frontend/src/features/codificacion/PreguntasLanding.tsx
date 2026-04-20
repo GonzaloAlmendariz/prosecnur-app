@@ -751,7 +751,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         {stats}
         <div style={{ flex: 1 }} />
         <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-          <GripVertical size={11} /> Arrastrá sobre su pregunta padre para emparejar
+          <GripVertical size={11} /> Arrastra sobre su pregunta padre para emparejar
         </div>
         {marcarFooter}
       </article>

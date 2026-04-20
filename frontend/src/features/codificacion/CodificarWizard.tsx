@@ -70,7 +70,7 @@ export function CodificarWizard({ onBackToOrganizar, onApply, applyBusy }: Props
       <div style={{ padding: 40, textAlign: "center", background: "white", border: "1px solid var(--pulso-border)", borderRadius: 8 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>No hay preguntas marcadas para codificar</h3>
         <p style={{ fontSize: 13, color: "var(--pulso-text-soft)", marginTop: 8 }}>
-          Volvé al paso <strong>1. Organizar</strong> y marcá las preguntas que querés codificar (o emparejá las SO/SM con sus "Otros, especifique").
+          Vuelve al paso <strong>1. Organizar</strong> y marca las preguntas que quieres codificar (o empareja las SO/SM con sus "Otros, especifique").
         </p>
         <button className="pulso-primary" onClick={onBackToOrganizar} style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
           <ArrowLeft size={14} /> Volver a organizar
@@ -127,7 +127,7 @@ export function CodificarWizard({ onBackToOrganizar, onApply, applyBusy }: Props
             nextLabel={activeIdx < marcadas.length - 1 ? marcadas[activeIdx + 1].parent : ""}
           />
         ) : (
-          <Alert kind="info">Seleccioná una pregunta del listado de la izquierda.</Alert>
+          <Alert kind="info">Selecciona una pregunta del listado de la izquierda.</Alert>
         )}
       </main>
     </div>
@@ -191,11 +191,17 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
   const arq = arquetipoOf(p);
   const ts = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
 
-  const codificableTexto =
+  // Todos los arquetipos que codifican valores discretos o texto abierto
+  // usan el mismo RespuestasCodificador (agrupar respuestas \u2192 c\u00f3digo).
+  // SO sin modo decidido se trata como "codificar valores originales"
+  // (modo padre impl\u00edcito) cuando el analista la marc\u00f3 manualmente.
+  const codificableInline =
     arq === "solitaria" ||
     arq === "adoptada" ||
     arq === "huerfana" ||
-    (arq === "pareja-so" && p.modo_so === "hijo");
+    arq === "auto" || // integer
+    arq === "pareja-so" ||
+    arq === "config-so";
 
   return (
     <section>
@@ -227,7 +233,7 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
       </div>
 
       {/* Codificador */}
-      {codificableTexto ? (
+      {codificableInline ? (
         <RespuestasCodificador parent={p.parent} />
       ) : (
         <div style={{ padding: 18, background: "white", border: "1px solid var(--pulso-border)", borderRadius: 8 }}>
@@ -235,9 +241,8 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
             Esta pregunta tiene <strong>{p.n_respuestas}</strong> respuestas
             ({<strong>{p.n_unicas}</strong>} únicas) en la columna <code style={{ fontFamily: "monospace" }}>{p.col_efectiva}</code>.
             <br /><br />
-            {arq === "auto" && "Las preguntas numéricas (integer) se recodifican con un flujo específico (en desarrollo, B3.3)."}
-            {arq === "pareja-sm" && "Las preguntas de opción múltiple tienen su vista de codificación por opciones (en desarrollo, B3.4)."}
-            {(arq === "pareja-so" && p.modo_so === "padre") && "El modo padre recodifica los valores originales (en desarrollo, B3.3)."}
+            {arq === "pareja-sm" && "Las preguntas de opción múltiple tienen su vista de codificación por opciones (en desarrollo, próximo commit)."}
+            {arq === "no-aplica" && "Esta pregunta está desactivada."}
           </div>
         </div>
       )}
