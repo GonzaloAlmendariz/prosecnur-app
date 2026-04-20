@@ -5,6 +5,7 @@ import { useSession } from "../../lib/SessionContext";
 import { Panel } from "../../components/Panel";
 import { Alert } from "../../components/Alert";
 import { useAnaliticaStore } from "./store";
+import { SeccionesEditor } from "./SeccionesEditor";
 
 // Paso 1 — Preparar.
 // En B1 (commit actual) solo expone el botón de preparar datos + muestra
@@ -19,6 +20,7 @@ export function PrepararPane() {
   const [prep, setPrep] = useState<{ fuente: string; n_filas: number; n_columnas: number } | null>(null);
   const fuentePreferida = useAnaliticaStore((s) => s.config.fuente_preferida);
 
+  const setFuente = useAnaliticaStore((s) => s.setFuente);
   const prepOk = !!state?.analitica_prep_ok;
   const fuenteActual = state?.analitica_fuente ?? prep?.fuente ?? "desconocida";
   const usandoAdaptados = fuenteActual === "adaptados";
@@ -91,15 +93,34 @@ export function PrepararPane() {
           >
             <Play size={14} /> {prepOk ? "Volver a preparar" : "Preparar datos"}
           </button>
-          {fuentePreferida !== "auto" && (
-            <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
-              (forzada: {fuentePreferida})
-            </span>
-          )}
+
+          <div style={{ display: "inline-flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", textTransform: "uppercase", fontWeight: 600, letterSpacing: 0.3 }}>Fuente</span>
+            {(["auto", "adaptados", "originales"] as const).map((f) => (
+              <label
+                key={f}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "3px 10px", borderRadius: 999,
+                  border: `1px solid ${fuentePreferida === f ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+                  background: fuentePreferida === f ? "var(--pulso-primary-soft)" : "white",
+                  cursor: "pointer", fontSize: 11,
+                }}
+              >
+                <input
+                  type="radio"
+                  checked={fuentePreferida === f}
+                  onChange={() => setFuente(f)}
+                  style={{ margin: 0 }}
+                />
+                {f === "auto" ? "Automática" : f === "adaptados" ? "Data codificada" : "Data original"}
+              </label>
+            ))}
+          </div>
         </div>
       </Panel>
 
-      {/* B2: aquí irá SeccionesEditor con detección automática + edición manual */}
+      {prepOk && <SeccionesEditor />}
 
       {error && <Alert kind="error">{error}</Alert>}
     </section>

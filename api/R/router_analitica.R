@@ -1,8 +1,26 @@
 .analitica_fuentes <- function(sid) {
   s <- session_get(sid)
-  if (isTRUE(s$codif_aplicado)
-      && !is.null(s$codif_inst_adaptado_fid)
-      && !is.null(s$codif_data_adaptada_fid)) {
+  tiene_adaptados <- isTRUE(s$codif_aplicado) &&
+                     !is.null(s$codif_inst_adaptado_fid) &&
+                     !is.null(s$codif_data_adaptada_fid)
+
+  # El analista puede forzar la fuente desde el config del store
+  # (PrepararPane → toggle "Fuente"). "auto" → adaptados si existen,
+  # "originales" → fuerza crudos, "adaptados" → exige adaptados.
+  pref <- as.character((s$analitica_config %||% list())$fuente_preferida %||% "auto")
+  if (!pref %in% c("auto", "originales", "adaptados")) pref <- "auto"
+
+  usar_adaptados <- switch(pref,
+    "auto" = tiene_adaptados,
+    "adaptados" = TRUE,
+    "originales" = FALSE
+  )
+
+  if (usar_adaptados) {
+    if (!tiene_adaptados) {
+      stop_api(409, "E_NO_ADAPTADOS",
+        "No hay data adaptada disponible. Corre la Fase 3 (Codificación) o cambia la fuente a 'Automática' o 'Data original'.")
+    }
     list(
       inst_path = get_file(sid, s$codif_inst_adaptado_fid)$path,
       data_meta = get_file(sid, s$codif_data_adaptada_fid),
@@ -25,6 +43,120 @@
   ok <- !is.na(survey$name) & nzchar(survey$name)
   tapply(survey$name[ok], grupo[ok], function(v) unique(v), simplify = FALSE) |>
     as.list()
+}
+
+# Walk survey$type en orden y construye secciones desde begin_group /
+# end_group con etiqueta en español preferida (misma lógica que
+# `.section_map` de router_codificacion.R pero devolviendo secciones
+# en el shape que la UI consume: [{id, nombre, variables, orden}]).
+# Preserva orden, soporta nesting (usamos el group más interno por var).
+.detect_secciones_analitica <- function(rp_inst) {
+  sv <- rp_inst$survey
+  if (is.null(sv) || nrow(sv) == 0L || !"name" %in% names(sv)) return(list())
+
+  # Label preference: survey_raw's label::Spanish si existe.
+  label_raw <- rep("", nrow(sv))
+  if (!is.null(rp_inst$survey_raw)) {
+    lab_idx <- grep("^label", tolower(names(rp_inst$survey_raw)))
+    if (length(lab_idx) > 0L) {
+      sp_idx <- grep("spanish|español", tolower(names(rp_inst$survey_raw)[lab_idx]))
+      pick <- if (length(sp_idx) > 0L) lab_idx[sp_idx[1]] else lab_idx[1]
+      lab_col <- as.character(rp_inst$survey_raw[[pick]])
+      if (length(lab_col) == nrow(sv)) label_raw <- lab_col
+    }
+  }
+  if (all(label_raw == "") && "label" %in% names(sv)) label_raw <- as.character(sv$label)
+  label_raw[is.na(label_raw)] <- ""
+  Encoding(label_raw) <- "UTF-8"
+
+  # Walk para asignar cada variable al group más interno (stack approach).
+  stack_name <- character(0)
+  stack_label <- character(0)
+  seccion_orden <- list()   # id -> {nombre, variables, orden}
+  orden_counter <- 0L
+
+  for (i in seq_len(nrow(sv))) {
+    t <- as.character(sv$type[i] %||% "")
+    nm <- as.character(sv$name[i] %||% "")
+    lb <- label_raw[i]
+    if (t == "begin_group" || t == "begin_repeat") {
+      stack_name <- c(stack_name, nm)
+      stack_label <- c(stack_label, if (nzchar(lb)) lb else nm)
+    } else if (t == "end_group" || t == "end_repeat") {
+      if (length(stack_name) > 0L) {
+        stack_name <- stack_name[-length(stack_name)]
+        stack_label <- stack_label[-length(stack_label)]
+      }
+    } else if (nzchar(nm)) {
+      # Variable data: asignarla al group más interno actual (o "general"
+      # si estamos en top-level).
+      seccion_id <- if (length(stack_name) > 0L) stack_name[length(stack_name)] else "general"
+      seccion_lb <- if (length(stack_label) > 0L) stack_label[length(stack_label)] else "General"
+      if (is.null(seccion_orden[[seccion_id]])) {
+        orden_counter <- orden_counter + 1L
+        seccion_orden[[seccion_id]] <- list(
+          nombre = seccion_lb,
+          variables = character(0),
+          orden = orden_counter - 1L  # 0-indexed para frontend
+        )
+      }
+      seccion_orden[[seccion_id]]$variables <- c(
+        seccion_orden[[seccion_id]]$variables, nm
+      )
+    }
+  }
+
+  # Convertir a lista de secciones ordenadas por `orden`.
+  if (length(seccion_orden) == 0L) return(list())
+  ids <- names(seccion_orden)
+  ordenes <- vapply(seccion_orden, function(x) as.integer(x$orden), integer(1))
+  ids <- ids[order(ordenes)]
+  lapply(ids, function(id) {
+    s <- seccion_orden[[id]]
+    list(
+      id = id,
+      nombre = s$nombre,
+      variables = as.list(unique(s$variables)),
+      oculto = FALSE,
+      orden = as.integer(s$orden)
+    )
+  })
+}
+
+# Lista de variables del instrumento para alimentar dropdowns de la UI.
+# Filtra filas que no son data (begin_group, end_group, note).
+.variables_desde_instrumento <- function(rp_inst) {
+  sv <- rp_inst$survey
+  if (is.null(sv) || nrow(sv) == 0L || !"name" %in% names(sv)) return(list())
+  label_raw <- rep("", nrow(sv))
+  if (!is.null(rp_inst$survey_raw)) {
+    lab_idx <- grep("^label", tolower(names(rp_inst$survey_raw)))
+    if (length(lab_idx) > 0L) {
+      sp_idx <- grep("spanish|español", tolower(names(rp_inst$survey_raw)[lab_idx]))
+      pick <- if (length(sp_idx) > 0L) lab_idx[sp_idx[1]] else lab_idx[1]
+      lab_col <- as.character(rp_inst$survey_raw[[pick]])
+      if (length(lab_col) == nrow(sv)) label_raw <- lab_col
+    }
+  }
+  if (all(label_raw == "") && "label" %in% names(sv)) label_raw <- as.character(sv$label)
+  label_raw[is.na(label_raw)] <- ""
+  Encoding(label_raw) <- "UTF-8"
+
+  tipos <- as.character(sv$type %||% "")
+  base_tipos <- sub("\\s.*$", "", tipos)
+  list_names <- trimws(sub("^\\S+\\s*", "", tipos))
+
+  keep <- !is.na(sv$name) & nzchar(sv$name) &
+          !base_tipos %in% c("begin_group","end_group","begin_repeat","end_repeat","note","calculate","start","end","deviceid","today")
+  idx <- which(keep)
+  lapply(idx, function(i) {
+    list(
+      name = as.character(sv$name[i]),
+      label = label_raw[i],
+      tipo = base_tipos[i],
+      list_name = list_names[i]
+    )
+  })
 }
 
 .load_rp_data <- function(sid) {
@@ -131,6 +263,25 @@ mount_analitica <- function(pr) {
         exported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
         config = s$analitica_config %||% .analitica_default_config()
       )
+    })) |>
+    plumber::pr_post("/api/analitica/detect-secciones", wrap_endpoint(function(req, res) {
+      # Devuelve las secciones detectadas desde begin_group/end_group del
+      # XLSForm ya preparado. Respeta orden del instrumento. Requiere
+      # haber corrido /preparar antes.
+      sid <- session_header(req)
+      ctx <- .load_rp_data(sid)
+      secciones <- .detect_secciones_analitica(ctx$rp_inst)
+      list(ok = TRUE, secciones = secciones)
+    })) |>
+    plumber::pr_get("/api/analitica/variables", wrap_endpoint(function(req, res) {
+      # Lista las variables del instrumento para alimentar dropdowns /
+      # multiselects del frontend. Cada entry trae name + label + tipo +
+      # list_name, filtrando filas estructurales (begin_group, note,
+      # calculate, etc.).
+      sid <- session_header(req)
+      ctx <- .load_rp_data(sid)
+      variables <- .variables_desde_instrumento(ctx$rp_inst)
+      list(ok = TRUE, variables = variables)
     })) |>
     plumber::pr_post("/api/analitica/config/import", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

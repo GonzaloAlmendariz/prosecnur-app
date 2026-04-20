@@ -677,6 +677,33 @@ export async function apiAnaliticaPreparar() {
   );
 }
 
+export type SeccionDetectada = {
+  id: string;
+  nombre: string;
+  variables: string[];
+  oculto: boolean;
+  orden: number;
+};
+
+export async function apiAnaliticaDetectSecciones() {
+  return handle<{ ok: true; secciones: SeccionDetectada[] }>(
+    await fetch("/api/analitica/detect-secciones", { method: "POST", headers: headers() })
+  );
+}
+
+export type VariableInstrumento = {
+  name: string;
+  label: string;
+  tipo: string;
+  list_name: string;
+};
+
+export async function apiAnaliticaVariables() {
+  return handle<{ ok: true; variables: VariableInstrumento[] }>(
+    await fetch("/api/analitica/variables", { headers: headers() })
+  );
+}
+
 export async function apiAnaliticaCodebook() {
   return handle<{ ok: true; file_id: string; size: number }>(
     await fetch("/api/analitica/codebook", { method: "POST", headers: headers() })
