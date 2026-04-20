@@ -5,6 +5,7 @@ import { apiCodifPreguntasAbiertas, arquetipoOf, PreguntaAbierta } from "../../a
 import { Alert } from "../../components/Alert";
 import { Panel } from "../../components/Panel";
 import { RespuestasCodificador } from "./RespuestasCodificador";
+import { IntegerCodificador } from "./IntegerCodificador";
 
 const TIPO_STYLE: Record<string, { bg: string; fg: string; label: string }> = {
   select_multiple: { bg: "var(--tipo-sm-bg)", fg: "var(--tipo-sm-fg)", label: "Múltiple" },
@@ -80,7 +81,9 @@ export default function PreguntaDetalle() {
           title="Agrupa respuestas y asigna códigos"
           hint={`Marca las respuestas que pertenecen a un mismo concepto, agrúpalas y asígnales un código + etiqueta. Las respuestas con texto idéntico (tras normalizar acentos y mayúsculas) ya están agrupadas automáticamente. La columna que leemos es ${pregunta.col_efectiva}.`}
         >
-          <RespuestasCodificador parent={pregunta.parent} />
+          {arq === "auto"
+            ? <IntegerCodificador parent={pregunta.parent} />
+            : <RespuestasCodificador parent={pregunta.parent} />}
         </Panel>
       ) : (
         <Panel eyebrow={arq.replace("-", " ")} title="Esta vista llega en la próxima sub-parte">

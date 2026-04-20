@@ -483,11 +483,19 @@ export type RespuestaUnica = {
   uuids: string[];
 };
 
+export type ReglaIntegerRango = { tipo: "range"; min: number | null; max: number | null };
+export type ReglaIntegerValores = { tipo: "values"; values: string[] };
+export type ReglaInteger = ReglaIntegerRango | ReglaIntegerValores;
+
 export type Grupo = {
   id: string;
   codigo: string;
   etiqueta: string;
-  respuestas: string[]; // texto_normalizado
+  respuestas: string[]; // texto_normalizado. Para integer con regla, lo
+                        // calcula el cliente como preview (cubre X valores)
+                        // y el backend usa este campo para status.
+  regla?: ReglaInteger; // Solo para integer. Cuando existe, respuestas se
+                        // computa desde la regla en el frontend.
 };
 
 export type RespuestasResponse = {

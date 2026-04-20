@@ -8,6 +8,7 @@ import {
 } from "../../api/client";
 import { Alert } from "../../components/Alert";
 import { RespuestasCodificador } from "./RespuestasCodificador";
+import { IntegerCodificador } from "./IntegerCodificador";
 
 type Props = {
   onBackToOrganizar: () => void;
@@ -234,7 +235,9 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
 
       {/* Codificador */}
       {codificableInline ? (
-        <RespuestasCodificador parent={p.parent} />
+        arq === "auto"
+          ? <IntegerCodificador parent={p.parent} />
+          : <RespuestasCodificador parent={p.parent} />
       ) : (
         <div style={{ padding: 18, background: "white", border: "1px solid var(--pulso-border)", borderRadius: 8 }}>
           <div style={{ fontSize: 13, color: "var(--pulso-text-soft)", lineHeight: 1.6 }}>
