@@ -636,6 +636,41 @@ export async function apiCodifPlantillaCodigosSubir(file_id: string) {
 
 // ---------- Analítica ----------
 
+// Config es opaca a nivel API — el frontend define el schema (store.ts) y
+// el backend solo la persiste como kv. `unknown` acá evita duplicar la
+// definición; los panes la tipan con `AnaliticaConfig` via import directo.
+export async function apiAnaliticaConfigGet() {
+  return handle<{ ok: true; config: unknown }>(
+    await fetch("/api/analitica/config", { headers: headers() })
+  );
+}
+
+export async function apiAnaliticaConfigPut(config: unknown) {
+  return handle<{ ok: true; saved_at: string }>(
+    await fetch("/api/analitica/config", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    })
+  );
+}
+
+export async function apiAnaliticaConfigExport() {
+  return handle<{ ok: true; version: string; exported_at: string; config: unknown }>(
+    await fetch("/api/analitica/config/export", { headers: headers() })
+  );
+}
+
+export async function apiAnaliticaConfigImport(bundle: unknown) {
+  return handle<{ ok: true; imported_at: string }>(
+    await fetch("/api/analitica/config/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(bundle),
+    })
+  );
+}
+
 export async function apiAnaliticaPreparar() {
   return handle<{ ok: true; fuente: string; n_filas: number; n_columnas: number }>(
     await fetch("/api/analitica/preparar", { method: "POST", headers: headers() })

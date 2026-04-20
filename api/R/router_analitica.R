@@ -47,8 +47,110 @@
   zip_path
 }
 
+# Default de configuración (mirrors defaults del frontend store.ts).
+# Se usa cuando el session store no tiene aún una config grabada.
+.analitica_default_config <- function() {
+  list(
+    version = 1L,
+    fuente_preferida = "auto",
+    secciones = list(),
+    numericas = list(),
+    codebook = list(
+      codigos_solo_si_presentes = as.list(c(96L, 97L, 98L, 99L))
+    ),
+    frecuencias = list(
+      secciones_activas = list(),
+      orden = "desc",
+      mostrar_todo = FALSE
+    ),
+    cruces = list(
+      cruces_vars = list(),
+      modo = "estandar",
+      show_sig = TRUE,
+      alpha = 0.05,
+      incluir_total = TRUE,
+      brecha = list(filas = FALSE, cols = FALSE),
+      semaforo = list(
+        activo = FALSE,
+        cortes = as.list(c(50L, 75L)),
+        modo = "grupos",
+        colores = list(rojo = "#F8D7DA", amarillo = "#FFF3CD", verde = "#D4EDDA")
+      )
+    ),
+    enumeradores = list(
+      col_enumerador = "Enumerator_name",
+      cols_corte = list(),
+      modalidades_esperadas = as.list(c("Presencial", "Telefónica")),
+      mostrar_vacias = FALSE,
+      titulo = "Producción de Enumeradores",
+      min_encuestas = 0L,
+      ordenar_por = "total",
+      modalidad_reglas = list(),
+      modalidad_default = "Presencial"
+    )
+  )
+}
+
 mount_analitica <- function(pr) {
   pr |>
+    plumber::pr_get("/api/analitica/config", wrap_endpoint(function(req, res) {
+      # Devuelve la config persistida (o defaults). La UI la hidrata en su
+      # store al montarse `AnaliticaPage` y escribe cambios vía autosave
+      # contra POST /config.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      cfg <- s$analitica_config %||% .analitica_default_config()
+      list(ok = TRUE, config = cfg)
+    })) |>
+    plumber::pr_post("/api/analitica/config", wrap_endpoint(function(req, res, ...) {
+      # Recibe la config completa desde el autosave del frontend. No
+      # validamos schema aquí (el frontend ya lo garantiza); el backend
+      # es un "kv store" para esta sub-clave.
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      cfg <- parsed$config
+      if (is.null(cfg)) stop_api(400, "E_NO_CONFIG", "Body debe incluir 'config'.")
+      session_set(sid, "analitica_config", cfg)
+      list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+    })) |>
+    plumber::pr_get("/api/analitica/config/export", wrap_endpoint(function(req, res) {
+      # Export del estado completo (config + flags de generación) para que
+      # el analista pueda guardarlo a disco / compartirlo. Mismo patrón que
+      # Fase 3 /api/codificacion/export-json.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      list(
+        ok = TRUE,
+        version = "analitica/1.0",
+        exported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+        config = s$analitica_config %||% .analitica_default_config()
+      )
+    })) |>
+    plumber::pr_post("/api/analitica/config/import", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      v <- as.character(parsed$version %||% "")
+      if (!startsWith(v, "analitica/")) {
+        stop_api(400, "E_BAD_VERSION",
+          sprintf("JSON no es de analítica (version='%s'). Se espera 'analitica/1.x'.", v))
+      }
+      cfg <- parsed$config
+      if (is.null(cfg)) stop_api(400, "E_NO_CONFIG", "El JSON no trae 'config'.")
+      session_set(sid, "analitica_config", cfg)
+      list(ok = TRUE, imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+    })) |>
     plumber::pr_post("/api/analitica/preparar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       src <- .analitica_fuentes(sid)
