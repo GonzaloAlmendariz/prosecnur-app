@@ -55,7 +55,7 @@ function prefersReducedMotion(): boolean {
 
 function escapeAttr(s: string): string { return s.replace(/"/g, '\\"'); }
 
-type Filter = "para-codificar" | "todas" | "por-emparejar" | "completas";
+type Filter = "todas" | "emparejadas" | "por-codificar" | "codificadas";
 
 const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label: string }> = {
   select_multiple: { bg: "var(--tipo-sm-bg)", border: "var(--tipo-sm-border)", fg: "var(--tipo-sm-fg)", label: "Múltiple" },
@@ -67,7 +67,7 @@ const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label
 export function PreguntasLanding() {
   const [data, setData] = useState<PreguntaAbierta[] | null>(null);
   const [error, setError] = useState<string>("");
-  const [filter, setFilter] = useState<Filter>("para-codificar");
+  const [filter, setFilter] = useState<Filter>("todas");
   const [query, setQuery] = useState<string>("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [pairingFor, setPairingFor] = useState<{ parent: PreguntaAbierta; preselectedChild?: string } | null>(null);
@@ -226,17 +226,15 @@ export function PreguntasLanding() {
   }, [data]);
 
   const counts = useMemo(() => {
-    if (!data) return { total: 0, paraCodificar: 0, porEmparejar: 0, completas: 0, noAplica: 0 };
-    let paraCodificar = 0, porEmparejar = 0, completas = 0, noAplica = 0;
+    if (!data) return { total: 0, emparejadas: 0, porCodificar: 0, codificadas: 0 };
+    let emparejadas = 0, porCodificar = 0, codificadas = 0;
     for (const p of data) {
-      const arq = arquetipoOf(p, adoptedBy);
-      if (p.status === "no-aplica") noAplica++;
-      else if (p.status === "completo") completas++;
-      if (p.marcada) paraCodificar++;
-      if ((arq === "pareja-so" || arq === "pareja-sm") && !isPaired(p)) porEmparejar++;
+      if (isPaired(p)) emparejadas++;
+      if (p.marcada && p.status !== "completo") porCodificar++;
+      if (p.status === "completo") codificadas++;
     }
-    return { total: data.length, paraCodificar, porEmparejar, completas, noAplica };
-  }, [data, adoptedBy]);
+    return { total: data.length, emparejadas, porCodificar, codificadas };
+  }, [data]);
 
   const visibleSections = useMemo(() => {
     if (!data) return [];
@@ -245,11 +243,9 @@ export function PreguntasLanding() {
       const arq = arquetipoOf(p, adoptedBy);
       // Ocultar adoptadas de filtros operativos (solo visibles en "todas")
       if (arq === "adoptada" && filter !== "todas") return false;
-      if (filter === "por-emparejar") {
-        return (arq === "pareja-so" || arq === "pareja-sm") && !isPaired(p);
-      }
-      if (filter === "completas") return p.status === "completo";
-      if (filter === "para-codificar") return p.marcada;
+      if (filter === "emparejadas") return isPaired(p);
+      if (filter === "por-codificar") return p.marcada && p.status !== "completo";
+      if (filter === "codificadas") return p.status === "completo";
       return true; // todas
     };
     const matchesQ = (p: PreguntaAbierta): boolean => {
@@ -341,10 +337,10 @@ export function PreguntasLanding() {
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
     <div>
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-        <FilterChip label={`Para codificar (${counts.paraCodificar})`} active={filter === "para-codificar"} onClick={() => setFilter("para-codificar")} />
-        <FilterChip label={`Por emparejar (${counts.porEmparejar})`} active={filter === "por-emparejar"} onClick={() => setFilter("por-emparejar")} accent={counts.porEmparejar > 0} />
-        <FilterChip label={`Completas (${counts.completas})`} active={filter === "completas"} onClick={() => setFilter("completas")} />
         <FilterChip label={`Todas (${counts.total})`} active={filter === "todas"} onClick={() => setFilter("todas")} />
+        <FilterChip label={`Emparejadas (${counts.emparejadas})`} active={filter === "emparejadas"} onClick={() => setFilter("emparejadas")} />
+        <FilterChip label={`Por codificar (${counts.porCodificar})`} active={filter === "por-codificar"} onClick={() => setFilter("por-codificar")} />
+        <FilterChip label={`Codificadas (${counts.codificadas})`} active={filter === "codificadas"} onClick={() => setFilter("codificadas")} />
         <div style={{ flex: 1 }} />
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <Search size={14} color="var(--pulso-text-soft)" />
@@ -463,11 +459,8 @@ type SectionProps = {
 };
 
 function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onScrollToPadre, onToggleMarcada }: SectionProps) {
-  const porEmparejar = preguntas.filter((p) => {
-    const arq = arquetipoOf(p, adoptedBy);
-    return (arq === "pareja-so" || arq === "pareja-sm") && !isPaired(p);
-  }).length;
-  const completas = preguntas.filter((p) => p.status === "completo").length;
+  const emparejadas = preguntas.filter((p) => isPaired(p)).length;
+  const codificadas = preguntas.filter((p) => p.status === "completo").length;
 
   return (
     <section aria-labelledby={`sec-${id}`} style={{ marginBottom: 22 }}>
@@ -493,8 +486,8 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
         </h2>
         <span style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
           {preguntas.length} {preguntas.length === 1 ? "pregunta" : "preguntas"}
-          {porEmparejar > 0 && <> · <strong style={{ color: "#8a5000" }}>{porEmparejar} por emparejar</strong></>}
-          {completas > 0 && <> · <strong style={{ color: "#166534" }}>{completas} {completas === 1 ? "completa" : "completas"}</strong></>}
+          {emparejadas > 0 && <> · <strong style={{ color: "var(--pulso-primary)" }}>{emparejadas} {emparejadas === 1 ? "emparejada" : "emparejadas"}</strong></>}
+          {codificadas > 0 && <> · <strong style={{ color: "#166534" }}>{codificadas} {codificadas === 1 ? "codificada" : "codificadas"}</strong></>}
         </span>
       </header>
       {!collapsed && (
@@ -1027,27 +1020,33 @@ function PairedSide({ title, subtitle, tone }: { title: string; subtitle: string
 }
 
 function ArquetipoBadge({ arq, paired, tipoStyle }: { arq: Arquetipo; paired: boolean; tipoStyle: { bg: string; fg: string } }) {
-  const { label, bg, fg, icon: Icon } = badgeConfig(arq, paired, tipoStyle);
+  const cfg = badgeConfig(arq, paired, tipoStyle);
+  if (!cfg) return null;
+  const Icon = cfg.icon;
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 4, background: bg, color: fg, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 4, background: cfg.bg, color: cfg.fg, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>
       <Icon size={10} />
-      {label}
+      {cfg.label}
     </span>
   );
 }
 
-function badgeConfig(arq: Arquetipo, paired: boolean, _tipoStyle: { bg: string; fg: string }): { label: string; bg: string; fg: string; icon: typeof Check } {
+type BadgeCfg = { label: string; bg: string; fg: string; icon: typeof Check };
+
+function badgeConfig(arq: Arquetipo, paired: boolean, _tipoStyle: { bg: string; fg: string }): BadgeCfg | null {
+  // El "no-emparejamiento" NO es un status — las SO/SM pueden codificarse
+  // solas. Por lo tanto una pareja sin pareja no lleva badge; el contenido
+  // de la card (candidatos sugeridos, toggle "Incluir") indica la acción.
   if (arq === "auto") return { label: "Auto", bg: "#e6d9f2", fg: "#4a2d66", icon: Sparkles };
   if (arq === "solitaria") return { label: "Solitaria", bg: "#f3f4f6", fg: "#4b5563", icon: Check };
   if (arq === "huerfana") return { label: "Huérfana", bg: "#fef3c7", fg: "#78350f", icon: CircleAlert };
-  if (arq === "config-so") return { label: "Configurar", bg: "#fef3c7", fg: "#78350f", icon: Settings2 };
+  if (arq === "adoptada") return { label: "Adoptada", bg: "#f0f4fa", fg: "#5f6b7a", icon: Link2 };
   if (arq === "no-aplica") return { label: "Inactiva", bg: "#f3f4f6", fg: "#9ca3af", icon: Check };
-  if (arq === "pareja-so" || arq === "pareja-sm") {
-    return paired
-      ? { label: "Emparejada", bg: "#dcfce7", fg: "#166534", icon: Link2 }
-      : { label: "Por emparejar", bg: "#fff4e0", fg: "#8a5000", icon: Link2Off };
+  if ((arq === "pareja-so" || arq === "pareja-sm") && paired) {
+    return { label: "Emparejada", bg: "#dcfce7", fg: "#166534", icon: Link2 };
   }
-  return { label: "Pendiente", bg: "#eff6ff", fg: "#1d4ed8", icon: Check };
+  // pareja-so/sm sin emparejar, o config-so: sin badge de error.
+  return null;
 }
 
 function ConfBadge({ conf }: { conf: number }) {
