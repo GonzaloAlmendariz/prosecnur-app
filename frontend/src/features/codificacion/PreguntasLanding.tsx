@@ -22,7 +22,6 @@ import {
   Link2,
   Link2Off,
   Search,
-  Settings2,
   Sparkles,
   Wand2,
 } from "lucide-react";
@@ -758,23 +757,6 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     );
   }
 
-  // CASE 4: config-so (SO sin modo y sin candidatos)
-  if (arq === "config-so") {
-    return (
-      <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={common}>
-        {header}
-        {label}
-        {tipoRow}
-        <div style={{ flex: 1 }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--pulso-text-soft)" }}>
-          <Settings2 size={12} />
-          <span>Sin candidatos de "Otros" automáticos. Configurá en modo avanzado.</span>
-        </div>
-        {marcarFooter}
-      </article>
-    );
-  }
-
   // CASE 5: no-aplica
   if (arq === "no-aplica") {
     return (
@@ -928,7 +910,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         </div>
       ) : (
         <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
-          Sin candidatos automáticos. Podés emparejar manualmente o marcarla como "sin Otros".
+          No se detectó una columna de "Otros, especifique" automáticamente. Puedes emparejarla manualmente con cualquier columna del dataset.
         </div>
       )}
       <div style={{ flex: 1 }} />

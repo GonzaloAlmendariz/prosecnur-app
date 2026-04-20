@@ -507,7 +507,12 @@ export type Grupo = {
                         // y el backend usa este campo para status.
   regla?: ReglaInteger; // Solo para integer. Cuando existe, respuestas se
                         // computa desde la regla en el frontend.
+  origen?: "existente" | "nuevo"; // "existente" = viene del choice list
+                                  // original (read-only código/etiqueta).
+                                  // "nuevo" = creado por el analista.
 };
+
+export type OpcionExistente = { codigo: string; etiqueta: string };
 
 export type RespuestasResponse = {
   ok: true;
@@ -517,6 +522,7 @@ export type RespuestasResponse = {
   modo_so: string;
   respuestas: RespuestaUnica[];
   grupos: Grupo[];
+  opciones_existentes?: OpcionExistente[];
 };
 
 export async function apiCodifRespuestas(parent: string) {

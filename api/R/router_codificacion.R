@@ -435,6 +435,199 @@ isTRUE_vec <- function(x) {
   out_path
 }
 
+# ---- Bridge: in-app grupos → plantilla xlsx --------------------------------
+# The app is the source of truth: at /aplicar time we regenerate the plantilla
+# fresh and patch it with every codification decision the analyst took in-app
+# (grupos of responses → code, integer rules, SM dummy). The xlsx only exists
+# as a transport layer for ppra_adaptar_* — never displayed to the user.
+#
+# This first iteration (B3.5a) handles only the "text-like" cases where the
+# mapping is (normalized_text → code) 1-to-1:
+#   * text solitaria / huerfana (no adopted): sheet named after the parent,
+#     recod col <parent>_recod
+#   * select_one modo=hijo: sheet named after the SO parent, recod col
+#     <text_col>_recod (the adopted "otros" text column)
+#
+# TODO B3.5b: SO padre (mix original codes + new codes from "Otros" text) + integer ranges
+# TODO B3.5c: SM (existing options as booleans + new option columns)
+
+# Match a response text to its code, using the same normalization the UI used
+# when building grupos. Returns "" if the text is not covered by any grupo.
+.match_grupos <- function(grupos) {
+  text_to_code <- new.env(parent = emptyenv())
+  new_codes <- list()  # codigo -> etiqueta, only for origen == "nuevo"
+  for (g in grupos) {
+    codigo <- as.character(g$codigo %||% "")
+    if (!nzchar(codigo)) next
+    etiqueta <- as.character(g$etiqueta %||% "")
+    origen <- as.character(g$origen %||% "")
+    resps <- g$respuestas %||% list()
+    for (t in resps) {
+      tn <- .normalize_text(as.character(t))[1]
+      if (nzchar(tn)) assign(tn, codigo, envir = text_to_code)
+    }
+    if (identical(origen, "nuevo") && nzchar(etiqueta)) {
+      new_codes[[codigo]] <- etiqueta
+    }
+  }
+  list(text_to_code = text_to_code, new_codes = new_codes)
+}
+
+# Patch a single sheet of the plantilla xlsx to fill one *_recod column
+# based on (text in source_col of data_df) → grupo.codigo lookup. Also
+# writes the nuevo_codigo / nueva_etiqueta aux block for origen=="nuevo"
+# groups. Silently skips if required headers are missing.
+.patch_text_sheet <- function(wb, sheet, recod_col, source_col, grupos, data_df) {
+  # skipEmptyCols=FALSE is critical: some plantilla sheets have a blank
+  # separator column between Control and the aux block. The default
+  # (TRUE) sometimes collapses it, shifting column indices and writing
+  # aux block data to the wrong column. Always read preserving positions.
+  df <- tryCatch(
+    openxlsx::readWorkbook(
+      wb, sheet = sheet,
+      colNames = FALSE, skipEmptyRows = FALSE, skipEmptyCols = FALSE
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(df) || nrow(df) < 2L) return(invisible(FALSE))
+  tech_row <- as.character(df[1, , drop = TRUE])
+  tech_row[is.na(tech_row)] <- ""
+
+  # `which(...)` can inherit names from the tech_row vector; openxlsx::writeData
+  # treats a named startCol as an Excel-letter reference, which silently
+  # shifts writes. Always strip names.
+  uuid_idx      <- unname(which(tech_row == "_uuid")[1])
+  recod_idx     <- unname(which(tech_row == recod_col)[1])
+  if (length(uuid_idx) == 0L || is.na(uuid_idx) ||
+      length(recod_idx) == 0L || is.na(recod_idx)) return(invisible(FALSE))
+
+  nuevo_cod_idx <- unname(which(tech_row == "nuevo_codigo")[1])
+  nueva_et_idx  <- unname(which(tech_row == "nueva_etiqueta")[1])
+
+  lookup <- .match_grupos(grupos)
+  text_to_code <- lookup$text_to_code
+  new_codes <- lookup$new_codes
+
+  # Build uuid → raw response map from the source dataset.
+  uuid_col_data <- NULL
+  for (cn in c("_uuid", "uuid", "Pulso_code")) {
+    if (cn %in% names(data_df)) { uuid_col_data <- cn; break }
+  }
+  if (is.null(uuid_col_data) || !source_col %in% names(data_df)) return(invisible(FALSE))
+  u_raw <- as.character(data_df[[uuid_col_data]])
+  r_raw <- as.character(data_df[[source_col]])
+  uuid_to_response <- setNames(r_raw, u_raw)
+
+  # Walk data rows in the sheet (xlsx row i == df row i, starting at 3).
+  if (nrow(df) >= 3L) {
+    for (i in 3:nrow(df)) {
+      uid <- as.character(df[i, uuid_idx])
+      if (is.na(uid) || !nzchar(uid)) next
+      resp <- uuid_to_response[uid]
+      if (is.null(resp) || length(resp) == 0L) next
+      resp <- resp[[1]]
+      if (is.na(resp) || !nzchar(trimws(resp))) next
+      resp_norm <- .normalize_text(resp)[1]
+      if (!nzchar(resp_norm)) next
+      if (!exists(resp_norm, envir = text_to_code, inherits = FALSE)) next
+      codigo <- get(resp_norm, envir = text_to_code, inherits = FALSE)
+      if (!nzchar(codigo)) next
+      openxlsx::writeData(
+        wb, sheet = sheet, x = as.character(codigo),
+        startCol = recod_idx, startRow = i, colNames = FALSE
+      )
+    }
+  }
+
+  # Aux block: declare new codes once (prosecnur requires unique codigo →
+  # etiqueta). We overwrite from row 3 downwards — the block starts empty
+  # in a fresh plantilla so there's nothing to preserve.
+  if (length(new_codes) > 0L &&
+      !is.na(nuevo_cod_idx) && length(nuevo_cod_idx) > 0L &&
+      !is.na(nueva_et_idx)  && length(nueva_et_idx) > 0L) {
+    codes_vec <- names(new_codes)
+    labels_vec <- vapply(codes_vec, function(k) as.character(new_codes[[k]]), character(1))
+    for (i in seq_along(codes_vec)) {
+      openxlsx::writeData(
+        wb, sheet = sheet, x = codes_vec[i],
+        startCol = nuevo_cod_idx, startRow = 2L + i, colNames = FALSE
+      )
+      openxlsx::writeData(
+        wb, sheet = sheet, x = labels_vec[i],
+        startCol = nueva_et_idx, startRow = 2L + i, colNames = FALSE
+      )
+    }
+  }
+
+  invisible(TRUE)
+}
+
+# Main bridge entry point. Loads the plantilla xlsx from session, walks
+# every pregunta with codified grupos, patches the sheet, saves.
+# Returns a list of per-parent outcome tags for telemetry/debug.
+.bridge_grupos_to_plantilla <- function(sid) {
+  s <- session_get(sid)
+  grupos_map <- s$codif_grupos_recod
+  if (is.null(grupos_map) || length(grupos_map) == 0L) {
+    return(list(patched = character(0), skipped = character(0)))
+  }
+  fid <- s$codif_plantilla_codigos_file_id
+  if (is.null(fid)) stop_api(500, "E_NO_PLANTILLA_FID", "Falta plantilla xlsx generada.")
+  meta <- get_file(sid, fid)
+  draft <- s$codif_familias_draft
+  data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
+
+  # Index draft rows by parent for O(1) lookup.
+  rows_by_parent <- list()
+  for (r in (draft$rows %||% list())) {
+    p <- as.character(r$parent %||% "")
+    if (nzchar(p)) rows_by_parent[[p]] <- r
+  }
+
+  wb <- openxlsx::loadWorkbook(meta$path)
+  patched <- character(0)
+  skipped <- character(0)
+
+  for (parent in names(grupos_map)) {
+    grupos <- grupos_map[[parent]]
+    if (length(grupos) == 0L) { skipped <- c(skipped, parent); next }
+    row <- rows_by_parent[[parent]]
+    if (is.null(row)) { skipped <- c(skipped, parent); next }
+
+    tipo <- as.character(row$tipo %||% "")
+    modo_so <- as.character(row$modo_so %||% "")
+    text_col <- as.character(row$text_col %||% "")
+    parent_col <- as.character(row$parent_col %||% "")
+
+    # Dispatch per arquetipo — for B3.5a only the text-like cases.
+    if (tipo == "text") {
+      # Text solitaria / huerfana not adopted by SO/SM. Sheet == parent
+      # (its own text column), recod col == <parent>_recod. The source
+      # column on the data frame is the parent (or text_col if it's a
+      # draft where text_col was set explicitly).
+      sheet <- parent
+      source_col <- if (nzchar(text_col)) text_col else parent
+      recod_col <- paste0(source_col, "_recod")
+      ok <- .patch_text_sheet(wb, sheet, recod_col, source_col, grupos, data_df)
+      if (isTRUE(ok)) patched <- c(patched, parent) else skipped <- c(skipped, parent)
+    } else if (tipo == "select_one" && modo_so == "hijo") {
+      # SO hijo: the "Otros" text goes into an independent coded variable.
+      # Sheet == SO parent (e.g. "p3"), recod col == <text_col>_recod.
+      sheet <- parent
+      if (!nzchar(text_col)) { skipped <- c(skipped, parent); next }
+      recod_col <- paste0(text_col, "_recod")
+      ok <- .patch_text_sheet(wb, sheet, recod_col, text_col, grupos, data_df)
+      if (isTRUE(ok)) patched <- c(patched, parent) else skipped <- c(skipped, parent)
+    } else {
+      # TODO B3.5b/c: SO padre, integer, SM
+      skipped <- c(skipped, parent)
+    }
+  }
+
+  openxlsx::saveWorkbook(wb, meta$path, overwrite = TRUE)
+  list(patched = patched, skipped = skipped)
+}
+
 mount_codificacion <- function(pr) {
   pr |>
     plumber::pr_post("/api/codificacion/plantilla-familias", wrap_endpoint(function(req, res) {
@@ -631,13 +824,16 @@ mount_codificacion <- function(pr) {
 
       tipo <- as.character(row$tipo %||% "")
       modo_so <- as.character(row$modo_so %||% "")
-      # Columna efectiva: en text / SO-hijo / SM con text_col la cosa a
-      # codificar es el texto libre (p. ej. el "Otros, especifique"); en
-      # SO-padre y SM sin text_col / integer es el valor crudo.
-      col <- if (tipo == "text" || (tipo == "select_one" && modo_so == "hijo")) {
+      # Columna efectiva: en text / SO / SM la cosa a codificar es el
+      # texto libre del "Otros, especifique" cuando existe. En SO-padre
+      # los valores originales se mantienen automáticamente en el bridge
+      # — solo se codifica el text_col para convertir los textos en
+      # nuevas opciones del mismo SO. Integer siempre usa parent_col.
+      col <- if (tipo == "text") {
         as.character(row$text_col %||% "")
-      } else if (tipo == "select_one" && modo_so == "padre") {
-        as.character(row$parent_col %||% "")
+      } else if (tipo == "select_one") {
+        tc <- as.character(row$text_col %||% "")
+        if (nzchar(tc)) tc else as.character(row$parent_col %||% "")
       } else if (tipo == "select_multiple") {
         tc <- as.character(row$text_col %||% "")
         if (nzchar(tc)) tc else as.character(row$parent_col %||% "")
@@ -659,6 +855,20 @@ mount_codificacion <- function(pr) {
       respuestas <- .respuestas_unicas(col, data_df, labels_lookup)
 
       grupos <- s$codif_grupos_recod[[parent]] %||% list()
+
+      # Opciones existentes del choice list del parent (para SO/SM). El
+      # codificador las precarga como grupos "existentes" (read-only
+      # codigo+etiqueta) para que el analista pueda recategorizar textos
+      # hacia ellas en vez de siempre crear códigos nuevos.
+      opciones_existentes <- if (length(labels_lookup) > 0L) {
+        codes <- names(labels_lookup)
+        lapply(seq_along(codes), function(i) {
+          lab <- as.character(labels_lookup[[i]])
+          Encoding(lab) <- "UTF-8"
+          list(codigo = codes[i], etiqueta = lab)
+        })
+      } else list()
+
       list(
         ok = TRUE,
         parent = parent,
@@ -666,7 +876,8 @@ mount_codificacion <- function(pr) {
         tipo = tipo,
         modo_so = modo_so,
         respuestas = respuestas,
-        grupos = grupos
+        grupos = grupos,
+        opciones_existentes = opciones_existentes
       )
     })) |>
     plumber::pr_post("/api/codificacion/grupos", wrap_endpoint(function(req, res, ...) {
@@ -973,12 +1184,103 @@ mount_codificacion <- function(pr) {
       s <- session_get(sid)
       xls <- .require_xlsform_path(sid)
       dat <- .require_data_path(sid)
-      codes_fid <- s$codif_plantilla_codigos_file_id
-      if (is.null(codes_fid)) stop_api(409, "E_NO_CODES",
-        "Primero genera la plantilla de códigos (Paso 2) y ajusta los recod desde la app.")
-      codes_meta <- get_file(sid, codes_fid)
-      fam_fid <- s$codif_familias_file_id
-      fam_path <- if (!is.null(fam_fid)) get_file(sid, fam_fid)$path else NULL
+
+      # The app is the source of truth. On every /aplicar we rebuild the
+      # plantilla xlsx from the current in-app state (familias draft +
+      # grupos + rules) — no reliance on stale user-edited xlsx files.
+
+      inst <- s$codif_inst %||% prosecnur::leer_instrumento_xlsform(xls$path)
+      data_df <- s$codif_data %||% .read_data_any(dat)
+      session_set(sid, "codif_inst", inst)
+      session_set(sid, "codif_data", data_df)
+
+      # 1) Ensure we have a familias draft (auto-generate from suggestion
+      # if the analyst never touched Fase 3).
+      draft <- s$codif_familias_draft
+      if (is.null(draft)) {
+        df <- .familias_suggest_tibble(sid)
+        rows <- .familias_rows_from_df(df)
+        draft <- list(
+          rows = rows,
+          source = "suggestion",
+          updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+        )
+        session_set(sid, "codif_familias_draft", draft)
+      }
+
+      # Promote the user's manual "marcada" toggles into draft$rows$use so
+      # prosecnur::leer_familias_clasificar picks them up. Auto-marcadas
+      # (preguntas con pareja comitteada) ya tienen use=TRUE porque lo seteó
+      # /pareja, pero las text-huerfanas/solitarias/integer marcadas a mano
+      # por la UI solo viven en codif_marcadas hasta este momento.
+      marcadas_set <- s$codif_marcadas %||% list()
+      if (length(marcadas_set) > 0L) {
+        for (i in seq_along(draft$rows)) {
+          p <- as.character(draft$rows[[i]]$parent %||% "")
+          if (nzchar(p) && isTRUE(marcadas_set[[p]])) {
+            draft$rows[[i]]$use <- TRUE
+          }
+        }
+      }
+
+      # Normalize draft for prosecnur: our UI only tracks pairing at the
+      # parent level, but construir_plantilla_desde_familias requires
+      # parent_col to point to an actual data column (rows with empty
+      # parent_col are silently skipped). For SO/SM/integer this is
+      # always the parent name when present in data; we fill it here.
+      data_cols <- names(data_df)
+      for (i in seq_along(draft$rows)) {
+        r <- draft$rows[[i]]
+        tipo <- as.character(r$tipo %||% "")
+        parent <- as.character(r$parent %||% "")
+        pcol <- as.character(r$parent_col %||% "")
+        if (!nzchar(pcol) &&
+            tipo %in% c("select_one","select_multiple","integer") &&
+            nzchar(parent) && parent %in% data_cols) {
+          draft$rows[[i]]$parent_col <- parent
+        }
+      }
+
+      # 2) Write the draft to a fresh xlsx and classify it via prosecnur.
+      fam_path <- file.path(s$dir, "downloads",
+        sprintf("familias_draft_%s.xlsx", uuid::UUIDgenerate()))
+      dir.create(dirname(fam_path), showWarnings = FALSE, recursive = TRUE)
+      .familias_draft_to_xlsx(draft, fam_path)
+      split <- prosecnur::leer_familias_clasificar(
+        path = fam_path, inst = inst, dat = list(raw = data_df), verbose = FALSE
+      )
+      session_set(sid, "codif_familias_split", split)
+      session_set(sid, "codif_familias_xlsx_path", fam_path)
+
+      # 3) Build & export the plantilla xlsx (empty recod columns).
+      plantilla <- prosecnur::construir_plantilla_desde_familias(
+        inst = inst, dat = list(raw = data_df), split = split
+      )
+      codes_path <- file.path(s$dir, "downloads",
+        sprintf("plantilla_codificacion_%s.xlsx", uuid::UUIDgenerate()))
+      prosecnur::exportar_plantilla_codificacion_xlsx(
+        plantilla, path_xlsx = codes_path, inst = inst
+      )
+      codes_meta <- .register_output_file(sid, "plantilla_codif_template", codes_path)
+      session_set(sid, "codif_plantilla_codigos_file_id", codes_meta$file_id)
+
+      # 4) Bridge — write every in-app codification decision into the xlsx.
+      .bridge_grupos_to_plantilla(sid)
+
+      # 5) Extract the list of vars ppra_adaptar_data needs to know explicitly
+      # (it's a bare-bones function: no args → no work done). Pull them from
+      # the split we just produced.
+      .vars_from_split <- function(sub, modo = NULL) {
+        if (is.null(sub) || !nrow(sub)) return(character(0))
+        x <- if (!is.null(modo)) sub[sub$modo_so == modo, , drop = FALSE] else sub
+        out <- as.character(x$parent_col %||% x$parent)
+        out <- out[!is.na(out) & nzchar(out)]
+        unique(out)
+      }
+      so_parent_vars <- .vars_from_split(split$select_one, modo = "padre")
+      so_child_vars  <- .vars_from_split(split$select_one, modo = "hijo")
+      sm_vars        <- .vars_from_split(split$select_multiple)
+      int_vars       <- .vars_from_split(split$integer)
 
       data_out <- file.path(s$dir, "downloads",
         sprintf("data_adaptada_%s.xlsx", uuid::UUIDgenerate()))
@@ -988,11 +1290,16 @@ mount_codificacion <- function(pr) {
       job_id <- job_submit(
         sid = sid,
         kind = "codificacion.aplicar",
-        func = function(xls_path, data_path, codes_path, fam_path, data_out, inst_out) {
+        func = function(xls_path, data_path, codes_path, fam_path, data_out, inst_out,
+                        sm_vars, so_parent_vars, so_child_vars, int_vars) {
           prosecnur::ppra_adaptar_data(
             path_instrumento = xls_path,
             path_datos       = data_path,
             path_plantilla   = codes_path,
+            sm_vars          = sm_vars,
+            so_parent_vars   = so_parent_vars,
+            so_child_vars    = so_child_vars,
+            int_vars         = int_vars,
             out_path         = data_out,
             path_familias    = fam_path
           )
@@ -1007,10 +1314,14 @@ mount_codificacion <- function(pr) {
         args = list(
           xls_path = xls$path,
           data_path = dat$path,
-          codes_path = codes_meta$path,
+          codes_path = codes_path,
           fam_path = fam_path,
           data_out = data_out,
-          inst_out = inst_out
+          inst_out = inst_out,
+          sm_vars = sm_vars,
+          so_parent_vars = so_parent_vars,
+          so_child_vars = so_child_vars,
+          int_vars = int_vars
         ),
         on_complete = function(j) {
           paths <- j$result_data

@@ -73,7 +73,37 @@ export function RespuestasCodificador({ parent }: Props) {
         const r = await apiCodifRespuestas(parent);
         skipNextSave.current = true;
         setRespuestas(r.respuestas);
-        setGrupos(r.grupos ?? []);
+        // Merge: siempre mostrar las opciones del choice list (existentes)
+        // como grupos. Si ya hay un grupo persistido para ese código con
+        // origen="existente", usa ese (mantiene respuestas asignadas). Si
+        // no, agregar vacío. Luego agregar los grupos persistidos con
+        // origen="nuevo" después.
+        const persistidos = r.grupos ?? [];
+        const existentes = r.opciones_existentes ?? [];
+        const persistByCode = new Map(persistidos.map((g) => [g.codigo, g]));
+        const merged: Grupo[] = [];
+        // 1. Opciones existentes (preservando respuestas si ya había persistido)
+        for (const o of existentes) {
+          const prior = persistByCode.get(o.codigo);
+          if (prior && prior.origen !== "nuevo") {
+            merged.push({ ...prior, origen: "existente", etiqueta: o.etiqueta });
+            persistByCode.delete(o.codigo);
+          } else {
+            merged.push({
+              id: `ex_${o.codigo}`,
+              codigo: o.codigo,
+              etiqueta: o.etiqueta,
+              respuestas: prior?.respuestas ?? [],
+              origen: "existente",
+            });
+            if (prior) persistByCode.delete(o.codigo);
+          }
+        }
+        // 2. Grupos nuevos (todo lo que queda en persistidos)
+        for (const g of persistByCode.values()) {
+          merged.push({ ...g, origen: g.origen ?? "nuevo" });
+        }
+        setGrupos(merged);
         setSaveStatus("idle");
       } catch (e) {
         setError((e as Error).message);
@@ -131,7 +161,7 @@ export function RespuestasCodificador({ parent }: Props) {
     const id = `g_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const codigo = nextCodigo();
     const etiqueta = "";
-    const nuevo: Grupo = { id, codigo, etiqueta, respuestas: [] };
+    const nuevo: Grupo = { id, codigo, etiqueta, respuestas: [], origen: "nuevo" };
     setGrupos((gs) => [...gs, nuevo]);
     setActiveGroupId(id);
   }
@@ -380,6 +410,7 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
     hits.sort((a, b) => b.sim - a.sim);
     return hits.slice(0, 6);
   }, [active, grupo.respuestas, respuestas, asignacion]);
+  const esExistente = grupo.origen === "existente";
   return (
     <article
       onClick={active ? undefined : onActivate}
@@ -387,39 +418,56 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
         border: active ? "2px solid var(--pulso-primary)" : "1px solid var(--pulso-border)",
         borderRadius: 8,
         padding: 12,
-        background: active ? "var(--pulso-primary-soft)" : "white",
+        background: active ? "var(--pulso-primary-soft)" : esExistente ? "var(--pulso-surface-2)" : "white",
         cursor: active ? "default" : "pointer",
         transition: "background 150ms, border-color 150ms",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <input
-          type="text"
-          value={grupo.codigo}
-          onChange={(e) => onUpdate({ codigo: e.target.value })}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="código"
-          style={{ fontFamily: "monospace", fontWeight: 700, width: 56, fontSize: 13, textAlign: "center" }}
-          aria-label="Código numérico del grupo"
-        />
-        <input
-          type="text"
-          value={grupo.etiqueta}
-          onChange={(e) => onUpdate({ etiqueta: e.target.value })}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="Etiqueta descriptiva del grupo"
-          style={{ flex: 1, fontSize: 13 }}
-          aria-label="Etiqueta del grupo"
-        />
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="pulso-icon pulso-icon-danger"
-          title="Eliminar grupo"
-          aria-label="Eliminar grupo"
-        >
-          <Trash2 size={12} />
-        </button>
+        {esExistente ? (
+          <>
+            <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 13, color: "var(--pulso-primary)", minWidth: 32, textAlign: "center" }}>
+              {grupo.codigo}
+            </span>
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{grupo.etiqueta}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", background: "#eef3ff", padding: "2px 6px", borderRadius: 3 }}>
+              Opción existente
+            </span>
+          </>
+        ) : (
+          <>
+            <input
+              type="text"
+              value={grupo.codigo}
+              onChange={(e) => onUpdate({ codigo: e.target.value })}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="código"
+              style={{ fontFamily: "monospace", fontWeight: 700, width: 56, fontSize: 13, textAlign: "center" }}
+              aria-label="Código numérico del grupo"
+            />
+            <input
+              type="text"
+              value={grupo.etiqueta}
+              onChange={(e) => onUpdate({ etiqueta: e.target.value })}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="Etiqueta descriptiva del grupo"
+              style={{ flex: 1, fontSize: 13 }}
+              aria-label="Etiqueta del grupo"
+            />
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#166534", background: "#dcfce7", padding: "2px 6px", borderRadius: 3 }}>
+              Nuevo
+            </span>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="pulso-icon pulso-icon-danger"
+              title="Eliminar grupo"
+              aria-label="Eliminar grupo"
+            >
+              <Trash2 size={12} />
+            </button>
+          </>
+        )}
       </div>
       <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginBottom: 6 }}>
         {grupo.respuestas.length} {grupo.respuestas.length === 1 ? "respuesta" : "respuestas"} · <strong>{total}</strong> casos totales
