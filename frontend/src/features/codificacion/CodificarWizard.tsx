@@ -153,47 +153,56 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
             <ArrowLeft size={12} /> Volver a organizar
           </button>
 
-          {/* Autoguardado — la info y los atajos para compartir progreso */}
+          {/* Autoguardado + atajos para compartir/respaldar progreso */}
           <div
             style={{
-              marginTop: 6, padding: "8px 10px",
+              marginTop: 10, padding: 12,
               background: "var(--pulso-surface)",
               border: "1px solid var(--pulso-border)",
-              borderRadius: 6,
-              display: "flex", flexDirection: "column", gap: 6,
+              borderRadius: 8,
+              display: "flex", flexDirection: "column", gap: 10,
             }}
           >
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#166534", display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <CheckCircle2 size={11} /> Autoguardado activo
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#166534", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <CheckCircle2 size={11} /> Autoguardado activo
+              </div>
+              <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+                El progreso se guarda solo. Exporta un JSON para respaldarlo o compartirlo.
+              </div>
             </div>
-            <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-              Tu progreso se guarda solo. Exporta un JSON para compartirlo o como respaldo.
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <button
+                type="button"
+                onClick={onExportJson}
+                disabled={ioBusy === "export"}
+                style={{ fontSize: 11, padding: "5px 8px", display: "inline-flex", alignItems: "center", gap: 5, justifyContent: "center" }}
+                title="Descarga el estado actual (draft de familias, grupos, marcadas)"
+              >
+                <Download size={11} /> {ioBusy === "export" ? "Exportando…" : "Exportar JSON"}
+              </button>
+              <label
+                style={{
+                  fontSize: 11, padding: "5px 8px",
+                  display: "inline-flex", alignItems: "center", gap: 5, justifyContent: "center",
+                  cursor: ioBusy === "import" ? "wait" : "pointer",
+                  border: "1px solid var(--pulso-border)", borderRadius: 4, background: "white",
+                }}
+                title="Restaura un estado previamente exportado"
+              >
+                <Upload size={11} />
+                {ioBusy === "import" ? "Importando…" : "Importar JSON"}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  style={{ display: "none" }}
+                  onChange={(e) => onImportJson(e.target.files?.[0])}
+                />
+              </label>
             </div>
-            <button
-              type="button"
-              onClick={onExportJson}
-              disabled={ioBusy === "export"}
-              style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "center" }}
-              title="Descarga el estado actual como JSON (draft de familias, grupos, marcadas)"
-            >
-              <Download size={11} /> {ioBusy === "export" ? "Exportando…" : "Exportar JSON"}
-            </button>
-            <label
-              style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "center", cursor: ioBusy === "import" ? "wait" : "pointer", border: "1px solid var(--pulso-border)", borderRadius: 4, padding: "4px 8px", background: "white" }}
-              title="Restaura un estado previamente exportado"
-            >
-              <Upload size={11} />
-              {ioBusy === "import" ? "Importando…" : "Importar JSON"}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json,application/json"
-                style={{ display: "none" }}
-                onChange={(e) => onImportJson(e.target.files?.[0])}
-              />
-            </label>
             {ioMsg && (
-              <div style={{ fontSize: 10, color: "#166534", fontWeight: 600 }}>{ioMsg}</div>
+              <div style={{ fontSize: 11, color: "#166534", fontWeight: 600 }}>{ioMsg}</div>
             )}
           </div>
         </div>

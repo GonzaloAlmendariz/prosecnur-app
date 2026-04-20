@@ -290,34 +290,34 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
       background: incompleta ? "#fffcf3" : "white",
       borderRadius: 8, padding: 12,
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "nowrap" }}>
         <input
           type="text"
           value={grupo.codigo}
           onChange={(e) => onUpdate({ codigo: e.target.value })}
           placeholder="código"
-          style={{ fontFamily: "monospace", fontWeight: 700, width: 56, fontSize: 13, textAlign: "center" }}
+          style={{ fontFamily: "monospace", fontWeight: 700, width: 56, fontSize: 13, textAlign: "center", flexShrink: 0 }}
           aria-label="Código del grupo"
         />
         <input
           type="text"
           value={grupo.etiqueta}
           onChange={(e) => onUpdate({ etiqueta: e.target.value })}
-          placeholder="Etiqueta descriptiva (ej. Jóvenes)"
-          style={{ flex: 1, fontSize: 13 }}
+          placeholder="Etiqueta (ej. Jóvenes)"
+          style={{ flex: 1, fontSize: 13, minWidth: 0 }}
           aria-label="Etiqueta del grupo"
         />
         <select
           value={regla.tipo}
           onChange={(e) => setTipo(e.target.value as "between" | "gte" | "lte")}
-          style={{ fontSize: 12, padding: "4px 6px" }}
+          style={{ fontSize: 12, padding: "4px 6px", flexShrink: 0 }}
           aria-label="Tipo de rango"
         >
           <option value="between">De X a Y</option>
           <option value="gte">X o más</option>
           <option value="lte">X o menos</option>
         </select>
-        <span style={{ display: "inline-flex", gap: 2 }}>
+        <span style={{ display: "inline-flex", gap: 2, flexShrink: 0 }}>
           <button
             type="button"
             className="pulso-icon"

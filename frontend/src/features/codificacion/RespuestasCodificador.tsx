@@ -65,6 +65,8 @@ export function RespuestasCodificador({ parent }: Props) {
   const [query, setQuery] = useState<string>("");
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [tipo, setTipo] = useState<string>("");
+  const [smOtros, setSmOtros] = useState<{ dummy_col: string; n_otros_marcados: number } | null>(null);
 
   const skipNextSave = useRef(true);
   const saveTimer = useRef<number | null>(null);
@@ -106,6 +108,8 @@ export function RespuestasCodificador({ parent }: Props) {
           merged.push({ ...g, origen: g.origen ?? "nuevo" });
         }
         setGrupos(merged);
+        setTipo(r.tipo);
+        setSmOtros(r.sm_otros ?? null);
         setSaveStatus("idle");
       } catch (e) {
         setError((e as Error).message);
@@ -154,9 +158,35 @@ export function RespuestasCodificador({ parent }: Props) {
   const codificadas = useMemo(() => asignacion.size, [asignacion]);
   const pendientes = (respuestas?.length ?? 0) - codificadas;
 
+  // Para el counter de SM "Otros": conteos en términos de CASOS reales
+  // (no textos únicos). Cada `respuesta.frecuencia` = filas que tienen
+  // ese texto. codificadas = casos con texto libre que ya caen en algún
+  // grupo. `smOtros.n_otros_marcados` viene del backend con el conteo
+  // de filas donde el dummy de Otros está en 1.
+  const totalTextoFrecuencia = useMemo(() => {
+    return (respuestas ?? []).reduce((s, r) => s + (r.frecuencia ?? 0), 0);
+  }, [respuestas]);
+  const casosCodificados = useMemo(() => {
+    let n = 0;
+    for (const [norm] of asignacion) {
+      const r = (respuestas ?? []).find((x) => x.texto_normalizado === norm);
+      if (r) n += r.frecuencia ?? 0;
+    }
+    return n;
+  }, [asignacion, respuestas]);
+  const casosPendientesOtros = (smOtros?.n_otros_marcados ?? 0) - casosCodificados;
+
   function nextCodigo(): string {
+    // Los códigos ≥ 70 son convenciones (Otros=70, No sabe=88, No aplica=99,
+    // etc.). Al crear un grupo nuevo queremos el siguiente entero "real" de
+    // la lista, no saltar a 71 solo porque ya existe un 70. Si no hay
+    // códigos < 70, caemos a max+1 (caso raro donde toda la lista es
+    // convencional).
     const nums = grupos.map((g) => parseInt(g.codigo, 10)).filter((n) => !Number.isNaN(n));
-    return String((nums.length === 0 ? 0 : Math.max(...nums)) + 1);
+    if (nums.length === 0) return "1";
+    const realCodes = nums.filter((n) => n < 70);
+    if (realCodes.length > 0) return String(Math.max(...realCodes) + 1);
+    return String(Math.max(...nums) + 1);
   }
 
   function addGroup() {
@@ -254,14 +284,59 @@ export function RespuestasCodificador({ parent }: Props) {
       <div style={{ display: "grid", gridTemplateColumns: "minmax(320px, 1fr) minmax(340px, 1fr)", gap: 16, alignItems: "flex-start" }}>
         {/* LEFT — respuestas */}
         <section>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          {/* Counter SM "Otros" — visible solo para select_multiple con
+              dummy_col resuelto. Aclara de dónde vienen los textos
+              (personas que marcaron Otros) y cuánto queda sin codificar. */}
+          {tipo === "select_multiple" && smOtros && (
+            <div style={{
+              marginBottom: 10,
+              padding: "10px 12px",
+              background: "var(--tipo-sm-bg)",
+              border: "1px solid var(--tipo-sm-border)",
+              borderRadius: 6,
+              fontSize: 12,
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--tipo-sm-fg)", marginBottom: 4 }}>
+                Opción "Otros, especifique" en {parent}
+              </div>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}>
+                <span><strong>{smOtros.n_otros_marcados}</strong> marcaron Otros</span>
+                <span style={{ color: "var(--pulso-text-soft)" }}>·</span>
+                <span><strong>{totalTextoFrecuencia}</strong> con texto libre</span>
+                <span style={{ color: "var(--pulso-text-soft)" }}>·</span>
+                <span style={{ color: "#166534" }}><strong>{casosCodificados}</strong> codificadas</span>
+                <span style={{ color: "var(--pulso-text-soft)" }}>·</span>
+                <span style={{ color: casosPendientesOtros > 0 ? "#8a5000" : "var(--pulso-text-soft)" }}>
+                  <strong>{casosPendientesOtros}</strong> sin codificar
+                </span>
+              </div>
+            </div>
+          )}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
+            padding: "6px 10px",
+            border: "1px solid var(--pulso-border)",
+            borderRadius: 6,
+            background: "white",
+          }}>
             <Search size={14} color="var(--pulso-text-soft)" />
             <input
-              placeholder="Buscar respuestas"
+              placeholder="Buscar respuestas…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              style={{ flex: 1, fontSize: 13 }}
+              style={{ flex: 1, fontSize: 13, border: "none", outline: "none", background: "transparent", padding: 0 }}
             />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="pulso-icon"
+                aria-label="Limpiar búsqueda"
+                title="Limpiar"
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
           <div style={{ border: "1px solid var(--pulso-border)", borderRadius: 6, maxHeight: 540, overflowY: "auto" }}>
             {visibleRespuestas.length === 0 && (
@@ -449,15 +524,15 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
         transition: "background 150ms, border-color 150ms",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "nowrap" }}>
         {esExistente ? (
           <>
-            <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 13, color: "var(--pulso-primary)", minWidth: 32, textAlign: "center" }}>
+            <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 13, color: "var(--pulso-primary)", minWidth: 32, textAlign: "center", flexShrink: 0 }}>
               {grupo.codigo}
             </span>
-            <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{grupo.etiqueta}</span>
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", background: "#eef3ff", padding: "2px 6px", borderRadius: 3 }}>
-              Opción existente
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{grupo.etiqueta}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", background: "#eef3ff", padding: "2px 6px", borderRadius: 3, flexShrink: 0 }}>
+              Existente
             </span>
             <MoveButtons onMoveUp={onMoveUp} onMoveDown={onMoveDown} isFirst={isFirst} isLast={isLast} />
           </>
@@ -469,7 +544,7 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
               onChange={(e) => onUpdate({ codigo: e.target.value })}
               onClick={(e) => e.stopPropagation()}
               placeholder="código"
-              style={{ fontFamily: "monospace", fontWeight: 700, width: 56, fontSize: 13, textAlign: "center" }}
+              style={{ fontFamily: "monospace", fontWeight: 700, width: 56, fontSize: 13, textAlign: "center", flexShrink: 0 }}
               aria-label="Código numérico del grupo"
             />
             <input
@@ -477,11 +552,11 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
               value={grupo.etiqueta}
               onChange={(e) => onUpdate({ etiqueta: e.target.value })}
               onClick={(e) => e.stopPropagation()}
-              placeholder="Etiqueta descriptiva del grupo"
-              style={{ flex: 1, fontSize: 13 }}
+              placeholder="Etiqueta descriptiva"
+              style={{ flex: 1, fontSize: 13, minWidth: 0 }}
               aria-label="Etiqueta del grupo"
             />
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#166534", background: "#dcfce7", padding: "2px 6px", borderRadius: 3 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#166534", background: "#dcfce7", padding: "2px 6px", borderRadius: 3, flexShrink: 0 }}>
               Nuevo
             </span>
             <MoveButtons onMoveUp={onMoveUp} onMoveDown={onMoveDown} isFirst={isFirst} isLast={isLast} />

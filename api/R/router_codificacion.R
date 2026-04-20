@@ -1396,6 +1396,29 @@ mount_codificacion <- function(pr) {
         })
       } else list()
 
+      # Para SM con dummy_col: contamos quiénes marcaron "Otros" en total
+      # (dummy=1) para que el codificador pueda mostrar arriba del
+      # buscador un contador "X otros marcados · Y con texto · Z
+      # codificadas · W sin codificar". Es la info que el analista
+      # necesita para saber cuánto queda sin codificar.
+      otros_stats <- NULL
+      if (tipo == "select_multiple") {
+        dummy_col <- as.character(row$other_dummy_col %||% "")
+        if (nzchar(dummy_col) && dummy_col %in% names(data_df)) {
+          dv <- data_df[[dummy_col]]
+          v01 <- suppressWarnings(as.integer(as.character(dv)))
+          if (all(is.na(v01))) {
+            v01 <- ifelse(tolower(as.character(dv)) %in% c("true","t","1"), 1L,
+                  ifelse(tolower(as.character(dv)) %in% c("false","f","0"), 0L, NA_integer_))
+          }
+          n_otros <- as.integer(sum(!is.na(v01) & v01 == 1L))
+          otros_stats <- list(
+            dummy_col = dummy_col,
+            n_otros_marcados = n_otros
+          )
+        }
+      }
+
       list(
         ok = TRUE,
         parent = parent,
@@ -1404,7 +1427,8 @@ mount_codificacion <- function(pr) {
         modo_so = modo_so,
         respuestas = respuestas,
         grupos = grupos,
-        opciones_existentes = opciones_existentes
+        opciones_existentes = opciones_existentes,
+        sm_otros = otros_stats
       )
     })) |>
     plumber::pr_post("/api/codificacion/grupos", wrap_endpoint(function(req, res, ...) {

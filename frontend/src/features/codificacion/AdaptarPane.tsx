@@ -109,7 +109,7 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
 
       {noHayNada && (
         <Alert kind="warn">
-          No hay preguntas con grupos codificados. Volvé al paso 2 y agrupá respuestas antes de adaptar.
+          No hay preguntas con grupos codificados. Vuelve al paso <strong>2 · Codificar</strong> y agrupa respuestas antes de adaptar.
         </Alert>
       )}
 

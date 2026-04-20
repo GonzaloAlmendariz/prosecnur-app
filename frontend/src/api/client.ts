@@ -523,6 +523,13 @@ export type RespuestasResponse = {
   respuestas: RespuestaUnica[];
   grupos: Grupo[];
   opciones_existentes?: OpcionExistente[];
+  // Stats del dummy "Otros" para SM: cuántas personas marcaron la opción
+  // "Otros, especifique" en total (dummy=1). Permite mostrar un contador
+  // "X otros marcados" vs "Y con texto libre" en el codificador.
+  sm_otros?: {
+    dummy_col: string;
+    n_otros_marcados: number;
+  } | null;
 };
 
 export async function apiCodifRespuestas(parent: string) {
