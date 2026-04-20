@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, Grid3x3, X } from "lucide-react";
-import { apiAnaliticaVariables, VariableInstrumento } from "../../../api/client";
+import { ChevronDown, ChevronRight, Download, Grid3x3, Play, X } from "lucide-react";
+import { apiAnaliticaCruces, apiAnaliticaVariables, downloadUrl, FileJobResult, VariableInstrumento } from "../../../api/client";
+import { Alert } from "../../../components/Alert";
+import { JobProgress } from "../../../components/JobProgress";
 import { Panel } from "../../../components/Panel";
 import { useAnaliticaStore } from "../store";
+import { useReporteRun } from "../useReporteRun";
 
-// Cruces — el pane más rico. Muestra:
-// - Autocompletado de variables a cruzar (con label del instrumento).
-// - Modo estándar / dimensiones.
-// - Significancia (show_sig + alpha preset/custom).
-// - Incluir total.
-// - Colapsables: Semáforo (activo/modo/cortes/colores), Brechas (filas/cols).
+// Cruces — versión simplificada.
+// La significancia siempre aplica con α=0.05 (chi²) en modo estándar; no
+// se expone como toggle porque nunca se modifica en la práctica. El modo
+// "dimensiones" se gestiona en una página separada (fuera del módulo de
+// Analítica estándar). Aquí solo: variables a cruzar + incluir total +
+// semáforo + brechas.
 
 export function CrucesPane() {
   const cruces = useAnaliticaStore((s) => s.config.cruces);
   const setCruces = useAnaliticaStore((s) => s.setCruces);
+  const run = useReporteRun();
 
   const [variables, setVariables] = useState<VariableInstrumento[]>([]);
   useEffect(() => {
@@ -24,6 +28,15 @@ export function CrucesPane() {
       } catch {/* no-op */}
     })();
   }, []);
+
+  async function onGenerate() {
+    // Aseguramos modo="estandar" y significancia estándar (α=0.05, chi²)
+    // en el store antes de lanzar — este pane no expone esos toggles.
+    if (cruces.modo !== "estandar" || !cruces.show_sig || cruces.alpha !== 0.05) {
+      setCruces({ modo: "estandar", show_sig: true, alpha: 0.05 });
+    }
+    await run.runAsync(() => apiAnaliticaCruces());
+  }
 
   function addVar(v: string) {
     const clean = v.trim();
@@ -36,9 +49,9 @@ export function CrucesPane() {
 
   return (
     <Panel
-      eyebrow="Configuración"
-      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Grid3x3 size={14} /> Cruces</span>}
-      hint={<>Cada variable listada se cruza contra el resto del instrumento. Se pueden correr varias en una sola ejecución.</>}
+      eyebrow="Reporte"
+      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Grid3x3 size={16} /> Cruces</span>}
+      hint={<>Cada variable listada se cruza contra todas las demás del instrumento. El reporte incluye chi² (α = 0.05) entre todos los cruces.</>}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         {/* Variables a cruzar con autocomplete */}
@@ -50,67 +63,6 @@ export function CrucesPane() {
             onAdd={addVar}
             onRemove={removeVar}
           />
-        </div>
-
-        {/* Modo */}
-        <div>
-          <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Modo</div>
-          <div style={{ display: "flex", gap: 6 }}>
-            {(["estandar", "dimensiones"] as const).map((m) => (
-              <label
-                key={m}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "5px 12px", borderRadius: 6,
-                  border: `1px solid ${cruces.modo === m ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-                  background: cruces.modo === m ? "var(--pulso-primary-soft)" : "white",
-                  cursor: "pointer", fontSize: 12, textTransform: "capitalize",
-                }}
-              >
-                <input type="radio" checked={cruces.modo === m} onChange={() => setCruces({ modo: m })} style={{ margin: 0 }} />
-                {m}
-              </label>
-            ))}
-          </div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4, lineHeight: 1.4 }}>
-            {cruces.modo === "estandar"
-              ? "Tablas cruzadas simples con chi² de significancia."
-              : "Cruces de indicadores (r100_, sub_, idx_) con semáforo y brechas."}
-          </div>
-        </div>
-
-        {/* Significancia + alpha + incluir total */}
-        <div>
-          <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Significancia estadística</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={cruces.show_sig}
-                onChange={(e) => setCruces({ show_sig: e.target.checked })}
-              />
-              <span>Mostrar indicadores de significancia (chi²)</span>
-            </label>
-            {cruces.show_sig && (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingLeft: 26 }}>
-                {[0.01, 0.05, 0.1].map((a) => (
-                  <label
-                    key={a}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                      padding: "4px 10px", borderRadius: 999,
-                      border: `1px solid ${cruces.alpha === a ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-                      background: cruces.alpha === a ? "var(--pulso-primary-soft)" : "white",
-                      cursor: "pointer", fontSize: 12,
-                    }}
-                  >
-                    <input type="radio" checked={cruces.alpha === a} onChange={() => setCruces({ alpha: a })} style={{ margin: 0 }} />
-                    α = {a}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
         <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
@@ -222,6 +174,41 @@ export function CrucesPane() {
             </label>
           </div>
         </Collapsible>
+
+        {/* Generar */}
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--pulso-border)", paddingTop: 14 }}>
+          <button
+            className="pulso-primary"
+            onClick={onGenerate}
+            disabled={run.busy || !!run.jobId || cruces.cruces_vars.length === 0}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+          >
+            <Play size={14} /> {run.jobId ? "Generando…" : "Generar cruces"}
+          </button>
+          {cruces.cruces_vars.length === 0 && (
+            <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
+              Agrega al menos una variable arriba para habilitar el botón.
+            </span>
+          )}
+          {run.fileId && (
+            <a
+              href={downloadUrl(run.fileId)}
+              style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
+              <Download size={13} /> cruces.xlsx
+            </a>
+          )}
+        </div>
+        {run.jobId && (
+          <JobProgress<FileJobResult>
+            label="Generando cruces"
+            jobId={run.jobId}
+            onDone={run.onJobDone}
+            onError={run.onJobError}
+            onCancelled={run.onJobCancelled}
+          />
+        )}
+        {run.error && <Alert kind="error">{run.error}</Alert>}
       </div>
     </Panel>
   );

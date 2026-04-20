@@ -1,112 +1,173 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { BarChart2, BookOpen, Database, Grid3x3, Users } from "lucide-react";
+import { apiAnaliticaPreparar } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
-import { PrepararPane } from "./PrepararPane";
-import { DisenarWizard } from "./DisenarWizard";
-import { GenerarPane } from "./GenerarPane";
 import { useAnaliticaAutosave } from "./useAnaliticaAutosave";
+import { AnaliticaHeader } from "./AnaliticaHeader";
+import { CodebookPane } from "./panes/CodebookPane";
+import { FrecuenciasPane } from "./panes/FrecuenciasPane";
+import { CrucesPane } from "./panes/CrucesPane";
+import { BasesPane } from "./panes/BasesPane";
+import { EnumeradoresPane } from "./panes/EnumeradoresPane";
 
-type Step = "preparar" | "disenar" | "generar";
+// 5 reportes en el orden que el analista suele correrlos: primero calidad
+// de campo (enumeradores), luego diccionario (codebook), luego datos
+// exportables (bases), luego tablas (frecuencias, cruces).
+type Reporte = "enumeradores" | "codebook" | "bases" | "frecuencias" | "cruces";
+
+type ReporteMeta = {
+  key: Reporte;
+  label: string;
+  icon: typeof BookOpen;
+  desc: string;
+};
+
+const REPORTES: ReporteMeta[] = [
+  { key: "enumeradores", label: "Enumeradores", icon: Users,     desc: "PDF de producción" },
+  { key: "codebook",     label: "Libro de códigos", icon: BookOpen, desc: "Diccionario de variables" },
+  { key: "bases",        label: "Bases",        icon: Database,  desc: "Datos exportables (SPSS)" },
+  { key: "frecuencias",  label: "Frecuencias",  icon: BarChart2, desc: "Tablas univariadas" },
+  { key: "cruces",       label: "Cruces",       icon: Grid3x3,   desc: "Tablas 2D con semáforo" },
+];
 
 export default function AnaliticaPage() {
-  const { state } = useSession();
+  const { state, refresh } = useSession();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Hidrata la config desde el backend al montar la página y activa el
-  // autosave debounced 2s. Vive en cualquier step porque el store es global.
   useAnaliticaAutosave();
 
   const prereqOk = !!state?.xlsform && !!state?.data;
+  const prepOk = !!state?.analitica_prep_ok;
 
-  const rawStep = new URLSearchParams(location.search).get("step");
-  const step: Step =
-    rawStep === "disenar" ? "disenar" :
-    rawStep === "generar" ? "generar" :
-    "preparar";
+  // Preparar auto-on-mount. Antes era un paso manual; ahora se ejecuta
+  // silenciosamente al entrar por primera vez si hay prereqs. El banner
+  // de fuente en AnaliticaHeader muestra el resultado.
+  const [prepBusy, setPrepBusy] = useState(false);
+  const [prepError, setPrepError] = useState("");
+  useEffect(() => {
+    if (!prereqOk || prepOk || prepBusy) return;
+    let cancelled = false;
+    (async () => {
+      setPrepBusy(true);
+      setPrepError("");
+      try {
+        await apiAnaliticaPreparar();
+        if (!cancelled) await refresh();
+      } catch (e) {
+        if (!cancelled) setPrepError((e as Error).message);
+      } finally {
+        if (!cancelled) setPrepBusy(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prereqOk, prepOk]);
 
-  function goStep(next: Step) {
+  // Reporte activo desde el query string.
+  const raw = new URLSearchParams(location.search).get("reporte");
+  const active: Reporte = (REPORTES.find((r) => r.key === raw)?.key) ?? "enumeradores";
+
+  function goReporte(next: Reporte) {
     const sp = new URLSearchParams(location.search);
-    if (next === "preparar") sp.delete("step");
-    else sp.set("step", next);
+    if (next === "enumeradores") sp.delete("reporte");
+    else sp.set("reporte", next);
     navigate({ pathname: "/analitica", search: sp.toString() ? `?${sp}` : "" });
   }
 
-  useEffect(() => { window.scrollTo({ top: 0 }); }, [step]);
+  useEffect(() => { window.scrollTo({ top: 0 }); }, [active]);
 
   return (
     <section>
-      <h1 className="pulso-page-title">Fase 4 — Preparación y reportes analíticos</h1>
+      <h1 className="pulso-page-title">Fase 4 — Análisis y reportes</h1>
       <p className="pulso-page-lead">
-        {step === "preparar"
-          ? "Prepara los datos y revisa la estructura de secciones del instrumento. Si ya adaptaste en Fase 3, se usará esa versión."
-          : step === "disenar"
-          ? "Configura cada reporte: variables a incluir, cruces, significancia, modalidades."
-          : "Genera los entregables (Excel, SPSS, PDF) con la configuración diseñada y descárgalos."}
+        Genera los cinco reportes estándar de Pulso. Cada uno tiene su configuración y su descarga independiente.
       </p>
-
-      {prereqOk && (
-        <div style={{ marginBottom: 20 }}>
-          <Stepper step={step} onChange={goStep} />
-        </div>
-      )}
 
       {!prereqOk && (
         <div style={{ marginBottom: 12 }}>
-          <Alert kind="warn">Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de preparar.</Alert>
+          <Alert kind="warn">
+            Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de analizar.
+          </Alert>
         </div>
       )}
 
-      {prereqOk && step === "preparar" && <PrepararPane />}
-      {prereqOk && step === "disenar" && <DisenarWizard />}
-      {prereqOk && step === "generar" && <GenerarPane />}
+      {prereqOk && (
+        <>
+          <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} />
+
+          <div style={{ marginBottom: 18 }}>
+            <ReporteStepper active={active} onChange={goReporte} />
+          </div>
+
+          {prepBusy ? (
+            <Alert kind="info">Preparando datos…</Alert>
+          ) : prepOk ? (
+            <>
+              {active === "enumeradores" && <EnumeradoresPane />}
+              {active === "codebook"     && <CodebookPane />}
+              {active === "bases"        && <BasesPane />}
+              {active === "frecuencias"  && <FrecuenciasPane />}
+              {active === "cruces"       && <CrucesPane />}
+            </>
+          ) : (
+            <Alert kind="warn">
+              La preparación automática de datos aún no terminó o falló. Recarga la página para reintentar.
+            </Alert>
+          )}
+        </>
+      )}
     </section>
   );
 }
 
-function Stepper({ step, onChange }: { step: Step; onChange: (s: Step) => void }) {
-  const order: Step[] = ["preparar", "disenar", "generar"];
-  const currentIdx = order.indexOf(step);
+function ReporteStepper({ active, onChange }: { active: Reporte; onChange: (r: Reporte) => void }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <StepChip n={1} label="Preparar" active={step === "preparar"} done={currentIdx > 0} onClick={() => onChange("preparar")} />
-      <Line done={currentIdx > 0} />
-      <StepChip n={2} label="Diseñar" active={step === "disenar"} done={currentIdx > 1} onClick={() => onChange("disenar")} />
-      <Line done={currentIdx > 1} />
-      <StepChip n={3} label="Generar" active={step === "generar"} onClick={() => onChange("generar")} />
-    </div>
-  );
-}
-
-function Line({ done }: { done: boolean }) {
-  return <div style={{ flex: "0 0 40px", height: 2, background: done ? "var(--pulso-primary)" : "var(--pulso-border)" }} />;
-}
-
-function StepChip({ n, label, active, onClick, done }: { n: number; label: string; active: boolean; onClick: () => void; done?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       style={{
-        display: "inline-flex", alignItems: "center", gap: 8,
-        padding: "6px 14px", borderRadius: 999,
-        border: `1px solid ${active || done ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-        background: active ? "var(--pulso-primary)" : "white",
-        color: active ? "white" : done ? "var(--pulso-primary)" : "var(--pulso-text)",
-        fontSize: 13, fontWeight: 600, cursor: "pointer",
+        display: "flex", alignItems: "stretch", gap: 0,
+        flexWrap: "wrap",
+        border: "1px solid var(--pulso-border)",
+        borderRadius: 10,
+        overflow: "hidden",
+        background: "white",
       }}
     >
-      <span style={{
-        width: 20, height: 20, borderRadius: "50%",
-        display: "inline-flex", alignItems: "center", justifyContent: "center",
-        background: active ? "white" : done ? "var(--pulso-primary)" : "var(--pulso-border)",
-        color: active ? "var(--pulso-primary)" : done ? "white" : "var(--pulso-text-soft)",
-        fontSize: 11, fontWeight: 700,
-      }}>
-        {n}
-      </span>
-      {label}
-    </button>
+      {REPORTES.map((r, i) => {
+        const Icon = r.icon;
+        const isActive = active === r.key;
+        const isLast = i === REPORTES.length - 1;
+        return (
+          <button
+            key={r.key}
+            type="button"
+            onClick={() => onChange(r.key)}
+            style={{
+              flex: "1 1 0",
+              minWidth: 140,
+              display: "flex", flexDirection: "column", alignItems: "flex-start",
+              gap: 2, padding: "12px 16px",
+              background: isActive ? "var(--pulso-primary)" : "white",
+              color: isActive ? "white" : "var(--pulso-text)",
+              border: "none",
+              borderRight: isLast ? "none" : "1px solid var(--pulso-border)",
+              cursor: "pointer",
+              textAlign: "left",
+              transition: "background 120ms",
+            }}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700 }}>
+              <Icon size={14} />
+              {r.label}
+            </span>
+            <span style={{ fontSize: 10, opacity: isActive ? 0.85 : 0.7, letterSpacing: 0.2 }}>
+              {r.desc}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }

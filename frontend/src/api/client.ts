@@ -716,12 +716,14 @@ export async function apiAnaliticaFrecuencias() {
   );
 }
 
-export async function apiAnaliticaCruces(cruces: string, modo: "estandar" | "dimensiones" = "estandar") {
+// El backend lee `cruces_vars`, modo, show_sig, etc. del config autosaveado.
+// `cruces` y `modo` quedan opcionales para backcompat con tests manuales.
+export async function apiAnaliticaCruces(cruces?: string, modo?: "estandar" | "dimensiones") {
   return handle<JobStart>(
     await fetch("/api/analitica/cruces", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ cruces, modo }),
+      body: JSON.stringify(cruces ? { cruces, modo: modo ?? "estandar" } : {}),
     })
   );
 }

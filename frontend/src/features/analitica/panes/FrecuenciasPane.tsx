@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { BarChart2, X } from "lucide-react";
-import { apiAnaliticaVariables, VariableInstrumento } from "../../../api/client";
+import { BarChart2, Download, Play, X } from "lucide-react";
+import { apiAnaliticaFrecuencias, apiAnaliticaVariables, downloadUrl, VariableInstrumento } from "../../../api/client";
+import { Alert } from "../../../components/Alert";
 import { Panel } from "../../../components/Panel";
 import { useAnaliticaStore } from "../store";
+import { useReporteRun } from "../useReporteRun";
 
 // Frecuencias — orden + mostrar_todo + selección de secciones activas +
 // chip-picker de variables numéricas.
@@ -12,6 +14,7 @@ export function FrecuenciasPane() {
   const secciones = useAnaliticaStore((s) => s.config.secciones);
   const numericasGlobal = useAnaliticaStore((s) => s.config.numericas);
   const setFrec = useAnaliticaStore((s) => s.setFrecuencias);
+  const run = useReporteRun();
 
   const [variables, setVariables] = useState<VariableInstrumento[]>([]);
   useEffect(() => {
@@ -22,6 +25,10 @@ export function FrecuenciasPane() {
       } catch {/* no-op */}
     })();
   }, []);
+
+  async function onGenerate() {
+    await run.runSync(() => apiAnaliticaFrecuencias());
+  }
 
   const seccionesVisibles = secciones.filter((s) => !s.oculto);
   const selected = new Set(frec.secciones_activas);
@@ -59,8 +66,8 @@ export function FrecuenciasPane() {
 
   return (
     <Panel
-      eyebrow="Configuración"
-      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><BarChart2 size={14} /> Frecuencias</span>}
+      eyebrow="Reporte"
+      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><BarChart2 size={16} /> Frecuencias</span>}
       hint="Tablas univariadas por variable, estilo SPSS, agrupadas por sección del instrumento."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -150,6 +157,27 @@ export function FrecuenciasPane() {
             onRemove={removeNumerica}
           />
         </div>
+
+        {/* Generar */}
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--pulso-border)", paddingTop: 14 }}>
+          <button
+            className="pulso-primary"
+            onClick={onGenerate}
+            disabled={run.busy}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+          >
+            <Play size={14} /> {run.busy ? "Generando…" : "Generar frecuencias"}
+          </button>
+          {run.fileId && (
+            <a
+              href={downloadUrl(run.fileId)}
+              style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
+              <Download size={13} /> frecuencias.xlsx
+            </a>
+          )}
+        </div>
+        {run.error && <Alert kind="error">{run.error}</Alert>}
       </div>
     </Panel>
   );
