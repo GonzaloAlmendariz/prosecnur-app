@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, Save } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, Download, Upload } from "lucide-react";
 import {
+  apiCodifExportJson,
+  apiCodifImportJson,
   apiCodifPreguntasAbiertas,
   arquetipoOf,
   PreguntaAbierta,
@@ -12,7 +14,6 @@ import { IntegerCodificador } from "./IntegerCodificador";
 
 type Props = {
   onBackToOrganizar: () => void;
-  onSaveAndContinue: () => void;
 };
 
 const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label: string }> = {
@@ -22,10 +23,59 @@ const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label
   text: { bg: "var(--tipo-text-bg)", border: "var(--tipo-text-border)", fg: "var(--tipo-text-fg)", label: "Texto abierto" },
 };
 
-export function CodificarWizard({ onBackToOrganizar, onSaveAndContinue }: Props) {
+export function CodificarWizard({ onBackToOrganizar }: Props) {
   const [data, setData] = useState<PreguntaAbierta[] | null>(null);
   const [error, setError] = useState<string>("");
   const [activeParent, setActiveParent] = useState<string | null>(null);
+  const [ioBusy, setIoBusy] = useState<"export" | "import" | null>(null);
+  const [ioMsg, setIoMsg] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function onExportJson() {
+    setError("");
+    setIoMsg("");
+    setIoBusy("export");
+    try {
+      const bundle = await apiCodifExportJson();
+      const { ok: _ok, ...payload } = bundle;
+      void _ok;
+      const text = JSON.stringify(payload, null, 2);
+      const blob = new Blob([text], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `pulso_codificacion_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      setIoMsg("Exportado ✓");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setIoBusy(null);
+      setTimeout(() => setIoMsg(""), 2500);
+    }
+  }
+
+  async function onImportJson(file?: File) {
+    if (!file) return;
+    setError("");
+    setIoMsg("");
+    setIoBusy("import");
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const r = await apiCodifImportJson(parsed);
+      setIoMsg(`Importado ✓ (${r.n_preguntas_con_grupos} preguntas, ${r.n_marcadas} marcadas)`);
+      // Refresca el listado para que se vean las marcadas/paired del JSON.
+      const reload = await apiCodifPreguntasAbiertas();
+      setData(reload.preguntas);
+    } catch (e) {
+      setError(`JSON inválido o rechazado por el backend: ${(e as Error).message}`);
+    } finally {
+      setIoBusy(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setTimeout(() => setIoMsg(""), 4000);
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -102,15 +152,50 @@ export function CodificarWizard({ onBackToOrganizar, onSaveAndContinue }: Props)
           >
             <ArrowLeft size={12} /> Volver a organizar
           </button>
-          <button
-            type="button"
-            className="pulso-primary"
-            onClick={onSaveAndContinue}
-            style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6, justifyContent: "center" }}
-            title="Los grupos se guardan automáticamente. Pasá al paso 3 para adaptar el dataset."
+
+          {/* Autoguardado — la info y los atajos para compartir progreso */}
+          <div
+            style={{
+              marginTop: 6, padding: "8px 10px",
+              background: "var(--pulso-surface)",
+              border: "1px solid var(--pulso-border)",
+              borderRadius: 6,
+              display: "flex", flexDirection: "column", gap: 6,
+            }}
           >
-            <Save size={13} /> Guardar y continuar
-          </button>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#166534", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <CheckCircle2 size={11} /> Autoguardado activo
+            </div>
+            <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+              Tu progreso se guarda solo. Exporta un JSON para compartirlo o como respaldo.
+            </div>
+            <button
+              type="button"
+              onClick={onExportJson}
+              disabled={ioBusy === "export"}
+              style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "center" }}
+              title="Descarga el estado actual como JSON (draft de familias, grupos, marcadas)"
+            >
+              <Download size={11} /> {ioBusy === "export" ? "Exportando…" : "Exportar JSON"}
+            </button>
+            <label
+              style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "center", cursor: ioBusy === "import" ? "wait" : "pointer", border: "1px solid var(--pulso-border)", borderRadius: 4, padding: "4px 8px", background: "white" }}
+              title="Restaura un estado previamente exportado"
+            >
+              <Upload size={11} />
+              {ioBusy === "import" ? "Importando…" : "Importar JSON"}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,application/json"
+                style={{ display: "none" }}
+                onChange={(e) => onImportJson(e.target.files?.[0])}
+              />
+            </label>
+            {ioMsg && (
+              <div style={{ fontSize: 10, color: "#166534", fontWeight: 600 }}>{ioMsg}</div>
+            )}
+          </div>
         </div>
       </aside>
 

@@ -376,6 +376,16 @@
   "ref"
 }
 
+# Coerce to single finite numeric or NA_real_. Robust to NULL, numeric(0),
+# character, and NA — todas las variantes que aparecen mientras el
+# analista tipea reglas integer incompletas.
+.as_num_scalar <- function(x) {
+  if (is.null(x)) return(NA_real_)
+  v <- suppressWarnings(as.numeric(x))
+  if (length(v) != 1L) return(NA_real_)
+  v
+}
+
 isTRUE_vec <- function(x) {
   vapply(x, function(v) {
     if (is.logical(v)) isTRUE(v)
@@ -492,8 +502,8 @@ isTRUE_vec <- function(x) {
     if (is.null(regla)) next
     tipo <- as.character(regla$tipo %||% "")
     if (tipo == "between") {
-      lo <- suppressWarnings(as.numeric(regla$min))
-      hi <- suppressWarnings(as.numeric(regla$max))
+      lo <- .as_num_scalar(regla$min)
+      hi <- .as_num_scalar(regla$max)
       if (!is.finite(lo) || !is.finite(hi)) next
       out[[length(out) + 1L]] <- list(
         codigo = codigo,
@@ -502,21 +512,28 @@ isTRUE_vec <- function(x) {
         })
       )
     } else if (tipo == "gte") {
-      lo <- suppressWarnings(as.numeric(regla$min))
+      # Frontend IntegerCodificador guarda el valor en `value`; versiones
+      # antiguas/curl lo enviaban en `min`. Aceptamos ambos.
+      lo <- .as_num_scalar(regla$value %||% regla$min)
       if (!is.finite(lo)) next
       out[[length(out) + 1L]] <- list(
         codigo = codigo,
         match = local({ lo_ <- lo; function(v) is.finite(v) && v >= lo_ })
       )
     } else if (tipo == "lte") {
-      hi <- suppressWarnings(as.numeric(regla$max))
+      hi <- .as_num_scalar(regla$value %||% regla$max)
       if (!is.finite(hi)) next
       out[[length(out) + 1L]] <- list(
         codigo = codigo,
         match = local({ hi_ <- hi; function(v) is.finite(v) && v <= hi_ })
       )
     } else next
-    if (identical(origen, "nuevo") && nzchar(etiqueta)) {
+    # Integer: no hay choice list pre-existente, todo código se considera
+    # nuevo y debe declararse en el bloque aux para que ppra_adaptar lo
+    # acepte. Ignoramos origen acá — el frontend de hecho no lo seteaba
+    # históricamente en IntegerCodificador — y solo requerimos etiqueta
+    # no vacía.
+    if (nzchar(etiqueta)) {
       new_codes[[codigo]] <- etiqueta
     }
   }
@@ -912,6 +929,172 @@ isTRUE_vec <- function(x) {
   list(patched = patched, skipped = skipped)
 }
 
+# ---- Plan-adaptacion helper ------------------------------------------------
+# Computa el resumen del paso 3 "Adaptar" a partir del estado in-app. Se
+# invoca desde /api/codificacion/plan-adaptacion envuelto en tryCatch, así
+# cualquier edge-case devuelve plan vacío (UI friendly) en lugar de 500.
+.compute_plan_adaptacion <- function(sid) {
+  s <- session_get(sid)
+  draft <- s$codif_familias_draft
+  empty_totales <- list(
+    n_preguntas = 0L, n_variables_nuevas = 0L,
+    n_codigos_nuevos = 0L, n_codigos_reutilizados = 0L
+  )
+  if (is.null(draft)) {
+    return(list(ok = TRUE, preguntas = list(), totales = empty_totales))
+  }
+
+  data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
+  if (is.null(s$codif_data)) session_set(sid, "codif_data", data_df)
+  marcadas_set <- s$codif_marcadas %||% list()
+  grupos_map <- s$codif_grupos_recod %||% list()
+
+  preguntas <- list()
+  tot_vars_nuevas <- 0L
+  tot_codigos_nuevos <- 0L
+  tot_codigos_reuso <- 0L
+
+  for (r in (draft$rows %||% list())) {
+    parent <- as.character(r$parent %||% "")
+    if (!nzchar(parent)) next
+    tipo <- as.character(r$tipo %||% "")
+    modo_so <- as.character(r$modo_so %||% "")
+    text_col <- as.character(r$text_col %||% "")
+
+    use_flag <- isTRUE(r$use)
+    is_marcada <- !is.null(r$text_col) && nzchar(text_col)
+    is_manual <- isTRUE(marcadas_set[[parent]])
+    if (!use_flag && !is_manual && !is_marcada) next
+
+    grupos <- grupos_map[[parent]] %||% list()
+    if (length(grupos) == 0L) next
+
+    nueva_var <- if (tipo == "select_one" && modo_so == "hijo" && nzchar(text_col)) {
+      paste0(text_col, "_recod")
+    } else if (tipo == "select_one" && modo_so == "padre") {
+      paste0(parent, "_recod")
+    } else if (tipo == "integer") {
+      paste0(parent, "_recod")
+    } else if (tipo == "text") {
+      paste0(if (nzchar(text_col)) text_col else parent, "_recod")
+    } else if (tipo == "select_multiple") {
+      paste0(parent, "/*_recod")
+    } else ""
+
+    int_counts <- if (tipo == "integer" && parent %in% names(data_df)) {
+      vals <- suppressWarnings(as.numeric(data_df[[parent]]))
+      vals <- vals[is.finite(vals)]
+      vapply(grupos, function(g) {
+        regla <- g$regla; if (is.null(regla)) return(0L)
+        t <- as.character(regla$tipo %||% "")
+        if (t == "between") {
+          lo <- .as_num_scalar(regla$min)
+          hi <- .as_num_scalar(regla$max)
+          if (!is.finite(lo) || !is.finite(hi)) return(0L)
+          as.integer(sum(vals >= lo & vals <= hi))
+        } else if (t == "gte") {
+          lo <- .as_num_scalar(regla$value %||% regla$min)
+          if (!is.finite(lo)) return(0L)
+          as.integer(sum(vals >= lo))
+        } else if (t == "lte") {
+          hi <- .as_num_scalar(regla$value %||% regla$max)
+          if (!is.finite(hi)) return(0L)
+          as.integer(sum(vals <= hi))
+        } else 0L
+      }, integer(1))
+    } else integer(0)
+
+    text_src_col <- if (tipo == "select_one" && modo_so == "hijo") text_col
+                    else if (tipo == "select_one" && modo_so == "padre") text_col
+                    else if (tipo == "select_multiple") text_col
+                    else if (tipo == "text") (if (nzchar(text_col)) text_col else parent)
+                    else ""
+    text_counts <- if (nzchar(text_src_col) && text_src_col %in% names(data_df)) {
+      raw <- as.character(data_df[[text_src_col]])
+      normed <- .normalize_text(raw)
+      vapply(grupos, function(g) {
+        resps <- g$respuestas %||% list()
+        if (length(resps) == 0L) return(0L)
+        norms <- vapply(resps, function(t) .normalize_text(as.character(t))[1], character(1))
+        norms <- norms[nzchar(norms)]
+        if (length(norms) == 0L) return(0L)
+        as.integer(sum(normed %in% norms))
+      }, integer(1))
+    } else integer(0)
+
+    n_nuevos <- 0L
+    n_reuso <- 0L
+    n_resp_afect <- 0L
+    codigos_nuevos <- list()
+    codigos_reuso <- list()
+    for (i_g in seq_along(grupos)) {
+      g <- grupos[[i_g]]
+      codigo <- as.character(g$codigo %||% "")
+      etiqueta <- as.character(g$etiqueta %||% "")
+      origen <- as.character(g$origen %||% "")
+      n_resps <- if (tipo == "integer" && length(int_counts) >= i_g) {
+        as.integer(int_counts[i_g])
+      } else if (length(text_counts) >= i_g) {
+        as.integer(text_counts[i_g])
+      } else {
+        as.integer(length(g$respuestas %||% list()))
+      }
+      if (!nzchar(codigo)) next
+      if (identical(origen, "existente")) {
+        if (n_resps > 0L) {
+          n_reuso <- n_reuso + 1L
+          codigos_reuso[[length(codigos_reuso) + 1L]] <- list(
+            codigo = codigo, etiqueta = etiqueta, n_respuestas = n_resps
+          )
+        }
+      } else {
+        n_nuevos <- n_nuevos + 1L
+        codigos_nuevos[[length(codigos_nuevos) + 1L]] <- list(
+          codigo = codigo, etiqueta = etiqueta, n_respuestas = n_resps
+        )
+      }
+      n_resp_afect <- n_resp_afect + n_resps
+    }
+
+    if (n_nuevos == 0L && n_reuso == 0L) next
+
+    tot_vars_nuevas <- tot_vars_nuevas + 1L
+    tot_codigos_nuevos <- tot_codigos_nuevos + n_nuevos
+    tot_codigos_reuso <- tot_codigos_reuso + n_reuso
+
+    preguntas[[length(preguntas) + 1L]] <- list(
+      parent = parent,
+      parent_label = as.character(r$parent_label %||% ""),
+      tipo = tipo,
+      modo_so = modo_so,
+      text_col = text_col,
+      nueva_variable = nueva_var,
+      n_grupos = as.integer(length(grupos)),
+      n_codigos_nuevos = as.integer(n_nuevos),
+      n_codigos_reutilizados = as.integer(n_reuso),
+      n_respuestas_afectadas = as.integer(n_resp_afect),
+      codigos_nuevos = codigos_nuevos,
+      codigos_reutilizados = codigos_reuso,
+      bridge_soportado = (tipo == "select_one" && modo_so == "hijo") ||
+                         (tipo == "select_one" && modo_so == "padre") ||
+                         (tipo == "integer") ||
+                         (tipo == "select_multiple" && nzchar(text_col)) ||
+                         (tipo == "text" && nzchar(text_col))
+    )
+  }
+
+  list(
+    ok = TRUE,
+    preguntas = preguntas,
+    totales = list(
+      n_preguntas = as.integer(length(preguntas)),
+      n_variables_nuevas = as.integer(tot_vars_nuevas),
+      n_codigos_nuevos = as.integer(tot_codigos_nuevos),
+      n_codigos_reutilizados = as.integer(tot_codigos_reuso)
+    )
+  )
+}
+
 mount_codificacion <- function(pr) {
   pr |>
     plumber::pr_post("/api/codificacion/plantilla-familias", wrap_endpoint(function(req, res) {
@@ -928,6 +1111,66 @@ mount_codificacion <- function(pr) {
       session_set(sid, "codif_data", data_df)
       session_set(sid, "codif_familias_generated", TRUE)
       list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+    })) |>
+    plumber::pr_get("/api/codificacion/export-json", wrap_endpoint(function(req, res) {
+      # Export completo del estado de codificación (draft familias +
+      # grupos + marcadas + dummy_col de SM). Permite al analista guardar
+      # su progreso a disco y compartirlo / restaurarlo entre sesiones.
+      # Formato simétrico con /import-json.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      list(
+        ok = TRUE,
+        version = "codif/1.0",
+        exported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+        familias_draft = s$codif_familias_draft %||% list(rows = list(), source = NULL),
+        grupos_recod = s$codif_grupos_recod %||% list(),
+        marcadas = s$codif_marcadas %||% list(),
+        respuestas_recod = s$codif_respuestas_recod %||% list()
+      )
+    })) |>
+    plumber::pr_post("/api/codificacion/import-json", wrap_endpoint(function(req, res, ...) {
+      # Restaura un estado de codificación previamente exportado. No
+      # toca archivos cargados (xlsform/data); solo reemplaza el draft,
+      # grupos y marcadas.
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      parsed <- .mark_utf8(parsed)
+      version <- as.character(parsed$version %||% "")
+      if (!startsWith(version, "codif/")) {
+        stop_api(400, "E_BAD_VERSION",
+          sprintf("JSON no es de codificación (version='%s'). Se espera 'codif/1.x'.", version))
+      }
+      fam <- parsed$familias_draft
+      if (!is.null(fam) && !is.null(fam$rows) && is.list(fam$rows)) {
+        draft <- list(
+          rows = fam$rows,
+          source = as.character(fam$source %||% "import"),
+          updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+        )
+        session_set(sid, "codif_familias_draft", draft)
+      }
+      if (!is.null(parsed$grupos_recod)) {
+        session_set(sid, "codif_grupos_recod", parsed$grupos_recod)
+      }
+      if (!is.null(parsed$marcadas)) {
+        session_set(sid, "codif_marcadas", parsed$marcadas)
+      }
+      if (!is.null(parsed$respuestas_recod)) {
+        session_set(sid, "codif_respuestas_recod", parsed$respuestas_recod)
+      }
+      list(
+        ok = TRUE,
+        n_rows = length(parsed$familias_draft$rows %||% list()),
+        n_preguntas_con_grupos = length(parsed$grupos_recod %||% list()),
+        n_marcadas = length(parsed$marcadas %||% list())
+      )
     })) |>
     plumber::pr_get("/api/codificacion/preguntas-abiertas", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
@@ -1468,170 +1711,22 @@ mount_codificacion <- function(pr) {
       # variables nuevas se crean, cuántos códigos nuevos y reutilizados,
       # cuántas filas afecta cada pregunta. Sirve al paso 3 "Adaptar" para
       # que el analista vea el diff antes de lanzar el job.
+      #
+      # Envuelto en tryCatch: cualquier edge-case en la computación del
+      # resumen devuelve plan vacío en lugar de tirar 500. La UI ya maneja
+      # plan vacío mostrando "No hay preguntas con grupos codificados", y
+      # el campo `warning` queda disponible para debug.
       sid <- session_header(req)
-      s <- session_get(sid)
-      draft <- s$codif_familias_draft
-      if (is.null(draft)) return(list(ok = TRUE, preguntas = list(), totales = list(
-        n_preguntas = 0L, n_variables_nuevas = 0L, n_codigos_nuevos = 0L, n_codigos_reutilizados = 0L
-      )))
-
-      data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
-      if (is.null(s$codif_data)) session_set(sid, "codif_data", data_df)
-      marcadas_set <- s$codif_marcadas %||% list()
-      grupos_map <- s$codif_grupos_recod %||% list()
-
-      preguntas <- list()
-      tot_vars_nuevas <- 0L
-      tot_codigos_nuevos <- 0L
-      tot_codigos_reuso <- 0L
-
-      for (r in (draft$rows %||% list())) {
-        parent <- as.character(r$parent %||% "")
-        if (!nzchar(parent)) next
-        tipo <- as.character(r$tipo %||% "")
-        modo_so <- as.character(r$modo_so %||% "")
-        text_col <- as.character(r$text_col %||% "")
-
-        use_flag <- isTRUE(r$use)
-        is_marcada <- !is.null(r$text_col) && nzchar(text_col)  # auto-marcada por pareja
-        is_manual <- isTRUE(marcadas_set[[parent]])
-        if (!use_flag && !is_manual && !is_marcada) next
-
-        grupos <- grupos_map[[parent]] %||% list()
-        if (length(grupos) == 0L) next  # sin trabajo declarado, no entra al plan
-
-        # Derivar nombre de variable nueva según arquetipo.
-        nueva_var <- if (tipo == "select_one" && modo_so == "hijo" && nzchar(text_col)) {
-          paste0(text_col, "_recod")
-        } else if (tipo == "select_one" && modo_so == "padre") {
-          paste0(parent, "_recod")
-        } else if (tipo == "integer") {
-          paste0(parent, "_recod")
-        } else if (tipo == "text") {
-          paste0(if (nzchar(text_col)) text_col else parent, "_recod")
-        } else if (tipo == "select_multiple") {
-          paste0(parent, "/*_recod")
-        } else ""
-
-        # Integer usa reglas, no "respuestas" explícitas. Para que el plan
-        # no muestre "0 respuestas", contamos las filas de data que cumplen
-        # cada regla al momento de armar el resumen.
-        int_counts <- if (tipo == "integer" && parent %in% names(data_df)) {
-          vals <- suppressWarnings(as.numeric(data_df[[parent]]))
-          vals <- vals[is.finite(vals)]
-          vapply(grupos, function(g) {
-            regla <- g$regla; if (is.null(regla)) return(0L)
-            t <- as.character(regla$tipo %||% "")
-            if (t == "between") {
-              lo <- suppressWarnings(as.numeric(regla$min))
-              hi <- suppressWarnings(as.numeric(regla$max))
-              if (!is.finite(lo) || !is.finite(hi)) return(0L)
-              sum(vals >= lo & vals <= hi)
-            } else if (t == "gte") {
-              lo <- suppressWarnings(as.numeric(regla$min))
-              if (!is.finite(lo)) return(0L)
-              sum(vals >= lo)
-            } else if (t == "lte") {
-              hi <- suppressWarnings(as.numeric(regla$max))
-              if (!is.finite(hi)) return(0L)
-              sum(vals <= hi)
-            } else 0L
-          }, integer(1))
-        } else integer(0)
-
-        # Para text-based (SO-hijo, SO-padre, SM, text) cada grupo$respuestas
-        # es una lista de textos_normalizados. Queremos mostrar filas afectadas
-        # (no solo textos únicos). Normalizamos la columna fuente una vez y
-        # sumamos matches por grupo.
-        text_src_col <- if (tipo == "select_one" && modo_so == "hijo") text_col
-                        else if (tipo == "select_one" && modo_so == "padre") text_col
-                        else if (tipo == "select_multiple") text_col
-                        else if (tipo == "text") (if (nzchar(text_col)) text_col else parent)
-                        else ""
-        text_counts <- if (nzchar(text_src_col) && text_src_col %in% names(data_df)) {
-          raw <- as.character(data_df[[text_src_col]])
-          normed <- .normalize_text(raw)
-          vapply(grupos, function(g) {
-            resps <- g$respuestas %||% list()
-            if (length(resps) == 0L) return(0L)
-            norms <- vapply(resps, function(t) .normalize_text(as.character(t))[1], character(1))
-            norms <- norms[nzchar(norms)]
-            if (length(norms) == 0L) return(0L)
-            as.integer(sum(normed %in% norms))
-          }, integer(1))
-        } else integer(0)
-
-        n_nuevos <- 0L
-        n_reuso <- 0L
-        n_resp_afect <- 0L
-        codigos_nuevos <- list()
-        codigos_reuso <- list()
-        for (i_g in seq_along(grupos)) {
-          g <- grupos[[i_g]]
-          codigo <- as.character(g$codigo %||% "")
-          etiqueta <- as.character(g$etiqueta %||% "")
-          origen <- as.character(g$origen %||% "")
-          n_resps <- if (tipo == "integer" && length(int_counts) >= i_g) {
-            as.integer(int_counts[i_g])
-          } else if (length(text_counts) >= i_g) {
-            as.integer(text_counts[i_g])
-          } else {
-            as.integer(length(g$respuestas %||% list()))
-          }
-          if (!nzchar(codigo)) next
-          if (identical(origen, "existente")) {
-            if (n_resps > 0L) {
-              n_reuso <- n_reuso + 1L
-              codigos_reuso[[length(codigos_reuso) + 1L]] <- list(
-                codigo = codigo, etiqueta = etiqueta, n_respuestas = n_resps
-              )
-            }
-          } else {
-            n_nuevos <- n_nuevos + 1L
-            codigos_nuevos[[length(codigos_nuevos) + 1L]] <- list(
-              codigo = codigo, etiqueta = etiqueta, n_respuestas = n_resps
-            )
-          }
-          n_resp_afect <- n_resp_afect + n_resps
-        }
-
-        if (n_nuevos == 0L && n_reuso == 0L) next
-
-        tot_vars_nuevas <- tot_vars_nuevas + 1L
-        tot_codigos_nuevos <- tot_codigos_nuevos + n_nuevos
-        tot_codigos_reuso <- tot_codigos_reuso + n_reuso
-
-        preguntas[[length(preguntas) + 1L]] <- list(
-          parent = parent,
-          parent_label = as.character(r$parent_label %||% ""),
-          tipo = tipo,
-          modo_so = modo_so,
-          text_col = text_col,
-          nueva_variable = nueva_var,
-          n_grupos = as.integer(length(grupos)),
-          n_codigos_nuevos = as.integer(n_nuevos),
-          n_codigos_reutilizados = as.integer(n_reuso),
-          n_respuestas_afectadas = as.integer(n_resp_afect),
-          codigos_nuevos = codigos_nuevos,
-          codigos_reutilizados = codigos_reuso,
-          bridge_soportado = (tipo == "select_one" && modo_so == "hijo") ||
-                             (tipo == "select_one" && modo_so == "padre") ||
-                             (tipo == "integer") ||
-                             (tipo == "select_multiple" && nzchar(text_col)) ||
-                             (tipo == "text" && nzchar(text_col))
+      tryCatch(.compute_plan_adaptacion(sid), error = function(e) {
+        list(
+          ok = TRUE, preguntas = list(),
+          totales = list(
+            n_preguntas = 0L, n_variables_nuevas = 0L,
+            n_codigos_nuevos = 0L, n_codigos_reutilizados = 0L
+          ),
+          warning = conditionMessage(e)
         )
-      }
-
-      list(
-        ok = TRUE,
-        preguntas = preguntas,
-        totales = list(
-          n_preguntas = as.integer(length(preguntas)),
-          n_variables_nuevas = as.integer(tot_vars_nuevas),
-          n_codigos_nuevos = as.integer(tot_codigos_nuevos),
-          n_codigos_reutilizados = as.integer(tot_codigos_reuso)
-        )
-      )
+      })
     })) |>
     plumber::pr_post("/api/codificacion/aplicar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)

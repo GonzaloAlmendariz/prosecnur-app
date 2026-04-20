@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Check, Loader2, Plus, Trash2, AlertCircle, AlertTriangle,
+  Check, ChevronDown, ChevronUp, Loader2, Plus, Trash2, AlertCircle, AlertTriangle,
 } from "lucide-react";
 import {
   apiCodifGrupos,
@@ -155,7 +155,10 @@ export function IntegerCodificador({ parent }: Props) {
   function addGroup() {
     const id = `g_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const regla: ReglaInteger = { tipo: "between", min: null, max: null };
-    const nuevo: Grupo = { id, codigo: nextCodigo(), etiqueta: "", respuestas: [], regla };
+    // Integer siempre produce códigos nuevos (no hay choice list a reutilizar).
+    // Marcamos origen:"nuevo" para que el backend declare el código en el
+    // bloque auxiliar del xlsx plantilla y ppra_adaptar_data lo acepte.
+    const nuevo: Grupo = { id, codigo: nextCodigo(), etiqueta: "", respuestas: [], regla, origen: "nuevo" };
     setGrupos((gs) => [...gs, nuevo]);
   }
 
@@ -165,6 +168,20 @@ export function IntegerCodificador({ parent }: Props) {
 
   function deleteGroup(id: string) {
     setGrupos((gs) => gs.filter((g) => g.id !== id));
+  }
+
+  // Reordena reglas ↑/↓. Importante en integer: el orden define la
+  // precedencia first-match-wins al aplicar el bridge.
+  function moveGroup(id: string, direction: "up" | "down") {
+    setGrupos((gs) => {
+      const i = gs.findIndex((g) => g.id === id);
+      if (i < 0) return gs;
+      const j = direction === "up" ? i - 1 : i + 1;
+      if (j < 0 || j >= gs.length) return gs;
+      const next = [...gs];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
   }
 
   if (error) return <Alert kind="error">{error}</Alert>;
@@ -195,13 +212,17 @@ export function IntegerCodificador({ parent }: Props) {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {grupos.map((g) => (
+        {grupos.map((g, idx) => (
           <GrupoReglaCard
             key={g.id}
             grupo={g}
             respuestas={respuestas}
             onUpdate={(patch) => updateGroup(g.id, patch)}
             onDelete={() => deleteGroup(g.id)}
+            onMoveUp={() => moveGroup(g.id, "up")}
+            onMoveDown={() => moveGroup(g.id, "down")}
+            isFirst={idx === 0}
+            isLast={idx === grupos.length - 1}
           />
         ))}
       </div>
@@ -233,11 +254,15 @@ export function IntegerCodificador({ parent }: Props) {
   );
 }
 
-function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete }: {
+function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst, isLast }: {
   grupo: Grupo;
   respuestas: RespuestaUnica[];
   onUpdate: (p: Partial<Grupo>) => void;
   onDelete: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
 }) {
   const regla = (grupo.regla ?? { tipo: "between", min: null, max: null }) as ReglaInteger;
   const cobertura = useMemo(() => {
@@ -292,6 +317,28 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete }: {
           <option value="gte">X o más</option>
           <option value="lte">X o menos</option>
         </select>
+        <span style={{ display: "inline-flex", gap: 2 }}>
+          <button
+            type="button"
+            className="pulso-icon"
+            onClick={onMoveUp}
+            disabled={isFirst}
+            title="Mover arriba · el orden define precedencia en integer"
+            aria-label="Mover arriba"
+          >
+            <ChevronUp size={12} />
+          </button>
+          <button
+            type="button"
+            className="pulso-icon"
+            onClick={onMoveDown}
+            disabled={isLast}
+            title="Mover abajo · el orden define precedencia en integer"
+            aria-label="Mover abajo"
+          >
+            <ChevronDown size={12} />
+          </button>
+        </span>
         <button
           type="button"
           onClick={onDelete}

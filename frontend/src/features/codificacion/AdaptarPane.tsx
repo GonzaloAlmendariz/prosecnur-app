@@ -59,10 +59,19 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
   if (loadErr) return <Alert kind="error">{loadErr}</Alert>;
   if (!plan) return <Alert kind="info">Cargando resumen…</Alert>;
 
-  const t = plan.totales;
   const noHayNada = plan.preguntas.length === 0;
   const preguntasSoportadas = plan.preguntas.filter((p) => p.bridge_soportado);
   const preguntasNoSoportadas = plan.preguntas.filter((p) => !p.bridge_soportado);
+  // Los totales mostrados en el header reflejan solo lo que realmente se
+  // va a adaptar (preguntas soportadas). El backend devuelve totales que
+  // incluyen las no-soportadas; las reclacula aquí para evitar el gap
+  // visual "2 preguntas pero veo 1 card".
+  const t = {
+    n_preguntas: preguntasSoportadas.length,
+    n_variables_nuevas: preguntasSoportadas.length,
+    n_codigos_nuevos: preguntasSoportadas.reduce((s, p) => s + p.n_codigos_nuevos, 0),
+    n_codigos_reutilizados: preguntasSoportadas.reduce((s, p) => s + p.n_codigos_reutilizados, 0),
+  };
 
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -119,7 +128,7 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
       {preguntasNoSoportadas.length > 0 && (
         <Alert kind="warn">
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
-            {preguntasNoSoportadas.length} pregunta{preguntasNoSoportadas.length === 1 ? "" : "s"} quedarán fuera de la adaptación
+            {preguntasNoSoportadas.length} {preguntasNoSoportadas.length === 1 ? "pregunta quedará" : "preguntas quedarán"} fuera de la adaptación
           </div>
           <div style={{ fontSize: 12 }}>
             Estas preguntas tienen grupos codificados pero su configuración no permite adaptarlas automáticamente todavía:

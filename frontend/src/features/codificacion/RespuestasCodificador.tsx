@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
+  ChevronDown,
+  ChevronUp,
   Loader2,
   Plus,
   Search,
@@ -175,6 +177,22 @@ export function RespuestasCodificador({ parent }: Props) {
     if (activeGroupId === id) setActiveGroupId(null);
   }
 
+  // Reordena grupos ↑/↓ (patrón idéntico al de TimelinePanel.moveSlide de
+  // Fase 5 Gráficos). El autosave de grupos recoge el cambio automático;
+  // el orden se persiste y se usa downstream (p.ej. integer usa el orden
+  // como precedencia first-match-wins de las reglas).
+  function moveGroup(id: string, direction: "up" | "down") {
+    setGrupos((gs) => {
+      const i = gs.findIndex((g) => g.id === id);
+      if (i < 0) return gs;
+      const j = direction === "up" ? i - 1 : i + 1;
+      if (j < 0 || j >= gs.length) return gs;
+      const next = [...gs];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  }
+
   function toggleRespuesta(texto_normalizado: string) {
     const current = asignacion.get(texto_normalizado);
     if (current) {
@@ -311,7 +329,7 @@ export function RespuestasCodificador({ parent }: Props) {
             </div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {grupos.map((g) => (
+            {grupos.map((g, idx) => (
               <GrupoCard
                 key={g.id}
                 grupo={g}
@@ -323,6 +341,10 @@ export function RespuestasCodificador({ parent }: Props) {
                 onDelete={() => deleteGroup(g.id)}
                 onRemoveRespuesta={(t) => updateGroup(g.id, { respuestas: g.respuestas.filter((r) => r !== t) })}
                 onAddRespuesta={(t) => updateGroup(g.id, { respuestas: [...g.respuestas, t] })}
+                onMoveUp={() => moveGroup(g.id, "up")}
+                onMoveDown={() => moveGroup(g.id, "down")}
+                isFirst={idx === 0}
+                isLast={idx === grupos.length - 1}
               />
             ))}
           </div>
@@ -376,7 +398,7 @@ function QuickAssignDropdown({ grupos, onPick }: { grupos: Grupo[]; onPick: (gid
   );
 }
 
-function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate, onDelete, onRemoveRespuesta, onAddRespuesta }: {
+function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate, onDelete, onRemoveRespuesta, onAddRespuesta, onMoveUp, onMoveDown, isFirst, isLast }: {
   grupo: Grupo;
   respuestas: RespuestaUnica[];
   asignacion: Map<string, Grupo>;
@@ -386,6 +408,10 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
   onDelete: () => void;
   onRemoveRespuesta: (texto_normalizado: string) => void;
   onAddRespuesta: (texto_normalizado: string) => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
 }) {
   const respByNorm = useMemo(() => new Map(respuestas.map((r) => [r.texto_normalizado, r])), [respuestas]);
   const total = grupo.respuestas.reduce((sum, t) => sum + (respByNorm.get(t)?.frecuencia ?? 0), 0);
@@ -433,6 +459,7 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
             <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", background: "#eef3ff", padding: "2px 6px", borderRadius: 3 }}>
               Opción existente
             </span>
+            <MoveButtons onMoveUp={onMoveUp} onMoveDown={onMoveDown} isFirst={isFirst} isLast={isLast} />
           </>
         ) : (
           <>
@@ -457,6 +484,7 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
             <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#166534", background: "#dcfce7", padding: "2px 6px", borderRadius: 3 }}>
               Nuevo
             </span>
+            <MoveButtons onMoveUp={onMoveUp} onMoveDown={onMoveDown} isFirst={isFirst} isLast={isLast} />
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
@@ -575,3 +603,38 @@ function Badge({ bg, fg, children }: { bg: string; fg: string; children: React.R
 
 // unused imports guard
 export const _k = Wand2;
+
+// Botones pequeños ↑/↓ para reordenar grupos (patrón copiado de
+// TimelinePanel en Fase 5 Gráficos). Se stopPropagation para no
+// disparar el onClick del article (que activa la card).
+function MoveButtons({ onMoveUp, onMoveDown, isFirst, isLast }: {
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
+}) {
+  return (
+    <span style={{ display: "inline-flex", gap: 2 }}>
+      <button
+        type="button"
+        className="pulso-icon"
+        onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+        disabled={isFirst}
+        title="Mover arriba"
+        aria-label="Mover arriba"
+      >
+        <ChevronUp size={12} />
+      </button>
+      <button
+        type="button"
+        className="pulso-icon"
+        onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+        disabled={isLast}
+        title="Mover abajo"
+        aria-label="Mover abajo"
+      >
+        <ChevronDown size={12} />
+      </button>
+    </span>
+  );
+}

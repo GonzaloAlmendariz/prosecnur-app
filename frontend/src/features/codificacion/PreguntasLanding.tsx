@@ -23,7 +23,6 @@ import {
   Link2Off,
   Search,
   Sparkles,
-  Wand2,
 } from "lucide-react";
 import {
   apiCodifColumnas,
@@ -885,34 +884,17 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     );
   }
 
-  // Sin emparejar, con candidatos
+  // Sin emparejar. No mostramos candidatos ni mensajes de "no se detectó"
+  // en la card — se ofrecen solo dentro del diálogo "Emparejar con…"
+  // (si hay candidatos, aparecen preseleccionados allí; si no, el diálogo
+  // permite buscar entre todas las columnas del dataset).
   const hasCands = p.candidatos_texto && p.candidatos_texto.length > 0;
-
   return (
     <article ref={ref} {...listeners} {...attributes} data-parent={p.parent} style={common}>
       {header}
       {label}
       {tipoRow}
       {stats}
-      {hasCands ? (
-        <div style={{ background: "#fff7e8", border: "1px solid #f0d799", borderRadius: 6, padding: 8, fontSize: 11 }}>
-          <div style={{ color: "#8a5000", fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
-            <Wand2 size={11} /> Candidatos para "Otros, especifique"
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {p.candidatos_texto.slice(0, 3).map((c) => (
-              <div key={c.col} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <code style={{ fontFamily: "monospace", fontSize: 11 }}>{c.col}</code>
-                <ConfBadge conf={c.confianza} />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
-          No se detectó una columna de "Otros, especifique" automáticamente. Puedes emparejarla manualmente con cualquier columna del dataset.
-        </div>
-      )}
       <div style={{ flex: 1 }} />
       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
         <button
@@ -1037,12 +1019,6 @@ function badgeConfig(arq: Arquetipo, paired: boolean, _tipoStyle: { bg: string; 
   }
   // pareja-so/sm sin emparejar, o config-so: sin badge de error.
   return null;
-}
-
-function ConfBadge({ conf }: { conf: number }) {
-  const label = conf >= 1.0 ? "match fuerte" : conf >= 0.6 ? "prefijo" : "misma sección";
-  const color = conf >= 1.0 ? "#166534" : conf >= 0.6 ? "#8a5000" : "#6b7280";
-  return <span style={{ fontSize: 9, color, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>· {label}</span>;
 }
 
 function truncate(s: string, n: number) {

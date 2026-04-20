@@ -802,3 +802,33 @@ export async function apiCodifPlanAdaptacion() {
     await fetch("/api/codificacion/plan-adaptacion", { headers: headers() })
   );
 }
+
+// ---- Export / Import JSON (paso 2) ----------------------------------------
+// Permite guardar el estado completo de la codificación a disco y restaurarlo
+// en otra sesión, similar al "Guardar/Cargar JSON" del plan de Gráficos.
+
+export type CodifJsonBundle = {
+  ok: true;
+  version: string;
+  exported_at: string;
+  familias_draft: { rows: unknown[]; source?: string | null; updated_at?: string };
+  grupos_recod: Record<string, unknown>;
+  marcadas: Record<string, unknown>;
+  respuestas_recod: Record<string, unknown>;
+};
+
+export async function apiCodifExportJson() {
+  return handle<CodifJsonBundle>(
+    await fetch("/api/codificacion/export-json", { headers: headers() })
+  );
+}
+
+export async function apiCodifImportJson(bundle: unknown) {
+  return handle<{ ok: true; n_rows: number; n_preguntas_con_grupos: number; n_marcadas: number }>(
+    await fetch("/api/codificacion/import-json", {
+      method: "POST",
+      headers: { ...headers(), "Content-Type": "application/json" },
+      body: JSON.stringify(bundle),
+    })
+  );
+}

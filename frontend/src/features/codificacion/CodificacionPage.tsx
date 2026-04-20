@@ -54,26 +54,10 @@ export default function CodificacionPage() {
         </div>
       )}
 
-      {prereqOk && step === "organizar" && (
-        <>
-          <PreguntasLanding />
-          <div style={{ marginTop: 24, padding: 14, background: "var(--pulso-surface)", borderRadius: 6, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <div style={{ fontSize: 13 }}>
-              Cuando termines de emparejar y marcar, pasa a codificar cada pregunta.
-            </div>
-            <div style={{ flex: 1 }} />
-            <button className="pulso-primary" onClick={() => goStep("codificar")}>
-              Ir a codificar →
-            </button>
-          </div>
-        </>
-      )}
+      {prereqOk && step === "organizar" && <PreguntasLanding />}
 
       {prereqOk && step === "codificar" && (
-        <CodificarWizard
-          onBackToOrganizar={() => goStep("organizar")}
-          onSaveAndContinue={() => goStep("adaptar")}
-        />
+        <CodificarWizard onBackToOrganizar={() => goStep("organizar")} />
       )}
 
       {prereqOk && step === "adaptar" && (
