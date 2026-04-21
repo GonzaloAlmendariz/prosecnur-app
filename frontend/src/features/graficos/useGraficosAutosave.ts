@@ -67,20 +67,33 @@ export function useGraficosAutosave() {
   const hydrate = usePlanStore((s) => s.hydrate);
   const markClean = usePlanStore((s) => s.markClean);
 
-  // 1) Hidratación inicial. Sin try/catch fallback silencioso — si el
-  // backend falla, arrancamos con los defaults y el usuario puede seguir
-  // trabajando (el autosave reintenta al primer cambio).
+  // 1) Hidratación inicial + re-hidratación cuando la sesión cambia
+  // (ej. al cargar otro demo). Sin el listener de `pulso:session-changed`
+  // el store quedaba con plan/presets del demo anterior y el usuario
+  // seguía viendo configuración ajena al estudio nuevo.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    async function hydrateFromBackend() {
+      if (cancelled) return;
       try {
         const r = await apiGraficosConfigGet();
         if (!cancelled) hydrate(mergeWithDefaults(r.config));
       } catch {
         if (!cancelled) hydrate(DEFAULT_CONFIG);
       }
-    })();
-    return () => { cancelled = true; };
+    }
+
+    void hydrateFromBackend();
+
+    function onSessionChanged() {
+      void hydrateFromBackend();
+    }
+    window.addEventListener("pulso:session-changed", onSessionChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("pulso:session-changed", onSessionChanged);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

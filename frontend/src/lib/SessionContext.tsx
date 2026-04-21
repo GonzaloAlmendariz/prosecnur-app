@@ -62,6 +62,23 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("pulso:session-lost", onLost);
   }, []);
 
+  // Backend cambió el sid (ej. al cargar un demo → session_create fresh).
+  // Actualizamos el state → gatillamos refresh() via el useEffect anterior,
+  // y `sessionId` cambia como dependencia para que hooks que dependan de
+  // ella (autosave, etc.) re-hidraten.
+  useEffect(() => {
+    function onChanged(ev: Event) {
+      const detail = (ev as CustomEvent).detail as { new_sid?: string } | undefined;
+      const newSid = detail?.new_sid;
+      if (newSid && newSid !== sessionId) {
+        setSessionId(newSid);
+        setSessionLost(false);  // si había banner viejo, lo limpiamos
+      }
+    }
+    window.addEventListener("pulso:session-changed", onChanged);
+    return () => window.removeEventListener("pulso:session-changed", onChanged);
+  }, [sessionId]);
+
   const value = useMemo(
     () => ({ sessionId, version, state, refresh, error, sessionLost }),
     [sessionId, version, state, refresh, error, sessionLost],

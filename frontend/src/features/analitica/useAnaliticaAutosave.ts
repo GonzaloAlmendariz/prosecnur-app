@@ -63,19 +63,32 @@ export function useAnaliticaAutosave() {
   const hydrate = useAnaliticaStore((s) => s.hydrate);
   const markClean = useAnaliticaStore((s) => s.markClean);
 
-  // 1) Hidratación inicial desde backend.
+  // 1) Hidratación inicial + re-hidratación al cambiar de sesión
+  // (ej. cargar otro demo). Sin el listener de `pulso:session-changed`
+  // el store quedaba con config del demo anterior.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    async function hydrateFromBackend() {
+      if (cancelled) return;
       try {
         const r = await apiAnaliticaConfigGet();
         if (!cancelled) hydrate(mergeWithDefaults(r.config));
       } catch {
-        // Si falla, asumimos defaults (no interrumpimos el UX).
         if (!cancelled) hydrate(DEFAULT_CONFIG);
       }
-    })();
-    return () => { cancelled = true; };
+    }
+
+    void hydrateFromBackend();
+
+    function onSessionChanged() {
+      void hydrateFromBackend();
+    }
+    window.addEventListener("pulso:session-changed", onSessionChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("pulso:session-changed", onSessionChanged);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

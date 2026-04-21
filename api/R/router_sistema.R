@@ -148,8 +148,12 @@ shutdown_requested <- function() isTRUE(.shutdown_flag$value)
   list(demos = demos)
 }
 
-# Lee un archivo de datos según extensión (.xlsx, .sav, .csv).
-.read_data_any <- function(path) {
+# Lee un archivo de datos según extensión (.xlsx, .sav, .csv) dado su
+# PATH absoluto. `router_codificacion.R` tiene una función homónima
+# `.read_data_any(meta)` que acepta un file-meta — no nos pisamos con
+# este nombre distinto para evitar ambigüedad dentro del paquete cargado
+# por pkgload::load_all.
+.read_data_from_path <- function(path) {
   ext <- tolower(tools::file_ext(path))
   if (ext %in% c("xlsx", "xls")) {
     return(readxl::read_excel(path))
@@ -230,7 +234,7 @@ mount_sistema <- function(pr) {
         dat_meta <- save_upload(sid, data_kind, data_basename,
                                 readBin(data_path, "raw", n = file.info(data_path)$size))
         rp_inst <- reporte_instrumento(path = xls_meta$path)
-        data_df <- .read_data_any(dat_meta$path)
+        data_df <- .read_data_from_path(dat_meta$path)
         rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
         estudio_add_base(

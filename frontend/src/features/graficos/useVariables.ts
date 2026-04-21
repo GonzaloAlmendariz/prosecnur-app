@@ -22,6 +22,13 @@ export type VarWithSource = VarInfo & { source: string };
 let cache: VariablesBySource | null = null;
 let pending: Promise<VariablesBySource> | null = null;
 
+if (typeof window !== "undefined") {
+  window.addEventListener("pulso:session-changed", () => {
+    cache = null;
+    pending = null;
+  });
+}
+
 export function useVariables(): {
   sources: { name: string; variables: VarInfo[] }[];
   multi: boolean;
@@ -32,9 +39,26 @@ export function useVariables(): {
   const [data, setData] = useState<VariablesBySource | null>(cache);
   const [loading, setLoading] = useState<boolean>(!cache);
   const [error, setError] = useState<string>("");
+  // `gen` avanza en cada invalidación (cambio de sesión) para gatillar
+  // re-fetch del efecto aunque el cache ya se haya limpiado.
+  const [gen, setGen] = useState(0);
 
   useEffect(() => {
-    if (cache) return;
+    function onSessionChanged() {
+      setData(null);
+      setLoading(true);
+      setGen((g) => g + 1);
+    }
+    window.addEventListener("pulso:session-changed", onSessionChanged);
+    return () => window.removeEventListener("pulso:session-changed", onSessionChanged);
+  }, []);
+
+  useEffect(() => {
+    if (cache) {
+      setData(cache);
+      setLoading(false);
+      return;
+    }
     if (!pending) {
       pending = apiGraficosVariables().then((r) => {
         cache = r;
@@ -51,7 +75,7 @@ export function useVariables(): {
         setError((e as Error).message);
         setLoading(false);
       });
-  }, []);
+  }, [gen]);
 
   const sources = data?.sources ?? [];
   const multi = data?.multi ?? false;

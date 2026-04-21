@@ -98,7 +98,7 @@ mount_estudio <- function(pr) {
 
       # Parsear instrumento + data igual que hace /api/system/demo.
       rp_inst <- reporte_instrumento(path = xls_meta$path)
-      data_df <- .read_data_any(dat_meta$path)
+      data_df <- .read_data_from_path(dat_meta$path)
       rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
       base_meta <- estudio_add_base(

@@ -17,7 +17,22 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
 
 async function handle<T>(res: Response): Promise<T> {
   const sidHeader = res.headers.get("X-Pulso-Session");
-  if (sidHeader) setSession(sidHeader);
+  if (sidHeader) {
+    const prev = getSession();
+    setSession(sidHeader);
+    // Cuando el backend cambia el sid (típicamente al cargar un demo o
+    // al responder a /api/session si la sesión vieja ya no existía),
+    // emitimos un evento global para que el SessionContext y los hooks
+    // con cache module-level se enteren y se invaliden / re-hidraten.
+    // Sin esto, al cambiar de demo el frontend quedaba con variables,
+    // presets y templates del demo anterior porque los caches son por
+    // módulo y nadie los reciclaba.
+    if (prev && prev !== sidHeader && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("pulso:session-changed", {
+        detail: { old_sid: prev, new_sid: sidHeader },
+      }));
+    }
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const code = body?.error?.code ?? "E_UNKNOWN";
