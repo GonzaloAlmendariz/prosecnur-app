@@ -9,7 +9,8 @@ import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
 import { usePlanStore } from "./store";
 import { useGraficosAutosave } from "./useGraficosAutosave";
-import { useUndoRedoShortcuts } from "./useUndoRedoShortcuts";
+import { useGraficosShortcuts } from "./useGraficosShortcuts";
+import { ShortcutsModal } from "./ShortcutsModal";
 import { GraficosHeader } from "./GraficosHeader";
 import { ConfiguracionGlobal } from "./ConfiguracionGlobal";
 import TimelinePanel from "./TimelinePanel";
@@ -29,8 +30,9 @@ export default function GraficosPage() {
 
   // Autosave: hidrata al montar + guarda debounced 2s en cada cambio.
   useGraficosAutosave();
-  // Cmd/Ctrl+Z / Cmd/Ctrl+Shift+Z → undo/redo sobre el plan.
-  useUndoRedoShortcuts();
+  // Atajos: Cmd/Ctrl+Z (undo), +Shift+Z (redo), +D (duplicar), ? (ayuda).
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  useGraficosShortcuts({ onOpenHelp: () => setShortcutsOpen(true) });
 
   const [busyValidating, setBusyValidating] = useState("");
   const [error, setError] = useState("");
@@ -163,6 +165,8 @@ export default function GraficosPage() {
       {busyValidating && <div style={{ marginTop: 10 }}><Alert kind="info">{busyValidating}</Alert></div>}
       {warns.length > 0 && <div style={{ marginTop: 10 }}><Alert kind="warn">{warns.join(" · ")}</Alert></div>}
       {error && <div style={{ marginTop: 10 }}><Alert kind="error">{error}</Alert></div>}
+
+      {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
     </section>
   );
 }
