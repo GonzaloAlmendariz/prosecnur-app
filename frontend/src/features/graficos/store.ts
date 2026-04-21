@@ -108,6 +108,7 @@ type PlanStore = {
   // --- Setters del plan (marcan dirty) ---
   addSlide: (tipo: SlideType) => void;
   removeSlide: (id: string) => void;
+  duplicateSlide: (id: string) => void;
   moveSlide: (id: string, direction: "up" | "down") => void;
   updateSlidePayload: (id: string, patch: Record<string, unknown>) => void;
   setSlot: (id: string, slot: string, graf: GraficadorRef | null) => void;
@@ -319,6 +320,29 @@ export const usePlanStore = create<PlanStore>((set) => ({
       const slides = state.plan.slides.filter((s) => s.id !== id);
       const nextSelected = state.selectedSlideId === id ? (slides[0]?.id ?? null) : state.selectedSlideId;
       return dirty(state, { plan: { slides }, selectedSlideId: nextSelected });
+    });
+  },
+
+  // Duplica un slide. El nuevo se inserta justo después del original,
+  // con nuevo id pero payload idéntico (deep clone via JSON — nuestros
+  // payloads son JSON-safe por construcción). Pasa a ser el slide
+  // activo para que el analista pueda renombrarlo de inmediato.
+  duplicateSlide: (id) => {
+    set((state) => {
+      const i = state.plan.slides.findIndex((s) => s.id === id);
+      if (i < 0) return state;
+      const source = state.plan.slides[i];
+      const copy: Slide = {
+        id: newId(),
+        tipo: source.tipo,
+        payload: JSON.parse(JSON.stringify(source.payload)),
+      };
+      const slides = [
+        ...state.plan.slides.slice(0, i + 1),
+        copy,
+        ...state.plan.slides.slice(i + 1),
+      ];
+      return dirty(state, { plan: { slides }, selectedSlideId: copy.id });
     });
   },
 

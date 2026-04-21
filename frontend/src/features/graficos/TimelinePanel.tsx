@@ -1,4 +1,5 @@
-import { ChevronUp, ChevronDown, X, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronUp, ChevronDown, X, Plus, Copy, Search } from "lucide-react";
 import { SlideType } from "../../api/client";
 import { usePlanStore, SLIDE_LABELS } from "./store";
 
@@ -52,17 +53,90 @@ const SLIDE_GROUPS: { label: string; items: SlideType[] }[] = [
 ];
 
 export default function TimelinePanel() {
-  const { plan, selectedSlideId, addSlide, removeSlide, moveSlide, select } = usePlanStore();
+  const { plan, selectedSlideId, addSlide, removeSlide, duplicateSlide, moveSlide, select } = usePlanStore();
+  const [query, setQuery] = useState("");
+
+  // Filtro de slides por título o tipo. Preserva el número real del
+  // slide (#1, #2…) aunque haya slides ocultos por el filtro, para que
+  // el analista no se desoriente con la numeración.
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return plan.slides.map((s, i) => ({ slide: s, index: i }));
+    return plan.slides
+      .map((s, i) => ({ slide: s, index: i }))
+      .filter(({ slide }) => {
+        const label = (SLIDE_LABELS[slide.tipo] ?? slide.tipo).toLowerCase();
+        const titulo = typeof slide.payload.titulo === "string"
+          ? (slide.payload.titulo as string).toLowerCase()
+          : "";
+        return label.includes(q) || titulo.includes(q) || slide.tipo.toLowerCase().includes(q);
+      });
+  }, [plan.slides, query]);
 
   return (
     <aside style={{ width: 260, borderRight: "1px solid var(--pulso-border)", padding: "14px 12px", overflowY: "auto", background: "var(--pulso-surface-2)" }}>
-      <div className="pulso-section-eyebrow" style={{ marginBottom: 8 }}>Timeline</div>
+      <div className="pulso-section-eyebrow" style={{ marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span>Timeline</span>
+        {plan.slides.length > 0 && (
+          <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", fontWeight: 500, textTransform: "none", letterSpacing: 0 }}>
+            {filtered.length === plan.slides.length
+              ? `${plan.slides.length} ${plan.slides.length === 1 ? "slide" : "slides"}`
+              : `${filtered.length} de ${plan.slides.length}`}
+          </span>
+        )}
+      </div>
+
+      {plan.slides.length >= 3 && (
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          <Search
+            size={12}
+            color="var(--pulso-text-soft)"
+            style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+          />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar slide…"
+            aria-label="Buscar slide por título o tipo"
+            style={{
+              width: "100%", fontSize: 12,
+              padding: "6px 8px 6px 26px",
+              border: "1px solid var(--pulso-border)",
+              borderRadius: 5, background: "white",
+              outline: "none",
+            }}
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Limpiar búsqueda"
+              style={{
+                position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
+                width: 18, height: 18, padding: 0,
+                background: "transparent", border: "none",
+                color: "var(--pulso-text-soft)",
+                cursor: "pointer",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <X size={11} />
+            </button>
+          )}
+        </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
         {plan.slides.length === 0 && (
           <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>Sin slides aún.</div>
         )}
-        {plan.slides.map((s, i) => {
+        {plan.slides.length > 0 && filtered.length === 0 && (
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic", padding: "10px 4px" }}>
+            Ningún slide coincide con "{query}".
+          </div>
+        )}
+        {filtered.map(({ slide: s, index: i }) => {
           const active = selectedSlideId === s.id;
           return (
             <div
@@ -94,6 +168,11 @@ export default function TimelinePanel() {
                     className="pulso-icon"
                     title="Bajar"
                   ><ChevronDown size={13} /></button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); duplicateSlide(s.id); }}
+                    className="pulso-icon"
+                    title="Duplicar"
+                  ><Copy size={12} /></button>
                   <button
                     onClick={(e) => { e.stopPropagation(); removeSlide(s.id); }}
                     className="pulso-icon pulso-icon-danger"
