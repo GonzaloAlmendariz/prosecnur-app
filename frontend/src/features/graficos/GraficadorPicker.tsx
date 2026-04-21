@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import * as Lucide from "lucide-react";
-import { Search, X } from "lucide-react";
+import { Search, SearchX, X } from "lucide-react";
 import { GraficadorMetadata } from "../../api/client";
 import { useGraficosRegistry } from "./useGraficosRegistry";
+import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 
 // Picker visual de graficador. En vez de una lista textual, mostramos
 // cada graficador como card con icono + titulo_humano + descripción,
@@ -67,9 +68,10 @@ export default function GraficadorPicker({
       onClick={onCancel}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="graf-picker-title"
       style={{
         position: "fixed", inset: 0,
-        background: "rgba(0,0,0,0.45)",
+        background: "rgba(15, 23, 42, 0.4)",
         display: "flex", alignItems: "center", justifyContent: "center",
         zIndex: 1000,
       }}
@@ -83,7 +85,7 @@ export default function GraficadorPicker({
           maxHeight: "82vh",
           overflow: "hidden",
           display: "flex", flexDirection: "column",
-          boxShadow: "var(--pulso-shadow-high, 0 10px 40px rgba(0,0,0,0.2))",
+          boxShadow: "var(--pulso-shadow-high)",
         }}
       >
         {/* Header */}
@@ -94,7 +96,7 @@ export default function GraficadorPicker({
             display: "flex", alignItems: "center", gap: 12,
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, flex: 1 }}>Elegir graficador</h3>
+          <h3 id="graf-picker-title" style={{ margin: 0, fontSize: 15, fontWeight: 700, flex: 1 }}>Elegir graficador</h3>
           <button
             type="button"
             onClick={onCancel}
@@ -135,21 +137,23 @@ export default function GraficadorPicker({
 
         {/* Body */}
         <div style={{ flex: 1, overflowY: "auto", padding: "14px 18px" }}>
-          {loading && (
-            <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center", padding: 18 }}>
-              Cargando catálogo…
-            </div>
-          )}
-          {error && (
-            <div style={{ fontSize: 12, color: "#b91c1c", textAlign: "center", padding: 18 }}>
-              Error cargando catálogo: {error}
-            </div>
-          )}
+          {loading && <LoadingBlock label="Cargando catálogo…" />}
+          {error && <ErrorBlock label="Error cargando catálogo" detail={error} />}
 
           {!loading && !error && categoriasConItems.length === 0 && query && (
-            <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center", padding: 18 }}>
-              Sin resultados para "{query}".
-            </div>
+            <EmptyState
+              icon={<SearchX size={20} />}
+              title={`Sin resultados para "${query}"`}
+              hint="Prueba con otro nombre o limpia el buscador para ver todos los graficadores."
+            />
+          )}
+
+          {!loading && !error && categoriasConItems.length === 0 && !query && (
+            <EmptyState
+              icon={<SearchX size={20} />}
+              title="Catálogo vacío"
+              hint="El registry del backend no devolvió graficadores. Revisa la consola del API."
+            />
           )}
 
           {categoriasConItems.map((cat) => (

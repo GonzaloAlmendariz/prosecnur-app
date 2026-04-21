@@ -3,6 +3,7 @@ import { ArgGrupo, GraficadorRef } from "../../api/client";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useVariables } from "./useVariables";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
+import { LoadingBlock, ErrorBlock } from "../../components/States";
 
 // Formulario dinámico de un graficador. Ya no hay switch/case por tipo:
 // leemos el metadata del registry y renderizamos cada arg con ArgField,
@@ -41,16 +42,17 @@ export default function GraficadorForm({ graf, onArgs }: Props) {
   }, [meta]);
 
   if (loading) {
-    return <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: 10 }}>Cargando opciones…</div>;
+    return <LoadingBlock variant="inline" label="Cargando opciones…" />;
   }
   if (error) {
-    return <div style={{ fontSize: 12, color: "#b91c1c", padding: 10 }}>Error: {error}</div>;
+    return <ErrorBlock label="Error cargando catálogo" detail={error} />;
   }
   if (!meta) {
     return (
-      <div style={{ fontSize: 12, color: "#b91c1c", padding: 10 }}>
-        Graficador desconocido: <code>{graf.graficador}</code>
-      </div>
+      <ErrorBlock
+        label="Graficador desconocido"
+        detail={`El graficador "${graf.graficador}" no existe en el registry actual. Probablemente viene de un plan antiguo — elige otro graficador desde el botón "Cambiar" de la card.`}
+      />
     );
   }
 

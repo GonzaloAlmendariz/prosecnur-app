@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import * as Lucide from "lucide-react";
+import { LayoutGrid, LayoutPanelTop } from "lucide-react";
 import { ArgGrupo, GraficadorRef } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { usePlanStore, SLIDE_GRAF_SLOTS, SLIDE_LABELS } from "./store";
@@ -8,6 +9,7 @@ import { useVariables } from "./useVariables";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
 import GraficadorSlot from "./GraficadorSlot";
 import { SlidePreview } from "./SlidePreview";
+import { LoadingBlock, EmptyState, SectionEyebrow } from "../../components/States";
 
 // Editor de slide rediseñado. Reemplaza el switch/case + mapas hardcoded
 // por un renderer dinámico que lee el metadata del registry:
@@ -60,8 +62,12 @@ export default function SlideEditor() {
 
   if (!slide) {
     return (
-      <div style={{ padding: "2rem", color: "var(--pulso-text-soft)", fontSize: 14, flex: 1 }}>
-        Selecciona o agrega un slide en el panel izquierdo.
+      <div style={{ flex: 1, padding: "18px 22px" }}>
+        <EmptyState
+          icon={<LayoutPanelTop size={22} />}
+          title="Sin slide seleccionado"
+          hint="Selecciona uno del timeline de la izquierda o agrega un slide nuevo para empezar a editar."
+        />
       </div>
     );
   }
@@ -100,11 +106,7 @@ export default function SlideEditor() {
         )}
       </header>
 
-      {loading && (
-        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: 10 }}>
-          Cargando opciones del slide…
-        </div>
-      )}
+      {loading && <LoadingBlock variant="inline" label="Cargando opciones del slide…" />}
 
       {/* Args no-slot (textos, datos del slide) */}
       {gruposDeArgs.length > 0 && (
@@ -124,16 +126,11 @@ export default function SlideEditor() {
 
       {/* Slots de graficador */}
       {grafSlots.length > 0 && (
-        <section>
-          <div
-            style={{
-              fontSize: 11, fontWeight: 700,
-              textTransform: "uppercase", letterSpacing: 0.4,
-              color: "var(--pulso-text-soft)",
-              marginBottom: 8,
-            }}
-          >
-            Gráficos del slide · {grafSlots.length} slot{grafSlots.length === 1 ? "" : "s"}
+        <section style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 10 }}>
+            <SectionEyebrow
+              label={`Gráficos del slide · ${grafSlots.length} slot${grafSlots.length === 1 ? "" : "s"}`}
+            />
           </div>
           {grafSlots.map((slotName) => (
             <GraficadorSlot
@@ -148,16 +145,13 @@ export default function SlideEditor() {
 
       {/* Slide estructural sin args ni slots (ej. p_slide_indice) */}
       {gruposDeArgs.length === 0 && grafSlots.length === 0 && (
-        <div
-          style={{
-            fontSize: 12, color: "var(--pulso-text-soft)",
-            padding: "14px 16px", borderRadius: 6,
-            background: "var(--pulso-surface)",
-            border: "1px solid var(--pulso-border)",
-            maxWidth: 600,
-          }}
-        >
-          Este slide no requiere configuración. Se genera automáticamente en el export.
+        <div style={{ maxWidth: 600 }}>
+          <EmptyState
+            variant="inline"
+            icon={<LayoutGrid size={18} />}
+            title="Sin configuración necesaria"
+            hint="Este slide se genera automáticamente en el export a partir del plan. No tiene args ni slots para editar."
+          />
         </div>
       )}
 

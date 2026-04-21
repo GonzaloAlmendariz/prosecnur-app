@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import * as Lucide from "lucide-react";
-import { Plus, Replace, X, Wand2, Check } from "lucide-react";
+import { Plus, Shuffle, X, Wand2, Check, ImagePlus } from "lucide-react";
 import { GraficadorMetadata, GraficadorRef } from "../../api/client";
 import { usePlanStore } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
@@ -69,23 +69,59 @@ export default function GraficadorSlot({ slideId, slotName, value }: Props) {
   const slotLabel = SLOT_LABELS[slotName] ?? slotName;
 
   // --- Slot vacío ---
+  // Min-height se mantiene consistente con el slot con graficador para
+  // evitar layout shift al poblar. Diseño más invitante: ícono
+  // placeholder grande a la izquierda, copy guiado, CTA primario.
   if (!value || !value.graficador) {
     return (
       <div
         style={{
-          marginBottom: 12, padding: "18px 14px",
+          marginBottom: 12, padding: "14px 16px",
           border: "1px dashed var(--pulso-border)",
           borderRadius: 8,
           background: "var(--pulso-surface)",
-          display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8,
+          display: "flex", alignItems: "center", gap: 14,
+          minHeight: 66,
+          transition: "border-color 120ms ease, background 120ms ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "var(--pulso-primary-border)";
+          e.currentTarget.style.background = "var(--pulso-primary-soft)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "var(--pulso-border)";
+          e.currentTarget.style.background = "var(--pulso-surface)";
         }}
       >
-        <SlotLabel text={slotLabel} slotName={slotName} />
+        <span
+          aria-hidden="true"
+          style={{
+            width: 38, height: 38, borderRadius: 8,
+            background: "white",
+            color: "var(--pulso-text-soft)",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            border: "1px solid var(--pulso-border)",
+            flexShrink: 0,
+          }}
+        >
+          <ImagePlus size={16} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <SlotLabel text={slotLabel} slotName={slotName} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--pulso-text)" }}>
+              Añade un gráfico a este slot
+            </span>
+          </div>
+          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+            Elige un tipo del catálogo (barras, pie, radar, etc.) y configura sus args.
+          </span>
+        </div>
         <button
           type="button"
           className="pulso-primary"
           onClick={() => setPickerOpen(true)}
-          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}
+          style={{ fontSize: 12, padding: "7px 12px", display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}
         >
           <Plus size={13} /> Elegir graficador
         </button>
@@ -149,10 +185,10 @@ export default function GraficadorSlot({ slideId, slotName, value }: Props) {
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 9px" }}
-          title="Cambiar graficador"
+          style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 10px" }}
+          title="Cambiar por otro tipo de gráfico"
         >
-          <Replace size={11} /> Cambiar
+          <Shuffle size={11} /> Cambiar
         </button>
         <button
           type="button"
@@ -227,12 +263,31 @@ function OverrideDropdown({
   const allOverrides = usePlanStore((s) => s.overridesReusables);
   const updateArgs = usePlanStore((s) => s.updateSlotArgs);
   const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const presetType = graficadorToPresetType(value.graficador);
   const aplicables = useMemo(
     () => (presetType ? allOverrides.filter((o) => o.tipo_preset === presetType) : []),
     [allOverrides, presetType]
   );
+
+  // Click-outside + Escape cierran el popover. Patrón más robusto que
+  // el overlay div full-screen (que interfiere con otros popovers).
+  useEffect(() => {
+    if (!open) return;
+    function onDocMouseDown(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   if (!presetType || aplicables.length === 0) return null;
 
@@ -256,14 +311,16 @@ function OverrideDropdown({
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={rootRef} style={{ position: "relative" }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="menu"
         title="Aplicar un override reutilizable"
         style={{
           fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4,
-          padding: "4px 9px",
+          padding: "5px 10px",
           border: `1px solid ${activeOverride || hasCustomOverride ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
           background: activeOverride || hasCustomOverride ? "var(--pulso-primary-soft)" : "white",
           color: activeOverride || hasCustomOverride ? "var(--pulso-primary)" : "var(--pulso-text)",
@@ -278,42 +335,40 @@ function OverrideDropdown({
             : "Estilo"}
       </button>
       {open && (
-        <>
-          <div
-            onClick={() => setOpen(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 20 }}
+        <div
+          role="menu"
+          style={{
+            position: "absolute", top: "calc(100% + 4px)", right: 0,
+            zIndex: 21,
+            minWidth: 220,
+            background: "white",
+            border: "1px solid var(--pulso-border)",
+            borderRadius: 7,
+            boxShadow: "var(--pulso-shadow-med)",
+            padding: 4,
+            display: "flex", flexDirection: "column", gap: 1,
+          }}
+        >
+          <DropdownOption
+            label="Sin override"
+            hint="Solo los defaults del preset global"
+            active={!activeOverride && !hasCustomOverride}
+            onClick={() => applyOverride(null)}
           />
-          <div
-            style={{
-              position: "absolute", top: "calc(100% + 4px)", right: 0,
-              zIndex: 21,
-              minWidth: 200,
-              background: "white",
-              border: "1px solid var(--pulso-border)",
-              borderRadius: 7,
-              boxShadow: "var(--pulso-shadow-med)",
-              padding: 4,
-              display: "flex", flexDirection: "column", gap: 1,
-            }}
-          >
-            <DropdownOption
-              label="Sin override"
-              hint="Usa solo los defaults del preset global."
-              active={!activeOverride && !hasCustomOverride}
-              onClick={() => applyOverride(null)}
-            />
-            <div style={{ height: 1, background: "var(--pulso-border)", margin: "3px 0" }} />
-            {aplicables.map((o) => (
+          <div style={{ height: 1, background: "var(--pulso-border)", margin: "3px 0" }} />
+          {aplicables.map((o) => {
+            const n = Object.keys(o.args).length;
+            return (
               <DropdownOption
                 key={o.id}
                 label={o.nombre}
-                hint={`${Object.keys(o.args).length} args custom`}
+                hint={`${n} ${n === 1 ? "ajuste" : "ajustes"}`}
                 active={activeOverride?.id === o.id}
                 onClick={() => applyOverride({ ...o.args })}
               />
-            ))}
-          </div>
-        </>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -330,6 +385,7 @@ function DropdownOption({
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onClick}
       style={{
         display: "flex", alignItems: "center", gap: 8,
