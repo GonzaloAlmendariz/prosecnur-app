@@ -1,22 +1,21 @@
-.SLIDE_REGISTRY <- list(
-  p_slide_title       = list(cat = "estructural", grafs = c()),
-  p_slide_section     = list(cat = "estructural", grafs = c()),
-  p_slide_1           = list(cat = "contenido",   grafs = c("plot")),
-  p_slide_2           = list(cat = "contenido",   grafs = c("left", "right")),
-  p_slide_text_l      = list(cat = "contenido",   grafs = c("plot")),
-  p_slide_text_r      = list(cat = "contenido",   grafs = c("plot")),
-  p_slide_poblacion_2 = list(cat = "poblacion",   grafs = c("left", "right")),
-  p_slide_poblacion_4 = list(cat = "poblacion",   grafs = c("up_left", "up_right", "bottom_left", "bottom_right")),
-  p_slide_poblacion_5 = list(cat = "poblacion",   grafs = c("pic1", "pic2", "pic3", "pic4", "pic5")),
-  p_slide_poblacion_6 = list(cat = "poblacion",   grafs = c("pic1", "pic2", "pic3", "pic4", "pic5", "pic6"))
+# La fuente de verdad de slides + graficadores vive en
+# `graficos_metadata.R` (mismo directorio). Ese archivo define:
+#   - .SLIDES_META / .GRAFICADORES_META: catálogo humano con copy, iconos,
+#     tipos de input por arg, agrupación semántica.
+#   - .slide_names() / .graf_names() / .slide_slots() / .slide_categoria()
+#     como API pública para el router.
+# Acá solo exponemos aliases cortos para mantener compatibilidad con el
+# código preexistente (`.SLIDE_REGISTRY`, `.GRAFICADOR_REGISTRY`).
+
+.SLIDE_REGISTRY <- setNames(
+  lapply(.slide_names(), function(nm) list(
+    cat   = .slide_categoria(nm),
+    grafs = setdiff(.slide_slots(nm), "icono")  # el slot `icono` va por catálogo PNG, no por graficador
+  )),
+  .slide_names()
 )
 
-.GRAFICADOR_REGISTRY <- c(
-  "p_barras_agrupadas", "p_barras_apiladas", "p_barras_multiapiladas",
-  "p_pie", "p_donut",
-  "p_numerico", "p_boxplot", "p_media_rango",
-  "p_radar_tabla"
-)
+.GRAFICADOR_REGISTRY <- .graf_names()
 
 .normalize_plan <- function(plan) {
   if (is.null(plan)) return(list(slides = list()))
@@ -128,22 +127,83 @@
   list(ok = length(errs) == 0, errors = errs, warnings = warns, n_slides = length(slides))
 }
 
+# Config por defecto del plan de gráficos. Mirror del DEFAULT_STATE del
+# store de Zustand en `frontend/src/features/graficos/store.ts`.
+.graficos_default_config <- function() {
+  list(
+    version = 1L,
+    plan = list(slides = list()),
+    presets = list(),
+    w_presets = list(),
+    selected_slide_id = NULL
+  )
+}
+
 mount_graficos <- function(pr) {
   pr |>
-    plumber::pr_get("/api/graficos/registry", wrap_endpoint(function(req, res) {
-      list(
-        slides = lapply(names(.SLIDE_REGISTRY), function(name) {
-          reg <- .SLIDE_REGISTRY[[name]]
-          fn <- tryCatch(getExportedValue("prosecnur", name), error = function(e) NULL)
-          args <- if (!is.null(fn)) names(formals(fn)) else character(0)
-          list(name = name, categoria = reg$cat, slots = reg$grafs, args = args)
-        }),
-        graficadores = lapply(.GRAFICADOR_REGISTRY, function(name) {
-          fn <- tryCatch(getExportedValue("prosecnur", name), error = function(e) NULL)
-          args <- if (!is.null(fn)) names(formals(fn)) else character(0)
-          list(name = name, args = args)
-        })
+    plumber::pr_get("/api/graficos/config", wrap_endpoint(function(req, res) {
+      # Devuelve la config persistida (o defaults). El frontend la hidrata
+      # en su store al montar GraficosPage y escribe cambios vía autosave
+      # contra POST /config (debounce 2s).
+      sid <- session_header(req)
+      s <- session_get(sid)
+      cfg <- s$graficos_config %||% .graficos_default_config()
+      list(ok = TRUE, config = cfg)
+    })) |>
+    plumber::pr_post("/api/graficos/config", wrap_endpoint(function(req, res, ...) {
+      # Recibe el estado completo (plan + presets + wPresets + selected)
+      # desde el autosave. No validamos schema acá: el frontend ya lo
+      # garantiza; el backend es un kv-store por sid.
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
+      cfg <- parsed$config
+      if (is.null(cfg)) stop_api(400, "E_NO_CONFIG", "Body debe incluir 'config'.")
+      session_set(sid, "graficos_config", cfg)
+      list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+    })) |>
+    plumber::pr_get("/api/graficos/config/export", wrap_endpoint(function(req, res) {
+      # Export del estado completo para que el analista lo guarde a disco
+      # o lo comparta. Mismo patrón que Analítica.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      list(
+        ok = TRUE,
+        version = "graficos/1.0",
+        exported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+        config = s$graficos_config %||% .graficos_default_config()
+      )
+    })) |>
+    plumber::pr_post("/api/graficos/config/import", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      v <- as.character(parsed$version %||% "")
+      if (!startsWith(v, "graficos/")) {
+        stop_api(400, "E_BAD_VERSION",
+          sprintf("JSON no es de gráficos (version='%s'). Se espera 'graficos/1.x'.", v))
+      }
+      cfg <- parsed$config
+      if (is.null(cfg)) stop_api(400, "E_NO_CONFIG", "El JSON no trae 'config'.")
+      session_set(sid, "graficos_config", cfg)
+      list(ok = TRUE, imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+    })) |>
+    plumber::pr_get("/api/graficos/registry", wrap_endpoint(function(req, res) {
+      # Devuelve el catálogo humano completo: cada slide y cada graficador
+      # con titulo_humano, descripcion, icono_ui, categoria y args (cada
+      # uno con label, tipo_input, grupo, descripcion, choices si aplica).
+      # El frontend construye toda la UI de edición a partir de esto.
+      .graficos_registry_payload()
     })) |>
     plumber::pr_get("/api/graficos/variables", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
@@ -167,6 +227,86 @@ mount_graficos <- function(pr) {
       }
       list(variables = vars)
     })) |>
+    plumber::pr_get("/api/graficos/paletas-sugeridas", wrap_endpoint(function(req, res) {
+      # Devuelve todas las listas de choices del instrumento con sus
+      # value-labels, para que la UI del editor de paletas sepa qué
+      # rellenar. Formato:
+      #   [{list_name, choices: [{name, label}]}]
+      # Si ya hay una paleta guardada para un list_name en el config, el
+      # frontend la mergea por encima. Si no, muestra los labels sin
+      # color asignado (placeholder gris).
+      sid <- session_header(req)
+      s <- session_get(sid)
+      if (is.null(s$rp_inst)) return(list(listas = list()))
+      choices <- s$rp_inst$choices
+      if (is.null(choices) || nrow(choices) == 0L) return(list(listas = list()))
+
+      list_names <- unique(as.character(choices$list_name %||% ""))
+      list_names <- list_names[nzchar(list_names)]
+
+      listas <- lapply(list_names, function(ln) {
+        rows <- choices[as.character(choices$list_name) == ln, , drop = FALSE]
+        if (nrow(rows) == 0L) return(NULL)
+        items <- lapply(seq_len(nrow(rows)), function(i) {
+          list(
+            name  = as.character(rows$name[i]  %||% ""),
+            label = as.character(rows$label[i] %||% rows$name[i])
+          )
+        })
+        list(list_name = ln, choices = items)
+      })
+      listas <- Filter(Negate(is.null), listas)
+      list(listas = listas)
+    })) |>
+    plumber::pr_post("/api/graficos/icons/upload", wrap_endpoint(function(req, res, ...) {
+      # Recibe un PNG codificado en base64 (plus nombre humano) y lo
+      # persiste en sesión como archivo descargable. Devuelve
+      # {ok, id, file_id, nombre}. El store del frontend luego guarda
+      # esta referencia en `iconos` y la envía al exportar slides de
+      # población (el backend la resuelve a path al construir el slide).
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      nombre <- as.character(parsed$nombre %||% "")
+      data_b64 <- as.character(parsed$data_base64 %||% "")
+      if (!nzchar(nombre))  stop_api(400, "E_NO_NOMBRE", "Falta 'nombre'.")
+      if (!nzchar(data_b64)) stop_api(400, "E_NO_DATA",   "Falta 'data_base64'.")
+
+      # Quitar prefijo "data:image/png;base64," si viene
+      data_b64 <- sub("^data:[^;]*;base64,", "", data_b64)
+      bytes <- tryCatch(
+        jsonlite::base64_dec(data_b64),
+        error = function(e) stop_api(400, "E_BAD_BASE64", conditionMessage(e))
+      )
+      # Validación mínima: chequear firma PNG (89 50 4E 47 0D 0A 1A 0A)
+      png_sig <- as.raw(c(0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A))
+      if (length(bytes) < 8L || !identical(bytes[1:8], png_sig)) {
+        stop_api(400, "E_BAD_PNG", "El archivo no parece ser un PNG válido.")
+      }
+
+      icons_dir <- file.path(s$dir, "icons")
+      dir.create(icons_dir, showWarnings = FALSE, recursive = TRUE)
+      file_id <- uuid::UUIDgenerate()
+      path <- file.path(icons_dir, paste0(file_id, ".png"))
+      writeBin(bytes, path)
+
+      # Registrar en el file store para que /files/:id/download sirva.
+      meta <- .register_output_file(sid, "graficos_icon", path)
+
+      list(
+        ok = TRUE,
+        id = file_id,
+        file_id = meta$file_id,
+        nombre = nombre,
+        uploaded_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+      )
+    })) |>
     plumber::pr_post("/api/graficos/validar", wrap_endpoint(function(req, res, plan = NULL) {
       if (is.null(plan)) stop_api(400, "E_NO_PLAN", "Falta 'plan' en el body")
       .validar_plan_json(plan)
@@ -180,28 +320,21 @@ mount_graficos <- function(pr) {
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
       rp_data_path <- job_save_rds(sid, "rp_data", s$rp_data)
       rp_inst_path <- job_save_rds(sid, "rp_inst", s$rp_inst)
+      # El worker recibe el registry como argumento (serializado desde el
+       # main process) — así una única fuente de verdad vive en
+       # graficos_metadata.R, y el worker callr no necesita duplicarla.
+      slide_registry_arg <- setNames(
+        lapply(.slide_names(), function(nm) list(grafs = setdiff(.slide_slots(nm), "icono"))),
+        .slide_names()
+      )
+      graficador_registry_arg <- .graf_names()
+
       job_id <- job_submit(
         sid = sid,
         kind = "graficos.ppt",
-        func = function(rp_data_path, rp_inst_path, plan, presets, result_path) {
+        func = function(rp_data_path, rp_inst_path, plan, presets,
+                        slide_registry, graficador_registry, result_path) {
           `%||%` <- function(a, b) if (is.null(a)) b else a
-          slide_registry <- list(
-            p_slide_title       = list(grafs = c()),
-            p_slide_section     = list(grafs = c()),
-            p_slide_1           = list(grafs = c("plot")),
-            p_slide_2           = list(grafs = c("left", "right")),
-            p_slide_text_l      = list(grafs = c("plot")),
-            p_slide_text_r      = list(grafs = c("plot")),
-            p_slide_poblacion_2 = list(grafs = c("left", "right")),
-            p_slide_poblacion_4 = list(grafs = c("up_left", "up_right", "bottom_left", "bottom_right")),
-            p_slide_poblacion_5 = list(grafs = c("pic1", "pic2", "pic3", "pic4", "pic5")),
-            p_slide_poblacion_6 = list(grafs = c("pic1", "pic2", "pic3", "pic4", "pic5", "pic6"))
-          )
-          graficador_registry <- c(
-            "p_barras_agrupadas", "p_barras_apiladas", "p_barras_multiapiladas",
-            "p_pie", "p_donut", "p_numerico", "p_boxplot", "p_media_rango",
-            "p_radar_tabla"
-          )
           as_json_list <- function(x) {
             if (is.null(x)) return(NULL)
             if (is.data.frame(x)) return(as.list(x))
@@ -250,7 +383,9 @@ mount_graficos <- function(pr) {
           rp_data_path = rp_data_path,
           rp_inst_path = rp_inst_path,
           plan = plan,
-          presets = presets
+          presets = presets,
+          slide_registry = slide_registry_arg,
+          graficador_registry = graficador_registry_arg
         ),
         result_filename = sprintf("reporte_%s.pptx", uuid::UUIDgenerate()),
         on_complete = function(j) {
@@ -270,28 +405,20 @@ mount_graficos <- function(pr) {
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
       rp_data_path <- job_save_rds(sid, "rp_data", s$rp_data)
       rp_inst_path <- job_save_rds(sid, "rp_inst", s$rp_inst)
+      slide_registry_arg <- setNames(
+        lapply(.slide_names(), function(nm) list(grafs = setdiff(.slide_slots(nm), "icono"))),
+        .slide_names()
+      )
+      graficador_registry_arg <- .graf_names()
+
       job_id <- job_submit(
         sid = sid,
         kind = "graficos.word",
-        func = function(rp_data_path, rp_inst_path, plan, presets, w_presets, result_path) {
+        func = function(rp_data_path, rp_inst_path, plan, presets, w_presets,
+                        slide_registry, graficador_registry, result_path) {
           `%||%` <- function(a, b) if (is.null(a)) b else a
-          slide_registry <- list(
-            p_slide_title       = list(grafs = c()),
-            p_slide_section     = list(grafs = c()),
-            p_slide_1           = list(grafs = c("plot")),
-            p_slide_2           = list(grafs = c("left", "right")),
-            p_slide_text_l      = list(grafs = c("plot")),
-            p_slide_text_r      = list(grafs = c("plot")),
-            p_slide_poblacion_2 = list(grafs = c("left", "right")),
-            p_slide_poblacion_4 = list(grafs = c("up_left", "up_right", "bottom_left", "bottom_right")),
-            p_slide_poblacion_5 = list(grafs = c("pic1", "pic2", "pic3", "pic4", "pic5")),
-            p_slide_poblacion_6 = list(grafs = c("pic1", "pic2", "pic3", "pic4", "pic5", "pic6"))
-          )
-          graficador_registry <- c(
-            "p_barras_agrupadas", "p_barras_apiladas", "p_barras_multiapiladas",
-            "p_pie", "p_donut", "p_numerico", "p_boxplot", "p_media_rango",
-            "p_radar_tabla"
-          )
+          # slide_registry / graficador_registry vienen del main process
+          # (fuente única de verdad en graficos_metadata.R).
           as_json_list <- function(x) {
             if (is.null(x)) return(NULL)
             if (is.data.frame(x)) return(as.list(x))
@@ -346,7 +473,9 @@ mount_graficos <- function(pr) {
           rp_inst_path = rp_inst_path,
           plan = plan,
           presets = presets,
-          w_presets = w_presets
+          w_presets = w_presets,
+          slide_registry = slide_registry_arg,
+          graficador_registry = graficador_registry_arg
         ),
         result_filename = sprintf("reporte_%s.docx", uuid::UUIDgenerate()),
         on_complete = function(j) {

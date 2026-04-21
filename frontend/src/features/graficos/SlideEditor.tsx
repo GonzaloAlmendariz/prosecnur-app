@@ -1,6 +1,12 @@
-import { GraficadorRef, Slide } from "../../api/client";
-import { usePlanStore } from "./store";
+import { GraficadorRef, Slide, SlideType } from "../../api/client";
+import { usePlanStore, SLIDE_GRAF_SLOTS, SLIDE_LABELS } from "./store";
 import GraficadorSlot from "./GraficadorSlot";
+
+// Editor transitorio — Bloque 0 del rediseño. El registry nuevo ya vive
+// en graficos_metadata.R, pero el editor rico (leer metadata + renderizar
+// controles por arg) se implementa en Bloque 3. Por ahora este editor
+// expone los campos de texto más comunes (titulo, subtitulo, base, pie,
+// etiqueta, texto) + los slots de graficador según el tipo de slide.
 
 function Field({ label, children, help }: { label: string; children: React.ReactNode; help?: string }) {
   return (
@@ -34,68 +40,112 @@ function TextArea({ value, onChange, rows = 3 }: { value: string; onChange: (v: 
   );
 }
 
-function TitleEditor({ slide }: { slide: Slide }) {
-  const update = usePlanStore((s) => s.updateSlidePayload);
-  const p = slide.payload as Record<string, string>;
-  return (
-    <>
-      <Field label="Título"><TextInput value={p.title ?? ""} onChange={(v) => update(slide.id, { title: v })} /></Field>
-      <Field label="Subtítulo"><TextInput value={p.subtitle ?? ""} onChange={(v) => update(slide.id, { subtitle: v })} /></Field>
-      <Field label="Fecha"><TextInput value={p.date ?? ""} onChange={(v) => update(slide.id, { date: v })} placeholder="Abril 2026" /></Field>
-      <Field label="Línea meta (opcional)"><TextInput value={p.meta_line ?? ""} onChange={(v) => update(slide.id, { meta_line: v })} /></Field>
-    </>
-  );
+// ---- Qué campos de texto muestra cada tipo de slide -----------------------
+// Mirror mínimo de los formals() reales de `prosecnur::p_slide_*`.
+
+type TextoField = { key: string; label: string; multiline?: boolean; help?: string };
+
+const TEXTO_FIELDS_POR_TIPO: Record<SlideType, TextoField[]> = {
+  p_slide_portada: [
+    { key: "titulo",    label: "Título principal" },
+    { key: "subtitulo", label: "Subtítulo" },
+    { key: "fecha",     label: "Fecha", help: "Ej. 'Abril 2026'." },
+    { key: "subtexto",  label: "Texto descriptivo", multiline: true },
+  ],
+  p_slide_indice: [],
+  p_slide_seccion: [
+    { key: "titulo",            label: "Título de la sección" },
+    { key: "subtitulo",         label: "Subtítulo" },
+    { key: "introduccion_word", label: "Intro (solo Word)", multiline: true, help: "Solo aparece en export .docx." },
+  ],
+  p_slide_objetivo_icono: [
+    { key: "titulo", label: "Título" },
+    { key: "texto",  label: "Contenido", multiline: true },
+    // `icono` no es campo de texto — se selecciona en el catálogo de íconos (Bloque 3).
+  ],
+  p_slide_texto: [
+    { key: "titulo",  label: "Título" },
+    { key: "texto",   label: "Párrafo",         multiline: true },
+    { key: "bullets", label: "Bullets",         multiline: true, help: "Uno por línea." },
+    { key: "base",    label: "Base" },
+  ],
+  p_slide_tabla_tecnica: [
+    { key: "titulo", label: "Título" },
+    { key: "filas",  label: "Filas (uno por línea, formato 'Campo: valor')", multiline: true },
+    { key: "pie",    label: "Pie" },
+  ],
+
+  // 1 gráfico
+  p_slide_1_grafico:               [...textosBase()],
+  p_slide_1_grafico_narrativo:     [{ key: "texto", label: "Texto narrativo", multiline: true }, ...textosBase()],
+  p_slide_grafico_texto_derecha:   [{ key: "texto", label: "Texto",           multiline: true }, ...textosBase()],
+  p_slide_grafico_texto_izquierda: [{ key: "texto", label: "Texto",           multiline: true }, ...textosBase()],
+
+  // 2 gráficos
+  p_slide_2_graficos:                 [...textosBase()],
+  p_slide_2_graficos_narrativo:       [{ key: "texto", label: "Texto narrativo", multiline: true }, ...textosBase()],
+  p_slide_2_graficos_texto_izquierda: [{ key: "texto", label: "Texto", multiline: true }, ...textosBase()],
+  p_slide_2_graficos_texto_derecha:   [{ key: "texto", label: "Texto", multiline: true }, ...textosBase()],
+
+  // Grid 4
+  p_slide_4_graficos: [...textosBase()],
+
+  // Población
+  p_slide_2_graficos_poblacion:   [...textosPoblacion()],
+  p_slide_4_graficos_poblacion:   [...textosPoblacion()],
+  p_slide_5_graficos_poblacion:   [...textosPoblacion()],
+  p_slide_6_graficos_poblacion:   [...textosPoblacion()],
+};
+
+function textosBase(): TextoField[] {
+  return [
+    { key: "titulo",   label: "Título del slide" },
+    { key: "etiqueta", label: "Etiqueta corta", help: "Texto pequeño a la izquierda del título." },
+    { key: "base",     label: "Base", help: "Ej. 'Base: 120 encuestados'. Vacío = automática." },
+    { key: "pie",      label: "Pie (nota)", multiline: true },
+  ];
 }
 
-function SectionEditor({ slide }: { slide: Slide }) {
-  const update = usePlanStore((s) => s.updateSlidePayload);
-  const p = slide.payload as Record<string, string>;
-  return (
-    <>
-      <Field label="Título"><TextInput value={p.title ?? ""} onChange={(v) => update(slide.id, { title: v })} /></Field>
-      <Field label="Subtítulo"><TextInput value={p.subtitle ?? ""} onChange={(v) => update(slide.id, { subtitle: v })} /></Field>
-      <Field label="Introducción (Word)" help="Texto que aparece bajo el título al exportar a Word.">
-        <TextArea value={p.intro_word ?? ""} onChange={(v) => update(slide.id, { intro_word: v })} rows={4} />
-      </Field>
-    </>
-  );
+function textosPoblacion(): TextoField[] {
+  return [
+    { key: "titulo",   label: "Título del slide" },
+    { key: "etiqueta", label: "Etiqueta corta" },
+    { key: "base",     label: "Base" },
+    { key: "pie",      label: "Pie", multiline: true },
+  ];
 }
 
-function SlideConGraficosEditor({ slide, slots }: { slide: Slide; slots: string[] }) {
+// ---- Editor por slide -----------------------------------------------------
+
+function SlideBody({ slide }: { slide: Slide }) {
   const update = usePlanStore((s) => s.updateSlidePayload);
-  const p = slide.payload as Record<string, string>;
+  const p = slide.payload as Record<string, unknown>;
+  const textoFields = TEXTO_FIELDS_POR_TIPO[slide.tipo] ?? [];
+  const grafSlots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   const payloadMap = slide.payload as Record<string, GraficadorRef | null | undefined>;
-  return (
-    <>
-      <Field label="Título"><TextInput value={p.title ?? ""} onChange={(v) => update(slide.id, { title: v })} /></Field>
-      <Field label="Base (nota inferior)"><TextInput value={p.base ?? ""} onChange={(v) => update(slide.id, { base: v })} placeholder="N=1631" /></Field>
-      <Field label="Pie (fuente)"><TextInput value={p.footer ?? ""} onChange={(v) => update(slide.id, { footer: v })} placeholder="Fuente: Pulso PUCP" /></Field>
-      {slots.map((slotName) => (
-        <GraficadorSlot key={slotName} slideId={slide.id} slotName={slotName} value={payloadMap[slotName]} />
-      ))}
-      {(slide.tipo === "p_slide_text_l" || slide.tipo === "p_slide_text_r") && (
-        <Field label="Texto adjunto"><TextArea value={p.text ?? ""} onChange={(v) => update(slide.id, { text: v })} rows={5} /></Field>
-      )}
-    </>
-  );
-}
 
-function SlidePoblacionEditor({ slide, slots }: { slide: Slide; slots: string[] }) {
-  const update = usePlanStore((s) => s.updateSlidePayload);
-  const p = slide.payload as Record<string, string>;
-  const payloadMap = slide.payload as Record<string, GraficadorRef | null | undefined>;
-  const conCenterNote = slide.tipo === "p_slide_poblacion_2" || slide.tipo === "p_slide_poblacion_4";
   return (
     <>
-      <Field label="Título"><TextInput value={p.title ?? ""} onChange={(v) => update(slide.id, { title: v })} /></Field>
-      <Field label="Tag (etiqueta lateral)"><TextInput value={p.tag ?? ""} onChange={(v) => update(slide.id, { tag: v })} /></Field>
-      {conCenterNote && (
-        <Field label="Center note" help="Nota al centro del layout (solo en poblacion_2 y poblacion_4)."><TextInput value={p.center_note ?? ""} onChange={(v) => update(slide.id, { center_note: v })} /></Field>
-      )}
-      <Field label="Base"><TextInput value={p.base ?? ""} onChange={(v) => update(slide.id, { base: v })} placeholder="N=1631" /></Field>
-      <Field label="Pie (footer)"><TextInput value={p.footer ?? ""} onChange={(v) => update(slide.id, { footer: v })} /></Field>
-      {slots.map((slotName) => (
-        <GraficadorSlot key={slotName} slideId={slide.id} slotName={slotName} value={payloadMap[slotName]} />
+      {textoFields.map((f) => {
+        const val = typeof p[f.key] === "string" ? (p[f.key] as string) : "";
+        return (
+          <Field key={f.key} label={f.label} help={f.help}>
+            {f.multiline ? (
+              <TextArea value={val} onChange={(v) => update(slide.id, { [f.key]: v })} rows={3} />
+            ) : (
+              <TextInput value={val} onChange={(v) => update(slide.id, { [f.key]: v })} />
+            )}
+          </Field>
+        );
+      })}
+
+      {grafSlots.map((slotName) => (
+        <GraficadorSlot
+          key={slotName}
+          slideId={slide.id}
+          slotName={slotName}
+          value={payloadMap[slotName]}
+        />
       ))}
     </>
   );
@@ -113,27 +163,18 @@ export default function SlideEditor() {
     );
   }
 
-  let body: React.ReactNode;
-  switch (slide.tipo) {
-    case "p_slide_title":   body = <TitleEditor slide={slide} />; break;
-    case "p_slide_section": body = <SectionEditor slide={slide} />; break;
-    case "p_slide_1":       body = <SlideConGraficosEditor slide={slide} slots={["plot"]} />; break;
-    case "p_slide_2":       body = <SlideConGraficosEditor slide={slide} slots={["left", "right"]} />; break;
-    case "p_slide_text_l":  body = <SlideConGraficosEditor slide={slide} slots={["plot"]} />; break;
-    case "p_slide_text_r":  body = <SlideConGraficosEditor slide={slide} slots={["plot"]} />; break;
-    case "p_slide_poblacion_2": body = <SlidePoblacionEditor slide={slide} slots={["left", "right"]} />; break;
-    case "p_slide_poblacion_4": body = <SlidePoblacionEditor slide={slide} slots={["up_left", "up_right", "bottom_left", "bottom_right"]} />; break;
-    case "p_slide_poblacion_5": body = <SlidePoblacionEditor slide={slide} slots={["pic1", "pic2", "pic3", "pic4", "pic5"]} />; break;
-    case "p_slide_poblacion_6": body = <SlidePoblacionEditor slide={slide} slots={["pic1", "pic2", "pic3", "pic4", "pic5", "pic6"]} />; break;
-  }
-
   return (
     <div style={{ flex: 1, padding: "1.25rem 1.5rem", overflowY: "auto" }}>
       <header style={{ marginBottom: "1rem", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h2 style={{ margin: 0, fontSize: 18 }}>Editor: <code style={{ fontSize: 14 }}>{slide.tipo}</code></h2>
+        <h2 style={{ margin: 0, fontSize: 18 }}>
+          {SLIDE_LABELS[slide.tipo] ?? slide.tipo}
+          <code style={{ fontSize: 11, color: "#888", marginLeft: 8 }}>{slide.tipo}</code>
+        </h2>
         <span style={{ fontSize: 11, color: "#888", fontFamily: "ui-monospace,monospace" }}>{slide.id}</span>
       </header>
-      <div style={{ maxWidth: 600, display: "flex", flexDirection: "column" }}>{body}</div>
+      <div style={{ maxWidth: 600, display: "flex", flexDirection: "column" }}>
+        <SlideBody slide={slide} />
+      </div>
     </div>
   );
 }

@@ -1,0 +1,366 @@
+import { useEffect, useMemo, useState } from "react";
+import { Search, Sparkles, Trash2, X } from "lucide-react";
+import {
+  apiGraficosPaletasSugeridas,
+  PaletaSugeridaEntry,
+} from "../../api/client";
+import { usePlanStore } from "./store";
+
+// Editor de paletas de colores por `list_name` del XLSForm. Cada fila
+// de la tabla es un value-label; el analista le asigna un color. Las
+// paletas se mandan al backend vía autosave y prosecnur las consume al
+// renderizar apiladas/agrupadas/pie/donut — el color por categoría
+// respeta lo que configuró aquí.
+//
+// Diseño:
+//   - Lista de listas del instrumento a la izquierda (con búsqueda).
+//   - Panel derecho: tabla de labels con <input type="color"> y hex text.
+//   - Botón "Paleta semáforo" sugiere una secuencia rojo→amarillo→verde
+//     para listas ordinales (satisfaccion, acuerdo, etc.).
+//   - Botón "Vaciar paleta" quita los colores de esa lista.
+
+// Paleta "semáforo" sugerida para listas de 3-5 opciones (escalas ordinales).
+// Misma filosofía que `paleta_satisfaccion` del QMD de GIZ.
+const PALETA_SEMAFORO = [
+  "#8B0000", // burdeos (muy malo)
+  "#D9534F", // rojo suave
+  "#F6C370", // arena (neutral)
+  "#A8D08D", // verde suave
+  "#4F8B46", // verde fuerte (muy bueno)
+];
+
+// Paleta "azules" (para categóricas sin orden, estilo estándar Pulso).
+const PALETA_AZULES = ["#1B679D", "#4F82B8", "#93C4EB", "#BCDCEF", "#DEEDF8", "#39588B", "#062A63"];
+
+// Paleta "categórica" variada (cuando no hay orden semántico).
+const PALETA_CATEGORICA = ["#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D"];
+
+export function PaletasEditor() {
+  const paletas = usePlanStore((s) => s.paletas);
+  const setPaleta = usePlanStore((s) => s.setPaleta);
+  const setColorEnPaleta = usePlanStore((s) => s.setColorEnPaleta);
+  const removePaleta = usePlanStore((s) => s.removePaleta);
+
+  const [listasSugeridas, setListasSugeridas] = useState<PaletaSugeridaEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [activeListName, setActiveListName] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const r = await apiGraficosPaletasSugeridas();
+        if (!cancelled) {
+          setListasSugeridas(r.listas);
+          // Pre-select la primera lista si no hay selección.
+          if (r.listas.length > 0 && !activeListName) {
+            setActiveListName(r.listas[0].list_name);
+          }
+        }
+      } catch (e) {
+        if (!cancelled) setError((e as Error).message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const listasFiltradas = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return listasSugeridas;
+    return listasSugeridas.filter((l) => l.list_name.toLowerCase().includes(q));
+  }, [listasSugeridas, query]);
+
+  const activaData = useMemo(
+    () => listasSugeridas.find((l) => l.list_name === activeListName),
+    [listasSugeridas, activeListName],
+  );
+
+  function aplicarPaletaSugerida(
+    paleta: string[],
+    invertir = false,
+  ) {
+    if (!activaData) return;
+    const colors = invertir ? [...paleta].reverse() : paleta;
+    const nueva: Record<string, string> = {};
+    activaData.choices.forEach((c, i) => {
+      nueva[c.label] = colors[i % colors.length];
+    });
+    setPaleta(activaData.list_name, nueva);
+  }
+
+  if (loading) {
+    return (
+      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: 12 }}>
+        Cargando listas del instrumento…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ fontSize: 12, color: "#b91c1c", padding: 12 }}>
+        Error cargando listas: {error}
+      </div>
+    );
+  }
+
+  if (listasSugeridas.length === 0) {
+    return (
+      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: 12 }}>
+        No se detectaron listas de respuestas en el instrumento. Carga un XLSForm en <strong>1. Carga</strong> y prepara los datos en <strong>4. Analítica</strong>.
+      </div>
+    );
+  }
+
+  const paletaActiva = (activeListName && paletas[activeListName]) || {};
+
+  return (
+    <div style={{ display: "flex", gap: 14, minHeight: 340 }}>
+      {/* Columna izquierda: lista de list_names */}
+      <div style={{ width: 220, display: "flex", flexDirection: "column", gap: 8, borderRight: "1px solid var(--pulso-border)", paddingRight: 12 }}>
+        <div>
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>
+            Listas del instrumento
+          </div>
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+            Cada lista de respuestas puede tener su paleta. Si no le asignas colores, prosecnur usa su paleta azul por defecto.
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "5px 8px", borderRadius: 6,
+            border: "1px solid var(--pulso-border)",
+            background: "white",
+          }}
+        >
+          <Search size={12} color="var(--pulso-text-soft)" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar lista…"
+            style={{ flex: 1, border: "none", outline: "none", fontSize: 11, padding: "2px 0" }}
+          />
+          {query && (
+            <button type="button" onClick={() => setQuery("")} className="pulso-icon" aria-label="Limpiar">
+              <X size={10} />
+            </button>
+          )}
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
+          {listasFiltradas.map((l) => {
+            const active = l.list_name === activeListName;
+            const tienePaleta = !!paletas[l.list_name] && Object.keys(paletas[l.list_name] ?? {}).length > 0;
+            return (
+              <button
+                key={l.list_name}
+                type="button"
+                onClick={() => setActiveListName(l.list_name)}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
+                  padding: "6px 8px", borderRadius: 5,
+                  border: "1px solid transparent",
+                  background: active ? "var(--pulso-primary-soft)" : "transparent",
+                  color: active ? "var(--pulso-primary)" : "var(--pulso-text)",
+                  cursor: "pointer",
+                  fontSize: 11,
+                  textAlign: "left",
+                  transition: "background 120ms ease",
+                }}
+              >
+                <code style={{ fontFamily: "monospace", fontWeight: active ? 700 : 500, color: "inherit" }}>
+                  {l.list_name}
+                </code>
+                <span style={{ fontSize: 10, color: tienePaleta ? "var(--pulso-primary)" : "var(--pulso-text-soft)" }}>
+                  {tienePaleta ? "●" : `${l.choices.length}`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Columna derecha: editor de colores de la lista activa */}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+        {!activaData ? (
+          <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
+            Elige una lista a la izquierda para editar su paleta.
+          </div>
+        ) : (
+          <>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>
+                Paleta de <code style={{ fontFamily: "monospace", color: "var(--pulso-primary)" }}>{activaData.list_name}</code>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 3, lineHeight: 1.5 }}>
+                {activaData.choices.length} {activaData.choices.length === 1 ? "opción" : "opciones"} en esta lista.
+                Cada color se aplica a su value-label en todos los gráficos que usen esta variable.
+              </div>
+            </div>
+
+            {/* Paletas sugeridas */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <SugeridoButton label="Semáforo" colores={PALETA_SEMAFORO} onClick={() => aplicarPaletaSugerida(PALETA_SEMAFORO)} />
+              <SugeridoButton label="Semáforo inv." colores={[...PALETA_SEMAFORO].reverse()} onClick={() => aplicarPaletaSugerida(PALETA_SEMAFORO, true)} />
+              <SugeridoButton label="Azules" colores={PALETA_AZULES} onClick={() => aplicarPaletaSugerida(PALETA_AZULES)} />
+              <SugeridoButton label="Categórica" colores={PALETA_CATEGORICA} onClick={() => aplicarPaletaSugerida(PALETA_CATEGORICA)} />
+              {Object.keys(paletaActiva).length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => removePaleta(activaData.list_name)}
+                  style={{
+                    fontSize: 11, padding: "4px 9px", borderRadius: 6,
+                    border: "1px solid var(--pulso-border)",
+                    background: "white", color: "#991b1b",
+                    cursor: "pointer",
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                  }}
+                >
+                  <Trash2 size={11} /> Vaciar paleta
+                </button>
+              )}
+            </div>
+
+            {/* Tabla de labels con color picker */}
+            <div
+              style={{
+                border: "1px solid var(--pulso-border)",
+                borderRadius: 6,
+                background: "white",
+                maxHeight: 340,
+                overflowY: "auto",
+              }}
+            >
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                <thead>
+                  <tr
+                    style={{
+                      position: "sticky", top: 0, zIndex: 1,
+                      background: "var(--pulso-surface)",
+                      borderBottom: "1px solid var(--pulso-border)",
+                    }}
+                  >
+                    <Th style={{ width: 60 }}>Código</Th>
+                    <Th>Etiqueta</Th>
+                    <Th style={{ width: 80 }}>Color</Th>
+                    <Th style={{ width: 120 }}>Hex</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activaData.choices.map((c) => {
+                    const color = paletaActiva[c.label] ?? "";
+                    return (
+                      <tr
+                        key={c.name}
+                        style={{ borderBottom: "1px solid var(--pulso-border)" }}
+                      >
+                        <td style={{ padding: "6px 10px", fontFamily: "monospace", color: "var(--pulso-text-soft)" }}>
+                          {c.name}
+                        </td>
+                        <td style={{ padding: "6px 10px", color: "var(--pulso-text)" }}>
+                          {c.label}
+                        </td>
+                        <td style={{ padding: "6px 10px" }}>
+                          <input
+                            type="color"
+                            value={color || "#cccccc"}
+                            onChange={(e) => setColorEnPaleta(activaData.list_name, c.label, e.target.value)}
+                            style={{
+                              width: 40, height: 24, padding: 0, border: "1px solid var(--pulso-border)",
+                              borderRadius: 4, cursor: "pointer",
+                              background: color || "transparent",
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "6px 10px" }}>
+                          <input
+                            type="text"
+                            value={color}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              // Validar hex básico
+                              if (/^#?[0-9a-fA-F]{0,6}$/.test(v)) {
+                                setColorEnPaleta(activaData.list_name, c.label, v.startsWith("#") || v === "" ? v : `#${v}`);
+                              }
+                            }}
+                            placeholder="#cccccc"
+                            style={{
+                              width: "100%", fontSize: 11, fontFamily: "monospace",
+                              padding: "3px 6px", borderRadius: 4,
+                              border: "1px solid var(--pulso-border)",
+                            }}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Th({ children, style }: { children?: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <th
+      style={{
+        textAlign: "left",
+        padding: "6px 10px",
+        fontSize: 10, fontWeight: 700,
+        textTransform: "uppercase", letterSpacing: 0.3,
+        color: "var(--pulso-text-soft)",
+        ...style,
+      }}
+    >
+      {children}
+    </th>
+  );
+}
+
+function SugeridoButton({ label, colores, onClick }: { label: string; colores: string[]; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        fontSize: 11, padding: "4px 9px", borderRadius: 6,
+        border: "1px solid var(--pulso-border)",
+        background: "white",
+        cursor: "pointer",
+        display: "inline-flex", alignItems: "center", gap: 6,
+        transition: "background 120ms ease, border-color 120ms ease",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--pulso-primary)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--pulso-border)"; }}
+      title={`Aplicar paleta ${label}`}
+    >
+      <Sparkles size={11} color="var(--pulso-text-soft)" />
+      <span>{label}</span>
+      <span style={{ display: "inline-flex", gap: 1 }}>
+        {colores.slice(0, 5).map((c, i) => (
+          <span
+            key={i}
+            style={{
+              display: "inline-block", width: 8, height: 12,
+              background: c, borderRadius: 2,
+            }}
+          />
+        ))}
+      </span>
+    </button>
+  );
+}

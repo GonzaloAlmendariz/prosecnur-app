@@ -3,6 +3,20 @@
 # Run from the repo root: `Rscript launcher/launch.R`
 # or via the OS wrappers in launcher/ (.command, .sh, .bat).
 
+# Locale UTF-8. Sin esto, R lee los .R del paquete prosecnur (que tienen
+# comentarios y strings con tildes) en locale C y el launcher rompe con
+# "invalid input found on input connection". También afecta la salida
+# JSON: strings como "descripción" se escapan a "<U+00F3>" en vez de UTF-8
+# real. Fallback a C.UTF-8 si en_US.UTF-8 no está disponible (Linux
+# minimalista, containers Alpine, etc.).
+local({
+  tryCatch(Sys.setlocale("LC_ALL", "en_US.UTF-8"), error = function(e) NULL, warning = function(w) NULL)
+  if (!isTRUE(l10n_info()[["UTF-8"]])) {
+    tryCatch(Sys.setlocale("LC_ALL", "C.UTF-8"), error = function(e) NULL, warning = function(w) NULL)
+  }
+})
+options(encoding = "UTF-8")
+
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
 .script_path <- local({

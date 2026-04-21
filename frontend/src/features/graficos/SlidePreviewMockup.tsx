@@ -170,17 +170,44 @@ function SlidePoblacionMockup({ slide, slots, layout }: { slide: Slide; slots: s
 }
 
 export default function SlidePreviewMockup({ slide }: { slide: Slide }) {
+  // Mockup temporal — en el Bloque 4 se reemplaza por render PNG real
+  // contra el backend (`/api/graficos/preview-slide`). Por ahora mapeamos
+  // cada tipo nuevo al mockup existente más parecido.
   switch (slide.tipo) {
-    case "p_slide_title":   return <SlideTitleMockup slide={slide} />;
-    case "p_slide_section": return <SlideSectionMockup slide={slide} />;
-    case "p_slide_1":       return <SlideContenidoMockup slide={slide} layout="1" />;
-    case "p_slide_2":       return <SlideContenidoMockup slide={slide} layout="2" />;
-    case "p_slide_text_l":  return <SlideContenidoMockup slide={slide} layout="text_l" />;
-    case "p_slide_text_r":  return <SlideContenidoMockup slide={slide} layout="text_r" />;
-    case "p_slide_poblacion_2": return <SlidePoblacionMockup slide={slide} slots={["left", "right"]} layout="row2" />;
-    case "p_slide_poblacion_4": return <SlidePoblacionMockup slide={slide} slots={["up_left", "up_right", "bottom_left", "bottom_right"]} layout="grid4" />;
-    case "p_slide_poblacion_5": return <SlidePoblacionMockup slide={slide} slots={["pic1", "pic2", "pic3", "pic4", "pic5"]} layout="row5" />;
-    case "p_slide_poblacion_6": return <SlidePoblacionMockup slide={slide} slots={["pic1", "pic2", "pic3", "pic4", "pic5", "pic6"]} layout="row6" />;
+    // Estructurales
+    case "p_slide_portada":        return <SlideTitleMockup slide={slide} />;
+    case "p_slide_indice":         return <SlideSectionMockup slide={slide} />;
+    case "p_slide_seccion":        return <SlideSectionMockup slide={slide} />;
+    case "p_slide_objetivo_icono": return <SlideSectionMockup slide={slide} />;
+    case "p_slide_texto":          return <SlideSectionMockup slide={slide} />;
+    case "p_slide_tabla_tecnica":  return <SlideSectionMockup slide={slide} />;
+
+    // 1 gráfico
+    case "p_slide_1_grafico":                return <SlideContenidoMockup slide={slide} layout="1" />;
+    case "p_slide_1_grafico_narrativo":      return <SlideContenidoMockup slide={slide} layout="1" />;
+    case "p_slide_grafico_texto_derecha":    return <SlideContenidoMockup slide={slide} layout="text_r" />;
+    case "p_slide_grafico_texto_izquierda":  return <SlideContenidoMockup slide={slide} layout="text_l" />;
+
+    // 2 gráficos
+    case "p_slide_2_graficos":                  return <SlideContenidoMockup slide={slide} layout="2" />;
+    case "p_slide_2_graficos_narrativo":        return <SlideContenidoMockup slide={slide} layout="2" />;
+    case "p_slide_2_graficos_texto_izquierda":  return <SlideContenidoMockup slide={slide} layout="2" />;
+    case "p_slide_2_graficos_texto_derecha":    return <SlideContenidoMockup slide={slide} layout="2" />;
+
+    // Grid 4
+    case "p_slide_4_graficos":
+      return <SlidePoblacionMockup slide={slide} slots={["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"]} layout="grid4" />;
+
+    // Población
+    case "p_slide_2_graficos_poblacion":
+      return <SlidePoblacionMockup slide={slide} slots={["izquierda", "derecha"]} layout="row2" />;
+    case "p_slide_4_graficos_poblacion":
+      return <SlidePoblacionMockup slide={slide} slots={["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"]} layout="grid4" />;
+    case "p_slide_5_graficos_poblacion":
+      return <SlidePoblacionMockup slide={slide} slots={["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2"]} layout="row5" />;
+    case "p_slide_6_graficos_poblacion":
+      return <SlidePoblacionMockup slide={slide} slots={["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2", "grafico_inferior_3"]} layout="row6" />;
+
     default: return <div style={{ fontSize: 12, color: "#888" }}>Sin preview para este tipo.</div>;
   }
 }

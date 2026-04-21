@@ -1,24 +1,54 @@
 import { ChevronUp, ChevronDown, X, Plus } from "lucide-react";
 import { SlideType } from "../../api/client";
-import { usePlanStore } from "./store";
+import { usePlanStore, SLIDE_LABELS } from "./store";
 
-const SLIDE_LABEL: Record<SlideType, string> = {
-  p_slide_title: "Portada (título)",
-  p_slide_section: "Sección (divisor)",
-  p_slide_1: "1 gráfico",
-  p_slide_2: "2 gráficos",
-  p_slide_text_l: "Gráfico + texto (izq)",
-  p_slide_text_r: "Gráfico + texto (der)",
-  p_slide_poblacion_2: "Población · 2 gráficos",
-  p_slide_poblacion_4: "Población · 4 gráficos",
-  p_slide_poblacion_5: "Población · 5 gráficos",
-  p_slide_poblacion_6: "Población · 6 gráficos",
-};
-
+// Grupos del picker "Agregar slide" — siguen la categorización humana
+// del registry (`graficos_metadata.R`). El Bloque 3 los reemplazará
+// por una cuadrícula visual con iconos; por ahora mantenemos
+// los <details> colapsables.
 const SLIDE_GROUPS: { label: string; items: SlideType[] }[] = [
-  { label: "Estructurales", items: ["p_slide_title", "p_slide_section"] },
-  { label: "Con gráficos", items: ["p_slide_1", "p_slide_2", "p_slide_text_l", "p_slide_text_r"] },
-  { label: "Población (comparación por grupos)", items: ["p_slide_poblacion_2", "p_slide_poblacion_4", "p_slide_poblacion_5", "p_slide_poblacion_6"] },
+  {
+    label: "Estructurales",
+    items: [
+      "p_slide_portada",
+      "p_slide_indice",
+      "p_slide_seccion",
+      "p_slide_objetivo_icono",
+      "p_slide_texto",
+      "p_slide_tabla_tecnica",
+    ],
+  },
+  {
+    label: "1 gráfico",
+    items: [
+      "p_slide_1_grafico",
+      "p_slide_1_grafico_narrativo",
+      "p_slide_grafico_texto_derecha",
+      "p_slide_grafico_texto_izquierda",
+    ],
+  },
+  {
+    label: "2 gráficos",
+    items: [
+      "p_slide_2_graficos",
+      "p_slide_2_graficos_narrativo",
+      "p_slide_2_graficos_texto_izquierda",
+      "p_slide_2_graficos_texto_derecha",
+    ],
+  },
+  {
+    label: "Grid 4",
+    items: ["p_slide_4_graficos"],
+  },
+  {
+    label: "Población (con ícono central)",
+    items: [
+      "p_slide_2_graficos_poblacion",
+      "p_slide_4_graficos_poblacion",
+      "p_slide_5_graficos_poblacion",
+      "p_slide_6_graficos_poblacion",
+    ],
+  },
 ];
 
 export default function TimelinePanel() {
@@ -71,10 +101,10 @@ export default function TimelinePanel() {
                   ><X size={13} /></button>
                 </div>
               </div>
-              <div style={{ fontWeight: 600, color: "var(--pulso-text)" }}>{SLIDE_LABEL[s.tipo] ?? s.tipo}</div>
-              {typeof s.payload.title === "string" && s.payload.title && (
+              <div style={{ fontWeight: 600, color: "var(--pulso-text)" }}>{SLIDE_LABELS[s.tipo] ?? s.tipo}</div>
+              {typeof s.payload.titulo === "string" && s.payload.titulo && (
                 <div style={{ color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {s.payload.title as string}
+                  {s.payload.titulo as string}
                 </div>
               )}
             </div>
@@ -94,7 +124,7 @@ export default function TimelinePanel() {
                   onClick={() => addSlide(t)}
                   style={{ fontSize: 12, textAlign: "left", padding: "5px 8px", display: "inline-flex", alignItems: "center", gap: 6 }}
                 >
-                  <Plus size={12} /> {SLIDE_LABEL[t]}
+                  <Plus size={12} /> {SLIDE_LABELS[t]}
                 </button>
               ))}
             </div>
