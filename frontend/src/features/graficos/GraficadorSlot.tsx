@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import * as Lucide from "lucide-react";
-import { Plus, Replace, X } from "lucide-react";
+import { Plus, Replace, X, Wand2, Check } from "lucide-react";
 import { GraficadorMetadata, GraficadorRef } from "../../api/client";
 import { usePlanStore } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import GraficadorPicker from "./GraficadorPicker";
 import GraficadorForm from "./GraficadorForm";
+import { graficadorToPresetType } from "./graficadorPresetMap";
 
 // Card que representa un slot de graficador dentro de un slide. Dos
 // estados:
@@ -140,6 +141,11 @@ export default function GraficadorSlot({ slideId, slotName, value }: Props) {
           </span>
         </span>
 
+        <OverrideDropdown
+          slideId={slideId}
+          slotName={slotName}
+          value={value}
+        />
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
@@ -193,4 +199,173 @@ type LucideIcon = (props: { size?: number; color?: string }) => JSX.Element;
 function resolveLucide(name: string): LucideIcon {
   const registry = Lucide as unknown as Record<string, LucideIcon>;
   return registry[name] ?? registry["BarChart"] ?? registry["Square"];
+}
+
+// Dropdown para aplicar un override reutilizable al slot. Solo muestra
+// overrides compatibles con el tipo del graficador actual (mapeo en
+// graficadorPresetMap.ts). Al aplicar, copia los args del override al
+// campo `overrides` del GraficadorRef, pisando al preset global.
+//
+// Visualmente:
+//   - Si no hay overrides aplicables: no renderiza el botón.
+//   - Si hay: botón "Estilo" que abre un popover con la lista.
+//   - El override actualmente aplicado aparece con check.
+//   - Opción "Sin override" para quitar.
+//
+// Nota: este dropdown NO cambia el `value.args` completo, solo escribe
+// a `value.args.overrides`. Así los datos (var, cruces, etc.) se
+// mantienen intactos cuando el analista cambia de estilo.
+function OverrideDropdown({
+  slideId,
+  slotName,
+  value,
+}: {
+  slideId: string;
+  slotName: string;
+  value: GraficadorRef;
+}) {
+  const allOverrides = usePlanStore((s) => s.overridesReusables);
+  const updateArgs = usePlanStore((s) => s.updateSlotArgs);
+  const [open, setOpen] = useState(false);
+
+  const presetType = graficadorToPresetType(value.graficador);
+  const aplicables = useMemo(
+    () => (presetType ? allOverrides.filter((o) => o.tipo_preset === presetType) : []),
+    [allOverrides, presetType]
+  );
+
+  if (!presetType || aplicables.length === 0) return null;
+
+  // El override actualmente aplicado es el que coincide exacto con
+  // value.args.overrides. Comparación por deep-equal simplificada:
+  // si los args son iguales (mismo set de keys y valores), consideramos
+  // que ese override está activo. Si el usuario editó los args después
+  // de aplicar, ninguno coincide y el dropdown muestra "Custom".
+  const currentOverrideArgs = (value.args?.overrides as Record<string, unknown>) ?? null;
+  const activeOverride = currentOverrideArgs
+    ? aplicables.find((o) => shallowEqualArgs(o.args, currentOverrideArgs))
+    : null;
+  const hasCustomOverride =
+    currentOverrideArgs &&
+    Object.keys(currentOverrideArgs).length > 0 &&
+    !activeOverride;
+
+  function applyOverride(args: Record<string, unknown> | null) {
+    updateArgs(slideId, slotName, { overrides: args ?? {} });
+    setOpen(false);
+  }
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        title="Aplicar un override reutilizable"
+        style={{
+          fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4,
+          padding: "4px 9px",
+          border: `1px solid ${activeOverride || hasCustomOverride ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+          background: activeOverride || hasCustomOverride ? "var(--pulso-primary-soft)" : "white",
+          color: activeOverride || hasCustomOverride ? "var(--pulso-primary)" : "var(--pulso-text)",
+          borderRadius: 5, cursor: "pointer",
+        }}
+      >
+        <Wand2 size={11} />
+        {activeOverride
+          ? activeOverride.nombre
+          : hasCustomOverride
+            ? "Custom"
+            : "Estilo"}
+      </button>
+      {open && (
+        <>
+          <div
+            onClick={() => setOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 20 }}
+          />
+          <div
+            style={{
+              position: "absolute", top: "calc(100% + 4px)", right: 0,
+              zIndex: 21,
+              minWidth: 200,
+              background: "white",
+              border: "1px solid var(--pulso-border)",
+              borderRadius: 7,
+              boxShadow: "var(--pulso-shadow-med)",
+              padding: 4,
+              display: "flex", flexDirection: "column", gap: 1,
+            }}
+          >
+            <DropdownOption
+              label="Sin override"
+              hint="Usa solo los defaults del preset global."
+              active={!activeOverride && !hasCustomOverride}
+              onClick={() => applyOverride(null)}
+            />
+            <div style={{ height: 1, background: "var(--pulso-border)", margin: "3px 0" }} />
+            {aplicables.map((o) => (
+              <DropdownOption
+                key={o.id}
+                label={o.nombre}
+                hint={`${Object.keys(o.args).length} args custom`}
+                active={activeOverride?.id === o.id}
+                onClick={() => applyOverride({ ...o.args })}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function DropdownOption({
+  label, hint, active, onClick,
+}: {
+  label: string;
+  hint?: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "6px 9px", borderRadius: 5,
+        border: "1px solid transparent",
+        background: active ? "var(--pulso-primary-soft)" : "transparent",
+        color: active ? "var(--pulso-primary)" : "var(--pulso-text)",
+        fontSize: 12, fontWeight: active ? 600 : 500,
+        textAlign: "left", cursor: "pointer", width: "100%",
+      }}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.background = "var(--pulso-surface)";
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.background = "transparent";
+      }}
+    >
+      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {label}
+      </span>
+      {hint && (
+        <span style={{ fontSize: 10, color: active ? "var(--pulso-primary)" : "var(--pulso-text-soft)" }}>
+          {hint}
+        </span>
+      )}
+      {active && <Check size={12} />}
+    </button>
+  );
+}
+
+function shallowEqualArgs(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  const ka = Object.keys(a);
+  const kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  for (const k of ka) {
+    if (a[k] !== b[k]) return false;
+  }
+  return true;
 }
