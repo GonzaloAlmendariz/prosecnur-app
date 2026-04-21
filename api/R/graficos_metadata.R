@@ -877,6 +877,138 @@
 }
 
 # ===========================================================================
+# TEMPLATES (planes pre-armados)
+# ===========================================================================
+#
+# Catálogo de planes "de arranque" que el analista puede cargar en un
+# click. Sirven como punto de partida para reportes típicos: portada +
+# índice + un par de bloques narrativos. El analista luego cambia los
+# títulos, elige variables en los slots y exporta.
+#
+# Cada template define `plan.slides` con `id` placeholder (el frontend
+# lo regenera al cargar para evitar colisiones). Los slots de graficador
+# van vacíos (`null`) — al analista le corresponde elegir qué pregunta
+# va en cada uno.
+
+.TEMPLATES_META <- list(
+
+  plan_vacio = list(
+    titulo_humano = "Plan mínimo",
+    descripcion   = "Portada + índice + un separador de sección + un gráfico. El arranque más sencillo — lo amplías desde ahí.",
+    icono_ui      = "FileText",
+    n_slides      = 4L,
+    plan = list(
+      slides = list(
+        list(id = "tpl-1", tipo = "p_slide_portada",
+             payload = list(titulo = "Informe", subtitulo = "", fecha = "", subtexto = "")),
+        list(id = "tpl-2", tipo = "p_slide_indice", payload = list()),
+        list(id = "tpl-3", tipo = "p_slide_seccion",
+             payload = list(titulo = "Sección 1", subtitulo = "", introduccion_word = "")),
+        list(id = "tpl-4", tipo = "p_slide_1_grafico",
+             payload = list(titulo = "", grafico = NULL, base = "", pie = "", etiqueta = ""))
+      )
+    )
+  ),
+
+  reporte_ejecutivo = list(
+    titulo_humano = "Reporte ejecutivo (10 slides)",
+    descripcion   = "Portada + índice + 2 bloques temáticos, cada uno con separador, slide narrativo, un gráfico y una comparativa de dos gráficos. Estructura típica para devolver hallazgos a stakeholders.",
+    icono_ui      = "Layers",
+    n_slides      = 10L,
+    plan = list(
+      slides = list(
+        list(id = "tpl-1", tipo = "p_slide_portada",
+             payload = list(titulo = "Reporte", subtitulo = "", fecha = "", subtexto = "")),
+        list(id = "tpl-2", tipo = "p_slide_indice", payload = list()),
+        # Bloque 1
+        list(id = "tpl-3", tipo = "p_slide_seccion",
+             payload = list(titulo = "Bloque 1", subtitulo = "", introduccion_word = "")),
+        list(id = "tpl-4", tipo = "p_slide_1_grafico_narrativo",
+             payload = list(titulo = "", grafico = NULL, texto = "", base = "", pie = "", etiqueta = "")),
+        list(id = "tpl-5", tipo = "p_slide_2_graficos",
+             payload = list(titulo = "", izquierda = NULL, derecha = NULL, base = "", pie = "", etiqueta = "")),
+        # Bloque 2
+        list(id = "tpl-6", tipo = "p_slide_seccion",
+             payload = list(titulo = "Bloque 2", subtitulo = "", introduccion_word = "")),
+        list(id = "tpl-7", tipo = "p_slide_grafico_texto_derecha",
+             payload = list(titulo = "", grafico = NULL, texto = "", base = "", pie = "", etiqueta = "")),
+        list(id = "tpl-8", tipo = "p_slide_2_graficos",
+             payload = list(titulo = "", izquierda = NULL, derecha = NULL, base = "", pie = "", etiqueta = "")),
+        # Conclusión
+        list(id = "tpl-9", tipo = "p_slide_4_graficos",
+             payload = list(titulo = "Hallazgos", base = "", pie = "", etiqueta = "",
+                            superior_izquierda = NULL, superior_derecha = NULL,
+                            inferior_izquierda = NULL, inferior_derecha = NULL)),
+        list(id = "tpl-10", tipo = "p_slide_texto",
+             payload = list(titulo = "Conclusiones", texto = "", bullets = "", base = ""))
+      )
+    )
+  ),
+
+  analisis_poblacional = list(
+    titulo_humano = "Análisis poblacional",
+    descripcion   = "Portada + bloques demográficos con íconos centrales. Ideal para caracterizar la muestra (género, edad, distrito, nivel educativo).",
+    icono_ui      = "UsersRound",
+    n_slides      = 5L,
+    plan = list(
+      slides = list(
+        list(id = "tpl-1", tipo = "p_slide_portada",
+             payload = list(titulo = "Perfil poblacional", subtitulo = "", fecha = "", subtexto = "")),
+        list(id = "tpl-2", tipo = "p_slide_seccion",
+             payload = list(titulo = "Quiénes respondieron", subtitulo = "", introduccion_word = "")),
+        list(id = "tpl-3", tipo = "p_slide_2_graficos_poblacion",
+             payload = list(titulo = "Género y edad", base = "", pie = "", etiqueta = "",
+                            izquierda = NULL, derecha = NULL, icono = NULL)),
+        list(id = "tpl-4", tipo = "p_slide_4_graficos_poblacion",
+             payload = list(titulo = "Dimensiones demográficas", base = "", pie = "", etiqueta = "",
+                            superior_izquierda = NULL, superior_derecha = NULL,
+                            inferior_izquierda = NULL, inferior_derecha = NULL, icono = NULL)),
+        list(id = "tpl-5", tipo = "p_slide_6_graficos_poblacion",
+             payload = list(titulo = "Caracterización completa", base = "", pie = "", etiqueta = "",
+                            grafico_superior_1 = NULL, grafico_superior_2 = NULL, grafico_superior_3 = NULL,
+                            grafico_inferior_1 = NULL, grafico_inferior_2 = NULL, grafico_inferior_3 = NULL,
+                            icono = NULL))
+      )
+    )
+  ),
+
+  foda_dimensional = list(
+    titulo_humano = "FODA dimensional",
+    descripcion   = "Portada + radar + heatmap + matriz FODA. Requiere haber calculado dimensiones en la Fase 4 antes de exportar.",
+    icono_ui      = "Grid3X3",
+    n_slides      = 4L,
+    plan = list(
+      slides = list(
+        list(id = "tpl-1", tipo = "p_slide_portada",
+             payload = list(titulo = "Análisis dimensional", subtitulo = "", fecha = "", subtexto = "")),
+        list(id = "tpl-2", tipo = "p_slide_1_grafico_narrativo",
+             payload = list(titulo = "Puntajes por dimensión", grafico = NULL, texto = "", base = "", pie = "", etiqueta = "")),
+        list(id = "tpl-3", tipo = "p_slide_1_grafico",
+             payload = list(titulo = "Mapa de calor", grafico = NULL, base = "", pie = "", etiqueta = "")),
+        list(id = "tpl-4", tipo = "p_slide_1_grafico",
+             payload = list(titulo = "Matriz FODA", grafico = NULL, base = "", pie = "", etiqueta = ""))
+      )
+    )
+  )
+)
+
+# Serializa el catálogo de templates para /api/graficos/templates.
+.templates_payload <- function() {
+  templates <- lapply(names(.TEMPLATES_META), function(nm) {
+    meta <- .TEMPLATES_META[[nm]]
+    list(
+      name          = nm,
+      titulo_humano = as.character(meta$titulo_humano %||% nm),
+      descripcion   = as.character(meta$descripcion %||% ""),
+      icono_ui      = as.character(meta$icono_ui %||% "FileText"),
+      n_slides      = as.integer(meta$n_slides %||% 0L),
+      plan          = meta$plan
+    )
+  })
+  list(templates = templates)
+}
+
+# ===========================================================================
 # API helpers
 # ===========================================================================
 

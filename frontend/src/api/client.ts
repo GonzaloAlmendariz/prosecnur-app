@@ -996,6 +996,24 @@ export async function apiGraficosPresetsMetadata() {
   );
 }
 
+// Templates de plan (planes pre-armados). Lo trae el backend como
+// JSON plano; los ids de los slides son placeholders que el frontend
+// regenera al aplicar el template para evitar colisiones.
+export type TemplateMeta = {
+  name: string;
+  titulo_humano: string;
+  descripcion: string;
+  icono_ui: string;
+  n_slides: number;
+  plan: PlanJson;
+};
+
+export async function apiGraficosTemplates() {
+  return handle<{ templates: TemplateMeta[] }>(
+    await fetch("/api/graficos/templates", { headers: headers() })
+  );
+}
+
 // Config persistida del plan de gráficos. Patrón idéntico a /analitica/config.
 // Autosave debounced 2s vía `useGraficosAutosave`. Export/import como respaldo.
 export async function apiGraficosConfigGet() {

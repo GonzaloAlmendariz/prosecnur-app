@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bug, CheckCircle2, Download, FileText, Palette, Upload, RotateCcw, Loader2, Undo2, Redo2 } from "lucide-react";
+import { Bug, CheckCircle2, Download, FileText, Palette, Upload, RotateCcw, Loader2, Undo2, Redo2, Sparkles } from "lucide-react";
 import {
   apiGraficosConfigExport,
   apiGraficosConfigImport,
@@ -8,6 +8,7 @@ import {
 import { usePlanStore } from "./store";
 import { PlanHealthBadge } from "./PlanHealthBadge";
 import { usePlanValidator } from "./usePlanValidator";
+import { TemplatesModal } from "./TemplatesModal";
 
 // Header del módulo Gráficos. Patrón análogo a AnaliticaHeader:
 // - Badge "Autoguardado" con estado (guardando / guardado / sin conexión).
@@ -54,6 +55,7 @@ export function GraficosHeader({
   const [ioBusy, setIoBusy] = useState<"export" | "import" | null>(null);
   const [ioMsg, setIoMsg] = useState("");
   const [ioError, setIoError] = useState("");
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function onExport() {
@@ -162,6 +164,21 @@ export function GraficosHeader({
         <UndoRedoButtons />
         <PlanHealthBadge />
         <DebugPhToggle />
+
+        <button
+          type="button"
+          onClick={() => setTemplatesOpen(true)}
+          style={{
+            fontSize: 11, padding: "5px 10px",
+            display: "inline-flex", alignItems: "center", gap: 5,
+            border: "1px solid var(--pulso-primary)",
+            color: "var(--pulso-primary)",
+            background: "var(--pulso-primary-soft)",
+            borderRadius: 6, cursor: "pointer",
+          }}
+        >
+          <Sparkles size={12} /> Plantillas
+        </button>
 
         <button
           type="button"
@@ -281,6 +298,8 @@ export function GraficosHeader({
           </a>
         )}
       </div>
+
+      {templatesOpen && <TemplatesModal onClose={() => setTemplatesOpen(false)} />}
     </div>
   );
 }

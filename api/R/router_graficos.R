@@ -253,6 +253,14 @@ mount_graficos <- function(pr) {
       # El frontend construye toda la UI de edición a partir de esto.
       .graficos_registry_payload()
     })) |>
+    plumber::pr_get("/api/graficos/templates", wrap_endpoint(function(req, res) {
+      # Catálogo de planes pre-armados (plan mínimo, reporte ejecutivo,
+      # análisis poblacional, FODA dimensional). El frontend los muestra
+      # en un modal cuando el analista quiere arrancar desde un template.
+      # Los `plan.slides[*].id` son placeholder — el frontend los regenera
+      # al aplicar el template para evitar colisiones con slides existentes.
+      .templates_payload()
+    })) |>
     plumber::pr_get("/api/graficos/presets-metadata", wrap_endpoint(function(req, res) {
       # Catálogo humano de los presets globales (p_presets): cada tipo
       # (base, barras_apiladas, pie, dim_radar, …) con titulo_humano,
