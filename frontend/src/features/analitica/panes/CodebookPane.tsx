@@ -98,6 +98,7 @@ export function CodebookPane() {
           downloadName="libro_de_codigos.xlsx"
           error={run.error}
           onGenerate={onGenerate}
+          perBase={run.perBase}
         />
       </div>
     </Panel>

@@ -248,6 +248,7 @@ export function EnumeradoresPane() {
           onJobDone={run.onJobDone}
           onJobError={run.onJobError}
           onJobCancelled={run.onJobCancelled}
+          perBase={run.perBase}
         />
       </div>
     </Panel>

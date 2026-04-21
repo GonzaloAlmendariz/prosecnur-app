@@ -104,6 +104,7 @@ export function GenerateFooter({
   label, busy, jobId, fileId, downloadName, error,
   onGenerate, disabled, disabledHint,
   onJobDone, onJobError, onJobCancelled,
+  perBase,
 }: {
   label: string;
   busy: boolean;
@@ -117,8 +118,21 @@ export function GenerateFooter({
   onJobDone?: (d: FileJobResult) => void;
   onJobError?: (m: string) => void;
   onJobCancelled?: () => void;
+  // v0.2+: cuando el reporte es multi-base, el backend devuelve
+  // `bases[]` con cada archivo individual. El footer muestra el zip
+  // principal (via fileId) + una lista discreta con los archivos por
+  // base abajo para descarga individual.
+  perBase?: {
+    nombre: string;
+    file_id?: string;
+    filename: string;
+    size: number;
+    skipped?: boolean;
+    reason?: string;
+  }[];
 }) {
   const running = busy || !!jobId;
+  const multi = (perBase?.length ?? 0) > 1;
   return (
     <>
       <div
@@ -159,10 +173,73 @@ export function GenerateFooter({
               fontWeight: 600,
             }}
           >
-            <Download size={12} /> {downloadName}
+            <Download size={12} />
+            {multi ? `${downloadName} (zip · ${perBase!.length} bases)` : downloadName}
           </a>
         )}
       </div>
+
+      {multi && (
+        <div
+          style={{
+            marginTop: 10, padding: "8px 10px",
+            borderRadius: 6, background: "var(--pulso-surface)",
+            border: "1px solid var(--pulso-border)",
+            display: "flex", flexDirection: "column", gap: 6,
+          }}
+        >
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--pulso-text-soft)" }}>
+            Descarga individual por base:
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {perBase!.map((b) => (
+              b.skipped ? (
+                <span
+                  key={b.nombre}
+                  title={b.reason ?? "Omitida"}
+                  style={{
+                    fontSize: 11, padding: "3px 9px", borderRadius: 999,
+                    background: "var(--pulso-surface)",
+                    border: "1px dashed var(--pulso-border)",
+                    color: "var(--pulso-text-soft)",
+                    fontStyle: "italic",
+                  }}
+                >
+                  {b.nombre} (omitida)
+                </span>
+              ) : b.file_id ? (
+                <a
+                  key={b.nombre}
+                  href={downloadUrl(b.file_id)}
+                  style={{
+                    fontSize: 11,
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    padding: "3px 9px", borderRadius: 999,
+                    background: "white", border: "1px solid var(--pulso-border)",
+                    color: "var(--pulso-text)", textDecoration: "none",
+                    fontWeight: 500,
+                  }}
+                >
+                  <Download size={10} /> {b.nombre}
+                </a>
+              ) : (
+                <span
+                  key={b.nombre}
+                  style={{
+                    fontSize: 11, padding: "3px 9px", borderRadius: 999,
+                    background: "var(--pulso-surface)",
+                    border: "1px solid var(--pulso-border)",
+                    color: "var(--pulso-text-soft)",
+                  }}
+                >
+                  {b.nombre}
+                </span>
+              )
+            ))}
+          </div>
+        </div>
+      )}
+
       {jobId && onJobDone && onJobError && onJobCancelled && (
         <JobProgress<FileJobResult>
           label={label}

@@ -486,40 +486,50 @@ mount_analitica <- function(pr) {
       )
     })) |>
     plumber::pr_post("/api/analitica/codebook", wrap_endpoint(function(req, res) {
-      # Codebook lee `codigos_solo_si_presentes` del config del store y
-      # aplica el filtro global de `variables_excluidas`.
+      # Codebook multi-base (v0.2+): itera sobre todas las bases del
+      # estudio y genera un xlsx por cada una. Con 1 base → xlsx directo
+      # como antes. Con N → zip con N archivos prefijados por nombre
+      # de base (docentes__codebook.xlsx, ...).
+      #
+      # Config: `codigos_solo_si_presentes` y `variables_excluidas` son
+      # globales al estudio (no varían por base, el QMD trabaja con la
+      # misma política de codificación para todas).
       sid <- session_header(req)
-      s <- session_get(sid)
-      ctx <- .load_rp_data(sid)
       cfg <- .analitica_get_config(sid)
       cb_cfg <- cfg$codebook %||% list()
       codes <- .as_int_vec(cb_cfg$codigos_solo_si_presentes)
       excluidas <- .as_chr_vec(cfg$variables_excluidas)
-      data_out <- .excluir_cols(ctx$rp_data, excluidas)
-      out_path <- file.path(s$dir, "downloads", sprintf("codebook_%s.xlsx", uuid::UUIDgenerate()))
-      dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
-      reporte_codebook(
-        data = data_out,
-        path_xlsx = out_path,
-        codigos_solo_si_presentes = if (length(codes) > 0L) codes else NULL
+
+      result <- run_report_multibase(
+        sid           = sid,
+        base_filename = "codebook",
+        ext           = "xlsx",
+        kind_single   = "codebook",
+        kind_multi    = "codebook_zip",
+        fn = function(rp_data, rp_inst, out_path) {
+          data_out <- .excluir_cols(rp_data, excluidas)
+          reporte_codebook(
+            data = data_out,
+            path_xlsx = out_path,
+            codigos_solo_si_presentes = if (length(codes) > 0L) codes else NULL
+          )
+        }
       )
-      meta <- .register_output_file(sid, "codebook", out_path)
       session_set(sid, "analitica_codebook_ok", TRUE)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+      result
     })) |>
     plumber::pr_post("/api/analitica/frecuencias", wrap_endpoint(function(req, res) {
-      # Frecuencias lee del config: secciones (filtradas por
-      # `secciones_activas` si no está vacío, con oculto=false), orden,
-      # mostrar_todo, numericas (override o global).
+      # Frecuencias multi-base (v0.2+): itera sobre todas las bases del
+      # estudio. La config (secciones, orden, excluidas, numéricas,
+      # codigos_solo_si_presentes) se aplica globalmente a TODAS las
+      # bases. Las secciones provienen del config — si alguna variable
+      # de la sección no existe en una base específica, el motor la
+      # ignora en esa base (no rompe).
       sid <- session_header(req)
-      s <- session_get(sid)
-      ctx <- .load_rp_data(sid)
       cfg <- .analitica_get_config(sid)
       fc <- cfg$frecuencias %||% list()
       activas <- .as_chr_vec(fc$secciones_activas)
-      secs <- .secciones_from_config(cfg, activas_filter = if (length(activas) > 0L) activas else NULL)
-      # Fallback: si la config no tiene secciones aún, usar detección auto.
-      if (is.null(secs)) secs <- .secciones_desde_instrumento(ctx$rp_inst)
+      secs_cfg <- .secciones_from_config(cfg, activas_filter = if (length(activas) > 0L) activas else NULL)
 
       orden <- as.character(fc$orden %||% "desc")
       if (!orden %in% c("desc","asc","original")) orden <- "desc"
@@ -531,32 +541,39 @@ mount_analitica <- function(pr) {
 
       codes_codebook <- .as_int_vec((cfg$codebook %||% list())$codigos_solo_si_presentes)
       excluidas <- .as_chr_vec(cfg$variables_excluidas)
-      data_out <- .excluir_cols(ctx$rp_data, excluidas)
 
-      # Si hay secciones, filtrar también `variables` dentro de cada
-      # sección para que las excluidas no aparezcan. Nota: las secciones
-      # son el contenedor lógico del reporte; si una sección queda vacía
-      # tras excluir, se omite.
-      if (length(excluidas) > 0L && is.list(secs) && length(secs) > 0L) {
-        secs <- lapply(secs, function(v) setdiff(v, excluidas))
-        secs <- secs[vapply(secs, length, integer(1)) > 0L]
-        if (length(secs) == 0L) secs <- NULL
-      }
-
-      out_path <- file.path(s$dir, "downloads", sprintf("frecuencias_%s.xlsx", uuid::UUIDgenerate()))
-      dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
-      reporte_frecuencias(
-        data = data_out, instrumento = ctx$rp_inst,
-        secciones = secs,
-        path_xlsx = out_path,
-        orden = orden,
-        mostrar_todo = mostrar_todo,
-        codigos_solo_si_presentes = if (length(codes_codebook) > 0L) codes_codebook else NULL,
-        numericas = if (length(numericas_arg) > 0L) numericas_arg else NULL
+      result <- run_report_multibase(
+        sid           = sid,
+        base_filename = "frecuencias",
+        ext           = "xlsx",
+        kind_single   = "frecuencias",
+        kind_multi    = "frecuencias_zip",
+        fn = function(rp_data, rp_inst, out_path) {
+          data_out <- .excluir_cols(rp_data, excluidas)
+          # Secciones: usa las del config si las hay; sino, detecta
+          # automáticamente las del instrumento de ESTA base.
+          secs <- secs_cfg
+          if (is.null(secs)) secs <- .secciones_desde_instrumento(rp_inst)
+          # Filtrar variables excluidas dentro de cada sección y dropar
+          # secciones vacías.
+          if (length(excluidas) > 0L && is.list(secs) && length(secs) > 0L) {
+            secs <- lapply(secs, function(v) setdiff(v, excluidas))
+            secs <- secs[vapply(secs, length, integer(1)) > 0L]
+            if (length(secs) == 0L) secs <- NULL
+          }
+          reporte_frecuencias(
+            data = data_out, instrumento = rp_inst,
+            secciones = secs,
+            path_xlsx = out_path,
+            orden = orden,
+            mostrar_todo = mostrar_todo,
+            codigos_solo_si_presentes = if (length(codes_codebook) > 0L) codes_codebook else NULL,
+            numericas = if (length(numericas_arg) > 0L) numericas_arg else NULL
+          )
+        }
       )
-      meta <- .register_output_file(sid, "frecuencias", out_path)
       session_set(sid, "analitica_frecuencias_ok", TRUE)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+      result
     })) |>
     plumber::pr_post("/api/analitica/cruces", wrap_endpoint(function(req, res, cruces = NULL, modo = "estandar") {
       # Cruces lee del config del store: cruces_vars, modo, show_sig, alpha,
@@ -605,13 +622,19 @@ mount_analitica <- function(pr) {
       if (length(sem_cortes) == 0L) sem_cortes <- c(50L, 75L)
       sem_colores <- sem$colores %||% list()
 
-      # Filtrar filas según exclusiones de categorías por variable de
-      # cruce. Es un filtro global (afecta a todas las tablas); la UI
-      # comunica este trade-off al analista.
-      data_cruces <- .excluir_cruce_rows(ctx$rp_data, cruces_map)
+      # Multi-base (v0.2+): filtramos cada base por `cruces_map` (las
+      # exclusiones de categorías aplican a todas) y serializamos la
+      # lista nombrada al RDS. El worker itera por base y empaqueta
+      # los N xlsx en un zip si hay más de una.
+      data_sources <- estudio_data_sources(sid)
+      inst_sources <- estudio_inst_sources(sid)
+      data_sources_filt <- lapply(data_sources, function(df) .excluir_cruce_rows(df, cruces_map))
 
-      rp_data_path <- job_save_rds(sid, "rp_data", data_cruces)
-      rp_inst_path <- job_save_rds(sid, "rp_inst", ctx$rp_inst)
+      rp_data_path <- job_save_rds(sid, "rp_data_sources", data_sources_filt)
+      rp_inst_path <- job_save_rds(sid, "rp_inst_sources", inst_sources)
+      # api_path para que el worker callr pueda load_all(prosecnurapp).
+      api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
+
       job_id <- job_submit(
         sid = sid,
         kind = "analitica.cruces",
@@ -619,33 +642,68 @@ mount_analitica <- function(pr) {
                         show_sig, alpha, incluir_total,
                         brecha_filas, brecha_cols,
                         aplicar_sem, sem_modo, sem_cortes, sem_colores,
-                        result_path) {
+                        api_path, result_path) {
+          if (requireNamespace("pkgload", quietly = TRUE)) {
+            pkgload::load_all(api_path, quiet = TRUE)
+          } else if (requireNamespace("devtools", quietly = TRUE)) {
+            devtools::load_all(api_path, quiet = TRUE)
+          }
           sem_colores_vec <- if (is.list(sem_colores) && length(sem_colores) > 0L) {
             unlist(lapply(c("rojo","amarillo","verde"), function(k) sem_colores[[k]]))
           } else NULL
-          args <- list(
-            data = readRDS(rp_data_path),
-            instrumento = readRDS(rp_inst_path),
-            SECCIONES = secs,
-            cruces = cruces_val,
-            modo = modo,
-            path_xlsx = result_path,
-            show_sig = show_sig,
-            alpha = alpha,
-            incluir_total = incluir_total,
-            brecha_filas = brecha_filas,
-            brecha_cols = brecha_cols,
-            aplicar_semaforo = aplicar_sem,
-            semaforo_modo = sem_modo,
-            semaforo_cortes = sem_cortes
-          )
-          if (!is.null(sem_colores_vec) && length(sem_colores_vec) == 3L &&
-              all(nchar(sem_colores_vec) > 0L)) {
-            names(sem_colores_vec) <- c("rojo","amarillo","verde")
-            args$semaforo_colores <- sem_colores_vec
+          data_sources <- readRDS(rp_data_path)
+          inst_sources <- readRDS(rp_inst_path)
+          base_names <- names(data_sources)
+
+          run_one <- function(nombre, out_path) {
+            args <- list(
+              data = data_sources[[nombre]],
+              instrumento = inst_sources[[nombre]],
+              SECCIONES = secs,
+              cruces = cruces_val,
+              modo = modo,
+              path_xlsx = out_path,
+              show_sig = show_sig,
+              alpha = alpha,
+              incluir_total = incluir_total,
+              brecha_filas = brecha_filas,
+              brecha_cols = brecha_cols,
+              aplicar_semaforo = aplicar_sem,
+              semaforo_modo = sem_modo,
+              semaforo_cortes = sem_cortes
+            )
+            if (!is.null(sem_colores_vec) && length(sem_colores_vec) == 3L &&
+                all(nchar(sem_colores_vec) > 0L)) {
+              names(sem_colores_vec) <- c("rojo","amarillo","verde")
+              args$semaforo_colores <- sem_colores_vec
+            }
+            do.call(reporte_cruces, args)
           }
-          do.call(reporte_cruces, args)
-          list(path = result_path)
+
+          if (length(base_names) == 1L) {
+            # Single-base: escribe directo al result_path (xlsx).
+            run_one(base_names[1], result_path)
+            return(list(mode = "single", path = result_path))
+          }
+
+          # Multi-base: genera N xlsx en un stage dir y los zipea al
+          # result_path (que debe terminar en .zip).
+          stage <- file.path(dirname(result_path),
+                             paste0("cruces_stage_", basename(tempfile(""))))
+          dir.create(stage, recursive = TRUE, showWarnings = FALSE)
+          on.exit(unlink(stage, recursive = TRUE, force = TRUE), add = TRUE)
+          per_base <- lapply(base_names, function(nombre) {
+            fname <- sprintf("%s__cruces.xlsx", nombre)
+            p <- file.path(stage, fname)
+            run_one(nombre, p)
+            list(nombre = nombre, path = p, filename = fname,
+                 size = as.integer(file.info(p)$size))
+          })
+          old_wd <- setwd(stage)
+          on.exit(setwd(old_wd), add = TRUE)
+          zip::zip(result_path, files = vapply(per_base, function(o) o$filename, character(1)))
+          setwd(old_wd)
+          list(mode = "multi", path = result_path, bases = per_base)
         },
         args = list(
           rp_data_path = rp_data_path,
@@ -661,13 +719,31 @@ mount_analitica <- function(pr) {
           aplicar_sem = aplicar_sem,
           sem_modo = sem_modo,
           sem_cortes = sem_cortes,
-          sem_colores = sem_colores
+          sem_colores = sem_colores,
+          api_path = api_path
         ),
-        result_filename = sprintf("cruces_%s.xlsx", uuid::UUIDgenerate()),
+        result_filename = if (length(data_sources) > 1L) {
+          sprintf("cruces_%s.zip", uuid::UUIDgenerate())
+        } else {
+          sprintf("cruces_%s.xlsx", uuid::UUIDgenerate())
+        },
         on_complete = function(j) {
-          meta <- .register_output_file(j$sid, "cruces", j$result_path)
           session_set(j$sid, "analitica_cruces_ok", TRUE)
-          list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+          if (identical(j$result_data$mode, "multi")) {
+            zip_meta <- .register_output_file(j$sid, "cruces_zip", j$result_path)
+            return(list(
+              ok = TRUE,
+              n_bases = length(j$result_data$bases),
+              zip = list(file_id = zip_meta$file_id, filename = basename(j$result_path),
+                         size = zip_meta$size),
+              bases = lapply(j$result_data$bases, function(o) list(
+                nombre = o$nombre, filename = o$filename, size = o$size
+              ))
+            ))
+          }
+          meta <- .register_output_file(j$sid, "cruces", j$result_path)
+          list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
+               filename = basename(j$result_path), size = meta$size)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "analitica.cruces")
@@ -684,18 +760,13 @@ mount_analitica <- function(pr) {
       variables <- .bases_metadata_preview(ctx$rp_data, ctx$rp_inst)
       list(ok = TRUE, variables = variables, overrides = overrides)
     })) |>
-    plumber::pr_post("/api/analitica/bases/sav", wrap_endpoint(function(req, res) {
-      # Exporta el .sav con measure/format/display_width explícitos para que
-      # SPSS respete las variables ordinales al abrir. Si el usuario pide
-      # el toggle "Avanzado" (incluir_sps=TRUE), también empaqueta el
-      # niveles_medida.sps en un zip como red de seguridad.
-      # Los overrides del editor de metadatos se leen del
-      # config$bases$overrides del store (autosaveado).
+    plumber::pr_post("/api/analitica/bases/sav", wrap_endpoint(function(req, res, ...) {
+      # Exporta .sav multi-base (v0.2+). Cada base produce su propio
+      # datos.sav (+ niveles_medida.sps si incluir_sps=TRUE). Con 1 base
+      # y sin sps, devuelve el .sav directo. Con N bases O con sps,
+      # empaqueta todo en un zip.
       sid <- session_header(req)
-      s <- session_get(sid)
-      ctx <- .load_rp_data(sid)
       cfg <- .analitica_get_config(sid)
-
       body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
       body <- if (nzchar(body_raw)) {
         Encoding(body_raw) <- "UTF-8"
@@ -705,33 +776,57 @@ mount_analitica <- function(pr) {
       incluir_sps <- isTRUE(body$incluir_sps)
       overrides <- .bases_overrides_parse((cfg$bases %||% list())$overrides)
 
-      dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
-      if (incluir_sps) {
-        td <- tempfile()
-        dir.create(td)
-        on.exit(unlink(td, recursive = TRUE), add = TRUE)
-        sav_path <- file.path(td, "datos.sav")
-        sps_path <- file.path(td, "niveles_medida.sps")
-        .bases_export_sav(ctx$rp_data, ctx$rp_inst, sav_path, sps_path, overrides = overrides)
-        zip_path <- file.path(s$dir, "downloads", sprintf("bases_sav_%s.zip", uuid::UUIDgenerate()))
-        old <- getwd(); on.exit({ setwd(old) }, add = TRUE)
-        setwd(td)
-        zip::zip(zip_path, files = c("datos.sav", "niveles_medida.sps"))
-        meta <- .register_output_file(sid, "bases_sav_bundle", zip_path)
-      } else {
-        sav_path <- file.path(s$dir, "downloads", sprintf("datos_%s.sav", uuid::UUIDgenerate()))
-        .bases_export_sav(ctx$rp_data, ctx$rp_inst, sav_path, NULL, overrides = overrides)
-        meta <- .register_output_file(sid, "bases_sav", sav_path)
-      }
-      session_set(sid, "analitica_bases_sav_ok", TRUE)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
-    })) |>
-    plumber::pr_post("/api/analitica/bases/csv", wrap_endpoint(function(req, res) {
-      # Exporta CSV con códigos o etiquetas; multi-select expandible.
-      sid <- session_header(req)
-      s <- session_get(sid)
-      ctx <- .load_rp_data(sid)
+      ds <- estudio_data_sources(sid)
+      is_ <- estudio_inst_sources(sid)
+      if (length(ds) == 0L) stop_api(409, "E_NO_RP_DATA", "Estudio sin bases.")
 
+      s <- session_get(sid)
+      dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
+
+      # Para single-base + sin sps: devuelve el .sav directo (legacy).
+      if (length(ds) == 1L && !incluir_sps) {
+        sav_path <- file.path(s$dir, "downloads", sprintf("datos_%s.sav", uuid::UUIDgenerate()))
+        .bases_export_sav(ds[[1]], is_[[1]], sav_path, NULL, overrides = overrides)
+        meta <- .register_output_file(sid, "bases_sav", sav_path)
+        session_set(sid, "analitica_bases_sav_ok", TRUE)
+        return(list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
+                    filename = basename(sav_path), size = meta$size))
+      }
+
+      # Multi-base o con sps: zip.
+      stage <- tempfile("bases_sav_stage_")
+      dir.create(stage, recursive = TRUE)
+      on.exit(unlink(stage, recursive = TRUE, force = TRUE), add = TRUE)
+      per_base <- list()
+      files_in_zip <- character(0)
+      for (nombre in names(ds)) {
+        # Prefijo por base si hay más de una; sino, nombres "limpios".
+        prefix <- if (length(ds) > 1L) paste0(nombre, "__") else ""
+        sav_path <- file.path(stage, paste0(prefix, "datos.sav"))
+        sps_path <- if (incluir_sps) file.path(stage, paste0(prefix, "niveles_medida.sps")) else NULL
+        .bases_export_sav(ds[[nombre]], is_[[nombre]], sav_path, sps_path, overrides = overrides)
+        files_in_zip <- c(files_in_zip, basename(sav_path))
+        if (!is.null(sps_path)) files_in_zip <- c(files_in_zip, basename(sps_path))
+        per_base[[length(per_base) + 1L]] <- list(
+          nombre = nombre,
+          sav = basename(sav_path),
+          sps = if (!is.null(sps_path)) basename(sps_path) else NULL
+        )
+      }
+      zip_path <- file.path(s$dir, "downloads", sprintf("bases_sav_%s.zip", uuid::UUIDgenerate()))
+      old_wd <- setwd(stage); on.exit(setwd(old_wd), add = TRUE)
+      zip::zip(zip_path, files = files_in_zip)
+      setwd(old_wd)
+      meta <- .register_output_file(sid, "bases_sav_bundle", zip_path)
+      session_set(sid, "analitica_bases_sav_ok", TRUE)
+      list(ok = TRUE, n_bases = length(ds),
+           zip = list(file_id = meta$file_id, filename = basename(zip_path),
+                      size = meta$size),
+           bases = per_base)
+    })) |>
+    plumber::pr_post("/api/analitica/bases/csv", wrap_endpoint(function(req, res, ...) {
+      # CSV multi-base: un csv por base, zip si N > 1.
+      sid <- session_header(req)
       body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
       body <- if (nzchar(body_raw)) {
         Encoding(body_raw) <- "UTF-8"
@@ -745,25 +840,25 @@ mount_analitica <- function(pr) {
       multi_select <- as.character(body$multi_select %||% "dummy_01")
       if (!multi_select %in% c("codigos_crudos","etiquetas_unidas","dummy_01")) multi_select <- "dummy_01"
 
-      df <- ctx$rp_data
-      if (multi_select == "dummy_01") {
-        df <- .expand_multiselect(df, ctx$rp_inst)
-      }
-      df <- .aplicar_etiquetas(df, ctx$rp_inst, valores = valores, multi_select = multi_select)
-
-      dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
-      out_path <- file.path(s$dir, "downloads", sprintf("datos_%s.csv", uuid::UUIDgenerate()))
-      .bases_write_csv(df, out_path, separador = separador)
-      meta <- .register_output_file(sid, "bases_csv", out_path)
+      result <- run_report_multibase(
+        sid           = sid,
+        base_filename = "datos",
+        ext           = "csv",
+        kind_single   = "bases_csv",
+        kind_multi    = "bases_csv_zip",
+        fn = function(rp_data, rp_inst, out_path) {
+          df <- rp_data
+          if (multi_select == "dummy_01") df <- .expand_multiselect(df, rp_inst)
+          df <- .aplicar_etiquetas(df, rp_inst, valores = valores, multi_select = multi_select)
+          .bases_write_csv(df, out_path, separador = separador)
+        }
+      )
       session_set(sid, "analitica_bases_csv_ok", TRUE)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+      result
     })) |>
-    plumber::pr_post("/api/analitica/bases/xlsx", wrap_endpoint(function(req, res) {
-      # Exporta XLSX con códigos, etiquetas o ambos (2 hojas).
+    plumber::pr_post("/api/analitica/bases/xlsx", wrap_endpoint(function(req, res, ...) {
+      # XLSX multi-base: un xlsx por base, zip si N > 1.
       sid <- session_header(req)
-      s <- session_get(sid)
-      ctx <- .load_rp_data(sid)
-
       body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
       body <- if (nzchar(body_raw)) {
         Encoding(body_raw) <- "UTF-8"
@@ -775,19 +870,23 @@ mount_analitica <- function(pr) {
       multi_select <- as.character(body$multi_select %||% "dummy_01")
       if (!multi_select %in% c("codigos_crudos","etiquetas_unidas","dummy_01")) multi_select <- "dummy_01"
 
-      df_base <- ctx$rp_data
-      if (multi_select == "dummy_01") {
-        df_base <- .expand_multiselect(df_base, ctx$rp_inst)
-      }
-      df_cod <- .aplicar_etiquetas(df_base, ctx$rp_inst, valores = "codigos", multi_select = multi_select)
-      df_lab <- if (valores == "codigos") df_cod else .aplicar_etiquetas(df_base, ctx$rp_inst, valores = "etiquetas", multi_select = multi_select)
-
-      dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
-      out_path <- file.path(s$dir, "downloads", sprintf("datos_%s.xlsx", uuid::UUIDgenerate()))
-      .bases_write_xlsx(df_cod, df_lab, out_path, valores = valores)
-      meta <- .register_output_file(sid, "bases_xlsx", out_path)
+      result <- run_report_multibase(
+        sid           = sid,
+        base_filename = "datos",
+        ext           = "xlsx",
+        kind_single   = "bases_xlsx",
+        kind_multi    = "bases_xlsx_zip",
+        fn = function(rp_data, rp_inst, out_path) {
+          df_base <- rp_data
+          if (multi_select == "dummy_01") df_base <- .expand_multiselect(df_base, rp_inst)
+          df_cod <- .aplicar_etiquetas(df_base, rp_inst, valores = "codigos", multi_select = multi_select)
+          df_lab <- if (valores == "codigos") df_cod
+                    else .aplicar_etiquetas(df_base, rp_inst, valores = "etiquetas", multi_select = multi_select)
+          .bases_write_xlsx(df_cod, df_lab, out_path, valores = valores)
+        }
+      )
       session_set(sid, "analitica_bases_xlsx_ok", TRUE)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+      result
     })) |>
     plumber::pr_post("/api/analitica/spss", wrap_endpoint(function(req, res) {
       # Alias de compatibilidad con el endpoint legacy. Mapea al nuevo
@@ -921,31 +1020,86 @@ mount_analitica <- function(pr) {
         }
       }
 
-      rp_data_path <- job_save_rds(sid, "rp_data", ctx$rp_data)
+      # Multi-base (v0.2+): por cada base corre reporte_enumeradores y
+      # produce un PDF. Las bases donde la columna `col_en` no existe
+      # se omiten (con warning en la respuesta). Con 1 sola base:
+      # result_path es un .pdf; con N: un .zip con N pdfs.
+      data_sources <- estudio_data_sources(sid)
+      rp_data_path <- job_save_rds(sid, "rp_data_sources", data_sources)
+      api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
+      multi <- length(data_sources) > 1L
+
       job_id <- job_submit(
         sid = sid,
         kind = "analitica.enumeradores",
         func = function(rp_data_path, col_en, cols_corte, col_modalidad,
                         modalidades_esp, mostrar_vacias, titulo, min_enc,
                         ordenar_por, modalidad_default, modalidad_fn,
-                        result_path) {
-          args <- list(
-            data = readRDS(rp_data_path),
-            col_enumerador = col_en,
-            output_file = result_path,
-            titulo = titulo,
-            min_encuestas = as.integer(min_enc),
-            ordenar_por = ordenar_por,
-            modalidad_default = modalidad_default,
-            mostrar_modalidades_vacias = mostrar_vacias,
-            quiet = TRUE
-          )
-          if (length(cols_corte) > 0L) args$cols_corte <- cols_corte
-          if (nzchar(col_modalidad)) args$col_modalidad <- col_modalidad
-          if (length(modalidades_esp) > 0L) args$modalidades_esperadas <- modalidades_esp
-          if (!is.null(modalidad_fn)) args$modalidad_fn <- modalidad_fn
-          do.call(reporte_enumeradores, args)
-          list(path = result_path)
+                        api_path, result_path) {
+          if (requireNamespace("pkgload", quietly = TRUE)) {
+            pkgload::load_all(api_path, quiet = TRUE)
+          } else if (requireNamespace("devtools", quietly = TRUE)) {
+            devtools::load_all(api_path, quiet = TRUE)
+          }
+          data_sources <- readRDS(rp_data_path)
+          base_names <- names(data_sources)
+
+          run_one <- function(rp_data, out_pdf) {
+            args <- list(
+              data = rp_data,
+              col_enumerador = col_en,
+              output_file = out_pdf,
+              titulo = titulo,
+              min_encuestas = as.integer(min_enc),
+              ordenar_por = ordenar_por,
+              modalidad_default = modalidad_default,
+              mostrar_modalidades_vacias = mostrar_vacias,
+              quiet = TRUE
+            )
+            if (length(cols_corte) > 0L) args$cols_corte <- cols_corte
+            if (nzchar(col_modalidad)) args$col_modalidad <- col_modalidad
+            if (length(modalidades_esp) > 0L) args$modalidades_esperadas <- modalidades_esp
+            if (!is.null(modalidad_fn)) args$modalidad_fn <- modalidad_fn
+            do.call(reporte_enumeradores, args)
+          }
+
+          if (length(base_names) == 1L) {
+            run_one(data_sources[[1]], result_path)
+            return(list(mode = "single", path = result_path))
+          }
+
+          stage <- file.path(dirname(result_path),
+                             paste0("enum_stage_", basename(tempfile(""))))
+          dir.create(stage, recursive = TRUE, showWarnings = FALSE)
+          on.exit(unlink(stage, recursive = TRUE, force = TRUE), add = TRUE)
+          per_base <- list()
+          for (nombre in base_names) {
+            rp_data <- data_sources[[nombre]]
+            # Skip si la columna de enumerador no existe en esta base.
+            if (!col_en %in% names(rp_data)) {
+              per_base[[length(per_base) + 1L]] <- list(
+                nombre = nombre, skipped = TRUE,
+                reason = sprintf("columna '%s' no existe en esta base", col_en)
+              )
+              next
+            }
+            fname <- sprintf("%s__enumeradores.pdf", nombre)
+            p <- file.path(stage, fname)
+            run_one(rp_data, p)
+            per_base[[length(per_base) + 1L]] <- list(
+              nombre = nombre, path = p, filename = fname,
+              size = as.integer(file.info(p)$size), skipped = FALSE
+            )
+          }
+          ok_pdfs <- Filter(function(o) !isTRUE(o$skipped), per_base)
+          if (length(ok_pdfs) == 0L) {
+            stop(sprintf("Ninguna base tiene la columna '%s'; no hay PDFs para generar.", col_en))
+          }
+          old_wd <- setwd(stage)
+          on.exit(setwd(old_wd), add = TRUE)
+          zip::zip(result_path, files = vapply(ok_pdfs, function(o) o$filename, character(1)))
+          setwd(old_wd)
+          list(mode = "multi", path = result_path, bases = per_base)
         },
         args = list(
           rp_data_path = rp_data_path,
@@ -958,13 +1112,29 @@ mount_analitica <- function(pr) {
           min_enc = min_enc,
           ordenar_por = ordenar_por,
           modalidad_default = modalidad_default,
-          modalidad_fn = modalidad_fn
+          modalidad_fn = modalidad_fn,
+          api_path = api_path
         ),
-        result_filename = sprintf("enumeradores_%s.pdf", uuid::UUIDgenerate()),
+        result_filename = if (multi) {
+          sprintf("enumeradores_%s.zip", uuid::UUIDgenerate())
+        } else {
+          sprintf("enumeradores_%s.pdf", uuid::UUIDgenerate())
+        },
         on_complete = function(j) {
-          meta <- .register_output_file(j$sid, "enumeradores", j$result_path)
           session_set(j$sid, "analitica_enumeradores_ok", TRUE)
-          list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+          if (identical(j$result_data$mode, "multi")) {
+            zip_meta <- .register_output_file(j$sid, "enumeradores_zip", j$result_path)
+            return(list(
+              ok = TRUE,
+              n_bases = length(Filter(function(o) !isTRUE(o$skipped), j$result_data$bases)),
+              zip = list(file_id = zip_meta$file_id, filename = basename(j$result_path),
+                         size = zip_meta$size),
+              bases = j$result_data$bases
+            ))
+          }
+          meta <- .register_output_file(j$sid, "enumeradores", j$result_path)
+          list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
+               filename = basename(j$result_path), size = meta$size)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "analitica.enumeradores")

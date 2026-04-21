@@ -1,44 +1,56 @@
 import { useState } from "react";
-import { FileJobResult } from "../../api/client";
+import { FileJobResult, MultiBaseResult, BasePerOutput } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 
-// Estandariza la mecánica "Generar" de cada pane analítico:
-// - Estado `busy` para reporte síncrono.
-// - Estado `jobId` para reporte async (cruces, spss, enumeradores).
-// - Estado `fileId` con la última descarga exitosa.
-// - Callbacks `onDone/onError/onCancelled` para pasar a <JobProgress>.
-// Reemplaza el `run<T>` y el dict de `jobs` del viejo AnaliticaPage
-// monolítico, manteniendo cada pane aislado del resto.
+// Estandariza la mecánica "Generar" de cada pane analítico.
+//
+// Con v0.2+ (multi-base), cada reporte sincrónico puede devolver:
+//  - Single base: `file_id` directo al archivo.
+//  - Multi base (N>1): `zip.file_id` + `bases[]` con archivos individuales.
+//
+// El state expone `lastResult` con la forma completa para que el pane
+// muestre tanto el zip principal como los descargables por base.
+// `fileId` legacy apunta al archivo principal (file_id directo o zip)
+// para back-compat con los consumidores que ya leían solo eso.
 
-type SyncResult = { ok: true; file_id: string; size: number };
 type AsyncStart = { ok: true; job_id: string; kind: string };
 
 type ReporteRunState = {
   busy: boolean;
   jobId: string | null;
-  fileId: string | null;
+  fileId: string | null;       // archivo principal (single) o zip (multi)
+  lastResult: MultiBaseResult | null;
+  perBase: BasePerOutput[];    // vacío en single-base
   error: string;
-  runSync: (fn: () => Promise<SyncResult>) => Promise<void>;
+  runSync: (fn: () => Promise<MultiBaseResult>) => Promise<void>;
   runAsync: (fn: () => Promise<AsyncStart>) => Promise<void>;
-  onJobDone: (d: FileJobResult) => void;
+  onJobDone: (d: FileJobResult | MultiBaseResult) => void;
   onJobError: (msg: string) => void;
   onJobCancelled: () => void;
   clearError: () => void;
 };
+
+// Extrae el file_id principal: zip si multi, file_id directo si single.
+function primaryFileId(r: MultiBaseResult): string | null {
+  if (r.zip) return r.zip.file_id;
+  return r.file_id ?? null;
+}
 
 export function useReporteRun(): ReporteRunState {
   const { refresh } = useSession();
   const [busy, setBusy] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [fileId, setFileId] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<MultiBaseResult | null>(null);
   const [error, setError] = useState("");
 
-  async function runSync(fn: () => Promise<SyncResult>) {
+  async function runSync(fn: () => Promise<MultiBaseResult>) {
     setError("");
     setBusy(true);
     try {
       const out = await fn();
-      setFileId(out.file_id);
+      setLastResult(out);
+      setFileId(primaryFileId(out));
       await refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -60,8 +72,19 @@ export function useReporteRun(): ReporteRunState {
     }
   }
 
-  function onJobDone(d: FileJobResult) {
-    setFileId(d.file_id);
+  function onJobDone(d: FileJobResult | MultiBaseResult) {
+    // Puede venir como result multi-base (cruces/enumeradores multi) o
+    // como FileJobResult legacy (single base). Normalizamos.
+    const multi = d as MultiBaseResult;
+    if (multi && (multi.zip || multi.bases)) {
+      setLastResult(multi);
+      setFileId(primaryFileId(multi));
+    } else {
+      // Legacy FileJobResult { file_id, size, ...}
+      const legacy = d as FileJobResult;
+      setFileId(legacy.file_id);
+      setLastResult(null);
+    }
     setJobId(null);
     void refresh();
   }
@@ -74,5 +97,10 @@ export function useReporteRun(): ReporteRunState {
   }
   function clearError() { setError(""); }
 
-  return { busy, jobId, fileId, error, runSync, runAsync, onJobDone, onJobError, onJobCancelled, clearError };
+  const perBase = lastResult?.bases ?? [];
+
+  return {
+    busy, jobId, fileId, lastResult, perBase, error,
+    runSync, runAsync, onJobDone, onJobError, onJobCancelled, clearError,
+  };
 }

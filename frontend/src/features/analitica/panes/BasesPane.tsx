@@ -181,6 +181,7 @@ function SavCard({
           downloadName={downloadName}
           error={run.error}
           onGenerate={onGenerate}
+          perBase={run.perBase}
         />
       </div>
     </Section>
@@ -265,6 +266,7 @@ function CsvCard({
           downloadName="datos.csv"
           error={run.error}
           onGenerate={onGenerate}
+          perBase={run.perBase}
         />
       </div>
     </Section>
@@ -337,6 +339,7 @@ function XlsxCard({
           downloadName="datos.xlsx"
           error={run.error}
           onGenerate={onGenerate}
+          perBase={run.perBase}
         />
       </div>
     </Section>

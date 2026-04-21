@@ -824,14 +824,46 @@ export async function apiAnaliticaColumnValues(name: string) {
   );
 }
 
+// Respuesta de reporte multi-base (v0.2+):
+//   - Single base (n_bases=1): `file_id` directo al archivo.
+//   - Multi (n_bases>1): `zip` al zip agregador + `bases[]` con file_id
+//     individual de cada archivo para descarga suelta.
+// Los campos `file_id` / `size` legacy a nivel top se mantienen vacíos
+// en multi — el frontend debe mirar `zip` y `bases`.
+export type BasePerOutput = {
+  nombre: string;
+  file_id?: string;
+  filename: string;
+  size: number;
+  // Para bases/sav con sps: puede no tener file_id si viene del worker
+  // de sav (los archivos individuales solo se registran en el zip).
+  sav?: string;
+  sps?: string | null;
+  // Para enumeradores: bases skipped por falta de col_enumerador.
+  skipped?: boolean;
+  reason?: string;
+};
+
+export type MultiBaseResult = {
+  ok: true;
+  n_bases: number;
+  // Single-base
+  file_id?: string;
+  filename?: string;
+  size?: number;
+  // Multi-base
+  zip?: { file_id: string; filename: string; size: number };
+  bases?: BasePerOutput[];
+};
+
 export async function apiAnaliticaCodebook() {
-  return handle<{ ok: true; file_id: string; size: number }>(
+  return handle<MultiBaseResult>(
     await fetch("/api/analitica/codebook", { method: "POST", headers: headers() })
   );
 }
 
 export async function apiAnaliticaFrecuencias() {
-  return handle<{ ok: true; file_id: string; size: number }>(
+  return handle<MultiBaseResult>(
     await fetch("/api/analitica/frecuencias", { method: "POST", headers: headers() })
   );
 }
@@ -875,7 +907,7 @@ export type BasesXlsxBody = {
 };
 
 export async function apiAnaliticaBasesSav(body: BasesSavBody = {}) {
-  return handle<{ ok: true; file_id: string; size: number }>(
+  return handle<MultiBaseResult>(
     await fetch("/api/analitica/bases/sav", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -885,7 +917,7 @@ export async function apiAnaliticaBasesSav(body: BasesSavBody = {}) {
 }
 
 export async function apiAnaliticaBasesCsv(body: BasesCsvBody = {}) {
-  return handle<{ ok: true; file_id: string; size: number }>(
+  return handle<MultiBaseResult>(
     await fetch("/api/analitica/bases/csv", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -895,7 +927,7 @@ export async function apiAnaliticaBasesCsv(body: BasesCsvBody = {}) {
 }
 
 export async function apiAnaliticaBasesXlsx(body: BasesXlsxBody = {}) {
-  return handle<{ ok: true; file_id: string; size: number }>(
+  return handle<MultiBaseResult>(
     await fetch("/api/analitica/bases/xlsx", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),

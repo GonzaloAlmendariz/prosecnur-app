@@ -184,6 +184,7 @@ export function FrecuenciasPane() {
           onGenerate={onGenerate}
           disabled={nVariablesAfectadas === 0}
           disabledHint={nVariablesAfectadas === 0 ? "No hay secciones visibles. Abre Definición global y activa alguna con el icono del ojo." : undefined}
+          perBase={run.perBase}
         />
       </div>
     </Panel>
