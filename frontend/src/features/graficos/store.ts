@@ -61,6 +61,25 @@ export type GraficosConfig = {
   debug_ph: DebugPh;
 };
 
+// Snapshot del estado persistido — lo que va al undo/redo stack. No
+// incluye `selectedSlideId` porque la selección de slide es estado visual
+// (cambiarla no debería contar como una acción deshacible — el usuario
+// espera que Cmd+Z revierta ediciones de contenido, no saltos de slide).
+type Snapshot = {
+  plan: PlanJson;
+  presets: Record<string, Record<string, unknown>>;
+  wPresets: Record<string, Record<string, unknown>>;
+  paletas: Record<string, PaletaPorLista>;
+  iconos: IconoConfig[];
+  overridesReusables: OverrideReusable[];
+  debugPh: DebugPh;
+};
+
+// Tope del stack. 30 acciones cubre el flujo típico de edición (crear
+// slide → configurarlo → ajustar → volver) sin inflar la memoria si el
+// analista edita mucho tiempo sin recargar.
+const MAX_HISTORY = 30;
+
 type PlanStore = {
   // --- Config principal (persistida) ---
   plan: PlanJson;
@@ -75,6 +94,12 @@ type PlanStore = {
   // --- Flags de sincronización ---
   hydrated: boolean;
   dirty: boolean;
+
+  // --- Undo/redo ---
+  past: Snapshot[];
+  future: Snapshot[];
+  undo: () => void;
+  redo: () => void;
 
   // --- Lifecycle ---
   hydrate: (cfg: GraficosConfig) => void;
@@ -186,10 +211,32 @@ function newId() {
   return `s-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-// Helper: marca `dirty: true` en el patch devuelto al set(). Usado por
-// todos los setters que alteran la config persistida.
-function dirty<T extends object>(partial: T): T & { dirty: true } {
-  return { ...partial, dirty: true };
+// Captura el estado persistido para el undo/redo stack.
+function snapshotFromState(state: PlanStore): Snapshot {
+  return {
+    plan: state.plan,
+    presets: state.presets,
+    wPresets: state.wPresets,
+    paletas: state.paletas,
+    iconos: state.iconos,
+    overridesReusables: state.overridesReusables,
+    debugPh: state.debugPh,
+  };
+}
+
+// Helper: marca `dirty: true` y pushea el state ACTUAL al stack `past`
+// antes de aplicar el cambio. Vacía `future` porque una edición nueva
+// invalida los redos pendientes (comportamiento estándar de undo/redo).
+//
+// Usado por todos los setters que alteran la config persistida. NO se
+// usa en `select` (la selección de slide no es una acción deshacible).
+function dirty<T extends object>(state: PlanStore, partial: T): T & {
+  dirty: true;
+  past: Snapshot[];
+  future: Snapshot[];
+} {
+  const past = [...state.past, snapshotFromState(state)].slice(-MAX_HISTORY);
+  return { ...partial, dirty: true, past, future: [] };
 }
 
 export const usePlanStore = create<PlanStore>((set) => ({
@@ -205,6 +252,41 @@ export const usePlanStore = create<PlanStore>((set) => ({
   hydrated: false,
   dirty: false,
 
+  past: [],
+  future: [],
+
+  // Undo: aplica el último snapshot del past, guardando el estado actual
+  // en future para poder rehacer. Si past está vacío, no-op.
+  undo: () => {
+    set((state) => {
+      if (state.past.length === 0) return state;
+      const prev = state.past[state.past.length - 1];
+      const past = state.past.slice(0, -1);
+      const future = [...state.future, snapshotFromState(state)];
+      return {
+        ...prev,
+        past,
+        future,
+        dirty: true,  // undo genera un cambio visible; autosave lo persiste
+      };
+    });
+  },
+
+  redo: () => {
+    set((state) => {
+      if (state.future.length === 0) return state;
+      const next = state.future[state.future.length - 1];
+      const future = state.future.slice(0, -1);
+      const past = [...state.past, snapshotFromState(state)];
+      return {
+        ...next,
+        past,
+        future,
+        dirty: true,
+      };
+    });
+  },
+
   hydrate: (cfg) => set({
     plan: cfg.plan ?? { slides: [] },
     presets: cfg.presets ?? {},
@@ -216,13 +298,17 @@ export const usePlanStore = create<PlanStore>((set) => ({
     debugPh: { ...DEFAULT_DEBUG_PH, ...(cfg.debug_ph ?? {}) },
     hydrated: true,
     dirty: false,
+    // El hydrate viene del backend (autosave inicial o import). No
+    // historizamos el estado pre-hidratación porque era placeholder vacío.
+    past: [],
+    future: [],
   }),
 
   markClean: () => set({ dirty: false }),
 
   addSlide: (tipo) => {
     const s: Slide = { id: newId(), tipo, payload: { ...DEFAULT_PAYLOADS[tipo] } };
-    set((state) => dirty({
+    set((state) => dirty(state, {
       plan: { slides: [...state.plan.slides, s] },
       selectedSlideId: s.id,
     }));
@@ -232,7 +318,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((state) => {
       const slides = state.plan.slides.filter((s) => s.id !== id);
       const nextSelected = state.selectedSlideId === id ? (slides[0]?.id ?? null) : state.selectedSlideId;
-      return dirty({ plan: { slides }, selectedSlideId: nextSelected });
+      return dirty(state, { plan: { slides }, selectedSlideId: nextSelected });
     });
   },
 
@@ -244,12 +330,12 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (j < 0 || j >= state.plan.slides.length) return state;
       const slides = [...state.plan.slides];
       [slides[i], slides[j]] = [slides[j], slides[i]];
-      return dirty({ plan: { slides } });
+      return dirty(state, { plan: { slides } });
     });
   },
 
   updateSlidePayload: (id, patch) => {
-    set((state) => dirty({
+    set((state) => dirty(state, {
       plan: {
         slides: state.plan.slides.map((s) =>
           s.id === id ? { ...s, payload: { ...s.payload, ...patch } } : s
@@ -259,7 +345,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   },
 
   setSlot: (id, slot, graf) => {
-    set((state) => dirty({
+    set((state) => dirty(state, {
       plan: {
         slides: state.plan.slides.map((s) =>
           s.id === id
@@ -271,7 +357,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   },
 
   updateSlotArgs: (id, slot, patch) => {
-    set((state) => dirty({
+    set((state) => dirty(state, {
       plan: {
         slides: state.plan.slides.map((s) => {
           if (s.id !== id) return s;
@@ -284,13 +370,9 @@ export const usePlanStore = create<PlanStore>((set) => ({
     }));
   },
 
-  setPresets: (presets) => set(() => dirty({ presets })),
-  setWPresets: (wPresets) => set(() => dirty({ wPresets })),
+  setPresets: (presets) => set((state) => dirty(state, { presets })),
+  setWPresets: (wPresets) => set((state) => dirty(state, { wPresets })),
 
-  // Merge granular. Si `value === null` o `undefined`, borramos la key
-  // (para que el backend caiga al default de prosecnur). Si el preset
-  // entero queda vacío, lo eliminamos del map para mantener el JSON
-  // limpio y evitar que autosave mande `{}` ruido.
   setPresetArg: (tipo, arg, value) => {
     set((state) => {
       const prev = state.presets[tipo] ?? {};
@@ -306,7 +388,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
       } else {
         presets[tipo] = next;
       }
-      return dirty({ presets });
+      return dirty(state, { presets });
     });
   },
 
@@ -315,18 +397,20 @@ export const usePlanStore = create<PlanStore>((set) => ({
       if (!(tipo in state.presets)) return state;
       const presets = { ...state.presets };
       delete presets[tipo];
-      return dirty({ presets });
+      return dirty(state, { presets });
     }),
 
-  // `select` NO marca dirty: la selección del slide activo es estado
-  // visual; persistirlo igual para que al refrescar la pestaña el usuario
-  // caiga en el mismo slide, pero no tiene sentido disparar autosave solo
-  // por hacer click en otro slide.
+  // `select` NO marca dirty ni historiza: la selección del slide activo
+  // es estado visual; persistirlo igual para que al refrescar la pestaña
+  // el usuario caiga en el mismo slide, pero no tiene sentido disparar
+  // autosave ni contaminar el undo stack solo por hacer click en otro slide.
   select: (id) => set({ selectedSlideId: id, dirty: true }),
 
-  loadPlan: (plan) => set(() => dirty({ plan, selectedSlideId: plan.slides[0]?.id ?? null })),
+  loadPlan: (plan) => set((state) => dirty(state, {
+    plan, selectedSlideId: plan.slides[0]?.id ?? null,
+  })),
 
-  reset: () => set(() => dirty({
+  reset: () => set((state) => dirty(state, {
     plan: { slides: [] }, selectedSlideId: null, presets: {}, wPresets: {},
     paletas: {}, iconos: [], overridesReusables: [],
     debugPh: DEFAULT_DEBUG_PH,
@@ -335,14 +419,14 @@ export const usePlanStore = create<PlanStore>((set) => ({
   // ----- Paletas ----------------------------------------------------------
 
   setPaleta: (listName, paleta) =>
-    set((state) => dirty({
+    set((state) => dirty(state, {
       paletas: { ...state.paletas, [listName]: paleta },
     })),
 
   setColorEnPaleta: (listName, label, hex) =>
     set((state) => {
       const prev = state.paletas[listName] ?? {};
-      return dirty({
+      return dirty(state, {
         paletas: {
           ...state.paletas,
           [listName]: { ...prev, [label]: hex },
@@ -354,45 +438,45 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((state) => {
       const next = { ...state.paletas };
       delete next[listName];
-      return dirty({ paletas: next });
+      return dirty(state, { paletas: next });
     }),
 
   // ----- Iconos -----------------------------------------------------------
 
   addIcono: (icono) =>
-    set((state) => dirty({ iconos: [...state.iconos, icono] })),
+    set((state) => dirty(state, { iconos: [...state.iconos, icono] })),
 
   renameIcono: (id, nombre) =>
-    set((state) => dirty({
+    set((state) => dirty(state, {
       iconos: state.iconos.map((i) => (i.id === id ? { ...i, nombre } : i)),
     })),
 
   removeIcono: (id) =>
-    set((state) => dirty({
+    set((state) => dirty(state, {
       iconos: state.iconos.filter((i) => i.id !== id),
     })),
 
   // ----- Overrides reutilizables -----------------------------------------
 
   addOverrideReusable: (ov) =>
-    set((state) => dirty({
+    set((state) => dirty(state, {
       overridesReusables: [...state.overridesReusables, ov],
     })),
 
   updateOverrideReusable: (id, patch) =>
-    set((state) => dirty({
+    set((state) => dirty(state, {
       overridesReusables: state.overridesReusables.map((o) =>
         o.id === id ? { ...o, ...patch } : o,
       ),
     })),
 
   removeOverrideReusable: (id) =>
-    set((state) => dirty({
+    set((state) => dirty(state, {
       overridesReusables: state.overridesReusables.filter((o) => o.id !== id),
     })),
 
   setDebugPh: (patch) =>
-    set((state) => dirty({
+    set((state) => dirty(state, {
       debugPh: { ...state.debugPh, ...patch },
     })),
 }));

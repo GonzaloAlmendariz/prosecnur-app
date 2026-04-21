@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bug, CheckCircle2, Download, FileText, Palette, Upload, RotateCcw, Loader2 } from "lucide-react";
+import { Bug, CheckCircle2, Download, FileText, Palette, Upload, RotateCcw, Loader2, Undo2, Redo2 } from "lucide-react";
 import {
   apiGraficosConfigExport,
   apiGraficosConfigImport,
@@ -159,6 +159,7 @@ export function GraficosHeader({
             : `${nSlides} ${nSlides === 1 ? "slide" : "slides"} en el plan. Tu plan se guarda automáticamente.`}
         </span>
 
+        <UndoRedoButtons />
         <PlanHealthBadge />
         <DebugPhToggle />
 
@@ -414,6 +415,65 @@ function DebugPhToggle() {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// Botones Undo/Redo — atajos Cmd/Ctrl+Z y Cmd/Ctrl+Shift+Z (via
+// useUndoRedoShortcuts en GraficosPage). Muestra el número de acciones
+// disponibles en el tooltip para que el analista tenga confianza de que
+// su historial existe.
+function UndoRedoButtons() {
+  const past = usePlanStore((s) => s.past);
+  const future = usePlanStore((s) => s.future);
+  const undo = usePlanStore((s) => s.undo);
+  const redo = usePlanStore((s) => s.redo);
+  const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+  const mod = isMac ? "⌘" : "Ctrl";
+  return (
+    <div style={{ display: "inline-flex", gap: 2 }}>
+      <button
+        type="button"
+        onClick={undo}
+        disabled={past.length === 0}
+        title={past.length === 0
+          ? "Nada que deshacer"
+          : `Deshacer (${mod}+Z) — ${past.length} ${past.length === 1 ? "acción disponible" : "acciones disponibles"}`}
+        aria-label="Deshacer"
+        style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          width: 28, height: 28, padding: 0,
+          border: "1px solid var(--pulso-border)",
+          borderRadius: 6,
+          background: "white",
+          color: past.length === 0 ? "var(--pulso-text-soft)" : "var(--pulso-text)",
+          cursor: past.length === 0 ? "default" : "pointer",
+          opacity: past.length === 0 ? 0.5 : 1,
+        }}
+      >
+        <Undo2 size={13} />
+      </button>
+      <button
+        type="button"
+        onClick={redo}
+        disabled={future.length === 0}
+        title={future.length === 0
+          ? "Nada que rehacer"
+          : `Rehacer (${mod}+Shift+Z) — ${future.length} ${future.length === 1 ? "acción disponible" : "acciones disponibles"}`}
+        aria-label="Rehacer"
+        style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          width: 28, height: 28, padding: 0,
+          border: "1px solid var(--pulso-border)",
+          borderRadius: 6,
+          background: "white",
+          color: future.length === 0 ? "var(--pulso-text-soft)" : "var(--pulso-text)",
+          cursor: future.length === 0 ? "default" : "pointer",
+          opacity: future.length === 0 ? 0.5 : 1,
+        }}
+      >
+        <Redo2 size={13} />
+      </button>
     </div>
   );
 }

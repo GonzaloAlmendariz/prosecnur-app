@@ -9,6 +9,7 @@ import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
 import { usePlanStore } from "./store";
 import { useGraficosAutosave } from "./useGraficosAutosave";
+import { useUndoRedoShortcuts } from "./useUndoRedoShortcuts";
 import { GraficosHeader } from "./GraficosHeader";
 import { ConfiguracionGlobal } from "./ConfiguracionGlobal";
 import TimelinePanel from "./TimelinePanel";
@@ -28,6 +29,8 @@ export default function GraficosPage() {
 
   // Autosave: hidrata al montar + guarda debounced 2s en cada cambio.
   useGraficosAutosave();
+  // Cmd/Ctrl+Z / Cmd/Ctrl+Shift+Z → undo/redo sobre el plan.
+  useUndoRedoShortcuts();
 
   const [busyValidating, setBusyValidating] = useState("");
   const [error, setError] = useState("");
