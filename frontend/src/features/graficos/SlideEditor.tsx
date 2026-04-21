@@ -1,11 +1,13 @@
 import { useMemo } from "react";
 import * as Lucide from "lucide-react";
-import { ArgGrupo, GraficadorRef, Slide } from "../../api/client";
+import { ArgGrupo, GraficadorRef } from "../../api/client";
+import { useSession } from "../../lib/SessionContext";
 import { usePlanStore, SLIDE_GRAF_SLOTS, SLIDE_LABELS } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useVariables } from "./useVariables";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
 import GraficadorSlot from "./GraficadorSlot";
+import { SlidePreview } from "./SlidePreview";
 
 // Editor de slide rediseñado. Reemplaza el switch/case + mapas hardcoded
 // por un renderer dinámico que lee el metadata del registry:
@@ -21,6 +23,9 @@ import GraficadorSlot from "./GraficadorSlot";
 // edita sin más código.
 
 export default function SlideEditor() {
+  const { state } = useSession();
+  const prepOk = !!state?.analitica_prep_ok;
+
   const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
   const slide = usePlanStore((s) => s.plan.slides.find((x) => x.id === selectedSlideId));
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
@@ -155,6 +160,11 @@ export default function SlideEditor() {
           Este slide no requiere configuración. Se genera automáticamente en el export.
         </div>
       )}
+
+      {/* Preview del slide individual — mini-PPTX descargable */}
+      <div style={{ maxWidth: 760 }}>
+        <SlidePreview slide={slide} prepOk={prepOk} />
+      </div>
     </div>
   );
 }

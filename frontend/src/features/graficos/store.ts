@@ -34,8 +34,19 @@ export type OverrideReusable = {
   args: Record<string, unknown>;
 };
 
+// Debug de placeholders — herramienta global para ver visualmente cómo
+// queda la disposición de los slots y canvas dentro de cada gráfico.
+// Es un toggle single-source que se inyecta al preset `base` antes de
+// cada export, afectando TODOS los graficadores por igual. Evita que
+// el analista tenga que editarlo slot por slot.
+export type DebugPh = {
+  activo: boolean;  // muestra/oculta los bordes de debug
+  color: string;    // hex del borde (default magenta #FF00FF)
+  lwd: number;      // grosor de línea (default 0.6)
+};
+
 // Config persistida en el backend. Lo que el autosave envía y recibe.
-// Version 2 añade: paletas, iconos, overrides_reusables.
+// Version 2 añade: paletas, iconos, overrides_reusables, debug_ph.
 export type GraficosConfig = {
   version: 2;
   plan: PlanJson;
@@ -47,6 +58,7 @@ export type GraficosConfig = {
   paletas: Record<string, PaletaPorLista>;   // list_name → {label: hex}
   iconos: IconoConfig[];
   overrides_reusables: OverrideReusable[];
+  debug_ph: DebugPh;
 };
 
 type PlanStore = {
@@ -58,6 +70,7 @@ type PlanStore = {
   paletas: Record<string, PaletaPorLista>;
   iconos: IconoConfig[];
   overridesReusables: OverrideReusable[];
+  debugPh: DebugPh;
 
   // --- Flags de sincronización ---
   hydrated: boolean;
@@ -92,6 +105,18 @@ type PlanStore = {
   addOverrideReusable: (ov: OverrideReusable) => void;
   updateOverrideReusable: (id: string, patch: Partial<OverrideReusable>) => void;
   removeOverrideReusable: (id: string) => void;
+
+  // Debug de placeholders (toggle global)
+  setDebugPh: (patch: Partial<DebugPh>) => void;
+};
+
+// Valores por defecto del debug. Alineado con los QMDs de GIZ y las
+// pruebas (magenta + grosor 0.6). `activo: false` por defecto: se
+// enciende solo durante el trabajo de diseño.
+export const DEFAULT_DEBUG_PH: DebugPh = {
+  activo: false,
+  color: "#FF00FF",
+  lwd: 0.6,
 };
 
 // Payload por defecto de cada tipo de slide. Mirror de los formals() de
@@ -169,6 +194,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   paletas: {},
   iconos: [],
   overridesReusables: [],
+  debugPh: DEFAULT_DEBUG_PH,
 
   hydrated: false,
   dirty: false,
@@ -181,6 +207,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     paletas: cfg.paletas ?? {},
     iconos: cfg.iconos ?? [],
     overridesReusables: cfg.overrides_reusables ?? [],
+    debugPh: { ...DEFAULT_DEBUG_PH, ...(cfg.debug_ph ?? {}) },
     hydrated: true,
     dirty: false,
   }),
@@ -265,6 +292,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   reset: () => set(() => dirty({
     plan: { slides: [] }, selectedSlideId: null, presets: {}, wPresets: {},
     paletas: {}, iconos: [], overridesReusables: [],
+    debugPh: DEFAULT_DEBUG_PH,
   })),
 
   // ----- Paletas ----------------------------------------------------------
@@ -324,6 +352,11 @@ export const usePlanStore = create<PlanStore>((set) => ({
   removeOverrideReusable: (id) =>
     set((state) => dirty({
       overridesReusables: state.overridesReusables.filter((o) => o.id !== id),
+    })),
+
+  setDebugPh: (patch) =>
+    set((state) => dirty({
+      debugPh: { ...state.debugPh, ...patch },
     })),
 }));
 

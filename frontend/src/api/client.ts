@@ -1032,6 +1032,27 @@ export async function apiGraficosIconoUpload(nombre: string, dataBase64: string)
   );
 }
 
+// Preview de UN slide: genera un mini-PPTX de 1 slide usando el mismo
+// pipeline que el export completo. Rápido (~2-3s típico) y 100% fiel al
+// output final (no una maqueta). El analista lo descarga y lo abre en
+// PowerPoint/Keynote sin salir del flujo.
+export type PreviewSlideResponse = {
+  ok: true;
+  file_id: string;
+  size: number;
+  type: "pptx";
+};
+
+export async function apiGraficosPreviewSlide(slide: Slide) {
+  return handle<PreviewSlideResponse>(
+    await fetch("/api/graficos/preview-slide", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ slide }),
+    })
+  );
+}
+
 export async function apiGraficosVariables() {
   return handle<{ variables: VarInfo[] }>(
     await fetch("/api/graficos/variables", { headers: headers() })

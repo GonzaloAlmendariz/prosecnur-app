@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { apiGraficosConfigGet, apiGraficosConfigPut } from "../../api/client";
-import { GraficosConfig, usePlanStore } from "./store";
+import { DEFAULT_DEBUG_PH, GraficosConfig, usePlanStore } from "./store";
 
 // Autosave del plan de gráficos. Misma mecánica que useAnaliticaAutosave:
 //
@@ -23,6 +23,7 @@ const DEFAULT_CONFIG: GraficosConfig = {
   paletas: {},
   iconos: [],
   overrides_reusables: [],
+  debug_ph: DEFAULT_DEBUG_PH,
 };
 
 // Migración v1 → v2: si el backend devuelve un config viejo (sin paletas/
@@ -46,6 +47,9 @@ function mergeWithDefaults(remote: unknown): GraficosConfig {
     overrides_reusables: Array.isArray(r.overrides_reusables)
       ? (r.overrides_reusables as GraficosConfig["overrides_reusables"])
       : [],
+    debug_ph: isObj(r.debug_ph)
+      ? { ...DEFAULT_DEBUG_PH, ...(r.debug_ph as GraficosConfig["debug_ph"]) }
+      : DEFAULT_DEBUG_PH,
   };
 }
 
@@ -57,6 +61,7 @@ export function useGraficosAutosave() {
   const paletas = usePlanStore((s) => s.paletas);
   const iconos = usePlanStore((s) => s.iconos);
   const overridesReusables = usePlanStore((s) => s.overridesReusables);
+  const debugPh = usePlanStore((s) => s.debugPh);
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
   const hydrate = usePlanStore((s) => s.hydrate);
@@ -94,6 +99,7 @@ export function useGraficosAutosave() {
         paletas,
         iconos,
         overrides_reusables: overridesReusables,
+        debug_ph: debugPh,
       };
       try {
         await apiGraficosConfigPut(config);
@@ -107,7 +113,7 @@ export function useGraficosAutosave() {
     };
   }, [
     plan, presets, wPresets, selectedSlideId,
-    paletas, iconos, overridesReusables,
+    paletas, iconos, overridesReusables, debugPh,
     dirty, hydrated, markClean,
   ]);
 }

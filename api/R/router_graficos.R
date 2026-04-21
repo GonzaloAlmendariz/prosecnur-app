@@ -131,12 +131,60 @@
 # store de Zustand en `frontend/src/features/graficos/store.ts`.
 .graficos_default_config <- function() {
   list(
-    version = 1L,
+    version = 2L,
     plan = list(slides = list()),
     presets = list(),
     w_presets = list(),
-    selected_slide_id = NULL
+    selected_slide_id = NULL,
+    paletas = list(),
+    iconos = list(),
+    overrides_reusables = list(),
+    debug_ph = list(activo = FALSE, color = "#FF00FF", lwd = 0.6)
   )
+}
+
+# Enriquece la config de presets JSON antes de pasarla a prosecnur con:
+# 1. `usar_canvas = TRUE` en todos los tipos (invariante de Pulso — todos
+#    los reportes usan canvas/cowplot).
+# 2. Flags `debug_ph_*` en el preset `base`, que prosecnur aplica a todos
+#    los graficadores. Así el analista tiene UN solo toggle global en
+#    vez de tener que pisar los tres args por cada slide.
+#
+# Ambos comportamientos son opinados y se hacen server-side para que la
+# UI no tenga que recordarlo en cada export.
+.enriquecer_presets <- function(presets_json, debug_ph = NULL) {
+  if (is.null(presets_json)) presets_json <- list()
+  if (!is.list(presets_json)) return(presets_json)
+
+  # 1) Canvas siempre activo en cada tipo de preset (excepto `base`,
+  # que no usa canvas).
+  tipos_canvas <- c(
+    "barras_apiladas", "barras_agrupadas", "multi_apiladas",
+    "barras_numericas", "pie", "donut", "radar_tabla",
+    "numerico", "media_rango", "boxplot"
+  )
+  for (t in tipos_canvas) {
+    if (is.null(presets_json[[t]])) presets_json[[t]] <- list()
+    presets_json[[t]]$usar_canvas <- TRUE
+  }
+
+  # 2) Debug placeholder: inyectar al preset base.
+  if (is.null(presets_json$base)) presets_json$base <- list()
+  if (is.list(debug_ph) && isTRUE(debug_ph$activo)) {
+    presets_json$base$debug_ph_bordes <- TRUE
+    if (!is.null(debug_ph$color) && nzchar(as.character(debug_ph$color))) {
+      presets_json$base$debug_ph_col <- as.character(debug_ph$color)
+    }
+    if (!is.null(debug_ph$lwd) && is.finite(suppressWarnings(as.numeric(debug_ph$lwd)))) {
+      presets_json$base$debug_ph_lwd <- as.numeric(debug_ph$lwd)
+    }
+  } else {
+    # Si no está activo, forzar FALSE por si el analista había dejado
+    # debug_ph_bordes=TRUE en algún preset legacy.
+    presets_json$base$debug_ph_bordes <- FALSE
+  }
+
+  presets_json
 }
 
 mount_graficos <- function(pr) {
@@ -311,6 +359,103 @@ mount_graficos <- function(pr) {
       if (is.null(plan)) stop_api(400, "E_NO_PLAN", "Falta 'plan' en el body")
       .validar_plan_json(plan)
     })) |>
+    plumber::pr_post("/api/graficos/preview-slide", wrap_endpoint(function(req, res, ...) {
+      # Genera un .pptx mini con UN solo slide, para que el analista vea
+      # cómo queda su slide específico sin tener que correr el reporte
+      # completo. Fiel al output final (usa el mismo pipeline de export)
+      # pero rápido (2-3s típico para 1 slide).
+      #
+      # Sincrónico (no callr) porque el tamaño es chico. Si en el futuro
+      # vemos timeouts con dimensiones/FODA, migramos a job_submit.
+      sid <- session_header(req)
+      s <- .require_rp_data(sid)
+
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      slide <- parsed$slide
+      if (is.null(slide)) stop_api(400, "E_NO_SLIDE", "Body debe incluir 'slide'.")
+
+      # Validación mínima: tiene tipo y payload.
+      tipo <- as.character(slide$tipo %||% "")
+      if (!nzchar(tipo) || !(tipo %in% .slide_names())) {
+        stop_api(400, "E_BAD_SLIDE", sprintf("Tipo de slide inválido: '%s'", tipo))
+      }
+
+      # Presets desde la config del store (si los hay), para que el preview
+      # respete el estilo global ya configurado en Configuración Global.
+      # Enriquecemos con usar_canvas=TRUE + debug_ph (invariantes globales
+      # que el backend aplica antes de cada export).
+      cfg <- session_get(sid)$graficos_config %||% list()
+      presets_json <- .enriquecer_presets(cfg$presets %||% list(), cfg$debug_ph)
+
+      # Plan mini con un solo slide.
+      mini_plan <- list(slides = list(slide))
+
+      dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
+      out_path <- file.path(s$dir, "downloads", sprintf("preview_%s.pptx", uuid::UUIDgenerate()))
+
+      # Construir slide con las mismas funciones que usa el worker de /ppt.
+      slide_registry <- setNames(
+        lapply(.slide_names(), function(nm) list(grafs = setdiff(.slide_slots(nm), "icono"))),
+        .slide_names()
+      )
+      graficador_registry <- .graf_names()
+
+      rebuild_graf <- function(g) {
+        if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
+        if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
+        fn <- getExportedValue("prosecnur", g$graficador)
+        do.call(fn, as.list(g$args %||% list()))
+      }
+      as_list_shallow <- function(x) {
+        if (is.null(x)) return(NULL)
+        if (is.list(x)) return(x)
+        as.list(x)
+      }
+      rebuild_slide <- function(s0) {
+        s0 <- as.list(s0)
+        payload <- as_list_shallow(s0$payload) %||% list()
+        payload <- lapply(payload, function(v) if (is.list(v) && length(v) == 1 && is.null(names(v))) v[[1]] else v)
+        for (slot_name in slide_registry[[tipo]]$grafs) {
+          if (!is.null(payload[[slot_name]])) {
+            payload[[slot_name]] <- rebuild_graf(as_list_shallow(payload[[slot_name]]))
+          }
+        }
+        fn <- getExportedValue("prosecnur", tipo)
+        allowed_args <- names(formals(fn))
+        payload <- payload[names(payload) %in% allowed_args]
+        do.call(fn, payload)
+      }
+
+      build_presets <- function(pj) {
+        if (is.null(pj) || length(pj) == 0) return(NULL)
+        do.call(prosecnur::p_presets, lapply(pj, as.list))
+      }
+
+      # Ejecución del preview. Envuelvo en tryCatch para devolver un
+      # error legible si algún arg falta o invalida.
+      tryCatch({
+        slide_r <- rebuild_slide(slide)
+        prosecnur::reporte_ppt_plan(
+          data = s$rp_data,
+          instrumento = s$rp_inst,
+          path_ppt = out_path,
+          presets = build_presets(presets_json),
+          plan = do.call(prosecnur::p_plan, list(slides = list(slide_r))),
+          mensajes_progreso = FALSE
+        )
+      }, error = function(e) {
+        stop_api(400, "E_PREVIEW_FAILED", sprintf("No se pudo generar el preview: %s", conditionMessage(e)))
+      })
+
+      meta <- .register_output_file(sid, "graficos_preview", out_path)
+      list(ok = TRUE, file_id = meta$file_id, size = meta$size, type = "pptx")
+    })) |>
     plumber::pr_post("/api/graficos/ppt", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL) {
       sid <- session_header(req)
       s <- .require_rp_data(sid)
@@ -318,6 +463,10 @@ mount_graficos <- function(pr) {
       plan <- .normalize_plan(plan)
       validation <- .validar_plan_json(plan)
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
+      # Enriquecer presets con canvas-always + debug_ph global antes de
+      # pasarlos al worker (invariantes Pulso).
+      cfg <- session_get(sid)$graficos_config %||% list()
+      presets <- .enriquecer_presets(presets, cfg$debug_ph)
       rp_data_path <- job_save_rds(sid, "rp_data", s$rp_data)
       rp_inst_path <- job_save_rds(sid, "rp_inst", s$rp_inst)
       # El worker recibe el registry como argumento (serializado desde el
@@ -403,6 +552,9 @@ mount_graficos <- function(pr) {
       plan <- .normalize_plan(plan)
       validation <- .validar_plan_json(plan)
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
+      # Mismas invariantes que en /ppt.
+      cfg <- session_get(sid)$graficos_config %||% list()
+      presets <- .enriquecer_presets(presets, cfg$debug_ph)
       rp_data_path <- job_save_rds(sid, "rp_data", s$rp_data)
       rp_inst_path <- job_save_rds(sid, "rp_inst", s$rp_inst)
       slide_registry_arg <- setNames(

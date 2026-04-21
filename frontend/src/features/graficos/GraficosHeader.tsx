@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { CheckCircle2, Download, FileText, Palette, Upload, RotateCcw, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Bug, CheckCircle2, Download, FileText, Palette, Upload, RotateCcw, Loader2 } from "lucide-react";
 import {
   apiGraficosConfigExport,
   apiGraficosConfigImport,
@@ -151,6 +151,8 @@ export function GraficosHeader({
             : `${nSlides} ${nSlides === 1 ? "slide" : "slides"} en el plan. Tu plan se guarda automáticamente.`}
         </span>
 
+        <DebugPhToggle />
+
         <button
           type="button"
           onClick={onExport}
@@ -269,6 +271,140 @@ export function GraficosHeader({
           </a>
         )}
       </div>
+    </div>
+  );
+}
+
+// Toggle global del debug de placeholders. Cuando está activo, todos
+// los graficadores renderizan bordes de color sobre los placeholders
+// internos del layout — útil para diseñar y ajustar canvas en Pulso.
+// El backend inyecta `debug_ph_bordes / debug_ph_col / debug_ph_lwd`
+// al preset `base` automáticamente. Popover con color y grosor.
+function DebugPhToggle() {
+  const debugPh = usePlanStore((s) => s.debugPh);
+  const setDebugPh = usePlanStore((s) => s.setDebugPh);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!popoverOpen) return;
+    function onDocClick(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setPopoverOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [popoverOpen]);
+
+  const active = debugPh.activo;
+
+  return (
+    <div ref={rootRef} style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <button
+        type="button"
+        onClick={() => setDebugPh({ activo: !active })}
+        title={active ? "Desactivar bordes de debug" : "Activar bordes de debug"}
+        style={{
+          fontSize: 11, padding: "5px 10px",
+          display: "inline-flex", alignItems: "center", gap: 5,
+          border: `1px solid ${active ? debugPh.color : "var(--pulso-border)"}`,
+          borderRadius: 6,
+          background: active ? `${debugPh.color}14` : "white",
+          color: active ? debugPh.color : "var(--pulso-text)",
+          fontWeight: active ? 600 : 500,
+          cursor: "pointer",
+          transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
+        }}
+      >
+        <Bug size={12} />
+        Debug bordes
+        {active && (
+          <span
+            style={{
+              display: "inline-block", width: 8, height: 8, borderRadius: 2,
+              background: debugPh.color,
+              marginLeft: 2,
+            }}
+          />
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => setPopoverOpen((v) => !v)}
+        className="pulso-icon"
+        aria-label="Opciones de debug"
+        title="Color / grosor del debug"
+        style={{ minWidth: 22, minHeight: 22 }}
+      >
+        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {popoverOpen && (
+        <div
+          style={{
+            position: "absolute", top: "calc(100% + 4px)", right: 0,
+            zIndex: 30,
+            minWidth: 220,
+            padding: 12,
+            background: "white",
+            border: "1px solid var(--pulso-border)",
+            borderRadius: 8,
+            boxShadow: "var(--pulso-shadow-med, 0 6px 20px rgba(0,0,0,0.12))",
+            display: "flex", flexDirection: "column", gap: 10,
+          }}
+        >
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+            Marca los bordes de los placeholders internos del layout para
+            diseñar y ajustar canvas. Se aplica a <strong>todos los gráficos</strong>.
+          </div>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+            <span style={{ flex: 1, fontWeight: 600 }}>Color</span>
+            <input
+              type="color"
+              value={debugPh.color}
+              onChange={(e) => setDebugPh({ color: e.target.value })}
+              style={{ width: 40, height: 24, padding: 0, border: "1px solid var(--pulso-border)", borderRadius: 4, cursor: "pointer" }}
+            />
+            <input
+              type="text"
+              value={debugPh.color}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (/^#?[0-9a-fA-F]{0,6}$/.test(v)) {
+                  setDebugPh({ color: v.startsWith("#") || v === "" ? v : `#${v}` });
+                }
+              }}
+              style={{
+                width: 80, fontSize: 11, fontFamily: "monospace",
+                padding: "3px 6px", borderRadius: 4, border: "1px solid var(--pulso-border)",
+              }}
+            />
+          </label>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+            <span style={{ flex: 1, fontWeight: 600 }}>Grosor (lwd)</span>
+            <input
+              type="number"
+              min={0.1} max={3} step={0.1}
+              value={debugPh.lwd}
+              onChange={(e) => {
+                const n = parseFloat(e.target.value);
+                if (Number.isFinite(n) && n > 0) setDebugPh({ lwd: n });
+              }}
+              style={{ width: 70, fontSize: 11, padding: "3px 6px", borderRadius: 4, border: "1px solid var(--pulso-border)" }}
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={() => setPopoverOpen(false)}
+            style={{ alignSelf: "flex-end", fontSize: 11, padding: "3px 10px" }}
+          >
+            Listo
+          </button>
+        </div>
+      )}
     </div>
   );
 }
