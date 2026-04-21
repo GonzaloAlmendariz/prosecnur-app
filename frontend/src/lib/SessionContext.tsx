@@ -7,6 +7,12 @@ type Ctx = {
   state: SessionState | null;
   refresh: () => Promise<void>;
   error: string;
+  // `sessionLost` sube a true cuando alguna request devuelve E_NO_SESSION.
+  // Típicamente porque el backend se reinició (el `sid` del browser ya no
+  // existe en el store en memoria). La app puede pintar un banner global
+  // con "Recargar página" para guiar al usuario sin que aparezca el error
+  // crudo en los pickers.
+  sessionLost: boolean;
 };
 
 const SessionContext = createContext<Ctx | null>(null);
@@ -16,6 +22,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [version, setVersion] = useState<string>("…");
   const [state, setState] = useState<SessionState | null>(null);
   const [error, setError] = useState<string>("");
+  const [sessionLost, setSessionLost] = useState<boolean>(false);
 
   const refresh = useCallback(async () => {
     if (!sessionId) return;
@@ -44,7 +51,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (sessionId) void refresh();
   }, [sessionId, refresh]);
 
-  const value = useMemo(() => ({ sessionId, version, state, refresh, error }), [sessionId, version, state, refresh, error]);
+  // Escucha el evento emitido por `client.ts` cuando alguna respuesta
+  // trae E_NO_SESSION. Marca el flag una sola vez (no parpadea por cada
+  // request subsecuente).
+  useEffect(() => {
+    function onLost() {
+      setSessionLost(true);
+    }
+    window.addEventListener("pulso:session-lost", onLost);
+    return () => window.removeEventListener("pulso:session-lost", onLost);
+  }, []);
+
+  const value = useMemo(
+    () => ({ sessionId, version, state, refresh, error, sessionLost }),
+    [sessionId, version, state, refresh, error, sessionLost],
+  );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 

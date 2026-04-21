@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { SessionProvider } from "../lib/SessionContext";
 import Layout from "./Layout";
+import { SessionLostBanner } from "./SessionLostBanner";
 import CargaPage from "../features/carga/CargaPage";
 import ValidacionPage from "../features/validacion/ValidacionPage";
 import CodificacionPage from "../features/codificacion/CodificacionPage";
@@ -11,6 +12,7 @@ import GraficosPage from "../features/graficos/GraficosPage";
 export default function App() {
   return (
     <SessionProvider>
+      <SessionLostBanner />
       <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>

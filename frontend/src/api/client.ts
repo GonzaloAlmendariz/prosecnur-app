@@ -22,6 +22,14 @@ async function handle<T>(res: Response): Promise<T> {
     const body = await res.json().catch(() => ({}));
     const code = body?.error?.code ?? "E_UNKNOWN";
     const message = body?.error?.message ?? res.statusText;
+    // E_NO_SESSION: el backend no reconoce el sid que tenemos en
+    // localStorage. Típicamente porque el backend se reinició (sesiones
+    // en memoria, no persistidas). Disparamos un evento global que
+    // SessionContext captura para mostrar un banner claro al usuario
+    // en vez de dejar el error crudo contaminando los pickers.
+    if (code === "E_NO_SESSION" && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("pulso:session-lost"));
+    }
     throw new Error(`[${code}] ${message}`);
   }
   return res.json();

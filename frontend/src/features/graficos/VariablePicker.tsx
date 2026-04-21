@@ -22,7 +22,16 @@ export default function VariablePicker({ value, onChange, placeholder = "Selecci
   }, [variables, filter, query]);
 
   if (loading) return <span style={{ fontSize: 12, color: "#888" }}>cargando variables…</span>;
-  if (error) return <span style={{ fontSize: 12, color: "#c00" }}>⚠ {error}</span>;
+  if (error) {
+    // Si la sesión expiró, el banner global ya avisa. Acá mostramos un
+    // mensaje corto y neutro para no repetir el error crudo en cada picker.
+    const isSessionLost = error.includes("E_NO_SESSION");
+    return (
+      <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
+        {isSessionLost ? "Sesión no disponible" : `⚠ ${error}`}
+      </span>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
