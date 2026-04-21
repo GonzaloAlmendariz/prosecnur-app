@@ -154,6 +154,21 @@ function FieldControl({
     case "codigos_list":
       return <CodigosList value={(value as (string | number)[]) ?? []} onChange={onChange} />;
 
+    case "multiflag":
+      // Fallback a texto libre si el registry no trajo opciones — mantiene
+      // compat con args antiguos que quedaron declarados como multiflag
+      // sin el catálogo cerrado.
+      if (!meta.opciones || meta.opciones.length === 0) {
+        return <CodigosList value={(value as string[]) ?? []} onChange={onChange} />;
+      }
+      return (
+        <MultiFlag
+          opciones={meta.opciones}
+          value={(value as string[]) ?? []}
+          onChange={onChange}
+        />
+      );
+
     case "icono":
       return <IconoSelect value={value as string | null} onChange={onChange} />;
 
@@ -432,6 +447,72 @@ function AdvancedPlaceholder({
           Cancelar
         </button>
       </div>
+    </div>
+  );
+}
+
+// Multi-select cerrado de tokens — usado por `textos_negrita` y
+// similares. Renderiza chips toggleables con las `opciones` que el
+// preset declara soportar. El valor es un array de strings.
+//
+// Diseñado para que el analista NO escriba tokens a mano y NO tenga
+// que memorizar qué elementos del gráfico acepta cada preset.
+function MultiFlag({
+  opciones, value, onChange,
+}: {
+  opciones: { value: string; label: string; hint?: string }[];
+  value: string[];
+  onChange: (v: string[] | null) => void;
+}) {
+  const set = new Set(value);
+
+  function toggle(v: string) {
+    const next = new Set(set);
+    if (next.has(v)) next.delete(v);
+    else next.add(v);
+    const arr = Array.from(next);
+    // Null en vez de [] para que el store normalice y no persista un
+    // array vacío innecesariamente (mismo patrón que otros inputs).
+    onChange(arr.length === 0 ? null : arr);
+  }
+
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      {opciones.map((opt) => {
+        const on = set.has(opt.value);
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="switch"
+            aria-checked={on}
+            title={opt.hint}
+            onClick={() => toggle(opt.value)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "4px 10px", borderRadius: 999,
+              border: `1px solid ${on ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+              background: on ? "var(--pulso-primary-soft)" : "white",
+              color: on ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
+              fontSize: 11, fontWeight: on ? 700 : 500,
+              cursor: "pointer",
+              transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
+            }}
+          >
+            {on && (
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 6, height: 6, borderRadius: "50%",
+                  background: "var(--pulso-primary)",
+                  display: "inline-block",
+                }}
+              />
+            )}
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

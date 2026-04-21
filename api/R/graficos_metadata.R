@@ -79,6 +79,52 @@
        descripcion = "Texto al pie del gráfico. Puede ser automático (cuenta los casos) o manual.")
 )
 
+# ---- Textos en negrita ---------------------------------------------------
+#
+# Universo canónico de tokens que pueden ir en negrita. Cada graficador
+# soporta un subset de estos tokens; el helper `.arg_textos_negrita`
+# arma un arg tipo `multiflag` con el subset que corresponda.
+#
+# Notación: los tokens son snake_case sin acentos para matchear el
+# código R de los graficadores, que los compara con `%in% textos_negrita`.
+.TOKENS_NEGRITA <- list(
+  titulo         = list(value = "titulo",        label = "Título"),
+  subtitulo      = list(value = "subtitulo",     label = "Subtítulo"),
+  leyenda        = list(value = "leyenda",       label = "Leyenda"),
+  nota_pie       = list(value = "nota_pie",      label = "Nota al pie"),
+  ejes           = list(value = "ejes",          label = "Ejes"),
+  eje_x          = list(value = "eje_x",         label = "Eje X"),
+  eje_y          = list(value = "eje_y",         label = "Eje Y"),
+  valores        = list(value = "valores",       label = "Valores"),
+  barra_extra    = list(value = "barra_extra",   label = "Barra extra"),
+  titulos_grupo  = list(value = "titulos_grupo", label = "Títulos de grupo"),
+  niveles        = list(value = "niveles",       label = "Niveles del radar"),
+  etiquetas      = list(value = "etiquetas",     label = "Etiquetas (%)")
+)
+
+# Arma el arg "textos_negrita" tipo `multiflag` restringido al subset de
+# tokens que el graficador acepta. `tokens` es un vector de keys de
+# `.TOKENS_NEGRITA`. Si pasas un token desconocido se lanza error para
+# fallar rápido en caso de typo.
+.arg_textos_negrita <- function(tokens) {
+  bad <- setdiff(tokens, names(.TOKENS_NEGRITA))
+  if (length(bad) > 0) {
+    stop(sprintf(
+      "Token(s) de negrita desconocido(s): %s. Disponibles: %s",
+      paste(bad, collapse = ", "),
+      paste(names(.TOKENS_NEGRITA), collapse = ", ")
+    ))
+  }
+  list(
+    name = "textos_negrita",
+    label = "Textos en negrita",
+    tipo_input = "multiflag",
+    grupo = "estilo",
+    descripcion = "Selecciona qué partes del gráfico van en negrita.",
+    opciones = unname(.TOKENS_NEGRITA[tokens])
+  )
+}
+
 # ===========================================================================
 # SLIDES
 # ===========================================================================
@@ -698,8 +744,14 @@
            default = "#222222"),
 
       # --- Negritas -------------------------------------------------------
-      list(name = "textos_negrita",    label = "Textos en negrita",      tipo_input = "codigos_list", grupo = "estilo",
-           descripcion = "Qué partes del gráfico van en negrita. Lista separada por comas. Valores posibles: titulo, subtitulo, leyenda, ejes, eje_x, eje_y, valores, barra_extra, titulos_grupo. Ej: titulo, leyenda, valores"),
+      # `base` expone el universo completo de tokens. Los presets tipo
+      # graficador redeclaran el arg con su subset soportado.
+      .arg_textos_negrita(c(
+        "titulo", "subtitulo", "leyenda", "nota_pie",
+        "ejes", "eje_x", "eje_y",
+        "valores", "barra_extra", "titulos_grupo",
+        "niveles", "etiquetas"
+      )),
 
       # --- Debug de placeholders -----------------------------------------
       list(name = "debug_ph_bordes",   label = "Mostrar bordes de debug", tipo_input = "bool",   grupo = "avanzado",
@@ -721,6 +773,9 @@
     descripcion   = "Estilo global de las barras apiladas horizontales (escalas Likert). Cada barra suma 100% y cada segmento es una categoría de respuesta. Hereda todo de 'Base'.",
     icono_ui      = "BarChartBig",
     args = list(
+
+      # --- Negritas -------------------------------------------------------
+      .arg_textos_negrita(c("titulo", "leyenda", "eje_y", "valores", "barra_extra")),
 
       # --- Barra extra (Top2Box / Bottom2Box / N) ------------------------
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo",
@@ -846,6 +901,9 @@
     icono_ui      = "Rows3",
     args = list(
 
+      # --- Negritas -------------------------------------------------------
+      .arg_textos_negrita(c("titulo", "leyenda", "eje_y", "valores", "barra_extra", "titulos_grupo")),
+
       # --- Textos / tamaños ---------------------------------------------
       list(name = "size_titulos_grupo",   label = "Tamaño títulos de bloque", tipo_input = "number", grupo = "estilo",
            descripcion = "Cuando hay varios bloques temáticos, es el tamaño del título de cada bloque."),
@@ -899,6 +957,9 @@
     descripcion   = "Barras lado a lado (una por categoría), útil para comparar entre grupos. Puede tener una o varias series.",
     icono_ui      = "BarChartHorizontal",
     args = list(
+
+      # --- Negritas -------------------------------------------------------
+      .arg_textos_negrita(c("titulo", "leyenda", "eje_y", "valores", "barra_extra")),
 
       # --- Serie y leyenda -----------------------------------------------
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo",
@@ -956,6 +1017,10 @@
     descripcion   = "Barras de valores numéricos (medias, sumas, conteos). Útil para KPIs comparativos. Suele ir con orientación vertical y valor sobre cada barra.",
     icono_ui      = "BarChart",
     args = list(
+
+      # --- Negritas -------------------------------------------------------
+      .arg_textos_negrita(c("titulo", "leyenda", "valores")),
+
       list(name = "orientacion",          label = "Orientación",            tipo_input = "choice", grupo = "estilo",
            default = "vertical",
            choices = list(
@@ -1017,6 +1082,10 @@
     descripcion   = "Gráfico de torta con porcentajes. 'Donut' hereda su configuración por defecto — definilo acá y el donut lo respeta.",
     icono_ui      = "PieChart",
     args = list(
+
+      # --- Negritas -------------------------------------------------------
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "leyenda", "etiquetas")),
+
       list(name = "tipo_pie",             label = "Tipo",                   tipo_input = "choice", grupo = "estilo",
            default = "pie",
            choices = list(
@@ -1085,6 +1154,10 @@
     descripcion   = "Variante compacta del pie con hueco central. Por defecto hereda TODO del preset 'Pie'; los args acá solo lo sobrescriben.",
     icono_ui      = "CircleDot",
     args = list(
+
+      # --- Negritas -------------------------------------------------------
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "leyenda", "etiquetas")),
+
       list(name = "tipo_pie",             label = "Tipo",                   tipo_input = "choice", grupo = "estilo", default = "donut",
            choices = list(
              list(value = "pie",   label = "Pie"),
@@ -1146,8 +1219,7 @@
            descripcion = "Caracteres máximo antes de quebrar la etiqueta del eje."),
       list(name = "size_ejes",            label = "Tamaño texto de ejes",   tipo_input = "number", grupo = "estilo", default = 10),
       list(name = "size_linea",           label = "Grosor de línea del radar", tipo_input = "number", grupo = "estilo", default = 1.2),
-      list(name = "textos_negrita",       label = "Textos en negrita",     tipo_input = "codigos_list", grupo = "estilo",
-           descripcion = "Qué partes van en negrita. Valores: ejes, leyenda, titulo. Ej: ejes, leyenda"),
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "leyenda", "ejes", "niveles")),
 
       # --- Leyenda -------------------------------------------------------
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo", default = TRUE),
@@ -1220,6 +1292,9 @@
     icono_ui      = "BoxSelect",
     args = list(
 
+      # --- Negritas -------------------------------------------------------
+      .arg_textos_negrita(c("titulo", "subtitulo", "leyenda", "nota_pie")),
+
       # --- Elementos visibles --------------------------------------------
       list(name = "mostrar_outliers",     label = "Mostrar outliers",      tipo_input = "bool",   grupo = "estilo",
            descripcion = "Dibujar los puntos que caen fuera de los bigotes."),
@@ -1252,6 +1327,10 @@
     descripcion   = "Puntos con el promedio por grupo y opcionalmente barras de rango (min-max o IQR). Hereda de 'Box plot' y 'Base'.",
     icono_ui      = "Activity",
     args = list(
+
+      # --- Negritas -------------------------------------------------------
+      .arg_textos_negrita(c("titulo", "subtitulo", "leyenda", "nota_pie")),
+
       list(name = "decimales_promedio",   label = "Decimales del promedio", tipo_input = "number", grupo = "filtro"),
       list(name = "mostrar_rango",        label = "Mostrar rango",         tipo_input = "bool",   grupo = "estilo"),
       list(name = "tipo_rango",           label = "Tipo de rango",         tipo_input = "choice", grupo = "estilo",
@@ -1276,6 +1355,10 @@
     descripcion   = "Mapa de calor de dimensiones (filas) vs grupos del cruce (columnas). Requiere haber calculado dimensiones en Analítica.",
     icono_ui      = "LayoutGrid",
     args = list(
+
+      # --- Negritas -------------------------------------------------------
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "eje_x", "eje_y")),
+
       list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo", default = 0),
       list(name = "size_ejes",            label = "Tamaño ejes",           tipo_input = "number", grupo = "estilo", default = 10),
       list(name = "size_texto_celdas",    label = "Tamaño texto de celdas", tipo_input = "number", grupo = "estilo", default = 10),
@@ -1290,6 +1373,10 @@
     descripcion   = "Heatmap dimensional agrupado por criterios temáticos. Hereda de 'Heatmap dimensional' y 'Base'.",
     icono_ui      = "LayoutGrid",
     args = list(
+
+      # --- Negritas -------------------------------------------------------
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "eje_x", "eje_y")),
+
       list(name = "font_family",          label = "Fuente",                tipo_input = "string", grupo = "textos",
            descripcion = "Vacío = hereda de Base.")
     )
@@ -1303,6 +1390,10 @@
     descripcion   = "Radar (telaraña) comparando el puntaje de varias dimensiones o indicadores. Requiere dimensiones calculadas.",
     icono_ui      = "Radar",
     args = list(
+
+      # --- Negritas -------------------------------------------------------
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "leyenda", "ejes", "niveles")),
+
       list(name = "cortes_grilla",        label = "Cortes de la grilla",    tipo_input = "number", grupo = "estilo", default = 4),
       list(name = "wrap_ejes",            label = "Ancho etiquetas ejes",   tipo_input = "number", grupo = "estilo", default = 22),
       list(name = "eje_label_mult",       label = "Separación etiquetas",   tipo_input = "number", grupo = "estilo", default = 1.03),
@@ -1330,6 +1421,10 @@
     descripcion   = "Matriz 2×2 o dispersión estilo FODA sobre indicadores. Hereda de 'Base'.",
     icono_ui      = "Grid3X3",
     args = list(
+
+      # --- Negritas -------------------------------------------------------
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie")),
+
       list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas", default = 0),
       list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.09),
       list(name = "canvas_h_caption",     label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0.06)

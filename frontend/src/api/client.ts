@@ -1078,6 +1078,11 @@ export type ArgTipoInput =
   | "bool"
   | "choice"
   | "codigos_list"
+  // multiflag: multi-select de tokens con opciones cerradas.
+  // El valor es un array de strings (mismos value que en `opciones`).
+  // Ej. textos_negrita = c("titulo", "leyenda"). Se renderiza como
+  // chips toggleables — ni texto libre ni radio exclusivo.
+  | "multiflag"
   | "icono"
   | "overrides"
   | "filtros"
@@ -1110,6 +1115,10 @@ export type ArgMetadata = {
   grupo: ArgGrupo;
   descripcion?: string;
   choices?: ArgChoice[];
+  // Opciones para `multiflag` (multi-select cerrado). Cada entry define
+  // un token aceptable. Si el arg es `multiflag` y `opciones` no viene,
+  // el UI lo degrada a texto libre como fallback de compat.
+  opciones?: ArgChoice[];
   // Valor por defecto documentado en el registry. Puede ser string/number/
   // bool. Usado por el PresetsEditor como placeholder visual.
   default?: unknown;
