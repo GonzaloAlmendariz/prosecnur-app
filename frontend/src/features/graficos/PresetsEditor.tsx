@@ -5,7 +5,11 @@ import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
-import { AdvancedJsonEditor } from "./AdvancedJsonEditor";
+// AdvancedJsonEditor quedó desactivado: el catálogo .PRESETS_META ya
+// cubre todos los args que usamos en los QMDs de referencia, así que
+// escapar a JSON raw hoy es innecesario y abre la puerta a inconsistencias.
+// Lo dejamos importable desde otros componentes por si se reactiva en
+// un "modo power user" futuro.
 
 // Editor de presets globales tipo-de-graficador.
 //
@@ -220,8 +224,6 @@ function PresetBody({
   values: Record<string, unknown>;
 }) {
   const setPresetArg = usePlanStore((s) => s.setPresetArg);
-  const replacePreset = usePlanStore((s) => s.replacePreset);
-  const curatedArgNames = useMemo(() => meta.args.map((a) => a.name), [meta.args]);
 
   // Agrupar args por grupo semántico, manteniendo el orden de GRUPO_META.
   const gruposDeArgs = useMemo(() => {
@@ -265,13 +267,6 @@ function PresetBody({
         ))
       )}
 
-      <AdvancedJsonEditor
-        value={values}
-        onChange={(next) => replacePreset(meta.name, next)}
-        curatedArgNames={curatedArgNames}
-        label="Edición JSON avanzada"
-        hint="Todos los args del preset — incluidos los que no están en los grupos de arriba. Útil para args específicos del canvas (canvas_w_*, alto_por_categoria, etc.) que aún no están en el catálogo."
-      />
     </div>
   );
 }

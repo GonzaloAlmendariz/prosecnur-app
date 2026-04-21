@@ -127,13 +127,16 @@
   list(ok = length(errs) == 0, errors = errs, warnings = warns, n_slides = length(slides))
 }
 
-# Config por defecto del plan de gráficos. Mirror del DEFAULT_STATE del
-# store de Zustand en `frontend/src/features/graficos/store.ts`.
+# Config por defecto del plan de gráficos. Los `presets` vienen
+# pre-poblados con `.PRESETS_DEFAULT_PULSO` (estilo institucional
+# extraído de los QMDs de referencia) — así una sesión nueva ya
+# produce gráficos con aspecto profesional y el analista solo ajusta
+# lo que necesita cambiar, en vez de partir de un canvas vacío.
 .graficos_default_config <- function() {
   list(
     version = 2L,
     plan = list(slides = list()),
-    presets = list(),
+    presets = .PRESETS_DEFAULT_PULSO,
     w_presets = list(),
     selected_slide_id = NULL,
     paletas = list(),

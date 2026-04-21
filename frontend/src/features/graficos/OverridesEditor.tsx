@@ -5,7 +5,7 @@ import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore, OverrideReusable } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
-import { AdvancedJsonEditor } from "./AdvancedJsonEditor";
+// AdvancedJsonEditor deshabilitado — ver nota en PresetsEditor.
 
 // Overrides reutilizables = mini-presets nombrados (ej. "compacto", "grande")
 // que se aplican a slots específicos dentro de un slide.
@@ -387,13 +387,6 @@ function OverrideEditPanel({
           ))
         )}
 
-        <AdvancedJsonEditor
-          value={override.args}
-          onChange={(next) => onUpdate({ args: next })}
-          curatedArgNames={tipoMeta?.args.map((a) => a.name) ?? []}
-          label="Edición JSON avanzada"
-          hint="Args raw del override. Ideal para los args canvas/compactos de los QMDs (ej. canvas_w_etiquetas, alto_por_categoria) que aún no están en el catálogo."
-        />
       </div>
     </>
   );

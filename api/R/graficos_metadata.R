@@ -697,10 +697,6 @@
     descripcion   = "Estilo global de las barras apiladas horizontales (escalas Likert). Cada barra suma 100% y cada segmento es una categoría de respuesta. Hereda todo de 'Base'.",
     icono_ui      = "BarChartBig",
     args = list(
-      # --- Invariantes y textos ------------------------------------------
-      list(name = "usar_canvas",       label = "Usar canvas",            tipo_input = "bool",   grupo = "avanzado",
-           default = TRUE,
-           descripcion = "SIEMPRE activo en Pulso (lo fuerza el backend). No lo toques a menos que sepas exactamente qué estás haciendo."),
 
       # --- Barra extra (Top2Box / Bottom2Box / N) ------------------------
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo",
@@ -825,7 +821,6 @@
     descripcion   = "Varias barras apiladas en un solo gráfico (baterías de preguntas con misma escala). Hereda muchos args de 'Barras apiladas' por similitud visual.",
     icono_ui      = "Rows3",
     args = list(
-      list(name = "usar_canvas",          label = "Usar canvas",           tipo_input = "bool",   grupo = "avanzado", default = TRUE),
 
       # --- Textos / tamaños ---------------------------------------------
       list(name = "size_titulos_grupo",   label = "Tamaño títulos de bloque", tipo_input = "number", grupo = "estilo",
@@ -880,7 +875,6 @@
     descripcion   = "Barras lado a lado (una por categoría), útil para comparar entre grupos. Puede tener una o varias series.",
     icono_ui      = "BarChartHorizontal",
     args = list(
-      list(name = "usar_canvas",          label = "Usar canvas",            tipo_input = "bool",   grupo = "avanzado", default = TRUE),
 
       # --- Serie y leyenda -----------------------------------------------
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo",
@@ -938,7 +932,6 @@
     descripcion   = "Barras de valores numéricos (medias, sumas, conteos). Útil para KPIs comparativos. Suele ir con orientación vertical y valor sobre cada barra.",
     icono_ui      = "BarChart",
     args = list(
-      list(name = "usar_canvas",          label = "Usar canvas",            tipo_input = "bool",   grupo = "avanzado", default = TRUE),
       list(name = "orientacion",          label = "Orientación",            tipo_input = "choice", grupo = "estilo",
            default = "vertical",
            choices = list(
@@ -1000,7 +993,6 @@
     descripcion   = "Gráfico de torta con porcentajes. 'Donut' hereda su configuración por defecto — definilo acá y el donut lo respeta.",
     icono_ui      = "PieChart",
     args = list(
-      list(name = "usar_canvas",          label = "Usar canvas",            tipo_input = "bool",   grupo = "avanzado", default = TRUE),
       list(name = "tipo_pie",             label = "Tipo",                   tipo_input = "choice", grupo = "estilo",
            default = "pie",
            choices = list(
@@ -1103,7 +1095,6 @@
     descripcion   = "Gráfico radar (telaraña) acompañado de una tabla a la derecha (típicamente Top Two Box). Muy configurable para reportes formales.",
     icono_ui      = "Radar",
     args = list(
-      list(name = "usar_canvas",          label = "Usar canvas",            tipo_input = "bool",   grupo = "avanzado", default = TRUE),
 
       # --- Escala del radar ---------------------------------------------
       list(name = "escala_valor",         label = "Escala de valores",      tipo_input = "choice", grupo = "calculo",
@@ -1204,7 +1195,6 @@
     descripcion   = "Cajas con cuartiles y bigotes. Muestra la distribución de una variable numérica por grupos. 'Media y rango' hereda muchos args de aquí.",
     icono_ui      = "BoxSelect",
     args = list(
-      list(name = "usar_canvas",          label = "Usar canvas",           tipo_input = "bool",   grupo = "avanzado", default = TRUE),
 
       # --- Elementos visibles --------------------------------------------
       list(name = "mostrar_outliers",     label = "Mostrar outliers",      tipo_input = "bool",   grupo = "estilo",
@@ -1320,6 +1310,253 @@
       list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.09),
       list(name = "canvas_h_caption",     label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0.06)
     )
+  )
+)
+
+# ===========================================================================
+# DEFAULTS PULSO — los valores iniciales de cada preset en una sesión nueva
+# ===========================================================================
+#
+# Cuando el analista entra por primera vez a Gráficos (sin config persistida),
+# el store se hidrata con estos presets. Vienen extraídos del QMD de
+# referencia (prueba_plan_ppt.qmd) y reflejan el estilo institucional Pulso:
+# azul #39588B, fuente Arial, base 'Base: %s', Likert con mostrar_valores,
+# barras_apiladas con barra_extra, radar_tabla con Top Two Box.
+#
+# Así el analista NO arranca con un canvas vacío — los gráficos ya se ven
+# bien desde el primer export, y él solo ajusta lo que necesite cambiar.
+
+.PRESETS_DEFAULT_PULSO <- list(
+
+  base = list(
+    formato           = "Base: %s",
+    sufijo_auto       = "respuestas",
+
+    size_titulo       = 12,
+    size_subtitulo    = 9,
+    size_leyenda      = 10,
+    size_ejes         = 10,
+    size_nota_pie     = 8,
+    size_texto_barras = 4,
+
+    color_titulo      = "#39588B",
+    color_subtitulo   = "#39588B",
+    color_leyenda     = "#39588B",
+    color_ejes        = "#39588B",
+    color_nota_pie    = "#39588B",
+
+    textos_negrita    = c("titulo", "leyenda", "barra_extra", "eje_y", "valores"),
+
+    font_family       = "Arial"
+  ),
+
+  barras_apiladas = list(
+    color_barra_extra        = "#39588B",
+
+    canvas_w_etiquetas       = 0.12,
+    canvas_w_buf_etq_bars    = 0.02,
+    canvas_w_bars            = 0.60,
+    canvas_w_buf_bars_extra  = 0.02,
+    canvas_w_extra           = 0.12,
+
+    canvas_h_toprow_in       = 0.10,
+    canvas_h_header_in       = 0.15,
+    canvas_h_legend_in       = 0.15,
+    canvas_h_caption_in      = 0.20,
+
+    alto_por_categoria       = 0.46,
+
+    grosor_modo              = "auto",
+    grosor_barras            = 0.6,
+    grosor_barras_mult       = 0.9,
+
+    mostrar_valores          = TRUE,
+    umbral_etiqueta          = 0.01,
+    decimales                = 0,
+
+    mostrar_barra_extra      = TRUE,
+
+    legend_key_cm            = 0.40,
+    legend_espaciado         = 15,
+    legend_n_por_fila        = 6,
+
+    size_barra_extra         = 10,
+    size_titulo_extra        = 10,
+    ancho_max_eje_y          = 15,
+    prefijo_barra_extra      = "N = ",
+
+    color_texto_barras       = "white",
+    size_titulos_grupo       = 10,
+    repeler_etiquetas_peq    = TRUE
+  ),
+
+  multi_apiladas = list(
+    canvas_w_etiquetas       = 0.15,
+    canvas_w_bars            = 0.60,
+    canvas_w_extra           = 0.10,
+
+    canvas_h_toprow_in       = 0.10,
+    canvas_h_header_in       = 0.15,
+    canvas_h_legend_in       = 0.15,
+    canvas_h_caption_in      = 0.15,
+
+    alto_por_categoria       = 0.42,
+    ancho_max_eje_y          = 30,
+
+    mostrar_valores          = TRUE,
+    decimales                = 0,
+
+    legend_key_cm            = 0.35,
+    legend_espaciado         = 10,
+    legend_n_por_fila        = 6,
+
+    color_texto_barras       = "white",
+    size_titulos_grupo       = 10
+  ),
+
+  barras_agrupadas = list(
+    canvas_w_etiquetas       = 0.15,
+    canvas_w_buf_etq_bars    = 0.02,
+    canvas_w_bars            = 0.58,
+    canvas_w_buf_bars_extra  = 0.02,
+    canvas_w_extra           = 0.15,
+
+    canvas_h_toprow_in       = 0.10,
+    canvas_h_header_in       = 0.70,
+    canvas_h_legend_in       = 0.00,
+    canvas_h_caption_in      = 0.00,
+
+    alto_por_categoria       = 0.48,
+    ancho_max_eje_y          = 30,
+
+    mostrar_valores          = TRUE,
+    decimales                = 0,
+    umbral_etiqueta          = 0.001,
+    umbral_posicion          = 0.07,
+
+    mostrar_barra_extra      = FALSE,
+    prefijo_barra_extra      = "N = ",
+
+    mostrar_leyenda          = FALSE,
+    invertir_barras          = TRUE,
+
+    size_barra_extra         = 9,
+    colores_series           = list(Porcentaje = "#39588B")
+  ),
+
+  barras_numericas = list(
+    orientacion              = "vertical",
+
+    canvas_h_title           = 0.12,
+    canvas_h_legend          = 0.10,
+    canvas_h_caption         = 0.00,
+    canvas_pad_top           = 0.01,
+
+    mostrar_valores          = TRUE,
+    color_texto_barras       = "white",
+    size_texto_barras        = 4.4,
+    mostrar_eje_y            = FALSE,
+
+    mostrar_n_sobre_barras   = TRUE,
+    prefijo_n_sobre_barras   = "N = ",
+    size_n_sobre_barras      = 3.6,
+    color_n_sobre_barras     = "#0B3A67",
+    colores_series           = list(Media = "#0B3A67")
+  ),
+
+  pie = list(
+    tipo_pie                 = "pie",
+
+    mostrar_etiquetas_pct    = TRUE,
+    size_etiquetas_pct       = 5,
+    color_etiquetas_pct      = "white",
+    etiquetas_negrita        = TRUE,
+
+    leyenda_posicion         = "abajo",
+    size_leyenda             = 11,
+    tamano_key_cm            = 0.45,
+    espaciado_vertical_cm    = 0.30,
+    ncol_leyenda_bajo        = 2,
+    invertir_leyenda         = TRUE,
+
+    canvas_h_title           = 0.08,
+    canvas_h_caption         = 0.00,
+    canvas_h_legend_bottom   = 0.08,
+    canvas_pad_top           = 0.00,
+
+    pos_titulo               = "centro",
+    size_titulo              = 13,
+
+    ordenar_categorias       = "asc"
+  ),
+
+  donut = list(
+    tipo_pie                 = "donut",
+    donut_hole               = 0.60,
+
+    leyenda_posicion         = "derecha",
+    size_leyenda             = 11.5,
+    tamano_key_cm            = 0.48,
+    espaciado_vertical_cm    = 0.50,
+
+    mostrar_etiquetas_pct    = TRUE,
+    size_etiquetas_pct       = 5.2,
+    color_etiquetas_pct      = "white",
+    etiquetas_negrita        = TRUE,
+
+    canvas_h_title           = 0.10,
+    canvas_h_caption         = 0.00,
+    canvas_pad_top           = 0.00,
+    canvas_w_legend_right    = 0.30,
+
+    pos_titulo               = "centro",
+    size_titulo              = 13
+  ),
+
+  radar_tabla = list(
+    escala_valor             = "proporcion_1",
+    cortes_grilla            = 6,
+    limites                  = c(0, 1),
+    rellenar_poligono        = FALSE,
+    mostrar_radios           = FALSE,
+    mostrar_niveles          = FALSE,
+    eje_label_mult           = 1.2,
+    radar_scale              = 0.85,
+    wrap_ejes                = 20,
+
+    mostrar_leyenda          = TRUE,
+    leyenda_posicion         = "abajo",
+    legend_n_por_fila        = 3,
+    legend_key_cm            = 0.60,
+    legend_espaciado         = 20,
+    size_leyenda             = 12,
+    size_ejes                = 10,
+    size_linea               = 1.2,
+    textos_negrita           = c("ejes", "leyenda"),
+
+    mostrar_tabla_derecha    = TRUE,
+    titulo_tabla             = "TOP TWO BOX",
+    umbral_rojo_pct          = 60,
+    tabla_digits             = 0,
+    tabla_padding_mm         = 10,
+
+    tabla_header_fill        = "#062A63",
+    tabla_body_fill          = "#F2F2F2",
+    tabla_grid_col           = "white",
+    tabla_text_blue          = "#062A63",
+
+    tabla_ph_ancho           = 0.46,
+    tabla_ph_gap             = 0.01,
+    tabla_ph_margin_top      = 0.001,
+    tabla_ph_margin_bot      = 0.001,
+
+    tabla_header_size        = 8,
+    tabla_body_size          = 7,
+    tabla_firstcol_bold      = TRUE,
+    tabla_auto_fit           = FALSE,
+
+    canvas_h_header_in       = 0.45,
+    canvas_h_legend_in       = 0.22
   )
 )
 
