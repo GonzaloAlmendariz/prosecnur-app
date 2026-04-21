@@ -188,6 +188,54 @@ mount_sistema <- function(pr) {
       .shutdown_flag$value <- TRUE
       list(ok = TRUE, message = "Shutdown requested")
     })) |>
+    plumber::pr_post("/api/system/reload-engine", wrap_endpoint(function(req, res) {
+      # Hot reload de los .R del paquete sin reiniciar el proceso.
+      # Útil cuando se editan archivos como graficos_metadata.R o los
+      # graficadores, que quedan cacheados en el namespace al arranque
+      # (`.PRESETS_META`, `.SLIDES_META`, `.DEMOS_META`, etc.).
+      #
+      # Usa pkgload::load_all() que re-evalúa los .R dentro del namespace
+      # existente sin destruir la sesión (config de estudio, data cargada,
+      # workers). Toma ~2-3s típicamente.
+      #
+      # Solo debería exponerse en dev. En producción quedaría detrás de
+      # un flag; por ahora lo dejamos siempre ON porque la app es local
+      # y de un solo usuario.
+      api_dir <- Sys.getenv("PULSO_REPO_ROOT", "")
+      if (!nzchar(api_dir)) {
+        api_dir <- normalizePath(file.path(dirname(getwd()), "api"), mustWork = FALSE)
+      } else {
+        api_dir <- file.path(api_dir, "api")
+      }
+      if (!dir.exists(api_dir)) {
+        stop_api(500, "E_RELOAD_NO_DIR",
+                 sprintf("No encontré el directorio del paquete: %s", api_dir))
+      }
+      t0 <- Sys.time()
+      ok <- tryCatch({
+        if (requireNamespace("pkgload", quietly = TRUE)) {
+          pkgload::load_all(api_dir, quiet = TRUE)
+          TRUE
+        } else if (requireNamespace("devtools", quietly = TRUE)) {
+          devtools::load_all(api_dir, quiet = TRUE)
+          TRUE
+        } else FALSE
+      }, error = function(e) {
+        stop_api(500, "E_RELOAD_FAILED",
+                 sprintf("load_all falló: %s", conditionMessage(e)))
+      })
+      if (!isTRUE(ok)) {
+        stop_api(500, "E_RELOAD_NO_TOOL",
+                 "Falta pkgload o devtools para hacer hot reload.")
+      }
+      dt <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
+      list(
+        ok = TRUE,
+        message = "Engine recargado. Recarga la pestaña del frontend para invalidar caches.",
+        elapsed_sec = round(dt, 2),
+        api_dir = api_dir
+      )
+    })) |>
     plumber::pr_get("/api/system/demos", wrap_endpoint(function(req, res) {
       # Catálogo de demos disponibles. Filtrados por existencia en disco —
       # si faltan archivos, el demo no se ofrece. El frontend pide esto
