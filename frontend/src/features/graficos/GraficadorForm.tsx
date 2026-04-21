@@ -28,7 +28,7 @@ export default function GraficadorForm({ graf, onArgs }: Props) {
   const grupos = useMemo(() => {
     if (!meta) return [];
     const byGrupo: Record<ArgGrupo, typeof meta.args> = {
-      datos: [], textos: [], estilo: [], calculo: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
+      datos: [], textos: [], estilo: [], filtro: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
     };
     for (const a of meta.args) {
       const g: ArgGrupo = (a.grupo as ArgGrupo) ?? "avanzado";

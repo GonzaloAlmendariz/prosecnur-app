@@ -1088,7 +1088,7 @@ export type ArgGrupo =
   | "datos"
   | "textos"
   | "estilo"
-  | "calculo"
+  | "filtro"
   | "semaforo"
   | "canvas"   // dimensiones del canvas interno (canvas_w_*, canvas_h_*,
                // alto_por_categoria…) — concentra ~10 args por preset que
@@ -1174,6 +1174,38 @@ export type PresetsRegistry = {
 export async function apiGraficosPresetsMetadata() {
   return handle<PresetsRegistry>(
     await fetch("/api/graficos/presets-metadata", { headers: headers() })
+  );
+}
+
+// "Guardar como default" / "Restaurar fábrica" para los presets.
+//
+// El backend mantiene dos niveles de default:
+//   1. factory: `.PRESETS_DEFAULT_PULSO` (hardcoded, del QMD).
+//   2. user: lo que el analista guardó con POST /presets-defaults.
+// El `apiGraficosConfigGet` inicial usa (2) si existe, sino (1).
+
+export async function apiGraficosPresetsDefaultsGet() {
+  return handle<{ ok: true; presets: Record<string, Record<string, unknown>>; es_custom: boolean }>(
+    await fetch("/api/graficos/presets-defaults", { headers: headers() })
+  );
+}
+
+export async function apiGraficosPresetsDefaultsSave(presets?: Record<string, Record<string, unknown>>) {
+  return handle<{ ok: true; saved_at: string }>(
+    await fetch("/api/graficos/presets-defaults", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(presets ? { presets } : {}),
+    })
+  );
+}
+
+export async function apiGraficosPresetsDefaultsReset() {
+  return handle<{ ok: true }>(
+    await fetch("/api/graficos/presets-defaults", {
+      method: "DELETE",
+      headers: headers(),
+    })
   );
 }
 

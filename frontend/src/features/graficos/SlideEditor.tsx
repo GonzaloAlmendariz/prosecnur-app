@@ -46,7 +46,7 @@ export default function SlideEditor() {
     // Excluir args que son slots de graficador (ya los maneja GraficadorSlot).
     const nonSlotArgs = slideMeta.args.filter((a) => !grafSlotSet.has(a.name));
     const byGrupo: Record<ArgGrupo, typeof nonSlotArgs> = {
-      datos: [], textos: [], estilo: [], calculo: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
+      datos: [], textos: [], estilo: [], filtro: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
     };
     for (const a of nonSlotArgs) {
       const g: ArgGrupo = (a.grupo as ArgGrupo) ?? "avanzado";

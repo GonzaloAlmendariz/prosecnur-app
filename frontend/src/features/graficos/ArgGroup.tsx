@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Database, Type, Palette, Calculator, Gauge, Sparkles, LayoutPanelTop, Table2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Database, Type, Palette, Filter, Gauge, Sparkles, LayoutPanelTop, Table2 } from "lucide-react";
 import { ArgGrupo, ArgMetadata, VarInfo } from "../../api/client";
 import { ArgField } from "./ArgField";
 
@@ -9,7 +9,7 @@ import { ArgField } from "./ArgField";
 // abren on-demand.
 //
 // Los grupos coinciden con lo declarado en graficos_metadata.R:
-//   datos / textos / estilo / calculo / semaforo / canvas / tabla / avanzado
+//   datos / textos / estilo / filtro / semaforo / canvas / tabla / avanzado
 
 export const GRUPO_META: Record<
   ArgGrupo,
@@ -17,7 +17,7 @@ export const GRUPO_META: Record<
 > = {
   datos:    { label: "Datos",    icon: Database,        descripcion: "Qué variable se muestra y cómo se segmenta.",                  defaultOpen: true,  order: 0 },
   textos:   { label: "Textos",   icon: Type,            descripcion: "Títulos, subtítulos, pie, etiquetas, formato de la base.",    defaultOpen: true,  order: 1 },
-  calculo:  { label: "Cálculo",  icon: Calculator,      descripcion: "Umbrales, decimales, top2box, filtros numéricos.",            defaultOpen: false, order: 2 },
+  filtro:   { label: "Filtro",   icon: Filter,          descripcion: "Umbrales, decimales, top2box, filtros numéricos.",            defaultOpen: false, order: 2 },
   semaforo: { label: "Semáforo", icon: Gauge,           descripcion: "Colores por rangos de valores.",                              defaultOpen: false, order: 3 },
   estilo:   { label: "Estilo",   icon: Palette,         descripcion: "Tipografía, tamaños, colores, leyenda, negritas.",            defaultOpen: false, order: 4 },
   canvas:   { label: "Canvas",   icon: LayoutPanelTop,  descripcion: "Dimensiones del canvas interno (anchos, altos, márgenes).",   defaultOpen: false, order: 5 },

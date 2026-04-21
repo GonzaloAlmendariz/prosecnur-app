@@ -17,7 +17,11 @@ const MAP: Record<string, string | null> = {
   p_numerico:                   "barras_numericas",
   p_boxplot:                    "boxplot",
   p_media_rango:                "media_rango",
-  p_radar_tabla:                "radar_tabla",
+  // p_radar y p_tabla son wrappers de p_radar_tabla; comparten el mismo
+  // preset tipo porque todos los args de estilo viven en el mismo lugar.
+  p_radar:                      "radar_tabla",
+  p_tabla:                      "radar_tabla",
+  p_radar_tabla:                "radar_tabla",  // por compat con planes viejos
   p_dim_radar:                  "dim_radar",
   p_dim_radar_tabla:            "dim_radar",
   p_dim_heatmap:                "dim_heatmap",

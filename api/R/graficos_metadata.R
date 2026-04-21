@@ -37,7 +37,7 @@
 # "datos"      → qué variable, qué cruce, qué modo
 # "textos"     → titulo, subtitulo, texto, pie, etiqueta, base
 # "estilo"     → overrides del preset tipo (colores, tamaños, canvas)
-# "calculo"    → filtros, top2box, decimales, métrica
+# "filtro"     → filtros, top2box, decimales, métrica, umbrales
 # "semaforo"   → cortes_chip, modo_semaforo, chip_colores
 # "avanzado"   → todo lo demás
 
@@ -73,7 +73,7 @@
        descripcion = "Título que aparece sobre el gráfico. Si lo dejas vacío, se usa la etiqueta de la variable."),
   list(name = "overrides",  label = "Overrides de estilo",tipo_input = "overrides",   grupo = "estilo",
        descripcion = "Ajustes visuales específicos a este gráfico (tamaños, colores, canvas) que pisan el preset global."),
-  list(name = "filtros",    label = "Filtros",            tipo_input = "filtros",     grupo = "calculo",
+  list(name = "filtros",    label = "Filtros",            tipo_input = "filtros",     grupo = "filtro",
        descripcion = "Restringe los datos que entran al gráfico (ej. solo mujeres, solo Lima)."),
   list(name = "base",       label = "Base del gráfico",   tipo_input = "base_config", grupo = "textos",
        descripcion = "Texto al pie del gráfico. Puede ser automático (cuenta los casos) o manual.")
@@ -368,9 +368,9 @@
       list(name = "cruces",        label = "Variable de cruce", tipo_input = "variable_opt", grupo = "datos"),
       list(name = "titulos_grupo", label = "Títulos por bloque", tipo_input = "textarea",  grupo = "textos",
            descripcion = "Solo en modo 'Variables × cruce'. Formato: 'clave=Título'. Una línea por bloque."),
-      list(name = "top2box",       label = "Mostrar Top 2",  tipo_input = "bool",          grupo = "calculo",
+      list(name = "top2box",       label = "Mostrar Top 2",  tipo_input = "bool",          grupo = "filtro",
            descripcion = "Combina las dos mejores categorías (ej. 'Muy de acuerdo' + 'De acuerdo') en una barra extra."),
-      list(name = "top2box_labels",label = "Etiquetas Top 2",tipo_input = "codigos_list",  grupo = "calculo",
+      list(name = "top2box_labels",label = "Etiquetas Top 2",tipo_input = "codigos_list",  grupo = "filtro",
            descripcion = "Qué etiquetas cuentan como Top 2. Si está vacío, se toman las dos últimas de la escala."),
       list(name = "wrap_y",        label = "Ancho etiquetas Y", tipo_input = "number",    grupo = "avanzado",
            descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y. Recomendado: 30-80.")
@@ -401,7 +401,7 @@
     icono_ui      = "Hash",
     args = c(list(
       list(name = "var",     label = "Variable",    tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "metrica", label = "Métrica",     tipo_input = "choice",       grupo = "calculo",
+      list(name = "metrica", label = "Métrica",     tipo_input = "choice",       grupo = "filtro",
            descripcion = "Qué estadístico mostrar.",
            choices = list(
              list(value = "mean",   label = "Media",      hint = "Promedio aritmético."),
@@ -422,7 +422,7 @@
     args = c(list(
       list(name = "var",                label = "Variable numérica", tipo_input = "variable",     grupo = "datos"),
       list(name = "cruce",              label = "Dividir por",       tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "decimales_promedio", label = "Decimales del promedio", tipo_input = "number",   grupo = "calculo"),
+      list(name = "decimales_promedio", label = "Decimales del promedio", tipo_input = "number",   grupo = "filtro"),
       list(name = "cortes_chip",        label = "Cortes del semáforo",    tipo_input = "codigos_list", grupo = "semaforo",
            descripcion = "Valores numéricos que separan los colores (ej. [3, 4] → rojo <3, amarillo 3-4, verde >4)."),
       list(name = "modo_semaforo",      label = "Tipo de semáforo",  tipo_input = "choice",       grupo = "semaforo",
@@ -442,8 +442,8 @@
     args = c(list(
       list(name = "var",                label = "Variable numérica", tipo_input = "variable",     grupo = "datos"),
       list(name = "cruce",              label = "Dividir por",       tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "decimales_promedio", label = "Decimales",         tipo_input = "number",       grupo = "calculo"),
-      list(name = "mostrar_ref_label",  label = "Mostrar referencia",tipo_input = "bool",         grupo = "calculo",
+      list(name = "decimales_promedio", label = "Decimales",         tipo_input = "number",       grupo = "filtro"),
+      list(name = "mostrar_ref_label",  label = "Mostrar referencia",tipo_input = "bool",         grupo = "filtro",
            descripcion = "Muestra una línea o etiqueta con el promedio global como referencia."),
       list(name = "cortes_chip",        label = "Cortes del semáforo", tipo_input = "codigos_list", grupo = "semaforo"),
       list(name = "modo_semaforo",      label = "Tipo de semáforo",  tipo_input = "choice",       grupo = "semaforo",
@@ -456,9 +456,14 @@
     ), .args_graf_comunes())
   ),
 
-  p_radar_tabla = list(
-    titulo_humano = "Radar + tabla",
-    descripcion   = "Gráfico radar (telaraña) con una tabla al costado. Común para Top-Two-Box de múltiples indicadores.",
+  # p_radar y p_tabla son wrappers de `p_radar_tabla` (ver api/R/p_radar_split.R).
+  # Ofrecen el radar y la tabla por SEPARADO, cada uno ocupando su propio
+  # placeholder. El combinado `p_radar_tabla` ya no se expone en el
+  # registry — sigue vivo en el motor por compat de planes viejos.
+
+  p_radar = list(
+    titulo_humano = "Radar",
+    descripcion   = "Gráfico radar (telaraña) sin tabla al costado. Ocupa todo el placeholder. Ideal cuando querés la tabla en otro slot o no la necesitás.",
     icono_ui      = "Radar",
     args = c(list(
       list(name = "modo",         label = "Modo",                 tipo_input = "choice",         grupo = "datos",
@@ -469,13 +474,32 @@
       list(name = "var",          label = "Variable (modo box)",  tipo_input = "variable_opt",   grupo = "datos"),
       list(name = "vars",         label = "Variables (modo sm)",  tipo_input = "variables_list", grupo = "datos"),
       list(name = "cruce",        label = "Dividir por",          tipo_input = "variable_opt",   grupo = "datos"),
-      list(name = "titulo_tabla", label = "Título de la tabla",   tipo_input = "string",         grupo = "textos"),
-      list(name = "top_n",        label = "Top N",                tipo_input = "number",         grupo = "calculo",
+      list(name = "top_n",        label = "Top N",                tipo_input = "number",         grupo = "filtro",
            descripcion = "Cantidad máxima de categorías a mostrar. Si vacío, se muestran todas."),
-      list(name = "sm_omit_codes",label = "Códigos a omitir",     tipo_input = "codigos_list",   grupo = "calculo",
+      list(name = "sm_omit_codes",label = "Códigos a omitir",     tipo_input = "codigos_list",   grupo = "filtro",
            descripcion = "Códigos de respuesta que no queremos en el radar (ej. 88=No sabe, 90=No aplica)."),
-      list(name = "sm_omit_na",   label = "Omitir NA",            tipo_input = "bool",           grupo = "calculo",
+      list(name = "sm_omit_na",   label = "Omitir NA",            tipo_input = "bool",           grupo = "filtro",
            descripcion = "Excluir casos con respuesta vacía.")
+    ), .args_graf_comunes())
+  ),
+
+  p_tabla = list(
+    titulo_humano = "Tabla",
+    descripcion   = "Tabla de Top-Two-Box (o indicadores agregados) sin el radar al costado. Útil para acompañar un radar colocado en otro slot, o como resumen ejecutivo suelto.",
+    icono_ui      = "Table",
+    args = c(list(
+      list(name = "modo",         label = "Modo",                 tipo_input = "choice",         grupo = "datos",
+           choices = list(
+             list(value = "sm",  label = "Select múltiple"),
+             list(value = "box", label = "Cajas/cortes")
+           )),
+      list(name = "var",          label = "Variable (modo box)",  tipo_input = "variable_opt",   grupo = "datos"),
+      list(name = "vars",         label = "Variables (modo sm)",  tipo_input = "variables_list", grupo = "datos"),
+      list(name = "cruce",        label = "Dividir por",          tipo_input = "variable_opt",   grupo = "datos"),
+      list(name = "titulo_tabla", label = "Título de la tabla",   tipo_input = "string",         grupo = "textos"),
+      list(name = "top_n",        label = "Top N",                tipo_input = "number",         grupo = "filtro"),
+      list(name = "sm_omit_codes",label = "Códigos a omitir",     tipo_input = "codigos_list",   grupo = "filtro"),
+      list(name = "sm_omit_na",   label = "Omitir NA",            tipo_input = "bool",           grupo = "filtro")
     ), .args_graf_comunes())
   ),
 
@@ -495,7 +519,7 @@
       list(name = "objetivo",  label = "Objetivo",    tipo_input = "string",       grupo = "datos",
            descripcion = "Qué se está midiendo (ej. 'Satisfacción', 'Calidad de atención')."),
       list(name = "cruce",     label = "Dividir por", tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "incluir_total", label = "Incluir serie total", tipo_input = "bool", grupo = "calculo",
+      list(name = "incluir_total", label = "Incluir serie total", tipo_input = "bool", grupo = "filtro",
            descripcion = "Añade una serie con el total de la muestra como referencia.")
     ), .args_graf_comunes())
   ),
@@ -514,7 +538,7 @@
       list(name = "objetivo",      label = "Objetivo",     tipo_input = "string",       grupo = "datos"),
       list(name = "cruce",         label = "Dividir por",  tipo_input = "variable_opt", grupo = "datos"),
       list(name = "titulo_tabla",  label = "Título tabla", tipo_input = "string",       grupo = "textos"),
-      list(name = "incluir_total", label = "Incluir total",tipo_input = "bool",         grupo = "calculo")
+      list(name = "incluir_total", label = "Incluir total",tipo_input = "bool",         grupo = "filtro")
     ), .args_graf_comunes())
   ),
 
@@ -531,10 +555,10 @@
            )),
       list(name = "objetivo",  label = "Objetivo",   tipo_input = "string",       grupo = "datos"),
       list(name = "cruce",     label = "Cruce",      tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "incluir_total", label = "Incluir totales", tipo_input = "bool", grupo = "calculo"),
-      list(name = "brecha_filas",   label = "Brecha por filas",   tipo_input = "bool", grupo = "calculo",
+      list(name = "incluir_total", label = "Incluir totales", tipo_input = "bool", grupo = "filtro"),
+      list(name = "brecha_filas",   label = "Brecha por filas",   tipo_input = "bool", grupo = "filtro",
            descripcion = "Añade columna 'Brecha' con max-min por fila."),
-      list(name = "brecha_cols",    label = "Brecha por columnas",tipo_input = "bool", grupo = "calculo"),
+      list(name = "brecha_cols",    label = "Brecha por columnas",tipo_input = "bool", grupo = "filtro"),
       list(name = "modo_semaforo",  label = "Tipo de semáforo",   tipo_input = "choice", grupo = "semaforo",
            choices = list(
              list(value = "grupos",               label = "Por grupos"),
@@ -558,7 +582,7 @@
            )),
       list(name = "objetivo",       label = "Objetivo",        tipo_input = "string",       grupo = "datos"),
       list(name = "cruce",          label = "Dividir por",     tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "incluir_total",  label = "Incluir total",   tipo_input = "bool",         grupo = "calculo"),
+      list(name = "incluir_total",  label = "Incluir total",   tipo_input = "bool",         grupo = "filtro"),
       list(name = "radar_min_ejes", label = "Mínimo de ejes en radar", tipo_input = "number", grupo = "avanzado",
            descripcion = "Si hay menos dimensiones que este número, el radar se reemplaza por barras.")
     ), .args_graf_comunes())
@@ -582,8 +606,8 @@
              list(value = "dispersion",  label = "Dispersión")
            )),
       list(name = "cruce",         label = "Cruce",           tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "incluir_total", label = "Incluir total",   tipo_input = "bool",         grupo = "calculo"),
-      list(name = "usar_pesos",    label = "Aplicar pesos",   tipo_input = "bool",         grupo = "calculo",
+      list(name = "incluir_total", label = "Incluir total",   tipo_input = "bool",         grupo = "filtro"),
+      list(name = "usar_pesos",    label = "Aplicar pesos",   tipo_input = "bool",         grupo = "filtro",
            descripcion = "Si los subíndices tienen pesos declarados, los aplica al ranking FODA.")
     ), .args_graf_comunes())
   ),
@@ -717,26 +741,26 @@
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "string", grupo = "estilo",
            default = "white",
            descripcion = "Color del texto del porcentaje dentro de cada segmento. 'white' o un hex."),
-      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "calculo",
+      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro",
            default = 0,
            descripcion = "Cuántos decimales mostrar en los porcentajes (0 = enteros)."),
-      list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "calculo",
+      list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro",
            default = 0.01,
            descripcion = "Fracción mínima de la barra para que se escriba el valor. Segmentos por debajo quedan sin etiqueta. 0.01 = 1%."),
-      list(name = "umbral_mostrar_etiqueta", label = "Umbral para mostrar etiqueta", tipo_input = "number", grupo = "calculo",
+      list(name = "umbral_mostrar_etiqueta", label = "Umbral para mostrar etiqueta", tipo_input = "number", grupo = "filtro",
            descripcion = "Variante: segmentos muy pequeños pueden tener la etiqueta afuera/desplazada. Este es el corte a partir del cual aparece."),
-      list(name = "umbral_etiqueta_normal", label = "Umbral etiqueta normal", tipo_input = "number", grupo = "calculo",
+      list(name = "umbral_etiqueta_normal", label = "Umbral etiqueta normal", tipo_input = "number", grupo = "filtro",
            descripcion = "A partir de este umbral, la etiqueta va dentro del segmento sin desplazar."),
-      list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool",   grupo = "calculo",
+      list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool",   grupo = "filtro",
            descripcion = "Si está activo, las etiquetas de segmentos muy chicos se desplazan verticalmente para no superponerse."),
-      list(name = "desplazamiento_max_etiquetas_peq", label = "Desplazamiento máximo etiquetas pequeñas", tipo_input = "number", grupo = "calculo",
+      list(name = "desplazamiento_max_etiquetas_peq", label = "Desplazamiento máximo etiquetas pequeñas", tipo_input = "number", grupo = "filtro",
            descripcion = "Cuánto puede moverse (fracción) una etiqueta chica al repelerla. 0.06 es típico."),
 
       # --- Eje Y ----------------------------------------------------------
-      list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "calculo",
+      list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "filtro",
            default = 15,
            descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y antes de romper. Valores 10-80 según cuánto espacio tengas."),
-      list(name = "wrap_y",               label = "Wrap eje Y (alternativo)", tipo_input = "number", grupo = "calculo",
+      list(name = "wrap_y",               label = "Wrap eje Y (alternativo)", tipo_input = "number", grupo = "filtro",
            descripcion = "Alias alternativo para ancho_max_eje_y, por compatibilidad."),
       list(name = "invertir_barras",      label = "Invertir orden de las barras", tipo_input = "bool",   grupo = "estilo",
            descripcion = "Si es TRUE, las barras se muestran en orden inverso (la primera abajo, la última arriba)."),
@@ -827,9 +851,9 @@
            descripcion = "Cuando hay varios bloques temáticos, es el tamaño del título de cada bloque."),
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "string", grupo = "estilo"),
       list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo"),
-      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "calculo"),
-      list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "calculo"),
-      list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool", grupo = "calculo"),
+      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro"),
+      list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro"),
+      list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool", grupo = "filtro"),
 
       # --- Barra extra ---------------------------------------------------
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo"),
@@ -839,7 +863,7 @@
       # --- Eje Y + separación --------------------------------------------
       list(name = "espacio_entre_barras", label = "Separación entre barras", tipo_input = "number", grupo = "estilo",
            descripcion = "Fracción del ancho entre barras (0 = pegadas, 0.3 = separación generosa)."),
-      list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "calculo"),
+      list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "filtro"),
       list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo"),
       list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo"),
       list(name = "alto_por_categoria",   label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas"),
@@ -893,10 +917,10 @@
 
       # --- Valores y cálculo ---------------------------------------------
       list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo"),
-      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "calculo"),
-      list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "calculo",
+      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro"),
+      list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro",
            default = 0.001),
-      list(name = "umbral_posicion",      label = "Umbral de posición de la etiqueta", tipo_input = "number", grupo = "calculo",
+      list(name = "umbral_posicion",      label = "Umbral de posición de la etiqueta", tipo_input = "number", grupo = "filtro",
            default = 0.07,
            descripcion = "A partir de qué fracción la etiqueta va dentro vs fuera de la barra."),
 
@@ -907,8 +931,8 @@
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "string", grupo = "estilo"),
 
       # --- Eje Y / labels -------------------------------------------------
-      list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "calculo", default = 30),
-      list(name = "wrap_y",               label = "Wrap eje Y",            tipo_input = "number", grupo = "calculo"),
+      list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "filtro", default = 30),
+      list(name = "wrap_y",               label = "Wrap eje Y",            tipo_input = "number", grupo = "filtro"),
 
       # --- Canvas ---------------------------------------------------------
       list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas", default = 0.15),
@@ -946,7 +970,7 @@
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "string", grupo = "estilo",
            default = "white"),
       list(name = "size_texto_barras",    label = "Tamaño texto en barras", tipo_input = "number", grupo = "estilo", default = 4.4),
-      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "calculo",
+      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro",
            descripcion = "Decimales del valor. Ej. 1 → '4.3', 0 → '4'."),
 
       # --- N sobre barras ------------------------------------------------
@@ -1032,7 +1056,7 @@
       list(name = "size_titulo",          label = "Tamaño título",         tipo_input = "number", grupo = "estilo", default = 13),
       list(name = "subtitulo",            label = "Subtítulo (fijo)",      tipo_input = "string", grupo = "textos"),
       list(name = "nota_pie",             label = "Nota al pie (fija)",    tipo_input = "string", grupo = "textos"),
-      list(name = "ordenar_categorias",   label = "Orden de las categorías", tipo_input = "choice", grupo = "calculo",
+      list(name = "ordenar_categorias",   label = "Orden de las categorías", tipo_input = "choice", grupo = "filtro",
            default = "asc",
            choices = list(
              list(value = "asc",     label = "Ascendente (menor → mayor)"),
@@ -1097,13 +1121,13 @@
     args = list(
 
       # --- Escala del radar ---------------------------------------------
-      list(name = "escala_valor",         label = "Escala de valores",      tipo_input = "choice", grupo = "calculo",
+      list(name = "escala_valor",         label = "Escala de valores",      tipo_input = "choice", grupo = "filtro",
            default = "proporcion_1",
            choices = list(
              list(value = "proporcion_1",  label = "Proporción 0-1",  hint = "Los valores van de 0 a 1."),
              list(value = "porcentaje_100",label = "Porcentaje 0-100",hint = "Los valores van de 0 a 100.")
            )),
-      list(name = "limites",              label = "Límites del radar",     tipo_input = "codigos_list", grupo = "calculo",
+      list(name = "limites",              label = "Límites del radar",     tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Mínimo y máximo, separados por coma. Ej: 0, 1 o 0, 100. Si vacío, se deduce de escala_valor."),
       list(name = "cortes_grilla",        label = "Cortes de la grilla",   tipo_input = "number", grupo = "estilo", default = 6,
            descripcion = "Número de círculos concéntricos dentro del radar."),
@@ -1211,7 +1235,7 @@
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo"),
 
       # --- Cálculo -------------------------------------------------------
-      list(name = "decimales_promedio",   label = "Decimales del promedio", tipo_input = "number", grupo = "calculo"),
+      list(name = "decimales_promedio",   label = "Decimales del promedio", tipo_input = "number", grupo = "filtro"),
 
       # --- Canvas --------------------------------------------------------
       list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas"),
@@ -1228,7 +1252,7 @@
     descripcion   = "Puntos con el promedio por grupo y opcionalmente barras de rango (min-max o IQR). Hereda de 'Box plot' y 'Base'.",
     icono_ui      = "Activity",
     args = list(
-      list(name = "decimales_promedio",   label = "Decimales del promedio", tipo_input = "number", grupo = "calculo"),
+      list(name = "decimales_promedio",   label = "Decimales del promedio", tipo_input = "number", grupo = "filtro"),
       list(name = "mostrar_rango",        label = "Mostrar rango",         tipo_input = "bool",   grupo = "estilo"),
       list(name = "tipo_rango",           label = "Tipo de rango",         tipo_input = "choice", grupo = "estilo",
            choices = list(
@@ -1557,6 +1581,145 @@
 
     canvas_h_header_in       = 0.45,
     canvas_h_legend_in       = 0.22
+  )
+)
+
+# ===========================================================================
+# OVERRIDES PRE-ESTABLECIDOS (reducido / compacto)
+# ===========================================================================
+#
+# Dos overrides reutilizables que vienen cargados de fábrica cuando el
+# analista entra por primera vez. Extraídos del QMD de referencia
+# (`ovr_apiladas_compactas`, `ovr_pie_compacto`, etc.).
+#
+# Convención:
+#   - "reducido": para slides con 2 gráficos en paralelo. Los tamaños
+#     están algo achicados respecto al default pero todavía son legibles.
+#   - "compacto": para slides densos de 4+ gráficos. Canvas apretado y
+#     tipografía pequeña; el analista sacrifica detalle por densidad.
+#
+# Cada override aplica a un `tipo_preset` específico — por eso se
+# declaran N overrides (uno por tipo × tamaño) en vez de uno genérico.
+# El analista los edita libremente desde OverridesEditor (están en el
+# store autosaveado como cualquier otro override).
+
+.OVERRIDES_DEFAULT_PULSO <- list(
+  # --- Barras apiladas ---
+  list(
+    id = "ovr-apiladas-reducido",
+    nombre = "Apiladas · reducido (2 en slide)",
+    tipo_preset = "barras_apiladas",
+    args = list(
+      size_titulo = 10,
+      size_ejes = 8,
+      size_leyenda = 8,
+      size_texto_barras = 3.6,
+      legend_key_cm = 0.32,
+      legend_espaciado = 8,
+      canvas_h_toprow_in = 0.08,
+      canvas_h_header_in = 0.14,
+      canvas_h_legend_in = 0.13,
+      canvas_h_caption_in = 0.10
+    )
+  ),
+  list(
+    id = "ovr-apiladas-compacto",
+    nombre = "Apiladas · compacto (4+ en slide)",
+    tipo_preset = "barras_apiladas",
+    args = list(
+      size_titulo = 9,
+      size_ejes = 6.8,
+      size_leyenda = 6.8,
+      size_texto_barras = 3.1,
+      legend_key_cm = 0.28,
+      legend_espaciado = 6,
+      canvas_h_toprow_in = 0.07,
+      canvas_h_header_in = 0.18,
+      canvas_h_legend_in = 0.12,
+      canvas_h_caption_in = 0.08
+    )
+  ),
+  # --- Barras agrupadas ---
+  list(
+    id = "ovr-agrupadas-reducido",
+    nombre = "Agrupadas · reducido (2 en slide)",
+    tipo_preset = "barras_agrupadas",
+    args = list(
+      size_titulo = 10,
+      size_ejes = 8,
+      size_leyenda = 8,
+      size_texto_barras = 3.6,
+      canvas_h_toprow_in = 0.08,
+      canvas_h_header_in = 0.64,
+      canvas_h_caption_in = 0.04,
+      canvas_w_etiquetas = 0.28
+    )
+  ),
+  list(
+    id = "ovr-agrupadas-compacto",
+    nombre = "Agrupadas · compacto (4+ en slide)",
+    tipo_preset = "barras_agrupadas",
+    args = list(
+      size_titulo = 9,
+      size_ejes = 6.8,
+      size_leyenda = 6.8,
+      size_texto_barras = 3.0,
+      canvas_h_toprow_in = 0.08,
+      canvas_h_header_in = 0.62,
+      canvas_h_caption_in = 0,
+      mostrar_barra_extra = FALSE,
+      canvas_w_extra = 0,
+      canvas_w_buf_bars_extra = 0,
+      canvas_w_etiquetas = 0.26
+    )
+  ),
+  # --- Pie ---
+  list(
+    id = "ovr-pie-reducido",
+    nombre = "Pie · reducido (2 en slide)",
+    tipo_preset = "pie",
+    args = list(
+      size_titulo = 10,
+      size_leyenda = 8,
+      size_etiquetas_pct = 4.6,
+      tamano_key_cm = 0.32,
+      espaciado_vertical_cm = 0.20,
+      ncol_leyenda_bajo = 2,
+      canvas_h_title = 0.09,
+      canvas_h_legend_bottom = 0.10
+    )
+  ),
+  list(
+    id = "ovr-pie-compacto",
+    nombre = "Pie · compacto (4+ en slide)",
+    tipo_preset = "pie",
+    args = list(
+      size_titulo = 9,
+      size_leyenda = 7,
+      size_etiquetas_pct = 4.2,
+      tamano_key_cm = 0.28,
+      espaciado_vertical_cm = 0.15,
+      ncol_leyenda_bajo = 2,
+      canvas_h_title = 0.10,
+      canvas_h_legend_bottom = 0.12
+    )
+  ),
+  # --- Barras numéricas ---
+  list(
+    id = "ovr-numericas-compacto",
+    nombre = "Numéricas · compacto (4+ en slide)",
+    tipo_preset = "barras_numericas",
+    args = list(
+      size_titulo = 9,
+      size_texto_barras = 3.8,
+      size_n_sobre_barras = 3,
+      mostrar_eje_y = FALSE,
+      mostrar_valores = TRUE,
+      decimales = 1,
+      mostrar_leyenda = FALSE,
+      canvas_h_title = 0.12,
+      canvas_h_legend = 0
+    )
   )
 )
 

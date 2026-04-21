@@ -240,7 +240,7 @@ function OverrideEditPanel({
   const gruposDeArgs = useMemo(() => {
     if (!tipoMeta) return [];
     const byGrupo: Record<ArgGrupo, ArgMetadata[]> = {
-      datos: [], textos: [], estilo: [], calculo: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
+      datos: [], textos: [], estilo: [], filtro: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
     };
     for (const a of tipoMeta.args) {
       const g: ArgGrupo = (a.grupo as ArgGrupo) ?? "avanzado";

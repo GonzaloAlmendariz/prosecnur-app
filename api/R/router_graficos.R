@@ -130,21 +130,24 @@
   list(ok = length(errs) == 0, errors = errs, warnings = warns, n_slides = length(slides))
 }
 
-# Config por defecto del plan de gráficos. Los `presets` vienen
-# pre-poblados con `.PRESETS_DEFAULT_PULSO` (estilo institucional
-# extraído de los QMDs de referencia) — así una sesión nueva ya
-# produce gráficos con aspecto profesional y el analista solo ajusta
-# lo que necesita cambiar, en vez de partir de un canvas vacío.
-.graficos_default_config <- function() {
+# Config por defecto del plan de gráficos.
+#
+# Los `presets` vienen pre-poblados con los defaults de Pulso (por sesión
+# el analista puede sobrescribirlos con "Guardar como default" — se
+# guardan en s$graficos_presets_defaults y tienen prioridad sobre los
+# de fábrica). Idem para `overrides_reusables`.
+.graficos_default_config <- function(sid = NULL) {
+  user_presets   <- if (!is.null(sid)) session_get(sid, required = FALSE)$graficos_presets_defaults else NULL
+  user_overrides <- if (!is.null(sid)) session_get(sid, required = FALSE)$graficos_overrides_defaults else NULL
   list(
     version = 2L,
     plan = list(slides = list()),
-    presets = .PRESETS_DEFAULT_PULSO,
+    presets = user_presets %||% .PRESETS_DEFAULT_PULSO,
     w_presets = list(),
     selected_slide_id = NULL,
     paletas = list(),
     iconos = list(),
-    overrides_reusables = list(),
+    overrides_reusables = user_overrides %||% .OVERRIDES_DEFAULT_PULSO,
     debug_ph = list(activo = FALSE, color = "#FF00FF", lwd = 0.6)
   )
 }
@@ -255,7 +258,7 @@ mount_graficos <- function(pr) {
       # contra POST /config (debounce 2s).
       sid <- session_header(req)
       s <- session_get(sid)
-      cfg <- s$graficos_config %||% .graficos_default_config()
+      cfg <- s$graficos_config %||% .graficos_default_config(sid)
       list(ok = TRUE, config = cfg)
     })) |>
     plumber::pr_post("/api/graficos/config", wrap_endpoint(function(req, res, ...) {
@@ -284,7 +287,7 @@ mount_graficos <- function(pr) {
         ok = TRUE,
         version = "graficos/1.0",
         exported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-        config = s$graficos_config %||% .graficos_default_config()
+        config = s$graficos_config %||% .graficos_default_config(sid)
       )
     })) |>
     plumber::pr_post("/api/graficos/config/import", wrap_endpoint(function(req, res, ...) {
@@ -320,6 +323,57 @@ mount_graficos <- function(pr) {
       # Los `plan.slides[*].id` son placeholder — el frontend los regenera
       # al aplicar el template para evitar colisiones con slides existentes.
       .templates_payload()
+    })) |>
+    plumber::pr_post("/api/graficos/presets-defaults", wrap_endpoint(function(req, res, ...) {
+      # "Guardar como default": toma los `presets` actuales del store de
+      # la sesión (lo que el analista tiene configurado) y los guarda
+      # como el nuevo default. Próximas sesiones o reset del plan van
+      # a usar estos en vez de .PRESETS_DEFAULT_PULSO (de fábrica).
+      #
+      # Body opcional: { "presets": {...} }. Si viene, usa ese; si no,
+      # usa el s$graficos_config$presets actual.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      presets_new <- NULL
+      if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        parsed <- tryCatch(
+          jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+          error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+        )
+        presets_new <- parsed$presets
+      }
+      if (is.null(presets_new)) {
+        presets_new <- s$graficos_config$presets
+      }
+      if (is.null(presets_new)) {
+        stop_api(400, "E_NO_PRESETS", "No hay presets en la config actual para guardar como default.")
+      }
+      session_set(sid, "graficos_presets_defaults", presets_new)
+      list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+    })) |>
+    plumber::pr_delete("/api/graficos/presets-defaults", wrap_endpoint(function(req, res) {
+      # Resetea los "defaults del usuario" a los de fábrica (.PRESETS_DEFAULT_PULSO).
+      # No toca el estado actual del store — solo el "factory default"
+      # que usan los reset futuros.
+      sid <- session_header(req)
+      session_set(sid, "graficos_presets_defaults", NULL)
+      list(ok = TRUE)
+    })) |>
+    plumber::pr_get("/api/graficos/presets-defaults", wrap_endpoint(function(req, res) {
+      # Devuelve los presets default EFECTIVOS (los del usuario si los
+      # hay, sino los de fábrica). El frontend los usa para el "Restaurar
+      # default" — en vez de borrar el arg (que cae implícitamente al
+      # default), el frontend puede pre-llenar con el default actual.
+      sid <- session_header(req)
+      s <- session_get(sid, required = FALSE)
+      user <- if (!is.null(s)) s$graficos_presets_defaults else NULL
+      list(
+        ok = TRUE,
+        presets = user %||% .PRESETS_DEFAULT_PULSO,
+        es_custom = !is.null(user)
+      )
     })) |>
     plumber::pr_get("/api/graficos/presets-metadata", wrap_endpoint(function(req, res) {
       # Catálogo humano de los presets globales (p_presets): cada tipo

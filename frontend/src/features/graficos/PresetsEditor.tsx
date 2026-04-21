@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import * as Lucide from "lucide-react";
-import { RotateCcw, Circle } from "lucide-react";
-import { ArgGrupo, ArgMetadata } from "../../api/client";
+import { RotateCcw, Circle, Save, Factory, Check } from "lucide-react";
+import { ArgGrupo, ArgMetadata, apiGraficosPresetsDefaultsSave, apiGraficosPresetsDefaultsReset } from "../../api/client";
 import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
@@ -70,55 +70,88 @@ export function PresetsEditor() {
           display: "flex", flexDirection: "column", gap: 2,
         }}
       >
-        <div
-          style={{
-            fontSize: 10, fontWeight: 700,
-            textTransform: "uppercase", letterSpacing: 0.4,
-            color: "var(--pulso-text-soft)",
-            padding: "0 6px 6px",
-          }}
-        >
-          Tipo de preset
-        </div>
-        {presets.map((p) => {
-          const modified = Object.keys(configPresets[p.name] ?? {}).length > 0;
-          const isActive = p.name === selected;
-          const Icon = resolveLucide(p.icono_ui);
-          return (
-            <button
-              key={p.name}
-              type="button"
-              onClick={() => setSelected(p.name)}
+        {/* Agrupamos los presets en dos secciones:
+            - Gráficos normales: base + 2D/1D habituales (barras, pie, etc.).
+            - Gráficos dimensionales: los que requieren reporte_dimensiones
+              (dim_heatmap, dim_radar, dim_heatmap_criterios, dim_foda).
+            La sidebar deja claro cuál es cuál para que el analista no
+            se sorprenda al configurar un preset que su instrumento no va
+            a ejercitar. */}
+        {(() => {
+          const isDim = (name: string) => name.startsWith("dim_");
+          const normales = presets.filter((p) => !isDim(p.name));
+          const dimensionales = presets.filter((p) => isDim(p.name));
+
+          const renderItem = (p: typeof presets[number]) => {
+            const modified = Object.keys(configPresets[p.name] ?? {}).length > 0;
+            const isActive = p.name === selected;
+            const Icon = resolveLucide(p.icono_ui);
+            return (
+              <button
+                key={p.name}
+                type="button"
+                onClick={() => setSelected(p.name)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "7px 9px", borderRadius: 6,
+                  border: "1px solid transparent",
+                  background: isActive ? "var(--pulso-primary-soft)" : "transparent",
+                  color: isActive ? "var(--pulso-primary)" : "var(--pulso-text)",
+                  fontSize: 12, fontWeight: isActive ? 600 : 500,
+                  textAlign: "left", cursor: "pointer",
+                  transition: "background 120ms ease",
+                }}
+              >
+                <Icon size={14} />
+                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {p.titulo_humano}
+                </span>
+                {modified && (
+                  <Circle
+                    size={7}
+                    fill={isActive ? "var(--pulso-primary)" : "var(--pulso-primary)"}
+                    color="transparent"
+                    aria-label="Modificado"
+                  />
+                )}
+              </button>
+            );
+          };
+
+          const groupHeader = (label: string, hint?: string) => (
+            <div
               style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "7px 9px", borderRadius: 6,
-                border: "1px solid transparent",
-                background: isActive ? "var(--pulso-primary-soft)" : "transparent",
-                color: isActive ? "var(--pulso-primary)" : "var(--pulso-text)",
-                fontSize: 12, fontWeight: isActive ? 600 : 500,
-                textAlign: "left", cursor: "pointer",
-                transition: "background 120ms ease",
+                fontSize: 10, fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: 0.4,
+                color: "var(--pulso-text-soft)",
+                padding: "10px 6px 4px",
+                borderBottom: "1px solid var(--pulso-border)",
+                marginBottom: 4,
               }}
+              title={hint}
             >
-              <Icon size={14} />
-              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {p.titulo_humano}
-              </span>
-              {modified && (
-                <Circle
-                  size={7}
-                  fill={isActive ? "var(--pulso-primary)" : "var(--pulso-primary)"}
-                  color="transparent"
-                  aria-label="Modificado"
-                />
-              )}
-            </button>
+              {label}
+            </div>
           );
-        })}
+
+          return (
+            <>
+              {groupHeader("Gráficos normales", "Base + los graficadores 2D habituales")}
+              {normales.map(renderItem)}
+              {dimensionales.length > 0 && (
+                <>
+                  {groupHeader("Gráficos dimensionales", "Requieren haber calculado `reporte_dimensiones` en Fase 4.")}
+                  {dimensionales.map(renderItem)}
+                </>
+              )}
+            </>
+          );
+        })()}
       </aside>
 
       {/* Editor del preset seleccionado */}
       <section style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+        <GlobalDefaultsToolbar />
         <PresetHeader
           meta={meta}
           hasChanges={hasChanges}
@@ -126,6 +159,102 @@ export function PresetsEditor() {
         />
         <PresetBody meta={meta} values={current} />
       </section>
+    </div>
+  );
+}
+
+// Toolbar con acciones globales de defaults:
+//   - "Guardar como mi default": toma la config actual de TODOS los
+//     presets y la fija como el nuevo default del usuario (persiste
+//     en la sesión del backend). Futuros "Restaurar default" por
+//     preset van a caer a este guardado.
+//   - "Volver a defaults de fábrica": borra el default del usuario.
+//     El siguiente reset por preset va a usar `.PRESETS_DEFAULT_PULSO`.
+// Ambos feedback visual "Guardado" / "Restaurado" por ~1.5s.
+function GlobalDefaultsToolbar() {
+  const presets = usePlanStore((s) => s.presets);
+  const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [feedback, setFeedback] = useState<"saved" | "reset" | null>(null);
+  const [error, setError] = useState<string>("");
+
+  async function onSave() {
+    setError(""); setSaving(true);
+    try {
+      await apiGraficosPresetsDefaultsSave(presets);
+      setFeedback("saved");
+      setTimeout(() => setFeedback(null), 1600);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onResetFactory() {
+    if (!window.confirm(
+      "¿Restablecer los defaults de fábrica?\n\nTu personalización guardada como default se va a borrar. Los preset actuales siguen intactos — solo cambia a qué valores apunta 'Restaurar default' por preset."
+    )) return;
+    setError(""); setResetting(true);
+    try {
+      await apiGraficosPresetsDefaultsReset();
+      setFeedback("reset");
+      setTimeout(() => setFeedback(null), 1600);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap",
+        padding: "8px 10px", borderRadius: 6,
+        background: "var(--pulso-surface)",
+        border: "1px solid var(--pulso-border)",
+        fontSize: 11,
+      }}
+    >
+      <span style={{ color: "var(--pulso-text-soft)", flex: 1, minWidth: 180 }}>
+        Defaults de la app: puedes fijar la configuración actual como tu default
+        o volver al de fábrica.
+      </span>
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={saving || resetting}
+        title="Fija los valores actuales de TODOS los presets como tu default."
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          fontSize: 11, padding: "5px 10px", borderRadius: 6,
+          border: "1px solid var(--pulso-primary)",
+          background: "var(--pulso-primary-soft)",
+          color: "var(--pulso-primary)", fontWeight: 600,
+          cursor: "pointer",
+        }}
+      >
+        {feedback === "saved" ? <Check size={11} /> : <Save size={11} />}
+        {feedback === "saved" ? "Guardado" : "Guardar como mi default"}
+      </button>
+      <button
+        type="button"
+        onClick={onResetFactory}
+        disabled={saving || resetting}
+        title="Descarta tu default y vuelve a los valores de fábrica."
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 5,
+          fontSize: 11, padding: "5px 10px", borderRadius: 6,
+          border: "1px solid var(--pulso-border)",
+          background: "white", color: "var(--pulso-text)",
+          cursor: "pointer",
+        }}
+      >
+        {feedback === "reset" ? <Check size={11} /> : <Factory size={11} />}
+        {feedback === "reset" ? "Restaurado" : "Defaults de fábrica"}
+      </button>
+      {error && <span style={{ color: "#991b1b" }}>{error}</span>}
     </div>
   );
 }
@@ -228,7 +357,7 @@ function PresetBody({
   // Agrupar args por grupo semántico, manteniendo el orden de GRUPO_META.
   const gruposDeArgs = useMemo(() => {
     const byGrupo: Record<ArgGrupo, ArgMetadata[]> = {
-      datos: [], textos: [], estilo: [], calculo: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
+      datos: [], textos: [], estilo: [], filtro: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
     };
     for (const a of meta.args) {
       const g: ArgGrupo = (a.grupo as ArgGrupo) ?? "avanzado";
