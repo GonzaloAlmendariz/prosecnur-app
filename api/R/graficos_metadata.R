@@ -601,6 +601,282 @@
 )
 
 # ===========================================================================
+# PRESETS (estilo global por tipo de graficador)
+# ===========================================================================
+#
+# `prosecnur::p_presets` acepta 13 bloques de tipo: `base` (se hereda a todos
+# los graficadores) + un bloque por cada tipo de gráfico (barras_apiladas,
+# multi_apiladas, barras_agrupadas, barras_numericas, boxplot, media_rango,
+# pie, donut, radar_tabla, dim_heatmap, dim_heatmap_criterios, dim_radar,
+# dim_foda). Cada bloque es `list(args = list(...))`; los `args` se pasan
+# a la función del graficador correspondiente.
+#
+# Este catálogo cura los args MÁS útiles para estilo global: tipografía,
+# tamaños, canvas heights, leyendas. Args técnicos muy específicos de un
+# gráfico puntual quedan fuera (se editan vía override por slot o, como
+# último recurso, JSON avanzado). El objetivo es que el analista tenga un
+# control real de estilo global en <10 campos por tipo, no 40.
+#
+# `grupo_hereda` indica si el arg viene también por herencia desde `base`
+# (solo documentativo — sirve para que el editor muestre "también se puede
+# setear en base").
+
+.PRESETS_META <- list(
+
+  # ---- BASE (se hereda a todos) ------------------------------------------
+  base = list(
+    titulo_humano = "Base — estilo común",
+    descripcion   = "Valores por defecto que heredan todos los gráficos. Fuente, tamaños, colores base y el formato del texto 'Base: N'. Lo que pongas acá aplica a todo el reporte salvo que un preset tipo lo sobrescriba.",
+    icono_ui      = "Layers",
+    args = list(
+      list(name = "font_family",       label = "Fuente",            tipo_input = "string", grupo = "textos",
+           default = "Arial",
+           descripcion = "Familia tipográfica usada por todos los gráficos (ej. 'Arial', 'Helvetica', 'Open Sans')."),
+      list(name = "font_family_ppt",   label = "Fuente (solo PPT)", tipo_input = "string", grupo = "textos",
+           descripcion = "Sobrescribe 'Fuente' solo cuando se exporta a PPT. Vacío = usa la general."),
+      list(name = "color_texto",       label = "Color de texto",    tipo_input = "string", grupo = "estilo",
+           descripcion = "Color hex para textos dentro del gráfico (títulos, ejes, etiquetas). Ej. '#222222'."),
+      list(name = "size_titulo",       label = "Tamaño título",     tipo_input = "number", grupo = "estilo",
+           descripcion = "Tamaño de fuente del título del gráfico (pt)."),
+      list(name = "size_ejes",         label = "Tamaño ejes",       tipo_input = "number", grupo = "estilo",
+           descripcion = "Tamaño de fuente de las etiquetas de los ejes (pt)."),
+      list(name = "size_etiquetas",    label = "Tamaño etiquetas",  tipo_input = "number", grupo = "estilo",
+           descripcion = "Tamaño de los valores numéricos sobre las barras/puntos."),
+      list(name = "size_base",         label = "Tamaño nota base",  tipo_input = "number", grupo = "estilo",
+           descripcion = "Tamaño del texto 'Base: N' al pie del gráfico (pt)."),
+      list(name = "formato",           label = "Formato de la base",tipo_input = "string", grupo = "textos",
+           default = "Base: %s",
+           descripcion = "Plantilla del texto base auto. %s se reemplaza por el conteo (ej. 'Base: %s' → 'Base: 120')."),
+      list(name = "sufijo_auto",       label = "Sufijo base auto",  tipo_input = "string", grupo = "textos",
+           descripcion = "Texto extra que se añade después del conteo (ej. 'encuestados', 'respuestas')."),
+      list(name = "debug_ph_bordes",   label = "Mostrar bordes debug", tipo_input = "bool", grupo = "avanzado",
+           descripcion = "Dibuja bordes alrededor de cada placeholder. Útil para diagnosticar layouts (toggle en el header del editor)."),
+      list(name = "debug_ph_col",      label = "Color bordes debug",tipo_input = "string", grupo = "avanzado",
+           default = "#FF00FF"),
+      list(name = "debug_ph_lwd",      label = "Grosor bordes debug", tipo_input = "number", grupo = "avanzado",
+           default = 0.6)
+    )
+  ),
+
+  # ---- Barras apiladas (escalas Likert) -----------------------------------
+  barras_apiladas = list(
+    titulo_humano = "Barras apiladas",
+    descripcion   = "Estilo global de las barras apiladas (escalas Likert). Hereda todo de 'Base' y se puede sobrescribir acá.",
+    icono_ui      = "BarChartBig",
+    args = list(
+      list(name = "angle_x",           label = "Rotación etiquetas X", tipo_input = "number", grupo = "estilo",
+           descripcion = "Grados de rotación de las etiquetas del eje X (0 = horizontal, 45 = diagonal, 90 = vertical)."),
+      list(name = "wrap_y",            label = "Ancho etiquetas Y",    tipo_input = "number", grupo = "estilo",
+           descripcion = "Máximo de caracteres por línea antes de romper la etiqueta del eje Y."),
+      list(name = "leyenda_posicion",  label = "Posición de leyenda",  tipo_input = "choice", grupo = "estilo",
+           choices = list(
+             list(value = "abajo",    label = "Abajo"),
+             list(value = "arriba",   label = "Arriba"),
+             list(value = "derecha",  label = "Derecha"),
+             list(value = "izquierda",label = "Izquierda"),
+             list(value = "ninguna",  label = "Ocultar")
+           )),
+      list(name = "mostrar_valores",   label = "Mostrar porcentajes", tipo_input = "bool",   grupo = "estilo",
+           descripcion = "Si es TRUE, escribe el % dentro de cada segmento de la barra."),
+      list(name = "exportar",          label = "Modo de export",      tipo_input = "choice", grupo = "avanzado",
+           choices = list(
+             list(value = "rplot",  label = "R plot (default)"),
+             list(value = "image",  label = "Imagen PNG")
+           ))
+    )
+  ),
+
+  # ---- Multi-apiladas ------------------------------------------------------
+  multi_apiladas = list(
+    titulo_humano = "Multi-apiladas (batería)",
+    descripcion   = "Varias barras apiladas juntas. Hereda de 'Base'.",
+    icono_ui      = "Rows3",
+    args = list(
+      list(name = "angle_x",           label = "Rotación etiquetas X", tipo_input = "number", grupo = "estilo"),
+      list(name = "wrap_y",            label = "Ancho etiquetas Y",    tipo_input = "number", grupo = "estilo"),
+      list(name = "espacio_entre_barras", label = "Separación entre barras", tipo_input = "number", grupo = "estilo",
+           descripcion = "Fracción del ancho entre barras (0 = pegadas, 0.3 = separación generosa)."),
+      list(name = "leyenda_posicion",  label = "Posición de leyenda",  tipo_input = "choice", grupo = "estilo",
+           choices = list(
+             list(value = "abajo",  label = "Abajo"),
+             list(value = "arriba", label = "Arriba"),
+             list(value = "derecha",label = "Derecha"),
+             list(value = "ninguna",label = "Ocultar")
+           ))
+    )
+  ),
+
+  # ---- Barras agrupadas ----------------------------------------------------
+  barras_agrupadas = list(
+    titulo_humano = "Barras agrupadas",
+    descripcion   = "Barras comparativas entre grupos. Hereda de 'Base'.",
+    icono_ui      = "BarChartHorizontal",
+    args = list(
+      list(name = "angle_x",           label = "Rotación etiquetas X", tipo_input = "number", grupo = "estilo"),
+      list(name = "mostrar_valores",   label = "Mostrar valores",      tipo_input = "bool",   grupo = "estilo"),
+      list(name = "decimales",         label = "Decimales en etiquetas", tipo_input = "number", grupo = "calculo",
+           descripcion = "Cuántos decimales mostrar en las etiquetas de valor (0 = enteros).")
+    )
+  ),
+
+  # ---- Barras numéricas ----------------------------------------------------
+  barras_numericas = list(
+    titulo_humano = "Barras numéricas",
+    descripcion   = "Barras de valores numéricos (medias, sumas). Hereda de 'Base'.",
+    icono_ui      = "BarChart",
+    args = list(
+      list(name = "decimales",         label = "Decimales",         tipo_input = "number", grupo = "calculo"),
+      list(name = "mostrar_valores",   label = "Mostrar valores",   tipo_input = "bool",   grupo = "estilo"),
+      list(name = "color_barra",       label = "Color principal",   tipo_input = "string", grupo = "estilo",
+           descripcion = "Hex del color base si no hay paleta. Ej. '#0A7FB8'.")
+    )
+  ),
+
+  # ---- Boxplot / Media-rango ----------------------------------------------
+  boxplot = list(
+    titulo_humano = "Box plot",
+    descripcion   = "Cajas con cuartiles. Hereda de 'Base'. Aplica también a 'Media y rango' por herencia.",
+    icono_ui      = "BoxSelect",
+    args = list(
+      list(name = "mostrar_outliers",  label = "Mostrar outliers", tipo_input = "bool",   grupo = "estilo",
+           descripcion = "Dibujar los puntos que caen fuera de los bigotes."),
+      list(name = "mostrar_media",     label = "Mostrar media",    tipo_input = "bool",   grupo = "estilo",
+           descripcion = "Marca adicional con el promedio (además de la mediana)."),
+      list(name = "decimales_promedio",label = "Decimales promedio",tipo_input = "number",grupo = "calculo")
+    )
+  ),
+
+  media_rango = list(
+    titulo_humano = "Media y rango",
+    descripcion   = "Puntos con promedio y barras de rango. Hereda de 'Boxplot' y 'Base'.",
+    icono_ui      = "Activity",
+    args = list(
+      list(name = "decimales_promedio", label = "Decimales",       tipo_input = "number", grupo = "calculo"),
+      list(name = "mostrar_ref_label",  label = "Línea de referencia", tipo_input = "bool", grupo = "estilo")
+    )
+  ),
+
+  # ---- Pie / Donut ---------------------------------------------------------
+  pie = list(
+    titulo_humano = "Pie",
+    descripcion   = "Gráfico de torta. Donut hereda de Pie.",
+    icono_ui      = "PieChart",
+    args = list(
+      list(name = "mostrar_valores",   label = "Mostrar porcentajes", tipo_input = "bool",   grupo = "estilo"),
+      list(name = "decimales",         label = "Decimales",           tipo_input = "number", grupo = "calculo"),
+      list(name = "leyenda_posicion",  label = "Posición leyenda",    tipo_input = "choice", grupo = "estilo",
+           choices = list(
+             list(value = "abajo",   label = "Abajo"),
+             list(value = "derecha", label = "Derecha"),
+             list(value = "ninguna", label = "Ocultar")
+           ))
+    )
+  ),
+
+  donut = list(
+    titulo_humano = "Donut",
+    descripcion   = "Variante compacta del pie. Hereda de 'Pie'.",
+    icono_ui      = "CircleDot",
+    args = list(
+      list(name = "hole_size",         label = "Tamaño del hueco",  tipo_input = "number", grupo = "estilo",
+           descripcion = "Fracción del radio ocupada por el hueco central (0 = pie, 0.6 = donut estrecho)."),
+      list(name = "mostrar_valores",   label = "Mostrar porcentajes", tipo_input = "bool", grupo = "estilo")
+    )
+  ),
+
+  # ---- Radar tabla ---------------------------------------------------------
+  radar_tabla = list(
+    titulo_humano = "Radar + tabla",
+    descripcion   = "Radar con tabla al costado. Hereda de 'Base'.",
+    icono_ui      = "Radar",
+    args = list(
+      list(name = "cortes_grilla",     label = "Cortes de la grilla", tipo_input = "number", grupo = "estilo",
+           descripcion = "Número de círculos concéntricos dentro del radar."),
+      list(name = "wrap_ejes",         label = "Ancho etiquetas ejes", tipo_input = "number", grupo = "estilo"),
+      list(name = "size_tabla",        label = "Tamaño texto tabla",  tipo_input = "number", grupo = "estilo")
+    )
+  ),
+
+  # ---- Dimensiones: Heatmap -----------------------------------------------
+  dim_heatmap = list(
+    titulo_humano = "Heatmap dimensional",
+    descripcion   = "Mapa de calor de dimensiones. Hereda de 'Base'.",
+    icono_ui      = "LayoutGrid",
+    args = list(
+      list(name = "angle_x",           label = "Rotación etiquetas X",   tipo_input = "number", grupo = "estilo", default = 0),
+      list(name = "size_ejes",         label = "Tamaño ejes",            tipo_input = "number", grupo = "estilo", default = 10),
+      list(name = "size_texto_celdas", label = "Tamaño texto celdas",    tipo_input = "number", grupo = "estilo", default = 10),
+      list(name = "canvas_h_title",    label = "Alto zona título (in)",  tipo_input = "number", grupo = "avanzado", default = 0.13,
+           descripcion = "Altura reservada para el título del heatmap en el canvas (pulgadas)."),
+      list(name = "canvas_h_legend",   label = "Alto zona leyenda (in)", tipo_input = "number", grupo = "avanzado", default = 0.09),
+      list(name = "canvas_h_caption",  label = "Alto zona pie (in)",     tipo_input = "number", grupo = "avanzado", default = 0.06)
+    )
+  ),
+
+  dim_heatmap_criterios = list(
+    titulo_humano = "Heatmap por criterios",
+    descripcion   = "Heatmap dimensional agrupado por criterios. Hereda de 'Heatmap dimensional' y 'Base'.",
+    icono_ui      = "LayoutGrid",
+    args = list(
+      list(name = "font_family",       label = "Fuente",                 tipo_input = "string", grupo = "textos",
+           descripcion = "Si se deja vacío, usa la fuente de 'Base'.")
+    )
+  ),
+
+  # ---- Dimensiones: Radar --------------------------------------------------
+  dim_radar = list(
+    titulo_humano = "Radar dimensional",
+    descripcion   = "Radar de dimensiones. Hereda de 'Base'.",
+    icono_ui      = "Radar",
+    args = list(
+      list(name = "cortes_grilla",     label = "Cortes de la grilla",    tipo_input = "number", grupo = "estilo", default = 4),
+      list(name = "wrap_ejes",         label = "Ancho etiquetas ejes",   tipo_input = "number", grupo = "estilo", default = 22),
+      list(name = "eje_label_mult",    label = "Separación etiquetas",   tipo_input = "number", grupo = "estilo", default = 1.03,
+           descripcion = "Multiplicador que aleja las etiquetas del centro (1 = pegadas, 1.1 = más separadas)."),
+      list(name = "leyenda_posicion",  label = "Posición leyenda",       tipo_input = "choice", grupo = "estilo", default = "abajo",
+           choices = list(
+             list(value = "abajo",   label = "Abajo"),
+             list(value = "derecha", label = "Derecha"),
+             list(value = "ninguna", label = "Ocultar")
+           )),
+      list(name = "legend_n_por_fila", label = "Items por fila leyenda", tipo_input = "number", grupo = "estilo", default = 4),
+      list(name = "legend_key_cm",     label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo", default = 0.45),
+      list(name = "legend_espaciado",  label = "Espaciado leyenda",      tipo_input = "number", grupo = "estilo", default = 12),
+      list(name = "canvas_h_header_in",label = "Alto header (in)",       tipo_input = "number", grupo = "avanzado", default = 0.58),
+      list(name = "canvas_h_legend_in",label = "Alto leyenda (in)",      tipo_input = "number", grupo = "avanzado", default = 0.20),
+      list(name = "canvas_h_caption_in",label = "Alto pie (in)",         tipo_input = "number", grupo = "avanzado", default = 0.08)
+    )
+  ),
+
+  # ---- Dimensiones: FODA --------------------------------------------------
+  dim_foda = list(
+    titulo_humano = "Matriz FODA dimensional",
+    descripcion   = "Matriz 2×2 estilo FODA. Hereda de 'Base'.",
+    icono_ui      = "Grid3X3",
+    args = list(
+      list(name = "canvas_h_title",    label = "Alto zona título (in)",  tipo_input = "number", grupo = "avanzado", default = 0),
+      list(name = "canvas_h_legend",   label = "Alto zona leyenda (in)", tipo_input = "number", grupo = "avanzado", default = 0.09),
+      list(name = "canvas_h_caption",  label = "Alto zona pie (in)",     tipo_input = "number", grupo = "avanzado", default = 0.06)
+    )
+  )
+)
+
+# Serializa el catálogo de presets para el endpoint /presets-metadata.
+.presets_metadata_payload <- function() {
+  presets <- lapply(names(.PRESETS_META), function(nm) {
+    meta <- .PRESETS_META[[nm]]
+    list(
+      name          = nm,
+      titulo_humano = as.character(meta$titulo_humano %||% nm),
+      descripcion   = as.character(meta$descripcion %||% ""),
+      icono_ui      = as.character(meta$icono_ui %||% "Sliders"),
+      args          = meta$args %||% list()
+    )
+  })
+  list(presets = presets)
+}
+
+# ===========================================================================
 # API helpers
 # ===========================================================================
 

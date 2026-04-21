@@ -253,6 +253,18 @@ mount_graficos <- function(pr) {
       # El frontend construye toda la UI de edición a partir de esto.
       .graficos_registry_payload()
     })) |>
+    plumber::pr_get("/api/graficos/presets-metadata", wrap_endpoint(function(req, res) {
+      # Catálogo humano de los presets globales (p_presets): cada tipo
+      # (base, barras_apiladas, pie, dim_radar, …) con titulo_humano,
+      # descripción, y args curados para el editor (tipografía, tamaños,
+      # canvas, leyendas). El PresetsEditor del frontend usa este
+      # metadata + `ArgField` para construir la UI.
+      #
+      # Igual que /registry, el frontend pinta solo lo que está curado;
+      # args técnicos raros quedan fuera del UI y se setean vía overrides
+      # por-slot o JSON avanzado.
+      .presets_metadata_payload()
+    })) |>
     plumber::pr_get("/api/graficos/variables", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)
