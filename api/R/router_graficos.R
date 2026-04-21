@@ -478,11 +478,26 @@ mount_graficos <- function(pr) {
       )
       graficador_registry_arg <- .graf_names()
 
+      # El worker hereda nada del main process (callr::r_bg). Si estamos
+      # corriendo con PULSO_PROSECNUR_DEV seteado (paquete cargado vía
+      # pkgload en el launcher), hay que repetir la carga acá para que el
+      # subproceso resuelva prosecnur::* a la versión dev y no a la
+      # instalada (que puede estar desactualizada).
+      prosecnur_dev_path <- Sys.getenv("PULSO_PROSECNUR_DEV", "")
+
       job_id <- job_submit(
         sid = sid,
         kind = "graficos.ppt",
         func = function(rp_data_path, rp_inst_path, plan, presets,
-                        slide_registry, graficador_registry, result_path) {
+                        slide_registry, graficador_registry,
+                        prosecnur_dev_path, result_path) {
+          if (nzchar(prosecnur_dev_path) && dir.exists(prosecnur_dev_path)) {
+            if (requireNamespace("pkgload", quietly = TRUE)) {
+              pkgload::load_all(prosecnur_dev_path, quiet = TRUE)
+            } else if (requireNamespace("devtools", quietly = TRUE)) {
+              devtools::load_all(prosecnur_dev_path, quiet = TRUE)
+            }
+          }
           `%||%` <- function(a, b) if (is.null(a)) b else a
           as_json_list <- function(x) {
             if (is.null(x)) return(NULL)
@@ -534,7 +549,8 @@ mount_graficos <- function(pr) {
           plan = plan,
           presets = presets,
           slide_registry = slide_registry_arg,
-          graficador_registry = graficador_registry_arg
+          graficador_registry = graficador_registry_arg,
+          prosecnur_dev_path = prosecnur_dev_path
         ),
         result_filename = sprintf("reporte_%s.pptx", uuid::UUIDgenerate()),
         on_complete = function(j) {
@@ -563,11 +579,23 @@ mount_graficos <- function(pr) {
       )
       graficador_registry_arg <- .graf_names()
 
+      # Ver comentario en /ppt: el worker necesita recargar el prosecnur
+      # dev si corresponde.
+      prosecnur_dev_path <- Sys.getenv("PULSO_PROSECNUR_DEV", "")
+
       job_id <- job_submit(
         sid = sid,
         kind = "graficos.word",
         func = function(rp_data_path, rp_inst_path, plan, presets, w_presets,
-                        slide_registry, graficador_registry, result_path) {
+                        slide_registry, graficador_registry,
+                        prosecnur_dev_path, result_path) {
+          if (nzchar(prosecnur_dev_path) && dir.exists(prosecnur_dev_path)) {
+            if (requireNamespace("pkgload", quietly = TRUE)) {
+              pkgload::load_all(prosecnur_dev_path, quiet = TRUE)
+            } else if (requireNamespace("devtools", quietly = TRUE)) {
+              devtools::load_all(prosecnur_dev_path, quiet = TRUE)
+            }
+          }
           `%||%` <- function(a, b) if (is.null(a)) b else a
           # slide_registry / graficador_registry vienen del main process
           # (fuente única de verdad en graficos_metadata.R).
@@ -627,7 +655,8 @@ mount_graficos <- function(pr) {
           presets = presets,
           w_presets = w_presets,
           slide_registry = slide_registry_arg,
-          graficador_registry = graficador_registry_arg
+          graficador_registry = graficador_registry_arg,
+          prosecnur_dev_path = prosecnur_dev_path
         ),
         result_filename = sprintf("reporte_%s.docx", uuid::UUIDgenerate()),
         on_complete = function(j) {

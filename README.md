@@ -17,6 +17,28 @@ Roadmap completo: `../.claude/plans/pulso-report-podr-a-desarrollarse-recursive-
 - El paquete `prosecnur` disponible localmente (por defecto en `../prosecnur`)
 - (Opcional) [Quarto CLI](https://quarto.org) para el reporte de enumeradores en PDF (Fase 4)
 
+### `prosecnur` dev vs instalado
+
+El launcher soporta dos modos de cargar el paquete `prosecnur`:
+
+- **Instalado** (default): usa la versión que esté en tu `.libPaths()` (la que
+  viste con `make install-r`). Es la que usarás en producción y para testers.
+- **Dev**: exporta `PULSO_PROSECNUR_DEV=/ruta/al/prosecnur` antes de correr
+  `make dev-api`. El launcher lo carga con `pkgload::load_all()` (tanto el
+  main process como los workers `callr` de los exports PPT/Word). Así
+  iterás sobre `prosecnur` sin `devtools::install()` después de cada
+  cambio, y los nombres/firmas nuevos (ej. `p_slide_portada`, graficadores
+  en español) están disponibles de inmediato.
+
+```bash
+# Modo dev recomendado mientras iteramos Fase 5
+PULSO_PROSECNUR_DEV=/Users/<tú>/Documents/Pulso/prosecnur make dev-api
+```
+
+Si el launcher no encuentra el paquete (ni dev ni instalado) aborta con un
+mensaje claro en vez de fallar más tarde con `'p_slide_...' is not an
+exported object`.
+
 ## Primer arranque
 
 ```bash
