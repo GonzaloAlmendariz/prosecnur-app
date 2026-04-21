@@ -85,8 +85,21 @@ export function ArgGroup({
         <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "var(--pulso-text-soft)" }}>
           {meta.label}
         </span>
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginLeft: "auto" }}>
-          {nValuados > 0 ? `${nValuados}/${args.length}` : `${args.length}`}
+        <span
+          title={nValuados > 0 ? `${nValuados} con valor · ${args.length - nValuados} vacíos` : `${args.length} args sin valor`}
+          style={{
+            marginLeft: "auto",
+            fontSize: 10, fontWeight: 600,
+            padding: "2px 8px", borderRadius: 999,
+            border: "1px solid",
+            borderColor: nValuados > 0 ? "var(--pulso-primary-border)" : "var(--pulso-border)",
+            background: nValuados > 0 ? "var(--pulso-primary-soft)" : "white",
+            color: nValuados > 0 ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
+            display: "inline-flex", alignItems: "center", gap: 4,
+            lineHeight: 1.4,
+          }}
+        >
+          {nValuados > 0 ? `${nValuados} / ${args.length}` : args.length}
         </span>
       </button>
       {open && (

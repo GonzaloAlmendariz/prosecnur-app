@@ -92,7 +92,13 @@ export function PresetsEditor() {
           const dimensionales = presets.filter((p) => isDim(p.name));
 
           const renderItem = (p: typeof presets[number]) => {
-            const modified = Object.keys(configPresets[p.name] ?? {}).length > 0;
+            // Mismo criterio que el badge "Modificado" del header: hay
+            // cambios vs el default efectivo, no "hay algo en el store"
+            // (los presets vienen pre-poblados con defaults).
+            const modified = !presetArgsEqual(
+              configPresets[p.name] ?? {},
+              defaults[p.name] ?? {},
+            );
             const isActive = p.name === selected;
             const Icon = resolveLucide(p.icono_ui);
             return (
@@ -127,25 +133,38 @@ export function PresetsEditor() {
             );
           };
 
-          const groupHeader = (label: string, hint?: string) => (
+          const groupHeader = (label: string, hint?: string, isFirst = false) => (
             <div
               style={{
                 fontSize: 10, fontWeight: 700,
-                textTransform: "uppercase", letterSpacing: 0.4,
+                textTransform: "uppercase", letterSpacing: 0.5,
                 color: "var(--pulso-text-soft)",
-                padding: "10px 6px 4px",
-                borderBottom: "1px solid var(--pulso-border)",
-                marginBottom: 4,
+                padding: isFirst ? "2px 8px 6px" : "14px 8px 6px",
+                marginBottom: 2,
+                display: "flex", alignItems: "center", gap: 6,
               }}
               title={hint}
             >
-              {label}
+              <span
+                style={{
+                  flex: 1,
+                  height: 1,
+                  maxWidth: 0,
+                }}
+              />
+              <span>{label}</span>
+              <span
+                style={{
+                  flex: 1, height: 1,
+                  background: "var(--pulso-border)",
+                }}
+              />
             </div>
           );
 
           return (
             <>
-              {groupHeader("Gráficos normales", "Base + los graficadores 2D habituales")}
+              {groupHeader("Gráficos normales", "Base + los graficadores 2D habituales", true)}
               {normales.map(renderItem)}
               {dimensionales.length > 0 && (
                 <>
@@ -214,27 +233,27 @@ function PresetHeader({
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <h3 style={{ margin: 0, fontSize: 14, lineHeight: 1.3 }}>{meta.titulo_humano}</h3>
+          <h3
+            style={{ margin: 0, fontSize: 14, lineHeight: 1.3 }}
+            title={`ID interno: ${meta.name}`}
+          >
+            {meta.titulo_humano}
+          </h3>
           {hasChanges && (
             <span
               style={{
                 fontSize: 10, fontWeight: 600,
-                padding: "2px 7px", borderRadius: 999,
+                padding: "2px 8px 2px 7px", borderRadius: 999,
                 background: "var(--pulso-primary-soft)",
                 color: "var(--pulso-primary)",
+                display: "inline-flex", alignItems: "center", gap: 5,
+                border: "1px solid var(--pulso-primary-border)",
               }}
             >
+              <Circle size={6} fill="var(--pulso-primary)" color="transparent" />
               Modificado
             </span>
           )}
-          <code
-            style={{
-              fontSize: 10, fontFamily: "ui-monospace, monospace",
-              color: "var(--pulso-text-soft)", marginLeft: "auto",
-            }}
-          >
-            {meta.name}
-          </code>
         </div>
         {meta.descripcion && (
           <p
@@ -252,13 +271,24 @@ function PresetHeader({
         <button
           type="button"
           onClick={onReset}
-          title="Volver a los defaults de prosecnur (elimina tus cambios en este preset)."
+          title="Volver a los defaults (elimina tus cambios en este preset)."
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--pulso-surface)";
+            e.currentTarget.style.borderColor = "var(--pulso-primary-border)";
+            e.currentTarget.style.color = "var(--pulso-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.borderColor = "var(--pulso-border)";
+            e.currentTarget.style.color = "var(--pulso-text-soft)";
+          }}
           style={{
             display: "inline-flex", alignItems: "center", gap: 5,
             fontSize: 11, padding: "5px 10px",
             border: "1px solid var(--pulso-border)", borderRadius: 6,
-            background: "white", color: "var(--pulso-text)",
+            background: "transparent", color: "var(--pulso-text-soft)",
             cursor: "pointer", flexShrink: 0,
+            transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
           }}
         >
           <RotateCcw size={11} />

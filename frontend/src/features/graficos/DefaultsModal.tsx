@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import * as Lucide from "lucide-react";
-import { X, Save, Factory, Check, Circle, Plus, Trash2 } from "lucide-react";
+import { X, Save, Factory, Check, Circle, Plus, Trash2, Layers3, Loader2, AlertCircle } from "lucide-react";
 import {
   ArgGrupo, ArgMetadata,
   apiGraficosPresetsDefaultsSave,
@@ -95,8 +95,8 @@ export function DefaultsModal({
 // ---- Presets defaults editor ------------------------------------------
 
 function PresetsDefaultsEditor() {
-  const { presets: catalog } = usePresetsMetadata();
-  const { presets: backendDefaults, esCustom, refresh } = usePresetsDefaults();
+  const { presets: catalog, loading: loadingCatalog } = usePresetsMetadata();
+  const { presets: backendDefaults, esCustom, loading: loadingDefaults, refresh } = usePresetsDefaults();
 
   const [draft, setDraft] = useState<Record<string, Record<string, unknown>>>({});
   const [selected, setSelected] = useState<string>("base");
@@ -108,6 +108,10 @@ function PresetsDefaultsEditor() {
   useEffect(() => {
     setDraft(backendDefaults);
   }, [backendDefaults]);
+
+  if (loadingCatalog || loadingDefaults) {
+    return <LoadingBlock label="Cargando defaults de presets…" />;
+  }
 
   const meta = catalog.find((p) => p.name === selected) ?? catalog[0];
   if (!meta) return null;
@@ -205,7 +209,20 @@ function PresetsDefaultsEditor() {
             {feedback === "reset" ? "Restaurado" : "Volver a fábrica"}
           </button>
         )}
-        {error && <span style={{ color: "#991b1b" }}>{error}</span>}
+        {error && (
+          <span
+            role="alert"
+            style={{
+              fontSize: 11, fontWeight: 500,
+              padding: "3px 8px", borderRadius: 999,
+              background: "#fef2f2", color: "#991b1b",
+              border: "1px solid #fecaca",
+              display: "inline-flex", alignItems: "center", gap: 4,
+            }}
+          >
+            <AlertCircle size={11} /> {error}
+          </span>
+        )}
       </div>
 
       {/* Sidebar + editor */}
@@ -220,13 +237,20 @@ function PresetsDefaultsEditor() {
         >
           {catalog.map((p) => {
             const isActive = p.name === selected;
-            const nArgs = Object.keys(draft[p.name] ?? {}).length;
+            // Señal "hay cambios sin guardar en este preset" — sirve para
+            // que el usuario sepa qué presets tocó en la sesión actual
+            // del modal antes de pulsar Guardar.
+            const dirty = !presetArgsEqual(
+              draft[p.name] ?? {},
+              backendDefaults[p.name] ?? {},
+            );
             const Icon = resolveLucide(p.icono_ui);
             return (
               <button
                 key={p.name}
                 type="button"
                 onClick={() => setSelected(p.name)}
+                title={dirty ? "Tiene cambios sin guardar" : undefined}
                 style={{
                   display: "flex", alignItems: "center", gap: 8,
                   padding: "6px 9px", borderRadius: 6,
@@ -241,8 +265,13 @@ function PresetsDefaultsEditor() {
                 <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {p.titulo_humano}
                 </span>
-                {nArgs > 0 && (
-                  <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>{nArgs}</span>
+                {dirty && (
+                  <Circle
+                    size={7}
+                    fill="var(--pulso-primary)"
+                    color="transparent"
+                    aria-label="Sin guardar"
+                  />
                 )}
               </button>
             );
@@ -311,11 +340,15 @@ function OverridesDefaultsEditor() {
   const updateOverride = usePlanStore((s) => s.updateOverrideReusable);
   const removeOverride = usePlanStore((s) => s.removeOverrideReusable);
 
-  const { presets: catalog, presetsByName } = usePresetsMetadata();
+  const { presets: catalog, presetsByName, loading: loadingCatalog } = usePresetsMetadata();
   const tipoOptions = useMemo(() => catalog.filter((p) => p.name !== "base"), [catalog]);
 
   const [selectedId, setSelectedId] = useState<string | null>(overrides[0]?.id ?? null);
   const selected = overrides.find((o) => o.id === selectedId);
+
+  if (loadingCatalog) {
+    return <LoadingBlock label="Cargando catálogo…" />;
+  }
 
   function newOverride() {
     const ov: OverrideReusable = {
@@ -396,9 +429,30 @@ function OverridesDefaultsEditor() {
             onDelete={() => handleDelete(selected.id)}
           />
         ) : (
-          <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: 20 }}>
-            Selecciona un override o añade uno nuevo.
-          </div>
+          <EmptyState
+            icon={<Layers3 size={22} />}
+            title={overrides.length === 0 ? "Aún no hay overrides" : "Selecciona un override"}
+            hint={
+              overrides.length === 0
+                ? "Crea mini-presets reusables (reducido, compacto…) que cualquier slide del plan puede invocar."
+                : "Elige un override de la izquierda para editar sus args, o crea uno nuevo."
+            }
+            cta={
+              overrides.length === 0 ? (
+                <button
+                  type="button"
+                  className="pulso-primary"
+                  onClick={newOverride}
+                  style={{
+                    fontSize: 12, padding: "7px 14px",
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}
+                >
+                  <Plus size={13} /> Crear primer override
+                </button>
+              ) : undefined
+            }
+          />
         )}
       </section>
     </div>
@@ -472,3 +526,64 @@ function OverrideEditForm({
   );
 }
 
+// ---- Shared UI helpers ------------------------------------------------
+
+function LoadingBlock({ label }: { label: string }) {
+  return (
+    <div
+      role="status"
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        gap: 10, minHeight: 320,
+        fontSize: 12, color: "var(--pulso-text-soft)",
+      }}
+    >
+      <Loader2
+        size={16}
+        color="var(--pulso-primary)"
+        style={{ animation: "pulso-spin 900ms linear infinite" }}
+      />
+      {label}
+      <style>{`@keyframes pulso-spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
+function EmptyState({
+  icon, title, hint, cta,
+}: {
+  icon: JSX.Element;
+  title: string;
+  hint?: string;
+  cta?: JSX.Element;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex", flexDirection: "column", alignItems: "center",
+        justifyContent: "center", textAlign: "center",
+        gap: 8, padding: "40px 20px", minHeight: 260,
+        color: "var(--pulso-text-soft)",
+      }}
+    >
+      <span
+        style={{
+          width: 42, height: 42, borderRadius: 10,
+          background: "var(--pulso-surface)",
+          color: "var(--pulso-text-soft)",
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          border: "1px solid var(--pulso-border)",
+        }}
+      >
+        {icon}
+      </span>
+      <h4 style={{ margin: 0, fontSize: 13, color: "var(--pulso-text)" }}>{title}</h4>
+      {hint && (
+        <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5, maxWidth: 320 }}>
+          {hint}
+        </p>
+      )}
+      {cta && <div style={{ marginTop: 6 }}>{cta}</div>}
+    </div>
+  );
+}
