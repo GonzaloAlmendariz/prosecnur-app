@@ -11,6 +11,7 @@ import {
 import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
 import { Panel } from "../../components/Panel";
+import { LoadingBlock, ErrorBlock } from "../../components/States";
 
 type Props = {
   onBackToCodificar: () => void;
@@ -56,8 +57,8 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
   function onJobError(msg: string) { setRunErr(msg); setJobId(null); }
   function onJobCancelled() { setJobId(null); }
 
-  if (loadErr) return <Alert kind="error">{loadErr}</Alert>;
-  if (!plan) return <Alert kind="info">Cargando resumen…</Alert>;
+  if (loadErr) return <ErrorBlock label="Error cargando plan" detail={loadErr} />;
+  if (!plan) return <LoadingBlock label="Cargando resumen…" />;
 
   const noHayNada = plan.preguntas.length === 0;
   const preguntasSoportadas = plan.preguntas.filter((p) => p.bridge_soportado);
@@ -186,7 +187,7 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
 
       {output && (
         <Panel eyebrow="Resultado" title="Archivos adaptados listos para descargar">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#166534", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--pulso-success-fg)", marginBottom: 10 }}>
             <CheckCircle2 size={16} /> La adaptación terminó correctamente.
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -276,9 +277,9 @@ function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
           flexWrap: "wrap",
         }}
       >
-        <span style={{ color: "#166534", fontWeight: 700 }}>Nueva variable:</span>
+        <span style={{ color: "var(--pulso-success-fg)", fontWeight: 700 }}>Nueva variable:</span>
         <code style={{ fontFamily: "monospace", fontWeight: 700 }}>{p.nueva_variable}</code>
-        <span style={{ color: "#166534" }}>·</span>
+        <span style={{ color: "var(--pulso-success-fg)" }}>·</span>
         <span>{p.n_respuestas_afectadas} {p.n_respuestas_afectadas === 1 ? "respuesta afectada" : "respuestas afectadas"}</span>
       </div>
 
@@ -314,8 +315,8 @@ function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
 }
 
 function CodigoRow({ c, kind }: { c: { codigo: string; etiqueta: string; n_respuestas: number }; kind: "nuevo" | "reuso" }) {
-  const bg = kind === "nuevo" ? "#dcfce7" : "#eef2ff";
-  const fg = kind === "nuevo" ? "#166534" : "#4338ca";
+  const bg = kind === "nuevo" ? "var(--pulso-success-bg)" : "#eef2ff";
+  const fg = kind === "nuevo" ? "var(--pulso-success-fg)" : "#4338ca";
   return (
     <div
       style={{

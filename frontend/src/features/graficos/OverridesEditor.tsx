@@ -5,7 +5,7 @@ import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore, OverrideReusable } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
-import { LoadingBlock, ErrorBlock, EmptyState } from "./ui/States";
+import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 // AdvancedJsonEditor deshabilitado — ver nota en PresetsEditor.
 
 // Overrides reutilizables = mini-presets nombrados (ej. "compacto", "grande")

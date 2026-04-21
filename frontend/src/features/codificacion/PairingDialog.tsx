@@ -258,9 +258,9 @@ function ModoOption({ value, current, onChange, title, description }: { value: "
 }
 
 function ConfLabel({ conf }: { conf: number }) {
-  if (conf >= 1.0) return <span style={{ fontSize: 10, fontWeight: 700, color: "#166534", letterSpacing: 0.3, textTransform: "uppercase" }}>Match fuerte</span>;
-  if (conf >= 0.6) return <span style={{ fontSize: 10, fontWeight: 700, color: "#8a5000", letterSpacing: 0.3, textTransform: "uppercase" }}>Prefijo</span>;
-  return <span style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", letterSpacing: 0.3, textTransform: "uppercase" }}>Misma sección</span>;
+  if (conf >= 1.0) return <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-success-fg)", letterSpacing: 0.3, textTransform: "uppercase" }}>Match fuerte</span>;
+  if (conf >= 0.6) return <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-warn-fg)", letterSpacing: 0.3, textTransform: "uppercase" }}>Prefijo</span>;
+  return <span style={{ fontSize: 10, fontWeight: 600, color: "var(--pulso-status-empty)", letterSpacing: 0.3, textTransform: "uppercase" }}>Misma sección</span>;
 }
 
 function escapeRegex(s: string): string {

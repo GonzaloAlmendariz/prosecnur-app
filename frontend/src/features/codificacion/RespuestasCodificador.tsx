@@ -3,6 +3,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Inbox,
   Loader2,
   ListPlus,
   Plus,
@@ -50,7 +51,7 @@ import {
   Grupo,
   RespuestaUnica,
 } from "../../api/client";
-import { Alert } from "../../components/Alert";
+import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
@@ -258,8 +259,8 @@ export function RespuestasCodificador({ parent }: Props) {
     });
   }
 
-  if (error) return <Alert kind="error">{error}</Alert>;
-  if (!respuestas) return <Alert kind="info">Cargando respuestas…</Alert>;
+  if (error) return <ErrorBlock label="Error cargando respuestas" detail={error} />;
+  if (!respuestas) return <LoadingBlock variant="inline" label="Cargando respuestas…" />;
 
   return (
     <div>
@@ -267,7 +268,7 @@ export function RespuestasCodificador({ parent }: Props) {
         <SaveBadge status={saveStatus} />
         <span style={{ fontSize: 13, color: "var(--pulso-text-soft)" }}>
           <strong style={{ color: "var(--pulso-text)" }}>{codificadas}</strong> de <strong>{respuestas.length}</strong> respuestas codificadas
-          {pendientes > 0 && <> · <strong style={{ color: "#8a5000" }}>{pendientes} pendientes</strong></>}
+          {pendientes > 0 && <> · <strong style={{ color: "var(--pulso-warn-fg)" }}>{pendientes} pendientes</strong></>}
           {grupos.length > 0 && <> · <strong>{grupos.length}</strong> {grupos.length === 1 ? "grupo" : "grupos"}</>}
         </span>
         <div style={{ flex: 1 }} />
@@ -295,8 +296,9 @@ export function RespuestasCodificador({ parent }: Props) {
             </span>
           </div>
           {/* Counter SM "Otros" — visible solo para select_multiple con
-              dummy_col resuelto. Aclara de dónde vienen los textos
-              (personas que marcaron Otros) y cuánto queda sin codificar. */}
+              dummy_col resuelto. Mini-stats con label arriba y número
+              abajo para que cada pieza sea parseable de un vistazo
+              (antes era texto corrido con puntos medios). */}
           {tipo === "select_multiple" && smOtros && (
             <div style={{
               marginBottom: 10,
@@ -304,21 +306,23 @@ export function RespuestasCodificador({ parent }: Props) {
               background: "var(--tipo-sm-bg)",
               border: "1px solid var(--tipo-sm-border)",
               borderRadius: 6,
-              fontSize: 12,
             }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--tipo-sm-fg)", marginBottom: 4 }}>
+              <div style={{
+                fontSize: 10, fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: 0.5,
+                color: "var(--tipo-sm-fg)", marginBottom: 8,
+              }}>
                 Opción "Otros, especifique" en {parent}
               </div>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}>
-                <span><strong>{smOtros.n_otros_marcados}</strong> marcaron Otros</span>
-                <span style={{ color: "var(--pulso-text-soft)" }}>·</span>
-                <span><strong>{totalTextoFrecuencia}</strong> con texto libre</span>
-                <span style={{ color: "var(--pulso-text-soft)" }}>·</span>
-                <span style={{ color: "#166534" }}><strong>{casosCodificados}</strong> codificadas</span>
-                <span style={{ color: "var(--pulso-text-soft)" }}>·</span>
-                <span style={{ color: casosPendientesOtros > 0 ? "#8a5000" : "var(--pulso-text-soft)" }}>
-                  <strong>{casosPendientesOtros}</strong> sin codificar
-                </span>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                <MiniStat label="Marcaron Otros" value={smOtros.n_otros_marcados} />
+                <MiniStat label="Con texto libre" value={totalTextoFrecuencia} />
+                <MiniStat label="Codificadas" value={casosCodificados} tone="success" />
+                <MiniStat
+                  label="Sin codificar"
+                  value={casosPendientesOtros}
+                  tone={casosPendientesOtros > 0 ? "warn" : "muted"}
+                />
               </div>
             </div>
           )}
@@ -393,7 +397,7 @@ export function RespuestasCodificador({ parent }: Props) {
                       <span><strong>{r.frecuencia}</strong> {r.frecuencia === 1 ? "vez" : "veces"}</span>
                       {r.variantes > 1 && <span>{r.variantes} variantes</span>}
                       {assigned && (
-                        <span style={{ color: "#166534", fontWeight: 600 }}>
+                        <span style={{ color: "var(--pulso-success-fg)", fontWeight: 600 }}>
                           → {grupo!.codigo}{grupo!.etiqueta ? ` · ${grupo!.etiqueta}` : ""}
                         </span>
                       )}
@@ -421,9 +425,12 @@ export function RespuestasCodificador({ parent }: Props) {
             </span>
           </div>
           {grupos.length === 0 && (
-            <div style={{ padding: 18, border: "2px dashed var(--pulso-border)", borderRadius: 8, textAlign: "center", fontSize: 13, color: "var(--pulso-text-soft)" }}>
-              Crea tu primer grupo con <strong>+ Nuevo grupo</strong> o marca una respuesta para crearlo automáticamente.
-            </div>
+            <EmptyState
+              variant="inline"
+              icon={<Inbox size={18} />}
+              title="Sin grupos"
+              hint="Crea uno con '+ Nuevo grupo' o marca una respuesta de la izquierda — se crea un grupo vacío automáticamente."
+            />
           )}
           {/* Scroll interno independiente de la columna de respuestas. Cap
               en 540px + scrollbar minimalista para que ambas columnas
@@ -629,7 +636,7 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
               style={{ flex: 1, fontSize: 13, minWidth: 0 }}
               aria-label="Etiqueta del grupo"
             />
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#166534", background: "#dcfce7", padding: "2px 6px", borderRadius: 3, flexShrink: 0 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-success-fg)", background: "var(--pulso-success-bg)", padding: "2px 6px", borderRadius: 3, flexShrink: 0 }}>
               Nuevo
             </span>
             <MoveButtons onMoveUp={onMoveUp} onMoveDown={onMoveDown} isFirst={isFirst} isLast={isLast} />
@@ -701,7 +708,7 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             {sugerencias.map(({ t, sim }) => {
               const pct = Math.round(sim * 100);
-              const simColor = sim >= 0.85 ? "#166534" : sim >= 0.7 ? "#8a5000" : "#6b7280";
+              const simColor = sim >= 0.85 ? "var(--pulso-success-fg)" : sim >= 0.7 ? "var(--pulso-warn-fg)" : "var(--pulso-status-empty)";
               return (
                 <button
                   key={t.texto_normalizado}
@@ -736,14 +743,14 @@ function truncateText(s: string, n: number) {
 
 function SaveBadge({ status }: { status: SaveStatus }) {
   if (status === "saving")
-    return <Badge bg="#eef3ff" fg="#2446a3"><Loader2 size={12} className="pulso-spin" /> Guardando…</Badge>;
+    return <Badge bg="var(--pulso-info-bg)" fg="var(--pulso-info-fg)"><Loader2 size={12} className="pulso-spin" /> Guardando…</Badge>;
   if (status === "saved")
-    return <Badge bg="#e8f5ea" fg="#1b6b2f"><Check size={12} /> Guardado</Badge>;
+    return <Badge bg="var(--pulso-success-bg)" fg="var(--pulso-success-fg)"><Check size={12} /> Guardado</Badge>;
   if (status === "dirty")
-    return <Badge bg="#fff7e0" fg="#8a6100">Cambios sin guardar</Badge>;
+    return <Badge bg="var(--pulso-warn-bg)" fg="var(--pulso-warn-fg)">Cambios sin guardar</Badge>;
   if (status === "error")
-    return <Badge bg="#fde7e7" fg="#a51f1f"><AlertCircle size={12} /> Error</Badge>;
-  return <Badge bg="#f0f2f7" fg="#555">Sin cambios</Badge>;
+    return <Badge bg="var(--pulso-danger-bg)" fg="var(--pulso-danger-fg)"><AlertCircle size={12} /> Error</Badge>;
+  return <Badge bg="var(--pulso-surface-2)" fg="var(--pulso-text-soft)">Sin cambios</Badge>;
 }
 function Badge({ bg, fg, children }: { bg: string; fg: string; children: React.ReactNode }) {
   return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, color: fg, background: bg }}>{children}</span>;
@@ -762,27 +769,62 @@ function MoveButtons({ onMoveUp, onMoveDown, isFirst, isLast }: {
   isLast: boolean;
 }) {
   return (
-    <span style={{ display: "inline-flex", gap: 2 }}>
+    <span style={{ display: "inline-flex", gap: 3 }}>
       <button
         type="button"
         className="pulso-icon"
         onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
         disabled={isFirst}
-        title="Mover arriba"
-        aria-label="Mover arriba"
+        title="Subir (el orden determina cómo aparecen en el xlsx final)"
+        aria-label="Subir este grupo"
       >
-        <ChevronUp size={12} />
+        <ChevronUp size={14} />
       </button>
       <button
         type="button"
         className="pulso-icon"
         onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
         disabled={isLast}
-        title="Mover abajo"
-        aria-label="Mover abajo"
+        title="Bajar (el orden determina cómo aparecen en el xlsx final)"
+        aria-label="Bajar este grupo"
       >
-        <ChevronDown size={12} />
+        <ChevronDown size={14} />
       </button>
     </span>
+  );
+}
+
+// Mini-stat con label uppercase arriba y número grande abajo. Usado en
+// el counter SM "Otros" — más parseable de un vistazo que el texto corrido
+// anterior. Tone define el color del número (neutral / success / warn / muted).
+function MiniStat({
+  label, value, tone = "neutral",
+}: {
+  label: string;
+  value: number;
+  tone?: "neutral" | "success" | "warn" | "muted";
+}) {
+  const color =
+    tone === "success" ? "var(--pulso-success-fg)" :
+    tone === "warn" ? "var(--pulso-warn-fg)" :
+    tone === "muted" ? "var(--pulso-text-soft)" :
+    "var(--pulso-text)";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      <span style={{
+        fontSize: 9, fontWeight: 600,
+        textTransform: "uppercase", letterSpacing: 0.4,
+        color: "var(--pulso-text-soft)",
+      }}>
+        {label}
+      </span>
+      <span style={{
+        fontSize: 15, fontWeight: 700,
+        color,
+        fontVariantNumeric: "tabular-nums",
+      }}>
+        {value}
+      </span>
+    </div>
   );
 }

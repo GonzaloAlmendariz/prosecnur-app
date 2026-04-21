@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, Download, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Circle, ClipboardList, Clock, Download, Upload } from "lucide-react";
 import {
   apiCodifExportJson,
   apiCodifImportJson,
@@ -8,7 +8,7 @@ import {
   PreguntaAbierta,
   PreguntaStatus,
 } from "../../api/client";
-import { Alert } from "../../components/Alert";
+import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { RespuestasCodificador } from "./RespuestasCodificador";
 import { IntegerCodificador } from "./IntegerCodificador";
 
@@ -112,20 +112,29 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
     if (activeIdx >= 0 && activeIdx < marcadas.length - 1) setActiveParent(marcadas[activeIdx + 1].parent);
   }
 
-  if (error) return <Alert kind="error">{error}</Alert>;
-  if (!data) return <Alert kind="info">Cargando preguntas marcadas…</Alert>;
+  if (error) return <ErrorBlock label="Error cargando preguntas" detail={error} />;
+  if (!data) return <LoadingBlock label="Cargando preguntas marcadas…" />;
 
   if (marcadas.length === 0) {
     return (
-      <div style={{ padding: 40, textAlign: "center", background: "white", border: "1px solid var(--pulso-border)", borderRadius: 8 }}>
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>No hay preguntas marcadas para codificar</h3>
-        <p style={{ fontSize: 13, color: "var(--pulso-text-soft)", marginTop: 8 }}>
-          Vuelve al paso <strong>1. Organizar</strong> y marca las preguntas que quieres codificar (o empareja las SO/SM con sus "Otros, especifique").
-        </p>
-        <button className="pulso-primary" onClick={onBackToOrganizar} style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <ArrowLeft size={14} /> Volver a organizar
-        </button>
-      </div>
+      <EmptyState
+        icon={<ClipboardList size={22} />}
+        title="No hay preguntas marcadas para codificar"
+        hint="Vuelve al paso 1 · Organizar y marca las preguntas que quieres codificar (o empareja las SO/SM con sus 'Otros, especifique')."
+        cta={
+          <button
+            type="button"
+            className="pulso-primary"
+            onClick={onBackToOrganizar}
+            style={{
+              fontSize: 12, padding: "7px 14px",
+              display: "inline-flex", alignItems: "center", gap: 6,
+            }}
+          >
+            <ArrowLeft size={13} /> Volver a organizar
+          </button>
+        }
+      />
     );
   }
 
@@ -157,17 +166,17 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
           <div
             style={{
               marginTop: 10, padding: 12,
-              background: "var(--pulso-surface)",
-              border: "1px solid var(--pulso-border)",
+              background: "var(--pulso-success-bg)",
+              border: "1px solid var(--pulso-success-border)",
               borderRadius: 8,
               display: "flex", flexDirection: "column", gap: 10,
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#166534", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-success-fg)", display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <CheckCircle2 size={11} /> Autoguardado activo
               </div>
-              <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+              <div style={{ fontSize: 11, color: "var(--pulso-success-fg)", opacity: 0.85, lineHeight: 1.4 }}>
                 El progreso se guarda solo. Exporta un JSON para respaldarlo o compartirlo.
               </div>
             </div>
@@ -202,7 +211,7 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
               </label>
             </div>
             {ioMsg && (
-              <div style={{ fontSize: 11, color: "#166534", fontWeight: 600 }}>{ioMsg}</div>
+              <div style={{ fontSize: 11, color: "var(--pulso-success-fg)", fontWeight: 600 }}>{ioMsg}</div>
             )}
           </div>
         </div>
@@ -221,7 +230,11 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
             nextLabel={activeIdx < marcadas.length - 1 ? marcadas[activeIdx + 1].parent : ""}
           />
         ) : (
-          <Alert kind="info">Selecciona una pregunta del listado de la izquierda.</Alert>
+          <EmptyState
+            icon={<ClipboardList size={20} />}
+            title="Selecciona una pregunta"
+            hint="Elige una pregunta del listado de la izquierda para empezar a codificar."
+          />
         )}
       </main>
     </div>
@@ -267,10 +280,10 @@ function SidebarItem({ p, active, onClick }: { p: PreguntaAbierta; active: boole
 }
 
 function statusMeta(s: PreguntaStatus): { label: string; color: string; Icon: typeof Circle; spin?: boolean } {
-  if (s === "completo") return { label: "Codificada", color: "#166534", Icon: CheckCircle2 };
-  if (s === "en-curso") return { label: "En curso", color: "#0e7490", Icon: Clock };
-  if (s === "sin-datos") return { label: "Sin datos", color: "#6b7280", Icon: Circle };
-  return { label: "Pendiente", color: "#1d4ed8", Icon: Circle };
+  if (s === "completo") return { label: "Codificada", color: "var(--pulso-success-fg)", Icon: CheckCircle2 };
+  if (s === "en-curso") return { label: "En curso", color: "var(--pulso-status-in-progress)", Icon: Clock };
+  if (s === "sin-datos") return { label: "Sin datos", color: "var(--pulso-status-empty)", Icon: Circle };
+  return { label: "Pendiente", color: "var(--pulso-status-pending)", Icon: Circle };
 }
 
 function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextLabel }: {
@@ -302,30 +315,79 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
 
   return (
     <section>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-        <h1 className="pulso-page-title" style={{ fontFamily: "monospace", fontSize: 24, margin: 0 }}>{p.parent}</h1>
-        <span style={{ padding: "3px 8px", borderRadius: 4, background: ts.bg, color: ts.fg, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
-          {ts.label}
-          {p.modo_so === "hijo" && " · hijo"}
-          {p.modo_so === "padre" && " · padre"}
+      {/* Header: misma jerarquía que el resto del app — h2 humano + code-pill
+          del identifier del XLSForm + chip de tipo + sección. */}
+      <header style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
+        <span
+          style={{
+            width: 34, height: 34, borderRadius: 8,
+            background: ts.bg, color: ts.fg,
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, fontSize: 11, fontWeight: 700,
+            border: `1px solid ${ts.border}`,
+          }}
+          aria-hidden="true"
+          title={ts.label}
+        >
+          {ts.label.slice(0, 2).toUpperCase()}
         </span>
-        {p.section_label && (
-          <span style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
-            {p.section_label}
-          </span>
-        )}
-      </div>
-      <p className="pulso-page-lead" style={{ fontSize: 14 }}>{p.parent_label}</p>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <h2 style={{ margin: 0, fontSize: 16, lineHeight: 1.3, fontWeight: 700 }}>
+              {p.parent_label}
+            </h2>
+            <code
+              title={`ID del XLSForm: ${p.parent}`}
+              style={{
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 11, fontWeight: 600,
+                color: ts.fg, background: ts.bg,
+                padding: "2px 8px", borderRadius: 4,
+                border: `1px solid ${ts.border}`,
+              }}
+            >
+              {p.parent}
+            </code>
+            <span
+              style={{
+                padding: "2px 8px", borderRadius: 999,
+                background: ts.bg, color: ts.fg,
+                fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3,
+              }}
+            >
+              {ts.label}
+              {p.modo_so === "hijo" && " · hijo"}
+              {p.modo_so === "padre" && " · padre"}
+            </span>
+          </div>
+          {p.section_label && (
+            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4 }}>
+              {p.section_label}
+            </div>
+          )}
+        </div>
+      </header>
 
-      {/* Nav prev/next */}
+      {/* Nav prev/next con ghost-buttons consistentes */}
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
-        <button type="button" onClick={onPrev} disabled={!canPrev} style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
-          <ArrowLeft size={12} /> {prevLabel || "Anterior"}
+        <button
+          type="button"
+          onClick={onPrev}
+          disabled={!canPrev}
+          className="pulso-ghost-nav"
+          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 5 }}
+        >
+          <ArrowLeft size={12} /> <span style={{ opacity: 0.7 }}>Anterior:</span> {prevLabel || "—"}
         </button>
         <div style={{ flex: 1 }} />
-        <button type="button" onClick={onNext} disabled={!canNext} style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
-          {nextLabel || "Siguiente"} <ArrowRight size={12} />
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={!canNext}
+          className="pulso-ghost-nav"
+          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 5 }}
+        >
+          <span style={{ opacity: 0.7 }}>Siguiente:</span> {nextLabel || "—"} <ArrowRight size={12} />
         </button>
       </div>
 

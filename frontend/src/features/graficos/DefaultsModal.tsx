@@ -13,7 +13,7 @@ import { usePresetsMetadata } from "./usePresetsMetadata";
 import { usePresetsDefaults, presetArgsEqual } from "./usePresetsDefaults";
 import { useOverridesDefaults } from "./useOverridesDefaults";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
-import { LoadingBlock, EmptyState } from "./ui/States";
+import { LoadingBlock, EmptyState } from "../../components/States";
 
 // Modal "Gestionar defaults". Dos modos según cómo se abrió:
 //   - mode="presets": edita los defaults de presets (lo que sirve de

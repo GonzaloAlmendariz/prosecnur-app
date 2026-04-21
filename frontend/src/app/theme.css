@@ -45,6 +45,32 @@
   --anim-dur-long: 520ms;
   --anim-ease-expressive: cubic-bezier(0.34, 1.56, 0.64, 1);
   --anim-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Status colors — usados para badges de "en curso / completo / sin
+   * datos / pendiente", alerts inline, chips de advertencia, etc.
+   * Mismo set que los `.pulso-alert-*` pero disponible como tokens para
+   * botones, dots, barras de progreso y otros usos que no son banners. */
+  --pulso-success-bg: #dcfce7;
+  --pulso-success-border: #86efac;
+  --pulso-success-fg: #166534;
+
+  --pulso-warn-bg: #fff4e0;
+  --pulso-warn-border: #f0d799;
+  --pulso-warn-fg: #8a5000;
+  --pulso-warn-accent: #d68a00;
+
+  --pulso-danger-bg: #fef2f2;
+  --pulso-danger-border: #fecaca;
+  --pulso-danger-fg: #991b1b;
+
+  --pulso-info-bg: rgba(0, 36, 87, 0.04);
+  --pulso-info-border: var(--pulso-primary-border);
+  --pulso-info-fg: var(--pulso-primary);
+
+  /* Estados de codificación (usados en sidebars y badges del Wizard) */
+  --pulso-status-in-progress: #0e7490;
+  --pulso-status-pending: #1d4ed8;
+  --pulso-status-empty: #6b7280;
 }
 
 @keyframes pulso-card-glow-kf {
@@ -183,19 +209,19 @@ h1.pulso-page-title {
   border: 1px solid transparent;
 }
 .pulso-alert-info {
-  background: rgba(0, 36, 87, 0.04);
-  border-color: var(--pulso-primary-border);
-  color: var(--pulso-primary);
+  background: var(--pulso-info-bg);
+  border-color: var(--pulso-info-border);
+  color: var(--pulso-info-fg);
 }
 .pulso-alert-warn {
-  background: #fefce8;
-  border-color: #fde68a;
-  color: #854d0e;
+  background: var(--pulso-warn-bg);
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
 }
 .pulso-alert-error {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #991b1b;
+  background: var(--pulso-danger-bg);
+  border-color: var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
 }
 
 /* Panel */
@@ -239,6 +265,30 @@ button.pulso-ghost {
 }
 button.pulso-ghost:hover:not(:disabled) {
   background: rgba(0, 36, 87, 0.04);
+}
+
+/* Botón de navegación tipo "ghost" — ni primary ni outline, solo hover
+   con background soft. Usado en nav prev/next del CodificarWizard y
+   cualquier otra navegación contextual donde el botón no debe competir
+   visualmente con el CTA principal. */
+button.pulso-ghost-nav {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--pulso-text);
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+button.pulso-ghost-nav:hover:not(:disabled) {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-border);
+  color: var(--pulso-primary);
+}
+button.pulso-ghost-nav:disabled {
+  color: var(--pulso-text-soft);
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Icon button */

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Check, ChevronDown, ChevronUp, Loader2, Plus, Trash2, AlertCircle, AlertTriangle,
+  Check, ChevronDown, ChevronUp, Info, Inbox, Loader2, Plus, Trash2, AlertCircle, AlertTriangle,
 } from "lucide-react";
 import {
   apiCodifGrupos,
@@ -9,7 +9,7 @@ import {
   ReglaInteger,
   RespuestaUnica,
 } from "../../api/client";
-import { Alert } from "../../components/Alert";
+import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
@@ -184,8 +184,8 @@ export function IntegerCodificador({ parent }: Props) {
     });
   }
 
-  if (error) return <Alert kind="error">{error}</Alert>;
-  if (!respuestas) return <Alert kind="info">Cargando valores…</Alert>;
+  if (error) return <ErrorBlock label="Error cargando valores" detail={error} />;
+  if (!respuestas) return <LoadingBlock variant="inline" label="Cargando valores…" />;
 
   return (
     <div>
@@ -195,7 +195,7 @@ export function IntegerCodificador({ parent }: Props) {
           <strong style={{ color: "var(--pulso-text)" }}>{stats.covered}</strong> de <strong>{stats.total}</strong> valores únicos cubiertos
           {stats.cases > 0 && <> · <strong>{stats.cases}</strong> de {stats.totalCasos} casos</>}
           {grupos.length > 0 && <> · <strong>{grupos.length}</strong> {grupos.length === 1 ? "grupo" : "grupos"}</>}
-          {stats.overlaps > 0 && <> · <span style={{ color: "#a51f1f", fontWeight: 700 }}>{stats.overlaps} valor(es) en más de un grupo</span></>}
+          {stats.overlaps > 0 && <> · <span style={{ color: "var(--pulso-danger-fg)", fontWeight: 700 }}>{stats.overlaps} valor(es) en más de un grupo</span></>}
         </span>
         <div style={{ flex: 1 }} />
         <button type="button" className="pulso-primary" onClick={addGroup} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -203,12 +203,50 @@ export function IntegerCodificador({ parent }: Props) {
         </button>
       </div>
 
-      {grupos.length === 0 && (
-        <div style={{ padding: 18, border: "2px dashed var(--pulso-border)", borderRadius: 8, textAlign: "center", fontSize: 13, color: "var(--pulso-text-soft)" }}>
-          Define rangos para agrupar los valores numéricos.
-          <br />
-          Ejemplo: <strong>de 18 a 29</strong> con código <strong>1 "Jóvenes"</strong>; <strong>de 30 a 59</strong> con código <strong>2 "Adultos"</strong>; <strong>60 o más</strong> con código <strong>3 "Mayores"</strong>.
+      {/* Hint de precedencia: antes estaba solo en el tooltip de Mover
+          arriba. Ahora explícito arriba de la lista — el analista debe
+          saber que first-match-wins al asignar rangos solapados. */}
+      {grupos.length > 1 && (
+        <div
+          role="note"
+          style={{
+            display: "flex", alignItems: "flex-start", gap: 8,
+            padding: "8px 12px", marginBottom: 10,
+            background: "var(--pulso-info-bg)",
+            border: "1px solid var(--pulso-info-border)",
+            borderRadius: 6,
+            fontSize: 11, color: "var(--pulso-info-fg)", lineHeight: 1.5,
+          }}
+        >
+          <Info size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>
+            <strong>El orden importa.</strong> Si dos rangos cubren el mismo valor,
+            gana el que está arriba. Usa los chevrones ↑/↓ de cada grupo para
+            reordenar.
+          </span>
         </div>
+      )}
+
+      {grupos.length === 0 && (
+        <EmptyState
+          variant="inline"
+          icon={<Inbox size={18} />}
+          title="Sin rangos definidos"
+          hint="Crea rangos para agrupar los valores numéricos. Ej.: 18–29 con código 1 'Jóvenes'; 30–59 con código 2 'Adultos'; 60+ con código 3 'Mayores'."
+          cta={
+            <button
+              type="button"
+              className="pulso-primary"
+              onClick={addGroup}
+              style={{
+                fontSize: 12, padding: "7px 14px",
+                display: "inline-flex", alignItems: "center", gap: 6,
+              }}
+            >
+              <Plus size={13} /> Crear primer rango
+            </button>
+          }
+        />
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -286,8 +324,8 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
 
   return (
     <article style={{
-      border: `1px solid ${incompleta ? "#f0d799" : "var(--pulso-border)"}`,
-      background: incompleta ? "#fffcf3" : "white",
+      border: `1px solid ${incompleta ? "var(--pulso-warn-border)" : "var(--pulso-border)"}`,
+      background: incompleta ? "var(--pulso-warn-bg)" : "white",
       borderRadius: 8, padding: 12,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "nowrap" }}>
@@ -317,26 +355,26 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
           <option value="gte">X o más</option>
           <option value="lte">X o menos</option>
         </select>
-        <span style={{ display: "inline-flex", gap: 2, flexShrink: 0 }}>
+        <span style={{ display: "inline-flex", gap: 3, flexShrink: 0 }}>
           <button
             type="button"
             className="pulso-icon"
             onClick={onMoveUp}
             disabled={isFirst}
-            title="Mover arriba · el orden define precedencia en integer"
-            aria-label="Mover arriba"
+            title="Subir · gana prioridad frente a los rangos de abajo (first-match-wins)"
+            aria-label="Subir este rango"
           >
-            <ChevronUp size={12} />
+            <ChevronUp size={14} />
           </button>
           <button
             type="button"
             className="pulso-icon"
             onClick={onMoveDown}
             disabled={isLast}
-            title="Mover abajo · el orden define precedencia en integer"
-            aria-label="Mover abajo"
+            title="Bajar · pierde prioridad frente a los rangos de arriba"
+            aria-label="Bajar este rango"
           >
-            <ChevronDown size={12} />
+            <ChevronDown size={14} />
           </button>
         </span>
         <button
@@ -361,18 +399,18 @@ function GrupoReglaCard({ grupo, respuestas, onUpdate, onDelete, onMoveUp, onMov
       <div style={{ marginTop: 8, fontSize: 11, color: "var(--pulso-text-soft)" }}>
         {incompleta ? (
           <>
-            <AlertTriangle size={11} color="#8a5000" style={{ verticalAlign: "middle" }} />{" "}
-            <span style={{ color: "#8a5000" }}>Rango incompleto — completa los valores para que cubra respuestas.</span>
+            <AlertTriangle size={11} color="var(--pulso-warn-fg)" style={{ verticalAlign: "middle" }} />{" "}
+            <span style={{ color: "var(--pulso-warn-fg)" }}>Rango incompleto — completa los valores para que cubra respuestas.</span>
           </>
         ) : cobertura.n > 0 ? (
           <>
-            <Check size={11} color="#166534" style={{ verticalAlign: "middle" }} />{" "}
+            <Check size={11} color="var(--pulso-success-fg)" style={{ verticalAlign: "middle" }} />{" "}
             <strong>{cobertura.n}</strong> valor{cobertura.n === 1 ? "" : "es"} ·{" "}
             <strong>{cobertura.casos}</strong> caso{cobertura.casos === 1 ? "" : "s"} cubierto{cobertura.casos === 1 ? "" : "s"}
           </>
         ) : (
           <>
-            <AlertTriangle size={11} color="#8a5000" style={{ verticalAlign: "middle" }} />{" "}
+            <AlertTriangle size={11} color="var(--pulso-warn-fg)" style={{ verticalAlign: "middle" }} />{" "}
             Ningún valor en el dataset cae en este rango.
           </>
         )}
@@ -430,11 +468,11 @@ function SingleBoundEditor({ label, regla, onChange }: {
 }
 
 function SaveBadge({ status }: { status: SaveStatus }) {
-  if (status === "saving") return <Badge bg="#eef3ff" fg="#2446a3"><Loader2 size={12} className="pulso-spin" /> Guardando…</Badge>;
-  if (status === "saved") return <Badge bg="#e8f5ea" fg="#1b6b2f"><Check size={12} /> Guardado</Badge>;
-  if (status === "dirty") return <Badge bg="#fff7e0" fg="#8a6100">Cambios sin guardar</Badge>;
-  if (status === "error") return <Badge bg="#fde7e7" fg="#a51f1f"><AlertCircle size={12} /> Error</Badge>;
-  return <Badge bg="#f0f2f7" fg="#555">Sin cambios</Badge>;
+  if (status === "saving") return <Badge bg="var(--pulso-info-bg)" fg="var(--pulso-info-fg)"><Loader2 size={12} className="pulso-spin" /> Guardando…</Badge>;
+  if (status === "saved") return <Badge bg="var(--pulso-success-bg)" fg="var(--pulso-success-fg)"><Check size={12} /> Guardado</Badge>;
+  if (status === "dirty") return <Badge bg="var(--pulso-warn-bg)" fg="var(--pulso-warn-fg)">Cambios sin guardar</Badge>;
+  if (status === "error") return <Badge bg="var(--pulso-danger-bg)" fg="var(--pulso-danger-fg)"><AlertCircle size={12} /> Error</Badge>;
+  return <Badge bg="var(--pulso-surface-2)" fg="var(--pulso-text-soft)">Sin cambios</Badge>;
 }
 function Badge({ bg, fg, children }: { bg: string; fg: string; children: React.ReactNode }) {
   return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, color: fg, background: bg }}>{children}</span>;

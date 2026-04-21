@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Upload, Trash2, Pencil, Check, ImageOff } from "lucide-react";
 import { apiGraficosIconoUpload, downloadUrl } from "../../api/client";
 import { usePlanStore, IconoConfig } from "./store";
-import { EmptyState, ErrorBlock, SectionEyebrow } from "./ui/States";
+import { EmptyState, ErrorBlock, SectionEyebrow } from "../../components/States";
 
 // Editor de biblioteca de iconos PNG. Los iconos son parte esencial de
 // los slides de población (p_slide_*_poblacion): aparecen centrados o

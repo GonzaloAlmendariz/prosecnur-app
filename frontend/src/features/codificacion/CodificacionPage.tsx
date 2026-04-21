@@ -129,7 +129,6 @@ function BaseSelector({ source }: { source: ReturnType<typeof useCodifSource> })
                 background: isActive ? "var(--pulso-primary)" : "white",
                 color: isActive ? "white" : "var(--pulso-primary)",
                 cursor: loading ? "wait" : "pointer",
-                fontFamily: "ui-monospace, monospace",
               }}
             >
               {src}

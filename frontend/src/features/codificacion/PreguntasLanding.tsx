@@ -19,6 +19,7 @@ import {
   ChevronRight as ChevronRightIcon,
   CircleAlert,
   GripVertical,
+  Inbox,
   Link2,
   Link2Off,
   Search,
@@ -36,7 +37,7 @@ import {
   OpcionSM,
   PreguntaAbierta,
 } from "../../api/client";
-import { Alert } from "../../components/Alert";
+import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { PairingDialog, PairingResult } from "./PairingDialog";
 
 const srOnlyStyle: React.CSSProperties = {
@@ -336,8 +337,8 @@ export function PreguntasLanding() {
     });
   }
 
-  if (error) return <Alert kind="error">{error}</Alert>;
-  if (!data) return <Alert kind="info">Detectando preguntas abiertas…</Alert>;
+  if (error) return <ErrorBlock label="Error cargando preguntas" detail={error} />;
+  if (!data) return <LoadingBlock label="Detectando preguntas abiertas…" />;
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
@@ -359,7 +360,17 @@ export function PreguntasLanding() {
         </span>
       </div>
 
-      {visibleSections.length === 0 && <Alert kind="info">No hay preguntas en esta vista.</Alert>}
+      {visibleSections.length === 0 && (
+        <EmptyState
+          icon={<Inbox size={20} />}
+          title="No hay preguntas en esta vista"
+          hint={
+            query
+              ? "No hay matches para tu búsqueda. Prueba con otro nombre o limpia el filtro."
+              : "Cambia el filtro de arriba para ver otras preguntas."
+          }
+        />
+      )}
 
       {visibleSections.map((s) => (
         <SectionBlock
@@ -426,7 +437,7 @@ function isPaired(p: PreguntaAbierta): boolean {
   return !!(p.pareja && typeof p.pareja === "object" && "child_col" in p.pareja && p.pareja.child_col);
 }
 
-function FilterChip({ label, active, onClick, accent }: { label: string; active: boolean; onClick: () => void; accent?: boolean }) {
+function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -435,11 +446,11 @@ function FilterChip({ label, active, onClick, accent }: { label: string; active:
         padding: "5px 12px",
         borderRadius: 999,
         fontSize: 13,
-        border: active ? "1px solid var(--pulso-primary)" : `1px solid ${accent ? "#d68a00" : "var(--pulso-border)"}`,
-        background: active ? "var(--pulso-primary)" : accent ? "#fff4e0" : "white",
-        color: active ? "white" : accent ? "#8a5000" : "var(--pulso-text)",
+        border: active ? "1px solid var(--pulso-primary)" : "1px solid var(--pulso-border)",
+        background: active ? "var(--pulso-primary)" : "white",
+        color: active ? "white" : "var(--pulso-text)",
         cursor: "pointer",
-        fontWeight: accent ? 600 : 500,
+        fontWeight: 500,
       }}
     >
       {label}
@@ -493,7 +504,7 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
         <span style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
           {preguntas.length} {preguntas.length === 1 ? "pregunta" : "preguntas"}
           {emparejadas > 0 && <> · <strong style={{ color: "var(--pulso-primary)" }}>{emparejadas} {emparejadas === 1 ? "emparejada" : "emparejadas"}</strong></>}
-          {codificadas > 0 && <> · <strong style={{ color: "#166534" }}>{codificadas} {codificadas === 1 ? "codificada" : "codificadas"}</strong></>}
+          {codificadas > 0 && <> · <strong style={{ color: "var(--pulso-success-fg)" }}>{codificadas} {codificadas === 1 ? "codificada" : "codificadas"}</strong></>}
         </span>
       </header>
       {!collapsed && (
@@ -537,8 +548,8 @@ function MarcarFooter({ p, arq, busy, onToggleMarcada }: { p: PreguntaAbierta; a
   if (p.marcada_auto) {
     return (
       <div style={{ marginTop: 8, padding: "6px 8px", borderTop: "1px solid var(--pulso-border)", display: "flex", alignItems: "center", gap: 6 }}>
-        <Check size={12} color="#166534" />
-        <span style={{ fontSize: 11, color: "#166534", fontWeight: 600 }}>En codificación automáticamente</span>
+        <Check size={12} color="var(--pulso-success-fg)" />
+        <span style={{ fontSize: 11, color: "var(--pulso-success-fg)", fontWeight: 600 }}>En codificación automáticamente</span>
       </div>
     );
   }
@@ -556,7 +567,7 @@ function MarcarFooter({ p, arq, busy, onToggleMarcada }: { p: PreguntaAbierta; a
         display: "flex", alignItems: "center", gap: 8,
       }}
     >
-      <label style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: busy ? "wait" : "pointer", fontSize: 11, fontWeight: 600, color: p.marcada ? "#166534" : "var(--pulso-text-soft)" }}>
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: busy ? "wait" : "pointer", fontSize: 11, fontWeight: 600, color: p.marcada ? "var(--pulso-success-fg)" : "var(--pulso-text-soft)" }}>
         <input
           type="checkbox"
           checked={p.marcada}
@@ -809,8 +820,8 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
             style={{
               display: "inline-flex", alignItems: "center", gap: 3,
               padding: "2px 6px", borderRadius: 4,
-              background: needsDummy ? "#fff4e0" : "#dcfce7",
-              color: needsDummy ? "#8a5000" : "#166534",
+              background: needsDummy ? "var(--pulso-warn-bg)" : "var(--pulso-success-bg)",
+              color: needsDummy ? "var(--pulso-warn-fg)" : "var(--pulso-success-fg)",
               fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
               textTransform: "uppercase", whiteSpace: "nowrap",
               border: needsDummy ? "1px solid #f0d799" : "none",
@@ -918,9 +929,9 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
   onSelect: (col: string) => void;
 }) {
   const hasSelection = !!selectedCol;
-  const borderColor = hasSelection ? "var(--tipo-sm-border)" : "#f0d799";
-  const bg = hasSelection ? "var(--tipo-sm-bg)" : "#fff4e0";
-  const eyebrowColor = hasSelection ? "var(--tipo-sm-fg)" : "#8a5000";
+  const borderColor = hasSelection ? "var(--tipo-sm-border)" : "var(--pulso-warn-border)";
+  const bg = hasSelection ? "var(--tipo-sm-bg)" : "var(--pulso-warn-bg)";
+  const eyebrowColor = hasSelection ? "var(--tipo-sm-fg)" : "var(--pulso-warn-fg)";
   return (
     <div style={{
       marginTop: 8,
@@ -958,8 +969,8 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
           const disabled = busy || !o.existe_en_data;
           const sugerida = o.es_otros_sugerido && !hasSelection;
           // Priorización de estilos: seleccionada > sugerida > normal.
-          const borderCol = isSelected ? "var(--pulso-primary)" : sugerida ? "#d68a00" : "var(--pulso-border)";
-          const bgCol = isSelected ? "var(--pulso-primary-soft)" : sugerida ? "#fff9ef" : "white";
+          const borderCol = isSelected ? "var(--pulso-primary)" : sugerida ? "var(--pulso-warn-accent)" : "var(--pulso-border)";
+          const bgCol = isSelected ? "var(--pulso-primary-soft)" : sugerida ? "var(--pulso-warn-bg)" : "white";
           const title = disabled && !o.existe_en_data
             ? `La columna ${o.col_dummy} no existe en tu dataset`
             : isSelected
@@ -991,10 +1002,10 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16 }}>
                 {isSelected ? <Check size={12} color="var(--pulso-primary)" /> : null}
               </span>
-              <code style={{ fontFamily: "monospace", fontWeight: 700, color: isSelected ? "var(--pulso-primary)" : sugerida ? "#8a5000" : "var(--pulso-text-soft)" }}>{o.codigo}</code>
+              <code style={{ fontFamily: "monospace", fontWeight: 700, color: isSelected ? "var(--pulso-primary)" : sugerida ? "var(--pulso-warn-fg)" : "var(--pulso-text-soft)" }}>{o.codigo}</code>
               <span style={{ color: "var(--pulso-text)", fontWeight: isSelected ? 600 : 400 }}>{truncate(o.label, 70)}</span>
               {sugerida && !isSelected && (
-                <span style={{ fontSize: 9, fontWeight: 700, color: "#8a5000", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--pulso-warn-fg)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                   ← Probable
                 </span>
               )}
@@ -1008,7 +1019,7 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
         })}
       </div>
       {!hasSelection && opciones.every((o) => !o.es_otros_sugerido) && (
-        <div style={{ fontSize: 10, color: "#8a5000", marginTop: 6, fontStyle: "italic" }}>
+        <div style={{ fontSize: 10, color: "var(--pulso-warn-fg)", marginTop: 6, fontStyle: "italic" }}>
           No detecté una opción "Otros" en el instrumento. Elige la que corresponde según tu criterio.
         </div>
       )}
@@ -1057,7 +1068,7 @@ function badgeConfig(arq: Arquetipo, paired: boolean, _tipoStyle: { bg: string; 
   if (arq === "adoptada") return { label: "Adoptada", bg: "#f0f4fa", fg: "#5f6b7a", icon: Link2 };
   if (arq === "no-aplica") return { label: "Inactiva", bg: "#f3f4f6", fg: "#9ca3af", icon: Check };
   if ((arq === "pareja-so" || arq === "pareja-sm") && paired) {
-    return { label: "Emparejada", bg: "#dcfce7", fg: "#166534", icon: Link2 };
+    return { label: "Emparejada", bg: "var(--pulso-success-bg)", fg: "var(--pulso-success-fg)", icon: Link2 };
   }
   // pareja-so/sm sin emparejar, o config-so: sin badge de error.
   return null;

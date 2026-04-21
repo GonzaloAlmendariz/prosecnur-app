@@ -7,22 +7,28 @@ import { Loader2 } from "lucide-react";
 
 export function LoadingBlock({
   label = "Cargando…",
-  minHeight = 260,
+  minHeight,
+  variant = "panel",
 }: {
   label?: string;
   minHeight?: number;
+  // "panel" — centrado, generoso (260px) para cargas de sección completa.
+  // "inline" — altura mínima (60px) para cargas dentro de un pane
+  //   que ya tiene otros elementos visibles.
+  variant?: "panel" | "inline";
 }) {
+  const effectiveMinHeight = minHeight ?? (variant === "inline" ? 60 : 260);
   return (
     <div
       role="status"
       style={{
         display: "flex", alignItems: "center", justifyContent: "center",
-        gap: 10, minHeight,
+        gap: 10, minHeight: effectiveMinHeight,
         fontSize: 12, color: "var(--pulso-text-soft)",
       }}
     >
       <Loader2
-        size={16}
+        size={variant === "inline" ? 14 : 16}
         color="var(--pulso-primary)"
         className="pulso-spin"
       />
@@ -42,10 +48,10 @@ export function ErrorBlock({
     <div
       role="alert"
       style={{
-        fontSize: 12, color: "#991b1b",
+        fontSize: 12, color: "var(--pulso-danger-fg)",
         padding: "10px 14px", borderRadius: 6,
-        background: "#fef2f2",
-        border: "1px solid #fecaca",
+        background: "var(--pulso-danger-bg)",
+        border: "1px solid var(--pulso-danger-border)",
         display: "flex", flexDirection: "column", gap: 3,
       }}
     >

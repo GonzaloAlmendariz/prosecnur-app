@@ -5,7 +5,7 @@ import {
   PaletaSugeridaEntry,
 } from "../../api/client";
 import { usePlanStore } from "./store";
-import { LoadingBlock, ErrorBlock, EmptyState, SectionEyebrow } from "./ui/States";
+import { LoadingBlock, ErrorBlock, EmptyState, SectionEyebrow } from "../../components/States";
 
 // Editor de paletas de colores por `list_name` del XLSForm. Cada fila
 // de la tabla es un value-label; el analista le asigna un color. Las
