@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useState } from "react";
 import * as Lucide from "lucide-react";
-import { RotateCcw, Circle, Save, Factory, Check } from "lucide-react";
-import { ArgGrupo, ArgMetadata, apiGraficosPresetsDefaultsSave, apiGraficosPresetsDefaultsReset } from "../../api/client";
+import { RotateCcw, Circle } from "lucide-react";
+import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
+import { usePresetsDefaults, presetArgsEqual } from "./usePresetsDefaults";
 // AdvancedJsonEditor quedó desactivado: el catálogo .PRESETS_META ya
 // cubre todos los args que usamos en los QMDs de referencia, así que
 // escapar a JSON raw hoy es innecesario y abre la puerta a inconsistencias.
@@ -33,8 +35,10 @@ function resolveLucide(name: string | undefined): LucideIcon {
 
 export function PresetsEditor() {
   const { presets, loading, error } = usePresetsMetadata();
+  const { presets: defaults } = usePresetsDefaults();
   const configPresets = usePlanStore((s) => s.presets);
   const resetPreset = usePlanStore((s) => s.resetPreset);
+  const replacePreset = usePlanStore((s) => s.replacePreset);
 
   const [selected, setSelected] = useState<string>("base");
 
@@ -57,7 +61,12 @@ export function PresetsEditor() {
   if (!meta) return null;
 
   const current = configPresets[meta.name] ?? {};
-  const hasChanges = Object.keys(current).length > 0;
+  const defaultForPreset = defaults[meta.name] ?? {};
+  // "Modificado" ahora compara contra el DEFAULT (no contra vacío). Los
+  // presets llegan pre-poblados con los defaults → antes siempre se
+  // mostraba el badge aunque el usuario no hubiera tocado nada. Ahora
+  // solo se enciende cuando el value difiere del default real.
+  const hasChanges = !presetArgsEqual(current, defaultForPreset);
 
   return (
     <div style={{ display: "flex", gap: 16, minHeight: 420 }}>
@@ -151,11 +160,21 @@ export function PresetsEditor() {
 
       {/* Editor del preset seleccionado */}
       <section style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-        <GlobalDefaultsToolbar />
         <PresetHeader
           meta={meta}
           hasChanges={hasChanges}
-          onReset={() => resetPreset(meta.name)}
+          onReset={() => {
+            // Restaurar default: reemplazar el preset con el default
+            // efectivo (user-saved o factory). No borrar — los presets
+            // SIEMPRE tienen valores de default; "vacío" no es un
+            // estado válido en el UX.
+            const def = defaults[meta.name];
+            if (def && Object.keys(def).length > 0) {
+              replacePreset(meta.name, def);
+            } else {
+              resetPreset(meta.name);
+            }
+          }}
         />
         <PresetBody meta={meta} values={current} />
       </section>
@@ -163,101 +182,6 @@ export function PresetsEditor() {
   );
 }
 
-// Toolbar con acciones globales de defaults:
-//   - "Guardar como mi default": toma la config actual de TODOS los
-//     presets y la fija como el nuevo default del usuario (persiste
-//     en la sesión del backend). Futuros "Restaurar default" por
-//     preset van a caer a este guardado.
-//   - "Volver a defaults de fábrica": borra el default del usuario.
-//     El siguiente reset por preset va a usar `.PRESETS_DEFAULT_PULSO`.
-// Ambos feedback visual "Guardado" / "Restaurado" por ~1.5s.
-function GlobalDefaultsToolbar() {
-  const presets = usePlanStore((s) => s.presets);
-  const [saving, setSaving] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [feedback, setFeedback] = useState<"saved" | "reset" | null>(null);
-  const [error, setError] = useState<string>("");
-
-  async function onSave() {
-    setError(""); setSaving(true);
-    try {
-      await apiGraficosPresetsDefaultsSave(presets);
-      setFeedback("saved");
-      setTimeout(() => setFeedback(null), 1600);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function onResetFactory() {
-    if (!window.confirm(
-      "¿Restablecer los defaults de fábrica?\n\nTu personalización guardada como default se va a borrar. Los preset actuales siguen intactos — solo cambia a qué valores apunta 'Restaurar default' por preset."
-    )) return;
-    setError(""); setResetting(true);
-    try {
-      await apiGraficosPresetsDefaultsReset();
-      setFeedback("reset");
-      setTimeout(() => setFeedback(null), 1600);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setResetting(false);
-    }
-  }
-
-  return (
-    <div
-      style={{
-        display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap",
-        padding: "8px 10px", borderRadius: 6,
-        background: "var(--pulso-surface)",
-        border: "1px solid var(--pulso-border)",
-        fontSize: 11,
-      }}
-    >
-      <span style={{ color: "var(--pulso-text-soft)", flex: 1, minWidth: 180 }}>
-        Defaults de la app: puedes fijar la configuración actual como tu default
-        o volver al de fábrica.
-      </span>
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={saving || resetting}
-        title="Fija los valores actuales de TODOS los presets como tu default."
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 5,
-          fontSize: 11, padding: "5px 10px", borderRadius: 6,
-          border: "1px solid var(--pulso-primary)",
-          background: "var(--pulso-primary-soft)",
-          color: "var(--pulso-primary)", fontWeight: 600,
-          cursor: "pointer",
-        }}
-      >
-        {feedback === "saved" ? <Check size={11} /> : <Save size={11} />}
-        {feedback === "saved" ? "Guardado" : "Guardar como mi default"}
-      </button>
-      <button
-        type="button"
-        onClick={onResetFactory}
-        disabled={saving || resetting}
-        title="Descarta tu default y vuelve a los valores de fábrica."
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 5,
-          fontSize: 11, padding: "5px 10px", borderRadius: 6,
-          border: "1px solid var(--pulso-border)",
-          background: "white", color: "var(--pulso-text)",
-          cursor: "pointer",
-        }}
-      >
-        {feedback === "reset" ? <Check size={11} /> : <Factory size={11} />}
-        {feedback === "reset" ? "Restaurado" : "Defaults de fábrica"}
-      </button>
-      {error && <span style={{ color: "#991b1b" }}>{error}</span>}
-    </div>
-  );
-}
 
 function PresetHeader({
   meta,

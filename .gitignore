@@ -16,6 +16,7 @@ renv/staging/
 node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/tsconfig.tsbuildinfo
 *.log
 
 # Frontend build output is served from api/inst/www, but git-ignored (regenerated)
