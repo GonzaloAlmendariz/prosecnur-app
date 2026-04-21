@@ -3,6 +3,133 @@
 
 shutdown_requested <- function() isTRUE(.shutdown_flag$value)
 
+# ===========================================================================
+# Catálogo de datasets de prueba
+# ===========================================================================
+#
+# Cada entrada describe un par (instrumento, data) listo para cargar con
+# /api/system/demo?name=<X>. El frontend pide /api/system/demos para ver
+# cuáles están disponibles.
+#
+# Reglas de ubicación:
+#   - `instrumento_file` y `data_file` son rutas RELATIVAS a la carpeta de
+#     samples (`api/inst/samples/` en dev, o `system.file("samples", ...)`
+#     cuando el paquete está instalado).
+#   - Solo se sirven los demos cuyos archivos EXISTEN en disco. Los que
+#     faltan se filtran silenciosamente.
+#
+# Para añadir un dataset nuevo:
+#   1. Copia los archivos a `api/inst/samples/<subdir>/`.
+#   2. Añade una entrada acá.
+#   3. Reinicia el backend — aparece automático en la UI si los archivos
+#      están, no requiere tocar frontend.
+.DEMOS_META <- list(
+  generic = list(
+    name             = "generic",
+    titulo_humano    = "Demo genérica (prosecnur)",
+    descripcion      = "Dataset compacto de ejemplo, ideal para explorar la app sin datos reales. Pocas preguntas, variadas (Likert, select_one, integer).",
+    icono_ui         = "FileText",
+    etiqueta_estudio = "Exploratorio",
+    instrumento_file = "demo_instrumento.xlsx",
+    data_file        = "demo_data.xlsx"
+  ),
+  ops_salud = list(
+    name             = "ops_salud",
+    titulo_humano    = "OPS — Establecimientos de Salud",
+    descripcion      = "Encuesta a ~120 establecimientos de salud del Perú en 5 regiones (Callao, La Libertad, SJL, Tacna, Tumbes). Incluye escalas Likert, multi-select y ejemplos de categorización jerárquica.",
+    icono_ui         = "Activity",
+    etiqueta_estudio = "Salud pública",
+    instrumento_file = "ops_salud/instrumento.xlsx",
+    data_file        = "ops_salud/data.xlsx"
+  ),
+  acreditacion_docentes = list(
+    name             = "acreditacion_docentes",
+    titulo_humano    = "Acreditación PUCP — Docentes",
+    descripcion      = "Encuesta a docentes en el marco de acreditación de la carrera AMDT (Arte, Moda y Diseño Textil). Escalas de acuerdo 4 niveles + satisfacción. Import desde SurveyMonkey.",
+    icono_ui         = "GraduationCap",
+    etiqueta_estudio = "Acreditación",
+    instrumento_file = "acreditacion/docentes_inst.xlsx",
+    data_file        = "acreditacion/docentes_data.sav"
+  ),
+  acreditacion_estudiantes = list(
+    name             = "acreditacion_estudiantes",
+    titulo_humano    = "Acreditación PUCP — Estudiantes",
+    descripcion      = "Complementaria de la anterior: respuestas de estudiantes de AMDT. Usa el mismo instrumento base pero con la bloques propios del rol 'estudiante'.",
+    icono_ui         = "Users",
+    etiqueta_estudio = "Acreditación",
+    instrumento_file = "acreditacion/estudiantes_inst.xlsx",
+    data_file        = "acreditacion/estudiantes_data.sav"
+  ),
+  acreditacion_administrativos = list(
+    name             = "acreditacion_administrativos",
+    titulo_humano    = "Acreditación PUCP — Administrativos",
+    descripcion      = "Complementaria del bloque AMDT: respuestas del personal administrativo. Muestra pequeña (~20 respuestas) — útil para probar edge cases con N bajo.",
+    icono_ui         = "Briefcase",
+    etiqueta_estudio = "Acreditación",
+    instrumento_file = "acreditacion/administrativos_inst.xlsx",
+    data_file        = "acreditacion/administrativos_data.sav"
+  )
+)
+
+.samples_dir <- function() {
+  # Busca primero el samples instalado (modo paquete), cae al del repo en
+  # dev. Si ninguno existe, devuelve NULL.
+  d <- system.file("samples", package = "prosecnurapp")
+  if (nzchar(d) && dir.exists(d)) return(d)
+  d <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api", "inst", "samples")
+  if (dir.exists(d)) return(d)
+  NULL
+}
+
+.demo_meta <- function(name) {
+  meta <- .DEMOS_META[[name]]
+  if (is.null(meta)) return(NULL)
+  samples_dir <- .samples_dir()
+  if (is.null(samples_dir)) return(NULL)
+  inst_path <- file.path(samples_dir, meta$instrumento_file)
+  data_path <- file.path(samples_dir, meta$data_file)
+  meta$instrumento_path <- inst_path
+  meta$data_path        <- data_path
+  meta$available        <- file.exists(inst_path) && file.exists(data_path)
+  meta
+}
+
+# Lista de demos disponibles (filtrando los que faltan archivos).
+.demos_payload <- function() {
+  demos <- list()
+  for (nm in names(.DEMOS_META)) {
+    m <- .demo_meta(nm)
+    if (!is.null(m) && isTRUE(m$available)) {
+      demos[[length(demos) + 1]] <- list(
+        name             = m$name,
+        titulo_humano    = m$titulo_humano,
+        descripcion      = m$descripcion,
+        icono_ui         = m$icono_ui,
+        etiqueta_estudio = m$etiqueta_estudio
+      )
+    }
+  }
+  list(demos = demos)
+}
+
+# Lee un archivo de datos según extensión (.xlsx, .sav, .csv).
+.read_data_any <- function(path) {
+  ext <- tolower(tools::file_ext(path))
+  if (ext %in% c("xlsx", "xls")) {
+    return(readxl::read_excel(path))
+  }
+  if (ext == "sav") {
+    if (!requireNamespace("haven", quietly = TRUE)) {
+      stop_api(500, "E_NO_HAVEN", "haven no está disponible para leer .sav")
+    }
+    return(haven::read_sav(path))
+  }
+  if (ext == "csv") {
+    return(utils::read.csv(path, stringsAsFactors = FALSE, fileEncoding = "UTF-8"))
+  }
+  stop_api(400, "E_BAD_DATA_EXT", sprintf("Extensión no soportada: %s", ext))
+}
+
 mount_sistema <- function(pr) {
   pr |>
     plumber::pr_get("/api/system/health", wrap_endpoint(function(req, res) {
@@ -17,38 +144,65 @@ mount_sistema <- function(pr) {
       .shutdown_flag$value <- TRUE
       list(ok = TRUE, message = "Shutdown requested")
     })) |>
-    plumber::pr_post("/api/system/demo", wrap_endpoint(function(req, res) {
+    plumber::pr_get("/api/system/demos", wrap_endpoint(function(req, res) {
+      # Catálogo de demos disponibles. Filtrados por existencia en disco —
+      # si faltan archivos, el demo no se ofrece. El frontend pide esto
+      # al entrar a Fase 1 para mostrar el picker.
+      .demos_payload()
+    })) |>
+    plumber::pr_post("/api/system/demo", wrap_endpoint(function(req, res, name = NULL) {
+      # Carga un dataset de prueba. Si `name` no viene, default a "generic"
+      # para compat con versiones viejas del frontend.
+      demo_name <- if (is.character(name) && length(name) >= 1 && nzchar(name[[1]])) {
+        as.character(name[[1]])
+      } else {
+        q <- req$args %||% list()
+        as.character(q$name %||% "generic")
+      }
+      meta <- .demo_meta(demo_name)
+      if (is.null(meta)) {
+        stop_api(404, "E_DEMO_UNKNOWN", sprintf("Demo desconocido: '%s'. Revisa /api/system/demos para ver los disponibles.", demo_name))
+      }
+      if (!isTRUE(meta$available)) {
+        stop_api(404, "E_DEMO_MISSING", sprintf(
+          "Demo '%s' registrado pero faltan archivos en disco. Esperados:\n  - %s\n  - %s",
+          demo_name, meta$instrumento_path, meta$data_path
+        ))
+      }
+
       sid <- session_create()
       res$setHeader("X-Pulso-Session", sid)
-      samples_dir <- system.file("samples", package = "prosecnurapp")
-      if (!nzchar(samples_dir) || !dir.exists(samples_dir)) {
-        samples_dir <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api", "inst", "samples")
-      }
-      inst_path <- file.path(samples_dir, "demo_instrumento.xlsx")
-      data_path <- file.path(samples_dir, "demo_data.xlsx")
-      if (!file.exists(inst_path) || !file.exists(data_path)) {
-        stop_api(500, "E_DEMO_MISSING", sprintf("Samples no encontrados en %s", samples_dir))
-      }
-      xls_meta <- save_upload(sid, "xlsform", "demo_instrumento.xlsx", readBin(inst_path, "raw", n = file.info(inst_path)$size))
-      dat_meta <- save_upload(sid, "data",    "demo_data.xlsx",        readBin(data_path, "raw", n = file.info(data_path)$size))
+
+      # Nombres "humanos" para los files cargados (aparecen en Fase 1).
+      inst_basename <- basename(meta$instrumento_path)
+      data_basename <- basename(meta$data_path)
+      data_ext <- tolower(tools::file_ext(data_basename))
+      data_kind <- if (data_ext == "sav") "sav" else "data"
+
+      xls_meta <- save_upload(sid, "xlsform", inst_basename,
+                              readBin(meta$instrumento_path, "raw", n = file.info(meta$instrumento_path)$size))
+      dat_meta <- save_upload(sid, data_kind, data_basename,
+                              readBin(meta$data_path, "raw", n = file.info(meta$data_path)$size))
 
       inst <- prosecnur::leer_instrumento_xlsform(xls_meta$path)
       session_set(sid, "instrumento", inst)
 
-      data_df <- readxl::read_excel(dat_meta$path)
-      session_set(sid, "data_raw_meta", list(file_id = dat_meta$file_id, path = dat_meta$path, ext = "xlsx"))
+      data_df <- .read_data_any(dat_meta$path)
+      session_set(sid, "data_raw_meta", list(file_id = dat_meta$file_id, path = dat_meta$path, ext = data_ext))
 
       rp_inst <- prosecnur::reporte_instrumento(path = xls_meta$path)
       rp_data <- prosecnur::reporte_data(data_df, instrumento = rp_inst)
       session_set(sid, "rp_inst", rp_inst)
       session_set(sid, "rp_data", rp_data)
       session_set(sid, "analitica_prep_ok", TRUE)
-      session_set(sid, "analitica_fuente", "demo")
+      session_set(sid, "analitica_fuente", paste0("demo:", demo_name))
 
       resumen <- summarize_instrumento(inst)
       list(
         ok = TRUE,
         session_id = sid,
+        demo_name = demo_name,
+        demo_titulo = meta$titulo_humano,
         resumen_instrumento = resumen,
         n_filas = nrow(data_df),
         n_columnas = ncol(data_df)

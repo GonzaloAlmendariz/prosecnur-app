@@ -159,14 +159,33 @@ export async function apiCargaData(file_id: string) {
   );
 }
 
-export async function apiLoadDemo() {
+export type DemoMeta = {
+  name: string;
+  titulo_humano: string;
+  descripcion: string;
+  icono_ui: string;
+  etiqueta_estudio: string;
+};
+
+export async function apiListDemos() {
+  return handle<{ demos: DemoMeta[] }>(
+    await fetch("/api/system/demos", { headers: headers() }),
+  );
+}
+
+export async function apiLoadDemo(name?: string) {
+  const url = name
+    ? `/api/system/demo?name=${encodeURIComponent(name)}`
+    : "/api/system/demo";
   return handle<{
     ok: true;
     session_id: string;
+    demo_name: string;
+    demo_titulo: string;
     resumen_instrumento: { n_preguntas: number; n_secciones: number; secciones: string[]; n_listas_opciones: number };
     n_filas: number;
     n_columnas: number;
-  }>(await fetch("/api/system/demo", { method: "POST", headers: headers() }));
+  }>(await fetch(url, { method: "POST", headers: headers() }));
 }
 
 export async function apiShutdown() {
