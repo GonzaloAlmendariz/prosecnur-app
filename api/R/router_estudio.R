@@ -133,6 +133,33 @@ mount_estudio <- function(pr) {
       estudio_remove_base(sid, as.character(nombre))
       list(ok = TRUE, n_bases = length(estudio_list_bases(sid)))
     })) |>
+    plumber::pr_get("/api/estudio/codif-source", wrap_endpoint(function(req, res) {
+      # Devuelve la base actualmente activa para codificación + las
+      # opciones disponibles (todas las bases del estudio).
+      sid <- session_header(req)
+      if (is.null(session_get(sid, required = FALSE))) {
+        return(list(active = NULL, options = list()))
+      }
+      bases <- names(estudio_list_bases(sid))
+      list(
+        active = codif_source_active(sid),
+        options = as.list(bases)
+      )
+    })) |>
+    plumber::pr_post("/api/estudio/codif-source", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(session_get(sid, required = FALSE))) stop_api(404, "E_NO_SESSION", "Sin sesión.")
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      source <- as.character(parsed$source %||% "")
+      if (!nzchar(source)) stop_api(400, "E_MISSING_SOURCE", "Falta 'source' en el body.")
+      codif_source_set(sid, source)
+      list(ok = TRUE, active = codif_source_active(sid))
+    })) |>
     plumber::pr_handle("PATCH", "/api/estudio/base/<nombre>", wrap_endpoint(function(req, res, nombre, ...) {
       sid <- session_header(req)
       if (is.null(session_get(sid, required = FALSE))) stop_api(404, "E_NO_SESSION", "Sin sesión.")

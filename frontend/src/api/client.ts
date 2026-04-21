@@ -173,6 +173,31 @@ export async function apiEstudioRenameBase(nombre_actual: string, nombre_nuevo: 
   );
 }
 
+// Base activa para codificación (v0.2+). Devuelve y setea cuál de las
+// bases del estudio está siendo codificada en ese momento. Al cambiar,
+// el backend sirve el estado scoped de esa base (familias, grupos,
+// marcadas, etc. que son independientes entre bases).
+export type CodifSourceState = {
+  active: string | null;
+  options: string[];
+};
+
+export async function apiCodifSourceGet() {
+  return handle<CodifSourceState>(
+    await fetch("/api/estudio/codif-source", { headers: headers() }),
+  );
+}
+
+export async function apiCodifSourceSet(source: string) {
+  return handle<{ ok: true; active: string }>(
+    await fetch("/api/estudio/codif-source", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ source }),
+    }),
+  );
+}
+
 export type UploadKind = "xlsform" | "data" | "sav" | "plan_limpieza" | "plantilla_codif";
 
 export async function apiUpload(file: File, kind: UploadKind) {

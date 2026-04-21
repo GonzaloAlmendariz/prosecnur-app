@@ -404,10 +404,8 @@ isTRUE_vec <- function(x) {
   xls <- .require_xlsform_path(sid)
   dat <- .require_data_path(sid)
   s <- session_get(sid)
-  inst <- s$codif_inst %||% leer_instrumento_xlsform(xls$path)
-  data_df <- s$codif_data %||% .read_data_any(dat)
-  session_set(sid, "codif_inst", inst)
-  session_set(sid, "codif_data", data_df)
+  inst <- codif_inst_cached(sid)
+  data_df <- codif_data_cached(sid)
   tmp <- tempfile(fileext = ".xlsx")
   on.exit(unlink(tmp), add = TRUE)
   escribir_plantilla_familias(
@@ -853,15 +851,15 @@ isTRUE_vec <- function(x) {
 # Returns a list of per-parent outcome tags for telemetry/debug.
 .bridge_grupos_to_plantilla <- function(sid) {
   s <- session_get(sid)
-  grupos_map <- s$codif_grupos_recod
+  grupos_map <- codif_get(sid, "grupos_recod")
   if (is.null(grupos_map) || length(grupos_map) == 0L) {
     return(list(patched = character(0), skipped = character(0)))
   }
-  fid <- s$codif_plantilla_codigos_file_id
+  fid <- codif_get(sid, "plantilla_codigos_file_id")
   if (is.null(fid)) stop_api(500, "E_NO_PLANTILLA_FID", "Falta plantilla xlsx generada.")
   meta <- get_file(sid, fid)
-  draft <- s$codif_familias_draft
-  data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
+  draft <- codif_get(sid, "familias_draft")
+  data_df <- codif_data_cached(sid)
 
   # Index draft rows by parent for O(1) lookup.
   rows_by_parent <- list()
@@ -935,7 +933,7 @@ isTRUE_vec <- function(x) {
 # cualquier edge-case devuelve plan vacío (UI friendly) en lugar de 500.
 .compute_plan_adaptacion <- function(sid) {
   s <- session_get(sid)
-  draft <- s$codif_familias_draft
+  draft <- codif_get(sid, "familias_draft")
   empty_totales <- list(
     n_preguntas = 0L, n_variables_nuevas = 0L,
     n_codigos_nuevos = 0L, n_codigos_reutilizados = 0L
@@ -944,10 +942,9 @@ isTRUE_vec <- function(x) {
     return(list(ok = TRUE, preguntas = list(), totales = empty_totales))
   }
 
-  data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
-  if (is.null(s$codif_data)) session_set(sid, "codif_data", data_df)
-  marcadas_set <- s$codif_marcadas %||% list()
-  grupos_map <- s$codif_grupos_recod %||% list()
+  data_df <- codif_data_cached(sid)
+  marcadas_set <- codif_get(sid, "marcadas") %||% list()
+  grupos_map <- codif_get(sid, "grupos_recod") %||% list()
 
   preguntas <- list()
   tot_vars_nuevas <- 0L
@@ -1107,9 +1104,7 @@ mount_codificacion <- function(pr) {
       out_path <- file.path(s$dir, "downloads", sprintf("familias_%s.xlsx", uuid::UUIDgenerate()))
       escribir_plantilla_familias(inst = inst, dat = list(raw = data_df), path = out_path)
       meta <- .register_output_file(sid, "familias_template", out_path)
-      session_set(sid, "codif_inst", inst)
-      session_set(sid, "codif_data", data_df)
-      session_set(sid, "codif_familias_generated", TRUE)
+      codif_set(sid, "familias_generated", TRUE)
       list(ok = TRUE, file_id = meta$file_id, size = meta$size)
     })) |>
     plumber::pr_get("/api/codificacion/export-json", wrap_endpoint(function(req, res) {
@@ -1123,10 +1118,10 @@ mount_codificacion <- function(pr) {
         ok = TRUE,
         version = "codif/1.0",
         exported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-        familias_draft = s$codif_familias_draft %||% list(rows = list(), source = NULL),
-        grupos_recod = s$codif_grupos_recod %||% list(),
-        marcadas = s$codif_marcadas %||% list(),
-        respuestas_recod = s$codif_respuestas_recod %||% list()
+        familias_draft = codif_get(sid, "familias_draft") %||% list(rows = list(), source = NULL),
+        grupos_recod = codif_get(sid, "grupos_recod") %||% list(),
+        marcadas = codif_get(sid, "marcadas") %||% list(),
+        respuestas_recod = codif_get(sid, "respuestas_recod") %||% list()
       )
     })) |>
     plumber::pr_post("/api/codificacion/import-json", wrap_endpoint(function(req, res, ...) {
@@ -1154,16 +1149,16 @@ mount_codificacion <- function(pr) {
           source = as.character(fam$source %||% "import"),
           updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
         )
-        session_set(sid, "codif_familias_draft", draft)
+        codif_set(sid, "familias_draft", draft)
       }
       if (!is.null(parsed$grupos_recod)) {
-        session_set(sid, "codif_grupos_recod", parsed$grupos_recod)
+        codif_set(sid, "grupos_recod", parsed$grupos_recod)
       }
       if (!is.null(parsed$marcadas)) {
-        session_set(sid, "codif_marcadas", parsed$marcadas)
+        codif_set(sid, "marcadas", parsed$marcadas)
       }
       if (!is.null(parsed$respuestas_recod)) {
-        session_set(sid, "codif_respuestas_recod", parsed$respuestas_recod)
+        codif_set(sid, "respuestas_recod", parsed$respuestas_recod)
       }
       list(
         ok = TRUE,
@@ -1176,7 +1171,7 @@ mount_codificacion <- function(pr) {
       sid <- session_header(req)
       s <- session_get(sid)
       # Ensure we have the draft (will auto-generate suggestion if absent)
-      draft <- s$codif_familias_draft
+      draft <- codif_get(sid, "familias_draft")
       if (is.null(draft)) {
         # Generate suggestion just like GET /familias/draft does
         df <- .familias_suggest_tibble(sid)
@@ -1186,13 +1181,11 @@ mount_codificacion <- function(pr) {
           source = "suggestion",
           updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
         )
-        session_set(sid, "codif_familias_draft", draft)
-        session_set(sid, "codif_familias_generated", TRUE)
+        codif_set(sid, "familias_draft", draft)
+        codif_set(sid, "familias_generated", TRUE)
       }
-      data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
-      if (is.null(s$codif_data)) session_set(sid, "codif_data", data_df)
-      inst <- s$codif_inst %||% leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
-      if (is.null(s$codif_inst)) session_set(sid, "codif_inst", inst)
+      data_df <- codif_data_cached(sid)
+      inst <- codif_inst_cached(sid)
 
       section_info <- .section_map(inst)
       # Survey rows of type text, needed to filter candidatos_texto to actual
@@ -1203,7 +1196,7 @@ mount_codificacion <- function(pr) {
         else data.frame(name = character(0), stringsAsFactors = FALSE)
       } else data.frame(name = character(0), stringsAsFactors = FALSE)
 
-      marcadas_set <- s$codif_marcadas %||% list()
+      marcadas_set <- codif_get(sid, "marcadas") %||% list()
 
       preguntas <- lapply(draft$rows, function(r) {
         tipo <- as.character(r$tipo %||% "")
@@ -1216,7 +1209,7 @@ mount_codificacion <- function(pr) {
           else if (modo_so == "hijo") "select_one_hijo"
           else "select_one_sin_modo"
         } else tipo
-        recoded <- s$codif_respuestas_recod[[parent]] %||% list()
+        recoded <- codif_get(sid, "respuestas_recod")[[parent]] %||% list()
         n_cod <- length(recoded)
         needs_config <- tipo == "select_one" && !modo_so %in% c("padre", "hijo")
         status <- if (!use_flag) "no-aplica"
@@ -1311,7 +1304,7 @@ mount_codificacion <- function(pr) {
       dummy_col <- as.character(parsed$dummy_col %||% "")
       if (!nzchar(parent)) stop_api(400, "E_NO_PARENT", "Falta 'parent'.")
       if (!nzchar(child_col)) stop_api(400, "E_NO_CHILD", "Falta 'child_col'.")
-      draft <- s$codif_familias_draft
+      draft <- codif_get(sid, "familias_draft")
       if (is.null(draft)) stop_api(409, "E_NO_DRAFT", "Primero genera el draft de familias.")
       rows <- draft$rows
       hit <- FALSE
@@ -1338,7 +1331,7 @@ mount_codificacion <- function(pr) {
       draft$rows <- rows
       draft$source <- "draft"
       draft$updated_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-      session_set(sid, "codif_familias_draft", draft)
+      codif_set(sid, "familias_draft", draft)
       list(ok = TRUE, parent = parent, child_col = child_col, modo_so = modo_so, dummy_col = dummy_col)
     })) |>
     plumber::pr_get("/api/codificacion/respuestas", wrap_endpoint(function(req, res, parent = NULL) {
@@ -1346,7 +1339,7 @@ mount_codificacion <- function(pr) {
       s <- session_get(sid)
       parent <- as.character(parent %||% "")
       if (!nzchar(parent)) stop_api(400, "E_NO_PARENT", "Falta 'parent' como query param.")
-      draft <- s$codif_familias_draft
+      draft <- codif_get(sid, "familias_draft")
       if (is.null(draft)) stop_api(409, "E_NO_DRAFT", "Primero cargá la fase 3.")
       # Find row
       row <- NULL
@@ -1355,8 +1348,7 @@ mount_codificacion <- function(pr) {
       }
       if (is.null(row)) stop_api(404, "E_NO_PREGUNTA", sprintf("No encontré la pregunta '%s'.", parent))
 
-      data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
-      if (is.null(s$codif_data)) session_set(sid, "codif_data", data_df)
+      data_df <- codif_data_cached(sid)
 
       tipo <- as.character(row$tipo %||% "")
       modo_so <- as.character(row$modo_so %||% "")
@@ -1381,7 +1373,7 @@ mount_codificacion <- function(pr) {
       # have a human label in inst$choices. For SO-padre the list is the
       # one declared in the instrument; for SO-hijo, the text_col already
       # contains free text so the lookup returns nothing (no harm).
-      inst <- s$codif_inst
+      inst <- codif_inst_cached(sid)
       list_name_for_lookup <- if (tipo %in% c("select_one", "select_multiple")) {
         as.character(row$list_norm %||% "")
       } else ""
@@ -1390,7 +1382,7 @@ mount_codificacion <- function(pr) {
       } else character(0)
       respuestas <- .respuestas_unicas(col, data_df, labels_lookup)
 
-      grupos <- s$codif_grupos_recod[[parent]] %||% list()
+      grupos <- codif_get(sid, "grupos_recod")[[parent]] %||% list()
 
       # Opciones existentes del choice list del parent (para SO/SM). El
       # codificador las precarga como grupos "existentes" (read-only
@@ -1454,11 +1446,11 @@ mount_codificacion <- function(pr) {
       grupos <- .mark_utf8(parsed$grupos)
       if (!nzchar(parent)) stop_api(400, "E_NO_PARENT", "Falta 'parent'.")
       if (is.null(grupos)) grupos <- list()
-      all_grupos <- s$codif_grupos_recod %||% list()
+      all_grupos <- codif_get(sid, "grupos_recod") %||% list()
       all_grupos[[parent]] <- grupos
-      session_set(sid, "codif_grupos_recod", all_grupos)
+      codif_set(sid, "grupos_recod", all_grupos)
       # Also store summary for status calculation
-      recod <- s$codif_respuestas_recod %||% list()
+      recod <- codif_get(sid, "respuestas_recod") %||% list()
       # cuenta respuestas distintas con grupo asignado
       cod_set <- character(0)
       for (g in grupos) {
@@ -1467,7 +1459,7 @@ mount_codificacion <- function(pr) {
         }
       }
       recod[[parent]] <- as.list(unique(cod_set))
-      session_set(sid, "codif_respuestas_recod", recod)
+      codif_set(sid, "respuestas_recod", recod)
       list(ok = TRUE, parent = parent, n_grupos = length(grupos), n_codificadas = length(unique(cod_set)),
            updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
@@ -1476,7 +1468,7 @@ mount_codificacion <- function(pr) {
       s <- session_get(sid)
       parent <- as.character(parent %||% "")
       if (!nzchar(parent)) stop_api(400, "E_NO_PARENT", "Falta 'parent' como query param.")
-      draft <- s$codif_familias_draft
+      draft <- codif_get(sid, "familias_draft")
       if (is.null(draft)) stop_api(409, "E_NO_DRAFT", "No hay draft.")
       rows <- draft$rows
       hit <- FALSE
@@ -1492,7 +1484,7 @@ mount_codificacion <- function(pr) {
       if (!hit) stop_api(404, "E_NO_PARENT_ROW", sprintf("No se encontró fila para parent='%s'.", parent))
       draft$rows <- rows
       draft$updated_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-      session_set(sid, "codif_familias_draft", draft)
+      codif_set(sid, "familias_draft", draft)
       list(ok = TRUE, parent = parent)
     })) |>
     plumber::pr_post("/api/codificacion/marcar", wrap_endpoint(function(req, res, ...) {
@@ -1508,27 +1500,26 @@ mount_codificacion <- function(pr) {
       parent <- as.character(parsed$parent %||% "")
       marcada <- isTRUE(parsed$marcada)
       if (!nzchar(parent)) stop_api(400, "E_NO_PARENT", "Falta 'parent'.")
-      set <- s$codif_marcadas %||% list()
+      set <- codif_get(sid, "marcadas") %||% list()
       if (marcada) {
         if (!parent %in% names(set)) set[[parent]] <- TRUE
       } else {
         set[[parent]] <- NULL
       }
-      session_set(sid, "codif_marcadas", set)
+      codif_set(sid, "marcadas", set)
       list(ok = TRUE, parent = parent, marcada = marcada)
     })) |>
     plumber::pr_get("/api/codificacion/columnas", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)
-      data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
-      if (is.null(s$codif_data)) session_set(sid, "codif_data", data_df)
+      data_df <- codif_data_cached(sid)
       list(ok = TRUE, columnas = as.character(names(data_df)))
     })) |>
     plumber::pr_get("/api/codificacion/familias/draft", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)
-      if (!is.null(s$codif_familias_draft)) {
-        d <- s$codif_familias_draft
+      if (!is.null(codif_get(sid, "familias_draft"))) {
+        d <- codif_get(sid, "familias_draft")
         return(list(
           ok = TRUE,
           rows = d$rows,
@@ -1543,8 +1534,8 @@ mount_codificacion <- function(pr) {
         source = "suggestion",
         updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
       )
-      session_set(sid, "codif_familias_draft", draft)
-      session_set(sid, "codif_familias_generated", TRUE)
+      codif_set(sid, "familias_draft", draft)
+      codif_set(sid, "familias_generated", TRUE)
       list(ok = TRUE, rows = rows, source = "suggestion", updated_at = draft$updated_at)
     })) |>
     plumber::pr_post("/api/codificacion/familias/draft", wrap_endpoint(function(req, res, ...) {
@@ -1565,16 +1556,16 @@ mount_codificacion <- function(pr) {
         source = "draft",
         updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
       )
-      session_set(sid, "codif_familias_draft", draft)
+      codif_set(sid, "familias_draft", draft)
       list(ok = TRUE, n_rows = length(rows), updated_at = draft$updated_at)
     })) |>
     plumber::pr_post("/api/codificacion/familias/commit", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)
-      draft <- s$codif_familias_draft
+      draft <- codif_get(sid, "familias_draft")
       if (is.null(draft)) stop_api(409, "E_NO_DRAFT", "No hay draft de familias. Genera primero con GET /api/codificacion/familias/draft.")
-      inst <- s$codif_inst %||% leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
-      data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
+      inst <- codif_inst_cached(sid)
+      data_df <- codif_data_cached(sid)
       dat <- list(raw = data_df)
 
       fam_path <- file.path(s$dir, "downloads", sprintf("familias_draft_%s.xlsx", uuid::UUIDgenerate()))
@@ -1583,10 +1574,8 @@ mount_codificacion <- function(pr) {
 
       split <- leer_familias_clasificar(path = fam_path, inst = inst, dat = dat, verbose = FALSE)
 
-      session_set(sid, "codif_familias_split", split)
-      session_set(sid, "codif_familias_xlsx_path", fam_path)
-      session_set(sid, "codif_inst", inst)
-      session_set(sid, "codif_data", data_df)
+      codif_set(sid, "familias_split", split)
+      codif_set(sid, "familias_xlsx_path", fam_path)
 
       resumen <- tryCatch(split$resumen, error = function(e) NULL)
       list(
@@ -1602,11 +1591,11 @@ mount_codificacion <- function(pr) {
     plumber::pr_post("/api/codificacion/plantilla-codigos/generar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)
-      split <- s$codif_familias_split
+      split <- codif_get(sid, "familias_split")
       if (is.null(split)) stop_api(409, "E_NO_SPLIT",
         "Primero valida el borrador de familias (POST /api/codificacion/familias/commit).")
-      inst <- s$codif_inst %||% leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
-      data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
+      inst <- codif_inst_cached(sid)
+      data_df <- codif_data_cached(sid)
       dat <- list(raw = data_df)
       plantilla <- construir_plantilla_desde_familias(inst = inst, dat = dat, split = split)
       out_path <- file.path(s$dir, "downloads",
@@ -1614,10 +1603,10 @@ mount_codificacion <- function(pr) {
       dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
       exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = out_path, inst = inst)
       meta <- .register_output_file(sid, "plantilla_codif_template", out_path)
-      session_set(sid, "codif_plantilla_template", TRUE)
+      codif_set(sid, "plantilla_template", TRUE)
       # Auto-register as THE codes template so Paso 4 (aplicar) can work
       # even if the analyst edits everything in-app without re-uploading.
-      session_set(sid, "codif_plantilla_codigos_file_id", meta$file_id)
+      codif_set(sid, "plantilla_codigos_file_id", meta$file_id)
       # Cache sheet metadata so the UI can navigate sheets without reparsing
       nav <- plantilla$navegacion
       sheets_meta <- lapply(seq_len(nrow(nav)), function(i) {
@@ -1627,13 +1616,13 @@ mount_codificacion <- function(pr) {
           n = as.integer(nav$n[i])
         )
       })
-      session_set(sid, "codif_codigos_sheets_meta", sheets_meta)
+      codif_set(sid, "codigos_sheets_meta", sheets_meta)
       list(ok = TRUE, file_id = meta$file_id, size = meta$size, sheets = sheets_meta)
     })) |>
     plumber::pr_get("/api/codificacion/codigos/sheets", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)
-      meta <- s$codif_codigos_sheets_meta
+      meta <- codif_get(sid, "codigos_sheets_meta")
       if (is.null(meta)) stop_api(409, "E_NO_PLANTILLA",
         "Primero genera la plantilla (POST /api/codificacion/plantilla-codigos/generar).")
       list(ok = TRUE, sheets = meta)
@@ -1642,7 +1631,7 @@ mount_codificacion <- function(pr) {
       sid <- session_header(req)
       s <- session_get(sid)
       if (is.null(name) || !nzchar(name)) stop_api(400, "E_NO_SHEET", "Falta 'name' como query param.")
-      fid <- s$codif_plantilla_codigos_file_id
+      fid <- codif_get(sid, "plantilla_codigos_file_id")
       if (is.null(fid)) stop_api(409, "E_NO_PLANTILLA", "Genera primero la plantilla.")
       meta <- get_file(sid, fid)
       df <- readxl::read_excel(meta$path, sheet = name, col_names = FALSE, .name_repair = "minimal")
@@ -1688,7 +1677,7 @@ mount_codificacion <- function(pr) {
       patches <- .mark_utf8(parsed$patches)
       if (is.null(name) || !nzchar(name)) stop_api(400, "E_NO_SHEET", "Body debe incluir 'name'.")
       if (is.null(patches) || length(patches) == 0L) return(list(ok = TRUE, applied = 0L))
-      fid <- s$codif_plantilla_codigos_file_id
+      fid <- codif_get(sid, "plantilla_codigos_file_id")
       if (is.null(fid)) stop_api(409, "E_NO_PLANTILLA", "Genera primero la plantilla.")
       meta <- get_file(sid, fid)
       wb <- openxlsx::loadWorkbook(meta$path)
@@ -1718,8 +1707,8 @@ mount_codificacion <- function(pr) {
       if (is.null(file_id) || !nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Falta file_id del xlsx de familias editado")
       fam_meta <- get_file(sid, file_id)
       s <- session_get(sid)
-      inst <- s$codif_inst %||% leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
-      dat_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
+      inst <- codif_inst_cached(sid)
+      dat_df <- codif_data_cached(sid)
       dat <- if (is.data.frame(dat_df)) list(raw = dat_df) else dat_df
 
       split <- leer_familias_clasificar(path = fam_meta$path, inst = inst, dat = dat, verbose = FALSE)
@@ -1728,15 +1717,15 @@ mount_codificacion <- function(pr) {
       out_path <- file.path(s$dir, "downloads", sprintf("plantilla_codificacion_%s.xlsx", uuid::UUIDgenerate()))
       exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = out_path, inst = inst)
       meta <- .register_output_file(sid, "plantilla_codif_template", out_path)
-      session_set(sid, "codif_familias_file_id", file_id)
-      session_set(sid, "codif_plantilla_template", TRUE)
+      codif_set(sid, "familias_file_id", file_id)
+      codif_set(sid, "plantilla_template", TRUE)
       list(ok = TRUE, file_id = meta$file_id, size = meta$size)
     })) |>
     plumber::pr_post("/api/codificacion/plantilla-codigos/subir", wrap_endpoint(function(req, res, file_id = NULL) {
       sid <- session_header(req)
       if (is.null(file_id) || !nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Falta file_id de la plantilla de códigos editada")
       meta <- get_file(sid, file_id)
-      session_set(sid, "codif_plantilla_codigos_file_id", file_id)
+      codif_set(sid, "plantilla_codigos_file_id", file_id)
       list(ok = TRUE, original_name = meta$original_name, size = meta$size)
     })) |>
     plumber::pr_get("/api/codificacion/plan-adaptacion", wrap_endpoint(function(req, res) {
@@ -1771,14 +1760,12 @@ mount_codificacion <- function(pr) {
       # plantilla xlsx from the current in-app state (familias draft +
       # grupos + rules) — no reliance on stale user-edited xlsx files.
 
-      inst <- s$codif_inst %||% leer_instrumento_xlsform(xls$path)
-      data_df <- s$codif_data %||% .read_data_any(dat)
-      session_set(sid, "codif_inst", inst)
-      session_set(sid, "codif_data", data_df)
+      inst <- codif_inst_cached(sid)
+      data_df <- codif_data_cached(sid)
 
       # 1) Ensure we have a familias draft (auto-generate from suggestion
       # if the analyst never touched Fase 3).
-      draft <- s$codif_familias_draft
+      draft <- codif_get(sid, "familias_draft")
       if (is.null(draft)) {
         df <- .familias_suggest_tibble(sid)
         rows <- .familias_rows_from_df(df)
@@ -1787,7 +1774,7 @@ mount_codificacion <- function(pr) {
           source = "suggestion",
           updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
         )
-        session_set(sid, "codif_familias_draft", draft)
+        codif_set(sid, "familias_draft", draft)
       }
 
       # Promote the user's manual "marcada" toggles into draft$rows$use so
@@ -1795,7 +1782,7 @@ mount_codificacion <- function(pr) {
       # (preguntas con pareja comitteada) ya tienen use=TRUE porque lo seteó
       # /pareja, pero las text-huerfanas/solitarias/integer marcadas a mano
       # por la UI solo viven en codif_marcadas hasta este momento.
-      marcadas_set <- s$codif_marcadas %||% list()
+      marcadas_set <- codif_get(sid, "marcadas") %||% list()
       if (length(marcadas_set) > 0L) {
         for (i in seq_along(draft$rows)) {
           p <- as.character(draft$rows[[i]]$parent %||% "")
@@ -1831,8 +1818,8 @@ mount_codificacion <- function(pr) {
       split <- leer_familias_clasificar(
         path = fam_path, inst = inst, dat = list(raw = data_df), verbose = FALSE
       )
-      session_set(sid, "codif_familias_split", split)
-      session_set(sid, "codif_familias_xlsx_path", fam_path)
+      codif_set(sid, "familias_split", split)
+      codif_set(sid, "familias_xlsx_path", fam_path)
 
       # 3) Build & export the plantilla xlsx (empty recod columns).
       plantilla <- construir_plantilla_desde_familias(
@@ -1844,7 +1831,7 @@ mount_codificacion <- function(pr) {
         plantilla, path_xlsx = codes_path, inst = inst
       )
       codes_meta <- .register_output_file(sid, "plantilla_codif_template", codes_path)
-      session_set(sid, "codif_plantilla_codigos_file_id", codes_meta$file_id)
+      codif_set(sid, "plantilla_codigos_file_id", codes_meta$file_id)
 
       # 4) Bridge — write every in-app codification decision into the xlsx.
       .bridge_grupos_to_plantilla(sid)

@@ -264,3 +264,150 @@ estudio_inst_sources <- function(sid) {
   if (!is.null(s$rp_inst)) return(list(default = s$rp_inst))
   list()
 }
+
+# ===========================================================================
+# CODIFICACIÓN — state scoped por base (v0.2+)
+# ===========================================================================
+#
+# Cada base del estudio tiene su propio progreso de codificación (familias
+# generadas, grupos recodificados, respuestas por pregunta, plantilla de
+# códigos, etc). Esto permite al analista codificar docentes, luego
+# estudiantes, luego administrativos sin que se pise el trabajo.
+#
+# Modelo:
+#   s$codif_por_base = list(
+#     docentes    = list(familias_draft, familias_generated, marcadas,
+#                        grupos_recod, respuestas_recod, plantilla_template,
+#                        plantilla_codigos_file_id, codigos_sheets_meta,
+#                        familias_file_id, familias_split, familias_xlsx_path,
+#                        aplicado),
+#     estudiantes = list(...),
+#     administrativos = list(...)
+#   )
+#   s$codif_source_active = "docentes"  # base en la que el analista trabaja
+#
+# La fuente "activa" se usa por default cuando un endpoint no especifica
+# source. Si el estudio cambia (reset, nuevo demo), se limpia.
+#
+# Los dataframes crudos (`codif_data`) y el instrumento (`codif_inst`) NO se
+# guardan bajo codif_por_base — se leen on-demand de estudio_data_sources()
+# y estudio_inst_sources(). Así evitamos duplicar memoria y siempre leemos
+# los datos frescos de la base activa.
+
+# Devuelve el nombre de la base activa para codificación. Si no está
+# seteado, usa la primera base del estudio. Fallback: "default".
+codif_source_active <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return("default")
+  active <- s$codif_source_active
+  if (!is.null(active) && nzchar(active)) {
+    # Validar que siga existiendo en el estudio.
+    bases <- names(s$estudio$bases %||% list())
+    if (active %in% bases) return(active)
+  }
+  # Fallback: primera base del estudio.
+  bases <- names(s$estudio$bases %||% list())
+  if (length(bases) > 0L) return(bases[1])
+  "default"
+}
+
+# Setea la base activa. Valida que exista en el estudio.
+codif_source_set <- function(sid, source) {
+  s <- session_get(sid)
+  bases <- names(s$estudio$bases %||% list())
+  if (length(bases) == 0L) {
+    stop_api(409, "E_NO_ESTUDIO", "Aún no hay bases en el estudio (carga una en Fase 1).")
+  }
+  if (!source %in% bases) {
+    stop_api(404, "E_BASE_NOT_FOUND",
+             sprintf("Base '%s' no existe en el estudio. Disponibles: %s",
+                     source, paste(bases, collapse = ", ")))
+  }
+  s$codif_source_active <- source
+  .session_env[[sid]] <- s
+  invisible(source)
+}
+
+# Lee un campo del state de codificación para la base activa (o la
+# especificada explícitamente con `source`).
+codif_get <- function(sid, key, default = NULL, source = NULL) {
+  s <- session_get(sid)
+  src <- if (is.null(source)) codif_source_active(sid) else source
+  val <- s$codif_por_base[[src]][[key]]
+  if (is.null(val)) default else val
+}
+
+# Escribe un campo del state de codificación para la base activa.
+codif_set <- function(sid, key, value, source = NULL) {
+  s <- session_get(sid)
+  src <- if (is.null(source)) codif_source_active(sid) else source
+  if (is.null(s$codif_por_base)) s$codif_por_base <- list()
+  if (is.null(s$codif_por_base[[src]])) s$codif_por_base[[src]] <- list()
+  s$codif_por_base[[src]][[key]] <- value
+  .session_env[[sid]] <- s
+  invisible(value)
+}
+
+# IMPORTANTE: codificación NO usa `rp_data` / `rp_inst` (que son el
+# output de reporte_data / reporte_instrumento, pensados para graficadores
+# y reportes estadísticos). Usa la data CRUDA y el XLSForm parseado con
+# leer_instrumento_xlsform(). Los siguientes helpers exponen esos datos
+# por base, cacheando on-demand en `codif_por_base[[src]]$inst` / $data`.
+
+codif_xlsform_path <- function(sid, source = NULL) {
+  s <- session_get(sid)
+  src <- if (is.null(source)) codif_source_active(sid) else source
+  b <- s$estudio$bases[[src]]
+  if (is.null(b)) return(NULL)
+  meta <- s$files[[b$xlsform_file_id]]
+  if (is.null(meta)) return(NULL)
+  meta$path
+}
+
+codif_data_meta <- function(sid, source = NULL) {
+  s <- session_get(sid)
+  src <- if (is.null(source)) codif_source_active(sid) else source
+  b <- s$estudio$bases[[src]]
+  if (is.null(b)) return(NULL)
+  s$files[[b$data_file_id]]
+}
+
+# Devuelve el instrumento XLSForm (leer_instrumento_xlsform) de la base
+# activa. Cachea en `codif_por_base[[src]]$inst` la primera vez.
+codif_inst_cached <- function(sid, source = NULL) {
+  src <- if (is.null(source)) codif_source_active(sid) else source
+  cached <- codif_get(sid, "inst", source = src)
+  if (!is.null(cached)) return(cached)
+  path <- codif_xlsform_path(sid, src)
+  if (is.null(path)) {
+    stop_api(409, "E_NO_XLSFORM",
+             sprintf("La base '%s' no tiene XLSForm cargado.", src))
+  }
+  inst <- leer_instrumento_xlsform(path)
+  codif_set(sid, "inst", inst, source = src)
+  inst
+}
+
+# Dataframe crudo de la base activa (leído con .read_data_any del
+# router_codificacion.R, que recibe un file-meta list).
+codif_data_cached <- function(sid, source = NULL) {
+  src <- if (is.null(source)) codif_source_active(sid) else source
+  cached <- codif_get(sid, "data", source = src)
+  if (!is.null(cached)) return(cached)
+  meta <- codif_data_meta(sid, src)
+  if (is.null(meta)) {
+    stop_api(409, "E_NO_DATA",
+             sprintf("La base '%s' no tiene data cargada.", src))
+  }
+  df <- .read_data_any(meta)
+  codif_set(sid, "data", df, source = src)
+  df
+}
+
+# Devuelve un snapshot del state de codificación de una base. Útil para
+# el frontend al cambiar entre bases y también para export/import.
+codif_snapshot <- function(sid, source = NULL) {
+  s <- session_get(sid)
+  src <- if (is.null(source)) codif_source_active(sid) else source
+  s$codif_por_base[[src]] %||% list()
+}
