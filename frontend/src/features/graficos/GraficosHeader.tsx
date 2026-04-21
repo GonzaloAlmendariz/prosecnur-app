@@ -6,6 +6,8 @@ import {
   downloadUrl,
 } from "../../api/client";
 import { usePlanStore } from "./store";
+import { PlanHealthBadge } from "./PlanHealthBadge";
+import { usePlanValidator } from "./usePlanValidator";
 
 // Header del módulo Gráficos. Patrón análogo a AnaliticaHeader:
 // - Badge "Autoguardado" con estado (guardando / guardado / sin conexión).
@@ -42,6 +44,12 @@ export function GraficosHeader({
   const nSlides = usePlanStore((s) => s.plan.slides.length);
   const resetPlan = usePlanStore((s) => s.reset);
   const loadPlan = usePlanStore((s) => s.loadPlan);
+
+  // El botón de export se desactiva si el padre lo bloquea (sesión sin
+  // rp_data) O si el validador detecta errores (plan vacío, etc.).
+  // Los warnings no bloquean — aparecen en el badge pero el export corre.
+  const validator = usePlanValidator();
+  const canExportFinal = canExport && validator.canExport;
 
   const [ioBusy, setIoBusy] = useState<"export" | "import" | null>(null);
   const [ioMsg, setIoMsg] = useState("");
@@ -151,6 +159,7 @@ export function GraficosHeader({
             : `${nSlides} ${nSlides === 1 ? "slide" : "slides"} en el plan. Tu plan se guarda automáticamente.`}
         </span>
 
+        <PlanHealthBadge />
         <DebugPhToggle />
 
         <button
@@ -228,7 +237,7 @@ export function GraficosHeader({
         <button
           className="pulso-primary"
           onClick={onExportPpt}
-          disabled={!canExport || exportBusy}
+          disabled={!canExportFinal || exportBusy}
           style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
         >
           {exportJobKind === "ppt" ? <Loader2 size={13} className="pulso-spin" /> : <FileText size={13} />}
@@ -251,7 +260,7 @@ export function GraficosHeader({
         <button
           className="pulso-primary"
           onClick={onExportWord}
-          disabled={!canExport || exportBusy}
+          disabled={!canExportFinal || exportBusy}
           style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
         >
           {exportJobKind === "word" ? <Loader2 size={13} className="pulso-spin" /> : <FileText size={13} />}
