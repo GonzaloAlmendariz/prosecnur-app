@@ -226,7 +226,7 @@ function PresetBody({
   // Agrupar args por grupo semántico, manteniendo el orden de GRUPO_META.
   const gruposDeArgs = useMemo(() => {
     const byGrupo: Record<ArgGrupo, ArgMetadata[]> = {
-      datos: [], textos: [], estilo: [], calculo: [], semaforo: [], avanzado: [],
+      datos: [], textos: [], estilo: [], calculo: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
     };
     for (const a of meta.args) {
       const g: ArgGrupo = (a.grupo as ArgGrupo) ?? "avanzado";

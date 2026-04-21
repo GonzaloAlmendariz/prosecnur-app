@@ -1,25 +1,28 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Database, Type, Palette, Calculator, Gauge, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, Database, Type, Palette, Calculator, Gauge, Sparkles, LayoutPanelTop, Table2 } from "lucide-react";
 import { ArgGrupo, ArgMetadata, VarInfo } from "../../api/client";
 import { ArgField } from "./ArgField";
 
-// Agrupa los args de un graficador por su `grupo` semántico. Los grupos
-// son colapsables; "datos" siempre arranca expandido porque es lo
-// primero que el usuario necesita tocar. Los demás se abren on-demand.
+// Agrupa los args de un graficador o preset por su `grupo` semántico.
+// Los grupos son colapsables; "datos" y "textos" arrancan expandidos
+// porque son lo primero que el usuario necesita tocar. Los demás se
+// abren on-demand.
 //
 // Los grupos coinciden con lo declarado en graficos_metadata.R:
-//   datos / textos / estilo / calculo / semaforo / avanzado
+//   datos / textos / estilo / calculo / semaforo / canvas / tabla / avanzado
 
 export const GRUPO_META: Record<
   ArgGrupo,
   { label: string; icon: typeof Database; descripcion: string; defaultOpen: boolean; order: number }
 > = {
-  datos:    { label: "Datos",              icon: Database,   descripcion: "Qué variable se muestra y cómo se segmenta.", defaultOpen: true,  order: 0 },
-  textos:   { label: "Textos",             icon: Type,       descripcion: "Título, base, pie de página.",                defaultOpen: true,  order: 1 },
-  calculo:  { label: "Cálculo",            icon: Calculator, descripcion: "Filtros, métricas, top2box, decimales.",      defaultOpen: false, order: 2 },
-  semaforo: { label: "Semáforo",           icon: Gauge,      descripcion: "Colores por rangos de valores.",              defaultOpen: false, order: 3 },
-  estilo:   { label: "Estilo",             icon: Palette,    descripcion: "Overrides del preset tipo (tamaños, canvas).", defaultOpen: false, order: 4 },
-  avanzado: { label: "Avanzado",           icon: Sparkles,   descripcion: "Opciones poco comunes.",                      defaultOpen: false, order: 5 },
+  datos:    { label: "Datos",    icon: Database,        descripcion: "Qué variable se muestra y cómo se segmenta.",                  defaultOpen: true,  order: 0 },
+  textos:   { label: "Textos",   icon: Type,            descripcion: "Títulos, subtítulos, pie, etiquetas, formato de la base.",    defaultOpen: true,  order: 1 },
+  calculo:  { label: "Cálculo",  icon: Calculator,      descripcion: "Umbrales, decimales, top2box, filtros numéricos.",            defaultOpen: false, order: 2 },
+  semaforo: { label: "Semáforo", icon: Gauge,           descripcion: "Colores por rangos de valores.",                              defaultOpen: false, order: 3 },
+  estilo:   { label: "Estilo",   icon: Palette,         descripcion: "Tipografía, tamaños, colores, leyenda, negritas.",            defaultOpen: false, order: 4 },
+  canvas:   { label: "Canvas",   icon: LayoutPanelTop,  descripcion: "Dimensiones del canvas interno (anchos, altos, márgenes).",   defaultOpen: false, order: 5 },
+  tabla:    { label: "Tabla",    icon: Table2,          descripcion: "Configuración de la tabla derecha (solo en radar_tabla).",    defaultOpen: false, order: 6 },
+  avanzado: { label: "Avanzado", icon: Sparkles,        descripcion: "Opciones poco comunes.",                                      defaultOpen: false, order: 7 },
 };
 
 export function ArgGroup({

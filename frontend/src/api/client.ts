@@ -914,6 +914,11 @@ export type ArgGrupo =
   | "estilo"
   | "calculo"
   | "semaforo"
+  | "canvas"   // dimensiones del canvas interno (canvas_w_*, canvas_h_*,
+               // alto_por_categoria…) — concentra ~10 args por preset que
+               // antes iban a "avanzado" y lo saturaban.
+  | "tabla"    // específico de radar_tabla: todo lo que afecta la tabla
+               // derecha (tabla_header_fill, tabla_body_size, …).
   | "avanzado";
 
 export type ArgChoice = {

@@ -623,52 +623,133 @@
 
 .PRESETS_META <- list(
 
-  # ---- BASE (se hereda a todos) ------------------------------------------
+  # =========================================================================
+  # BASE (se hereda a todos)
+  # =========================================================================
   base = list(
     titulo_humano = "Base — estilo común",
-    descripcion   = "Valores por defecto que heredan todos los gráficos. Fuente, tamaños, colores base y el formato del texto 'Base: N'. Lo que pongas acá aplica a todo el reporte salvo que un preset tipo lo sobrescriba.",
+    descripcion   = "Valores por defecto que heredan todos los gráficos: fuente, tamaños, colores de texto, negritas, formato del texto 'Base: N' y el debug de placeholders. Lo que pongas acá aplica a todo el reporte salvo que un preset tipo lo sobrescriba.",
     icono_ui      = "Layers",
     args = list(
-      list(name = "font_family",       label = "Fuente",            tipo_input = "string", grupo = "textos",
+      # --- Tipografía y fuente --------------------------------------------
+      list(name = "font_family",       label = "Fuente",                 tipo_input = "string", grupo = "textos",
            default = "Arial",
-           descripcion = "Familia tipográfica usada por todos los gráficos (ej. 'Arial', 'Helvetica', 'Open Sans')."),
-      list(name = "font_family_ppt",   label = "Fuente (solo PPT)", tipo_input = "string", grupo = "textos",
-           descripcion = "Sobrescribe 'Fuente' solo cuando se exporta a PPT. Vacío = usa la general."),
-      list(name = "color_texto",       label = "Color de texto",    tipo_input = "string", grupo = "estilo",
-           descripcion = "Color hex para textos dentro del gráfico (títulos, ejes, etiquetas). Ej. '#222222'."),
-      list(name = "size_titulo",       label = "Tamaño título",     tipo_input = "number", grupo = "estilo",
-           descripcion = "Tamaño de fuente del título del gráfico (pt)."),
-      list(name = "size_ejes",         label = "Tamaño ejes",       tipo_input = "number", grupo = "estilo",
-           descripcion = "Tamaño de fuente de las etiquetas de los ejes (pt)."),
-      list(name = "size_etiquetas",    label = "Tamaño etiquetas",  tipo_input = "number", grupo = "estilo",
-           descripcion = "Tamaño de los valores numéricos sobre las barras/puntos."),
-      list(name = "size_base",         label = "Tamaño nota base",  tipo_input = "number", grupo = "estilo",
-           descripcion = "Tamaño del texto 'Base: N' al pie del gráfico (pt)."),
-      list(name = "formato",           label = "Formato de la base",tipo_input = "string", grupo = "textos",
+           descripcion = "Familia tipográfica usada por todos los gráficos (ej. 'Arial', 'Helvetica', 'Open Sans', 'Roboto')."),
+      list(name = "font_family_ppt",   label = "Fuente (solo PPT)",      tipo_input = "string", grupo = "textos",
+           descripcion = "Sobrescribe la 'Fuente' solo al exportar a PowerPoint. Vacío = usa la general. Útil si en PPT necesitas una fuente Office-safe distinta."),
+      list(name = "formato",           label = "Formato del texto base", tipo_input = "string", grupo = "textos",
            default = "Base: %s",
-           descripcion = "Plantilla del texto base auto. %s se reemplaza por el conteo (ej. 'Base: %s' → 'Base: 120')."),
-      list(name = "sufijo_auto",       label = "Sufijo base auto",  tipo_input = "string", grupo = "textos",
-           descripcion = "Texto extra que se añade después del conteo (ej. 'encuestados', 'respuestas')."),
-      list(name = "debug_ph_bordes",   label = "Mostrar bordes debug", tipo_input = "bool", grupo = "avanzado",
-           descripcion = "Dibuja bordes alrededor de cada placeholder. Útil para diagnosticar layouts (toggle en el header del editor)."),
-      list(name = "debug_ph_col",      label = "Color bordes debug",tipo_input = "string", grupo = "avanzado",
-           default = "#FF00FF"),
-      list(name = "debug_ph_lwd",      label = "Grosor bordes debug", tipo_input = "number", grupo = "avanzado",
+           descripcion = "Plantilla del texto automático de la base. %s se reemplaza por el conteo. Ej. 'Base: %s' → 'Base: 120'. Otras opciones: 'n = %s', 'N = %s respuestas'."),
+      list(name = "sufijo_auto",       label = "Sufijo de la base auto", tipo_input = "string", grupo = "textos",
+           descripcion = "Texto extra que se añade al final del conteo. Ej. si formato='Base: %s' y sufijo='Establecimientos de Salud' → 'Base: 120 Establecimientos de Salud'."),
+
+      # --- Tamaños (pt) ---------------------------------------------------
+      list(name = "size_titulo",       label = "Tamaño del título",      tipo_input = "number", grupo = "estilo",
+           default = 12,
+           descripcion = "Tamaño de fuente del título del gráfico (pt). Valores típicos: 10-14."),
+      list(name = "size_subtitulo",    label = "Tamaño del subtítulo",   tipo_input = "number", grupo = "estilo",
+           default = 9),
+      list(name = "size_leyenda",      label = "Tamaño de la leyenda",   tipo_input = "number", grupo = "estilo",
+           default = 10),
+      list(name = "size_ejes",         label = "Tamaño de los ejes",     tipo_input = "number", grupo = "estilo",
+           default = 10,
+           descripcion = "Tamaño de las etiquetas de los ejes X e Y (pt)."),
+      list(name = "size_nota_pie",     label = "Tamaño de la nota al pie", tipo_input = "number", grupo = "estilo",
+           default = 8),
+      list(name = "size_texto_barras", label = "Tamaño del texto de barras", tipo_input = "number", grupo = "estilo",
+           default = 4,
+           descripcion = "Tamaño de los valores numéricos que se escriben DENTRO de las barras (ej. los %). Nota: en ggplot/cowplot no es pt exacto, son unidades relativas."),
+
+      # --- Colores de texto ----------------------------------------------
+      list(name = "color_titulo",      label = "Color del título",       tipo_input = "string", grupo = "estilo",
+           default = "#222222",
+           descripcion = "Hex del color del texto del título (ej. '#39588B' para azul institucional)."),
+      list(name = "color_subtitulo",   label = "Color del subtítulo",    tipo_input = "string", grupo = "estilo",
+           default = "#222222"),
+      list(name = "color_leyenda",     label = "Color de la leyenda",    tipo_input = "string", grupo = "estilo",
+           default = "#222222"),
+      list(name = "color_ejes",        label = "Color de los ejes",      tipo_input = "string", grupo = "estilo",
+           default = "#222222"),
+      list(name = "color_nota_pie",    label = "Color de la nota al pie", tipo_input = "string", grupo = "estilo",
+           default = "#222222"),
+
+      # --- Negritas -------------------------------------------------------
+      list(name = "textos_negrita",    label = "Textos en negrita",      tipo_input = "codigos_list", grupo = "estilo",
+           descripcion = "Qué partes del gráfico van en negrita. Lista separada por comas. Valores posibles: titulo, subtitulo, leyenda, ejes, eje_x, eje_y, valores, barra_extra, titulos_grupo. Ej: titulo, leyenda, valores"),
+
+      # --- Debug de placeholders -----------------------------------------
+      list(name = "debug_ph_bordes",   label = "Mostrar bordes de debug", tipo_input = "bool",   grupo = "avanzado",
+           default = FALSE,
+           descripcion = "Dibuja bordes de colores alrededor de cada placeholder interno del canvas. Sirve para diagnosticar el layout. Controlable con el toggle global del header."),
+      list(name = "debug_ph_col",      label = "Color de los bordes debug", tipo_input = "string", grupo = "avanzado",
+           default = "#FF00FF",
+           descripcion = "Hex del color de los bordes de debug. Magenta (#FF00FF) es el default porque no suele aparecer en gráficos reales."),
+      list(name = "debug_ph_lwd",      label = "Grosor de los bordes debug", tipo_input = "number", grupo = "avanzado",
            default = 0.6)
     )
   ),
 
-  # ---- Barras apiladas (escalas Likert) -----------------------------------
+  # =========================================================================
+  # BARRAS APILADAS — el preset más usado (escalas Likert)
+  # =========================================================================
   barras_apiladas = list(
     titulo_humano = "Barras apiladas",
-    descripcion   = "Estilo global de las barras apiladas (escalas Likert). Hereda todo de 'Base' y se puede sobrescribir acá.",
+    descripcion   = "Estilo global de las barras apiladas horizontales (escalas Likert). Cada barra suma 100% y cada segmento es una categoría de respuesta. Hereda todo de 'Base'.",
     icono_ui      = "BarChartBig",
     args = list(
-      list(name = "angle_x",           label = "Rotación etiquetas X", tipo_input = "number", grupo = "estilo",
-           descripcion = "Grados de rotación de las etiquetas del eje X (0 = horizontal, 45 = diagonal, 90 = vertical)."),
-      list(name = "wrap_y",            label = "Ancho etiquetas Y",    tipo_input = "number", grupo = "estilo",
-           descripcion = "Máximo de caracteres por línea antes de romper la etiqueta del eje Y."),
-      list(name = "leyenda_posicion",  label = "Posición de leyenda",  tipo_input = "choice", grupo = "estilo",
+      # --- Invariantes y textos ------------------------------------------
+      list(name = "usar_canvas",       label = "Usar canvas",            tipo_input = "bool",   grupo = "avanzado",
+           default = TRUE,
+           descripcion = "SIEMPRE activo en Pulso (lo fuerza el backend). No lo toques a menos que sepas exactamente qué estás haciendo."),
+
+      # --- Barra extra (Top2Box / Bottom2Box / N) ------------------------
+      list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo",
+           descripcion = "Añade una barra adicional a la derecha con Top2Box, Bottom2Box o N. Se configura con 'Preset de la barra extra' del graficador."),
+      list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "string", grupo = "estilo",
+           descripcion = "Hex del color de la barra extra. Ej. '#39588B'."),
+      list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo"),
+      list(name = "size_titulo_extra",    label = "Tamaño título de la columna extra", tipo_input = "number", grupo = "estilo",
+           descripcion = "Tamaño del título que va encima de la barra extra (ej. 'TOP 2')."),
+      list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos",
+           descripcion = "Texto antes del valor de la barra extra. Ej. 'N = ' → 'N = 120'."),
+      list(name = "size_titulos_grupo",   label = "Tamaño títulos de grupo", tipo_input = "number", grupo = "estilo",
+           descripcion = "Tamaño de los títulos de bloque cuando se usan varias variables agrupadas."),
+
+      # --- Etiquetas de valores ------------------------------------------
+      list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo",
+           descripcion = "Escribe el % dentro de cada segmento de la barra."),
+      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "string", grupo = "estilo",
+           default = "white",
+           descripcion = "Color del texto del porcentaje dentro de cada segmento. 'white' o un hex."),
+      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "calculo",
+           default = 0,
+           descripcion = "Cuántos decimales mostrar en los porcentajes (0 = enteros)."),
+      list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "calculo",
+           default = 0.01,
+           descripcion = "Fracción mínima de la barra para que se escriba el valor. Segmentos por debajo quedan sin etiqueta. 0.01 = 1%."),
+      list(name = "umbral_mostrar_etiqueta", label = "Umbral para mostrar etiqueta", tipo_input = "number", grupo = "calculo",
+           descripcion = "Variante: segmentos muy pequeños pueden tener la etiqueta afuera/desplazada. Este es el corte a partir del cual aparece."),
+      list(name = "umbral_etiqueta_normal", label = "Umbral etiqueta normal", tipo_input = "number", grupo = "calculo",
+           descripcion = "A partir de este umbral, la etiqueta va dentro del segmento sin desplazar."),
+      list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool",   grupo = "calculo",
+           descripcion = "Si está activo, las etiquetas de segmentos muy chicos se desplazan verticalmente para no superponerse."),
+      list(name = "desplazamiento_max_etiquetas_peq", label = "Desplazamiento máximo etiquetas pequeñas", tipo_input = "number", grupo = "calculo",
+           descripcion = "Cuánto puede moverse (fracción) una etiqueta chica al repelerla. 0.06 es típico."),
+
+      # --- Eje Y ----------------------------------------------------------
+      list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "calculo",
+           default = 15,
+           descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y antes de romper. Valores 10-80 según cuánto espacio tengas."),
+      list(name = "wrap_y",               label = "Wrap eje Y (alternativo)", tipo_input = "number", grupo = "calculo",
+           descripcion = "Alias alternativo para ancho_max_eje_y, por compatibilidad."),
+      list(name = "invertir_barras",      label = "Invertir orden de las barras", tipo_input = "bool",   grupo = "estilo",
+           descripcion = "Si es TRUE, las barras se muestran en orden inverso (la primera abajo, la última arriba)."),
+      list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo",
+           default = 0,
+           descripcion = "Grados de rotación del eje X (0 = horizontal, 45 = diagonal, 90 = vertical)."),
+
+      # --- Leyenda --------------------------------------------------------
+      list(name = "leyenda_posicion",     label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
            choices = list(
              list(value = "abajo",    label = "Abajo"),
              list(value = "arriba",   label = "Arriba"),
@@ -676,9 +757,59 @@
              list(value = "izquierda",label = "Izquierda"),
              list(value = "ninguna",  label = "Ocultar")
            )),
-      list(name = "mostrar_valores",   label = "Mostrar porcentajes", tipo_input = "bool",   grupo = "estilo",
-           descripcion = "Si es TRUE, escribe el % dentro de cada segmento de la barra."),
-      list(name = "exportar",          label = "Modo de export",      tipo_input = "choice", grupo = "avanzado",
+      list(name = "legend_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo",
+           default = 0.40),
+      list(name = "legend_espaciado",     label = "Espaciado entre items de leyenda", tipo_input = "number", grupo = "estilo",
+           default = 15),
+      list(name = "legend_n_por_fila",    label = "Items por fila en leyenda", tipo_input = "number", grupo = "estilo",
+           default = 6),
+
+      # --- Canvas (anchos y altos internos en pulgadas) ------------------
+      list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas",
+           default = 0.12,
+           descripcion = "Fracción del ancho total que ocupa la columna de etiquetas del eje Y. 0.12 = 12% del canvas."),
+      list(name = "canvas_w_buf_etq_bars",  label = "Espacio etiquetas→barras", tipo_input = "number", grupo = "canvas",
+           default = 0.02,
+           descripcion = "Fracción de separación entre las etiquetas y las barras."),
+      list(name = "canvas_w_bars",          label = "Ancho zona de barras",   tipo_input = "number", grupo = "canvas",
+           default = 0.60,
+           descripcion = "Fracción del ancho para las barras principales. Debe sumar con los demás w_* aprox 1.0."),
+      list(name = "canvas_w_buf_bars_extra",label = "Espacio barras→columna extra", tipo_input = "number", grupo = "canvas",
+           default = 0.02),
+      list(name = "canvas_w_extra",         label = "Ancho columna extra",    tipo_input = "number", grupo = "canvas",
+           default = 0.12,
+           descripcion = "Fracción del ancho para la columna de la barra extra (Top2Box, N, etc.)."),
+      list(name = "canvas_h_toprow_in",     label = "Alto zona superior (in)", tipo_input = "number", grupo = "canvas",
+           default = 0.10,
+           descripcion = "Altura en pulgadas de la primera fila del canvas (espacio en blanco arriba)."),
+      list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas",
+           default = 0.15,
+           descripcion = "Altura en pulgadas de la zona del título. Si el título no entra, aumenta este valor."),
+      list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (in)", tipo_input = "number", grupo = "canvas",
+           default = 0.15),
+      list(name = "canvas_h_caption_in",    label = "Alto del pie de página (in)", tipo_input = "number", grupo = "canvas",
+           default = 0.20),
+      list(name = "alto_por_categoria",     label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas",
+           default = 0.46,
+           descripcion = "Altura en pulgadas que ocupa cada fila (categoría). Más = barras más gruesas."),
+
+      # --- Grosor de barras ----------------------------------------------
+      list(name = "grosor_modo",          label = "Modo de grosor",        tipo_input = "choice", grupo = "avanzado",
+           default = "auto",
+           choices = list(
+             list(value = "auto",   label = "Automático",   hint = "Se calcula según alto_por_categoria."),
+             list(value = "manual", label = "Manual",        hint = "Usa grosor_barras tal cual.")
+           )),
+      list(name = "grosor_barras",        label = "Grosor de las barras",  tipo_input = "number", grupo = "avanzado",
+           default = 0.6,
+           descripcion = "Solo si modo=manual. Valor entre 0 y 1."),
+      list(name = "grosor_barras_mult",   label = "Multiplicador grosor (modo auto)", tipo_input = "number", grupo = "avanzado",
+           default = 0.9,
+           descripcion = "Solo si modo=auto. Fracción del alto_por_categoria que ocupa la barra (0.9 = barras casi pegadas, 0.6 = más separadas)."),
+
+      # --- Avanzado -------------------------------------------------------
+      list(name = "exportar",             label = "Modo de export",        tipo_input = "choice", grupo = "avanzado",
+           default = "rplot",
            choices = list(
              list(value = "rplot",  label = "R plot (default)"),
              list(value = "image",  label = "Imagen PNG")
@@ -686,177 +817,508 @@
     )
   ),
 
-  # ---- Multi-apiladas ------------------------------------------------------
+  # =========================================================================
+  # MULTI-APILADAS (batería de preguntas con misma escala)
+  # =========================================================================
   multi_apiladas = list(
     titulo_humano = "Multi-apiladas (batería)",
-    descripcion   = "Varias barras apiladas juntas. Hereda de 'Base'.",
+    descripcion   = "Varias barras apiladas en un solo gráfico (baterías de preguntas con misma escala). Hereda muchos args de 'Barras apiladas' por similitud visual.",
     icono_ui      = "Rows3",
     args = list(
-      list(name = "angle_x",           label = "Rotación etiquetas X", tipo_input = "number", grupo = "estilo"),
-      list(name = "wrap_y",            label = "Ancho etiquetas Y",    tipo_input = "number", grupo = "estilo"),
+      list(name = "usar_canvas",          label = "Usar canvas",           tipo_input = "bool",   grupo = "avanzado", default = TRUE),
+
+      # --- Textos / tamaños ---------------------------------------------
+      list(name = "size_titulos_grupo",   label = "Tamaño títulos de bloque", tipo_input = "number", grupo = "estilo",
+           descripcion = "Cuando hay varios bloques temáticos, es el tamaño del título de cada bloque."),
+      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "string", grupo = "estilo"),
+      list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo"),
+      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "calculo"),
+      list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "calculo"),
+      list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool", grupo = "calculo"),
+
+      # --- Barra extra ---------------------------------------------------
+      list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo"),
+      list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos"),
+      list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "string", grupo = "estilo"),
+
+      # --- Eje Y + separación --------------------------------------------
       list(name = "espacio_entre_barras", label = "Separación entre barras", tipo_input = "number", grupo = "estilo",
            descripcion = "Fracción del ancho entre barras (0 = pegadas, 0.3 = separación generosa)."),
-      list(name = "leyenda_posicion",  label = "Posición de leyenda",  tipo_input = "choice", grupo = "estilo",
+      list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "calculo"),
+      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo"),
+      list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo"),
+      list(name = "alto_por_categoria",   label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas"),
+
+      # --- Leyenda --------------------------------------------------------
+      list(name = "leyenda_posicion",     label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
            choices = list(
              list(value = "abajo",  label = "Abajo"),
              list(value = "arriba", label = "Arriba"),
              list(value = "derecha",label = "Derecha"),
              list(value = "ninguna",label = "Ocultar")
-           ))
+           )),
+      list(name = "legend_key_cm",        label = "Tamaño icono leyenda",  tipo_input = "number", grupo = "estilo"),
+      list(name = "legend_espaciado",     label = "Espaciado leyenda",     tipo_input = "number", grupo = "estilo"),
+      list(name = "legend_n_por_fila",    label = "Items por fila leyenda", tipo_input = "number", grupo = "estilo"),
+
+      # --- Canvas ---------------------------------------------------------
+      list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_w_bars",          label = "Ancho zona de barras",   tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_w_extra",         label = "Ancho columna extra",    tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_toprow_in",     label = "Alto zona superior (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_caption_in",    label = "Alto del pie (in)",      tipo_input = "number", grupo = "canvas")
     )
   ),
 
-  # ---- Barras agrupadas ----------------------------------------------------
+  # =========================================================================
+  # BARRAS AGRUPADAS
+  # =========================================================================
   barras_agrupadas = list(
     titulo_humano = "Barras agrupadas",
-    descripcion   = "Barras comparativas entre grupos. Hereda de 'Base'.",
+    descripcion   = "Barras lado a lado (una por categoría), útil para comparar entre grupos. Puede tener una o varias series.",
     icono_ui      = "BarChartHorizontal",
     args = list(
-      list(name = "angle_x",           label = "Rotación etiquetas X", tipo_input = "number", grupo = "estilo"),
-      list(name = "mostrar_valores",   label = "Mostrar valores",      tipo_input = "bool",   grupo = "estilo"),
-      list(name = "decimales",         label = "Decimales en etiquetas", tipo_input = "number", grupo = "calculo",
-           descripcion = "Cuántos decimales mostrar en las etiquetas de valor (0 = enteros).")
+      list(name = "usar_canvas",          label = "Usar canvas",            tipo_input = "bool",   grupo = "avanzado", default = TRUE),
+
+      # --- Serie y leyenda -----------------------------------------------
+      list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo",
+           descripcion = "Útil poner en FALSE cuando hay una sola serie (no hace falta explicarla)."),
+      list(name = "leyenda_posicion",     label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
+           choices = list(
+             list(value = "abajo",  label = "Abajo"),
+             list(value = "arriba", label = "Arriba"),
+             list(value = "derecha",label = "Derecha"),
+             list(value = "ninguna",label = "Ocultar")
+           )),
+      list(name = "colores_series",       label = "Colores por serie",     tipo_input = "textarea", grupo = "estilo",
+           descripcion = "Mapeo serie → color hex, una línea por serie. Ej:\n  Porcentaje = #39588B\n  Media = #0B3A67\n  (O como JSON: {\"Porcentaje\":\"#39588B\"}.)"),
+      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo"),
+      list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo"),
+
+      # --- Valores y cálculo ---------------------------------------------
+      list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo"),
+      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "calculo"),
+      list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "calculo",
+           default = 0.001),
+      list(name = "umbral_posicion",      label = "Umbral de posición de la etiqueta", tipo_input = "number", grupo = "calculo",
+           default = 0.07,
+           descripcion = "A partir de qué fracción la etiqueta va dentro vs fuera de la barra."),
+
+      # --- Barra extra (menos común acá) ---------------------------------
+      list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo"),
+      list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos"),
+      list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo"),
+      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "string", grupo = "estilo"),
+
+      # --- Eje Y / labels -------------------------------------------------
+      list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "calculo", default = 30),
+      list(name = "wrap_y",               label = "Wrap eje Y",            tipo_input = "number", grupo = "calculo"),
+
+      # --- Canvas ---------------------------------------------------------
+      list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas", default = 0.15),
+      list(name = "canvas_w_buf_etq_bars",  label = "Espacio etiquetas→barras", tipo_input = "number", grupo = "canvas", default = 0.02),
+      list(name = "canvas_w_bars",          label = "Ancho zona de barras",   tipo_input = "number", grupo = "canvas", default = 0.58),
+      list(name = "canvas_w_buf_bars_extra",label = "Espacio barras→extra",   tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_w_extra",         label = "Ancho columna extra",    tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_toprow_in",     label = "Alto zona superior (in)", tipo_input = "number", grupo = "canvas", default = 0.10),
+      list(name = "canvas_h_header_in",     label = "Alto del header (in)",   tipo_input = "number", grupo = "canvas", default = 0.70),
+      list(name = "canvas_h_legend_in",     label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_h_caption_in",    label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "alto_por_categoria",     label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas", default = 0.48)
     )
   ),
 
-  # ---- Barras numéricas ----------------------------------------------------
+  # =========================================================================
+  # BARRAS NUMÉRICAS (medias, KPIs)
+  # =========================================================================
   barras_numericas = list(
     titulo_humano = "Barras numéricas",
-    descripcion   = "Barras de valores numéricos (medias, sumas). Hereda de 'Base'.",
+    descripcion   = "Barras de valores numéricos (medias, sumas, conteos). Útil para KPIs comparativos. Suele ir con orientación vertical y valor sobre cada barra.",
     icono_ui      = "BarChart",
     args = list(
-      list(name = "decimales",         label = "Decimales",         tipo_input = "number", grupo = "calculo"),
-      list(name = "mostrar_valores",   label = "Mostrar valores",   tipo_input = "bool",   grupo = "estilo"),
-      list(name = "color_barra",       label = "Color principal",   tipo_input = "string", grupo = "estilo",
-           descripcion = "Hex del color base si no hay paleta. Ej. '#0A7FB8'.")
-    )
-  ),
+      list(name = "usar_canvas",          label = "Usar canvas",            tipo_input = "bool",   grupo = "avanzado", default = TRUE),
+      list(name = "orientacion",          label = "Orientación",            tipo_input = "choice", grupo = "estilo",
+           default = "vertical",
+           choices = list(
+             list(value = "vertical",   label = "Vertical",   hint = "Barras de abajo hacia arriba."),
+             list(value = "horizontal", label = "Horizontal", hint = "Barras de izquierda a derecha.")
+           )),
 
-  # ---- Boxplot / Media-rango ----------------------------------------------
-  boxplot = list(
-    titulo_humano = "Box plot",
-    descripcion   = "Cajas con cuartiles. Hereda de 'Base'. Aplica también a 'Media y rango' por herencia.",
-    icono_ui      = "BoxSelect",
-    args = list(
-      list(name = "mostrar_outliers",  label = "Mostrar outliers", tipo_input = "bool",   grupo = "estilo",
-           descripcion = "Dibujar los puntos que caen fuera de los bigotes."),
-      list(name = "mostrar_media",     label = "Mostrar media",    tipo_input = "bool",   grupo = "estilo",
-           descripcion = "Marca adicional con el promedio (además de la mediana)."),
-      list(name = "decimales_promedio",label = "Decimales promedio",tipo_input = "number",grupo = "calculo")
-    )
-  ),
+      # --- Valores -------------------------------------------------------
+      list(name = "mostrar_valores",      label = "Mostrar valor dentro",  tipo_input = "bool",   grupo = "estilo",
+           default = TRUE,
+           descripcion = "Escribe el valor dentro de cada barra."),
+      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "string", grupo = "estilo",
+           default = "white"),
+      list(name = "size_texto_barras",    label = "Tamaño texto en barras", tipo_input = "number", grupo = "estilo", default = 4.4),
+      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "calculo",
+           descripcion = "Decimales del valor. Ej. 1 → '4.3', 0 → '4'."),
 
-  media_rango = list(
-    titulo_humano = "Media y rango",
-    descripcion   = "Puntos con promedio y barras de rango. Hereda de 'Boxplot' y 'Base'.",
-    icono_ui      = "Activity",
-    args = list(
-      list(name = "decimales_promedio", label = "Decimales",       tipo_input = "number", grupo = "calculo"),
-      list(name = "mostrar_ref_label",  label = "Línea de referencia", tipo_input = "bool", grupo = "estilo")
-    )
-  ),
+      # --- N sobre barras ------------------------------------------------
+      list(name = "mostrar_n_sobre_barras", label = "Mostrar N arriba de cada barra", tipo_input = "bool", grupo = "estilo",
+           descripcion = "Imprime 'N = 120' encima de cada barra. Útil cuando el tamaño muestral varía entre grupos."),
+      list(name = "prefijo_n_sobre_barras", label = "Prefijo del N",        tipo_input = "string", grupo = "textos",
+           default = "N = "),
+      list(name = "size_n_sobre_barras",    label = "Tamaño texto N",       tipo_input = "number", grupo = "estilo", default = 3.6),
+      list(name = "color_n_sobre_barras",   label = "Color texto N",        tipo_input = "string", grupo = "estilo", default = "#0B3A67"),
 
-  # ---- Pie / Donut ---------------------------------------------------------
-  pie = list(
-    titulo_humano = "Pie",
-    descripcion   = "Gráfico de torta. Donut hereda de Pie.",
-    icono_ui      = "PieChart",
-    args = list(
-      list(name = "mostrar_valores",   label = "Mostrar porcentajes", tipo_input = "bool",   grupo = "estilo"),
-      list(name = "decimales",         label = "Decimales",           tipo_input = "number", grupo = "calculo"),
-      list(name = "leyenda_posicion",  label = "Posición leyenda",    tipo_input = "choice", grupo = "estilo",
+      # --- Eje Y ---------------------------------------------------------
+      list(name = "mostrar_eje_y",        label = "Mostrar eje Y numérico", tipo_input = "bool",   grupo = "estilo",
+           default = FALSE,
+           descripcion = "Si los valores están dentro de las barras, normalmente el eje Y sobra."),
+
+      # --- Serie ---------------------------------------------------------
+      list(name = "colores_series",       label = "Colores por serie",     tipo_input = "textarea", grupo = "estilo",
+           descripcion = "Mapeo serie → color. Ej:\n  Media = #0B3A67\n  Mediana = #39588B"),
+      list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo"),
+      list(name = "leyenda_posicion",     label = "Posición leyenda",      tipo_input = "choice", grupo = "estilo",
            choices = list(
              list(value = "abajo",   label = "Abajo"),
-             list(value = "derecha", label = "Derecha"),
+             list(value = "arriba",  label = "Arriba"),
              list(value = "ninguna", label = "Ocultar")
-           ))
+           )),
+
+      # --- Canvas ---------------------------------------------------------
+      list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas", default = 0.12),
+      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.10),
+      list(name = "canvas_h_caption",     label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_pad_top",       label = "Padding superior (in)",  tipo_input = "number", grupo = "canvas", default = 0.01),
+
+      # --- Textos --------------------------------------------------------
+      list(name = "nota_pie",             label = "Nota al pie (fijo)",    tipo_input = "string", grupo = "textos",
+           descripcion = "Texto opcional que siempre va al pie. Si está vacío, se usa la base automática.")
     )
   ),
 
-  donut = list(
-    titulo_humano = "Donut",
-    descripcion   = "Variante compacta del pie. Hereda de 'Pie'.",
-    icono_ui      = "CircleDot",
+  # =========================================================================
+  # PIE
+  # =========================================================================
+  pie = list(
+    titulo_humano = "Pie",
+    descripcion   = "Gráfico de torta con porcentajes. 'Donut' hereda su configuración por defecto — definilo acá y el donut lo respeta.",
+    icono_ui      = "PieChart",
     args = list(
-      list(name = "hole_size",         label = "Tamaño del hueco",  tipo_input = "number", grupo = "estilo",
-           descripcion = "Fracción del radio ocupada por el hueco central (0 = pie, 0.6 = donut estrecho)."),
-      list(name = "mostrar_valores",   label = "Mostrar porcentajes", tipo_input = "bool", grupo = "estilo")
-    )
-  ),
+      list(name = "usar_canvas",          label = "Usar canvas",            tipo_input = "bool",   grupo = "avanzado", default = TRUE),
+      list(name = "tipo_pie",             label = "Tipo",                   tipo_input = "choice", grupo = "estilo",
+           default = "pie",
+           choices = list(
+             list(value = "pie",   label = "Pie (torta llena)"),
+             list(value = "donut", label = "Donut (con hueco)")
+           )),
 
-  # ---- Radar tabla ---------------------------------------------------------
-  radar_tabla = list(
-    titulo_humano = "Radar + tabla",
-    descripcion   = "Radar con tabla al costado. Hereda de 'Base'.",
-    icono_ui      = "Radar",
-    args = list(
-      list(name = "cortes_grilla",     label = "Cortes de la grilla", tipo_input = "number", grupo = "estilo",
-           descripcion = "Número de círculos concéntricos dentro del radar."),
-      list(name = "wrap_ejes",         label = "Ancho etiquetas ejes", tipo_input = "number", grupo = "estilo"),
-      list(name = "size_tabla",        label = "Tamaño texto tabla",  tipo_input = "number", grupo = "estilo")
-    )
-  ),
+      # --- Etiquetas porcentuales ---------------------------------------
+      list(name = "mostrar_etiquetas_pct", label = "Mostrar porcentajes",  tipo_input = "bool",   grupo = "estilo", default = TRUE),
+      list(name = "size_etiquetas_pct",    label = "Tamaño etiquetas %",   tipo_input = "number", grupo = "estilo", default = 5),
+      list(name = "color_etiquetas_pct",   label = "Color etiquetas %",    tipo_input = "string", grupo = "estilo", default = "white"),
+      list(name = "etiquetas_negrita",     label = "Etiquetas en negrita", tipo_input = "bool",   grupo = "estilo", default = TRUE),
 
-  # ---- Dimensiones: Heatmap -----------------------------------------------
-  dim_heatmap = list(
-    titulo_humano = "Heatmap dimensional",
-    descripcion   = "Mapa de calor de dimensiones. Hereda de 'Base'.",
-    icono_ui      = "LayoutGrid",
-    args = list(
-      list(name = "angle_x",           label = "Rotación etiquetas X",   tipo_input = "number", grupo = "estilo", default = 0),
-      list(name = "size_ejes",         label = "Tamaño ejes",            tipo_input = "number", grupo = "estilo", default = 10),
-      list(name = "size_texto_celdas", label = "Tamaño texto celdas",    tipo_input = "number", grupo = "estilo", default = 10),
-      list(name = "canvas_h_title",    label = "Alto zona título (in)",  tipo_input = "number", grupo = "avanzado", default = 0.13,
-           descripcion = "Altura reservada para el título del heatmap en el canvas (pulgadas)."),
-      list(name = "canvas_h_legend",   label = "Alto zona leyenda (in)", tipo_input = "number", grupo = "avanzado", default = 0.09),
-      list(name = "canvas_h_caption",  label = "Alto zona pie (in)",     tipo_input = "number", grupo = "avanzado", default = 0.06)
-    )
-  ),
-
-  dim_heatmap_criterios = list(
-    titulo_humano = "Heatmap por criterios",
-    descripcion   = "Heatmap dimensional agrupado por criterios. Hereda de 'Heatmap dimensional' y 'Base'.",
-    icono_ui      = "LayoutGrid",
-    args = list(
-      list(name = "font_family",       label = "Fuente",                 tipo_input = "string", grupo = "textos",
-           descripcion = "Si se deja vacío, usa la fuente de 'Base'.")
-    )
-  ),
-
-  # ---- Dimensiones: Radar --------------------------------------------------
-  dim_radar = list(
-    titulo_humano = "Radar dimensional",
-    descripcion   = "Radar de dimensiones. Hereda de 'Base'.",
-    icono_ui      = "Radar",
-    args = list(
-      list(name = "cortes_grilla",     label = "Cortes de la grilla",    tipo_input = "number", grupo = "estilo", default = 4),
-      list(name = "wrap_ejes",         label = "Ancho etiquetas ejes",   tipo_input = "number", grupo = "estilo", default = 22),
-      list(name = "eje_label_mult",    label = "Separación etiquetas",   tipo_input = "number", grupo = "estilo", default = 1.03,
-           descripcion = "Multiplicador que aleja las etiquetas del centro (1 = pegadas, 1.1 = más separadas)."),
-      list(name = "leyenda_posicion",  label = "Posición leyenda",       tipo_input = "choice", grupo = "estilo", default = "abajo",
+      # --- Leyenda -------------------------------------------------------
+      list(name = "leyenda_posicion",      label = "Posición leyenda",     tipo_input = "choice", grupo = "estilo",
+           default = "abajo",
            choices = list(
              list(value = "abajo",   label = "Abajo"),
              list(value = "derecha", label = "Derecha"),
              list(value = "ninguna", label = "Ocultar")
            )),
-      list(name = "legend_n_por_fila", label = "Items por fila leyenda", tipo_input = "number", grupo = "estilo", default = 4),
-      list(name = "legend_key_cm",     label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo", default = 0.45),
-      list(name = "legend_espaciado",  label = "Espaciado leyenda",      tipo_input = "number", grupo = "estilo", default = 12),
-      list(name = "canvas_h_header_in",label = "Alto header (in)",       tipo_input = "number", grupo = "avanzado", default = 0.58),
-      list(name = "canvas_h_legend_in",label = "Alto leyenda (in)",      tipo_input = "number", grupo = "avanzado", default = 0.20),
-      list(name = "canvas_h_caption_in",label = "Alto pie (in)",         tipo_input = "number", grupo = "avanzado", default = 0.08)
+      list(name = "size_leyenda",         label = "Tamaño leyenda",        tipo_input = "number", grupo = "estilo", default = 11),
+      list(name = "tamano_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo", default = 0.45),
+      list(name = "espaciado_vertical_cm",label = "Espaciado vertical leyenda (cm)", tipo_input = "number", grupo = "estilo", default = 0.30),
+      list(name = "ncol_leyenda_bajo",    label = "Columnas leyenda (abajo)", tipo_input = "number", grupo = "estilo", default = 2,
+           descripcion = "Solo aplica cuando la leyenda va abajo. Distribuye los items en N columnas."),
+      list(name = "invertir_leyenda",     label = "Invertir orden leyenda", tipo_input = "bool",   grupo = "estilo", default = TRUE),
+
+      # --- Título y orden ------------------------------------------------
+      list(name = "pos_titulo",           label = "Posición del título",   tipo_input = "choice", grupo = "textos",
+           default = "centro",
+           choices = list(
+             list(value = "centro",    label = "Centro"),
+             list(value = "izquierda", label = "Izquierda"),
+             list(value = "derecha",   label = "Derecha")
+           )),
+      list(name = "size_titulo",          label = "Tamaño título",         tipo_input = "number", grupo = "estilo", default = 13),
+      list(name = "subtitulo",            label = "Subtítulo (fijo)",      tipo_input = "string", grupo = "textos"),
+      list(name = "nota_pie",             label = "Nota al pie (fija)",    tipo_input = "string", grupo = "textos"),
+      list(name = "ordenar_categorias",   label = "Orden de las categorías", tipo_input = "choice", grupo = "calculo",
+           default = "asc",
+           choices = list(
+             list(value = "asc",     label = "Ascendente (menor → mayor)"),
+             list(value = "desc",    label = "Descendente (mayor → menor)"),
+             list(value = "natural", label = "Natural (orden del instrumento)")
+           )),
+
+      # --- Canvas --------------------------------------------------------
+      list(name = "canvas_h_title",         label = "Alto zona título (in)", tipo_input = "number", grupo = "canvas", default = 0.08),
+      list(name = "canvas_h_caption",       label = "Alto zona pie (in)",    tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_h_legend_bottom", label = "Alto leyenda inferior (in)", tipo_input = "number", grupo = "canvas", default = 0.08),
+      list(name = "canvas_w_legend_right",  label = "Ancho leyenda derecha", tipo_input = "number", grupo = "canvas",
+           descripcion = "Fracción del ancho reservada cuando la leyenda va a la derecha. Ej. 0.30 = 30% para la leyenda."),
+      list(name = "canvas_pad_top",         label = "Padding superior (in)", tipo_input = "number", grupo = "canvas", default = 0),
+
+      # --- Debug ---------------------------------------------------------
+      list(name = "debug_lw",             label = "Grosor línea debug",    tipo_input = "number", grupo = "avanzado", default = 1)
     )
   ),
 
-  # ---- Dimensiones: FODA --------------------------------------------------
+  # =========================================================================
+  # DONUT (hereda pie)
+  # =========================================================================
+  donut = list(
+    titulo_humano = "Donut",
+    descripcion   = "Variante compacta del pie con hueco central. Por defecto hereda TODO del preset 'Pie'; los args acá solo lo sobrescriben.",
+    icono_ui      = "CircleDot",
+    args = list(
+      list(name = "tipo_pie",             label = "Tipo",                   tipo_input = "choice", grupo = "estilo", default = "donut",
+           choices = list(
+             list(value = "pie",   label = "Pie"),
+             list(value = "donut", label = "Donut")
+           )),
+      list(name = "donut_hole",           label = "Tamaño del hueco",      tipo_input = "number", grupo = "estilo", default = 0.60,
+           descripcion = "Fracción del radio ocupada por el hueco central. 0 = pie, 0.4 = donut grueso, 0.7 = donut fino."),
+      list(name = "leyenda_posicion",     label = "Posición leyenda",      tipo_input = "choice", grupo = "estilo",
+           default = "derecha",
+           choices = list(
+             list(value = "abajo",   label = "Abajo"),
+             list(value = "derecha", label = "Derecha"),
+             list(value = "ninguna", label = "Ocultar")
+           )),
+      list(name = "size_titulo",          label = "Tamaño título",         tipo_input = "number", grupo = "estilo"),
+      list(name = "size_leyenda",         label = "Tamaño leyenda",        tipo_input = "number", grupo = "estilo"),
+      list(name = "size_etiquetas_pct",   label = "Tamaño etiquetas %",    tipo_input = "number", grupo = "estilo"),
+      list(name = "tamano_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo"),
+      list(name = "espaciado_vertical_cm",label = "Espaciado vertical leyenda (cm)", tipo_input = "number", grupo = "estilo"),
+      list(name = "ncol_leyenda_bajo",    label = "Columnas leyenda (abajo)", tipo_input = "number", grupo = "estilo"),
+      list(name = "canvas_h_title",       label = "Alto zona título (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_legend_bottom", label = "Alto leyenda inferior (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_w_legend_right",label = "Ancho leyenda derecha", tipo_input = "number", grupo = "canvas")
+    )
+  ),
+
+  # =========================================================================
+  # RADAR + TABLA (el más denso en args — 40+)
+  # =========================================================================
+  radar_tabla = list(
+    titulo_humano = "Radar + tabla",
+    descripcion   = "Gráfico radar (telaraña) acompañado de una tabla a la derecha (típicamente Top Two Box). Muy configurable para reportes formales.",
+    icono_ui      = "Radar",
+    args = list(
+      list(name = "usar_canvas",          label = "Usar canvas",            tipo_input = "bool",   grupo = "avanzado", default = TRUE),
+
+      # --- Escala del radar ---------------------------------------------
+      list(name = "escala_valor",         label = "Escala de valores",      tipo_input = "choice", grupo = "calculo",
+           default = "proporcion_1",
+           choices = list(
+             list(value = "proporcion_1",  label = "Proporción 0-1",  hint = "Los valores van de 0 a 1."),
+             list(value = "porcentaje_100",label = "Porcentaje 0-100",hint = "Los valores van de 0 a 100.")
+           )),
+      list(name = "limites",              label = "Límites del radar",     tipo_input = "codigos_list", grupo = "calculo",
+           descripcion = "Mínimo y máximo, separados por coma. Ej: 0, 1 o 0, 100. Si vacío, se deduce de escala_valor."),
+      list(name = "cortes_grilla",        label = "Cortes de la grilla",   tipo_input = "number", grupo = "estilo", default = 6,
+           descripcion = "Número de círculos concéntricos dentro del radar."),
+      list(name = "mostrar_niveles",      label = "Mostrar etiquetas de grilla", tipo_input = "bool", grupo = "estilo", default = FALSE,
+           descripcion = "Muestra los valores en cada círculo (ej. 20, 40, 60...)."),
+      list(name = "mostrar_radios",       label = "Mostrar radios",        tipo_input = "bool",   grupo = "estilo", default = FALSE),
+      list(name = "rellenar_poligono",    label = "Rellenar polígono",     tipo_input = "bool",   grupo = "estilo", default = FALSE,
+           descripcion = "Si es TRUE, el área dentro del polígono se colorea."),
+      list(name = "radar_scale",          label = "Escala del radar",      tipo_input = "number", grupo = "estilo", default = 0.85,
+           descripcion = "Fracción del espacio disponible que ocupa el radar (0.85 deja ~15% para respirar)."),
+
+      # --- Ejes ---------------------------------------------------------
+      list(name = "eje_label_mult",       label = "Separación etiquetas de ejes", tipo_input = "number", grupo = "estilo", default = 1.2,
+           descripcion = "Multiplicador que aleja las etiquetas del centro. 1 = pegadas al vértice, 1.2 = más afuera."),
+      list(name = "wrap_ejes",            label = "Ancho etiquetas de ejes", tipo_input = "number", grupo = "estilo", default = 20,
+           descripcion = "Caracteres máximo antes de quebrar la etiqueta del eje."),
+      list(name = "size_ejes",            label = "Tamaño texto de ejes",   tipo_input = "number", grupo = "estilo", default = 10),
+      list(name = "size_linea",           label = "Grosor de línea del radar", tipo_input = "number", grupo = "estilo", default = 1.2),
+      list(name = "textos_negrita",       label = "Textos en negrita",     tipo_input = "codigos_list", grupo = "estilo",
+           descripcion = "Qué partes van en negrita. Valores: ejes, leyenda, titulo. Ej: ejes, leyenda"),
+
+      # --- Leyenda -------------------------------------------------------
+      list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo", default = TRUE),
+      list(name = "leyenda_posicion",     label = "Posición leyenda",      tipo_input = "choice", grupo = "estilo",
+           default = "abajo",
+           choices = list(
+             list(value = "abajo",   label = "Abajo"),
+             list(value = "arriba",  label = "Arriba"),
+             list(value = "ninguna", label = "Ocultar")
+           )),
+      list(name = "legend_n_por_fila",    label = "Items por fila",        tipo_input = "number", grupo = "estilo", default = 3),
+      list(name = "legend_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo", default = 0.60),
+      list(name = "legend_espaciado",     label = "Espaciado entre items",  tipo_input = "number", grupo = "estilo", default = 20),
+      list(name = "legend_key_spacing_x_cm", label = "Espaciado horizontal key-texto (cm)", tipo_input = "number", grupo = "estilo", default = 0.12),
+      list(name = "size_leyenda",         label = "Tamaño leyenda",        tipo_input = "number", grupo = "estilo", default = 12),
+
+      # --- Tabla derecha: existencia + contenido ------------------------
+      list(name = "mostrar_tabla_derecha",label = "Mostrar tabla a la derecha", tipo_input = "bool", grupo = "tabla", default = TRUE),
+      list(name = "titulo_tabla",         label = "Título de la tabla",    tipo_input = "string", grupo = "tabla",
+           default = "TOP TWO BOX"),
+      list(name = "tabla_digits",         label = "Decimales en tabla",    tipo_input = "number", grupo = "tabla", default = 0),
+      list(name = "umbral_rojo_pct",      label = "Umbral rojo (%)",       tipo_input = "number", grupo = "tabla", default = 60,
+           descripcion = "Celdas por debajo de este porcentaje se marcan en rojo. 0 = deshabilitado."),
+
+      # --- Tabla: colores y bordes --------------------------------------
+      list(name = "tabla_header_fill",    label = "Color de fondo header",  tipo_input = "string", grupo = "tabla",
+           descripcion = "Hex del fondo del encabezado. NA = transparente."),
+      list(name = "tabla_body_fill",      label = "Color de fondo body",    tipo_input = "string", grupo = "tabla",
+           descripcion = "Hex del fondo de las celdas. NA = transparente."),
+      list(name = "tabla_grid_col",       label = "Color de la grilla",     tipo_input = "string", grupo = "tabla",
+           default = "white"),
+      list(name = "tabla_text_blue",      label = "Color del texto",        tipo_input = "string", grupo = "tabla",
+           default = "#062A63"),
+      list(name = "tabla_line_lwd",       label = "Grosor de líneas",       tipo_input = "number", grupo = "tabla"),
+
+      # --- Tabla: tamaños y padding --------------------------------------
+      list(name = "tabla_padding_mm",     label = "Padding interno (mm)",   tipo_input = "number", grupo = "tabla", default = 10),
+      list(name = "tabla_header_size",    label = "Tamaño texto header",    tipo_input = "number", grupo = "tabla", default = 8),
+      list(name = "tabla_body_size",      label = "Tamaño texto body",      tipo_input = "number", grupo = "tabla", default = 7),
+      list(name = "tabla_firstcol_size",  label = "Tamaño texto 1ra columna", tipo_input = "number", grupo = "tabla"),
+      list(name = "tabla_firstcol_bold",  label = "1ra columna en negrita", tipo_input = "bool",   grupo = "tabla", default = TRUE),
+      list(name = "tabla_firstcol_wrap",  label = "Ancho 1ra columna (chars)", tipo_input = "number", grupo = "tabla",
+           descripcion = "Máximo de caracteres por línea en la primera columna antes de romper."),
+      list(name = "tabla_firstcol_indent_npc", label = "Indent 1ra columna", tipo_input = "number", grupo = "tabla"),
+      list(name = "tabla_firstcol_frac",  label = "Fracción 1ra columna",   tipo_input = "number", grupo = "tabla",
+           descripcion = "Fracción del ancho de la tabla que ocupa la primera columna (0.4 = 40%)."),
+      list(name = "tabla_auto_fit",       label = "Auto-ajustar tamaños",   tipo_input = "bool",   grupo = "tabla", default = FALSE,
+           descripcion = "Si es TRUE, intenta ajustar los tamaños automáticamente para que quepa todo."),
+      list(name = "tabla_height_frac",    label = "Fracción de altura",     tipo_input = "number", grupo = "tabla",
+           descripcion = "Fracción del alto disponible que ocupa la tabla (0.72 = 72%)."),
+
+      # --- Tabla: placeholder ppt ----------------------------------------
+      list(name = "tabla_ph_ancho",       label = "Ancho placeholder PPT",  tipo_input = "number", grupo = "canvas", default = 0.46),
+      list(name = "tabla_ph_gap",         label = "Gap placeholder-radar",  tipo_input = "number", grupo = "canvas", default = 0.01),
+      list(name = "tabla_ph_margin_top",  label = "Margen superior PH",     tipo_input = "number", grupo = "canvas", default = 0.001),
+      list(name = "tabla_ph_margin_bot",  label = "Margen inferior PH",     tipo_input = "number", grupo = "canvas", default = 0.001),
+
+      # --- Canvas --------------------------------------------------------
+      list(name = "canvas_h_header_in",   label = "Alto header (in)",       tipo_input = "number", grupo = "canvas", default = 0.45),
+      list(name = "canvas_h_legend_in",   label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.22)
+    )
+  ),
+
+  # =========================================================================
+  # BOX PLOT
+  # =========================================================================
+  boxplot = list(
+    titulo_humano = "Box plot",
+    descripcion   = "Cajas con cuartiles y bigotes. Muestra la distribución de una variable numérica por grupos. 'Media y rango' hereda muchos args de aquí.",
+    icono_ui      = "BoxSelect",
+    args = list(
+      list(name = "usar_canvas",          label = "Usar canvas",           tipo_input = "bool",   grupo = "avanzado", default = TRUE),
+
+      # --- Elementos visibles --------------------------------------------
+      list(name = "mostrar_outliers",     label = "Mostrar outliers",      tipo_input = "bool",   grupo = "estilo",
+           descripcion = "Dibujar los puntos que caen fuera de los bigotes."),
+      list(name = "mostrar_media",        label = "Mostrar media",         tipo_input = "bool",   grupo = "estilo",
+           descripcion = "Añade un marcador con la media además de la mediana."),
+      list(name = "mostrar_rango",        label = "Mostrar rango extendido", tipo_input = "bool", grupo = "estilo",
+           descripcion = "Dibuja barras con min-max o IQR según tipo_rango."),
+      list(name = "tipo_rango",           label = "Tipo de rango",         tipo_input = "choice", grupo = "estilo",
+           choices = list(
+             list(value = "iqr",     label = "IQR (P25-P75)"),
+             list(value = "min_max", label = "Min-Max")
+           )),
+      list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo"),
+
+      # --- Cálculo -------------------------------------------------------
+      list(name = "decimales_promedio",   label = "Decimales del promedio", tipo_input = "number", grupo = "calculo"),
+
+      # --- Canvas --------------------------------------------------------
+      list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_pad_top",       label = "Padding superior (in)",  tipo_input = "number", grupo = "canvas")
+    )
+  ),
+
+  # =========================================================================
+  # MEDIA Y RANGO
+  # =========================================================================
+  media_rango = list(
+    titulo_humano = "Media y rango",
+    descripcion   = "Puntos con el promedio por grupo y opcionalmente barras de rango (min-max o IQR). Hereda de 'Box plot' y 'Base'.",
+    icono_ui      = "Activity",
+    args = list(
+      list(name = "decimales_promedio",   label = "Decimales del promedio", tipo_input = "number", grupo = "calculo"),
+      list(name = "mostrar_rango",        label = "Mostrar rango",         tipo_input = "bool",   grupo = "estilo"),
+      list(name = "tipo_rango",           label = "Tipo de rango",         tipo_input = "choice", grupo = "estilo",
+           choices = list(
+             list(value = "iqr",     label = "IQR (P25-P75)"),
+             list(value = "min_max", label = "Min-Max")
+           )),
+      list(name = "mostrar_ref_label",    label = "Mostrar línea/etiqueta de referencia", tipo_input = "bool", grupo = "estilo",
+           descripcion = "Añade una línea o texto con el promedio global como referencia visual."),
+      list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo"),
+      list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_pad_top",       label = "Padding superior (in)",  tipo_input = "number", grupo = "canvas")
+    )
+  ),
+
+  # =========================================================================
+  # DIMENSIONES: HEATMAP
+  # =========================================================================
+  dim_heatmap = list(
+    titulo_humano = "Heatmap dimensional",
+    descripcion   = "Mapa de calor de dimensiones (filas) vs grupos del cruce (columnas). Requiere haber calculado dimensiones en Analítica.",
+    icono_ui      = "LayoutGrid",
+    args = list(
+      list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo", default = 0),
+      list(name = "size_ejes",            label = "Tamaño ejes",           tipo_input = "number", grupo = "estilo", default = 10),
+      list(name = "size_texto_celdas",    label = "Tamaño texto de celdas", tipo_input = "number", grupo = "estilo", default = 10),
+      list(name = "canvas_h_title",       label = "Alto zona título (in)", tipo_input = "number", grupo = "canvas", default = 0.13),
+      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",     tipo_input = "number", grupo = "canvas", default = 0.09),
+      list(name = "canvas_h_caption",     label = "Alto pie (in)",         tipo_input = "number", grupo = "canvas", default = 0.06)
+    )
+  ),
+
+  dim_heatmap_criterios = list(
+    titulo_humano = "Heatmap por criterios",
+    descripcion   = "Heatmap dimensional agrupado por criterios temáticos. Hereda de 'Heatmap dimensional' y 'Base'.",
+    icono_ui      = "LayoutGrid",
+    args = list(
+      list(name = "font_family",          label = "Fuente",                tipo_input = "string", grupo = "textos",
+           descripcion = "Vacío = hereda de Base.")
+    )
+  ),
+
+  # =========================================================================
+  # DIMENSIONES: RADAR
+  # =========================================================================
+  dim_radar = list(
+    titulo_humano = "Radar dimensional",
+    descripcion   = "Radar (telaraña) comparando el puntaje de varias dimensiones o indicadores. Requiere dimensiones calculadas.",
+    icono_ui      = "Radar",
+    args = list(
+      list(name = "cortes_grilla",        label = "Cortes de la grilla",    tipo_input = "number", grupo = "estilo", default = 4),
+      list(name = "wrap_ejes",            label = "Ancho etiquetas ejes",   tipo_input = "number", grupo = "estilo", default = 22),
+      list(name = "eje_label_mult",       label = "Separación etiquetas",   tipo_input = "number", grupo = "estilo", default = 1.03),
+      list(name = "leyenda_posicion",     label = "Posición leyenda",       tipo_input = "choice", grupo = "estilo",
+           default = "abajo",
+           choices = list(
+             list(value = "abajo",   label = "Abajo"),
+             list(value = "derecha", label = "Derecha"),
+             list(value = "ninguna", label = "Ocultar")
+           )),
+      list(name = "legend_n_por_fila",    label = "Items por fila leyenda", tipo_input = "number", grupo = "estilo", default = 4),
+      list(name = "legend_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo", default = 0.45),
+      list(name = "legend_espaciado",     label = "Espaciado leyenda",      tipo_input = "number", grupo = "estilo", default = 12),
+      list(name = "canvas_h_header_in",   label = "Alto header (in)",       tipo_input = "number", grupo = "canvas", default = 0.58),
+      list(name = "canvas_h_legend_in",   label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.20),
+      list(name = "canvas_h_caption_in",  label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0.08)
+    )
+  ),
+
+  # =========================================================================
+  # DIMENSIONES: FODA
+  # =========================================================================
   dim_foda = list(
     titulo_humano = "Matriz FODA dimensional",
-    descripcion   = "Matriz 2×2 estilo FODA. Hereda de 'Base'.",
+    descripcion   = "Matriz 2×2 o dispersión estilo FODA sobre indicadores. Hereda de 'Base'.",
     icono_ui      = "Grid3X3",
     args = list(
-      list(name = "canvas_h_title",    label = "Alto zona título (in)",  tipo_input = "number", grupo = "avanzado", default = 0),
-      list(name = "canvas_h_legend",   label = "Alto zona leyenda (in)", tipo_input = "number", grupo = "avanzado", default = 0.09),
-      list(name = "canvas_h_caption",  label = "Alto zona pie (in)",     tipo_input = "number", grupo = "avanzado", default = 0.06)
+      list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas", default = 0),
+      list(name = "canvas_h_legend",      label = "Alto leyenda (in)",      tipo_input = "number", grupo = "canvas", default = 0.09),
+      list(name = "canvas_h_caption",     label = "Alto pie (in)",          tipo_input = "number", grupo = "canvas", default = 0.06)
     )
   )
 )
