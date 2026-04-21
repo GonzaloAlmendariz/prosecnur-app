@@ -1688,6 +1688,80 @@
              payload = list(titulo = "Matriz FODA", grafico = NULL, base = "", pie = "", etiqueta = ""))
       )
     )
+  ),
+
+  acreditacion_multibase = list(
+    titulo_humano = "Acreditación — Multi-base (3 roles)",
+    descripcion   = "Template para estudios de acreditación con 3 bases paralelas (docentes / estudiantes / administrativos). Incluye portada, perfil demográfico por rol, y un bloque comparativo con p_barras_multiapiladas en modo var_cruce que muestra las 3 fuentes lado a lado. Diseñado para cargarse sobre el demo 'Acreditación PUCP — AMDT'.",
+    icono_ui      = "GraduationCap",
+    n_slides      = 7L,
+    plan = list(
+      slides = list(
+        list(id = "tpl-1", tipo = "p_slide_portada",
+             payload = list(
+               titulo = "Estudio de opinión",
+               subtitulo = "Acreditación de la carrera — 3 bases",
+               fecha = "",
+               subtexto = "Cada slide puede mezclar variables de las 3 fuentes con notación 'fuente$variable'."
+             )),
+        list(id = "tpl-2", tipo = "p_slide_seccion",
+             payload = list(titulo = "Perfil del encuestado", subtitulo = "", introduccion_word = "")),
+        # Perfil docentes (requiere 4 graficadores)
+        list(id = "tpl-3", tipo = "p_slide_4_graficos_poblacion",
+             payload = list(
+               titulo = "Perfil del docente", base = "", pie = "", etiqueta = "",
+               superior_izquierda = list(graficador = "p_barras_agrupadas", args = list(var = "docentes$sexo", titulo = "Sexo")),
+               superior_derecha   = list(graficador = "p_barras_agrupadas", args = list(var = "docentes$p3",   titulo = "Máximo grado")),
+               inferior_izquierda = list(graficador = "p_barras_agrupadas", args = list(var = "docentes$edadg", titulo = "Rango de edad")),
+               inferior_derecha   = list(graficador = "p_barras_agrupadas", args = list(var = "docentes$anos_g", titulo = "Años de experiencia")),
+               icono = NULL
+             )),
+        # Perfil estudiantes
+        list(id = "tpl-4", tipo = "p_slide_4_graficos_poblacion",
+             payload = list(
+               titulo = "Perfil del estudiante", base = "", pie = "", etiqueta = "",
+               superior_izquierda = list(graficador = "p_barras_agrupadas", args = list(var = "estudiantes$sexo", titulo = "Sexo")),
+               superior_derecha   = list(graficador = "p_barras_agrupadas", args = list(var = "estudiantes$ingreso_g", titulo = "Año de ingreso")),
+               inferior_izquierda = list(graficador = "p_barras_agrupadas", args = list(var = "estudiantes$edadg", titulo = "Rango de edad")),
+               inferior_derecha   = list(graficador = "p_barras_agrupadas", args = list(var = "estudiantes$p5", titulo = "Ciclo de especialidad")),
+               icono = NULL
+             )),
+        # Perfil administrativos
+        list(id = "tpl-5", tipo = "p_slide_4_graficos_poblacion",
+             payload = list(
+               titulo = "Perfil del administrativo", base = "", pie = "", etiqueta = "",
+               superior_izquierda = list(graficador = "p_barras_agrupadas", args = list(var = "administrativos$sexo", titulo = "Sexo")),
+               superior_derecha   = list(graficador = "p_barras_agrupadas", args = list(var = "administrativos$edadg", titulo = "Rango de edad")),
+               inferior_izquierda = list(graficador = "p_barras_agrupadas", args = list(var = "administrativos$anoingre_g", titulo = "Año de ingreso a la facultad")),
+               inferior_derecha   = NULL,
+               icono = NULL
+             )),
+        # Separador
+        list(id = "tpl-6", tipo = "p_slide_seccion",
+             payload = list(titulo = "Principales resultados", subtitulo = "", introduccion_word = "")),
+        # Bloque comparativo con multi-apiladas var_cruce (patrón del QMD surveymonkey)
+        list(id = "tpl-7", tipo = "p_slide_1_grafico",
+             payload = list(
+               titulo = "Misión y propósitos institucionales", base = "", pie = "", etiqueta = "",
+               grafico = list(
+                 graficador = "p_barras_multiapiladas",
+                 args = list(
+                   modo = "var_cruce",
+                   vars = list(
+                     mision     = c("docentes$p6_1", "estudiantes$p6_1", "administrativos$p4_1"),
+                     consulta   = c("docentes$p6_2", "estudiantes$p6_2", "administrativos$p4_2"),
+                     propositos = c("docentes$p6_3", "estudiantes$p6_3", "administrativos$p4_3")
+                   ),
+                   titulos_grupo = c(
+                     mision     = "Conoce la misión y visión de la PUCP",
+                     consulta   = "Sabe dónde consultarla",
+                     propositos = "Conoce los propósitos de la Facultad"
+                   )
+                 )
+               )
+             ))
+      )
+    )
   )
 )
 

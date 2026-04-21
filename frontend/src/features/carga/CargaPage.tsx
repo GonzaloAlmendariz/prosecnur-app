@@ -146,8 +146,10 @@ export default function CargaPage() {
               ¿Solo quieres explorar la app?
             </div>
             <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.5 }}>
-              Elige uno de los datasets de prueba — cada uno abre la sesión con XLSForm + data listos,
-              saltando la carga manual. Puedes reemplazar luego con tus propios archivos.
+              Elige uno de los datasets de prueba — cada uno abre tu estudio con XLSForm + data
+              listos, saltando la carga manual. Los demos marcados con <strong>N bases</strong>{" "}
+              cargan un estudio multi-base (como Acreditación con docentes, estudiantes y
+              administrativos en paralelo).
             </div>
           </div>
         </div>

@@ -321,7 +321,14 @@ mount_sistema <- function(pr) {
         unname(s$files),
         vapply(s$files, function(f) f$kind, character(1))
       )
-      bases <- if (!is.null(s$estudio)) s$estudio$bases else list()
+      # Migración legacy: si la sesión no tiene `estudio` pero tiene
+      # `rp_data` (cargado antes de v0.2), lo exponemos como un estudio
+      # virtual con 1 base "default" para que la UI no lo vea vacío.
+      bases <- if (!is.null(s$estudio) && length(s$estudio$bases) > 0L) {
+        s$estudio$bases
+      } else if (!is.null(s$rp_data)) {
+        list(default = list(nombre = "default"))
+      } else list()
       list(
         session_id = s$id,
         created_at = format(s$created_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
