@@ -1,180 +1,166 @@
-import { GraficadorRef, Slide, SlideType } from "../../api/client";
+import { useMemo } from "react";
+import * as Lucide from "lucide-react";
+import { ArgGrupo, GraficadorRef, Slide } from "../../api/client";
 import { usePlanStore, SLIDE_GRAF_SLOTS, SLIDE_LABELS } from "./store";
+import { useGraficosRegistry } from "./useGraficosRegistry";
+import { useVariables } from "./useVariables";
+import { ArgGroup, GRUPO_META } from "./ArgGroup";
 import GraficadorSlot from "./GraficadorSlot";
 
-// Editor transitorio — Bloque 0 del rediseño. El registry nuevo ya vive
-// en graficos_metadata.R, pero el editor rico (leer metadata + renderizar
-// controles por arg) se implementa en Bloque 3. Por ahora este editor
-// expone los campos de texto más comunes (titulo, subtitulo, base, pie,
-// etiqueta, texto) + los slots de graficador según el tipo de slide.
-
-function Field({ label, children, help }: { label: string; children: React.ReactNode; help?: string }) {
-  return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: "0.75rem", fontSize: 13 }}>
-      <span style={{ fontWeight: 500 }}>{label}</span>
-      {children}
-      {help && <span style={{ color: "#888", fontSize: 11 }}>{help}</span>}
-    </label>
-  );
-}
-
-function TextInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
-  return (
-    <input
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      style={{ padding: "4px 6px", fontSize: 13, border: "1px solid #d1d5db", borderRadius: 4 }}
-    />
-  );
-}
-
-function TextArea({ value, onChange, rows = 3 }: { value: string; onChange: (v: string) => void; rows?: number }) {
-  return (
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      rows={rows}
-      style={{ padding: "4px 6px", fontSize: 13, border: "1px solid #d1d5db", borderRadius: 4, fontFamily: "inherit" }}
-    />
-  );
-}
-
-// ---- Qué campos de texto muestra cada tipo de slide -----------------------
-// Mirror mínimo de los formals() reales de `prosecnur::p_slide_*`.
-
-type TextoField = { key: string; label: string; multiline?: boolean; help?: string };
-
-const TEXTO_FIELDS_POR_TIPO: Record<SlideType, TextoField[]> = {
-  p_slide_portada: [
-    { key: "titulo",    label: "Título principal" },
-    { key: "subtitulo", label: "Subtítulo" },
-    { key: "fecha",     label: "Fecha", help: "Ej. 'Abril 2026'." },
-    { key: "subtexto",  label: "Texto descriptivo", multiline: true },
-  ],
-  p_slide_indice: [],
-  p_slide_seccion: [
-    { key: "titulo",            label: "Título de la sección" },
-    { key: "subtitulo",         label: "Subtítulo" },
-    { key: "introduccion_word", label: "Intro (solo Word)", multiline: true, help: "Solo aparece en export .docx." },
-  ],
-  p_slide_objetivo_icono: [
-    { key: "titulo", label: "Título" },
-    { key: "texto",  label: "Contenido", multiline: true },
-    // `icono` no es campo de texto — se selecciona en el catálogo de íconos (Bloque 3).
-  ],
-  p_slide_texto: [
-    { key: "titulo",  label: "Título" },
-    { key: "texto",   label: "Párrafo",         multiline: true },
-    { key: "bullets", label: "Bullets",         multiline: true, help: "Uno por línea." },
-    { key: "base",    label: "Base" },
-  ],
-  p_slide_tabla_tecnica: [
-    { key: "titulo", label: "Título" },
-    { key: "filas",  label: "Filas (uno por línea, formato 'Campo: valor')", multiline: true },
-    { key: "pie",    label: "Pie" },
-  ],
-
-  // 1 gráfico
-  p_slide_1_grafico:               [...textosBase()],
-  p_slide_1_grafico_narrativo:     [{ key: "texto", label: "Texto narrativo", multiline: true }, ...textosBase()],
-  p_slide_grafico_texto_derecha:   [{ key: "texto", label: "Texto",           multiline: true }, ...textosBase()],
-  p_slide_grafico_texto_izquierda: [{ key: "texto", label: "Texto",           multiline: true }, ...textosBase()],
-
-  // 2 gráficos
-  p_slide_2_graficos:                 [...textosBase()],
-  p_slide_2_graficos_narrativo:       [{ key: "texto", label: "Texto narrativo", multiline: true }, ...textosBase()],
-  p_slide_2_graficos_texto_izquierda: [{ key: "texto", label: "Texto", multiline: true }, ...textosBase()],
-  p_slide_2_graficos_texto_derecha:   [{ key: "texto", label: "Texto", multiline: true }, ...textosBase()],
-
-  // Grid 4
-  p_slide_4_graficos: [...textosBase()],
-
-  // Población
-  p_slide_2_graficos_poblacion:   [...textosPoblacion()],
-  p_slide_4_graficos_poblacion:   [...textosPoblacion()],
-  p_slide_5_graficos_poblacion:   [...textosPoblacion()],
-  p_slide_6_graficos_poblacion:   [...textosPoblacion()],
-};
-
-function textosBase(): TextoField[] {
-  return [
-    { key: "titulo",   label: "Título del slide" },
-    { key: "etiqueta", label: "Etiqueta corta", help: "Texto pequeño a la izquierda del título." },
-    { key: "base",     label: "Base", help: "Ej. 'Base: 120 encuestados'. Vacío = automática." },
-    { key: "pie",      label: "Pie (nota)", multiline: true },
-  ];
-}
-
-function textosPoblacion(): TextoField[] {
-  return [
-    { key: "titulo",   label: "Título del slide" },
-    { key: "etiqueta", label: "Etiqueta corta" },
-    { key: "base",     label: "Base" },
-    { key: "pie",      label: "Pie", multiline: true },
-  ];
-}
-
-// ---- Editor por slide -----------------------------------------------------
-
-function SlideBody({ slide }: { slide: Slide }) {
-  const update = usePlanStore((s) => s.updateSlidePayload);
-  const p = slide.payload as Record<string, unknown>;
-  const textoFields = TEXTO_FIELDS_POR_TIPO[slide.tipo] ?? [];
-  const grafSlots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
-  const payloadMap = slide.payload as Record<string, GraficadorRef | null | undefined>;
-
-  return (
-    <>
-      {textoFields.map((f) => {
-        const val = typeof p[f.key] === "string" ? (p[f.key] as string) : "";
-        return (
-          <Field key={f.key} label={f.label} help={f.help}>
-            {f.multiline ? (
-              <TextArea value={val} onChange={(v) => update(slide.id, { [f.key]: v })} rows={3} />
-            ) : (
-              <TextInput value={val} onChange={(v) => update(slide.id, { [f.key]: v })} />
-            )}
-          </Field>
-        );
-      })}
-
-      {grafSlots.map((slotName) => (
-        <GraficadorSlot
-          key={slotName}
-          slideId={slide.id}
-          slotName={slotName}
-          value={payloadMap[slotName]}
-        />
-      ))}
-    </>
-  );
-}
+// Editor de slide rediseñado. Reemplaza el switch/case + mapas hardcoded
+// por un renderer dinámico que lee el metadata del registry:
+//
+//   Header        → icono + título humano del slide + nombre técnico
+//   Args del slide → agrupados por `grupo` (Textos / Datos / Avanzado)
+//                    con tooltips e iconos de info
+//   Slots         → cards GraficadorSlot renderizadas en el orden definido
+//                    por la firma real de la función R
+//
+// Si se añade un nuevo tipo de slide en prosecnur, solo hay que
+// documentar su metadata en `graficos_metadata.R` y este componente lo
+// edita sin más código.
 
 export default function SlideEditor() {
   const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
   const slide = usePlanStore((s) => s.plan.slides.find((x) => x.id === selectedSlideId));
+  const updatePayload = usePlanStore((s) => s.updateSlidePayload);
+
+  const { slidesById, loading } = useGraficosRegistry();
+  const { variables } = useVariables();
+
+  const slideMeta = slide ? slidesById[slide.tipo] : undefined;
+
+  // Filtrar args del slide: los que son slots de graficador los
+  // renderiza GraficadorSlot, no ArgField. Igualmente `icono` si el
+  // slide lo acepta (se mapea al catálogo de iconos subidos).
+  const grafSlots = slide ? (SLIDE_GRAF_SLOTS[slide.tipo] ?? []) : [];
+  const grafSlotSet = useMemo(() => new Set(grafSlots), [grafSlots]);
+
+  const gruposDeArgs = useMemo(() => {
+    if (!slideMeta) return [];
+    // Excluir args que son slots de graficador (ya los maneja GraficadorSlot).
+    const nonSlotArgs = slideMeta.args.filter((a) => !grafSlotSet.has(a.name));
+    const byGrupo: Record<ArgGrupo, typeof nonSlotArgs> = {
+      datos: [], textos: [], estilo: [], calculo: [], semaforo: [], avanzado: [],
+    };
+    for (const a of nonSlotArgs) {
+      const g: ArgGrupo = (a.grupo as ArgGrupo) ?? "avanzado";
+      (byGrupo[g] ?? byGrupo.avanzado).push(a);
+    }
+    return (Object.keys(byGrupo) as ArgGrupo[])
+      .filter((g) => byGrupo[g].length > 0)
+      .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
+      .map((g) => ({ grupo: g, args: byGrupo[g] }));
+  }, [slideMeta, grafSlotSet]);
 
   if (!slide) {
     return (
-      <div style={{ padding: "2rem", color: "#888", fontSize: 14, flex: 1 }}>
+      <div style={{ padding: "2rem", color: "var(--pulso-text-soft)", fontSize: 14, flex: 1 }}>
         Selecciona o agrega un slide en el panel izquierdo.
       </div>
     );
   }
 
+  const humanTitle = SLIDE_LABELS[slide.tipo] ?? slide.tipo;
+  const SlideIcon = slideMeta ? resolveLucide(slideMeta.icono_ui) : Lucide.FileText;
+
+  const payloadMap = slide.payload as Record<string, GraficadorRef | null | undefined>;
+
   return (
-    <div style={{ flex: 1, padding: "1.25rem 1.5rem", overflowY: "auto" }}>
-      <header style={{ marginBottom: "1rem", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h2 style={{ margin: 0, fontSize: 18 }}>
-          {SLIDE_LABELS[slide.tipo] ?? slide.tipo}
-          <code style={{ fontSize: 11, color: "#888", marginLeft: 8 }}>{slide.tipo}</code>
-        </h2>
-        <span style={{ fontSize: 11, color: "#888", fontFamily: "ui-monospace,monospace" }}>{slide.id}</span>
+    <div style={{ flex: 1, padding: "18px 22px", overflowY: "auto" }}>
+      {/* Header del slide */}
+      <header style={{ marginBottom: 14 }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+          <span
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: "var(--pulso-primary-soft)",
+              color: "var(--pulso-primary)",
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <SlideIcon size={16} />
+          </span>
+          <span>
+            <h2 style={{ margin: 0, fontSize: 16, lineHeight: 1.2 }}>{humanTitle}</h2>
+            <code style={{ fontSize: 10, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
+              {slide.tipo}
+            </code>
+          </span>
+        </div>
+        {slideMeta?.descripcion && (
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 6, lineHeight: 1.5, maxWidth: 600 }}>
+            {slideMeta.descripcion}
+          </div>
+        )}
       </header>
-      <div style={{ maxWidth: 600, display: "flex", flexDirection: "column" }}>
-        <SlideBody slide={slide} />
-      </div>
+
+      {loading && (
+        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: 10 }}>
+          Cargando opciones del slide…
+        </div>
+      )}
+
+      {/* Args no-slot (textos, datos del slide) */}
+      {gruposDeArgs.length > 0 && (
+        <section style={{ marginBottom: 16, maxWidth: 600 }}>
+          {gruposDeArgs.map(({ grupo, args }) => (
+            <ArgGroup
+              key={grupo}
+              grupo={grupo}
+              args={args}
+              values={slide.payload}
+              onChangeArg={(name, value) => updatePayload(slide.id, { [name]: value })}
+              variables={variables}
+            />
+          ))}
+        </section>
+      )}
+
+      {/* Slots de graficador */}
+      {grafSlots.length > 0 && (
+        <section>
+          <div
+            style={{
+              fontSize: 11, fontWeight: 700,
+              textTransform: "uppercase", letterSpacing: 0.4,
+              color: "var(--pulso-text-soft)",
+              marginBottom: 8,
+            }}
+          >
+            Gráficos del slide · {grafSlots.length} slot{grafSlots.length === 1 ? "" : "s"}
+          </div>
+          {grafSlots.map((slotName) => (
+            <GraficadorSlot
+              key={slotName}
+              slideId={slide.id}
+              slotName={slotName}
+              value={payloadMap[slotName]}
+            />
+          ))}
+        </section>
+      )}
+
+      {/* Slide estructural sin args ni slots (ej. p_slide_indice) */}
+      {gruposDeArgs.length === 0 && grafSlots.length === 0 && (
+        <div
+          style={{
+            fontSize: 12, color: "var(--pulso-text-soft)",
+            padding: "14px 16px", borderRadius: 6,
+            background: "var(--pulso-surface)",
+            border: "1px solid var(--pulso-border)",
+            maxWidth: 600,
+          }}
+        >
+          Este slide no requiere configuración. Se genera automáticamente en el export.
+        </div>
+      )}
     </div>
   );
+}
+
+type LucideIcon = (props: { size?: number; color?: string }) => JSX.Element;
+function resolveLucide(name: string): LucideIcon {
+  const registry = Lucide as unknown as Record<string, LucideIcon>;
+  return registry[name] ?? registry["FileText"] ?? registry["Square"];
 }

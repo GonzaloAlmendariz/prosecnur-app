@@ -1,105 +1,252 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import * as Lucide from "lucide-react";
+import { Search, X } from "lucide-react";
+import { GraficadorMetadata } from "../../api/client";
+import { useGraficosRegistry } from "./useGraficosRegistry";
 
-export type GraficadorMeta = {
-  name: string;
-  label: string;
-  descripcion: string;
-  defaultArgs: Record<string, unknown>;
-};
+// Picker visual de graficador. En vez de una lista textual, mostramos
+// cada graficador como card con icono + titulo_humano + descripción,
+// organizados por categoría (básicos vs dimensiones). El usuario ve de
+// un vistazo cuál gráfico aplica a su caso.
+//
+// El catálogo sale del registry del backend (graficos_metadata.R), así
+// que si se añade/quita un graficador, este componente lo refleja
+// automáticamente sin cambios de código.
 
-export const GRAFICADOR_CATALOG: { categoria: string; items: GraficadorMeta[] }[] = [
+type Categoria = { label: string; predicate: (g: GraficadorMetadata) => boolean };
+
+const CATEGORIAS: Categoria[] = [
   {
-    categoria: "Distribución categórica",
-    items: [
-      { name: "p_barras_agrupadas", label: "Barras agrupadas", descripcion: "1 variable · cruces opcional · distribución %",
-        defaultArgs: { var: "", cruces: null, titulo: "" } },
-      { name: "p_barras_apiladas", label: "Barras 100% apiladas", descripcion: "1 variable · cruces opcional · distribución 100%",
-        defaultArgs: { var: "", cruces: null, titulo: "" } },
-      { name: "p_barras_multiapiladas", label: "Barras multiapiladas", descripcion: "Múltiples variables o bloques · modo var/cruce/var_cruce/multilista",
-        defaultArgs: { modo: "var", var: "", vars: null, cruces: null, titulo: "", wrap_y: 50, top2box: false } },
-      { name: "p_pie", label: "Pie (torta)", descripcion: "1 variable dicotómica o con pocas categorías",
-        defaultArgs: { var: "", titulo: "" } },
-      { name: "p_donut", label: "Donut", descripcion: "1 variable · rosquilla con valor central",
-        defaultArgs: { var: "", titulo: "" } },
-    ],
+    label: "Distribución por categorías",
+    predicate: (g) => ["p_barras_agrupadas", "p_barras_apiladas", "p_barras_multiapiladas", "p_pie", "p_donut"].includes(g.name),
   },
   {
-    categoria: "Resumen numérico",
-    items: [
-      { name: "p_numerico", label: "Resumen numérico", descripcion: "N, %, media o mediana por grupo",
-        defaultArgs: { var: "", metrica: "mean", cruce: null, titulo: "" } },
-      { name: "p_boxplot", label: "Boxplot", descripcion: "Distribución numérica por grupo (cuartiles + outliers)",
-        defaultArgs: { var: "", cruce: null, titulo: "" } },
-      { name: "p_media_rango", label: "Media + rango", descripcion: "Media con intervalos por grupo",
-        defaultArgs: { var: "", cruce: null, titulo: "" } },
-    ],
+    label: "Resumen numérico",
+    predicate: (g) => ["p_numerico", "p_boxplot", "p_media_rango"].includes(g.name),
   },
   {
-    categoria: "Comparativo (multi-variable)",
-    items: [
-      { name: "p_radar_tabla", label: "Radar + tabla", descripcion: "Radar con tabla lateral · modos sm (lista de vars) y box (1 var)",
-        defaultArgs: { modo: "sm", var: null, vars: [], cruce: null, titulo: "", titulo_tabla: "", top_n: null } },
-    ],
+    label: "Comparación multi-variable",
+    predicate: (g) => ["p_radar_tabla"].includes(g.name),
+  },
+  {
+    label: "Dimensiones e índices",
+    predicate: (g) => g.requisito === "dimensiones",
   },
 ];
 
-export default function GraficadorPicker({ onPick, onCancel }: { onPick: (meta: GraficadorMeta) => void; onCancel: () => void }) {
+export default function GraficadorPicker({
+  onPick,
+  onCancel,
+}: {
+  onPick: (meta: GraficadorMetadata) => void;
+  onCancel: () => void;
+}) {
+  const { registry, loading, error } = useGraficosRegistry();
   const [query, setQuery] = useState("");
 
-  const filtered = GRAFICADOR_CATALOG.map((cat) => ({
-    ...cat,
-    items: cat.items.filter((g) => {
-      const q = query.trim().toLowerCase();
-      if (!q) return true;
-      return g.name.toLowerCase().includes(q) || g.label.toLowerCase().includes(q) || g.descripcion.toLowerCase().includes(q);
-    }),
-  })).filter((cat) => cat.items.length > 0);
+  const categoriasConItems = useMemo(() => {
+    if (!registry) return [];
+    const q = query.trim().toLowerCase();
+    return CATEGORIAS.map((cat) => ({
+      label: cat.label,
+      items: registry.graficadores
+        .filter(cat.predicate)
+        .filter((g) => {
+          if (!q) return true;
+          return (
+            g.name.toLowerCase().includes(q) ||
+            g.titulo_humano.toLowerCase().includes(q) ||
+            g.descripcion.toLowerCase().includes(q)
+          );
+        }),
+    })).filter((c) => c.items.length > 0);
+  }, [registry, query]);
 
   return (
     <div
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)",
-        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
-      }}
       onClick={onCancel}
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: "fixed", inset: 0,
+        background: "rgba(0,0,0,0.45)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 1000,
+      }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "#fff", borderRadius: 8, padding: "1rem 1.25rem", width: 520, maxHeight: "80vh", overflow: "auto" }}
+        style={{
+          background: "white",
+          borderRadius: 10,
+          width: "min(760px, 92vw)",
+          maxHeight: "82vh",
+          overflow: "hidden",
+          display: "flex", flexDirection: "column",
+          boxShadow: "var(--pulso-shadow-high, 0 10px 40px rgba(0,0,0,0.2))",
+        }}
       >
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-          <h3 style={{ margin: 0 }}>Elegir graficador</h3>
-          <button onClick={onCancel} style={{ fontSize: 12 }}>Cancelar</button>
+        {/* Header */}
+        <header
+          style={{
+            padding: "14px 18px",
+            borderBottom: "1px solid var(--pulso-border)",
+            display: "flex", alignItems: "center", gap: 12,
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, flex: 1 }}>Elegir graficador</h3>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="pulso-icon"
+            aria-label="Cerrar"
+            style={{ minWidth: 28, minHeight: 28 }}
+          >
+            <X size={14} />
+          </button>
         </header>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar…"
-          autoFocus
-          style={{ width: "100%", padding: "6px 8px", fontSize: 13, border: "1px solid #d1d5db", borderRadius: 4, marginBottom: "0.75rem" }}
-        />
-        {filtered.map((cat) => (
-          <div key={cat.categoria} style={{ marginBottom: "0.75rem" }}>
-            <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>{cat.categoria}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 4 }}>
-              {cat.items.map((g) => (
-                <button
-                  key={g.name}
-                  onClick={() => onPick(g)}
-                  style={{
-                    textAlign: "left", padding: "8px 10px",
-                    border: "1px solid #e3e3e8", borderRadius: 6,
-                    background: "#f9fafb", cursor: "pointer",
-                  }}
-                >
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>{g.label} <code style={{ color: "#6b7280", fontWeight: 400, fontSize: 11 }}>{g.name}</code></div>
-                  <div style={{ fontSize: 12, color: "#6b7280" }}>{g.descripcion}</div>
-                </button>
-              ))}
-            </div>
+
+        {/* Search */}
+        <div style={{ padding: "10px 18px", borderBottom: "1px solid var(--pulso-border)" }}>
+          <div
+            style={{
+              display: "flex", alignItems: "center", gap: 7,
+              padding: "7px 10px", borderRadius: 6,
+              border: "1px solid var(--pulso-border)",
+              background: "var(--pulso-surface)",
+            }}
+          >
+            <Search size={13} color="var(--pulso-text-soft)" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por nombre o descripción…"
+              autoFocus
+              style={{ flex: 1, border: "none", outline: "none", fontSize: 13, background: "transparent" }}
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery("")} className="pulso-icon" aria-label="Limpiar">
+                <X size={11} />
+              </button>
+            )}
           </div>
-        ))}
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "14px 18px" }}>
+          {loading && (
+            <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center", padding: 18 }}>
+              Cargando catálogo…
+            </div>
+          )}
+          {error && (
+            <div style={{ fontSize: 12, color: "#b91c1c", textAlign: "center", padding: 18 }}>
+              Error cargando catálogo: {error}
+            </div>
+          )}
+
+          {!loading && !error && categoriasConItems.length === 0 && query && (
+            <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center", padding: 18 }}>
+              Sin resultados para "{query}".
+            </div>
+          )}
+
+          {categoriasConItems.map((cat) => (
+            <div key={cat.label} style={{ marginBottom: 18 }}>
+              <div
+                style={{
+                  fontSize: 10, fontWeight: 700,
+                  textTransform: "uppercase", letterSpacing: 0.4,
+                  color: "var(--pulso-text-soft)",
+                  marginBottom: 7,
+                }}
+              >
+                {cat.label}
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                  gap: 8,
+                }}
+              >
+                {cat.items.map((g) => (
+                  <GraficadorCard key={g.name} graf={g} onPick={onPick} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
+}
+
+function GraficadorCard({ graf, onPick }: { graf: GraficadorMetadata; onPick: (g: GraficadorMetadata) => void }) {
+  const Icon = resolveLucide(graf.icono_ui);
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(graf)}
+      style={{
+        textAlign: "left",
+        padding: "10px 12px",
+        borderRadius: 8,
+        border: "1px solid var(--pulso-border)",
+        background: "white",
+        cursor: "pointer",
+        display: "flex", flexDirection: "column", gap: 6,
+        transition: "background 120ms ease, border-color 120ms ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "var(--pulso-primary-soft)";
+        e.currentTarget.style.borderColor = "var(--pulso-primary)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "white";
+        e.currentTarget.style.borderColor = "var(--pulso-border)";
+      }}
+    >
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+        <span
+          style={{
+            width: 30, height: 30, borderRadius: 6,
+            background: "var(--pulso-primary-soft)",
+            color: "var(--pulso-primary)",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Icon size={16} />
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>
+          {graf.titulo_humano}
+        </span>
+      </div>
+      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+        {graf.descripcion}
+      </div>
+      {graf.requisito === "dimensiones" && (
+        <div
+          style={{
+            fontSize: 9, fontWeight: 700,
+            textTransform: "uppercase", letterSpacing: 0.4,
+            color: "var(--tipo-int-fg, #6d28d9)",
+            marginTop: 2,
+          }}
+        >
+          Requiere dimensiones
+        </div>
+      )}
+    </button>
+  );
+}
+
+// Resuelve el nombre de un ícono lucide al componente real. Si no
+// existe, fallback al BarChart.
+type LucideIcon = (props: { size?: number; color?: string }) => JSX.Element;
+function resolveLucide(name: string): LucideIcon {
+  const registry = Lucide as unknown as Record<string, LucideIcon>;
+  return registry[name] ?? registry["BarChart"] ?? registry["Square"];
 }

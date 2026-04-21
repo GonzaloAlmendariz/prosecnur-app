@@ -1,0 +1,104 @@
+import { useState } from "react";
+import { ChevronDown, ChevronRight, Database, Type, Palette, Calculator, Gauge, Sparkles } from "lucide-react";
+import { ArgGrupo, ArgMetadata, VarInfo } from "../../api/client";
+import { ArgField } from "./ArgField";
+
+// Agrupa los args de un graficador por su `grupo` semántico. Los grupos
+// son colapsables; "datos" siempre arranca expandido porque es lo
+// primero que el usuario necesita tocar. Los demás se abren on-demand.
+//
+// Los grupos coinciden con lo declarado en graficos_metadata.R:
+//   datos / textos / estilo / calculo / semaforo / avanzado
+
+export const GRUPO_META: Record<
+  ArgGrupo,
+  { label: string; icon: typeof Database; descripcion: string; defaultOpen: boolean; order: number }
+> = {
+  datos:    { label: "Datos",              icon: Database,   descripcion: "Qué variable se muestra y cómo se segmenta.", defaultOpen: true,  order: 0 },
+  textos:   { label: "Textos",             icon: Type,       descripcion: "Título, base, pie de página.",                defaultOpen: true,  order: 1 },
+  calculo:  { label: "Cálculo",            icon: Calculator, descripcion: "Filtros, métricas, top2box, decimales.",      defaultOpen: false, order: 2 },
+  semaforo: { label: "Semáforo",           icon: Gauge,      descripcion: "Colores por rangos de valores.",              defaultOpen: false, order: 3 },
+  estilo:   { label: "Estilo",             icon: Palette,    descripcion: "Overrides del preset tipo (tamaños, canvas).", defaultOpen: false, order: 4 },
+  avanzado: { label: "Avanzado",           icon: Sparkles,   descripcion: "Opciones poco comunes.",                      defaultOpen: false, order: 5 },
+};
+
+export function ArgGroup({
+  grupo,
+  args,
+  values,
+  onChangeArg,
+  variables,
+}: {
+  grupo: ArgGrupo;
+  args: ArgMetadata[];
+  values: Record<string, unknown>;
+  onChangeArg: (name: string, value: unknown) => void;
+  variables: VarInfo[];
+}) {
+  const meta = GRUPO_META[grupo];
+  const [open, setOpen] = useState(meta.defaultOpen);
+  const [hover, setHover] = useState(false);
+
+  if (args.length === 0) return null;
+
+  const Icon = meta.icon;
+  const nValuados = args.filter((a) => {
+    const v = values[a.name];
+    if (v === null || v === undefined || v === "") return false;
+    if (Array.isArray(v) && v.length === 0) return false;
+    if (typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0) return false;
+    return true;
+  }).length;
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--pulso-border)",
+        borderRadius: 6,
+        background: "var(--pulso-surface)",
+        marginBottom: 8,
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        aria-expanded={open}
+        style={{
+          width: "100%", textAlign: "left",
+          padding: "8px 10px",
+          display: "flex", alignItems: "center", gap: 7,
+          background: hover || open ? "var(--pulso-surface-2)" : "transparent",
+          border: "none", cursor: "pointer",
+          borderRadius: open ? "5px 5px 0 0" : 5,
+          transition: "background 120ms ease",
+        }}
+      >
+        <span style={{ display: "inline-flex", transition: "transform 150ms ease", transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}>
+          <ChevronDown size={12} color="var(--pulso-text-soft)" />
+        </span>
+        <Icon size={12} color="var(--pulso-text-soft)" />
+        <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "var(--pulso-text-soft)" }}>
+          {meta.label}
+        </span>
+        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginLeft: "auto" }}>
+          {nValuados > 0 ? `${nValuados}/${args.length}` : `${args.length}`}
+        </span>
+      </button>
+      {open && (
+        <div style={{ padding: "10px 12px", background: "white", borderTop: "1px solid var(--pulso-border)" }}>
+          {args.map((a) => (
+            <ArgField
+              key={a.name}
+              meta={a}
+              value={values[a.name]}
+              onChange={(v) => onChangeArg(a.name, v)}
+              variables={variables}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
