@@ -11,6 +11,7 @@ import { usePlanStore } from "./store";
 import { useGraficosAutosave } from "./useGraficosAutosave";
 import { useGraficosShortcuts } from "./useGraficosShortcuts";
 import { ShortcutsModal } from "./ShortcutsModal";
+import { humanizeGraficosExportError, HumanizedError } from "./humanizeExportError";
 import { GraficosHeader } from "./GraficosHeader";
 import { ConfiguracionGlobal } from "./ConfiguracionGlobal";
 import TimelinePanel from "./TimelinePanel";
@@ -35,8 +36,9 @@ export default function GraficosPage() {
   useGraficosShortcuts({ onOpenHelp: () => setShortcutsOpen(true) });
 
   const [busyValidating, setBusyValidating] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<HumanizedError | null>(null);
   const [warns, setWarns] = useState<string[]>([]);
+  const select = usePlanStore((s) => s.select);
   const [pptFileId, setPptFileId] = useState<string | null>(null);
   const [docxFileId, setDocxFileId] = useState<string | null>(null);
   const [presetsOpen, setPresetsOpen] = useState<"ppt" | "word" | null>(null);
@@ -46,16 +48,19 @@ export default function GraficosPage() {
   const canExport = prepOk && plan.slides.length > 0 && hydrated;
 
   async function onExport(kind: "ppt" | "word") {
-    setError(""); setWarns([]); setBusyValidating(`validando ${kind}…`);
+    setError(null); setWarns([]); setBusyValidating(`validando ${kind}…`);
     try {
       const v = await apiGraficosValidar(plan);
       setWarns(v.warnings);
-      if (!v.ok) { setError(v.errors.join("; ")); return; }
+      if (!v.ok) {
+        setError(humanizeGraficosExportError(v.errors.join("; "), plan));
+        return;
+      }
       const fn = kind === "ppt" ? apiGraficosPpt : apiGraficosWord;
       const out = await fn(plan, presets, wPresets);
       setExportJob({ kind, id: out.job_id });
     } catch (e: unknown) {
-      setError((e as Error).message);
+      setError(humanizeGraficosExportError((e as Error).message, plan));
     } finally {
       setBusyValidating("");
     }
@@ -70,7 +75,7 @@ export default function GraficosPage() {
   }
 
   function onExportError(message: string) {
-    setError(message);
+    setError(humanizeGraficosExportError(message, plan));
     setExportJob(null);
   }
 
@@ -164,7 +169,39 @@ export default function GraficosPage() {
 
       {busyValidating && <div style={{ marginTop: 10 }}><Alert kind="info">{busyValidating}</Alert></div>}
       {warns.length > 0 && <div style={{ marginTop: 10 }}><Alert kind="warn">{warns.join(" · ")}</Alert></div>}
-      {error && <div style={{ marginTop: 10 }}><Alert kind="error">{error}</Alert></div>}
+      {error && (
+        <div style={{ marginTop: 10 }}>
+          <Alert kind="error">
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <strong>{error.message}</strong>
+              {error.hint && (
+                <div style={{ fontSize: 12, fontWeight: 400, lineHeight: 1.5 }}>
+                  {error.hint}
+                </div>
+              )}
+              {error.slideRef && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (error.slideRef) select(error.slideRef.id);
+                    setError(null);
+                  }}
+                  style={{
+                    alignSelf: "flex-start",
+                    fontSize: 11, padding: "4px 10px",
+                    border: "1px solid #991b1b",
+                    borderRadius: 5,
+                    background: "white", color: "#991b1b",
+                    cursor: "pointer",
+                  }}
+                >
+                  Ir al slide "{error.slideRef.label}"
+                </button>
+              )}
+            </div>
+          </Alert>
+        </div>
+      )}
 
       {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
     </section>
