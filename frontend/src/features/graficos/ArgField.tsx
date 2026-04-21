@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Info, Sparkles, PencilLine, Image as ImageIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Info, Sparkles, PencilLine, Image as ImageIcon, Palette, Pipette, X as XIcon } from "lucide-react";
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
 import { downloadUrl } from "../../api/client";
@@ -165,6 +165,15 @@ function FieldControl({
         <MultiFlag
           opciones={meta.opciones}
           value={(value as string[]) ?? []}
+          onChange={onChange}
+        />
+      );
+
+    case "color":
+      return (
+        <ColorField
+          value={(value as string | null | undefined) ?? ""}
+          defaultValue={typeof meta.default === "string" ? meta.default : undefined}
           onChange={onChange}
         />
       );
@@ -511,6 +520,298 @@ function MultiFlag({
             )}
             {opt.label}
           </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---- Color picker -------------------------------------------------------
+
+// Presets generales — cubren los casos más comunes sin forzar al
+// analista a abrir el color wheel. Ordenados: neutros → primary → acento.
+const COLOR_PRESETS: { value: string; label: string }[] = [
+  { value: "#000000", label: "Negro" },
+  { value: "#222222", label: "Casi negro" },
+  { value: "#555555", label: "Gris oscuro" },
+  { value: "#888888", label: "Gris medio" },
+  { value: "#BBBBBB", label: "Gris claro" },
+  { value: "#FFFFFF", label: "Blanco" },
+  { value: "#002457", label: "Azul Prosecnur" },
+  { value: "#0B3A67", label: "Azul profundo" },
+  { value: "#39588B", label: "Azul acero" },
+  { value: "#B33A3A", label: "Rojo" },
+  { value: "#2E7D32", label: "Verde" },
+  { value: "#F5A623", label: "Ámbar" },
+];
+
+// Palabras clave CSS que los graficadores R también aceptan y que no
+// tienen representación hex — se muestran como chip literal en vez
+// de swatch.
+const COLOR_KEYWORDS = ["transparent", "white", "black"];
+
+function isValidColor(v: string): boolean {
+  if (!v) return true; // vacío = hereda
+  if (COLOR_KEYWORDS.includes(v.toLowerCase())) return true;
+  return /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v.trim());
+}
+
+// Normaliza shorthand (#abc → #aabbcc) y keyword → hex, para que el
+// <input type="color"> nativo siempre reciba un hex de 7 chars.
+function toHex7(v: string): string {
+  const s = (v || "").trim().toLowerCase();
+  if (s === "white") return "#ffffff";
+  if (s === "black" || s === "transparent" || s === "") return "#000000";
+  const m = s.match(/^#([0-9a-f]{3})$/);
+  if (m) {
+    const [r, g, b] = m[1].split("");
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+  if (/^#[0-9a-f]{6}$/.test(s)) return s;
+  if (/^#[0-9a-f]{8}$/.test(s)) return s.slice(0, 7);
+  return "#000000";
+}
+
+function ColorField({
+  value, defaultValue, onChange,
+}: {
+  value: string;
+  defaultValue?: string;
+  onChange: (v: string | null) => void;
+}) {
+  const paletas = usePlanStore((s) => s.paletas);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Sync draft con prop externo (ej. al cambiar de preset seleccionado).
+  useEffect(() => { setDraft(value); }, [value]);
+
+  // Click fuera → cerrar popover.
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  function commit(v: string | null) {
+    const clean = v == null ? null : v.trim();
+    if (clean === "" || clean == null) onChange(null);
+    else onChange(clean);
+    setDraft(clean ?? "");
+  }
+
+  function pickSwatch(hex: string) {
+    commit(hex);
+    setOpen(false);
+  }
+
+  const effective = value || defaultValue || "";
+  const valid = isValidColor(draft);
+
+  // Todos los colores únicos extraídos de las paletas del estudio.
+  // Agrupados por paleta para que el analista reconozca de dónde viene
+  // cada color (importante para mantener consistencia con los gráficos).
+  const paletasEntries = Object.entries(paletas)
+    .map(([name, mapa]) => ({
+      name,
+      colores: Array.from(new Set(Object.values(mapa))).filter(Boolean),
+    }))
+    .filter((p) => p.colores.length > 0);
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 6 }}>
+      {/* Swatch clickeable */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        title="Elegir color"
+        style={{
+          width: 28, height: 28, borderRadius: 6,
+          border: "1px solid var(--pulso-border)",
+          background:
+            effective && effective !== "transparent"
+              ? effective
+              : "repeating-linear-gradient(45deg, #eee 0 4px, #fff 4px 8px)",
+          cursor: "pointer", padding: 0, flexShrink: 0,
+          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.4)",
+        }}
+        aria-label="Abrir selector de color"
+      />
+      {/* Input hex con validación visual */}
+      <input
+        type="text"
+        value={draft}
+        placeholder={defaultValue || "#RRGGBB o 'white'"}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => commit(draft)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { commit(draft); (e.target as HTMLInputElement).blur(); }
+          if (e.key === "Escape") { setDraft(value); (e.target as HTMLInputElement).blur(); }
+        }}
+        style={{
+          ...inputStyle,
+          width: 130,
+          fontFamily: "ui-monospace, monospace",
+          fontSize: 11,
+          borderColor: valid ? "var(--pulso-border)" : "#f59f9f",
+          background: valid ? "white" : "#fef7f7",
+        }}
+      />
+      {draft && (
+        <button
+          type="button"
+          onClick={() => commit(null)}
+          className="pulso-icon"
+          aria-label="Borrar color (heredar)"
+          title="Borrar (hereda del preset padre)"
+          style={{ padding: 3, minWidth: 22, minHeight: 22 }}
+        >
+          <XIcon size={11} />
+        </button>
+      )}
+
+      {open && (
+        <div
+          style={{
+            position: "absolute", top: "calc(100% + 6px)", left: 0,
+            zIndex: 30,
+            minWidth: 280,
+            background: "white",
+            border: "1px solid var(--pulso-border)",
+            borderRadius: 8,
+            boxShadow: "var(--pulso-shadow-med)",
+            padding: 10,
+            display: "flex", flexDirection: "column", gap: 10,
+          }}
+        >
+          {/* Presets comunes */}
+          <PopoverSection icon={<Palette size={11} />} label="Comunes">
+            <SwatchRow colors={COLOR_PRESETS} active={effective} onPick={pickSwatch} />
+          </PopoverSection>
+
+          {/* Paletas del estudio */}
+          {paletasEntries.length > 0 && (
+            <PopoverSection icon={<Palette size={11} />} label="Tus paletas">
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {paletasEntries.map((p) => (
+                  <div key={p.name} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>{p.name}</span>
+                    <SwatchRow
+                      colors={p.colores.map((c) => ({ value: c, label: c }))}
+                      active={effective}
+                      onPick={pickSwatch}
+                    />
+                  </div>
+                ))}
+              </div>
+            </PopoverSection>
+          )}
+
+          {/* Color wheel nativo + keywords */}
+          <PopoverSection icon={<Pipette size={11} />} label="Personalizado">
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <label
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  fontSize: 11, cursor: "pointer",
+                }}
+              >
+                <input
+                  type="color"
+                  value={toHex7(draft || effective)}
+                  onChange={(e) => commit(e.target.value)}
+                  style={{
+                    width: 28, height: 28, padding: 0,
+                    border: "1px solid var(--pulso-border)",
+                    borderRadius: 6, cursor: "pointer",
+                  }}
+                />
+                Abrir rueda
+              </label>
+              {COLOR_KEYWORDS.map((kw) => (
+                <button
+                  key={kw}
+                  type="button"
+                  onClick={() => pickSwatch(kw)}
+                  style={{
+                    fontSize: 10, padding: "3px 8px", borderRadius: 999,
+                    border: `1px solid ${effective === kw ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+                    background: effective === kw ? "var(--pulso-primary-soft)" : "white",
+                    color: effective === kw ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
+                    fontFamily: "ui-monospace, monospace",
+                    cursor: "pointer",
+                  }}
+                >
+                  {kw}
+                </button>
+              ))}
+            </div>
+          </PopoverSection>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PopoverSection({ icon, label, children }: {
+  icon: JSX.Element;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <h5
+        style={{
+          margin: 0, fontSize: 10, fontWeight: 700,
+          textTransform: "uppercase", letterSpacing: 0.4,
+          color: "var(--pulso-text-soft)",
+          display: "inline-flex", alignItems: "center", gap: 5,
+        }}
+      >
+        {icon}
+        {label}
+      </h5>
+      {children}
+    </section>
+  );
+}
+
+function SwatchRow({
+  colors, active, onPick,
+}: {
+  colors: { value: string; label: string }[];
+  active: string;
+  onPick: (hex: string) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+      {colors.map((c) => {
+        const isActive = active.toLowerCase() === c.value.toLowerCase();
+        return (
+          <button
+            key={c.value + c.label}
+            type="button"
+            onClick={() => onPick(c.value)}
+            title={`${c.label} · ${c.value}`}
+            style={{
+              width: 22, height: 22, borderRadius: 5,
+              background: c.value,
+              border: isActive
+                ? "2px solid var(--pulso-primary)"
+                : "1px solid var(--pulso-border)",
+              boxShadow: isActive
+                ? "0 0 0 2px var(--pulso-primary-soft)"
+                : "inset 0 0 0 1px rgba(255,255,255,0.35)",
+              cursor: "pointer", padding: 0,
+              transition: "transform 120ms ease",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.1)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+          />
         );
       })}
     </div>

@@ -731,16 +731,16 @@
            descripcion = "Tamaño de los valores numéricos que se escriben DENTRO de las barras (ej. los %). Nota: en ggplot/cowplot no es pt exacto, son unidades relativas."),
 
       # --- Colores de texto ----------------------------------------------
-      list(name = "color_titulo",      label = "Color del título",       tipo_input = "string", grupo = "estilo",
+      list(name = "color_titulo",      label = "Color del título",       tipo_input = "color", grupo = "estilo",
            default = "#222222",
            descripcion = "Hex del color del texto del título (ej. '#39588B' para azul institucional)."),
-      list(name = "color_subtitulo",   label = "Color del subtítulo",    tipo_input = "string", grupo = "estilo",
+      list(name = "color_subtitulo",   label = "Color del subtítulo",    tipo_input = "color", grupo = "estilo",
            default = "#222222"),
-      list(name = "color_leyenda",     label = "Color de la leyenda",    tipo_input = "string", grupo = "estilo",
+      list(name = "color_leyenda",     label = "Color de la leyenda",    tipo_input = "color", grupo = "estilo",
            default = "#222222"),
-      list(name = "color_ejes",        label = "Color de los ejes",      tipo_input = "string", grupo = "estilo",
+      list(name = "color_ejes",        label = "Color de los ejes",      tipo_input = "color", grupo = "estilo",
            default = "#222222"),
-      list(name = "color_nota_pie",    label = "Color de la nota al pie", tipo_input = "string", grupo = "estilo",
+      list(name = "color_nota_pie",    label = "Color de la nota al pie", tipo_input = "color", grupo = "estilo",
            default = "#222222"),
 
       # --- Negritas -------------------------------------------------------
@@ -780,7 +780,7 @@
       # --- Barra extra (Top2Box / Bottom2Box / N) ------------------------
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo",
            descripcion = "Añade una barra adicional a la derecha con Top2Box, Bottom2Box o N. Se configura con 'Preset de la barra extra' del graficador."),
-      list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "string", grupo = "estilo",
+      list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "color", grupo = "estilo",
            descripcion = "Hex del color de la barra extra. Ej. '#39588B'."),
       list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo"),
       list(name = "size_titulo_extra",    label = "Tamaño título de la columna extra", tipo_input = "number", grupo = "estilo",
@@ -793,7 +793,7 @@
       # --- Etiquetas de valores ------------------------------------------
       list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo",
            descripcion = "Escribe el % dentro de cada segmento de la barra."),
-      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "string", grupo = "estilo",
+      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo",
            default = "white",
            descripcion = "Color del texto del porcentaje dentro de cada segmento. 'white' o un hex."),
       list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro",
@@ -907,7 +907,7 @@
       # --- Textos / tamaños ---------------------------------------------
       list(name = "size_titulos_grupo",   label = "Tamaño títulos de bloque", tipo_input = "number", grupo = "estilo",
            descripcion = "Cuando hay varios bloques temáticos, es el tamaño del título de cada bloque."),
-      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "string", grupo = "estilo"),
+      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo"),
       list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo"),
       list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro"),
       list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro"),
@@ -916,7 +916,7 @@
       # --- Barra extra ---------------------------------------------------
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo"),
       list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos"),
-      list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "string", grupo = "estilo"),
+      list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "color", grupo = "estilo"),
 
       # --- Eje Y + separación --------------------------------------------
       list(name = "espacio_entre_barras", label = "Separación entre barras", tipo_input = "number", grupo = "estilo",
@@ -989,7 +989,7 @@
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo"),
       list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos"),
       list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo"),
-      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "string", grupo = "estilo"),
+      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo"),
 
       # --- Eje Y / labels -------------------------------------------------
       list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "filtro", default = 30),
@@ -1032,7 +1032,7 @@
       list(name = "mostrar_valores",      label = "Mostrar valor dentro",  tipo_input = "bool",   grupo = "estilo",
            default = TRUE,
            descripcion = "Escribe el valor dentro de cada barra."),
-      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "string", grupo = "estilo",
+      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo",
            default = "white"),
       list(name = "size_texto_barras",    label = "Tamaño texto en barras", tipo_input = "number", grupo = "estilo", default = 4.4),
       list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro",
@@ -1044,7 +1044,7 @@
       list(name = "prefijo_n_sobre_barras", label = "Prefijo del N",        tipo_input = "string", grupo = "textos",
            default = "N = "),
       list(name = "size_n_sobre_barras",    label = "Tamaño texto N",       tipo_input = "number", grupo = "estilo", default = 3.6),
-      list(name = "color_n_sobre_barras",   label = "Color texto N",        tipo_input = "string", grupo = "estilo", default = "#0B3A67"),
+      list(name = "color_n_sobre_barras",   label = "Color texto N",        tipo_input = "color", grupo = "estilo", default = "#0B3A67"),
 
       # --- Eje Y ---------------------------------------------------------
       list(name = "mostrar_eje_y",        label = "Mostrar eje Y numérico", tipo_input = "bool",   grupo = "estilo",
@@ -1096,7 +1096,7 @@
       # --- Etiquetas porcentuales ---------------------------------------
       list(name = "mostrar_etiquetas_pct", label = "Mostrar porcentajes",  tipo_input = "bool",   grupo = "estilo", default = TRUE),
       list(name = "size_etiquetas_pct",    label = "Tamaño etiquetas %",   tipo_input = "number", grupo = "estilo", default = 5),
-      list(name = "color_etiquetas_pct",   label = "Color etiquetas %",    tipo_input = "string", grupo = "estilo", default = "white"),
+      list(name = "color_etiquetas_pct",   label = "Color etiquetas %",    tipo_input = "color", grupo = "estilo", default = "white"),
       list(name = "etiquetas_negrita",     label = "Etiquetas en negrita", tipo_input = "bool",   grupo = "estilo", default = TRUE),
 
       # --- Leyenda -------------------------------------------------------

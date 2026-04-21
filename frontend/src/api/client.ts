@@ -1083,6 +1083,11 @@ export type ArgTipoInput =
   // Ej. textos_negrita = c("titulo", "leyenda"). Se renderiza como
   // chips toggleables — ni texto libre ni radio exclusivo.
   | "multiflag"
+  // color: picker de color (swatch + hex + popover con paletas del
+  // estudio y presets comunes). Acepta hex (#RRGGBB / #RGB) o
+  // keywords CSS (white, black, transparent). Se renderiza con
+  // <input type="color"> nativo como fallback al popover custom.
+  | "color"
   | "icono"
   | "overrides"
   | "filtros"
