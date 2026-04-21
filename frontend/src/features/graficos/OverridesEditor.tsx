@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import * as Lucide from "lucide-react";
-import { Plus, Copy, Trash2, Circle } from "lucide-react";
+import { Plus, Copy, Trash2, Circle, Layers3 } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore, OverrideReusable } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
+import { LoadingBlock, ErrorBlock, EmptyState } from "./ui/States";
 // AdvancedJsonEditor deshabilitado — ver nota en PresetsEditor.
 
 // Overrides reutilizables = mini-presets nombrados (ej. "compacto", "grande")
@@ -62,20 +63,8 @@ export function OverridesEditor() {
     overrides[0]?.id ?? null
   );
 
-  if (loading) {
-    return (
-      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: 10 }}>
-        Cargando catálogo…
-      </div>
-    );
-  }
-  if (error) {
-    return (
-      <div style={{ fontSize: 12, color: "#991b1b", padding: 10 }}>
-        Error cargando catálogo: {error}
-      </div>
-    );
-  }
+  if (loading) return <LoadingBlock label="Cargando catálogo…" />;
+  if (error) return <ErrorBlock label="Error cargando catálogo" detail={error} />;
 
   const selected = overrides.find((o) => o.id === selectedId);
 
@@ -137,21 +126,12 @@ export function OverridesEditor() {
         </button>
 
         {overrides.length === 0 ? (
-          <div
-            style={{
-              fontSize: 11, color: "var(--pulso-text-soft)",
-              padding: "14px 10px",
-              background: "var(--pulso-surface)",
-              borderRadius: 6,
-              border: "1px dashed var(--pulso-border)",
-              textAlign: "center",
-              lineHeight: 1.5,
-            }}
-          >
-            No tienes overrides.
-            <br />
-            Crea uno y aplícalo desde cualquier slot de gráfico.
-          </div>
+          <EmptyState
+            variant="inline"
+            icon={<Layers3 size={16} />}
+            title="Sin overrides"
+            hint="Crea uno y aplícalo desde cualquier slot de gráfico."
+          />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
             {overrides.map((o) => {
@@ -201,18 +181,30 @@ export function OverridesEditor() {
             onDelete={() => handleDelete(selected.id)}
           />
         ) : (
-          <div
-            style={{
-              fontSize: 12, color: "var(--pulso-text-soft)",
-              padding: "18px 14px",
-              border: "1px dashed var(--pulso-border)",
-              borderRadius: 8,
-              background: "var(--pulso-surface)",
-              textAlign: "center", lineHeight: 1.5,
-            }}
-          >
-            Selecciona un override en el panel izquierdo o crea uno nuevo.
-          </div>
+          <EmptyState
+            icon={<Layers3 size={22} />}
+            title={overrides.length === 0 ? "Aún no hay overrides" : "Selecciona un override"}
+            hint={
+              overrides.length === 0
+                ? "Los overrides son mini-presets reusables que aplicas a slots específicos cuando la configuración global no encaja."
+                : "Elige uno del panel izquierdo para editar sus args."
+            }
+            cta={
+              overrides.length === 0 ? (
+                <button
+                  type="button"
+                  className="pulso-primary"
+                  onClick={handleCreate}
+                  style={{
+                    fontSize: 12, padding: "7px 14px",
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}
+                >
+                  <Plus size={13} /> Crear primer override
+                </button>
+              ) : undefined
+            }
+          />
         )}
       </section>
     </div>
@@ -294,14 +286,7 @@ function OverrideEditPanel({
             value={override.nombre}
             onChange={(e) => onUpdate({ nombre: e.target.value })}
             placeholder="Nombre del override"
-            style={{
-              fontSize: 14, fontWeight: 700,
-              padding: "3px 6px", border: "1px solid transparent",
-              borderRadius: 4, background: "transparent",
-              color: "var(--pulso-text)", outline: "none",
-            }}
-            onFocus={(e) => { e.currentTarget.style.border = "1px solid var(--pulso-border)"; e.currentTarget.style.background = "white"; }}
-            onBlur={(e) => { e.currentTarget.style.border = "1px solid transparent"; e.currentTarget.style.background = "transparent"; }}
+            className="pulso-inline-edit"
           />
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <label style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>

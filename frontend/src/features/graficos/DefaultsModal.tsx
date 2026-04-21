@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import * as Lucide from "lucide-react";
-import { X, Save, Factory, Check, Circle, Plus, Trash2, Layers3, Loader2, AlertCircle } from "lucide-react";
+import { X, Save, Factory, Check, Circle, Plus, Trash2, Layers3, AlertCircle } from "lucide-react";
 import {
   ArgGrupo, ArgMetadata,
   apiGraficosPresetsDefaultsSave,
@@ -10,6 +10,7 @@ import { usePresetsMetadata } from "./usePresetsMetadata";
 import { usePresetsDefaults, presetArgsEqual } from "./usePresetsDefaults";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
 import { OverrideReusable, usePlanStore } from "./store";
+import { LoadingBlock, EmptyState } from "./ui/States";
 
 // Modal "Gestionar defaults". Dos modos según cómo se abrió:
 //   - mode="presets": edita los defaults de presets (lo que sirve de
@@ -526,64 +527,3 @@ function OverrideEditForm({
   );
 }
 
-// ---- Shared UI helpers ------------------------------------------------
-
-function LoadingBlock({ label }: { label: string }) {
-  return (
-    <div
-      role="status"
-      style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        gap: 10, minHeight: 320,
-        fontSize: 12, color: "var(--pulso-text-soft)",
-      }}
-    >
-      <Loader2
-        size={16}
-        color="var(--pulso-primary)"
-        style={{ animation: "pulso-spin 900ms linear infinite" }}
-      />
-      {label}
-      <style>{`@keyframes pulso-spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
-}
-
-function EmptyState({
-  icon, title, hint, cta,
-}: {
-  icon: JSX.Element;
-  title: string;
-  hint?: string;
-  cta?: JSX.Element;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: "center", textAlign: "center",
-        gap: 8, padding: "40px 20px", minHeight: 260,
-        color: "var(--pulso-text-soft)",
-      }}
-    >
-      <span
-        style={{
-          width: 42, height: 42, borderRadius: 10,
-          background: "var(--pulso-surface)",
-          color: "var(--pulso-text-soft)",
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          border: "1px solid var(--pulso-border)",
-        }}
-      >
-        {icon}
-      </span>
-      <h4 style={{ margin: 0, fontSize: 13, color: "var(--pulso-text)" }}>{title}</h4>
-      {hint && (
-        <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5, maxWidth: 320 }}>
-          {hint}
-        </p>
-      )}
-      {cta && <div style={{ marginTop: 6 }}>{cta}</div>}
-    </div>
-  );
-}

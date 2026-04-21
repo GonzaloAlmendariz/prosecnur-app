@@ -271,3 +271,28 @@ button.pulso-icon-danger:hover:not(:disabled) {
 .pulso-spin {
   animation: pulso-spin-kf 1s linear infinite;
 }
+
+/* Input tipo "inline-edit" — se ve como heading plano en reposo y
+   se revela como un input editable al focus. Usado en headers donde
+   el nombre del item es la pieza principal del UI (OverridesEditor). */
+input.pulso-inline-edit {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--pulso-text);
+  outline: none;
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  width: 100%;
+}
+input.pulso-inline-edit:hover:not(:focus) {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-border);
+}
+input.pulso-inline-edit:focus {
+  background: white;
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}

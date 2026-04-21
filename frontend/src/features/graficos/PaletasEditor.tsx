@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Sparkles, Trash2, X } from "lucide-react";
+import { Search, Sparkles, Trash2, X, Palette, ListChecks } from "lucide-react";
 import {
   apiGraficosPaletasSugeridas,
   PaletaSugeridaEntry,
 } from "../../api/client";
 import { usePlanStore } from "./store";
+import { LoadingBlock, ErrorBlock, EmptyState, SectionEyebrow } from "./ui/States";
 
 // Editor de paletas de colores por `list_name` del XLSForm. Cada fila
 // de la tabla es un value-label; el analista le asigna un color. Las
@@ -96,26 +97,20 @@ export function PaletasEditor() {
   }
 
   if (loading) {
-    return (
-      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: 12 }}>
-        Cargando listas del instrumento…
-      </div>
-    );
+    return <LoadingBlock label="Cargando listas del instrumento…" />;
   }
 
   if (error) {
-    return (
-      <div style={{ fontSize: 12, color: "#b91c1c", padding: 12 }}>
-        Error cargando listas: {error}
-      </div>
-    );
+    return <ErrorBlock label="Error cargando listas" detail={error} />;
   }
 
   if (listasSugeridas.length === 0) {
     return (
-      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: 12 }}>
-        No se detectaron listas de respuestas en el instrumento. Carga un XLSForm en <strong>1. Carga</strong> y prepara los datos en <strong>4. Analítica</strong>.
-      </div>
+      <EmptyState
+        icon={<ListChecks size={20} />}
+        title="Sin listas de respuestas"
+        hint="Carga un XLSForm en Fase 1 y prepara los datos en Fase 4 para que aparezcan acá."
+      />
     );
   }
 
@@ -124,15 +119,11 @@ export function PaletasEditor() {
   return (
     <div style={{ display: "flex", gap: 14, minHeight: 340 }}>
       {/* Columna izquierda: lista de list_names */}
-      <div style={{ width: 220, display: "flex", flexDirection: "column", gap: 8, borderRight: "1px solid var(--pulso-border)", paddingRight: 12 }}>
-        <div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>
-            Listas del instrumento
-          </div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-            Cada lista de respuestas puede tener su paleta. Si no le asignas colores, prosecnur usa su paleta azul por defecto.
-          </div>
-        </div>
+      <div style={{ width: 220, display: "flex", flexDirection: "column", gap: 10, borderRight: "1px solid var(--pulso-border)", paddingRight: 12 }}>
+        <SectionEyebrow
+          label="Listas del instrumento"
+          hint="Cada lista de respuestas puede tener su paleta. Si no le asignas colores, prosecnur usa su paleta azul por defecto."
+        />
 
         <div
           style={{
@@ -181,8 +172,30 @@ export function PaletasEditor() {
                 <code style={{ fontFamily: "monospace", fontWeight: active ? 700 : 500, color: "inherit" }}>
                   {l.list_name}
                 </code>
-                <span style={{ fontSize: 10, color: tienePaleta ? "var(--pulso-primary)" : "var(--pulso-text-soft)" }}>
-                  {tienePaleta ? "●" : `${l.choices.length}`}
+                <span
+                  title={
+                    tienePaleta
+                      ? "Tiene paleta personalizada"
+                      : `${l.choices.length} ${l.choices.length === 1 ? "opción" : "opciones"} sin paleta`
+                  }
+                  style={{
+                    fontSize: 10, fontWeight: 600,
+                    padding: "2px 7px", borderRadius: 999,
+                    border: "1px solid",
+                    borderColor: tienePaleta ? "var(--pulso-primary-border)" : "var(--pulso-border)",
+                    background: tienePaleta ? "var(--pulso-primary-soft)" : "white",
+                    color: tienePaleta ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
+                    display: "inline-flex", alignItems: "center", gap: 3,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {tienePaleta && (
+                    <span style={{
+                      width: 5, height: 5, borderRadius: "50%",
+                      background: "var(--pulso-primary)",
+                    }} />
+                  )}
+                  {l.choices.length}
                 </span>
               </button>
             );
@@ -198,37 +211,89 @@ export function PaletasEditor() {
           </div>
         ) : (
           <>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>
-                Paleta de <code style={{ fontFamily: "monospace", color: "var(--pulso-primary)" }}>{activaData.list_name}</code>
+            <header style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <span
+                style={{
+                  width: 30, height: 30, borderRadius: 7,
+                  background: "var(--pulso-primary-soft)",
+                  color: "var(--pulso-primary)",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Palette size={15} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{
+                  margin: 0, fontSize: 14, lineHeight: 1.3,
+                  display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
+                }}>
+                  Paleta de <code style={{
+                    fontFamily: "monospace", color: "var(--pulso-primary)",
+                    background: "var(--pulso-primary-soft)",
+                    padding: "1px 6px", borderRadius: 4, fontSize: 12,
+                  }}>{activaData.list_name}</code>
+                </h3>
+                <p style={{
+                  margin: "4px 0 0", fontSize: 11,
+                  color: "var(--pulso-text-soft)", lineHeight: 1.5,
+                  maxWidth: 540,
+                }}>
+                  {activaData.choices.length} {activaData.choices.length === 1 ? "opción" : "opciones"} en esta lista.
+                  Cada color se aplica a su value-label en todos los gráficos que usen esta variable.
+                </p>
               </div>
-              <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 3, lineHeight: 1.5 }}>
-                {activaData.choices.length} {activaData.choices.length === 1 ? "opción" : "opciones"} en esta lista.
-                Cada color se aplica a su value-label en todos los gráficos que usen esta variable.
-              </div>
-            </div>
-
-            {/* Paletas sugeridas */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              <SugeridoButton label="Semáforo" colores={PALETA_SEMAFORO} onClick={() => aplicarPaletaSugerida(PALETA_SEMAFORO)} />
-              <SugeridoButton label="Semáforo inv." colores={[...PALETA_SEMAFORO].reverse()} onClick={() => aplicarPaletaSugerida(PALETA_SEMAFORO, true)} />
-              <SugeridoButton label="Azules" colores={PALETA_AZULES} onClick={() => aplicarPaletaSugerida(PALETA_AZULES)} />
-              <SugeridoButton label="Categórica" colores={PALETA_CATEGORICA} onClick={() => aplicarPaletaSugerida(PALETA_CATEGORICA)} />
               {Object.keys(paletaActiva).length > 0 && (
                 <button
                   type="button"
                   onClick={() => removePaleta(activaData.list_name)}
+                  title="Quitar todos los colores personalizados de esta lista"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#fef2f2";
+                    e.currentTarget.style.borderColor = "#fecaca";
+                    e.currentTarget.style.color = "#991b1b";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.borderColor = "var(--pulso-border)";
+                    e.currentTarget.style.color = "var(--pulso-text-soft)";
+                  }}
                   style={{
-                    fontSize: 11, padding: "4px 9px", borderRadius: 6,
+                    fontSize: 11, padding: "5px 10px", borderRadius: 6,
                     border: "1px solid var(--pulso-border)",
-                    background: "white", color: "#991b1b",
-                    cursor: "pointer",
+                    background: "transparent", color: "var(--pulso-text-soft)",
+                    cursor: "pointer", flexShrink: 0,
                     display: "inline-flex", alignItems: "center", gap: 5,
+                    transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
                   }}
                 >
                   <Trash2 size={11} /> Vaciar paleta
                 </button>
               )}
+            </header>
+
+            {/* Paletas sugeridas */}
+            <div style={{
+              display: "flex", flexDirection: "column", gap: 6,
+              padding: "10px 12px",
+              background: "var(--pulso-surface)",
+              border: "1px solid var(--pulso-border)",
+              borderRadius: 8,
+            }}>
+              <span style={{
+                fontSize: 10, fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: 0.4,
+                color: "var(--pulso-text-soft)",
+                display: "inline-flex", alignItems: "center", gap: 5,
+              }}>
+                <Sparkles size={11} /> Aplicar paleta sugerida
+              </span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <SugeridoButton label="Semáforo" colores={PALETA_SEMAFORO} onClick={() => aplicarPaletaSugerida(PALETA_SEMAFORO)} />
+                <SugeridoButton label="Semáforo inv." colores={[...PALETA_SEMAFORO].reverse()} onClick={() => aplicarPaletaSugerida(PALETA_SEMAFORO, true)} />
+                <SugeridoButton label="Azules" colores={PALETA_AZULES} onClick={() => aplicarPaletaSugerida(PALETA_AZULES)} />
+                <SugeridoButton label="Categórica" colores={PALETA_CATEGORICA} onClick={() => aplicarPaletaSugerida(PALETA_CATEGORICA)} />
+              </div>
             </div>
 
             {/* Tabla de labels con color picker */}
@@ -337,30 +402,33 @@ function SugeridoButton({ label, colores, onClick }: { label: string; colores: s
       type="button"
       onClick={onClick}
       style={{
-        fontSize: 11, padding: "4px 9px", borderRadius: 6,
+        fontSize: 11, padding: "4px 10px", borderRadius: 6,
         border: "1px solid var(--pulso-border)",
         background: "white",
         cursor: "pointer",
-        display: "inline-flex", alignItems: "center", gap: 6,
-        transition: "background 120ms ease, border-color 120ms ease",
+        display: "inline-flex", alignItems: "center", gap: 7,
+        transition: "background 120ms ease, border-color 120ms ease, transform 120ms ease",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--pulso-primary)"; }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "var(--pulso-primary)";
+        e.currentTarget.style.background = "white";
+      }}
       onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--pulso-border)"; }}
       title={`Aplicar paleta ${label}`}
     >
-      <Sparkles size={11} color="var(--pulso-text-soft)" />
-      <span>{label}</span>
       <span style={{ display: "inline-flex", gap: 1 }}>
         {colores.slice(0, 5).map((c, i) => (
           <span
             key={i}
             style={{
-              display: "inline-block", width: 8, height: 12,
+              display: "inline-block", width: 9, height: 14,
               background: c, borderRadius: 2,
+              boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)",
             }}
           />
         ))}
       </span>
+      <span style={{ fontWeight: 500 }}>{label}</span>
     </button>
   );
 }

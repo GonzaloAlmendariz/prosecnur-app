@@ -208,6 +208,13 @@ graficar_pie <- function(
   exportar           <- match.arg(exportar)
 
   textos_negrita <- textos_negrita %||% character(0)
+  # Aliases para mantener compat con planes/QMDs que usen tokens
+  # legacy. La UI (tipo_input = "multiflag") expone el token nuevo —
+  # acá lo traducimos al que espera el código a lo largo de la función.
+  #   nota_pie → caption (este graficador usa "caption" internamente)
+  if ("nota_pie" %in% textos_negrita && !("caption" %in% textos_negrita)) {
+    textos_negrita <- c(textos_negrita, "caption")
+  }
 
   if (!requireNamespace("ggplot2", quietly = TRUE) ||
       !requireNamespace("dplyr", quietly = TRUE)) {

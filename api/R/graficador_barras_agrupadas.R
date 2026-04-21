@@ -263,6 +263,13 @@ graficar_barras_agrupadas <- function(
   pos_nota_pie <- match.arg(pos_nota_pie)
 
   textos_negrita <- textos_negrita %||% character(0)
+  # Alias legacy: el token canónico en el registry es "valores", pero
+  # el código interno lo compara como "porcentajes". Traducimos para que
+  # planes antiguos (con "porcentajes") y nuevos (con "valores") se
+  # comporten igual.
+  if ("valores" %in% textos_negrita && !("porcentajes" %in% textos_negrita)) {
+    textos_negrita <- c(textos_negrita, "porcentajes")
+  }
   hjust_titulo    <- hjust_from_pos(pos_titulo)
   hjust_caption   <- hjust_from_pos(pos_nota_pie)
 

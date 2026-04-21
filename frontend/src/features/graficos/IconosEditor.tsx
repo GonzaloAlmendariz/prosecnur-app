@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { Upload, Trash2, Pencil, Check, X } from "lucide-react";
+import { Upload, Trash2, Pencil, Check, ImageOff } from "lucide-react";
 import { apiGraficosIconoUpload, downloadUrl } from "../../api/client";
 import { usePlanStore, IconoConfig } from "./store";
+import { EmptyState, ErrorBlock, SectionEyebrow } from "./ui/States";
 
 // Editor de biblioteca de iconos PNG. Los iconos son parte esencial de
 // los slides de población (p_slide_*_poblacion): aparecen centrados o
@@ -56,16 +57,10 @@ export function IconosEditor() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>
-          Iconos para slides de población
-        </div>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 3, lineHeight: 1.5 }}>
-          Sube PNGs que quieras usar como ícono central en slides de población
-          (<code>p_slide_2_graficos_poblacion</code>, <code>4_graficos_poblacion</code>, etc.) o como ícono lateral
-          en <code>p_slide_objetivo_icono</code>. Formato recomendado: PNG con fondo transparente, alrededor de 500×500 px.
-        </div>
-      </div>
+      <SectionEyebrow
+        label="Iconos para slides de población"
+        hint="Sube PNGs que quieras usar como ícono central en slides de población (p_slide_*_poblacion) o como ícono lateral en p_slide_objetivo_icono. Formato recomendado: PNG con fondo transparente, ~500×500 px."
+      />
 
       {/* Drop area */}
       <label
@@ -106,17 +101,16 @@ export function IconosEditor() {
         />
       </label>
 
-      {error && (
-        <div style={{ fontSize: 11, color: "#b91c1c", padding: "6px 10px", borderRadius: 6, background: "#fef2f2", border: "1px solid #fecaca" }}>
-          {error}
-        </div>
-      )}
+      {error && <ErrorBlock label="Error al subir" detail={error} />}
 
       {/* Grid de iconos */}
       {iconos.length === 0 ? (
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", textAlign: "center", padding: "14px 0", fontStyle: "italic" }}>
-          No hay iconos subidos aún.
-        </div>
+        <EmptyState
+          variant="inline"
+          icon={<ImageOff size={18} />}
+          title="Sin iconos"
+          hint="Los PNGs que subas aparecerán acá para reutilizar en cualquier slide de población."
+        />
       ) : (
         <div
           style={{
