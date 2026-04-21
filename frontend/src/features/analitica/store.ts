@@ -104,8 +104,61 @@ export type EnumeradoresConfig = {
   modalidad_default: string;
 };
 
+// ----- Bases -----------------------------------------------------------------
+// El pane "Bases" expone 3 formatos independientes. Cada uno tiene su
+// propio botón "Generar" y su propia sub-config. Evitamos un zip único
+// para dar control granular y poder re-ejecutar solo lo que cambió.
+
+// Cómo manejar las preguntas select_multiple al exportar:
+// - "codigos_crudos"   → dejar "1 3 5" tal cual.
+// - "etiquetas_unidas" → decodificar cada código y unir con " | ".
+// - "dummy_01"         → expandir a columnas 0/1 (una por opción). Estándar
+//                        en análisis estadístico.
+export type MultiSelectMode = "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
+
+export type BasesSavConfig = {
+  // Incluir un niveles_medida.sps como red de seguridad. Por defecto OFF:
+  // el .sav lleva measure / format.spss / display_width embebidos. Activar
+  // solo si tu SPSS pierde los atributos al abrir.
+  incluir_sps: boolean;
+};
+
+export type BasesCsvConfig = {
+  valores: "codigos" | "etiquetas";
+  separador: "," | ";";
+  multi_select: MultiSelectMode;
+};
+
+export type BasesXlsxConfig = {
+  // "ambos" escribe dos hojas: `codigos` + `etiquetas`. Útil cuando el
+  // archivo se comparte entre analistas (codigos) y stakeholders (etiquetas).
+  valores: "codigos" | "etiquetas" | "ambos";
+  multi_select: MultiSelectMode;
+};
+
+export type MeasureSpss = "nominal" | "ordinal" | "scale";
+
+// Override por variable de la inferencia SPSS. `undefined` = dejar la
+// inferencia. El usuario edita uno de estos cuando la auto-inferencia
+// clasificó mal (p. ej. una Likert que quedó como nominal), o cuando
+// quiere forzar un ancho específico en un texto libre.
+export type BasesOverride = {
+  measure?: MeasureSpss;
+  format_spss?: string;
+};
+
+export type BasesConfig = {
+  sav: BasesSavConfig;
+  csv: BasesCsvConfig;
+  xlsx: BasesXlsxConfig;
+  // Clave = nombre técnico de la variable en rp_data. Solo afecta al
+  // export .sav — CSV y XLSX ignoran measure/format.spss.
+  overrides: Record<string, BasesOverride>;
+};
+
 export type AnaliticaConfig = {
-  version: 1;
+  // v1 → v2: añadir `bases`. Migración no-destructiva en mergeWithDefaults.
+  version: 2;
   fuente_preferida: FuentePreferida;
   secciones: SeccionConfig[];
   numericas: string[];
@@ -118,12 +171,13 @@ export type AnaliticaConfig = {
   frecuencias: FrecuenciasConfig;
   cruces: CrucesConfig;
   enumeradores: EnumeradoresConfig;
+  bases: BasesConfig;
 };
 
 // ----- Defaults --------------------------------------------------------------
 
 export const DEFAULT_CONFIG: AnaliticaConfig = {
-  version: 1,
+  version: 2,
   fuente_preferida: "auto",
   secciones: [],
   numericas: [],
@@ -165,6 +219,12 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
     modalidad_reglas: [],
     modalidad_default: "Presencial",
   },
+  bases: {
+    sav:  { incluir_sps: false },
+    csv:  { valores: "etiquetas", separador: ",", multi_select: "dummy_01" },
+    xlsx: { valores: "ambos", multi_select: "dummy_01" },
+    overrides: {},
+  },
 };
 
 // ----- Store -----------------------------------------------------------------
@@ -198,6 +258,17 @@ type AnaliticaStore = {
   setFrecuencias: (patch: Partial<FrecuenciasConfig>) => void;
   setCruces: (patch: Partial<CrucesConfig>) => void;
   setEnumeradores: (patch: Partial<EnumeradoresConfig>) => void;
+
+  setBasesSav: (patch: Partial<BasesSavConfig>) => void;
+  setBasesCsv: (patch: Partial<BasesCsvConfig>) => void;
+  setBasesXlsx: (patch: Partial<BasesXlsxConfig>) => void;
+
+  // Setters de overrides por variable. Pasar `undefined` en un campo
+  // elimina ese override (vuelve a la inferencia). Pasar ambos en
+  // undefined elimina el override completo de la variable.
+  setBasesOverride: (name: string, patch: Partial<BasesOverride>) => void;
+  clearBasesOverride: (name: string) => void;
+  clearAllBasesOverrides: () => void;
 
   // Setters específicos de cruces_vars (schema v2: [{name, excluidas}]).
   addCruceVar: (name: string) => void;
@@ -299,6 +370,66 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
   setEnumeradores: (patch) =>
     set((s) =>
       dirty({ config: { ...s.config, enumeradores: { ...s.config.enumeradores, ...patch } } }),
+    ),
+
+  setBasesSav: (patch) =>
+    set((s) =>
+      dirty({
+        config: {
+          ...s.config,
+          bases: { ...s.config.bases, sav: { ...s.config.bases.sav, ...patch } },
+        },
+      }),
+    ),
+
+  setBasesCsv: (patch) =>
+    set((s) =>
+      dirty({
+        config: {
+          ...s.config,
+          bases: { ...s.config.bases, csv: { ...s.config.bases.csv, ...patch } },
+        },
+      }),
+    ),
+
+  setBasesXlsx: (patch) =>
+    set((s) =>
+      dirty({
+        config: {
+          ...s.config,
+          bases: { ...s.config.bases, xlsx: { ...s.config.bases.xlsx, ...patch } },
+        },
+      }),
+    ),
+
+  setBasesOverride: (name, patch) =>
+    set((s) => {
+      const current = s.config.bases.overrides[name] ?? {};
+      const merged: BasesOverride = { ...current, ...patch };
+      // Si tras el merge no queda ninguna key, eliminar el override.
+      const isEmpty = merged.measure === undefined && merged.format_spss === undefined;
+      const overrides = { ...s.config.bases.overrides };
+      if (isEmpty) delete overrides[name];
+      else overrides[name] = merged;
+      return dirty({
+        config: { ...s.config, bases: { ...s.config.bases, overrides } },
+      });
+    }),
+
+  clearBasesOverride: (name) =>
+    set((s) => {
+      const overrides = { ...s.config.bases.overrides };
+      delete overrides[name];
+      return dirty({
+        config: { ...s.config, bases: { ...s.config.bases, overrides } },
+      });
+    }),
+
+  clearAllBasesOverrides: () =>
+    set((s) =>
+      dirty({
+        config: { ...s.config, bases: { ...s.config.bases, overrides: {} } },
+      }),
     ),
 
   addCruceVar: (name) =>

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Filter, Grid3x3, Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle, Filter, Grid3x3, Plus, Sigma, X } from "lucide-react";
 import {
   apiAnaliticaColumnValues,
   apiAnaliticaCruces,
@@ -13,16 +13,15 @@ import { VariableSelect } from "../VariableSelect";
 import { Section, GenerateFooter } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
 
-// CrucesPane — rediseño final.
-// 1. Variables a cruzar con posibilidad de excluir categorías específicas
-//    cuando la variable es cruce (columna). La exclusión filtra filas
-//    globalmente del data antes de generar — lo comunicamos en la UI.
-// 2. Presentación (solo incluir_total).
+// CrucesPane — configuración mínima.
+// 1. Variables a cruzar (con posibilidad de excluir categorías específicas).
+// 2. Significancia estadística (único toggle).
 // 3. Generar.
 //
-// Semáforo y brechas se removieron del UI: su uso natural es en el
-// módulo de dimensiones, aún no integrado. La config persiste en el
-// store y los endpoints siguen aceptándola, para reusarla ahí.
+// Hardcodeado: `incluir_total` siempre en true (la fila Total es útil
+// siempre), `alpha` fijo en 0.05, `modo` siempre "estandar". Semáforo
+// y brechas se gestionan en el módulo de dimensiones (aún no integrado);
+// sus flags persisten en el store para reusarlos allí.
 
 export function CrucesPane() {
   const cruces = useAnaliticaStore((s) => s.config.cruces);
@@ -43,30 +42,23 @@ export function CrucesPane() {
   }, []);
 
   async function onGenerate() {
-    // Forzar modo estándar + sig default antes de lanzar.
-    if (cruces.modo !== "estandar" || !cruces.show_sig || cruces.alpha !== 0.05) {
-      setCruces({ modo: "estandar", show_sig: true, alpha: 0.05 });
-    }
+    // Garantizar defaults fijos antes de lanzar.
+    const patch: Partial<typeof cruces> = {};
+    if (cruces.modo !== "estandar") patch.modo = "estandar";
+    if (cruces.alpha !== 0.05) patch.alpha = 0.05;
+    if (!cruces.incluir_total) patch.incluir_total = true;
+    if (Object.keys(patch).length > 0) setCruces(patch);
     await run.runAsync(() => apiAnaliticaCruces());
   }
 
   const nVars = cruces.cruces_vars.length;
   const nResto = Math.max(0, variables.length - nVars);
 
-  // Sugerencias: select_one no seleccionadas.
-  const sugeridas = useMemo(() => {
-    const picked = new Set(cruces.cruces_vars.map((cv) => cv.name));
-    return variables
-      .filter((v) => v.tipo === "select_one")
-      .filter((v) => !picked.has(v.name))
-      .slice(0, 4);
-  }, [variables, cruces.cruces_vars]);
-
   return (
     <Panel
       eyebrow="Reporte"
       title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Grid3x3 size={16} /> Cruces</span>}
-      hint={<>Tablas cruzadas 2D. Cada variable elegida se cruza contra el resto del instrumento, con chi² al <strong>5%</strong> para marcar diferencias significativas.</>}
+      hint="Tablas cruzadas 2D. Cada variable elegida se cruza contra el resto del instrumento. Incluye fila y columna Total por defecto."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
         {/* 1. Variables a cruzar */}
@@ -79,7 +71,6 @@ export function CrucesPane() {
           <VariableChips
             selected={cruces.cruces_vars}
             variables={variables}
-            sugeridas={sugeridas}
             onAdd={addCruceVar}
             onRemove={removeCruceVar}
             onSetExcluidas={setCruceVarExcluidas}
@@ -91,23 +82,36 @@ export function CrucesPane() {
           )}
         </Section>
 
-        {/* 2. Presentación */}
+        {/* 2. Significancia */}
         <Section
-          title="2. Presentación"
-          subtitle="Cómo se compone cada tabla cruzada."
+          title="2. Significancia estadística"
+          subtitle={<>
+            Marca con un asterisco las celdas cuya diferencia entre columnas es estadísticamente significativa (chi² al 5%). Útil para identificar rápidamente los patrones de interés.
+          </>}
         >
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, cursor: "pointer" }}>
+          <label
+            style={{
+              display: "flex", alignItems: "flex-start", gap: 10,
+              padding: "10px 12px", borderRadius: 6,
+              border: `1px solid ${cruces.show_sig ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+              background: cruces.show_sig ? "var(--pulso-primary-soft)" : "white",
+              fontSize: 13, cursor: "pointer",
+              transition: "background 120ms ease, border-color 120ms ease",
+            }}
+          >
             <input
               type="checkbox"
-              checked={cruces.incluir_total}
-              onChange={(e) => setCruces({ incluir_total: e.target.checked })}
-              style={{ marginTop: 3 }}
+              checked={cruces.show_sig}
+              onChange={(e) => setCruces({ show_sig: e.target.checked })}
+              style={{ marginTop: 3, accentColor: "var(--pulso-primary)" }}
             />
-            <div>
-              <div style={{ fontWeight: 500 }}>Incluir columna y fila de total</div>
-              <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-                Agrega la fila "Total" al final de cada tabla con la suma de las categorías. Útil para comparar cada grupo contra la muestra completa.
-              </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <span style={{ fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Sigma size={13} /> Mostrar diferencias significativas (chi² α = 0.05)
+              </span>
+              <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+                Activa el test de independencia entre fila y columna. Las celdas con p-valor &lt; 0.05 se marcan con asterisco.
+              </span>
             </div>
           </label>
         </Section>
@@ -135,11 +139,10 @@ export function CrucesPane() {
 // -- Variable chips + picker (schema v2 con exclusiones) ---------------------
 
 function VariableChips({
-  selected, variables, sugeridas, onAdd, onRemove, onSetExcluidas,
+  selected, variables, onAdd, onRemove, onSetExcluidas,
 }: {
   selected: CruceVarConfig[];
   variables: VariableInstrumento[];
-  sugeridas: VariableInstrumento[];
   onAdd: (name: string) => void;
   onRemove: (name: string) => void;
   onSetExcluidas: (name: string, excluidas: string[]) => void;
@@ -160,7 +163,7 @@ function VariableChips({
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {selected.length === 0 && !adding && (
         <div style={{ padding: 14, border: "1px dashed var(--pulso-border)", borderRadius: 6, textAlign: "center", fontSize: 12, color: "var(--pulso-text-soft)" }}>
-          Aún no elegiste variables. Haz click en <strong>+ Añadir variable</strong> o usa una sugerencia.
+          Aún no elegiste variables. Haz click en <strong>+ Añadir variable</strong>.
         </div>
       )}
       {selected.length > 0 && (
@@ -191,13 +194,15 @@ function VariableChips({
                   onClick={() => setEditingExclusion(editingExclusion === cv.name ? null : cv.name)}
                   title="Excluir categorías cuando esta variable sea cruce"
                   style={{
-                    fontSize: 11, padding: "3px 8px",
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    borderRadius: 4,
-                    border: `1px solid ${nExcl > 0 ? "#b45309" : "var(--pulso-border)"}`,
-                    background: nExcl > 0 ? "#fff7e8" : "white",
-                    color: nExcl > 0 ? "#8a5000" : "var(--pulso-text)",
+                    fontSize: 11, padding: "4px 9px",
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    borderRadius: 999,
+                    border: `1px solid ${nExcl > 0 ? "var(--tipo-text-border)" : "var(--pulso-border)"}`,
+                    background: nExcl > 0 ? "var(--tipo-text-bg)" : "white",
+                    color: nExcl > 0 ? "var(--tipo-text-fg)" : "var(--pulso-text)",
                     cursor: "pointer",
+                    fontWeight: nExcl > 0 ? 600 : 500,
+                    transition: "border-color 120ms ease, background 120ms ease",
                   }}
                 >
                   <Filter size={11} />
@@ -240,38 +245,13 @@ function VariableChips({
           <button type="button" onClick={() => { setAdding(false); setPendingVar(""); }} style={{ fontSize: 12, padding: "6px 10px" }}>Cancelar</button>
         </div>
       ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}
-          >
-            <Plus size={12} /> Añadir variable
-          </button>
-          {sugeridas.length > 0 && (
-            <>
-              <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginLeft: 4 }}>sugerencias:</span>
-              {sugeridas.map((v) => (
-                <button
-                  key={v.name}
-                  type="button"
-                  onClick={() => onAdd(v.name)}
-                  title={v.label}
-                  style={{
-                    fontSize: 10, padding: "3px 8px", borderRadius: 999,
-                    border: "1px dashed var(--pulso-border)",
-                    background: "white", color: "var(--pulso-text-soft)",
-                    cursor: "pointer",
-                    display: "inline-flex", alignItems: "center", gap: 3,
-                  }}
-                >
-                  <Plus size={9} />
-                  <code style={{ fontFamily: "monospace" }}>{v.name}</code>
-                </button>
-              ))}
-            </>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4, alignSelf: "flex-start" }}
+        >
+          <Plus size={12} /> Añadir variable
+        </button>
       )}
     </div>
   );

@@ -295,13 +295,18 @@
 # Se usa cuando el session store no tiene aún una config grabada.
 .analitica_default_config <- function() {
   list(
-    version = 1L,
+    version = 2L,
     fuente_preferida = "auto",
     secciones = list(),
     numericas = list(),
     variables_excluidas = list(),
     codebook = list(
       codigos_solo_si_presentes = as.list(c(96L, 97L, 98L, 99L))
+    ),
+    bases = list(
+      sav  = list(incluir_sps = FALSE),
+      csv  = list(valores = "etiquetas", separador = ",", multi_select = "dummy_01"),
+      xlsx = list(valores = "ambos", multi_select = "dummy_01")
     ),
     frecuencias = list(
       secciones_activas = list(),
@@ -667,34 +672,147 @@ mount_analitica <- function(pr) {
       )
       list(ok = TRUE, job_id = job_id, kind = "analitica.cruces")
     })) |>
-    plumber::pr_post("/api/analitica/spss", wrap_endpoint(function(req, res) {
+    plumber::pr_get("/api/analitica/bases/metadata", wrap_endpoint(function(req, res) {
+      # Devuelve la lista de variables con la inferencia de measure +
+      # format.spss. La UI la muestra como tabla editable en BasesPane;
+      # los overrides del usuario viven en `config$bases$overrides` y se
+      # mergean client-side para display.
       sid <- session_header(req)
       ctx <- .load_rp_data(sid)
-      rp_data_path <- job_save_rds(sid, "rp_data", ctx$rp_data)
-      job_id <- job_submit(
-        sid = sid,
-        kind = "analitica.spss",
-        func = function(rp_data_path, result_path) {
-          td <- tempfile()
-          dir.create(td)
-          old <- getwd()
-          on.exit({ setwd(old); unlink(td, recursive = TRUE) }, add = TRUE)
-          sav_path <- file.path(td, "datos.sav")
-          sps_path <- file.path(td, "niveles_medida.sps")
-          prosecnur::reporte_spss(readRDS(rp_data_path), path_sav = sav_path, path_sps = sps_path)
-          setwd(td)
-          zip::zip(result_path, files = c("datos.sav", "niveles_medida.sps"))
-          list(path = result_path)
-        },
-        args = list(rp_data_path = rp_data_path),
-        result_filename = sprintf("spss_%s.zip", uuid::UUIDgenerate()),
-        on_complete = function(j) {
-          meta <- .register_output_file(j$sid, "spss_bundle", j$result_path)
-          session_set(j$sid, "analitica_spss_ok", TRUE)
-          list(ok = TRUE, file_id = meta$file_id, size = meta$size)
-        }
-      )
-      list(ok = TRUE, job_id = job_id, kind = "analitica.spss")
+      cfg <- .analitica_get_config(sid)
+      overrides <- .bases_overrides_parse((cfg$bases %||% list())$overrides)
+      variables <- .bases_metadata_preview(ctx$rp_data, ctx$rp_inst)
+      list(ok = TRUE, variables = variables, overrides = overrides)
+    })) |>
+    plumber::pr_post("/api/analitica/bases/sav", wrap_endpoint(function(req, res) {
+      # Exporta el .sav con measure/format/display_width explícitos para que
+      # SPSS respete las variables ordinales al abrir. Si el usuario pide
+      # el toggle "Avanzado" (incluir_sps=TRUE), también empaqueta el
+      # niveles_medida.sps en un zip como red de seguridad.
+      # Los overrides del editor de metadatos se leen del
+      # config$bases$overrides del store (autosaveado).
+      sid <- session_header(req)
+      s <- session_get(sid)
+      ctx <- .load_rp_data(sid)
+      cfg <- .analitica_get_config(sid)
+
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      body <- if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+                 error = function(e) list())
+      } else list()
+      incluir_sps <- isTRUE(body$incluir_sps)
+      overrides <- .bases_overrides_parse((cfg$bases %||% list())$overrides)
+
+      dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
+      if (incluir_sps) {
+        td <- tempfile()
+        dir.create(td)
+        on.exit(unlink(td, recursive = TRUE), add = TRUE)
+        sav_path <- file.path(td, "datos.sav")
+        sps_path <- file.path(td, "niveles_medida.sps")
+        .bases_export_sav(ctx$rp_data, ctx$rp_inst, sav_path, sps_path, overrides = overrides)
+        zip_path <- file.path(s$dir, "downloads", sprintf("bases_sav_%s.zip", uuid::UUIDgenerate()))
+        old <- getwd(); on.exit({ setwd(old) }, add = TRUE)
+        setwd(td)
+        zip::zip(zip_path, files = c("datos.sav", "niveles_medida.sps"))
+        meta <- .register_output_file(sid, "bases_sav_bundle", zip_path)
+      } else {
+        sav_path <- file.path(s$dir, "downloads", sprintf("datos_%s.sav", uuid::UUIDgenerate()))
+        .bases_export_sav(ctx$rp_data, ctx$rp_inst, sav_path, NULL, overrides = overrides)
+        meta <- .register_output_file(sid, "bases_sav", sav_path)
+      }
+      session_set(sid, "analitica_bases_sav_ok", TRUE)
+      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+    })) |>
+    plumber::pr_post("/api/analitica/bases/csv", wrap_endpoint(function(req, res) {
+      # Exporta CSV con códigos o etiquetas; multi-select expandible.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      ctx <- .load_rp_data(sid)
+
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      body <- if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+                 error = function(e) list())
+      } else list()
+      valores <- as.character(body$valores %||% "etiquetas")
+      if (!valores %in% c("codigos","etiquetas")) valores <- "etiquetas"
+      separador <- as.character(body$separador %||% ",")
+      if (!separador %in% c(",",";")) separador <- ","
+      multi_select <- as.character(body$multi_select %||% "dummy_01")
+      if (!multi_select %in% c("codigos_crudos","etiquetas_unidas","dummy_01")) multi_select <- "dummy_01"
+
+      df <- ctx$rp_data
+      if (multi_select == "dummy_01") {
+        df <- .expand_multiselect(df, ctx$rp_inst)
+      }
+      df <- .aplicar_etiquetas(df, ctx$rp_inst, valores = valores, multi_select = multi_select)
+
+      dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
+      out_path <- file.path(s$dir, "downloads", sprintf("datos_%s.csv", uuid::UUIDgenerate()))
+      .bases_write_csv(df, out_path, separador = separador)
+      meta <- .register_output_file(sid, "bases_csv", out_path)
+      session_set(sid, "analitica_bases_csv_ok", TRUE)
+      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+    })) |>
+    plumber::pr_post("/api/analitica/bases/xlsx", wrap_endpoint(function(req, res) {
+      # Exporta XLSX con códigos, etiquetas o ambos (2 hojas).
+      sid <- session_header(req)
+      s <- session_get(sid)
+      ctx <- .load_rp_data(sid)
+
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      body <- if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+                 error = function(e) list())
+      } else list()
+      valores <- as.character(body$valores %||% "ambos")
+      if (!valores %in% c("codigos","etiquetas","ambos")) valores <- "ambos"
+      multi_select <- as.character(body$multi_select %||% "dummy_01")
+      if (!multi_select %in% c("codigos_crudos","etiquetas_unidas","dummy_01")) multi_select <- "dummy_01"
+
+      df_base <- ctx$rp_data
+      if (multi_select == "dummy_01") {
+        df_base <- .expand_multiselect(df_base, ctx$rp_inst)
+      }
+      df_cod <- .aplicar_etiquetas(df_base, ctx$rp_inst, valores = "codigos", multi_select = multi_select)
+      df_lab <- if (valores == "codigos") df_cod else .aplicar_etiquetas(df_base, ctx$rp_inst, valores = "etiquetas", multi_select = multi_select)
+
+      dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
+      out_path <- file.path(s$dir, "downloads", sprintf("datos_%s.xlsx", uuid::UUIDgenerate()))
+      .bases_write_xlsx(df_cod, df_lab, out_path, valores = valores)
+      meta <- .register_output_file(sid, "bases_xlsx", out_path)
+      session_set(sid, "analitica_bases_xlsx_ok", TRUE)
+      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
+    })) |>
+    plumber::pr_post("/api/analitica/spss", wrap_endpoint(function(req, res) {
+      # Alias de compatibilidad con el endpoint legacy. Mapea al nuevo
+      # /bases/sav con incluir_sps=TRUE (comportamiento idéntico al viejo:
+      # zip con .sav + niveles_medida.sps). Se mantiene una release para
+      # no romper integraciones externas; el frontend nuevo ya no lo usa.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      ctx <- .load_rp_data(sid)
+      cfg <- .analitica_get_config(sid)
+      overrides <- .bases_overrides_parse((cfg$bases %||% list())$overrides)
+      td <- tempfile()
+      dir.create(td)
+      on.exit(unlink(td, recursive = TRUE), add = TRUE)
+      sav_path <- file.path(td, "datos.sav")
+      sps_path <- file.path(td, "niveles_medida.sps")
+      .bases_export_sav(ctx$rp_data, ctx$rp_inst, sav_path, sps_path, overrides = overrides)
+      dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
+      zip_path <- file.path(s$dir, "downloads", sprintf("spss_%s.zip", uuid::UUIDgenerate()))
+      old <- getwd(); on.exit({ setwd(old) }, add = TRUE)
+      setwd(td)
+      zip::zip(zip_path, files = c("datos.sav", "niveles_medida.sps"))
+      meta <- .register_output_file(sid, "spss_bundle", zip_path)
+      session_set(sid, "analitica_spss_ok", TRUE)
+      list(ok = TRUE, file_id = meta$file_id, size = meta$size)
     })) |>
     plumber::pr_post("/api/analitica/enumeradores", wrap_endpoint(function(req, res, col_enumerador = NULL) {
       # Enumeradores lee del config: col_enumerador, cols_corte,

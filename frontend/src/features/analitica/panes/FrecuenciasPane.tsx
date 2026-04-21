@@ -1,35 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDown01, ArrowUp01, BarChart2, ListOrdered, Hash, Plus, X } from "lucide-react";
 import {
-  apiAnaliticaDetectSecciones,
   apiAnaliticaFrecuencias,
   apiAnaliticaVariables,
   VariableInstrumento,
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
-import { useAnaliticaStore, SeccionConfig } from "../store";
+import { useAnaliticaStore } from "../store";
 import { VariableSelect } from "../VariableSelect";
 import { Section, GenerateFooter } from "../PaneKit";
-import { VariablesExcluidas } from "../VariablesExcluidas";
 import { useReporteRun } from "../useReporteRun";
 
-// FrecuenciasPane — rediseñado.
-// 1. Estructura del reporte: secciones a incluir, con editor inline.
-// 2. Variables numéricas: resumen estadístico en vez de tabla.
-// 3. Presentación: orden de respuestas + mostrar categorías vacías.
-// 4. Generar.
+// FrecuenciasPane — configuración específica del reporte de frecuencias.
+// Las secciones del instrumento y las variables excluidas globalmente
+// viven en "Definición global" arriba de la página; aquí el analista
+// solo decide QUÉ variables resumir numéricamente y CÓMO ordenar las
+// respuestas. Las secciones activas = todas las no-ocultas en el global.
 
 export function FrecuenciasPane() {
   const frec = useAnaliticaStore((s) => s.config.frecuencias);
   const secciones = useAnaliticaStore((s) => s.config.secciones);
   const numericasGlobal = useAnaliticaStore((s) => s.config.numericas);
+  const excluidasCount = useAnaliticaStore((s) => s.config.variables_excluidas.length);
   const setFrec = useAnaliticaStore((s) => s.setFrecuencias);
-  const setSecciones = useAnaliticaStore((s) => s.setSecciones);
-  const hydrated = useAnaliticaStore((s) => s.hydrated);
   const run = useReporteRun();
 
   const [variables, setVariables] = useState<VariableInstrumento[]>([]);
-  const [detectBusy, setDetectBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -40,38 +36,6 @@ export function FrecuenciasPane() {
     })();
   }, []);
 
-  // Primera carga: si el store no tiene secciones, detectarlas
-  // automáticamente al montar el pane (misma UX que antes vivía en
-  // PrepararPane → SeccionesEditor).
-  useEffect(() => {
-    if (!hydrated || secciones.length > 0 || detectBusy) return;
-    void detectar({ silencioso: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated]);
-
-  async function detectar(opts: { silencioso?: boolean } = {}) {
-    setDetectBusy(true);
-    try {
-      const r = await apiAnaliticaDetectSecciones();
-      const byIdManual = new Map(
-        secciones.filter((s) => s.manual).map((s) => [s.id, s]),
-      );
-      const merged: SeccionConfig[] = r.secciones.map((d, i) => {
-        const prior = byIdManual.get(d.id);
-        if (prior) return { ...prior, variables: d.variables, orden: prior.orden ?? i };
-        return { ...d, orden: i, manual: false };
-      });
-      const detectedIds = new Set(r.secciones.map((d) => d.id));
-      const orphans = secciones.filter((s) => s.manual && !detectedIds.has(s.id));
-      setSecciones([...merged, ...orphans].map((s, i) => ({ ...s, orden: i })));
-    } catch (e) {
-      if (!opts.silencioso) run.clearError();
-      console.error(e);
-    } finally {
-      setDetectBusy(false);
-    }
-  }
-
   async function onGenerate() {
     await run.runSync(() => apiAnaliticaFrecuencias());
   }
@@ -81,10 +45,6 @@ export function FrecuenciasPane() {
   //     (todas las variables `integer` / `decimal` del instrumento).
   //   - `numericas_override === []` → el usuario dijo explícitamente "ninguna".
   //   - `numericas_override === [...]` → selección manual.
-  // Nota: para que el backend recibe la lista que el usuario ve, siempre
-  // enviamos el array resuelto (auto o manual). Al primer addNumerica /
-  // removeNumerica promovemos de "auto" a selección manual tomando como
-  // base la lista auto-detectada actual.
   const numericasAuto = useMemo(
     () => variables.filter((v) => v.tipo === "integer" || v.tipo === "decimal").map((v) => v.name),
     [variables],
@@ -103,25 +63,9 @@ export function FrecuenciasPane() {
   }
   const usandoAuto = frec.numericas_override === undefined && numericasGlobal.length === 0;
 
-  const seccionesVisibles = secciones.filter((s) => !s.oculto);
-  const selected = new Set(frec.secciones_activas);
-  const todasActivas = frec.secciones_activas.length === 0;
-  const nSeccionesActivas = todasActivas ? seccionesVisibles.length : frec.secciones_activas.length;
-  const nVariablesAfectadas = (todasActivas ? seccionesVisibles : seccionesVisibles.filter((s) => selected.has(s.id)))
-    .reduce((sum, s) => sum + s.variables.length, 0);
-
-  function toggleSeccion(id: string) {
-    if (todasActivas) {
-      setFrec({ secciones_activas: seccionesVisibles.filter((s) => s.id !== id).map((s) => s.id) });
-      return;
-    }
-    const next = selected.has(id)
-      ? frec.secciones_activas.filter((x) => x !== id)
-      : [...frec.secciones_activas, id];
-    const allIds = seccionesVisibles.map((s) => s.id);
-    const allSelected = allIds.every((x) => next.includes(x));
-    setFrec({ secciones_activas: allSelected ? [] : next });
-  }
+  // Resumen de qué entra: todas las secciones no-ocultas del global.
+  const seccionesActivas = secciones.filter((s) => !s.oculto);
+  const nVariablesAfectadas = seccionesActivas.reduce((sum, s) => sum + s.variables.length, 0);
 
   return (
     <Panel
@@ -130,87 +74,25 @@ export function FrecuenciasPane() {
       hint="Tablas univariadas estilo SPSS, una por variable, agrupadas según la estructura del instrumento. Ideal para revisar distribuciones rápidas."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-        {/* 1. Estructura del reporte */}
-        <Section
-          title="1. Estructura del reporte"
-          subtitle={<>
-            Las <strong>secciones</strong> del instrumento son los agrupadores del Excel: cada una aparece como una pestaña o bloque con sus variables. Se detectan automáticamente desde los <code>begin_group</code> del XLSForm y las puedes ajustar a tu criterio.
-          </>}
+        {/* Resumen de qué entra al reporte — lee el estado global. */}
+        <div
+          style={{
+            fontSize: 11, color: "var(--pulso-text-soft)",
+            padding: "8px 12px", borderRadius: 6,
+            background: "var(--pulso-surface)",
+            border: "1px solid var(--pulso-border)",
+            lineHeight: 1.5,
+          }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
-                <strong style={{ color: "var(--pulso-text)" }}>{nSeccionesActivas}</strong> de {seccionesVisibles.length} {seccionesVisibles.length === 1 ? "sección" : "secciones"} activas
-                {" · "}
-                <strong style={{ color: "var(--pulso-text)" }}>{nVariablesAfectadas}</strong> variables en el reporte
-              </span>
-              <div style={{ flex: 1 }} />
-              <button
-                type="button"
-                onClick={() => setFrec({ secciones_activas: [] })}
-                disabled={todasActivas}
-                style={{ fontSize: 11, padding: "3px 10px" }}
-                title="Incluir todas las secciones"
-              >
-                Activar todas
-              </button>
-              <button
-                type="button"
-                onClick={() => detectar()}
-                disabled={detectBusy}
-                style={{ fontSize: 11, padding: "3px 10px" }}
-                title="Re-detectar desde el XLSForm (preserva renames manuales)"
-              >
-                {detectBusy ? "Detectando…" : "Detectar de nuevo"}
-              </button>
-            </div>
+          Este reporte incluye <strong style={{ color: "var(--pulso-text)" }}>{seccionesActivas.length}</strong> {seccionesActivas.length === 1 ? "sección" : "secciones"} ({nVariablesAfectadas} variables). Para ajustar qué secciones entran o excluir variables, edita <strong>Definición global</strong> arriba.
+          {excluidasCount > 0 && (
+            <> Actualmente hay <strong>{excluidasCount}</strong> {excluidasCount === 1 ? "variable excluida" : "variables excluidas"}.</>
+          )}
+        </div>
 
-            {seccionesVisibles.length === 0 ? (
-              <div style={{ padding: 14, border: "1px dashed var(--pulso-border)", borderRadius: 6, textAlign: "center", fontSize: 12, color: "var(--pulso-text-soft)" }}>
-                No hay secciones detectadas. Intenta <strong>Detectar de nuevo</strong>.
-              </div>
-            ) : (
-              <div style={{
-                display: "flex", flexWrap: "wrap", gap: 4,
-                maxHeight: 220, overflowY: "auto",
-                border: "1px solid var(--pulso-border)", borderRadius: 6,
-                padding: 8, background: "white",
-                scrollbarWidth: "thin", scrollbarColor: "var(--pulso-border) transparent",
-              }}>
-                {seccionesVisibles.map((s) => {
-                  const active = todasActivas || selected.has(s.id);
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => toggleSeccion(s.id)}
-                      title={`${s.variables.length} variables`}
-                      style={{
-                        fontSize: 11, padding: "5px 10px", borderRadius: 999,
-                        border: `1px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-                        background: active ? "var(--pulso-primary-soft)" : "var(--pulso-surface)",
-                        color: active ? "var(--pulso-primary)" : "var(--pulso-text)",
-                        cursor: "pointer", whiteSpace: "nowrap",
-                        display: "inline-flex", alignItems: "center", gap: 4,
-                      }}
-                    >
-                      <span style={{ fontWeight: 600 }}>{s.nombre}</span>
-                      <span style={{ opacity: 0.6, fontSize: 10 }}>{s.variables.length}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-              Para renombrar, fusionar u ocultar secciones estructuralmente, usa el editor completo (próximamente). Por ahora puedes <em>activar/desactivar</em> clickeando los chips.
-            </div>
-          </div>
-        </Section>
-
-        {/* 2. Variables numéricas */}
+        {/* 1. Variables numéricas */}
         <Section
-          title="2. Variables con resumen numérico"
+          title="1. Variables con resumen numérico"
           subtitle={<>
             Las variables marcadas aquí se muestran con <strong>media, desviación, mínimo, máximo y percentiles</strong> en lugar de una tabla de frecuencias. Útil para edades, ingresos, tiempos de espera, etc.
           </>}
@@ -240,19 +122,9 @@ export function FrecuenciasPane() {
           </div>
         </Section>
 
-        {/* 3. Variables excluidas (bucket compartido con Codebook) */}
+        {/* 2. Presentación */}
         <Section
-          title="3. Variables a incluir"
-          subtitle={<>
-            Por defecto se incluyen todas las variables del instrumento. Usa el colapsable para excluir las que no aportan (metadata, timestamps, campos técnicos). La selección se <strong>comparte con el Libro de códigos</strong>.
-          </>}
-        >
-          <VariablesExcluidas variables={variables} />
-        </Section>
-
-        {/* 3. Presentación */}
-        <Section
-          title="4. Presentación"
+          title="2. Presentación"
           subtitle="Cómo se ordenan las respuestas dentro de cada tabla del reporte."
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -311,7 +183,7 @@ export function FrecuenciasPane() {
           error={run.error}
           onGenerate={onGenerate}
           disabled={nVariablesAfectadas === 0}
-          disabledHint={nVariablesAfectadas === 0 ? "Activa al menos una sección para habilitar el botón." : undefined}
+          disabledHint={nVariablesAfectadas === 0 ? "No hay secciones visibles. Abre Definición global y activa alguna con el icono del ojo." : undefined}
         />
       </div>
     </Panel>

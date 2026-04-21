@@ -1,29 +1,20 @@
-import { useEffect, useState } from "react";
 import { BookOpen } from "lucide-react";
-import { apiAnaliticaCodebook, apiAnaliticaVariables, VariableInstrumento } from "../../../api/client";
+import { apiAnaliticaCodebook } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
 import { useAnaliticaStore } from "../store";
 import { Section, GenerateFooter } from "../PaneKit";
-import { VariablesExcluidas } from "../VariablesExcluidas";
 import { useReporteRun } from "../useReporteRun";
 
-// CodebookPane. Comparte el bucket de `variables_excluidas` con
-// Frecuencias — la selección se sincroniza automáticamente.
+// CodebookPane. Las variables excluidas y las secciones del instrumento
+// viven en "Definición global" arriba de la página — son insumo
+// compartido por todos los reportes. Aquí el analista solo decide cómo
+// se muestran los códigos especiales (95-99: NS/NR/NA) en el output.
 
 export function CodebookPane() {
   const codebook = useAnaliticaStore((s) => s.config.codebook);
   const setCodebook = useAnaliticaStore((s) => s.setCodebook);
+  const excluidasCount = useAnaliticaStore((s) => s.config.variables_excluidas.length);
   const run = useReporteRun();
-
-  const [variables, setVariables] = useState<VariableInstrumento[]>([]);
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await apiAnaliticaVariables();
-        setVariables(r.variables);
-      } catch {/* no-op */}
-    })();
-  }, []);
 
   const codes = codebook.codigos_solo_si_presentes;
 
@@ -86,14 +77,19 @@ export function CodebookPane() {
           </div>
         </Section>
 
-        <Section
-          title="2. Variables a incluir"
-          subtitle={<>
-            Por defecto el codebook incluye todas las variables del instrumento. Usa el colapsable para excluir las que no aportan al análisis (metadata, campos técnicos, timestamps). La selección se <strong>comparte con Frecuencias</strong>.
-          </>}
-        >
-          <VariablesExcluidas variables={variables} />
-        </Section>
+        {excluidasCount > 0 && (
+          <div
+            style={{
+              fontSize: 11, color: "var(--pulso-text-soft)",
+              padding: "8px 12px", borderRadius: 6,
+              background: "var(--pulso-surface)",
+              border: "1px solid var(--pulso-border)",
+              lineHeight: 1.5,
+            }}
+          >
+            Este reporte omite <strong>{excluidasCount}</strong> {excluidasCount === 1 ? "variable excluida" : "variables excluidas"} globalmente. Edita la lista en <strong>Definición global</strong> (arriba de esta página).
+          </div>
+        )}
 
         <GenerateFooter
           label="Generar libro de códigos"

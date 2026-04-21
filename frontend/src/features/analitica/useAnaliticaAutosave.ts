@@ -15,13 +15,21 @@ const DEBOUNCE_MS = 2000;
 
 function mergeWithDefaults(remote: unknown): AnaliticaConfig {
   if (!remote || typeof remote !== "object") return DEFAULT_CONFIG;
-  const r = remote as Partial<AnaliticaConfig> & { cruces?: { cruces_vars?: unknown } };
+  const r = remote as Partial<AnaliticaConfig> & {
+    cruces?: { cruces_vars?: unknown };
+    bases?: Partial<AnaliticaConfig["bases"]>;
+  };
   // Shallow-merge por sección para tolerar schemas parciales / versiones
   // viejas. No merge recursivo — si el backend no trajo `cruces`, usamos
   // el default completo.
+  // Migración v1 → v2: si no vino `bases` en la config, se crea con
+  // defaults. Si vino parcial, se shallow-mergea por sub-formato (sav/csv/xlsx).
+  const basesRemote: Partial<AnaliticaConfig["bases"]> = r.bases ?? {};
   return {
     ...DEFAULT_CONFIG,
     ...r,
+    // Siempre forzamos version=2 tras el merge (es lo que persiste al backend).
+    version: 2,
     variables_excluidas: Array.isArray(r.variables_excluidas) ? r.variables_excluidas : [],
     codebook: { ...DEFAULT_CONFIG.codebook, ...(r.codebook ?? {}) },
     frecuencias: { ...DEFAULT_CONFIG.frecuencias, ...(r.frecuencias ?? {}) },
@@ -34,6 +42,17 @@ function mergeWithDefaults(remote: unknown): AnaliticaConfig {
       semaforo: { ...DEFAULT_CONFIG.cruces.semaforo, ...(r.cruces?.semaforo ?? {}) },
     },
     enumeradores: { ...DEFAULT_CONFIG.enumeradores, ...(r.enumeradores ?? {}) },
+    bases: {
+      sav:  { ...DEFAULT_CONFIG.bases.sav,  ...(basesRemote.sav  ?? {}) },
+      csv:  { ...DEFAULT_CONFIG.bases.csv,  ...(basesRemote.csv  ?? {}) },
+      xlsx: { ...DEFAULT_CONFIG.bases.xlsx, ...(basesRemote.xlsx ?? {}) },
+      // overrides roundtripea tal cual; solo sanity-check que sea un
+      // objeto. Si es null/undefined/array, caemos a {}.
+      overrides:
+        basesRemote.overrides && typeof basesRemote.overrides === "object" && !Array.isArray(basesRemote.overrides)
+          ? (basesRemote.overrides as AnaliticaConfig["bases"]["overrides"])
+          : {},
+    },
   };
 }
 

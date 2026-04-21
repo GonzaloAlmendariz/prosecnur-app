@@ -606,22 +606,28 @@ function ValorInput({
 
 function ModalidadPills({ value, onChange }: { value: string; onChange: (v: ModalidadValor) => void }) {
   return (
-    <div style={{ display: "inline-flex", gap: 4 }}>
+    <div style={{ display: "inline-flex", gap: 5, flexWrap: "wrap" }}>
       {MODALIDADES_PULSO.map((m) => {
         const active = value === m;
-        const icon = m === "Telefónica" ? <Phone size={11} /> : m === "Presencial" ? <Users size={11} /> : <span style={{ fontSize: 11, opacity: 0.6 }}>—</span>;
+        const icon = m === "Telefónica"
+          ? <Phone size={11} />
+          : m === "Presencial"
+          ? <Users size={11} />
+          : <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center" }}>—</span>;
         return (
           <button
             key={m}
             type="button"
             onClick={() => onChange(m)}
             style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "4px 10px", borderRadius: 999,
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "4px 11px", borderRadius: 999,
               border: `1px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
               background: active ? "var(--pulso-primary-soft)" : "white",
               color: active ? "var(--pulso-primary)" : "var(--pulso-text)",
-              cursor: "pointer", fontSize: 11, fontWeight: 600,
+              cursor: "pointer", fontSize: 11,
+              fontWeight: active ? 600 : 500,
+              transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
             }}
           >
             {icon}
@@ -634,7 +640,12 @@ function ModalidadPills({ value, onChange }: { value: string; onChange: (v: Moda
 }
 
 function ModalidadPrint({ v }: { v: string }) {
-  const color = v === "Telefónica" ? "#4338ca" : v === "Presencial" ? "#166534" : "var(--pulso-text-soft)";
+  // Usa tipo-so (azul) para telefónica, tipo-sm (verde) para presencial,
+  // text-soft para "sin modalidad" (fallback).
+  const color =
+    v === "Telefónica" ? "var(--tipo-so-fg)"
+    : v === "Presencial" ? "var(--tipo-sm-fg)"
+    : "var(--pulso-text-soft)";
   return <strong style={{ color, fontWeight: 700 }}>{v}</strong>;
 }
 

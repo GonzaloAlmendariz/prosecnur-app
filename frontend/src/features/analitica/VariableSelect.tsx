@@ -23,6 +23,7 @@ export function VariableSelect({
   allowClear = false, filter,
 }: VariableSelectProps) {
   const [open, setOpen] = useState(false);
+  const [hover, setHover] = useState(false);
   const [q, setQ] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -64,17 +65,20 @@ export function VariableSelect({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         aria-expanded={open}
         aria-haspopup="listbox"
         style={{
           width: "100%",
           display: "inline-flex", alignItems: "center", gap: 8,
-          padding: "6px 10px", textAlign: "left",
+          padding: "7px 10px", textAlign: "left",
           background: "white",
-          border: `1px solid ${open ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+          border: `1px solid ${open ? "var(--pulso-primary)" : hover ? "var(--pulso-text-soft)" : "var(--pulso-border)"}`,
           borderRadius: 6,
           fontSize: 13,
           cursor: "pointer",
+          transition: "border-color 120ms ease",
         }}
       >
         {selectedVar ? (

@@ -736,25 +736,134 @@ export async function apiAnaliticaCruces(cruces?: string, modo?: "estandar" | "d
   );
 }
 
+// /api/analitica/spss (alias legacy): zip con .sav + niveles_medida.sps. Hoy
+// sincrónico, ya no devuelve JobStart. Los panes modernos deben usar los
+// endpoints /bases/{sav,csv,xlsx} directos. Se mantiene solo para integraciones
+// externas antiguas.
 export async function apiAnaliticaSpss() {
-  return handle<JobStart>(
+  return handle<{ ok: true; file_id: string; size: number }>(
     await fetch("/api/analitica/spss", { method: "POST", headers: headers() })
   );
 }
 
-// ---------- Gráficos (PPT/Word) ----------
+// ----- Bases (Analítica · Fase 4) -----
+// Los 3 formatos corren sincrónicos (datasets de encuesta son pequeños;
+// no merece la pena callr). Cada uno acepta un body JSON con su
+// sub-config.
 
+export type BasesSavBody = { incluir_sps?: boolean };
+export type BasesCsvBody = {
+  valores?: "codigos" | "etiquetas";
+  separador?: "," | ";";
+  multi_select?: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
+};
+export type BasesXlsxBody = {
+  valores?: "codigos" | "etiquetas" | "ambos";
+  multi_select?: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
+};
+
+export async function apiAnaliticaBasesSav(body: BasesSavBody = {}) {
+  return handle<{ ok: true; file_id: string; size: number }>(
+    await fetch("/api/analitica/bases/sav", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    })
+  );
+}
+
+export async function apiAnaliticaBasesCsv(body: BasesCsvBody = {}) {
+  return handle<{ ok: true; file_id: string; size: number }>(
+    await fetch("/api/analitica/bases/csv", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    })
+  );
+}
+
+export async function apiAnaliticaBasesXlsx(body: BasesXlsxBody = {}) {
+  return handle<{ ok: true; file_id: string; size: number }>(
+    await fetch("/api/analitica/bases/xlsx", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    })
+  );
+}
+
+// Metadatos SPSS inferidos por variable (para el editor de BasesPane).
+// El backend devuelve la inferencia + los overrides ya aplicados en
+// session. La UI usa ambos para el display: si hay override lo muestra
+// con badge "editado", sino muestra la inferencia.
+export type MeasureSpss = "nominal" | "ordinal" | "scale";
+
+export type BasesMetadataVariable = {
+  name: string;
+  label: string;
+  tipo_xlsform: string | null;
+  inferred_measure: MeasureSpss;
+  inferred_format_spss: string;  // "auto" significa que haven lo infiere al escribir
+  has_labels: boolean;
+};
+
+export type BasesMetadataOverride = {
+  measure?: MeasureSpss;
+  format_spss?: string;
+};
+
+export async function apiAnaliticaBasesMetadata() {
+  return handle<{
+    ok: true;
+    variables: BasesMetadataVariable[];
+    overrides: Record<string, BasesMetadataOverride>;
+  }>(
+    await fetch("/api/analitica/bases/metadata", { headers: headers() })
+  );
+}
+
+// ---------- Gráficos (PPT/Word) ----------
+//
+// El registry backend es ahora un catálogo RICO con copy humano, tipos
+// de input por arg, agrupación semántica y choices. La UI construye todo
+// el editor dinámicamente a partir de este metadata.
+// La fuente de verdad vive en `api/R/graficos_metadata.R`.
+
+// Nombres canónicos de los 19 tipos de slide en prosecnur (en español).
+// Reemplaza los nombres viejos en inglés (p_slide_title, p_slide_1, etc.).
 export type SlideType =
-  | "p_slide_title"
-  | "p_slide_section"
-  | "p_slide_1"
-  | "p_slide_2"
-  | "p_slide_text_l"
-  | "p_slide_text_r"
-  | "p_slide_poblacion_2"
-  | "p_slide_poblacion_4"
-  | "p_slide_poblacion_5"
-  | "p_slide_poblacion_6";
+  // Estructurales (sin slots de gráfico)
+  | "p_slide_portada"
+  | "p_slide_indice"
+  | "p_slide_seccion"
+  | "p_slide_objetivo_icono"
+  | "p_slide_texto"
+  | "p_slide_tabla_tecnica"
+  // 1 gráfico
+  | "p_slide_1_grafico"
+  | "p_slide_1_grafico_narrativo"
+  | "p_slide_grafico_texto_derecha"
+  | "p_slide_grafico_texto_izquierda"
+  // 2 gráficos
+  | "p_slide_2_graficos"
+  | "p_slide_2_graficos_narrativo"
+  | "p_slide_2_graficos_texto_izquierda"
+  | "p_slide_2_graficos_texto_derecha"
+  // Grid 4
+  | "p_slide_4_graficos"
+  // Población (con ícono central)
+  | "p_slide_2_graficos_poblacion"
+  | "p_slide_4_graficos_poblacion"
+  | "p_slide_5_graficos_poblacion"
+  | "p_slide_6_graficos_poblacion";
+
+export type SlideCategoria =
+  | "estructural"
+  | "1grafico"
+  | "2graficos"
+  | "4graficos"
+  | "poblacion"
+  | "otro";
 
 export type GraficadorRef = {
   graficador: string;
@@ -773,9 +882,74 @@ export type PlanJson = {
   slides: Slide[];
 };
 
+// Tipos de input que el editor reconoce. Cada `tipo_input` mapea a un
+// control UI específico en GraficadorForm/SlideEditor.
+export type ArgTipoInput =
+  | "variable"
+  | "variable_opt"
+  | "variables_list"
+  | "string"
+  | "textarea"
+  | "number"
+  | "bool"
+  | "choice"
+  | "codigos_list"
+  | "icono"
+  | "overrides"
+  | "filtros"
+  | "base_config"
+  | "meta";
+
+export type ArgGrupo =
+  | "datos"
+  | "textos"
+  | "estilo"
+  | "calculo"
+  | "semaforo"
+  | "avanzado";
+
+export type ArgChoice = {
+  value: string;
+  label: string;
+  hint?: string;
+};
+
+export type ArgMetadata = {
+  name: string;
+  label: string;
+  tipo_input: ArgTipoInput;
+  grupo: ArgGrupo;
+  descripcion?: string;
+  choices?: ArgChoice[];
+};
+
+export type SlideMetadata = {
+  name: SlideType;
+  titulo_humano: string;
+  descripcion: string;
+  icono_ui: string;
+  categoria: SlideCategoria;
+  slots: string[];
+  args: ArgMetadata[];
+  // args del formals() de la función R que no están en el catálogo curado
+  // (el backend los usa con defaults; el frontend normalmente no los expone)
+  args_extra: string[];
+};
+
+export type GraficadorMetadata = {
+  name: string;
+  titulo_humano: string;
+  descripcion: string;
+  icono_ui: string;
+  // "dimensiones" indica que requiere reporte_dimensiones() ejecutado primero
+  requisito?: string;
+  args: ArgMetadata[];
+  args_extra: string[];
+};
+
 export type Registry = {
-  slides: { name: string; categoria: string; slots: string[]; args: string[] }[];
-  graficadores: { name: string; args: string[] }[];
+  slides: SlideMetadata[];
+  graficadores: GraficadorMetadata[];
 };
 
 export type VarInfo = {
@@ -787,6 +961,75 @@ export type VarInfo = {
 
 export async function apiGraficosRegistry() {
   return handle<Registry>(await fetch("/api/graficos/registry", { headers: headers() }));
+}
+
+// Config persistida del plan de gráficos. Patrón idéntico a /analitica/config.
+// Autosave debounced 2s vía `useGraficosAutosave`. Export/import como respaldo.
+export async function apiGraficosConfigGet() {
+  return handle<{ ok: true; config: unknown }>(
+    await fetch("/api/graficos/config", { headers: headers() })
+  );
+}
+
+export async function apiGraficosConfigPut(config: unknown) {
+  return handle<{ ok: true; saved_at: string }>(
+    await fetch("/api/graficos/config", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    })
+  );
+}
+
+export async function apiGraficosConfigExport() {
+  return handle<{ ok: true; version: string; exported_at: string; config: unknown }>(
+    await fetch("/api/graficos/config/export", { headers: headers() })
+  );
+}
+
+export async function apiGraficosConfigImport(bundle: unknown) {
+  return handle<{ ok: true; imported_at: string }>(
+    await fetch("/api/graficos/config/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(bundle),
+    })
+  );
+}
+
+// Paletas sugeridas: el backend devuelve las listas de choices del
+// instrumento XLSForm para que la UI pre-pueble el editor de paletas con
+// los value-labels reales. El analista asigna colores y el store guarda
+// `paletas: { list_name: { label: hex } }`.
+export type PaletaChoiceItem = { name: string; label: string };
+export type PaletaSugeridaEntry = { list_name: string; choices: PaletaChoiceItem[] };
+
+export async function apiGraficosPaletasSugeridas() {
+  return handle<{ listas: PaletaSugeridaEntry[] }>(
+    await fetch("/api/graficos/paletas-sugeridas", { headers: headers() })
+  );
+}
+
+// Upload de ícono PNG. El frontend lee el archivo, lo pasa a base64,
+// manda POST con `{nombre, data_base64}`. Respuesta: `{id, file_id, nombre}`.
+// El store guarda la referencia en `iconos`; el archivo vive en
+// `session/$sid/icons/*.png` y se sirve via `downloadUrl(file_id)`.
+export type IconoUploadResponse = {
+  ok: true;
+  id: string;
+  file_id: string;
+  nombre: string;
+  uploaded_at: string;
+};
+
+export async function apiGraficosIconoUpload(nombre: string, dataBase64: string) {
+  return handle<IconoUploadResponse>(
+    await fetch("/api/graficos/icons/upload", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ nombre, data_base64: dataBase64 }),
+    })
+  );
 }
 
 export async function apiGraficosVariables() {
