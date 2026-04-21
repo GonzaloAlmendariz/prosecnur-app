@@ -5,11 +5,14 @@ import {
   ArgGrupo, ArgMetadata,
   apiGraficosPresetsDefaultsSave,
   apiGraficosPresetsDefaultsReset,
+  apiGraficosOverridesDefaultsSave,
+  apiGraficosOverridesDefaultsReset,
+  OverrideDefaultEntry,
 } from "../../api/client";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { usePresetsDefaults, presetArgsEqual } from "./usePresetsDefaults";
+import { useOverridesDefaults } from "./useOverridesDefaults";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
-import { OverrideReusable, usePlanStore } from "./store";
 import { LoadingBlock, EmptyState } from "./ui/States";
 
 // Modal "Gestionar defaults". Dos modos según cómo se abrió:
@@ -327,135 +330,255 @@ function PresetArgsEditor({
 // ---- Overrides defaults editor ---------------------------------------
 
 function OverridesDefaultsEditor() {
-  // Los overrides defaults viven en el store de Zustand como
-  // `overridesReusables` — la idea es que el usuario edita los que
-  // están pre-cargados + puede añadir nuevos. Al guardar, se persisten
-  // via autosave (igual que cualquier otro cambio del store).
+  // Ahora simétrico a `PresetsDefaultsEditor`: el modal edita un draft
+  // local y lo persiste contra POST /api/graficos/overrides-defaults.
+  // El fallback cuando el usuario nunca guardó es `.OVERRIDES_DEFAULT_PULSO`.
   //
-  // Nota: esto edita el estado del estudio ACTUAL. Para que los
-  // overrides persistan entre estudios/sesiones habría que añadir un
-  // endpoint separado /overrides-defaults — lo dejamos para iteración
-  // siguiente si el usuario lo pide.
-  const overrides = usePlanStore((s) => s.overridesReusables);
-  const addOverride = usePlanStore((s) => s.addOverrideReusable);
-  const updateOverride = usePlanStore((s) => s.updateOverrideReusable);
-  const removeOverride = usePlanStore((s) => s.removeOverrideReusable);
-
+  // Antes esto editaba `usePlanStore.overridesReusables` del estudio
+  // actual — lo cual no persistía entre estudios ni era simétrico con
+  // presets. Cerrado con el endpoint propio (commit 2026-04-21).
+  const { overrides: backendOverrides, esCustom, loading: loadingBackend, refresh } = useOverridesDefaults();
   const { presets: catalog, presetsByName, loading: loadingCatalog } = usePresetsMetadata();
   const tipoOptions = useMemo(() => catalog.filter((p) => p.name !== "base"), [catalog]);
 
-  const [selectedId, setSelectedId] = useState<string | null>(overrides[0]?.id ?? null);
-  const selected = overrides.find((o) => o.id === selectedId);
+  const [draft, setDraft] = useState<OverrideDefaultEntry[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<"saved" | "reset" | null>(null);
+  const [error, setError] = useState("");
 
-  if (loadingCatalog) {
-    return <LoadingBlock label="Cargando catálogo…" />;
+  // Sync draft ← backend cuando llega (primera vez o tras refresh).
+  useEffect(() => {
+    setDraft(backendOverrides);
+    // Mantener selección si sigue existiendo, sino seleccionar el primero.
+    setSelectedId((prev) => {
+      if (prev && backendOverrides.some((o) => o.id === prev)) return prev;
+      return backendOverrides[0]?.id ?? null;
+    });
+  }, [backendOverrides]);
+
+  if (loadingBackend || loadingCatalog) {
+    return <LoadingBlock label="Cargando defaults de overrides…" />;
   }
 
-  function newOverride() {
-    const ov: OverrideReusable = {
+  const selected = draft.find((o) => o.id === selectedId);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(backendOverrides);
+
+  function addOverride() {
+    const ov: OverrideDefaultEntry = {
       id: `ov-${Math.random().toString(36).slice(2, 10)}`,
-      nombre: `Override ${overrides.length + 1}`,
+      nombre: `Override ${draft.length + 1}`,
       tipo_preset: tipoOptions[0]?.name ?? "barras_apiladas",
       args: {},
     };
-    addOverride(ov);
+    setDraft((prev) => [...prev, ov]);
     setSelectedId(ov.id);
   }
 
-  function handleDelete(id: string) {
-    if (!window.confirm("¿Eliminar este override?")) return;
-    removeOverride(id);
+  function updateOverride(id: string, patch: Partial<OverrideDefaultEntry>) {
+    setDraft((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+  }
+
+  function removeOverride(id: string) {
+    if (!window.confirm("¿Eliminar este override del set de defaults?")) return;
+    setDraft((prev) => prev.filter((o) => o.id !== id));
     if (selectedId === id) {
-      const rest = overrides.filter((o) => o.id !== id);
+      const rest = draft.filter((o) => o.id !== id);
       setSelectedId(rest[0]?.id ?? null);
     }
   }
 
+  async function onSave() {
+    setError(""); setSaving(true);
+    try {
+      await apiGraficosOverridesDefaultsSave(draft);
+      setFeedback("saved");
+      window.dispatchEvent(new CustomEvent("pulso:overrides-defaults-changed"));
+      await refresh();
+      setTimeout(() => setFeedback(null), 1500);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onResetFactory() {
+    if (!window.confirm(
+      "¿Volver a los overrides de fábrica?\n\nTu set personalizado se descartará. El estudio actual no cambia — solo los valores base que usan los estudios nuevos y 'Restaurar' por override."
+    )) return;
+    setError(""); setSaving(true);
+    try {
+      await apiGraficosOverridesDefaultsReset();
+      setFeedback("reset");
+      window.dispatchEvent(new CustomEvent("pulso:overrides-defaults-changed"));
+      await refresh();
+      setTimeout(() => setFeedback(null), 1500);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <div style={{ display: "flex", gap: 14, minHeight: 360 }}>
-      <aside
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Toolbar — mismo patrón que PresetsDefaultsEditor */}
+      <div
         style={{
-          width: 240, flexShrink: 0,
-          borderRight: "1px solid var(--pulso-border)",
-          paddingRight: 12,
-          display: "flex", flexDirection: "column", gap: 6,
+          display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap",
+          padding: "8px 10px", borderRadius: 6,
+          background: esCustom ? "var(--pulso-primary-soft)" : "var(--pulso-surface)",
+          border: `1px solid ${esCustom ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
+          fontSize: 11,
         }}
       >
+        <span style={{ color: "var(--pulso-text-soft)", flex: 1, minWidth: 200 }}>
+          {esCustom
+            ? "Estás editando tu set personalizado de overrides default."
+            : "Estás editando los overrides de fábrica. Al guardar se convierten en tu set personalizado."}
+        </span>
         <button
           type="button"
+          onClick={onSave}
+          disabled={saving || !dirty}
           className="pulso-primary"
-          onClick={newOverride}
-          style={{ fontSize: 12, padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: 5, justifyContent: "center" }}
+          style={{
+            fontSize: 11, padding: "5px 12px",
+            display: "inline-flex", alignItems: "center", gap: 5,
+            opacity: (saving || !dirty) ? 0.55 : 1,
+          }}
         >
-          <Plus size={12} /> Añadir override
+          {feedback === "saved" ? <Check size={11} /> : <Save size={11} />}
+          {feedback === "saved" ? "Guardado" : "Guardar defaults"}
         </button>
-        <div style={{ display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
-          {overrides.map((o) => {
-            const tipoMeta = presetsByName[o.tipo_preset];
-            const Icon = resolveLucide(tipoMeta?.icono_ui);
-            const isActive = o.id === selectedId;
-            const hasArgs = Object.keys(o.args).length > 0;
-            return (
-              <button
-                key={o.id}
-                type="button"
-                onClick={() => setSelectedId(o.id)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "6px 9px", borderRadius: 6,
-                  border: "1px solid transparent",
-                  background: isActive ? "var(--pulso-primary-soft)" : "transparent",
-                  color: isActive ? "var(--pulso-primary)" : "var(--pulso-text)",
-                  fontSize: 11, fontWeight: isActive ? 600 : 500,
-                  textAlign: "left", cursor: "pointer",
-                }}
-              >
-                <Icon size={12} />
-                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {o.nombre}
-                </span>
-                {hasArgs && <Circle size={6} fill="var(--pulso-primary)" color="transparent" />}
-              </button>
-            );
-          })}
-        </div>
-      </aside>
-      <section style={{ flex: 1, minWidth: 0 }}>
-        {selected ? (
-          <OverrideEditForm
-            override={selected}
-            tipoOptions={tipoOptions}
-            presetsByName={presetsByName}
-            onUpdate={(patch) => updateOverride(selected.id, patch)}
-            onDelete={() => handleDelete(selected.id)}
-          />
-        ) : (
-          <EmptyState
-            icon={<Layers3 size={22} />}
-            title={overrides.length === 0 ? "Aún no hay overrides" : "Selecciona un override"}
-            hint={
-              overrides.length === 0
-                ? "Crea mini-presets reusables (reducido, compacto…) que cualquier slide del plan puede invocar."
-                : "Elige un override de la izquierda para editar sus args, o crea uno nuevo."
-            }
-            cta={
-              overrides.length === 0 ? (
+        {esCustom && (
+          <button
+            type="button"
+            onClick={onResetFactory}
+            disabled={saving}
+            style={{
+              fontSize: 11, padding: "5px 12px",
+              display: "inline-flex", alignItems: "center", gap: 5,
+            }}
+          >
+            {feedback === "reset" ? <Check size={11} /> : <Factory size={11} />}
+            {feedback === "reset" ? "Restaurado" : "Volver a fábrica"}
+          </button>
+        )}
+        {error && (
+          <span
+            role="alert"
+            style={{
+              fontSize: 11, fontWeight: 500,
+              padding: "3px 8px", borderRadius: 999,
+              background: "#fef2f2", color: "#991b1b",
+              border: "1px solid #fecaca",
+              display: "inline-flex", alignItems: "center", gap: 4,
+            }}
+          >
+            <AlertCircle size={11} /> {error}
+          </span>
+        )}
+      </div>
+
+      {/* Sidebar + editor */}
+      <div style={{ display: "flex", gap: 14, minHeight: 360 }}>
+        <aside
+          style={{
+            width: 240, flexShrink: 0,
+            borderRight: "1px solid var(--pulso-border)",
+            paddingRight: 12,
+            display: "flex", flexDirection: "column", gap: 6,
+          }}
+        >
+          <button
+            type="button"
+            className="pulso-primary"
+            onClick={addOverride}
+            style={{ fontSize: 12, padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: 5, justifyContent: "center" }}
+          >
+            <Plus size={12} /> Añadir override
+          </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
+            {draft.map((o) => {
+              const tipoMeta = presetsByName[o.tipo_preset];
+              const Icon = resolveLucide(tipoMeta?.icono_ui);
+              const isActive = o.id === selectedId;
+              // Dirty = este override difiere del backend (o no existe
+              // en backend = nuevo en el draft).
+              const backendEq = backendOverrides.find((b) => b.id === o.id);
+              const isDirty = !backendEq || JSON.stringify(backendEq) !== JSON.stringify(o);
+              return (
                 <button
+                  key={o.id}
                   type="button"
-                  className="pulso-primary"
-                  onClick={newOverride}
+                  onClick={() => setSelectedId(o.id)}
+                  title={isDirty ? "Tiene cambios sin guardar" : undefined}
                   style={{
-                    fontSize: 12, padding: "7px 14px",
-                    display: "inline-flex", alignItems: "center", gap: 6,
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "6px 9px", borderRadius: 6,
+                    border: "1px solid transparent",
+                    background: isActive ? "var(--pulso-primary-soft)" : "transparent",
+                    color: isActive ? "var(--pulso-primary)" : "var(--pulso-text)",
+                    fontSize: 11, fontWeight: isActive ? 600 : 500,
+                    textAlign: "left", cursor: "pointer",
                   }}
                 >
-                  <Plus size={13} /> Crear primer override
+                  <Icon size={12} />
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {o.nombre}
+                  </span>
+                  {isDirty && (
+                    <Circle
+                      size={7}
+                      fill="var(--pulso-primary)"
+                      color="transparent"
+                      aria-label="Sin guardar"
+                    />
+                  )}
                 </button>
-              ) : undefined
-            }
-          />
-        )}
-      </section>
+              );
+            })}
+          </div>
+        </aside>
+        <section style={{ flex: 1, minWidth: 0 }}>
+          {selected ? (
+            <OverrideEditForm
+              override={selected}
+              tipoOptions={tipoOptions}
+              presetsByName={presetsByName}
+              onUpdate={(patch) => updateOverride(selected.id, patch)}
+              onDelete={() => removeOverride(selected.id)}
+            />
+          ) : (
+            <EmptyState
+              icon={<Layers3 size={22} />}
+              title={draft.length === 0 ? "Aún no hay overrides" : "Selecciona un override"}
+              hint={
+                draft.length === 0
+                  ? "Crea mini-presets reusables (reducido, compacto…) que cualquier slide del plan puede invocar."
+                  : "Elige un override de la izquierda para editar sus args, o crea uno nuevo."
+              }
+              cta={
+                draft.length === 0 ? (
+                  <button
+                    type="button"
+                    className="pulso-primary"
+                    onClick={addOverride}
+                    style={{
+                      fontSize: 12, padding: "7px 14px",
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                    }}
+                  >
+                    <Plus size={13} /> Crear primer override
+                  </button>
+                ) : undefined
+              }
+            />
+          )}
+        </section>
+      </div>
     </div>
   );
 }
@@ -463,10 +586,10 @@ function OverridesDefaultsEditor() {
 function OverrideEditForm({
   override, tipoOptions, presetsByName, onUpdate, onDelete,
 }: {
-  override: OverrideReusable;
+  override: OverrideDefaultEntry;
   tipoOptions: { name: string; titulo_humano: string }[];
   presetsByName: Record<string, { name: string; args: ArgMetadata[] }>;
-  onUpdate: (patch: Partial<OverrideReusable>) => void;
+  onUpdate: (patch: Partial<OverrideDefaultEntry>) => void;
   onDelete: () => void;
 }) {
   const tipoMeta = presetsByName[override.tipo_preset];

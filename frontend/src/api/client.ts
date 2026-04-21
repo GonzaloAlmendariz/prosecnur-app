@@ -1223,6 +1223,42 @@ export async function apiGraficosPresetsDefaultsReset() {
   );
 }
 
+// Overrides defaults — mismo contrato que presets defaults, pero para
+// la lista de overrides reusables que arrancan en cualquier estudio
+// nuevo. El shape es un array (no un record) porque los overrides
+// tienen id propio y pueden duplicarse por `tipo_preset`.
+export type OverrideDefaultEntry = {
+  id: string;
+  nombre: string;
+  tipo_preset: string;
+  args: Record<string, unknown>;
+};
+
+export async function apiGraficosOverridesDefaultsGet() {
+  return handle<{ ok: true; overrides: OverrideDefaultEntry[]; es_custom: boolean }>(
+    await fetch("/api/graficos/overrides-defaults", { headers: headers() })
+  );
+}
+
+export async function apiGraficosOverridesDefaultsSave(overrides?: OverrideDefaultEntry[]) {
+  return handle<{ ok: true; saved_at: string }>(
+    await fetch("/api/graficos/overrides-defaults", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(overrides ? { overrides } : {}),
+    })
+  );
+}
+
+export async function apiGraficosOverridesDefaultsReset() {
+  return handle<{ ok: true }>(
+    await fetch("/api/graficos/overrides-defaults", {
+      method: "DELETE",
+      headers: headers(),
+    })
+  );
+}
+
 // Templates de plan (planes pre-armados). Lo trae el backend como
 // JSON plano; los ids de los slides son placeholders que el frontend
 // regenera al aplicar el template para evitar colisiones.

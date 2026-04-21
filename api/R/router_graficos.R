@@ -375,6 +375,61 @@ mount_graficos <- function(pr) {
         es_custom = !is.null(user)
       )
     })) |>
+
+    # ---- Overrides defaults ------------------------------------------
+    # Mismo patrón que presets-defaults. Los "defaults" son la lista
+    # de overrides reusables con la que arranca CUALQUIER estudio nuevo.
+    # El modal "Defaults de overrides" edita esta lista → se persiste
+    # en `s$graficos_overrides_defaults` (por-sesión-de-usuario, no
+    # por-estudio). Si no hay custom, el fallback es `.OVERRIDES_DEFAULT_PULSO`.
+    plumber::pr_get("/api/graficos/overrides-defaults", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid, required = FALSE)
+      user <- if (!is.null(s)) s$graficos_overrides_defaults else NULL
+      list(
+        ok = TRUE,
+        overrides = user %||% .OVERRIDES_DEFAULT_PULSO,
+        es_custom = !is.null(user)
+      )
+    })) |>
+    plumber::pr_post("/api/graficos/overrides-defaults", wrap_endpoint(function(req, res, ...) {
+      # Body: { "overrides": [ {id, nombre, tipo_preset, args}, ... ] }.
+      # Si no viene body, toma la lista actual del store del estudio
+      # (`s$graficos_config$overrides_reusables`) — equivalente al
+      # "Guardar como default" de presets.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      overrides_new <- NULL
+      if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        parsed <- tryCatch(
+          jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+          error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+        )
+        overrides_new <- parsed$overrides
+      }
+      if (is.null(overrides_new)) {
+        overrides_new <- s$graficos_config$overrides_reusables
+      }
+      if (is.null(overrides_new)) {
+        stop_api(400, "E_NO_OVERRIDES",
+                 "No hay overrides en la config actual para guardar como default.")
+      }
+      # Sanity check liviano: debe ser una lista (array) — no un dict.
+      if (!is.list(overrides_new) || !is.null(names(overrides_new))) {
+        stop_api(400, "E_BAD_OVERRIDES",
+                 "Formato inválido: se esperaba un array de overrides.")
+      }
+      session_set(sid, "graficos_overrides_defaults", overrides_new)
+      list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+    })) |>
+    plumber::pr_delete("/api/graficos/overrides-defaults", wrap_endpoint(function(req, res) {
+      # Resetea al set de fábrica (.OVERRIDES_DEFAULT_PULSO).
+      sid <- session_header(req)
+      session_set(sid, "graficos_overrides_defaults", NULL)
+      list(ok = TRUE)
+    })) |>
     plumber::pr_get("/api/graficos/presets-metadata", wrap_endpoint(function(req, res) {
       # Catálogo humano de los presets globales (p_presets): cada tipo
       # (base, barras_apiladas, pie, dim_radar, …) con titulo_humano,
