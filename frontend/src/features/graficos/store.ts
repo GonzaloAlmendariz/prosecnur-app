@@ -119,6 +119,10 @@ type PlanStore = {
   // (o undefined después de merge), borra ese arg para que el backend
   // use el default. Usado por PresetsEditor para actualizar un arg a la vez.
   setPresetArg: (tipo: string, arg: string, value: unknown) => void;
+  // Reemplaza el OBJETO COMPLETO de un preset (bypass de `setPresetArg`).
+  // Si args queda vacío (`{}`), elimina el preset del map. Usado por el
+  // AdvancedJsonEditor cuando el analista edita el JSON raw.
+  replacePreset: (tipo: string, args: Record<string, unknown>) => void;
   // Reset completo de un preset tipo (vuelve a defaults de prosecnur).
   resetPreset: (tipo: string) => void;
   select: (id: string | null) => void;
@@ -415,6 +419,17 @@ export const usePlanStore = create<PlanStore>((set) => ({
       return dirty(state, { presets });
     });
   },
+
+  replacePreset: (tipo, args) =>
+    set((state) => {
+      const presets = { ...state.presets };
+      if (!args || Object.keys(args).length === 0) {
+        delete presets[tipo];
+      } else {
+        presets[tipo] = { ...args };
+      }
+      return dirty(state, { presets });
+    }),
 
   resetPreset: (tipo) =>
     set((state) => {

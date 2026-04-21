@@ -5,6 +5,7 @@ import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore, OverrideReusable } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
+import { AdvancedJsonEditor } from "./AdvancedJsonEditor";
 
 // Overrides reutilizables = mini-presets nombrados (ej. "compacto", "grande")
 // que se aplican a slots específicos dentro de un slide.
@@ -360,20 +361,21 @@ function OverrideEditPanel({
         </p>
       )}
 
-      {gruposDeArgs.length === 0 ? (
-        <div
-          style={{
-            fontSize: 12, color: "var(--pulso-text-soft)",
-            padding: "14px 16px", borderRadius: 6,
-            background: "var(--pulso-surface)",
-            border: "1px solid var(--pulso-border)",
-          }}
-        >
-          Este tipo de preset no tiene args configurables en el catálogo.
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 560 }}>
-          {gruposDeArgs.map(({ grupo, args }) => (
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 560 }}>
+        {gruposDeArgs.length === 0 ? (
+          <div
+            style={{
+              fontSize: 12, color: "var(--pulso-text-soft)",
+              padding: "14px 16px", borderRadius: 6,
+              background: "var(--pulso-surface)",
+              border: "1px solid var(--pulso-border)",
+            }}
+          >
+            Este tipo de preset no tiene args catalogados. Usa la edición JSON avanzada
+            abajo para setear args específicos.
+          </div>
+        ) : (
+          gruposDeArgs.map(({ grupo, args }) => (
             <ArgGroup
               key={grupo}
               grupo={grupo}
@@ -382,9 +384,17 @@ function OverrideEditPanel({
               onChangeArg={handleChangeArg}
               variables={[]}
             />
-          ))}
-        </div>
-      )}
+          ))
+        )}
+
+        <AdvancedJsonEditor
+          value={override.args}
+          onChange={(next) => onUpdate({ args: next })}
+          curatedArgNames={tipoMeta?.args.map((a) => a.name) ?? []}
+          label="Edición JSON avanzada"
+          hint="Args raw del override. Ideal para los args canvas/compactos de los QMDs (ej. canvas_w_etiquetas, alto_por_categoria) que aún no están en el catálogo."
+        />
+      </div>
     </>
   );
 }

@@ -5,6 +5,7 @@ import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META } from "./ArgGroup";
+import { AdvancedJsonEditor } from "./AdvancedJsonEditor";
 
 // Editor de presets globales tipo-de-graficador.
 //
@@ -219,6 +220,8 @@ function PresetBody({
   values: Record<string, unknown>;
 }) {
   const setPresetArg = usePlanStore((s) => s.setPresetArg);
+  const replacePreset = usePlanStore((s) => s.replacePreset);
+  const curatedArgNames = useMemo(() => meta.args.map((a) => a.name), [meta.args]);
 
   // Agrupar args por grupo semántico, manteniendo el orden de GRUPO_META.
   const gruposDeArgs = useMemo(() => {
@@ -235,34 +238,40 @@ function PresetBody({
       .map((g) => ({ grupo: g, args: byGrupo[g] }));
   }, [meta]);
 
-  if (meta.args.length === 0) {
-    return (
-      <div
-        style={{
-          fontSize: 12, color: "var(--pulso-text-soft)",
-          padding: "14px 16px", borderRadius: 6,
-          background: "var(--pulso-surface)",
-          border: "1px solid var(--pulso-border)",
-        }}
-      >
-        Este preset no tiene args configurables desde la UI. Los defaults de
-        prosecnur son suficientes para la mayoría de casos.
-      </div>
-    );
-  }
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 560 }}>
-      {gruposDeArgs.map(({ grupo, args }) => (
-        <ArgGroup
-          key={grupo}
-          grupo={grupo}
-          args={args}
-          values={values}
-          onChangeArg={(name, val) => setPresetArg(meta.name, name, val)}
-          variables={[]}
-        />
-      ))}
+      {meta.args.length === 0 ? (
+        <div
+          style={{
+            fontSize: 12, color: "var(--pulso-text-soft)",
+            padding: "14px 16px", borderRadius: 6,
+            background: "var(--pulso-surface)",
+            border: "1px solid var(--pulso-border)",
+          }}
+        >
+          Este preset no tiene args catalogados. Usa la edición JSON avanzada
+          abajo para setear args específicos.
+        </div>
+      ) : (
+        gruposDeArgs.map(({ grupo, args }) => (
+          <ArgGroup
+            key={grupo}
+            grupo={grupo}
+            args={args}
+            values={values}
+            onChangeArg={(name, val) => setPresetArg(meta.name, name, val)}
+            variables={[]}
+          />
+        ))
+      )}
+
+      <AdvancedJsonEditor
+        value={values}
+        onChange={(next) => replacePreset(meta.name, next)}
+        curatedArgNames={curatedArgNames}
+        label="Edición JSON avanzada"
+        hint="Todos los args del preset — incluidos los que no están en los grupos de arriba. Útil para args específicos del canvas (canvas_w_*, alto_por_categoria, etc.) que aún no están en el catálogo."
+      />
     </div>
   );
 }
