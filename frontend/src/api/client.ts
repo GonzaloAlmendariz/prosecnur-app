@@ -1087,11 +1087,22 @@ export async function apiGraficosIconoUpload(nombre: string, dataBase64: string)
 // pipeline que el export completo. Rápido (~2-3s típico) y 100% fiel al
 // output final (no una maqueta). El analista lo descarga y lo abre en
 // PowerPoint/Keynote sin salir del flujo.
+// Imagen PNG embebida en el .pptx del preview — una por slot de
+// graficador (prosecnur con `usar_canvas=TRUE` renderiza cada slot como
+// un PNG dentro del ZIP). El backend las extrae y devuelve inline como
+// data-URL para que el frontend las muestre como <img> sin otra request.
+export type PreviewImage = {
+  filename: string;           // "image1.png", "image2.png", …
+  png_base64: string;          // data:image/png;base64,…
+  size: number;
+};
+
 export type PreviewSlideResponse = {
   ok: true;
-  file_id: string;
+  file_id: string;             // para descargar el .pptx si lo quiere
   size: number;
   type: "pptx";
+  images: PreviewImage[];      // vacío si el slide no tiene gráficos (ej. portada)
 };
 
 export async function apiGraficosPreviewSlide(slide: Slide) {

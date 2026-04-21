@@ -187,6 +187,60 @@
   presets_json
 }
 
+# Extrae las imágenes PNG embebidas en un .pptx (ubicadas en
+# `ppt/media/image*.png` dentro del ZIP) y las devuelve como lista de
+# `{filename, png_base64, width_px?, height_px?}`. Ignora cualquier media
+# que no sea PNG (ej. vectoriales EMF) — no queremos devolverle al
+# frontend algo que no pueda renderizar como <img>.
+#
+# El orden se conserva por nombre (image1.png, image2.png, …) que
+# corresponde al orden en que officer las fue añadiendo al slide.
+# Si el .pptx no tiene medias, retorna lista vacía.
+.extract_pptx_images <- function(pptx_path) {
+  if (!file.exists(pptx_path)) return(list())
+  if (!requireNamespace("zip", quietly = TRUE)) return(list())
+
+  tmpdir <- tempfile("pptx_extract_")
+  dir.create(tmpdir, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(tmpdir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  entries <- tryCatch(
+    zip::zip_list(pptx_path),
+    error = function(e) NULL
+  )
+  if (is.null(entries) || !nrow(entries)) return(list())
+
+  media_rows <- entries[grepl("^ppt/media/.*\\.png$", entries$filename, ignore.case = TRUE), , drop = FALSE]
+  if (!nrow(media_rows)) return(list())
+
+  # Ordenar por numero natural (image1, image2, … image10)
+  nums <- suppressWarnings(as.integer(regmatches(
+    media_rows$filename,
+    regexpr("[0-9]+", media_rows$filename)
+  )))
+  nums[is.na(nums)] <- 999L
+  media_rows <- media_rows[order(nums), , drop = FALSE]
+
+  tryCatch(
+    zip::unzip(pptx_path, files = media_rows$filename, exdir = tmpdir),
+    error = function(e) NULL
+  )
+
+  lapply(seq_len(nrow(media_rows)), function(i) {
+    fname <- media_rows$filename[i]
+    full <- file.path(tmpdir, fname)
+    if (!file.exists(full)) return(NULL)
+    bytes <- tryCatch(readBin(full, "raw", file.info(full)$size), error = function(e) NULL)
+    if (is.null(bytes)) return(NULL)
+    b64 <- jsonlite::base64_enc(bytes)
+    list(
+      filename = basename(fname),
+      png_base64 = paste0("data:image/png;base64,", b64),
+      size = length(bytes)
+    )
+  }) |> Filter(f = Negate(is.null))
+}
+
 mount_graficos <- function(pr) {
   pr |>
     plumber::pr_get("/api/graficos/config", wrap_endpoint(function(req, res) {
@@ -473,8 +527,27 @@ mount_graficos <- function(pr) {
         stop_api(400, "E_PREVIEW_FAILED", sprintf("No se pudo generar el preview: %s", conditionMessage(e)))
       })
 
+      # Extraemos las imágenes PNG embebidas en el .pptx para devolverlas
+      # inline al frontend. Los graficadores de prosecnur con
+      # `usar_canvas=TRUE` (invariante global) renderizan cada slot como
+      # un PNG dentro de `ppt/media/` del .pptx. Leerlos es más barato que
+      # convertir el pptx a png con libreoffice/magick y no requiere
+      # dependencias externas — solo descomprimir un ZIP (el pkg `zip`
+      # ya es dep del launcher).
+      #
+      # Si hay 1 slot, `images` tiene 1 PNG (el del gráfico). Si hay N
+      # slots, N PNGs. El frontend los puede mostrar lado a lado. Los
+      # layouts puros (p_slide_portada, p_slide_indice) devuelven 0.
+      images <- .extract_pptx_images(out_path)
+
       meta <- .register_output_file(sid, "graficos_preview", out_path)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size, type = "pptx")
+      list(
+        ok = TRUE,
+        file_id = meta$file_id,
+        size = meta$size,
+        type = "pptx",
+        images = images
+      )
     })) |>
     plumber::pr_post("/api/graficos/ppt", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL) {
       sid <- session_header(req)

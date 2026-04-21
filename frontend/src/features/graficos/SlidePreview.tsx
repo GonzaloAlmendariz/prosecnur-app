@@ -1,27 +1,26 @@
 import { useState } from "react";
-import { Download, Eye, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
-import { apiGraficosPreviewSlide, downloadUrl, Slide } from "../../api/client";
+import { Download, Eye, Loader2, AlertCircle, CheckCircle2, Image as ImageIcon } from "lucide-react";
+import { apiGraficosPreviewSlide, downloadUrl, PreviewImage, Slide } from "../../api/client";
 
-// Preview de un slide individual. El analista hace click en "Generar
-// preview" y el backend produce un mini-PPTX con este único slide. Se
-// muestra como botón de descarga directa.
+// Preview de un slide individual. Al generar, el backend:
+//   1. Crea un mini-PPTX con este slide (fuente de verdad, descargable).
+//   2. Extrae los PNGs embebidos por `cowplot` en cada slot de graficador
+//      (prosecnur con `usar_canvas=TRUE` los deja en ppt/media/*.png del
+//      ZIP). Los manda al frontend como data-URL.
 //
-// Por qué no PNG inline: prosecnur ensambla los slides con layouts de
-// PPT/cowplot que no se pueden convertir a imagen sin LibreOffice (que
-// puede no estar instalado). El PPTX es el output fiel y universal.
+// Así el analista VE el gráfico dentro de la UI sin abrir PowerPoint —
+// iteración rápida sobre datos, colores, etiquetas. Si quiere ver el
+// slide completo con layout (título, pie, etc.) sigue teniendo el
+// botón "Descargar .pptx".
 //
-// Hash simple del slide: si el slide cambió desde el último preview,
-// mostramos un badge "Preview desactualizado" en naranja para recordar
-// re-generar. No auto-re-generamos porque corre en el servidor (2-3s).
+// Slides estructurales (portada, índice, texto) no tienen gráficos —
+// el backend devuelve `images: []` y pintamos solo el botón de descarga.
 
 type Props = {
   slide: Slide;
   prepOk: boolean;
 };
 
-// Hash determinístico de un slide. Dos slides con el mismo contenido
-// → mismo hash, así el botón "Actualizar preview" solo se activa si
-// hubo un cambio real.
 function hashSlide(slide: Slide): string {
   return JSON.stringify({ tipo: slide.tipo, payload: slide.payload });
 }
@@ -29,9 +28,8 @@ function hashSlide(slide: Slide): string {
 export function SlidePreview({ slide, prepOk }: Props) {
   const [busy, setBusy] = useState(false);
   const [fileId, setFileId] = useState<string | null>(null);
+  const [images, setImages] = useState<PreviewImage[]>([]);
   const [error, setError] = useState("");
-  // Snapshot del slide al momento del último render exitoso; nos deja
-  // saber si el slide actual está desfasado.
   const [lastHash, setLastHash] = useState<string | null>(null);
 
   const currentHash = hashSlide(slide);
@@ -43,6 +41,7 @@ export function SlidePreview({ slide, prepOk }: Props) {
     try {
       const r = await apiGraficosPreviewSlide(slide);
       setFileId(r.file_id);
+      setImages(r.images ?? []);
       setLastHash(currentHash);
     } catch (e) {
       setError((e as Error).message);
@@ -67,7 +66,8 @@ export function SlidePreview({ slide, prepOk }: Props) {
           <Eye size={14} /> Preview de este slide
         </span>
         <span style={{ flex: 1, fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-          Genera un PPTX de 1 slide con la configuración actual para verlo en PowerPoint antes de exportar el plan completo.
+          Ejecuta el slide con los datos reales y muestra cada gráfico acá.
+          El PPTX completo queda disponible para descarga.
         </span>
 
         <button
@@ -109,42 +109,123 @@ export function SlidePreview({ slide, prepOk }: Props) {
       )}
 
       {fileId && !error && (
-        <div
-          style={{
-            display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-            padding: "10px 12px", borderRadius: 6,
-            background: "white",
-            border: `1px solid ${isStale ? "#f59e0b" : "var(--pulso-border)"}`,
-          }}
-        >
-          {isStale ? (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#b45309" }}>
-              <AlertCircle size={12} /> Preview desactualizado (el slide cambió)
-            </span>
-          ) : (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#166534" }}>
-              <CheckCircle2 size={12} /> Listo
-            </span>
-          )}
-
-          <a
-            href={downloadUrl(fileId)}
+        <>
+          <div
             style={{
-              fontSize: 12, fontWeight: 600, textDecoration: "none",
-              display: "inline-flex", alignItems: "center", gap: 5,
-              padding: "5px 10px", borderRadius: 999,
-              color: "var(--pulso-primary)",
-              background: "var(--pulso-primary-soft)",
+              display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+              padding: "10px 12px", borderRadius: 6,
+              background: "white",
+              border: `1px solid ${isStale ? "#f59e0b" : "var(--pulso-border)"}`,
             }}
           >
-            <Download size={12} /> preview.pptx
-          </a>
+            {isStale ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#b45309" }}>
+                <AlertCircle size={12} /> Preview desactualizado (el slide cambió)
+              </span>
+            ) : (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#166534" }}>
+                <CheckCircle2 size={12} /> Listo
+              </span>
+            )}
 
-          <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginLeft: "auto" }}>
-            Ábrelo en PowerPoint o Keynote.
-          </span>
-        </div>
+            <a
+              href={downloadUrl(fileId)}
+              style={{
+                fontSize: 12, fontWeight: 600, textDecoration: "none",
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "5px 10px", borderRadius: 999,
+                color: "var(--pulso-primary)",
+                background: "var(--pulso-primary-soft)",
+              }}
+            >
+              <Download size={12} /> preview.pptx
+            </a>
+
+            <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginLeft: "auto" }}>
+              Ábrelo en PowerPoint o Keynote para ver el layout completo.
+            </span>
+          </div>
+
+          {images.length > 0 ? (
+            <PreviewImagesGrid images={images} stale={isStale} />
+          ) : (
+            <div
+              style={{
+                display: "flex", alignItems: "center", gap: 7,
+                padding: "10px 12px", borderRadius: 6,
+                background: "white",
+                border: "1px solid var(--pulso-border)",
+                fontSize: 11, color: "var(--pulso-text-soft)",
+                lineHeight: 1.5,
+              }}
+            >
+              <ImageIcon size={12} />
+              Este slide no tiene gráficos (es estructural o de texto).
+              Abre el .pptx para ver el layout renderizado.
+            </div>
+          )}
+        </>
       )}
     </section>
   );
+}
+
+// Grid de imágenes del preview. Para slides con 1 gráfico se ve grande
+// (full width); con 2+ se lado a lado en responsive auto-fit.
+function PreviewImagesGrid({ images, stale }: { images: PreviewImage[]; stale: boolean }) {
+  const cols = images.length === 1 ? "1fr" : "repeat(auto-fit, minmax(260px, 1fr))";
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: cols,
+        gap: 10,
+        opacity: stale ? 0.55 : 1,
+        transition: "opacity 120ms ease",
+      }}
+    >
+      {images.map((img, i) => (
+        <figure
+          key={img.filename}
+          style={{
+            margin: 0, padding: 8,
+            background: "white",
+            border: "1px solid var(--pulso-border)",
+            borderRadius: 6,
+            display: "flex", flexDirection: "column", gap: 6,
+          }}
+        >
+          <img
+            src={img.png_base64}
+            alt={`Gráfico ${i + 1}`}
+            loading="lazy"
+            style={{
+              width: "100%", height: "auto",
+              objectFit: "contain",
+              borderRadius: 3,
+              background: "white",
+              maxHeight: 420,
+            }}
+          />
+          <figcaption
+            style={{
+              fontSize: 10, color: "var(--pulso-text-soft)",
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}
+          >
+            <span>Gráfico {i + 1} de {images.length}</span>
+            <span style={{ fontFamily: "ui-monospace, monospace" }}>
+              {formatKb(img.size)}
+            </span>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  );
+}
+
+function formatKb(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
