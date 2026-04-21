@@ -89,6 +89,12 @@ type PlanStore = {
   updateSlotArgs: (id: string, slot: string, patch: Record<string, unknown>) => void;
   setPresets: (presets: Record<string, Record<string, unknown>>) => void;
   setWPresets: (wPresets: Record<string, Record<string, unknown>>) => void;
+  // Merge granular de args en el preset `tipo`. Si `patch[arg] === null`
+  // (o undefined después de merge), borra ese arg para que el backend
+  // use el default. Usado por PresetsEditor para actualizar un arg a la vez.
+  setPresetArg: (tipo: string, arg: string, value: unknown) => void;
+  // Reset completo de un preset tipo (vuelve a defaults de prosecnur).
+  resetPreset: (tipo: string) => void;
   select: (id: string | null) => void;
   loadPlan: (plan: PlanJson) => void;
   reset: () => void;
@@ -280,6 +286,37 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   setPresets: (presets) => set(() => dirty({ presets })),
   setWPresets: (wPresets) => set(() => dirty({ wPresets })),
+
+  // Merge granular. Si `value === null` o `undefined`, borramos la key
+  // (para que el backend caiga al default de prosecnur). Si el preset
+  // entero queda vacío, lo eliminamos del map para mantener el JSON
+  // limpio y evitar que autosave mande `{}` ruido.
+  setPresetArg: (tipo, arg, value) => {
+    set((state) => {
+      const prev = state.presets[tipo] ?? {};
+      const next = { ...prev };
+      if (value === null || value === undefined || value === "") {
+        delete next[arg];
+      } else {
+        next[arg] = value;
+      }
+      const presets = { ...state.presets };
+      if (Object.keys(next).length === 0) {
+        delete presets[tipo];
+      } else {
+        presets[tipo] = next;
+      }
+      return dirty({ presets });
+    });
+  },
+
+  resetPreset: (tipo) =>
+    set((state) => {
+      if (!(tipo in state.presets)) return state;
+      const presets = { ...state.presets };
+      delete presets[tipo];
+      return dirty({ presets });
+    }),
 
   // `select` NO marca dirty: la selección del slide activo es estado
   // visual; persistirlo igual para que al refrescar la pestaña el usuario

@@ -921,6 +921,9 @@ export type ArgMetadata = {
   grupo: ArgGrupo;
   descripcion?: string;
   choices?: ArgChoice[];
+  // Valor por defecto documentado en el registry. Puede ser string/number/
+  // bool. Usado por el PresetsEditor como placeholder visual.
+  default?: unknown;
 };
 
 export type SlideMetadata = {
@@ -961,6 +964,28 @@ export type VarInfo = {
 
 export async function apiGraficosRegistry() {
   return handle<Registry>(await fetch("/api/graficos/registry", { headers: headers() }));
+}
+
+// Metadata de los presets globales (p_presets). Cada entrada es un tipo
+// (base, barras_apiladas, pie, dim_radar, …) con args curados para el
+// PresetsEditor. Complementa a /registry (que cubre slides y graficadores,
+// no presets globales).
+export type PresetMetadata = {
+  name: string;
+  titulo_humano: string;
+  descripcion: string;
+  icono_ui: string;
+  args: ArgMetadata[];
+};
+
+export type PresetsRegistry = {
+  presets: PresetMetadata[];
+};
+
+export async function apiGraficosPresetsMetadata() {
+  return handle<PresetsRegistry>(
+    await fetch("/api/graficos/presets-metadata", { headers: headers() })
+  );
 }
 
 // Config persistida del plan de gráficos. Patrón idéntico a /analitica/config.

@@ -1,53 +1,268 @@
-import { Sliders } from "lucide-react";
+import { useMemo, useState } from "react";
+import * as Lucide from "lucide-react";
+import { RotateCcw, Circle } from "lucide-react";
+import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore } from "./store";
+import { usePresetsMetadata } from "./usePresetsMetadata";
+import { ArgGroup, GRUPO_META } from "./ArgGroup";
 
-// Editor de presets globales tipo-de-graficador. En Fase 2B se completa
-// con un tab por cada tipo de preset (base, barras_apiladas, multi_apiladas,
-// barras_agrupadas, pie, donut, radar_tabla, numerico, media_rango), cada
-// uno con los ~30-50 args agrupados en colapsables (Textos / Colores /
-// Canvas / Leyenda / Avanzado). Por ahora dejamos el scaffold visible.
+// Editor de presets globales tipo-de-graficador.
+//
+// Layout:
+//   [ sidebar con lista de tipos ]  |  [ editor de args del tipo seleccionado ]
+//
+// Cada tipo muestra:
+//   - Header con ícono + titulo_humano + descripción + badge "Modificado".
+//   - Args agrupados por `grupo` semántico (textos / estilo / avanzado).
+//   - Botón "Restaurar default" si el tipo tiene args custom.
+//
+// La fuente de verdad del catálogo es `/api/graficos/presets-metadata`;
+// la fuente de verdad del estado persistido es el store (`presets`).
+
+type LucideIcon = (props: { size?: number; color?: string }) => JSX.Element;
+
+function resolveLucide(name: string | undefined): LucideIcon {
+  const registry = Lucide as unknown as Record<string, LucideIcon>;
+  return (name && registry[name]) || registry["Sliders"] || registry["Square"];
+}
 
 export function PresetsEditor() {
-  const presets = usePlanStore((s) => s.presets);
-  const nPresets = Object.keys(presets).length;
+  const { presets, loading, error } = usePresetsMetadata();
+  const configPresets = usePlanStore((s) => s.presets);
+  const resetPreset = usePlanStore((s) => s.resetPreset);
+
+  const [selected, setSelected] = useState<string>("base");
+
+  if (loading) {
+    return (
+      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: 10 }}>
+        Cargando catálogo de presets…
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div style={{ fontSize: 12, color: "#991b1b", padding: 10 }}>
+        Error cargando presets: {error}
+      </div>
+    );
+  }
+
+  const meta = presets.find((p) => p.name === selected) ?? presets[0];
+  if (!meta) return null;
+
+  const current = configPresets[meta.name] ?? {};
+  const hasChanges = Object.keys(current).length > 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>
-          Presets de estilo por tipo de graficador
-        </div>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 3, lineHeight: 1.5 }}>
-          Los presets definen tamaños de fuente, colores de texto, dimensiones de canvas,
-          posición de leyendas y otros detalles visuales que se aplican a <strong>todos</strong>
-          los gráficos de un tipo (ej. todas las barras apiladas). El editor detallado entra en
-          Fase 2B.
-        </div>
-      </div>
-
-      <div
+    <div style={{ display: "flex", gap: 16, minHeight: 420 }}>
+      {/* Sidebar — lista de tipos de preset */}
+      <aside
         style={{
-          padding: "18px 14px",
-          border: "1px dashed var(--pulso-border)",
-          borderRadius: 8,
-          background: "var(--pulso-surface)",
-          textAlign: "center",
-          color: "var(--pulso-text-soft)",
-          fontSize: 12, lineHeight: 1.5,
+          width: 220, flexShrink: 0,
+          borderRight: "1px solid var(--pulso-border)",
+          paddingRight: 12,
+          display: "flex", flexDirection: "column", gap: 2,
         }}
       >
-        <Sliders size={22} style={{ marginBottom: 6, opacity: 0.6 }} />
-        <div>
-          <strong>Próximamente</strong>: tabs por tipo (<code>base</code>, <code>barras_apiladas</code>,
-          <code>multi_apiladas</code>, <code>pie</code>, <code>donut</code>, <code>radar_tabla</code>, …)
-          con editor de ~30-50 args cada uno.
+        <div
+          style={{
+            fontSize: 10, fontWeight: 700,
+            textTransform: "uppercase", letterSpacing: 0.4,
+            color: "var(--pulso-text-soft)",
+            padding: "0 6px 6px",
+          }}
+        >
+          Tipo de preset
         </div>
-        <div style={{ marginTop: 6, fontSize: 11 }}>
-          {nPresets === 0
-            ? "Por ahora, los gráficos usan los defaults de prosecnur."
-            : `${nPresets} ${nPresets === 1 ? "preset configurado" : "presets configurados"} (vía import JSON o PresetsModal).`}
+        {presets.map((p) => {
+          const modified = Object.keys(configPresets[p.name] ?? {}).length > 0;
+          const isActive = p.name === selected;
+          const Icon = resolveLucide(p.icono_ui);
+          return (
+            <button
+              key={p.name}
+              type="button"
+              onClick={() => setSelected(p.name)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "7px 9px", borderRadius: 6,
+                border: "1px solid transparent",
+                background: isActive ? "var(--pulso-primary-soft)" : "transparent",
+                color: isActive ? "var(--pulso-primary)" : "var(--pulso-text)",
+                fontSize: 12, fontWeight: isActive ? 600 : 500,
+                textAlign: "left", cursor: "pointer",
+                transition: "background 120ms ease",
+              }}
+            >
+              <Icon size={14} />
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {p.titulo_humano}
+              </span>
+              {modified && (
+                <Circle
+                  size={7}
+                  fill={isActive ? "var(--pulso-primary)" : "var(--pulso-primary)"}
+                  color="transparent"
+                  aria-label="Modificado"
+                />
+              )}
+            </button>
+          );
+        })}
+      </aside>
+
+      {/* Editor del preset seleccionado */}
+      <section style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+        <PresetHeader
+          meta={meta}
+          hasChanges={hasChanges}
+          onReset={() => resetPreset(meta.name)}
+        />
+        <PresetBody meta={meta} values={current} />
+      </section>
+    </div>
+  );
+}
+
+function PresetHeader({
+  meta,
+  hasChanges,
+  onReset,
+}: {
+  meta: { name: string; titulo_humano: string; descripcion: string; icono_ui: string };
+  hasChanges: boolean;
+  onReset: () => void;
+}) {
+  const Icon = resolveLucide(meta.icono_ui);
+  return (
+    <header
+      style={{
+        display: "flex", alignItems: "flex-start", gap: 10,
+        paddingBottom: 10,
+        borderBottom: "1px solid var(--pulso-border)",
+      }}
+    >
+      <span
+        style={{
+          width: 30, height: 30, borderRadius: 7,
+          background: "var(--pulso-primary-soft)",
+          color: "var(--pulso-primary)",
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={15} />
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <h3 style={{ margin: 0, fontSize: 14, lineHeight: 1.3 }}>{meta.titulo_humano}</h3>
+          {hasChanges && (
+            <span
+              style={{
+                fontSize: 10, fontWeight: 600,
+                padding: "2px 7px", borderRadius: 999,
+                background: "var(--pulso-primary-soft)",
+                color: "var(--pulso-primary)",
+              }}
+            >
+              Modificado
+            </span>
+          )}
+          <code
+            style={{
+              fontSize: 10, fontFamily: "ui-monospace, monospace",
+              color: "var(--pulso-text-soft)", marginLeft: "auto",
+            }}
+          >
+            {meta.name}
+          </code>
         </div>
+        {meta.descripcion && (
+          <p
+            style={{
+              margin: "4px 0 0", fontSize: 11,
+              color: "var(--pulso-text-soft)", lineHeight: 1.5,
+              maxWidth: 560,
+            }}
+          >
+            {meta.descripcion}
+          </p>
+        )}
       </div>
+      {hasChanges && (
+        <button
+          type="button"
+          onClick={onReset}
+          title="Volver a los defaults de prosecnur (elimina tus cambios en este preset)."
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 5,
+            fontSize: 11, padding: "5px 10px",
+            border: "1px solid var(--pulso-border)", borderRadius: 6,
+            background: "white", color: "var(--pulso-text)",
+            cursor: "pointer", flexShrink: 0,
+          }}
+        >
+          <RotateCcw size={11} />
+          Restaurar default
+        </button>
+      )}
+    </header>
+  );
+}
+
+function PresetBody({
+  meta,
+  values,
+}: {
+  meta: { name: string; args: ArgMetadata[] };
+  values: Record<string, unknown>;
+}) {
+  const setPresetArg = usePlanStore((s) => s.setPresetArg);
+
+  // Agrupar args por grupo semántico, manteniendo el orden de GRUPO_META.
+  const gruposDeArgs = useMemo(() => {
+    const byGrupo: Record<ArgGrupo, ArgMetadata[]> = {
+      datos: [], textos: [], estilo: [], calculo: [], semaforo: [], avanzado: [],
+    };
+    for (const a of meta.args) {
+      const g: ArgGrupo = (a.grupo as ArgGrupo) ?? "avanzado";
+      (byGrupo[g] ?? byGrupo.avanzado).push(a);
+    }
+    return (Object.keys(byGrupo) as ArgGrupo[])
+      .filter((g) => byGrupo[g].length > 0)
+      .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
+      .map((g) => ({ grupo: g, args: byGrupo[g] }));
+  }, [meta]);
+
+  if (meta.args.length === 0) {
+    return (
+      <div
+        style={{
+          fontSize: 12, color: "var(--pulso-text-soft)",
+          padding: "14px 16px", borderRadius: 6,
+          background: "var(--pulso-surface)",
+          border: "1px solid var(--pulso-border)",
+        }}
+      >
+        Este preset no tiene args configurables desde la UI. Los defaults de
+        prosecnur son suficientes para la mayoría de casos.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 560 }}>
+      {gruposDeArgs.map(({ grupo, args }) => (
+        <ArgGroup
+          key={grupo}
+          grupo={grupo}
+          args={args}
+          values={values}
+          onChangeArg={(name, val) => setPresetArg(meta.name, name, val)}
+          variables={[]}
+        />
+      ))}
     </div>
   );
 }
