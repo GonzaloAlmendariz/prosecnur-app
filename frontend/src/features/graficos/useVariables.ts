@@ -1,11 +1,35 @@
 import { useEffect, useState } from "react";
-import { apiGraficosVariables, VarInfo } from "../../api/client";
+import { apiGraficosVariables, VarInfo, VariablesBySource } from "../../api/client";
 
-let cache: VarInfo[] | null = null;
-let pending: Promise<VarInfo[]> | null = null;
+// Hook de variables del estudio (multi-base, v0.2+).
+//
+// Forma de retorno:
+//   - `sources`: lista de fuentes con sus variables (siempre — incluso
+//     con 1 base, hay 1 source).
+//   - `multi`: true si hay >1 fuente → los pickers deben mostrar el
+//     dropdown de fuente. Si es false, los pickers pueden omitir el
+//     dropdown y tratar las variables como un pool único (back-compat).
+//   - `variables`: array plano con TODAS las variables, con `source`
+//     agregado como campo adicional. Útil para componentes que no
+//     quieren pensar en el shape agrupado (ej. usePlanValidator).
+//   - Helpers `allSources`, `variablesOf(source)`, `findVar(source, name)`.
+//
+// Cache a nivel módulo: inmutable por sesión (cambia si agregas/quitas
+// bases, se invalida con `invalidateVariables()`).
 
-export function useVariables(): { variables: VarInfo[]; loading: boolean; error: string } {
-  const [variables, setVariables] = useState<VarInfo[]>(cache ?? []);
+export type VarWithSource = VarInfo & { source: string };
+
+let cache: VariablesBySource | null = null;
+let pending: Promise<VariablesBySource> | null = null;
+
+export function useVariables(): {
+  sources: { name: string; variables: VarInfo[] }[];
+  multi: boolean;
+  variables: VarWithSource[];  // lista plana con `source` anotado
+  loading: boolean;
+  error: string;
+} {
+  const [data, setData] = useState<VariablesBySource | null>(cache);
   const [loading, setLoading] = useState<boolean>(!cache);
   const [error, setError] = useState<string>("");
 
@@ -13,14 +37,14 @@ export function useVariables(): { variables: VarInfo[]; loading: boolean; error:
     if (cache) return;
     if (!pending) {
       pending = apiGraficosVariables().then((r) => {
-        cache = r.variables;
+        cache = r;
         pending = null;
-        return r.variables;
+        return r;
       });
     }
     pending
-      .then((vars) => {
-        setVariables(vars);
+      .then((r) => {
+        setData(r);
         setLoading(false);
       })
       .catch((e) => {
@@ -29,10 +53,37 @@ export function useVariables(): { variables: VarInfo[]; loading: boolean; error:
       });
   }, []);
 
-  return { variables, loading, error };
+  const sources = data?.sources ?? [];
+  const multi = data?.multi ?? false;
+  const variables: VarWithSource[] = [];
+  for (const s of sources) {
+    for (const v of s.variables) {
+      variables.push({ ...v, source: s.name });
+    }
+  }
+
+  return { sources, multi, variables, loading, error };
 }
 
 export function invalidateVariables() {
   cache = null;
   pending = null;
+}
+
+// Helper: parsea un value "fuente$variable" a sus partes. Si no tiene
+// `$` o la fuente no existe en el estudio, devuelve la variable como
+// perteneciente a la fuente "default" (back-compat single-base).
+export function parseVarRef(ref: string | null | undefined): { source: string | null; name: string } {
+  if (!ref) return { source: null, name: "" };
+  const idx = ref.indexOf("$");
+  if (idx < 0) return { source: null, name: ref };
+  return { source: ref.slice(0, idx), name: ref.slice(idx + 1) };
+}
+
+// Helper inverso: construye la ref "fuente$variable". Si multi=false,
+// devuelve solo el nombre (sin prefijo) por compat visual.
+export function formatVarRef(source: string | null, name: string, multi: boolean): string {
+  if (!name) return "";
+  if (!multi || !source) return name;
+  return `${source}$${name}`;
 }

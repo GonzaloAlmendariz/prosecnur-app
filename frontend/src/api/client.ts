@@ -71,10 +71,91 @@ export type SessionState = {
   analitica_fuente: string | null;
   graficos_ppt_ok: boolean;
   graficos_word_ok: boolean;
+  // --- Estudio (multi-base, v0.2+) ---
+  estudio_nombre: string | null;
+  n_bases: number;
+  bases_nombres: string[];
 };
 
 export async function apiSessionState() {
   return handle<SessionState>(await fetch("/api/session/state", { headers: headers() }));
+}
+
+// ============================================================================
+// Estudio (multi-base, v0.2+)
+// ============================================================================
+// Un "estudio" agrupa 1 a 8 bases (pares XLSForm + data) que se analizan
+// como un todo. La Fase 1 del frontend es el gestor de bases del estudio.
+
+export type EstudioBase = {
+  nombre: string;
+  xlsform_file_id: string;
+  data_file_id: string;
+  data_ext: string;
+  n_filas: number | null;
+  n_columnas: number | null;
+  added_at: string;
+};
+
+export type EstudioPayload = {
+  nombre: string | null;
+  n_bases: number;
+  bases: Record<string, EstudioBase>;
+  max_bases: number;
+};
+
+export async function apiEstudioGet() {
+  return handle<EstudioPayload>(
+    await fetch("/api/estudio", { headers: headers() }),
+  );
+}
+
+export async function apiEstudioSetNombre(nombre: string) {
+  return handle<EstudioPayload>(
+    await fetch("/api/estudio", {
+      method: "PATCH",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ nombre }),
+    }),
+  );
+}
+
+export async function apiEstudioAddBase(payload: {
+  nombre: string;
+  xlsform_file_id: string;
+  data_file_id: string;
+}) {
+  return handle<{
+    ok: true;
+    base: EstudioBase;
+    n_bases: number;
+    max_bases: number;
+  }>(
+    await fetch("/api/estudio/base", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiEstudioRemoveBase(nombre: string) {
+  return handle<{ ok: true; n_bases: number }>(
+    await fetch(`/api/estudio/base/${encodeURIComponent(nombre)}`, {
+      method: "DELETE",
+      headers: headers(),
+    }),
+  );
+}
+
+export async function apiEstudioRenameBase(nombre_actual: string, nombre_nuevo: string) {
+  return handle<EstudioPayload>(
+    await fetch(`/api/estudio/base/${encodeURIComponent(nombre_actual)}`, {
+      method: "PATCH",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ nombre_nuevo }),
+    }),
+  );
 }
 
 export type UploadKind = "xlsform" | "data" | "sav" | "plan_limpieza" | "plantilla_codif";
@@ -165,6 +246,7 @@ export type DemoMeta = {
   descripcion: string;
   icono_ui: string;
   etiqueta_estudio: string;
+  n_bases: number;  // 1 para demos single-base, >1 para multi-base (v0.2+)
 };
 
 export async function apiListDemos() {
@@ -182,6 +264,9 @@ export async function apiLoadDemo(name?: string) {
     session_id: string;
     demo_name: string;
     demo_titulo: string;
+    n_bases: number;  // v0.2+: cuántas bases cargó (1 para single-base demos)
+    bases: { nombre: string; n_filas: number; n_columnas: number }[];
+    // Legacy (primera base, para back-compat con UI v0.1):
     resumen_instrumento: { n_preguntas: number; n_secciones: number; secciones: string[]; n_listas_opciones: number };
     n_filas: number;
     n_columnas: number;
@@ -1139,8 +1224,16 @@ export async function apiGraficosPreviewSlide(slide: Slide) {
   );
 }
 
+// Respuesta del endpoint de variables: agrupada por fuente (multi-base).
+// Cuando hay una sola base, `multi` es false y el frontend puede mostrar
+// los pickers sin dropdown de fuente.
+export type VariablesBySource = {
+  sources: { name: string; variables: VarInfo[] }[];
+  multi: boolean;
+};
+
 export async function apiGraficosVariables() {
-  return handle<{ variables: VarInfo[] }>(
+  return handle<VariablesBySource>(
     await fetch("/api/graficos/variables", { headers: headers() })
   );
 }

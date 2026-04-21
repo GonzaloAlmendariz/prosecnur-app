@@ -50,8 +50,11 @@
 
 .require_rp_data <- function(sid) {
   s <- session_get(sid)
-  if (is.null(s$rp_data) || is.null(s$rp_inst)) {
-    stop_api(409, "E_NO_RP_DATA", "Primero corre Fase 4 — Preparar datos para reporte.")
+  ds <- estudio_data_sources(sid)
+  is_ <- estudio_inst_sources(sid)
+  if (length(ds) == 0L || length(is_) == 0L) {
+    stop_api(409, "E_NO_RP_DATA",
+             "Primero agrega al menos una base al estudio (Fase 1).")
   }
   s
 }
@@ -331,26 +334,46 @@ mount_graficos <- function(pr) {
       .presets_metadata_payload()
     })) |>
     plumber::pr_get("/api/graficos/variables", wrap_endpoint(function(req, res) {
+      # Devuelve las variables agrupadas por fuente (multi-base, v0.2+).
+      # Respuesta:
+      #   {
+      #     sources: [
+      #       { name: "docentes", variables: [{ name, label, tipo, seccion }, ...] },
+      #       { name: "estudiantes", variables: [...] },
+      #       ...
+      #     ],
+      #     multi: true|false   (si hay >1 fuente)
+      #   }
+      # El frontend usa `sources[0].variables` directamente si multi=false
+      # (back-compat visual: sin dropdown de fuente), o el dropdown cuando
+      # multi=true.
       sid <- session_header(req)
-      s <- session_get(sid)
-      if (is.null(s$rp_inst)) return(list(variables = list()))
-      survey <- s$rp_inst$survey
-      if (is.null(survey)) return(list(variables = list()))
-      skip <- c("begin_group","end_group","begin_repeat","end_repeat","start","end","today","deviceid","note","calculate")
-      vars <- list()
-      for (i in seq_len(nrow(survey))) {
-        tb <- as.character(survey$type_base[i] %||% survey$type[i] %||% "")
-        if (tb %in% skip) next
-        nm <- as.character(survey$name[i] %||% "")
-        if (!nzchar(nm)) next
-        vars[[length(vars) + 1]] <- list(
-          name = nm,
-          label = as.character(survey$label[i] %||% nm),
-          tipo = tb,
-          seccion = as.character(survey$group_name[i] %||% "")
-        )
+      inst_sources <- estudio_inst_sources(sid)
+      skip <- c("begin_group","end_group","begin_repeat","end_repeat",
+                "start","end","today","deviceid","note","calculate")
+      extract_vars <- function(rp_inst) {
+        if (is.null(rp_inst)) return(list())
+        survey <- rp_inst$survey
+        if (is.null(survey)) return(list())
+        vs <- list()
+        for (i in seq_len(nrow(survey))) {
+          tb <- as.character(survey$type_base[i] %||% survey$type[i] %||% "")
+          if (tb %in% skip) next
+          nm <- as.character(survey$name[i] %||% "")
+          if (!nzchar(nm)) next
+          vs[[length(vs) + 1]] <- list(
+            name = nm,
+            label = as.character(survey$label[i] %||% nm),
+            tipo = tb,
+            seccion = as.character(survey$group_name[i] %||% "")
+          )
+        }
+        vs
       }
-      list(variables = vars)
+      sources <- lapply(names(inst_sources), function(nm) {
+        list(name = nm, variables = extract_vars(inst_sources[[nm]]))
+      })
+      list(sources = sources, multi = length(sources) > 1L)
     })) |>
     plumber::pr_get("/api/graficos/paletas-sugeridas", wrap_endpoint(function(req, res) {
       # Devuelve todas las listas de choices del instrumento con sus
@@ -516,11 +539,15 @@ mount_graficos <- function(pr) {
 
       # Ejecución del preview. Envuelvo en tryCatch para devolver un
       # error legible si algún arg falta o invalida.
+      #
+      # `data` e `instrumento` se pasan como listas nombradas (multi-base).
+      # Cuando hay 1 sola base, estudio_data_sources devuelve
+      # `list(<nombre> = df)` y el motor maneja ese caso como single-base.
       tryCatch({
         slide_r <- rebuild_slide(slide)
         reporte_ppt_plan(
-          data = s$rp_data,
-          instrumento = s$rp_inst,
+          data = estudio_data_sources(sid),
+          instrumento = estudio_inst_sources(sid),
           path_ppt = out_path,
           presets = build_presets(presets_json),
           plan = do.call(p_plan, list(slides = list(slide_r))),
@@ -563,8 +590,11 @@ mount_graficos <- function(pr) {
       # pasarlos al worker (invariantes Pulso).
       cfg <- session_get(sid)$graficos_config %||% list()
       presets <- .enriquecer_presets(presets, cfg$debug_ph)
-      rp_data_path <- job_save_rds(sid, "rp_data", s$rp_data)
-      rp_inst_path <- job_save_rds(sid, "rp_inst", s$rp_inst)
+      # Serializamos las LISTAS NOMBRADAS (multi-base) a RDS para el
+      # worker. Cuando hay 1 sola base, la lista tiene 1 sola entrada
+      # y el motor la maneja como single-base automáticamente.
+      rp_data_path <- job_save_rds(sid, "rp_data_sources", estudio_data_sources(sid))
+      rp_inst_path <- job_save_rds(sid, "rp_inst_sources", estudio_inst_sources(sid))
       # El worker recibe el registry como argumento (serializado desde el
        # main process) — así una única fuente de verdad vive en
        # graficos_metadata.R, y el worker callr no necesita duplicarla.
@@ -666,8 +696,11 @@ mount_graficos <- function(pr) {
       # Mismas invariantes que en /ppt.
       cfg <- session_get(sid)$graficos_config %||% list()
       presets <- .enriquecer_presets(presets, cfg$debug_ph)
-      rp_data_path <- job_save_rds(sid, "rp_data", s$rp_data)
-      rp_inst_path <- job_save_rds(sid, "rp_inst", s$rp_inst)
+      # Serializamos las LISTAS NOMBRADAS (multi-base) a RDS para el
+      # worker. Cuando hay 1 sola base, la lista tiene 1 sola entrada
+      # y el motor la maneja como single-base automáticamente.
+      rp_data_path <- job_save_rds(sid, "rp_data_sources", estudio_data_sources(sid))
+      rp_inst_path <- job_save_rds(sid, "rp_inst_sources", estudio_inst_sources(sid))
       slide_registry_arg <- setNames(
         lapply(.slide_names(), function(nm) list(grafs = setdiff(.slide_slots(nm), "icono"))),
         .slide_names()

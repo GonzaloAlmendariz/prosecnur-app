@@ -47,7 +47,7 @@ export function usePlanValidator(): ValidationSummary {
   const paletas = usePlanStore((s) => s.paletas);
   const iconos = usePlanStore((s) => s.iconos);
   const { slidesById, graficadoresById } = useGraficosRegistry();
-  const { variables } = useVariables();
+  const { variables, multi } = useVariables();
 
   return useMemo(() => {
     const issues: ValidationIssue[] = [];
@@ -62,7 +62,12 @@ export function usePlanValidator(): ValidationSummary {
     }
 
     // 2) Slots vacíos + variables desconocidas ------------------------------
-    const varNames = new Set(variables.map((v) => v.name));
+    // `varNames` es un set de refs canónicas: si hay multi-base, incluye
+    // el prefijo "docentes$sexo"; si es single-base, solo "sexo". El check
+    // en `checkVarRefs` normaliza la ref del graficador contra este set.
+    const varNames = new Set(
+      variables.map((v) => (multi ? `${v.source}$${v.name}` : v.name)),
+    );
     const iconIds = new Set(iconos.map((i) => i.id));
 
     for (const slide of slides) {
@@ -131,7 +136,7 @@ export function usePlanValidator(): ValidationSummary {
       warnings,
       canExport: errors.length === 0,
     };
-  }, [slides, paletas, iconos, slidesById, graficadoresById, variables]);
+  }, [slides, paletas, iconos, slidesById, graficadoresById, variables, multi]);
 }
 
 // --- Helpers internos --------------------------------------------------

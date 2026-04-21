@@ -225,6 +225,20 @@ export default function CargaPage() {
                         {d.etiqueta_estudio}
                       </div>
                     </div>
+                    {d.n_bases > 1 && (
+                      <span
+                        title={`Este demo carga ${d.n_bases} bases en un solo estudio.`}
+                        style={{
+                          fontSize: 10, fontWeight: 700,
+                          padding: "3px 7px", borderRadius: 999,
+                          background: "var(--pulso-primary)",
+                          color: "white",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {d.n_bases} bases
+                      </span>
+                    )}
                   </div>
                   <p style={{ margin: 0, fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
                     {d.descripcion}
@@ -235,6 +249,8 @@ export default function CargaPage() {
           </div>
         )}
       </div>
+
+      {state && state.n_bases > 1 && <EstudioPanel state={state} />}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
         <Panel title={<><FileSpreadsheet size={14} /> XLSForm (instrumento)</>}>
@@ -293,4 +309,54 @@ type LucideIcon = (props: { size?: number; className?: string }) => JSX.Element;
 function resolveLucideIcon(name: string | undefined): LucideIcon {
   const registry = Lucide as unknown as Record<string, LucideIcon>;
   return (name && registry[name]) || registry["FileText"] || registry["Square"];
+}
+
+// Panel resumen del estudio cuando hay múltiples bases cargadas.
+// Muestra el nombre del estudio y la lista de bases disponibles con
+// sus nombres técnicos — éstos son los que se usan como prefijo en
+// `"fuente$variable"` dentro de los slides de gráficos.
+function EstudioPanel({ state }: { state: { estudio_nombre: string | null; bases_nombres: string[] } }) {
+  return (
+    <div
+      style={{
+        marginBottom: 20,
+        padding: "14px 16px",
+        borderRadius: "var(--pulso-radius)",
+        border: "1px solid var(--pulso-primary-border)",
+        background: "var(--pulso-primary-soft)",
+        display: "flex", flexDirection: "column", gap: 8,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Lucide.Layers size={16} color="var(--pulso-primary)" />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-primary)" }}>
+            Estudio activo{state.estudio_nombre ? `: ${state.estudio_nombre}` : ""}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.5 }}>
+            Tu sesión tiene <strong>{state.bases_nombres.length} bases</strong> cargadas. Los slides del
+            reporte pueden mezclar variables de las distintas fuentes con notación{" "}
+            <code style={{ fontSize: 10 }}>fuente$variable</code>.
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {state.bases_nombres.map((nombre) => (
+          <span
+            key={nombre}
+            style={{
+              fontSize: 11, fontWeight: 600,
+              padding: "4px 10px", borderRadius: 999,
+              background: "white",
+              border: "1px solid var(--pulso-primary-border)",
+              color: "var(--pulso-primary)",
+              fontFamily: "ui-monospace, monospace",
+            }}
+          >
+            {nombre}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }

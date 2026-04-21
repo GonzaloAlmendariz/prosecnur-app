@@ -23,11 +23,23 @@ shutdown_requested <- function() isTRUE(.shutdown_flag$value)
 #   2. Añade una entrada acá.
 #   3. Reinicia el backend — aparece automático en la UI si los archivos
 #      están, no requiere tocar frontend.
+# Formato por demo:
+#  - Single-base (legacy, igual que en v0.1): `instrumento_file` +
+#    `data_file` directamente en el meta. El loader crea un estudio con
+#    UNA sola base llamada "default".
+#  - Multi-base (v0.2+): un campo `bases` con lista nombrada. Cada entrada
+#    define su propio par (instrumento, data). El loader crea el estudio
+#    con N bases con esos nombres.
+#
+# Ejemplo multi-base: acreditacion tiene 3 bases (docentes, estudiantes,
+# administrativos) que se analizan juntas — igual que hace el QMD
+# `ejecutar_surveymonkey_prosecnur.qmd`.
+
 .DEMOS_META <- list(
   generic = list(
     name             = "generic",
     titulo_humano    = "Demo genérica (prosecnur)",
-    descripcion      = "Dataset compacto de ejemplo, ideal para explorar la app sin datos reales. Pocas preguntas, variadas (Likert, select_one, integer).",
+    descripcion      = "Dataset compacto de ejemplo, ideal para explorar la app sin datos reales. Pocas preguntas, variadas (Likert, select_one, integer). Una sola base.",
     icono_ui         = "FileText",
     etiqueta_estudio = "Exploratorio",
     instrumento_file = "demo_instrumento.xlsx",
@@ -36,38 +48,35 @@ shutdown_requested <- function() isTRUE(.shutdown_flag$value)
   ops_salud = list(
     name             = "ops_salud",
     titulo_humano    = "OPS — Establecimientos de Salud",
-    descripcion      = "Encuesta a ~120 establecimientos de salud del Perú en 5 regiones (Callao, La Libertad, SJL, Tacna, Tumbes). Incluye escalas Likert, multi-select y ejemplos de categorización jerárquica.",
+    descripcion      = "Encuesta a ~120 establecimientos de salud del Perú en 5 regiones (Callao, La Libertad, SJL, Tacna, Tumbes). Likert, multi-select, categorización jerárquica. Una sola base.",
     icono_ui         = "Activity",
     etiqueta_estudio = "Salud pública",
     instrumento_file = "ops_salud/instrumento.xlsx",
     data_file        = "ops_salud/data.xlsx"
   ),
-  acreditacion_docentes = list(
-    name             = "acreditacion_docentes",
-    titulo_humano    = "Acreditación PUCP — Docentes",
-    descripcion      = "Encuesta a docentes en el marco de acreditación de la carrera AMDT (Arte, Moda y Diseño Textil). Escalas de acuerdo 4 niveles + satisfacción. Import desde SurveyMonkey.",
+  acreditacion = list(
+    name             = "acreditacion",
+    titulo_humano    = "Acreditación PUCP — AMDT",
+    descripcion      = "Estudio con TRES bases (docentes, estudiantes, administrativos) del proceso de acreditación de la carrera de Arte, Moda y Diseño Textil. Los slides del reporte usan variables de las 3 fuentes simultáneamente (ej. 'docentes$p6_1', 'estudiantes$p6_1').",
     icono_ui         = "GraduationCap",
-    etiqueta_estudio = "Acreditación",
-    instrumento_file = "acreditacion/docentes_inst.xlsx",
-    data_file        = "acreditacion/docentes_data.sav"
-  ),
-  acreditacion_estudiantes = list(
-    name             = "acreditacion_estudiantes",
-    titulo_humano    = "Acreditación PUCP — Estudiantes",
-    descripcion      = "Complementaria de la anterior: respuestas de estudiantes de AMDT. Usa el mismo instrumento base pero con la bloques propios del rol 'estudiante'.",
-    icono_ui         = "Users",
-    etiqueta_estudio = "Acreditación",
-    instrumento_file = "acreditacion/estudiantes_inst.xlsx",
-    data_file        = "acreditacion/estudiantes_data.sav"
-  ),
-  acreditacion_administrativos = list(
-    name             = "acreditacion_administrativos",
-    titulo_humano    = "Acreditación PUCP — Administrativos",
-    descripcion      = "Complementaria del bloque AMDT: respuestas del personal administrativo. Muestra pequeña (~20 respuestas) — útil para probar edge cases con N bajo.",
-    icono_ui         = "Briefcase",
-    etiqueta_estudio = "Acreditación",
-    instrumento_file = "acreditacion/administrativos_inst.xlsx",
-    data_file        = "acreditacion/administrativos_data.sav"
+    etiqueta_estudio = "Acreditación · multi-base",
+    bases = list(
+      docentes = list(
+        nombre           = "docentes",
+        instrumento_file = "acreditacion/docentes_inst.xlsx",
+        data_file        = "acreditacion/docentes_data.sav"
+      ),
+      estudiantes = list(
+        nombre           = "estudiantes",
+        instrumento_file = "acreditacion/estudiantes_inst.xlsx",
+        data_file        = "acreditacion/estudiantes_data.sav"
+      ),
+      administrativos = list(
+        nombre           = "administrativos",
+        instrumento_file = "acreditacion/administrativos_inst.xlsx",
+        data_file        = "acreditacion/administrativos_data.sav"
+      )
+    )
   )
 )
 
@@ -86,11 +95,37 @@ shutdown_requested <- function() isTRUE(.shutdown_flag$value)
   if (is.null(meta)) return(NULL)
   samples_dir <- .samples_dir()
   if (is.null(samples_dir)) return(NULL)
-  inst_path <- file.path(samples_dir, meta$instrumento_file)
-  data_path <- file.path(samples_dir, meta$data_file)
-  meta$instrumento_path <- inst_path
-  meta$data_path        <- data_path
-  meta$available        <- file.exists(inst_path) && file.exists(data_path)
+
+  # Resolver paths y availability según sea single-base o multi-base.
+  if (is.list(meta$bases) && length(meta$bases) > 0L) {
+    # Multi-base
+    resolved <- list()
+    all_ok <- TRUE
+    for (bn in names(meta$bases)) {
+      b <- meta$bases[[bn]]
+      inst_path <- file.path(samples_dir, b$instrumento_file)
+      data_path <- file.path(samples_dir, b$data_file)
+      ok <- file.exists(inst_path) && file.exists(data_path)
+      if (!ok) all_ok <- FALSE
+      resolved[[bn]] <- list(
+        nombre           = b$nombre %||% bn,
+        instrumento_path = inst_path,
+        data_path        = data_path,
+        available        = ok
+      )
+    }
+    meta$bases_resolved <- resolved
+    meta$available      <- all_ok
+    meta$n_bases        <- length(resolved)
+  } else {
+    # Single-base (legacy)
+    inst_path <- file.path(samples_dir, meta$instrumento_file)
+    data_path <- file.path(samples_dir, meta$data_file)
+    meta$instrumento_path <- inst_path
+    meta$data_path        <- data_path
+    meta$available        <- file.exists(inst_path) && file.exists(data_path)
+    meta$n_bases          <- 1L
+  }
   meta
 }
 
@@ -105,7 +140,8 @@ shutdown_requested <- function() isTRUE(.shutdown_flag$value)
         titulo_humano    = m$titulo_humano,
         descripcion      = m$descripcion,
         icono_ui         = m$icono_ui,
-        etiqueta_estudio = m$etiqueta_estudio
+        etiqueta_estudio = m$etiqueta_estudio,
+        n_bases          = as.integer(m$n_bases %||% 1L)
       )
     }
   }
@@ -155,8 +191,9 @@ mount_sistema <- function(pr) {
       .demos_payload()
     })) |>
     plumber::pr_post("/api/system/demo", wrap_endpoint(function(req, res, name = NULL) {
-      # Carga un dataset de prueba. Si `name` no viene, default a "generic"
-      # para compat con versiones viejas del frontend.
+      # Carga un dataset de prueba (1+ bases). Si `name` no viene, default
+      # a "generic". Si el demo es multi-base, carga TODAS las bases
+      # declaradas en el catálogo como parte del mismo estudio.
       demo_name <- if (is.character(name) && length(name) >= 1 && nzchar(name[[1]])) {
         as.character(name[[1]])
       } else {
@@ -165,51 +202,94 @@ mount_sistema <- function(pr) {
       }
       meta <- .demo_meta(demo_name)
       if (is.null(meta)) {
-        stop_api(404, "E_DEMO_UNKNOWN", sprintf("Demo desconocido: '%s'. Revisa /api/system/demos para ver los disponibles.", demo_name))
+        stop_api(404, "E_DEMO_UNKNOWN",
+                 sprintf("Demo desconocido: '%s'. Revisa /api/system/demos.", demo_name))
       }
       if (!isTRUE(meta$available)) {
-        stop_api(404, "E_DEMO_MISSING", sprintf(
-          "Demo '%s' registrado pero faltan archivos en disco. Esperados:\n  - %s\n  - %s",
-          demo_name, meta$instrumento_path, meta$data_path
-        ))
+        faltan <- if (is.list(meta$bases_resolved)) {
+          paste(vapply(meta$bases_resolved, function(b) {
+            if (isTRUE(b$available)) "" else sprintf("  - %s\n  - %s", b$instrumento_path, b$data_path)
+          }, character(1)), collapse = "\n")
+        } else {
+          sprintf("  - %s\n  - %s", meta$instrumento_path %||% "", meta$data_path %||% "")
+        }
+        stop_api(404, "E_DEMO_MISSING",
+                 sprintf("Demo '%s' registrado pero faltan archivos.\n%s", demo_name, faltan))
+      }
+
+      # Helper para añadir UNA base al estudio. Sube los archivos al file
+      # store de la sesión y llama a estudio_add_base.
+      add_base_from_files <- function(sid, nombre, inst_path, data_path) {
+        inst_basename <- basename(inst_path)
+        data_basename <- basename(data_path)
+        data_ext <- tolower(tools::file_ext(data_basename))
+        data_kind <- if (data_ext == "sav") "sav" else "data"
+
+        xls_meta <- save_upload(sid, "xlsform", inst_basename,
+                                readBin(inst_path, "raw", n = file.info(inst_path)$size))
+        dat_meta <- save_upload(sid, data_kind, data_basename,
+                                readBin(data_path, "raw", n = file.info(data_path)$size))
+        rp_inst <- reporte_instrumento(path = xls_meta$path)
+        data_df <- .read_data_any(dat_meta$path)
+        rp_data <- reporte_data(data_df, instrumento = rp_inst)
+
+        estudio_add_base(
+          sid,
+          nombre          = nombre,
+          xlsform_file_id = xls_meta$file_id,
+          data_file_id    = dat_meta$file_id,
+          data_ext        = data_ext,
+          rp_data         = rp_data,
+          rp_inst         = rp_inst,
+          n_filas         = as.integer(nrow(data_df)),
+          n_columnas      = as.integer(ncol(data_df))
+        )
+        list(
+          nombre = nombre,
+          n_filas = nrow(data_df),
+          n_columnas = ncol(data_df),
+          resumen_instrumento = summarize_instrumento(leer_instrumento_xlsform(xls_meta$path))
+        )
       }
 
       sid <- session_create()
       res$setHeader("X-Pulso-Session", sid)
+      estudio_ensure(sid)
+      estudio_set_nombre(sid, meta$titulo_humano)
 
-      # Nombres "humanos" para los files cargados (aparecen en Fase 1).
-      inst_basename <- basename(meta$instrumento_path)
-      data_basename <- basename(meta$data_path)
-      data_ext <- tolower(tools::file_ext(data_basename))
-      data_kind <- if (data_ext == "sav") "sav" else "data"
+      # Cargar bases según shape del demo.
+      bases_loaded <- if (is.list(meta$bases_resolved) && length(meta$bases_resolved) > 0L) {
+        # Multi-base: iterar por todas las bases declaradas.
+        lapply(names(meta$bases_resolved), function(bn) {
+          b <- meta$bases_resolved[[bn]]
+          add_base_from_files(sid, bn, b$instrumento_path, b$data_path)
+        })
+      } else {
+        # Single-base legacy: una sola base llamada "default".
+        list(add_base_from_files(sid, "default", meta$instrumento_path, meta$data_path))
+      }
 
-      xls_meta <- save_upload(sid, "xlsform", inst_basename,
-                              readBin(meta$instrumento_path, "raw", n = file.info(meta$instrumento_path)$size))
-      dat_meta <- save_upload(sid, data_kind, data_basename,
-                              readBin(meta$data_path, "raw", n = file.info(meta$data_path)$size))
-
-      inst <- leer_instrumento_xlsform(xls_meta$path)
-      session_set(sid, "instrumento", inst)
-
-      data_df <- .read_data_any(dat_meta$path)
-      session_set(sid, "data_raw_meta", list(file_id = dat_meta$file_id, path = dat_meta$path, ext = data_ext))
-
-      rp_inst <- reporte_instrumento(path = xls_meta$path)
-      rp_data <- reporte_data(data_df, instrumento = rp_inst)
-      session_set(sid, "rp_inst", rp_inst)
-      session_set(sid, "rp_data", rp_data)
       session_set(sid, "analitica_prep_ok", TRUE)
       session_set(sid, "analitica_fuente", paste0("demo:", demo_name))
 
-      resumen <- summarize_instrumento(inst)
+      # Respuesta: preservamos los campos legacy (`resumen_instrumento`,
+      # `n_filas`, `n_columnas`) apuntando a la PRIMERA base, para que
+      # el frontend v0.1 siga funcionando mientras migramos a la lectura
+      # de `bases`.
+      primera <- bases_loaded[[1]]
       list(
         ok = TRUE,
         session_id = sid,
         demo_name = demo_name,
         demo_titulo = meta$titulo_humano,
-        resumen_instrumento = resumen,
-        n_filas = nrow(data_df),
-        n_columnas = ncol(data_df)
+        n_bases = length(bases_loaded),
+        bases = lapply(bases_loaded, function(b) list(
+          nombre = b$nombre, n_filas = b$n_filas, n_columnas = b$n_columnas
+        )),
+        # Campos legacy (primera base):
+        resumen_instrumento = primera$resumen_instrumento,
+        n_filas = primera$n_filas,
+        n_columnas = primera$n_columnas
       )
     })) |>
     plumber::pr_post("/api/session", wrap_endpoint(function(req, res) {
@@ -237,6 +317,7 @@ mount_sistema <- function(pr) {
         unname(s$files),
         vapply(s$files, function(f) f$kind, character(1))
       )
+      bases <- if (!is.null(s$estudio)) s$estudio$bases else list()
       list(
         session_id = s$id,
         created_at = format(s$created_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
@@ -259,7 +340,11 @@ mount_sistema <- function(pr) {
         analitica_enumeradores_ok = isTRUE(s$analitica_enumeradores_ok),
         analitica_fuente = s$analitica_fuente %||% NA_character_,
         graficos_ppt_ok = isTRUE(s$graficos_ppt_ok),
-        graficos_word_ok = isTRUE(s$graficos_word_ok)
+        graficos_word_ok = isTRUE(s$graficos_word_ok),
+        # --- Estudio (multi-base, v0.2+) ---
+        estudio_nombre = if (is.null(s$estudio)) NA_character_ else (s$estudio$nombre %||% NA_character_),
+        n_bases = length(bases),
+        bases_nombres = as.list(names(bases))
       )
     })) |>
     plumber::pr_post("/api/files/upload", wrap_endpoint(function(req, res, file = NULL, kind = NULL) {
