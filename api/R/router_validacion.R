@@ -30,7 +30,7 @@
   s <- session_get(sid)
   if (!is.null(s$inst_limpieza)) return(s$inst_limpieza)
   meta <- .require_xlsform(sid)
-  inst <- prosecnur::leer_xlsform_limpieza(meta$path, verbose = FALSE)
+  inst <- leer_xlsform_limpieza(meta$path, verbose = FALSE)
   session_set(sid, "inst_limpieza", inst)
   inst
 }
@@ -77,7 +77,7 @@ mount_validacion <- function(pr) {
         repeat_min1 = FALSE, tiempo_ventana = FALSE
       ) else as.list(incluir)
 
-      plan <- prosecnur::generar_plan_limpieza(x = inst, incluir = incluir_final)
+      plan <- generar_plan_limpieza(x = inst, incluir = incluir_final)
       resumen <- tryCatch(
         dplyr::arrange(
           dplyr::count(plan, `Tipo de observación`, name = "n_reglas"),
@@ -104,7 +104,7 @@ mount_validacion <- function(pr) {
 
       file_id <- uuid::UUIDgenerate()
       out_path <- file.path(s$dir, "downloads", sprintf("plan_limpieza_%s.xlsx", file_id))
-      prosecnur::exportar_plan_limpieza(
+      exportar_plan_limpieza(
         plan = s$plan_result$plan,
         x = inst,
         path = out_path,
@@ -126,7 +126,7 @@ mount_validacion <- function(pr) {
       sid <- session_header(req)
       if (is.null(file_id) || !nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Body must include file_id")
       meta <- get_file(sid, file_id)
-      plan_df <- prosecnur::cargar_plan_excel(meta$path)
+      plan_df <- cargar_plan_excel(meta$path)
 
       prev <- session_get(sid)$plan_result
       new_result <- if (is.null(prev)) {
@@ -155,12 +155,12 @@ mount_validacion <- function(pr) {
             sav  = haven::read_sav(data_path),
             stop(sprintf("Unsupported data extension: %s", data_ext))
           )
-          ev <- prosecnur::evaluar_consistencia(
+          ev <- evaluar_consistencia(
             datos = datos,
             plan = plan,
             contar_na_como_inconsistencia = FALSE
           )
-          total_raw <- tryCatch(prosecnur::total_inconsistencias(ev), error = function(e) NULL)
+          total_raw <- tryCatch(total_inconsistencias(ev), error = function(e) NULL)
           total_scalar <- if (is.numeric(total_raw) && length(total_raw) == 1) {
             as.integer(total_raw)
           } else if (is.list(total_raw) && !is.null(total_raw$cabecera)) {
@@ -200,20 +200,20 @@ mount_validacion <- function(pr) {
       if (is.null(s$evaluacion)) stop_api(409, "E_NO_AUDITORIA", "Run auditoría first with POST /api/validacion/auditoria")
       if (is.null(id_regla)) stop_api(400, "E_MISSING_ID_REGLA", "Body must include id_regla")
       inst <- tryCatch(.ensure_inst_limpieza(sid), error = function(e) NULL)
-      detalle <- prosecnur::auditar_regla(s$evaluacion, ids = id_regla, inst = inst, verbose = FALSE)
+      detalle <- auditar_regla(s$evaluacion, ids = id_regla, inst = inst, verbose = FALSE)
       list(ok = TRUE, detalle = .plan_rows_preview(detalle, n = 200))
     })) |>
     plumber::pr_get("/api/validacion/graficos/secciones", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       inst <- .ensure_inst_limpieza(sid)
-      gg <- .with_grid(function() prosecnur::GraficarSecciones(inst))
+      gg <- .with_grid(function() GraficarSecciones(inst))
       png <- .ggplot_to_png(gg, width = 16, height = 10)
       plumber::include_file(png, res, content_type = "image/png")
     })) |>
     plumber::pr_get("/api/validacion/graficos/preguntas", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       inst <- .ensure_inst_limpieza(sid)
-      gg <- .with_grid(function() prosecnur::GraficarPreguntas(inst))
+      gg <- .with_grid(function() GraficarPreguntas(inst))
       png <- .ggplot_to_png(gg, width = 16, height = 10)
       plumber::include_file(png, res, content_type = "image/png")
     }))

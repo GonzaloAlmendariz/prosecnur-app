@@ -604,7 +604,7 @@
 # PRESETS (estilo global por tipo de graficador)
 # ===========================================================================
 #
-# `prosecnur::p_presets` acepta 13 bloques de tipo: `base` (se hereda a todos
+# `p_presets` acepta 13 bloques de tipo: `base` (se hereda a todos
 # los graficadores) + un bloque por cada tipo de gráfico (barras_apiladas,
 # multi_apiladas, barras_agrupadas, barras_numericas, boxplot, media_rango,
 # pie, donut, radar_tabla, dim_heatmap, dim_heatmap_criterios, dim_radar,
@@ -1745,7 +1745,7 @@
     # Recuperar formals reales de la función de prosecnur para documentar
     # args que no estén en la lista curada (todos los args técnicos viven
     # en `args_extra`).
-    fn <- tryCatch(getExportedValue("prosecnur", nm), error = function(e) NULL)
+    fn <- tryCatch(getExportedValue("prosecnurapp", nm), error = function(e) NULL)
     formals_names <- if (!is.null(fn)) names(formals(fn)) else character(0)
     curated_names <- vapply(meta$args, function(a) as.character(a$name), character(1))
     args_extra <- setdiff(formals_names, curated_names)
@@ -1762,7 +1762,7 @@
   })
   graficadores <- lapply(names(.GRAFICADORES_META), function(nm) {
     meta <- .GRAFICADORES_META[[nm]]
-    fn <- tryCatch(getExportedValue("prosecnur", nm), error = function(e) NULL)
+    fn <- tryCatch(getExportedValue("prosecnurapp", nm), error = function(e) NULL)
     formals_names <- if (!is.null(fn)) names(formals(fn)) else character(0)
     curated_names <- vapply(meta$args, function(a) as.character(a$name), character(1))
     args_extra <- setdiff(formals_names, curated_names)

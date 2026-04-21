@@ -92,7 +92,7 @@ mount_carga <- function(pr) {
       if (!(meta$kind %in% c("xlsform"))) {
         stop_api(400, "E_WRONG_KIND", "file must have kind='xlsform'")
       }
-      inst <- prosecnur::leer_instrumento_xlsform(meta$path)
+      inst <- leer_instrumento_xlsform(meta$path)
       session_set(sid, "instrumento", inst)
       resumen <- summarize_instrumento(inst)
       list(ok = TRUE, resumen = resumen)
@@ -103,7 +103,7 @@ mount_carga <- function(pr) {
       inst <- if (!is.null(s$inst_limpieza)) s$inst_limpieza else {
         meta_files <- Filter(function(f) f$kind == "xlsform", s$files)
         if (length(meta_files) == 0) stop_api(409, "E_NO_XLSFORM", "No XLSForm uploaded yet")
-        x <- prosecnur::leer_xlsform_limpieza(meta_files[[length(meta_files)]]$path, verbose = FALSE)
+        x <- leer_xlsform_limpieza(meta_files[[length(meta_files)]]$path, verbose = FALSE)
         session_set(sid, "inst_limpieza", x)
         x
       }

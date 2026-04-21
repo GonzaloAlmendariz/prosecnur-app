@@ -404,13 +404,13 @@ isTRUE_vec <- function(x) {
   xls <- .require_xlsform_path(sid)
   dat <- .require_data_path(sid)
   s <- session_get(sid)
-  inst <- s$codif_inst %||% prosecnur::leer_instrumento_xlsform(xls$path)
+  inst <- s$codif_inst %||% leer_instrumento_xlsform(xls$path)
   data_df <- s$codif_data %||% .read_data_any(dat)
   session_set(sid, "codif_inst", inst)
   session_set(sid, "codif_data", data_df)
   tmp <- tempfile(fileext = ".xlsx")
   on.exit(unlink(tmp), add = TRUE)
-  prosecnur::escribir_plantilla_familias(
+  escribir_plantilla_familias(
     inst = inst, dat = list(raw = data_df), path = tmp
   )
   df <- readxl::read_excel(tmp, sheet = "familias")
@@ -1101,11 +1101,11 @@ mount_codificacion <- function(pr) {
       sid <- session_header(req)
       xls <- .require_xlsform_path(sid)
       dat <- .require_data_path(sid)
-      inst <- prosecnur::leer_instrumento_xlsform(xls$path)
+      inst <- leer_instrumento_xlsform(xls$path)
       data_df <- .read_data_any(dat)
       s <- session_get(sid)
       out_path <- file.path(s$dir, "downloads", sprintf("familias_%s.xlsx", uuid::UUIDgenerate()))
-      prosecnur::escribir_plantilla_familias(inst = inst, dat = list(raw = data_df), path = out_path)
+      escribir_plantilla_familias(inst = inst, dat = list(raw = data_df), path = out_path)
       meta <- .register_output_file(sid, "familias_template", out_path)
       session_set(sid, "codif_inst", inst)
       session_set(sid, "codif_data", data_df)
@@ -1191,7 +1191,7 @@ mount_codificacion <- function(pr) {
       }
       data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
       if (is.null(s$codif_data)) session_set(sid, "codif_data", data_df)
-      inst <- s$codif_inst %||% prosecnur::leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
+      inst <- s$codif_inst %||% leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
       if (is.null(s$codif_inst)) session_set(sid, "codif_inst", inst)
 
       section_info <- .section_map(inst)
@@ -1573,7 +1573,7 @@ mount_codificacion <- function(pr) {
       s <- session_get(sid)
       draft <- s$codif_familias_draft
       if (is.null(draft)) stop_api(409, "E_NO_DRAFT", "No hay draft de familias. Genera primero con GET /api/codificacion/familias/draft.")
-      inst <- s$codif_inst %||% prosecnur::leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
+      inst <- s$codif_inst %||% leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
       data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
       dat <- list(raw = data_df)
 
@@ -1581,7 +1581,7 @@ mount_codificacion <- function(pr) {
       dir.create(dirname(fam_path), showWarnings = FALSE, recursive = TRUE)
       .familias_draft_to_xlsx(draft, fam_path)
 
-      split <- prosecnur::leer_familias_clasificar(path = fam_path, inst = inst, dat = dat, verbose = FALSE)
+      split <- leer_familias_clasificar(path = fam_path, inst = inst, dat = dat, verbose = FALSE)
 
       session_set(sid, "codif_familias_split", split)
       session_set(sid, "codif_familias_xlsx_path", fam_path)
@@ -1605,14 +1605,14 @@ mount_codificacion <- function(pr) {
       split <- s$codif_familias_split
       if (is.null(split)) stop_api(409, "E_NO_SPLIT",
         "Primero valida el borrador de familias (POST /api/codificacion/familias/commit).")
-      inst <- s$codif_inst %||% prosecnur::leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
+      inst <- s$codif_inst %||% leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
       data_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
       dat <- list(raw = data_df)
-      plantilla <- prosecnur::construir_plantilla_desde_familias(inst = inst, dat = dat, split = split)
+      plantilla <- construir_plantilla_desde_familias(inst = inst, dat = dat, split = split)
       out_path <- file.path(s$dir, "downloads",
         sprintf("plantilla_codificacion_%s.xlsx", uuid::UUIDgenerate()))
       dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
-      prosecnur::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = out_path, inst = inst)
+      exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = out_path, inst = inst)
       meta <- .register_output_file(sid, "plantilla_codif_template", out_path)
       session_set(sid, "codif_plantilla_template", TRUE)
       # Auto-register as THE codes template so Paso 4 (aplicar) can work
@@ -1718,15 +1718,15 @@ mount_codificacion <- function(pr) {
       if (is.null(file_id) || !nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Falta file_id del xlsx de familias editado")
       fam_meta <- get_file(sid, file_id)
       s <- session_get(sid)
-      inst <- s$codif_inst %||% prosecnur::leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
+      inst <- s$codif_inst %||% leer_instrumento_xlsform(.require_xlsform_path(sid)$path)
       dat_df <- s$codif_data %||% .read_data_any(.require_data_path(sid))
       dat <- if (is.data.frame(dat_df)) list(raw = dat_df) else dat_df
 
-      split <- prosecnur::leer_familias_clasificar(path = fam_meta$path, inst = inst, dat = dat, verbose = FALSE)
-      plantilla <- prosecnur::construir_plantilla_desde_familias(inst = inst, dat = dat, split = split)
+      split <- leer_familias_clasificar(path = fam_meta$path, inst = inst, dat = dat, verbose = FALSE)
+      plantilla <- construir_plantilla_desde_familias(inst = inst, dat = dat, split = split)
 
       out_path <- file.path(s$dir, "downloads", sprintf("plantilla_codificacion_%s.xlsx", uuid::UUIDgenerate()))
-      prosecnur::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = out_path, inst = inst)
+      exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = out_path, inst = inst)
       meta <- .register_output_file(sid, "plantilla_codif_template", out_path)
       session_set(sid, "codif_familias_file_id", file_id)
       session_set(sid, "codif_plantilla_template", TRUE)
@@ -1771,7 +1771,7 @@ mount_codificacion <- function(pr) {
       # plantilla xlsx from the current in-app state (familias draft +
       # grupos + rules) — no reliance on stale user-edited xlsx files.
 
-      inst <- s$codif_inst %||% prosecnur::leer_instrumento_xlsform(xls$path)
+      inst <- s$codif_inst %||% leer_instrumento_xlsform(xls$path)
       data_df <- s$codif_data %||% .read_data_any(dat)
       session_set(sid, "codif_inst", inst)
       session_set(sid, "codif_data", data_df)
@@ -1791,7 +1791,7 @@ mount_codificacion <- function(pr) {
       }
 
       # Promote the user's manual "marcada" toggles into draft$rows$use so
-      # prosecnur::leer_familias_clasificar picks them up. Auto-marcadas
+      # leer_familias_clasificar picks them up. Auto-marcadas
       # (preguntas con pareja comitteada) ya tienen use=TRUE porque lo seteó
       # /pareja, pero las text-huerfanas/solitarias/integer marcadas a mano
       # por la UI solo viven en codif_marcadas hasta este momento.
@@ -1828,19 +1828,19 @@ mount_codificacion <- function(pr) {
         sprintf("familias_draft_%s.xlsx", uuid::UUIDgenerate()))
       dir.create(dirname(fam_path), showWarnings = FALSE, recursive = TRUE)
       .familias_draft_to_xlsx(draft, fam_path)
-      split <- prosecnur::leer_familias_clasificar(
+      split <- leer_familias_clasificar(
         path = fam_path, inst = inst, dat = list(raw = data_df), verbose = FALSE
       )
       session_set(sid, "codif_familias_split", split)
       session_set(sid, "codif_familias_xlsx_path", fam_path)
 
       # 3) Build & export the plantilla xlsx (empty recod columns).
-      plantilla <- prosecnur::construir_plantilla_desde_familias(
+      plantilla <- construir_plantilla_desde_familias(
         inst = inst, dat = list(raw = data_df), split = split
       )
       codes_path <- file.path(s$dir, "downloads",
         sprintf("plantilla_codificacion_%s.xlsx", uuid::UUIDgenerate()))
-      prosecnur::exportar_plantilla_codificacion_xlsx(
+      exportar_plantilla_codificacion_xlsx(
         plantilla, path_xlsx = codes_path, inst = inst
       )
       codes_meta <- .register_output_file(sid, "plantilla_codif_template", codes_path)
@@ -1874,7 +1874,7 @@ mount_codificacion <- function(pr) {
         kind = "codificacion.aplicar",
         func = function(xls_path, data_path, codes_path, fam_path, data_out, inst_out,
                         sm_vars, so_parent_vars, so_child_vars, int_vars) {
-          prosecnur::ppra_adaptar_data(
+          ppra_adaptar_data(
             path_instrumento = xls_path,
             path_datos       = data_path,
             path_plantilla   = codes_path,
@@ -1885,7 +1885,7 @@ mount_codificacion <- function(pr) {
             out_path         = data_out,
             path_familias    = fam_path
           )
-          prosecnur::ppra_adaptar_instrumento(
+          ppra_adaptar_instrumento(
             path_instrumento_in  = xls_path,
             path_data_adaptada   = data_out,
             path_instrumento_out = inst_out,

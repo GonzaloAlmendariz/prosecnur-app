@@ -189,7 +189,7 @@
 }
 
 # Traduce las secciones del store (lista de {id, nombre, variables,
-# oculto, orden}) a la forma que prosecnur::reporte_frecuencias/cruces
+# oculto, orden}) a la forma que reporte_frecuencias/cruces
 # espera: lista nombrada `list(Nombre1 = c("v1","v2"), ...)`.
 # Respeta `oculto` y `secciones_activas` (si se pasa un filtro).
 .secciones_from_config <- function(cfg, activas_filter = NULL) {
@@ -465,7 +465,7 @@ mount_analitica <- function(pr) {
     plumber::pr_post("/api/analitica/preparar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       src <- .analitica_fuentes(sid)
-      rp_inst <- prosecnur::reporte_instrumento(path = src$inst_path)
+      rp_inst <- reporte_instrumento(path = src$inst_path)
       dat_raw <- switch(src$data_meta$ext,
         xlsx = readxl::read_excel(src$data_meta$path),
         xls  = readxl::read_excel(src$data_meta$path),
@@ -473,7 +473,7 @@ mount_analitica <- function(pr) {
         sav  = haven::read_sav(src$data_meta$path),
         stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Ext no soportada: %s", src$data_meta$ext))
       )
-      rp_data <- prosecnur::reporte_data(dat_raw, instrumento = rp_inst)
+      rp_data <- reporte_data(dat_raw, instrumento = rp_inst)
       session_set(sid, "rp_inst", rp_inst)
       session_set(sid, "rp_data", rp_data)
       session_set(sid, "analitica_prep_ok", TRUE)
@@ -498,7 +498,7 @@ mount_analitica <- function(pr) {
       data_out <- .excluir_cols(ctx$rp_data, excluidas)
       out_path <- file.path(s$dir, "downloads", sprintf("codebook_%s.xlsx", uuid::UUIDgenerate()))
       dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
-      prosecnur::reporte_codebook(
+      reporte_codebook(
         data = data_out,
         path_xlsx = out_path,
         codigos_solo_si_presentes = if (length(codes) > 0L) codes else NULL
@@ -545,7 +545,7 @@ mount_analitica <- function(pr) {
 
       out_path <- file.path(s$dir, "downloads", sprintf("frecuencias_%s.xlsx", uuid::UUIDgenerate()))
       dir.create(dirname(out_path), showWarnings = FALSE, recursive = TRUE)
-      prosecnur::reporte_frecuencias(
+      reporte_frecuencias(
         data = data_out, instrumento = ctx$rp_inst,
         secciones = secs,
         path_xlsx = out_path,
@@ -644,7 +644,7 @@ mount_analitica <- function(pr) {
             names(sem_colores_vec) <- c("rojo","amarillo","verde")
             args$semaforo_colores <- sem_colores_vec
           }
-          do.call(prosecnur::reporte_cruces, args)
+          do.call(reporte_cruces, args)
           list(path = result_path)
         },
         args = list(
@@ -944,7 +944,7 @@ mount_analitica <- function(pr) {
           if (nzchar(col_modalidad)) args$col_modalidad <- col_modalidad
           if (length(modalidades_esp) > 0L) args$modalidades_esperadas <- modalidades_esp
           if (!is.null(modalidad_fn)) args$modalidad_fn <- modalidad_fn
-          do.call(prosecnur::reporte_enumeradores, args)
+          do.call(reporte_enumeradores, args)
           list(path = result_path)
         },
         args = list(

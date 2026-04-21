@@ -1,14 +1,18 @@
 #!/usr/bin/env Rscript
 # Launcher for prosecnur-app.
 # Run from the repo root: `Rscript launcher/launch.R`
-# or via the OS wrappers in launcher/ (.command, .sh, .bat).
+# o vía los wrappers OS en launcher/ (.command, .sh, .bat).
+#
+# NOTA (post-fork v0.2): el motor prosecnur ya vive dentro del paquete
+# `prosecnurapp` (api/R/). Se acabó el `PULSO_PROSECNUR_DEV` que cargaba
+# un paquete externo. Ahora es un solo load_all(api_dir) y listo.
 
-# Locale UTF-8. Sin esto, R lee los .R del paquete prosecnur (que tienen
-# comentarios y strings con tildes) en locale C y el launcher rompe con
-# "invalid input found on input connection". También afecta la salida
-# JSON: strings como "descripción" se escapan a "<U+00F3>" en vez de UTF-8
-# real. Fallback a C.UTF-8 si en_US.UTF-8 no está disponible (Linux
-# minimalista, containers Alpine, etc.).
+# Locale UTF-8. Sin esto, R lee los .R que tienen comentarios y strings
+# con tildes en locale C y el launcher rompe con "invalid input found on
+# input connection". También afecta la salida JSON: strings como
+# "descripción" se escapan a "<U+00F3>" en vez de UTF-8 real. Fallback
+# a C.UTF-8 si en_US.UTF-8 no está disponible (Linux minimalista,
+# containers Alpine, etc.).
 local({
   tryCatch(Sys.setlocale("LC_ALL", "en_US.UTF-8"), error = function(e) NULL, warning = function(w) NULL)
   if (!isTRUE(l10n_info()[["UTF-8"]])) {
@@ -39,53 +43,16 @@ static_dir <- file.path(repo_root, "api", "inst", "www")
 
 cat(sprintf("[prosecnur-app] repo_root = %s\n", repo_root))
 
-# 1) Cargar prosecnur. Si `PULSO_PROSECNUR_DEV` está seteado y apunta a un
-#    directorio válido, cargamos esa versión local vía pkgload/devtools
-#    (tiene precedencia sobre la instalada). Esto es lo que permite al
-#    equipo iterar sobre el paquete sin tener que `devtools::install()`
-#    después de cada cambio.
-#
-#    Sin esto, el runtime encuentra la versión instalada — que puede tener
-#    nombres/firmas desactualizados (ej. `p_slide_portada` no existe si el
-#    instalado es el viejo con nombres en inglés). Síntoma típico:
-#    `E_PREVIEW_FAILED: 'p_slide_portada' is not an exported object from
-#    'namespace:prosecnur'`.
-#
-#    Uso:  PULSO_PROSECNUR_DEV=/path/to/prosecnur Rscript launcher/launch.R
-#
-#    Los workers callr (ver router_graficos.R) leen la misma env var y
-#    hacen load_all en cada subproceso; así los PPT/Word exports también
-#    usan la versión dev.
-.prosecnur_dev <- Sys.getenv("PULSO_PROSECNUR_DEV", "")
-if (nzchar(.prosecnur_dev)) {
-  .prosecnur_dev <- normalizePath(.prosecnur_dev, mustWork = FALSE)
-  if (!dir.exists(.prosecnur_dev)) {
-    stop(sprintf(
-      "PULSO_PROSECNUR_DEV='%s' no es un directorio válido.", .prosecnur_dev
-    ))
-  }
-  Sys.setenv(PULSO_PROSECNUR_DEV = .prosecnur_dev)
-  cat(sprintf("[prosecnur-app] prosecnur DEV = %s\n", .prosecnur_dev))
-  if (requireNamespace("pkgload", quietly = TRUE)) {
-    pkgload::load_all(.prosecnur_dev, quiet = TRUE)
-  } else if (requireNamespace("devtools", quietly = TRUE)) {
-    devtools::load_all(.prosecnur_dev, quiet = TRUE)
-  } else {
-    stop("Need 'devtools' or 'pkgload' to load prosecnur from PULSO_PROSECNUR_DEV.")
-  }
-} else {
-  if (!requireNamespace("prosecnur", quietly = TRUE)) {
-    stop(
-      "El paquete 'prosecnur' no está disponible. ",
-      "Instala con `devtools::install('/path/to/prosecnur')` o exporta ",
-      "`PULSO_PROSECNUR_DEV=/path/to/prosecnur` antes de correr el launcher."
-    )
-  }
-  cat(sprintf("[prosecnur-app] prosecnur = %s (instalado)\n",
-              utils::packageVersion("prosecnur")))
+# Deprecación amable de PULSO_PROSECNUR_DEV: si alguien todavía lo tiene
+# seteado por costumbre, avisamos y seguimos. El prosecnur externo ya no
+# se usa; ignorar la variable no rompe nada.
+if (nzchar(Sys.getenv("PULSO_PROSECNUR_DEV", ""))) {
+  message("[prosecnur-app] NOTE: PULSO_PROSECNUR_DEV está seteado pero ya no ",
+          "se usa. El motor vive dentro de prosecnurapp (api/R/) desde v0.2. ",
+          "Podés desexportarlo sin problema.")
 }
 
-# 2) Cargar el paquete de la app (api/) en modo dev.
+# Cargar el paquete de la app (ya incluye el motor).
 if (requireNamespace("devtools", quietly = TRUE)) {
   devtools::load_all(api_dir, quiet = TRUE)
 } else if (requireNamespace("pkgload", quietly = TRUE)) {

@@ -62,7 +62,7 @@
   if (!(g$graficador %in% .GRAFICADOR_REGISTRY)) {
     stop_api(400, "E_UNKNOWN_GRAF", sprintf("Graficador no registrado: %s", g$graficador))
   }
-  fn <- getExportedValue("prosecnur", g$graficador)
+  fn <- getExportedValue("prosecnurapp", g$graficador)
   do.call(fn, as.list(g$args %||% list()))
 }
 
@@ -73,7 +73,7 @@
   if (!(tipo %in% names(.SLIDE_REGISTRY))) {
     stop_api(400, "E_UNKNOWN_TIPO", sprintf("Tipo de slide no registrado: %s", tipo))
   }
-  fn <- getExportedValue("prosecnur", tipo)
+  fn <- getExportedValue("prosecnurapp", tipo)
   payload <- .as_json_list(s$payload) %||% list()
   payload <- lapply(payload, function(v) if (is.list(v) && length(v) == 1 && is.null(names(v))) v[[1]] else v)
   graf_slots <- .SLIDE_REGISTRY[[tipo]]$grafs
@@ -90,13 +90,13 @@
 .build_presets <- function(presets_json) {
   if (is.null(presets_json) || length(presets_json) == 0) return(NULL)
   args <- lapply(presets_json, as.list)
-  do.call(prosecnur::p_presets, args)
+  do.call(p_presets, args)
 }
 
 .build_w_presets <- function(w_json) {
   if (is.null(w_json) || length(w_json) == 0) return(NULL)
   args <- lapply(w_json, as.list)
-  do.call(prosecnur::w_presets, args)
+  do.call(w_presets, args)
 }
 
 .validar_plan_json <- function(plan_json) {
@@ -486,7 +486,7 @@ mount_graficos <- function(pr) {
       rebuild_graf <- function(g) {
         if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
         if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
-        fn <- getExportedValue("prosecnur", g$graficador)
+        fn <- getExportedValue("prosecnurapp", g$graficador)
         do.call(fn, as.list(g$args %||% list()))
       }
       as_list_shallow <- function(x) {
@@ -503,7 +503,7 @@ mount_graficos <- function(pr) {
             payload[[slot_name]] <- rebuild_graf(as_list_shallow(payload[[slot_name]]))
           }
         }
-        fn <- getExportedValue("prosecnur", tipo)
+        fn <- getExportedValue("prosecnurapp", tipo)
         allowed_args <- names(formals(fn))
         payload <- payload[names(payload) %in% allowed_args]
         do.call(fn, payload)
@@ -511,19 +511,19 @@ mount_graficos <- function(pr) {
 
       build_presets <- function(pj) {
         if (is.null(pj) || length(pj) == 0) return(NULL)
-        do.call(prosecnur::p_presets, lapply(pj, as.list))
+        do.call(p_presets, lapply(pj, as.list))
       }
 
       # Ejecución del preview. Envuelvo en tryCatch para devolver un
       # error legible si algún arg falta o invalida.
       tryCatch({
         slide_r <- rebuild_slide(slide)
-        prosecnur::reporte_ppt_plan(
+        reporte_ppt_plan(
           data = s$rp_data,
           instrumento = s$rp_inst,
           path_ppt = out_path,
           presets = build_presets(presets_json),
-          plan = do.call(prosecnur::p_plan, list(slides = list(slide_r))),
+          plan = do.call(p_plan, list(slides = list(slide_r))),
           mensajes_progreso = FALSE
         )
       }, error = function(e) {
@@ -574,25 +574,24 @@ mount_graficos <- function(pr) {
       )
       graficador_registry_arg <- .graf_names()
 
-      # El worker hereda nada del main process (callr::r_bg). Si estamos
-      # corriendo con PULSO_PROSECNUR_DEV seteado (paquete cargado vía
-      # pkgload en el launcher), hay que repetir la carga acá para que el
-      # subproceso resuelva prosecnur::* a la versión dev y no a la
-      # instalada (que puede estar desactualizada).
-      prosecnur_dev_path <- Sys.getenv("PULSO_PROSECNUR_DEV", "")
+      # El worker hereda nada del main process (callr::r_bg). Necesitamos
+      # cargar el paquete prosecnurapp en el subproceso para que resuelva
+      # los p_slide_*/p_barras_*/reporte_ppt_plan (ahora todos viven en
+      # prosecnurapp, no en un paquete externo).
+      api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
 
       job_id <- job_submit(
         sid = sid,
         kind = "graficos.ppt",
         func = function(rp_data_path, rp_inst_path, plan, presets,
                         slide_registry, graficador_registry,
-                        prosecnur_dev_path, result_path) {
-          if (nzchar(prosecnur_dev_path) && dir.exists(prosecnur_dev_path)) {
-            if (requireNamespace("pkgload", quietly = TRUE)) {
-              pkgload::load_all(prosecnur_dev_path, quiet = TRUE)
-            } else if (requireNamespace("devtools", quietly = TRUE)) {
-              devtools::load_all(prosecnur_dev_path, quiet = TRUE)
-            }
+                        api_path, result_path) {
+          if (requireNamespace("pkgload", quietly = TRUE)) {
+            pkgload::load_all(api_path, quiet = TRUE)
+          } else if (requireNamespace("devtools", quietly = TRUE)) {
+            devtools::load_all(api_path, quiet = TRUE)
+          } else {
+            stop("Worker requiere 'pkgload' o 'devtools' instalados.")
           }
           `%||%` <- function(a, b) if (is.null(a)) b else a
           as_json_list <- function(x) {
@@ -604,7 +603,7 @@ mount_graficos <- function(pr) {
           rebuild_graf <- function(g) {
             if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
             if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
-            fn <- getExportedValue("prosecnur", g$graficador)
+            fn <- getExportedValue("prosecnurapp", g$graficador)
             do.call(fn, as.list(g$args %||% list()))
           }
           rebuild_slide <- function(s) {
@@ -612,7 +611,7 @@ mount_graficos <- function(pr) {
             tipo <- as.character(s$tipo %||% "")
             if (!nzchar(tipo)) stop("Slide sin tipo")
             if (!(tipo %in% names(slide_registry))) stop(sprintf("Tipo de slide no registrado: %s", tipo))
-            fn <- getExportedValue("prosecnur", tipo)
+            fn <- getExportedValue("prosecnurapp", tipo)
             payload <- as_json_list(s$payload) %||% list()
             payload <- lapply(payload, function(v) if (is.list(v) && length(v) == 1 && is.null(names(v))) v[[1]] else v)
             for (slot_name in slide_registry[[tipo]]$grafs) {
@@ -626,15 +625,15 @@ mount_graficos <- function(pr) {
           }
           build_presets <- function(presets_json) {
             if (is.null(presets_json) || length(presets_json) == 0) return(NULL)
-            do.call(prosecnur::p_presets, lapply(presets_json, as.list))
+            do.call(p_presets, lapply(presets_json, as.list))
           }
           slides_r <- lapply(plan$slides, rebuild_slide)
-          prosecnur::reporte_ppt_plan(
+          reporte_ppt_plan(
             data = readRDS(rp_data_path),
             instrumento = readRDS(rp_inst_path),
             path_ppt = result_path,
             presets = build_presets(presets),
-            plan = do.call(prosecnur::p_plan, list(slides = slides_r)),
+            plan = do.call(p_plan, list(slides = slides_r)),
             mensajes_progreso = FALSE
           )
           list(path = result_path, n_slides = length(slides_r))
@@ -646,7 +645,7 @@ mount_graficos <- function(pr) {
           presets = presets,
           slide_registry = slide_registry_arg,
           graficador_registry = graficador_registry_arg,
-          prosecnur_dev_path = prosecnur_dev_path
+          api_path = api_path
         ),
         result_filename = sprintf("reporte_%s.pptx", uuid::UUIDgenerate()),
         on_complete = function(j) {
@@ -675,22 +674,22 @@ mount_graficos <- function(pr) {
       )
       graficador_registry_arg <- .graf_names()
 
-      # Ver comentario en /ppt: el worker necesita recargar el prosecnur
-      # dev si corresponde.
-      prosecnur_dev_path <- Sys.getenv("PULSO_PROSECNUR_DEV", "")
+      # Ver comentario en /ppt: el worker necesita cargar prosecnurapp
+      # (el motor ya vive dentro del paquete de la app).
+      api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
 
       job_id <- job_submit(
         sid = sid,
         kind = "graficos.word",
         func = function(rp_data_path, rp_inst_path, plan, presets, w_presets,
                         slide_registry, graficador_registry,
-                        prosecnur_dev_path, result_path) {
-          if (nzchar(prosecnur_dev_path) && dir.exists(prosecnur_dev_path)) {
-            if (requireNamespace("pkgload", quietly = TRUE)) {
-              pkgload::load_all(prosecnur_dev_path, quiet = TRUE)
-            } else if (requireNamespace("devtools", quietly = TRUE)) {
-              devtools::load_all(prosecnur_dev_path, quiet = TRUE)
-            }
+                        api_path, result_path) {
+          if (requireNamespace("pkgload", quietly = TRUE)) {
+            pkgload::load_all(api_path, quiet = TRUE)
+          } else if (requireNamespace("devtools", quietly = TRUE)) {
+            devtools::load_all(api_path, quiet = TRUE)
+          } else {
+            stop("Worker requiere 'pkgload' o 'devtools' instalados.")
           }
           `%||%` <- function(a, b) if (is.null(a)) b else a
           # slide_registry / graficador_registry vienen del main process
@@ -704,7 +703,7 @@ mount_graficos <- function(pr) {
           rebuild_graf <- function(g) {
             if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
             if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
-            fn <- getExportedValue("prosecnur", g$graficador)
+            fn <- getExportedValue("prosecnurapp", g$graficador)
             do.call(fn, as.list(g$args %||% list()))
           }
           rebuild_slide <- function(s) {
@@ -712,7 +711,7 @@ mount_graficos <- function(pr) {
             tipo <- as.character(s$tipo %||% "")
             if (!nzchar(tipo)) stop("Slide sin tipo")
             if (!(tipo %in% names(slide_registry))) stop(sprintf("Tipo de slide no registrado: %s", tipo))
-            fn <- getExportedValue("prosecnur", tipo)
+            fn <- getExportedValue("prosecnurapp", tipo)
             payload <- as_json_list(s$payload) %||% list()
             payload <- lapply(payload, function(v) if (is.list(v) && length(v) == 1 && is.null(names(v))) v[[1]] else v)
             for (slot_name in slide_registry[[tipo]]$grafs) {
@@ -726,20 +725,20 @@ mount_graficos <- function(pr) {
           }
           build_presets <- function(presets_json) {
             if (is.null(presets_json) || length(presets_json) == 0) return(NULL)
-            do.call(prosecnur::p_presets, lapply(presets_json, as.list))
+            do.call(p_presets, lapply(presets_json, as.list))
           }
           build_w_presets <- function(w_json) {
             if (is.null(w_json) || length(w_json) == 0) return(NULL)
-            do.call(prosecnur::w_presets, lapply(w_json, as.list))
+            do.call(w_presets, lapply(w_json, as.list))
           }
           slides_r <- lapply(plan$slides, rebuild_slide)
-          prosecnur::reporte_word_plan(
+          reporte_word_plan(
             data = readRDS(rp_data_path),
             instrumento = readRDS(rp_inst_path),
             path_docx = result_path,
             presets_ppt = build_presets(presets),
             presets_word = build_w_presets(w_presets),
-            plan = do.call(prosecnur::p_plan, list(slides = slides_r)),
+            plan = do.call(p_plan, list(slides = slides_r)),
             mensajes_progreso = FALSE
           )
           list(path = result_path, n_slides = length(slides_r))
@@ -752,7 +751,7 @@ mount_graficos <- function(pr) {
           w_presets = w_presets,
           slide_registry = slide_registry_arg,
           graficador_registry = graficador_registry_arg,
-          prosecnur_dev_path = prosecnur_dev_path
+          api_path = api_path
         ),
         result_filename = sprintf("reporte_%s.docx", uuid::UUIDgenerate()),
         on_complete = function(j) {

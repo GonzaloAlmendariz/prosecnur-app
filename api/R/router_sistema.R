@@ -133,10 +133,14 @@ shutdown_requested <- function() isTRUE(.shutdown_flag$value)
 mount_sistema <- function(pr) {
   pr |>
     plumber::pr_get("/api/system/health", wrap_endpoint(function(req, res) {
+      # `prosecnur_version` se mantiene en la respuesta por compat con el
+      # frontend (SessionContext lo muestra en el header). Ahora refleja
+      # la versión de `prosecnurapp` porque el motor vive acá.
+      v <- as.character(utils::packageVersion("prosecnurapp"))
       list(
         ok = TRUE,
-        version = as.character(utils::packageVersion("prosecnurapp")),
-        prosecnur_version = as.character(utils::packageVersion("prosecnur")),
+        version = v,
+        prosecnur_version = v,
         time = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
       )
     })) |>
@@ -184,14 +188,14 @@ mount_sistema <- function(pr) {
       dat_meta <- save_upload(sid, data_kind, data_basename,
                               readBin(meta$data_path, "raw", n = file.info(meta$data_path)$size))
 
-      inst <- prosecnur::leer_instrumento_xlsform(xls_meta$path)
+      inst <- leer_instrumento_xlsform(xls_meta$path)
       session_set(sid, "instrumento", inst)
 
       data_df <- .read_data_any(dat_meta$path)
       session_set(sid, "data_raw_meta", list(file_id = dat_meta$file_id, path = dat_meta$path, ext = data_ext))
 
-      rp_inst <- prosecnur::reporte_instrumento(path = xls_meta$path)
-      rp_data <- prosecnur::reporte_data(data_df, instrumento = rp_inst)
+      rp_inst <- reporte_instrumento(path = xls_meta$path)
+      rp_data <- reporte_data(data_df, instrumento = rp_inst)
       session_set(sid, "rp_inst", rp_inst)
       session_set(sid, "rp_data", rp_data)
       session_set(sid, "analitica_prep_ok", TRUE)

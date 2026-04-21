@@ -417,7 +417,7 @@
 # ---- Generador SPSS syntax (.sps) de respaldo -----------------------------
 
 # Implementación local de generación de niveles_medida.sps. Previamente
-# se usaba prosecnur::generar_spss_niveles dentro de reporte_spss. Aquí
+# se usaba generar_spss_niveles dentro de reporte_spss. Aquí
 # lo replicamos en la app para tener control total del toggle "Avanzado".
 .bases_generar_sps <- function(df, path_sps) {
   lines <- character(0)
@@ -587,7 +587,7 @@
 .bases_export_sav <- function(df, rp_inst, path_sav, path_sps = NULL,
                               overrides = list()) {
   # 1) Convertir columnas con value-labels a haven_labelled_spss. Reusa
-  #    el post-procesamiento de prosecnur::reporte_spss vía attrs — aplica
+  #    el post-procesamiento de reporte_spss vía attrs — aplica
   #    la misma conversión pero sin correr ese wrapper (que escribe a
   #    disco).
   df2 <- df

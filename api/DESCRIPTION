@@ -1,16 +1,21 @@
 Package: prosecnurapp
 Type: Package
-Title: Backend API for Pulso Report (prosecnur-app)
-Version: 0.1.0
+Title: Pulso — App + motor analítico integrado
+Version: 0.2.0
 Authors@R: person("Gonzalo", "Almendariz", email = "gonzaloalmendariz@gmail.com", role = c("aut", "cre"))
-Description: Plumber REST API that exposes the prosecnur analytical engine to a local web frontend.
+Description: App local (REST API en Plumber + frontend React) con el
+    motor analítico prosecnur integrado. Incluye lectura de XLSForm,
+    validación de consistencia, codificación de preguntas abiertas,
+    reportes estadísticos (frecuencias, cruces, codebook, enumeradores,
+    exports SAV/CSV/XLSX) y generación de reportes PPT/Word con motor
+    de slides y graficadores. A partir de la v0.2 el motor vive dentro
+    de este paquete (fusión del ex-paquete `prosecnur`).
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends:
     R (>= 4.1)
 Imports:
     plumber (>= 1.2.0),
-    prosecnur (>= 0.1.0),
     jsonlite,
     webutils,
     mime,
@@ -18,14 +23,38 @@ Imports:
     later,
     callr,
     uuid,
+    ps,
     readxl,
     haven,
-    ps,
-    ggplot2,
-    dplyr,
+    openxlsx,
     zip,
-    openxlsx
+    hms,
+    xml2,
+    dplyr,
+    tidyr,
+    tibble,
+    purrr,
+    rlang,
+    magrittr,
+    stringr,
+    stringi,
+    janitor,
+    ggplot2,
+    cowplot,
+    officer,
+    rvg,
+    grid,
+    gridExtra,
+    gtable,
+    png,
+    scales
 Suggests:
-    testthat (>= 3.0.0)
-RoxygenNote: 7.3.2
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    quarto,
+    shiny,
+    plotly,
+    DT
+RoxygenNote: 7.3.3
 Config/testthat/edition: 3

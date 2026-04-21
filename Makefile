@@ -13,10 +13,17 @@ help:
 	@echo "  clean            Remove build output"
 
 install-r:
+	# Post-v0.2: el motor vive dentro de prosecnurapp, no hay paquete
+	# externo que instalar. Solo aseguramos las deps de CRAN.
 	Rscript -e 'if (!requireNamespace("pkgload", quietly=TRUE)) install.packages("pkgload"); \
-	            if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes"); \
-	            remotes::install_local("../prosecnur", upgrade="never"); \
-	            install.packages(c("plumber","jsonlite","webutils","mime","httpuv","later","callr","uuid","readxl","haven","ps","testthat"))'
+	            install.packages(c( \
+	              "plumber","jsonlite","webutils","mime","httpuv","later","callr","uuid", \
+	              "readxl","haven","openxlsx","zip","hms","xml2", \
+	              "dplyr","tidyr","tibble","purrr","rlang","magrittr", \
+	              "stringr","stringi","janitor", \
+	              "ggplot2","cowplot","officer","rvg","scales", \
+	              "gridExtra","gtable","png", \
+	              "ps","testthat"))'
 
 install-frontend:
 	cd frontend && pnpm install
