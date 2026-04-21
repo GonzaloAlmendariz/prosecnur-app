@@ -6,6 +6,7 @@
 .RData
 .Rproj.user/
 *.Rproj
+Rplots.pdf
 renv/library/
 renv/local/
 renv/staging/
