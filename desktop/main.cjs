@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu, shell } = require("electron");
 const { spawn } = require("node:child_process");
+const { randomUUID } = require("node:crypto");
 const http = require("node:http");
 const net = require("node:net");
 const path = require("node:path");
@@ -8,6 +9,13 @@ const APP_NAME = "Prosecnur";
 const HOST = "127.0.0.1";
 const MIN_R_PORT = 1024;
 const MAX_R_PORT = 49151;
+
+// Token aleatorio por arranque. Lo pasamos al backend R vía env var
+// PULSO_SHUTDOWN_TOKEN. El endpoint /api/system/shutdown exige el mismo
+// token en el header X-Pulso-Shutdown-Token cuando la env var está
+// seteada. Así cerramos el CSRF local: otra pestaña del navegador del
+// usuario no puede tumbar el backend adivinando el puerto.
+const SHUTDOWN_TOKEN = randomUUID();
 
 let mainWindow = null;
 let backend = null;
@@ -182,7 +190,8 @@ async function startBackend() {
       ...process.env,
       PULSO_HOST: HOST,
       PULSO_PORT: String(port),
-      PULSO_OPEN_BROWSER: "false"
+      PULSO_OPEN_BROWSER: "false",
+      PULSO_SHUTDOWN_TOKEN: SHUTDOWN_TOKEN
     },
     stdio: ["ignore", "pipe", "pipe"]
   });
@@ -211,7 +220,8 @@ async function stopBackend() {
     try {
       await requestJson(`http://${HOST}:${backendPort}/api/system/shutdown`, {
         method: "POST",
-        timeout: 1500
+        timeout: 1500,
+        headers: { "X-Pulso-Shutdown-Token": SHUTDOWN_TOKEN }
       });
     } catch (_error) {
       // Si el shutdown HTTP falla, igual matamos el proceso abajo.

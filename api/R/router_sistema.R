@@ -185,6 +185,26 @@ mount_sistema <- function(pr) {
       )
     })) |>
     plumber::pr_post("/api/system/shutdown", wrap_endpoint(function(req, res) {
+      # Si el proceso fue arrancado con PULSO_SHUTDOWN_TOKEN (caso
+      # Electron desktop), exigir el mismo token en el header
+      # X-Pulso-Shutdown-Token. Esto cierra el CSRF local: otra
+      # pestaña/proceso del mismo equipo no puede tumbar el backend
+      # adivinando el puerto.
+      #
+      # Si la env var NO está seteada (arranque manual vía launch.R o
+      # Rscript directo), el endpoint queda libre igual que antes —
+      # backward-compat para dev y scripts.
+      expected <- Sys.getenv("PULSO_SHUTDOWN_TOKEN", "")
+      if (nzchar(expected)) {
+        got <- tryCatch(
+          req$HTTP_X_PULSO_SHUTDOWN_TOKEN %||% req$HEADERS[["X-Pulso-Shutdown-Token"]],
+          error = function(e) NULL
+        )
+        if (!is.character(got) || !nzchar(got) || !identical(as.character(got), expected)) {
+          stop_api(403, "E_FORBIDDEN_SHUTDOWN",
+                   "Token de shutdown ausente o inválido.")
+        }
+      }
       .shutdown_flag$value <- TRUE
       list(ok = TRUE, message = "Shutdown requested")
     })) |>
