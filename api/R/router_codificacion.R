@@ -460,8 +460,10 @@ isTRUE_vec <- function(x) {
 #   * integer: sheet named after the integer variable, recod col
 #     <parent>_recod, asignado segun la primer regla (between/gte/lte) que
 #     matchee el valor original. (B3.5b)
-#
-# TODO B3.5c: SM (existing options as booleans + new option columns)
+#   * select_multiple: overrides sobre columnas existentes <parent>/<code>_recod
+#     para options del catálogo + crea columnas nuevas al extremo derecho
+#     para codes nuevos. Marca 1 donde matchea el texto libre contra el
+#     grupo. (B3.5c — implementado en .patch_sm_sheet abajo)
 
 # Match a response text to its code, using the same normalization the UI used
 # when building grupos. Returns "" if the text is not covered by any grupo.
