@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, Check, Lock, Power, Sparkles, Map as MapIcon, Workflow,
+  ArrowRight, Check, Github, Power, Sparkles,
+  Map as MapIcon, Workflow, ChevronDown,
 } from "lucide-react";
 import { apiShutdown } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
@@ -9,21 +10,100 @@ import { ExitDialog } from "./ExitDialog";
 
 // Home — menú principal de Prosecnur.
 //
-// Prosecnur es una suite analítica; el primer módulo que se construyó es
+// Prosecnur es una suite analítica; el primer módulo construido es
 // "Procesamiento de XLSForm" (el flujo de 5 fases clásico). A futuro
-// caben otros módulos: hojas de ruta de campo, monitoreo en vivo, etc.
+// caben otros módulos (hojas de ruta de campo, monitoreo, etc.).
 //
-// Por eso el Home NO es un "stepper de 5 fases" sino un menú de módulos
-// de nivel superior. Al entrar al módulo de procesamiento, el Layout
-// despliega el topbar con las fases internas.
-//
-// El Home muestra además:
-//  - Progreso del procesamiento actual (si hay datos cargados) con CTA
-//    "Continúa en la fase N" — no se pierde el caso de "dejé algo a
-//    la mitad".
-//  - Notas de la versión (qué cambió recientemente).
-//  - Botón de cerrar la app con confirmación.
+// Jerarquía del Home (críticamente importante):
+//   1. Hero — compacto: saludo + nombre de la app + contexto. NO
+//      compite con los módulos.
+//   2. Módulos — PROTAGONISTAS ABSOLUTOS. Cards grandes, tipografía
+//      display, hover expresivo. Es lo que el ojo ve primero después
+//      del hero.
+//   3. Notas de versión — panel secundario, compacto, colapsable.
+//      Historial completo disponible bajo "Ver historial".
+//   4. Footer — atribución del autor con link a GitHub + botón cerrar.
 
+// ---- Catálogo de módulos --------------------------------------------
+type ModuleMeta = {
+  slug: string;
+  title: string;
+  blurb: string;
+  icon: typeof Workflow;
+  iconBg: string;
+  iconFg: string;
+  iconBorder: string;
+  to?: string; // con `to` → activo; sin → "próximamente"
+};
+
+const MODULES: ModuleMeta[] = [
+  {
+    slug: "procesamiento",
+    title: "Procesamiento de XLSForm",
+    blurb:
+      "Flujo completo: carga de data, validación, codificación de respuestas abiertas, preparación analítica y generación de reportes PPT/Word.",
+    icon: Workflow,
+    iconBg: "var(--pulso-primary-soft)",
+    iconFg: "var(--pulso-primary)",
+    iconBorder: "var(--pulso-primary-border)",
+    to: "/procesamiento",
+  },
+  {
+    slug: "hojas-ruta",
+    title: "Hojas de ruta para campo",
+    blurb:
+      "Hojas de ruta imprimibles para enumeradores: cuotas por conglomerado, rutas de visita y puntos de muestra georeferenciados.",
+    icon: MapIcon,
+    iconBg: "#ecfdf5",
+    iconFg: "#059669",
+    iconBorder: "#a7f3d0",
+  },
+];
+
+// ---- Notas de la versión --------------------------------------------
+type ReleaseNote = {
+  version: string;
+  date: string;
+  highlights: string[];
+};
+
+const RELEASE_NOTES: ReleaseNote[] = [
+  {
+    version: "0.8",
+    date: "2026-04-21",
+    highlights: [
+      "Home rediseñado como menú de módulos — Prosecnur como suite multi-propósito.",
+      "Notas de versión integradas con historial colapsable.",
+      "Confirmación al cerrar la app para no perder progreso.",
+    ],
+  },
+  {
+    version: "0.7",
+    date: "2026-04-20",
+    highlights: [
+      "Sistema de diseño unificado: tokens de status, primitivos compartidos, sin hex hardcoded en Fases 3/4/5.",
+      "Color picker integrado en presets con paletas del estudio.",
+      "Textos en negrita con multi-select de chips.",
+      "Hot-reload del engine R sin reiniciar el proceso.",
+    ],
+  },
+  {
+    version: "0.6",
+    date: "2026-04-18",
+    highlights: [
+      "Overrides defaults persistentes simétricos a presets defaults.",
+      "DefaultsModal accesible desde el engranaje de Configuración global.",
+    ],
+  },
+];
+
+// ---- Atribución ------------------------------------------------------
+const AUTHOR = {
+  name: "Gonzalo Almendáriz",
+  github: "https://github.com/gonzaloalmendariz",
+};
+
+// ---- Estado del módulo "Procesamiento" ------------------------------
 type ModulePhaseState = {
   done: number;
   total: number;
@@ -41,7 +121,6 @@ function useProcesamientoState(): ModulePhaseState {
     { to: "/graficos",     label: "Gráficos",      done: !!state?.graficos_ppt_ok || !!state?.graficos_word_ok, unlocked: !!state?.analitica_prep_ok },
   ];
   const done = phases.filter((p) => p.done).length;
-  // Siguiente paso actionable: primera no-done que esté desbloqueada.
   const next = phases.find((p) => p.unlocked && !p.done) ?? null;
   return {
     done,
@@ -51,258 +130,109 @@ function useProcesamientoState(): ModulePhaseState {
   };
 }
 
-// ---- Catálogo de módulos --------------------------------------------
-// Por ahora uno activo + uno "próximamente". Cuando haya un módulo nuevo
-// real (hojas de ruta, monitoreo, etc.) se añade acá con su `to` y
-// pasa a estar activo.
-type ModuleMeta = {
-  slug: string;
-  title: string;
-  blurb: string;
-  icon: typeof Workflow;
-  iconBg: string; // fondo del ícono (soft)
-  iconFg: string; // color del ícono
-  iconBorder: string; // borde del ícono
-  to?: string;    // si viene, es activo; sin to = "próximamente"
-};
+// ---- Saludo según hora del día --------------------------------------
+function useSaludo(): string {
+  return useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 6) return "Buenas madrugadas";
+    if (h < 13) return "Buenos días";
+    if (h < 19) return "Buenas tardes";
+    return "Buenas noches";
+  }, []);
+}
 
-const MODULES: ModuleMeta[] = [
-  {
-    slug: "procesamiento",
-    title: "Procesamiento de XLSForm",
-    blurb:
-      "El flujo completo: carga de data, validación, codificación de respuestas abiertas, preparación analítica y generación de reportes PPT/Word.",
-    icon: Workflow,
-    iconBg: "var(--pulso-primary-soft)",
-    iconFg: "var(--pulso-primary)",
-    iconBorder: "var(--pulso-primary-border)",
-    to: "/procesamiento",
-  },
-  {
-    slug: "hojas-ruta",
-    title: "Hojas de ruta para campo",
-    blurb:
-      "Genera hojas de ruta imprimibles para enumeradores: cuotas por conglomerado, rutas de visita, puntos de muestra georeferenciados.",
-    icon: MapIcon,
-    // Verde "emerald" soft — se diferencia del azul primary sin pelear
-    // por atención. Cuando haya más módulos, seguimos rotando tonos.
-    iconBg: "#ecfdf5",
-    iconFg: "#059669",
-    iconBorder: "#a7f3d0",
-    // to: undefined — placeholder
-  },
-];
-
-// ---- Notas de la versión --------------------------------------------
-// Hardcoded por ahora; en una iteración siguiente podríamos traerlas del
-// backend con un endpoint `/api/system/release-notes` que lea un CHANGELOG.
-// Lista ordenada de más reciente a más antigua.
-type ReleaseNote = {
-  version: string;
-  date: string; // ISO yyyy-mm-dd
-  highlights: string[];
-};
-
-const RELEASE_NOTES: ReleaseNote[] = [
-  {
-    version: "0.8",
-    date: "2026-04-21",
-    highlights: [
-      "Nuevo menú principal con visión multi-módulo (Procesamiento de XLSForm + futuros).",
-      "Notas de la versión visibles desde el home.",
-      "Sistema de diseño unificado: tokens de status, primitivos compartidos, sin hex hardcoded en Fases 3/4/5.",
-      "Confirmación al cerrar la app para no perder progreso por accidente.",
-    ],
-  },
-  {
-    version: "0.7",
-    date: "2026-04-20",
-    highlights: [
-      "Editor de presets con color picker integrado (paletas del estudio + rueda del sistema).",
-      "Textos en negrita con multi-select de chips — sin escribir tokens a mano.",
-      "Hot-reload del engine R sin reiniciar el proceso.",
-    ],
-  },
-  {
-    version: "0.6",
-    date: "2026-04-18",
-    highlights: [
-      "Overrides defaults persistentes simétricos a presets defaults.",
-      "DefaultsModal accesible desde el engranaje de Configuración global.",
-    ],
-  },
-];
-
+// =====================================================================
+// Componente principal
+// =====================================================================
 export default function HomePage() {
-  const { version } = useSession();
+  const { state, version } = useSession();
   const proc = useProcesamientoState();
   const [exitOpen, setExitOpen] = useState(false);
 
-  const hasAnyProgress = proc.done > 0 || !!proc.nextTo;
-
   return (
-    <section
+    <div
       style={{
-        maxWidth: 1080,
+        maxWidth: 1100,
         margin: "0 auto",
-        padding: "32px 20px 40px",
-        display: "flex", flexDirection: "column", gap: 28,
+        padding: "28px 20px 36px",
+        display: "flex", flexDirection: "column", gap: 36,
       }}
     >
-      {/* Hero */}
-      <Hero version={version} />
+      {/* Hero compacto */}
+      <Hero estudioNombre={state?.estudio_nombre ?? null} />
 
-      {/* Módulos */}
-      <Section
-        title="Módulos"
-        hint="Elige qué quieres hacer hoy. La selección activa los paneles internos correspondientes."
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: 14,
-          }}
-        >
-          {MODULES.map((m) => (
-            <ModuleCard
-              key={m.slug}
-              mod={m}
-              procState={m.slug === "procesamiento" ? proc : null}
-            />
-          ))}
-        </div>
-      </Section>
+      {/* Módulos — protagonistas */}
+      <ModulesGrid proc={proc} />
 
-      {/* Notas de versión */}
-      <Section
-        title="Notas de la versión"
-        hint="Qué es nuevo y qué cambió recientemente en Prosecnur."
-      >
-        <div style={{
-          background: "white",
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 10,
-          overflow: "hidden",
-        }}>
-          {RELEASE_NOTES.map((n, i) => (
-            <ReleaseNoteRow key={n.version} note={n} isLast={i === RELEASE_NOTES.length - 1} />
-          ))}
-        </div>
-      </Section>
-
-      {/* Footer — acciones de aplicación */}
-      <footer
-        style={{
-          display: "flex", alignItems: "center", gap: 12,
-          paddingTop: 8, flexWrap: "wrap",
-          color: "var(--pulso-text-soft)", fontSize: 11,
-        }}
-      >
-        <span>
-          Prosecnur {version && version !== "…" ? `· ${version}` : ""}
-          {hasAnyProgress && " · progreso guardado automáticamente en esta sesión"}
-        </span>
-        <div style={{ flex: 1 }} />
-        <button
-          type="button"
-          onClick={() => setExitOpen(true)}
-          style={{
-            fontSize: 12, padding: "7px 14px",
-            display: "inline-flex", alignItems: "center", gap: 6,
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 6, background: "white",
-            color: "var(--pulso-text)",
-            cursor: "pointer",
-            transition: "border-color 120ms ease, color 120ms ease, background 120ms ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--pulso-danger-border)";
-            e.currentTarget.style.color = "var(--pulso-danger-fg)";
-            e.currentTarget.style.background = "var(--pulso-danger-bg)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "var(--pulso-border)";
-            e.currentTarget.style.color = "var(--pulso-text)";
-            e.currentTarget.style.background = "white";
-          }}
-        >
-          <Power size={13} /> Cerrar aplicación
-        </button>
-      </footer>
+      {/* Footer con atribución + notas + cerrar */}
+      <HomeFooter
+        version={version}
+        onClose={() => setExitOpen(true)}
+      />
 
       {exitOpen && <ExitDialog onCancel={() => setExitOpen(false)} onConfirm={doShutdown} />}
-    </section>
+    </div>
   );
 }
 
 function doShutdown() {
   apiShutdown()
     .then(() => { try { window.close(); } catch { /* ignore */ } })
-    .catch(() => { /* si falla el server, intenta cerrar igual */ try { window.close(); } catch { /* ignore */ } });
+    .catch(() => { try { window.close(); } catch { /* ignore */ } });
 }
 
-// ---- Hero ------------------------------------------------------------
-
-function Hero({ version }: { version: string }) {
+// =====================================================================
+// Hero
+// =====================================================================
+function Hero({ estudioNombre }: { estudioNombre: string | null }) {
+  const saludo = useSaludo();
   return (
-    <header style={{
-      display: "flex", flexDirection: "column", gap: 10,
-      paddingBottom: 4,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <HeroLogo />
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <h1 style={{
-            margin: 0, fontSize: 38, fontWeight: 800,
-            letterSpacing: -0.6,
-            color: "var(--pulso-primary)",
-            lineHeight: 1,
-          }}>
-            Prosecnur
-          </h1>
-          <span style={{ fontSize: 13, color: "var(--pulso-text-soft)", fontWeight: 500 }}>
-            Suite analítica para estudios con XLSForm
-          </span>
-        </div>
-        {version && version !== "…" && (
-          <span
-            title={version}
-            style={{
-              marginLeft: "auto", alignSelf: "flex-start",
-              fontSize: 11, fontFamily: "ui-monospace, monospace",
-              color: "var(--pulso-text-soft)",
-              padding: "4px 10px", borderRadius: 999,
-              background: "var(--pulso-surface-2)",
-              border: "1px solid var(--pulso-border)",
-            }}
-          >
-            {version}
-          </span>
-        )}
+    <header
+      style={{
+        display: "flex", alignItems: "center", gap: 16,
+        flexWrap: "wrap",
+      }}
+    >
+      <HeroLogo />
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 260 }}>
+        <span style={{ fontSize: 12, color: "var(--pulso-text-soft)", fontWeight: 500 }}>
+          {saludo}
+        </span>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: 32, fontWeight: 800, letterSpacing: -0.5,
+            color: "var(--pulso-primary)", lineHeight: 1.05,
+          }}
+        >
+          Prosecnur
+        </h1>
+        <span style={{ fontSize: 13, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+          Suite analítica para estudios con XLSForm.
+          {estudioNombre && (
+            <>
+              {" · "}
+              <span style={{ color: "var(--pulso-text)", fontWeight: 600 }}>
+                Trabajando en "{estudioNombre}"
+              </span>
+            </>
+          )}
+        </span>
       </div>
-      <p style={{
-        margin: 0, fontSize: 14, lineHeight: 1.6, maxWidth: 680,
-        color: "var(--pulso-text-soft)",
-      }}>
-        Una suite de herramientas para operar estudios completos a partir de
-        un XLSForm. Desde la ingesta de data hasta el reporte final en
-        PowerPoint y Word, sin salir de un solo lugar.
-      </p>
     </header>
   );
 }
 
 function HeroLogo() {
   return (
-    <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+    <svg width="52" height="52" viewBox="0 0 64 64" aria-hidden="true" style={{ flexShrink: 0 }}>
       <defs>
-        <linearGradient id="prosecnur-logo-grad" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="prosecnur-hero-grad" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="var(--pulso-primary)" />
           <stop offset="100%" stopColor="#013371" />
         </linearGradient>
       </defs>
-      <circle cx="32" cy="32" r="30" fill="url(#prosecnur-logo-grad)" />
+      <circle cx="32" cy="32" r="30" fill="url(#prosecnur-hero-grad)" />
       <g>
         <rect x="16" y="34" width="6" height="14" rx="1.5" fill="white" opacity="0.95" />
         <rect x="26" y="26" width="6" height="22" rx="1.5" fill="white" opacity="0.85" />
@@ -313,65 +243,71 @@ function HeroLogo() {
   );
 }
 
-// ---- Section wrapper -------------------------------------------------
-
-function Section({
-  title, hint, children,
-}: {
-  title: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
+// =====================================================================
+// Módulos — cards grandes y expresivas
+// =====================================================================
+function ModulesGrid({ proc }: { proc: ModulePhaseState }) {
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-        <h2 style={{
-          margin: 0, fontSize: 11, fontWeight: 700,
-          textTransform: "uppercase", letterSpacing: 0.8,
-          color: "var(--pulso-text-soft)",
-        }}>
-          {title}
-        </h2>
-        {hint && (
-          <span style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
-            {hint}
-          </span>
-        )}
-      </div>
-      {children}
+    <section
+      aria-label="Módulos de Prosecnur"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+        gap: 20,
+      }}
+    >
+      {MODULES.map((m) => (
+        <ModuleCard
+          key={m.slug}
+          mod={m}
+          procState={m.slug === "procesamiento" ? proc : null}
+        />
+      ))}
     </section>
   );
 }
-
-// ---- Module card -----------------------------------------------------
 
 function ModuleCard({ mod, procState }: { mod: ModuleMeta; procState: ModulePhaseState | null }) {
   const Icon = mod.icon;
   const isActive = !!mod.to;
   const pct = procState && procState.total > 0 ? procState.done / procState.total : 0;
+  const hasProgress = procState && procState.done > 0;
+
+  // Etiqueta del CTA final — se adapta al estado del módulo.
+  const ctaLabel = !isActive
+    ? "Disponible próximamente"
+    : procState && procState.done === procState.total && procState.total > 0
+      ? "Revisar resultados"
+      : hasProgress && procState?.nextLabel
+        ? `Continuar en ${procState.nextLabel}`
+        : "Empezar ahora";
 
   const card = (
     <div
       style={{
         position: "relative",
-        display: "flex", flexDirection: "column", gap: 12,
-        padding: 20, borderRadius: 12,
-        border: "1px solid var(--pulso-border)",
+        display: "flex", flexDirection: "column", gap: 16,
+        padding: "30px 28px",
+        borderRadius: 14,
+        border: isActive
+          ? "1px solid var(--pulso-primary-border)"
+          : "1px dashed var(--pulso-border)",
         background: "white",
-        minHeight: 200,
+        minHeight: 300,
         cursor: isActive ? "pointer" : "default",
-        transition: "border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease",
-        opacity: isActive ? 1 : 0.7,
+        transition: "border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease",
+        boxShadow: isActive ? "var(--pulso-shadow-low)" : "none",
+        opacity: isActive ? 1 : 0.72,
       }}
     >
-      {/* Badge "Próximamente" para módulos placeholder */}
+      {/* Badge "Próximamente" */}
       {!isActive && (
         <span
           style={{
-            position: "absolute", top: 16, right: 16,
-            fontSize: 9, fontWeight: 700,
-            textTransform: "uppercase", letterSpacing: 0.5,
-            padding: "3px 8px", borderRadius: 999,
+            position: "absolute", top: 18, right: 18,
+            fontSize: 10, fontWeight: 700,
+            textTransform: "uppercase", letterSpacing: 0.6,
+            padding: "4px 10px", borderRadius: 999,
             background: "var(--pulso-surface-2)",
             color: "var(--pulso-text-soft)",
             border: "1px solid var(--pulso-border)",
@@ -381,62 +317,81 @@ function ModuleCard({ mod, procState }: { mod: ModuleMeta; procState: ModulePhas
         </span>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span
+      {/* Icon chip grande */}
+      <span
+        aria-hidden="true"
+        style={{
+          width: 64, height: 64, borderRadius: 16,
+          background: mod.iconBg,
+          color: mod.iconFg,
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          border: `1px solid ${mod.iconBorder}`,
+          flexShrink: 0,
+          boxShadow: isActive ? "var(--pulso-shadow-low)" : "none",
+        }}
+      >
+        <Icon size={30} strokeWidth={1.8} />
+      </span>
+
+      {/* Título display */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <h2
           style={{
-            width: 44, height: 44, borderRadius: 10,
-            background: mod.iconBg,
-            color: mod.iconFg,
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-            border: `1px solid ${mod.iconBorder}`,
+            margin: 0,
+            fontSize: 24, fontWeight: 700,
+            color: "var(--pulso-text)", letterSpacing: -0.3,
+            lineHeight: 1.2,
           }}
         >
-          <Icon size={20} />
-        </span>
-        <h3 style={{
-          margin: 0, fontSize: 17, fontWeight: 700,
-          color: "var(--pulso-text)", lineHeight: 1.25,
-        }}>
           {mod.title}
-        </h3>
+        </h2>
+        <p
+          style={{
+            margin: 0, fontSize: 14, lineHeight: 1.6,
+            color: "var(--pulso-text-soft)",
+            maxWidth: 480,
+          }}
+        >
+          {mod.blurb}
+        </p>
       </div>
 
-      <p style={{
-        margin: 0, fontSize: 12, lineHeight: 1.55,
-        color: "var(--pulso-text-soft)", flex: 1,
-      }}>
-        {mod.blurb}
-      </p>
-
+      {/* Progress strip para Procesamiento */}
       {procState && isActive && (
-        <div style={{
-          display: "flex", flexDirection: "column", gap: 6,
-          padding: "10px 12px", borderRadius: 8,
-          background: procState.done > 0 ? "var(--pulso-primary-soft)" : "var(--pulso-surface-2)",
-          border: `1px solid ${procState.done > 0 ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
-        }}>
+        <div
+          style={{
+            marginTop: "auto",
+            display: "flex", flexDirection: "column", gap: 8,
+            padding: "12px 14px", borderRadius: 9,
+            background: hasProgress ? "var(--pulso-primary-soft)" : "var(--pulso-surface-2)",
+            border: `1px solid ${hasProgress ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <span style={{
-              fontSize: 10, fontWeight: 700,
-              textTransform: "uppercase", letterSpacing: 0.5,
-              color: procState.done > 0 ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-            }}>
+            <span
+              style={{
+                fontSize: 11, fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: 0.5,
+                color: hasProgress ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
+              }}
+            >
               {procState.done === 0
                 ? "Sin empezar"
                 : procState.done === procState.total
                   ? "Completado"
                   : `Fase ${procState.done} de ${procState.total}`}
             </span>
-            <span style={{
-              fontSize: 11, fontFamily: "ui-monospace, monospace",
-              color: procState.done > 0 ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-            }}>
+            <span
+              style={{
+                fontSize: 12, fontFamily: "ui-monospace, monospace", fontWeight: 600,
+                color: hasProgress ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
+              }}
+            >
               {procState.done}/{procState.total}
             </span>
           </div>
           <div style={{
-            height: 4, borderRadius: 2,
+            height: 6, borderRadius: 3,
             background: "rgba(0, 36, 87, 0.08)",
             overflow: "hidden",
           }}>
@@ -444,35 +399,43 @@ function ModuleCard({ mod, procState }: { mod: ModuleMeta; procState: ModulePhas
               style={{
                 height: "100%", width: `${pct * 100}%`,
                 background: "var(--pulso-primary)",
-                transition: "width 360ms ease",
+                transition: "width 400ms ease",
               }}
             />
           </div>
           {procState.nextLabel && (
-            <span style={{
-              fontSize: 11, color: "var(--pulso-text-soft)",
-              display: "inline-flex", alignItems: "center", gap: 4,
-            }}>
-              <Sparkles size={11} color="var(--pulso-primary)" />
-              Continúa en <strong style={{ color: "var(--pulso-primary)" }}>{procState.nextLabel}</strong>
+            <span
+              style={{
+                fontSize: 12, color: "var(--pulso-text-soft)",
+                display: "inline-flex", alignItems: "center", gap: 5,
+              }}
+            >
+              <Sparkles size={12} color="var(--pulso-primary)" />
+              Continúa en{" "}
+              <strong style={{ color: "var(--pulso-primary)" }}>{procState.nextLabel}</strong>
             </span>
           )}
         </div>
       )}
 
-      <div style={{
-        display: "flex", alignItems: "center",
-        fontSize: 12, fontWeight: 600,
-        color: isActive ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-      }}>
-        {isActive
-          ? (procState && procState.done === procState.total && procState.total > 0
-              ? "Revisar"
-              : procState && procState.done > 0
-                ? `Continuar en ${procState.nextLabel}`
-                : "Empezar")
-          : "Disponible próximamente"}
-        {isActive && <ArrowRight size={13} style={{ marginLeft: 4 }} />}
+      {/* Footer del módulo — CTA */}
+      <div
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          paddingTop: procState && isActive ? 0 : 0,
+          marginTop: procState && isActive ? 0 : "auto",
+          fontSize: 14, fontWeight: 700,
+          color: isActive ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
+        }}
+      >
+        {ctaLabel}
+        {isActive && (
+          <ArrowRight
+            size={16}
+            style={{ transition: "transform 180ms ease" }}
+            className="pulso-module-arrow"
+          />
+        )}
       </div>
     </div>
   );
@@ -486,14 +449,18 @@ function ModuleCard({ mod, procState }: { mod: ModuleMeta; procState: ModulePhas
       onMouseEnter={(e) => {
         const el = e.currentTarget.firstChild as HTMLDivElement;
         el.style.borderColor = "var(--pulso-primary)";
-        el.style.boxShadow = "var(--pulso-shadow-med)";
-        el.style.transform = "translateY(-3px)";
+        el.style.boxShadow = "var(--pulso-shadow-med), 0 0 0 3px var(--pulso-primary-ring)";
+        el.style.transform = "translateY(-4px)";
+        const arrow = el.querySelector(".pulso-module-arrow") as HTMLElement | null;
+        if (arrow) arrow.style.transform = "translateX(4px)";
       }}
       onMouseLeave={(e) => {
         const el = e.currentTarget.firstChild as HTMLDivElement;
-        el.style.borderColor = "var(--pulso-border)";
-        el.style.boxShadow = "none";
+        el.style.borderColor = "var(--pulso-primary-border)";
+        el.style.boxShadow = "var(--pulso-shadow-low)";
         el.style.transform = "translateY(0)";
+        const arrow = el.querySelector(".pulso-module-arrow") as HTMLElement | null;
+        if (arrow) arrow.style.transform = "translateX(0)";
       }}
     >
       {card}
@@ -501,64 +468,235 @@ function ModuleCard({ mod, procState }: { mod: ModuleMeta; procState: ModulePhas
   );
 }
 
-// ---- Release note row ------------------------------------------------
-
-function ReleaseNoteRow({ note, isLast }: { note: ReleaseNote; isLast: boolean }) {
-  const dateLabel = useMemo(() => {
-    try {
-      return new Date(note.date + "T00:00:00").toLocaleDateString("es-PE", {
-        year: "numeric", month: "short", day: "numeric",
-      });
-    } catch {
-      return note.date;
-    }
-  }, [note.date]);
-
+// =====================================================================
+// Footer — versión + autor + cerrar + notas
+// =====================================================================
+function HomeFooter({
+  version, onClose,
+}: {
+  version: string;
+  onClose: () => void;
+}) {
   return (
-    <article
+    <footer
       style={{
-        display: "grid",
-        gridTemplateColumns: "140px 1fr",
-        gap: 14, padding: "14px 18px",
-        borderBottom: isLast ? "none" : "1px solid var(--pulso-border)",
+        display: "flex", flexDirection: "column", gap: 18,
+        paddingTop: 22,
+        borderTop: "1px solid var(--pulso-border)",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <span style={{
-          fontSize: 13, fontWeight: 700, color: "var(--pulso-primary)",
-          fontFamily: "ui-monospace, monospace",
-        }}>
-          v{note.version}
-        </span>
-        <span style={{
+      <ReleaseNotesPanel />
+
+      <div
+        style={{
+          display: "flex", alignItems: "center", gap: 14,
+          flexWrap: "wrap",
           fontSize: 11, color: "var(--pulso-text-soft)",
-          textTransform: "capitalize",
-        }}>
-          {dateLabel}
+        }}
+      >
+        <span>
+          Prosecnur{version && version !== "…" ? ` · ${version}` : ""}
         </span>
-      </div>
-      <ul style={{
-        margin: 0, padding: 0, listStyle: "none",
-        display: "flex", flexDirection: "column", gap: 6,
-      }}>
-        {note.highlights.map((h, i) => (
-          <li
-            key={i}
+        <span aria-hidden="true">·</span>
+        <span>
+          Hecho por{" "}
+          <a
+            href={AUTHOR.github}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
-              display: "flex", gap: 8,
-              fontSize: 12, color: "var(--pulso-text)", lineHeight: 1.55,
+              color: "var(--pulso-text-soft)",
+              textDecoration: "none",
+              fontWeight: 600,
+              display: "inline-flex", alignItems: "center", gap: 4,
+              transition: "color 120ms ease",
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--pulso-primary)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--pulso-text-soft)"; }}
+            title="Ver el perfil del autor en GitHub"
           >
-            <Check size={13} style={{ color: "var(--pulso-success-fg)", flexShrink: 0, marginTop: 3 }} />
-            <span>{h}</span>
-          </li>
-        ))}
-      </ul>
-    </article>
+            {AUTHOR.name}
+            <Github size={11} />
+          </a>
+        </span>
+        <div style={{ flex: 1 }} />
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            fontSize: 11, padding: "6px 12px",
+            display: "inline-flex", alignItems: "center", gap: 5,
+            border: "1px solid var(--pulso-border)",
+            borderRadius: 6, background: "white",
+            color: "var(--pulso-text-soft)",
+            cursor: "pointer",
+            transition: "border-color 120ms ease, color 120ms ease, background 120ms ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "var(--pulso-danger-border)";
+            e.currentTarget.style.color = "var(--pulso-danger-fg)";
+            e.currentTarget.style.background = "var(--pulso-danger-bg)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "var(--pulso-border)";
+            e.currentTarget.style.color = "var(--pulso-text-soft)";
+            e.currentTarget.style.background = "white";
+          }}
+        >
+          <Power size={11} /> Cerrar aplicación
+        </button>
+      </div>
+    </footer>
   );
 }
 
-// Re-export usado por el module-card para completar el lint cuando Lock
-// no aparece en el árbol (lo mantenemos importado para futuro uso en
-// "bloqueado por razón X").
-export { Lock };
+// =====================================================================
+// Notas de versión — compactas y colapsables
+// =====================================================================
+function ReleaseNotesPanel() {
+  const [expanded, setExpanded] = useState(false);
+  const latest = RELEASE_NOTES[0];
+  const older = RELEASE_NOTES.slice(1);
+
+  return (
+    <div
+      style={{
+        display: "flex", flexDirection: "column", gap: 10,
+      }}
+    >
+      {/* Línea compacta con última versión */}
+      <div
+        style={{
+          display: "flex", alignItems: "flex-start", gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <span
+          style={{
+            fontSize: 10, fontWeight: 700,
+            textTransform: "uppercase", letterSpacing: 0.6,
+            padding: "3px 9px", borderRadius: 999,
+            background: "var(--pulso-primary-soft)",
+            color: "var(--pulso-primary)",
+            border: "1px solid var(--pulso-primary-border)",
+            fontFamily: "ui-monospace, monospace",
+            whiteSpace: "nowrap",
+          }}
+        >
+          v{latest.version} · {formatDate(latest.date)}
+        </span>
+        <ul
+          style={{
+            margin: 0, padding: 0, listStyle: "none",
+            display: "flex", flexDirection: "column", gap: 3,
+            flex: 1, minWidth: 240,
+          }}
+        >
+          {latest.highlights.slice(0, 3).map((h, i) => (
+            <li
+              key={i}
+              style={{
+                fontSize: 12, color: "var(--pulso-text-soft)",
+                lineHeight: 1.5,
+                display: "flex", gap: 6, alignItems: "flex-start",
+              }}
+            >
+              <Check size={12} style={{ color: "var(--pulso-success-fg)", flexShrink: 0, marginTop: 3 }} />
+              <span>{h}</span>
+            </li>
+          ))}
+        </ul>
+        {older.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            style={{
+              fontSize: 11, fontWeight: 500,
+              padding: "3px 8px",
+              border: "none", background: "transparent",
+              color: "var(--pulso-text-soft)",
+              cursor: "pointer",
+              display: "inline-flex", alignItems: "center", gap: 4,
+              whiteSpace: "nowrap",
+              transition: "color 120ms ease",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--pulso-primary)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--pulso-text-soft)"; }}
+          >
+            {expanded ? "Ocultar historial" : `Ver historial (${older.length})`}
+            <ChevronDown
+              size={12}
+              style={{ transition: "transform 180ms ease", transform: expanded ? "rotate(180deg)" : "rotate(0)" }}
+            />
+          </button>
+        )}
+      </div>
+
+      {/* Historial expandido */}
+      {expanded && older.length > 0 && (
+        <div
+          style={{
+            display: "flex", flexDirection: "column", gap: 10,
+            paddingLeft: 14,
+            borderLeft: "2px solid var(--pulso-border)",
+            marginLeft: 4,
+          }}
+        >
+          {older.map((n) => (
+            <div key={n.version} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span
+                style={{
+                  fontSize: 10, fontWeight: 700,
+                  color: "var(--pulso-text-soft)",
+                  fontFamily: "ui-monospace, monospace",
+                  letterSpacing: 0.3,
+                }}
+              >
+                v{n.version} · {formatDate(n.date)}
+              </span>
+              <ul
+                style={{
+                  margin: 0, padding: 0, listStyle: "none",
+                  display: "flex", flexDirection: "column", gap: 3,
+                }}
+              >
+                {n.highlights.map((h, i) => (
+                  <li
+                    key={i}
+                    style={{
+                      fontSize: 11, color: "var(--pulso-text-soft)",
+                      lineHeight: 1.5,
+                      display: "flex", gap: 6, alignItems: "flex-start",
+                    }}
+                  >
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        display: "inline-block",
+                        width: 4, height: 4, borderRadius: "50%",
+                        background: "var(--pulso-text-soft)",
+                        marginTop: 7, flexShrink: 0,
+                      }}
+                    />
+                    <span>{h}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso + "T00:00:00").toLocaleDateString("es-PE", {
+      year: "numeric", month: "short", day: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
