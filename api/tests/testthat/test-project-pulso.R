@@ -16,7 +16,22 @@
 
 .fake_session_with_state <- function() {
   sid <- session_create()
+  # Subir un input "referenciado" como instrumento de una base — solo
+  # estos viajan en el .pulso (los outputs del pipeline son archivos
+  # independientes al lado del .pulso).
   meta <- save_upload(sid, "xlsform", "demo_inst.xlsx", .tiny_xlsx_bytes())
+  data_meta <- save_upload(sid, "data", "demo_data.xlsx", .tiny_xlsx_bytes())
+  # Asociar a una base del estudio para que .pulso_collect_input_fids
+  # los detecte.
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  s$estudio$bases[["default"]] <- list(
+    nombre = "default",
+    xlsform_file_id = meta$file_id,
+    data_file_id = data_meta$file_id,
+    data_ext = "xlsx"
+  )
+  .session_env[[sid]] <- s
   session_set(sid, "instrumento", list(
     survey = data.frame(name = c("p1", "p2"), type = c("text", "integer"))
   ))
@@ -26,7 +41,7 @@
   session_set(sid, "reglas_custom", list(
     list(id = "rc1", nombre = "Rango edad", tipo = "rango_num", activa = TRUE)
   ))
-  list(sid = sid, file_id = meta$file_id)
+  list(sid = sid, file_id = meta$file_id, data_file_id = data_meta$file_id)
 }
 
 # ----- Round-trip básico ------------------------------------------------------
@@ -64,14 +79,14 @@ test_that("load_pulso restaura los archivos físicos con paths correctos", {
   on.exit(session_delete(res_load$session_id), add = TRUE)
 
   s <- session_get(res_load$session_id)
-  expect_equal(length(s$files), 1L)
-  fid <- names(s$files)[1]
-  expect_equal(fid, setup$file_id)
-  expect_true(file.exists(s$files[[fid]]$path))
+  expect_equal(length(s$files), 2L)  # xlsform + data
+  expect_true(setup$file_id %in% names(s$files))
+  meta <- s$files[[setup$file_id]]
+  expect_true(file.exists(meta$path))
   # Path apunta al nuevo tempdir, NO al de la sesión original
-  expect_true(grepl(res_load$session_id, s$files[[fid]]$path, fixed = TRUE))
+  expect_true(grepl(res_load$session_id, meta$path, fixed = TRUE))
   # Bytes preservados
-  bytes <- readBin(s$files[[fid]]$path, "raw", n = 100)
+  bytes <- readBin(meta$path, "raw", n = 100)
   expect_identical(bytes, .tiny_xlsx_bytes())
 })
 
@@ -168,6 +183,32 @@ test_that("build_pulso excluye codif_por_base[*]$inst y $data del state", {
   s <- session_get(res_load$session_id)
   expect_null(s$codif_por_base$default$inst)
   expect_null(s$codif_por_base$default$data)
+})
+
+# ----- Outputs son independientes (no van en el .pulso) ---------------------
+
+test_that("build_pulso excluye outputs/entregables del zip — solo inputs viajan", {
+  setup <- .fake_session_with_state()
+  on.exit(session_delete(setup$sid))
+  # Subir un "output" simulado (kind raro) que NO está referenciado por
+  # ninguna base ni por codif_por_base. NO debería viajar al .pulso.
+  output_meta <- save_upload(setup$sid, "data", "codebook_generated.xlsx",
+                              .tiny_xlsx_bytes())
+  # Notar: este file_id existe en s$files pero ninguna base lo referencia
+  # como xlsform_file_id ni data_file_id ni familias_file_id.
+
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit(unlink(tmp, force = TRUE), add = TRUE)
+  build_pulso(setup$sid, tmp)
+
+  # Verificar zip contents: solo deben estar los 2 inputs referenciados,
+  # NO el "output" no referenciado.
+  entries <- zip::zip_list(tmp)$filename
+  files_entries <- entries[startsWith(entries, "files/")]
+  expect_length(files_entries, 2L)
+  expect_true(any(grepl(setup$file_id, files_entries, fixed = TRUE)))
+  expect_true(any(grepl(setup$data_file_id, files_entries, fixed = TRUE)))
+  expect_false(any(grepl(output_meta$file_id, files_entries, fixed = TRUE)))
 })
 
 # ----- Errores ---------------------------------------------------------------

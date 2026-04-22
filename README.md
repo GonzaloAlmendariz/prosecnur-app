@@ -53,6 +53,25 @@ El launcher se encarga automáticamente de:
 Logs en `~/Library/Logs/Prosecnur/` (macOS) o `%LOCALAPPDATA%\Prosecnur\logs\`
 (Windows). El menú **Ayuda → Abrir carpeta de logs** los abre directo.
 
+## Proyectos `.pulso` (workspace persistente)
+
+Cada análisis se puede guardar como un archivo binario `.pulso` que
+contiene el estado completo de la sesión: instrumento, data, plan de
+validación, reglas custom, codificación, y configuración de gráficos.
+
+- Doble click a un `.pulso` (o **Archivo → Abrir** desde la app) restaura
+  todo el estado.
+- **Cmd/Ctrl + S** guarda. **Cmd/Ctrl + Shift + S** guarda como.
+- **Autoguardado cada 5 minutos** si hay cambios pendientes.
+- **Entregables** (codebook, reporte HTML, plan, etc.) se guardan al
+  lado del `.pulso` con el nombre que tú elijas, validado.
+- **Modo efímero** sigue disponible: en el modal inicial, click
+  "Trabajar sin proyecto" → flujo clásico con descargas a `~/Downloads`.
+
+Los recientes (hasta 5) viven en
+`~/Library/Application Support/Prosecnur/recent-projects.json` (macOS) o
+`%APPDATA%/Prosecnur/recent-projects.json` (Windows).
+
 ## Dos modos de arranque
 
 El mismo `Prosecnur.app` / `Prosecnur.bat` funciona en dos modos según

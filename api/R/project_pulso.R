@@ -4,13 +4,18 @@
 # Un `.pulso` es un archivo zip con:
 #   manifest.json   # metadata (version, timestamps, app_version, project_name)
 #   state.rds       # saveRDS del env de sesión filtrado (sin caches)
-#   files/          # copias crudas de s$files (<file_id>__<original_name>)
+#   files/          # copias de los INPUTS del proyecto (xlsform, data,
+#                   # familias.xlsx editable, plantilla de codificación
+#                   # editada). Los OUTPUTS / entregables NO van acá —
+#                   # esos se exportan como archivos independientes al
+#                   # directorio del .pulso vía /api/fs/save-to-project
+#                   # con el nombre que el analista decide.
 #
 # El formato es zip porque R tiene `zip::zip/unzip` nativo, el contenido es
-# inspeccionable con `unzip -l`, y si el state.rds se corrompe las fuentes
-# crudas siguen en files/ para re-derivar. Los paths absolutos de
-# `s$files[[*]]$path` se reescriben al tempdir de la sesión destino al cargar,
-# así el .pulso viaja entre máquinas sin problema.
+# inspeccionable con `unzip -l`, y si el state.rds se corrompe los inputs
+# siguen en files/ para re-derivar todo el pipeline. Los paths absolutos
+# de `s$files[[*]]$path` se reescriben al tempdir de la sesión destino al
+# cargar, así el .pulso viaja entre máquinas sin problema.
 #
 # Campos excluidos del state.rds (se excluyen del save, se regeneran al load):
 #   - s$codif_por_base[[*]]$inst  — cache del XLSForm parseado
@@ -41,6 +46,47 @@
     }
   }
   s
+}
+
+# Recolecta los file_ids que son INPUTS del proyecto — los que el state
+# referencia explícitamente desde sus campos canónicos. Excluye outputs
+# generados por el pipeline (codebooks, reportes, planes exportados,
+# data_adaptada, etc.) que vivirán como archivos independientes al lado
+# del .pulso. Devuelve un vector de file_ids únicos.
+.pulso_collect_input_fids <- function(s) {
+  out <- character(0)
+
+  # Multi-base: cada base referencia su xlsform y su data.
+  if (!is.null(s$estudio) && length(s$estudio$bases) > 0L) {
+    for (b in s$estudio$bases) {
+      if (!is.null(b$xlsform_file_id) && nzchar(b$xlsform_file_id)) {
+        out <- c(out, b$xlsform_file_id)
+      }
+      if (!is.null(b$data_file_id) && nzchar(b$data_file_id)) {
+        out <- c(out, b$data_file_id)
+      }
+    }
+  }
+  # Codificación: el xlsx de familias y la plantilla de códigos editada
+  # por el analista son inputs (los outputs como data_adaptada NO).
+  if (!is.null(s$codif_por_base) && length(s$codif_por_base) > 0L) {
+    for (sub in s$codif_por_base) {
+      if (!is.null(sub$familias_file_id) && nzchar(sub$familias_file_id)) {
+        out <- c(out, sub$familias_file_id)
+      }
+      if (!is.null(sub$plantilla_codigos_file_id) &&
+          nzchar(sub$plantilla_codigos_file_id)) {
+        out <- c(out, sub$plantilla_codigos_file_id)
+      }
+    }
+  }
+  # Legacy single-base: data_raw_meta apunta al file_id de data.
+  if (!is.null(s$data_raw_meta) && !is.null(s$data_raw_meta$file_id) &&
+      nzchar(s$data_raw_meta$file_id)) {
+    out <- c(out, s$data_raw_meta$file_id)
+  }
+
+  unique(out)
 }
 
 # Reescribe s$files[[*]]$path para que apunten al nuevo tempdir de sesión
@@ -92,19 +138,32 @@ build_pulso <- function(sid, dest_path, project_name = NULL) {
   dir.create(stage_dir, recursive = TRUE, showWarnings = FALSE)
   on.exit(unlink(stage_dir, recursive = TRUE, force = TRUE), add = TRUE)
 
-  # 1) Copiar files físicos con nombre estable <file_id>__<original_name>
+  # 1) Recolectar los file_ids que son INPUTS del proyecto (referenciados
+  #    desde el state). Excluye los outputs/entregables generados por el
+  #    pipeline — esos son archivos independientes que el analista guarda
+  #    al lado del .pulso vía /api/fs/save-to-project.
+  needed_fids <- .pulso_collect_input_fids(s)
+
+  # 2) Copiar solo los files referenciados (nombre estable <fid>__<orig>)
   files_dir <- file.path(stage_dir, "files")
   dir.create(files_dir, recursive = TRUE, showWarnings = FALSE)
-  if (!is.null(s$files) && length(s$files) > 0L) {
-    for (fid in names(s$files)) {
+  if (!is.null(s$files) && length(s$files) > 0L && length(needed_fids) > 0L) {
+    for (fid in needed_fids) {
       meta <- s$files[[fid]]
-      if (is.null(meta$path) || !file.exists(meta$path)) next
-      # Usamos doble underscore como separador — es inusual en nombres de
-      # archivo reales y se puede splittear en load sin ambigüedad.
+      if (is.null(meta) || is.null(meta$path) || !file.exists(meta$path)) next
+      # Doble underscore como separador — improbable en nombres reales,
+      # se splittea sin ambigüedad en load.
       safe_name <- gsub("[/\\\\]", "_", as.character(meta$original_name %||% "file"))
       dst <- file.path(files_dir, sprintf("%s__%s", fid, safe_name))
       file.copy(meta$path, dst, overwrite = TRUE)
     }
+    # Recortar s$files al subset que efectivamente viaja, para que al
+    # reabrir el state no queden referencias colgantes a archivos que
+    # ya no existen (los outputs viejos del tempdir original quedan
+    # inalcanzables tras el reopen).
+    s$files <- s$files[intersect(needed_fids, names(s$files))]
+  } else {
+    s$files <- list()
   }
 
   # 2) Serializar estado (sin caches) a state.rds
