@@ -36,12 +36,12 @@ shutdown_requested <- function() isTRUE(.shutdown_flag$value)
 # `ejecutar_surveymonkey_prosecnur.qmd`.
 
 .DEMOS_META <- list(
-  generic = list(
-    name             = "generic",
-    titulo_humano    = "Demo genérica (prosecnur)",
-    descripcion      = "Dataset compacto de ejemplo, ideal para explorar la app sin datos reales. Pocas preguntas, variadas (Likert, select_one, integer). Una sola base.",
-    icono_ui         = "FileText",
-    etiqueta_estudio = "Exploratorio",
+  giz = list(
+    name             = "giz",
+    titulo_humano    = "Estudio GIZ",
+    descripcion      = "Dataset de un estudio real con GIZ — compacto, con preguntas variadas (Likert, select_one, integer, texto abierto) de una sola base. Útil para explorar el flujo completo con datos representativos.",
+    icono_ui         = "Globe2",
+    etiqueta_estudio = "Cooperación internacional",
     instrumento_file = "demo_instrumento.xlsx",
     data_file        = "demo_data.xlsx"
   ),
@@ -244,13 +244,13 @@ mount_sistema <- function(pr) {
     })) |>
     plumber::pr_post("/api/system/demo", wrap_endpoint(function(req, res, name = NULL) {
       # Carga un dataset de prueba (1+ bases). Si `name` no viene, default
-      # a "generic". Si el demo es multi-base, carga TODAS las bases
+      # a "giz". Si el demo es multi-base, carga TODAS las bases
       # declaradas en el catálogo como parte del mismo estudio.
       demo_name <- if (is.character(name) && length(name) >= 1 && nzchar(name[[1]])) {
         as.character(name[[1]])
       } else {
         q <- req$args %||% list()
-        as.character(q$name %||% "generic")
+        as.character(q$name %||% "giz")
       }
       meta <- .demo_meta(demo_name)
       if (is.null(meta)) {

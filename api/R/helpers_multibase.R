@@ -53,7 +53,9 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
     # Si hay 1 sola base llamada "default", no prefijamos — preserva
     # nombres legacy (`codebook.xlsx`).
     solo_una <- length(ds) == 1L
-    fname <- if (solo_una && nombre %in% c("default", "generic")) {
+    # "giz" es el nombre actual del demo default; "generic" se mantiene
+    # como alias por compat con sesiones persistidas antes del rename.
+    fname <- if (solo_una && nombre %in% c("default", "giz", "generic")) {
       sprintf("%s.%s", base_filename, ext)
     } else {
       sprintf("%s__%s.%s", nombre, base_filename, ext)
