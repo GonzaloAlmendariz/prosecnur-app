@@ -193,6 +193,7 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <a
               href={downloadUrl(output.data)}
+              download="data_adaptada.xlsx"
               className="pulso-primary"
               style={{ fontSize: 13, padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
             >
@@ -200,6 +201,7 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
             </a>
             <a
               href={downloadUrl(output.inst)}
+              download="instrumento_adaptado.xlsx"
               style={{ fontSize: 13, padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 6 }}
             >
               <Download size={14} /> instrumento_adaptado.xlsx

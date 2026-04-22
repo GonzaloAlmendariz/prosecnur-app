@@ -82,6 +82,26 @@ leer_datos_generico <- function(path_data, sheet = NULL){
   }
 }
 
+# Resuelve el text_col asociado a una parent en el xlsx de familias.
+# Devuelve "" si no puede resolverlo (archivo ausente, sin columna, etc.).
+# Usado por ppra_so_parent para saber qué filas de la data corresponden al
+# caso "Otros" (text_col no vacío) y así distinguirlas del resto.
+.resolve_text_col_for_parent <- function(parent, path_familias) {
+  if (is.null(path_familias) || !file.exists(path_familias)) return("")
+  fam <- tryCatch(readxl::read_excel(path_familias), error = function(e) NULL)
+  if (is.null(fam)) return("")
+  fam <- tryCatch(janitor::clean_names(fam), error = function(e) fam)
+  if (!("text_col" %in% names(fam))) return("")
+  parent_key <- if ("parent" %in% names(fam)) "parent"
+                else if ("parent_col" %in% names(fam)) "parent_col"
+                else return("")
+  ix <- which(as.character(fam[[parent_key]]) == as.character(parent))
+  if (length(ix) == 0L) return("")
+  tc <- as.character(fam$text_col[ix[1]])
+  if (is.na(tc)) return("")
+  tc
+}
+
 # leer hoja con nombre insensible a mayúsculas
 read_sheet_ci <- function(path_xlsx, sheet_name){
   sh <- readxl::excel_sheets(path_xlsx)
@@ -618,6 +638,21 @@ ppra_so_parent <- function(df, parent, path_instrumento, path_plantilla,
   if (!is.na(rec_tpl)) {
     x <- trimws(as.character(tmp[[rec_tpl]])); x[x==""] <- NA_character_
     i <- which(!is.na(x)); if (length(i)) code_final[i] <- x[i]
+
+    # Filas "Otros" (text_col con respuesta abierta) que el analista NO
+    # clasificó en ningún grupo: dejar NA en lugar de preservar el código
+    # original "Otros" (ej. 70, 99) que venía de base_code. Sin esto, el
+    # usuario ve p8_recod con una mezcla de códigos nuevos (4 Polideportivo)
+    # Y el código "Otros" viejo (70) que supuestamente se desgranó. Las
+    # filas con text_col vacío (no marcaron Otros) mantienen su código
+    # original 1/2/3 como antes.
+    text_col <- .resolve_text_col_for_parent(parent, path_familias)
+    if (nzchar(text_col) && text_col %in% names(df_work)) {
+      t_vals <- as.character(df_work[[text_col]])
+      has_text <- !is.na(t_vals) & nzchar(trimws(t_vals))
+      unclassified <- has_text & is.na(x)
+      if (any(unclassified)) code_final[unclassified] <- NA_character_
+    }
   }
 
   new_code <- !is.na(code_final) & !(code_final %in% cat_codes)

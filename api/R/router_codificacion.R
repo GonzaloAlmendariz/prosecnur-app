@@ -1838,10 +1838,26 @@ mount_codificacion <- function(pr) {
 
       # 5) Extract the list of vars ppra_adaptar_data needs to know explicitly
       # (it's a bare-bones function: no args → no work done). Pull them from
-      # the split we just produced.
+      # the split we just produced, PERO filtrando por los parents que el
+      # analista realmente codificó (tienen entries en grupos_map). Sin este
+      # filtro, el motor itera sobre TODAS las parents elegibles del split
+      # y crea columnas `_recod` vacías para preguntas que el analista ni
+      # tocó — ensuciando el dataset de salida.
+      grupos_map <- codif_get(sid, "grupos_recod") %||% list()
+      parents_con_grupos <- names(grupos_map)[vapply(
+        grupos_map,
+        function(g) is.list(g) && length(g) > 0L,
+        logical(1)
+      )]
+
       .vars_from_split <- function(sub, modo = NULL) {
         if (is.null(sub) || !nrow(sub)) return(character(0))
         x <- if (!is.null(modo)) sub[sub$modo_so == modo, , drop = FALSE] else sub
+        # Conservar solo las filas cuyo parent tiene grupos codificados.
+        # `parent` es el nombre lógico; `parent_col` es la columna en data
+        # (pueden diferir en casos raros tipo select_one hijo).
+        keep <- as.character(x$parent) %in% parents_con_grupos
+        x <- x[keep, , drop = FALSE]
         out <- as.character(x$parent_col %||% x$parent)
         out <- out[!is.na(out) & nzchar(out)]
         unique(out)
@@ -1876,7 +1892,16 @@ mount_codificacion <- function(pr) {
             path_instrumento_in  = xls_path,
             path_data_adaptada   = data_out,
             path_instrumento_out = inst_out,
-            path_plantilla       = codes_path
+            path_plantilla       = codes_path,
+            # Sin estos vectores, ppra_adaptar_instrumento usa los
+            # defaults (character(0)), los if(length(...)) quedan FALSE
+            # y escribe el xlsform original sin cambios. Bug real hasta
+            # que lo cableamos acá. Mapeo de nombres: `int_vars` local
+            # → `integer_vars` en el API de ppra_adaptar_instrumento.
+            sm_vars              = sm_vars,
+            so_parent_vars       = so_parent_vars,
+            so_child_vars        = so_child_vars,
+            integer_vars         = int_vars
           )
           list(data_out = data_out, inst_out = inst_out)
         },
