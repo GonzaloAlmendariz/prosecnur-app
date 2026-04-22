@@ -133,6 +133,88 @@ mount_estudio <- function(pr) {
       estudio_remove_base(sid, as.character(nombre))
       list(ok = TRUE, n_bases = length(estudio_list_bases(sid)))
     })) |>
+
+    # Convierte un single-base legacy (XLSForm + data cargados via
+    # /api/carga/instrumento + /api/carga/data) en un estudio multi-base
+    # con UNA base inicial con el nombre que el usuario elija. Reutiliza
+    # los archivos ya subidos al file store — el usuario no vuelve a
+    # subir. Body: { nombre: "docentes" }.
+    plumber::pr_post("/api/estudio/from-session", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+
+      # Si ya hay un estudio inicializado con bases, esto es no-op — el
+      # endpoint solo convierte single-base legacy.
+      if (!is.null(s$estudio) && length(s$estudio$bases) > 0L) {
+        stop_api(409, "E_ALREADY_MULTIBASE",
+                 "Este estudio ya tiene bases. Usa POST /api/estudio/base para agregar otras.")
+      }
+
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      nombre <- as.character(parsed$nombre %||% "")
+      if (!nzchar(nombre)) stop_api(400, "E_MISSING_NOMBRE", "Falta 'nombre' de la base.")
+      if (grepl("\\$|\\s", nombre)) {
+        stop_api(400, "E_BASE_NOMBRE_INVALIDO",
+                 "El nombre no puede contener '$' ni espacios.")
+      }
+
+      # Tomar los últimos files del session store con kind correcto.
+      files <- s$files %||% list()
+      xls_meta <- NULL
+      dat_meta <- NULL
+      for (fid in names(files)) {
+        f <- files[[fid]]
+        if (identical(f$kind, "xlsform")) xls_meta <- f
+        if (f$kind %in% c("data", "sav"))  dat_meta <- f
+      }
+      if (is.null(xls_meta)) stop_api(409, "E_NO_XLSFORM", "No hay XLSForm cargado en la sesión.")
+      if (is.null(dat_meta)) stop_api(409, "E_NO_DATA",    "No hay base de datos cargada en la sesión.")
+
+      # Re-parsear con reporte_instrumento + reporte_data (el single-base
+      # legacy usaba `leer_instrumento_xlsform` que es más ligero y no
+      # produce el objeto rp_inst que el estudio multi-base necesita).
+      rp_inst <- reporte_instrumento(path = xls_meta$path)
+      data_df <- .read_data_from_path(dat_meta$path)
+      rp_data <- reporte_data(data_df, instrumento = rp_inst)
+
+      data_ext <- tolower(tools::file_ext(dat_meta$original_name %||% dat_meta$path))
+
+      base_meta <- estudio_add_base(
+        sid,
+        nombre          = nombre,
+        xlsform_file_id = xls_meta$file_id,
+        data_file_id    = dat_meta$file_id,
+        data_ext        = data_ext,
+        rp_data         = rp_data,
+        rp_inst         = rp_inst,
+        n_filas         = as.integer(nrow(data_df)),
+        n_columnas      = as.integer(ncol(data_df))
+      )
+
+      # Limpiar artefactos single-base que ya quedaron obsoletos tras la
+      # promoción a multi-base (rp_data_sources ya tiene el mirror).
+      session_set(sid, "instrumento",   NULL)
+      session_set(sid, "inst_limpieza", NULL)
+      session_set(sid, "data_raw_meta", NULL)
+      # analitica_prep_ok ya lo setea estudio_add_base cuando es primera.
+      if (length(estudio_list_bases(sid)) == 1L) {
+        session_set(sid, "analitica_prep_ok", TRUE)
+        session_set(sid, "analitica_fuente", sprintf("estudio:%s", nombre))
+      }
+
+      list(
+        ok        = TRUE,
+        base      = .estudio_base_payload(base_meta),
+        n_bases   = length(estudio_list_bases(sid)),
+        max_bases = .ESTUDIO_MAX_BASES
+      )
+    })) |>
     plumber::pr_get("/api/estudio/codif-source", wrap_endpoint(function(req, res) {
       # Devuelve la base actualmente activa para codificación + las
       # opciones disponibles (todas las bases del estudio).

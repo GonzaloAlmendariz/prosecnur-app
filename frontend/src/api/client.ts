@@ -163,6 +163,26 @@ export async function apiEstudioRemoveBase(nombre: string) {
   );
 }
 
+// Convierte un single-base legacy (cargado via apiCargaInstrumento +
+// apiCargaData) en un estudio multi-base con UNA base inicial con el
+// nombre que el usuario eligió. Reutiliza los archivos ya subidos al
+// file store — no hay re-upload. Tras esto el frontend debe refrescar
+// session/state y el usuario puede agregar más bases via BasesPanel.
+export async function apiEstudioFromSession(nombre: string) {
+  return handle<{
+    ok: true;
+    base: EstudioBase;
+    n_bases: number;
+    max_bases: number;
+  }>(
+    await fetch("/api/estudio/from-session", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ nombre }),
+    }),
+  );
+}
+
 export async function apiEstudioRenameBase(nombre_actual: string, nombre_nuevo: string) {
   return handle<EstudioPayload>(
     await fetch(`/api/estudio/base/${encodeURIComponent(nombre_actual)}`, {

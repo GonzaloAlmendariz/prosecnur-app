@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import * as Lucide from "lucide-react";
 import {
   ArrowRight, CheckCircle2, Database, FileSpreadsheet,
-  RotateCcw, Sparkles, Trash2, Upload,
+  Layers, RotateCcw, Sparkles, Trash2, Upload, X as XIcon,
 } from "lucide-react";
 import {
   apiCargaData,
   apiCargaInstrumento,
+  apiEstudioFromSession,
   apiEstudioGet,
   apiInstrumentoEstructura,
   apiListDemos,
@@ -249,12 +250,15 @@ export default function CargaPage() {
           Cada base es un par (XLSForm + data) con nombre único. El
           usuario puede agregar, quitar y renombrar bases. Viene del
           backend vía apiEstudioGet(). */}
-      {isMultiBase && estudio ? (
+      {isMultiBase && estudio && (
         <BasesPanel estudio={estudio} onChanged={onEstudioChanged} />
-      ) : (
-      <>
+      )}
 
-      {/* Sección 1 — LOS DOS INSUMOS (protagonistas, single-base). */}
+      {/* Sección 1 — LOS DOS INSUMOS (single-base). Solo se muestra si
+          NO estamos en modo multi-base. Si estamos en multi-base,
+          BasesPanel ya cubre la carga de insumos. */}
+      {!isMultiBase && (
+      <>
       <section style={{ marginBottom: 28 }}>
         <div style={{ marginBottom: 14 }}>
           <SectionEyebrow
@@ -344,7 +348,32 @@ export default function CargaPage() {
             onRemove={() => onQuitar("data")}
           />
         </div>
+
+        {/* CTA "Convertir a multi-base" — solo cuando ambos insumos
+            están cargados Y no es un demo activo (los demos ya están
+            en modo multi-base). Reutiliza los archivos del file store
+            sin re-subirlos. */}
+        {hasXlsform && hasData && !activeDemo && (
+          <ConvertToMultiBaseCta
+            onConvert={async (nombre) => {
+              setError("");
+              setBusy(`Convirtiendo a estudio multi-base…`);
+              try {
+                await apiEstudioFromSession(nombre);
+                const p = await apiEstudioGet();
+                setEstudio(p);
+                await refresh();
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy("");
+              }
+            }}
+          />
+        )}
       </section>
+      </>
+      )}
 
       {/* Sección 2 — Demos discretos (ambient content, no compite).
           Reactivo: si ya hay un demo cargado, ese chip queda resaltado
@@ -406,9 +435,6 @@ export default function CargaPage() {
             </div>
           )}
         </section>
-      )}
-
-      </>
       )}
 
       {/* Inspección del instrumento */}
@@ -824,6 +850,172 @@ function ContinuarCTA() {
       >
         Ir a Validación <ArrowRight size={13} />
       </a>
+    </div>
+  );
+}
+
+// =====================================================================
+// Convert-to-multi-base CTA
+// =====================================================================
+// Banner con copy + botón que abre un form inline para elegir nombre y
+// promover los archivos actuales (single-base) al modelo multi-base.
+// Backend: reusa xlsform_file_id + data_file_id del file store (sin
+// re-upload). Tras convertir, el UI cambia a BasesPanel automáticamente.
+function ConvertToMultiBaseCta({
+  onConvert,
+}: {
+  onConvert: (nombre: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const nombreValido = nombre.trim().length > 0 && !nombre.includes("$") && !/\s/.test(nombre);
+
+  async function handleConvert() {
+    if (!nombreValido) return;
+    setBusy(true);
+    try {
+      await onConvert(nombre.trim());
+      setOpen(false);
+      setNombre("");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <div
+        style={{
+          marginTop: 16,
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "12px 14px", borderRadius: 10,
+          border: "1px dashed var(--pulso-primary-border)",
+          background: "var(--pulso-primary-soft)",
+          flexWrap: "wrap",
+        }}
+      >
+        <Layers size={15} color="var(--pulso-primary)" />
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-primary)" }}>
+            ¿Vas a analizar varios instrumentos a la vez?
+          </div>
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4, marginTop: 2 }}>
+            Convierte este estudio a <strong>multi-base</strong> para agregar más
+            pares (XLSForm + datos) al mismo estudio — ej. docentes + estudiantes +
+            administrativos. Los archivos actuales quedan como la primera base.
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          style={{
+            fontSize: 12, fontWeight: 600,
+            padding: "7px 12px", borderRadius: 7,
+            border: "1px solid var(--pulso-primary)",
+            background: "white",
+            color: "var(--pulso-primary)",
+            cursor: "pointer",
+            display: "inline-flex", alignItems: "center", gap: 5,
+            flexShrink: 0,
+            transition: "background 120ms ease",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--pulso-primary)"; e.currentTarget.style.color = "white"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "white"; e.currentTarget.style.color = "var(--pulso-primary)"; }}
+        >
+          <Layers size={12} /> Convertir a multi-base
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        marginTop: 16,
+        padding: "14px 16px", borderRadius: 10,
+        border: "1px solid var(--pulso-primary)",
+        background: "white",
+        boxShadow: "var(--pulso-shadow-med)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
+        <span
+          aria-hidden="true"
+          style={{
+            width: 30, height: 30, borderRadius: 8,
+            background: "var(--pulso-primary-soft)",
+            color: "var(--pulso-primary)",
+            border: "1px solid var(--pulso-primary-border)",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Layers size={15} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>
+            Nombre de la primera base
+          </div>
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5, marginTop: 2 }}>
+            Elige un identificador para los archivos que ya cargaste (ej. <code style={{ fontFamily: "ui-monospace, monospace" }}>docentes</code>).
+            Se usará como prefijo en los slides del reporte: <code style={{ fontFamily: "ui-monospace, monospace" }}>nombre$variable</code>.
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => { setOpen(false); setNombre(""); }}
+          className="pulso-icon"
+          aria-label="Cancelar"
+          title="Cancelar"
+          disabled={busy}
+        >
+          <XIcon size={13} />
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <input
+          autoFocus
+          type="text"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && nombreValido) void handleConvert();
+            if (e.key === "Escape") { setOpen(false); setNombre(""); }
+          }}
+          placeholder="ej. docentes"
+          style={{
+            flex: 1, minWidth: 200,
+            fontSize: 14, fontFamily: "ui-monospace, monospace", fontWeight: 600,
+            padding: "8px 12px", borderRadius: 7,
+            border: `1px solid ${
+              nombre && !nombreValido ? "var(--pulso-warn-border)" : "var(--pulso-border)"
+            }`,
+            background: "white", outline: "none",
+          }}
+        />
+        <button
+          type="button"
+          className="pulso-primary"
+          onClick={handleConvert}
+          disabled={!nombreValido || busy}
+          style={{
+            fontSize: 12, padding: "8px 14px",
+            display: "inline-flex", alignItems: "center", gap: 6,
+            opacity: !nombreValido || busy ? 0.55 : 1,
+            flexShrink: 0,
+          }}
+        >
+          {busy ? "Convirtiendo…" : "Convertir"}
+        </button>
+      </div>
+      {nombre && !nombreValido && (
+        <div style={{ fontSize: 10, color: "var(--pulso-warn-fg)", marginTop: 6 }}>
+          Usa letras, números y guiones. Sin espacios ni el símbolo <code>$</code>.
+        </div>
+      )}
     </div>
   );
 }
