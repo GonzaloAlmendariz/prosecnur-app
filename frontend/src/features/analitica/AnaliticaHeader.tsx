@@ -1,7 +1,8 @@
-import { useRef, useState } from "react";
-import { CheckCircle2, Database, Download, Upload } from "lucide-react";
+import { CheckCircle2, Database } from "lucide-react";
 import { apiAnaliticaConfigExport, apiAnaliticaConfigImport } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
+import { ConfigIoButtons } from "../../components/ConfigIoButtons";
+import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { useAnaliticaStore } from "./store";
 
 // Header global del módulo Analítica. Muestra:
@@ -19,48 +20,17 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
   const fuenteActual = state?.analitica_fuente ?? "";
   const usandoAdaptados = fuenteActual === "adaptados";
 
-  const [ioBusy, setIoBusy] = useState<"export" | "import" | null>(null);
-  const [ioMsg, setIoMsg] = useState("");
-  const [ioError, setIoError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  async function onExport() {
-    setIoError(""); setIoMsg(""); setIoBusy("export");
-    try {
-      const bundle = await apiAnaliticaConfigExport();
-      const { ok: _ok, ...payload } = bundle;
-      void _ok;
-      const text = JSON.stringify(payload, null, 2);
-      const blob = new Blob([text], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `pulso_analitica_${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      setIoMsg("Exportado ✓");
-    } catch (e) {
-      setIoError((e as Error).message);
-    } finally {
-      setIoBusy(null);
-      setTimeout(() => setIoMsg(""), 2500);
-    }
+  // Callbacks para ConfigIoButtons compartido.
+  async function ioExport() {
+    const bundle = await apiAnaliticaConfigExport();
+    const { ok: _ok, ...payload } = bundle;
+    void _ok;
+    return payload;
   }
 
-  async function onImport(file?: File) {
-    if (!file) return;
-    setIoError(""); setIoMsg(""); setIoBusy("import");
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      await apiAnaliticaConfigImport(parsed);
-      setIoMsg("Importado ✓ (recarga para aplicar)");
-    } catch (e) {
-      setIoError(`JSON inválido: ${(e as Error).message}`);
-    } finally {
-      setIoBusy(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      setTimeout(() => setIoMsg(""), 4000);
-    }
+  async function ioImport(parsed: unknown) {
+    await apiAnaliticaConfigImport(parsed as never);
+    return "Importado ✓ (recarga para aplicar)";
   }
 
   return (
@@ -141,50 +111,15 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
           borderRadius: 8,
         }}
       >
-        <span
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 5,
-            color: "var(--pulso-success-fg)", fontSize: 11, fontWeight: 700,
-            textTransform: "uppercase", letterSpacing: 0.4,
-          }}
-        >
-          <CheckCircle2 size={12} /> Autoguardado
-        </span>
+        <SaveStatusIndicator state="saved" savedLabel="Autoguardado" />
         <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", flex: 1, lineHeight: 1.4 }}>
           Tu configuración se guarda automáticamente. Exporta un JSON para respaldar o compartir.
         </span>
-        <button
-          type="button"
-          onClick={onExport}
-          disabled={ioBusy === "export"}
-          style={{
-            fontSize: 11, padding: "5px 10px",
-            display: "inline-flex", alignItems: "center", gap: 5,
-          }}
-        >
-          <Download size={12} /> {ioBusy === "export" ? "Exportando…" : "Exportar JSON"}
-        </button>
-        <label
-          style={{
-            fontSize: 11, padding: "5px 10px",
-            display: "inline-flex", alignItems: "center", gap: 5,
-            cursor: ioBusy === "import" ? "wait" : "pointer",
-            border: "1px solid var(--pulso-border)", borderRadius: 6, background: "white",
-            transition: "background 120ms ease",
-          }}
-        >
-          <Upload size={12} />
-          {ioBusy === "import" ? "Importando…" : "Importar JSON"}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json,application/json"
-            style={{ display: "none" }}
-            onChange={(e) => onImport(e.target.files?.[0])}
-          />
-        </label>
-        {ioMsg && <span style={{ fontSize: 11, color: "var(--pulso-success-fg)", fontWeight: 600 }}>{ioMsg}</span>}
-        {ioError && <span style={{ fontSize: 11, color: "var(--pulso-danger-fg)", fontWeight: 600 }}>{ioError}</span>}
+        <ConfigIoButtons
+          onExport={ioExport}
+          onImport={ioImport}
+          filenamePrefix="pulso_analitica"
+        />
       </div>
     </div>
   );

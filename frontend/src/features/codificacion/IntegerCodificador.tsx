@@ -10,6 +10,7 @@ import {
   RespuestaUnica,
 } from "../../api/client";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
+import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
@@ -190,7 +191,7 @@ export function IntegerCodificador({ parent }: Props) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-        <SaveBadge status={saveStatus} />
+        <SaveStatusIndicator state={saveStatus} variant="badge" />
         <span style={{ fontSize: 13, color: "var(--pulso-text-soft)" }}>
           <strong style={{ color: "var(--pulso-text)" }}>{stats.covered}</strong> de <strong>{stats.total}</strong> valores únicos cubiertos
           {stats.cases > 0 && <> · <strong>{stats.cases}</strong> de {stats.totalCasos} casos</>}
@@ -467,13 +468,5 @@ function SingleBoundEditor({ label, regla, onChange }: {
   );
 }
 
-function SaveBadge({ status }: { status: SaveStatus }) {
-  if (status === "saving") return <Badge bg="var(--pulso-info-bg)" fg="var(--pulso-info-fg)"><Loader2 size={12} className="pulso-spin" /> Guardando…</Badge>;
-  if (status === "saved") return <Badge bg="var(--pulso-success-bg)" fg="var(--pulso-success-fg)"><Check size={12} /> Guardado</Badge>;
-  if (status === "dirty") return <Badge bg="var(--pulso-warn-bg)" fg="var(--pulso-warn-fg)">Cambios sin guardar</Badge>;
-  if (status === "error") return <Badge bg="var(--pulso-danger-bg)" fg="var(--pulso-danger-fg)"><AlertCircle size={12} /> Error</Badge>;
-  return <Badge bg="var(--pulso-surface-2)" fg="var(--pulso-text-soft)">Sin cambios</Badge>;
-}
-function Badge({ bg, fg, children }: { bg: string; fg: string; children: React.ReactNode }) {
-  return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600, color: fg, background: bg }}>{children}</span>;
-}
+// SaveBadge local reemplazado por `SaveStatusIndicator variant="badge"`
+// de components/SaveStatusIndicator.tsx — unificado con el resto del app.

@@ -9,6 +9,7 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
 import { EmptyState, SectionEyebrow } from "../../components/States";
+import { PageHeader } from "../../components/PageHeader";
 import { usePlanStore } from "./store";
 import { useGraficosAutosave } from "./useGraficosAutosave";
 import { useGraficosShortcuts } from "./useGraficosShortcuts";
@@ -87,10 +88,10 @@ export default function GraficosPage() {
 
   return (
     <section style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 96px)" }}>
-      <h1 className="pulso-page-title">Fase 5 — Reportes gráficos</h1>
-      <p className="pulso-page-lead" style={{ marginBottom: 10 }}>
-        Editor bloque por bloque. Tu plan se guarda automáticamente — sigue editando sin preocuparte.
-      </p>
+      <PageHeader
+        title="Fase 5 — Reportes gráficos"
+        lead="Editor bloque por bloque. Tu plan se guarda automáticamente — sigue editando sin preocuparte."
+      />
 
       {!prepOk && (
         <div style={{ marginBottom: 10 }}>

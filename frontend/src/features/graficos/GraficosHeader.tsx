@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Bug, CheckCircle2, Download, FileText, Palette, Upload, RotateCcw, Loader2, Undo2, Redo2, Sparkles } from "lucide-react";
+import { Bug, Download, FileText, Palette, RotateCcw, Loader2, Undo2, Redo2, Sparkles } from "lucide-react";
 import {
   apiGraficosConfigExport,
   apiGraficosConfigImport,
   downloadUrl,
 } from "../../api/client";
+import { ConfigIoButtons } from "../../components/ConfigIoButtons";
+import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { usePlanStore } from "./store";
 import { PlanHealthBadge } from "./PlanHealthBadge";
 import { usePlanValidator } from "./usePlanValidator";
@@ -52,53 +54,24 @@ export function GraficosHeader({
   const validator = usePlanValidator();
   const canExportFinal = canExport && validator.canExport;
 
-  const [ioBusy, setIoBusy] = useState<"export" | "import" | null>(null);
-  const [ioMsg, setIoMsg] = useState("");
-  const [ioError, setIoError] = useState("");
   const [templatesOpen, setTemplatesOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function onExport() {
-    setIoError(""); setIoMsg(""); setIoBusy("export");
-    try {
-      const bundle = await apiGraficosConfigExport();
-      const { ok: _ok, ...payload } = bundle;
-      void _ok;
-      const text = JSON.stringify(payload, null, 2);
-      const blob = new Blob([text], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `pulso_graficos_${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      setIoMsg("Exportado ✓");
-    } catch (e) {
-      setIoError((e as Error).message);
-    } finally {
-      setIoBusy(null);
-      setTimeout(() => setIoMsg(""), 2500);
-    }
+  // Callbacks para ConfigIoButtons: el componente compartido se encarga
+  // de busy state, mensaje de éxito transitorio, error inline.
+  async function ioExport() {
+    const bundle = await apiGraficosConfigExport();
+    const { ok: _ok, ...payload } = bundle;
+    void _ok;
+    return payload;
   }
 
-  async function onImport(file?: File) {
-    if (!file) return;
-    setIoError(""); setIoMsg(""); setIoBusy("import");
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      await apiGraficosConfigImport(parsed);
-      // Tras importar al backend, también aplicamos el plan al store
-      // local para que el UI refleje sin esperar al próximo reload.
-      if (parsed?.config?.plan?.slides) {
-        loadPlan(parsed.config.plan);
-      }
-      setIoMsg("Importado ✓");
-    } catch (e) {
-      setIoError(`JSON inválido: ${(e as Error).message}`);
-    } finally {
-      setIoBusy(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      setTimeout(() => setIoMsg(""), 3000);
+  async function ioImport(parsed: unknown) {
+    await apiGraficosConfigImport(parsed as never);
+    // Tras importar al backend, también aplicamos el plan al store local
+    // para que el UI refleje sin esperar al próximo reload.
+    const p = parsed as { config?: { plan?: { slides?: unknown } } } | null;
+    if (p && p.config?.plan?.slides) {
+      loadPlan(p.config.plan as never);
     }
   }
 
@@ -125,6 +98,7 @@ export function GraficosHeader({
       >
         <SaveStatusIndicator
           state={savedAll ? "saved" : savingNow ? "saving" : "loading"}
+          savedLabel="Autoguardado"
         />
 
         <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", flex: 1, lineHeight: 1.4 }}>
@@ -152,33 +126,11 @@ export function GraficosHeader({
           <Sparkles size={12} /> Plantillas
         </button>
 
-        <button
-          type="button"
-          onClick={onExport}
-          disabled={ioBusy === "export"}
-          style={{ fontSize: 11, padding: "5px 10px", display: "inline-flex", alignItems: "center", gap: 5 }}
-        >
-          <Download size={12} /> {ioBusy === "export" ? "Exportando…" : "Exportar JSON"}
-        </button>
-
-        <label
-          style={{
-            fontSize: 11, padding: "5px 10px",
-            display: "inline-flex", alignItems: "center", gap: 5,
-            cursor: ioBusy === "import" ? "wait" : "pointer",
-            border: "1px solid var(--pulso-border)", borderRadius: 6, background: "white",
-          }}
-        >
-          <Upload size={12} />
-          {ioBusy === "import" ? "Importando…" : "Importar JSON"}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json,application/json"
-            style={{ display: "none" }}
-            onChange={(e) => onImport(e.target.files?.[0])}
-          />
-        </label>
+        <ConfigIoButtons
+          onExport={ioExport}
+          onImport={ioImport}
+          filenamePrefix="pulso_graficos"
+        />
 
         <button
           type="button"
@@ -192,9 +144,6 @@ export function GraficosHeader({
         >
           <RotateCcw size={12} /> Reset
         </button>
-
-        {ioMsg && <span style={{ fontSize: 11, color: "var(--pulso-success-fg)", fontWeight: 600 }}>{ioMsg}</span>}
-        {ioError && <span style={{ fontSize: 11, color: "var(--pulso-danger-fg)", fontWeight: 600 }}>{ioError}</span>}
       </div>
 
       {/* Toolbar de exportación + presets */}
@@ -469,27 +418,6 @@ function UndoRedoButtons() {
   );
 }
 
-// Indicador unificado del estado de autosave del plan. Antes eran 3
-// <span>s con estilos inline duplicados para saved/saving/loading.
-// Ahora una sola función que mapea estado → (icono, color, label).
-type SaveState = "saved" | "saving" | "loading";
-
-function SaveStatusIndicator({ state }: { state: SaveState }) {
-  const cfg = state === "saved"
-    ? { color: "var(--pulso-success-fg)", icon: <CheckCircle2 size={12} />, label: "Autoguardado" }
-    : state === "saving"
-    ? { color: "var(--pulso-text-soft)", icon: <Loader2 size={12} className="pulso-spin" />, label: "Guardando…" }
-    : { color: "var(--pulso-text-soft)", icon: null, label: "Cargando…" };
-  return (
-    <span
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 5,
-        color: cfg.color, fontSize: 11, fontWeight: 700,
-        textTransform: "uppercase", letterSpacing: 0.4,
-      }}
-    >
-      {cfg.icon}
-      {cfg.label}
-    </span>
-  );
-}
+// SaveStatusIndicator local reemplazado por
+// `components/SaveStatusIndicator.tsx` — unificado con Codificación
+// y Analítica.

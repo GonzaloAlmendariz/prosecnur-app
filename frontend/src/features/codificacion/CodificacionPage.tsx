@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Check, Layers, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
+import { PageHeader } from "../../components/PageHeader";
 import { PreguntasLanding } from "./PreguntasLanding";
 import { CodificarWizard } from "./CodificarWizard";
 import { AdaptarPane } from "./AdaptarPane";
@@ -39,14 +40,16 @@ export default function CodificacionPage() {
 
   return (
     <section>
-      <h1 className="pulso-page-title">Fase 3 — Codificación de preguntas abiertas</h1>
-      <p className="pulso-page-lead">
-        {step === "organizar"
-          ? "Organiza todas las preguntas: empareja SO/SM con sus 'Otros, especifique' y marca las que quieres codificar."
-          : step === "codificar"
-          ? "Codifica una por una las preguntas marcadas. Agrupa respuestas similares y asigna un código a cada grupo."
-          : "Revisa lo que se va a adaptar. Cuando estés listo, lanza la adaptación y descarga los archivos."}
-      </p>
+      <PageHeader
+        title="Fase 3 — Codificación de preguntas abiertas"
+        lead={
+          step === "organizar"
+            ? "Organiza todas las preguntas: empareja SO/SM con sus 'Otros, especifique' y marca las que quieres codificar."
+            : step === "codificar"
+            ? "Codifica una por una las preguntas marcadas. Agrupa respuestas similares y asigna un código a cada grupo."
+            : "Revisa lo que se va a adaptar. Cuando estés listo, lanza la adaptación y descarga los archivos."
+        }
+      />
 
       {prereqOk && codifSource.options.length > 1 && (
         <BaseSelector source={codifSource} />

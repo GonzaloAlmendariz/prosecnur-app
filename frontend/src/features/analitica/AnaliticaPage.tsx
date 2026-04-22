@@ -5,6 +5,7 @@ import { apiAnaliticaPreparar } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
+import { PageHeader } from "../../components/PageHeader";
 import { useAnaliticaAutosave } from "./useAnaliticaAutosave";
 import { AnaliticaHeader } from "./AnaliticaHeader";
 import { DefinicionGlobal } from "./DefinicionGlobal";
@@ -83,10 +84,10 @@ export default function AnaliticaPage() {
 
   return (
     <section>
-      <h1 className="pulso-page-title">Fase 4 — Análisis y reportes</h1>
-      <p className="pulso-page-lead">
-        Genera los cinco reportes estándar de Pulso. Cada uno tiene su configuración y su descarga independiente.
-      </p>
+      <PageHeader
+        title="Fase 4 — Análisis y reportes"
+        lead="Genera los cinco reportes estándar de Prosecnur. Cada uno tiene su configuración y su descarga independiente."
+      />
 
       {!prereqOk && (
         <div style={{ marginBottom: 12 }}>
