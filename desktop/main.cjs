@@ -111,12 +111,55 @@ function htmlPage(title, body) {
 </html>`;
 }
 
-function showLoading() {
+// Intervalo que actualiza el mensaje de loading cada pocos segundos.
+// Lo usamos para cambiar el texto según cuánto tarda el arranque y así
+// darle feedback al usuario cuando el primer boot con paquetes R
+// nuevos se demora 30-60s. Se limpia cuando el renderer carga la
+// app real o cuando pasamos a error.
+let loadingInterval = null;
+let loadingStartedAt = 0;
+
+// Mensajes progresivos. Se eligen según los segundos transcurridos.
+// El primer arranque con paquetes R puede tardar 30-60s sin que haya
+// nada roto; el texto acompaña esa realidad en vez de angustiar.
+function loadingMessageFor(elapsedMs) {
+  const s = Math.floor(elapsedMs / 1000);
+  if (s < 5)  return { title: "Abriendo Prosecnur", hint: "Estamos iniciando el motor local de R." };
+  if (s < 15) return { title: "Abriendo Prosecnur", hint: `Cargando paquetes del motor R. (${s}s)` };
+  if (s < 30) return { title: "Abriendo Prosecnur", hint: `Aún cargando. La primera vez puede tardar. (${s}s)` };
+  if (s < 60) return { title: "Abriendo Prosecnur", hint: `El primer arranque con paquetes nuevos toma ~1 min. Seguimos. (${s}s)` };
+  return { title: "Abriendo Prosecnur", hint: `Está tardando más de lo esperado (${s}s). Si no responde en unos minutos, revisa el menú Ayuda → Abrir carpeta de logs.` };
+}
+
+function renderLoadingPage(elapsedMs) {
+  const { title, hint } = loadingMessageFor(elapsedMs);
   const body = `
-    <h1>Abriendo Prosecnur</h1>
-    <p>Estamos iniciando el motor local de R. Esto puede tomar unos segundos.</p>
+    <h1>${escapeHtml(title)}</h1>
+    <p>${escapeHtml(hint)}</p>
   `;
-  mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlPage(APP_NAME, body))}`);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlPage(APP_NAME, body))}`);
+  }
+}
+
+function showLoading() {
+  stopLoadingUpdates();
+  loadingStartedAt = Date.now();
+  renderLoadingPage(0);
+  // Update del texto cada 5s. No usamos 1s para no refrescar el DOM
+  // constantemente (cada loadURL reemplaza la página entera — es caro
+  // si lo hacemos cada segundo).
+  loadingInterval = setInterval(() => {
+    renderLoadingPage(Date.now() - loadingStartedAt);
+  }, 5000);
+}
+
+function stopLoadingUpdates() {
+  if (loadingInterval) {
+    clearInterval(loadingInterval);
+    loadingInterval = null;
+  }
+  loadingStartedAt = 0;
 }
 
 function showError(message) {
@@ -236,7 +279,11 @@ function requestJson(url, options = {}) {
   });
 }
 
-async function waitForBackend(port, timeoutMs = 45000) {
+// 90s porque el primer arranque con paquetes R recién instalados
+// puede tardar 30-60s solo en cargar namespaces (readxl, dplyr, plumber,
+// callr, haven, etc.). 45s era insuficiente en equipos lentos o tras
+// actualizar R. El mensaje progresivo del loading acompaña esa espera.
+async function waitForBackend(port, timeoutMs = 90000) {
   const startedAt = Date.now();
   let lastError = null;
 
@@ -566,8 +613,13 @@ async function createWindow() {
 
   try {
     const port = await startBackend();
+    // Paramos el update del loading ANTES del loadURL final. Si quedara
+    // corriendo, el setInterval sobrescribiría la app real con la
+    // pantalla de loading 5s después.
+    stopLoadingUpdates();
     await mainWindow.loadURL(appUrl(port));
   } catch (error) {
+    stopLoadingUpdates();
     // Dialog con botones Reintentar / Ver logs / Salir en vez del
     // showError estático que dejaba al usuario sin salida.
     showBackendError(error.message || String(error));
