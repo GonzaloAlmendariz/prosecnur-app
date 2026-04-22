@@ -19,8 +19,12 @@ frontend/.vite/
 frontend/tsconfig.tsbuildinfo
 *.log
 
-# Local app packages
+# Local app packages. Usamos `dist.nosync/` cuando el repo vive en
+# iCloud Drive (el sufijo .nosync hace que iCloud lo ignore y evita
+# copias fantasma "Prosecnur 2/3/4..." por conflicto de sync).
+# Dejamos `dist/` también para backward-compat con builds viejos.
 dist/
+dist.nosync/
 
 # Frontend build output is served from api/inst/www, but git-ignored (regenerated)
 api/inst/www/*

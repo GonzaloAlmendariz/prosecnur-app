@@ -1,8 +1,17 @@
 SHELL := /bin/bash
 REPO_ROOT := $(shell pwd)
 PACKAGE_NAME := Prosecnur
-PACKAGE_DIR := $(REPO_ROOT)/dist/$(PACKAGE_NAME)
-PACKAGE_STAGING := $(REPO_ROOT)/dist/.package-staging/$(PACKAGE_NAME)
+# Usamos `dist.nosync/` en vez de `dist/` porque macOS trata el sufijo
+# .nosync como señal para que iCloud Drive NO sincronice esa carpeta.
+# Sin esto, cuando el repo vive dentro de iCloud Drive, el Makefile
+# hacía `rm -rf dist/Prosecnur` + `mv staging dist/Prosecnur` y iCloud
+# interpretaba el reemplazo como conflicto, creando copias fantasma
+# tipo "Prosecnur 2", "Prosecnur 3", "Prosecnur 4". El sufijo .nosync
+# evita eso en cualquier máquina (si el usuario no usa iCloud, el
+# sufijo es inofensivo — solo un nombre de directorio).
+DIST_ROOT := $(REPO_ROOT)/dist.nosync
+PACKAGE_DIR := $(DIST_ROOT)/$(PACKAGE_NAME)
+PACKAGE_STAGING := $(DIST_ROOT)/.package-staging/$(PACKAGE_NAME)
 
 .PHONY: help dev-api dev-frontend build clean install-r install-frontend install-desktop desktop package-local
 
@@ -15,7 +24,7 @@ help:
 	@echo "  dev-frontend     Run Vite dev server (proxies /api to 127.0.0.1:8787)"
 	@echo "  desktop          Build frontend and open the desktop window"
 	@echo "  build            Build the frontend into api/inst/www"
-	@echo "  package-local    Build a local executable folder in dist/"
+	@echo "  package-local    Build a local executable folder in dist.nosync/"
 	@echo "  clean            Remove build output"
 
 install-r:
@@ -56,11 +65,13 @@ package-local: build
 	chmod +x "$(PACKAGE_STAGING)/Prosecnur.app/Contents/MacOS/Prosecnur"
 	chmod +x "$(PACKAGE_STAGING)/Internals/launcher/"*.command "$(PACKAGE_STAGING)/Internals/launcher/"*.sh "$(PACKAGE_STAGING)/Internals/launcher/launch.R" "$(PACKAGE_STAGING)/Internals/launcher/install-r-deps.R"
 	rm -rf "$(PACKAGE_DIR)"
-	rm -rf "$(REPO_ROOT)/dist/$(PACKAGE_NAME) 2"
-	rm -rf "$(REPO_ROOT)/dist/.old-$(PACKAGE_NAME)-"*
-	rm -rf "$(REPO_ROOT)/dist/.Prosecnur-old-cleanup"
+	# Limpia copias fantasma creadas por iCloud en sync-conflict ("Prosecnur 2",
+	# "Prosecnur 3", etc.) tanto en dist.nosync como en el legado dist/.
+	find "$(DIST_ROOT)" -maxdepth 1 -mindepth 1 -name "$(PACKAGE_NAME) *" -exec rm -rf {} + 2>/dev/null || true
+	find "$(REPO_ROOT)/dist" -maxdepth 1 -mindepth 1 -name "$(PACKAGE_NAME) *" -exec rm -rf {} + 2>/dev/null || true
+	rm -rf "$(DIST_ROOT)/.old-$(PACKAGE_NAME)-"* "$(REPO_ROOT)/dist/.old-$(PACKAGE_NAME)-"* 2>/dev/null || true
 	mv "$(PACKAGE_STAGING)" "$(PACKAGE_DIR)"
-	rm -rf "$(REPO_ROOT)/dist/.package-staging"
+	rm -rf "$(DIST_ROOT)/.package-staging"
 	@echo ""
 	@echo "Paquete local listo:"
 	@echo "  $(PACKAGE_DIR)"
