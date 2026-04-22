@@ -28,54 +28,65 @@ Plan actualizado (fork + multi-base):
 ## Requisitos
 
 - R ≥ 4.1
-- Node ≥ 20 con pnpm
+- Node ≥ 20 con pnpm (si no tienes pnpm: `corepack enable`)
 - (Opcional) [Quarto CLI](https://quarto.org) para el reporte de
   enumeradores en PDF.
 
-## Primer arranque
+## Cómo abrir Prosecnur
 
-```bash
-# 1) Instalar dependencias R
-make install-r
+Un solo archivo por plataforma — doble click y listo:
 
-# 2) Instalar dependencias del frontend
-make install-frontend
+- **macOS**: `Prosecnur.app` (en la raíz del repo)
+- **Windows**: `Prosecnur.bat` (en la raíz del repo)
 
-# 3a) Dev con hot-reload del frontend (dos terminales):
-make dev-api        # terminal 1 — Plumber en :8787
-make dev-frontend   # terminal 2 — Vite en :5173 (proxy /api → :8787)
+El launcher se encarga automáticamente de:
 
-# 3b) O build integrado y abrir como app local:
-make build
-make dev-api        # abre el browser automáticamente en :8787
-```
+1. Verificar que R, Node y pnpm estén instalados (aborta con un mensaje
+   claro si falta algo).
+2. Instalar los paquetes R la primera vez (marca un sentinel para no
+   repetirlo en cada apertura).
+3. Compilar el frontend si hay cambios en `frontend/src/` más nuevos que
+   el build actual — **así cada apertura usa la última versión del
+   código sin pasos manuales**.
+4. Lanzar la ventana Electron.
 
-## Empaquetado local
+Logs en `~/Library/Logs/Prosecnur/` (macOS) o `%LOCALAPPDATA%\Prosecnur\logs\`
+(Windows). El menú **Ayuda → Abrir carpeta de logs** los abre directo.
 
-Para generar una carpeta ejecutable de uso interno, sin incluir el código
-fuente del frontend ni `node_modules`:
+## Dos modos de arranque
+
+El mismo `Prosecnur.app` / `Prosecnur.bat` funciona en dos modos según
+dónde vive el archivo:
+
+| Modo | Cuándo | Qué hace |
+|------|--------|----------|
+| **DEV** | El archivo está en la raíz del repo (default) | Apunta al código en vivo; rebuilda el frontend si hay cambios |
+| **PACKAGED** | El archivo está dentro de `dist.nosync/Prosecnur/` tras `make package-local` | Usa un snapshot congelado copiado a `~/Library/Application Support/Prosecnur/` |
+
+Para distribuir el paquete como carpeta entregable:
 
 ```bash
 make package-local
-open "dist.nosync/Prosecnur/Prosecnur.app"
+# Genera dist.nosync/Prosecnur/ con todo adentro (macOS + Windows).
 ```
 
 El output va a `dist.nosync/` (sufijo `.nosync` para que iCloud Drive
 no sincronice builds locales — evita copias fantasma "Prosecnur 2/3/4"
 por conflicto de sync si el repo vive dentro de iCloud).
 
-Para abrirlo como ventana de escritorio:
+## Dev via CLI (alternativa a doble click)
+
+Útil si ya tienes una terminal abierta:
 
 ```bash
-make install-desktop
-make desktop
+make install-r        # instalar paquetes R
+make install-frontend # pnpm install en frontend/
+make install-desktop  # pnpm install en desktop/
+
+make dev-api          # solo API R en :8787 (sin Electron)
+make dev-frontend     # Vite dev server en :5173 (proxy /api → :8787)
+make build            # compilar frontend sin levantar Electron
 ```
-
-La carpeta generada incluye `Prosecnur.app` como entrada principal en macOS,
-un `LEEME_PRIMERO.md`, y launchers auxiliares dentro de `Internals/launcher`.
-
-Nota: en esta etapa la ventana propia requiere Node/pnpm para instalar Electron
-la primera vez. El instalador formal (`.dmg`/`.exe`) vendría después.
 
 ## Estructura
 
@@ -107,7 +118,14 @@ api/
     test-engine-*.R                Tests del motor (renombrados desde
                                    el paquete original)
 frontend/                         React + Vite + TypeScript
-launcher/                         Scripts de arranque (.command/.sh/.bat)
+desktop/                          Shell Electron (main.cjs)
+launcher/
+  launch.R                        Entry point del backend R
+  install-r-deps.R                Instalador de paquetes R (auto al 1er arranque)
+Prosecnur.app/                    Launcher macOS (doble click)
+Prosecnur.bat                     Launcher Windows (doble click)
+packaging/
+  LEEME_PRIMERO.md                Doc que acompaña a dist.nosync/Prosecnur/
 docs/                             Arquitectura, referencia, flujos
 ```
 

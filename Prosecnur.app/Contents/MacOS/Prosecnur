@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+# =============================================================================
+# Prosecnur — launcher macOS (Contents/MacOS/Prosecnur del .app)
+# =============================================================================
+# Un solo script para DEV (abriendo el .app desde la raíz del repo) y
+# PACKAGED (abriendo el .app desde dist.nosync/Prosecnur/ tras
+# `make package-local`). Detecta el modo según la estructura de paths.
+#
+# Flujo compartido:
+#   1. Toolchain checks (R + Node + pnpm).
+#   2. Paquetes R instalados la primera vez (sentinel en Application Support).
+#   3. Lanzar Electron.
+#
+# DEV MODE extra:
+#   - pnpm install en frontend/ y desktop/ del repo si falta.
+#   - Rebuild frontend si api/inst/www es más viejo que algún source.
+#   - Electron corre desde el repo (sin copias) → cambios en .R y .tsx
+#     se toman al siguiente arranque sin re-empaquetar.
+#
+# PACKAGED MODE extra:
+#   - Rsync del desktop/ al runtime de Application Support.
+#   - pnpm install del runtime si falta.
+#   - Electron corre desde el runtime — snapshot congelado.
+
+set -euo pipefail
+
+# ---------- Detección de modo -----------------------------------------------
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"                  # Contents/MacOS
+APP_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"                   # Prosecnur.app
+PACKAGED_INTERNALS="$APP_DIR/Contents/Resources/Internals"
+DEV_REPO_ROOT="$(cd "$APP_DIR/.." && pwd)"                   # parent of .app
+
+if [ -d "$PACKAGED_INTERNALS/api/R" ]; then
+  MODE="packaged"
+  INTERNALS="$PACKAGED_INTERNALS"
+elif [ -d "$DEV_REPO_ROOT/api/R" ] && [ -d "$DEV_REPO_ROOT/desktop" ]; then
+  MODE="dev"
+  INTERNALS="$DEV_REPO_ROOT"
+else
+  /usr/bin/osascript -e 'display dialog "Prosecnur.app no encontró el código fuente. Debe vivir en la raíz del repo (modo dev) o dentro de dist.nosync/Prosecnur/ (modo packaged)." buttons {"OK"} with title "Prosecnur"' >/dev/null 2>&1 || true
+  exit 1
+fi
+
+LOG_DIR="$HOME/Library/Logs/Prosecnur"
+LOG_FILE="$LOG_DIR/desktop.log"
+SETUP_LOG="$LOG_DIR/setup.log"
+RUNTIME_ROOT="$HOME/Library/Application Support/Prosecnur"
+R_DEPS_SENTINEL="$RUNTIME_ROOT/r-deps-installed"
+mkdir -p "$LOG_DIR" "$RUNTIME_ROOT"
+echo "[$(date)] Arranque en modo: $MODE (INTERNALS=$INTERNALS)" >> "$LOG_FILE"
+
+# Finder abre .app con PATH mínimo. Sumamos Homebrew, R.framework, Node/pnpm.
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/Library/Frameworks/R.framework/Resources/bin:$HOME/Library/pnpm:$HOME/.local/share/pnpm:$PATH"
+
+# ---------- Helpers ----------------------------------------------------------
+fail_dialog() {
+  /usr/bin/osascript -e "display dialog \"$1\" buttons {\"OK\"} default button \"OK\" with title \"Prosecnur\"" >/dev/null 2>&1 || true
+}
+
+notify() {
+  /usr/bin/osascript -e "display notification \"$1\" with title \"Prosecnur\"" >/dev/null 2>&1 || true
+}
+
+# ---------- 1. Toolchain checks ---------------------------------------------
+if ! command -v Rscript >/dev/null 2>&1; then
+  fail_dialog "Prosecnur necesita R 4.1 o superior. Instala desde https://cran.r-project.org y abre Prosecnur nuevamente."
+  exit 1
+fi
+if ! command -v node >/dev/null 2>&1; then
+  fail_dialog "Prosecnur necesita Node.js 20 o superior. Instala desde https://nodejs.org y abre Prosecnur nuevamente."
+  exit 1
+fi
+if ! command -v pnpm >/dev/null 2>&1; then
+  command -v corepack >/dev/null 2>&1 && corepack enable >/dev/null 2>&1 || true
+fi
+if ! command -v pnpm >/dev/null 2>&1; then
+  fail_dialog "Prosecnur necesita pnpm. En Terminal: corepack enable (o npm install -g pnpm) y abre Prosecnur nuevamente."
+  exit 1
+fi
+
+# ---------- 2. Paquetes R (primera vez) --------------------------------------
+if [ ! -f "$R_DEPS_SENTINEL" ]; then
+  notify "Instalando paquetes R. La primera vez puede tomar varios minutos."
+  echo "[$(date)] Instalando paquetes R" >> "$SETUP_LOG"
+  if Rscript "$INTERNALS/launcher/install-r-deps.R" >> "$SETUP_LOG" 2>&1; then
+    touch "$R_DEPS_SENTINEL"
+  else
+    fail_dialog "No se pudieron instalar los paquetes de R. Revisa $SETUP_LOG."
+    exit 1
+  fi
+fi
+
+# ---------- 3. Preparar Electron según modo ----------------------------------
+if [ "$MODE" = "dev" ]; then
+  # DEV: apuntar a desktop/ y frontend/ del repo directamente.
+  DESKTOP_DIR="$INTERNALS/desktop"
+  FRONTEND_DIR="$INTERNALS/frontend"
+
+  # pnpm install en desktop/ del repo si falta
+  if [ ! -d "$DESKTOP_DIR/node_modules/electron" ]; then
+    notify "Instalando Electron (primera vez)."
+    pnpm --dir "$DESKTOP_DIR" install >> "$SETUP_LOG" 2>&1 || {
+      fail_dialog "pnpm install en desktop/ falló. Revisa $SETUP_LOG."
+      exit 1
+    }
+  fi
+
+  # pnpm install en frontend/ del repo si falta
+  if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
+    notify "Instalando dependencias del frontend (primera vez)."
+    pnpm --dir "$FRONTEND_DIR" install >> "$SETUP_LOG" 2>&1 || {
+      fail_dialog "pnpm install en frontend/ falló. Revisa $SETUP_LOG."
+      exit 1
+    }
+  fi
+
+  # Rebuild frontend si algún .tsx/.ts/index.html es más nuevo que el build.
+  # Así cualquier cambio entre sesiones se toma automáticamente al reabrir
+  # sin necesidad de correr `make build` a mano.
+  BUILD_INDEX="$INTERNALS/api/inst/www/index.html"
+  needs_build=0
+  if [ ! -f "$BUILD_INDEX" ]; then
+    needs_build=1
+  else
+    if find "$FRONTEND_DIR/src" "$FRONTEND_DIR/index.html" "$FRONTEND_DIR/package.json" -type f -newer "$BUILD_INDEX" 2>/dev/null | grep -q .; then
+      needs_build=1
+    fi
+  fi
+  if [ "$needs_build" = "1" ]; then
+    notify "Compilando frontend (cambios detectados)."
+    echo "[$(date)] pnpm build en frontend/" >> "$SETUP_LOG"
+    pnpm --dir "$FRONTEND_DIR" build >> "$SETUP_LOG" 2>&1 || {
+      fail_dialog "pnpm build del frontend falló. Revisa $SETUP_LOG."
+      exit 1
+    }
+  fi
+
+  export PULSO_APP_ROOT="$INTERNALS"
+  cd "$DESKTOP_DIR"
+  echo "[$(date)] Lanzando Electron (dev)" >> "$LOG_FILE"
+  exec pnpm --dir "$DESKTOP_DIR" start >> "$LOG_FILE" 2>&1
+
+else
+  # PACKAGED: rsync a runtime de Application Support + pnpm install si falta.
+  if ! command -v rsync >/dev/null 2>&1; then
+    fail_dialog "No se encontró rsync. Viene con macOS — verifica tu sistema."
+    exit 1
+  fi
+  RUNTIME_DESKTOP="$RUNTIME_ROOT/desktop-runtime"
+  mkdir -p "$RUNTIME_DESKTOP"
+  rsync -a --delete --exclude ".DS_Store" --exclude "node_modules" \
+    "$INTERNALS/desktop/" "$RUNTIME_DESKTOP/" >> "$SETUP_LOG" 2>&1
+
+  if [ ! -d "$RUNTIME_DESKTOP/node_modules/electron" ]; then
+    notify "Instalando runtime de escritorio (primera vez)."
+    echo "[$(date)] pnpm install en $RUNTIME_DESKTOP" >> "$SETUP_LOG"
+    pnpm --dir "$RUNTIME_DESKTOP" install >> "$SETUP_LOG" 2>&1 || {
+      fail_dialog "No se pudo instalar Electron. Revisa $SETUP_LOG."
+      exit 1
+    }
+  fi
+
+  export PULSO_APP_ROOT="$INTERNALS"
+  cd "$RUNTIME_DESKTOP"
+  echo "[$(date)] Lanzando Electron (packaged)" >> "$LOG_FILE"
+  exec pnpm --dir "$RUNTIME_DESKTOP" start >> "$LOG_FILE" 2>&1
+fi
