@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Download, Loader2, Play } from "lucide-react";
-import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
+import { ErrorBlock } from "../../components/States";
 import { downloadUrl, FileJobResult } from "../../api/client";
 
 // Toolkit compartido por los 5 panes de analítica (Codebook, Bases,
@@ -249,7 +249,7 @@ export function GenerateFooter({
           onCancelled={onJobCancelled}
         />
       )}
-      {error && <Alert kind="error">{error}</Alert>}
+      {error && <ErrorBlock label="No se pudo generar" detail={error} />}
     </>
   );
 }

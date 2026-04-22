@@ -4,6 +4,7 @@ import { BarChart2, BookOpen, Database, Grid3x3, Users } from "lucide-react";
 import { apiAnaliticaPreparar } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
+import { LoadingBlock } from "../../components/States";
 import { useAnaliticaAutosave } from "./useAnaliticaAutosave";
 import { AnaliticaHeader } from "./AnaliticaHeader";
 import { DefinicionGlobal } from "./DefinicionGlobal";
@@ -106,7 +107,7 @@ export default function AnaliticaPage() {
           </div>
 
           {prepBusy ? (
-            <Alert kind="info">Preparando datos…</Alert>
+            <LoadingBlock label="Preparando datos…" />
           ) : prepOk ? (
             <>
               {active === "enumeradores" && <EnumeradoresPane />}

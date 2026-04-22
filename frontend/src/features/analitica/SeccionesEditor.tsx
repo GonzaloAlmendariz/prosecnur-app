@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, Eye, EyeOff, Merge, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, EyeOff, FolderSearch, Merge, RefreshCw } from "lucide-react";
 import { apiAnaliticaDetectSecciones, SeccionDetectada } from "../../api/client";
-import { Alert } from "../../components/Alert";
 import { Panel } from "../../components/Panel";
+import { EmptyState, ErrorBlock } from "../../components/States";
 import { useAnaliticaStore, SeccionConfig } from "./store";
 
 // Editor de secciones del instrumento. Auto-detecta desde XLSForm
@@ -92,7 +92,12 @@ export function SeccionesEditor() {
         </div>
 
         {secciones.length === 0 && !busy && (
-          <Alert kind="info">No se detectaron secciones. Verifica que el XLSForm tenga grupos definidos.</Alert>
+          <EmptyState
+            variant="inline"
+            icon={<FolderSearch size={18} />}
+            title="Sin secciones detectadas"
+            hint="Verifica que tu XLSForm tenga grupos definidos (begin_group/end_group). Luego reintenta con 'Detectar de nuevo'."
+          />
         )}
 
         {secciones.length > 0 && (
@@ -123,7 +128,7 @@ export function SeccionesEditor() {
           </div>
         )}
 
-        {error && <Alert kind="error">{error}</Alert>}
+        {error && <ErrorBlock label="Error" detail={error} />}
       </div>
     </Panel>
   );

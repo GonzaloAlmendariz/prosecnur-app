@@ -84,7 +84,7 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
           {prepBusy
             ? "Preparando datos…"
             : prepError
-            ? <span style={{ color: "#b91c1c" }}>Error preparando: {prepError}</span>
+            ? <span style={{ color: "var(--pulso-danger-fg)" }}>Error preparando: {prepError}</span>
             : usandoAdaptados ? (
               <>
                 <strong style={{ color: "var(--tipo-sm-fg)" }}>Usando data codificada</strong>
@@ -144,7 +144,7 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
         <span
           style={{
             display: "inline-flex", alignItems: "center", gap: 5,
-            color: "#15803d", fontSize: 11, fontWeight: 700,
+            color: "var(--pulso-success-fg)", fontSize: 11, fontWeight: 700,
             textTransform: "uppercase", letterSpacing: 0.4,
           }}
         >
@@ -183,8 +183,8 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
             onChange={(e) => onImport(e.target.files?.[0])}
           />
         </label>
-        {ioMsg && <span style={{ fontSize: 11, color: "#15803d", fontWeight: 600 }}>{ioMsg}</span>}
-        {ioError && <span style={{ fontSize: 11, color: "#b91c1c", fontWeight: 600 }}>{ioError}</span>}
+        {ioMsg && <span style={{ fontSize: 11, color: "var(--pulso-success-fg)", fontWeight: 600 }}>{ioMsg}</span>}
+        {ioError && <span style={{ fontSize: 11, color: "var(--pulso-danger-fg)", fontWeight: 600 }}>{ioError}</span>}
       </div>
     </div>
   );

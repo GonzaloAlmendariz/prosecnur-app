@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, EyeOff, Layers, Loader2, RefreshCw, Eye } from "lucide-react";
+import { ChevronDown, ChevronRight, EyeOff, FolderSearch, Layers, Loader2, RefreshCw, Eye } from "lucide-react";
 import {
   apiAnaliticaDetectSecciones,
   apiAnaliticaVariables,
   SeccionDetectada,
   VariableInstrumento,
 } from "../../api/client";
+import { EmptyState, ErrorBlock } from "../../components/States";
 import { useAnaliticaStore, SeccionConfig } from "./store";
 import { VariablesExcluidas } from "./VariablesExcluidas";
 
@@ -177,19 +178,15 @@ function SeccionesBlock({ variables: _variables }: { variables: VariableInstrume
         </span>
       </div>
 
-      {error && (
-        <div style={{ fontSize: 11, color: "#b91c1c" }}>{error}</div>
-      )}
+      {error && <ErrorBlock label="Error" detail={error} />}
 
       {secciones.length === 0 && !busy && (
-        <div
-          style={{
-            padding: 12, border: "1px dashed var(--pulso-border)", borderRadius: 6,
-            textAlign: "center", fontSize: 11, color: "var(--pulso-text-soft)",
-          }}
-        >
-          Sin secciones detectadas. Verifica que el XLSForm tenga <code>begin_group</code>.
-        </div>
+        <EmptyState
+          variant="inline"
+          icon={<FolderSearch size={16} />}
+          title="Sin secciones detectadas"
+          hint="Verifica que tu XLSForm tenga grupos (begin_group / end_group)."
+        />
       )}
 
       {secciones.length > 0 && (

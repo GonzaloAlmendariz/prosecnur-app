@@ -303,7 +303,7 @@ function ExclusionEditor({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Filter size={14} color="#b45309" />
+        <Filter size={14} color="var(--pulso-warn-fg)" />
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, fontWeight: 700 }}>
             Excluir categorías de <code style={{ fontFamily: "monospace" }}>{cruceVar.name}</code>
@@ -321,10 +321,10 @@ function ExclusionEditor({
         style={{
           display: "flex", alignItems: "flex-start", gap: 8,
           padding: "8px 10px",
-          background: "#fff7e8",
+          background: "var(--pulso-warn-bg)",
           border: "1px solid #f0d799",
           borderRadius: 6,
-          fontSize: 11, color: "#8a5000", lineHeight: 1.5,
+          fontSize: 11, color: "var(--pulso-warn-fg)", lineHeight: 1.5,
         }}
       >
         <AlertTriangle size={12} style={{ marginTop: 2, flexShrink: 0 }} />
@@ -334,7 +334,7 @@ function ExclusionEditor({
       </div>
 
       {error && (
-        <div style={{ fontSize: 11, color: "#b91c1c", padding: "6px 10px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 4 }}>
+        <div style={{ fontSize: 11, color: "var(--pulso-danger-fg)", padding: "6px 10px", background: "var(--pulso-danger-bg)", border: "1px solid #fecaca", borderRadius: 4 }}>
           {error}
         </div>
       )}
@@ -363,7 +363,7 @@ function ExclusionEditor({
                 style={{
                   display: "grid", gridTemplateColumns: "14px 1fr", gap: 8, alignItems: "center",
                   padding: "4px 8px", borderRadius: 4,
-                  background: active ? "#fff7e8" : "transparent",
+                  background: active ? "var(--pulso-warn-bg)" : "transparent",
                   cursor: "pointer",
                 }}
                 onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--pulso-surface-2)"; }}
@@ -371,7 +371,7 @@ function ExclusionEditor({
               >
                 <input type="checkbox" checked={active} onChange={() => toggle(v.value)} style={{ margin: 0 }} />
                 <div style={{ minWidth: 0 }}>
-                  <code style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 11, color: active ? "#8a5000" : "var(--pulso-text)" }}>{v.value}</code>
+                  <code style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 11, color: active ? "var(--pulso-warn-fg)" : "var(--pulso-text)" }}>{v.value}</code>
                   {v.label && (
                     <span style={{ marginLeft: 6, fontSize: 11, color: "var(--pulso-text-soft)" }}>
                       {v.label}

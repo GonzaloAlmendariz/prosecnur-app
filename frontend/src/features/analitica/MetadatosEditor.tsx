@@ -5,6 +5,7 @@ import {
   BasesMetadataVariable,
   MeasureSpss,
 } from "../../api/client";
+import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { useAnaliticaStore } from "./store";
 
 // Editor visible de la inferencia SPSS. Solo la **medida** (nominal /
@@ -67,19 +68,11 @@ export function MetadatosEditor() {
   }, [variables, query]);
 
   if (loading) {
-    return (
-      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: "12px 0" }}>
-        Cargando metadatos…
-      </div>
-    );
+    return <LoadingBlock variant="inline" label="Cargando metadatos…" />;
   }
 
   if (error) {
-    return (
-      <div style={{ fontSize: 12, color: "#b91c1c", padding: "12px 0" }}>
-        Error cargando metadatos: {error}
-      </div>
-    );
+    return <ErrorBlock label="Error cargando metadatos" detail={error} />;
   }
 
   if (variables.length === 0) {
