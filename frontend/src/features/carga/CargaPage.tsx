@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import * as Lucide from "lucide-react";
 import {
-  ArrowRight, CheckCircle2, Database, FileSpreadsheet, Plus,
+  ArrowRight, CheckCircle2, Database, FileSpreadsheet,
   RotateCcw, Sparkles, Trash2, Upload,
 } from "lucide-react";
 import {
   apiCargaData,
   apiCargaInstrumento,
+  apiEstudioDowngradeToSingle,
   apiEstudioFromSession,
   apiEstudioGet,
   apiInstrumentoEstructura,
@@ -251,6 +252,57 @@ export default function CargaPage() {
         }
       />
 
+      {/* Toggle del modo de estudio — reemplaza el botón "+ Agregar
+          otra base" con un switch explícito. Visible siempre que el
+          usuario tenga algo cargado (single o multi). Cuando lo activa
+          por primera vez, el backend convierte los archivos a multi-
+          base con auto-nombre; al apagarlo, degrada a single-base si
+          queda 1 sola base. */}
+      {(hasXlsform || hasData || isMultiBase) && (
+        <MultiBaseToggle
+          on={isMultiBase}
+          canTurnOff={isMultiBase && (estudio?.n_bases ?? 0) <= 1}
+          bases={estudio?.n_bases ?? 0}
+          disabled={!!busy}
+          onTurnOn={async () => {
+            // Necesita tener al menos XLSForm + data cargados para
+            // promover a multi-base (la primera base se arma con esos
+            // archivos). Si no, no hay nada que convertir.
+            if (!hasXlsform || !hasData) {
+              setError("Carga primero un XLSForm y una base de datos antes de activar multi-base.");
+              return;
+            }
+            setError("");
+            setBusy("Convirtiendo a estudio con varias bases…");
+            try {
+              await apiEstudioFromSession();
+              const p = await apiEstudioGet();
+              setEstudio(p);
+              setAutoOpenAddBase(true);
+              await refresh();
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy("");
+            }
+          }}
+          onTurnOff={async () => {
+            setError("");
+            setBusy("Volviendo a una sola base…");
+            try {
+              await apiEstudioDowngradeToSingle();
+              setEstudio(null);
+              setAutoOpenAddBase(false);
+              await refresh();
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy("");
+            }
+          }}
+        />
+      )}
+
       {/* Modo multi-base: BasesPanel reemplaza los UploadCards.
           Cada base es un par (XLSForm + data) con nombre único. El
           usuario puede agregar, quitar, renombrar y volver a la carga
@@ -364,34 +416,9 @@ export default function CargaPage() {
           />
         </div>
 
-        {/* Botón "+ Agregar otra base" — solo cuando ambos insumos
-            están cargados Y no es un demo activo. Un solo click:
-            convierte el single-base a multi-base (backend auto-genera
-            "base_1") y abre el form de agregar base_2 en el panel
-            que aparece. El usuario renombra después si quiere. */}
-        {hasXlsform && hasData && !activeDemo && (
-          <AgregarOtraBaseButton
-            onClick={async () => {
-              setError("");
-              setBusy("Preparando estudio multi-base…");
-              try {
-                // Auto-name: el backend asigna "base_1" a los archivos
-                // que ya están cargados. El usuario puede renombrar
-                // después desde el panel de bases.
-                await apiEstudioFromSession();
-                const p = await apiEstudioGet();
-                setEstudio(p);
-                setAutoOpenAddBase(true);
-                await refresh();
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy("");
-              }
-            }}
-            disabled={!!busy}
-          />
-        )}
+        {/* El botón "+ Agregar otra base" se eliminó — ahora la
+            conversión single→multi se hace con el MultiBaseToggle de
+            arriba del todo. */}
       </section>
       </>
       )}
@@ -876,61 +903,111 @@ function ContinuarCTA() {
 }
 
 // =====================================================================
-// "+ Agregar otra base" — botón que convierte single → multi en un click
+// MultiBaseToggle — switch explícito entre "una base" y "varias bases"
 // =====================================================================
-// Aparece debajo de los dos UploadCards cuando ambos están cargados y
-// no hay demo activo. Un solo click: el backend promueve los archivos
-// a multi-base (auto-nombre "base_1") y el frontend abre el panel de
-// bases con el form "Agregar base" ya expandido para subir base_2.
+// Copy intencionalmente humano: evitamos "multi-base", "single-base",
+// "XLSForm" etc. en el label. El switch dice simplemente "El estudio
+// tiene más de una base".
 //
-// Intencionalmente minimalista — no hay banner verboso explicando
-// qué es multi-base. El propio hecho de estar en BasesPanel tras el
-// click es suficiente affordance.
-function AgregarOtraBaseButton({
-  onClick, disabled,
+// Estados:
+//   - off + (algo cargado): click encendido → convierte a varias bases.
+//   - on + bases<=1: click apagado → degrada a una sola base.
+//   - on + bases>1: no puede apagarse sin pérdida — queda bloqueado
+//     con tooltip "quita las bases extra primero". El botón "Cerrar
+//     estudio" del panel cubre el caso destructivo.
+function MultiBaseToggle({
+  on, canTurnOff, bases, disabled, onTurnOn, onTurnOff,
 }: {
-  onClick: () => Promise<void>;
+  on: boolean;
+  canTurnOff: boolean;
+  bases: number;
   disabled: boolean;
+  onTurnOn: () => Promise<void>;
+  onTurnOff: () => Promise<void>;
 }) {
+  const locked = on && !canTurnOff;
+  const effectiveDisabled = disabled || locked;
+
+  const handleClick = async () => {
+    if (effectiveDisabled) return;
+    if (on) await onTurnOff();
+    else await onTurnOn();
+  };
+
+  const hint = on
+    ? bases > 1
+      ? `Tienes ${bases} bases. Para volver a una sola, quita las extras en el panel de abajo.`
+      : "Puedes apagarlo para volver a la carga simple."
+    : "Actívalo si vas a combinar varios cuestionarios o varias muestras (por ejemplo: docentes y estudiantes).";
+
   return (
     <div
+      role="group"
+      aria-labelledby="multibase-toggle-label"
       style={{
-        marginTop: 14,
-        display: "flex", justifyContent: "center",
+        marginBottom: 18,
+        display: "flex", alignItems: "center", gap: 14,
+        padding: "12px 16px", borderRadius: 10,
+        border: "1px solid var(--pulso-border)",
+        background: on ? "var(--pulso-primary-soft)" : "var(--pulso-surface-2)",
+        transition: "background 160ms ease, border-color 160ms ease",
+        flexWrap: "wrap",
       }}
     >
+      <div style={{ flex: 1, minWidth: 220 }}>
+        <div
+          id="multibase-toggle-label"
+          style={{
+            fontSize: 13, fontWeight: 700,
+            color: on ? "var(--pulso-primary)" : "var(--pulso-text)",
+          }}
+        >
+          El estudio tiene más de una base
+        </div>
+        <div
+          style={{
+            fontSize: 11, color: "var(--pulso-text-soft)",
+            lineHeight: 1.4, marginTop: 2,
+          }}
+        >
+          {hint}
+        </div>
+      </div>
+
       <button
         type="button"
-        onClick={() => void onClick()}
-        disabled={disabled}
+        role="switch"
+        aria-checked={on}
+        aria-label="El estudio tiene más de una base"
+        onClick={handleClick}
+        disabled={effectiveDisabled}
+        title={locked ? "Quita las bases extra primero para apagarlo" : undefined}
         style={{
-          display: "inline-flex", alignItems: "center", gap: 7,
-          fontSize: 12, fontWeight: 600,
-          padding: "9px 16px", borderRadius: 999,
-          border: "1px dashed var(--pulso-primary-border)",
-          background: "transparent",
-          color: "var(--pulso-primary)",
-          cursor: disabled ? "wait" : "pointer",
-          opacity: disabled ? 0.55 : 1,
-          transition: "background 120ms ease, border-style 120ms ease, border-color 120ms ease, transform 120ms ease",
+          position: "relative",
+          width: 44, height: 24,
+          borderRadius: 999,
+          border: "1px solid",
+          borderColor: on ? "var(--pulso-primary)" : "var(--pulso-border)",
+          background: on ? "var(--pulso-primary)" : "white",
+          cursor: effectiveDisabled ? "not-allowed" : "pointer",
+          opacity: disabled ? 0.55 : locked ? 0.75 : 1,
+          transition: "background 160ms ease, border-color 160ms ease",
+          flexShrink: 0,
+          padding: 0,
         }}
-        onMouseEnter={(e) => {
-          if (disabled) return;
-          e.currentTarget.style.background = "var(--pulso-primary-soft)";
-          e.currentTarget.style.borderStyle = "solid";
-          e.currentTarget.style.borderColor = "var(--pulso-primary)";
-          e.currentTarget.style.transform = "translateY(-1px)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "transparent";
-          e.currentTarget.style.borderStyle = "dashed";
-          e.currentTarget.style.borderColor = "var(--pulso-primary-border)";
-          e.currentTarget.style.transform = "translateY(0)";
-        }}
-        title="Convertir este estudio en multi-base para analizar varios instrumentos"
       >
-        <Plus size={14} />
-        Agregar otra base al estudio
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            top: 2, left: on ? 22 : 2,
+            width: 18, height: 18,
+            borderRadius: "50%",
+            background: "white",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+            transition: "left 160ms ease",
+          }}
+        />
       </button>
     </div>
   );
