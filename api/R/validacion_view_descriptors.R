@@ -197,6 +197,152 @@ vd_heatmap_semaforo <- function(title, x, y, z,
 }
 
 # -----------------------------------------------------------------------------
+# vd_radar — polígono radar (una serie, N dimensiones)
+# -----------------------------------------------------------------------------
+# Útil para comparar múltiples dimensiones de UNA entidad (ej. completitud
+# por sección del instrumento, o perfil de una unidad analítica). Para
+# comparar 2+ entidades sobre las mismas dimensiones, usar vd_scatterpolar.
+#
+# Input:
+#   labels: chr vector — dimensiones del radar (se muestran como ejes)
+#   values: num vector — valor por dimensión (mismo largo que labels)
+#   max_value: num opcional — techo del eje radial. Default: max(values)*1.1
+#   fill_color: chr opcional — color del polígono. Default primary.
+vd_radar <- function(title, labels, values,
+                      max_value = NULL,
+                      fill_color = NULL,
+                      subtitle = NULL,
+                      actions = list(),
+                      meta = list()) {
+  labels <- as.character(labels)
+  values <- as.numeric(values)
+  stopifnot(length(labels) == length(values))
+  if (is.null(fill_color)) fill_color <- .vd_palette$primary
+
+  # Cerrar el polígono repitiendo el primer punto al final — plotly
+  # no lo hace automático y sin esto el radar aparece "abierto".
+  theta <- c(labels, labels[1])
+  r <- c(values, values[1])
+
+  range_max <- if (!is.null(max_value)) as.numeric(max_value) else {
+    if (length(values) > 0L && any(is.finite(values))) max(values, na.rm = TRUE) * 1.1
+    else 1
+  }
+
+  trace <- list(
+    type = "scatterpolar",
+    r = r,
+    theta = theta,
+    fill = "toself",
+    fillcolor = paste0(fill_color, "33"),  # ~20% alpha hex
+    line = list(color = fill_color, width = 2),
+    hovertemplate = "<b>%{theta}</b>: %{r}<extra></extra>",
+    name = as.character(title)
+  )
+  layout <- list(
+    polar = list(
+      radialaxis = list(visible = TRUE, range = c(0, range_max)),
+      angularaxis = list(direction = "clockwise")
+    ),
+    showlegend = FALSE,
+    margin = list(l = 40, r = 40, t = 16, b = 40),
+    paper_bgcolor = .vd_palette$bg,
+    height = 320L
+  )
+  list(
+    version  = 1L,
+    kind     = "radar",
+    title    = as.character(title),
+    subtitle = if (!is.null(subtitle)) as.character(subtitle) else NA_character_,
+    meta     = meta,
+    plotly   = list(
+      data = list(trace),
+      layout = layout,
+      config = list(displayModeBar = FALSE, responsive = TRUE)
+    ),
+    actions  = actions
+  )
+}
+
+# -----------------------------------------------------------------------------
+# vd_scatterpolar — N series superpuestas sobre los mismos ejes polares
+# -----------------------------------------------------------------------------
+# Para comparar 2+ entidades sobre el mismo set de dimensiones (ej.
+# perfil de 3 secciones, o 2 bases de un estudio multi-base).
+#
+# Input:
+#   labels: chr vector — dimensiones (ejes angulares comunes a todas las series)
+#   series: named list — nombres = leyenda, valores = vectores num del mismo
+#           largo que `labels`. Ej. list(Docentes=c(...), Alumnos=c(...))
+#   colors: opcional chr — un color por serie. Default: rotación paleta.
+vd_scatterpolar <- function(title, labels, series,
+                              max_value = NULL,
+                              colors = NULL,
+                              subtitle = NULL,
+                              actions = list(),
+                              meta = list()) {
+  labels <- as.character(labels)
+  stopifnot(is.list(series), length(series) > 0L)
+  default_colors <- c(.vd_palette$primary, .vd_palette$warn,
+                      .vd_palette$success, .vd_palette$danger,
+                      .vd_palette$neutral)
+  if (is.null(colors)) colors <- default_colors
+  colors <- rep(colors, length.out = length(series))
+
+  series_names <- names(series)
+  if (is.null(series_names) || any(!nzchar(series_names))) {
+    series_names <- sprintf("Serie %d", seq_along(series))
+  }
+
+  theta_closed <- c(labels, labels[1])
+  traces <- lapply(seq_along(series), function(i) {
+    v <- as.numeric(series[[i]])
+    r_closed <- c(v, v[1])
+    list(
+      type = "scatterpolar",
+      r = r_closed,
+      theta = theta_closed,
+      name = series_names[i],
+      fill = "toself",
+      fillcolor = paste0(colors[i], "22"),
+      line = list(color = colors[i], width = 2),
+      hovertemplate = sprintf("<b>%%{theta}</b><br>%s: %%{r}<extra></extra>", series_names[i])
+    )
+  })
+
+  all_vals <- unlist(lapply(series, as.numeric))
+  range_max <- if (!is.null(max_value)) as.numeric(max_value) else {
+    if (length(all_vals) > 0L && any(is.finite(all_vals))) max(all_vals, na.rm = TRUE) * 1.1
+    else 1
+  }
+
+  layout <- list(
+    polar = list(
+      radialaxis = list(visible = TRUE, range = c(0, range_max)),
+      angularaxis = list(direction = "clockwise")
+    ),
+    showlegend = TRUE,
+    legend = list(orientation = "h", y = -0.15),
+    margin = list(l = 40, r = 40, t = 16, b = 60),
+    paper_bgcolor = .vd_palette$bg,
+    height = 360L
+  )
+  list(
+    version  = 1L,
+    kind     = "scatterpolar",
+    title    = as.character(title),
+    subtitle = if (!is.null(subtitle)) as.character(subtitle) else NA_character_,
+    meta     = meta,
+    plotly   = list(
+      data = traces,
+      layout = layout,
+      config = list(displayModeBar = FALSE, responsive = TRUE)
+    ),
+    actions  = actions
+  )
+}
+
+# -----------------------------------------------------------------------------
 # Helpers específicos para el resumen de `evaluar_consistencia()`
 # -----------------------------------------------------------------------------
 # Top-N reglas por n_inconsistencias. El resumen trae la lista ordenada
