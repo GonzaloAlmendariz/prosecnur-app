@@ -196,15 +196,52 @@
   presets_json
 }
 
-# Extrae las imágenes PNG embebidas en un .pptx (ubicadas en
-# `ppt/media/image*.png` dentro del ZIP) y las devuelve como lista de
-# `{filename, png_base64, width_px?, height_px?}`. Ignora cualquier media
-# que no sea PNG (ej. vectoriales EMF) — no queremos devolverle al
-# frontend algo que no pueda renderizar como <img>.
+# Resuelve un Target relativo de un .rels a su path absoluto dentro del
+# .pptx (el "zip"). Los Targets de rels son relativos al FILE que el
+# .rels describe, no al .rels en sí. Ej.:
+#   rel_file = "ppt/slides/_rels/slide1.xml.rels"
+#   owner    = "ppt/slides/slide1.xml"     (strip `_rels/` y `.rels`)
+#   target   = "../media/image1.png"
+#   =>         "ppt/media/image1.png"      (tras resolver `..`)
+.resolve_rel_target <- function(rel_file, target) {
+  if (startsWith(target, "/")) return(sub("^/+", "", target))
+  owner_file <- sub("_rels/([^/]+)\\.rels$", "\\1", rel_file)
+  base_dir <- dirname(owner_file)
+  combined <- if (nzchar(base_dir) && base_dir != ".") {
+    paste0(base_dir, "/", target)
+  } else {
+    target
+  }
+  parts <- strsplit(combined, "/", fixed = TRUE)[[1]]
+  out <- character(0)
+  for (p in parts) {
+    if (p == "" || p == ".") next
+    if (p == "..") {
+      if (length(out) > 0L) out <- out[-length(out)]
+    } else {
+      out <- c(out, p)
+    }
+  }
+  paste(out, collapse = "/")
+}
+
+# Extrae las imágenes PNG que los slides de un .pptx realmente
+# referencian (vía `ppt/slides/_rels/slideN.xml.rels`). Excluye
+# intencionalmente las imágenes que aparecen SOLO en layouts, masters
+# o themes — si no, los logos del template se colaban como si fueran
+# gráficos generados por el graficador.
 #
-# El orden se conserva por nombre (image1.png, image2.png, …) que
-# corresponde al orden en que officer las fue añadiendo al slide.
-# Si el .pptx no tiene medias, retorna lista vacía.
+# Los graficadores de prosecnur con `usar_canvas=TRUE` renderizan cada
+# slot como un PNG que officer inserta con una relación tipo image en
+# el .rels del slide. Ese es exactamente el set que queremos mostrar
+# en el preview.
+#
+# Fallback: si por algún motivo no se encuentra ninguna referencia en
+# los rels (pptx con estructura atípica), devolvemos todas las
+# imágenes como antes — mejor mostrar algo que nada.
+#
+# El orden se conserva por número natural (image1, image2, …) que
+# corresponde al orden en que officer las fue añadiendo.
 .extract_pptx_images <- function(pptx_path) {
   if (!file.exists(pptx_path)) return(list())
   if (!requireNamespace("zip", quietly = TRUE)) return(list())
@@ -213,27 +250,75 @@
   dir.create(tmpdir, recursive = TRUE, showWarnings = FALSE)
   on.exit(unlink(tmpdir, recursive = TRUE, force = TRUE), add = TRUE)
 
-  entries <- tryCatch(
-    zip::zip_list(pptx_path),
-    error = function(e) NULL
-  )
+  entries <- tryCatch(zip::zip_list(pptx_path), error = function(e) NULL)
   if (is.null(entries) || !nrow(entries)) return(list())
 
+  # PNGs candidatos en ppt/media/
   media_rows <- entries[grepl("^ppt/media/.*\\.png$", entries$filename, ignore.case = TRUE), , drop = FALSE]
   if (!nrow(media_rows)) return(list())
 
-  # Ordenar por numero natural (image1, image2, … image10)
-  nums <- suppressWarnings(as.integer(regmatches(
-    media_rows$filename,
-    regexpr("[0-9]+", media_rows$filename)
-  )))
-  nums[is.na(nums)] <- 999L
-  media_rows <- media_rows[order(nums), , drop = FALSE]
+  # .rels de slides únicamente (NO layouts/masters/theme)
+  slide_rels <- entries$filename[
+    grepl("^ppt/slides/_rels/slide\\d+\\.xml\\.rels$", entries$filename, ignore.case = TRUE)
+  ]
 
+  # Extraer rels + media en una sola llamada
+  to_extract <- unique(c(slide_rels, media_rows$filename))
   tryCatch(
-    zip::unzip(pptx_path, files = media_rows$filename, exdir = tmpdir),
+    zip::unzip(pptx_path, files = to_extract, exdir = tmpdir),
     error = function(e) NULL
   )
+
+  # Parsear cada .rels para coleccionar los Targets de relaciones Image.
+  # Los Relationships XML usan namespace default:
+  # http://schemas.openxmlformats.org/package/2006/relationships
+  # Usamos local-name() en el XPath para evitar binding de namespaces.
+  referenced <- character(0)
+  for (rel_file in slide_rels) {
+    full_rel <- file.path(tmpdir, rel_file)
+    if (!file.exists(full_rel)) next
+    doc <- tryCatch(xml2::read_xml(full_rel), error = function(e) NULL)
+    if (is.null(doc)) next
+    nodes <- tryCatch(
+      xml2::xml_find_all(
+        doc,
+        ".//*[local-name()='Relationship' and contains(@Type, '/image')]"
+      ),
+      error = function(e) NULL
+    )
+    if (is.null(nodes) || length(nodes) == 0L) next
+    for (n in nodes) {
+      tgt <- xml2::xml_attr(n, "Target")
+      if (is.null(tgt) || is.na(tgt) || !nzchar(tgt)) next
+      referenced <- c(referenced, .resolve_rel_target(rel_file, tgt))
+    }
+  }
+  referenced <- unique(referenced)
+
+  # Filtrar a solo las referenciadas por los slides. Fallback conservador
+  # si no se detectó ninguna (pptx atípico): devolver todas.
+  if (length(referenced) > 0L) {
+    media_rows <- media_rows[media_rows$filename %in% referenced, , drop = FALSE]
+  }
+  if (!nrow(media_rows)) return(list())
+
+  # Ordenar por número natural (image1, image2, … image10). Usamos vapply
+  # para garantizar que `nums` tenga la misma longitud que `media_rows`:
+  # regmatches con regexpr devuelve vector VACÍO (no NA) cuando el
+  # filename no tiene dígitos, lo que colapsaba `order()` y borraba todas
+  # las filas. Sentinel 999L ⇒ los sin dígito van al final en orden estable.
+  nums <- vapply(
+    media_rows$filename,
+    function(f) {
+      m <- regmatches(f, regexpr("[0-9]+", f))
+      if (length(m) == 0L) return(999L)
+      suppressWarnings(as.integer(m[[1]]))
+    },
+    integer(1),
+    USE.NAMES = FALSE
+  )
+  nums[is.na(nums)] <- 999L
+  media_rows <- media_rows[order(nums), , drop = FALSE]
 
   lapply(seq_len(nrow(media_rows)), function(i) {
     fname <- media_rows$filename[i]
