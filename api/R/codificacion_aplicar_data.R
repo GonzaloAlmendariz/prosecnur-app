@@ -537,9 +537,51 @@ ppra_sm_parent_recod <- function(df, parent, path_instrumento, path_plantilla,
     }
   }
 
+  # Identificar el/los código(s) de la opción "Otros" del SM, para poder
+  # desmarcarlo cuando el analista ya clasificó la respuesta abierta en un
+  # grupo nuevo. Heurísticas combinadas (any-match):
+  #   1) `ch$code` cuyo normalize == "other" (cubre name="other")
+  #   2) `ch$label` que empiece por "otro" o "other" (cubre codes
+  #      numéricos tipo 70/99 cuya label es "Otros")
+  # Si ninguna detecta nada, skip — no rompemos el comportamiento viejo.
+  other_codes <- character(0)
+  other_codes <- c(
+    other_codes,
+    classic[.normcode(classic) == "other"]
+  )
+  if ("label" %in% names(ch)) {
+    lab_norm <- .normcode(ch$label)
+    other_codes <- c(other_codes, as.character(ch$code[startsWith(lab_norm, "other") | startsWith(lab_norm, "otro")]))
+  }
+  other_codes <- unique(other_codes[!is.na(other_codes) & nzchar(other_codes)])
+  other_col_idx <- match(other_codes, colnames(mat))
+  other_col_idx <- other_col_idx[!is.na(other_col_idx)]
+
+  # Pre-computar qué filas tienen respuesta en text_col (las que marcaron
+  # "Otros" y escribieron algo abierto).
+  text_col <- .resolve_text_col_for_parent(parent, path_familias)
+  has_text_per_row <- rep(FALSE, nrow(df_work))
+  if (nzchar(text_col) && text_col %in% names(df_work)) {
+    t_vals <- as.character(df_work[[text_col]])
+    has_text_per_row <- !is.na(t_vals) & nzchar(trimws(t_vals))
+  }
+
   # tokens finales
   parent_recod <- character(nrow(df_work))
   for (i in seq_len(nrow(df_work))){
+    # Fix bug #4 (SM): si la fila marcó "Otros" (text_col no vacío) Y fue
+    # clasificada en al menos un grupo nuevo, desmarcar la columna "Otros"
+    # original en `mat` antes de recolectar los codes. Sin esto, el usuario
+    # ve en <parent>_recod algo como "70 4" (el 70 Otros viejo + el 4
+    # Polideportivo nuevo) cuando espera "4" sólo. Las filas sin text libre
+    # (no marcaron Otros) preservan su comportamiento anterior.
+    if (has_text_per_row[i] && length(new_tokens[[i]] %||% character(0)) > 0L &&
+        length(other_col_idx) > 0L) {
+      for (j in other_col_idx) {
+        if (!is.na(mat[i, j]) && mat[i, j] == 1L) mat[i, j] <- 0L
+      }
+    }
+
     from_classic <- colnames(mat)[which(mat[i, ] == 1L)]
     from_new     <- new_tokens[[i]] %||% character(0)
     other_idx <- match("other", .normcode(from_classic))
