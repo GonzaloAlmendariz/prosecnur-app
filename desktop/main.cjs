@@ -1,6 +1,7 @@
-const { app, BrowserWindow, Menu, shell } = require("electron");
+const { app, BrowserWindow, Menu, dialog, shell } = require("electron");
 const { spawn } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
+const fs = require("node:fs");
 const http = require("node:http");
 const net = require("node:net");
 const path = require("node:path");
@@ -21,6 +22,39 @@ let mainWindow = null;
 let backend = null;
 let backendStopping = false;
 let backendPort = null;
+// Flag que marca cuando matamos el proceso adrede (por ej. durante
+// reintentos por bind error) para que el watchdog del exit handler no
+// muestre dialog de error en esos casos esperados.
+let expectingBackendRestart = false;
+// Stream a archivo de los logs del subproceso R. Se inicializa en
+// app.whenReady (necesitamos app.getPath('logs')). Null si falló.
+let logStream = null;
+// Path a la carpeta de logs. Expuesto al menú y al dialog de errores
+// para que el usuario pueda abrirla rápido cuando algo falla.
+let logsDir = null;
+
+function initLogs() {
+  try {
+    logsDir = app.getPath("logs");
+    fs.mkdirSync(logsDir, { recursive: true });
+    logStream = fs.createWriteStream(
+      path.join(logsDir, "prosecnur-r.log"),
+      { flags: "a" }
+    );
+    logStream.write(
+      `\n===== Prosecnur arrancó ${new Date().toISOString()} =====\n`
+    );
+  } catch (error) {
+    process.stderr.write(`[prosecnur-desktop] No pude abrir log file: ${error.message}\n`);
+    logStream = null;
+  }
+}
+
+function writeLog(line) {
+  if (logStream) {
+    try { logStream.write(line); } catch (_e) { /* noop */ }
+  }
+}
 
 function appRoot() {
   return process.env.PULSO_APP_ROOT || path.resolve(__dirname, "..");
@@ -91,6 +125,51 @@ function showError(message) {
     <p>${escapeHtml(message)}</p>
   `;
   mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlPage(APP_NAME, body))}`);
+}
+
+// Dialog nativo con botones Reintentar / Ver logs / Salir. Reemplaza
+// al showError estático cuando R crashea después del arranque o cuando
+// el startup falla de verdad (después de los reintentos por bind).
+// Recursivo: "Ver logs" abre la carpeta y vuelve al dialog para que el
+// usuario decida qué hacer.
+async function showBackendError(message) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  showError(message);
+  const { response } = await dialog.showMessageBox(mainWindow, {
+    type: "error",
+    title: APP_NAME,
+    message: "Se detuvo el motor local de R",
+    detail:
+      `${message}\n\n` +
+      (logsDir ? `Logs en: ${logsDir}` : "(no se pudo inicializar el archivo de logs)"),
+    buttons: ["Reintentar", "Ver logs", "Salir"],
+    defaultId: 0,
+    cancelId: 2
+  });
+  if (response === 0) {
+    // Reintentar: asegurar backend muerto, mostrar loading, rearrancar.
+    if (backend) {
+      backendStopping = true;
+      try { backend.kill(); } catch (_e) { /* noop */ }
+      backend = null;
+      backendStopping = false;
+    }
+    showLoading();
+    try {
+      const port = await startBackend();
+      await mainWindow.loadURL(appUrl(port));
+    } catch (error) {
+      showBackendError(error.message || String(error));
+    }
+  } else if (response === 1) {
+    if (logsDir) {
+      shell.openPath(logsDir);
+    }
+    // Volver al dialog para que el usuario decida después de revisar.
+    showBackendError(message);
+  } else {
+    app.quit();
+  }
 }
 
 function escapeHtml(value) {
@@ -174,17 +253,27 @@ async function waitForBackend(port, timeoutMs = 45000) {
   throw new Error(`El backend no respondió a tiempo. Último error: ${lastError ? lastError.message : "sin respuesta"}`);
 }
 
-async function startBackend() {
-  const root = appRoot();
-  const launchScript = path.join(root, "launcher", "launch.R");
-  const rscript = process.env.PULSO_RSCRIPT || "Rscript";
-  const requestedPort = Number(process.env.PULSO_PORT || 0);
-  const port = requestedPort >= MIN_R_PORT && requestedPort <= MAX_R_PORT
-    ? requestedPort
-    : await findFreePort();
+// Patterns que R/plumber/httpuv imprimen cuando falla al bindear el
+// puerto. Los usamos para detectar el caso TOCTOU (alguien robó el
+// puerto entre findFreePort y el spawn) y reintentar automáticamente
+// con otro puerto en vez de tirar un error definitivo al usuario.
+const PORT_BIND_ERROR_PATTERNS = [
+  /eaddrinuse/i,
+  /address already in use/i,
+  /failed to create server/i,
+  /httpuv.*bind/i
+];
 
-  backendPort = port;
-  backend = spawn(rscript, [launchScript], {
+function lookedLikePortBindError(stderrSoFar) {
+  return PORT_BIND_ERROR_PATTERNS.some((rx) => rx.test(stderrSoFar));
+}
+
+// Un solo intento de arranque. Si detecta error de bind en stderr antes
+// del healthcheck, mata el proceso y devuelve { bound: false } para que
+// startBackend reintente con otro puerto. Si todo va bien, devuelve
+// { bound: true, port }.
+async function spawnBackendOnce(rscript, launchScript, root, port) {
+  const proc = spawn(rscript, [launchScript], {
     cwd: root,
     env: {
       ...process.env,
@@ -196,17 +285,98 @@ async function startBackend() {
     stdio: ["ignore", "pipe", "pipe"]
   });
 
-  backend.stdout.on("data", (chunk) => process.stdout.write(`[prosecnur-r] ${chunk}`));
-  backend.stderr.on("data", (chunk) => process.stderr.write(`[prosecnur-r] ${chunk}`));
-
-  backend.on("exit", (code, signal) => {
-    if (!backendStopping && code !== 0 && mainWindow && !mainWindow.isDestroyed()) {
-      showError(`El motor local de R se cerró inesperadamente. Código: ${code ?? "n/a"}. Señal: ${signal ?? "n/a"}.`);
-    }
+  let stderrBuf = "";
+  proc.stdout.on("data", (chunk) => {
+    const s = `[prosecnur-r] ${chunk}`;
+    process.stdout.write(s);
+    writeLog(s);
+  });
+  proc.stderr.on("data", (chunk) => {
+    const s = `[prosecnur-r] ${chunk}`;
+    process.stderr.write(s);
+    writeLog(s);
+    stderrBuf += chunk.toString("utf8");
   });
 
-  await waitForBackend(port);
-  return port;
+  backend = proc;
+  backendPort = port;
+
+  proc.on("exit", (code, signal) => {
+    // Ignoramos exits esperados: shutdown del usuario (backendStopping) y
+    // reintentos por bind error (expectingBackendRestart). Solo disparamos
+    // la UI de error si fue un crash real post-startup.
+    if (backendStopping || expectingBackendRestart) return;
+    if (code === 0) return;
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    showBackendError(
+      `El motor local de R se cerró inesperadamente (código ${code ?? "n/a"}, señal ${signal ?? "n/a"}).`
+    );
+  });
+
+  try {
+    await waitForBackend(port);
+    return { bound: true, port };
+  } catch (error) {
+    // Si el stderr acumulado menciona EADDRINUSE u otro patrón de bind,
+    // el puerto fue robado (TOCTOU) o está ocupado. Señalamos retry.
+    if (lookedLikePortBindError(stderrBuf)) {
+      try { proc.kill(); } catch (_e) { /* noop */ }
+      backend = null;
+      backendPort = null;
+      return { bound: false, port, reason: "port_in_use" };
+    }
+    // Otro tipo de error (ej. R no instalado, paquetes faltantes):
+    // dejamos que startBackend lo propague sin reintento.
+    throw error;
+  }
+}
+
+async function startBackend() {
+  const root = appRoot();
+  const launchScript = path.join(root, "launcher", "launch.R");
+  const rscript = process.env.PULSO_RSCRIPT || "Rscript";
+  const requestedPort = Number(process.env.PULSO_PORT || 0);
+  const triedPorts = new Set();
+
+  // Hasta 3 intentos: si el spawn falla por bind (TOCTOU entre canUsePort
+  // y el listen real de R), buscamos otro puerto y reintentamos. Si es
+  // un error de otro tipo, propaga en el primer intento.
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    let port;
+    if (attempt === 1 && requestedPort >= MIN_R_PORT && requestedPort <= MAX_R_PORT) {
+      port = requestedPort;
+    } else {
+      // findFreePort ya intenta preferred → random; si el preferred
+      // ya lo usamos, saltará al random automáticamente.
+      port = await findFreePort();
+      while (triedPorts.has(port)) port = await findFreePort();
+    }
+    triedPorts.add(port);
+
+    const result = await spawnBackendOnce(rscript, launchScript, root, port);
+    if (result.bound) return result.port;
+
+    // bind falló por puerto ocupado. Si quedan intentos, loguear y seguir.
+    if (attempt < MAX_ATTEMPTS) {
+      expectingBackendRestart = true;
+      try {
+        process.stderr.write(
+          `[prosecnur-desktop] puerto ${port} robado entre check y spawn. Reintentando (${attempt}/${MAX_ATTEMPTS - 1}).\n`
+        );
+      } finally {
+        // El exit handler del proc anterior ya corrió; nuevas spawns
+        // deben procesar sus exits normalmente.
+        expectingBackendRestart = false;
+      }
+    } else {
+      throw new Error(
+        `No se pudo reservar un puerto libre tras ${MAX_ATTEMPTS} intentos. Último: ${port}.`
+      );
+    }
+  }
+  // Inalcanzable, pero por completitud del flow-analysis:
+  throw new Error("startBackend: estado inesperado.");
 }
 
 async function stopBackend() {
@@ -279,9 +449,94 @@ function createMenu() {
         { type: "separator" },
         { role: "togglefullscreen", label: "Pantalla completa" }
       ]
+    },
+    {
+      label: "Ayuda",
+      submenu: [
+        {
+          label: "Abrir carpeta de logs",
+          click: () => {
+            if (logsDir) shell.openPath(logsDir);
+          }
+        },
+        {
+          label: "Diagnóstico del motor R",
+          click: () => {
+            dialog.showMessageBox(mainWindow, {
+              type: "info",
+              title: APP_NAME,
+              message: "Estado del motor",
+              detail: [
+                `Puerto: ${backendPort ?? "no asignado"}`,
+                `Proceso R: ${backend && !backend.killed ? "corriendo" : "detenido"}`,
+                `Logs: ${logsDir ?? "(no inicializados)"}`
+              ].join("\n"),
+              buttons: ["OK"]
+            });
+          }
+        }
+      ]
     }
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+// Higiene de navegación para el renderer. Sin estos guards, si el
+// backend R sirve HTML con un <a target="_blank"> o el user clickea
+// un link externo, Electron abre una BrowserWindow nueva sin los
+// webPreferences hardened del main, lo cual es una puerta que
+// preferimos cerrar de una vez.
+function hardenWindowNavigation(win) {
+  // 1) Bloquear navegación a orígenes distintos al backend local.
+  //    La URL que carga el renderer es http://127.0.0.1:<port>/ —
+  //    cualquier otra URL la delegamos al navegador externo del SO.
+  win.webContents.on("will-navigate", (event, url) => {
+    const target = new URL(url);
+    const expected = `${HOST}:${String(backendPort ?? "")}`;
+    if (target.host !== expected) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
+  });
+
+  // 2) Intercepta window.open / target="_blank": siempre abrir en el
+  //    navegador externo del SO, nunca en una BrowserWindow hija.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
+}
+
+// CSP defensiva: limita al renderer a conectarse solo a sí mismo (el
+// backend R local) y a usar recursos locales. Sin esto, un XSS
+// hipotético podría filtrar data a un servidor externo. `connect-src`
+// incluye ws://localhost por si agregamos websockets más adelante.
+function installCsp() {
+  const { session } = require("electron");
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const expectedHost = `${HOST}:${String(backendPort ?? "")}`;
+    const csp = [
+      `default-src 'self' http://${expectedHost}`,
+      // 'unsafe-inline' y 'unsafe-eval' son concesiones al bundle de
+      // Vite/React + plotly.js que los requiere. Si en algún momento
+      // migramos a CSP estricta (hash-based), acá se endurece.
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' http://${expectedHost}`,
+      `style-src 'self' 'unsafe-inline' http://${expectedHost}`,
+      `img-src 'self' data: blob: http://${expectedHost}`,
+      `font-src 'self' data: http://${expectedHost}`,
+      `connect-src 'self' http://${expectedHost} ws://${expectedHost}`,
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'"
+    ].join("; ");
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [csp]
+      }
+    });
+  });
 }
 
 async function createWindow() {
@@ -296,7 +551,8 @@ async function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      webSecurity: true
     }
   });
 
@@ -305,13 +561,16 @@ async function createWindow() {
     mainWindow = null;
   });
 
+  hardenWindowNavigation(mainWindow);
   showLoading();
 
   try {
     const port = await startBackend();
     await mainWindow.loadURL(appUrl(port));
   } catch (error) {
-    showError(error.message || String(error));
+    // Dialog con botones Reintentar / Ver logs / Salir en vez del
+    // showError estático que dejaba al usuario sin salida.
+    showBackendError(error.message || String(error));
   }
 }
 
@@ -328,6 +587,16 @@ if (!gotLock) {
 
   app.whenReady().then(() => {
     app.setName(APP_NAME);
+    // Initialize logs first so los primeros mensajes del backend queden
+    // capturados en archivo (además de stdout del main).
+    initLogs();
+    // CSP debe instalarse antes del primer loadURL del renderer.
+    // Depende de `backendPort` (variable global) que se setea durante
+    // startBackend(). Los callbacks de onHeadersReceived leen el port
+    // dinámicamente — suficiente mientras no haya request del renderer
+    // antes de que R arranque, garantizado por el showLoading() que
+    // usa data: URL (no intercepta data:).
+    installCsp();
     createMenu();
     createWindow();
   });
