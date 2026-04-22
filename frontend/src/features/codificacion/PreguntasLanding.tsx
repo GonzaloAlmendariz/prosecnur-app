@@ -39,6 +39,7 @@ import {
 } from "../../api/client";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { PairingDialog, PairingResult } from "./PairingDialog";
+import { RelationDialog, RelationResult } from "./RelationDialog";
 
 const srOnlyStyle: React.CSSProperties = {
   position: "absolute",
@@ -70,6 +71,7 @@ export function PreguntasLanding() {
   const [query, setQuery] = useState<string>("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [pairingFor, setPairingFor] = useState<{ parent: PreguntaAbierta; preselectedChild?: string } | null>(null);
+  const [relationFor, setRelationFor] = useState<{ source: PreguntaAbierta; target: PreguntaAbierta } | null>(null);
   const [busyPair, setBusyPair] = useState<string>("");
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [columnas, setColumnas] = useState<string[]>([]);
@@ -286,17 +288,49 @@ export function PreguntasLanding() {
     setActiveDragId(null);
     const { active, over } = e;
     if (!over || !data) return;
-    const childParent = String(active.id);
-    const parentParent = String(over.id);
-    if (childParent === parentParent) return;
-    const parentPregunta = data.find((p) => p.parent === parentParent);
-    const childPregunta = data.find((p) => p.parent === childParent);
-    if (!parentPregunta || !childPregunta) return;
-    const childCol = childPregunta.col_efectiva || childPregunta.parent;
-    // Fly animation + POST directo (sin modal). El user podrá ajustar modo
-    // o dummy desde la card emparejada.
-    await animateAdoption(childPregunta.parent, parentPregunta.parent);
-    await adoptDirect(parentPregunta, childCol, parentPregunta.opciones_sm);
+    const sourceId = String(active.id);
+    const targetId = String(over.id);
+    if (sourceId === targetId) return;
+    const sourcePregunta = data.find((p) => p.parent === sourceId);
+    const targetPregunta = data.find((p) => p.parent === targetId);
+    if (!sourcePregunta || !targetPregunta) return;
+
+    // Caso clásico — texto abierto arrastrado sobre SO/SM sin emparejar.
+    // Sigue el flujo directo: animación de vuelo + adoptDirect. El
+    // usuario luego ajusta modo/dummy desde la card emparejada.
+    const isClassic =
+      sourcePregunta.tipo === "text" &&
+      (targetPregunta.tipo === "select_one" || targetPregunta.tipo === "select_multiple") &&
+      !isPaired(targetPregunta);
+
+    if (isClassic) {
+      const childCol = sourcePregunta.col_efectiva || sourcePregunta.parent;
+      await animateAdoption(sourcePregunta.parent, targetPregunta.parent);
+      await adoptDirect(targetPregunta, childCol, targetPregunta.opciones_sm);
+      return;
+    }
+
+    // Caso general — el usuario arrastró una pregunta sobre otra pero la
+    // combinación no es el caso clásico. Abrimos el RelationDialog para
+    // que el analista decida la dirección de la codificación (quién es
+    // padre, quién hija) y el modo.
+    setRelationFor({ source: sourcePregunta, target: targetPregunta });
+  }
+
+  async function onConfirmRelation(r: RelationResult) {
+    if (!relationFor) return;
+    setBusyPair(r.parent);
+    try {
+      await apiCodifPareja(r.parent, r.child_col, r.modo_so, r.dummy_col);
+      setRelationFor(null);
+      await refresh();
+      glowCard(r.parent);
+      announce(`${r.child_col} relacionada con ${r.parent}.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusyPair("");
+    }
   }
 
   const activePregunta = useMemo(() => {
@@ -400,6 +434,15 @@ export function PreguntasLanding() {
           preselectedChild={pairingFor.preselectedChild}
           onConfirm={onConfirmPair}
           onCancel={() => setPairingFor(null)}
+        />
+      )}
+
+      {relationFor && (
+        <RelationDialog
+          source={relationFor.source}
+          target={relationFor.target}
+          onConfirm={onConfirmRelation}
+          onCancel={() => setRelationFor(null)}
         />
       )}
     </div>
@@ -588,20 +631,36 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   const marcarFooter = <MarcarFooter p={p} arq={arq} busy={busy} onToggleMarcada={onToggleMarcada} />;
   const paired = isPaired(p);
 
-  // Drag (huérfanas) / Drop (parejas sin emparejar) wiring
+  // Drag-drop UNIVERSAL — cualquier pregunta se puede arrastrar sobre
+  // cualquier otra para establecer una relación de codificación. Las
+  // excepciones son las que no aplican semánticamente:
+  //   - `adoptada`: ya es hija de otra, no tiene sentido re-emparejar.
+  //   - `no-aplica`: desactivada, no entra al flujo.
+  //
+  // El caso clásico (text → SO/SM sin pareja) se resuelve con drop
+  // directo (flujo automático). Cualquier otro combo abre el
+  // `RelationDialog` para que el usuario defina la dirección de la
+  // dependencia.
+  //
+  // NOTA: `isOrphan` se mantiene SOLO para preservar el estilo visual
+  // de "card huérfana arrastrable" (dashed border, hint de arrastre).
+  // El drag real está habilitado para más casos vía `isDraggable`.
   const isOrphan = arq === "huerfana";
-  const isDropTarget = (arq === "pareja-so" || arq === "pareja-sm") && !paired;
-  const draggable = useDraggable({ id: p.parent, disabled: !isOrphan });
+  const isDraggable = arq !== "adoptada" && arq !== "no-aplica";
+  const isDropTarget = arq !== "adoptada" && arq !== "no-aplica";
+  const draggable = useDraggable({ id: p.parent, disabled: !isDraggable });
   const droppable = useDroppable({ id: p.parent, disabled: !isDropTarget });
 
   const ts = tipoStyle;
-  const dropHighlight = dragActive && isDropTarget;
+  // Solo marcamos visualmente la card cuando el cursor ENTRA en ella
+  // durante un drag activo (`dropOver`). Antes también había un
+  // highlight global (`dropHighlight`) que mostraba dashed border en
+  // TODAS las cards drop-target cuando empezaba un drag — con el drag
+  // universal eso saturaba visualmente. Ahora el feedback es puntual.
   const dropOver = droppable.isOver && isDropTarget;
   const common: React.CSSProperties = {
     border: dropOver
       ? `2px dashed var(--drag-valid-border)`
-      : dropHighlight
-      ? `1px dashed var(--drag-valid-border)`
       : "1px solid var(--pulso-border)",
     borderLeft: `4px solid ${ts.border}`,
     borderRadius: 8,
@@ -620,10 +679,15 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     transition: "background 120ms, border-color 120ms",
     opacity: draggable.isDragging ? 0.4 : 1,
   };
-  // Attach dnd-kit ref/listeners to the wrapping article.
-  const ref = isOrphan ? draggable.setNodeRef : isDropTarget ? droppable.setNodeRef : undefined;
-  const listeners = isOrphan ? draggable.listeners : undefined;
-  const attributes = isOrphan ? draggable.attributes : undefined;
+  // Attach dnd-kit refs — una card puede ser AL MISMO TIEMPO draggable y
+  // droppable (cualquier card se puede arrastrar sobre cualquier otra).
+  // Combinamos los dos setNodeRef en una función que los propaga a ambos.
+  const ref = (el: HTMLElement | null) => {
+    if (isDraggable) draggable.setNodeRef(el);
+    if (isDropTarget) droppable.setNodeRef(el);
+  };
+  const listeners = isDraggable ? draggable.listeners : undefined;
+  const attributes = isDraggable ? draggable.attributes : undefined;
 
   // --- HEADER común ---
   const header = (
