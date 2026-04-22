@@ -110,11 +110,12 @@ export function BasesPanel({
   }
 
   async function handleDowngrade() {
-    // Volver a carga simple: solo disponible con exactamente 1 base.
-    if (bases.length !== 1) return;
-    if (!window.confirm(
-      `¿Volver al modo de carga simple?\n\nEl estudio multi-base se cierra. ` +
-      `Los archivos (XLSForm + data) quedan como carga single-base y puedes ` +
+    // Volver a carga simple: disponible con 0 o 1 bases.
+    if (bases.length > 1) return;
+    // Con 0 bases no hay nada que confirmar — solo apaga el modo.
+    if (bases.length === 1 && !window.confirm(
+      `¿Volver al modo de carga simple?\n\nEl estudio con varias bases se cierra. ` +
+      `Los archivos (XLSForm + data) quedan como carga simple y puedes ` +
       `seguir trabajando normalmente.`
     )) return;
     setError(""); setBusy("Volviendo a carga simple…");
@@ -154,7 +155,7 @@ export function BasesPanel({
 
   async function handleEstudioNombre() {
     const nuevo = estudioDraft.trim();
-    if (!nuevo || nuevo === estudio.nombre) {
+    if (!nuevo || nuevo === (typeof estudio.nombre === "string" ? estudio.nombre : null)) {
       setEditingEstudioNombre(false);
       return;
     }
@@ -225,7 +226,7 @@ export function BasesPanel({
             <button
               type="button"
               onClick={() => {
-                setEstudioDraft(estudio.nombre ?? "");
+                setEstudioDraft(typeof estudio.nombre === "string" ? estudio.nombre : "");
                 setEditingEstudioNombre(true);
               }}
               title="Renombrar estudio"
@@ -246,7 +247,7 @@ export function BasesPanel({
                 e.currentTarget.style.borderColor = "transparent";
               }}
             >
-              {estudio.nombre || "Sin nombre"}
+              {(typeof estudio.nombre === "string" && estudio.nombre) || "Sin nombre"}
               <Pencil size={11} style={{ opacity: 0.6 }} />
             </button>
           )}
@@ -271,9 +272,9 @@ export function BasesPanel({
         </span>
 
         {/* Acción de salida contextual:
-            - 1 base: "Volver a carga simple" (no destructivo).
-            - ≥2 bases: "Descartar estudio" (destructivo, confirmación). */}
-        {bases.length === 1 ? (
+            - 0 o 1 base: "Volver a carga simple" (no destructivo).
+            - ≥2 bases: "Cerrar estudio" (destructivo, confirmación). */}
+        {bases.length <= 1 ? (
           <button
             type="button"
             onClick={handleDowngrade}

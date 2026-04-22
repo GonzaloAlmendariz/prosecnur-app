@@ -10,6 +10,7 @@ import {
   apiEstudioDowngradeToSingle,
   apiEstudioFromSession,
   apiEstudioGet,
+  apiEstudioInit,
   apiInstrumentoEstructura,
   apiListDemos,
   apiLoadDemo,
@@ -187,12 +188,17 @@ export default function CargaPage() {
     ? demos.find((d) => d.titulo_humano === activeDemoName)
     : null;
 
-  // ¿Hay un estudio multi-base real en la sesión? Condiciones:
-  // - Al menos una base cargada.
-  // - Los nombres no son solo "default" (que indica single-base legacy
-  //   virtual — ese se maneja con los UploadCards tradicionales).
+  // ¿Está el usuario en modo multi-base? Dos formas de activarse:
+  // 1) Demo/preset cargó ≥1 base real (Acreditación) → has_estudio
+  //    true + n_bases ≥ 1 con nombres reales.
+  // 2) Usuario activó el toggle "más de una base" manualmente → has_
+  //    estudio true + n_bases puede ser 0 (estudio recién inicializado
+  //    esperando que suba su primera base).
+  // El caso "single-base legacy virtual" (n_bases=1 + nombre=default)
+  // se sigue tratando como single-base — aún no hubo intención de
+  // multi-base, es solo un mirror del legacy.
   const isMultiBase = !!state
-    && state.n_bases >= 1
+    && state.has_estudio
     && !(state.n_bases === 1 && state.bases_nombres[0] === "default");
 
   // Payload del estudio — cargamos on-demand cuando entramos a modo
@@ -258,50 +264,52 @@ export default function CargaPage() {
           por primera vez, el backend convierte los archivos a multi-
           base con auto-nombre; al apagarlo, degrada a single-base si
           queda 1 sola base. */}
-      {(hasXlsform || hasData || isMultiBase) && (
-        <MultiBaseToggle
-          on={isMultiBase}
-          canTurnOff={isMultiBase && (estudio?.n_bases ?? 0) <= 1}
-          bases={estudio?.n_bases ?? 0}
-          disabled={!!busy}
-          onTurnOn={async () => {
-            // Necesita tener al menos XLSForm + data cargados para
-            // promover a multi-base (la primera base se arma con esos
-            // archivos). Si no, no hay nada que convertir.
-            if (!hasXlsform || !hasData) {
-              setError("Carga primero un XLSForm y una base de datos antes de activar multi-base.");
-              return;
-            }
-            setError("");
-            setBusy("Convirtiendo a estudio con varias bases…");
-            try {
+      <MultiBaseToggle
+        on={isMultiBase}
+        canTurnOff={isMultiBase && (state?.n_bases ?? 0) <= 1}
+        bases={state?.n_bases ?? 0}
+        disabled={!!busy}
+        onTurnOn={async () => {
+          setError("");
+          setBusy("Activando modo de varias bases…");
+          try {
+            if (hasXlsform && hasData) {
+              // Hay archivos single-base — los promovemos a base_1.
               await apiEstudioFromSession();
               const p = await apiEstudioGet();
               setEstudio(p);
               setAutoOpenAddBase(true);
-              await refresh();
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setBusy("");
+            } else {
+              // Todavía no hay archivos — creamos un estudio vacío.
+              // El BasesPanel renderiza con su form "Agregar base"
+              // listo para que el usuario suba su primera base.
+              const p = await apiEstudioInit();
+              setEstudio(p);
+              setAutoOpenAddBase(true);
             }
-          }}
-          onTurnOff={async () => {
-            setError("");
-            setBusy("Volviendo a una sola base…");
-            try {
-              await apiEstudioDowngradeToSingle();
-              setEstudio(null);
-              setAutoOpenAddBase(false);
-              await refresh();
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setBusy("");
-            }
-          }}
-        />
-      )}
+            await refresh();
+          } catch (e) {
+            setError((e as Error).message);
+          } finally {
+            setBusy("");
+          }
+        }}
+        onTurnOff={async () => {
+          setError("");
+          setBusy("Volviendo a una sola base…");
+          try {
+            await apiEstudioDowngradeToSingle();
+            setEstudio(null);
+            setAutoOpenAddBase(false);
+            await refresh();
+          } catch (e) {
+            setError((e as Error).message);
+          } finally {
+            setBusy("");
+          }
+        }}
+      />
+
 
       {/* Modo multi-base: BasesPanel reemplaza los UploadCards.
           Cada base es un par (XLSForm + data) con nombre único. El
@@ -987,8 +995,11 @@ function MultiBaseToggle({
           width: 44, height: 24,
           borderRadius: 999,
           border: "1px solid",
-          borderColor: on ? "var(--pulso-primary)" : "var(--pulso-border)",
-          background: on ? "var(--pulso-primary)" : "white",
+          // OFF: fondo gris medio (var(--pulso-text-soft) atenuado vía
+          // token --pulso-neutral), contraste claro contra el bg del
+          // contenedor (surface-2 o primary-soft).
+          borderColor: on ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
+          background: on ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
           cursor: effectiveDisabled ? "not-allowed" : "pointer",
           opacity: disabled ? 0.55 : locked ? 0.75 : 1,
           transition: "background 160ms ease, border-color 160ms ease",

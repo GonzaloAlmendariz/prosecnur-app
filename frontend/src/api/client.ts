@@ -88,6 +88,10 @@ export type SessionState = {
   graficos_word_ok: boolean;
   // --- Estudio (multi-base, v0.2+) ---
   estudio_nombre: string | null;
+  /** TRUE si la sesión tiene un estudio inicializado (aunque esté
+      vacío). Distingue "usuario activó multi-base upfront" de
+      "todavía no decide". */
+  has_estudio: boolean;
   n_bases: number;
   bases_nombres: string[];
 };
@@ -211,6 +215,18 @@ export async function apiEstudioReplaceBaseFiles(
       method: "PATCH",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
+    }),
+  );
+}
+
+// Crea un estudio vacío (sin bases aún) para que el usuario pueda
+// activar "varias bases" antes de subir ningún archivo. Idempotente:
+// si ya hay un estudio, no hace nada y devuelve el payload actual.
+export async function apiEstudioInit() {
+  return handle<EstudioPayload>(
+    await fetch("/api/estudio/init", {
+      method: "POST",
+      headers: headers(),
     }),
   );
 }

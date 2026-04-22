@@ -33,11 +33,15 @@
 }
 
 # Payload completo del estudio para GET /api/estudio y session/state.
+# IMPORTANTE: jsonlite serializa NULL dentro de un named list como `{}`
+# (objeto vacío), lo que rompe el frontend cuando React intenta
+# renderizarlo. Usamos NA_character_ para que salga como `null` JSON.
 .estudio_payload <- function(sid) {
   bases <- estudio_list_bases(sid)
   s <- session_get(sid, required = FALSE)
+  nombre_raw <- if (is.null(s) || is.null(s$estudio)) NULL else s$estudio$nombre
   list(
-    nombre   = if (is.null(s) || is.null(s$estudio)) NULL else s$estudio$nombre,
+    nombre   = if (is.null(nombre_raw) || !nzchar(nombre_raw)) NA_character_ else nombre_raw,
     n_bases  = length(bases),
     bases    = lapply(bases, .estudio_base_payload),
     max_bases = .ESTUDIO_MAX_BASES
@@ -342,6 +346,22 @@ mount_estudio <- function(pr) {
       .estudio_payload(sid)
     })) |>
 
+    # POST /api/estudio/init
+    # Marca la sesión como "va a ser multi-base" creando un estudio
+    # vacío (sin bases todavía). Habilita que el usuario active el
+    # toggle antes de subir archivos — la UI muestra el BasesPanel en
+    # estado vacío con el form de "Agregar base" listo. Si ya existe
+    # un estudio con bases, no hace nada (idempotente).
+    plumber::pr_post("/api/estudio/init", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      if (is.null(session_get(sid, required = FALSE))) {
+        sid <- session_create()
+        res$setHeader("X-Pulso-Session", sid)
+      }
+      estudio_ensure(sid)
+      .estudio_payload(sid)
+    })) |>
+
     # POST /api/estudio/downgrade-to-single
     # Si el estudio tiene exactamente 1 base, la "baja" al estado
     # single-base legacy (s$instrumento, s$data_raw_meta, s$rp_data,
@@ -352,8 +372,17 @@ mount_estudio <- function(pr) {
     plumber::pr_post("/api/estudio/downgrade-to-single", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)
-      if (is.null(s$estudio) || length(s$estudio$bases) == 0L) {
+      if (is.null(s$estudio)) {
         stop_api(409, "E_NOT_MULTIBASE", "No hay estudio activo para degradar.")
+      }
+      # Caso especial: estudio vacío (init sin haber subido bases).
+      # Apagar el toggle solo destruye el estudio — no hay archivos que
+      # restaurar porque nunca se crearon bases.
+      if (length(s$estudio$bases) == 0L) {
+        session_set(sid, "estudio", NULL)
+        session_set(sid, "rp_data_sources", list())
+        session_set(sid, "rp_inst_sources", list())
+        return(list(ok = TRUE))
       }
       if (length(s$estudio$bases) > 1L) {
         stop_api(409, "E_MULTIPLE_BASES",

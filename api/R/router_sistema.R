@@ -369,10 +369,12 @@ mount_sistema <- function(pr) {
         unname(s$files),
         vapply(s$files, function(f) f$kind, character(1))
       )
-      # Migración legacy: si la sesión no tiene `estudio` pero tiene
+      # Migración legacy: si la sesión NO tiene `estudio` pero tiene
       # `rp_data` (cargado antes de v0.2), lo exponemos como un estudio
       # virtual con 1 base "default" para que la UI no lo vea vacío.
-      bases <- if (!is.null(s$estudio) && length(s$estudio$bases) > 0L) {
+      # Si `estudio` existe (aunque esté vacío por init reciente), sus
+      # bases mandan — no mezclamos con el mirror legacy.
+      bases <- if (!is.null(s$estudio)) {
         s$estudio$bases
       } else if (!is.null(s$rp_data)) {
         list(default = list(nombre = "default"))
@@ -402,6 +404,10 @@ mount_sistema <- function(pr) {
         graficos_word_ok = isTRUE(s$graficos_word_ok),
         # --- Estudio (multi-base, v0.2+) ---
         estudio_nombre = if (is.null(s$estudio)) NA_character_ else (s$estudio$nombre %||% NA_character_),
+        # Flag de intención: TRUE si el usuario activó explícitamente el
+        # modo "varias bases" (aunque aún no haya subido ninguna). El
+        # frontend usa esto para renderizar el BasesPanel desde vacío.
+        has_estudio = !is.null(s$estudio),
         n_bases = length(bases),
         bases_nombres = as.list(names(bases))
       )
