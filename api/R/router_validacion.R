@@ -620,17 +620,95 @@ mount_validacion <- function(pr) {
       list(ok = TRUE, detalle = .plan_rows_preview(detalle, n = 500L))
     })) |>
 
-    # --- Explorar: stub (Sprint 3) -------------------------------------------
+    # --- Explorar: inventario de variables agrupadas por sección ------------
     plumber::pr_get("/api/validacion/v2/explorar/variables", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
-      .get_base_scope(sid, base)
+      .get_base_scope(sid, base)  # valida existencia
+
+      # Resolver data + instrumento scoped por base (o legacy).
+      data_sources <- estudio_data_sources(sid)
+      inst_sources <- estudio_inst_sources(sid)
+      effective_base <- if (!is.null(base) && nzchar(base)) base
+                         else if (length(data_sources) > 0L) names(data_sources)[1]
+                         else NULL
+      if (is.null(effective_base) ||
+          is.null(data_sources[[effective_base]]) ||
+          is.null(inst_sources[[effective_base]])) {
+        stop_api(409, "E_NO_DATA_INST",
+                 "No hay data o instrumento cargado para esta base.")
+      }
+      inv <- .explorar_inventario(
+        data = data_sources[[effective_base]],
+        instrumento = inst_sources[[effective_base]]
+      )
       list(
         ok = TRUE,
-        base_nombre = base %||% NA_character_,
-        secciones = list(),
-        n_variables = 0L
+        base_nombre = effective_base %||% NA_character_,
+        n_variables = as.integer(inv$n_variables),
+        secciones = inv$secciones
       )
+    })) |>
+
+    # --- Explorar: univariado ------------------------------------------------
+    plumber::pr_post("/api/validacion/v2/explorar/univariado", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      var <- as.character(parsed$var %||% "")
+      if (!nzchar(var)) stop_api(400, "E_MISSING_VAR", "Body debe incluir 'var'.")
+
+      data_sources <- estudio_data_sources(sid)
+      inst_sources <- estudio_inst_sources(sid)
+      effective_base <- if (!is.null(base) && nzchar(base)) base
+                         else if (length(data_sources) > 0L) names(data_sources)[1]
+                         else NULL
+      if (is.null(effective_base)) {
+        stop_api(409, "E_NO_DATA_INST", "No hay data cargada.")
+      }
+      view <- build_view_univariado(
+        data = data_sources[[effective_base]],
+        var = var,
+        instrumento = inst_sources[[effective_base]]
+      )
+      view$base_nombre <- effective_base
+      view
+    })) |>
+
+    # --- Explorar: bivariado -------------------------------------------------
+    plumber::pr_post("/api/validacion/v2/explorar/bivariado", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      var_x <- as.character(parsed$var_x %||% "")
+      var_y <- as.character(parsed$var_y %||% "")
+      if (!nzchar(var_x) || !nzchar(var_y)) {
+        stop_api(400, "E_MISSING_VARS", "Body debe incluir 'var_x' y 'var_y'.")
+      }
+      data_sources <- estudio_data_sources(sid)
+      inst_sources <- estudio_inst_sources(sid)
+      effective_base <- if (!is.null(base) && nzchar(base)) base
+                         else if (length(data_sources) > 0L) names(data_sources)[1]
+                         else NULL
+      if (is.null(effective_base)) {
+        stop_api(409, "E_NO_DATA_INST", "No hay data cargada.")
+      }
+      view <- build_view_bivariado(
+        data = data_sources[[effective_base]],
+        var_x = var_x, var_y = var_y,
+        instrumento = inst_sources[[effective_base]]
+      )
+      list(ok = TRUE, base_nombre = effective_base, view = view)
     })) |>
 
     # --- Reglas custom: stub (Sprint 4) --------------------------------------

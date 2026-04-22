@@ -1765,3 +1765,47 @@ export async function apiV2InstrumentoDrill(
     }),
   );
 }
+
+// --- Explorar (Sprint 3) ----------------------------------------------------
+export type ExplorarUnivariadoResult = {
+  ok: true;
+  base_nombre: string | null;
+  var: string;
+  tipo: "so" | "sm" | "num" | "fecha" | "texto" | "mixto";
+  label: string;
+  kpis: ViewDescriptor[];
+  chart: ViewDescriptor & { samples?: string[] };
+};
+
+export type ExplorarBivariadoResult = {
+  ok: true;
+  base_nombre: string | null;
+  view: ViewDescriptor;
+};
+
+export async function apiV2ExplorarUnivariado(
+  vari: string,
+  baseNombre?: string | null,
+) {
+  return handle<ExplorarUnivariadoResult>(
+    await fetch("/api/validacion/v2/explorar/univariado", {
+      method: "POST",
+      headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+      body: JSON.stringify({ var: vari }),
+    }),
+  );
+}
+
+export async function apiV2ExplorarBivariado(
+  var_x: string,
+  var_y: string,
+  baseNombre?: string | null,
+) {
+  return handle<ExplorarBivariadoResult>(
+    await fetch("/api/validacion/v2/explorar/bivariado", {
+      method: "POST",
+      headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+      body: JSON.stringify({ var_x, var_y }),
+    }),
+  );
+}
