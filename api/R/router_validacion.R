@@ -1,3 +1,49 @@
+# =============================================================================
+# Validación v2 — helpers compartidos
+# =============================================================================
+# Extrae el nombre de base efectivo desde el request. Prioridad:
+#   1) Header X-Base-Nombre
+#   2) Query param base_nombre
+#   3) Body JSON base_nombre
+#   4) NULL → resuelve a la primera base del estudio (o legacy).
+.get_base_nombre <- function(req) {
+  # HTTP_X_BASE_NOMBRE es el nombre del header en Rook (plumber).
+  # `req$HEADERS` puede no existir — uso tryCatch para ser defensivo.
+  h <- tryCatch(
+    req$HTTP_X_BASE_NOMBRE %||% req$HEADERS[["X-Base-Nombre"]],
+    error = function(e) NULL
+  )
+  if (!is.null(h) && nzchar(h)) return(as.character(h))
+  q <- tryCatch(
+    req$args$base_nombre %||% req$QUERY$base_nombre,
+    error = function(e) NULL
+  )
+  if (!is.null(q) && nzchar(q)) return(as.character(q))
+  # Body JSON (aplicable solo a POST/PATCH). tryCatch por si bodyRaw es
+  # raw(0) o cualquier estructura inesperada.
+  body_raw <- tryCatch({
+    if (!is.null(req$bodyRaw) && length(req$bodyRaw) > 0L) rawToChar(req$bodyRaw)
+    else req$postBody %||% ""
+  }, error = function(e) "")
+  if (is.character(body_raw) && nzchar(body_raw)) {
+    parsed <- tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+                       error = function(e) NULL)
+    if (!is.null(parsed) && !is.null(parsed$base_nombre) &&
+        nzchar(parsed$base_nombre)) {
+      return(as.character(parsed$base_nombre))
+    }
+  }
+  NULL
+}
+
+# Valida y resuelve el scope de validación para una base concreta. Usa
+# `.resolve_base_nombre()` de session_store.R. Si pide una base que no
+# existe, lanza 404.
+.get_base_scope <- function(sid, base_nombre = NULL) {
+  # Esta llamada valida existencia + resuelve fallbacks legacy.
+  validacion_scope_get(sid, base_nombre)
+}
+
 .read_data_for_validation <- function(path, ext) {
   switch(ext,
     xlsx = readxl::read_excel(path),
@@ -216,5 +262,64 @@ mount_validacion <- function(pr) {
       gg <- .with_grid(function() GraficarPreguntas(inst))
       png <- .ggplot_to_png(gg, width = 16, height = 10)
       plumber::include_file(png, res, content_type = "image/png")
+    })) |>
+
+    # =========================================================================
+    # Fase 2 v2 — Stubs (Sprint 1). Contrato: todos scoped por base vía
+    # header X-Base-Nombre (o query/body base_nombre). Respuestas mock para
+    # que el frontend pueda armarse; el contenido real llega en Sprints 2-5.
+    # =========================================================================
+    plumber::pr_get("/api/validacion/v2/panorama", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      scope <- .get_base_scope(sid, base)
+      list(
+        ok = TRUE,
+        base_nombre = base %||% NA_character_,
+        progreso = list(
+          plan_construido = !is.null(scope$plan_result),
+          auditoria_corrida = !is.null(scope$evaluacion),
+          n_reglas_custom = length(scope$reglas_custom %||% list())
+        ),
+        kpis = list(),
+        top_reglas = NULL,
+        top_variables = NULL,
+        actions = list()
+      )
+    })) |>
+    plumber::pr_get("/api/validacion/v2/instrumento/estado", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      scope <- .get_base_scope(sid, base)
+      list(
+        ok = TRUE,
+        base_nombre = base %||% NA_character_,
+        plan_construido = !is.null(scope$plan_result),
+        auditoria_corrida = !is.null(scope$evaluacion),
+        n_reglas = if (!is.null(scope$plan_result)) nrow(scope$plan_result) else 0L,
+        views = list()
+      )
+    })) |>
+    plumber::pr_get("/api/validacion/v2/explorar/variables", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      # Resolver el scope valida que la base existe si viene especificada.
+      .get_base_scope(sid, base)
+      list(
+        ok = TRUE,
+        base_nombre = base %||% NA_character_,
+        secciones = list(),  # list(nombre, variables: [{name, label, tipo, n_validos, n_nulos}])
+        n_variables = 0L
+      )
+    })) |>
+    plumber::pr_get("/api/validacion/v2/reglas_custom", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      scope <- .get_base_scope(sid, base)
+      list(
+        ok = TRUE,
+        base_nombre = base %||% NA_character_,
+        reglas = scope$reglas_custom %||% list()
+      )
     }))
 }

@@ -237,6 +237,85 @@ estudio_rename_base <- function(sid, nombre_actual, nombre_nuevo) {
 # cuando el usuario no especifica nombre al agregar base (flujo sin
 # fricción de la Fase 1): `base_1`, `base_2`, …, saltando los que ya
 # están tomados. Siempre retorna un nombre disponible dentro del tope.
+# -----------------------------------------------------------------------------
+# Validación v2 — scope por base dentro del estudio
+# -----------------------------------------------------------------------------
+# Cada base tiene su propio "workspace" de validación: plan, evaluación,
+# reglas custom y caches. Se almacena en:
+#   s$estudio$bases[[nombre]]$validacion = list(
+#     plan_result,        # tibble del plan de reglas (instrumento + custom compiladas)
+#     evaluacion,         # resultado de evaluar_consistencia()
+#     reglas_custom,      # list de ReglaCustom (ver router_reglas_custom.R)
+#     explorador_cache    # hash -> view descriptors (lazy)
+#   )
+#
+# Fallback legacy: si la sesión aún no tiene estudio pero sí rp_data, el
+# scope apunta a la sesión entera (compatibilidad con flujo single-base
+# antes de v0.2). Retorna list() si no hay nada aún.
+validacion_scope_get <- function(sid, base_nombre = NULL, key = NULL) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(NULL)
+  base_nombre <- .resolve_base_nombre(s, base_nombre)
+  if (is.null(base_nombre)) {
+    # Legacy single-base: usamos campos planos de la sesión.
+    scope <- list(
+      plan_result      = s$plan_result,
+      evaluacion       = s$evaluacion,
+      reglas_custom    = s$reglas_custom %||% list(),
+      explorador_cache = s$explorador_cache %||% list()
+    )
+  } else {
+    scope <- s$estudio$bases[[base_nombre]]$validacion %||% list(
+      plan_result      = NULL,
+      evaluacion       = NULL,
+      reglas_custom    = list(),
+      explorador_cache = list()
+    )
+  }
+  if (is.null(key)) scope else scope[[key]]
+}
+
+validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
+  s <- session_get(sid)
+  base_nombre <- .resolve_base_nombre(s, base_nombre)
+  if (is.null(base_nombre)) {
+    # Fallback legacy: guardamos en la raíz de la sesión.
+    s[[key]] <- value
+  } else {
+    if (is.null(s$estudio$bases[[base_nombre]]$validacion)) {
+      s$estudio$bases[[base_nombre]]$validacion <- list(
+        plan_result      = NULL,
+        evaluacion       = NULL,
+        reglas_custom    = list(),
+        explorador_cache = list()
+      )
+    }
+    s$estudio$bases[[base_nombre]]$validacion[[key]] <- value
+  }
+  .session_env[[sid]] <- s
+  invisible(value)
+}
+
+# Resuelve el nombre efectivo de la base. Reglas:
+# - Si viene base_nombre y existe en el estudio, usar ese.
+# - Si viene pero no existe, error.
+# - Si no viene y hay estudio con ≥1 base, usar la primera.
+# - Si no hay estudio pero hay rp_data legacy, retornar NULL (modo legacy).
+# - Si no hay nada, retornar NULL y el caller decide.
+.resolve_base_nombre <- function(s, base_nombre) {
+  if (!is.null(base_nombre) && nzchar(base_nombre)) {
+    if (is.null(s$estudio) || is.null(s$estudio$bases[[base_nombre]])) {
+      stop_api(404, "E_BASE_NOT_FOUND",
+               sprintf("Base '%s' no existe en el estudio.", base_nombre))
+    }
+    return(base_nombre)
+  }
+  if (!is.null(s$estudio) && length(s$estudio$bases) > 0L) {
+    return(names(s$estudio$bases)[1])
+  }
+  NULL  # legacy single-base
+}
+
 estudio_next_auto_name <- function(sid) {
   s <- session_get(sid, required = FALSE)
   existing <- if (is.null(s) || is.null(s$estudio)) character()

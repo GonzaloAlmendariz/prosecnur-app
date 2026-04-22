@@ -1609,3 +1609,54 @@ export async function apiCodifImportJson(bundle: unknown) {
     })
   );
 }
+
+// =============================================================================
+// Fase 2 v2 — Validación (scoped por base)
+// =============================================================================
+// Todas las llamadas viajan con header `X-Base-Nombre` cuando el usuario
+// ya seleccionó una base explícita. Si viaja vacío, el backend resuelve
+// a la primera base del estudio (o modo legacy single-base).
+import type {
+  PanoramaSummary,
+  InstrumentoEstado,
+  ExploradorVariablesList,
+  ReglasCustomList,
+} from "../features/validacion/types";
+
+function v2Headers(baseNombre?: string | null, extra: Record<string, string> = {}): Record<string, string> {
+  const h = headers(extra);
+  if (baseNombre) h["X-Base-Nombre"] = baseNombre;
+  return h;
+}
+
+export async function apiV2Panorama(baseNombre?: string | null) {
+  return handle<PanoramaSummary>(
+    await fetch("/api/validacion/v2/panorama", {
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2InstrumentoEstado(baseNombre?: string | null) {
+  return handle<InstrumentoEstado>(
+    await fetch("/api/validacion/v2/instrumento/estado", {
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2ExplorarVariables(baseNombre?: string | null) {
+  return handle<ExploradorVariablesList>(
+    await fetch("/api/validacion/v2/explorar/variables", {
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2ReglasCustomList(baseNombre?: string | null) {
+  return handle<ReglasCustomList>(
+    await fetch("/api/validacion/v2/reglas_custom", {
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
