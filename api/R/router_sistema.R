@@ -480,9 +480,19 @@ mount_sistema <- function(pr) {
       res$status <- 201
       meta
     })) |>
-    plumber::pr_get("/api/files/<file_id>/download", wrap_endpoint(function(req, res, file_id) {
-      sid <- session_header(req)
-      meta <- get_file(sid, file_id)
+    plumber::pr_get("/api/files/<file_id>/download", wrap_endpoint(function(req, res, file_id, sid = NULL) {
+      # Este endpoint acepta el session id tanto en el header
+      # X-Pulso-Session (patrón estándar del resto del API) como en el
+      # query param `?sid=...`. La razón es que los <a href> nativos del
+      # frontend no pueden mandar headers custom — si el usuario clickea
+      # un link de descarga, el browser hace el GET sin header y queda
+      # como E_NO_SESSION. El query param es el escape hatch para
+      # descargas directas. El header sigue teniendo prioridad.
+      effective_sid <- session_header(req)
+      if (is.null(effective_sid) && is.character(sid) && length(sid) >= 1 && nzchar(sid[[1]])) {
+        effective_sid <- as.character(sid[[1]])
+      }
+      meta <- get_file(effective_sid, file_id)
       n <- file.info(meta$path)$size
       bytes <- readBin(meta$path, what = "raw", n = n)
       res$setHeader("Content-Type", mime::guess_type(meta$path))

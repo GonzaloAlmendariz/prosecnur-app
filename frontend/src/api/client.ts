@@ -518,7 +518,12 @@ export function graficoPreguntasUrl() {
 }
 
 export function downloadUrl(file_id: string) {
-  return `/api/files/${file_id}/download`;
+  // Pasamos el sid como query param porque los <a href> nativos del
+  // browser no mandan headers custom. El endpoint backend acepta ambos
+  // (header o ?sid=), con el header teniendo prioridad.
+  const sid = getSession();
+  const qs = sid ? `?sid=${encodeURIComponent(sid)}` : "";
+  return `/api/files/${file_id}/download${qs}`;
 }
 
 // ---------- Codificación ----------
