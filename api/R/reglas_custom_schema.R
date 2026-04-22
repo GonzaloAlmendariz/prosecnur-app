@@ -39,11 +39,24 @@
   }
   params <- r$params %||% list()
 
+  # Helper para coaccionar params opcionales a NA cuando vengan NULL o
+  # de largo 0 — sin esto, `is.na(NULL)` devuelve logical(0) y el `&&`
+  # explota con "missing value where TRUE/FALSE needed" antes de que
+  # pudiéramos emitir un api_error claro.
+  .as_num <- function(x) {
+    if (is.null(x) || length(x) == 0L) return(NA_real_)
+    suppressWarnings(as.numeric(x))[1]
+  }
+  .as_date <- function(x) {
+    if (is.null(x) || length(x) == 0L) return(as.Date(NA))
+    suppressWarnings(as.Date(x))[1]
+  }
+
   # Validaciones por tipo.
   if (tipo == "rango_num") {
-    mn <- suppressWarnings(as.numeric(params$min))
-    mx <- suppressWarnings(as.numeric(params$max))
-    if ((is.na(mn) && is.na(mx))) {
+    mn <- .as_num(params$min)
+    mx <- .as_num(params$max)
+    if (is.na(mn) && is.na(mx)) {
       stop_api(400, "E_REGLA_RANGO_VACIO",
                "'rango_num' requiere al menos 'min' o 'max'.")
     }
@@ -52,14 +65,14 @@
                "En 'rango_num', 'min' no puede ser mayor que 'max'.")
     }
   } else if (tipo == "rango_fecha") {
-    mn <- suppressWarnings(as.Date(params$min))
-    mx <- suppressWarnings(as.Date(params$max))
+    mn <- .as_date(params$min)
+    mx <- .as_date(params$max)
     if (is.na(mn) && is.na(mx)) {
       stop_api(400, "E_REGLA_RANGO_FECHA_VACIO",
                "'rango_fecha' requiere al menos 'min' o 'max' en formato YYYY-MM-DD.")
     }
   } else if (tipo %in% c("outliers_iqr", "outliers_z")) {
-    k <- suppressWarnings(as.numeric(params$k))
+    k <- .as_num(params$k)
     if (is.na(k) || k <= 0) {
       stop_api(400, "E_REGLA_OUTLIERS_K",
                "'outliers_*' requiere 'k' numérico > 0 (IQR: 1.5 típico · Z: 3 típico).")
