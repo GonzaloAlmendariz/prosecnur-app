@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Check, Layers, Tags, Wand2 } from "lucide-react";
+import { Layers, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { PageHeader } from "../../components/PageHeader";
+import { Stepper, StepMeta } from "../../components/Stepper";
 import { PreguntasLanding } from "./PreguntasLanding";
 import { CodificarWizard } from "./CodificarWizard";
 import { AdaptarPane } from "./AdaptarPane";
@@ -57,7 +58,12 @@ export default function CodificacionPage() {
 
       {prereqOk && (
         <div style={{ marginBottom: 20 }}>
-          <Stepper step={step} onChange={goStep} />
+          <Stepper<Step>
+            steps={CODIFICACION_STEPS}
+            current={step}
+            onChange={goStep}
+            ariaLabel="Fases de la codificación"
+          />
         </div>
       )}
 
@@ -143,166 +149,11 @@ function BaseSelector({ source }: { source: ReturnType<typeof useCodifSource> })
   );
 }
 
-// Stepper rediseñado: chips con icono + label + hint de status, y
-// connectors con "track" gradiente que refleja el progreso. Envuelto
-// en un container surface para que se lea como una barra de navegación
-// macro (distinto de los filter chips de nivel operativo).
-type StepMeta = {
-  key: Step;
-  n: number;
-  label: string;
-  icon: typeof Layers;
-  hint: string;
-};
-
-const STEP_META: StepMeta[] = [
+// Definición de los 3 pasos del flujo de codificación. El componente
+// visual vive en `components/Stepper.tsx` — unificado con otras fases
+// que tengan flujos lineales.
+const CODIFICACION_STEPS: StepMeta<Step>[] = [
   { key: "organizar", n: 1, label: "Organizar", icon: Layers, hint: "Emparejar y marcar" },
   { key: "codificar", n: 2, label: "Codificar", icon: Tags,   hint: "Agrupar respuestas" },
   { key: "adaptar",   n: 3, label: "Adaptar",   icon: Wand2,  hint: "Generar el dataset" },
 ];
-
-function Stepper({ step, onChange }: { step: Step; onChange: (s: Step) => void }) {
-  const order: Step[] = STEP_META.map((s) => s.key);
-  const currentIdx = order.indexOf(step);
-  return (
-    <div
-      style={{
-        display: "inline-flex", alignItems: "stretch", gap: 0,
-        padding: 8,
-        borderRadius: 14,
-        background: "var(--pulso-surface)",
-        border: "1px solid var(--pulso-border)",
-        boxShadow: "var(--pulso-shadow-low)",
-      }}
-    >
-      {STEP_META.map((s, i) => {
-        const isActive = step === s.key;
-        const isDone = currentIdx > i;
-        return (
-          <div key={s.key} style={{ display: "flex", alignItems: "center" }}>
-            <StepChip
-              n={s.n}
-              label={s.label}
-              hint={s.hint}
-              icon={s.icon}
-              active={isActive}
-              done={isDone}
-              onClick={() => onChange(s.key)}
-            />
-            {i < STEP_META.length - 1 && <StepConnector done={isDone} />}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function StepConnector({ done }: { done: boolean }) {
-  return (
-    <div
-      aria-hidden="true"
-      style={{
-        flex: "0 0 36px", height: 2,
-        margin: "0 4px",
-        borderRadius: 1,
-        background: done ? "var(--pulso-primary)" : "var(--pulso-border)",
-        position: "relative",
-        transition: "background 200ms ease",
-      }}
-    >
-      {done && (
-        <span
-          style={{
-            position: "absolute", top: "50%", left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 6, height: 6, borderRadius: "50%",
-            background: "var(--pulso-primary)",
-            boxShadow: "0 0 0 3px var(--pulso-surface)",
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-function StepChip({
-  n, label, hint, icon: Icon, active, done, onClick,
-}: {
-  n: number;
-  label: string;
-  hint: string;
-  icon: typeof Layers;
-  active: boolean;
-  done: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-current={active ? "step" : undefined}
-      title={done ? "Completado" : active ? "Paso actual" : "Pendiente"}
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 10,
-        padding: "8px 14px",
-        borderRadius: 10,
-        border: active
-          ? "1px solid var(--pulso-primary)"
-          : done
-            ? "1px solid var(--pulso-primary-border)"
-            : "1px solid transparent",
-        background: active
-          ? "var(--pulso-primary)"
-          : done
-            ? "var(--pulso-primary-soft)"
-            : "transparent",
-        color: active ? "white" : done ? "var(--pulso-primary)" : "var(--pulso-text)",
-        cursor: "pointer",
-        transition: "background 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease",
-        boxShadow: active ? "0 4px 12px rgba(0, 36, 87, 0.18)" : "none",
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          width: 26, height: 26, borderRadius: 8,
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          background: active
-            ? "rgba(255,255,255,0.18)"
-            : done
-              ? "var(--pulso-primary)"
-              : "var(--pulso-surface-2)",
-          color: active ? "white" : done ? "white" : "var(--pulso-text-soft)",
-          border: active ? "1px solid rgba(255,255,255,0.25)" : "none",
-          flexShrink: 0,
-          fontSize: 12, fontWeight: 700,
-        }}
-      >
-        {done && !active ? <Check size={13} /> : <Icon size={13} />}
-      </span>
-      <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.15 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700 }}>
-          <span
-            style={{
-              fontSize: 10, fontWeight: 700,
-              opacity: 0.7,
-              fontFamily: "ui-monospace, monospace",
-            }}
-          >
-            {n}
-          </span>
-          {label}
-        </span>
-        <span
-          style={{
-            fontSize: 10,
-            color: active ? "rgba(255,255,255,0.8)" : "var(--pulso-text-soft)",
-            fontWeight: 500,
-          }}
-        >
-          {hint}
-        </span>
-      </span>
-    </button>
-  );
-}

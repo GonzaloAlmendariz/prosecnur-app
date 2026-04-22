@@ -42,6 +42,7 @@ import {
   PreguntaAbierta,
 } from "../../api/client";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
+import { FilterChip } from "../../components/FilterChip";
 import { PairingDialog, PairingResult } from "./PairingDialog";
 import { RelationDialog, RelationResult } from "./RelationDialog";
 
@@ -510,73 +511,8 @@ function isPaired(p: PreguntaAbierta): boolean {
   return !!(p.pareja && typeof p.pareja === "object" && "child_col" in p.pareja && p.pareja.child_col);
 }
 
-// FilterChip rediseñado: ícono + label + count pill a la derecha.
-// Tone define el color semántico del count (neutral/primary/warn/success).
-// Active: fondo primary + text blanco + count con fondo soft.
-type FilterTone = "neutral" | "primary" | "warn" | "success";
-
-function FilterChip({
-  label, count, icon: Icon, tone, active, onClick,
-}: {
-  label: string;
-  count: number;
-  icon: typeof LayoutGrid;
-  tone: FilterTone;
-  active: boolean;
-  onClick: () => void;
-}) {
-  // Colores del count pill cuando NO está activo. Cuando está activo
-  // usa blanco sobre primary-transparente.
-  const inactiveCountStyle =
-    tone === "primary" ? { bg: "var(--pulso-primary-soft)", fg: "var(--pulso-primary)" } :
-    tone === "warn" ? { bg: "var(--pulso-warn-bg)", fg: "var(--pulso-warn-fg)" } :
-    tone === "success" ? { bg: "var(--pulso-success-bg)", fg: "var(--pulso-success-fg)" } :
-    { bg: "var(--pulso-surface-2)", fg: "var(--pulso-text-soft)" };
-
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 7,
-        padding: "6px 8px 6px 12px",
-        borderRadius: 999,
-        fontSize: 13, fontWeight: 600,
-        border: active ? "1px solid var(--pulso-primary)" : "1px solid transparent",
-        background: active ? "var(--pulso-primary)" : "transparent",
-        color: active ? "white" : "var(--pulso-text)",
-        cursor: "pointer",
-        transition: "background 140ms ease, border-color 140ms ease, color 140ms ease",
-        boxShadow: active ? "0 2px 8px rgba(0, 36, 87, 0.14)" : "none",
-      }}
-      onMouseEnter={(e) => {
-        if (!active) e.currentTarget.style.background = "var(--pulso-surface-2)";
-      }}
-      onMouseLeave={(e) => {
-        if (!active) e.currentTarget.style.background = "transparent";
-      }}
-    >
-      <Icon size={13} />
-      <span>{label}</span>
-      <span
-        aria-hidden="true"
-        style={{
-          fontSize: 11, fontWeight: 700,
-          padding: "1px 8px", borderRadius: 999,
-          background: active ? "rgba(255,255,255,0.22)" : inactiveCountStyle.bg,
-          color: active ? "white" : inactiveCountStyle.fg,
-          fontFamily: "ui-monospace, monospace",
-          fontVariantNumeric: "tabular-nums",
-          minWidth: 22, textAlign: "center",
-        }}
-      >
-        {count}
-      </span>
-    </button>
-  );
-}
+// FilterChip local reemplazado por `components/FilterChip.tsx` —
+// unificado con otros usos cross-fase.
 
 // Search bar consistente con el resto del app (ej. TimelinePanel).
 // Icon lupa a la izquierda, clear button a la derecha cuando hay query,
