@@ -31,9 +31,57 @@ job_submit <- function(sid,
     args$result_path <- result_path
   }
 
+  # callr::r_bg arranca un subproceso R limpio sin el namespace de
+  # `prosecnurapp` cargado. Los `func` que recibimos típicamente llaman
+  # funciones del paquete sin prefijo (ppra_adaptar_data, evaluar_*,
+  # reporte_*, etc.), así que sin cargar el paquete en el subprocess
+  # explotan con "could not find function". Lo envolvemos en un
+  # bootstrap que hace:
+  #   - Dev (PULSO_REPO_ROOT seteado por launch.R): pkgload::load_all.
+  #   - Prod (paquete instalado): library(prosecnurapp).
+  # Los nombres de los args del bootstrap son intencionalmente feos
+  # para no colisionar con args del inner func.
+  repo_root <- Sys.getenv("PULSO_REPO_ROOT", "")
+  bootstrap <- function(.__job_inner_func__, .__job_repo_root__, .__job_args__) {
+    # Locale UTF-8 en el subprocess. Igual que en launcher/launch.R: sin
+    # esto, pkgload::load_all falla al parsear .R que tienen tildes en
+    # comentarios o strings (ej. "Estadísticas"), porque callr arranca
+    # el subproceso con locale "C" por defecto.
+    tryCatch(Sys.setlocale("LC_ALL", "en_US.UTF-8"),
+             error = function(e) NULL, warning = function(w) NULL)
+    if (!isTRUE(l10n_info()[["UTF-8"]])) {
+      tryCatch(Sys.setlocale("LC_ALL", "C.UTF-8"),
+               error = function(e) NULL, warning = function(w) NULL)
+    }
+    options(encoding = "UTF-8")
+
+    if (nzchar(.__job_repo_root__) && dir.exists(file.path(.__job_repo_root__, "api"))) {
+      if (requireNamespace("pkgload", quietly = TRUE)) {
+        suppressMessages(pkgload::load_all(
+          file.path(.__job_repo_root__, "api"),
+          quiet = TRUE
+        ))
+      } else if (requireNamespace("devtools", quietly = TRUE)) {
+        suppressMessages(devtools::load_all(
+          file.path(.__job_repo_root__, "api"),
+          quiet = TRUE
+        ))
+      }
+    } else {
+      suppressMessages(suppressWarnings(
+        library(prosecnurapp, quietly = TRUE, warn.conflicts = FALSE)
+      ))
+    }
+    do.call(.__job_inner_func__, .__job_args__)
+  }
+
   rx <- callr::r_bg(
-    func = func,
-    args = args,
+    func = bootstrap,
+    args = list(
+      .__job_inner_func__ = func,
+      .__job_repo_root__ = repo_root,
+      .__job_args__ = args
+    ),
     stdout = file.path(jobs_dir, paste0(job_id, ".out")),
     stderr = file.path(jobs_dir, paste0(job_id, ".err")),
     supervise = TRUE,
