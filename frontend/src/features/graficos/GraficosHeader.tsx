@@ -6,6 +6,7 @@ import {
   downloadUrl,
 } from "../../api/client";
 import { ConfigIoButtons } from "../../components/ConfigIoButtons";
+import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { usePlanStore } from "./store";
 import { PlanHealthBadge } from "./PlanHealthBadge";
@@ -86,15 +87,10 @@ export function GraficosHeader({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
-      {/* Banner: autosave + export/import */}
-      <div
-        style={{
-          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-          padding: "8px 12px",
-          background: "var(--pulso-surface)",
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 8,
-        }}
+      {/* Banda 1: contexto del plan + acciones de config/plantillas. */}
+      <ContextBar
+        ariaLabel="Estado del plan y acciones de configuración"
+        density="compact"
       >
         <SaveStatusIndicator
           state={savedAll ? "saved" : savingNow ? "saving" : "loading"}
@@ -144,17 +140,12 @@ export function GraficosHeader({
         >
           <RotateCcw size={12} /> Reset
         </button>
-      </div>
+      </ContextBar>
 
-      {/* Toolbar de exportación + presets */}
-      <div
-        style={{
-          display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap",
-          padding: "10px 14px",
-          background: "var(--pulso-surface)",
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 8,
-        }}
+      {/* Banda 2: presets + export de PPT/Word (acciones finales). */}
+      <ContextBar
+        ariaLabel="Presets y exportación de reportes"
+        style={{ gap: 8 }}
       >
         <button
           onClick={() => onOpenPresets("ppt")}
@@ -171,7 +162,7 @@ export function GraficosHeader({
           <Palette size={13} /> Presets Word
         </button>
 
-        <span style={{ width: 1, height: 22, background: "var(--pulso-border)", margin: "0 4px" }} />
+        <ContextBarDivider />
 
         <button
           className="pulso-primary"
@@ -218,7 +209,7 @@ export function GraficosHeader({
             <Download size={12} /> reporte.docx
           </a>
         )}
-      </div>
+      </ContextBar>
 
       {templatesOpen && <TemplatesModal onClose={() => setTemplatesOpen(false)} />}
     </div>

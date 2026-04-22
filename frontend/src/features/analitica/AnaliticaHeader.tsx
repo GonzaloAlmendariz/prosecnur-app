@@ -2,6 +2,7 @@ import { CheckCircle2, Database } from "lucide-react";
 import { apiAnaliticaConfigExport, apiAnaliticaConfigImport } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { ConfigIoButtons } from "../../components/ConfigIoButtons";
+import { ContextBar } from "../../components/ContextBar";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { useAnaliticaStore } from "./store";
 
@@ -35,15 +36,13 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
-      {/* Banner de fuente */}
-      <div
-        style={{
-          display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-          padding: "10px 14px",
-          background: usandoAdaptados ? "var(--tipo-sm-bg)" : "var(--pulso-surface)",
-          border: `1px solid ${usandoAdaptados ? "var(--tipo-sm-border)" : "var(--pulso-border)"}`,
-          borderRadius: 8,
-        }}
+      {/* Banda 1: fuente de datos. Background variante según usa
+          data codificada (verde soft) o original (neutro). */}
+      <ContextBar
+        ariaLabel="Fuente de datos de los reportes"
+        background={usandoAdaptados ? "var(--tipo-sm-bg)" : undefined}
+        border={usandoAdaptados ? "1px solid var(--tipo-sm-border)" : undefined}
+        style={{ gap: 12 }}
       >
         {usandoAdaptados ? (
           <CheckCircle2 size={16} color="var(--tipo-sm-fg)" />
@@ -99,17 +98,12 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
             );
           })}
         </div>
-      </div>
+      </ContextBar>
 
-      {/* Persistencia */}
-      <div
-        style={{
-          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-          padding: "8px 12px",
-          background: "var(--pulso-surface)",
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 8,
-        }}
+      {/* Banda 2: persistencia (autosave + export/import). Compact. */}
+      <ContextBar
+        ariaLabel="Autosave y acciones de configuración"
+        density="compact"
       >
         <SaveStatusIndicator state="saved" savedLabel="Autoguardado" />
         <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", flex: 1, lineHeight: 1.4 }}>
@@ -120,7 +114,7 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
           onImport={ioImport}
           filenamePrefix="pulso_analitica"
         />
-      </div>
+      </ContextBar>
     </div>
   );
 }
