@@ -1660,3 +1660,108 @@ export async function apiV2ReglasCustomList(baseNombre?: string | null) {
     }),
   );
 }
+
+// --- Instrumento (Sprint 2) -------------------------------------------------
+import type { ViewDescriptor } from "../features/validacion/types";
+
+export type IncluirReglas = {
+  required?: boolean;
+  other?: boolean;
+  relevant?: boolean;
+  constraint?: boolean;
+  calculate?: boolean;
+  choice_filter?: boolean;
+  repeat_min1?: boolean;
+  tiempo_ventana?: boolean;
+};
+
+export type InstrumentoPlanResult = {
+  ok: true;
+  base_nombre: string | null;
+  n_reglas: number;
+  resumen: Array<Record<string, unknown>>;
+  plan_preview: Array<Record<string, unknown>>;
+};
+
+export type InstrumentoResultado = {
+  ok: true;
+  base_nombre: string | null;
+  kpis: ViewDescriptor[];
+  top_reglas: ViewDescriptor;
+  heatmap: ViewDescriptor;
+  resumen_tabla: Array<Record<string, unknown>>;
+};
+
+export type InstrumentoDrillResult = {
+  ok: true;
+  detalle: Array<Record<string, unknown>>;
+};
+
+export async function apiV2InstrumentoBuildPlan(
+  baseNombre?: string | null,
+  incluir?: IncluirReglas,
+) {
+  return handle<InstrumentoPlanResult>(
+    await fetch("/api/validacion/v2/instrumento/plan", {
+      method: "POST",
+      headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+      body: JSON.stringify(incluir ? { incluir } : {}),
+    }),
+  );
+}
+
+export async function apiV2InstrumentoExportPlan(baseNombre?: string | null) {
+  return handle<{ ok: true; file_id: string; size: number }>(
+    await fetch("/api/validacion/v2/instrumento/plan/export", {
+      method: "POST",
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2InstrumentoImportPlan(
+  file_id: string,
+  baseNombre?: string | null,
+) {
+  return handle<{
+    ok: true;
+    n_reglas: number;
+    plan_preview: Array<Record<string, unknown>>;
+  }>(
+    await fetch("/api/validacion/v2/instrumento/plan/import", {
+      method: "POST",
+      headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id }),
+    }),
+  );
+}
+
+export async function apiV2InstrumentoAuditoria(baseNombre?: string | null) {
+  return handle<{ ok: true; job_id: string; kind: string }>(
+    await fetch("/api/validacion/v2/instrumento/auditoria", {
+      method: "POST",
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2InstrumentoResultado(baseNombre?: string | null) {
+  return handle<InstrumentoResultado>(
+    await fetch("/api/validacion/v2/instrumento/resultado", {
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2InstrumentoDrill(
+  id_regla: string,
+  baseNombre?: string | null,
+) {
+  return handle<InstrumentoDrillResult>(
+    await fetch("/api/validacion/v2/instrumento/regla", {
+      method: "POST",
+      headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+      body: JSON.stringify({ id_regla }),
+    }),
+  );
+}
