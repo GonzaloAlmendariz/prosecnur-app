@@ -451,71 +451,12 @@ export function jobResultUrl(id: string) {
 }
 
 // ---------- Validación ----------
-
-export type PlanResumen = { "Tipo de observación": string; n_reglas: number };
-export type PlanRow = Record<string, unknown>;
-
-export async function apiValidacionBuildPlan(incluir?: Record<string, boolean>) {
-  return handle<{
-    ok: true;
-    n_reglas: number;
-    resumen: PlanResumen[];
-    plan_preview: PlanRow[];
-  }>(
-    await fetch("/api/validacion/plan", {
-      method: "POST",
-      headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ incluir }),
-    })
-  );
-}
-
-export async function apiValidacionExportPlan() {
-  return handle<{ ok: true; file_id: string; size: number }>(
-    await fetch("/api/validacion/plan/export", { method: "POST", headers: headers() })
-  );
-}
-
-export async function apiValidacionImportPlan(file_id: string) {
-  return handle<{ ok: true; n_reglas: number; plan_preview: PlanRow[] }>(
-    await fetch("/api/validacion/plan/import", {
-      method: "POST",
-      headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ file_id }),
-    })
-  );
-}
-
-export type AuditoriaResult = {
-  ok: true;
-  total_inconsistencias: number | null;
-  resumen: Record<string, unknown>[] | null;
-  top_reglas: Record<string, unknown>[] | null;
-};
-
-export async function apiValidacionAuditoria() {
-  return handle<{ ok: true; job_id: string; kind: string }>(
-    await fetch("/api/validacion/auditoria", { method: "POST", headers: headers() })
-  );
-}
-
-export async function apiValidacionAuditoriaRegla(id_regla: string | string[]) {
-  return handle<{ ok: true; detalle: Record<string, unknown>[] }>(
-    await fetch("/api/validacion/auditoria/regla", {
-      method: "POST",
-      headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ id_regla }),
-    })
-  );
-}
-
-export function graficoSeccionesUrl() {
-  return `/api/validacion/graficos/secciones?t=${Date.now()}`;
-}
-
-export function graficoPreguntasUrl() {
-  return `/api/validacion/graficos/preguntas?t=${Date.now()}`;
-}
+// Los bindings v1 (apiValidacionBuildPlan, apiValidacionExportPlan,
+// apiValidacionImportPlan, apiValidacionAuditoria,
+// apiValidacionAuditoriaRegla, graficoSeccionesUrl, graficoPreguntasUrl)
+// se removieron tras el cutover a Validación v2. Los reemplazos viven
+// en los endpoints /api/validacion/v2/... consumidos por
+// features/validacion/* directamente.
 
 export function downloadUrl(file_id: string) {
   // Pasamos el sid como query param porque los <a href> nativos del
