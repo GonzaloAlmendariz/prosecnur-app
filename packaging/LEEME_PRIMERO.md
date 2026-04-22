@@ -50,4 +50,4 @@ Esta version no incluye el codigo fuente del frontend ni `node_modules`.
 En macOS, `Prosecnur.app` lleva su copia interna del motor de la app, para no
 depender de permisos sobre carpetas externas. La primera apertura instala solo
 el runtime de escritorio en `~/Library/Application Support/Prosecnur/desktop-runtime`,
-no dentro de esta carpeta. Asi `dist/Prosecnur` se mantiene liviano y ordenado.
+no dentro de esta carpeta. Asi `dist.nosync/Prosecnur` se mantiene liviano y ordenado.

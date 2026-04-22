@@ -57,8 +57,12 @@ fuente del frontend ni `node_modules`:
 
 ```bash
 make package-local
-open "dist/Prosecnur/Prosecnur.app"
+open "dist.nosync/Prosecnur/Prosecnur.app"
 ```
+
+El output va a `dist.nosync/` (sufijo `.nosync` para que iCloud Drive
+no sincronice builds locales — evita copias fantasma "Prosecnur 2/3/4"
+por conflicto de sync si el repo vive dentro de iCloud).
 
 Para abrirlo como ventana de escritorio:
 
