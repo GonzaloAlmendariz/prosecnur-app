@@ -880,6 +880,7 @@ mount_validacion <- function(pr) {
       )
       var <- as.character(parsed$var %||% "")
       if (!nzchar(var)) stop_api(400, "E_MISSING_VAR", "Body debe incluir 'var'.")
+      filtros <- parsed$filtros %||% NULL
 
       data_sources <- estudio_data_sources(sid)
       inst_sources <- estudio_inst_sources(sid)
@@ -892,7 +893,8 @@ mount_validacion <- function(pr) {
       view <- build_view_univariado(
         data = data_sources[[effective_base]],
         var = var,
-        instrumento = inst_sources[[effective_base]]
+        instrumento = inst_sources[[effective_base]],
+        filtros = filtros
       )
       view$base_nombre <- effective_base
       view
@@ -910,6 +912,7 @@ mount_validacion <- function(pr) {
       )
       var_x <- as.character(parsed$var_x %||% "")
       var_y <- as.character(parsed$var_y %||% "")
+      filtros <- parsed$filtros %||% NULL
       if (!nzchar(var_x) || !nzchar(var_y)) {
         stop_api(400, "E_MISSING_VARS", "Body debe incluir 'var_x' y 'var_y'.")
       }
@@ -924,9 +927,47 @@ mount_validacion <- function(pr) {
       view <- build_view_bivariado(
         data = data_sources[[effective_base]],
         var_x = var_x, var_y = var_y,
-        instrumento = inst_sources[[effective_base]]
+        instrumento = inst_sources[[effective_base]],
+        filtros = filtros
       )
       list(ok = TRUE, base_nombre = effective_base, view = view)
+    })) |>
+
+    # --- Explorar: valores distintos de una variable (para filtro UI) -------
+    # GET con ?var=<name>. Retorna las opciones disponibles con label +
+    # frecuencia. Usa el tipo detectado para resolver SM (retorna dummies).
+    plumber::pr_get("/api/validacion/v2/explorar/valores", wrap_endpoint(function(req, res, var = NULL) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      if (is.null(var) || !nzchar(var)) {
+        stop_api(400, "E_MISSING_VAR", "Falta ?var=<nombre>")
+      }
+      data_sources <- estudio_data_sources(sid)
+      inst_sources <- estudio_inst_sources(sid)
+      effective_base <- if (!is.null(base) && nzchar(base)) base
+                         else if (length(data_sources) > 0L) names(data_sources)[1]
+                         else NULL
+      if (is.null(effective_base)) {
+        stop_api(409, "E_NO_DATA_INST", "No hay data cargada.")
+      }
+      df <- data_sources[[effective_base]]
+      inst <- inst_sources[[effective_base]]
+      tipo <- .explorar_tipo_var(var, survey = inst$survey %||% NULL, df = df)
+      tab <- if (tipo == "sm") {
+        .explorar_tab_frec_sm(df, var, inst)
+      } else {
+        .explorar_tab_frec_so(df, var, inst)
+      }
+      opciones <- if (!is.null(tab) && nrow(tab)) {
+        lapply(seq_len(nrow(tab)), function(i) {
+          list(
+            code = as.character(tab$code[i]),
+            label = as.character(tab$label[i]),
+            n = as.integer(tab$n[i])
+          )
+        })
+      } else list()
+      list(ok = TRUE, var = var, tipo = tipo, opciones = opciones)
     })) |>
 
     # --- Reglas custom: stub (Sprint 4) --------------------------------------

@@ -1826,6 +1826,8 @@ export async function apiV2InstrumentoReglaPatchAtributos(
 }
 
 // --- Explorar (Sprint 3) ----------------------------------------------------
+export type ExplorarFiltros = Record<string, string[]>;
+
 export type ExplorarUnivariadoResult = {
   ok: true;
   base_nombre: string | null;
@@ -1834,6 +1836,9 @@ export type ExplorarUnivariadoResult = {
   label: string;
   kpis: ViewDescriptor[];
   chart: ViewDescriptor & { samples?: string[] };
+  n_tras_filtro: number;
+  n_total: number;
+  filtros_aplicados: number;
 };
 
 export type ExplorarBivariadoResult = {
@@ -1845,12 +1850,13 @@ export type ExplorarBivariadoResult = {
 export async function apiV2ExplorarUnivariado(
   vari: string,
   baseNombre?: string | null,
+  filtros?: ExplorarFiltros,
 ) {
   return handle<ExplorarUnivariadoResult>(
     await fetch("/api/validacion/v2/explorar/univariado", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
-      body: JSON.stringify({ var: vari }),
+      body: JSON.stringify({ var: vari, filtros: filtros ?? {} }),
     }),
   );
 }
@@ -1859,12 +1865,32 @@ export async function apiV2ExplorarBivariado(
   var_x: string,
   var_y: string,
   baseNombre?: string | null,
+  filtros?: ExplorarFiltros,
 ) {
   return handle<ExplorarBivariadoResult>(
     await fetch("/api/validacion/v2/explorar/bivariado", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
-      body: JSON.stringify({ var_x, var_y }),
+      body: JSON.stringify({ var_x, var_y, filtros: filtros ?? {} }),
     }),
+  );
+}
+
+export type ExplorarValoresResult = {
+  ok: true;
+  var: string;
+  tipo: string;
+  opciones: Array<{ code: string; label: string; n: number }>;
+};
+
+export async function apiV2ExplorarValores(
+  vari: string,
+  baseNombre?: string | null,
+) {
+  return handle<ExplorarValoresResult>(
+    await fetch(
+      `/api/validacion/v2/explorar/valores?var=${encodeURIComponent(vari)}`,
+      { headers: v2Headers(baseNombre) },
+    ),
   );
 }

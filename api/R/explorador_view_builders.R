@@ -19,6 +19,46 @@
 #     `validacion_view_descriptors.R` como building blocks.
 
 # -----------------------------------------------------------------------------
+# Aplicar filtros a un data.frame
+# -----------------------------------------------------------------------------
+# Filtros es una lista nombrada var → list de valores aceptados.
+#   list(p1 = list("1","2"), distrito = list("Lima"))
+# Para SM, el valor es el nombre de la opción (dummy) y se interpreta como
+# "caso donde p10.opcion == 1". Para SO, se interpreta como "p1 %in% vals".
+# Devuelve un df filtrado preservando atributos (labels, etc.).
+.explorar_apply_filtros <- function(data, filtros, survey = NULL) {
+  if (is.null(filtros) || length(filtros) == 0L || !nrow(data)) return(data)
+  keep <- rep(TRUE, nrow(data))
+  for (var in names(filtros)) {
+    vals <- unlist(filtros[[var]])
+    vals <- as.character(vals[!is.na(vals) & nzchar(as.character(vals))])
+    if (!length(vals)) next
+    tipo <- .explorar_tipo_var(var, survey = survey, df = data)
+    if (tipo == "sm") {
+      # OR sobre columnas dummy: si alguna dummy de la opción está en 1.
+      var_esc <- gsub("([\\W])", "\\\\\\1", var)
+      # El valor de filtro para SM es la opción (ej. "a"), construimos
+      # candidate cols "var.a" y "var/a".
+      mask_any <- rep(FALSE, nrow(data))
+      for (v in vals) {
+        for (sep in c(".", "/")) {
+          cname <- paste0(var, sep, v)
+          if (cname %in% names(data)) {
+            mk <- as.character(data[[cname]]) %in% c("1", "TRUE", "true")
+            mask_any <- mask_any | mk
+          }
+        }
+      }
+      keep <- keep & mask_any
+    } else if (var %in% names(data)) {
+      col <- as.character(data[[var]])
+      keep <- keep & (col %in% vals)
+    }
+  }
+  data[keep, , drop = FALSE]
+}
+
+# -----------------------------------------------------------------------------
 # Detección de tipo de variable (extendida: so/sm/num/fecha/texto)
 # -----------------------------------------------------------------------------
 # Devuelve una de: "so", "sm", "num", "fecha", "texto", "mixto".
@@ -483,28 +523,35 @@
 }
 
 # -----------------------------------------------------------------------------
-# Público: build_view_univariado
+# Público: build_view_univariado (con filtros opcionales)
 # -----------------------------------------------------------------------------
-build_view_univariado <- function(data, var, instrumento) {
-  tipo <- .explorar_tipo_var(var, survey = instrumento$survey %||% NULL, df = data)
-  kpis <- .explorar_kpi_cards(data, var, tipo)
-  # Para SM, la columna de conteos no se llama "var" directo.
-  chart <- .explorar_chart_univariado(data, var, tipo, instrumento)
+build_view_univariado <- function(data, var, instrumento, filtros = NULL) {
+  surv <- instrumento$survey %||% NULL
+  data_f <- .explorar_apply_filtros(data, filtros, survey = surv)
+  tipo <- .explorar_tipo_var(var, survey = surv, df = data_f)
+  kpis <- .explorar_kpi_cards(data_f, var, tipo)
+  chart <- .explorar_chart_univariado(data_f, var, tipo, instrumento)
+  n_tras_filtro <- nrow(data_f)
+  n_total <- nrow(data)
   list(
     ok = TRUE,
     var = var,
     tipo = tipo,
     label = .explorar_label_var(var, instrumento),
     kpis = kpis,
-    chart = chart
+    chart = chart,
+    n_tras_filtro = as.integer(n_tras_filtro),
+    n_total = as.integer(n_total),
+    filtros_aplicados = length(filtros %||% list())
   )
 }
 
 # -----------------------------------------------------------------------------
-# Público: build_view_bivariado (SO×SO como bar_stack; otros como stretch)
+# Público: build_view_bivariado (SO×SO, SO×SM, SO×NUM con filtros opcionales)
 # -----------------------------------------------------------------------------
-build_view_bivariado <- function(data, var_x, var_y, instrumento) {
+build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL) {
   surv <- instrumento$survey %||% NULL
+  data <- .explorar_apply_filtros(data, filtros, survey = surv)
   tipo_x <- .explorar_tipo_var(var_x, survey = surv, df = data)
   tipo_y <- .explorar_tipo_var(var_y, survey = surv, df = data)
   label_x <- .explorar_label_var(var_x, instrumento)
@@ -577,13 +624,149 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento) {
     ))
   }
 
-  # Otros cruces: mensaje suave — stretch para sprints futuros.
+  # SO × SM: chip_bars. Por cada opción SM mostramos barra (fill-only)
+  # segmentada por var_x (SO).
+  if (tipo_x == "so" && tipo_y == "sm") {
+    tab_sm <- .explorar_tab_frec_sm(data, var_y, instrumento)
+    if (is.null(tab_sm) || !nrow(tab_sm) || !(var_x %in% names(data))) {
+      return(vd_bar_h(
+        title = titulo, labels = character(), values = numeric(),
+        meta = list(tipo_x = tipo_x, tipo_y = tipo_y,
+                    empty_hint = "Sin dummies SM para graficar.")
+      ))
+    }
+    map_x <- .explorar_map_choices(var_x, instrumento)
+    xv_raw <- as.character(data[[var_x]])
+    ok <- !is.na(xv_raw) & nzchar(xv_raw) & xv_raw != "NA"
+    df_ok <- data[ok, , drop = FALSE]
+    xv <- xv_raw[ok]
+    xv_lab <- if (!is.null(map_x)) unname(map_x[xv]) else xv
+    xv_lab[is.na(xv_lab)] <- xv[is.na(xv_lab)]
+    x_levels <- if (!is.null(map_x)) unique(unname(map_x)) else sort(unique(xv_lab))
+    x_levels <- x_levels[x_levels %in% xv_lab]
+    # Para cada opción SM (fila de tab_sm) armamos una barra apilada
+    # por x_levels.
+    var_esc <- gsub("([\\W])", "\\\\\\1", var_y)
+    traces <- list()
+    # Trace por x_level (color por categoría de var_x) — cada trace tiene
+    # y=opciones SM, x=proporción que marcó esa opción en ese x_level.
+    n_total_por_x <- vapply(x_levels, function(xl) sum(xv_lab == xl),
+                             integer(1))
+    for (i in seq_along(x_levels)) {
+      xl <- x_levels[i]
+      n_cat <- n_total_por_x[i]
+      if (n_cat == 0L) next
+      vals <- vapply(tab_sm$code, function(opt_code) {
+        # Detectar columna dummy.
+        cname <- NULL
+        for (sep in c(".", "/")) {
+          cn <- paste0(var_y, sep, opt_code)
+          if (cn %in% names(df_ok)) { cname <- cn; break }
+        }
+        if (is.null(cname)) return(0)
+        col <- df_ok[[cname]]
+        vv <- as.character(col)[xv_lab == xl]
+        sum(vv %in% c("1", "TRUE", "true"), na.rm = TRUE) / n_cat
+      }, numeric(1))
+      traces[[length(traces) + 1L]] <- list(
+        type = "bar",
+        orientation = "h",
+        name = as.character(xl),
+        x = as.numeric(vals),
+        y = as.character(tab_sm$label),
+        hovertemplate = sprintf("%%{y}<br>%s = %%{x:.1%%}<extra>%s</extra>",
+                                 xl, xl)
+      )
+    }
+    layout <- list(
+      barmode = "group",
+      margin = list(l = 200, r = 24, t = 16, b = 60),
+      xaxis = list(title = list(text = "Proporción dentro de la categoría"),
+                    tickformat = ",.0%", range = c(0, 1),
+                    gridcolor = "#e5e7eb"),
+      yaxis = list(automargin = TRUE, autorange = "reversed"),
+      plot_bgcolor = "#ffffff", paper_bgcolor = "#ffffff",
+      legend = list(orientation = "h", y = -0.15),
+      height = max(300L, 32L * nrow(tab_sm) + 140L)
+    )
+    return(list(
+      version = 1L, kind = "chip_bars",
+      title = titulo,
+      subtitle = sprintf(
+        "Cada barra compara la proporción que marcó la opción según %s.",
+        label_x
+      ),
+      meta = list(var_x = var_x, var_y = var_y,
+                  tipo_x = tipo_x, tipo_y = tipo_y),
+      plotly = list(data = traces, layout = layout,
+                    config = list(displayModeBar = FALSE, responsive = TRUE)),
+      actions = list()
+    ))
+  }
+
+  # SO × NUM: boxplot por categoría de SO.
+  if (tipo_x == "so" && tipo_y == "num") {
+    if (!(var_x %in% names(data)) || !(var_y %in% names(data))) {
+      return(vd_bar_h(
+        title = titulo, labels = character(), values = numeric(),
+        meta = list(empty_hint = "Variables no presentes en la base.")
+      ))
+    }
+    map_x <- .explorar_map_choices(var_x, instrumento)
+    xv <- as.character(data[[var_x]])
+    yv <- suppressWarnings(as.numeric(data[[var_y]]))
+    ok <- !is.na(xv) & nzchar(xv) & xv != "NA" & is.finite(yv)
+    xv <- xv[ok]; yv <- yv[ok]
+    if (!length(xv)) {
+      return(vd_bar_h(
+        title = titulo, labels = character(), values = numeric(),
+        meta = list(empty_hint = "Sin casos válidos en ambas variables.")
+      ))
+    }
+    xv_lab <- if (!is.null(map_x)) unname(map_x[xv]) else xv
+    xv_lab[is.na(xv_lab)] <- xv[is.na(xv_lab)]
+    cats <- if (!is.null(map_x)) unique(unname(map_x)) else sort(unique(xv_lab))
+    cats <- cats[cats %in% xv_lab]
+    trace <- list(
+      type = "box",
+      x = as.character(xv_lab),
+      y = as.numeric(yv),
+      boxpoints = "outliers",
+      marker = list(color = "#2563eb"),
+      line = list(color = "#1e40af"),
+      hovertemplate = sprintf("%s=%%{x}<br>%s=%%{y}<extra></extra>",
+                                label_x, label_y)
+    )
+    layout <- list(
+      margin = list(l = 56, r = 24, t = 16, b = 60),
+      xaxis = list(title = list(text = label_x), tickangle = -20,
+                    categoryorder = "array",
+                    categoryarray = cats, automargin = TRUE),
+      yaxis = list(title = list(text = label_y), gridcolor = "#e5e7eb"),
+      plot_bgcolor = "#ffffff", paper_bgcolor = "#ffffff",
+      showlegend = FALSE,
+      height = 360L
+    )
+    return(list(
+      version = 1L, kind = "boxplot",
+      title = titulo,
+      subtitle = sprintf("Distribución de %s por categoría (n=%d).",
+                          label_y, length(xv)),
+      meta = list(var_x = var_x, var_y = var_y,
+                  tipo_x = tipo_x, tipo_y = tipo_y),
+      plotly = list(data = list(trace), layout = layout,
+                    config = list(displayModeBar = FALSE, responsive = TRUE)),
+      actions = list()
+    ))
+  }
+
+  # Otros cruces: fallback con mensaje.
   vd_bar_h(
     title = titulo, labels = character(), values = numeric(),
     meta = list(
       tipo_x = tipo_x, tipo_y = tipo_y,
       empty_hint = sprintf(
-        "Cruce %s × %s no soportado aún (sólo SO × SO por ahora).",
+        "Cruce %s × %s no soportado (soportados: so×so, so×sm, so×num).",
         tipo_x, tipo_y
       )
     )

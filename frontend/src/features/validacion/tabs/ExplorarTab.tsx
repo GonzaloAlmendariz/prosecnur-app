@@ -1,10 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Compass, X as XIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Compass,
+  X as XIcon,
+} from "lucide-react";
 import {
   apiV2ExplorarBivariado,
   apiV2ExplorarUnivariado,
   apiV2ExplorarVariables,
   type ExplorarBivariadoResult,
+  type ExplorarFiltros,
   type ExplorarUnivariadoResult,
 } from "../../../api/client";
 import type { ExploradorVariable, ExploradorVariablesList } from "../types";
@@ -12,6 +19,7 @@ import { useValidacionStore } from "../store";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
 import PlotlyView from "../components/PlotlyView";
 import VariablePicker from "../components/VariablePicker";
+import FiltroCascada from "../components/FiltroCascada";
 
 // =============================================================================
 // ExplorarTab — Sprint 3
@@ -36,9 +44,25 @@ export default function ExplorarTab() {
   const [uni, setUni] = useState<ExplorarUnivariadoResult | null>(null);
   const [cruzar, setCruzar] = useState<string | null>(null);
   const [biv, setBiv] = useState<ExplorarBivariadoResult | null>(null);
+  const [filtros, setFiltros] = useState<ExplorarFiltros>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
+
+  // Lista plana de variables (orden del inventario) — usada para iterar
+  // con ←/→.
+  const flatVars = useMemo<ExploradorVariable[]>(() => {
+    if (!inv) return [];
+    return inv.secciones.flatMap((s) => s.variables);
+  }, [inv]);
+
+  const currentIdx = useMemo(() => {
+    if (!selected) return -1;
+    return flatVars.findIndex((v) => v.name === selected.name);
+  }, [flatVars, selected]);
+
+  const prevVar = currentIdx > 0 ? flatVars[currentIdx - 1] : null;
+  const nextVar = currentIdx >= 0 && currentIdx < flatVars.length - 1 ? flatVars[currentIdx + 1] : null;
 
   // Inventario al montar / cambiar base.
   useEffect(() => {
@@ -48,6 +72,7 @@ export default function ExplorarTab() {
     setUni(null);
     setCruzar(null);
     setBiv(null);
+    setFiltros({});
     apiV2ExplorarVariables(baseNombre)
       .then((i) => {
         if (!cancel) setInv(i);
@@ -76,15 +101,14 @@ export default function ExplorarTab() {
     clearPrefill("explorar");
   }, [inv, prefill, clearPrefill]);
 
-  // Cargar univariado al seleccionar variable.
+  // Cargar univariado al seleccionar variable o cambiar filtros.
   useEffect(() => {
     if (!selected) return;
     let cancel = false;
     setBusy(`Cargando ${selected.name}…`);
     setError("");
     setUni(null);
-    setBiv(null);
-    apiV2ExplorarUnivariado(selected.name, baseNombre)
+    apiV2ExplorarUnivariado(selected.name, baseNombre, filtros)
       .then((u) => {
         if (!cancel) setUni(u);
       })
@@ -97,9 +121,10 @@ export default function ExplorarTab() {
     return () => {
       cancel = true;
     };
-  }, [selected, baseNombre]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, baseNombre, JSON.stringify(filtros)]);
 
-  // Cargar bivariado cuando el usuario elige "cruzar con".
+  // Cargar bivariado cuando el usuario elige "cruzar con" (o cambian filtros).
   useEffect(() => {
     if (!selected || !cruzar) {
       setBiv(null);
@@ -107,7 +132,7 @@ export default function ExplorarTab() {
     }
     let cancel = false;
     setBusy(`Cruzando ${selected.name} × ${cruzar}…`);
-    apiV2ExplorarBivariado(selected.name, cruzar, baseNombre)
+    apiV2ExplorarBivariado(selected.name, cruzar, baseNombre, filtros)
       .then((b) => {
         if (!cancel) setBiv(b);
       })
@@ -120,7 +145,8 @@ export default function ExplorarTab() {
     return () => {
       cancel = true;
     };
-  }, [selected, cruzar, baseNombre]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, cruzar, baseNombre, JSON.stringify(filtros)]);
 
   const onPickVariable = useCallback((v: ExploradorVariable) => {
     setSelected(v);
@@ -180,6 +206,14 @@ export default function ExplorarTab() {
 
       {/* --- Vista principal ---------------------------------------------- */}
       <main style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+        {/* Filtros cascada (siempre visibles arriba cuando hay inventario) */}
+        <FiltroCascada
+          secciones={inv.secciones}
+          filtros={filtros}
+          onChange={setFiltros}
+          baseNombre={baseNombre}
+        />
+
         {!selected && (
           <EmptyState
             icon={<Compass size={20} />}
@@ -190,6 +224,68 @@ export default function ExplorarTab() {
 
         {selected && uni && (
           <>
+            {/* Controles de iteración */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                padding: "6px 2px",
+              }}
+            >
+              <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
+                Variable {currentIdx + 1} / {flatVars.length}
+                {uni.filtros_aplicados > 0 && (
+                  <span style={{ marginLeft: 10, color: "var(--pulso-primary)", fontWeight: 600 }}>
+                    · {uni.n_tras_filtro} / {uni.n_total} casos tras filtros
+                  </span>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => prevVar && setSelected(prevVar)}
+                  disabled={!prevVar}
+                  title={prevVar ? `Anterior: ${prevVar.name}` : "Ya estás en la primera variable"}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 11,
+                    padding: "5px 10px",
+                    border: "1px solid var(--pulso-border)",
+                    background: "white",
+                    borderRadius: 6,
+                    cursor: prevVar ? "pointer" : "not-allowed",
+                    opacity: prevVar ? 1 : 0.45,
+                  }}
+                >
+                  <ChevronLeft size={11} /> Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => nextVar && setSelected(nextVar)}
+                  disabled={!nextVar}
+                  title={nextVar ? `Siguiente: ${nextVar.name}` : "Ya estás en la última variable"}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 11,
+                    padding: "5px 10px",
+                    border: "1px solid var(--pulso-border)",
+                    background: "white",
+                    borderRadius: 6,
+                    cursor: nextVar ? "pointer" : "not-allowed",
+                    opacity: nextVar ? 1 : 0.45,
+                  }}
+                >
+                  Siguiente <ChevronRight size={11} />
+                </button>
+              </div>
+            </div>
+
             {/* Header de la variable */}
             <header
               style={{
@@ -286,11 +382,12 @@ function CruceControl({
   cruzar: string | null;
   onChange: (v: string | null) => void;
 }) {
+  // Soportamos cruces cuando la variable base es SO; la otra puede ser
+  // SO, SM o NUM. Si la base es SM/NUM, aún no soportamos.
   const all = inv.secciones
     .flatMap((s) => s.variables)
     .filter((v) => v.name !== selfVar)
-    // Por ahora (Sprint 3) sólo soportamos SO×SO para cruce.
-    .filter((v) => v.tipo === "so");
+    .filter((v) => v.tipo === "so" || v.tipo === "sm" || v.tipo === "num");
 
   return (
     <section
@@ -362,7 +459,7 @@ function CruceControl({
           marginLeft: 6,
         }}
       >
-        (por ahora sólo variables select_one; SM y num llegan en sprints próximos)
+        SO × SO (barras apiladas) · SO × SM (comparación por opción) · SO × NUM (boxplot)
       </span>
     </section>
   );
