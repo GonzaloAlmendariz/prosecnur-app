@@ -18,9 +18,26 @@ session_create <- function() {
     dir = sdir,
     files = list(),
     instrumento = NULL,
-    data_raw = NULL
+    data_raw = NULL,
+    # Campos del archivo de proyecto .pulso. Si project_path es NULL la
+    # sesión está en modo efímero (los cambios no se persisten). Cuando
+    # hay un .pulso abierto, cada mutación de estado marca project_dirty
+    # y el autosave del frontend dispara build_pulso cada 5 min.
+    project_path = NULL,
+    project_dirty = FALSE,
+    project_last_saved_at = NULL
   )
   sid
+}
+
+# Helper privado: marca la sesión como "dirty" si tiene un .pulso abierto.
+# Se llama desde todos los puntos que mutan estado relevante. NO marca si
+# project_path es NULL (modo efímero — no hay proyecto al que escribir).
+.mark_project_dirty <- function(s) {
+  if (!is.null(s$project_path) && nzchar(s$project_path)) {
+    s$project_dirty <- TRUE
+  }
+  s
 }
 
 session_get <- function(sid, required = TRUE) {
@@ -38,6 +55,11 @@ session_get <- function(sid, required = TRUE) {
 session_set <- function(sid, key, value) {
   s <- session_get(sid)
   s[[key]] <- value
+  # Marcar dirty EXCEPTO para keys internas del propio sistema de proyecto
+  # (sino se entraría en bucle: setear project_dirty vuelve a marcar dirty).
+  if (!(key %in% c("project_path", "project_dirty", "project_last_saved_at"))) {
+    s <- .mark_project_dirty(s)
+  }
   .session_env[[sid]] <- s
   invisible(value)
 }
@@ -106,6 +128,7 @@ estudio_ensure <- function(sid) {
     s$estudio <- list(nombre = NULL, bases = list())
     s$rp_data_sources <- list()
     s$rp_inst_sources <- list()
+    s <- .mark_project_dirty(s)
     .session_env[[sid]] <- s
   }
   invisible(s$estudio)
@@ -168,6 +191,7 @@ estudio_add_base <- function(sid, nombre, xlsform_file_id, data_file_id,
     s$rp_inst <- rp_inst
   }
 
+  s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
   invisible(s$estudio$bases[[nombre]])
 }
@@ -194,6 +218,7 @@ estudio_remove_base <- function(sid, nombre) {
     s$rp_inst <- NULL
   }
 
+  s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
   invisible(TRUE)
 }
@@ -229,6 +254,7 @@ estudio_rename_base <- function(sid, nombre_actual, nombre_nuevo) {
   s$rp_data_sources <- rename_key(s$rp_data_sources, nombre_actual, nombre_nuevo)
   s$rp_inst_sources <- rename_key(s$rp_inst_sources, nombre_actual, nombre_nuevo)
 
+  s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
   invisible(TRUE)
 }
@@ -291,6 +317,10 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
       )
     }
     s$estudio$bases[[base_nombre]]$validacion[[key]] <- value
+  }
+  # Marcar dirty excepto para el cache (que se regenera al vuelo).
+  if (!identical(key, "explorador_cache")) {
+    s <- .mark_project_dirty(s)
   }
   .session_env[[sid]] <- s
   invisible(value)
@@ -366,6 +396,7 @@ estudio_replace_base_files <- function(sid, nombre,
     s$rp_inst <- s$rp_inst_sources[[nombre]]
   }
 
+  s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
   invisible(s$estudio$bases[[nombre]])
 }
@@ -375,6 +406,7 @@ estudio_set_nombre <- function(sid, nombre) {
   estudio_ensure(sid)
   s <- session_get(sid)
   s$estudio$nombre <- if (is.null(nombre) || !nzchar(nombre)) NULL else as.character(nombre)
+  s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
   invisible(s$estudio$nombre)
 }
@@ -461,6 +493,7 @@ codif_source_set <- function(sid, source) {
                      source, paste(bases, collapse = ", ")))
   }
   s$codif_source_active <- source
+  s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
   invisible(source)
 }
@@ -481,6 +514,12 @@ codif_set <- function(sid, key, value, source = NULL) {
   if (is.null(s$codif_por_base)) s$codif_por_base <- list()
   if (is.null(s$codif_por_base[[src]])) s$codif_por_base[[src]] <- list()
   s$codif_por_base[[src]][[key]] <- value
+  # "inst" y "data" son caches del XLSForm parseado y del dataframe crudo
+  # — se rederivan al abrir un .pulso desde el file_id, así que no son
+  # cambios "user-visibles" que ameriten marcar dirty.
+  if (!(key %in% c("inst", "data"))) {
+    s <- .mark_project_dirty(s)
+  }
   .session_env[[sid]] <- s
   invisible(value)
 }

@@ -1913,3 +1913,99 @@ export async function apiV2ReglasCustomEjecutar(baseNombre?: string | null) {
     }),
   );
 }
+
+// ===========================================================================
+// Proyecto .pulso — workspace persistente (Sprint Project)
+// ===========================================================================
+// El backend serializa el estado de la sesión a un archivo binario .pulso
+// (zip con manifest.json + state.rds + files/). Estos endpoints exponen
+// las operaciones save / open / close / status. Los path absolutos vienen
+// del file picker nativo (window.prosecnurApi en Electron) o son tipeados
+// por el user en navegador.
+
+export type ProjectStatus = {
+  has_project: boolean;
+  path: string | null;
+  name: string | null;
+  dirty: boolean;
+  last_saved_at: string | null;
+};
+
+export async function apiProjectStatus(): Promise<ProjectStatus> {
+  return handle<ProjectStatus>(
+    await fetch("/api/project/status", { headers: headers() })
+  );
+}
+
+// Guarda el estado actual al .pulso. Si `path` es null, usa el project_path
+// activo (save in place). Si no hay activo y no se pasa path → 400.
+export async function apiProjectSave(path: string | null = null, projectName?: string) {
+  const body: Record<string, unknown> = {};
+  if (path) body.path = path;
+  if (projectName) body.project_name = projectName;
+  return handle<{ ok: true; path: string; size: number; saved_at: string }>(
+    await fetch("/api/project/save", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    })
+  );
+}
+
+// Abre un .pulso. El backend devuelve el sid nuevo en el header
+// X-Pulso-Session, que `handle()` captura y dispara `pulso:session-changed`
+// para que SessionContext re-hidrate todo.
+export async function apiProjectOpen(path: string) {
+  return handle<{
+    ok: true;
+    session_id: string;
+    project_path: string;
+    manifest: Record<string, unknown>;
+  }>(
+    await fetch("/api/project/open", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ path }),
+    })
+  );
+}
+
+// Cierra el proyecto sin cerrar la sesión — vuelve a modo efímero
+// preservando los datos cargados.
+export async function apiProjectClose() {
+  return handle<{ ok: true }>(
+    await fetch("/api/project/close", {
+      method: "POST",
+      headers: headers(),
+    })
+  );
+}
+
+// Copia un archivo del file store del backend al directorio del .pulso
+// activo, con un nombre limpio elegido por el analista.
+export async function apiSaveEntregable(
+  fileId: string,
+  filename: string,
+  options: { subdir?: string; overwrite?: boolean } = {}
+) {
+  return handle<{ ok: true; path: string; filename: string; size: number }>(
+    await fetch("/api/fs/save-to-project", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        file_id: fileId,
+        filename,
+        subdir: options.subdir ?? null,
+        overwrite: options.overwrite ?? false,
+      }),
+    })
+  );
+}
+
+// Lista los archivos en el directorio del .pulso activo. Útil para que el
+// FilenameInput detecte colisiones antes de pedir confirmación.
+export async function apiListProjectDir() {
+  return handle<{ ok: true; project_dir: string | null; files: string[] }>(
+    await fetch("/api/fs/list-project-dir", { headers: headers() })
+  );
+}

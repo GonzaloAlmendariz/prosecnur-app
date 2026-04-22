@@ -1,9 +1,10 @@
-const { app, BrowserWindow, Menu, dialog, shell } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require("electron");
 const { spawn } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
 const net = require("node:net");
+const os = require("node:os");
 const path = require("node:path");
 
 const APP_NAME = "Prosecnur";
@@ -54,6 +55,141 @@ function writeLog(line) {
   if (logStream) {
     try { logStream.write(line); } catch (_e) { /* noop */ }
   }
+}
+
+// ===========================================================================
+// Recientes — persistidos en userData/recent-projects.json
+// ===========================================================================
+// Hasta 5 paths absolutos a archivos .pulso. Se rotan al frente al usar
+// (LRU). Se filtran los que ya no existen al leerlos. El frontend los
+// muestra en el StartModal y en el submenú "Abrir reciente".
+
+const RECENT_LIMIT = 5;
+
+function recentProjectsPath() {
+  return path.join(app.getPath("userData"), "recent-projects.json");
+}
+
+function readRecentProjects() {
+  const p = recentProjectsPath();
+  if (!fs.existsSync(p)) return [];
+  try {
+    const raw = JSON.parse(fs.readFileSync(p, "utf8"));
+    if (!Array.isArray(raw)) return [];
+    // Filtrar los que ya no existan en disco — evita mostrar links muertos.
+    return raw
+      .filter((entry) => entry && typeof entry.path === "string" && fs.existsSync(entry.path))
+      .slice(0, RECENT_LIMIT);
+  } catch (_e) {
+    return [];
+  }
+}
+
+function writeRecentProjects(list) {
+  try {
+    fs.mkdirSync(path.dirname(recentProjectsPath()), { recursive: true });
+    fs.writeFileSync(recentProjectsPath(), JSON.stringify(list, null, 2), "utf8");
+  } catch (e) {
+    process.stderr.write(`[prosecnur-desktop] No pude escribir recent-projects: ${e.message}\n`);
+  }
+}
+
+function pushRecentProject(absPath) {
+  if (!absPath || typeof absPath !== "string") return;
+  const list = readRecentProjects();
+  // Quitar duplicados (case-insensitive en mac, case-sensitive en linux —
+  // por simplicidad usamos comparación exacta).
+  const filtered = list.filter((e) => e.path !== absPath);
+  filtered.unshift({
+    path: absPath,
+    name: path.basename(absPath, ".pulso"),
+    opened_at: new Date().toISOString()
+  });
+  writeRecentProjects(filtered.slice(0, RECENT_LIMIT));
+}
+
+// ===========================================================================
+// IPC handlers — invocados desde preload.cjs
+// ===========================================================================
+
+function registerIpcHandlers() {
+  ipcMain.handle("project:openDialog", async () => {
+    const result = await dialog.showOpenDialog(mainWindow || undefined, {
+      title: "Abrir proyecto Prosecnur",
+      defaultPath: app.getPath("documents"),
+      filters: [
+        { name: "Proyecto Prosecnur", extensions: ["pulso"] },
+        { name: "Todos", extensions: ["*"] }
+      ],
+      properties: ["openFile"]
+    });
+    if (result.canceled || !result.filePaths.length) return null;
+    return result.filePaths[0];
+  });
+
+  ipcMain.handle("project:saveDialog", async (_event, args) => {
+    const defaultName = (args && args.defaultName) || "MiProyecto";
+    const defaultPath = path.join(
+      app.getPath("documents"),
+      defaultName.endsWith(".pulso") ? defaultName : `${defaultName}.pulso`
+    );
+    const result = await dialog.showSaveDialog(mainWindow || undefined, {
+      title: "Guardar proyecto Prosecnur",
+      defaultPath,
+      filters: [{ name: "Proyecto Prosecnur", extensions: ["pulso"] }]
+    });
+    if (result.canceled || !result.filePath) return null;
+    return result.filePath;
+  });
+
+  ipcMain.handle("project:saveEntregableDialog", async (_event, args = {}) => {
+    const defaultName = args.defaultName || "entregable";
+    const filters = args.filters || [{ name: "Todos", extensions: ["*"] }];
+    const defaultPath = args.defaultPath || path.join(
+      app.getPath("documents"),
+      defaultName
+    );
+    const result = await dialog.showSaveDialog(mainWindow || undefined, {
+      title: "Guardar entregable",
+      defaultPath,
+      filters
+    });
+    if (result.canceled || !result.filePath) return null;
+    return result.filePath;
+  });
+
+  ipcMain.handle("project:getRecent", () => readRecentProjects());
+
+  ipcMain.handle("project:pushRecent", (_event, args = {}) => {
+    if (args.path) pushRecentProject(args.path);
+    return readRecentProjects();
+  });
+}
+
+// Helper para enviar comandos del menú al renderer. Se usa desde
+// `createMenu` cuando el user clickea Archivo → Nuevo / Abrir / Guardar.
+function sendMenuCommand(command) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("menu:command", command);
+  }
+}
+
+// Construye el submenú "Abrir reciente" del menú Archivo. Si no hay
+// recientes, queda con un placeholder "(vacío)" deshabilitado.
+function buildRecentSubmenu() {
+  const list = readRecentProjects();
+  if (!list.length) {
+    return [{ label: "(vacío)", enabled: false }];
+  }
+  return list.map((entry) => ({
+    label: `${entry.name}  —  ${entry.path}`,
+    click: () => {
+      // Mandamos comando + path para que el renderer abra ese específico.
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("menu:command", `project:openRecent:${entry.path}`);
+      }
+    }
+  }));
 }
 
 function appRoot() {
@@ -475,6 +611,36 @@ function createMenu() {
       label: "Archivo",
       submenu: [
         {
+          label: "Nuevo proyecto…",
+          accelerator: "CmdOrCtrl+N",
+          click: () => sendMenuCommand("project:new")
+        },
+        {
+          label: "Abrir proyecto…",
+          accelerator: "CmdOrCtrl+O",
+          click: () => sendMenuCommand("project:open")
+        },
+        {
+          label: "Abrir reciente",
+          submenu: buildRecentSubmenu()
+        },
+        { type: "separator" },
+        {
+          label: "Guardar",
+          accelerator: "CmdOrCtrl+S",
+          click: () => sendMenuCommand("project:save")
+        },
+        {
+          label: "Guardar como…",
+          accelerator: "CmdOrCtrl+Shift+S",
+          click: () => sendMenuCommand("project:saveAs")
+        },
+        {
+          label: "Cerrar proyecto",
+          click: () => sendMenuCommand("project:close")
+        },
+        { type: "separator" },
+        {
           label: "Abrir en navegador",
           click: () => {
             if (backendPort) shell.openExternal(appUrl(backendPort));
@@ -599,7 +765,10 @@ async function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      webSecurity: true
+      webSecurity: true,
+      // Bridge mínimo entre renderer y main: dialogs nativos, recientes y
+      // eventos de menú. Ver desktop/preload.cjs para la superficie.
+      preload: path.join(__dirname, "preload.cjs")
     }
   });
 
@@ -639,15 +808,13 @@ if (!gotLock) {
 
   app.whenReady().then(() => {
     app.setName(APP_NAME);
-    // Initialize logs first so los primeros mensajes del backend queden
-    // capturados en archivo (además de stdout del main).
     initLogs();
-    // CSP debe instalarse antes del primer loadURL del renderer.
-    // Depende de `backendPort` (variable global) que se setea durante
-    // startBackend(). Los callbacks de onHeadersReceived leen el port
-    // dinámicamente — suficiente mientras no haya request del renderer
-    // antes de que R arranque, garantizado por el showLoading() que
-    // usa data: URL (no intercepta data:).
+    // IPC handlers (project:openDialog, saveDialog, getRecent, etc.) deben
+    // registrarse antes de que el renderer cargue el preload, sino los
+    // primeros invokes fallan con "No handler registered". whenReady es
+    // el primer hook seguro.
+    registerIpcHandlers();
+    // CSP instalada antes del loadURL del renderer.
     installCsp();
     createMenu();
     createWindow();

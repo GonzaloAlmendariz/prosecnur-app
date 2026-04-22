@@ -10,12 +10,14 @@ import CodificacionPage from "../features/codificacion/CodificacionPage";
 import PreguntaDetalle from "../features/codificacion/PreguntaDetalle";
 import AnaliticaPage from "../features/analitica/AnaliticaPage";
 import GraficosPage from "../features/graficos/GraficosPage";
+import ProjectShell from "../features/project/ProjectShell";
 
 export default function App() {
   return (
     <SessionProvider>
-      <SessionLostBanner />
-      <BrowserRouter>
+      <ProjectShell>
+        <SessionLostBanner />
+        <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<HomePage />} />
@@ -31,7 +33,8 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </ProjectShell>
     </SessionProvider>
   );
 }

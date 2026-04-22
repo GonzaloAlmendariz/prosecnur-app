@@ -1,6 +1,8 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { useSession } from "../lib/SessionContext";
+import ProjectIndicator from "../features/project/ProjectIndicator";
+import { useProjectShell } from "../features/project/ProjectShell";
 
 // Layout global de la app. El header siempre muestra el brand + session
 // chip. El topbar de las 5 fases (Carga → Gráficos) aparece SOLO cuando
@@ -141,6 +143,7 @@ export default function Layout() {
   const items = useNavItems();
   const location = useLocation();
   const showFases = isProcesamientoRoute(location.pathname);
+  const { project, openStartModal } = useProjectShell();
 
   return (
     <div className="pulso-shell">
@@ -179,6 +182,7 @@ export default function Layout() {
           </>
         )}
         <div style={{ flex: 1 }} />
+        <ProjectIndicator project={project} onRequestStartModal={openStartModal} />
         <SessionChip />
       </header>
       <main style={{ padding: "1.75rem 2rem", maxWidth: 1440, margin: "0 auto", width: "100%" }}>
