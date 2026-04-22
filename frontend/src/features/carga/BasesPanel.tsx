@@ -789,29 +789,50 @@ function AddBaseForm({
 
       {error && <ErrorBlock label="Error al agregar base" detail={error} />}
 
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={uploading}
-          style={{ fontSize: 12, padding: "7px 14px" }}
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          className="pulso-primary"
-          onClick={handleSubmit}
-          disabled={!puedeAgregar}
-          style={{
-            fontSize: 12, padding: "7px 14px",
-            opacity: puedeAgregar ? 1 : 0.55,
-            display: "inline-flex", alignItems: "center", gap: 6,
-          }}
-        >
-          <Plus size={12} />
-          {uploading ? "Subiendo…" : "Agregar base"}
-        </button>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+        {/* Hint explícito sobre qué falta — el botón deshabilitado
+            solo no es affordance suficiente. */}
+        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", flex: 1, minWidth: 200 }}>
+          {!puedeAgregar && !uploading && (
+            <>
+              {!xlsformFile && !dataFile
+                ? "Falta subir el XLSForm y la base de datos."
+                : !xlsformFile
+                ? "Falta subir el XLSForm."
+                : !dataFile
+                ? "Falta subir la base de datos."
+                : nombreDuplicado
+                ? "Cambia el nombre — ya existe una base así."
+                : !nombreValido
+                ? "El nombre tiene caracteres no permitidos."
+                : ""}
+            </>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={uploading}
+            style={{ fontSize: 12, padding: "7px 14px" }}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="pulso-primary"
+            onClick={handleSubmit}
+            disabled={!puedeAgregar}
+            style={{
+              fontSize: 12, padding: "7px 14px",
+              opacity: puedeAgregar ? 1 : 0.55,
+              display: "inline-flex", alignItems: "center", gap: 6,
+            }}
+          >
+            <Plus size={12} />
+            {uploading ? "Subiendo…" : "Agregar base"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -932,29 +953,34 @@ function ReplaceFilesForm({
 
       {error && <ErrorBlock label="Error al reemplazar archivos" detail={error} />}
 
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={uploading}
-          style={{ fontSize: 12, padding: "7px 14px" }}
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          className="pulso-primary"
-          onClick={handleSubmit}
-          disabled={!puedeReemplazar}
-          style={{
-            fontSize: 12, padding: "7px 14px",
-            opacity: puedeReemplazar ? 1 : 0.55,
-            display: "inline-flex", alignItems: "center", gap: 6,
-          }}
-        >
-          <RefreshCw size={12} />
-          {uploading ? "Reemplazando…" : "Reemplazar"}
-        </button>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", flex: 1, minWidth: 200 }}>
+          {!puedeReemplazar && !uploading && "Sube al menos uno de los dos archivos para reemplazar."}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={uploading}
+            style={{ fontSize: 12, padding: "7px 14px" }}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="pulso-primary"
+            onClick={handleSubmit}
+            disabled={!puedeReemplazar}
+            style={{
+              fontSize: 12, padding: "7px 14px",
+              opacity: puedeReemplazar ? 1 : 0.55,
+              display: "inline-flex", alignItems: "center", gap: 6,
+            }}
+          >
+            <RefreshCw size={12} />
+            {uploading ? "Reemplazando…" : "Reemplazar"}
+          </button>
+        </div>
       </div>
     </div>
   );
