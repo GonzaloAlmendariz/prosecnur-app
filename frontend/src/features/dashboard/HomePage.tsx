@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight, Check, Github, Power, Sparkles,
   Map as MapIcon, Workflow, ChevronDown,
+  FilePen, QrCode,
 } from "lucide-react";
 import { apiShutdown } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
@@ -49,14 +50,42 @@ const MODULES: ModuleMeta[] = [
     to: "/procesamiento",
   },
   {
+    slug: "editor-xlsform",
+    title: "Editor de XLSForms",
+    blurb:
+      "Arma un XLSForm desde cero, importa uno existente para editarlo, o traduce automáticamente un cuestionario de SurveyMonkey al formato ODK/KoBo.",
+    icon: FilePen,
+    // Violeta soft — "la pieza donde diseñas lo que se va a preguntar",
+    // distinto del azul procesamiento y del verde campo.
+    iconBg: "#f5f3ff",
+    iconFg: "#7c3aed",
+    iconBorder: "#ddd6fe",
+    // to: undefined — placeholder "Próximamente"
+  },
+  {
+    slug: "recopiladores",
+    title: "Generador de recopiladores",
+    blurb:
+      "Genera fichas imprimibles con códigos QR y enlaces personalizados a KoboCollect — una por enumerador, conglomerado o punto de muestreo para autenticar la captura.",
+    icon: QrCode,
+    // Ámbar — operaciones de campo, distinto del verde "hojas de ruta"
+    // (aunque ambos son campo) porque acá lo que pesa es QR/dispositivo.
+    iconBg: "#fffbeb",
+    iconFg: "#d97706",
+    iconBorder: "#fde68a",
+    // to: undefined — placeholder "Próximamente"
+  },
+  {
     slug: "hojas-ruta",
     title: "Hojas de ruta para campo",
     blurb:
       "Hojas de ruta imprimibles para enumeradores: cuotas por conglomerado, rutas de visita y puntos de muestra georeferenciados.",
     icon: MapIcon,
+    // Verde emerald — operaciones de campo, rutas/mapas.
     iconBg: "#ecfdf5",
     iconFg: "#059669",
     iconBorder: "#a7f3d0",
+    // to: undefined — placeholder "Próximamente"
   },
 ];
 
