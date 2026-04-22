@@ -307,22 +307,19 @@ mount_validacion <- function(pr) {
     # base del estudio o modo legacy.
     # =========================================================================
 
-    # --- Panorama (Sprint 5: sólo estado; KPIs y top listas vienen luego) ----
+    # --- Panorama (Sprint 5) — KPIs + top reglas + top vars con deep-links --
     plumber::pr_get("/api/validacion/v2/panorama", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
+      panorama <- build_panorama(scope)
       list(
         ok = TRUE,
         base_nombre = base %||% NA_character_,
-        progreso = list(
-          plan_construido = !is.null(scope$plan_result),
-          auditoria_corrida = !is.null(scope$evaluacion),
-          n_reglas_custom = length(scope$reglas_custom %||% list())
-        ),
-        kpis = list(),
-        top_reglas = NULL,
-        top_variables = NULL,
+        progreso = panorama$progreso,
+        kpis = panorama$kpis,
+        top_reglas = panorama$top_reglas,
+        top_variables = panorama$top_variables,
         actions = list()
       )
     })) |>

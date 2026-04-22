@@ -1,22 +1,30 @@
 import { useEffect, useState } from "react";
 import { Activity, AlertTriangle } from "lucide-react";
 import { apiV2Panorama } from "../../../api/client";
-import type { PanoramaSummary } from "../types";
+import type { PanoramaSummary, ValidacionTabId } from "../types";
 import { useValidacionStore } from "../store";
 import { LoadingBlock, EmptyState } from "../../../components/States";
+import PlotlyView from "../components/PlotlyView";
 
 // =============================================================================
-// Panorama — vista de entrada de Fase 2
+// Panorama — vista de entrada de Fase 2 (Sprint 5)
 // =============================================================================
-// Sprint 1: stub que muestra el estado de progreso y placeholders de los
-// 3 bloques visuales que llegarán en Sprint 5 (KPIs de salud, top reglas
-// violadas, top variables problemáticas).
+// Muestra un dashboard consolidado con:
+//   - Checklist de progreso (3 pills: plan construido / auditoría corrida /
+//     reglas personalizadas).
+//   - KPIs de salud (total inconsistencias, reglas con casos, reglas custom).
+//   - Top 5 reglas violadas — clickable → salta a Instrumento con drill.
+//   - Top 5 variables problemáticas — clickable → salta a Explorar.
 //
-// El tab escucha `baseNombre` y `version` del store y refetch cuando cambian.
+// Deep-links: cada ViewDescriptor trae `actions` con `target_tab` y
+// `target_payload`. Al clickear en una barra, usamos el customdata del
+// punto como id y disparamos `jumpTo(tab, prefill)` en el store.
 
 export default function PanoramaTab() {
   const baseNombre = useValidacionStore((s) => s.baseNombre);
   const version = useValidacionStore((s) => s.version);
+  const jumpTo = useValidacionStore((s) => s.jumpTo);
+
   const [data, setData] = useState<PanoramaSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
@@ -26,18 +34,10 @@ export default function PanoramaTab() {
     setLoading(true);
     setError("");
     apiV2Panorama(baseNombre)
-      .then((p) => {
-        if (!cancel) setData(p);
-      })
-      .catch((e) => {
-        if (!cancel) setError((e as Error).message);
-      })
-      .finally(() => {
-        if (!cancel) setLoading(false);
-      });
-    return () => {
-      cancel = true;
-    };
+      .then((p) => { if (!cancel) setData(p); })
+      .catch((e) => { if (!cancel) setError((e as Error).message); })
+      .finally(() => { if (!cancel) setLoading(false); });
+    return () => { cancel = true; };
   }, [baseNombre, version]);
 
   if (loading) return <LoadingBlock label="Cargando panorama…" />;
@@ -51,13 +51,34 @@ export default function PanoramaTab() {
     );
   if (!data) return null;
 
-  const { progreso } = data;
-  const pendiente =
-    !progreso.plan_construido || !progreso.auditoria_corrida;
+  const { progreso, kpis, top_reglas, top_variables } = data;
+  const falta_auditoria = !progreso.auditoria_corrida;
+
+  // Handler universal para acciones de descriptors (deep-link cross-tab).
+  function handleAction(a: {
+    id: string;
+    target_tab?: string;
+    payload?: Record<string, unknown>;
+  }) {
+    const tab = a.target_tab as ValidacionTabId | undefined;
+    if (!tab) return;
+    const payloadRaw = (a.payload ?? {}) as Record<string, unknown>;
+    // Mapear id de acción → shape esperado por el prefill del tab destino.
+    let prefill: Record<string, unknown> = {};
+    if (a.id === "drill_regla" && typeof payloadRaw.id === "string") {
+      prefill = { id_regla: payloadRaw.id };
+    } else if (a.id === "open_variable" && typeof payloadRaw.id === "string") {
+      prefill = { var: payloadRaw.id };
+    } else {
+      prefill = payloadRaw;
+    }
+    jumpTo(tab, prefill);
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {pendiente && (
+      {/* Banner si falta correr auditoría */}
+      {falta_auditoria && (
         <div
           style={{
             padding: "14px 18px",
@@ -69,12 +90,13 @@ export default function PanoramaTab() {
             lineHeight: 1.5,
           }}
         >
-          <strong>Falta correr la validación.</strong> Para ver el panorama
-          de salud de la base, ve a la pestaña{" "}
-          <em>Reglas del instrumento</em> y ejecuta la auditoría.
+          <strong>Falta correr la validación.</strong>{" "}
+          Ve a la pestaña <em>Reglas del instrumento</em> y ejecuta la
+          auditoría para ver KPIs de salud y top de problemas.
         </div>
       )}
 
+      {/* Checklist de progreso */}
       <div
         style={{
           display: "grid",
@@ -82,14 +104,8 @@ export default function PanoramaTab() {
           gap: 12,
         }}
       >
-        <ProgresoPill
-          label="Plan construido"
-          on={progreso.plan_construido}
-        />
-        <ProgresoPill
-          label="Auditoría corrida"
-          on={progreso.auditoria_corrida}
-        />
+        <ProgresoPill label="Plan construido" on={progreso.plan_construido} />
+        <ProgresoPill label="Auditoría corrida" on={progreso.auditoria_corrida} />
         <ProgresoPill
           label="Reglas personalizadas"
           on={progreso.n_reglas_custom > 0}
@@ -97,15 +113,46 @@ export default function PanoramaTab() {
         />
       </div>
 
-      <EmptyState
-        icon={<Activity size={20} />}
-        title="Los gráficos del panorama llegarán en Sprint 5"
-        hint="Por ahora usa las otras pestañas para construir el plan, explorar los datos y crear reglas personalizadas."
-      />
+      {/* KPIs consolidados */}
+      {kpis.length > 0 && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 12,
+          }}
+        >
+          {kpis.map((k, i) => <PlotlyView key={i} view={k} />)}
+        </div>
+      )}
+
+      {/* Top reglas + top variables lado a lado en pantallas grandes */}
+      {(top_reglas || top_variables) && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))",
+            gap: 16,
+          }}
+        >
+          {top_reglas && <PlotlyView view={top_reglas} onAction={handleAction} />}
+          {top_variables && <PlotlyView view={top_variables} onAction={handleAction} />}
+        </div>
+      )}
+
+      {/* Fallback si no hay kpis ni tops */}
+      {kpis.length === 0 && !top_reglas && !top_variables && (
+        <EmptyState
+          icon={<Activity size={20} />}
+          title="Panorama vacío"
+          hint="Construye el plan del instrumento y corre la auditoría para ver la salud de la base aquí."
+        />
+      )}
     </div>
   );
 }
 
+// -----------------------------------------------------------------------------
 function ProgresoPill({
   label,
   on,
@@ -124,9 +171,7 @@ function ProgresoPill({
         padding: "12px 14px",
         borderRadius: 10,
         background: on ? "var(--pulso-success-bg)" : "var(--pulso-surface-2)",
-        border: `1px solid ${
-          on ? "var(--pulso-success-border)" : "var(--pulso-border)"
-        }`,
+        border: `1px solid ${on ? "var(--pulso-success-border)" : "var(--pulso-border)"}`,
       }}
     >
       <span
@@ -145,9 +190,7 @@ function ProgresoPill({
           padding: "2px 8px",
           borderRadius: 999,
           background: "white",
-          border: `1px solid ${
-            on ? "var(--pulso-success-border)" : "var(--pulso-border)"
-          }`,
+          border: `1px solid ${on ? "var(--pulso-success-border)" : "var(--pulso-border)"}`,
           color: on ? "var(--pulso-success-fg)" : "var(--pulso-text-soft)",
         }}
       >
