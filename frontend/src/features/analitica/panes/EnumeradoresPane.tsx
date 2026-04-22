@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Phone, Plus, Trash2, Users, X } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronRight, ExternalLink, Phone, Plus, Trash2, Users, X } from "lucide-react";
 import {
   apiAnaliticaColumnValues,
   apiAnaliticaEnumeradores,
   apiAnaliticaVariables,
+  apiSystemDiagnostic,
+  DiagnosticInfo,
   ValorColumna,
   VariableInstrumento,
 } from "../../../api/client";
@@ -49,6 +51,20 @@ export function EnumeradoresPane() {
   const enumer = useAnaliticaStore((s) => s.config.enumeradores);
   const setEnumer = useAnaliticaStore((s) => s.setEnumeradores);
   const run = useReporteRun();
+
+  // Quarto es dependencia opcional para PDF de enumeradores. Lo
+  // chequeamos al montar la pantalla para mostrar un banner claro y
+  // deshabilitar el botón antes de que el user dispare la generación
+  // y se choque con un error críptico de R en el subprocess callr.
+  const [diag, setDiag] = useState<DiagnosticInfo | null>(null);
+  useEffect(() => {
+    let cancel = false;
+    apiSystemDiagnostic()
+      .then((d) => { if (!cancel) setDiag(d); })
+      .catch(() => { /* fallar silencioso — el banner solo aparece si tenemos info */ });
+    return () => { cancel = true; };
+  }, []);
+  const quartoOk = diag?.quarto?.available ?? null;
 
   const [variables, setVariables] = useState<VariableInstrumento[]>([]);
   useEffect(() => {
@@ -232,6 +248,50 @@ export function EnumeradoresPane() {
           )}
         </Section>
 
+        {/* Quarto check — la generación de PDF requiere Quarto CLI.
+            Si falta, mostramos un banner claro con link de instalación
+            y deshabilitamos el botón antes de disparar el job. */}
+        {quartoOk === false && diag && (
+          <div
+            style={{
+              padding: "12px 16px",
+              borderRadius: 8,
+              border: "1px solid var(--pulso-warn-border)",
+              background: "var(--pulso-warn-bg)",
+              color: "var(--pulso-warn-fg)",
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-start",
+              fontSize: 13,
+              lineHeight: 1.45,
+              marginBottom: 12,
+            }}
+          >
+            <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: 1 }}>
+              <strong>Falta Quarto CLI</strong> — el reporte de enumeradores
+              se renderiza con Quarto + Typst para PDF. {!diag.quarto.r_package && "También falta el paquete R "}
+              {!diag.quarto.r_package && <code style={{ fontFamily: "ui-monospace, monospace" }}>quarto</code>}
+              {!diag.quarto.r_package && " (instálalo con "}
+              {!diag.quarto.r_package && <code style={{ fontFamily: "ui-monospace, monospace" }}>install.packages("quarto")</code>}
+              {!diag.quarto.r_package && "). "}
+              <br/>
+              Instala Quarto CLI desde{" "}
+              <a
+                href={diag.quarto.install_url}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: "var(--pulso-warn-fg)", display: "inline-flex", alignItems: "center", gap: 3 }}
+              >
+                quarto.org
+                <ExternalLink size={11} />
+              </a>{" "}
+              y reabre Prosecnur. Las demás fases (Validación, Codificación,
+              Codebook, Frecuencias, Cruces, Bases, Gráficos) funcionan sin Quarto.
+            </div>
+          </div>
+        )}
+
         {/* 5. Generar */}
         <GenerateFooter
           label="Generar reporte"
@@ -241,10 +301,13 @@ export function EnumeradoresPane() {
           downloadName="enumeradores.pdf"
           error={run.error}
           onGenerate={onGenerate}
-          disabled={!puedeGenerar}
-          disabledHint={!enumer.col_enumerador
-            ? "Selecciona primero la columna del enumerador."
-            : "Agrega al menos una regla o cambia el modo a «Sin modalidad» / «Por columna»."}
+          disabled={!puedeGenerar || quartoOk === false}
+          disabledHint={
+            quartoOk === false
+              ? "Falta Quarto CLI — instálalo desde quarto.org y reabre Prosecnur."
+              : !enumer.col_enumerador
+              ? "Selecciona primero la columna del enumerador."
+              : "Agrega al menos una regla o cambia el modo a «Sin modalidad» / «Por columna»."}
           onJobDone={run.onJobDone}
           onJobError={run.onJobError}
           onJobCancelled={run.onJobCancelled}

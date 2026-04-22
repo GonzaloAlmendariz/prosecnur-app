@@ -184,6 +184,33 @@ mount_sistema <- function(pr) {
         time = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
       )
     })) |>
+    # Reporta el estado de las dependencias opcionales del sistema (Quarto,
+    # paquetes R secundarios). El frontend usa esto para deshabilitar
+    # acciones que dependen de toolchain ausente y mostrar instrucciones
+    # de instalación claras antes de que el user las dispare y se choque
+    # con un error críptico.
+    plumber::pr_get("/api/system/diagnostic", wrap_endpoint(function(req, res) {
+      quarto_pkg <- requireNamespace("quarto", quietly = TRUE)
+      quarto_bin_path <- as.character(Sys.which("quarto"))
+      quarto_bin <- nzchar(quarto_bin_path)
+      quarto_version <- if (quarto_bin) {
+        tryCatch(
+          system2(quarto_bin_path, "--version", stdout = TRUE, stderr = FALSE)[1],
+          error = function(e) NA_character_
+        )
+      } else NA_character_
+      list(
+        ok = TRUE,
+        quarto = list(
+          available     = quarto_pkg && quarto_bin,
+          r_package     = quarto_pkg,
+          cli_path      = if (quarto_bin) quarto_bin_path else NA_character_,
+          cli_version   = quarto_version,
+          install_url   = "https://quarto.org/docs/get-started/",
+          required_for  = "Reporte de enumeradores en PDF (Fase 4 → Enumeradores)"
+        )
+      )
+    })) |>
     plumber::pr_post("/api/system/shutdown", wrap_endpoint(function(req, res) {
       # Si el proceso fue arrancado con PULSO_SHUTDOWN_TOKEN (caso
       # Electron desktop), exigir el mismo token en el header

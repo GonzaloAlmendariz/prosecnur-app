@@ -56,6 +56,24 @@ export async function apiHealth() {
   );
 }
 
+export type DiagnosticInfo = {
+  ok: boolean;
+  quarto: {
+    available: boolean;
+    r_package: boolean;
+    cli_path: string | null;
+    cli_version: string | null;
+    install_url: string;
+    required_for: string;
+  };
+};
+
+export async function apiSystemDiagnostic() {
+  return handle<DiagnosticInfo>(
+    await fetch("/api/system/diagnostic", { headers: headers() })
+  );
+}
+
 export async function apiCreateSession() {
   const res = await fetch("/api/session", { method: "POST", headers: headers() });
   const body = await handle<{ session_id: string; reused: boolean }>(res);
