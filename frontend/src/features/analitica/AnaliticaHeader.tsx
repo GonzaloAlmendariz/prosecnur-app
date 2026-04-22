@@ -112,7 +112,7 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
         <ConfigIoButtons
           onExport={ioExport}
           onImport={ioImport}
-          filenamePrefix="pulso_analitica"
+          filenamePrefix="prosecnur_analitica"
         />
       </ContextBar>
     </div>

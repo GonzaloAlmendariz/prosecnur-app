@@ -285,6 +285,22 @@ mount_sistema <- function(pr) {
         data_df <- .read_data_from_path(dat_meta$path)
         rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
+        # Compatibilidad con el flujo single-base de Fase 1. Aunque el demo
+        # ya se registra como estudio, varias pantallas leen estos slots para
+        # saber que la sesión quedó completamente cargada.
+        if (is.null(session_get(sid)$instrumento)) {
+          inst_limpieza <- leer_xlsform_limpieza(xls_meta$path, verbose = FALSE)
+          session_set(sid, "instrumento", inst_limpieza)
+          session_set(sid, "inst_limpieza", inst_limpieza)
+          session_set(sid, "data_raw_meta", list(
+            file_id = dat_meta$file_id,
+            path = dat_meta$path,
+            ext = data_ext
+          ))
+          session_set(sid, "rp_inst", rp_inst)
+          session_set(sid, "rp_data", rp_data)
+        }
+
         estudio_add_base(
           sid,
           nombre          = nombre,

@@ -1,7 +1,7 @@
 .session_env <- new.env(parent = emptyenv())
 
 session_root_dir <- function() {
-  root <- file.path(tempdir(), "pulso-report")
+  root <- file.path(tempdir(), "prosecnur")
   if (!dir.exists(root)) dir.create(root, recursive = TRUE)
   root
 }

@@ -153,7 +153,7 @@
 }
 
 # Enriquece la config de presets JSON antes de pasarla a prosecnur con:
-# 1. `usar_canvas = TRUE` en todos los tipos (invariante de Pulso — todos
+# 1. `usar_canvas = TRUE` en todos los tipos (invariante de Prosecnur — todos
 #    los reportes usan canvas/cowplot).
 # 2. Flags `debug_ph_*` en el preset `base`, que prosecnur aplica a todos
 #    los graficadores. Así el analista tiene UN solo toggle global en

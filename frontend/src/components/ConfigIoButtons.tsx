@@ -31,7 +31,7 @@ export type ConfigIoProps = {
   onImport: (parsed: unknown) => Promise<string | void>;
   /**
    * Prefijo del filename de descarga. Se le pega `_${timestamp}.json`.
-   * Default: "pulso_config".
+   * Default: "prosecnur_config".
    */
   filenamePrefix?: string;
   /**
@@ -47,7 +47,7 @@ export type ConfigIoProps = {
 export function ConfigIoButtons({
   onExport,
   onImport,
-  filenamePrefix = "pulso_config",
+  filenamePrefix = "prosecnur_config",
   exportLabel = "Exportar JSON",
   importLabel = "Importar JSON",
 }: ConfigIoProps) {

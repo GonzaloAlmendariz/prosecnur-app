@@ -63,5 +63,6 @@ if (requireNamespace("devtools", quietly = TRUE)) {
 
 port <- as.integer(Sys.getenv("PULSO_PORT", "8787"))
 host <- Sys.getenv("PULSO_HOST", "127.0.0.1")
+open_browser <- !tolower(Sys.getenv("PULSO_OPEN_BROWSER", "true")) %in% c("0", "false", "no")
 
-run_app(host = host, port = port, static_dir = static_dir, open_browser = TRUE)
+run_app(host = host, port = port, static_dir = static_dir, open_browser = open_browser)

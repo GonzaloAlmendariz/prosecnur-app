@@ -1,0 +1,18 @@
+{
+  "name": "prosecnur-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop shell for Prosecnur",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron ."
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^37.0.0"
+  }
+}

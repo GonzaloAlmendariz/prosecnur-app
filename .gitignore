@@ -19,6 +19,9 @@ frontend/.vite/
 frontend/tsconfig.tsbuildinfo
 *.log
 
+# Local app packages
+dist/
+
 # Frontend build output is served from api/inst/www, but git-ignored (regenerated)
 api/inst/www/*
 !api/inst/www/.gitkeep

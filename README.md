@@ -1,4 +1,4 @@
-# prosecnur-app (Pulso Report)
+# Prosecnur
 
 Aplicación local todo-en-uno: **motor analítico + REST API + frontend React**
 para que analistas no-programadores generen reportes de encuestas
@@ -49,6 +49,29 @@ make dev-frontend   # terminal 2 — Vite en :5173 (proxy /api → :8787)
 make build
 make dev-api        # abre el browser automáticamente en :8787
 ```
+
+## Empaquetado local
+
+Para generar una carpeta ejecutable de uso interno, sin incluir el código
+fuente del frontend ni `node_modules`:
+
+```bash
+make package-local
+open "dist/Prosecnur/Prosecnur.app"
+```
+
+Para abrirlo como ventana de escritorio:
+
+```bash
+make install-desktop
+make desktop
+```
+
+La carpeta generada incluye `Prosecnur.app` como entrada principal en macOS,
+un `LEEME_PRIMERO.md`, y launchers auxiliares dentro de `Internals/launcher`.
+
+Nota: en esta etapa la ventana propia requiere Node/pnpm para instalar Electron
+la primera vez. El instalador formal (`.dmg`/`.exe`) vendría después.
 
 ## Estructura
 
