@@ -461,6 +461,19 @@ mount_validacion <- function(pr) {
       # en legacy).
       base_effective <- files$base_nombre
 
+      # Filtrar reglas desactivadas (toggle "ignorar") antes de correr.
+      plan_efectivo <- scope$plan_result$plan
+      desactivadas <- scope$reglas_desactivadas %||% character(0)
+      if (length(desactivadas) && !is.null(plan_efectivo)) {
+        id_col <- if ("ID" %in% names(plan_efectivo)) "ID"
+                  else if ("id_regla" %in% names(plan_efectivo)) "id_regla"
+                  else NULL
+        if (!is.null(id_col)) {
+          keep <- !(as.character(plan_efectivo[[id_col]]) %in% desactivadas)
+          plan_efectivo <- plan_efectivo[keep, , drop = FALSE]
+        }
+      }
+
       # api_path para que el subprocess callr pueda cargar el paquete.
       api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
 
@@ -508,7 +521,7 @@ mount_validacion <- function(pr) {
         args = list(
           data_path = files$data$path,
           data_ext = files$data_ext,
-          plan = scope$plan_result$plan,
+          plan = plan_efectivo,
           api_path = api_path
         ),
         on_complete = function(j) {
@@ -601,8 +614,14 @@ mount_validacion <- function(pr) {
       )
     })) |>
 
-    # --- Instrumento: drill por regla (casos individuales) -------------------
-    plumber::pr_post("/api/validacion/v2/instrumento/regla", wrap_endpoint(function(req, res, id_regla = NULL) {
+    # --- Instrumento: drill por regla (vista enriquecida) --------------------
+    # Retorna objeto rico: metadata humana de la regla + lista de casos con
+    # UUID detectado. Payload:
+    #   { ok, regla: {id, nombre, objetivo, tipo_observacion, seccion,
+    #                 categoria, variables:[], procesamiento, activa,
+    #                 n_inconsistencias, porcentaje},
+    #     casos: [{uuid, ...campos}], uuid_col: string }
+    plumber::pr_post("/api/validacion/v2/instrumento/regla", wrap_endpoint(function(req, res, id_regla = NULL, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -615,9 +634,208 @@ mount_validacion <- function(pr) {
       files <- .resolve_base_files(sid, base)
       inst <- tryCatch(leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE),
                        error = function(e) NULL)
-      detalle <- auditar_regla(scope$evaluacion, ids = id_regla,
-                               inst = inst, verbose = FALSE)
-      list(ok = TRUE, detalle = .plan_rows_preview(detalle, n = 500L))
+      # auditar_regla devuelve list(resumen, expresion, objetivo, casos).
+      aud <- auditar_regla(scope$evaluacion, ids = id_regla,
+                           inst = inst, verbose = FALSE)
+
+      # Metadata humana de la regla — priorizar `plan_result$plan` que
+      # trae columnas en español; fallback a `ev$reglas_meta`.
+      plan_df <- scope$plan_result$plan %||% NULL
+      reglas_meta <- scope$evaluacion$reglas_meta %||% NULL
+
+      .col <- function(df, candidates, default = NA_character_) {
+        if (is.null(df)) return(default)
+        hit <- intersect(candidates, names(df))
+        if (!length(hit)) return(default)
+        val <- as.character(df[[hit[1]]])
+        if (length(val) == 0L) default else val[1]
+      }
+
+      row_idx_plan <- if (!is.null(plan_df)) {
+        which(as.character(plan_df$`ID` %||% plan_df$id_regla) == id_regla)[1]
+      } else integer(0)
+      row_plan <- if (length(row_idx_plan) && !is.na(row_idx_plan)) {
+        plan_df[row_idx_plan, , drop = FALSE]
+      } else NULL
+
+      row_idx_meta <- if (!is.null(reglas_meta)) {
+        which(as.character(reglas_meta$id_regla) == id_regla)[1]
+      } else integer(0)
+      row_meta <- if (length(row_idx_meta) && !is.na(row_idx_meta)) {
+        reglas_meta[row_idx_meta, , drop = FALSE]
+      } else NULL
+
+      nombre_regla <- .col(row_plan, c("Nombre de la regla", "nombre_regla")) |>
+        (\(x) if (is.na(x)) .col(row_meta, "nombre_regla") else x)()
+      objetivo <- if (length(aud$objetivo) && !is.na(aud$objetivo[1])) aud$objetivo[1]
+                   else .col(row_plan, c("Objetivo", "objetivo")) |>
+                        (\(x) if (is.na(x)) .col(row_meta, "objetivo") else x)()
+      procesamiento <- if (length(aud$expresion) && !is.na(aud$expresion[1])) aud$expresion[1]
+                        else .col(row_plan, c("Procesamiento", "Procesamiento (R)", "procesamiento"))
+      tipo_obs <- .col(row_plan, c("Tipo de observación", "tipo_observacion")) |>
+        (\(x) if (is.na(x)) .col(row_meta, "tipo_observacion") else x)()
+      seccion <- .col(row_plan, c("Sección", "seccion")) |>
+        (\(x) if (is.na(x)) .col(row_meta, "seccion") else x)()
+      categoria <- .col(row_plan, c("Categoría", "categoria")) |>
+        (\(x) if (is.na(x)) .col(row_meta, "categoria") else x)()
+      tabla <- .col(row_plan, c("Tabla", "tabla", "Hoja base", "hoja_base")) |>
+        (\(x) if (is.na(x)) .col(row_meta, "tabla") else x)()
+
+      # Variables involucradas: extraer de plan_result (Variable 1/2/3) o meta.
+      vars <- c(
+        .col(row_plan, c("Variable 1", "variable_1")),
+        .col(row_plan, c("Variable 2", "variable_2")),
+        .col(row_plan, c("Variable 3", "variable_3"))
+      )
+      if (all(is.na(vars)) && !is.null(row_meta)) {
+        vars <- c(
+          as.character(row_meta$variable_1 %||% NA),
+          as.character(row_meta$variable_2 %||% NA),
+          as.character(row_meta$variable_3 %||% NA)
+        )
+      }
+      vars <- vars[!is.na(vars) & nzchar(vars)]
+
+      # ¿Está la regla en la lista de desactivadas?
+      desactivadas <- scope$reglas_desactivadas %||% character(0)
+      activa <- !(id_regla %in% desactivadas)
+
+      # Resumen numérico desde aud$resumen.
+      n_inc <- if (!is.null(aud$resumen) && nrow(aud$resumen)) {
+        as.integer(aud$resumen$n_inconsistencias[1])
+      } else NA_integer_
+      pct <- if (!is.null(aud$resumen) && nrow(aud$resumen)) {
+        as.numeric(aud$resumen$porcentaje[1])
+      } else NA_real_
+
+      # Extraer casos del primer elemento de aud$casos.
+      casos_df <- if (length(aud$casos) > 0L) aud$casos[[1]] else NULL
+      # Detectar columna UUID: buscar nombres típicos.
+      uuid_col <- NULL
+      if (!is.null(casos_df) && nrow(casos_df)) {
+        candidatos_uuid <- c("_uuid", "uuid", "_id", "_submission_id",
+                              "_submission_uuid", "id_caso", "fila_id")
+        for (cname in candidatos_uuid) {
+          if (cname %in% names(casos_df)) { uuid_col <- cname; break }
+        }
+        # Fallback: si no existe uuid, usamos _fila_idx (índice del data).
+        if (is.null(uuid_col)) {
+          casos_df$`_fila_idx` <- seq_len(nrow(casos_df))
+          uuid_col <- "_fila_idx"
+        }
+      }
+
+      list(
+        ok = TRUE,
+        regla = list(
+          id = id_regla,
+          nombre = if (is.na(nombre_regla)) id_regla else nombre_regla,
+          objetivo = if (is.na(objetivo)) NA_character_ else objetivo,
+          tipo_observacion = if (is.na(tipo_obs)) NA_character_ else tipo_obs,
+          seccion = if (is.na(seccion)) NA_character_ else seccion,
+          categoria = if (is.na(categoria)) NA_character_ else categoria,
+          tabla = if (is.na(tabla)) NA_character_ else tabla,
+          variables = as.list(vars),
+          procesamiento = if (is.null(procesamiento) || is.na(procesamiento)) NA_character_ else procesamiento,
+          activa = activa,
+          n_inconsistencias = n_inc,
+          porcentaje = pct
+        ),
+        uuid_col = uuid_col %||% NA_character_,
+        casos = if (!is.null(casos_df)) {
+          .plan_rows_preview(utils::head(casos_df, 500L), n = 500L)
+        } else list()
+      )
+    })) |>
+
+    # --- Instrumento: toggle activar/desactivar una regla --------------------
+    # Body: { activa: true|false }. Persiste en scope$reglas_desactivadas.
+    # Invalida la evaluación porque las reglas efectivas cambiaron.
+    plumber::pr_handle("PATCH", "/api/validacion/v2/instrumento/regla/<id_regla>/activa",
+      wrap_endpoint(function(req, res, id_regla = NULL, ...) {
+        sid <- session_header(req)
+        base <- .get_base_nombre(req)
+        if (is.null(id_regla) || !nzchar(id_regla)) {
+          stop_api(400, "E_MISSING_ID_REGLA", "Path debe incluir id_regla.")
+        }
+        body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+        Encoding(body_raw) <- "UTF-8"
+        parsed <- tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+                            error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e)))
+        activa <- isTRUE(parsed$activa)
+
+        scope <- .get_base_scope(sid, base)
+        des <- scope$reglas_desactivadas %||% character(0)
+        if (activa) {
+          des <- setdiff(des, id_regla)
+        } else {
+          des <- unique(c(des, id_regla))
+        }
+        validacion_scope_set(sid, base, "reglas_desactivadas", des)
+        # Invalidar evaluación — hay que re-correr con las reglas efectivas.
+        validacion_scope_set(sid, base, "evaluacion", NULL)
+
+        list(ok = TRUE, id_regla = id_regla, activa = activa,
+             n_desactivadas = length(des))
+    })) |>
+
+    # --- Instrumento: editar atributos humanos de una regla ------------------
+    # Body: subconjunto de {nombre, objetivo, tipo_observacion, categoria,
+    # mensaje}. Actualiza plan_result$plan in-place (respetando nombres de
+    # columna que use el plan). Invalida la evaluación.
+    plumber::pr_handle("PATCH", "/api/validacion/v2/instrumento/regla/<id_regla>/atributos",
+      wrap_endpoint(function(req, res, id_regla = NULL, ...) {
+        sid <- session_header(req)
+        base <- .get_base_nombre(req)
+        if (is.null(id_regla) || !nzchar(id_regla)) {
+          stop_api(400, "E_MISSING_ID_REGLA", "Path debe incluir id_regla.")
+        }
+        body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+        Encoding(body_raw) <- "UTF-8"
+        parsed <- tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+                            error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e)))
+
+        scope <- .get_base_scope(sid, base)
+        plan_df <- scope$plan_result$plan
+        if (is.null(plan_df)) stop_api(409, "E_NO_PLAN", "Plan no existe en esta base.")
+        # Identificar fila por id_regla.
+        id_col <- if ("ID" %in% names(plan_df)) "ID" else
+                   if ("id_regla" %in% names(plan_df)) "id_regla" else NULL
+        if (is.null(id_col)) {
+          stop_api(500, "E_PLAN_NO_ID", "Plan no tiene columna de ID.")
+        }
+        row_idx <- which(as.character(plan_df[[id_col]]) == id_regla)
+        if (!length(row_idx)) {
+          stop_api(404, "E_REGLA_NOT_FOUND",
+                   sprintf("Regla '%s' no existe en el plan.", id_regla))
+        }
+
+        # Mapa atributo canónico → columnas candidatas del plan.
+        mapa <- list(
+          nombre = c("Nombre de la regla", "nombre_regla"),
+          objetivo = c("Objetivo", "objetivo"),
+          tipo_observacion = c("Tipo de observación", "tipo_observacion"),
+          categoria = c("Categoría", "categoria"),
+          mensaje = c("Mensaje", "mensaje")
+        )
+
+        for (campo in names(mapa)) {
+          if (!is.null(parsed[[campo]])) {
+            nuevo <- as.character(parsed[[campo]])
+            col <- intersect(mapa[[campo]], names(plan_df))
+            if (length(col)) {
+              plan_df[row_idx, col[1]] <- nuevo
+            }
+          }
+        }
+
+        new_plan_result <- scope$plan_result
+        new_plan_result$plan <- plan_df
+        validacion_scope_set(sid, base, "plan_result", new_plan_result)
+        validacion_scope_set(sid, base, "evaluacion", NULL)
+
+        list(ok = TRUE, id_regla = id_regla,
+              fila = .plan_rows_preview(plan_df[row_idx, , drop = FALSE], n = 1L))
     })) |>
 
     # --- Explorar: inventario de variables agrupadas por sección ------------

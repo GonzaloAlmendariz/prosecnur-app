@@ -16,8 +16,11 @@ import {
   apiV2InstrumentoEstado,
   apiV2InstrumentoExportPlan,
   apiV2InstrumentoImportPlan,
+  apiV2InstrumentoReglaPatchAtributos,
+  apiV2InstrumentoReglaToggleActiva,
   apiV2InstrumentoResultado,
   downloadUrl,
+  type InstrumentoDrillResult,
   type InstrumentoResultado,
 } from "../../../api/client";
 import type { InstrumentoEstado } from "../types";
@@ -30,6 +33,7 @@ import { JobProgress } from "../../../components/JobProgress";
 import { useValidacionStore } from "../store";
 import PlotlyView from "../components/PlotlyView";
 import DrilldownTable from "../components/DrilldownTable";
+import ReglaDrillPanel from "../components/ReglaDrillPanel";
 
 // =============================================================================
 // InstrumentoTab — Sprint 2
@@ -55,10 +59,8 @@ export default function InstrumentoTab() {
   const [error, setError] = useState<string>("");
   const [jobId, setJobId] = useState<string | null>(null);
   const [exportFileId, setExportFileId] = useState<string | null>(null);
-  const [drill, setDrill] = useState<{
-    id: string;
-    rows: Array<Record<string, unknown>>;
-  } | null>(null);
+  const [drill, setDrill] = useState<InstrumentoDrillResult | null>(null);
+  const [reglaDirty, setReglaDirty] = useState(false);
 
   // Carga inicial + refetch al cambiar base.
   const refetchAll = useCallback(async () => {
@@ -160,7 +162,44 @@ export default function InstrumentoTab() {
     setError("");
     try {
       const out = await apiV2InstrumentoDrill(id, baseNombre);
-      setDrill({ id, rows: out.detalle });
+      setDrill(out);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function onToggleReglaActiva(activa: boolean) {
+    if (!drill) return;
+    setBusy(activa ? "Reactivando regla…" : "Ignorando regla…");
+    try {
+      await apiV2InstrumentoReglaToggleActiva(drill.regla.id, activa, baseNombre);
+      setDrill({ ...drill, regla: { ...drill.regla, activa } });
+      setReglaDirty(true);
+      // El estado de auditoría se invalidó en el backend; refetch del estado.
+      const e = await apiV2InstrumentoEstado(baseNombre);
+      setEstado(e);
+      setResultado(null);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function onPatchAtributos(patch: Record<string, string>) {
+    if (!drill) return;
+    setBusy("Guardando cambios…");
+    try {
+      await apiV2InstrumentoReglaPatchAtributos(drill.regla.id, patch, baseNombre);
+      // Refetch drill para ver los nuevos valores.
+      const refreshed = await apiV2InstrumentoDrill(drill.regla.id, baseNombre);
+      setDrill(refreshed);
+      setReglaDirty(true);
+      const e = await apiV2InstrumentoEstado(baseNombre);
+      setEstado(e);
+      setResultado(null);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -386,10 +425,21 @@ export default function InstrumentoTab() {
 
           {/* Drill inline si hay regla seleccionada */}
           {drill && (
-            <DrillPanel
-              id={drill.id}
-              rows={drill.rows}
-              onClose={() => setDrill(null)}
+            <ReglaDrillPanel
+              regla={drill.regla}
+              casos={drill.casos}
+              uuidCol={drill.uuid_col}
+              onToggleActiva={onToggleReglaActiva}
+              onPatchAtributos={onPatchAtributos}
+              onClose={() => {
+                setDrill(null);
+                setReglaDirty(false);
+              }}
+              invalidatedHint={
+                reglaDirty
+                  ? "Cambios aplicados. Vuelve a ejecutar la auditoría para actualizar KPIs y heatmap con el plan corregido."
+                  : undefined
+              }
             />
           )}
 
@@ -535,70 +585,3 @@ function StepHeader({
   );
 }
 
-// -----------------------------------------------------------------------------
-function DrillPanel({
-  id,
-  rows,
-  onClose,
-}: {
-  id: string;
-  rows: Array<Record<string, unknown>>;
-  onClose: () => void;
-}) {
-  return (
-    <section
-      style={{
-        padding: "16px 20px",
-        background: "var(--pulso-primary-soft)",
-        border: "1px solid var(--pulso-primary-border)",
-        borderRadius: 10,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 12,
-        }}
-      >
-        <ArrowRight size={14} color="var(--pulso-primary)" />
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: "var(--pulso-primary)",
-            }}
-          >
-            Casos de la regla <code>{id}</code>
-          </div>
-          <div
-            style={{
-              fontSize: 11,
-              color: "var(--pulso-text-soft)",
-              marginTop: 2,
-            }}
-          >
-            {rows.length} caso{rows.length !== 1 ? "s" : ""} listado{rows.length !== 1 ? "s" : ""}.
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          style={{
-            fontSize: 12,
-            padding: "6px 10px",
-            border: "1px solid var(--pulso-border)",
-            background: "white",
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
-        >
-          Cerrar
-        </button>
-      </div>
-      <DrilldownTable rows={rows} emptyHint="Sin casos en esta regla." />
-    </section>
-  );
-}

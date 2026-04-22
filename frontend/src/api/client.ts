@@ -1692,9 +1692,26 @@ export type InstrumentoResultado = {
   resumen_tabla: Array<Record<string, unknown>>;
 };
 
+export type ReglaInstrumento = {
+  id: string;
+  nombre: string;
+  objetivo: string | null;
+  tipo_observacion: string | null;
+  seccion: string | null;
+  categoria: string | null;
+  tabla: string | null;
+  variables: string[];
+  procesamiento: string | null;
+  activa: boolean;
+  n_inconsistencias: number | null;
+  porcentaje: number | null;
+};
+
 export type InstrumentoDrillResult = {
   ok: true;
-  detalle: Array<Record<string, unknown>>;
+  regla: ReglaInstrumento;
+  uuid_col: string | null;
+  casos: Array<Record<string, unknown>>;
 };
 
 export async function apiV2InstrumentoBuildPlan(
@@ -1763,6 +1780,48 @@ export async function apiV2InstrumentoDrill(
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
       body: JSON.stringify({ id_regla }),
     }),
+  );
+}
+
+export async function apiV2InstrumentoReglaToggleActiva(
+  id_regla: string,
+  activa: boolean,
+  baseNombre?: string | null,
+) {
+  return handle<{ ok: true; id_regla: string; activa: boolean; n_desactivadas: number }>(
+    await fetch(
+      `/api/validacion/v2/instrumento/regla/${encodeURIComponent(id_regla)}/activa`,
+      {
+        method: "PATCH",
+        headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+        body: JSON.stringify({ activa }),
+      },
+    ),
+  );
+}
+
+export type ReglaAtributosPatch = Partial<{
+  nombre: string;
+  objetivo: string;
+  tipo_observacion: string;
+  categoria: string;
+  mensaje: string;
+}>;
+
+export async function apiV2InstrumentoReglaPatchAtributos(
+  id_regla: string,
+  patch: ReglaAtributosPatch,
+  baseNombre?: string | null,
+) {
+  return handle<{ ok: true; id_regla: string; fila: Array<Record<string, unknown>> }>(
+    await fetch(
+      `/api/validacion/v2/instrumento/regla/${encodeURIComponent(id_regla)}/atributos`,
+      {
+        method: "PATCH",
+        headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+        body: JSON.stringify(patch),
+      },
+    ),
   );
 }
 
