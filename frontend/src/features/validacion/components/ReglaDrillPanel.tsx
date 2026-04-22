@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Check,
   ChevronDown,
   ChevronRight,
   EyeOff,
   Eye,
+  Filter as FilterIcon,
   Hash,
   Pencil,
   Save,
@@ -56,6 +57,82 @@ export default function ReglaDrillPanel({
     tipo_observacion: regla.tipo_observacion ?? "",
     categoria: regla.categoria ?? "",
   });
+
+  // Filtros por columna sobre la tabla de casos. Map: colName → Set
+  // de valores ACEPTADOS. Si una col no está en el map (o su set es
+  // undefined), no se filtra por esa col. Si el set está vacío, NO
+  // hay filas que matcheen (el usuario deseleccionó todas) → filtra
+  // todo. Arrancamos sin filtros.
+  const [filters, setFilters] = useState<Record<string, Set<string>>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Columnas candidatas a filtrar: las variables declaradas por la
+  // regla (excluye el UUID que es alta cardinalidad y no da valor).
+  const filterableCols = useMemo(
+    () => regla.variables.filter((c) => c !== uuidCol),
+    [regla.variables, uuidCol]
+  );
+
+  // Valores distinct por columna. Los toString para manejar numéricos.
+  const distinctByCol = useMemo(() => {
+    const out: Record<string, string[]> = {};
+    for (const col of filterableCols) {
+      const seen = new Set<string>();
+      for (const row of casos) {
+        const v = row[col];
+        if (v === null || v === undefined || v === "") continue;
+        seen.add(String(v));
+      }
+      out[col] = Array.from(seen).sort();
+    }
+    return out;
+  }, [casos, filterableCols]);
+
+  const filteredCasos = useMemo(() => {
+    const active = Object.entries(filters).filter(([, s]) => s);
+    if (!active.length) return casos;
+    return casos.filter((row) =>
+      active.every(([col, set]) => {
+        const v = row[col];
+        if (v === null || v === undefined || v === "") return false;
+        return set!.has(String(v));
+      })
+    );
+  }, [casos, filters]);
+
+  function toggleFilterValue(col: string, value: string) {
+    setFilters((prev) => {
+      const next = { ...prev };
+      const cur = next[col];
+      if (!cur) {
+        // Primera selección: set con todos los distinct - el que desmarcó.
+        const all = new Set(distinctByCol[col] ?? []);
+        all.delete(value);
+        next[col] = all;
+      } else {
+        const copy = new Set(cur);
+        if (copy.has(value)) copy.delete(value);
+        else copy.add(value);
+        next[col] = copy;
+      }
+      return next;
+    });
+  }
+
+  function clearFilterCol(col: string) {
+    setFilters((prev) => {
+      const next = { ...prev };
+      delete next[col];
+      return next;
+    });
+  }
+
+  function clearAllFilters() {
+    setFilters({});
+  }
+
+  const nActiveFilters = Object.values(filters).filter((s) => !!s).length;
+  const isFiltered = filteredCasos.length !== casos.length;
 
   async function handleSave() {
     setSaving(true);
@@ -393,22 +470,164 @@ export default function ReglaDrillPanel({
             alignItems: "center",
             gap: 8,
             marginBottom: 8,
+            flexWrap: "wrap",
           }}
         >
           <Hash size={12} color="var(--pulso-text-soft)" />
           <span style={{ fontSize: 12, fontWeight: 700 }}>
-            Casos inconsistentes ({casos.length})
+            Casos inconsistentes ({isFiltered ? `${filteredCasos.length} de ${casos.length}` : casos.length})
           </span>
           {uuidCol && (
             <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
               · UUID: {uuidCol}
             </span>
           )}
+
+          {filterableCols.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((v) => !v)}
+              style={{
+                marginLeft: "auto",
+                fontSize: 11,
+                padding: "4px 10px",
+                borderRadius: 6,
+                border: `1px solid ${nActiveFilters > 0 ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+                background: nActiveFilters > 0 ? "var(--pulso-primary-soft)" : "white",
+                color: nActiveFilters > 0 ? "var(--pulso-primary)" : "var(--pulso-text)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                cursor: "pointer",
+              }}
+            >
+              <FilterIcon size={11} />
+              {filtersOpen ? "Ocultar filtros" : "Filtros"}
+              {nActiveFilters > 0 && (
+                <span style={{
+                  background: "var(--pulso-primary)",
+                  color: "white",
+                  borderRadius: 999,
+                  padding: "0 6px",
+                  fontSize: 10,
+                  fontWeight: 700,
+                }}>
+                  {nActiveFilters}
+                </span>
+              )}
+            </button>
+          )}
+          {nActiveFilters > 0 && (
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              style={{
+                fontSize: 11,
+                padding: "4px 8px",
+                borderRadius: 6,
+                border: "1px solid var(--pulso-border)",
+                background: "white",
+                color: "var(--pulso-text-soft)",
+                cursor: "pointer",
+              }}
+            >
+              Limpiar
+            </button>
+          )}
         </div>
+
+        {filtersOpen && filterableCols.length > 0 && (
+          <div
+            style={{
+              marginBottom: 10,
+              padding: 10,
+              borderRadius: 6,
+              border: "1px solid var(--pulso-border)",
+              background: "var(--pulso-surface)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            {filterableCols.map((col) => {
+              const distinct = distinctByCol[col] ?? [];
+              if (!distinct.length) return null;
+              const activeSet = filters[col];
+              const allShown = !activeSet;
+              return (
+                <div key={col}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text)" }}>
+                      {col}
+                    </span>
+                    <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>
+                      · {distinct.length} {distinct.length === 1 ? "valor" : "valores"}
+                    </span>
+                    {!allShown && (
+                      <button
+                        type="button"
+                        onClick={() => clearFilterCol(col)}
+                        style={{
+                          marginLeft: "auto",
+                          fontSize: 10,
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          border: "1px solid var(--pulso-border)",
+                          background: "white",
+                          color: "var(--pulso-text-soft)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Todos
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {distinct.map((val) => {
+                      const included = allShown || activeSet!.has(val);
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => toggleFilterValue(col, val)}
+                          style={{
+                            fontSize: 10,
+                            padding: "3px 8px",
+                            borderRadius: 999,
+                            border: `1px solid ${included ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+                            background: included ? "var(--pulso-primary-soft)" : "white",
+                            color: included ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
+                            cursor: "pointer",
+                            fontFamily: "ui-monospace, monospace",
+                            maxWidth: 180,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                          title={val}
+                        >
+                          {val}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <DrilldownTable
-          rows={casos}
+          rows={filteredCasos}
           preferredOrder={uuidCol ? [uuidCol, ...regla.variables] : regla.variables}
-          emptyHint="Sin casos inconsistentes."
+          emptyHint={isFiltered ? "Ningún caso matchea los filtros actuales." : "Sin casos inconsistentes."}
         />
       </div>
     </section>
