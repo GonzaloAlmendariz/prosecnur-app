@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import * as Lucide from "lucide-react";
 import {
   ArrowRight, CheckCircle2, Database, FileSpreadsheet,
-  Layers, RotateCcw, Sparkles, Trash2, Upload,
+  RotateCcw, Sparkles, Trash2, Upload,
 } from "lucide-react";
 import {
   apiCargaData,
   apiCargaInstrumento,
+  apiEstudioGet,
   apiInstrumentoEstructura,
   apiListDemos,
   apiLoadDemo,
@@ -14,6 +15,7 @@ import {
   apiQuitarInstrumento,
   apiUpload,
   DemoMeta,
+  EstudioPayload,
   Pregunta,
   Seccion,
 } from "../../api/client";
@@ -21,10 +23,10 @@ import { useSession } from "../../lib/SessionContext";
 import { Panel } from "../../components/Panel";
 import { PageHeader } from "../../components/PageHeader";
 import { LoadingBlock, ErrorBlock, EmptyState, SectionEyebrow } from "../../components/States";
-import { ContextBar } from "../../components/ContextBar";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import SeccionesPanel from "./SeccionesPanel";
 import PreguntasPanel from "./PreguntasPanel";
+import { BasesPanel } from "./BasesPanel";
 
 // Fase 1 — Carga de insumos.
 //
@@ -183,6 +185,52 @@ export default function CargaPage() {
     ? demos.find((d) => d.titulo_humano === activeDemoName)
     : null;
 
+  // ¿Hay un estudio multi-base real en la sesión? Condiciones:
+  // - Al menos una base cargada.
+  // - Los nombres no son solo "default" (que indica single-base legacy
+  //   virtual — ese se maneja con los UploadCards tradicionales).
+  const isMultiBase = !!state
+    && state.n_bases >= 1
+    && !(state.n_bases === 1 && state.bases_nombres[0] === "default");
+
+  // Payload del estudio — cargamos on-demand cuando entramos a modo
+  // multi-base para mostrar el BasesPanel con detalle de cada base.
+  const [estudio, setEstudio] = useState<EstudioPayload | null>(null);
+  useEffect(() => {
+    if (!isMultiBase) {
+      setEstudio(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const p = await apiEstudioGet();
+        if (!cancelled) setEstudio(p);
+      } catch {
+        // Si falla (ej. sesión recién creada sin estudio), el BasesPanel
+        // no se renderiza — volvemos a los UploadCards.
+        if (!cancelled) setEstudio(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isMultiBase, state?.n_bases, state?.bases_nombres?.join(",")]);
+
+  // Tras cambios al estudio (add/remove/rename base), refrescar
+  // session state + estudio payload + re-hidratar estructura del primer
+  // instrumento si aplica.
+  async function onEstudioChanged(payload: EstudioPayload) {
+    setEstudio(payload);
+    await refresh();
+    if (payload.n_bases > 0) {
+      try {
+        const r = await apiInstrumentoEstructura();
+        setEstructura(r);
+      } catch { /* primera base puede no tener estructura aún */ }
+    } else {
+      setEstructura(null);
+    }
+  }
+
   return (
     <section>
       <PageHeader
@@ -197,18 +245,16 @@ export default function CargaPage() {
         }
       />
 
-      {/* Banner Estudio activo (multi-base). Arriba de todo para que el
-          analista vea inmediatamente qué bases tiene cargadas. */}
-      {state && state.n_bases > 1 && (
-        <EstudioActivoBanner
-          estudioNombre={state.estudio_nombre}
-          basesNombres={state.bases_nombres}
-        />
-      )}
+      {/* Modo multi-base: BasesPanel reemplaza los UploadCards.
+          Cada base es un par (XLSForm + data) con nombre único. El
+          usuario puede agregar, quitar y renombrar bases. Viene del
+          backend vía apiEstudioGet(). */}
+      {isMultiBase && estudio ? (
+        <BasesPanel estudio={estudio} onChanged={onEstudioChanged} />
+      ) : (
+      <>
 
-      {/* Sección 1 — LOS DOS INSUMOS (protagonistas). Upload grande,
-          con explicación de qué es cada uno. Es lo más importante de
-          la página: arriba, con espacio y claridad. */}
+      {/* Sección 1 — LOS DOS INSUMOS (protagonistas, single-base). */}
       <section style={{ marginBottom: 28 }}>
         <div style={{ marginBottom: 14 }}>
           <SectionEyebrow
@@ -362,6 +408,9 @@ export default function CargaPage() {
         </section>
       )}
 
+      </>
+      )}
+
       {/* Inspección del instrumento */}
       {state?.instrumento_parsed && estructura && (
         <>
@@ -402,67 +451,9 @@ export default function CargaPage() {
   );
 }
 
-// =====================================================================
-// Estudio activo (multi-base)
-// =====================================================================
-function EstudioActivoBanner({
-  estudioNombre, basesNombres,
-}: {
-  estudioNombre: string | null;
-  basesNombres: string[];
-}) {
-  return (
-    <div style={{ marginBottom: 20 }}>
-      <ContextBar
-        ariaLabel="Estudio multi-base activo"
-        background="var(--pulso-primary-soft)"
-        border="1px solid var(--pulso-primary-border)"
-        style={{ alignItems: "flex-start", gap: 12 }}
-      >
-        <span
-          aria-hidden="true"
-          style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: "white",
-            color: "var(--pulso-primary)",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            border: "1px solid var(--pulso-primary-border)",
-            flexShrink: 0,
-          }}
-        >
-          <Layers size={16} />
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-primary)" }}>
-            Estudio multi-base{estudioNombre ? `: ${estudioNombre}` : ""}
-          </div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.5 }}>
-            Tienes <strong>{basesNombres.length} bases</strong> cargadas. Los slides del
-            reporte pueden mezclar variables de distintas fuentes con la notación{" "}
-            <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 10 }}>fuente$variable</code>.
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-            {basesNombres.map((nombre) => (
-              <span
-                key={nombre}
-                style={{
-                  fontSize: 11, fontWeight: 600,
-                  padding: "3px 10px", borderRadius: 999,
-                  background: "white",
-                  border: "1px solid var(--pulso-primary-border)",
-                  color: "var(--pulso-primary)",
-                  fontFamily: "ui-monospace, monospace",
-                }}
-              >
-                {nombre}
-              </span>
-            ))}
-          </div>
-        </div>
-      </ContextBar>
-    </div>
-  );
-}
+// `EstudioActivoBanner` (banner genérico multi-base que vivía acá) se
+// reemplazó por `BasesPanel` completo — ahora no solo muestra las bases
+// sino que permite renombrar, quitar y agregar.
 
 // =====================================================================
 // Demo chip — compact, ambient (nota al pie de la carga manual).
