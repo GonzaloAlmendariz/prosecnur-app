@@ -85,6 +85,21 @@
       nzchar(s$data_raw_meta$file_id)) {
     out <- c(out, s$data_raw_meta$file_id)
   }
+  # Defensivo: si la sesión tiene un xlsform en s$files pero no está
+  # referenciado por ninguna base (ej. el user lo cargó pero no llamó a
+  # estudio_init_default_base por algún edge case), igual lo incluimos
+  # para que el .pulso sea reabrible. Solo el último xlsform — los
+  # anteriores son obsoletos.
+  if (!is.null(s$files) && length(s$files) > 0L) {
+    xls_fids <- character(0)
+    for (fid in names(s$files)) {
+      f <- s$files[[fid]]
+      if (identical(f$kind, "xlsform")) xls_fids <- c(xls_fids, fid)
+    }
+    if (length(xls_fids) > 0L) {
+      out <- c(out, xls_fids[length(xls_fids)])
+    }
+  }
 
   unique(out)
 }

@@ -83,6 +83,77 @@ read_data_preview <- function(path, ext, n_preview = 100L) {
   )
 }
 
+# Auto-init de la base "default" del estudio cuando el flujo single-base
+# (Carga manual sin pasar por demo) sube un instrumento + data. Las features
+# v2 (Validación, Codificación, Analítica multi-base) requieren que exista
+# al menos una entrada en s$estudio$bases, sino disparan
+# E_NO_DATA_INST / "no tiene XLSForm cargado".
+#
+# Idempotente: si la base "default" ya existe se reemplazan los archivos
+# vía estudio_replace_base_files. Si falta xlsform o data en s$files,
+# es no-op (esperar a que ambos estén listos).
+.read_data_any_path <- function(path, ext) {
+  ext <- tolower(ext %||% tools::file_ext(path))
+  if (ext %in% c("xlsx", "xls")) return(readxl::read_excel(path))
+  if (ext == "csv") return(utils::read.csv(path, stringsAsFactors = FALSE, fileEncoding = "UTF-8"))
+  if (ext == "sav") {
+    if (!requireNamespace("haven", quietly = TRUE)) {
+      stop_api(500, "E_NO_HAVEN", "haven no está disponible para leer .sav")
+    }
+    return(haven::read_sav(path))
+  }
+  stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Extensión no soportada: %s", ext))
+}
+
+estudio_init_default_base <- function(sid) {
+  s <- session_get(sid)
+
+  # Detectar el último xlsform y data subidos.
+  files <- s$files %||% list()
+  xls_metas <- Filter(function(f) identical(f$kind, "xlsform"), files)
+  dat_metas <- Filter(function(f) f$kind %in% c("data", "sav"), files)
+  if (length(xls_metas) == 0L || length(dat_metas) == 0L) {
+    return(invisible(FALSE))
+  }
+  # Última subida de cada tipo (orden de inserción del files store).
+  xls_meta <- xls_metas[[length(xls_metas)]]
+  dat_meta <- dat_metas[[length(dat_metas)]]
+
+  # Computar reportes (caros: parsea xlsform + lee data completa).
+  rp_inst <- reporte_instrumento(path = xls_meta$path)
+  data_df <- .read_data_any_path(dat_meta$path, dat_meta$ext)
+  rp_data <- reporte_data(data_df, instrumento = rp_inst)
+
+  estudio_ensure(sid)
+  s2 <- session_get(sid)
+  if (is.null(s2$estudio$bases$default)) {
+    estudio_add_base(
+      sid,
+      nombre          = "default",
+      xlsform_file_id = xls_meta$file_id,
+      data_file_id    = dat_meta$file_id,
+      data_ext        = as.character(dat_meta$ext),
+      rp_data         = rp_data,
+      rp_inst         = rp_inst,
+      n_filas         = as.integer(nrow(data_df)),
+      n_columnas      = as.integer(ncol(data_df))
+    )
+  } else {
+    estudio_replace_base_files(
+      sid,
+      nombre          = "default",
+      xlsform_file_id = xls_meta$file_id,
+      data_file_id    = dat_meta$file_id,
+      data_ext        = as.character(dat_meta$ext),
+      rp_data         = rp_data,
+      rp_inst         = rp_inst,
+      n_filas         = as.integer(nrow(data_df)),
+      n_columnas      = as.integer(ncol(data_df))
+    )
+  }
+  invisible(TRUE)
+}
+
 mount_carga <- function(pr) {
   pr |>
     plumber::pr_post("/api/carga/instrumento", wrap_endpoint(function(req, res, file_id = NULL) {
@@ -94,6 +165,14 @@ mount_carga <- function(pr) {
       }
       inst <- leer_instrumento_xlsform(meta$path)
       session_set(sid, "instrumento", inst)
+      # Si ya hay data subida, esto auto-crea/refresca la base "default"
+      # del estudio para que las features v2 (Validación, Codificación)
+      # encuentren el par xlsform+data sin requerir flujo multi-base
+      # explícito. No-op si todavía falta la data.
+      tryCatch(estudio_init_default_base(sid),
+               error = function(e) {
+                 message("[carga] estudio_init_default_base falló: ", conditionMessage(e))
+               })
       resumen <- summarize_instrumento(inst)
       list(ok = TRUE, resumen = resumen)
     })) |>
@@ -118,6 +197,13 @@ mount_carga <- function(pr) {
       }
       preview <- read_data_preview(meta$path, meta$ext)
       session_set(sid, "data_raw_meta", list(file_id = file_id, path = meta$path, ext = meta$ext))
+      # Si ya hay xlsform subido, este punto cierra el par y auto-crea la
+      # base "default" — el caso típico cuando el user va Carga →
+      # Validación sin pasar por Analítica primero.
+      tryCatch(estudio_init_default_base(sid),
+               error = function(e) {
+                 message("[carga] estudio_init_default_base falló: ", conditionMessage(e))
+               })
       list(ok = TRUE, preview = preview)
     })) |>
 

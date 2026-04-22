@@ -163,6 +163,12 @@ export function GenerateFooter({
         {fileId && (
           <a
             href={downloadUrl(fileId)}
+            // El download attr fuerza al browser a usar este nombre con
+            // extensión, ignorando el Content-Disposition del server (que
+            // viene con UUID interno). Sin esto, el codebook llegaba como
+            // "<uuid>" sin extensión y el user tenía que renombrar a
+            // mano para abrirlo en Excel.
+            download={multi ? `${downloadName.replace(/\.\w+$/, "")}.zip` : downloadName}
             style={{
               fontSize: 12,
               display: "inline-flex", alignItems: "center", gap: 4,
@@ -211,6 +217,10 @@ export function GenerateFooter({
                 <a
                   key={b.nombre}
                   href={downloadUrl(b.file_id)}
+                  // Inserta el nombre de la base entre el prefijo y la
+                  // extensión (ej. "frecuencias_docentes.xlsx") para que
+                  // los exports por base se distingan al guardarse.
+                  download={downloadName.replace(/(\.\w+)?$/, `_${b.nombre}$1`)}
                   style={{
                     fontSize: 11,
                     display: "inline-flex", alignItems: "center", gap: 4,
