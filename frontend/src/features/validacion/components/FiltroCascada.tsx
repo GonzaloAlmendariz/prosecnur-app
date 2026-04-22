@@ -4,6 +4,7 @@ import {
   apiV2ExplorarValores,
   type ExplorarValoresResult,
   type ExplorarFiltros,
+  type FiltroRango,
 } from "../../../api/client";
 import type { ExploradorSeccion, ExploradorVariable } from "../types";
 
@@ -38,9 +39,12 @@ export default function FiltroCascada({
   const [valores, setValores] = useState<ExplorarValoresResult | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Ampliamos candidatas: SO/SM (listas de valores) + num/fecha (rango).
   const candidatas = secciones
     .flatMap((s) => s.variables.map((v) => ({ ...v, seccion: s.nombre })))
-    .filter((v) => v.tipo === "so" || v.tipo === "sm")
+    .filter((v) =>
+      v.tipo === "so" || v.tipo === "sm" || v.tipo === "num" || v.tipo === "fecha",
+    )
     .filter((v) => !filtros[v.name]);
 
   // Cargar valores al elegir una variable.
@@ -69,6 +73,14 @@ export default function FiltroCascada({
   function addFiltro(values: string[]) {
     if (!selectedVar || values.length === 0) return;
     onChange({ ...filtros, [selectedVar]: values });
+    setSelectedVar(null);
+    setValores(null);
+    setPicking(false);
+  }
+
+  function addFiltroRango(rango: FiltroRango) {
+    if (!selectedVar) return;
+    onChange({ ...filtros, [selectedVar]: rango });
     setSelectedVar(null);
     setValores(null);
     setPicking(false);
@@ -116,9 +128,12 @@ export default function FiltroCascada({
         </span>
 
         {activeKeys.map((vname) => {
-          const vals = filtros[vname];
-          // Label humano del variable si existe.
+          const f = filtros[vname];
           const found = secciones.flatMap((s) => s.variables).find((v) => v.name === vname);
+          const isRange = !Array.isArray(f);
+          const resumen = isRange
+            ? `${(f as FiltroRango).min ?? "−∞"} — ${(f as FiltroRango).max ?? "+∞"}`
+            : `${(f as string[]).length} ${(f as string[]).length === 1 ? "valor" : "valores"}`;
           return (
             <span
               key={vname}
@@ -140,7 +155,7 @@ export default function FiltroCascada({
                 {vname}
               </code>
               <span style={{ color: "var(--pulso-text-soft)" }}>·</span>
-              <span>{vals.length} {vals.length === 1 ? "valor" : "valores"}</span>
+              <span>{resumen}</span>
               <button
                 type="button"
                 onClick={() => removeFiltro(vname)}
@@ -213,6 +228,7 @@ export default function FiltroCascada({
           valores={valores}
           loading={loading}
           onConfirm={addFiltro}
+          onConfirmRango={addFiltroRango}
           onCancel={() => {
             setPicking(false);
             setSelectedVar(null);
@@ -232,6 +248,7 @@ function FiltroPicker({
   valores,
   loading,
   onConfirm,
+  onConfirmRango,
   onCancel,
 }: {
   candidatas: (ExploradorVariable & { seccion: string })[];
@@ -240,14 +257,27 @@ function FiltroPicker({
   valores: ExplorarValoresResult | null;
   loading: boolean;
   onConfirm: (values: string[]) => void;
+  onConfirmRango: (rango: FiltroRango) => void;
   onCancel: () => void;
 }) {
   const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [rangoMin, setRangoMin] = useState<string>("");
+  const [rangoMax, setRangoMax] = useState<string>("");
 
-  // Reset checked al cambiar de variable.
+  // Reset al cambiar de variable.
   useEffect(() => {
     setChecked(new Set());
+    setRangoMin("");
+    setRangoMax("");
   }, [selectedVar]);
+
+  // Cuando llegan los valores, si es num/fecha prefill con min/max.
+  useEffect(() => {
+    if (valores?.rango) {
+      setRangoMin(String(valores.rango.min));
+      setRangoMax(String(valores.rango.max));
+    }
+  }, [valores]);
 
   function toggleVal(code: string) {
     setChecked((s) => {
@@ -257,6 +287,8 @@ function FiltroPicker({
       return copy;
     });
   }
+
+  const esRango = !!valores?.rango && (valores.tipo === "num" || valores.tipo === "fecha");
 
   return (
     <div
@@ -316,7 +348,24 @@ function FiltroPicker({
         </div>
       )}
 
-      {!loading && valores && valores.opciones.length > 0 && (
+      {!loading && esRango && valores?.rango && (
+        <RangoPicker
+          tipo={valores.tipo as "num" | "fecha"}
+          rango={valores.rango}
+          min={rangoMin}
+          max={rangoMax}
+          onMin={setRangoMin}
+          onMax={setRangoMax}
+          onConfirm={() => {
+            const r: FiltroRango = {};
+            if (rangoMin !== "") r.min = valores.tipo === "num" ? Number(rangoMin) : rangoMin;
+            if (rangoMax !== "") r.max = valores.tipo === "num" ? Number(rangoMax) : rangoMax;
+            if (r.min != null || r.max != null) onConfirmRango(r);
+          }}
+        />
+      )}
+
+      {!loading && !esRango && valores && valores.opciones.length > 0 && (
         <>
           <div
             style={{
@@ -371,7 +420,7 @@ function FiltroPicker({
         </>
       )}
 
-      {!loading && valores && valores.opciones.length === 0 && (
+      {!loading && !esRango && valores && valores.opciones.length === 0 && (
         <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
           Esta variable no tiene opciones disponibles.
         </div>
@@ -379,3 +428,163 @@ function FiltroPicker({
     </div>
   );
 }
+
+// =============================================================================
+// RangoPicker — para variables num/fecha. Slider dual manual (inputs con
+// rango propuesto como min/max, p1/p99 como atajos, y dos range sliders
+// sincronizados con los inputs para que el usuario pueda elegir
+// visualmente).
+// =============================================================================
+function RangoPicker({
+  tipo,
+  rango,
+  min,
+  max,
+  onMin,
+  onMax,
+  onConfirm,
+}: {
+  tipo: "num" | "fecha";
+  rango: NonNullable<ExplorarValoresResult["rango"]>;
+  min: string;
+  max: string;
+  onMin: (v: string) => void;
+  onMax: (v: string) => void;
+  onConfirm: () => void;
+}) {
+  const isFecha = tipo === "fecha";
+  const fullMin = Number(rango.min);
+  const fullMax = Number(rango.max);
+  const step = isFecha ? 1 : (fullMax - fullMin) / 1000 || 1;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+        Rango detectado: <strong>{String(rango.min)}</strong> → <strong>{String(rango.max)}</strong>
+        {" "}· n={rango.n_validos}
+        {tipo === "num" && rango.q1 != null && rango.q3 != null && (
+          <> · Q1 = {rango.q1.toFixed(2)} · Mediana = {rango.mediana?.toFixed(2)} · Q3 = {rango.q3.toFixed(2)}</>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <label style={{ fontSize: 11, display: "flex", flexDirection: "column", gap: 4 }}>
+          <span style={{ fontWeight: 600, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4 }}>
+            Mínimo
+          </span>
+          <input
+            type={isFecha ? "date" : "number"}
+            step={isFecha ? undefined : step}
+            value={min}
+            onChange={(e) => onMin(e.target.value)}
+            style={{
+              fontSize: 12,
+              padding: "6px 10px",
+              border: "1px solid var(--pulso-border)",
+              borderRadius: 6,
+            }}
+          />
+        </label>
+        <label style={{ fontSize: 11, display: "flex", flexDirection: "column", gap: 4 }}>
+          <span style={{ fontWeight: 600, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4 }}>
+            Máximo
+          </span>
+          <input
+            type={isFecha ? "date" : "number"}
+            step={isFecha ? undefined : step}
+            value={max}
+            onChange={(e) => onMax(e.target.value)}
+            style={{
+              fontSize: 12,
+              padding: "6px 10px",
+              border: "1px solid var(--pulso-border)",
+              borderRadius: 6,
+            }}
+          />
+        </label>
+      </div>
+
+      {!isFecha && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <input
+            type="range"
+            min={fullMin}
+            max={fullMax}
+            step={step}
+            value={min === "" ? fullMin : Number(min)}
+            onChange={(e) => onMin(e.target.value)}
+            style={{ flex: 1 }}
+          />
+          <input
+            type="range"
+            min={fullMin}
+            max={fullMax}
+            step={step}
+            value={max === "" ? fullMax : Number(max)}
+            onChange={(e) => onMax(e.target.value)}
+            style={{ flex: 1 }}
+          />
+        </div>
+      )}
+
+      {/* Atajos: p1-p99 y Q1-Q3 */}
+      {tipo === "num" && rango.p1 != null && rango.p99 != null && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={() => {
+              onMin(String(rango.p1));
+              onMax(String(rango.p99));
+            }}
+            style={atajoBtnStyle}
+          >
+            Percentil 1 – 99
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onMin(String(rango.q1));
+              onMax(String(rango.q3));
+            }}
+            style={atajoBtnStyle}
+          >
+            IQR (Q1 – Q3)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onMin(String(rango.min));
+              onMax(String(rango.max));
+            }}
+            style={atajoBtnStyle}
+          >
+            Todo el rango
+          </button>
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          className="pulso-primary"
+          onClick={onConfirm}
+          disabled={min === "" && max === ""}
+          style={{ fontSize: 12, padding: "6px 14px", opacity: min === "" && max === "" ? 0.55 : 1 }}
+        >
+          Aplicar rango
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const atajoBtnStyle: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 600,
+  padding: "4px 8px",
+  borderRadius: 4,
+  border: "1px solid var(--pulso-border)",
+  background: "white",
+  color: "var(--pulso-text-soft)",
+  cursor: "pointer",
+};

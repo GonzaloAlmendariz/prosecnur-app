@@ -1826,7 +1826,8 @@ export async function apiV2InstrumentoReglaPatchAtributos(
 }
 
 // --- Explorar (Sprint 3) ----------------------------------------------------
-export type ExplorarFiltros = Record<string, string[]>;
+export type FiltroRango = { min?: number | string; max?: number | string };
+export type ExplorarFiltros = Record<string, string[] | FiltroRango>;
 
 export type ExplorarUnivariadoResult = {
   ok: true;
@@ -1876,11 +1877,23 @@ export async function apiV2ExplorarBivariado(
   );
 }
 
+export type ExplorarValoresRango = {
+  min: number | string;
+  max: number | string;
+  p1?: number;
+  p99?: number;
+  q1?: number;
+  q3?: number;
+  mediana?: number;
+  n_validos: number;
+};
+
 export type ExplorarValoresResult = {
   ok: true;
   var: string;
   tipo: string;
   opciones: Array<{ code: string; label: string; n: number }>;
+  rango: ExplorarValoresRango | null;
 };
 
 export async function apiV2ExplorarValores(

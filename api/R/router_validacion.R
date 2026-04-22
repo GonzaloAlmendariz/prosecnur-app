@@ -953,6 +953,44 @@ mount_validacion <- function(pr) {
       df <- data_sources[[effective_base]]
       inst <- inst_sources[[effective_base]]
       tipo <- .explorar_tipo_var(var, survey = inst$survey %||% NULL, df = df)
+      # Para num / fecha: devolvemos rango + cuantiles para que el UI
+      # pueda armar un slider/inputs con defaults sensatos.
+      if (tipo == "num" && var %in% names(df)) {
+        x <- suppressWarnings(as.numeric(df[[var]]))
+        x <- x[is.finite(x)]
+        if (!length(x)) {
+          return(list(ok = TRUE, var = var, tipo = "num",
+                       opciones = list(), rango = NULL))
+        }
+        qs <- stats::quantile(x, c(0, 0.01, 0.25, 0.5, 0.75, 0.99, 1),
+                                na.rm = TRUE)
+        return(list(
+          ok = TRUE, var = var, tipo = "num", opciones = list(),
+          rango = list(
+            min = unname(qs[1]), max = unname(qs[7]),
+            p1  = unname(qs[2]), p99 = unname(qs[6]),
+            q1  = unname(qs[3]), q3  = unname(qs[5]),
+            mediana = unname(qs[4]),
+            n_validos = length(x)
+          )
+        ))
+      }
+      if (tipo == "fecha" && var %in% names(df)) {
+        dates <- suppressWarnings(as.Date(df[[var]]))
+        dates <- dates[!is.na(dates)]
+        if (!length(dates)) {
+          return(list(ok = TRUE, var = var, tipo = "fecha",
+                       opciones = list(), rango = NULL))
+        }
+        return(list(
+          ok = TRUE, var = var, tipo = "fecha", opciones = list(),
+          rango = list(
+            min = as.character(min(dates)),
+            max = as.character(max(dates)),
+            n_validos = length(dates)
+          )
+        ))
+      }
       tab <- if (tipo == "sm") {
         .explorar_tab_frec_sm(df, var, inst)
       } else {
@@ -967,7 +1005,8 @@ mount_validacion <- function(pr) {
           )
         })
       } else list()
-      list(ok = TRUE, var = var, tipo = tipo, opciones = opciones)
+      list(ok = TRUE, var = var, tipo = tipo, opciones = opciones,
+            rango = NULL)
     })) |>
 
     # --- Reglas custom: listar -----------------------------------------------

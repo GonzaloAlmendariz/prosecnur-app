@@ -30,15 +30,39 @@
   if (is.null(filtros) || length(filtros) == 0L || !nrow(data)) return(data)
   keep <- rep(TRUE, nrow(data))
   for (var in names(filtros)) {
-    vals <- unlist(filtros[[var]])
+    f <- filtros[[var]]
+    if (is.null(f)) next
+    tipo <- .explorar_tipo_var(var, survey = survey, df = data)
+
+    # Filtro numérico/fecha: {min, max} (ambos opcionales).
+    is_range_filter <- is.list(f) && (!is.null(f$min) || !is.null(f$max)) &&
+                        !is.null(names(f))
+    if (is_range_filter && var %in% names(data)) {
+      if (tipo == "fecha") {
+        col <- suppressWarnings(as.Date(data[[var]]))
+        mn <- suppressWarnings(as.Date(f$min %||% NA))
+        mx <- suppressWarnings(as.Date(f$max %||% NA))
+        mask <- !is.na(col)
+        if (!is.na(mn)) mask <- mask & (col >= mn)
+        if (!is.na(mx)) mask <- mask & (col <= mx)
+      } else {
+        x <- suppressWarnings(as.numeric(data[[var]]))
+        mn <- suppressWarnings(as.numeric(f$min))
+        mx <- suppressWarnings(as.numeric(f$max))
+        mask <- !is.na(x)
+        if (!is.na(mn)) mask <- mask & (x >= mn)
+        if (!is.na(mx)) mask <- mask & (x <= mx)
+      }
+      keep <- keep & mask
+      next
+    }
+
+    vals <- unlist(f)
     vals <- as.character(vals[!is.na(vals) & nzchar(as.character(vals))])
     if (!length(vals)) next
-    tipo <- .explorar_tipo_var(var, survey = survey, df = data)
     if (tipo == "sm") {
       # OR sobre columnas dummy: si alguna dummy de la opción está en 1.
       var_esc <- gsub("([\\W])", "\\\\\\1", var)
-      # El valor de filtro para SM es la opción (ej. "a"), construimos
-      # candidate cols "var.a" y "var/a".
       mask_any <- rep(FALSE, nrow(data))
       for (v in vals) {
         for (sep in c(".", "/")) {
@@ -771,4 +795,43 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
       )
     )
   )
+}
+
+# -----------------------------------------------------------------------------
+# Resumen de rango para variables num/fecha (para el filtro UI)
+# -----------------------------------------------------------------------------
+# Retorna list(min, max, q1, q3, mediana, p1, p99, n_validos) o NULL si la
+# variable no aplica. Usado por /api/validacion/v2/explorar/valores para
+# que el frontend arme un slider de rango con atajos Q1-Q3 / p1-p99.
+.explorar_resumen_rango <- function(df, var, tipo) {
+  if (!var %in% names(df)) return(NULL)
+  raw <- df[[var]]
+  if (tipo == "fecha") {
+    d <- suppressWarnings(as.Date(raw))
+    d <- d[!is.na(d)]
+    if (!length(d)) return(NULL)
+    return(list(
+      min = as.character(min(d)),
+      max = as.character(max(d)),
+      n_validos = as.integer(length(d))
+    ))
+  }
+  if (tipo == "num") {
+    x <- suppressWarnings(as.numeric(raw))
+    x <- x[is.finite(x)]
+    if (!length(x)) return(NULL)
+    qs <- stats::quantile(x, c(0.01, 0.25, 0.5, 0.75, 0.99),
+                          na.rm = TRUE, names = FALSE)
+    return(list(
+      min = as.numeric(min(x)),
+      max = as.numeric(max(x)),
+      p1 = as.numeric(qs[1]),
+      q1 = as.numeric(qs[2]),
+      mediana = as.numeric(qs[3]),
+      q3 = as.numeric(qs[4]),
+      p99 = as.numeric(qs[5]),
+      n_validos = as.integer(length(x))
+    ))
+  }
+  NULL
 }

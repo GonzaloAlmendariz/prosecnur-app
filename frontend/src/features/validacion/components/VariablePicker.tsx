@@ -12,13 +12,18 @@ import type { ExploradorSeccion, ExploradorVariable } from "../types";
 // Cada variable muestra: chip de tipo (so/sm/num/fecha/texto), nombre
 // monoespaciado, label humano, y % missing si > 20% (warn).
 
+// Paleta oficial Pulso para tipos de variable:
+//   SO (select_one) → azul
+//   NUM (integer/decimal) → morado
+//   SM (select_multiple) → verde
+// fecha / texto / mixto mantienen colores neutrales de soporte.
 const TIPO_COLORS: Record<
   string,
   { bg: string; fg: string; label: string }
 > = {
-  so: { bg: "#dbeafe", fg: "#1e40af", label: "SO" },
-  sm: { bg: "#ede9fe", fg: "#5b21b6", label: "SM" },
-  num: { bg: "#d1fae5", fg: "#065f46", label: "123" },
+  so: { bg: "#dbeafe", fg: "#1e40af", label: "SO" },       // azul
+  num: { bg: "#ede9fe", fg: "#5b21b6", label: "123" },     // morado
+  sm: { bg: "#d1fae5", fg: "#065f46", label: "SM" },       // verde
   fecha: { bg: "#ffedd5", fg: "#9a3412", label: "📅" },
   texto: { bg: "#f3f4f6", fg: "#374151", label: "abc" },
   mixto: { bg: "#f3f4f6", fg: "#6b7280", label: "?" },
