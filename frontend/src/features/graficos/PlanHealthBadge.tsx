@@ -1,7 +1,25 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, XCircle, ChevronRight } from "lucide-react";
 import { usePlanStore } from "./store";
 import { ValidationIssue, usePlanValidator } from "./usePlanValidator";
+
+type StatusPalette = { bg: string; fg: string; border: string };
+
+const PALETTE_ERROR: StatusPalette = {
+  bg: "var(--pulso-danger-bg)",
+  fg: "var(--pulso-danger-fg)",
+  border: "var(--pulso-danger-border)",
+};
+const PALETTE_WARN: StatusPalette = {
+  bg: "var(--pulso-warn-bg)",
+  fg: "var(--pulso-warn-fg)",
+  border: "var(--pulso-warn-border)",
+};
+const PALETTE_SUCCESS: StatusPalette = {
+  bg: "var(--pulso-success-bg)",
+  fg: "var(--pulso-success-fg)",
+  border: "var(--pulso-success-border)",
+};
 
 // Badge compacto "Salud del plan" para el header. Tres estados visuales:
 //   - ✔  Todo en orden (verde, pequeño): sin warnings ni errors.
@@ -14,14 +32,33 @@ import { ValidationIssue, usePlanValidator } from "./usePlanValidator";
 export function PlanHealthBadge() {
   const { errors, warnings, issues, canExport } = usePlanValidator();
   const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const select = usePlanStore((s) => s.select);
 
+  // Click-outside + Escape — mismo patrón que OverrideDropdown y
+  // DebugPhToggle. Reemplaza el overlay fullscreen `zIndex: 20` que
+  // interfería con otros popovers abiertos en el mismo header.
+  useEffect(() => {
+    if (!open) return;
+    function onDocMouseDown(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   const total = issues.length;
-  const color = errors.length > 0
-    ? { bg: "#fef2f2", fg: "#991b1b", border: "#fecaca" }
-    : warnings.length > 0
-      ? { bg: "#fefce8", fg: "#854d0e", border: "#fde68a" }
-      : { bg: "#f0fdf4", fg: "#15803d", border: "#bbf7d0" };
+  const palette: StatusPalette =
+    errors.length > 0 ? PALETTE_ERROR :
+    warnings.length > 0 ? PALETTE_WARN :
+    PALETTE_SUCCESS;
 
   const Icon = errors.length > 0 ? XCircle : warnings.length > 0 ? AlertTriangle : CheckCircle2;
   const label = errors.length > 0
@@ -38,18 +75,20 @@ export function PlanHealthBadge() {
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={rootRef} style={{ position: "relative" }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="menu"
         title={canExport ? "Validación del plan" : "El plan tiene errores que bloquean el export"}
         style={{
           display: "inline-flex", alignItems: "center", gap: 5,
           fontSize: 11, fontWeight: 600,
           padding: "5px 10px", borderRadius: 999,
-          border: `1px solid ${color.border}`,
-          background: color.bg,
-          color: color.fg,
+          border: `1px solid ${palette.border}`,
+          background: palette.bg,
+          color: palette.fg,
           cursor: "pointer",
         }}
       >
@@ -57,65 +96,60 @@ export function PlanHealthBadge() {
         {label}
       </button>
       {open && (
-        <>
-          <div
-            onClick={() => setOpen(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 20 }}
-          />
-          <div
-            style={{
-              position: "absolute", top: "calc(100% + 6px)", right: 0,
-              zIndex: 21,
-              minWidth: 340, maxWidth: 420,
-              maxHeight: 440, overflowY: "auto",
-              background: "white",
-              border: "1px solid var(--pulso-border)",
-              borderRadius: 8,
-              boxShadow: "var(--pulso-shadow-med)",
-              padding: 10,
-              display: "flex", flexDirection: "column", gap: 8,
-            }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-text)" }}>
-              Salud del plan
-            </div>
-
-            {total === 0 ? (
-              <div
-                style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  fontSize: 12, color: color.fg,
-                  padding: "10px 12px", borderRadius: 6,
-                  background: color.bg, border: `1px solid ${color.border}`,
-                }}
-              >
-                <CheckCircle2 size={14} />
-                <span>Todo en orden. El plan está listo para exportar.</span>
-              </div>
-            ) : (
-              <>
-                {errors.length > 0 && (
-                  <IssueGroup
-                    title={`Errores (${errors.length})`}
-                    hint="Bloquean el export — arréglalos antes de generar el PPT/Word."
-                    issues={errors}
-                    severity="error"
-                    onJump={handleJumpTo}
-                  />
-                )}
-                {warnings.length > 0 && (
-                  <IssueGroup
-                    title={`Avisos (${warnings.length})`}
-                    hint="No bloquean el export, pero conviene revisarlos."
-                    issues={warnings}
-                    severity="warning"
-                    onJump={handleJumpTo}
-                  />
-                )}
-              </>
-            )}
+        <div
+          role="menu"
+          style={{
+            position: "absolute", top: "calc(100% + 6px)", right: 0,
+            zIndex: 21,
+            minWidth: 340, maxWidth: 420,
+            maxHeight: 440, overflowY: "auto",
+            background: "white",
+            border: "1px solid var(--pulso-border)",
+            borderRadius: 8,
+            boxShadow: "var(--pulso-shadow-med)",
+            padding: 10,
+            display: "flex", flexDirection: "column", gap: 8,
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-text)" }}>
+            Salud del plan
           </div>
-        </>
+
+          {total === 0 ? (
+            <div
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                fontSize: 12, color: palette.fg,
+                padding: "10px 12px", borderRadius: 6,
+                background: palette.bg, border: `1px solid ${palette.border}`,
+              }}
+            >
+              <CheckCircle2 size={14} />
+              <span>Todo en orden. El plan está listo para exportar.</span>
+            </div>
+          ) : (
+            <>
+              {errors.length > 0 && (
+                <IssueGroup
+                  title={`Errores (${errors.length})`}
+                  hint="Bloquean el export — arréglalos antes de generar el PPT/Word."
+                  issues={errors}
+                  severity="error"
+                  onJump={handleJumpTo}
+                />
+              )}
+              {warnings.length > 0 && (
+                <IssueGroup
+                  title={`Avisos (${warnings.length})`}
+                  hint="No bloquean el export, pero conviene revisarlos."
+                  issues={warnings}
+                  severity="warning"
+                  onJump={handleJumpTo}
+                />
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   );
@@ -130,10 +164,7 @@ function IssueGroup({
   severity: "error" | "warning";
   onJump: (issue: ValidationIssue) => void;
 }) {
-  const palette =
-    severity === "error"
-      ? { bg: "#fef2f2", fg: "#991b1b", border: "#fecaca" }
-      : { bg: "#fefce8", fg: "#854d0e", border: "#fde68a" };
+  const palette = severity === "error" ? PALETTE_ERROR : PALETTE_WARN;
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <div

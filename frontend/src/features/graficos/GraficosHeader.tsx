@@ -123,37 +123,9 @@ export function GraficosHeader({
           borderRadius: 8,
         }}
       >
-        {savedAll ? (
-          <span
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              color: "#15803d", fontSize: 11, fontWeight: 700,
-              textTransform: "uppercase", letterSpacing: 0.4,
-            }}
-          >
-            <CheckCircle2 size={12} /> Autoguardado
-          </span>
-        ) : savingNow ? (
-          <span
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              color: "var(--pulso-text-soft)", fontSize: 11, fontWeight: 700,
-              textTransform: "uppercase", letterSpacing: 0.4,
-            }}
-          >
-            <Loader2 size={12} className="pulso-spin" /> Guardando…
-          </span>
-        ) : (
-          <span
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              color: "var(--pulso-text-soft)", fontSize: 11, fontWeight: 700,
-              textTransform: "uppercase", letterSpacing: 0.4,
-            }}
-          >
-            Cargando…
-          </span>
-        )}
+        <SaveStatusIndicator
+          state={savedAll ? "saved" : savingNow ? "saving" : "loading"}
+        />
 
         <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", flex: 1, lineHeight: 1.4 }}>
           {nSlides === 0
@@ -215,14 +187,14 @@ export function GraficosHeader({
           style={{
             fontSize: 11, padding: "5px 10px",
             display: "inline-flex", alignItems: "center", gap: 5,
-            color: nSlides === 0 ? "var(--pulso-text-soft)" : "#991b1b",
+            color: nSlides === 0 ? "var(--pulso-text-soft)" : "var(--pulso-danger-fg)",
           }}
         >
           <RotateCcw size={12} /> Reset
         </button>
 
-        {ioMsg && <span style={{ fontSize: 11, color: "#15803d", fontWeight: 600 }}>{ioMsg}</span>}
-        {ioError && <span style={{ fontSize: 11, color: "#b91c1c", fontWeight: 600 }}>{ioError}</span>}
+        {ioMsg && <span style={{ fontSize: 11, color: "var(--pulso-success-fg)", fontWeight: 600 }}>{ioMsg}</span>}
+        {ioError && <span style={{ fontSize: 11, color: "var(--pulso-danger-fg)", fontWeight: 600 }}>{ioError}</span>}
       </div>
 
       {/* Toolbar de exportación + presets */}
@@ -378,7 +350,7 @@ function DebugPhToggle() {
             background: "white",
             border: "1px solid var(--pulso-border)",
             borderRadius: 8,
-            boxShadow: "var(--pulso-shadow-med, 0 6px 20px rgba(0,0,0,0.12))",
+            boxShadow: "var(--pulso-shadow-med)",
             display: "flex", flexDirection: "column", gap: 10,
           }}
         >
@@ -494,5 +466,30 @@ function UndoRedoButtons() {
         <Redo2 size={13} />
       </button>
     </div>
+  );
+}
+
+// Indicador unificado del estado de autosave del plan. Antes eran 3
+// <span>s con estilos inline duplicados para saved/saving/loading.
+// Ahora una sola función que mapea estado → (icono, color, label).
+type SaveState = "saved" | "saving" | "loading";
+
+function SaveStatusIndicator({ state }: { state: SaveState }) {
+  const cfg = state === "saved"
+    ? { color: "var(--pulso-success-fg)", icon: <CheckCircle2 size={12} />, label: "Autoguardado" }
+    : state === "saving"
+    ? { color: "var(--pulso-text-soft)", icon: <Loader2 size={12} className="pulso-spin" />, label: "Guardando…" }
+    : { color: "var(--pulso-text-soft)", icon: null, label: "Cargando…" };
+  return (
+    <span
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 5,
+        color: cfg.color, fontSize: 11, fontWeight: 700,
+        textTransform: "uppercase", letterSpacing: 0.4,
+      }}
+    >
+      {cfg.icon}
+      {cfg.label}
+    </span>
   );
 }

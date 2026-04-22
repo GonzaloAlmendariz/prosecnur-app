@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { ChevronUp, ChevronDown, X, Plus, Copy, Search } from "lucide-react";
+import { ChevronUp, ChevronDown, X, Plus, Copy, Search, LayoutPanelTop } from "lucide-react";
 import { SlideType } from "../../api/client";
 import { usePlanStore, SLIDE_LABELS } from "./store";
+import { EmptyState } from "../../components/States";
 
 // Grupos del picker "Agregar slide" — siguen la categorización humana
 // del registry (`graficos_metadata.R`). El Bloque 3 los reemplazará
@@ -129,10 +130,15 @@ export default function TimelinePanel() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
         {plan.slides.length === 0 && (
-          <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>Sin slides aún.</div>
+          <EmptyState
+            variant="inline"
+            icon={<LayoutPanelTop size={16} />}
+            title="Sin slides aún"
+            hint="Agrega un slide desde la sección de abajo."
+          />
         )}
         {plan.slides.length > 0 && filtered.length === 0 && (
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic", padding: "10px 4px" }}>
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", padding: "10px 4px", fontStyle: "italic" }}>
             Ningún slide coincide con "{query}".
           </div>
         )}
@@ -147,8 +153,8 @@ export default function TimelinePanel() {
                 border: active ? "1px solid var(--pulso-primary)" : "1px solid var(--pulso-border)",
                 borderRadius: 8,
                 cursor: "pointer",
-                background: active ? "rgba(0,36,87,0.04)" : "var(--pulso-surface)",
-                boxShadow: active ? "0 0 0 3px rgba(0,36,87,0.12)" : "var(--pulso-shadow-low)",
+                background: active ? "var(--pulso-primary-soft)" : "var(--pulso-surface)",
+                boxShadow: active ? "0 0 0 3px var(--pulso-primary-ring)" : "var(--pulso-shadow-low)",
                 fontSize: 12,
                 display: "flex",
                 flexDirection: "column",
@@ -201,6 +207,7 @@ export default function TimelinePanel() {
                 <button
                   key={t}
                   onClick={() => addSlide(t)}
+                  className="pulso-timeline-add"
                   style={{ fontSize: 12, textAlign: "left", padding: "5px 8px", display: "inline-flex", alignItems: "center", gap: 6 }}
                 >
                   <Plus size={12} /> {SLIDE_LABELS[t]}

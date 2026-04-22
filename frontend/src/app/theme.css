@@ -3,6 +3,10 @@
   --pulso-primary-soft: rgba(0, 36, 87, 0.08);
   --pulso-primary-border: rgba(0, 36, 87, 0.18);
   --pulso-primary-focus: rgba(0, 36, 87, 0.15);
+  /* Ring sutil para active states (item seleccionado en timeline, card
+   * del slide activo en editor, etc.). Similar a box-shadow focus pero
+   * levemente más opaco y ancho para marcar selección persistente. */
+  --pulso-primary-ring: rgba(0, 36, 87, 0.12);
   --pulso-surface: #ffffff;
   --pulso-surface-2: #fafbff;
   --pulso-bg: #f5f6fa;
@@ -346,4 +350,20 @@ input.pulso-inline-edit:focus {
   background: white;
   border-color: var(--pulso-primary-border);
   box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* Botón de "Agregar slide" en el TimelinePanel — ghost con hover soft
+   primary. Sin estilo persistente para que visualmente los botones no
+   compitan con los items del plan (arriba en la misma columna). */
+button.pulso-timeline-add {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--pulso-text);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+button.pulso-timeline-add:hover:not(:disabled) {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
 }

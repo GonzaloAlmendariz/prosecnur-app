@@ -4,6 +4,7 @@ import { X, Sparkles } from "lucide-react";
 import { PlanJson, Slide } from "../../api/client";
 import { usePlanStore } from "./store";
 import { useTemplates } from "./useTemplates";
+import { LoadingBlock, ErrorBlock } from "../../components/States";
 
 // Modal para aplicar un template (plan pre-armado). Se abre desde un
 // botón en el header o desde el timeline cuando está vacío. Al elegir:
@@ -101,16 +102,8 @@ export function TemplatesModal({ onClose }: { onClose: () => void }) {
         </header>
 
         <div style={{ padding: 18, overflowY: "auto", flex: 1 }}>
-          {loading && (
-            <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", padding: 20, textAlign: "center" }}>
-              Cargando plantillas…
-            </div>
-          )}
-          {error && (
-            <div style={{ fontSize: 12, color: "#991b1b", padding: 20 }}>
-              Error cargando plantillas: {error}
-            </div>
-          )}
+          {loading && <LoadingBlock label="Cargando plantillas…" />}
+          {error && <ErrorBlock label="Error cargando plantillas" detail={error} />}
           {!loading && !error && (
             <div
               style={{

@@ -12,7 +12,7 @@ export function ShortcutsModal({ onClose }: { onClose: () => void }) {
     { keys: [mod, "Z"], label: "Deshacer el último cambio" },
     { keys: [mod, "Shift", "Z"], label: "Rehacer" },
     { keys: [mod, "D"], label: "Duplicar el slide activo" },
-    { keys: ["?"], label: "Abrir esta ayuda" },
+    { keys: ["?"], label: "Abrir esta ayuda (en teclados US: Shift + /)" },
   ];
 
   return (
