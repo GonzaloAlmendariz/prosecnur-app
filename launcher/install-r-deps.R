@@ -40,7 +40,12 @@ dependency_fields <- intersect(c("Depends", "Imports"), names(desc))
 dependency_text <- paste(stats::na.omit(desc[dependency_fields]), collapse = ",")
 pkgs <- trimws(unlist(strsplit(dependency_text, ","), use.names = FALSE))
 pkgs <- sub("\\s*\\(.*\\)$", "", pkgs)
-pkgs <- unique(c("pkgload", pkgs))
+# `quarto` es opcional para Prosecnur (solo lo usa el reporte de
+# enumeradores en PDF) por eso vive en Suggests, no en Imports.
+# Aún así lo instalamos por default — el launcher chequea el binario
+# Quarto CLI por separado y ofrece instalarlo si falta. El paquete R
+# `quarto` solo expone el wrapper para llamar al CLI desde R.
+pkgs <- unique(c("pkgload", "quarto", pkgs))
 pkgs <- setdiff(pkgs[nzchar(pkgs)], "R")
 
 missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]

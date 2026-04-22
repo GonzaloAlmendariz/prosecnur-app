@@ -90,6 +90,54 @@ if [ ! -f "$R_DEPS_SENTINEL" ]; then
   fi
 fi
 
+# ---------- 2b. Quarto CLI (para reporte de enumeradores en PDF) ------------
+# Quarto es opcional pero crítico para Fase 4 → Enumeradores. Si falta,
+# ofrecemos instalarlo automáticamente vía Homebrew (camino más limpio
+# en macOS). Si el user no tiene brew, abrimos la URL de descarga.
+# El user puede saltar y la app sigue funcionando — solo pierde el PDF
+# de enumeradores. Sentinel en Application Support para no preguntar
+# en cada arranque si ya pasó por acá.
+QUARTO_CHECKED_SENTINEL="$RUNTIME_ROOT/quarto-checked"
+if ! command -v quarto >/dev/null 2>&1; then
+  if [ ! -f "$QUARTO_CHECKED_SENTINEL" ]; then
+    if command -v brew >/dev/null 2>&1; then
+      RESPUESTA=$(/usr/bin/osascript <<EOF
+display dialog "Prosecnur necesita Quarto CLI para generar el reporte de enumeradores en PDF. ¿Lo instalo ahora con Homebrew? (Toma 2-5 minutos. Las demás fases ya funcionan sin Quarto.)" buttons {"Cancelar", "Más tarde", "Instalar"} default button "Instalar" with title "Prosecnur — Quarto CLI"
+EOF
+)
+      BOTON=$(echo "$RESPUESTA" | sed 's/.*button returned://; s/, .*//')
+      if [ "$BOTON" = "Instalar" ]; then
+        notify "Instalando Quarto CLI. Esto toma unos minutos…"
+        echo "[$(date)] brew install --cask quarto" >> "$SETUP_LOG"
+        if brew install --cask quarto >> "$SETUP_LOG" 2>&1; then
+          notify "Quarto CLI instalado."
+          touch "$QUARTO_CHECKED_SENTINEL"
+        else
+          fail_dialog "No se pudo instalar Quarto con Homebrew. Revisa $SETUP_LOG. Puedes instalarlo manual desde https://quarto.org/docs/get-started/"
+          # Marcamos el sentinel igual para no preguntar de nuevo cada arranque.
+          touch "$QUARTO_CHECKED_SENTINEL"
+        fi
+      elif [ "$BOTON" = "Más tarde" ]; then
+        # No marcamos sentinel — preguntará en el próximo arranque.
+        :
+      else
+        # "Cancelar" — marcamos sentinel para dejar al user en paz.
+        touch "$QUARTO_CHECKED_SENTINEL"
+      fi
+    else
+      # Sin brew, abrimos URL y marcamos sentinel.
+      RESPUESTA=$(/usr/bin/osascript <<EOF
+display dialog "Prosecnur necesita Quarto CLI para reportes de enumeradores en PDF. No tienes Homebrew, instálalo manualmente desde la web. ¿Abro la página ahora? (Las demás fases ya funcionan sin Quarto.)" buttons {"No abrir", "Abrir página"} default button "Abrir página" with title "Prosecnur — Quarto CLI"
+EOF
+)
+      if echo "$RESPUESTA" | grep -q "Abrir página"; then
+        open "https://quarto.org/docs/get-started/" 2>/dev/null || true
+      fi
+      touch "$QUARTO_CHECKED_SENTINEL"
+    fi
+  fi
+fi
+
 # ---------- 3. Preparar Electron según modo ----------------------------------
 if [ "$MODE" = "dev" ]; then
   # DEV: apuntar a desktop/ y frontend/ del repo directamente.

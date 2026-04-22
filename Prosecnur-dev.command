@@ -54,6 +54,42 @@ if [ ! -f "$R_SENTINEL" ]; then
   Rscript launcher/install-r-deps.R && touch "$R_SENTINEL"
 fi
 
+# Quarto CLI: opcional pero crítico para Fase 4 → Enumeradores PDF.
+# Si falta, ofrecemos instalarlo automáticamente con Homebrew si está,
+# o abrimos la URL de descarga. Sentinel en Application Support para no
+# preguntar de nuevo después de que el user decidió.
+QUARTO_SENTINEL="$HOME/Library/Application Support/Prosecnur/quarto-checked"
+if ! command -v quarto >/dev/null 2>&1 && [ ! -f "$QUARTO_SENTINEL" ]; then
+  echo ""
+  echo "──────────────────────────────────────────────────────────────"
+  echo "  Falta Quarto CLI (opcional, para reportes PDF de enumeradores)"
+  echo "──────────────────────────────────────────────────────────────"
+  if command -v brew >/dev/null 2>&1; then
+    read -r -p "¿Instalar Quarto ahora con 'brew install --cask quarto'? [Y/n/s=skip] " resp
+    case "$resp" in
+      [Nn]) echo "  → Saltado por esta sesión (preguntará de nuevo)." ;;
+      [Ss]*) echo "  → Saltado permanente."; touch "$QUARTO_SENTINEL" ;;
+      *)
+        echo "  → Instalando…"
+        if brew install --cask quarto; then
+          echo "  ✓ Quarto instalado."
+          touch "$QUARTO_SENTINEL"
+        else
+          echo "  ✗ La instalación falló. Puedes hacerlo manual desde https://quarto.org/docs/get-started/"
+          touch "$QUARTO_SENTINEL"
+        fi
+        ;;
+    esac
+  else
+    echo "  Sin Homebrew detectado. Instala Quarto desde:"
+    echo "    https://quarto.org/docs/get-started/"
+    echo "  (las demás fases funcionan sin Quarto — esto es solo para enumeradores PDF)"
+    read -r -p "  ¿No volver a preguntar? [y/N] " resp
+    case "$resp" in [Yy]) touch "$QUARTO_SENTINEL" ;; esac
+  fi
+  echo ""
+fi
+
 # Levantar la app via make desktop. exec reemplaza el proceso bash con
 # make para que Ctrl+C en Terminal mate todo limpio.
 echo "→ Lanzando Prosecnur..."

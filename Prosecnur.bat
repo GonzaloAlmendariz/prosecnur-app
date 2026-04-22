@@ -67,6 +67,29 @@ if not exist "%R_DEPS_SENTINEL%" (
   type nul > "%R_DEPS_SENTINEL%"
 )
 
+REM ---------- 2b. Quarto CLI (opcional, para reportes PDF de enumeradores) ----
+REM Si falta, ofrecemos instalarlo via winget (built-in en Windows 10+).
+REM Sentinel para no preguntar de nuevo despues de la decision del user.
+set "QUARTO_SENTINEL=%RUNTIME_ROOT%\quarto-checked"
+where quarto >nul 2>&1
+if errorlevel 1 (
+  if not exist "%QUARTO_SENTINEL%" (
+    where winget >nul 2>&1
+    if not errorlevel 1 (
+      echo [%date% %time%] Quarto no encontrado, intentando winget install >> "%SETUP_LOG%"
+      msg * /time:30 "Prosecnur va a instalar Quarto CLI (necesario para reportes PDF de enumeradores). Toma unos minutos."
+      winget install --id Posit.Quarto -e --silent --accept-package-agreements --accept-source-agreements >> "%SETUP_LOG%" 2>&1
+      if errorlevel 1 (
+        msg * /time:60 "No se pudo instalar Quarto via winget. Instalalo manual desde https://quarto.org/docs/get-started/. Las demas fases funcionan sin Quarto."
+      )
+      type nul > "%QUARTO_SENTINEL%"
+    ) else (
+      msg * /time:60 "Falta Quarto CLI (necesario solo para reportes PDF de enumeradores). Instalalo desde https://quarto.org/docs/get-started/. Las demas fases funcionan sin Quarto."
+      type nul > "%QUARTO_SENTINEL%"
+    )
+  )
+)
+
 REM ---------- 3. Preparar Electron segun modo ----------------------------------
 if "%MODE%"=="dev" (
   set "DESKTOP_DIR=%INTERNALS%\desktop"
