@@ -35,7 +35,7 @@ export default function VariablePicker({
   // Fuente activa: la del value si tiene prefijo, o la primera disponible.
   const activeSource = parsed.source ?? (sources[0]?.name ?? null);
 
-  if (loading) return <span style={{ fontSize: 12, color: "#888" }}>cargando variables…</span>;
+  if (loading) return <span style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>cargando variables…</span>;
   if (error) {
     const isSessionLost = error.includes("E_NO_SESSION");
     return (
@@ -131,7 +131,7 @@ export default function VariablePicker({
         />
       </div>
       {allVars.length === 0 && (
-        <span style={{ fontSize: 11, color: "#888" }}>
+        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
           Sin variables. ¿Ya preparaste en Fase 4?
         </span>
       )}

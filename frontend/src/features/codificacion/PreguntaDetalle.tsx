@@ -2,16 +2,16 @@ import { useEffect, useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { apiCodifPreguntasAbiertas, arquetipoOf, PreguntaAbierta } from "../../api/client";
-import { Alert } from "../../components/Alert";
 import { Panel } from "../../components/Panel";
+import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { RespuestasCodificador } from "./RespuestasCodificador";
 import { IntegerCodificador } from "./IntegerCodificador";
 
-const TIPO_STYLE: Record<string, { bg: string; fg: string; label: string }> = {
-  select_multiple: { bg: "var(--tipo-sm-bg)", fg: "var(--tipo-sm-fg)", label: "Múltiple" },
-  select_one: { bg: "var(--tipo-so-bg)", fg: "var(--tipo-so-fg)", label: "Opción única" },
-  integer: { bg: "var(--tipo-int-bg)", fg: "var(--tipo-int-fg)", label: "Numérica" },
-  text: { bg: "var(--tipo-text-bg)", fg: "var(--tipo-text-fg)", label: "Texto abierto" },
+const TIPO_STYLE: Record<string, { bg: string; fg: string; border: string; label: string }> = {
+  select_multiple: { bg: "var(--tipo-sm-bg)", fg: "var(--tipo-sm-fg)", border: "var(--tipo-sm-border)", label: "Múltiple" },
+  select_one: { bg: "var(--tipo-so-bg)", fg: "var(--tipo-so-fg)", border: "var(--tipo-so-border)", label: "Opción única" },
+  integer: { bg: "var(--tipo-int-bg)", fg: "var(--tipo-int-fg)", border: "var(--tipo-int-border)", label: "Numérica" },
+  text: { bg: "var(--tipo-text-bg)", fg: "var(--tipo-text-fg)", border: "var(--tipo-text-border)", label: "Texto abierto" },
 };
 
 export default function PreguntaDetalle() {
@@ -33,8 +33,8 @@ export default function PreguntaDetalle() {
     })();
   }, [parent]);
 
-  if (error) return <Alert kind="error">{error}</Alert>;
-  if (!pregunta) return <Alert kind="info">Cargando…</Alert>;
+  if (error) return <ErrorBlock label="No se pudo cargar la pregunta" detail={error} />;
+  if (!pregunta) return <LoadingBlock label="Cargando pregunta…" />;
 
   const arq = arquetipoOf(pregunta);
   const ts = TIPO_STYLE[pregunta.tipo] ?? TIPO_STYLE.text;
@@ -60,20 +60,56 @@ export default function PreguntaDetalle() {
         </NavLink>
       </div>
 
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-        <h1 className="pulso-page-title" style={{ fontFamily: "monospace", fontSize: 28, margin: 0 }}>{pregunta.parent}</h1>
-        <span style={{ padding: "3px 8px", borderRadius: 4, background: ts.bg, color: ts.fg, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
-          {ts.label}
-          {pregunta.modo_so === "hijo" && " · hijo"}
-          {pregunta.modo_so === "padre" && " · padre"}
+      {/* Header — mismo patrón que CodificarWizard > CodificadorPane. */}
+      <header style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
+        <span
+          aria-hidden="true"
+          title={ts.label}
+          style={{
+            width: 34, height: 34, borderRadius: 8,
+            background: ts.bg, color: ts.fg,
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, fontSize: 11, fontWeight: 700,
+            border: `1px solid ${ts.border ?? "transparent"}`,
+          }}
+        >
+          {ts.label.slice(0, 2).toUpperCase()}
         </span>
-        {pregunta.section_label && (
-          <span style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
-            {pregunta.section_label}
-          </span>
-        )}
-      </div>
-      <p className="pulso-page-lead">{pregunta.parent_label}</p>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <h2 style={{ margin: 0, fontSize: 16, lineHeight: 1.3, fontWeight: 700 }}>
+              {pregunta.parent_label}
+            </h2>
+            <code
+              title={`ID del XLSForm: ${pregunta.parent}`}
+              style={{
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 11, fontWeight: 600,
+                color: ts.fg, background: ts.bg,
+                padding: "2px 8px", borderRadius: 4,
+              }}
+            >
+              {pregunta.parent}
+            </code>
+            <span
+              style={{
+                padding: "2px 8px", borderRadius: 999,
+                background: ts.bg, color: ts.fg,
+                fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3,
+              }}
+            >
+              {ts.label}
+              {pregunta.modo_so === "hijo" && " · hijo"}
+              {pregunta.modo_so === "padre" && " · padre"}
+            </span>
+          </div>
+          {pregunta.section_label && (
+            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4 }}>
+              {pregunta.section_label}
+            </div>
+          )}
+        </div>
+      </header>
 
       {codificableInline ? (
         <Panel

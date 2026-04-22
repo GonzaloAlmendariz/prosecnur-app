@@ -97,8 +97,8 @@ export function SlidePreview({ slide, prepOk }: Props) {
           style={{
             display: "flex", alignItems: "flex-start", gap: 7,
             padding: "8px 10px", borderRadius: 6,
-            background: "#fef2f2", border: "1px solid #fecaca",
-            fontSize: 11, color: "#991b1b", lineHeight: 1.45,
+            background: "var(--pulso-danger-bg)", border: "1px solid var(--pulso-danger-border)",
+            fontSize: 11, color: "var(--pulso-danger-fg)", lineHeight: 1.45,
           }}
         >
           <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -115,15 +115,15 @@ export function SlidePreview({ slide, prepOk }: Props) {
               display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
               padding: "10px 12px", borderRadius: 6,
               background: "white",
-              border: `1px solid ${isStale ? "#f59e0b" : "var(--pulso-border)"}`,
+              border: `1px solid ${isStale ? "var(--pulso-warn-accent)" : "var(--pulso-border)"}`,
             }}
           >
             {isStale ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#b45309" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--pulso-warn-fg)" }}>
                 <AlertCircle size={12} /> Preview desactualizado (el slide cambió)
               </span>
             ) : (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#166534" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--pulso-success-fg)" }}>
                 <CheckCircle2 size={12} /> Listo
               </span>
             )}

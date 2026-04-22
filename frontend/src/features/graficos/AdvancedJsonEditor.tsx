@@ -152,7 +152,7 @@ export function AdvancedJsonEditor({
               fontFamily: "ui-monospace, monospace",
               fontSize: 11,
               padding: "8px 10px",
-              border: `1px solid ${parsedDraft.ok ? "var(--pulso-border)" : "#fecaca"}`,
+              border: `1px solid ${parsedDraft.ok ? "var(--pulso-border)" : "var(--pulso-danger-border)"}`,
               borderRadius: 5,
               background: "white",
               resize: "vertical",
@@ -164,9 +164,9 @@ export function AdvancedJsonEditor({
             <div
               style={{
                 display: "flex", alignItems: "flex-start", gap: 6,
-                fontSize: 11, color: "#991b1b", lineHeight: 1.4,
+                fontSize: 11, color: "var(--pulso-danger-fg)", lineHeight: 1.4,
                 padding: "6px 9px", borderRadius: 5,
-                background: "#fef2f2", border: "1px solid #fecaca",
+                background: "var(--pulso-danger-bg)", border: "1px solid var(--pulso-danger-border)",
               }}
             >
               <AlertCircle size={12} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -174,7 +174,7 @@ export function AdvancedJsonEditor({
             </div>
           )}
           {error && (
-            <div style={{ fontSize: 11, color: "#991b1b" }}>{error}</div>
+            <div style={{ fontSize: 11, color: "var(--pulso-danger-fg)" }}>{error}</div>
           )}
           {extraKeys.length > 0 && parsedDraft.ok && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>

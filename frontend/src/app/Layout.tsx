@@ -17,15 +17,28 @@ function useNavItems(): NavItem[] {
 }
 
 function Brand() {
+  // Linkea al home — el analista puede volver al menú principal desde
+  // cualquier fase clickeando el logo.
   return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+    <NavLink
+      to="/"
+      title="Ir al menú principal"
+      style={{
+        display: "flex", alignItems: "baseline", gap: 10,
+        textDecoration: "none", padding: "4px 6px",
+        borderRadius: 6,
+        transition: "background 120ms ease",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--pulso-primary-soft)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+    >
       <div style={{ fontWeight: 700, fontSize: 16, color: "var(--pulso-primary)", letterSpacing: -0.3 }}>
         Pulso Report
       </div>
       <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace,monospace" }}>
         prosecnur
       </div>
-    </div>
+    </NavLink>
   );
 }
 

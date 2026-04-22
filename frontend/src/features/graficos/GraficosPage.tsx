@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LayoutPanelTop } from "lucide-react";
 import {
   apiGraficosPpt,
   apiGraficosWord,
@@ -7,6 +8,7 @@ import {
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
+import { EmptyState, SectionEyebrow } from "../../components/States";
 import { usePlanStore } from "./store";
 import { useGraficosAutosave } from "./useGraficosAutosave";
 import { useGraficosShortcuts } from "./useGraficosShortcuts";
@@ -133,14 +135,19 @@ export default function GraficosPage() {
         <TimelinePanel />
         <SlideEditor />
         <aside style={{ width: 420, borderLeft: "1px solid var(--pulso-border)", padding: "1rem", overflowY: "auto", background: "var(--pulso-surface-2)" }}>
-          <h3 style={{ marginTop: 0, fontSize: 14 }}>Preview de la secuencia</h3>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginBottom: "0.75rem" }}>
-            Maquetación aproximada de cada slide. Click selecciona el slide en el editor.
+          <div style={{ marginBottom: 12 }}>
+            <SectionEyebrow
+              label="Preview de la secuencia"
+              hint="Maquetación aproximada de cada slide. Click selecciona el slide en el editor."
+            />
           </div>
           {plan.slides.length === 0 ? (
-            <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
-              Agrega slides en el timeline para ver su maquetación.
-            </div>
+            <EmptyState
+              variant="inline"
+              icon={<LayoutPanelTop size={16} />}
+              title="Sin slides todavía"
+              hint="Agrégalos desde el timeline a la izquierda."
+            />
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
               {plan.slides.map((s, i) => (
@@ -189,9 +196,9 @@ export default function GraficosPage() {
                   style={{
                     alignSelf: "flex-start",
                     fontSize: 11, padding: "4px 10px",
-                    border: "1px solid #991b1b",
+                    border: "1px solid var(--pulso-danger-fg)",
                     borderRadius: 5,
-                    background: "white", color: "#991b1b",
+                    background: "white", color: "var(--pulso-danger-fg)",
                     cursor: "pointer",
                   }}
                 >
