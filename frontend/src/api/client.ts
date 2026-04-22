@@ -135,8 +135,12 @@ export async function apiEstudioSetNombre(nombre: string) {
   );
 }
 
+// Nombre es opcional: si no se envía (o va vacío), el backend genera
+// `base_1, base_2, …` automáticamente. Esto habilita el flujo de
+// "+ Agregar otra base" sin fricción — el usuario puede renombrar
+// después desde la vista de edición de bases.
 export async function apiEstudioAddBase(payload: {
-  nombre: string;
+  nombre?: string;
   xlsform_file_id: string;
   data_file_id: string;
 }) {
@@ -164,11 +168,12 @@ export async function apiEstudioRemoveBase(nombre: string) {
 }
 
 // Convierte un single-base legacy (cargado via apiCargaInstrumento +
-// apiCargaData) en un estudio multi-base con UNA base inicial con el
-// nombre que el usuario eligió. Reutiliza los archivos ya subidos al
-// file store — no hay re-upload. Tras esto el frontend debe refrescar
-// session/state y el usuario puede agregar más bases via BasesPanel.
-export async function apiEstudioFromSession(nombre: string) {
+// apiCargaData) en un estudio multi-base con UNA base inicial. Si no
+// se especifica nombre, el backend genera "base_1" automáticamente.
+// Reutiliza los archivos ya subidos al file store — no hay re-upload.
+// Tras esto el frontend debe refrescar session/state y el usuario
+// puede agregar más bases via BasesPanel.
+export async function apiEstudioFromSession(nombre?: string) {
   return handle<{
     ok: true;
     base: EstudioBase;
@@ -189,6 +194,36 @@ export async function apiEstudioRenameBase(nombre_actual: string, nombre_nuevo: 
       method: "PATCH",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ nombre_nuevo }),
+    }),
+  );
+}
+
+// Reemplaza el XLSForm y/o la data de una base existente. Cualquiera
+// de los dos file_ids puede ir vacío — al menos uno debe venir.
+// Invalida evaluación y plan_result de la analítica porque la base
+// cambió bajo los pies.
+export async function apiEstudioReplaceBaseFiles(
+  nombre: string,
+  payload: { xlsform_file_id?: string; data_file_id?: string },
+) {
+  return handle<EstudioPayload>(
+    await fetch(`/api/estudio/base/${encodeURIComponent(nombre)}/files`, {
+      method: "PATCH",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+// Vuelve al modo single-base si el estudio tiene exactamente 1 base.
+// Destruye el estudio y restaura s$instrumento + s$data_raw_meta del
+// single-base legacy, preservando los archivos. Falla si hay 0 o >1
+// bases (debe resolverse manualmente antes).
+export async function apiEstudioDowngradeToSingle() {
+  return handle<{ ok: true }>(
+    await fetch("/api/estudio/downgrade-to-single", {
+      method: "POST",
+      headers: headers(),
     }),
   );
 }

@@ -233,6 +233,64 @@ estudio_rename_base <- function(sid, nombre_actual, nombre_nuevo) {
   invisible(TRUE)
 }
 
+# Genera el próximo nombre automático libre dentro del estudio. Se usa
+# cuando el usuario no especifica nombre al agregar base (flujo sin
+# fricción de la Fase 1): `base_1`, `base_2`, …, saltando los que ya
+# están tomados. Siempre retorna un nombre disponible dentro del tope.
+estudio_next_auto_name <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  existing <- if (is.null(s) || is.null(s$estudio)) character()
+              else names(s$estudio$bases)
+  i <- 1L
+  repeat {
+    candidate <- sprintf("base_%d", i)
+    if (!(candidate %in% existing)) return(candidate)
+    i <- i + 1L
+    if (i > 999L) stop_api(500, "E_AUTO_NAME_EXHAUSTED",
+                           "No se pudo generar nombre automático.")
+  }
+}
+
+# Reemplaza los archivos (xlsform y/o data) de una base existente.
+# Re-parsea y actualiza los maps _sources. Si se toca la primera base,
+# también refresca los mirrors rp_data/rp_inst.
+estudio_replace_base_files <- function(sid, nombre,
+                                        xlsform_file_id = NULL,
+                                        data_file_id    = NULL,
+                                        data_ext        = NULL,
+                                        rp_data         = NULL,
+                                        rp_inst         = NULL,
+                                        n_filas         = NA_integer_,
+                                        n_columnas      = NA_integer_) {
+  s <- session_get(sid)
+  if (is.null(s$estudio) || is.null(s$estudio$bases[[nombre]])) {
+    stop_api(404, "E_BASE_NOT_FOUND", sprintf("Base '%s' no existe.", nombre))
+  }
+  meta <- s$estudio$bases[[nombre]]
+  if (!is.null(xlsform_file_id) && nzchar(xlsform_file_id)) {
+    meta$xlsform_file_id <- xlsform_file_id
+    if (!is.null(rp_inst)) s$rp_inst_sources[[nombre]] <- rp_inst
+  }
+  if (!is.null(data_file_id) && nzchar(data_file_id)) {
+    meta$data_file_id <- data_file_id
+    if (!is.null(data_ext) && nzchar(data_ext)) meta$data_ext <- data_ext
+    if (!is.null(rp_data)) s$rp_data_sources[[nombre]] <- rp_data
+    if (!is.na(n_filas))    meta$n_filas    <- n_filas
+    if (!is.na(n_columnas)) meta$n_columnas <- n_columnas
+  }
+  s$estudio$bases[[nombre]] <- meta
+
+  # Refrescar mirror si es la primera base.
+  first <- names(s$estudio$bases)[1]
+  if (identical(first, nombre)) {
+    s$rp_data <- s$rp_data_sources[[nombre]]
+    s$rp_inst <- s$rp_inst_sources[[nombre]]
+  }
+
+  .session_env[[sid]] <- s
+  invisible(s$estudio$bases[[nombre]])
+}
+
 # Setea/limpia el nombre del estudio (opcional — solo metadata).
 estudio_set_nombre <- function(sid, nombre) {
   estudio_ensure(sid)
