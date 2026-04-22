@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Layers } from "lucide-react";
+import { Check, Layers, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { PreguntasLanding } from "./PreguntasLanding";
@@ -140,48 +140,166 @@ function BaseSelector({ source }: { source: ReturnType<typeof useCodifSource> })
   );
 }
 
+// Stepper rediseñado: chips con icono + label + hint de status, y
+// connectors con "track" gradiente que refleja el progreso. Envuelto
+// en un container surface para que se lea como una barra de navegación
+// macro (distinto de los filter chips de nivel operativo).
+type StepMeta = {
+  key: Step;
+  n: number;
+  label: string;
+  icon: typeof Layers;
+  hint: string;
+};
+
+const STEP_META: StepMeta[] = [
+  { key: "organizar", n: 1, label: "Organizar", icon: Layers, hint: "Emparejar y marcar" },
+  { key: "codificar", n: 2, label: "Codificar", icon: Tags,   hint: "Agrupar respuestas" },
+  { key: "adaptar",   n: 3, label: "Adaptar",   icon: Wand2,  hint: "Generar el dataset" },
+];
+
 function Stepper({ step, onChange }: { step: Step; onChange: (s: Step) => void }) {
-  const order: Step[] = ["organizar", "codificar", "adaptar"];
+  const order: Step[] = STEP_META.map((s) => s.key);
   const currentIdx = order.indexOf(step);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <StepChip n={1} label="Organizar" active={step === "organizar"} done={currentIdx > 0} onClick={() => onChange("organizar")} />
-      <Line done={currentIdx > 0} />
-      <StepChip n={2} label="Codificar" active={step === "codificar"} done={currentIdx > 1} onClick={() => onChange("codificar")} />
-      <Line done={currentIdx > 1} />
-      <StepChip n={3} label="Adaptar" active={step === "adaptar"} onClick={() => onChange("adaptar")} />
+    <div
+      style={{
+        display: "inline-flex", alignItems: "stretch", gap: 0,
+        padding: 8,
+        borderRadius: 14,
+        background: "var(--pulso-surface)",
+        border: "1px solid var(--pulso-border)",
+        boxShadow: "var(--pulso-shadow-low)",
+      }}
+    >
+      {STEP_META.map((s, i) => {
+        const isActive = step === s.key;
+        const isDone = currentIdx > i;
+        return (
+          <div key={s.key} style={{ display: "flex", alignItems: "center" }}>
+            <StepChip
+              n={s.n}
+              label={s.label}
+              hint={s.hint}
+              icon={s.icon}
+              active={isActive}
+              done={isDone}
+              onClick={() => onChange(s.key)}
+            />
+            {i < STEP_META.length - 1 && <StepConnector done={isDone} />}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function Line({ done }: { done: boolean }) {
-  return <div style={{ flex: "0 0 40px", height: 2, background: done ? "var(--pulso-primary)" : "var(--pulso-border)" }} />;
+function StepConnector({ done }: { done: boolean }) {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        flex: "0 0 36px", height: 2,
+        margin: "0 4px",
+        borderRadius: 1,
+        background: done ? "var(--pulso-primary)" : "var(--pulso-border)",
+        position: "relative",
+        transition: "background 200ms ease",
+      }}
+    >
+      {done && (
+        <span
+          style={{
+            position: "absolute", top: "50%", left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 6, height: 6, borderRadius: "50%",
+            background: "var(--pulso-primary)",
+            boxShadow: "0 0 0 3px var(--pulso-surface)",
+          }}
+        />
+      )}
+    </div>
+  );
 }
 
-function StepChip({ n, label, active, onClick, done }: { n: number; label: string; active: boolean; onClick: () => void; done?: boolean }) {
+function StepChip({
+  n, label, hint, icon: Icon, active, done, onClick,
+}: {
+  n: number;
+  label: string;
+  hint: string;
+  icon: typeof Layers;
+  active: boolean;
+  done: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-current={active ? "step" : undefined}
+      title={done ? "Completado" : active ? "Paso actual" : "Pendiente"}
       style={{
-        display: "inline-flex", alignItems: "center", gap: 8,
-        padding: "6px 14px", borderRadius: 999,
-        border: `1px solid ${active || done ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-        background: active ? "var(--pulso-primary)" : "white",
+        display: "inline-flex", alignItems: "center", gap: 10,
+        padding: "8px 14px",
+        borderRadius: 10,
+        border: active
+          ? "1px solid var(--pulso-primary)"
+          : done
+            ? "1px solid var(--pulso-primary-border)"
+            : "1px solid transparent",
+        background: active
+          ? "var(--pulso-primary)"
+          : done
+            ? "var(--pulso-primary-soft)"
+            : "transparent",
         color: active ? "white" : done ? "var(--pulso-primary)" : "var(--pulso-text)",
-        fontSize: 13, fontWeight: 600, cursor: "pointer",
+        cursor: "pointer",
+        transition: "background 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease",
+        boxShadow: active ? "0 4px 12px rgba(0, 36, 87, 0.18)" : "none",
       }}
     >
-      <span style={{
-        width: 20, height: 20, borderRadius: "50%",
-        display: "inline-flex", alignItems: "center", justifyContent: "center",
-        background: active ? "white" : done ? "var(--pulso-primary)" : "var(--pulso-border)",
-        color: active ? "var(--pulso-primary)" : done ? "white" : "var(--pulso-text-soft)",
-        fontSize: 11, fontWeight: 700,
-      }}>
-        {n}
+      <span
+        aria-hidden="true"
+        style={{
+          width: 26, height: 26, borderRadius: 8,
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          background: active
+            ? "rgba(255,255,255,0.18)"
+            : done
+              ? "var(--pulso-primary)"
+              : "var(--pulso-surface-2)",
+          color: active ? "white" : done ? "white" : "var(--pulso-text-soft)",
+          border: active ? "1px solid rgba(255,255,255,0.25)" : "none",
+          flexShrink: 0,
+          fontSize: 12, fontWeight: 700,
+        }}
+      >
+        {done && !active ? <Check size={13} /> : <Icon size={13} />}
       </span>
-      {label}
+      <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.15 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700 }}>
+          <span
+            style={{
+              fontSize: 10, fontWeight: 700,
+              opacity: 0.7,
+              fontFamily: "ui-monospace, monospace",
+            }}
+          >
+            {n}
+          </span>
+          {label}
+        </span>
+        <span
+          style={{
+            fontSize: 10,
+            color: active ? "rgba(255,255,255,0.8)" : "var(--pulso-text-soft)",
+            fontWeight: 500,
+          }}
+        >
+          {hint}
+        </span>
+      </span>
     </button>
   );
 }

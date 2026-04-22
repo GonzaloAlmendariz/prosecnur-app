@@ -15,15 +15,19 @@ import {
 import {
   ArrowRight,
   Check,
+  CheckCircle2,
   ChevronDown,
   ChevronRight as ChevronRightIcon,
   CircleAlert,
   GripVertical,
   Inbox,
+  LayoutGrid,
   Link2,
   Link2Off,
+  PencilLine,
   Search,
   Sparkles,
+  X as XIcon,
 } from "lucide-react";
 import {
   apiCodifColumnas,
@@ -377,21 +381,47 @@ export function PreguntasLanding() {
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
     <div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-        <FilterChip label={`Todas (${counts.total})`} active={filter === "todas"} onClick={() => setFilter("todas")} />
-        <FilterChip label={`Emparejadas (${counts.emparejadas})`} active={filter === "emparejadas"} onClick={() => setFilter("emparejadas")} />
-        <FilterChip label={`Por codificar (${counts.porCodificar})`} active={filter === "por-codificar"} onClick={() => setFilter("por-codificar")} />
-        <FilterChip label={`Codificadas (${counts.codificadas})`} active={filter === "codificadas"} onClick={() => setFilter("codificadas")} />
-        <div style={{ flex: 1 }} />
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-          <Search size={14} color="var(--pulso-text-soft)" />
-          <input
-            placeholder="Buscar por nombre, etiqueta o sección"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            style={{ fontSize: 13, width: 280 }}
+      {/* Barra de navegación operativa: filtros agrupados + search. El
+          stepper de alto nivel vive en CodificacionPage; acá solo los
+          controles del paso "Organizar". */}
+      <div
+        style={{
+          display: "flex", gap: 10, marginBottom: 16,
+          flexWrap: "wrap", alignItems: "center",
+          padding: 8,
+          background: "var(--pulso-surface)",
+          border: "1px solid var(--pulso-border)",
+          borderRadius: 12,
+        }}
+      >
+        <div
+          role="tablist"
+          aria-label="Filtrar preguntas"
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}
+        >
+          <FilterChip
+            label="Todas" count={counts.total}
+            icon={LayoutGrid} tone="neutral"
+            active={filter === "todas"} onClick={() => setFilter("todas")}
           />
-        </span>
+          <FilterChip
+            label="Emparejadas" count={counts.emparejadas}
+            icon={Link2} tone="primary"
+            active={filter === "emparejadas"} onClick={() => setFilter("emparejadas")}
+          />
+          <FilterChip
+            label="Por codificar" count={counts.porCodificar}
+            icon={PencilLine} tone="warn"
+            active={filter === "por-codificar"} onClick={() => setFilter("por-codificar")}
+          />
+          <FilterChip
+            label="Codificadas" count={counts.codificadas}
+            icon={CheckCircle2} tone="success"
+            active={filter === "codificadas"} onClick={() => setFilter("codificadas")}
+          />
+        </div>
+        <div style={{ flex: 1 }} />
+        <SearchBar value={query} onChange={setQuery} />
       </div>
 
       {visibleSections.length === 0 && (
@@ -480,24 +510,139 @@ function isPaired(p: PreguntaAbierta): boolean {
   return !!(p.pareja && typeof p.pareja === "object" && "child_col" in p.pareja && p.pareja.child_col);
 }
 
-function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+// FilterChip rediseñado: ícono + label + count pill a la derecha.
+// Tone define el color semántico del count (neutral/primary/warn/success).
+// Active: fondo primary + text blanco + count con fondo soft.
+type FilterTone = "neutral" | "primary" | "warn" | "success";
+
+function FilterChip({
+  label, count, icon: Icon, tone, active, onClick,
+}: {
+  label: string;
+  count: number;
+  icon: typeof LayoutGrid;
+  tone: FilterTone;
+  active: boolean;
+  onClick: () => void;
+}) {
+  // Colores del count pill cuando NO está activo. Cuando está activo
+  // usa blanco sobre primary-transparente.
+  const inactiveCountStyle =
+    tone === "primary" ? { bg: "var(--pulso-primary-soft)", fg: "var(--pulso-primary)" } :
+    tone === "warn" ? { bg: "var(--pulso-warn-bg)", fg: "var(--pulso-warn-fg)" } :
+    tone === "success" ? { bg: "var(--pulso-success-bg)", fg: "var(--pulso-success-fg)" } :
+    { bg: "var(--pulso-surface-2)", fg: "var(--pulso-text-soft)" };
+
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       style={{
-        padding: "5px 12px",
+        display: "inline-flex", alignItems: "center", gap: 7,
+        padding: "6px 8px 6px 12px",
         borderRadius: 999,
-        fontSize: 13,
-        border: active ? "1px solid var(--pulso-primary)" : "1px solid var(--pulso-border)",
-        background: active ? "var(--pulso-primary)" : "white",
+        fontSize: 13, fontWeight: 600,
+        border: active ? "1px solid var(--pulso-primary)" : "1px solid transparent",
+        background: active ? "var(--pulso-primary)" : "transparent",
         color: active ? "white" : "var(--pulso-text)",
         cursor: "pointer",
-        fontWeight: 500,
+        transition: "background 140ms ease, border-color 140ms ease, color 140ms ease",
+        boxShadow: active ? "0 2px 8px rgba(0, 36, 87, 0.14)" : "none",
+      }}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.background = "var(--pulso-surface-2)";
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.background = "transparent";
       }}
     >
-      {label}
+      <Icon size={13} />
+      <span>{label}</span>
+      <span
+        aria-hidden="true"
+        style={{
+          fontSize: 11, fontWeight: 700,
+          padding: "1px 8px", borderRadius: 999,
+          background: active ? "rgba(255,255,255,0.22)" : inactiveCountStyle.bg,
+          color: active ? "white" : inactiveCountStyle.fg,
+          fontFamily: "ui-monospace, monospace",
+          fontVariantNumeric: "tabular-nums",
+          minWidth: 22, textAlign: "center",
+        }}
+      >
+        {count}
+      </span>
     </button>
+  );
+}
+
+// Search bar consistente con el resto del app (ej. TimelinePanel).
+// Icon lupa a la izquierda, clear button a la derecha cuando hay query,
+// focus ring primary soft.
+function SearchBar({
+  value, onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "4px 10px", borderRadius: 8,
+        border: "1px solid var(--pulso-border)",
+        background: "white",
+        minWidth: 280,
+        transition: "border-color 120ms ease, box-shadow 120ms ease",
+      }}
+      onFocusCapture={(e) => {
+        const parent = e.currentTarget;
+        parent.style.borderColor = "var(--pulso-primary-border)";
+        parent.style.boxShadow = "0 0 0 3px var(--pulso-primary-focus)";
+      }}
+      onBlurCapture={(e) => {
+        const parent = e.currentTarget;
+        parent.style.borderColor = "var(--pulso-border)";
+        parent.style.boxShadow = "none";
+      }}
+    >
+      <Search size={13} color="var(--pulso-text-soft)" aria-hidden="true" />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Buscar por nombre, etiqueta o sección…"
+        aria-label="Buscar preguntas"
+        style={{
+          flex: 1, minWidth: 0,
+          border: "none", outline: "none",
+          background: "transparent",
+          fontSize: 13, padding: "4px 0",
+        }}
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          aria-label="Limpiar búsqueda"
+          title="Limpiar"
+          style={{
+            width: 20, height: 20, padding: 0,
+            border: "none", background: "transparent",
+            color: "var(--pulso-text-soft)",
+            cursor: "pointer",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            borderRadius: 4,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--pulso-surface-2)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+        >
+          <XIcon size={12} />
+        </button>
+      )}
+    </div>
   );
 }
 
