@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import * as Lucide from "lucide-react";
 import {
   ArrowRight, CheckCircle2, Database, FileSpreadsheet,
-  Layers, Sparkles, Upload,
+  Layers, RotateCcw, Sparkles, Trash2, Upload,
 } from "lucide-react";
 import {
   apiCargaData,
@@ -10,6 +10,8 @@ import {
   apiInstrumentoEstructura,
   apiListDemos,
   apiLoadDemo,
+  apiQuitarData,
+  apiQuitarInstrumento,
   apiUpload,
   DemoMeta,
   Pregunta,
@@ -100,6 +102,43 @@ export default function CargaPage() {
     }
   }
 
+  async function onQuitar(kind: "xlsform" | "data") {
+    const label = kind === "xlsform" ? "el XLSForm" : "la base de datos";
+    // Borrar el instrumento vuelve inválidos a la data + estudio; borrar
+    // la data también invalida el estudio multi-base. Confirmamos para
+    // evitar pérdidas accidentales cuando el usuario ya avanzó.
+    if (!window.confirm(
+      `¿Quitar ${label}?\n\nSe vaciará lo que depende de esto:\n` +
+      (kind === "xlsform"
+        ? "el XLSForm, su parseo, la base de datos y el estudio.\n\n" +
+          "Podrás volver a cargar otro formulario después."
+        : "la base de datos y el estudio. El XLSForm se queda cargado.\n\n" +
+          "Podrás subir otra base después."
+      )
+    )) return;
+
+    setError("");
+    setBusy(`Quitando ${label}…`);
+    try {
+      if (kind === "xlsform") {
+        await apiQuitarInstrumento();
+        setInstrumento(null);
+        setEstructura(null);
+        // Quitar XLSForm también invalida la data a nivel UI porque
+        // el backend la tiró de la sesión.
+        setDataPreview(null);
+      } else {
+        await apiQuitarData();
+        setDataPreview(null);
+      }
+      await refresh();
+    } catch (e: unknown) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function onPick(kind: "xlsform" | "data", file?: File) {
     if (!file) return;
     setError("");
@@ -133,6 +172,16 @@ export default function CargaPage() {
   const hasXlsform = !!state?.xlsform;
   const hasData = !!state?.data;
   const allReady = hasXlsform && hasData;
+
+  // Detectar cuál demo (si alguno) está cargado en la sesión actual.
+  // Match por `titulo_humano` contra `estudio_nombre` — es el identifier
+  // humano que el backend usa al crear la sesión desde un demo. Funciona
+  // single-base (estudio_nombre = titulo_humano del demo) y multi-base
+  // (GIZ o Acreditación también setean titulo_humano como nombre).
+  const activeDemoName = state?.estudio_nombre ?? null;
+  const activeDemo = activeDemoName
+    ? demos.find((d) => d.titulo_humano === activeDemoName)
+    : null;
 
   return (
     <section>
@@ -190,6 +239,7 @@ export default function CargaPage() {
             accept=".xlsx,.xls"
             acceptLabel="Solo Excel (.xlsx)"
             done={hasXlsform}
+            busy={!!busy}
             resumen={instrumento && (
               <>
                 <ResumenStat label="Preguntas" value={instrumento.n_preguntas} />
@@ -198,6 +248,7 @@ export default function CargaPage() {
               </>
             )}
             onPick={(file) => onPick("xlsform", file)}
+            onRemove={() => onQuitar("xlsform")}
           />
 
           <UploadCard
@@ -215,6 +266,7 @@ export default function CargaPage() {
             accept=".xlsx,.xls,.csv,.sav"
             acceptLabel=".xlsx · .csv · .sav"
             done={hasData}
+            busy={!!busy}
             resumen={dataPreview && (
               <>
                 <ResumenStat label="Filas" value={dataPreview.n_filas} />
@@ -243,14 +295,16 @@ export default function CargaPage() {
               </>
             )}
             onPick={(file) => onPick("data", file)}
+            onRemove={() => onQuitar("data")}
           />
         </div>
       </section>
 
       {/* Sección 2 — Demos discretos (ambient content, no compite).
-          Fila compacta con datasets de ejemplo. El usuario no debería
-          sentir que "demo" es la ruta principal — es el fallback para
-          explorar sin datos propios. */}
+          Reactivo: si ya hay un demo cargado, ese chip queda resaltado
+          (primary-soft + check) y ofrece "Quitar". El resto se muestra
+          deshabilitado para señalar que cambiar de demo requiere
+          descargar primero el actual. */}
       {(demosLoading || demos.length > 0) && (
         <section
           style={{
@@ -271,10 +325,12 @@ export default function CargaPage() {
               textTransform: "uppercase", letterSpacing: 0.5,
               color: "var(--pulso-text-soft)",
             }}>
-              ¿Sin datos propios? Explora con un ejemplo
+              {activeDemo ? "Datos de ejemplo cargados" : "¿Sin datos propios? Explora con un ejemplo"}
             </span>
             <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
-              Cargamos XLSForm + base de datos de un estudio real para que veas el flujo completo.
+              {activeDemo
+                ? <>Estás trabajando con <strong>{activeDemo.titulo_humano}</strong>. Si quieres cambiar, primero quítalo.</>
+                : "Cargamos XLSForm + base de datos de un estudio real para que veas el flujo completo."}
             </span>
           </div>
 
@@ -286,15 +342,21 @@ export default function CargaPage() {
                 gap: 8,
               }}
             >
-              {demos.map((d) => (
-                <DemoChip
-                  key={d.name}
-                  demo={d}
-                  isLoading={loadingDemo === d.name}
-                  isDisabled={!!busy && loadingDemo !== d.name}
-                  onLoad={() => onLoadDemo(d.name)}
-                />
-              ))}
+              {demos.map((d) => {
+                const isActive = activeDemo?.name === d.name;
+                const isOtherActive = !!activeDemo && !isActive;
+                return (
+                  <DemoChip
+                    key={d.name}
+                    demo={d}
+                    isActive={isActive}
+                    isLoading={loadingDemo === d.name}
+                    isDisabled={(!!busy && loadingDemo !== d.name) || isOtherActive}
+                    onLoad={() => onLoadDemo(d.name)}
+                    onRemove={isActive ? () => onQuitar("xlsform") : undefined}
+                  />
+                );
+              })}
             </div>
           )}
         </section>
@@ -406,58 +468,79 @@ function EstudioActivoBanner({
 // Demo chip — compact, ambient (nota al pie de la carga manual).
 // =====================================================================
 function DemoChip({
-  demo, isLoading, isDisabled, onLoad,
+  demo, isActive, isLoading, isDisabled, onLoad, onRemove,
 }: {
   demo: DemoMeta;
+  /** Este demo está cargado en la sesión actual. */
+  isActive: boolean;
   isLoading: boolean;
   isDisabled: boolean;
   onLoad: () => void;
+  /** Si está presente + isActive, se muestra botón "Quitar". */
+  onRemove?: () => void;
 }) {
   const Icon = resolveLucideIcon(demo.icono_ui);
   const multiBase = demo.n_bases > 1;
+
+  // Estilos del container según estado: activo > hoverable > deshabilitado.
+  const baseBg = isActive ? "var(--pulso-primary-soft)" : "white";
+  const baseBorder = isActive ? "var(--pulso-primary)" : "var(--pulso-border)";
+
   return (
-    <button
-      type="button"
-      disabled={isDisabled || isLoading}
-      onClick={onLoad}
-      title={demo.descripcion}
+    <div
       style={{
         display: "flex", alignItems: "center", gap: 8,
         padding: "8px 10px", borderRadius: 8,
-        border: "1px solid var(--pulso-border)",
-        background: "white",
-        cursor: isDisabled ? "not-allowed" : "pointer",
-        textAlign: "left",
-        opacity: isDisabled ? 0.55 : 1,
-        transition: "border-color 120ms ease, background 120ms ease",
+        border: `1px solid ${baseBorder}`,
+        background: baseBg,
+        boxShadow: isActive ? "0 0 0 3px var(--pulso-primary-ring)" : "none",
+        opacity: !isActive && isDisabled ? 0.45 : 1,
+        transition: "border-color 120ms ease, background 120ms ease, box-shadow 120ms ease",
         minWidth: 0,
       }}
-      onMouseEnter={(e) => {
-        if (isDisabled || isLoading) return;
-        e.currentTarget.style.borderColor = "var(--pulso-primary)";
-        e.currentTarget.style.background = "var(--pulso-primary-soft)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "var(--pulso-border)";
-        e.currentTarget.style.background = "white";
-      }}
     >
+      {/* Icon — pasa a check cuando está activo */}
       <span
         aria-hidden="true"
         style={{
           width: 26, height: 26, borderRadius: 6,
-          background: "var(--pulso-surface-2)",
-          color: "var(--pulso-primary)",
+          background: isActive ? "white" : "var(--pulso-surface-2)",
+          color: isActive ? "var(--pulso-primary)" : "var(--pulso-primary)",
           display: "inline-flex", alignItems: "center", justifyContent: "center",
+          border: isActive ? "1px solid var(--pulso-primary-border)" : "none",
           flexShrink: 0,
         }}
       >
-        {isLoading ? <Lucide.Loader2 size={13} className="pulso-spin" /> : <Icon size={13} />}
+        {isLoading ? (
+          <Lucide.Loader2 size={13} className="pulso-spin" />
+        ) : isActive ? (
+          <CheckCircle2 size={13} />
+        ) : (
+          <Icon size={13} />
+        )}
       </span>
-      <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, gap: 1 }}>
+
+      {/* Texto: título + etiqueta. Es la zona clickeable cuando NO está
+          activo — cargar al click. Cuando está activo, el chip entero
+          no es un botón; las acciones van en el botón Quitar. */}
+      <button
+        type="button"
+        onClick={isActive ? undefined : onLoad}
+        disabled={isActive || isDisabled || isLoading}
+        title={demo.descripcion}
+        style={{
+          flex: 1, minWidth: 0,
+          display: "flex", flexDirection: "column", gap: 1,
+          padding: 0, border: "none", background: "transparent",
+          textAlign: "left",
+          cursor: isActive ? "default" : isDisabled ? "not-allowed" : "pointer",
+          color: "inherit",
+        }}
+      >
         <span
           style={{
-            fontSize: 12, fontWeight: 600, color: "var(--pulso-text)",
+            fontSize: 12, fontWeight: 600,
+            color: isActive ? "var(--pulso-primary)" : "var(--pulso-text)",
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}
         >
@@ -469,12 +552,50 @@ function DemoChip({
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}
         >
-          {demo.etiqueta_estudio}
+          {isActive ? "Cargado" : demo.etiqueta_estudio}
           {multiBase && ` · ${demo.n_bases} bases`}
         </span>
-      </div>
-      <ArrowRight size={12} color="var(--pulso-text-soft)" style={{ flexShrink: 0 }} />
-    </button>
+      </button>
+
+      {/* Acción lateral: Quitar cuando activo, flecha cuando disponible. */}
+      {isActive && onRemove ? (
+        <button
+          type="button"
+          onClick={onRemove}
+          title="Quitar este demo"
+          aria-label={`Quitar ${demo.titulo_humano}`}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            fontSize: 10, fontWeight: 600,
+            padding: "3px 8px", borderRadius: 5,
+            border: "1px solid var(--pulso-primary-border)",
+            background: "white",
+            color: "var(--pulso-primary)",
+            cursor: "pointer",
+            flexShrink: 0,
+            transition: "border-color 120ms ease, background 120ms ease, color 120ms ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "var(--pulso-danger-border)";
+            e.currentTarget.style.background = "var(--pulso-danger-bg)";
+            e.currentTarget.style.color = "var(--pulso-danger-fg)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "var(--pulso-primary-border)";
+            e.currentTarget.style.background = "white";
+            e.currentTarget.style.color = "var(--pulso-primary)";
+          }}
+        >
+          <RotateCcw size={10} /> Quitar
+        </button>
+      ) : (
+        <ArrowRight
+          size={12}
+          color="var(--pulso-text-soft)"
+          style={{ flexShrink: 0, opacity: isDisabled ? 0.3 : 1 }}
+        />
+      )}
+    </div>
   );
 }
 
@@ -482,7 +603,7 @@ function DemoChip({
 // Upload card — dropzone unificada con estado visual
 // =====================================================================
 function UploadCard({
-  kind, icon: Icon, title, hint, whatIs, accept, acceptLabel, done, resumen, onPick,
+  kind, icon: Icon, title, hint, whatIs, accept, acceptLabel, done, busy, resumen, onPick, onRemove,
 }: {
   kind: "xlsform" | "data";
   icon: IconCmp;
@@ -494,8 +615,11 @@ function UploadCard({
   /** Etiqueta humana de formatos aceptados (ej. "Solo Excel (.xlsx)"). */
   acceptLabel: string;
   done: boolean;
+  /** Si hay otra operación en curso globalmente, deshabilita Remove. */
+  busy: boolean;
   resumen: React.ReactNode | null;
   onPick: (file?: File) => void;
+  onRemove: () => void;
 }) {
   const [dragOver, setDragOver] = useState(false);
   return (
@@ -539,6 +663,39 @@ function UploadCard({
             {hint}
           </span>
         </div>
+        {/* Botón Quitar — solo visible cuando el insumo ya está cargado. */}
+        {done && (
+          <button
+            type="button"
+            onClick={onRemove}
+            disabled={busy}
+            title={`Quitar ${kind === "xlsform" ? "XLSForm" : "base de datos"}`}
+            aria-label={`Quitar ${kind === "xlsform" ? "XLSForm" : "base de datos"}`}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 11, padding: "5px 9px",
+              border: "1px solid var(--pulso-border)",
+              borderRadius: 6, background: "white",
+              color: "var(--pulso-text-soft)",
+              cursor: busy ? "wait" : "pointer",
+              flexShrink: 0,
+              transition: "border-color 120ms ease, color 120ms ease, background 120ms ease",
+            }}
+            onMouseEnter={(e) => {
+              if (busy) return;
+              e.currentTarget.style.borderColor = "var(--pulso-danger-border)";
+              e.currentTarget.style.color = "var(--pulso-danger-fg)";
+              e.currentTarget.style.background = "var(--pulso-danger-bg)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--pulso-border)";
+              e.currentTarget.style.color = "var(--pulso-text-soft)";
+              e.currentTarget.style.background = "white";
+            }}
+          >
+            <Trash2 size={11} /> Quitar
+          </button>
+        )}
       </div>
 
       {/* Qué es este archivo — explicación clara del concepto */}

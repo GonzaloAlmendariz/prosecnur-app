@@ -280,6 +280,30 @@ export async function apiCargaData(file_id: string) {
   );
 }
 
+// Limpia el XLSForm cargado + todos los artefactos derivados
+// (rp_inst, rp_data, validación, estudio). Deja la sesión viva pero
+// vacía de insumos — el usuario puede cargar otro XLSForm.
+export async function apiQuitarInstrumento() {
+  return handle<{ ok: true }>(
+    await fetch("/api/carga/instrumento", {
+      method: "DELETE",
+      headers: headers(),
+    })
+  );
+}
+
+// Limpia solo la base de datos cargada. El XLSForm se mantiene — es
+// el caso común "probé con esta data, ahora quiero otra usando el
+// mismo formulario". También resetea rp_data + validación.
+export async function apiQuitarData() {
+  return handle<{ ok: true }>(
+    await fetch("/api/carga/data", {
+      method: "DELETE",
+      headers: headers(),
+    })
+  );
+}
+
 export type DemoMeta = {
   name: string;
   titulo_humano: string;

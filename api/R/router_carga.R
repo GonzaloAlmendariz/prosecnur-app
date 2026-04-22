@@ -119,5 +119,76 @@ mount_carga <- function(pr) {
       preview <- read_data_preview(meta$path, meta$ext)
       session_set(sid, "data_raw_meta", list(file_id = file_id, path = meta$path, ext = meta$ext))
       list(ok = TRUE, preview = preview)
+    })) |>
+
+    # DELETE /api/carga/instrumento — limpia XLSForm cargado.
+    # También limpia los artefactos derivados (rp_inst, inst_limpieza,
+    # estudio) porque sin instrumento toda la cadena pierde sentido:
+    # la base parseada se hizo contra el instrumento, el estudio
+    # depende del par. Equivale a un "reset parcial" que deja la
+    # sesión intacta pero vacía de insumos.
+    plumber::pr_delete("/api/carga/instrumento", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid, required = FALSE)
+      if (is.null(s)) return(list(ok = TRUE))
+
+      # 1) Remover archivos xlsform del file store.
+      kept <- list()
+      for (fid in names(s$files %||% list())) {
+        f <- s$files[[fid]]
+        if (identical(f$kind, "xlsform")) {
+          tryCatch(unlink(f$path, force = TRUE), error = function(e) NULL)
+        } else {
+          kept[[fid]] <- f
+        }
+      }
+      session_set(sid, "files", kept)
+
+      # 2) Limpiar artefactos en memoria — el instrumento y todo lo
+      #    que se deriva (rp_inst + rp_data del estudio).
+      session_set(sid, "instrumento",    NULL)
+      session_set(sid, "inst_limpieza",  NULL)
+      session_set(sid, "rp_inst",        NULL)
+      session_set(sid, "rp_data",        NULL)
+      session_set(sid, "evaluacion",     NULL)  # validación ya no aplica
+      session_set(sid, "plan_result",    NULL)
+      session_set(sid, "estudio",        NULL)
+      session_set(sid, "analitica_prep_ok", FALSE)
+
+      list(ok = TRUE)
+    })) |>
+
+    # DELETE /api/carga/data — limpia la base de datos cargada.
+    # El XLSForm NO se toca — el usuario puede reemplazar la data
+    # manteniendo el instrumento (caso común: "probé con esta data,
+    # ahora quiero probar con otra usando el mismo formulario").
+    plumber::pr_delete("/api/carga/data", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid, required = FALSE)
+      if (is.null(s)) return(list(ok = TRUE))
+
+      # 1) Remover archivos data/sav del file store.
+      kept <- list()
+      for (fid in names(s$files %||% list())) {
+        f <- s$files[[fid]]
+        if (f$kind %in% c("data", "sav")) {
+          tryCatch(unlink(f$path, force = TRUE), error = function(e) NULL)
+        } else {
+          kept[[fid]] <- f
+        }
+      }
+      session_set(sid, "files", kept)
+
+      # 2) Limpiar artefactos en memoria derivados de la data.
+      session_set(sid, "data_raw_meta",  NULL)
+      session_set(sid, "rp_data",        NULL)
+      session_set(sid, "evaluacion",     NULL)  # validación necesitaba la data
+      session_set(sid, "plan_result",    NULL)
+      # Si el estudio tiene bases, las vaciamos también — cada base
+      # depende de su data. XLSForm sigue disponible para reconstruir.
+      session_set(sid, "estudio",        NULL)
+      session_set(sid, "analitica_prep_ok", FALSE)
+
+      list(ok = TRUE)
     }))
 }
