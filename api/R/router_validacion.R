@@ -970,7 +970,7 @@ mount_validacion <- function(pr) {
       list(ok = TRUE, var = var, tipo = tipo, opciones = opciones)
     })) |>
 
-    # --- Reglas custom: stub (Sprint 4) --------------------------------------
+    # --- Reglas custom: listar -----------------------------------------------
     plumber::pr_get("/api/validacion/v2/reglas_custom", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
@@ -980,5 +980,186 @@ mount_validacion <- function(pr) {
         base_nombre = base %||% NA_character_,
         reglas = scope$reglas_custom %||% list()
       )
+    })) |>
+
+    # --- Reglas custom: crear ------------------------------------------------
+    plumber::pr_post("/api/validacion/v2/reglas_custom", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      # Validar schema (lanza stop_api si falla).
+      .validar_regla_custom(parsed)
+      # Asignar ID auto si no viene.
+      scope <- .get_base_scope(sid, base)
+      existing <- scope$reglas_custom %||% list()
+      new_id <- if (nzchar(parsed$id %||% "")) as.character(parsed$id)
+                 else {
+                   i <- 1L
+                   repeat {
+                     cand <- sprintf("RC_%03d", i)
+                     if (!any(vapply(existing, function(r) identical(as.character(r$id), cand), logical(1)))) break
+                     i <- i + 1L
+                   }
+                   cand
+                 }
+      nueva <- list(
+        id = new_id,
+        created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+        activa = isTRUE(parsed$activa %||% TRUE),
+        nombre = as.character(parsed$nombre %||% new_id),
+        tipo = as.character(parsed$tipo),
+        variables = as.list(unlist(parsed$variables)),
+        params = parsed$params %||% list(),
+        mensaje = as.character(parsed$mensaje %||% parsed$nombre %||% new_id),
+        severidad = .regla_severidad(parsed)
+      )
+      existing[[length(existing) + 1L]] <- nueva
+      validacion_scope_set(sid, base, "reglas_custom", existing)
+      # No invalidamos evaluación hasta que se "ejecute".
+      list(ok = TRUE, regla = nueva)
+    })) |>
+
+    # --- Reglas custom: editar -----------------------------------------------
+    plumber::pr_handle("PUT", "/api/validacion/v2/reglas_custom/<id>",
+      wrap_endpoint(function(req, res, id = NULL, ...) {
+        sid <- session_header(req)
+        base <- .get_base_nombre(req)
+        if (is.null(id) || !nzchar(id)) stop_api(400, "E_MISSING_ID", "Falta id")
+        body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+        Encoding(body_raw) <- "UTF-8"
+        parsed <- tryCatch(
+          jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+          error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+        )
+        # Si viene tipo/variables/params, validar antes.
+        if (!is.null(parsed$tipo)) .validar_regla_custom(parsed)
+        scope <- .get_base_scope(sid, base)
+        existing <- scope$reglas_custom %||% list()
+        idx <- which(vapply(existing, function(r) identical(as.character(r$id), id), logical(1)))
+        if (!length(idx)) stop_api(404, "E_REGLA_NOT_FOUND",
+                                    sprintf("Regla '%s' no existe.", id))
+        r <- existing[[idx]]
+        # Merge: campos del body pisan los existentes.
+        for (campo in c("activa", "nombre", "tipo", "variables", "params",
+                         "mensaje", "severidad")) {
+          if (!is.null(parsed[[campo]])) {
+            r[[campo]] <- if (campo == "variables") as.list(unlist(parsed[[campo]]))
+                          else parsed[[campo]]
+          }
+        }
+        existing[[idx]] <- r
+        validacion_scope_set(sid, base, "reglas_custom", existing)
+        list(ok = TRUE, regla = r)
+    })) |>
+
+    # --- Reglas custom: borrar -----------------------------------------------
+    plumber::pr_delete("/api/validacion/v2/reglas_custom/<id>",
+      wrap_endpoint(function(req, res, id = NULL) {
+        sid <- session_header(req)
+        base <- .get_base_nombre(req)
+        if (is.null(id) || !nzchar(id)) stop_api(400, "E_MISSING_ID", "Falta id")
+        scope <- .get_base_scope(sid, base)
+        existing <- scope$reglas_custom %||% list()
+        filtered <- Filter(function(r) !identical(as.character(r$id), id), existing)
+        if (length(filtered) == length(existing)) {
+          stop_api(404, "E_REGLA_NOT_FOUND", sprintf("Regla '%s' no existe.", id))
+        }
+        validacion_scope_set(sid, base, "reglas_custom", filtered)
+        list(ok = TRUE, id = id)
+    })) |>
+
+    # --- Reglas custom: ejecutar ---------------------------------------------
+    # Compila todas las reglas activas, las concatena al plan_result$plan
+    # (mismo shape) y corre evaluar_consistencia. Guarda la evaluación en
+    # scope$evaluacion para que InstrumentoTab la muestre con las reglas
+    # custom mezcladas (id_regla = RC_*, categoría = "custom").
+    plumber::pr_post("/api/validacion/v2/reglas_custom/ejecutar",
+      wrap_endpoint(function(req, res) {
+        sid <- session_header(req)
+        base <- .get_base_nombre(req)
+        scope <- .get_base_scope(sid, base)
+        reglas <- scope$reglas_custom %||% list()
+        activas <- Filter(function(r) isTRUE(r$activa), reglas)
+        if (!length(activas)) {
+          stop_api(409, "E_NO_REGLAS_ACTIVAS",
+                   "No hay reglas custom activas para ejecutar.")
+        }
+        files <- .resolve_base_files(sid, base)
+        base_effective <- files$base_nombre
+
+        # Plan efectivo = plan instrumento (si existe, filtrado por
+        # desactivadas) + compile(reglas_custom activas).
+        plan_inst <- scope$plan_result$plan %||% NULL
+        desactivadas <- scope$reglas_desactivadas %||% character(0)
+        if (length(desactivadas) && !is.null(plan_inst)) {
+          id_col <- if ("ID" %in% names(plan_inst)) "ID"
+                    else if ("id_regla" %in% names(plan_inst)) "id_regla" else NULL
+          if (!is.null(id_col)) {
+            plan_inst <- plan_inst[!(as.character(plan_inst[[id_col]]) %in% desactivadas), , drop = FALSE]
+          }
+        }
+        # Cargar instrumento para obtener labels de variables.
+        inst <- tryCatch(leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE),
+                         error = function(e) NULL)
+        plan_custom <- compile_reglas_custom(activas, instrumento = inst)
+        plan_final <- if (!is.null(plan_inst) && nrow(plan_inst) > 0L) {
+          # bind_rows tolera columnas faltantes.
+          dplyr::bind_rows(plan_inst, plan_custom)
+        } else plan_custom
+
+        api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
+
+        job_id <- job_submit(
+          sid = sid,
+          kind = "validacion.v2.reglas_custom.ejecutar",
+          func = function(data_path, data_ext, plan, api_path) {
+            tryCatch(Sys.setlocale("LC_ALL", "en_US.UTF-8"),
+                     warning = function(w) NULL, error = function(e) NULL)
+            options(encoding = "UTF-8")
+            if (requireNamespace("pkgload", quietly = TRUE)) {
+              pkgload::load_all(api_path, quiet = TRUE)
+            } else if (requireNamespace("devtools", quietly = TRUE)) {
+              devtools::load_all(api_path, quiet = TRUE)
+            }
+            datos <- switch(data_ext,
+              xlsx = readxl::read_excel(data_path),
+              xls  = readxl::read_excel(data_path),
+              csv  = utils::read.csv(data_path, stringsAsFactors = FALSE),
+              sav  = haven::read_sav(data_path),
+              stop(sprintf("Unsupported data extension: %s", data_ext))
+            )
+            ev <- evaluar_consistencia(
+              datos = datos, plan = plan,
+              contar_na_como_inconsistencia = FALSE
+            )
+            total_raw <- tryCatch(total_inconsistencias(ev), error = function(e) NULL)
+            total <- if (is.numeric(total_raw) && length(total_raw) == 1) {
+              as.integer(total_raw)
+            } else if (is.list(total_raw) && !is.null(total_raw$cabecera)) {
+              ca <- total_raw$cabecera
+              as.integer(if (is.data.frame(ca)) ca$Total_inconsistencias[1] else ca[[1]]$Total_inconsistencias)
+            } else NA_integer_
+            list(ev = ev, total = total)
+          },
+          args = list(
+            data_path = files$data$path,
+            data_ext = files$data_ext,
+            plan = plan_final,
+            api_path = api_path
+          ),
+          on_complete = function(j) {
+            raw <- j$result_data
+            validacion_scope_set(j$sid, base_effective, "evaluacion", raw$ev)
+            list(ok = TRUE, total_inconsistencias = raw$total %||% NA_integer_)
+          }
+        )
+        list(ok = TRUE, job_id = job_id,
+              kind = "validacion.v2.reglas_custom.ejecutar",
+              n_custom = length(activas))
     }))
 }

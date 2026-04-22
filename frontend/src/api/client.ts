@@ -1894,3 +1894,51 @@ export async function apiV2ExplorarValores(
     ),
   );
 }
+
+// --- Reglas custom (Sprint 4) -----------------------------------------------
+import type { ReglaCustom } from "../features/validacion/types";
+
+export async function apiV2ReglasCustomCreate(
+  regla: Omit<ReglaCustom, "id" | "created_at">,
+  baseNombre?: string | null,
+) {
+  return handle<{ ok: true; regla: ReglaCustom }>(
+    await fetch("/api/validacion/v2/reglas_custom", {
+      method: "POST",
+      headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+      body: JSON.stringify(regla),
+    }),
+  );
+}
+
+export async function apiV2ReglasCustomUpdate(
+  id: string,
+  patch: Partial<ReglaCustom>,
+  baseNombre?: string | null,
+) {
+  return handle<{ ok: true; regla: ReglaCustom }>(
+    await fetch(`/api/validacion/v2/reglas_custom/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+      body: JSON.stringify(patch),
+    }),
+  );
+}
+
+export async function apiV2ReglasCustomDelete(id: string, baseNombre?: string | null) {
+  return handle<{ ok: true; id: string }>(
+    await fetch(`/api/validacion/v2/reglas_custom/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2ReglasCustomEjecutar(baseNombre?: string | null) {
+  return handle<{ ok: true; job_id: string; kind: string; n_custom: number }>(
+    await fetch("/api/validacion/v2/reglas_custom/ejecutar", {
+      method: "POST",
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}

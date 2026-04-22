@@ -73,10 +73,11 @@ export type ViewDescriptor = {
 // Reglas custom
 // -----------------------------------------------------------------------------
 export type ReglaCustomTipo =
-  | "nulos_pct"
+  | "no_nulo"
   | "rango_num"
   | "rango_fecha"
-  | "outliers"
+  | "outliers_iqr"
+  | "outliers_z"
   | "duplicados"
   | "coherencia_2v"
   | "fuera_catalogo";
