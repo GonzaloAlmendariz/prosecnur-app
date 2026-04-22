@@ -175,6 +175,53 @@ mount_validacion <- function(pr) {
       )
     })) |>
 
+    # --- Reporte HTML autocontenido (Sprint 5 — stretch) --------------------
+    # Exporta un HTML standalone (CSS inline, sin recursos externos) con el
+    # estado de validación: progreso, KPIs, top reglas violadas, reglas
+    # custom. Queda guardado en el file store para descarga vía
+    # /api/files/<file_id>/download?sid=... — igual patrón que el resto de
+    # exports del API.
+    plumber::pr_post("/api/validacion/v2/report/html", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      scope <- .get_base_scope(sid, base)
+      s <- session_get(sid)
+
+      estudio_nombre <- if (!is.null(s$estudio)) as.character(s$estudio$nombre %||% NA) else NA_character_
+      html <- build_report_html(
+        scope = scope,
+        base_nombre = base,
+        estudio_nombre = estudio_nombre,
+        generated_at = Sys.time()
+      )
+
+      file_id <- uuid::UUIDgenerate()
+      downloads_dir <- file.path(s$dir, "downloads")
+      dir.create(downloads_dir, showWarnings = FALSE, recursive = TRUE)
+      out_path <- file.path(downloads_dir,
+                             sprintf("reporte_validacion_%s.html", file_id))
+      writeLines(html, out_path, useBytes = TRUE)
+      size <- file.info(out_path)$size
+
+      # Registrar en file store con nombre limpio (sin UUID) para que la
+      # descarga salga como "reporte_validacion.html" y no el path interno.
+      meta <- list(
+        file_id = file_id,
+        kind = "validacion_report_html",
+        original_name = "reporte_validacion.html",
+        path = out_path,
+        size = as.integer(size),
+        ext = "html",
+        uploaded_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+      )
+      files <- s$files
+      files[[file_id]] <- meta
+      session_set(sid, "files", files)
+
+      list(ok = TRUE, file_id = file_id, size = meta$size,
+           original_name = meta$original_name)
+    })) |>
+
     # --- Instrumento: estado general (HEAD-like) -----------------------------
     plumber::pr_get("/api/validacion/v2/instrumento/estado", wrap_endpoint(function(req, res) {
       sid <- session_header(req)

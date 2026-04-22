@@ -1583,6 +1583,18 @@ export async function apiV2Panorama(baseNombre?: string | null) {
   );
 }
 
+// Exporta el reporte HTML autocontenido de la base actual. Devuelve un
+// file_id que se consume con downloadUrl() — el backend ya guarda el
+// archivo en el file store con original_name "reporte_validacion.html".
+export async function apiV2ReportHtml(baseNombre?: string | null) {
+  return handle<{ ok: true; file_id: string; size: number; original_name: string }>(
+    await fetch("/api/validacion/v2/report/html", {
+      method: "POST",
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
 export async function apiV2InstrumentoEstado(baseNombre?: string | null) {
   return handle<InstrumentoEstado>(
     await fetch("/api/validacion/v2/instrumento/estado", {

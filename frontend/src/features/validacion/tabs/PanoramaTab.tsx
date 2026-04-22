@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle } from "lucide-react";
-import { apiV2Panorama } from "../../../api/client";
+import { Activity, AlertTriangle, Download, FileText, Loader2 } from "lucide-react";
+import { apiV2Panorama, apiV2ReportHtml, downloadUrl } from "../../../api/client";
 import type { PanoramaSummary, ValidacionTabId } from "../types";
 import { useValidacionStore } from "../store";
 import { LoadingBlock, EmptyState } from "../../../components/States";
@@ -28,6 +28,33 @@ export default function PanoramaTab() {
   const [data, setData] = useState<PanoramaSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
+
+  // Estado del export HTML. reportFileId queda null hasta que el user
+  // lo genera; una vez generado, mostramos el link de descarga al lado
+  // del botón para que pueda (re)abrirlo sin regenerar cada vez.
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportError, setReportError] = useState("");
+  const [reportFileId, setReportFileId] = useState<string | null>(null);
+
+  async function handleExportHtml() {
+    setReportBusy(true);
+    setReportError("");
+    try {
+      const r = await apiV2ReportHtml(baseNombre);
+      setReportFileId(r.file_id);
+    } catch (e) {
+      setReportError((e as Error).message);
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
+  // Reseteamos el reporte cuando cambia la base o la versión — el
+  // file_id viejo corresponde a un snapshot anterior y confunde.
+  useEffect(() => {
+    setReportFileId(null);
+    setReportError("");
+  }, [baseNombre, version]);
 
   useEffect(() => {
     let cancel = false;
@@ -77,6 +104,67 @@ export default function PanoramaTab() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Acciones del panorama: export del reporte HTML autocontenido */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+          padding: "10px 14px",
+          borderRadius: 8,
+          border: "1px solid var(--pulso-border)",
+          background: "var(--pulso-surface)",
+        }}
+      >
+        <FileText size={14} color="var(--pulso-text-soft)" />
+        <span style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
+          Exportar un reporte autocontenido con KPIs, top reglas y reglas
+          custom. Se abre en cualquier navegador sin conexión.
+        </span>
+        <button
+          type="button"
+          onClick={handleExportHtml}
+          disabled={reportBusy}
+          className="pulso-primary"
+          style={{
+            marginLeft: "auto",
+            fontSize: 12,
+            padding: "6px 12px",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          {reportBusy ? <Loader2 size={13} className="pulso-spin" /> : <FileText size={13} />}
+          {reportBusy ? "Generando…" : reportFileId ? "Regenerar HTML" : "Exportar reporte HTML"}
+        </button>
+        {reportFileId && !reportBusy && (
+          <a
+            href={downloadUrl(reportFileId)}
+            download="reporte_validacion.html"
+            style={{
+              fontSize: 12,
+              padding: "6px 10px",
+              borderRadius: 6,
+              border: "1px solid var(--pulso-primary)",
+              color: "var(--pulso-primary)",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <Download size={12} /> Descargar
+          </a>
+        )}
+        {reportError && (
+          <span style={{ fontSize: 11, color: "var(--pulso-danger-fg)" }}>
+            {reportError}
+          </span>
+        )}
+      </div>
+
       {/* Banner si falta correr auditoría */}
       {falta_auditoria && (
         <div
