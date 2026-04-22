@@ -267,7 +267,7 @@ export function BasesPanel({
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          {estudio.n_bases} / {estudio.max_bases} bases
+          {estudio.n_bases} {estudio.n_bases === 1 ? "base" : "bases"}
         </span>
 
         {/* Acción de salida contextual:
