@@ -156,8 +156,10 @@ odk_has_lex_issues <- function(expr) {
 .count_fixed <- function(haystack, needle) {
   # Cuenta ocurrencias literales (sin regex).
   if (!nzchar(haystack) || !nzchar(needle)) return(0L)
-  parts <- strsplit(haystack, needle, fixed = TRUE)[[1]]
-  length(parts) - 1L
+  # gregexpr con fixed=TRUE devuelve vector de posiciones; -1 si no hay match.
+  m <- gregexpr(needle, haystack, fixed = TRUE)[[1]]
+  if (length(m) == 1L && m[1] == -1L) return(0L)
+  length(m)
 }
 
 # Operador %||% por si no está cargado desde otro archivo.
