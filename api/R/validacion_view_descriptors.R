@@ -12,18 +12,14 @@
 # -----------------------------------------------------------------------------
 # Paleta (espejo del tema interactivo_* para mantener consistencia visual)
 # -----------------------------------------------------------------------------
-.vd_palette <- list(
-  primary   = "#2563eb",  # --pulso-primary
-  primary_soft = "#dbeafe",
-  success   = "#16a34a",
-  warn      = "#f59e0b",
-  danger    = "#dc2626",
-  neutral   = "#94a3b8",
-  bg        = "#ffffff",
-  grid      = "#e5e7eb",
-  text      = "#1f2937",
-  text_soft = "#64748b"
-)
+.vd_palette <- pulso_plotly_palette()
+
+.vd_wrap_axis_label <- function(x, width = 34L) {
+  x <- as.character(x %||% "")
+  vapply(x, function(label) {
+    paste(strwrap(label, width = width, simplify = FALSE)[[1]], collapse = "<br>")
+  }, character(1))
+}
 
 # Paleta semafórica discretizada en 3 cortes — se usa para heatmap y KPIs
 # con severidad. Mantiene el mismo criterio que interactivo_dimensiones.R
@@ -55,7 +51,7 @@ vd_kpi_card <- function(title, value, subtitle = NULL,
       severidad = sev,
       icon      = if (!is.null(icon)) as.character(icon) else NA_character_
     ),
-    plotly  = list(data = list(), layout = list(), config = list(displayModeBar = FALSE)),
+    plotly  = list(data = list(), layout = list(), config = pulso_plotly_config_base()),
     actions = actions
   )
 }
@@ -79,37 +75,34 @@ vd_bar_h <- function(title, labels, values,
                       actions = list(),
                       meta = list()) {
   labels <- as.character(labels)
+  labels_wrapped <- .vd_wrap_axis_label(labels, width = 34L)
   values <- as.numeric(values)
   # Invertir orden para que el top quede arriba (plotly dibuja de abajo a arriba).
   ord <- seq_along(labels)
   if (is.null(color) || length(color) == 0L) color <- .vd_palette$primary
+  left_margin <- if (any(grepl("<br>", labels_wrapped, fixed = TRUE))) 240L else 180L
   trace <- list(
     type = "bar",
     orientation = "h",
     x = values,
-    y = labels,
+    y = labels_wrapped,
+    hovertext = labels,
     marker = list(color = color),
-    hovertemplate = "%{y}<br><b>%{x}</b><extra></extra>"
+    hovertemplate = "%{hovertext}<br><b>%{x}</b><extra></extra>"
   )
   if (!is.null(ids) && length(ids) == length(labels)) {
     trace$customdata <- as.character(ids)
   }
-  layout <- list(
-    margin = list(l = 180, r = 24, t = 16, b = 48),
-    xaxis = list(
-      title = if (!is.null(x_title)) list(text = as.character(x_title)) else NULL,
-      gridcolor = .vd_palette$grid,
-      zeroline = FALSE
+  layout <- utils::modifyList(
+    pulso_plotly_layout_base(
+      height = max(220L, 28L * length(labels) + 80L),
+      margin = list(l = left_margin, r = 24, t = 16, b = 48),
+      showlegend = FALSE
     ),
-    yaxis = list(
-      title = if (!is.null(y_title)) list(text = as.character(y_title)) else NULL,
-      automargin = TRUE,
-      autorange = "reversed"  # primer elemento arriba
-    ),
-    plot_bgcolor = .vd_palette$bg,
-    paper_bgcolor = .vd_palette$bg,
-    showlegend = FALSE,
-    height = max(220L, 28L * length(labels) + 80L)
+    list(
+      xaxis = pulso_plotly_axis(title = x_title),
+      yaxis = pulso_plotly_axis(title = y_title, autorange = "reversed")
+    )
   )
   list(
     version  = 1L,
@@ -120,7 +113,7 @@ vd_bar_h <- function(title, labels, values,
     plotly   = list(
       data = list(trace),
       layout = layout,
-      config = list(displayModeBar = FALSE, responsive = TRUE)
+      config = pulso_plotly_config_base()
     ),
     actions  = actions
   )
@@ -173,13 +166,15 @@ vd_heatmap_semaforo <- function(title, x, y, z,
     trace$texttemplate <- "%{text}"
     trace$textfont <- list(color = "white", size = 11)
   }
-  layout <- list(
-    margin = list(l = 180, r = 24, t = 16, b = 60),
-    xaxis = list(tickangle = -25, automargin = TRUE, side = "bottom"),
-    yaxis = list(automargin = TRUE, autorange = "reversed"),
-    plot_bgcolor = .vd_palette$bg,
-    paper_bgcolor = .vd_palette$bg,
-    height = max(240L, 32L * length(y) + 100L)
+  layout <- utils::modifyList(
+    pulso_plotly_layout_base(
+      height = max(240L, 32L * length(y) + 100L),
+      margin = list(l = 180, r = 24, t = 16, b = 60)
+    ),
+    list(
+      xaxis = pulso_plotly_axis(tickangle = -25, side = "bottom"),
+      yaxis = pulso_plotly_axis(autorange = "reversed")
+    )
   )
   list(
     version  = 1L,
@@ -190,7 +185,7 @@ vd_heatmap_semaforo <- function(title, x, y, z,
     plotly   = list(
       data = list(trace),
       layout = layout,
-      config = list(displayModeBar = FALSE, responsive = TRUE)
+      config = pulso_plotly_config_base()
     ),
     actions  = actions
   )
@@ -239,15 +234,18 @@ vd_radar <- function(title, labels, values,
     hovertemplate = "<b>%{theta}</b>: %{r}<extra></extra>",
     name = as.character(title)
   )
-  layout <- list(
-    polar = list(
-      radialaxis = list(visible = TRUE, range = c(0, range_max)),
-      angularaxis = list(direction = "clockwise")
+  layout <- utils::modifyList(
+    pulso_plotly_layout_base(
+      height = 320L,
+      margin = list(l = 40, r = 40, t = 16, b = 40),
+      showlegend = FALSE
     ),
-    showlegend = FALSE,
-    margin = list(l = 40, r = 40, t = 16, b = 40),
-    paper_bgcolor = .vd_palette$bg,
-    height = 320L
+    list(
+      polar = list(
+        radialaxis = list(visible = TRUE, range = c(0, range_max)),
+        angularaxis = list(direction = "clockwise")
+      )
+    )
   )
   list(
     version  = 1L,
@@ -258,7 +256,7 @@ vd_radar <- function(title, labels, values,
     plotly   = list(
       data = list(trace),
       layout = layout,
-      config = list(displayModeBar = FALSE, responsive = TRUE)
+      config = pulso_plotly_config_base()
     ),
     actions  = actions
   )
@@ -316,16 +314,19 @@ vd_scatterpolar <- function(title, labels, series,
     else 1
   }
 
-  layout <- list(
-    polar = list(
-      radialaxis = list(visible = TRUE, range = c(0, range_max)),
-      angularaxis = list(direction = "clockwise")
+  layout <- utils::modifyList(
+    pulso_plotly_layout_base(
+      height = 360L,
+      margin = list(l = 40, r = 40, t = 16, b = 60),
+      showlegend = TRUE,
+      legend = list(orientation = "h", y = -0.15)
     ),
-    showlegend = TRUE,
-    legend = list(orientation = "h", y = -0.15),
-    margin = list(l = 40, r = 40, t = 16, b = 60),
-    paper_bgcolor = .vd_palette$bg,
-    height = 360L
+    list(
+      polar = list(
+        radialaxis = list(visible = TRUE, range = c(0, range_max)),
+        angularaxis = list(direction = "clockwise")
+      )
+    )
   )
   list(
     version  = 1L,
@@ -336,7 +337,7 @@ vd_scatterpolar <- function(title, labels, series,
     plotly   = list(
       data = traces,
       layout = layout,
-      config = list(displayModeBar = FALSE, responsive = TRUE)
+      config = pulso_plotly_config_base()
     ),
     actions  = actions
   )
@@ -386,7 +387,11 @@ vd_scatterpolar <- function(title, labels, series,
     color  = rep(.vd_palette$primary, head_n),
     x_title = "Casos inconsistentes",
     y_title = NULL,
-    meta = list(total_con_casos = sum(ok))
+    meta = list(
+      total_con_casos = sum(ok),
+      eyebrow = "Salud de reglas",
+      note = "Prioriza estas reglas antes de revisar el resto del instrumento."
+    )
   )
 }
 
@@ -428,6 +433,11 @@ vd_scatterpolar <- function(title, labels, series,
     subtitle = sprintf("Total: %d casos en %d secciones × %d tipos.",
                         sum(z), length(x), length(y)),
     x = x, y = y, z = z, z_text = zt,
-    meta = list(n_secciones = length(x), n_tipos = length(y))
+    meta = list(
+      n_secciones = length(x),
+      n_tipos = length(y),
+      eyebrow = "Mapa de calor",
+      note = "Las celdas más intensas concentran los frentes principales de revisión."
+    )
   )
 }

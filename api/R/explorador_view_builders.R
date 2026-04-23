@@ -241,10 +241,71 @@
   tb
 }
 
+.explorar_wrap_label <- function(x, width = 36L) {
+  x <- as.character(x %||% "")
+  vapply(x, function(label) {
+    paste(strwrap(label, width = width, simplify = FALSE)[[1]], collapse = "<br>")
+  }, character(1))
+}
+
 # -----------------------------------------------------------------------------
 # KPIs básicos por tipo
 # -----------------------------------------------------------------------------
-.explorar_kpi_cards <- function(df, var, tipo) {
+.explorar_kpi_cards <- function(df, var, tipo, instrumento = NULL) {
+  if (tipo == "sm") {
+    tab_sm <- .explorar_tab_frec_sm(df, var, instrumento %||% list())
+    if (is.null(tab_sm) || !nrow(tab_sm)) {
+      return(list(vd_kpi_card(title = "Variable", value = "—",
+                               subtitle = "No existe en la base",
+                               severidad = "warn")))
+    }
+    var_esc <- gsub("([\\W])", "\\\\\\1", as.character(var)[1])
+    dummy_cols <- grep(paste0("^", var_esc, "[/\\.]"), names(df), value = TRUE)
+    n_total <- nrow(df)
+    if (!length(dummy_cols)) {
+      n_validos <- 0L
+      n_na <- n_total
+    } else {
+      raw_rows <- lapply(dummy_cols, function(col) as.character(df[[col]]))
+      available <- Reduce(`|`, lapply(raw_rows, function(x) !is.na(x) & nzchar(x) & x != "NA"))
+      n_validos <- sum(available, na.rm = TRUE)
+      n_na <- n_total - n_validos
+    }
+    pct_na <- if (n_total > 0L) n_na / n_total else 0
+    sev_na <- if (pct_na < 0.05) "success" else if (pct_na < 0.20) "warn" else "danger"
+
+    return(list(
+      vd_kpi_card(
+        title = "Total casos",
+        value = as.integer(n_total),
+        subtitle = "Filas en la base",
+        severidad = "neutral",
+        icon = "database"
+      ),
+      vd_kpi_card(
+        title = "Respondentes con dato",
+        value = as.integer(n_validos),
+        subtitle = sprintf("%.1f%% de la base", 100 * (1 - pct_na)),
+        severidad = if (n_validos > 0L) "success" else "warn",
+        icon = "check-circle"
+      ),
+      vd_kpi_card(
+        title = "Sin respuesta",
+        value = sprintf("%.1f%%", 100 * pct_na),
+        subtitle = sprintf("%d de %d casos sin marca en la selección múltiple", as.integer(n_na), as.integer(n_total)),
+        severidad = sev_na,
+        icon = "alert-circle"
+      ),
+      vd_kpi_card(
+        title = "Opciones activas",
+        value = as.integer(sum(tab_sm$n > 0, na.rm = TRUE)),
+        subtitle = sprintf("%d opciones con al menos una marca", nrow(tab_sm)),
+        severidad = "neutral",
+        icon = "list"
+      )
+    ))
+  }
+
   if (!var %in% names(df)) {
     return(list(vd_kpi_card(title = "Variable", value = "—",
                              subtitle = "No existe en la base",
@@ -308,9 +369,8 @@
   label <- .explorar_label_var(var, instrumento)
   titulo <- sprintf("Distribución de %s", label)
 
-  if (tipo %in% c("so", "sm")) {
-    tab <- if (tipo == "so") .explorar_tab_frec_so(df, var, instrumento)
-           else .explorar_tab_frec_sm(df, var, instrumento)
+  if (tipo == "so") {
+    tab <- .explorar_tab_frec_so(df, var, instrumento)
     if (is.null(tab) || !nrow(tab)) {
       return(vd_bar_h(
         title = titulo, labels = character(), values = numeric(),
@@ -318,29 +378,141 @@
                     empty_hint = "Sin casos para graficar.")
       ))
     }
-    # Truncar categorías excesivas.
     lim <- .interactivo_limit_levels(tab$label, max_levels = 20L)
     keep <- lim$visible
     tab <- tab[tab$label %in% keep, , drop = FALSE]
-
-    subt <- if (tipo == "sm") {
-      sprintf("Select_multiple — %% sobre %d respondentes (opciones no excluyentes).", nrow(df))
-    } else {
-      sprintf("Select_one — frecuencia absoluta (n=%d válidos).", sum(tab$n))
-    }
-    # Redondear label con porcentaje para SM.
-    y_labels <- if (tipo == "sm") {
-      sprintf("%s (%.1f%%)", tab$label, 100 * tab$pct)
-    } else tab$label
-
-    return(vd_bar_h(
+    pal_so <- grDevices::colorRampPalette(c("#dbe8ff", "#7aa2f8", "#2457d6", "#002457"))(nrow(tab))
+    traces <- lapply(seq_len(nrow(tab)), function(i) {
+      show_text <- as.numeric(tab$pct[i]) >= 0.05
+      list(
+        type = "bar",
+        name = as.character(tab$label[i]),
+        orientation = "h",
+        x = list(as.numeric(tab$pct[i])),
+        y = list("Distribución"),
+        text = list(if (show_text) sprintf("%.1f%%", 100 * tab$pct[i]) else ""),
+        textposition = "inside",
+        insidetextanchor = "middle",
+        marker = list(color = pal_so[i]),
+        hovertemplate = sprintf(
+          "%s<br>n=%d<br>%s<extra></extra>",
+          as.character(tab$label[i]),
+          as.integer(tab$n[i]),
+          sprintf("%.1f%%", 100 * tab$pct[i])
+        )
+      )
+    })
+    layout <- utils::modifyList(
+      pulso_plotly_layout_base(
+        height = max(180L, 140L + 8L * nrow(tab)),
+        margin = list(l = 36, r = 24, t = 12, b = 52),
+        showlegend = TRUE,
+        legend = list(
+          orientation = "h",
+          y = -0.24,
+          x = 0.5,
+          xanchor = "center"
+        )
+      ),
+      list(
+        barmode = "stack",
+        xaxis = utils::modifyList(
+          pulso_plotly_axis(title = NULL),
+          list(tickformat = ",.0%", range = c(0, 1))
+        ),
+        yaxis = utils::modifyList(
+          pulso_plotly_axis(title = NULL),
+          list(showticklabels = FALSE)
+        )
+      )
+    )
+    return(list(
+      version = 1L,
+      kind = "bar_stack",
       title = titulo,
-      subtitle = subt,
-      labels = y_labels,
-      values = as.integer(tab$n),
-      x_title = if (tipo == "sm") "Menciones" else "Casos",
-      meta = list(var = var, tipo = tipo,
-                  n_categorias = nrow(tab), n_total = sum(tab$n))
+      subtitle = sprintf("Selección única — barra apilada con %d categorías válidas.", nrow(tab)),
+      meta = list(
+        var = var,
+        tipo = tipo,
+        n_categorias = nrow(tab),
+        n_total = sum(tab$n),
+        eyebrow = "Selección única",
+        note = "Cada segmento muestra la participación de una categoría sobre el total válido."
+      ),
+      plotly = list(
+        data = traces,
+        layout = layout,
+        config = pulso_plotly_config_base()
+      ),
+      actions = list()
+    ))
+  }
+
+  if (tipo == "sm") {
+    tab <- .explorar_tab_frec_sm(df, var, instrumento)
+    if (is.null(tab) || !nrow(tab)) {
+      return(vd_bar_h(
+        title = titulo, labels = character(), values = numeric(),
+        meta = list(var = var, tipo = tipo,
+                    empty_hint = "Sin casos para graficar.")
+      ))
+    }
+    lim <- .interactivo_limit_levels(tab$label, max_levels = 20L)
+    keep <- lim$visible
+    tab <- tab[tab$label %in% keep, , drop = FALSE]
+    labels_wrapped <- .explorar_wrap_label(tab$label, width = 42L)
+    trace <- list(
+      type = "bar",
+      orientation = "h",
+      x = as.numeric(tab$pct),
+      y = labels_wrapped,
+      hovertext = as.character(tab$label),
+      text = sprintf("%.1f%%", 100 * tab$pct),
+      textposition = "outside",
+      cliponaxis = FALSE,
+      marker = list(color = pulso_plotly_palette()$success),
+      customdata = as.integer(tab$n),
+      hovertemplate = "%{hovertext}<br>%{text}<br>Menciones: %{customdata}<extra></extra>"
+    )
+    layout <- utils::modifyList(
+      pulso_plotly_layout_base(
+        height = max(280L, 36L * nrow(tab) + 110L),
+        margin = list(l = 280, r = 64, t = 12, b = 56),
+        showlegend = FALSE
+      ),
+      list(
+        xaxis = utils::modifyList(
+          pulso_plotly_axis(title = "Porcentaje de respondentes"),
+          list(
+            tickformat = ",.0%",
+            range = c(0, max(0.05, min(1, max(tab$pct, na.rm = TRUE) * 1.15)))
+          )
+        ),
+        yaxis = utils::modifyList(
+          pulso_plotly_axis(title = NULL, autorange = "reversed"),
+          list(automargin = TRUE)
+        )
+      )
+    )
+    return(list(
+      version = 1L,
+      kind = "bar_h",
+      title = titulo,
+      subtitle = sprintf("Selección múltiple — porcentaje sobre %d respondentes.", nrow(df)),
+      meta = list(
+        var = var,
+        tipo = tipo,
+        n_categorias = nrow(tab),
+        n_total = nrow(df),
+        eyebrow = "Selección múltiple",
+        note = "Las etiquetas muestran el porcentaje con 1 decimal sobre el total de respondentes."
+      ),
+      plotly = list(
+        data = list(trace),
+        layout = layout,
+        config = pulso_plotly_config_base()
+      ),
+      actions = list()
     ))
   }
 
@@ -354,93 +526,45 @@
                     empty_hint = "Sin valores numéricos para graficar.")
       ))
     }
-    # Histograma con ~30 bins automáticos.
     trace <- list(
       type = "histogram",
       x = x,
-      marker = list(color = "#2563eb"),
+      marker = list(color = "#7c3aed"),
       hovertemplate = "Rango: %{x}<br>n=%{y}<extra></extra>"
     )
-    layout <- list(
-      margin = list(l = 56, r = 24, t = 16, b = 48),
-      xaxis = list(title = list(text = label), gridcolor = "#e5e7eb"),
-      yaxis = list(title = list(text = "Frecuencia"), gridcolor = "#e5e7eb"),
-      plot_bgcolor = "#ffffff", paper_bgcolor = "#ffffff",
-      showlegend = FALSE, height = 320L
+    layout <- utils::modifyList(
+      pulso_plotly_layout_base(
+        height = 320L,
+        margin = list(l = 56, r = 24, t = 16, b = 48),
+        showlegend = FALSE
+      ),
+      list(
+        xaxis = pulso_plotly_axis(title = label),
+        yaxis = pulso_plotly_axis(title = "Frecuencia")
+      )
     )
     return(list(
       version = 1L, kind = "histogram",
       title = titulo,
       subtitle = sprintf("n=%d válidos · min=%.2f · max=%.2f · media=%.2f",
                           length(x), min(x), max(x), mean(x)),
-      meta = list(var = var, tipo = tipo, n_validos = length(x)),
+      meta = list(
+        var = var,
+        tipo = tipo,
+        n_validos = length(x),
+        eyebrow = "Numérica",
+        note = "Histograma disponible para variables integer y decimal."
+      ),
       plotly = list(data = list(trace), layout = layout,
-                    config = list(displayModeBar = FALSE, responsive = TRUE)),
+                    config = pulso_plotly_config_base()),
       actions = list()
     ))
   }
 
-  if (tipo == "fecha") {
-    raw <- df[[var]]
-    dates <- tryCatch(as.Date(raw), error = function(e) NULL)
-    if (is.null(dates)) dates <- as.Date(as.character(raw), optional = TRUE)
-    dates <- dates[!is.na(dates)]
-    if (!length(dates)) {
-      return(vd_bar_h(
-        title = titulo, labels = character(), values = numeric(),
-        meta = list(var = var, tipo = tipo,
-                    empty_hint = "Sin fechas válidas para graficar.")
-      ))
-    }
-    trace <- list(
-      type = "histogram",
-      x = as.character(dates),
-      marker = list(color = "#2563eb"),
-      hovertemplate = "%{x}<br>n=%{y}<extra></extra>"
-    )
-    layout <- list(
-      margin = list(l = 56, r = 24, t = 16, b = 48),
-      xaxis = list(type = "date", title = list(text = label),
-                    gridcolor = "#e5e7eb"),
-      yaxis = list(title = list(text = "Frecuencia"), gridcolor = "#e5e7eb"),
-      plot_bgcolor = "#ffffff", paper_bgcolor = "#ffffff",
-      showlegend = FALSE, height = 300L
-    )
-    return(list(
-      version = 1L, kind = "histogram",
-      title = titulo,
-      subtitle = sprintf("Rango: %s → %s", min(dates), max(dates)),
-      meta = list(var = var, tipo = tipo, n_validos = length(dates)),
-      plotly = list(data = list(trace), layout = layout,
-                    config = list(displayModeBar = FALSE, responsive = TRUE)),
-      actions = list()
-    ))
-  }
-
-  # texto: no graficamos distribución. Mostramos muestra.
-  if (tipo == "texto") {
-    raw <- df[[var]]
-    x <- as.character(raw)
-    x <- x[!is.na(x) & nzchar(x)]
-    n_val <- length(x)
-    sample_n <- utils::head(unique(x), 20L)
-    return(list(
-      version = 1L, kind = "table",
-      title = titulo,
-      subtitle = sprintf("Texto libre — %d respuestas únicas (muestra máx 20).", length(unique(x))),
-      meta = list(var = var, tipo = tipo, n_validos = n_val,
-                  empty_hint = if (!length(sample_n)) "Sin respuestas."),
-      plotly = list(data = list(), layout = list(), config = list()),
-      actions = list(),
-      samples = as.list(sample_n)
-    ))
-  }
-
-  # Fallback.
   vd_bar_h(
     title = titulo, labels = character(), values = numeric(),
     meta = list(var = var, tipo = tipo,
-                empty_hint = "Tipo de variable no soportado aún.")
+                empty_hint = "Explorar datos solo soporta selección única, selección múltiple y variables numéricas.")
   )
 }
 
@@ -528,6 +652,7 @@
       seccion = unname(var_seccion[v]) %||% "General"
     )
   })
+  meta_rows <- Filter(function(r) r$tipo %in% c("so", "sm", "num"), meta_rows)
 
   # Agrupar por sección.
   secciones_chr <- vapply(meta_rows, function(r) r$seccion, character(1))
@@ -553,7 +678,7 @@ build_view_univariado <- function(data, var, instrumento, filtros = NULL) {
   surv <- instrumento$survey %||% NULL
   data_f <- .explorar_apply_filtros(data, filtros, survey = surv)
   tipo <- .explorar_tipo_var(var, survey = surv, df = data_f)
-  kpis <- .explorar_kpi_cards(data_f, var, tipo)
+  kpis <- .explorar_kpi_cards(data_f, var, tipo, instrumento)
   chart <- .explorar_chart_univariado(data_f, var, tipo, instrumento)
   n_tras_filtro <- nrow(data_f)
   n_total <- nrow(data)

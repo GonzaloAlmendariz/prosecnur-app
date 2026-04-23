@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Check,
   ChevronDown,
@@ -37,6 +37,7 @@ type Props = {
   onPatchAtributos: (patch: Record<string, string>) => Promise<void>;
   onClose: () => void;
   invalidatedHint?: string;
+  startEditingToken?: number;
 };
 
 export default function ReglaDrillPanel({
@@ -47,6 +48,7 @@ export default function ReglaDrillPanel({
   onPatchAtributos,
   onClose,
   invalidatedHint,
+  startEditingToken,
 }: Props) {
   const [expandProc, setExpandProc] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -65,6 +67,12 @@ export default function ReglaDrillPanel({
   // todo. Arrancamos sin filtros.
   const [filters, setFilters] = useState<Record<string, Set<string>>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    if ((startEditingToken ?? 0) > 0) {
+      setEditing(true);
+    }
+  }, [startEditingToken]);
 
   // Columnas candidatas a filtrar: las variables declaradas por la
   // regla (excluye el UUID que es alta cardinalidad y no da valor).

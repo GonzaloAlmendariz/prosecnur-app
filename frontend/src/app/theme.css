@@ -19,6 +19,10 @@
   --pulso-shadow-med: 0 14px 30px rgba(0, 36, 87, 0.08);
   --pulso-shadow-high: 0 24px 60px rgba(0, 36, 87, 0.14);
   --pulso-radius: 10px;
+  --pulso-chart-panel: #f8faff;
+  --pulso-chart-border: #d8e0ef;
+  --pulso-chart-chip-bg: rgba(255, 255, 255, 0.84);
+  --pulso-chart-chip-border: rgba(0, 36, 87, 0.12);
   /* Tipo colors — mirrored from prosecnur xlsx exportar_plantilla
    * (exportar_plantilla_codificacion_xlsx). Keeps visual language
    * consistent for analysts already trained on the xlsx flow. */
@@ -92,6 +96,10 @@
 }
 .pulso-badge-fresh {
   animation: pulso-badge-fadein-kf var(--anim-dur-short) var(--anim-ease-expressive);
+}
+@keyframes pulso-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .pulso-card-glow, .pulso-badge-fresh { animation: none !important; }
