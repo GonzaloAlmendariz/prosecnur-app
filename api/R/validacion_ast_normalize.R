@@ -222,7 +222,17 @@ ast_normalize <- function(x) {
     ne_consts <- list()
   }
 
-  # 6. AND de gte(v, a) + lte(v, b) sobre MISMA var → range_numeric(v, a, b).
+  # 6. AND de gte(v, a) + lte(v, b) sobre MISMA var → not(range_numeric(v, a, b)).
+  #
+  # CUIDADO con semánticas opuestas:
+  #   AND(gte(v,a), lte(v,b))   = TRUE cuando v está EN el rango (válido)
+  #   range_numeric(v, a, b)    = TRUE cuando v está FUERA del rango (violación)
+  #
+  # Por eso al colapsar envolvemos con not(): así preservamos el significado.
+  # Si la regla original ya viene negada por el introspector de constraints
+  # (`rule_constraint` hace ast_not(parsed)), la doble negación se cancela
+  # en la siguiente pasada del canonicalizer (not(not(x)) → x), dando el
+  # range_numeric "nudo" que es lo que queremos como violación.
   if (op == "and" && length(ranges_gte) >= 1L && length(ranges_lte) >= 1L) {
     by_gte <- split(ranges_gte, vapply(ranges_gte, function(a) a$var, character(1)))
     by_lte <- split(ranges_lte, vapply(ranges_lte, function(a) a$var, character(1)))
@@ -233,7 +243,7 @@ ast_normalize <- function(x) {
       gte_val <- suppressWarnings(as.numeric(gte_node$value))
       lte_val <- suppressWarnings(as.numeric(lte_node$value))
       if (!is.na(gte_val) && !is.na(lte_val) && gte_val <= lte_val) {
-        out <- c(out, list(ast_range_numeric(v, min = gte_val, max = lte_val, inclusive = TRUE)))
+        out <- c(out, list(ast_not(ast_range_numeric(v, min = gte_val, max = lte_val, inclusive = TRUE))))
         ranges_gte <- Filter(function(a) a$var != v, ranges_gte)
         ranges_lte <- Filter(function(a) a$var != v, ranges_lte)
       }
