@@ -29,7 +29,7 @@ import FiltroCascada from "../components/FiltroCascada";
 //   - Right (flex): vista de la variable seleccionada — KPIs + chart
 //     univariado. Debajo, cruce opcional con segunda variable (bivariado).
 //
-// El deep-link desde Panorama (prefill.explorar.var) se consume al montar.
+// El deep-link desde Limpieza (prefill.explorar.var) se consume al montar.
 
 const SIDEBAR_WIDTH = 300;
 
@@ -196,6 +196,9 @@ export default function ExplorarTab() {
       >
         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 10 }}>
           Variables · {inv.n_variables}
+        </div>
+        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5, marginBottom: 10 }}>
+          Este explorador muestra solo <strong>Selección única</strong>, <strong>Selección múltiple</strong> y <strong>numéricas</strong>.
         </div>
         <VariablePicker
           secciones={inv.secciones}

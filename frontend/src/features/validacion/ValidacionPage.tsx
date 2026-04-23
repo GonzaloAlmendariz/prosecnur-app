@@ -9,7 +9,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { TabStrip, TabMeta } from "../../components/TabStrip";
 import { ErrorBlock } from "../../components/States";
 import BaseSelector from "./BaseSelector";
-import PanoramaTab from "./tabs/PanoramaTab";
+import LimpiezaTab from "./tabs/LimpiezaTab";
 import InstrumentoTab from "./tabs/InstrumentoTab";
 import ExplorarTab from "./tabs/ExplorarTab";
 import ReglasCustomTab from "./tabs/ReglasCustomTab";
@@ -37,10 +37,10 @@ import type { ValidacionTabId } from "./types";
 
 const TABS: TabMeta<ValidacionTabId>[] = [
   {
-    key: "panorama",
-    label: "Panorama",
-    icon: Activity,
-    desc: "Salud general de la base",
+    key: "explorar",
+    label: "Explorar datos",
+    icon: Compass,
+    desc: "Distribuciones y anomalías",
   },
   {
     key: "instrumento",
@@ -49,16 +49,16 @@ const TABS: TabMeta<ValidacionTabId>[] = [
     desc: "Validar contra el XLSForm",
   },
   {
-    key: "explorar",
-    label: "Explorar datos",
-    icon: Compass,
-    desc: "Distribuciones y anomalías",
-  },
-  {
     key: "reglas_custom",
     label: "Reglas personalizadas",
     icon: PieChart,
     desc: "Reglas finas definidas por ti",
+  },
+  {
+    key: "limpieza",
+    label: "Limpieza y normalización",
+    icon: Activity,
+    desc: "Decidir y cerrar la base",
   },
 ];
 
@@ -107,7 +107,7 @@ export default function ValidacionPage() {
     <section>
       <PageHeader
         title="Fase 2 — Validación"
-        lead="Revisa que tu data cumple lo que el XLSForm promete, explora cómo viene distribuida y define reglas finas para detectar casos raros antes de avanzar."
+        lead="Explora la base, valida contra el XLSForm, afina reglas personalizadas y cierra con limpieza y normalización antes de avanzar."
       />
 
       {!prereqsOk && (
@@ -146,7 +146,7 @@ export default function ValidacionPage() {
       </div>
 
       <div role="tabpanel" aria-labelledby={activeTab}>
-        {activeTab === "panorama" && <PanoramaTab />}
+        {activeTab === "limpieza" && <LimpiezaTab />}
         {activeTab === "instrumento" && <InstrumentoTab />}
         {activeTab === "explorar" && <ExplorarTab />}
         {activeTab === "reglas_custom" && <ReglasCustomTab />}

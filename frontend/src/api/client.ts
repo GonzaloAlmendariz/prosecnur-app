@@ -1581,7 +1581,9 @@ export async function apiCodifImportJson(bundle: unknown) {
 // ya seleccionó una base explícita. Si viaja vacío, el backend resuelve
 // a la primera base del estudio (o modo legacy single-base).
 import type {
-  PanoramaSummary,
+  LimpiezaSummary,
+  LimpiezaDecision,
+  LimpiezaBeforeAfterPreview,
   InstrumentoEstado,
   ExploradorVariablesList,
   ReglasCustomList,
@@ -1593,9 +1595,78 @@ function v2Headers(baseNombre?: string | null, extra: Record<string, string> = {
   return h;
 }
 
-export async function apiV2Panorama(baseNombre?: string | null) {
-  return handle<PanoramaSummary>(
-    await fetch("/api/validacion/v2/panorama", {
+export async function apiV2Limpieza(baseNombre?: string | null) {
+  return handle<LimpiezaSummary>(
+    await fetch("/api/validacion/v2/limpieza", {
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2LimpiezaDecisions(baseNombre?: string | null) {
+  return handle<{ ok: true; base_nombre: string | null; decisions: LimpiezaDecision[] }>(
+    await fetch("/api/validacion/v2/limpieza/decisions", {
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2LimpiezaDecisionSave(
+  payload: Partial<LimpiezaDecision> & {
+    source_id: string;
+    action_type: LimpiezaDecision["action_type"];
+  },
+  baseNombre?: string | null,
+) {
+  return handle<{
+    ok: true;
+    decision: LimpiezaDecision;
+    decision_draft: LimpiezaDecision[];
+    before_after_preview: LimpiezaBeforeAfterPreview | null;
+    summary: LimpiezaSummary["summary"];
+  }>(
+    await fetch("/api/validacion/v2/limpieza/decision", {
+      method: "POST",
+      headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiV2LimpiezaDecisionDelete(
+  id: string,
+  baseNombre?: string | null,
+) {
+  return handle<{
+    ok: true;
+    id: string;
+    decision_draft: LimpiezaDecision[];
+    summary: LimpiezaSummary["summary"];
+  }>(
+    await fetch(`/api/validacion/v2/limpieza/decision/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2LimpiezaPreview(baseNombre?: string | null) {
+  return handle<{ ok: true; base_nombre: string | null; before_after_preview: LimpiezaBeforeAfterPreview | null }>(
+    await fetch("/api/validacion/v2/limpieza/preview", {
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2LimpiezaFinalize(baseNombre?: string | null) {
+  return handle<{
+    ok: true;
+    summary: LimpiezaSummary["summary"];
+    before_after_preview: LimpiezaBeforeAfterPreview | null;
+    artifacts: LimpiezaSummary["artifacts"];
+  }>(
+    await fetch("/api/validacion/v2/limpieza/finalize", {
+      method: "POST",
       headers: v2Headers(baseNombre),
     }),
   );
@@ -1687,6 +1758,7 @@ export type InstrumentoDrillResult = {
   ok: true;
   regla: ReglaInstrumento;
   uuid_col: string | null;
+  case_ids?: string[];
   casos: Array<Record<string, unknown>>;
 };
 

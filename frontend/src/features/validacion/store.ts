@@ -9,7 +9,7 @@ import type { ValidacionTabId } from "./types";
 //   - Pestaña activa.
 //   - Base seleccionada arriba del todo (único selector de la página).
 //   - Payloads de deep-link (prefill cuando se salta de un tab a otro
-//     desde el Panorama: ej. "abrir la variable X en Explorar").
+//     desde Limpieza y normalización: ej. "abrir la variable X en Explorar").
 //   - Flag de loading genérico por pestaña.
 //
 // Lo importante: cambiar `baseNombre` debe invalidar cualquier caché
@@ -17,7 +17,7 @@ import type { ValidacionTabId } from "./types";
 // para que los `useEffect([version])` de los tabs se disparen.
 
 export type ValidacionPrefill = {
-  panorama?: Record<string, unknown>;
+  limpieza?: Record<string, unknown>;
   // Para tab "instrumento": prefill de drill-down a una regla.
   instrumento?: { id_regla?: string };
   // Para tab "explorar": prefill de variable seleccionada (y opcional cruce).
@@ -41,7 +41,7 @@ type ValidacionState = {
 };
 
 export const useValidacionStore = create<ValidacionState>((set) => ({
-  activeTab: "panorama",
+  activeTab: "explorar",
   baseNombre: null,
   version: 0,
   prefill: {},

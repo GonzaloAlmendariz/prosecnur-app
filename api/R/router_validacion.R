@@ -139,6 +139,12 @@
   tmp
 }
 
+.limpieza_invalidate_outputs <- function(sid, base_nombre = NULL) {
+  validacion_scope_set(sid, base_nombre, "limpieza_preview", NULL)
+  validacion_scope_set(sid, base_nombre, "limpieza_artifacts", list())
+  invisible(TRUE)
+}
+
 # prosecnur's GraficarSecciones/GraficarPreguntas use grid::unit() without the
 # namespace prefix and without declaring grid as an Import. Attach it explicitly.
 .with_grid <- function(fn) {
@@ -158,21 +164,89 @@ mount_validacion <- function(pr) {
     # esas rutas ahora devuelve 404.
     # =========================================================================
 
-    # --- Panorama (Sprint 5) — KPIs + top reglas + top vars con deep-links --
-    plumber::pr_get("/api/validacion/v2/panorama", wrap_endpoint(function(req, res) {
+    # --- Limpieza (Sprint 5) — KPIs + top reglas + top vars con deep-links --
+    plumber::pr_get("/api/validacion/v2/limpieza", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
-      panorama <- build_panorama(scope)
+      limpieza <- build_limpieza(scope, sid = sid, base_nombre = base)
       list(
         ok = TRUE,
         base_nombre = base %||% NA_character_,
-        progreso = panorama$progreso,
-        kpis = panorama$kpis,
-        top_reglas = panorama$top_reglas,
-        top_variables = panorama$top_variables,
+        progreso = limpieza$progreso,
+        summary = limpieza$summary,
+        kpis = limpieza$kpis,
+        top_reglas = limpieza$top_reglas,
+        top_variables = limpieza$top_variables,
+        decision_queue = limpieza$decision_queue,
+        decision_draft = limpieza$decision_draft,
+        module_stats = limpieza$module_stats,
+        before_after_preview = limpieza$before_after_preview,
+        artifacts = limpieza$artifacts,
         actions = list()
       )
+    })) |>
+
+    plumber::pr_get("/api/validacion/v2/limpieza/decisions", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      scope <- .get_base_scope(sid, base)
+      list(
+        ok = TRUE,
+        base_nombre = base %||% NA_character_,
+        decisions = scope$limpieza_draft %||% list()
+      )
+    })) |>
+
+    plumber::pr_post("/api/validacion/v2/limpieza/decision", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      scope <- .get_base_scope(sid, base)
+      upsert <- .limpieza_upsert_decision(scope$limpieza_draft %||% list(), parsed)
+      validacion_scope_set(sid, base, "limpieza_draft", upsert$decisions)
+      .limpieza_invalidate_outputs(sid, base)
+      limpieza <- build_limpieza(.get_base_scope(sid, base), sid = sid, base_nombre = base)
+      list(
+        ok = TRUE,
+        decision = upsert$decision,
+        decision_draft = limpieza$decision_draft,
+        before_after_preview = limpieza$before_after_preview,
+        summary = limpieza$summary
+      )
+    })) |>
+
+    plumber::pr_delete("/api/validacion/v2/limpieza/decision/<id>", wrap_endpoint(function(req, res, id = NULL) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      if (is.null(id) || !nzchar(id)) stop_api(400, "E_MISSING_ID", "Falta id de decisión.")
+      scope <- .get_base_scope(sid, base)
+      kept <- .limpieza_delete_decision(scope$limpieza_draft %||% list(), id)
+      validacion_scope_set(sid, base, "limpieza_draft", kept)
+      .limpieza_invalidate_outputs(sid, base)
+      limpieza <- build_limpieza(.get_base_scope(sid, base), sid = sid, base_nombre = base)
+      list(ok = TRUE, id = id, decision_draft = limpieza$decision_draft, summary = limpieza$summary)
+    })) |>
+
+    plumber::pr_get("/api/validacion/v2/limpieza/preview", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      scope <- .get_base_scope(sid, base)
+      preview <- .limpieza_simulate(sid, base, scope, scope$limpieza_draft %||% list())
+      validacion_scope_set(sid, base, "limpieza_preview", preview)
+      list(ok = TRUE, base_nombre = base %||% NA_character_, before_after_preview = preview)
+    })) |>
+
+    plumber::pr_post("/api/validacion/v2/limpieza/finalize", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      scope <- .get_base_scope(sid, base)
+      limpieza_finalize(sid = sid, base_nombre = base, scope = scope)
     })) |>
 
     # --- Reporte HTML autocontenido (Sprint 5 — stretch) --------------------
@@ -188,11 +262,13 @@ mount_validacion <- function(pr) {
       s <- session_get(sid)
 
       estudio_nombre <- if (!is.null(s$estudio)) as.character(s$estudio$nombre %||% NA) else NA_character_
+      limpieza_payload <- build_limpieza(scope, sid = sid, base_nombre = base)
       html <- build_report_html(
         scope = scope,
         base_nombre = base,
         estudio_nombre = estudio_nombre,
-        generated_at = Sys.time()
+        generated_at = Sys.time(),
+        limpieza_payload = limpieza_payload
       )
 
       file_id <- uuid::UUIDgenerate()
@@ -270,6 +346,7 @@ mount_validacion <- function(pr) {
       validacion_scope_set(sid, base, "plan_result", plan_result)
       # Al reconstruir el plan, la evaluación vieja ya no aplica.
       validacion_scope_set(sid, base, "evaluacion", NULL)
+      .limpieza_invalidate_outputs(sid, base)
 
       list(
         ok = TRUE,
@@ -334,6 +411,7 @@ mount_validacion <- function(pr) {
       }
       validacion_scope_set(sid, base, "plan_result", new_result)
       validacion_scope_set(sid, base, "evaluacion", NULL)
+      .limpieza_invalidate_outputs(sid, base)
       list(
         ok = TRUE,
         n_reglas = as.integer(nrow(plan_df)),
@@ -422,6 +500,7 @@ mount_validacion <- function(pr) {
         on_complete = function(j) {
           raw <- j$result_data
           validacion_scope_set(j$sid, base_effective, "evaluacion", raw$ev)
+          .limpieza_invalidate_outputs(j$sid, base_effective)
           list(
             ok = TRUE,
             total_inconsistencias = raw$total %||% NA_integer_
@@ -605,6 +684,7 @@ mount_validacion <- function(pr) {
 
       # Extraer casos del primer elemento de aud$casos.
       casos_df <- if (length(aud$casos) > 0L) aud$casos[[1]] else NULL
+      case_ids <- character(0)
       # Detectar columna UUID: buscar nombres típicos.
       uuid_col <- NULL
       if (!is.null(casos_df) && nrow(casos_df)) {
@@ -613,10 +693,17 @@ mount_validacion <- function(pr) {
         for (cname in candidatos_uuid) {
           if (cname %in% names(casos_df)) { uuid_col <- cname; break }
         }
-        # Fallback: si no existe uuid, usamos _fila_idx (índice del data).
-        if (is.null(uuid_col)) {
-          casos_df$`_fila_idx` <- seq_len(nrow(casos_df))
-          uuid_col <- "_fila_idx"
+        if (!is.null(uuid_col)) {
+          case_ids <- as.character(casos_df[[uuid_col]])
+        } else {
+          case_map <- .limpieza_rule_case_map(scope$evaluacion, id_regla)
+          case_ids <- case_map$case_ids %||% character(0)
+          if (length(case_ids) == nrow(casos_df)) {
+            uuid_col <- "_pulso_case_id"
+          } else {
+            case_ids <- sprintf("%s::row::%d", tabla %||% "principal", seq_len(nrow(casos_df)))
+            uuid_col <- "_pulso_case_id"
+          }
         }
       }
 
@@ -637,6 +724,7 @@ mount_validacion <- function(pr) {
           porcentaje = pct
         ),
         uuid_col = uuid_col %||% NA_character_,
+        case_ids = as.list(case_ids),
         casos = if (!is.null(casos_df)) {
           .plan_rows_preview(utils::head(casos_df, 500L), n = 500L)
         } else list()
@@ -669,6 +757,7 @@ mount_validacion <- function(pr) {
         validacion_scope_set(sid, base, "reglas_desactivadas", des)
         # Invalidar evaluación — hay que re-correr con las reglas efectivas.
         validacion_scope_set(sid, base, "evaluacion", NULL)
+        .limpieza_invalidate_outputs(sid, base)
 
         list(ok = TRUE, id_regla = id_regla, activa = activa,
              n_desactivadas = length(des))
@@ -728,6 +817,7 @@ mount_validacion <- function(pr) {
         new_plan_result$plan <- plan_df
         validacion_scope_set(sid, base, "plan_result", new_plan_result)
         validacion_scope_set(sid, base, "evaluacion", NULL)
+        .limpieza_invalidate_outputs(sid, base)
 
         list(ok = TRUE, id_regla = id_regla,
               fila = .plan_rows_preview(plan_df[row_idx, , drop = FALSE], n = 1L))
@@ -955,6 +1045,7 @@ mount_validacion <- function(pr) {
       existing[[length(existing) + 1L]] <- nueva
       validacion_scope_set(sid, base, "reglas_custom", existing)
       # No invalidamos evaluación hasta que se "ejecute".
+      .limpieza_invalidate_outputs(sid, base)
       list(ok = TRUE, regla = nueva)
     })) |>
 
@@ -988,6 +1079,7 @@ mount_validacion <- function(pr) {
         }
         existing[[idx]] <- r
         validacion_scope_set(sid, base, "reglas_custom", existing)
+        .limpieza_invalidate_outputs(sid, base)
         list(ok = TRUE, regla = r)
     })) |>
 
@@ -1004,6 +1096,7 @@ mount_validacion <- function(pr) {
           stop_api(404, "E_REGLA_NOT_FOUND", sprintf("Regla '%s' no existe.", id))
         }
         validacion_scope_set(sid, base, "reglas_custom", filtered)
+        .limpieza_invalidate_outputs(sid, base)
         list(ok = TRUE, id = id)
     })) |>
 
@@ -1089,6 +1182,7 @@ mount_validacion <- function(pr) {
           on_complete = function(j) {
             raw <- j$result_data
             validacion_scope_set(j$sid, base_effective, "evaluacion", raw$ev)
+            .limpieza_invalidate_outputs(j$sid, base_effective)
             list(ok = TRUE, total_inconsistencias = raw$total %||% NA_integer_)
           }
         )

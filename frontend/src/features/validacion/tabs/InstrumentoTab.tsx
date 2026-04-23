@@ -1,9 +1,12 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   AlertTriangle,
   ArrowRight,
   Download,
+  Eye,
+  EyeOff,
   ListTree,
+  Pencil,
   Play,
   RefreshCcw,
   Upload,
@@ -43,7 +46,7 @@ import ReglaDrillPanel from "../components/ReglaDrillPanel";
 //  2) Ejecutar auditoría (async job).
 //  3) Ver dashboard: KPIs + top reglas + heatmap + drill por regla.
 //
-// El deep-link desde Panorama (prefill.instrumento.id_regla) se consume
+// El deep-link desde Limpieza (prefill.instrumento.id_regla) se consume
 // al montar el tab: abre el drill de esa regla automáticamente.
 
 export default function InstrumentoTab() {
@@ -61,6 +64,8 @@ export default function InstrumentoTab() {
   const [exportFileId, setExportFileId] = useState<string | null>(null);
   const [drill, setDrill] = useState<InstrumentoDrillResult | null>(null);
   const [reglaDirty, setReglaDirty] = useState(false);
+  const [selectedRuleId, setSelectedRuleId] = useState<string>("");
+  const [drillEditToken, setDrillEditToken] = useState(0);
 
   // Carga inicial + refetch al cambiar base.
   const refetchAll = useCallback(async () => {
@@ -99,6 +104,23 @@ export default function InstrumentoTab() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillInstr, resultado]);
+
+  useEffect(() => {
+    if (!resultado?.resumen_tabla?.length) {
+      setSelectedRuleId("");
+      return;
+    }
+    if (!selectedRuleId) {
+      const firstId = resultado.resumen_tabla[0]?.id_regla;
+      if (typeof firstId === "string") setSelectedRuleId(firstId);
+      return;
+    }
+    const exists = resultado.resumen_tabla.some((row) => row.id_regla === selectedRuleId);
+    if (!exists) {
+      const firstId = resultado.resumen_tabla[0]?.id_regla;
+      setSelectedRuleId(typeof firstId === "string" ? firstId : "");
+    }
+  }, [resultado, selectedRuleId]);
 
   async function onBuildPlan() {
     setBusy("Construyendo plan desde el XLSForm…");
@@ -157,25 +179,41 @@ export default function InstrumentoTab() {
     await refetchAll();
   }
 
-  async function openDrill(id: string) {
+  async function loadDrill(id: string) {
     setBusy(`Cargando casos de ${id}…`);
     setError("");
     try {
       const out = await apiV2InstrumentoDrill(id, baseNombre);
-      setDrill(out);
-    } catch (e) {
-      setError((e as Error).message);
+      return out;
     } finally {
       setBusy("");
     }
   }
 
-  async function onToggleReglaActiva(activa: boolean) {
-    if (!drill) return;
+  async function openDrill(id: string, opts?: { edit?: boolean }) {
+    try {
+      const out = await loadDrill(id);
+      setDrill(out);
+      setSelectedRuleId(id);
+      if (opts?.edit) {
+        setDrillEditToken((n) => n + 1);
+      } else {
+        setDrillEditToken(0);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function onToggleReglaActiva(activa: boolean, ruleId?: string) {
+    const id = ruleId ?? drill?.regla.id;
+    if (!id) return;
     setBusy(activa ? "Reactivando regla…" : "Ignorando regla…");
     try {
-      await apiV2InstrumentoReglaToggleActiva(drill.regla.id, activa, baseNombre);
-      setDrill({ ...drill, regla: { ...drill.regla, activa } });
+      await apiV2InstrumentoReglaToggleActiva(id, activa, baseNombre);
+      if (drill && drill.regla.id === id) {
+        setDrill({ ...drill, regla: { ...drill.regla, activa } });
+      }
       setReglaDirty(true);
       // El estado de auditoría se invalidó en el backend; refetch del estado.
       const e = await apiV2InstrumentoEstado(baseNombre);
@@ -187,6 +225,34 @@ export default function InstrumentoTab() {
       setBusy("");
     }
   }
+
+  async function onToggleSelectedRule() {
+    if (!selectedRuleId) return;
+    try {
+      const current = drill?.regla.id === selectedRuleId ? drill : await loadDrill(selectedRuleId);
+      if (!current) return;
+      setDrill(current);
+      await onToggleReglaActiva(!current.regla.activa, current.regla.id);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  const ruleOptions = useMemo(() => {
+    if (!resultado) return [];
+    return resultado.resumen_tabla
+      .map((row) => ({
+        id: typeof row.id_regla === "string" ? row.id_regla : "",
+        label: typeof row.nombre_regla === "string" ? row.nombre_regla : "",
+        casos: typeof row.n_inconsistencias === "number" ? row.n_inconsistencias : null,
+      }))
+      .filter((row) => row.id);
+  }, [resultado]);
+
+  const selectedRuleMeta = useMemo(
+    () => ruleOptions.find((row) => row.id === selectedRuleId) ?? null,
+    [ruleOptions, selectedRuleId],
+  );
 
   async function onPatchAtributos(patch: Record<string, string>) {
     if (!drill) return;
@@ -414,14 +480,83 @@ export default function InstrumentoTab() {
           >
             <PlotlyView
               view={resultado.top_reglas}
-              onAction={(a) => {
-                if (a.id === "drill_regla" && a.payload?.id) {
-                  void openDrill(String(a.payload.id));
-                }
-              }}
             />
             <PlotlyView view={resultado.heatmap} />
           </div>
+
+          <section
+            style={{
+              padding: "16px 20px",
+              background: "white",
+              border: "1px solid var(--pulso-border)",
+              borderRadius: 10,
+              boxShadow: "var(--pulso-shadow-low)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>Regla en detalle</div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "var(--pulso-text-soft)",
+                  marginTop: 2,
+                  lineHeight: 1.5,
+                }}
+              >
+                Selecciona una regla para verla, editarla o ignorarla sin depender de interactuar con los gráficos.
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <select
+                value={selectedRuleId}
+                onChange={(e) => setSelectedRuleId(e.target.value)}
+                style={{ minWidth: 320, maxWidth: 520, flex: "1 1 320px" }}
+              >
+                {ruleOptions.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.id} · {row.label || "Regla sin nombre"}
+                    {row.casos != null ? ` · ${row.casos} casos` : ""}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => selectedRuleId && void openDrill(selectedRuleId)}
+                disabled={!selectedRuleId}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 14px" }}
+              >
+                <Eye size={12} /> Ver regla
+              </button>
+              <button
+                type="button"
+                onClick={() => selectedRuleId && void openDrill(selectedRuleId, { edit: true })}
+                disabled={!selectedRuleId}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 14px" }}
+              >
+                <Pencil size={12} /> Editar
+              </button>
+              <button
+                type="button"
+                onClick={() => void onToggleSelectedRule()}
+                disabled={!selectedRuleId}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 14px" }}
+              >
+                {drill?.regla.id === selectedRuleId && drill.regla.activa ? <EyeOff size={12} /> : <Eye size={12} />}
+                {drill?.regla.id === selectedRuleId
+                  ? (drill.regla.activa ? "Ignorar" : "Reactivar")
+                  : "Ignorar / reactivar"}
+              </button>
+            </div>
+            {selectedRuleMeta && (
+              <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+                Regla seleccionada: <strong>{selectedRuleMeta.id}</strong>
+                {selectedRuleMeta.label ? ` · ${selectedRuleMeta.label}` : ""}
+              </div>
+            )}
+          </section>
 
           {/* Drill inline si hay regla seleccionada */}
           {drill && (
@@ -440,6 +575,7 @@ export default function InstrumentoTab() {
                   ? "Cambios aplicados. Vuelve a ejecutar la auditoría para actualizar KPIs y heatmap con el plan corregido."
                   : undefined
               }
+              startEditingToken={drillEditToken}
             />
           )}
 
@@ -584,4 +720,3 @@ function StepHeader({
     </div>
   );
 }
-

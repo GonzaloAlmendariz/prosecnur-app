@@ -272,7 +272,10 @@ estudio_rename_base <- function(sid, nombre_actual, nombre_nuevo) {
 #     plan_result,        # tibble del plan de reglas (instrumento + custom compiladas)
 #     evaluacion,         # resultado de evaluar_consistencia()
 #     reglas_custom,      # list de ReglaCustom (ver router_reglas_custom.R)
-#     explorador_cache    # hash -> view descriptors (lazy)
+#     explorador_cache,   # hash -> view descriptors (lazy)
+#     limpieza_draft,     # decisiones de cierre
+#     limpieza_preview,   # preview before/after del borrador
+#     limpieza_artifacts  # artefactos generados al finalizar
 #   )
 #
 # Fallback legacy: si la sesión aún no tiene estudio pero sí rp_data, el
@@ -288,14 +291,20 @@ validacion_scope_get <- function(sid, base_nombre = NULL, key = NULL) {
       plan_result      = s$plan_result,
       evaluacion       = s$evaluacion,
       reglas_custom    = s$reglas_custom %||% list(),
-      explorador_cache = s$explorador_cache %||% list()
+      explorador_cache = s$explorador_cache %||% list(),
+      limpieza_draft   = s$limpieza_draft %||% list(),
+      limpieza_preview = s$limpieza_preview %||% NULL,
+      limpieza_artifacts = s$limpieza_artifacts %||% list()
     )
   } else {
     scope <- s$estudio$bases[[base_nombre]]$validacion %||% list(
       plan_result      = NULL,
       evaluacion       = NULL,
       reglas_custom    = list(),
-      explorador_cache = list()
+      explorador_cache = list(),
+      limpieza_draft   = list(),
+      limpieza_preview = NULL,
+      limpieza_artifacts = list()
     )
   }
   if (is.null(key)) scope else scope[[key]]
@@ -313,7 +322,10 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
         plan_result      = NULL,
         evaluacion       = NULL,
         reglas_custom    = list(),
-        explorador_cache = list()
+        explorador_cache = list(),
+        limpieza_draft   = list(),
+        limpieza_preview = NULL,
+        limpieza_artifacts = list()
       )
     }
     s$estudio$bases[[base_nombre]]$validacion[[key]] <- value

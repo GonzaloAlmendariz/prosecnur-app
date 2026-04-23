@@ -1,8 +1,8 @@
 # =============================================================================
-# Tests para build_panorama (Sprint 5)
+# Tests para build_limpieza (Sprint 5)
 # =============================================================================
 # Consolida KPIs, top reglas violadas y top variables problemáticas en un
-# payload listo para el frontend de Panorama. Estos tests verifican el
+# payload listo para el frontend de Limpieza. Estos tests verifican el
 # shape del output bajo 3 escenarios: scope vacío, con plan sin auditoría,
 # y con evaluación completa.
 
@@ -28,8 +28,8 @@
 }
 
 .fake_resumen <- function() {
-  # Shape mínimo que .panorama_top_reglas/top_variables esperan. Los
-  # builders del panorama leen `id_regla`, `nombre_regla`, `variable_1`
+  # Shape mínimo que .limpieza_top_reglas/top_variables esperan. Los
+  # builders del limpieza leen `id_regla`, `nombre_regla`, `variable_1`
   # (minúsculas/snake), no los títulos humanos del plan — son el resumen
   # post-evaluación, no el plan crudo.
   tibble::tibble(
@@ -43,11 +43,13 @@
 
 # ----- Tests ------------------------------------------------------------------
 
-test_that("build_panorama con scope vacío devuelve shape mínimo", {
+test_that("build_limpieza con scope vacío devuelve shape mínimo", {
   scope <- list()  # sin plan ni evaluación ni reglas custom
-  out <- build_panorama(scope)
+  out <- build_limpieza(scope)
 
-  expect_named(out, c("progreso", "kpis", "top_reglas", "top_variables"))
+  expect_true(all(c("progreso", "summary", "kpis", "top_reglas", "top_variables",
+                    "decision_queue", "decision_draft", "module_stats",
+                    "before_after_preview", "artifacts") %in% names(out)))
   expect_false(out$progreso$plan_construido)
   expect_false(out$progreso$auditoria_corrida)
   expect_equal(out$progreso$n_reglas_custom, 0L)
@@ -56,9 +58,9 @@ test_that("build_panorama con scope vacío devuelve shape mínimo", {
   expect_gt(length(out$kpis), 0L)
 })
 
-test_that("build_panorama con plan sin evaluación refleja el plan pero no da totales", {
+test_that("build_limpieza con plan sin evaluación refleja el plan pero no da totales", {
   scope <- list(plan_result = list(plan = .fake_plan(7L)))
-  out <- build_panorama(scope)
+  out <- build_limpieza(scope)
 
   expect_true(out$progreso$plan_construido)
   expect_false(out$progreso$auditoria_corrida)
@@ -68,13 +70,13 @@ test_that("build_panorama con plan sin evaluación refleja el plan pero no da to
   expect_length(out$kpis, 1L)
 })
 
-test_that("build_panorama con plan + evaluación produce KPIs completos", {
+test_that("build_limpieza con plan + evaluación produce KPIs completos", {
   ev <- list(resumen = .fake_resumen())
   scope <- list(
     plan_result = list(plan = .fake_plan(3L)),
     evaluacion = ev
   )
-  out <- build_panorama(scope)
+  out <- build_limpieza(scope)
 
   expect_true(out$progreso$plan_construido)
   expect_true(out$progreso$auditoria_corrida)
@@ -82,7 +84,7 @@ test_that("build_panorama con plan + evaluación produce KPIs completos", {
   expect_gte(length(out$kpis), 2L)
 })
 
-test_that("build_panorama cuenta reglas_custom activas en n_reglas_custom", {
+test_that("build_limpieza cuenta reglas_custom activas en n_reglas_custom", {
   scope <- list(
     reglas_custom = list(
       list(id = "a", activa = TRUE),
@@ -90,15 +92,15 @@ test_that("build_panorama cuenta reglas_custom activas en n_reglas_custom", {
       list(id = "c", activa = TRUE)
     )
   )
-  out <- build_panorama(scope)
+  out <- build_limpieza(scope)
   # n_reglas_custom cuenta TODAS las custom (activas + inactivas); el
   # KPI las diferencia.
   expect_equal(out$progreso$n_reglas_custom, 3L)
 })
 
-test_that("build_panorama siempre incluye top_reglas y top_variables como listas", {
+test_that("build_limpieza siempre incluye top_reglas y top_variables como listas", {
   scope <- list()
-  out <- build_panorama(scope)
+  out <- build_limpieza(scope)
   expect_true(is.list(out$top_reglas))
   expect_true(is.list(out$top_variables))
 })

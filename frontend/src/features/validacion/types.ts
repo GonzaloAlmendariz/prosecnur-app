@@ -43,9 +43,17 @@ export type ViewAction = {
  */
 export type ViewMeta = {
   var?: string;
+  var_x?: string;
+  var_y?: string;
   tipo?: "so" | "sm" | "num" | "fecha" | "texto" | "mixto";
   n_total?: number;
   n_validos?: number;
+  eyebrow?: string;
+  note?: string;
+  severidad?: "neutral" | "success" | "warn" | "danger";
+  n_secciones?: number;
+  n_tipos?: number;
+  total_con_casos?: number;
   empty_hint?: string;
   [k: string]: unknown;
 };
@@ -97,21 +105,133 @@ export type ReglaCustom = {
 };
 
 // -----------------------------------------------------------------------------
-// Panorama (tab de entrada)
+// Limpieza y normalización (tab de cierre)
 // -----------------------------------------------------------------------------
-export type PanoramaProgreso = {
+export type LimpiezaProgreso = {
   plan_construido: boolean;
   auditoria_corrida: boolean;
   n_reglas_custom: number;
 };
 
-export type PanoramaSummary = {
+export type LimpiezaDecisionActionType =
+  | "ignore_rule"
+  | "exclude_cases"
+  | "replace_value"
+  | "normalize_value"
+  | "impute_value";
+
+export type LimpiezaDecisionScope =
+  | "rule"
+  | "case_subset"
+  | "variable"
+  | "cell_subset";
+
+export type LimpiezaDecision = {
+  id: string;
+  source_type: "instrument_rule" | "custom_rule";
+  source_id: string;
+  scope: LimpiezaDecisionScope;
+  target_case_ids: string[];
+  target_variable: string | null;
+  action_type: LimpiezaDecisionActionType;
+  action_params: Record<string, unknown>;
+  rationale: string;
+  status: "draft" | "ready";
+  created_at: string;
+  updated_at: string;
+};
+
+export type LimpiezaQueueItem = {
+  source_type: "instrument_rule" | "custom_rule";
+  source_id: string;
+  origen: string;
+  nombre_regla: string;
+  seccion: string | null;
+  categoria: string | null;
+  tipo_observacion: string | null;
+  severidad: string;
+  variables: string[];
+  n_casos: number;
+  porcentaje: number | null;
+  decision_count: number;
+  current_action: string | null;
+  pending: boolean;
+  impact_expected: string;
+};
+
+export type LimpiezaDecisionSummary = {
+  total_reglas_con_casos: number;
+  total_reglas_automaticas: number;
+  total_reglas_custom: number;
+  total_casos_afectados: number;
+  total_decisiones: number;
+  decisiones_listas: number;
+  pendientes: number;
+  total_casos_excluidos: number;
+  total_reemplazos: number;
+  total_imputaciones: number;
+  ready_to_finalize: boolean;
+};
+
+export type LimpiezaBeforeAfterPreview = {
+  before: {
+    total_inconsistencias: number;
+    reglas_con_casos: number;
+    reglas_total: number;
+    filas_base: number;
+  };
+  after: {
+    total_inconsistencias: number;
+    reglas_con_casos: number;
+    reglas_total: number;
+    filas_base: number;
+  };
+  impact: {
+    cases_excluded: number;
+    cells_changed: number;
+    replacements: number;
+    normalizations: number;
+    imputations: number;
+    rules_resolved: number;
+  };
+  residual_final: Array<Record<string, unknown>>;
+  decisions_ready: number;
+};
+
+export type LimpiezaModuleStats = {
+  limpieza: { decisiones: number; casos_excluidos: number };
+  reemplazo: { decisiones: number; celdas: number };
+  imputacion: { decisiones: number; celdas: number };
+  decision_maker: { pendientes: number; listas: number };
+};
+
+export type LimpiezaArtifact = {
+  kind: string;
+  label: string;
+  file_id: string;
+  original_name: string;
+  generated_at: string;
+};
+
+export type LimpiezaArtifactsBundle = {
+  finalized_at?: string;
+  recommended_file_id?: string;
+  files: LimpiezaArtifact[];
+};
+
+export type LimpiezaSummary = {
   ok: true;
   base_nombre: string | null;
-  progreso: PanoramaProgreso;
+  progreso: LimpiezaProgreso;
+  summary: LimpiezaDecisionSummary;
   kpis: ViewDescriptor[];
   top_reglas: ViewDescriptor | null;
   top_variables: ViewDescriptor | null;
+  decision_queue: LimpiezaQueueItem[];
+  decision_draft: LimpiezaDecision[];
+  module_stats: LimpiezaModuleStats;
+  before_after_preview: LimpiezaBeforeAfterPreview | null;
+  artifacts: LimpiezaArtifactsBundle | Record<string, never>;
   actions: ViewAction[];
 };
 
@@ -119,7 +239,7 @@ export type PanoramaSummary = {
 // Identificadores de pestañas (deep-links)
 // -----------------------------------------------------------------------------
 export type ValidacionTabId =
-  | "panorama"
+  | "limpieza"
   | "instrumento"
   | "explorar"
   | "reglas_custom";

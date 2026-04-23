@@ -1,7 +1,7 @@
 # =============================================================================
 # Tests para build_report_html (Sprint 5 — stretch)
 # =============================================================================
-# Genera el reporte HTML autocontenido que se exporta desde el Panorama.
+# Genera el reporte HTML autocontenido que se exporta desde el Limpieza.
 # Estos tests validan que el HTML producido sea sintácticamente correcto
 # (doctype, head/body), incluya las secciones esperadas, escape HTML
 # malicioso (XSS), y maneje el scope vacío sin crashear.

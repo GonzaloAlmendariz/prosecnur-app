@@ -1,5 +1,5 @@
 # =============================================================================
-# Panorama builder — Sprint 5
+# Limpieza y normalización — builder
 # =============================================================================
 # Consolida el estado de validación de una base en:
 #   - KPIs de salud (total casos con ≥1 inconsistencia, reglas activas, etc.)
@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 # KPIs consolidados
 # -----------------------------------------------------------------------------
-.panorama_kpis <- function(scope) {
+.limpieza_kpis <- function(scope) {
   ev <- scope$evaluacion
   plan <- scope$plan_result$plan
   reglas_custom <- scope$reglas_custom %||% list()
@@ -34,9 +34,11 @@
       vd_kpi_card(
         title = "Reglas activas",
         value = as.integer(n_reglas_efectivas),
-        subtitle = sprintf("%d del instrumento · %d custom",
-                            as.integer(n_reglas_plan - n_desactivadas),
-                            as.integer(n_custom_activas)),
+        subtitle = sprintf(
+          "%d del instrumento · %d custom",
+          as.integer(n_reglas_plan - n_desactivadas),
+          as.integer(n_custom_activas)
+        ),
         severidad = if (n_reglas_efectivas > 0L) "neutral" else "warn",
         icon = "list-checks"
       )
@@ -94,7 +96,7 @@
 # -----------------------------------------------------------------------------
 # Top 5 reglas violadas (con deep-link al tab Instrumento)
 # -----------------------------------------------------------------------------
-.panorama_top_reglas <- function(scope) {
+.limpieza_top_reglas <- function(scope) {
   ev <- scope$evaluacion
   if (is.null(ev) || is.null(ev$resumen) || !nrow(ev$resumen)) {
     return(vd_bar_h(
@@ -123,7 +125,7 @@
   # action → jumpTo tab instrumento con id_regla prefill.
   vd_bar_h(
     title = "Top 5 reglas violadas",
-    subtitle = "Click en una barra para ver los casos inconsistentes en Instrumento.",
+    subtitle = "Resumen de las reglas que más concentran inconsistencias en la corrida actual.",
     labels = labels,
     values = as.integer(res$n_inconsistencias),
     ids = ids,
@@ -133,14 +135,18 @@
       label = "Abrir drill en Instrumento",
       target_tab = "instrumento",
       payload = list()
-    ))
+    )),
+    meta = list(
+      eyebrow = "Resumen de salud",
+      note = "Estas reglas alimentan la cola de inconsistencias por resolver."
+    )
   )
 }
 
 # -----------------------------------------------------------------------------
 # Top 5 variables problemáticas (agregando por variable_1 del resumen)
 # -----------------------------------------------------------------------------
-.panorama_top_variables <- function(scope) {
+.limpieza_top_variables <- function(scope) {
   ev <- scope$evaluacion
   if (is.null(ev) || is.null(ev$resumen) || !nrow(ev$resumen)) {
     return(vd_bar_h(
@@ -187,7 +193,7 @@
   }
   vd_bar_h(
     title = "Top 5 variables con problemas",
-    subtitle = "Click para ver la distribución en Explorar datos.",
+    subtitle = "Variables que concentran más casos observados en las reglas evaluadas.",
     labels = as.character(agg$var),
     values = as.integer(agg$n),
     ids = as.character(agg$var),
@@ -197,22 +203,44 @@
       label = "Abrir en Explorar",
       target_tab = "explorar",
       payload = list()
-    ))
+    )),
+    meta = list(
+      eyebrow = "Variables críticas",
+      note = "Sirve como guía para priorizar reemplazos, normalizaciones e imputaciones dentro del cierre."
+    )
   )
 }
 
 # -----------------------------------------------------------------------------
-# Public: arma el payload completo del panorama
+# Public: arma el payload completo de Limpieza y normalización
 # -----------------------------------------------------------------------------
-build_panorama <- function(scope) {
+build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_override = NULL) {
+  decisions <- scope$limpieza_draft %||% list()
+  queue <- .limpieza_build_decision_queue(scope, decisions)
+  preview <- if (!is.null(preview_override)) {
+    preview_override
+  } else if (!is.null(sid)) {
+    .limpieza_simulate(sid, base_nombre, scope, decisions)
+  } else {
+    NULL
+  }
+  module_stats <- .limpieza_build_module_stats(decisions, queue, preview)
+  summary <- .limpieza_build_summary(scope, queue, decisions, preview)
+
   list(
     progreso = list(
       plan_construido = !is.null(scope$plan_result),
       auditoria_corrida = !is.null(scope$evaluacion),
       n_reglas_custom = length(scope$reglas_custom %||% list())
     ),
-    kpis = .panorama_kpis(scope),
-    top_reglas = .panorama_top_reglas(scope),
-    top_variables = .panorama_top_variables(scope)
+    summary = summary,
+    kpis = .limpieza_kpis(scope),
+    top_reglas = .limpieza_top_reglas(scope),
+    top_variables = .limpieza_top_variables(scope),
+    decision_queue = queue,
+    decision_draft = decisions,
+    module_stats = module_stats,
+    before_after_preview = preview,
+    artifacts = scope$limpieza_artifacts %||% list()
   )
 }

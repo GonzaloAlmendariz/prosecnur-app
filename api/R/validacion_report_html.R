@@ -117,6 +117,96 @@
   paste0("<ul class=\"rc-list\">", paste(items, collapse = ""), "</ul>")
 }
 
+.report_decision_summary <- function(limpieza_payload) {
+  summary <- limpieza_payload$summary %||% NULL
+  if (is.null(summary)) return("")
+  df <- tibble::tibble(
+    Indicador = c(
+      "Reglas con casos",
+      "Reglas automáticas",
+      "Reglas personalizadas",
+      "Decisiones registradas",
+      "Pendientes por resolver",
+      "Casos excluidos",
+      "Reemplazos / normalizaciones",
+      "Imputaciones"
+    ),
+    Valor = c(
+      .report_fmt_int(summary$total_reglas_con_casos %||% 0L),
+      .report_fmt_int(summary$total_reglas_automaticas %||% 0L),
+      .report_fmt_int(summary$total_reglas_custom %||% 0L),
+      .report_fmt_int(summary$total_decisiones %||% 0L),
+      .report_fmt_int(summary$pendientes %||% 0L),
+      .report_fmt_int(summary$total_casos_excluidos %||% 0L),
+      .report_fmt_int(summary$total_reemplazos %||% 0L),
+      .report_fmt_int(summary$total_imputaciones %||% 0L)
+    )
+  )
+  rows <- vapply(seq_len(nrow(df)), function(i) {
+    sprintf("<tr><td>%s</td><td class=\"num\">%s</td></tr>",
+            .report_escape(df$Indicador[i]), .report_escape(df$Valor[i]))
+  }, character(1))
+  paste0('<table class="tbl"><thead><tr><th>Indicador</th><th class="num">Valor</th></tr></thead><tbody>',
+         paste(rows, collapse = ""), "</tbody></table>")
+}
+
+.report_before_after <- function(limpieza_payload) {
+  preview <- limpieza_payload$before_after_preview %||% NULL
+  if (is.null(preview)) return('<p class="empty">Aún no hay preview de decisiones.</p>')
+
+  df <- tibble::tibble(
+    Métrica = c("Inconsistencias", "Reglas con casos", "Filas en base"),
+    Antes = c(
+      .report_fmt_int(preview$before$total_inconsistencias %||% 0L),
+      .report_fmt_int(preview$before$reglas_con_casos %||% 0L),
+      .report_fmt_int(preview$before$filas_base %||% 0L)
+    ),
+    Después = c(
+      .report_fmt_int(preview$after$total_inconsistencias %||% 0L),
+      .report_fmt_int(preview$after$reglas_con_casos %||% 0L),
+      .report_fmt_int(preview$after$filas_base %||% 0L)
+    )
+  )
+  rows <- vapply(seq_len(nrow(df)), function(i) {
+    sprintf("<tr><td>%s</td><td class=\"num\">%s</td><td class=\"num\">%s</td></tr>",
+            .report_escape(df$Métrica[i]),
+            .report_escape(df$Antes[i]),
+            .report_escape(df$Después[i]))
+  }, character(1))
+  paste0('<table class="tbl"><thead><tr><th>Métrica</th><th class="num">Antes</th><th class="num">Después</th></tr></thead><tbody>',
+         paste(rows, collapse = ""), "</tbody></table>")
+}
+
+.report_decisions_table <- function(limpieza_payload) {
+  decisions <- limpieza_payload$decision_draft %||% list()
+  if (!length(decisions)) return('<p class="empty">No hay decisiones registradas todavía.</p>')
+  df <- .limpieza_flatten_decisions(decisions)
+  keep <- intersect(c("id", "source_id", "action_type", "target_variable", "status", "rationale"), names(df))
+  if (!length(keep)) return('<p class="empty">Sin decisiones para renderizar.</p>')
+  df <- df[, keep, drop = FALSE]
+  headers <- paste(sprintf("<th>%s</th>", .report_escape(names(df))), collapse = "")
+  rows <- vapply(seq_len(nrow(df)), function(i) {
+    paste0("<tr>", paste(sprintf("<td>%s</td>", .report_escape(df[i, , drop = TRUE])), collapse = ""), "</tr>")
+  }, character(1))
+  paste0('<table class="tbl"><thead><tr>', headers, '</tr></thead><tbody>',
+         paste(rows, collapse = ""), "</tbody></table>")
+}
+
+.report_residual_table <- function(limpieza_payload) {
+  residual <- limpieza_payload$before_after_preview$residual_final %||% list()
+  if (!length(residual)) return('<p class="empty">Sin residual final calculado todavía.</p>')
+  df <- tibble::as_tibble(dplyr::bind_rows(residual))
+  keep <- intersect(c("id_regla", "nombre_regla", "n_inconsistencias", "porcentaje"), names(df))
+  if (!length(keep)) keep <- names(df)
+  df <- utils::head(df[, keep, drop = FALSE], 30L)
+  headers <- paste(sprintf("<th>%s</th>", .report_escape(names(df))), collapse = "")
+  rows <- vapply(seq_len(nrow(df)), function(i) {
+    paste0("<tr>", paste(sprintf("<td>%s</td>", .report_escape(df[i, , drop = TRUE])), collapse = ""), "</tr>")
+  }, character(1))
+  paste0('<table class="tbl"><thead><tr>', headers, '</tr></thead><tbody>',
+         paste(rows, collapse = ""), "</tbody></table>")
+}
+
 .report_progreso_checklist <- function(scope) {
   plan_ok <- !is.null(scope$plan_result)
   audit_ok <- !is.null(scope$evaluacion)
@@ -268,8 +358,9 @@
 build_report_html <- function(scope,
                                base_nombre = NULL,
                                estudio_nombre = NULL,
-                               generated_at = Sys.time()) {
-  pan <- build_panorama(scope)
+                               generated_at = Sys.time(),
+                               limpieza_payload = NULL) {
+  pan <- limpieza_payload %||% build_limpieza(scope)
 
   title <- "Reporte de validación"
   meta_line <- paste(
@@ -299,11 +390,23 @@ build_report_html <- function(scope,
     '<h2>Indicadores principales</h2>',
     .report_kpi_cards(pan$kpis),
 
+    '<h2>Decision maker</h2>',
+    .report_decision_summary(pan),
+
+    '<h2>Antes y después</h2>',
+    .report_before_after(pan),
+
     '<h2>Top reglas con más casos</h2>',
     .report_top_reglas_table(scope),
 
     '<h2>Reglas personalizadas</h2>',
     .report_reglas_custom_list(scope),
+
+    '<h2>Decisiones registradas</h2>',
+    .report_decisions_table(pan),
+
+    '<h2>Residual final</h2>',
+    .report_residual_table(pan),
 
     '<footer class="foot">Generado por Prosecnur v', .report_escape(version_app), '</footer>',
     '</div>'
