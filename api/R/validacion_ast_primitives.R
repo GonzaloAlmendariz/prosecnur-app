@@ -59,6 +59,13 @@
   "straight_line",        # (vars, max_variance)
   # --- Repeats ----------------------------------------------------------
   "repeat_length_matches", # (repeat_name, expected_expr_ast)
+  # --- Fecha de captura (today() en constraints) ------------------------
+  # Ojo: today() en ODK no es "el día de hoy al validar" — es el día en que
+  # el encuestador capturó el formulario. El evaluador resuelve esto a la
+  # columna configurada (por default: `end` o `_submission_time`) fila a
+  # fila. Se usa para verificar que la fecha reportada en `var` sea
+  # coherente con el día de captura (típicamente `var <= today()`).
+  "collection_date_cmp",  # (var, op)   op ∈ ==,!=,<,<=,>,>=
   # --- Combinadores -----------------------------------------------------
   "and",                  # (args: list<ast>)
   "or",                   # (args: list<ast>)
@@ -288,6 +295,19 @@ ast_straight_line <- function(vars, max_variance = 0) {
       max_variance = as.numeric(max_variance))
 }
 
+#' Compara una variable de fecha contra la fecha de captura (today() en ODK).
+#' La fecha de captura NO es el día de validación — es el día en que el
+#' enumerador guardó el formulario, resuelto por el evaluador desde la
+#' columna `end`/`_submission_time` (configurable).
+#' @export
+ast_collection_date_cmp <- function(var, op) {
+  .check_var(var)
+  if (!(op %in% .BINOP_CMP)) {
+    stop(sprintf("ast_collection_date_cmp(): op '%s' inválido.", op))
+  }
+  ast("collection_date_cmp", var = var, op = op)
+}
+
 #' @export
 ast_repeat_length_matches <- function(repeat_name, expected) {
   if (!is.character(repeat_name) || length(repeat_name) != 1L) {
@@ -412,6 +432,7 @@ ast_is_valid <- function(x) {
     "outlier_zscore"           = c("var", "k"),
     "straight_line"            = c("vars", "max_variance"),
     "repeat_length_matches"    = c("repeat_name", "expected"),
+    "collection_date_cmp"      = c("var", "op"),
     "and"                      = "args",
     "or"                       = "args",
     "not"                      = "arg",

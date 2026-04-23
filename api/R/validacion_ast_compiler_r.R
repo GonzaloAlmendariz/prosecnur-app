@@ -45,6 +45,7 @@ ast_to_r <- function(x) {
     "outlier_zscore"           = .c_outlier_z(x$var, x$k),
     "straight_line"            = .c_straight_line(x$vars, x$max_variance),
     "repeat_length_matches"    = .c_repeat_length(x$repeat_name, x$expected),
+    "collection_date_cmp"      = .c_collection_date_cmp(x$var, x$op),
     "and"                      = .c_bool("and", x$args),
     "or"                       = .c_bool("or",  x$args),
     "not"                      = paste0("!(", .compile(x$arg), ")"),
@@ -247,6 +248,17 @@ ast_to_r <- function(x) {
     "{ .m_ <- cbind(%s); .m_ <- apply(.m_, 2, function(c) suppressWarnings(as.numeric(as.character(c)))); .v_ <- apply(.m_, 1, stats::var, na.rm = TRUE); (!is.na(.v_) & .v_ <= %g) }",
     cols_lit, as.numeric(max_variance)
   )
+}
+
+.c_collection_date_cmp <- function(var, op) {
+  # El evaluador inyecta `__today__` en el entorno como vector as.Date
+  # resuelto por fila desde la columna de captura (end/_submission_time).
+  # Si el eval se corre sin ese binding, falla explícitamente — no
+  # silenciosamente como hoy() de R que daría la fecha del día de la
+  # validación (semánticamente incorrecto).
+  xd <- sprintf("suppressWarnings(as.Date(%s))", var)
+  sprintf("(!is.na(%s) & !is.na(`__today__`) & %s %s `__today__`)",
+          xd, xd, op)
 }
 
 .c_repeat_length <- function(repeat_name, expected) {

@@ -364,6 +364,19 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
   r_is_var <- is_ast(right) && ast_op(right) == "__var"
   l_is_lit <- is_ast(left) && ast_op(left) %in% c("__str", "__num")
   r_is_lit <- is_ast(right) && ast_op(right) %in% c("__str", "__num")
+  l_is_today <- is_ast(left) && ast_op(left) == "__today"
+  r_is_today <- is_ast(right) && ast_op(right) == "__today"
+
+  # var OP today() → collection_date_cmp(var, op)
+  # today() OP var → invertimos el operador
+  if (l_is_var && r_is_today) {
+    return(ast_collection_date_cmp(left$name, op))
+  }
+  if (r_is_var && l_is_today) {
+    swapped <- switch(op, "==" = "==", "!=" = "!=",
+                      "<" = ">", "<=" = ">=", ">" = "<", ">=" = "<=")
+    return(ast_collection_date_cmp(right$name, swapped))
+  }
 
   # var OP lit
   if (l_is_var && r_is_lit) {
@@ -578,14 +591,19 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
 }
 
 .resolve_today <- function(args) {
-  # today() se usa en constraints tipo `. <= today()`. Sin info de fecha
-  # de referencia aquí, caemos a raw.
-  ast_odk_raw("today()", origin = "today")
+  # today() NO es "el día actual al validar" — es la fecha de captura de
+  # la encuesta. .build_compare lo convierte a collection_date_cmp cuando
+  # está del lado derecho (o izquierdo) de una comparación contra una
+  # variable. Aquí producimos un pseudo-nodo interno que el caller
+  # reconoce.
+  .__today()
 }
 
 .resolve_now <- function(args) {
-  ast_odk_raw("now()", origin = "now")
+  # now() es equivalente a today() para fines de validación (ignoramos hora).
+  .__today()
 }
+
 
 .arg_repr <- function(x) {
   if (!is_ast(x)) return(format(x))
@@ -617,6 +635,13 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
 .__num <- function(value) {
   out <- list(value = value)
   attr(out, "op") <- "__num"
+  class(out) <- c("vd_ast", "list")
+  out
+}
+# Pseudo-nodo para today()/now() — reconocido por .build_compare.
+.__today <- function() {
+  out <- list()
+  attr(out, "op") <- "__today"
   class(out) <- c("vd_ast", "list")
   out
 }
