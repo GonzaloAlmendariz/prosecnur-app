@@ -147,30 +147,76 @@ ast_normalize <- function(x) {
     not_selecteds <- list()
   }
 
-  # 3-5. OR de compare_const == en cols distintas con mismo valor → any_column_equals
-  #     AND de compare_const != en cols distintas con mismo valor → all_columns_not_equals
+  # 3-5. Colapsar compare_const == / != en patrones más compactos.
+  #
+  #   Caso A — OR de ==  todos sobre la MISMA var (con valores distintos):
+  #     → in_set(var, valores)
+  #   Caso B — OR de == todos con el MISMO valor en vars DISTINTAS:
+  #     → any_column_equals(cols, value)  [decomposed select_multiple]
+  #   Caso A' — AND de != MISMA var con valores distintos:
+  #     → not_in_set(var, valores)
+  #   Caso B' — AND de != MISMO valor en vars DISTINTAS:
+  #     → all_columns_not_equals(cols, value)
   if (op == "or" && length(eq_consts) >= 2L) {
-    by_value <- split(eq_consts, vapply(eq_consts, function(a) as.character(a$value), character(1)))
-    for (val in names(by_value)) {
-      grp <- by_value[[val]]
-      vars <- vapply(grp, function(a) a$var, character(1))
-      if (length(grp) >= 2L && length(unique(vars)) == length(grp)) {
-        out <- c(out, list(ast_any_column_equals(unique(vars), val)))
+    remaining <- list()
+    # Primero probamos agrupar por var (misma var → in_set).
+    by_var <- split(eq_consts, vapply(eq_consts, function(a) a$var, character(1)))
+    for (v in names(by_var)) {
+      grp <- by_var[[v]]
+      if (length(grp) >= 2L) {
+        vals <- vapply(grp, function(a) as.character(a$value), character(1))
+        if (length(unique(vals)) == length(vals)) {
+          out <- c(out, list(ast_in_set(v, unique(vals))))
+        } else {
+          remaining <- c(remaining, grp)
+        }
       } else {
-        out <- c(out, grp)
+        remaining <- c(remaining, grp)
+      }
+    }
+    # Luego intentamos agrupar por valor sobre lo que quedó (vars distintas → any_column_equals).
+    if (length(remaining)) {
+      by_value <- split(remaining, vapply(remaining, function(a) as.character(a$value), character(1)))
+      for (val in names(by_value)) {
+        grp <- by_value[[val]]
+        vars <- vapply(grp, function(a) a$var, character(1))
+        if (length(grp) >= 2L && length(unique(vars)) == length(grp)) {
+          out <- c(out, list(ast_any_column_equals(unique(vars), val)))
+        } else {
+          out <- c(out, grp)
+        }
       }
     }
     eq_consts <- list()
   }
   if (op == "and" && length(ne_consts) >= 2L) {
-    by_value <- split(ne_consts, vapply(ne_consts, function(a) as.character(a$value), character(1)))
-    for (val in names(by_value)) {
-      grp <- by_value[[val]]
-      vars <- vapply(grp, function(a) a$var, character(1))
-      if (length(grp) >= 2L && length(unique(vars)) == length(grp)) {
-        out <- c(out, list(ast_all_columns_not_equals(unique(vars), val)))
+    remaining <- list()
+    # Primero agrupar por var (misma var → not_in_set).
+    by_var <- split(ne_consts, vapply(ne_consts, function(a) a$var, character(1)))
+    for (v in names(by_var)) {
+      grp <- by_var[[v]]
+      if (length(grp) >= 2L) {
+        vals <- vapply(grp, function(a) as.character(a$value), character(1))
+        if (length(unique(vals)) == length(vals)) {
+          out <- c(out, list(ast_not_in_set(v, unique(vals))))
+        } else {
+          remaining <- c(remaining, grp)
+        }
       } else {
-        out <- c(out, grp)
+        remaining <- c(remaining, grp)
+      }
+    }
+    # Luego intentamos agrupar por valor (vars distintas → all_columns_not_equals).
+    if (length(remaining)) {
+      by_value <- split(remaining, vapply(remaining, function(a) as.character(a$value), character(1)))
+      for (val in names(by_value)) {
+        grp <- by_value[[val]]
+        vars <- vapply(grp, function(a) a$var, character(1))
+        if (length(grp) >= 2L && length(unique(vars)) == length(grp)) {
+          out <- c(out, list(ast_all_columns_not_equals(unique(vars), val)))
+        } else {
+          out <- c(out, grp)
+        }
       }
     }
     ne_consts <- list()
