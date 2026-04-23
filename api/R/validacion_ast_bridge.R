@@ -49,9 +49,26 @@ bridge_regla_custom <- function(r) {
   # entre la UI y el motor); si no hay, make_rule deriva uno.
   forced_id <- if (nzchar(id_hint)) id_hint else NULL
 
+  # ---- Parsear gate condicional opcional -----------------------------
+  # Si la regla custom trae gate_expr, lo parseamos a AST. Esto permite
+  # que las reglas custom apliquen solo bajo cierta condición (cerrando
+  # la asimetría histórica con las reglas del instrumento, que siempre
+  # tuvieron gates vía relevant).
+  gate_ast <- NULL
+  if (!is.null(r$gate_expr) && nzchar(as.character(r$gate_expr))) {
+    parsed_gate <- odk_parse_to_ast(as.character(r$gate_expr), context = "relevant")
+    if (!isTRUE(parsed_gate$degraded_to_raw)) {
+      gate_ast <- parsed_gate$ast
+    }
+    # Si no parseó, gate_ast queda NULL y la regla aplica siempre
+    # (comportamiento conservador). El schema validator ya rechazó antes
+    # cualquier gate_expr inválido, así que llegar aquí con raw es raro.
+  }
+
   rule <- switch(tipo,
     "no_nulo" = rule_required(
       var = vars[1],
+      gate = gate_ast,
       fuente = "custom",
       severidad = sev,
       nombre = nombre,
@@ -63,6 +80,7 @@ bridge_regla_custom <- function(r) {
       max = params$max,
       inclusive = isTRUE(params$inclusive %||% TRUE),
       type = "numeric",
+      gate = gate_ast,
       fuente = "custom",
       severidad = sev,
       nombre = nombre,
@@ -74,6 +92,7 @@ bridge_regla_custom <- function(r) {
       max = params$max,
       inclusive = isTRUE(params$inclusive %||% TRUE),
       type = "date",
+      gate = gate_ast,
       fuente = "custom",
       severidad = sev,
       nombre = nombre,
@@ -83,6 +102,7 @@ bridge_regla_custom <- function(r) {
       var = vars[1],
       method = "iqr",
       k = params$k %||% 1.5,
+      gate = gate_ast,
       fuente = "custom",
       severidad = sev,
       nombre = nombre,
@@ -92,6 +112,7 @@ bridge_regla_custom <- function(r) {
       var = vars[1],
       method = "zscore",
       k = params$k %||% 3,
+      gate = gate_ast,
       fuente = "custom",
       severidad = sev,
       nombre = nombre,
@@ -99,6 +120,7 @@ bridge_regla_custom <- function(r) {
     ),
     "duplicados" = rule_duplicate(
       vars = vars,
+      gate = gate_ast,
       fuente = "custom",
       severidad = sev,
       nombre = nombre,
@@ -107,18 +129,21 @@ bridge_regla_custom <- function(r) {
     "fuera_catalogo" = rule_catalog(
       var = vars[1],
       values = as.character(unlist(params$valores %||% list())),
+      gate = gate_ast,
       fuente = "custom",
       severidad = sev,
       nombre = nombre,
       objetivo = objetivo
     ),
     "coherencia_2v" = {
-      # El schema legacy: params$op_x / valor_x / op_y / valor_y.
-      # Construimos when = (var1 op_x valor_x) y then_must = (var2 op_y valor_y).
       when_ast <- .cond_from_legacy(vars[1], params$op_x, params$valor_x)
       then_ast <- .cond_from_legacy(vars[2], params$op_y, params$valor_y)
+      # Para coherencia, el gate se aplica SOBRE la cláusula `when`
+      # (si hay gate, la coherencia sólo se verifica cuando gate=T).
+      effective_when <- if (is.null(gate_ast)) when_ast
+                        else ast_and(gate_ast, when_ast)
       rule_coherence(
-        when = when_ast,
+        when = effective_when,
         then_must = then_ast,
         nombre = nombre,
         objetivo = objetivo,

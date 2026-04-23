@@ -87,10 +87,39 @@ resolve_label_es <- function(row, cols = names(row)) {
 #'   - gate_expr: AST acumulativo de los relevant de los grupos
 #'   - repeat_context: nombre del begin_repeat más cercano, o NULL
 #'   - row_index
+#'
+#' @param return_mode "entries" (default, legacy) o "full" (lista con entries + warnings).
+#' @return Si "entries": lista de entries. Si "full": list(entries, warnings).
+#'   warnings incluye autorreferencias detectadas: grupos cuyo `relevant`
+#'   referencia una variable dentro del propio grupo. En esos casos el gate
+#'   se anula (igual que legacy .gate_sin_autorreferencia) para no generar
+#'   reglas circulares.
 #' @export
-build_group_gate_map <- function(survey) {
-  stack <- list()  # cada elemento: list(name, type="group"|"repeat", relevant_ast)
+build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
+  return_mode <- match.arg(return_mode)
+
+  # Helper: encuentra la fila end correspondiente a un begin en una posición.
+  find_matching_end <- function(begin_i) {
+    begin_type <- .type_base(as.character(survey$type[begin_i]))
+    end_type <- paste0("end_", sub("^begin_", "", begin_type))
+    depth <- 1L
+    j <- begin_i + 1L
+    n <- nrow(survey)
+    while (j <= n) {
+      tj <- .type_base(as.character(survey$type[j]))
+      if (identical(tj, begin_type)) depth <- depth + 1L
+      else if (identical(tj, end_type)) {
+        depth <- depth - 1L
+        if (depth == 0L) return(j)
+      }
+      j <- j + 1L
+    }
+    n  # mal cerrado — asumimos hasta el fin
+  }
+
+  stack <- list()  # cada elemento: list(name, kind, relevant_ast, row_index)
   out <- list()
+  warnings <- list()
 
   for (i in seq_len(nrow(survey))) {
     type_str <- as.character(survey$type[i])
@@ -103,11 +132,36 @@ build_group_gate_map <- function(survey) {
         parsed <- odk_parse_to_ast(rel_raw, context = "relevant")
         if (!parsed$degraded_to_raw) parsed$ast else NULL
       } else NULL
+
+      # ---- Detección de autorreferencia --------------------------------
+      # El relevant del grupo no debe referenciar variables que viven
+      # DENTRO del grupo (quedan en loop: "variable Y sólo existe si Y==x").
+      if (!is.null(rel_ast)) {
+        end_i <- find_matching_end(i)
+        if (end_i > i + 1L) {
+          descendant_names <- unique(as.character(survey$name[(i + 1L):(end_i - 1L)]))
+          descendant_names <- descendant_names[!is.na(descendant_names) & nzchar(descendant_names)]
+          referenced <- ast_variables(rel_ast)
+          self_refs <- intersect(referenced, descendant_names)
+          if (length(self_refs)) {
+            warnings[[length(warnings) + 1L]] <- list(
+              group_name = name,
+              kind = if (t0 == "begin_repeat") "repeat" else "group",
+              row = i,
+              relevant = rel_raw,
+              self_references = self_refs,
+              action = "gate_anulado"
+            )
+            rel_ast <- NULL  # match legacy: descartar el gate circular
+          }
+        }
+      }
+
       stack[[length(stack) + 1L]] <- list(
         name = name,
         kind = if (t0 == "begin_repeat") "repeat" else "group",
         relevant_ast = rel_ast,
-        # Para begin_repeat, capturamos repeat_count si existe.
+        row_index = i,
         repeat_count = if (t0 == "begin_repeat" && "repeat_count" %in% names(survey)) {
           rc <- as.character(survey$repeat_count[i])
           if (!is.na(rc) && nzchar(rc)) rc else NULL
@@ -122,7 +176,6 @@ build_group_gate_map <- function(survey) {
       for (s in rev(stack)) {
         if (s$kind == "repeat") { repeat_ctx <- s$name; break }
       }
-      # Gate acumulativo: AND de los relevant_ast no vacíos.
       rel_asts <- Filter(Negate(is.null), lapply(stack, function(s) s$relevant_ast))
       gate <- if (length(rel_asts) == 0L) NULL
               else if (length(rel_asts) == 1L) rel_asts[[1]]
@@ -138,7 +191,11 @@ build_group_gate_map <- function(survey) {
     }
   }
 
-  out
+  if (return_mode == "full") {
+    list(entries = out, warnings = warnings)
+  } else {
+    out
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -348,7 +405,9 @@ infer_rules_from_xlsform <- function(instrumento,
                                      dedup = TRUE) {
   if (is.null(instrumento$survey)) stop("infer_rules_from_xlsform(): falta survey.")
   survey <- instrumento$survey
-  ctx_map <- build_group_gate_map(survey)
+  gate_full <- build_group_gate_map(survey, return_mode = "full")
+  ctx_map <- gate_full$entries
+  autoref_warnings <- gate_full$warnings
 
   all_rules <- list()
   if ("required" %in% include) {
@@ -377,7 +436,8 @@ infer_rules_from_xlsform <- function(instrumento,
   list(
     rules = all_rules,
     lex_report = lex_report,
-    discarded = .collect_discarded(survey, ctx_map)
+    discarded = .collect_discarded(survey, ctx_map),
+    autoref_warnings = autoref_warnings
   )
 }
 

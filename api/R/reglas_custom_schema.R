@@ -110,6 +110,29 @@
     }
   }
   # `no_nulo` no requiere params adicionales.
+
+  # ---- Gate condicional opcional ---------------------------------------
+  # Una regla custom puede traer `gate_expr` — una expresión ODK que define
+  # cuándo se aplica (ej. "${tiene_hijos} = '1'"). Si no se provee, la regla
+  # evalúa siempre.
+  if (!is.null(r$gate_expr) && nzchar(as.character(r$gate_expr))) {
+    gate_raw <- as.character(r$gate_expr)
+    # Lazy-load del parser (evita ciclo en source() al cargar este archivo
+    # primero durante initialization).
+    if (exists("odk_parse_to_ast", mode = "function", envir = globalenv())) {
+      parsed <- tryCatch(
+        odk_parse_to_ast(gate_raw, context = "relevant"),
+        error = function(e) list(degraded_to_raw = TRUE, ast = NULL)
+      )
+      if (isTRUE(parsed$degraded_to_raw)) {
+        stop_api(400, "E_REGLA_GATE_INVALIDO",
+                 sprintf("gate_expr no pudo parsearse: '%s'", gate_raw))
+      }
+    }
+    # Si el parser AST no está cargado aún (caso edge), se valida sólo
+    # que no venga vacío — el bridge lo re-validará al construir.
+  }
+
   invisible(TRUE)
 }
 

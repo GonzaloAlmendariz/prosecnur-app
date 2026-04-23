@@ -66,6 +66,19 @@
   # fila. Se usa para verificar que la fecha reportada en `var` sea
   # coherente con el día de captura (típicamente `var <= today()`).
   "collection_date_cmp",  # (var, op)   op ∈ ==,!=,<,<=,>,>=
+  # --- Agregación cross-tabla (repeat → principal) ----------------------
+  # Compara un valor de la tabla HOST con una agregación sobre una tabla
+  # relacionada (típicamente un repeat). El evaluador necesita recibir
+  # `data_multi = list(table_name = df, ...)` para poder resolver la tabla
+  # fuente. Violación = comparación FALLA.
+  #   host_var:   columna en la tabla host (donde vive la regla)
+  #   op:         ==, !=, <, <=, >, >=
+  #   source_table:     nombre de tabla relacionada (repeat)
+  #   source_var:       columna a agregar en esa tabla
+  #   agg_op:     sum | count | n_distinct  (paste excluido: no compara numérico)
+  #   parent_key_local:  columna en host que identifica la fila padre
+  #   parent_key_remote: columna en source_table que apunta al padre
+  "aggregate_cmp",
   # --- Combinadores -----------------------------------------------------
   "and",                  # (args: list<ast>)
   "or",                   # (args: list<ast>)
@@ -295,6 +308,40 @@ ast_straight_line <- function(vars, max_variance = 0) {
       max_variance = as.numeric(max_variance))
 }
 
+#' Compara una variable del host contra un agregado de otra tabla (repeat).
+#' @param host_var        columna en la tabla host.
+#' @param op              ==,!=,<,<=,>,>=
+#' @param source_table    nombre de la tabla fuente (repeat).
+#' @param source_var      columna a agregar en source_table.
+#' @param agg_op          sum | count | n_distinct
+#' @param parent_key_local  columna en host con ID de padre (default `_uuid`).
+#' @param parent_key_remote columna en source_table que referencia padre
+#'                          (default `_parent_index`).
+#' @export
+ast_aggregate_cmp <- function(host_var, op,
+                              source_table, source_var,
+                              agg_op = c("sum", "count", "n_distinct"),
+                              parent_key_local = "_uuid",
+                              parent_key_remote = "_parent_index") {
+  .check_var(host_var)
+  if (!(op %in% .BINOP_CMP)) {
+    stop(sprintf("ast_aggregate_cmp(): op '%s' inválido.", op))
+  }
+  agg_op <- match.arg(agg_op)
+  if (!is.character(source_table) || length(source_table) != 1L || !nzchar(source_table)) {
+    stop("ast_aggregate_cmp(): source_table requerido.")
+  }
+  .check_var(source_var)
+  ast("aggregate_cmp",
+      host_var = host_var,
+      op = op,
+      source_table = source_table,
+      source_var = source_var,
+      agg_op = agg_op,
+      parent_key_local = parent_key_local,
+      parent_key_remote = parent_key_remote)
+}
+
 #' Compara una variable de fecha contra la fecha de captura (today() en ODK).
 #' La fecha de captura NO es el día de validación — es el día en que el
 #' enumerador guardó el formulario, resuelto por el evaluador desde la
@@ -433,6 +480,7 @@ ast_is_valid <- function(x) {
     "straight_line"            = c("vars", "max_variance"),
     "repeat_length_matches"    = c("repeat_name", "expected"),
     "collection_date_cmp"      = c("var", "op"),
+    "aggregate_cmp"            = c("host_var", "op", "source_table", "source_var", "agg_op"),
     "and"                      = "args",
     "or"                       = "args",
     "not"                      = "arg",

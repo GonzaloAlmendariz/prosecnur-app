@@ -38,9 +38,13 @@
 #'   - data: data.frame con columnas flag agregadas (TRUE = inconsistencia)
 #'   - resumen: tibble con una fila por regla
 #'   - logs: list con parses fallidos, rules que cayeron a raw, etc.
+#' @param data_multi  lista `list(nombre_tabla = data.frame, ...)` con tablas
+#'   adicionales (repeats). Si una regla usa `aggregate_cmp`, referencia a
+#'   una tabla aquí. Default list() — reglas cross-tabla quedan NA.
 #' @export
 evaluate_rules <- function(rules,
                            data,
+                           data_multi = list(),
                            collection_date_col = NULL,
                            residual_codes = c("98", "99", "96", "90"),
                            strict = FALSE) {
@@ -63,6 +67,9 @@ evaluate_rules <- function(rules,
   eval_env <- new.env(parent = globalenv())
   for (nm in names(data)) assign(nm, data[[nm]], envir = eval_env)
   assign("__today__", today_vec, envir = eval_env)
+  # Tablas adicionales (repeats) para aggregate_cmp — si vacío, las reglas
+  # que las usen devolverán NA (conservador, no falso-positivo).
+  assign("__data_multi__", as.list(data_multi), envir = eval_env)
 
   # 3. Evaluar regla por regla
   logs <- list()

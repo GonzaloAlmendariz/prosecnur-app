@@ -46,6 +46,9 @@ ast_to_r <- function(x) {
     "straight_line"            = .c_straight_line(x$vars, x$max_variance),
     "repeat_length_matches"    = .c_repeat_length(x$repeat_name, x$expected),
     "collection_date_cmp"      = .c_collection_date_cmp(x$var, x$op),
+    "aggregate_cmp"            = .c_aggregate_cmp(x$host_var, x$op, x$source_table,
+                                                  x$source_var, x$agg_op,
+                                                  x$parent_key_local, x$parent_key_remote),
     "and"                      = .c_bool("and", x$args),
     "or"                       = .c_bool("or",  x$args),
     "not"                      = paste0("!(", .compile(x$arg), ")"),
@@ -248,6 +251,49 @@ ast_to_r <- function(x) {
     "{ .m_ <- cbind(%s); .m_ <- apply(.m_, 2, function(c) suppressWarnings(as.numeric(as.character(c)))); .v_ <- apply(.m_, 1, stats::var, na.rm = TRUE); (!is.na(.v_) & .v_ <= %g) }",
     cols_lit, as.numeric(max_variance)
   )
+}
+
+.c_aggregate_cmp <- function(host_var, op, source_table, source_var, agg_op,
+                             parent_key_local, parent_key_remote) {
+  # El evaluador inyecta `__data_multi__` como list de data.frames por tabla.
+  # Si falta la tabla o las claves, la agregación devuelve NA y la
+  # comparación no gatilla violación (conservador).
+  tbl_lit <- .lit_str(source_table)
+  sv_lit  <- .lit_str(source_var)
+  pk_lit  <- .lit_str(parent_key_remote)
+  # parent_key_local es nombre de COLUMNA en host data — backtick-quoted
+  # (puede empezar con `_uuid`, que no es identificador R válido).
+  local_ref <- .backtick(parent_key_local)
+  host_ref  <- .backtick(host_var)
+  agg_switch <- switch(agg_op,
+    "sum"        = 'sum(suppressWarnings(as.numeric(.v_)), na.rm = TRUE)',
+    "count"      = 'as.numeric(sum(!is.na(.v_) & nzchar(as.character(.v_))))',
+    "n_distinct" = 'as.numeric(length(unique(.v_[!is.na(.v_) & nzchar(as.character(.v_))])))',
+    stop(sprintf(".c_aggregate_cmp: agg_op '%s' no soportado.", agg_op))
+  )
+  sprintf(
+    paste0("{ ",
+      ".t_ <- if (exists('__data_multi__', inherits = TRUE)) `__data_multi__`[[%s]] else NULL; ",
+      ".pk_ <- as.character(%s); ",
+      ".agg_ <- if (is.null(.t_) || !(%s %%in%% names(.t_)) || !(%s %%in%% names(.t_))) ",
+      "  rep(NA_real_, length(.pk_)) ",
+      "else { ",
+      "  .groups_ <- split(.t_[[%s]], as.character(.t_[[%s]])); ",
+      "  vapply(.pk_, function(k) { .v_ <- .groups_[[k]]; if (is.null(.v_) || !length(.v_)) NA_real_ else %s }, numeric(1)) ",
+      "}; ",
+      ".h_ <- suppressWarnings(as.numeric(%s)); ",
+      "!is.na(.h_) & !is.na(.agg_) & !(.h_ %s .agg_) ",
+    "}"),
+    tbl_lit, local_ref, sv_lit, pk_lit, sv_lit, pk_lit, agg_switch,
+    host_ref, op
+  )
+}
+
+.backtick <- function(var) {
+  # Si el nombre no es identificador R válido (ej. empieza con _), lo
+  # envuelve en backticks para acceso por ` ` syntax.
+  if (grepl("^[A-Za-z.][A-Za-z0-9._]*$", var)) var
+  else sprintf("`%s`", var)
 }
 
 .c_collection_date_cmp <- function(var, op) {

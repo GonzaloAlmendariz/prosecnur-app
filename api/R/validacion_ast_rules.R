@@ -558,6 +558,54 @@ rule_repeat_length <- function(repeat_name,
   )
 }
 
+#' Regla de coherencia cross-tabla: compara un valor del host con un
+#' agregado (sum/count/n_distinct) de una tabla relacionada (repeat).
+#'
+#' Ejemplo clásico: "`total_ingresos` del hogar = suma de `ingreso` por
+#' miembro en la tabla de miembros del hogar".
+#'
+#' @export
+rule_aggregate_check <- function(host_var,
+                                 op = "==",
+                                 source_table,
+                                 source_var,
+                                 agg_op = c("sum", "count", "n_distinct"),
+                                 parent_key_local = "_uuid",
+                                 parent_key_remote = "_parent_index",
+                                 gate = NULL,
+                                 nombre = NULL,
+                                 objetivo = NULL,
+                                 fuente = "custom",
+                                 severidad = "error",
+                                 seccion = NULL,
+                                 tabla = "principal") {
+  agg_op <- match.arg(agg_op)
+  predicate <- ast_aggregate_cmp(
+    host_var = host_var, op = op,
+    source_table = source_table, source_var = source_var,
+    agg_op = agg_op,
+    parent_key_local = parent_key_local,
+    parent_key_remote = parent_key_remote
+  )
+  if (is.null(nombre)) {
+    nombre <- sprintf("«%s» %s %s(«%s») en %s",
+                      host_var, op, agg_op, source_var, source_table)
+  }
+  r <- make_rule(
+    nombre = nombre,
+    tipo_regla = "coherence",  # es una coherencia, pero multi-tabla
+    fuente = fuente,
+    predicate = predicate,
+    gate = gate,
+    severidad = severidad,
+    categoria_ux = "coherencia",
+    objetivo = objetivo,
+    seccion = seccion,
+    tabla = tabla
+  )
+  r
+}
+
 #' Escape hatch: regla que envuelve una expresión ODK cruda.
 #' @export
 rule_odk_raw <- function(odk_expression,
