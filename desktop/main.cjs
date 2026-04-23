@@ -651,6 +651,20 @@ function createMenu() {
       ]
     },
     {
+      label: "Edición",
+      submenu: [
+        { role: "undo", label: "Deshacer" },
+        { role: "redo", label: "Rehacer" },
+        { type: "separator" },
+        { role: "cut", label: "Cortar" },
+        { role: "copy", label: "Copiar" },
+        { role: "paste", label: "Pegar" },
+        { role: "pasteAndMatchStyle", label: "Pegar y adaptar estilo" },
+        { role: "delete", label: "Borrar" },
+        { role: "selectAll", label: "Seleccionar todo" }
+      ]
+    },
+    {
       label: "Ver",
       submenu: [
         { role: "reload", label: "Recargar" },

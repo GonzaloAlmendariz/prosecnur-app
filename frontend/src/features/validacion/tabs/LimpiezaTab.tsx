@@ -464,6 +464,7 @@ export default function LimpiezaTab() {
         ) : (
           <EditorPanel
             item={selectedQueueItem}
+            drill={drill}
             form={form}
             setForm={setForm}
             variableOptions={variableOptions}
@@ -884,6 +885,7 @@ function EditorEmpty({ auditReady }: { auditReady: boolean }) {
 // -----------------------------------------------------------------------------
 function EditorPanel({
   item,
+  drill,
   form,
   setForm,
   variableOptions,
@@ -906,6 +908,7 @@ function EditorPanel({
   canDelete,
 }: {
   item: LimpiezaQueueItem | null;
+  drill: InstrumentoDrillResult | null;
   form: EditorForm;
   setForm: Dispatch<SetStateAction<EditorForm>>;
   variableOptions: string[];
@@ -929,10 +932,42 @@ function EditorPanel({
 }) {
   const needsVariable = actionNeedsVariable(form.action_type);
   const allowsCaseSubset = form.action_type !== "ignore_rule";
+  const selectable = allowsCaseSubset && !form.use_all_cases;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {item && <RuleHeader item={item} />}
+      {item && <RuleHeader item={item} drill={drill} />}
+
+      {/* Casos observados (siempre visible cuando hay detalle) */}
+      <DecisionBlock title={`Casos observados${drill?.casos?.length ? ` (${drill.casos.length})` : ""}`}>
+        <CasesTable
+          rows={caseRows}
+          columns={caseColumns}
+          uuidCol={drill?.uuid_col ?? null}
+          loading={drillLoading}
+          error={drillError}
+          selectable={selectable}
+          selectedCaseIds={selectedCaseIdsSet}
+          onToggle={(caseId) => {
+            setForm((current) => {
+              const next = new Set(current.target_case_ids);
+              if (next.has(caseId)) next.delete(caseId);
+              else next.add(caseId);
+              return { ...current, target_case_ids: Array.from(next) };
+            });
+          }}
+          onSelectAll={() => {
+            setForm((current) => ({
+              ...current,
+              target_case_ids: caseRows.map((row) => row.id),
+            }));
+          }}
+          onClear={() => {
+            setForm((current) => ({ ...current, target_case_ids: [] }));
+          }}
+        />
+      </DecisionBlock>
+
 
       {/* Bloque 1: ¿Qué hacer? */}
       <DecisionBlock title="¿Qué hacer?">
@@ -1004,32 +1039,10 @@ function EditorPanel({
             />
             Aplicar a todos los casos observados por esta regla
           </label>
-
           {!form.use_all_cases && (
-            <CaseSelectionPanel
-              rows={caseRows}
-              columns={caseColumns}
-              loading={drillLoading}
-              error={drillError}
-              selectedCaseIds={selectedCaseIdsSet}
-              onToggle={(caseId) => {
-                setForm((current) => {
-                  const next = new Set(current.target_case_ids);
-                  if (next.has(caseId)) next.delete(caseId);
-                  else next.add(caseId);
-                  return { ...current, target_case_ids: Array.from(next) };
-                });
-              }}
-              onSelectAll={() => {
-                setForm((current) => ({
-                  ...current,
-                  target_case_ids: caseRows.map((row) => row.id),
-                }));
-              }}
-              onClear={() => {
-                setForm((current) => ({ ...current, target_case_ids: [] }));
-              }}
-            />
+            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+              Marca arriba los casos a los que aplicar la acción.
+            </div>
           )}
         </DecisionBlock>
       )}
@@ -1098,7 +1111,14 @@ function EditorPanel({
   );
 }
 
-function RuleHeader({ item }: { item: LimpiezaQueueItem }) {
+function RuleHeader({
+  item,
+  drill,
+}: {
+  item: LimpiezaQueueItem;
+  drill: InstrumentoDrillResult | null;
+}) {
+  const objetivo = drill?.regla.objetivo?.trim();
   return (
     <div
       style={{
@@ -1119,6 +1139,11 @@ function RuleHeader({ item }: { item: LimpiezaQueueItem }) {
       <div style={{ fontSize: 16, fontWeight: 800, color: "var(--pulso-text)", lineHeight: 1.3 }}>
         {item.nombre_regla}
       </div>
+      {objetivo && (
+        <div style={{ fontSize: 12, lineHeight: 1.55, color: "var(--pulso-text-soft)" }}>
+          {objetivo}
+        </div>
+      )}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         <MiniChip label={item.source_id} mono />
         <MiniChip label={`${formatNumber(item.n_casos)} casos`} />
@@ -1491,11 +1516,13 @@ function ResumenVisualDrawer({
 // =============================================================================
 // Case selection panel + helpers visuales
 // =============================================================================
-function CaseSelectionPanel({
+function CasesTable({
   rows,
   columns,
+  uuidCol,
   loading,
   error,
+  selectable,
   selectedCaseIds,
   onToggle,
   onSelectAll,
@@ -1503,8 +1530,10 @@ function CaseSelectionPanel({
 }: {
   rows: CaseRow[];
   columns: string[];
+  uuidCol: string | null;
   loading: boolean;
   error: string;
+  selectable: boolean;
   selectedCaseIds: Set<string>;
   onToggle: (caseId: string) => void;
   onSelectAll: () => void;
@@ -1530,24 +1559,28 @@ function CaseSelectionPanel({
   if (!rows.length) {
     return (
       <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
-        Esta regla no expone un detalle de casos. Deja la decisión sobre todos los casos observados.
+        Sin detalle de casos disponible para esta regla.
       </div>
     );
   }
 
+  const uuidLabel = uuidCol ?? "Caso";
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-        <button type="button" onClick={onSelectAll} style={secondaryButtonStyle}>
-          Seleccionar todos
-        </button>
-        <button type="button" onClick={onClear} style={secondaryButtonStyle}>
-          Limpiar
-        </button>
-      </div>
+      {selectable && (
+        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+          <button type="button" onClick={onSelectAll} style={secondaryButtonStyle}>
+            Seleccionar todos
+          </button>
+          <button type="button" onClick={onClear} style={secondaryButtonStyle}>
+            Limpiar
+          </button>
+        </div>
+      )}
       <div
         style={{
-          maxHeight: 280,
+          maxHeight: 320,
           overflow: "auto",
           borderRadius: 10,
           border: "1px solid var(--pulso-border)",
@@ -1556,8 +1589,8 @@ function CaseSelectionPanel({
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ background: "var(--pulso-surface-2)" }}>
-              <th style={tableHeadCell}>Incluir</th>
-              <th style={tableHeadCell}>Caso</th>
+              {selectable && <th style={tableHeadCell}>Incluir</th>}
+              <th style={tableHeadCell}>{uuidLabel}</th>
               {columns.map((column) => (
                 <th key={column} style={tableHeadCell}>
                   {column}
@@ -1568,20 +1601,17 @@ function CaseSelectionPanel({
           <tbody>
             {rows.map((row) => (
               <tr key={row.id} style={{ borderTop: "1px solid var(--pulso-border)" }}>
-                <td style={tableCell}>
-                  <input
-                    type="checkbox"
-                    checked={selectedCaseIds.has(row.id)}
-                    onChange={() => onToggle(row.id)}
-                  />
-                </td>
+                {selectable && (
+                  <td style={tableCell}>
+                    <input
+                      type="checkbox"
+                      checked={selectedCaseIds.has(row.id)}
+                      onChange={() => onToggle(row.id)}
+                    />
+                  </td>
+                )}
                 <td style={{ ...tableCell, fontFamily: "ui-monospace, monospace", fontSize: 11 }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <span>{row.id}</span>
-                    <span style={{ color: "var(--pulso-text-soft)", fontFamily: "inherit" }}>
-                      {row.summary}
-                    </span>
-                  </div>
+                  {row.id}
                 </td>
                 {columns.map((column) => (
                   <td key={`${row.id}-${column}`} style={tableCell}>

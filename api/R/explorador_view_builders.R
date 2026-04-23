@@ -411,7 +411,8 @@
           orientation = "h",
           y = -0.24,
           x = 0.5,
-          xanchor = "center"
+          xanchor = "center",
+          traceorder = "reversed"
         )
       ),
       list(
@@ -529,7 +530,10 @@
     trace <- list(
       type = "histogram",
       x = x,
-      marker = list(color = "#7c3aed"),
+      marker = list(
+        color = "#7c3aed",
+        line = list(color = "#ffffff", width = 1.5)
+      ),
       hovertemplate = "Rango: %{x}<br>n=%{y}<extra></extra>"
     )
     layout <- utils::modifyList(
@@ -758,7 +762,7 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
                     automargin = TRUE),
       yaxis = list(title = list(text = "Casos"), gridcolor = "#e5e7eb"),
       plot_bgcolor = "#ffffff", paper_bgcolor = "#ffffff",
-      legend = list(orientation = "h", y = -0.3),
+      legend = list(orientation = "h", y = -0.3, traceorder = "reversed"),
       height = 360L
     )
     return(list(

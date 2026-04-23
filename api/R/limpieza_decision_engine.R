@@ -285,8 +285,9 @@
   catalog <- .limpieza_rule_catalog(scope)
   if (!nrow(catalog)) return(list())
 
-  mask <- (as.integer(catalog$n_inconsistencias %||% 0) > 0L) |
-    (!is.na(catalog$estado_dinamico) & as.character(catalog$estado_dinamico) != "correcta")
+  # Solo reglas con ≥1 caso observado: la cola es para resolver
+  # inconsistencias reales, no reglas "correctas" o sin evaluación.
+  mask <- as.integer(catalog$n_inconsistencias %||% 0) > 0L
   mask[is.na(mask)] <- FALSE
   catalog <- catalog[mask, , drop = FALSE]
   if (!nrow(catalog)) return(list())
