@@ -141,14 +141,48 @@ export type LimpiezaDecision = {
   updated_at: string;
 };
 
+// Taxonomía tipada del motor AST (v3).
+// - `tipo_regla` — técnico, enum cerrado. Determina cómo se evalúa.
+// - `categoria_ux` — etiqueta legible para agrupar visualmente al usuario.
+// - `fuente` — si la regla vino del XLSForm o fue creada desde la UI.
+// - `tipo_variable` — el tipo ODK de la variable afectada (select_one,
+//   integer, date, etc.). Renombra el confuso `tipo_observacion` legacy.
+export type LimpiezaTipoRegla =
+  | "required"
+  | "skip"
+  | "constraint"
+  | "range"
+  | "catalog"
+  | "outlier"
+  | "duplicate"
+  | "coherence"
+  | "select_multiple_cardinality"
+  | "pattern"
+  | "calculate_check"
+  | "repeat_length"
+  | "odk_raw";
+
+export type LimpiezaFuente = "instrumento" | "custom";
+
 export type LimpiezaQueueItem = {
+  // Identificación
   source_type: "instrument_rule" | "custom_rule";
   source_id: string;
-  origen: string;
   nombre_regla: string;
   seccion: string | null;
+  // Taxonomía tipada (contrato v3 — preferido)
+  tipo_regla: LimpiezaTipoRegla;
+  categoria_ux: string;       // etiqueta legible ("Completitud", "Saltos…")
+  fuente: LimpiezaFuente;
+  tipo_variable: string | null;  // tipo ODK de la variable (select_one, etc.)
+  // --- Campos legacy (compatibilidad) — preferir los tipados de arriba ---
+  /** @deprecated usar `fuente` */
+  origen: string;
+  /** @deprecated usar `categoria_ux` */
   categoria: string | null;
+  /** @deprecated usar `tipo_variable` */
   tipo_observacion: string | null;
+  // --- Estado y conteo ---
   severidad: string;
   variables: string[];
   n_casos: number;

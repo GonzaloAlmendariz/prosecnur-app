@@ -719,6 +719,22 @@ function Workbench({
   editorRef: React.RefObject<HTMLDivElement>;
   children: ReactNode;
 }) {
+  // Filtro por categoría UX (taxonomía nueva). "all" = sin filtro.
+  const [filterCat, setFilterCat] = useState<string>("all");
+  const categoriasUx = useMemo(() => {
+    const set = new Map<string, number>();
+    for (const item of queue) {
+      const cat = item.categoria_ux || "Otras";
+      set.set(cat, (set.get(cat) ?? 0) + 1);
+    }
+    return Array.from(set.entries()).sort((a, b) => b[1] - a[1]);
+  }, [queue]);
+
+  const filteredQueue = useMemo(() => {
+    if (filterCat === "all") return queue;
+    return queue.filter((item) => (item.categoria_ux || "Otras") === filterCat);
+  }, [queue, filterCat]);
+
   return (
     <section
       style={{
@@ -745,8 +761,30 @@ function Workbench({
           <div style={{ fontSize: 14, fontWeight: 800, color: "var(--pulso-text)" }}>
             Inconsistencias por resolver
           </div>
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{queue.length}</span>
+          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+            {filterCat === "all" ? queue.length : `${filteredQueue.length} / ${queue.length}`}
+          </span>
         </header>
+
+        {auditReady && categoriasUx.length > 1 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4 }}>
+            <FilterChip
+              label="Todas"
+              count={queue.length}
+              active={filterCat === "all"}
+              onClick={() => setFilterCat("all")}
+            />
+            {categoriasUx.map(([cat, count]) => (
+              <FilterChip
+                key={cat}
+                label={cat}
+                count={count}
+                active={filterCat === cat}
+                onClick={() => setFilterCat(cat)}
+              />
+            ))}
+          </div>
+        )}
 
         {!auditReady ? (
           <div style={emptyDashedStyle}>
@@ -756,9 +794,13 @@ function Workbench({
           <div style={emptyDashedStyle}>
             No hay inconsistencias pendientes.
           </div>
+        ) : filteredQueue.length === 0 ? (
+          <div style={emptyDashedStyle}>
+            No hay inconsistencias en «{filterCat}».
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, overflowY: "auto", paddingRight: 4 }}>
-            {queue.map((item) => (
+            {filteredQueue.map((item) => (
               <QueueRow
                 key={item.source_id}
                 item={item}
@@ -828,9 +870,7 @@ function QueueRow({
         )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 10, fontFamily: "ui-monospace, monospace", color: "var(--pulso-text-soft)" }}>
-          {item.source_id}
-        </span>
+        <CategoriaUxChip label={item.categoria_ux} fuente={item.fuente} />
         <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>·</span>
         <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-text)" }}>
           {formatNumber(item.n_casos)} casos
@@ -845,6 +885,73 @@ function QueueRow({
         )}
       </div>
     </button>
+  );
+}
+
+// Chip con el filtro por categoria_ux (pildorazo clickeable).
+function FilterChip({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "3px 9px",
+        borderRadius: 999,
+        fontSize: 10,
+        fontWeight: 700,
+        border: `1px solid ${active ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
+        background: active ? "var(--pulso-primary-soft)" : "white",
+        color: active ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
+        cursor: "pointer",
+      }}
+    >
+      {label}
+      <span style={{ opacity: 0.65 }}>{count}</span>
+    </button>
+  );
+}
+
+// Chip con la categoria_ux (nueva taxonomía) + marca de fuente.
+function CategoriaUxChip({
+  label,
+  fuente,
+}: {
+  label: string;
+  fuente: "instrumento" | "custom";
+}) {
+  const isCustom = fuente === "custom";
+  const bg = isCustom ? "var(--pulso-primary-soft)" : "var(--pulso-surface-2)";
+  const fg = isCustom ? "var(--pulso-primary)" : "var(--pulso-text-soft)";
+  const prefix = isCustom ? "★ " : "";
+  return (
+    <span
+      title={isCustom ? "Regla personalizada" : "Regla del instrumento (XLSForm)"}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: bg,
+        color: fg,
+        fontSize: 10,
+        fontWeight: 700,
+      }}
+    >
+      {prefix}{label}
+    </span>
   );
 }
 
@@ -1130,9 +1237,7 @@ function RuleHeader({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-primary)" }}>
-          {item.origen}
-        </span>
+        <CategoriaUxChip label={item.categoria_ux} fuente={item.fuente} />
         <StatusBadge status={item.pending ? "pending" : "ready"} />
         <SeverityBadge severity={item.severidad} />
       </div>
@@ -1148,6 +1253,9 @@ function RuleHeader({
         <MiniChip label={item.source_id} mono />
         <MiniChip label={`${formatNumber(item.n_casos)} casos`} />
         {item.porcentaje != null && <MiniChip label={formatPercent(item.porcentaje)} />}
+        {item.tipo_variable && item.tipo_variable !== "NA" && (
+          <MiniChip label={`Variable: ${item.tipo_variable}`} />
+        )}
         {(item.variables ?? []).map((variable) => (
           <MiniChip key={variable} label={variable} mono />
         ))}

@@ -261,7 +261,86 @@
     as.list(vars[!is.na(vars) & nzchar(vars)])
   })
 
+  # --- Taxonomía tipada (contrato nuevo) --------------------------------
+  # Agregamos tipo_regla (técnico, enum cerrado), categoria_ux (etiqueta
+  # legible), fuente (instrumento|custom), tipo_variable (renombra el
+  # ambiguo tipo_observacion). Los campos legacy (categoria, origen,
+  # tipo_observacion) se mantienen para compatibilidad con código existente.
+  catalog$fuente <- ifelse(catalog$source_type == "custom_rule", "custom", "instrumento")
+  catalog$tipo_variable <- as.character(catalog$tipo_observacion %||% NA_character_)
+  catalog$tipo_regla <- vapply(seq_len(nrow(catalog)),
+                                function(i) .limpieza_infer_tipo_regla(catalog, i),
+                                character(1))
+  catalog$categoria_ux <- vapply(catalog$tipo_regla, .limpieza_categoria_ux_label, character(1))
+
   catalog
+}
+
+# Mapea taxonomía legacy → tipo_regla tipado.
+.limpieza_infer_tipo_regla <- function(catalog, i) {
+  rid <- as.character(catalog$id_regla[i] %||% "")
+  nombre <- as.character(catalog$nombre_regla[i] %||% "")
+  cat_legacy <- as.character(catalog$categoria[i] %||% "")
+  # 1. Prefijos del rule_factory heredado:
+  if (startsWith(nombre, "req_")) return("required")
+  if (startsWith(nombre, "salto_")) return("skip")
+  if (startsWith(nombre, "calc_")) return("calculate_check")
+  if (startsWith(nombre, "cons_") && grepl("_cf_", nombre, fixed = TRUE)) return("constraint")
+  if (startsWith(nombre, "cons_") && grepl("_ventana_fecha", nombre, fixed = TRUE)) return("range")
+  if (startsWith(nombre, "cons_") && grepl("_repeat", nombre, fixed = TRUE)) return("repeat_length")
+  if (startsWith(nombre, "cons_")) return("constraint")
+  # 2. Reglas custom (RC_*): deriva del campo Tipo del plan si es "custom:*".
+  if (startsWith(rid, "RC_") || startsWith(nombre, "rc_")) {
+    # El compilador custom pone Tipo = "custom:<subtipo>"; tipo_observacion
+    # puede traer ese string.
+    tv <- as.character(catalog$tipo_observacion[i] %||% "")
+    if (startsWith(tv, "custom:")) {
+      sub <- sub("^custom:", "", tv)
+      return(switch(sub,
+        "no_nulo"        = "required",
+        "rango_num"      = "range",
+        "rango_fecha"    = "range",
+        "outliers_iqr"   = "outlier",
+        "outliers_z"     = "outlier",
+        "duplicados"     = "duplicate",
+        "fuera_catalogo" = "catalog",
+        "coherencia_2v"  = "coherence",
+        "coherence"
+      ))
+    }
+    return("coherence")
+  }
+  # 3. Fallback por categoria legacy
+  switch(cat_legacy,
+    "Preguntas de control"  = "required",
+    "Saltos de preguntas"   = "skip",
+    "Consistencia"          = "constraint",
+    "Filtro de opciones"    = "constraint",
+    "Valores calculados"    = "calculate_check",
+    "Valores atípicos"      = "outlier",
+    "Registros repetidos"   = "repeat_length",
+    "constraint"
+  )
+}
+
+# Etiqueta legible (sin tecnicismos) — lo que la UI muestra al usuario.
+.limpieza_categoria_ux_label <- function(tipo_regla) {
+  switch(as.character(tipo_regla),
+    "required"         = "Completitud",
+    "skip"             = "Saltos del formulario",
+    "constraint"       = "Consistencia lógica",
+    "range"            = "Rangos",
+    "catalog"          = "Valores de catálogo",
+    "outlier"          = "Outliers",
+    "duplicate"        = "Duplicados",
+    "coherence"        = "Coherencia entre variables",
+    "select_multiple_cardinality" = "Cardinalidad",
+    "pattern"          = "Patrones sospechosos",
+    "calculate_check"  = "Cálculos",
+    "repeat_length"    = "Estructura de repeats",
+    "odk_raw"          = "Expresión experta",
+    "Otras"
+  )
 }
 
 .limpieza_summarize_decision <- function(decision) {
@@ -300,6 +379,7 @@
     current <- if (length(ready_hits)) ready_hits[[length(ready_hits)]] else NULL
     vars <- unlist(catalog$variables[[i]] %||% list())
     list(
+      # --- Legacy (compatibilidad) ---
       source_type = as.character(catalog$source_type[i] %||% "instrument_rule"),
       source_id = rid,
       origen = as.character(catalog$origen[i] %||% "Automática"),
@@ -307,6 +387,12 @@
       seccion = as.character(catalog$seccion[i] %||% NA_character_),
       categoria = as.character(catalog$categoria[i] %||% NA_character_),
       tipo_observacion = as.character(catalog$tipo_observacion[i] %||% NA_character_),
+      # --- Taxonomía tipada nueva (contrato v3) ---
+      tipo_regla = as.character(catalog$tipo_regla[i] %||% "constraint"),
+      categoria_ux = as.character(catalog$categoria_ux[i] %||% "Consistencia lógica"),
+      fuente = as.character(catalog$fuente[i] %||% "instrumento"),
+      tipo_variable = as.character(catalog$tipo_variable[i] %||% NA_character_),
+      # --- Resto ---
       severidad = as.character(catalog$severidad[i] %||% "info"),
       variables = as.list(vars),
       n_casos = as.integer(catalog$n_inconsistencias[i] %||% 0L),
