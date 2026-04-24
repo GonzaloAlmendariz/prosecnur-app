@@ -163,6 +163,22 @@
   animation: pulso-lens-backdrop-in-kf 180ms ease-out;
 }
 
+/* Variante center: fade + scale suave en lugar de slide lateral. */
+@keyframes pulso-lens-fade-in-kf {
+  from { transform: scale(0.96); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes pulso-lens-fade-out-kf {
+  from { transform: scale(1); opacity: 1; }
+  to   { transform: scale(0.98); opacity: 0; }
+}
+.pulso-lens-fade-in {
+  animation: pulso-lens-fade-in-kf 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+.pulso-lens-fade-out {
+  animation: pulso-lens-fade-out-kf 180ms cubic-bezier(0.4, 0, 1, 1);
+}
+
 /* Animación de fadeIn suave para hovercards. */
 @keyframes pulso-hovercard-in-kf {
   from { opacity: 0; transform: translateY(-4px); }

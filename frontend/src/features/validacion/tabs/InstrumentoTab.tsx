@@ -518,6 +518,11 @@ export default function InstrumentoTab() {
         subtitle={drill?.regla.seccion ?? undefined}
       >
         {drill ? (
+          // En vista panorama (Instrumento) no se ignora reglas — esa acción
+          // vive en Limpieza, así que ocultamos el botón con
+          // `showToggleActiva=false`. Y como el ContextLens ya tiene su
+          // propio X de cerrar en el header, ocultamos también el botón
+          // "Cerrar" interno del drill panel para no duplicar.
           <ReglaDrillPanel
             regla={drill.regla}
             displayName={activeDisplayName ?? undefined}
@@ -531,6 +536,8 @@ export default function InstrumentoTab() {
                 : undefined
             }
             surface="bubble"
+            showToggleActiva={false}
+            showClose={false}
           />
         ) : null}
       </ContextLens>

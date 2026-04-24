@@ -841,13 +841,18 @@ function Workbench({
           maxHeight: 780,
         }}
       >
-        <header style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--pulso-text)" }}>
-            Inconsistencias por resolver
+        <header style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--pulso-text)" }}>
+              Cola de inconsistencias
+            </div>
+            <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+              {filterCat === "all" ? queue.length : `${filteredQueue.length} / ${queue.length}`}
+            </span>
           </div>
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-            {filterCat === "all" ? queue.length : `${filteredQueue.length} / ${queue.length}`}
-          </span>
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+            Las pendientes aparecen primero; las que ya decidiste bajan al final.
+          </div>
         </header>
 
         {auditReady && categoriasUx.length > 1 && (
@@ -920,15 +925,40 @@ function Workbench({
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, overflowY: "auto", paddingRight: 4 }}>
-            {filteredQueue.map((item) => (
-              <QueueRow
-                key={item.source_id}
-                item={item}
-                selected={item.source_id === selectedSourceId}
-                onClick={() => onSelect(item.source_id)}
-                drill={item.source_id === selectedSourceId ? drill : null}
-              />
-            ))}
+            {filteredQueue.map((item, idx) => {
+              // Insertar un separador "Ya decididas" justo antes del primer
+              // item no-pending (cuando hay al menos uno pendiente antes).
+              const prev = idx > 0 ? filteredQueue[idx - 1] : null;
+              const showDivider = !item.pending && (prev?.pending ?? false);
+              return (
+                <div key={item.source_id}>
+                  {showDivider && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        margin: "8px 2px 10px",
+                        fontSize: 10,
+                        fontWeight: 800,
+                        color: "var(--pulso-text-soft)",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.6,
+                      }}
+                    >
+                      <span>Ya decididas</span>
+                      <span style={{ flex: 1, height: 1, background: "var(--pulso-border)" }} />
+                    </div>
+                  )}
+                  <QueueRow
+                    item={item}
+                    selected={item.source_id === selectedSourceId}
+                    onClick={() => onSelect(item.source_id)}
+                    drill={item.source_id === selectedSourceId ? drill : null}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
       </aside>

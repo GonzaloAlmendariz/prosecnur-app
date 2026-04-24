@@ -155,15 +155,22 @@ export default function RuleNarrative({
           ...style,
         }}
       >
-        {/* Top row: badges + n casos */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        {/* Top row: badges + n casos.
+            El contenedor exterior no hace wrap — así el CaseBadge siempre
+            queda anclado arriba-derecha y no se salta a una segunda línea
+            cuando los chips del lado izquierdo son muchos. Los chips
+            izquierdos sí pueden envolverse dentro de su propia caja
+            (min-width: 0 + flex-wrap para que respeten el espacio). */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", minWidth: 0 }}>
             <SourceBadge fuente={fuente} />
             <CategoryBadge categoria_ux={rule.categoria_ux ?? null} />
             <SeverityDot severidad={severidad} />
           </div>
           {typeof nCasos === "number" && (
-            <CaseBadge n={nCasos} porcentaje={porcentaje} highlight={isPending} />
+            <div style={{ flexShrink: 0 }}>
+              <CaseBadge n={nCasos} porcentaje={porcentaje} highlight={isPending} />
+            </div>
           )}
         </div>
 

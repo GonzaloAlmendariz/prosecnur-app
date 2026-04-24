@@ -47,6 +47,14 @@ export type ContextLensProps = {
   onTabChange?: (tabId: string) => void;
   /** Ancho del panel — default "standard" (640px) */
   variant?: "standard" | "wide" | "full";
+  /**
+   * Posición del panel:
+   *   - "right" (default): desliza desde la derecha, pegado al borde.
+   *   - "center": modal centrado con padding alrededor — recomendado cuando
+   *     el contenido es rico y el contexto detrás importa menos (ej. drill
+   *     completo de una regla).
+   */
+  placement?: "right" | "center";
   /** aria-labelledby — si el title no es string */
   ariaLabel?: string;
 };
@@ -68,6 +76,7 @@ export default function ContextLens({
   activeTabId,
   onTabChange,
   variant = "standard",
+  placement = "right",
   ariaLabel,
 }: ContextLensProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<string>(
@@ -136,6 +145,10 @@ export default function ContextLens({
 
   const activeTab = tabs?.find((t) => t.id === effectiveTab) ?? tabs?.[0];
 
+  const isCenter = placement === "center";
+  const animIn = isCenter ? "pulso-lens-fade-in" : "pulso-lens-slide-in";
+  const animOut = isCenter ? "pulso-lens-fade-out" : "pulso-lens-slide-out";
+
   return createPortal(
     <div
       className={closing ? "" : "pulso-lens-backdrop"}
@@ -144,7 +157,9 @@ export default function ContextLens({
         inset: 0,
         zIndex: 100,
         display: "flex",
-        justifyContent: "flex-end",
+        justifyContent: isCenter ? "center" : "flex-end",
+        alignItems: isCenter ? "center" : "stretch",
+        padding: isCenter ? "32px 24px" : 0,
         background: "rgba(15, 23, 42, 0.28)",
         backdropFilter: "blur(3px)",
         WebkitBackdropFilter: "blur(3px)",
@@ -159,18 +174,21 @@ export default function ContextLens({
         aria-modal="true"
         aria-label={typeof title === "string" ? title : ariaLabel}
         tabIndex={-1}
-        className={closing ? "pulso-lens-slide-out" : "pulso-lens-slide-in"}
+        className={closing ? animOut : animIn}
         style={{
           width: WIDTHS[variant],
           maxWidth: "100%",
-          height: "100%",
+          height: isCenter ? "auto" : "100%",
+          maxHeight: isCenter ? "calc(100vh - 64px)" : "100%",
           display: "flex",
           flexDirection: "column",
           background: "var(--pulso-surface)",
           boxShadow: "var(--pulso-shadow-lens)",
-          borderLeft: "1px solid var(--pulso-border)",
+          border: isCenter ? "1px solid var(--pulso-border)" : undefined,
+          borderLeft: isCenter ? "1px solid var(--pulso-border)" : "1px solid var(--pulso-border)",
+          borderRadius: isCenter ? "var(--pulso-radius-lens)" : undefined,
           borderTopLeftRadius: "var(--pulso-radius-lens)",
-          borderBottomLeftRadius: "var(--pulso-radius-lens)",
+          borderBottomLeftRadius: isCenter ? "var(--pulso-radius-lens)" : "var(--pulso-radius-lens)",
           outline: "none",
           overflow: "hidden",
         }}
