@@ -310,7 +310,14 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       }
     }
 
-    nombre <- sprintf("«%s» debe responderse", label %||% var)
+    # Nombre scanner-friendly: `[var_tecnica] «label» debe responderse`.
+    # La var técnica al inicio permite diferenciar rápido en listas largas
+    # donde muchos labels son similares ("Otro (especifique)", "Sí/No", etc.).
+    nombre <- if (!is.null(label) && nzchar(label) && label != var) {
+      sprintf("[%s] «%s» debe responderse", var, label)
+    } else {
+      sprintf("[%s] debe responderse", var)
+    }
     r <- rule_required(
       var = var,
       gate = eff_gate,
@@ -363,7 +370,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       r <- rule_odk_raw(
         odk_expression = rel_raw,
         variables = row$name,
-        nombre = sprintf("Salto de «%s» (modo experto)", label %||% row$name),
+        nombre = if (!is.null(label) && nzchar(label) && label != row$name) sprintf("[%s] Salto · «%s» (modo experto)", row$name, label) else sprintf("[%s] Salto (modo experto)", row$name),
         seccion = if (length(row$group_path)) tail(row$group_path, 1) else NA,
         tabla = if (!is.null(row$repeat_context)) row$repeat_context else "principal",
         repeat_context = row$repeat_context,
@@ -389,14 +396,14 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       var = var,
       gate = gate_full,
       direction = "must_answer_when_true",
-      nombre = sprintf("Salto de «%s» — debe responderse", label %||% var),
+      nombre = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — debe responderse", var, label) else sprintf("[%s] Salto — debe responderse", var),
       seccion = seccion_row, tabla = tabla_row, repeat_context = row$repeat_context
     )
     r_nodebe <- rule_skip(
       var = var,
       gate = gate_full,
       direction = "must_be_empty_when_false",
-      nombre = sprintf("Salto de «%s» — no debe responderse", label %||% var),
+      nombre = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — no debe responderse", var, label) else sprintf("[%s] Salto — no debe responderse", var),
       seccion = seccion_row, tabla = tabla_row, repeat_context = row$repeat_context
     )
     gate_h <- .ast_to_human_text(gate_full, label_map = label_map)
@@ -416,7 +423,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       survey = survey,
       target_var = var,
       gate_ast = gate_full,
-      nombre_humano = sprintf("Salto de «%s» — debe responderse", label %||% var),
+      nombre_humano = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — debe responderse", var, label) else sprintf("[%s] Salto — debe responderse", var),
       objetivo = obj_debe,
       subtipo_semantico = "debe",
       detalle_ast = gate_full
@@ -426,7 +433,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       survey = survey,
       target_var = var,
       gate_ast = gate_full,
-      nombre_humano = sprintf("Salto de «%s» — no debe responderse", label %||% var),
+      nombre_humano = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — no debe responderse", var, label) else sprintf("[%s] Salto — no debe responderse", var),
       objetivo = obj_nodebe,
       subtipo_semantico = "nodebe",
       detalle_ast = gate_full
@@ -477,7 +484,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       r <- rule_odk_raw(
         odk_expression = con_raw,
         variables = var,
-        nombre = sprintf("Consistencia de «%s» (modo experto)", label %||% var),
+        nombre = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Consistencia · «%s» (modo experto)", var, label) else sprintf("[%s] Consistencia (modo experto)", var),
         seccion = seccion,
         tabla = tabla,
         repeat_context = row$repeat_context,
@@ -501,7 +508,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       )
     )
 
-    nombre <- sprintf("Consistencia de «%s»", label %||% var)
+    nombre <- if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Consistencia · «%s»", var, label) else sprintf("[%s] Consistencia", var)
     # Construimos directamente con make_rule porque es una consistencia
     # genérica — el tipo es "constraint".
     r <- make_rule(
