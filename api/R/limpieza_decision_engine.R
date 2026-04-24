@@ -236,6 +236,21 @@
   meta <- ev$reglas_meta %||% tibble::tibble(id_regla = character())
   catalog <- dplyr::left_join(res, meta, by = c("id_regla", "nombre_regla", "tabla"))
 
+  # Garantizar que las columnas que el resto de la función usa con
+  # `catalog$col` existan, aunque el evaluación haya producido un
+  # resumen sin ellas (ej. cuando no hay reglas que las pueblen).
+  # Evita los warnings "Unknown or uninitialised column" ruidosos que
+  # contaminaban el log al arrancar.
+  .expected_cols <- c(
+    "variable_1", "variable_2", "variable_3",
+    "variable_1_etiqueta", "variable_2_etiqueta", "variable_3_etiqueta",
+    "categoria", "tipo_observacion", "seccion", "tipo_variable",
+    "objetivo", "nombre_tecnico", "procesamiento"
+  )
+  for (.c in .expected_cols) {
+    if (!(.c %in% names(catalog))) catalog[[.c]] <- NA_character_
+  }
+
   catalog$source_type <- vapply(catalog$id_regla, .limpieza_infer_source_type, character(1))
   catalog$origen <- ifelse(catalog$source_type == "custom_rule", "Personalizada", "Automática")
 
@@ -266,12 +281,38 @@
   # legible), fuente (instrumento|custom), tipo_variable (renombra el
   # ambiguo tipo_observacion). Los campos legacy (categoria, origen,
   # tipo_observacion) se mantienen para compatibilidad con código existente.
-  catalog$fuente <- ifelse(catalog$source_type == "custom_rule", "custom", "instrumento")
-  catalog$tipo_variable <- as.character(catalog$tipo_observacion %||% NA_character_)
-  catalog$tipo_regla <- vapply(seq_len(nrow(catalog)),
-                                function(i) .limpieza_infer_tipo_regla(catalog, i),
-                                character(1))
-  catalog$categoria_ux <- vapply(catalog$tipo_regla, .limpieza_categoria_ux_label, character(1))
+  catalog$fuente <- if ("fuente" %in% names(catalog)) {
+    as.character(catalog$fuente %||% ifelse(catalog$source_type == "custom_rule", "custom", "instrumento"))
+  } else {
+    ifelse(catalog$source_type == "custom_rule", "custom", "instrumento")
+  }
+  catalog$tipo_variable <- if ("tipo_variable" %in% names(catalog)) {
+    as.character(catalog$tipo_variable %||% catalog$tipo_observacion %||% NA_character_)
+  } else {
+    as.character(catalog$tipo_observacion %||% NA_character_)
+  }
+  catalog$tipo_regla <- if ("tipo_regla" %in% names(catalog)) {
+    out <- as.character(catalog$tipo_regla %||% NA_character_)
+    miss <- is.na(out) | !nzchar(out)
+    if (any(miss)) {
+      out[miss] <- vapply(which(miss),
+                          function(i) .limpieza_infer_tipo_regla(catalog, i),
+                          character(1))
+    }
+    out
+  } else {
+    vapply(seq_len(nrow(catalog)),
+           function(i) .limpieza_infer_tipo_regla(catalog, i),
+           character(1))
+  }
+  catalog$categoria_ux <- if ("categoria_ux" %in% names(catalog)) {
+    out <- as.character(catalog$categoria_ux %||% NA_character_)
+    miss <- is.na(out) | !nzchar(out)
+    if (any(miss)) out[miss] <- vapply(catalog$tipo_regla[miss], .limpieza_categoria_ux_label, character(1))
+    out
+  } else {
+    vapply(catalog$tipo_regla, .limpieza_categoria_ux_label, character(1))
+  }
 
   catalog
 }

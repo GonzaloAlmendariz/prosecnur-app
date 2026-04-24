@@ -14,11 +14,40 @@
 # -----------------------------------------------------------------------------
 .vd_palette <- pulso_plotly_palette()
 
+# -----------------------------------------------------------------------------
+# .col_safe: acceso a una columna de un data.frame/tibble que devuelve NULL
+# sin lanzar warning "Unknown or uninitialised column" si la columna no existe.
+# Alternativa sin ruido a `df$col` cuando no tenemos garantía del schema.
+# -----------------------------------------------------------------------------
+.col_safe <- function(df, col) {
+  if (is.null(df) || !length(df)) return(NULL)
+  if (!(col %in% names(df))) return(NULL)
+  df[[col]]
+}
+
 .vd_wrap_axis_label <- function(x, width = 34L) {
   x <- as.character(x %||% "")
   vapply(x, function(label) {
     paste(strwrap(label, width = width, simplify = FALSE)[[1]], collapse = "<br>")
   }, character(1))
+}
+
+.vd_humanize_axis_label <- function(x) {
+  x <- as.character(x %||% "")
+  x <- gsub("_", " ", x, fixed = TRUE)
+  x <- gsub("\\s+", " ", x)
+  trimws(x)
+}
+
+.vd_rule_display_label <- function(nombre, target = NA_character_, disambiguate = FALSE, fallback = NA_character_) {
+  base <- trimws(as.character(nombre %||% fallback %||% "Regla"))
+  if (!nzchar(base)) base <- trimws(as.character(fallback %||% "Regla"))
+  target <- trimws(as.character(target %||% ""))
+  if (!isTRUE(disambiguate) || !nzchar(target)) return(base)
+  if (grepl(sprintf("\\[%s\\]$", gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", target)), base, perl = TRUE)) {
+    return(base)
+  }
+  sprintf("%s [%s]", base, target)
 }
 
 # Paleta semafórica discretizada en 3 cortes — se usa para heatmap y KPIs
@@ -88,20 +117,23 @@ vd_bar_h <- function(title, labels, values,
     y = labels_wrapped,
     hovertext = labels,
     marker = list(color = color),
-    hovertemplate = "%{hovertext}<br><b>%{x}</b><extra></extra>"
+    text = format(values, big.mark = ",", scientific = FALSE, trim = TRUE),
+    textposition = "outside",
+    cliponaxis = FALSE,
+    hovertemplate = "%{hovertext}<br><b>%{x}</b> casos<extra></extra>"
   )
   if (!is.null(ids) && length(ids) == length(labels)) {
     trace$customdata <- as.character(ids)
   }
   layout <- utils::modifyList(
     pulso_plotly_layout_base(
-      height = max(220L, 28L * length(labels) + 80L),
-      margin = list(l = left_margin, r = 24, t = 16, b = 48),
+      height = max(320L, 36L * length(labels) + 120L),
+      margin = list(l = left_margin, r = 64, t = 16, b = 56),
       showlegend = FALSE
     ),
     list(
-      xaxis = pulso_plotly_axis(title = x_title),
-      yaxis = pulso_plotly_axis(title = y_title, autorange = "reversed")
+      xaxis = pulso_plotly_axis(title = x_title, automargin = TRUE),
+      yaxis = pulso_plotly_axis(title = y_title, autorange = "reversed", automargin = TRUE)
     )
   )
   list(
@@ -134,7 +166,8 @@ vd_heatmap_semaforo <- function(title, x, y, z,
                                  actions = list(),
                                  meta = list()) {
   x <- as.character(x)
-  y <- as.character(y)
+  x <- .vd_wrap_axis_label(.vd_humanize_axis_label(x), width = 14L)
+  y <- .vd_humanize_axis_label(as.character(y))
   if (!is.matrix(z)) z <- as.matrix(z)
   # Escala semafórica simple 0 → verde, medio → ámbar, alto → rojo.
   # Usamos "colorscale" como lista de pares [fracción, color].
@@ -164,16 +197,16 @@ vd_heatmap_semaforo <- function(title, x, y, z,
     text_matrix <- lapply(seq_len(nrow(z_text)), function(i) as.character(z_text[i, ]))
     trace$text <- text_matrix
     trace$texttemplate <- "%{text}"
-    trace$textfont <- list(color = "white", size = 11)
+    trace$textfont <- list(color = "white", size = 10)
   }
   layout <- utils::modifyList(
     pulso_plotly_layout_base(
-      height = max(240L, 32L * length(y) + 100L),
-      margin = list(l = 180, r = 24, t = 16, b = 60)
+      height = max(360L, 48L * length(y) + 180L),
+      margin = list(l = 150, r = 32, t = 16, b = 108)
     ),
     list(
-      xaxis = pulso_plotly_axis(tickangle = -25, side = "bottom"),
-      yaxis = pulso_plotly_axis(autorange = "reversed")
+      xaxis = pulso_plotly_axis(tickangle = 0, side = "bottom", automargin = TRUE),
+      yaxis = pulso_plotly_axis(autorange = "reversed", automargin = TRUE)
     )
   )
   list(
@@ -349,7 +382,7 @@ vd_scatterpolar <- function(title, labels, series,
 # Top-N reglas por n_inconsistencias. El resumen trae la lista ordenada
 # por n desc (ya lo hace evaluar_consistencia); solo filtramos a las que
 # tienen >0 violaciones.
-.vd_top_reglas <- function(resumen, n = 20L) {
+.vd_top_reglas <- function(resumen, n = 8L) {
   if (is.null(resumen) || !nrow(resumen)) {
     return(vd_bar_h(
       title = "Top reglas violadas",
@@ -370,7 +403,22 @@ vd_scatterpolar <- function(title, labels, series,
   res <- res[order(-res$n_inconsistencias), , drop = FALSE]
   head_n <- min(nrow(res), as.integer(n))
   res <- res[seq_len(head_n), , drop = FALSE]
-  labels <- as.character(res$nombre_regla %||% res$id_regla)
+  # Evitamos `res$<col>` directo para columnas opcionales — usamos
+  # `.col_safe` que devuelve NULL (sin warning) si la columna no existe
+  # en el resumen (algunos paths construyen un resumen más chico).
+  col_nombre <- .col_safe(res, "nombre_regla") %||% .col_safe(res, "id_regla") %||% character(nrow(res))
+  col_var1   <- .col_safe(res, "variable_1")
+  col_idreg  <- .col_safe(res, "id_regla") %||% character(nrow(res))
+  base_labels <- as.character(col_nombre)
+  dup_mask <- duplicated(base_labels) | duplicated(base_labels, fromLast = TRUE)
+  labels <- vapply(seq_len(nrow(res)), function(i) {
+    .vd_rule_display_label(
+      nombre = base_labels[i],
+      target = if (is.null(col_var1)) NA_character_ else (col_var1[i] %||% NA_character_),
+      disambiguate = dup_mask[i],
+      fallback = col_idreg[i] %||% NA_character_
+    )
+  }, character(1))
   # Truncar labels muy largos para el eje.
   labels <- ifelse(
     nchar(labels) > 60L,

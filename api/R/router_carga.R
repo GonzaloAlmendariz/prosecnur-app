@@ -62,10 +62,16 @@ summarize_instrumento <- function(inst) {
 }
 
 read_data_preview <- function(path, ext, n_preview = 100L) {
+  # Envolvemos el read_excel en suppressWarnings porque readxl infiere
+  # tipo por las primeras 1000 filas; cuando una columna tiene muchos
+  # NA al comienzo y texto más abajo (caso típico en encuestas con
+  # preguntas condicionales) imprime "Expecting logical in ..." ruidoso.
+  # readxl igual devuelve NAs en las celdas que no puede convertir, así
+  # que no perdemos datos, solo silencio.
   df <- switch(
     ext,
-    xlsx = readxl::read_excel(path),
-    xls  = readxl::read_excel(path),
+    xlsx = suppressWarnings(readxl::read_excel(path)),
+    xls  = suppressWarnings(readxl::read_excel(path)),
     csv  = utils::read.csv(path, stringsAsFactors = FALSE),
     sav  = haven::read_sav(path),
     stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Unsupported data extension: %s", ext))
@@ -94,7 +100,7 @@ read_data_preview <- function(path, ext, n_preview = 100L) {
 # es no-op (esperar a que ambos estén listos).
 .read_data_any_path <- function(path, ext) {
   ext <- tolower(ext %||% tools::file_ext(path))
-  if (ext %in% c("xlsx", "xls")) return(readxl::read_excel(path))
+  if (ext %in% c("xlsx", "xls")) return(suppressWarnings(readxl::read_excel(path)))
   if (ext == "csv") return(utils::read.csv(path, stringsAsFactors = FALSE, fileEncoding = "UTF-8"))
   if (ext == "sav") {
     if (!requireNamespace("haven", quietly = TRUE)) {

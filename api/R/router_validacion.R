@@ -746,10 +746,13 @@ mount_validacion <- function(pr) {
         .col(row_plan, c("Variable 3", "variable_3"))
       )
       if (all(is.na(vars)) && !is.null(row_meta)) {
+        # Usar `.col` (que verifica existencia de columna sin warning) en
+        # vez de `row_meta$variable_N` directo, porque row_meta puede
+        # venir de un resumen que no tenga esas columnas todavía.
         vars <- c(
-          as.character(row_meta$variable_1 %||% NA),
-          as.character(row_meta$variable_2 %||% NA),
-          as.character(row_meta$variable_3 %||% NA)
+          as.character(.col(row_meta, "variable_1") %||% NA),
+          as.character(.col(row_meta, "variable_2") %||% NA),
+          as.character(.col(row_meta, "variable_3") %||% NA)
         )
       }
       vars <- vars[!is.na(vars) & nzchar(vars)]

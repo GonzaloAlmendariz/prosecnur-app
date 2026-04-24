@@ -5,6 +5,13 @@
 #' @return A `plumber` object.
 #' @export
 build_plumber_app <- function(static_dir = system.file("www", package = "prosecnurapp")) {
+  # Poblar el registry AST con los tipos de regla default. Hay que hacerlo
+  # aquí (no al source de validacion_ast_registry.R) porque el package
+  # carga sus archivos en orden alfabético y los constructores viven en
+  # `validacion_ast_rules.R` — más tarde. Al arrancar la app ya están
+  # todos disponibles.
+  ensure_registry_populated()
+
   pr <- plumber::pr() |>
     plumber::pr_set_serializer(plumber::serializer_unboxed_json()) |>
     plumber::pr_set_error(function(req, res, err) handle_api_error(req, res, err))
@@ -13,6 +20,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
   pr <- mount_jobs(pr)
   pr <- mount_proyecto(pr)
   pr <- mount_carga(pr)
+  pr <- mount_xlsform_editor(pr)
   pr <- mount_estudio(pr)
   pr <- mount_validacion(pr)
   pr <- mount_codificacion(pr)

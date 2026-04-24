@@ -196,7 +196,22 @@ reset_rule_registry <- function() {
   invisible(TRUE)
 }
 
-# Ejecutar poblado al source.
-tryCatch(.populate_default_registry(), error = function(e) {
-  message("Registry default no pudo poblarse: ", conditionMessage(e))
-})
+# NOTA: antes se ejecutaba `.populate_default_registry()` directamente al
+# source. Eso fallaba con "object 'rule_required' not found" porque los
+# archivos del package se cargan en orden alfabético y `validacion_ast_
+# registry.R` se evalúa ANTES que `validacion_ast_rules.R` (donde están
+# los constructores como `rule_required`, `rule_skip`, etc.).
+#
+# Ahora el poblado se dispara desde `build_plumber_app()` (en
+# `plumber_app.R`), cuando garantizamos que todos los archivos R del
+# package ya están en memoria. El helper público `ensure_registry_populated()`
+# es idempotente — sólo puebla si el registry está vacío.
+ensure_registry_populated <- function() {
+  if (length(ls(envir = .RULE_REGISTRY)) > 0L) return(invisible(FALSE))
+  tryCatch({
+    .populate_default_registry()
+  }, error = function(e) {
+    message("Registry default no pudo poblarse: ", conditionMessage(e))
+  })
+  invisible(TRUE)
+}
