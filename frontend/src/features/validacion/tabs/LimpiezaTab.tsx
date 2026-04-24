@@ -32,6 +32,17 @@ import type {
 import { EmptyState, LoadingBlock } from "../../../components/States";
 import { useValidacionStore } from "../store";
 import PlotlyView from "../components/PlotlyView";
+import {
+  RuleNarrative,
+  DecisionStorageBar,
+  VariableChip,
+} from "../components/v2";
+import type {
+  DecisionCounts,
+  DecisionKind,
+  ReglaLike,
+  VariableHoverData,
+} from "../components/v2";
 
 // =============================================================================
 // Limpieza y normalización
@@ -94,6 +105,90 @@ const ACTION_OPTIONS: Array<{
   { value: "impute_value", label: "Imputar" },
 ];
 
+// Map action_type → kind de la DecisionStorageBar.
+const ACTION_KIND_MAP: Record<LimpiezaDecisionActionType, DecisionKind> = {
+  ignore_rule: "ignore",
+  exclude_cases: "exclude",
+  replace_value: "replace",
+  normalize_value: "normalize",
+  impute_value: "impute",
+};
+
+// -----------------------------------------------------------------------------
+// Helper: derivar distribución de decisiones para DecisionStorageBar.
+// Los counts son por CASOS (no por reglas) — cada regla con decisión lista
+// contribuye sus n_casos al kind correspondiente. Las pendientes van al
+// segmento striped.
+// -----------------------------------------------------------------------------
+function deriveDecisionCounts(queue: LimpiezaQueueItem[]): DecisionCounts {
+  const counts: DecisionCounts = {
+    ignore: 0, exclude: 0, replace: 0, normalize: 0, impute: 0, pending: 0,
+  };
+  for (const item of queue) {
+    const n = item.n_casos ?? 0;
+    if (!n) continue;
+    if (item.pending) {
+      counts.pending += n;
+      continue;
+    }
+    // Item tiene decisión lista — inferir kind desde current_action (string
+    // legible) o source_type.
+    const action = (item.current_action ?? "").toLowerCase();
+    if (action.startsWith("ignorar")) counts.ignore += n;
+    else if (action.startsWith("excluir")) counts.exclude += n;
+    else if (action.startsWith("reemplazar")) counts.replace += n;
+    else if (action.startsWith("normalizar")) counts.normalize += n;
+    else if (action.startsWith("imputar")) counts.impute += n;
+    else counts.ignore += n; // fallback conservador si el label no calza
+  }
+  return counts;
+}
+
+// Convierte un LimpiezaQueueItem al shape ReglaLike que consume RuleNarrative.
+function queueItemToRule(
+  item: LimpiezaQueueItem,
+  drill?: InstrumentoDrillResult | null,
+): ReglaLike {
+  const reglaDrill = drill?.regla;
+  return {
+    id: item.source_id,
+    nombre: item.nombre_regla,
+    tipo_regla: item.tipo_regla,
+    tipo_observacion: item.tipo_observacion,
+    tipo_variable: item.tipo_variable,
+    fuente: item.fuente,
+    severidad: item.severidad,
+    categoria_ux: item.categoria_ux,
+    objetivo: reglaDrill?.objetivo ?? null,
+    variables: item.variables ?? [],
+    variable_roles: null, // derivar por fallback (primera var = target)
+    presentation: null,
+    n_casos: item.n_casos,
+    porcentaje: item.porcentaje,
+  };
+}
+
+// Hover data para una variable: label del instrumento + sección + tabla, si hay drill.
+// Deriva label por variable desde drill.regla.variable_roles.labels (si viene)
+// y usa tables para inferir el grupo.
+function buildVariableHoverLookup(
+  drill: InstrumentoDrillResult | null,
+): (varName: string) => VariableHoverData | undefined {
+  if (!drill?.regla) return () => undefined;
+  const seccion = drill.regla.seccion ?? null;
+  const roles = drill.regla.variable_roles ?? null;
+  const labels = roles?.labels ?? null;
+  const tables = roles?.tables ?? null;
+  return (varName: string): VariableHoverData | undefined => {
+    if (!varName) return undefined;
+    return {
+      label: labels?.[varName] ?? null,
+      seccion,
+      grupo: tables?.[varName] ?? null,
+    };
+  };
+}
+
 // -----------------------------------------------------------------------------
 // Componente principal
 // -----------------------------------------------------------------------------
@@ -118,6 +213,8 @@ export default function LimpiezaTab() {
   const [drillError, setDrillError] = useState("");
 
   const [form, setForm] = useState<EditorForm>(() => emptyEditorForm());
+  // Filtro por kind de decisión activado desde DecisionStorageBar. Null = sin filtro.
+  const [activeFilterKind, setActiveFilterKind] = useState<DecisionKind | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [resumenOpen, setResumenOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -161,6 +258,9 @@ export default function LimpiezaTab() {
       return (b.n_casos ?? 0) - (a.n_casos ?? 0);
     });
   }, [data]);
+
+  // Distribución por tipo de decisión (alimenta DecisionStorageBar).
+  const decisionCounts = useMemo(() => deriveDecisionCounts(orderedQueue), [orderedQueue]);
 
   const availableSourceIds = useMemo(
     () =>
@@ -417,7 +517,6 @@ export default function LimpiezaTab() {
   if (!data) return null;
 
   const auditReady = !!data.progreso.auditoria_corrida;
-  const summary = data.summary;
   const preview = data.before_after_preview;
 
   return (
@@ -425,11 +524,12 @@ export default function LimpiezaTab() {
       <StatusBar
         auditReady={auditReady}
         canFinalize={canFinalize}
-        summary={summary}
-        preview={preview}
         finalizedAt={artifacts?.finalized_at}
         refreshBusy={refreshBusy}
         finalizeBusy={finalizeBusy}
+        decisionCounts={decisionCounts}
+        activeFilterKind={activeFilterKind}
+        onFilterKind={setActiveFilterKind}
         onRefresh={() => void loadLimpieza({ quiet: true })}
         onFinalize={() => void handleFinalize()}
       />
@@ -458,6 +558,9 @@ export default function LimpiezaTab() {
         }}
         auditReady={auditReady}
         editorRef={editorRef}
+        activeFilterKind={activeFilterKind}
+        onClearFilterKind={() => setActiveFilterKind(null)}
+        drill={drill}
       >
         {!selectedSourceId ? (
           <EditorEmpty auditReady={auditReady} />
@@ -514,35 +617,40 @@ export default function LimpiezaTab() {
 function StatusBar({
   auditReady,
   canFinalize,
-  summary,
-  preview,
   finalizedAt,
   refreshBusy,
   finalizeBusy,
+  decisionCounts,
+  activeFilterKind,
+  onFilterKind,
   onRefresh,
   onFinalize,
 }: {
   auditReady: boolean;
   canFinalize: boolean;
-  summary: LimpiezaSummary["summary"];
-  preview: LimpiezaSummary["before_after_preview"];
   finalizedAt?: string;
   refreshBusy: boolean;
   finalizeBusy: boolean;
+  decisionCounts: DecisionCounts;
+  activeFilterKind: DecisionKind | null;
+  onFilterKind: (k: DecisionKind | null) => void;
   onRefresh: () => void;
   onFinalize: () => void;
 }) {
-  const total = summary.total_reglas_con_casos ?? 0;
-  const listas = summary.decisiones_listas ?? 0;
-  const pendientes = summary.pendientes ?? 0;
-  const residual = preview?.after.reglas_con_casos ?? total;
+  const total =
+    decisionCounts.ignore +
+    decisionCounts.exclude +
+    decisionCounts.replace +
+    decisionCounts.normalize +
+    decisionCounts.impute +
+    decisionCounts.pending;
 
   const statusLabel = !auditReady
     ? "Sin auditoría"
     : canFinalize
       ? "Listo para cerrar"
-      : pendientes > 0
-        ? `${pendientes} pendiente${pendientes === 1 ? "" : "s"}`
+      : decisionCounts.pending > 0
+        ? `${decisionCounts.pending} caso${decisionCounts.pending === 1 ? "" : "s"} pendiente${decisionCounts.pending === 1 ? "" : "s"}`
         : "En preparación";
 
   const statusTone: "neutral" | "success" | "warn" = !auditReady
@@ -551,8 +659,6 @@ function StatusBar({
       ? "success"
       : "neutral";
 
-  const progressPct = total > 0 ? listas / total : 0;
-
   return (
     <section
       style={{
@@ -560,58 +666,67 @@ function StatusBar({
         top: 0,
         zIndex: 4,
         display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 16,
-        flexWrap: "wrap",
+        flexDirection: "column",
+        gap: 12,
         padding: "14px 18px",
-        borderRadius: 14,
+        borderRadius: "var(--pulso-radius-panel)",
         border: "1px solid var(--pulso-border)",
-        background: "white",
+        background: "var(--pulso-surface)",
         boxShadow: "var(--pulso-shadow-soft)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "var(--pulso-text)" }}>
-            Limpieza y normalización
+      {/* Fila 1: título + estado + botones */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--pulso-text)" }}>
+              Limpieza y normalización
+            </div>
+            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+              {finalizedAt
+                ? `Último cierre: ${formatDateTime(finalizedAt)}`
+                : "Decisiones sobre las inconsistencias detectadas"}
+            </div>
           </div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-            {finalizedAt ? `Último cierre: ${formatDateTime(finalizedAt)}` : "Decisiones sobre las inconsistencias detectadas"}
-          </div>
+          <StatusPill tone={statusTone} label={statusLabel} />
         </div>
-        <StatusPill tone={statusTone} label={statusLabel} />
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshBusy}
+            style={secondaryButtonStyle}
+          >
+            {refreshBusy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCcw size={13} />}
+            Recalcular
+          </button>
+          <button
+            type="button"
+            onClick={onFinalize}
+            disabled={!canFinalize || finalizeBusy}
+            className="pulso-primary"
+            style={primaryButtonStyle}
+          >
+            {finalizeBusy ? <Loader2 size={13} className="pulso-spin" /> : <Check size={13} />}
+            Cerrar y generar base
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
-        <Counter label="Inconsistencias" value={total} />
-        <Counter label="Listas" value={listas} tone="success" />
-        <Counter label="Pendientes" value={pendientes} tone={pendientes > 0 ? "warn" : "neutral"} />
-        <Counter label="Residual" value={residual} />
-        <ProgressBar value={progressPct} />
-      </div>
-
-      <div style={{ display: "flex", gap: 8 }}>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={refreshBusy}
-          style={secondaryButtonStyle}
-        >
-          {refreshBusy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCcw size={13} />}
-          Recalcular
-        </button>
-        <button
-          type="button"
-          onClick={onFinalize}
-          disabled={!canFinalize || finalizeBusy}
-          className="pulso-primary"
-          style={primaryButtonStyle}
-        >
-          {finalizeBusy ? <Loader2 size={13} className="pulso-spin" /> : <Check size={13} />}
-          Cerrar y generar base
-        </button>
-      </div>
+      {/* Fila 2: barra de decisiones estilo almacenamiento. Solo si hay queue. */}
+      {total > 0 && (
+        <DecisionStorageBar
+          counts={decisionCounts}
+          activeKind={activeFilterKind}
+          onSelectKind={(k) =>
+            activeFilterKind === k ? onFilterKind(null) : onFilterKind(k)
+          }
+          showLegend
+          showTotals
+          height={14}
+        />
+      )}
     </section>
   );
 }
@@ -649,58 +764,6 @@ function StatusPill({
   );
 }
 
-function Counter({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: number;
-  tone?: "neutral" | "success" | "warn";
-}) {
-  const colors =
-    tone === "success"
-      ? { fg: "var(--pulso-success-fg)" }
-      : tone === "warn"
-        ? { fg: "var(--pulso-warn-fg)" }
-        : { fg: "var(--pulso-text)" };
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2 }}>
-      <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)" }}>
-        {label}
-      </span>
-      <span style={{ fontSize: 18, fontWeight: 800, color: colors.fg, lineHeight: 1 }}>
-        {formatNumber(value)}
-      </span>
-    </div>
-  );
-}
-
-function ProgressBar({ value }: { value: number }) {
-  const pct = Math.max(0, Math.min(1, value));
-  return (
-    <div
-      style={{
-        minWidth: 140,
-        height: 6,
-        borderRadius: 999,
-        background: "var(--pulso-surface-2)",
-        overflow: "hidden",
-      }}
-      aria-label={`Progreso: ${Math.round(pct * 100)}%`}
-    >
-      <div
-        style={{
-          width: `${pct * 100}%`,
-          height: "100%",
-          background: "var(--pulso-primary)",
-          transition: "width 200ms ease",
-        }}
-      />
-    </div>
-  );
-}
-
 // =============================================================================
 // Zona 2 — Workbench (cola + editor)
 // =============================================================================
@@ -710,6 +773,9 @@ function Workbench({
   onSelect,
   auditReady,
   editorRef,
+  activeFilterKind,
+  onClearFilterKind,
+  drill,
   children,
 }: {
   queue: LimpiezaQueueItem[];
@@ -717,6 +783,9 @@ function Workbench({
   onSelect: (sourceId: string) => void;
   auditReady: boolean;
   editorRef: React.RefObject<HTMLDivElement>;
+  activeFilterKind: DecisionKind | null;
+  onClearFilterKind: () => void;
+  drill: InstrumentoDrillResult | null;
   children: ReactNode;
 }) {
   // Filtro por categoría UX (taxonomía nueva). "all" = sin filtro.
@@ -731,9 +800,24 @@ function Workbench({
   }, [queue]);
 
   const filteredQueue = useMemo(() => {
-    if (filterCat === "all") return queue;
-    return queue.filter((item) => (item.categoria_ux || "Otras") === filterCat);
-  }, [queue, filterCat]);
+    let q = queue;
+    if (filterCat !== "all") {
+      q = q.filter((item) => (item.categoria_ux || "Otras") === filterCat);
+    }
+    if (activeFilterKind) {
+      q = q.filter((item) => {
+        const action = (item.current_action ?? "").toLowerCase();
+        if (activeFilterKind === "pending") return item.pending;
+        if (activeFilterKind === "ignore") return action.startsWith("ignorar");
+        if (activeFilterKind === "exclude") return action.startsWith("excluir");
+        if (activeFilterKind === "replace") return action.startsWith("reemplazar");
+        if (activeFilterKind === "normalize") return action.startsWith("normalizar");
+        if (activeFilterKind === "impute") return action.startsWith("imputar");
+        return true;
+      });
+    }
+    return q;
+  }, [queue, filterCat, activeFilterKind]);
 
   return (
     <section
@@ -786,6 +870,42 @@ function Workbench({
           </div>
         )}
 
+        {activeFilterKind && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              padding: "6px 10px",
+              borderRadius: 10,
+              background: "var(--pulso-primary-soft)",
+              border: "1px solid var(--pulso-primary-border)",
+              fontSize: 11,
+              color: "var(--pulso-primary)",
+              fontWeight: 700,
+            }}
+          >
+            <span>Filtrado por tipo de decisión</span>
+            <button
+              type="button"
+              onClick={onClearFilterKind}
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: 999,
+                border: "1px solid var(--pulso-primary-border)",
+                background: "white",
+                color: "var(--pulso-primary)",
+                cursor: "pointer",
+              }}
+            >
+              Limpiar
+            </button>
+          </div>
+        )}
+
         {!auditReady ? (
           <div style={emptyDashedStyle}>
             La cola aparece después de correr la auditoría.
@@ -806,6 +926,7 @@ function Workbench({
                 item={item}
                 selected={item.source_id === selectedSourceId}
                 onClick={() => onSelect(item.source_id)}
+                drill={item.source_id === selectedSourceId ? drill : null}
               />
             ))}
           </div>
@@ -837,54 +958,27 @@ function QueueRow({
   item,
   selected,
   onClick,
+  drill,
 }: {
   item: LimpiezaQueueItem;
   selected: boolean;
   onClick: () => void;
+  drill: InstrumentoDrillResult | null;
 }) {
+  const rule = useMemo(() => queueItemToRule(item, drill), [item, drill]);
+  const variableHoverLookup = useMemo(() => buildVariableHoverLookup(drill), [drill]);
   return (
-    <button
-      type="button"
+    <RuleNarrative
+      rule={rule}
+      variant="compact"
+      status={item.pending ? "pending" : "ready"}
+      selected={selected}
       onClick={onClick}
-      style={{
-        textAlign: "left",
-        padding: "12px 13px",
-        borderRadius: 12,
-        border: `1px solid ${selected ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
-        background: selected ? "var(--pulso-primary-soft)" : item.pending ? "white" : "var(--pulso-surface-2)",
-        cursor: "pointer",
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-        opacity: item.pending ? 1 : 0.78,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.4, color: "var(--pulso-text)" }}>
-          {item.nombre_regla}
-        </div>
-        {item.pending ? (
-          <SeverityDot severity={item.severidad} />
-        ) : (
-          <CheckCircle2 size={14} color="var(--pulso-success-fg)" />
-        )}
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <CategoriaUxChip label={item.categoria_ux} fuente={item.fuente} />
-        <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>·</span>
-        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-text)" }}>
-          {formatNumber(item.n_casos)} casos
-        </span>
-        {item.current_action && (
-          <>
-            <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>·</span>
-            <span style={{ fontSize: 10, color: "var(--pulso-primary)", fontWeight: 700 }}>
-              {item.current_action}
-            </span>
-          </>
-        )}
-      </div>
-    </button>
+      nCasos={item.n_casos ?? null}
+      porcentaje={item.porcentaje ?? null}
+      currentAction={item.current_action ?? null}
+      variableHoverLookup={variableHoverLookup}
+    />
   );
 }
 
@@ -921,37 +1015,6 @@ function FilterChip({
       {label}
       <span style={{ opacity: 0.65 }}>{count}</span>
     </button>
-  );
-}
-
-// Chip con la categoria_ux (nueva taxonomía) + marca de fuente.
-function CategoriaUxChip({
-  label,
-  fuente,
-}: {
-  label: string;
-  fuente: "instrumento" | "custom";
-}) {
-  const isCustom = fuente === "custom";
-  const bg = isCustom ? "var(--pulso-primary-soft)" : "var(--pulso-surface-2)";
-  const fg = isCustom ? "var(--pulso-primary)" : "var(--pulso-text-soft)";
-  const prefix = isCustom ? "★ " : "";
-  return (
-    <span
-      title={isCustom ? "Regla personalizada" : "Regla del instrumento (XLSForm)"}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "2px 8px",
-        borderRadius: 999,
-        background: bg,
-        color: fg,
-        fontSize: 10,
-        fontWeight: 700,
-      }}
-    >
-      {prefix}{label}
-    </span>
   );
 }
 
@@ -1041,43 +1104,42 @@ function EditorPanel({
   const allowsCaseSubset = form.action_type !== "ignore_rule";
   const selectable = allowsCaseSubset && !form.use_all_cases;
 
+  // Rule narrativo para el hero del editor.
+  const heroRule = useMemo(
+    () => (item ? queueItemToRule(item, drill) : null),
+    [item, drill],
+  );
+  const variableHoverLookup = useMemo(
+    () => buildVariableHoverLookup(drill),
+    [drill],
+  );
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {item && <RuleHeader item={item} drill={drill} />}
-
-      {/* Casos observados (siempre visible cuando hay detalle) */}
-      <DecisionBlock title={`Casos observados${drill?.casos?.length ? ` (${drill.casos.length})` : ""}`}>
-        <CasesTable
-          rows={caseRows}
-          columns={caseColumns}
-          uuidCol={drill?.uuid_col ?? null}
-          loading={drillLoading}
-          error={drillError}
-          selectable={selectable}
-          selectedCaseIds={selectedCaseIdsSet}
-          onToggle={(caseId) => {
-            setForm((current) => {
-              const next = new Set(current.target_case_ids);
-              if (next.has(caseId)) next.delete(caseId);
-              else next.add(caseId);
-              return { ...current, target_case_ids: Array.from(next) };
-            });
-          }}
-          onSelectAll={() => {
-            setForm((current) => ({
-              ...current,
-              target_case_ids: caseRows.map((row) => row.id),
-            }));
-          }}
-          onClear={() => {
-            setForm((current) => ({ ...current, target_case_ids: [] }));
-          }}
+      {item && heroRule && (
+        <RuleNarrative
+          rule={heroRule}
+          variant="hero"
+          nCasos={item.n_casos ?? null}
+          porcentaje={item.porcentaje ?? null}
+          status={item.pending ? "pending" : "ready"}
+          variableHoverLookup={variableHoverLookup}
         />
-      </DecisionBlock>
+      )}
 
-
-      {/* Bloque 1: ¿Qué hacer? */}
-      <DecisionBlock title="¿Qué hacer?">
+      {/* Grid 2 columnas: formulario a la izquierda, casos + contexto a la derecha. */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.1fr)",
+          gap: 16,
+          alignItems: "start",
+        }}
+      >
+        {/* Columna izquierda: formulario de decisión */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Bloque 1: ¿Qué hacer? */}
+          <DecisionBlock title="¿Qué hacer?">
         <FormField label="Acción">
           <select
             value={form.action_type}
@@ -1154,21 +1216,55 @@ function EditorPanel({
         </DecisionBlock>
       )}
 
-      {/* Bloque 3: ¿Por qué? */}
-      <DecisionBlock title="¿Por qué?">
-        <FormField label="Justificación (obligatoria para dejar lista)">
-          <textarea
-            value={form.rationale}
-            onChange={(event) => {
-              const rationale = event.target.value;
-              setForm((current) => ({ ...current, rationale }));
-            }}
-            rows={3}
-            placeholder="Explica brevemente el motivo de esta decisión."
-            style={{ ...inputStyle, resize: "vertical", minHeight: 72 }}
-          />
-        </FormField>
-      </DecisionBlock>
+          {/* Bloque 3: ¿Por qué? */}
+          <DecisionBlock title="¿Por qué?">
+            <FormField label="Justificación (obligatoria para dejar lista)">
+              <textarea
+                value={form.rationale}
+                onChange={(event) => {
+                  const rationale = event.target.value;
+                  setForm((current) => ({ ...current, rationale }));
+                }}
+                rows={3}
+                placeholder="Explica brevemente el motivo de esta decisión."
+                style={{ ...inputStyle, resize: "vertical", minHeight: 72 }}
+              />
+            </FormField>
+          </DecisionBlock>
+        </div>
+
+        {/* Columna derecha: casos observados co-ubicados con el form */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, position: "sticky", top: 8 }}>
+          <DecisionBlock title={`Casos observados${drill?.casos?.length ? ` (${drill.casos.length})` : ""}`}>
+            <CasesTable
+              rows={caseRows}
+              columns={caseColumns}
+              uuidCol={drill?.uuid_col ?? null}
+              loading={drillLoading}
+              error={drillError}
+              selectable={selectable}
+              selectedCaseIds={selectedCaseIdsSet}
+              onToggle={(caseId) => {
+                setForm((current) => {
+                  const next = new Set(current.target_case_ids);
+                  if (next.has(caseId)) next.delete(caseId);
+                  else next.add(caseId);
+                  return { ...current, target_case_ids: Array.from(next) };
+                });
+              }}
+              onSelectAll={() => {
+                setForm((current) => ({
+                  ...current,
+                  target_case_ids: caseRows.map((row) => row.id),
+                }));
+              }}
+              onClear={() => {
+                setForm((current) => ({ ...current, target_case_ids: [] }));
+              }}
+            />
+          </DecisionBlock>
+        </div>
+      </div>
 
       {/* Historial colapsable */}
       {relatedDecisions.length > 0 && (
@@ -1214,52 +1310,6 @@ function EditorPanel({
         onDelete={onDelete}
         onNav={onNav}
       />
-    </div>
-  );
-}
-
-function RuleHeader({
-  item,
-  drill,
-}: {
-  item: LimpiezaQueueItem;
-  drill: InstrumentoDrillResult | null;
-}) {
-  const objetivo = drill?.regla.objetivo?.trim();
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        paddingBottom: 14,
-        borderBottom: "1px solid var(--pulso-border)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <CategoriaUxChip label={item.categoria_ux} fuente={item.fuente} />
-        <StatusBadge status={item.pending ? "pending" : "ready"} />
-        <SeverityBadge severity={item.severidad} />
-      </div>
-      <div style={{ fontSize: 16, fontWeight: 800, color: "var(--pulso-text)", lineHeight: 1.3 }}>
-        {item.nombre_regla}
-      </div>
-      {objetivo && (
-        <div style={{ fontSize: 12, lineHeight: 1.55, color: "var(--pulso-text-soft)" }}>
-          {objetivo}
-        </div>
-      )}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        <MiniChip label={item.source_id} mono />
-        <MiniChip label={`${formatNumber(item.n_casos)} casos`} />
-        {item.porcentaje != null && <MiniChip label={formatPercent(item.porcentaje)} />}
-        {item.tipo_variable && item.tipo_variable !== "NA" && (
-          <MiniChip label={`Variable: ${item.tipo_variable}`} />
-        )}
-        {(item.variables ?? []).map((variable) => (
-          <MiniChip key={variable} label={variable} mono />
-        ))}
-      </div>
     </div>
   );
 }
@@ -1792,29 +1842,6 @@ function ImpactChip({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SeverityBadge({ severity }: { severity: string }) {
-  const tone = severityTone(severity);
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "3px 7px",
-        borderRadius: 999,
-        fontSize: 10,
-        fontWeight: 800,
-        textTransform: "uppercase",
-        letterSpacing: 0.4,
-        background: tone.bg,
-        border: `1px solid ${tone.border}`,
-        color: tone.fg,
-      }}
-    >
-      {severityLabel(severity)}
-    </span>
-  );
-}
-
 function StatusBadge({
   status,
   text,
@@ -1840,27 +1867,6 @@ function StatusBadge({
       }}
     >
       {text ?? (ready ? "Lista" : "Pendiente")}
-    </span>
-  );
-}
-
-function MiniChip({ label, mono = false }: { label: string; mono?: boolean }) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "3px 7px",
-        borderRadius: 999,
-        border: "1px solid var(--pulso-border)",
-        background: "white",
-        color: "var(--pulso-text-soft)",
-        fontSize: 10,
-        fontWeight: 700,
-        fontFamily: mono ? "ui-monospace, monospace" : undefined,
-      }}
-    >
-      {label}
     </span>
   );
 }
@@ -2190,22 +2196,6 @@ function formatDateTime(value?: string) {
 
 function humanizeAction(actionType?: LimpiezaDecisionActionType | null) {
   return ACTION_OPTIONS.find((option) => option.value === actionType)?.label ?? "Decisión";
-}
-
-function severityLabel(severity: string) {
-  if (severity === "error") return "Alta";
-  if (severity === "advertencia") return "Media";
-  return "Info";
-}
-
-function severityTone(severity: string) {
-  if (severity === "error") {
-    return { bg: "var(--pulso-danger-bg)", border: "var(--pulso-danger-border)", fg: "var(--pulso-danger-fg)" };
-  }
-  if (severity === "advertencia") {
-    return { bg: "var(--pulso-warn-bg)", border: "var(--pulso-warn-border)", fg: "var(--pulso-warn-fg)" };
-  }
-  return { bg: "var(--pulso-surface-2)", border: "var(--pulso-border)", fg: "var(--pulso-text-soft)" };
 }
 
 // =============================================================================
