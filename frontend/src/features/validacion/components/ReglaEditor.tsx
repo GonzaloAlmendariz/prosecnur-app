@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Save, X as XIcon } from "lucide-react";
 import type { ExploradorVariable, ExploradorVariablesList, ReglaCustom, ReglaCustomTipo } from "../types";
+import { RuleNarrative } from "./v2";
+import type { VariableHoverData } from "./v2";
+import { draftCustomToRule } from "../customRuleNarrative";
 
 // =============================================================================
 // ReglaEditor — wizard de 3 pasos para crear / editar una ReglaCustom
@@ -54,6 +57,36 @@ export default function ReglaEditor({ inv, inicial, onSubmit, onCancel }: Props)
 
   const tipoMeta = TIPOS.find((t) => t.key === tipo) ?? null;
   const flatVars: ExploradorVariable[] = inv.secciones.flatMap((s) => s.variables);
+
+  // Plano variable → sección para el hover lookup del preview.
+  const varSections = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const sec of inv.secciones) {
+      for (const v of sec.variables) map.set(v.name, sec.nombre);
+    }
+    return map;
+  }, [inv.secciones]);
+
+  // Regla draft (para preview narrativo). Se actualiza reactivamente cuando
+  // el usuario avanza por los pasos o cambia cualquier parámetro.
+  const draftRule = useMemo(
+    () => draftCustomToRule({ tipo, variables, nombre, mensaje, params }),
+    [tipo, variables, nombre, mensaje, params],
+  );
+
+  const variableHoverLookup = useMemo(
+    () => (varName: string): VariableHoverData | undefined => {
+      const v = flatVars.find((x) => x.name === varName);
+      if (!v) return undefined;
+      return { label: v.label ?? null, seccion: varSections.get(varName) ?? null };
+    },
+    [flatVars, varSections],
+  );
+
+  const labelLookup = useMemo(
+    () => (v: string) => flatVars.find((x) => x.name === v)?.label ?? null,
+    [flatVars],
+  );
 
   function validateStep(s: number): string {
     if (s === 1 && !tipo) return "Elige un tipo de regla.";
@@ -176,6 +209,17 @@ export default function ReglaEditor({ inv, inicial, onSubmit, onCancel }: Props)
       </div>
 
       <StepIndicator step={step} />
+
+      {/* Preview narrativo en vivo: aparece en cuanto hay tipo + ≥1 variable.
+          Visibilidad: step 2 y 3. En step 1 aún no hay datos suficientes y
+          sería ruido. */}
+      {step >= 2 && draftRule && (
+        <NarrativePreview
+          rule={draftRule}
+          variableHoverLookup={variableHoverLookup}
+          labelLookup={labelLookup}
+        />
+      )}
 
       {/* Contenido del paso */}
       {step === 1 && (
@@ -748,3 +792,51 @@ const inputStyle: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
 };
+
+// =============================================================================
+// NarrativePreview — "Así se va a leer esta regla" en tiempo real.
+// Usa RuleNarrative en variant hero para que el usuario vea el mismo
+// formato con el que aparecerá en listas / cola de limpieza / drills.
+// =============================================================================
+function NarrativePreview({
+  rule,
+  variableHoverLookup,
+  labelLookup,
+}: {
+  rule: ReturnType<typeof draftCustomToRule>;
+  variableHoverLookup: (varName: string) => VariableHoverData | undefined;
+  labelLookup: (varName: string) => string | null;
+}) {
+  if (!rule) return null;
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        padding: "10px 12px 12px",
+        background: "var(--pulso-surface)",
+        borderRadius: 10,
+        border: "1px dashed var(--pulso-primary-border)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          color: "var(--pulso-primary)",
+        }}
+      >
+        Así se va a leer esta regla
+      </div>
+      <RuleNarrative
+        rule={rule}
+        variant="hero"
+        variableHoverLookup={variableHoverLookup}
+        labelLookup={labelLookup}
+      />
+    </div>
+  );
+}

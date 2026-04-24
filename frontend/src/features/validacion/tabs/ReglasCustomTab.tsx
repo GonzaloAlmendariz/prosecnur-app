@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Eye,
@@ -18,6 +18,7 @@ import {
   apiV2ReglasCustomUpdate,
 } from "../../../api/client";
 import type {
+  ExploradorVariable,
   ExploradorVariablesList,
   ReglaCustom,
   ReglasCustomList,
@@ -26,6 +27,9 @@ import { useValidacionStore } from "../store";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
 import { JobProgress } from "../../../components/JobProgress";
 import ReglaEditor from "../components/ReglaEditor";
+import { RuleNarrative } from "../components/v2";
+import type { VariableHoverData } from "../components/v2";
+import { customRuleToRule } from "../customRuleNarrative";
 
 // =============================================================================
 // ReglasCustomTab — Sprint 4
@@ -138,6 +142,15 @@ export default function ReglasCustomTab() {
 
   const reglas = list.reglas;
   const nActivas = reglas.filter((r) => r.activa).length;
+  // Plano de todas las variables del inventario con la sección de origen
+  // — para que los chips de variable del narrative sepan de qué grupo vienen.
+  const flatVars: VarWithSection[] = useMemo(() => {
+    const out: VarWithSection[] = [];
+    for (const sec of inv.secciones) {
+      for (const v of sec.variables) out.push({ ...v, seccion: sec.nombre });
+    }
+    return out;
+  }, [inv.secciones]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -240,6 +253,7 @@ export default function ReglasCustomTab() {
             <ReglaRow
               key={r.id}
               regla={r}
+              flatVars={flatVars}
               onToggle={() => handleToggle(r)}
               onEdit={() => { setEditing(r); setShowEditor(true); }}
               onDelete={() => handleDelete(r)}
@@ -255,110 +269,113 @@ export default function ReglasCustomTab() {
   );
 }
 
+// Inventario de una variable con la sección de origen añadida.
+type VarWithSection = ExploradorVariable & { seccion: string };
+
 // =============================================================================
-// Row
+// Row — RuleNarrative compact + chip con id + acciones a la derecha.
+// Las reglas inactivas se ven atenuadas (opacidad + surface distinto) pero
+// mantienen el narrative legible.
 // =============================================================================
 function ReglaRow({
   regla,
+  flatVars,
   onToggle,
   onEdit,
   onDelete,
   busy,
 }: {
   regla: ReglaCustom;
+  flatVars: VarWithSection[];
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
   busy: boolean;
 }) {
-  const tipoColors: Record<string, { bg: string; fg: string }> = {
-    no_nulo: { bg: "#fef3c7", fg: "#92400e" },
-    rango_num: { bg: "#dbeafe", fg: "#1e40af" },
-    rango_fecha: { bg: "#fae8ff", fg: "#86198f" },
-    outliers_iqr: { bg: "#fce7f3", fg: "#9f1239" },
-    outliers_z: { bg: "#fce7f3", fg: "#9f1239" },
-    duplicados: { bg: "#ede9fe", fg: "#5b21b6" },
-    fuera_catalogo: { bg: "#d1fae5", fg: "#065f46" },
-    coherencia_2v: { bg: "#fef3c7", fg: "#78350f" },
-  };
-  const t = tipoColors[regla.tipo] ?? { bg: "var(--pulso-surface-2)", fg: "var(--pulso-text-soft)" };
+  const rule = useMemo(() => customRuleToRule(regla), [regla]);
+  const hoverLookup = useMemo(
+    () => buildVarHoverLookup(flatVars),
+    [flatVars],
+  );
+  const labelLookup = useMemo(
+    () => (v: string) => flatVars.find((x) => x.name === v)?.label ?? null,
+    [flatVars],
+  );
+
   return (
     <div
       style={{
         display: "flex",
-        alignItems: "center",
-        gap: 14,
-        padding: "12px 14px",
-        borderRadius: 10,
-        background: regla.activa ? "white" : "var(--pulso-surface-2)",
-        border: `1px solid ${regla.activa ? "var(--pulso-border)" : "var(--pulso-border)"}`,
-        opacity: regla.activa ? 1 : 0.7,
+        alignItems: "stretch",
+        gap: 10,
+        opacity: regla.activa ? 1 : 0.62,
       }}
     >
-      <span
-        style={{
-          flexShrink: 0,
-          fontSize: 10,
-          fontWeight: 700,
-          padding: "3px 8px",
-          borderRadius: 999,
-          background: t.bg,
-          color: t.fg,
-          textTransform: "uppercase",
-          letterSpacing: 0.4,
-        }}
-      >
-        {regla.tipo.replace("_", " ")}
-      </span>
+      {/* Narrativa ocupa todo lo que pueda */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>
-          {regla.nombre}
-        </div>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.4 }}>
-          {regla.variables.map((v) => (
-            <code
-              key={v}
-              style={{
-                fontFamily: "ui-monospace, monospace",
-                background: "var(--pulso-surface-2)",
-                padding: "1px 5px",
-                borderRadius: 3,
-                marginRight: 4,
-              }}
-            >
-              {v}
-            </code>
-          ))}
-          {regla.mensaje && regla.mensaje !== regla.nombre && (
-            <span style={{ marginLeft: 8 }}>· {regla.mensaje}</span>
-          )}
-        </div>
+        <RuleNarrative
+          rule={rule}
+          variant="compact"
+          variableHoverLookup={hoverLookup}
+          labelLookup={labelLookup}
+        />
       </div>
-      <span
+
+      {/* Columna lateral: id chip arriba + acciones abajo */}
+      <div
         style={{
-          fontSize: 10,
-          fontWeight: 600,
-          color: "var(--pulso-text-soft)",
-          fontFamily: "ui-monospace, monospace",
-          padding: "3px 8px",
-          background: "var(--pulso-surface-2)",
-          borderRadius: 4,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: 8,
+          flexShrink: 0,
         }}
       >
-        {regla.id}
-      </span>
-      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-        <IconBtn
-          onClick={onToggle}
-          disabled={busy}
-          icon={regla.activa ? <EyeOff size={12} /> : <Eye size={12} />}
-          title={regla.activa ? "Desactivar" : "Activar"}
-        />
-        <IconBtn onClick={onEdit} disabled={busy} icon={<Pencil size={12} />} title="Editar" />
-        <IconBtn onClick={onDelete} disabled={busy} icon={<Trash2 size={12} />} title="Eliminar" danger />
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            color: "var(--pulso-text-soft)",
+            fontFamily: "ui-monospace, monospace",
+            padding: "3px 8px",
+            background: "var(--pulso-surface-2)",
+            border: "1px solid var(--pulso-border)",
+            borderRadius: 4,
+          }}
+        >
+          {regla.id}
+        </span>
+        <div style={{ display: "flex", gap: 6 }}>
+          <IconBtn
+            onClick={onToggle}
+            disabled={busy}
+            icon={regla.activa ? <EyeOff size={12} /> : <Eye size={12} />}
+            title={regla.activa ? "Desactivar" : "Activar"}
+          />
+          <IconBtn onClick={onEdit} disabled={busy} icon={<Pencil size={12} />} title="Editar" />
+          <IconBtn onClick={onDelete} disabled={busy} icon={<Trash2 size={12} />} title="Eliminar" danger />
+        </div>
       </div>
     </div>
   );
+}
+
+// Hover lookup genérico desde el inventario — label + sección.
+function buildVarHoverLookup(
+  flatVars: VarWithSection[],
+): (varName: string) => VariableHoverData | undefined {
+  const byName = new Map<string, VarWithSection>();
+  for (const v of flatVars) byName.set(v.name, v);
+  return (varName: string): VariableHoverData | undefined => {
+    if (!varName) return undefined;
+    const v = byName.get(varName);
+    if (!v) return undefined;
+    return {
+      label: v.label ?? null,
+      seccion: v.seccion ?? null,
+    };
+  };
 }
 
 function IconBtn({
