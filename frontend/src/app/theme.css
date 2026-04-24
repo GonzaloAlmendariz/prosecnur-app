@@ -80,6 +80,96 @@
   --pulso-status-in-progress: #0e7490;
   --pulso-status-pending: #1d4ed8;
   --pulso-status-empty: #6b7280;
+
+  /* ---------- Validación v2 — design system extendido -------------------
+   * Tokens agregados en la pasada de revamp UX (Fase 1). Se usan en los
+   * componentes nuevos `RuleNarrative`, `VariableChip`, `StatCard`,
+   * `ContextLens`, `DecisionStorageBar` y progresivamente reemplazan
+   * estilos inline dispersos por los 4 tabs de Validación.
+   * ------------------------------------------------------------------ */
+
+  /* Roles semánticos de variables en una regla (target/drivers/compare/gate).
+   * El propósito es que al ver una regla, el analista distinga de un vistazo
+   * qué variable es la evaluada, cuáles activan la regla y cuáles comparan. */
+  --pulso-role-target-bg: #e0e7ff;
+  --pulso-role-target-fg: #1e3a8a;
+  --pulso-role-target-border: #c7d2fe;
+  --pulso-role-drivers-bg: #dcfce7;
+  --pulso-role-drivers-fg: #14532d;
+  --pulso-role-drivers-border: #bbf7d0;
+  --pulso-role-compare-bg: #ffedd5;
+  --pulso-role-compare-fg: #9a3412;
+  --pulso-role-compare-border: #fed7aa;
+  --pulso-role-gate-bg: #f1f5f9;
+  --pulso-role-gate-fg: #334155;
+  --pulso-role-gate-border: #e2e8f0;
+
+  /* Paleta de decisiones del decision-maker (usada en DecisionStorageBar,
+   * chips de "current_action", badges de estado). Debe coincidir con
+   * `LimpiezaDecisionActionType` en types.ts. */
+  --pulso-dec-ignore: #94a3b8;          /* gris neutro */
+  --pulso-dec-exclude: #d97706;         /* ámbar — saco filas */
+  --pulso-dec-replace: #0369a1;         /* azul — cambio valor */
+  --pulso-dec-normalize: #7c3aed;       /* violeta — homologo */
+  --pulso-dec-impute: #059669;          /* verde — completo */
+  --pulso-dec-pending: repeating-linear-gradient(
+    45deg,
+    rgba(148, 163, 184, 0.25) 0 6px,
+    rgba(148, 163, 184, 0.45) 6px 12px
+  );
+
+  /* Radios normalizados (antes estaban 6 / 10 / 12 / 14 / 18 / 26 ad hoc). */
+  --pulso-radius-chip: 999px;
+  --pulso-radius-card: 14px;
+  --pulso-radius-panel: 16px;
+  --pulso-radius-lens: 20px;
+
+  /* Shadow específica para el panel ContextLens (deslizable desde derecha). */
+  --pulso-shadow-lens: 0 20px 60px rgba(15, 23, 42, 0.18),
+                       inset 1px 0 0 rgba(255, 255, 255, 0.6);
+
+  /* Estilos narrativos: peso y color para la frase principal ("si X, entonces
+   * Y") vs variables resaltadas dentro de la narrativa. */
+  --pulso-narrative-size: 15px;
+  --pulso-narrative-line-height: 1.55;
+  --pulso-narrative-color: var(--pulso-text);
+  --pulso-narrative-emphasis: var(--pulso-primary);
+
+  /* Hover card para variables — delay y timing. */
+  --pulso-hovercard-delay: 500ms;
+  --pulso-hovercard-hide-delay: 180ms;
+}
+
+/* Animación de slide-in para ContextLens (usar via className). */
+@keyframes pulso-lens-slide-in-kf {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes pulso-lens-slide-out-kf {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0; }
+}
+@keyframes pulso-lens-backdrop-in-kf {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.pulso-lens-slide-in {
+  animation: pulso-lens-slide-in-kf 280ms cubic-bezier(0.2, 0, 0, 1);
+}
+.pulso-lens-slide-out {
+  animation: pulso-lens-slide-out-kf 220ms cubic-bezier(0.4, 0, 1, 1);
+}
+.pulso-lens-backdrop {
+  animation: pulso-lens-backdrop-in-kf 180ms ease-out;
+}
+
+/* Animación de fadeIn suave para hovercards. */
+@keyframes pulso-hovercard-in-kf {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.pulso-hovercard-in {
+  animation: pulso-hovercard-in-kf 160ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 @keyframes pulso-card-glow-kf {
