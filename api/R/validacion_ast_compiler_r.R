@@ -46,6 +46,8 @@ ast_to_r <- function(x) {
     "straight_line"            = .c_straight_line(x$vars, x$max_variance),
     "repeat_length_matches"    = .c_repeat_length(x$repeat_name, x$expected),
     "collection_date_cmp"      = .c_collection_date_cmp(x$var, x$op),
+    "collection_date_offset_cmp" = .c_collection_date_offset_cmp(x$var, x$op,
+                                                                 x$offset_days),
     "aggregate_cmp"            = .c_aggregate_cmp(x$host_var, x$op, x$source_table,
                                                   x$source_var, x$agg_op,
                                                   x$parent_key_local, x$parent_key_remote),
@@ -120,12 +122,24 @@ ast_to_r <- function(x) {
 }
 
 .c_cmp_vars <- function(va, op, vb) {
-  # Intenta comparación numérica si ambos parecen numéricos al eval — decidimos
-  # siempre numérico porque ODK hace coerción. Si el usuario necesita string
-  # usa compare_const con valor literal.
+  # ODK coerce implícito: intentamos numérico primero; si ambos no parsean
+  # como número, caemos a comparación de fechas (string ISO o Excel serial).
+  # Esto cierra el gap detectado en ESPP date_residing vs date_ppl donde
+  # as.numeric(date_string) = NA → silencio falso-negativo.
+  va_b <- .backtick(va)
+  vb_b <- .backtick(vb)
   sprintf(
-    "(!is.na(%s) & !is.na(%s) & suppressWarnings(as.numeric(%s)) %s suppressWarnings(as.numeric(%s)))",
-    va, vb, va, op, vb
+    paste0(
+      "{ .a_n <- suppressWarnings(as.numeric(%s)); ",
+      ".b_n <- suppressWarnings(as.numeric(%s)); ",
+      ".ok_num <- !is.na(.a_n) & !is.na(.b_n); ",
+      ".a_d <- suppressWarnings(as.Date(%s)); ",
+      ".b_d <- suppressWarnings(as.Date(%s)); ",
+      ".ok_dt <- !is.na(.a_d) & !is.na(.b_d); ",
+      "ifelse(.ok_num, .a_n %s .b_n, ",
+      "ifelse(.ok_dt, .a_d %s .b_d, NA)) }"
+    ),
+    va_b, vb_b, va_b, vb_b, op, op
   )
 }
 
@@ -305,6 +319,13 @@ ast_to_r <- function(x) {
   xd <- sprintf("suppressWarnings(as.Date(%s))", var)
   sprintf("(!is.na(%s) & !is.na(`__today__`) & %s %s `__today__`)",
           xd, xd, op)
+}
+
+.c_collection_date_offset_cmp <- function(var, op, offset_days) {
+  xd <- sprintf("suppressWarnings(as.Date(%s))", var)
+  rhs <- sprintf("(`__today__` + %dL)", as.integer(offset_days))
+  sprintf("(!is.na(%s) & !is.na(`__today__`) & %s %s %s)",
+          xd, xd, op, rhs)
 }
 
 .c_repeat_length <- function(repeat_name, expected) {

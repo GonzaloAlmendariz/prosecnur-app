@@ -264,14 +264,31 @@ evaluate_rules <- function(rules,
 
   vals <- trimws(as.character(x))
   vals[!nzchar(vals) | vals %in% c("NA", "NULL", "NaN")] <- NA_character_
-  out <- suppressWarnings(as.Date(vals))
+  out <- rep(as.Date(NA), length(vals))
 
+  # Primera pasada ISO (as.Date por default) — R reciente ERRA (no warn) en
+  # strings no-ISO, por eso `tryCatch` blindado.
   rem <- is.na(out) & !is.na(vals)
   if (any(rem)) {
     iso_ymd <- sub("^([0-9]{4}-[0-9]{2}-[0-9]{2}).*$", "\\1", vals[rem], perl = TRUE)
     hit <- grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", iso_ymd)
     idx <- which(rem)[hit]
-    out[idx] <- suppressWarnings(as.Date(iso_ymd[hit]))
+    parsed <- tryCatch(as.Date(iso_ymd[hit]),
+                       error = function(e) rep(as.Date(NA), length(iso_ymd[hit])))
+    out[idx] <- parsed
+  }
+
+  # Pasada Excel serial numbers (strings numéricos representando días desde
+  # 1899-12-30). Común cuando el XLSX fue leído como texto.
+  rem <- is.na(out) & !is.na(vals)
+  if (any(rem)) {
+    excel_num <- grepl("^[0-9]+(\\.[0-9]+)?$", vals[rem])
+    idx <- which(rem)[excel_num]
+    nums <- suppressWarnings(as.numeric(vals[rem][excel_num]))
+    # Rango razonable: entre 1990 (32874) y 2080 (65754) evita confundir
+    # enteros tipo "20" o "1999" con fechas genuinas.
+    safe <- !is.na(nums) & nums >= 20000 & nums <= 80000
+    out[idx[safe]] <- as.Date(nums[safe], origin = "1899-12-30")
   }
 
   rem <- is.na(out) & !is.na(vals)
