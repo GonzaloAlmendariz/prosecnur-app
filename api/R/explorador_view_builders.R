@@ -743,27 +743,68 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
     x_levels <- x_levels[x_levels %in% xv_lab]
     y_levels <- y_levels[y_levels %in% yv_lab]
 
+    # Total por nivel de X — usado para (a) normalizar al 100% (via
+    # `barnorm = "percent"` en layout) y (b) anotar el N total encima
+    # de cada barra para que el eje 0-100% no borre la magnitud real.
+    n_total_por_x <- vapply(x_levels, function(xl) sum(xv_lab == xl),
+                             integer(1))
+
     traces <- lapply(y_levels, function(yl) {
       counts <- vapply(x_levels, function(xl) sum(xv_lab == xl & yv_lab == yl),
                         integer(1))
+      # % = count / total del nivel X (0 si el nivel está vacío).
+      pct <- ifelse(n_total_por_x > 0,
+                     100 * counts / n_total_por_x,
+                     0)
+      # customdata: matriz con [count, pct] por punto — habilita mostrar
+      # tanto el valor absoluto como el % en el hover, aun cuando la
+      # barra está normalizada al 100% por barnorm.
+      cd <- matrix(c(as.integer(counts), as.numeric(pct)), ncol = 2L)
       list(
         type = "bar",
         name = yl,
         x = x_levels,
         y = as.integer(counts),
-        hovertemplate = sprintf("%s = %%{x}<br>%s = %s<br>n=%%{y}<extra></extra>",
-                                 label_x, label_y, yl)
+        customdata = cd,
+        hovertemplate = sprintf(
+          paste0("%s = %%{x}<br>%s = %s<br>",
+                 "n = %%{customdata[0]} (%%{customdata[1]:.1f}%%)<extra></extra>"),
+          label_x, label_y, yl
+        )
       )
     })
+
+    # Anotaciones con el N total por cada nivel del eje X. Van arriba
+    # del 100% en el eje Y (y = 100, yshift = 12) — así el porcentaje
+    # se lee dentro del chart y la magnitud absoluta queda visible
+    # sin ocupar el eje Y.
+    annotations <- lapply(seq_along(x_levels), function(i) {
+      list(
+        x = x_levels[i],
+        y = 100,
+        text = sprintf("N=%s", format(n_total_por_x[i], big.mark = ",")),
+        xref = "x",
+        yref = "y",
+        showarrow = FALSE,
+        yshift = 14,
+        font = list(size = 11, color = "#5f6b7a", family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif")
+      )
+    })
+
     layout <- list(
       barmode = "stack",
-      margin = list(l = 56, r = 24, t = 16, b = 80),
+      barnorm = "percent",
+      margin = list(l = 56, r = 24, t = 36, b = 80),
       xaxis = list(title = list(text = label_x), tickangle = -20,
                     automargin = TRUE),
-      yaxis = list(title = list(text = "Casos"), gridcolor = "#e5e7eb"),
+      yaxis = list(title = list(text = "Proporción"),
+                    ticksuffix = "%",
+                    range = c(0, 100),
+                    gridcolor = "#e5e7eb"),
       plot_bgcolor = "#ffffff", paper_bgcolor = "#ffffff",
       legend = list(orientation = "h", y = -0.3, traceorder = "reversed"),
-      height = 360L
+      annotations = annotations,
+      height = 380L
     )
     return(list(
       version = 1L, kind = "bar_stack",
