@@ -37,3 +37,10 @@ api/inst/www/*
 # Tests
 /tests/e2e/results/
 /tests/e2e/playwright-report/
+
+# Audit outputs (generados por scripts/ast_corpus_audit.R etc.)
+api/outputs/
+
+# Backups puntuales (ej. fixes manuales de data con .bak_edad_fix)
+*.bak_edad_fix
+*.bak_*
