@@ -11,13 +11,28 @@ NULL
 
 # ------------------------ Helpers ll_* ---------------------------------------
 
+# Transliteración robusta de acentos → ASCII. chartr() falla en locales
+# no-UTF-8 con "'old' is longer than 'new'". iconv con //TRANSLIT funciona
+# de forma portable; fallback manual si iconv no está disponible.
+.ll_translit <- function(x) {
+  y <- tryCatch(iconv(x, from = "UTF-8", to = "ASCII//TRANSLIT"),
+                error = function(e) NULL, warning = function(w) NULL)
+  if (!is.null(y) && !any(is.na(y))) return(y)
+  for (pair in list(c("[áàäâ]", "a"), c("[éèëê]", "e"), c("[íìïî]", "i"),
+                     c("[óòöô]", "o"), c("[úùüû]", "u"), c("ñ", "n"),
+                     c("[ÁÀÄÂ]", "A"), c("[ÉÈËÊ]", "E"), c("[ÍÌÏÎ]", "I"),
+                     c("[ÓÒÖÔ]", "O"), c("[ÚÙÜÛ]", "U"), c("Ñ", "N"))) {
+    x <- gsub(pair[1], pair[2], x, perl = TRUE)
+  }
+  x
+}
+
 ll_std_names <- function(df) {
   if (!is.data.frame(df)) return(df)
   nn <- names(df)
   norm <- function(s) {
     s0 <- gsub("\\s+", "_", trimws(tolower(as.character(s))))
-    s0 <- chartr("áéíóúñüÁÉÍÓÚÑÜ", "aeiounuAEIOUNU", s0)
-    s0
+    .ll_translit(s0)
   }
   names(df) <- vapply(nn, norm, character(1))
   df
@@ -43,8 +58,7 @@ ll_find_col <- function(df, candidates) {
 ll_canon <- function(x) {
   x <- tolower(trimws(as.character(x)))
   x <- gsub("\\s+", " ", x)
-  x <- chartr("áéíóúñüÁÉÍÓÚÑÜ", "aeiounuAEIOUNU", x)
-  x
+  .ll_translit(x)
 }
 
 ll_match_sheet <- function(target, pool) {
@@ -167,7 +181,7 @@ ll_norm_expr <- function(x){
 
 .ll_norm_name <- function(s) {
   s0 <- gsub("\\s+", "_", trimws(tolower(as.character(s))))
-  chartr("áéíóúñüÁÉÍÓÚÑÜ", "aeiounuAEIOUNU", s0)
+  .ll_translit(s0)
 }
 
 # Evaluador repeat_count con soporte de count(${repeat}) -> n_<repeat>
@@ -203,7 +217,11 @@ ll_eval_repeats_count_expr <- function(rc_expr, parent_row, map_count_prefix = "
     v_norm <- .ll_norm_name(v_raw)
     cand <- c(v_raw, v_norm)
     col  <- cand[cand %in% names(parent_row)][1]
-    if (length(col)) suppressWarnings(as.numeric(parent_row[[col]])) else NA_real_
+    if (length(col) && !is.na(col) && nzchar(col)) {
+      suppressWarnings(as.numeric(parent_row[[col]]))
+    } else {
+      NA_real_
+    }
   }
 
   if (grepl("^coalesce\\(", ex, ignore.case = TRUE)) {

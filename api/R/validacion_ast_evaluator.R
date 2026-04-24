@@ -12,8 +12,9 @@
 #     del eval. No dependen del Procesamiento string.
 #   - `collection_date_col` es configurable por llamada. Default: busca
 #     `end`, luego `_submission_time`, luego `interviewdate`, luego `today`.
-#     Si ninguna existe, `__today__` queda NA y las reglas con
-#     collection_date_cmp reportan NA (no violación).
+#     Si ninguna existe, o si la columna resolvió solo NA, las reglas que
+#     dependan de `today()` quedan como `no_evaluada` con
+#     `issue_code = "missing_collection_date"`.
 #   - Para repeat_length_matches: el evaluador NO evalúa esta primitiva
 #     aquí — requiere acceso a la data multi-tabla. Queda marcada como
 #     pendiente (estado "no_evaluada") hasta que se enganche con la capa
@@ -47,7 +48,8 @@ evaluate_rules <- function(rules,
                            data_multi = list(),
                            collection_date_col = NULL,
                            residual_codes = c("98", "99", "96", "90"),
-                           strict = FALSE) {
+                           strict = FALSE,
+                           table_name = "principal") {
   if (!length(rules)) {
     return(list(data = data, resumen = .empty_resumen(), logs = list()))
   }
@@ -58,24 +60,42 @@ evaluate_rules <- function(rules,
   # 1. Resolver columna de fecha de captura y construir binding __today__
   col_name <- .resolve_collection_date_col(collection_date_col, data)
   today_vec <- if (!is.null(col_name) && col_name %in% names(data)) {
-    suppressWarnings(as.Date(data[[col_name]]))
+    .coerce_collection_date_vec(data[[col_name]])
   } else {
     rep(as.Date(NA), nrow(data))
   }
+  has_collection_date <- !is.null(col_name) && any(!is.na(today_vec))
 
   # 2. Preparar entorno de evaluación
   eval_env <- new.env(parent = globalenv())
   for (nm in names(data)) assign(nm, data[[nm]], envir = eval_env)
   assign("__today__", today_vec, envir = eval_env)
+  assign("sum", .legacy_safe_sum, envir = eval_env)
+  assign("mean", .legacy_safe_mean, envir = eval_env)
+  assign("min", .legacy_safe_min, envir = eval_env)
+  assign("max", .legacy_safe_max, envir = eval_env)
   # Tablas adicionales (repeats) para aggregate_cmp — si vacío, las reglas
   # que las usen devolverán NA (conservador, no falso-positivo).
   assign("__data_multi__", as.list(data_multi), envir = eval_env)
+  if (exists(".AGG_prepare", mode = "function") &&
+      (length(data_multi) > 1L || !identical(table_name, "principal"))) {
+    tablas_ctx <- as.list(data_multi)
+    tablas_ctx[[table_name]] <- data
+    assign(".AGG_CTX", .AGG_prepare(tablas_ctx, table_name), envir = eval_env)
+  }
 
   # 3. Evaluar regla por regla
   logs <- list()
   resumen_rows <- list()
   for (rule in rules) {
-    row_result <- .evaluate_single_rule(rule, eval_env, data, strict)
+    row_result <- .evaluate_single_rule(
+      rule = rule,
+      eval_env = eval_env,
+      data = data,
+      strict = strict,
+      collection_date_col = col_name,
+      has_collection_date = has_collection_date
+    )
     # Si la regla produjo vector booleano, lo pegamos como columna a data
     if (!is.null(row_result$flag_vec)) {
       data[[rule$flag_name]] <- row_result$flag_vec
@@ -98,7 +118,12 @@ evaluate_rules <- function(rules,
 # -----------------------------------------------------------------------------
 # Evaluación de una sola regla
 # -----------------------------------------------------------------------------
-.evaluate_single_rule <- function(rule, eval_env, data, strict) {
+.evaluate_single_rule <- function(rule,
+                                  eval_env,
+                                  data,
+                                  strict,
+                                  collection_date_col = NULL,
+                                  has_collection_date = FALSE) {
   resumen_base <- list(
     id = rule$id,
     nombre = rule$nombre,
@@ -125,9 +150,12 @@ evaluate_rules <- function(rules,
     return(list(flag_vec = NULL, resumen = resumen_base, logs = list()))
   }
 
-  # 2. Si el predicate contiene algún odk_raw, marcar como "raw" y omitir.
-  has_raw <- .ast_contains_raw(rule$predicate)
-  if (has_raw) {
+  # 2. Si el predicate contiene odk_raw, permitir solo los origins que ya
+  #    vienen bridgeados desde expresiones R del legacy. El resto sigue
+  #    siendo modo experto no evaluable.
+  raw_origins <- .ast_raw_origins(rule$predicate)
+  has_raw <- length(raw_origins) > 0L
+  if (has_raw && !all(raw_origins %in% c("legacy_r_expr"))) {
     resumen_base$estado <- "no_evaluada"
     resumen_base$issue_code <- "odk_raw"
     resumen_base$detalle <- "Regla en modo experto — no evaluada automáticamente."
@@ -135,12 +163,31 @@ evaluate_rules <- function(rules,
   }
 
   # 3. Verificar que las columnas existan.
-  missing_cols <- setdiff(rule$variables, names(data))
+  # Una variable ausente en el export de datos NO significa que la regla
+  # esté rota — significa que esa columna no aplica a esta base. Marcamos
+  # como `no_aplicable` (no propaga error) para:
+  #   (a) variable objetivo ausente → no hay nada que checkear.
+  #   (b) variable del gate ausente → el gate nunca puede ser TRUE,
+  #       así que la regla nunca dispara.
+  #   (c) variable de comparación ausente (coherence) → idem.
+  # Esto calza con el comportamiento esperado cuando ODK no exporta una
+  # columna porque ningún caso activó la rama condicional.
+  missing_info <- .rule_missing_columns(rule, names(data))
+  missing_cols <- missing_info$all
   if (length(missing_cols)) {
-    resumen_base$estado <- "incorrecta_ejecucion"
+    resumen_base$estado <- "no_aplicable"
     resumen_base$issue_code <- "missing_columns"
-    resumen_base$detalle <- sprintf("Columnas ausentes: %s",
-                                     paste(missing_cols, collapse = ", "))
+    resumen_base$detalle <- .format_missing_columns_detail(missing_info)
+    resumen_base$n_inconsistencias <- 0L
+    resumen_base$porcentaje <- 0
+    return(list(flag_vec = NULL, resumen = resumen_base, logs = list()))
+  }
+
+  # 3b. Reglas que dependen de today() requieren fecha de captura usable.
+  if (.rule_requires_collection_date(rule) && !isTRUE(has_collection_date)) {
+    resumen_base$estado <- "no_evaluada"
+    resumen_base$issue_code <- "missing_collection_date"
+    resumen_base$detalle <- .format_missing_collection_date_detail(collection_date_col)
     return(list(flag_vec = NULL, resumen = resumen_base, logs = list()))
   }
 
@@ -206,6 +253,66 @@ evaluate_rules <- function(rules,
   NULL
 }
 
+.coerce_collection_date_vec <- function(x) {
+  if (inherits(x, "Date")) return(as.Date(x))
+  if (inherits(x, c("POSIXct", "POSIXlt"))) return(as.Date(x))
+
+  if (is.numeric(x)) {
+    out <- suppressWarnings(as.Date(x, origin = "1899-12-30"))
+    return(out)
+  }
+
+  vals <- trimws(as.character(x))
+  vals[!nzchar(vals) | vals %in% c("NA", "NULL", "NaN")] <- NA_character_
+  out <- suppressWarnings(as.Date(vals))
+
+  rem <- is.na(out) & !is.na(vals)
+  if (any(rem)) {
+    iso_ymd <- sub("^([0-9]{4}-[0-9]{2}-[0-9]{2}).*$", "\\1", vals[rem], perl = TRUE)
+    hit <- grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", iso_ymd)
+    idx <- which(rem)[hit]
+    out[idx] <- suppressWarnings(as.Date(iso_ymd[hit]))
+  }
+
+  rem <- is.na(out) & !is.na(vals)
+  if (any(rem)) {
+    ymd_slash <- sub("^([0-9]{4}/[0-9]{2}/[0-9]{2}).*$", "\\1", vals[rem], perl = TRUE)
+    hit <- grepl("^[0-9]{4}/[0-9]{2}/[0-9]{2}$", ymd_slash)
+    idx <- which(rem)[hit]
+    out[idx] <- suppressWarnings(as.Date(ymd_slash[hit], format = "%Y/%m/%d"))
+  }
+
+  rem <- is.na(out) & !is.na(vals)
+  if (any(rem)) {
+    dmy_slash <- sub("^([0-9]{2}/[0-9]{2}/[0-9]{4}).*$", "\\1", vals[rem], perl = TRUE)
+    hit <- grepl("^[0-9]{2}/[0-9]{2}/[0-9]{4}$", dmy_slash)
+    idx <- which(rem)[hit]
+    out[idx] <- suppressWarnings(as.Date(dmy_slash[hit], format = "%d/%m/%Y"))
+  }
+
+  rem <- is.na(out) & !is.na(vals)
+  if (any(rem)) {
+    posix <- suppressWarnings(as.POSIXct(
+      vals[rem],
+      tz = "UTC",
+      tryFormats = c(
+        "%Y-%m-%d %H:%M:%OS",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y/%m/%d %H:%M:%OS",
+        "%Y/%m/%d %H:%M:%S",
+        "%d/%m/%Y %H:%M:%OS",
+        "%d/%m/%Y %H:%M:%S",
+        "%m/%d/%Y %H:%M:%OS",
+        "%m/%d/%Y %H:%M:%S"
+      )
+    ))
+    idx <- which(rem)
+    out[idx] <- suppressWarnings(as.Date(posix))
+  }
+
+  out
+}
+
 .ast_contains_raw <- function(x) {
   if (!is_ast(x)) return(FALSE)
   found <- FALSE
@@ -213,6 +320,45 @@ evaluate_rules <- function(rules,
     if (ast_op(node) == "odk_raw") found <<- TRUE
   })
   found
+}
+
+.ast_raw_origins <- function(x) {
+  if (!is_ast(x)) return(character(0))
+  out <- character(0)
+  ast_walk(x, function(node, path) {
+    if (ast_op(node) == "odk_raw") {
+      out <<- c(out, as.character(node$origin %||% "raw"))
+    }
+  })
+  unique(out)
+}
+
+.ast_uses_collection_date <- function(x) {
+  if (!is_ast(x)) return(FALSE)
+  found <- FALSE
+  ast_walk(x, function(node, path) {
+    op <- ast_op(node)
+    if (op %in% c("collection_date_cmp", "collection_date_offset_cmp")) {
+      found <<- TRUE
+    }
+  })
+  found
+}
+
+.rule_requires_collection_date <- function(rule) {
+  .ast_uses_collection_date(rule$predicate) || .ast_uses_collection_date(rule$gate)
+}
+
+.format_missing_collection_date_detail <- function(collection_date_col = NULL) {
+  base <- paste(
+    "La regla requiere fecha de captura para resolver today()",
+    "(end, _submission_time, interviewdate, today o start)."
+  )
+  if (!is.null(collection_date_col) && nzchar(as.character(collection_date_col))) {
+    paste0(base, " La columna resuelta fue '", as.character(collection_date_col), "', pero no tuvo valores de fecha utilizables.")
+  } else {
+    base
+  }
 }
 
 .coerce_flag_vec <- function(result, expected_len) {
@@ -228,6 +374,77 @@ evaluate_rules <- function(rules,
     return(NULL)
   }
   NULL
+}
+
+.role_missing_subset <- function(x, data_names) {
+  vals <- as.character(x %||% character(0))
+  vals <- vals[!is.na(vals) & nzchar(vals)]
+  setdiff(unique(vals), data_names)
+}
+
+.rule_missing_columns <- function(rule, data_names) {
+  roles <- rule$variable_roles %||% list()
+  target <- .role_missing_subset(roles$target, data_names)
+  compare <- .role_missing_subset(roles$compare, data_names)
+  gate <- .role_missing_subset(roles$gate, data_names)
+  drivers <- .role_missing_subset(roles$drivers, data_names)
+  all <- unique(c(target, compare, gate, drivers, setdiff(rule$variables %||% character(0), data_names)))
+  list(
+    target = target,
+    compare = compare,
+    gate = gate,
+    drivers = drivers,
+    all = all
+  )
+}
+
+.format_missing_columns_detail <- function(missing_info) {
+  parts <- character(0)
+  if (length(missing_info$target)) {
+    parts <- c(parts, sprintf("objetivo: %s", paste(missing_info$target, collapse = ", ")))
+  }
+  if (length(missing_info$compare)) {
+    parts <- c(parts, sprintf("comparación: %s", paste(missing_info$compare, collapse = ", ")))
+  }
+  if (length(missing_info$drivers)) {
+    parts <- c(parts, sprintf("drivers: %s", paste(missing_info$drivers, collapse = ", ")))
+  }
+  if (length(missing_info$gate)) {
+    parts <- c(parts, sprintf("gate: %s", paste(missing_info$gate, collapse = ", ")))
+  }
+  if (!length(parts)) {
+    parts <- sprintf("Columnas ausentes: %s", paste(missing_info$all, collapse = ", "))
+  }
+  paste(c(
+    sprintf("Columnas ausentes: %s", paste(missing_info$all, collapse = ", ")),
+    parts
+  ), collapse = " | ")
+}
+
+.legacy_numeric_coerce <- function(x) {
+  if (is.factor(x)) x <- as.character(x)
+  if (is.character(x)) return(suppressWarnings(as.numeric(x)))
+  x
+}
+
+.legacy_safe_sum <- function(..., na.rm = FALSE) {
+  args <- lapply(list(...), .legacy_numeric_coerce)
+  do.call(base::sum, c(args, list(na.rm = na.rm)))
+}
+
+.legacy_safe_mean <- function(..., na.rm = FALSE) {
+  args <- lapply(list(...), .legacy_numeric_coerce)
+  do.call(base::mean, c(args, list(na.rm = na.rm)))
+}
+
+.legacy_safe_min <- function(..., na.rm = FALSE) {
+  args <- lapply(list(...), .legacy_numeric_coerce)
+  do.call(base::min, c(args, list(na.rm = na.rm)))
+}
+
+.legacy_safe_max <- function(..., na.rm = FALSE) {
+  args <- lapply(list(...), .legacy_numeric_coerce)
+  do.call(base::max, c(args, list(na.rm = na.rm)))
 }
 
 .empty_resumen <- function() {
@@ -303,7 +520,14 @@ observations_for_rule <- function(data, rule, key_cols = c("_uuid", "_id", "_ind
   # NA tratada como no-violación por default
   flag[is.na(flag)] <- FALSE
   hits <- data[flag, , drop = FALSE]
-  keep <- unique(c(intersect(key_cols, names(hits)), rule$variables))
+  keep <- unique(c(
+    intersect(key_cols, names(hits)),
+    rule$variable_roles$target %||% character(0),
+    rule$variable_roles$drivers %||% character(0),
+    rule$variable_roles$compare %||% character(0),
+    rule$variable_roles$gate %||% character(0),
+    rule$variables
+  ))
   keep <- intersect(keep, names(hits))
   if (!length(keep)) return(hits)
   hits[, keep, drop = FALSE]

@@ -6,6 +6,15 @@
 # usan patrones reales extraídos de los 4 XLSForms ACNUR/HST/GIZ para que
 # cualquier regresión afecte la validación de surveys de verdad.
 
+# Forzar UTF-8 para que las columnas con acentos (p.ej. "Nombre técnico",
+# "Sección", "Categoría") se comparen correctamente. Sin esto, en locales
+# C o no-UTF-8 los caracteres no-ASCII se representan como secuencias de
+# escape y el `%in%` falla.
+tryCatch(Sys.setlocale("LC_CTYPE", "en_US.UTF-8"),
+         error = function(e) tryCatch(Sys.setlocale("LC_CTYPE", "UTF-8"),
+                                      error = function(e2) NULL))
+options(encoding = "UTF-8")
+
 # ---- Source helpers (si el paquete no está cargado) --------------------------
 # Cargamos directamente en el global env para que los tests tengan visibilidad.
 if (!exists("ast", mode = "function", envir = globalenv())) {
@@ -20,7 +29,10 @@ if (!exists("ast", mode = "function", envir = globalenv())) {
     "validacion_ast_registry.R",
     "validacion_ast_parser.R",
     "validacion_ast_introspect.R",
-    "validacion_ast_evaluator.R"
+    "validacion_ast_evaluator.R",
+    "validacion_ast_bridge.R",
+    "validacion_lector_limpieza.R",
+    "validacion_ast_runtime.R"
   )
   for (.f in .files_ast) {
     .p <- file.path(.base_dir_ast, .f)
@@ -231,6 +243,37 @@ test_that("parser: today() en comparación → collection_date_cmp", {
   expect_equal(res$ast$op, "<=")
 })
 
+test_that("parser: today() con offset en días → collection_date_offset_cmp", {
+  res <- odk_parse_to_ast(". >= today() - 396 and . <= today()",
+                          context = "constraint", self_var = "fecha")
+  expect_false(res$degraded_to_raw)
+  expect_equal(ast_op(res$ast), "and")
+  ops <- vapply(res$ast$args, ast_op, character(1))
+  expect_true("collection_date_offset_cmp" %in% ops)
+  off <- res$ast$args[[which(ops == "collection_date_offset_cmp")[1]]]
+  expect_equal(off$var, "fecha")
+  expect_equal(off$op, ">=")
+  expect_equal(off$offset_days, -396L)
+})
+
+test_that("parser: count-selected(.) en comparación → count_selected_cmp", {
+  res <- odk_parse_to_ast("count-selected(.) > 1", context = "constraint",
+                          self_var = "p39")
+  expect_false(res$degraded_to_raw)
+  expect_equal(ast_op(res$ast), "count_selected_cmp")
+  expect_equal(res$ast$var, "p39")
+  expect_equal(res$ast$op, ">")
+  expect_equal(res$ast$n, 1L)
+})
+
+test_that("parser: exclusividad select_multiple con selected + count-selected parsea tipado", {
+  expr <- "not(selected(., '96') and count-selected(.) > 1) and not(selected(., '90') and count-selected(.) > 1)"
+  res <- odk_parse_to_ast(expr, context = "constraint", self_var = "p39")
+  expect_false(res$degraded_to_raw)
+  expect_false(any(vapply(res$ast$args, function(x) ast_op(x) == "odk_raw", logical(1))))
+  expect_true("p39" %in% ast_variables(res$ast))
+})
+
 test_that("parser: regex(., 'pat') con self_var → matches_regex", {
   res <- odk_parse_to_ast("regex(., '^\\\\d+$')", context = "constraint",
                            self_var = "codigo")
@@ -275,6 +318,20 @@ test_that("rule_skip: genera predicado correcto para must_answer_when_true", {
   P29 <- c("", "foo", "", "foo")
   res <- eval(parse(text = rhs))
   expect_equal(res, c(TRUE, FALSE, FALSE, FALSE))
+})
+
+test_that("compile_rule usa nombre humano, nombre tecnico y target semantico", {
+  r <- rule_skip(
+    "P29",
+    gate = ast_compare_const("P28", "==", "1"),
+    direction = "must_answer_when_true"
+  )
+  row <- compile_rule(r)
+  expect_true("Nombre técnico" %in% names(row))
+  expect_match(row$`Nombre de regla`, "debe responderse", fixed = TRUE)
+  expect_match(row$`Nombre técnico`, "^salto_p29_debe$")
+  expect_equal(row$`Variable 1`, "P29")
+  expect_equal(row$`Variable 2`, "P28")
 })
 
 test_that("validate_rule: detecta variables no existentes", {
@@ -401,6 +458,82 @@ test_that("evaluate_rules: __today__ se resuelve desde columna 'end'", {
   expect_equal(ev$resumen$n_inconsistencias[ev$resumen$tipo_regla == "constraint"], 1L)
 })
 
+test_that("evaluate_rules: today() tolera fechas de captura ISO con hora y zona", {
+  survey <- data.frame(
+    type = c("date"),
+    name = c("fecha"),
+    label = c("Fecha"),
+    required = c("no"),
+    relevant = c(""),
+    constraint = c(". <= today()"),
+    stringsAsFactors = FALSE
+  )
+  rules <- infer_rules_from_xlsform(list(survey = survey))$rules
+
+  data <- data.frame(
+    fecha = c("2026-02-17", "2026-02-20"),
+    end = c("2026-02-17T12:21:42.575-05:00", "2026-02-18T10:37:01.848-05:00"),
+    stringsAsFactors = FALSE
+  )
+  ev <- evaluate_rules(rules, data)
+
+  expect_equal(ev$collection_date_col, "end")
+  expect_equal(ev$resumen$estado[ev$resumen$tipo_regla == "constraint"], "correcta")
+  expect_equal(ev$resumen$n_inconsistencias[ev$resumen$tipo_regla == "constraint"], 1L)
+})
+
+test_that("constraint de fecha no marca vacios como inconsistencia", {
+  survey <- data.frame(
+    type = c("date"),
+    name = c("fecha"),
+    label = c("Fecha"),
+    required = c("yes"),
+    relevant = c(""),
+    constraint = c(". <= today()"),
+    stringsAsFactors = FALSE
+  )
+  rules <- infer_rules_from_xlsform(list(survey = survey))$rules
+
+  data <- data.frame(
+    fecha = c("", "2026-01-15", NA),
+    end = c("2025-10-02", "2025-10-06", "2025-10-07"),
+    stringsAsFactors = FALSE
+  )
+  ev <- evaluate_rules(rules, data)
+
+  expect_equal(ev$resumen$n_inconsistencias[ev$resumen$tipo_regla == "required"], 2L)
+  expect_equal(ev$resumen$n_inconsistencias[ev$resumen$tipo_regla == "constraint"], 1L)
+})
+
+test_that("evaluate_rules: reglas con today() quedan no_evaluadas si falta fecha de captura", {
+  survey <- data.frame(
+    type = c("date"),
+    name = c("fecha"),
+    label = c("Fecha"),
+    required = c("no"),
+    relevant = c(""),
+    constraint = c(". <= today()"),
+    stringsAsFactors = FALSE
+  )
+  rules <- infer_rules_from_xlsform(list(survey = survey))$rules
+
+  data <- data.frame(
+    fecha = c("2025-10-01", "2026-01-15"),
+    stringsAsFactors = FALSE
+  )
+  ev <- evaluate_rules(rules, data)
+
+  expect_true(is.null(ev$collection_date_col))
+  expect_equal(ev$resumen$estado[ev$resumen$tipo_regla == "constraint"], "no_evaluada")
+  expect_equal(ev$resumen$issue_code[ev$resumen$tipo_regla == "constraint"], "missing_collection_date")
+  expect_match(
+    ev$resumen$detalle[ev$resumen$tipo_regla == "constraint"],
+    "requiere fecha de captura",
+    ignore.case = TRUE
+  )
+  expect_true(is.na(ev$resumen$n_inconsistencias[ev$resumen$tipo_regla == "constraint"]))
+})
+
 test_that("evaluate_rules: reglas odk_raw quedan como no_evaluada con issue_code correcto", {
   # Construimos una regla raw manualmente
   rules <- list(rule_odk_raw(
@@ -426,4 +559,421 @@ test_that("observations_for_rule: extrae filas con UUID y variables", {
   expect_equal(nrow(obs), 1L)
   expect_true("_uuid" %in% names(obs))
   expect_true("edad" %in% names(obs))
+})
+
+# =============================================================================
+# Runtime AST-first: import/export, bridge legacy y compatibilidad
+# =============================================================================
+test_that("rule_to_json / rule_from_json preservan identidad AST", {
+  rule <- rule_required("edad", gate = ast_compare_const("consent", "==", "1"))
+  json <- rule_to_json(rule)
+  roundtrip <- rule_from_json(json)
+  expect_true(is_rule(roundtrip))
+  expect_equal(roundtrip$id, rule$id)
+  expect_equal(ast_hash(roundtrip$predicate), ast_hash(rule$predicate))
+  expect_equal(ast_hash(roundtrip$gate), ast_hash(rule$gate))
+  expect_equal(roundtrip$presentation$nombre_tecnico, rule$presentation$nombre_tecnico)
+  expect_equal(roundtrip$variable_roles$target, "edad")
+})
+
+test_that("bridge_legacy_plan_rows_to_rules permite evaluar expresiones R heredadas", {
+  plan <- tibble::tibble(
+    ID = "LEG_001",
+    Tabla = "principal",
+    `Sección` = "hogar",
+    `Categoría` = "Valores calculados",
+    Tipo = "calculate",
+    `Nombre de regla` = "calc_edad_eq",
+    Objetivo = "Edad coherente",
+    `Variable 1` = "edad",
+    `Variable 1 - Etiqueta` = NA_character_,
+    `Variable 2` = NA_character_,
+    `Variable 2 - Etiqueta` = NA_character_,
+    `Variable 3` = NA_character_,
+    `Variable 3 - Etiqueta` = NA_character_,
+    Procesamiento = "calc_edad_eq <- (!is.na(edad) & suppressWarnings(as.numeric(edad)) > 120)"
+  )
+  rules <- bridge_legacy_plan_rows_to_rules(plan)
+  expect_length(rules, 1L)
+  ev <- evaluate_rules(
+    rules = rules,
+    data = data.frame(edad = c(20, 150))
+  )
+  expect_equal(ev$resumen$estado[1], "correcta")
+  expect_equal(ev$resumen$n_inconsistencias[1], 1L)
+})
+
+test_that("bridge_legacy_plan_rows_to_rules degrada pulldata legado a no_evaluada", {
+  plan <- tibble::tibble(
+    ID = "LEG_002",
+    Tabla = "principal",
+    `Sección` = "hogar",
+    `Categoría` = "Valores calculados",
+    Tipo = "calculate",
+    `Nombre de regla` = "calc_enum_eq",
+    Objetivo = "Enumerador consistente",
+    `Variable 1` = "Enumerator_name",
+    `Variable 2` = "Pulso_code",
+    `Variable 3` = NA_character_,
+    Procesamiento = "calc_enum_eq <- (!eq_chr_na(Enumerator_name, pulldata('pulso_lookup','encuestador','codigo_pulso',Pulso_code)))"
+  )
+  rules <- bridge_legacy_plan_rows_to_rules(plan)
+  expect_length(rules, 1L)
+  expect_equal(rules[[1]]$predicate$origin, "pulldata")
+
+  ev <- evaluate_rules(
+    rules = rules,
+    data = data.frame(Enumerator_name = "Ana", Pulso_code = "X1", stringsAsFactors = FALSE)
+  )
+  expect_equal(ev$resumen$estado[1], "no_evaluada")
+  expect_equal(ev$resumen$issue_code[1], "odk_raw")
+})
+
+test_that("validation_bundle_from_plan_df reconstituye reglas desde _ast_rule_json", {
+  rules <- list(
+    rule_required("edad"),
+    rule_range("edad", min = 0, max = 120, type = "numeric")
+  )
+  plan <- compile_rules_to_plan(rules)
+  bundle <- validation_bundle_from_plan_df(plan)
+  expect_length(bundle$rules, 2L)
+  expect_equal(sort(vapply(bundle$rules, function(r) r$id, character(1))),
+               sort(vapply(rules, function(r) r$id, character(1))))
+})
+
+test_that("validation_bundle_from_plan_df preserva nombre tecnico canonico aunque el Excel lo edite", {
+  rule <- rule_required("edad")
+  plan <- compile_rules_to_plan(list(rule))
+  plan$`Nombre técnico`[1] <- "slug_editado_manual"
+  bundle <- validation_bundle_from_plan_df(plan)
+  expect_equal(bundle$rules[[1]]$presentation$nombre_tecnico, rule$presentation$nombre_tecnico)
+  expect_true(length(bundle$import_warnings) >= 1L)
+})
+
+test_that("evaluate_validation_bundle respeta perfiles de compatibilidad declarativa", {
+  rule <- rule_required("p17.1")
+  bundle <- list(
+    rules = list(rule),
+    plan = compile_rules_to_plan(list(rule)),
+    compatibility = make_validation_compatibility_profile(
+      optional_var_patterns = c("\\.1$")
+    )
+  )
+  ev <- evaluate_validation_bundle(
+    bundle = bundle,
+    data_input = list(
+      principal = data.frame(`_uuid` = "U1", check.names = FALSE),
+      tables = list(principal = data.frame(`_uuid` = "U1", check.names = FALSE)),
+      data_multi = list(),
+      rc_checks = list()
+    )
+  )
+  expect_equal(ev$resumen$issue_code[1], "compatible_missing_columns")
+  expect_equal(ev$resumen$estado_dinamico[1], "correcta")
+  expect_equal(ev$resumen$n_inconsistencias[1], 0L)
+})
+
+test_that("validation_profile_for_base deja GIZ en paridad estricta", {
+  profile <- validation_profile_for_base("GIZ")
+  expect_length(profile$optional_vars, 0L)
+  expect_length(profile$optional_var_patterns, 0L)
+  expect_length(profile$equivalent_vars, 0L)
+})
+
+test_that("evaluate_validation_bundle reporta missing_columns para p9 faltante en GIZ", {
+  survey <- data.frame(
+    type = c("integer", "integer", "date"),
+    name = c("filtro", "consent", "p9"),
+    label = c("Filtro", "Consentimiento", "Fecha de atencion"),
+    required = c("", "", "yes"),
+    relevant = c("", "", "${filtro} = 1 and ${consent} = 1"),
+    constraint = c("", "", ". >= today() - 396 and . <= today()"),
+    stringsAsFactors = FALSE
+  )
+  rules_all <- infer_rules_from_xlsform(list(survey = survey))$rules
+  rules <- Filter(function(r) r$tipo_regla %in% c("required", "constraint"), rules_all)
+  bundle <- list(
+    rules = rules,
+    plan = compile_rules_to_plan(rules),
+    compatibility = validation_profile_for_base("GIZ")
+  )
+  main <- data.frame(
+    filtro = "1",
+    consent = "1",
+    end = "2025-10-02",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  ev <- evaluate_validation_bundle(
+    bundle = bundle,
+    data_input = list(
+      principal = main,
+      tables = list(principal = main),
+      data_multi = list(),
+      rc_checks = list()
+    )
+  )
+
+  expect_true(all(ev$resumen$issue_code %in% "missing_columns"))
+  # Nueva semántica (post-audit GIZ): columna ausente del export de datos
+  # no es un error del motor — es un caso "no aplicable" (la regla existe
+  # en el instrumento pero no hay nada que evaluar en la base real).
+  # Esto evita falsos positivos cuando ODK no exporta columnas de ramas
+  # condicionales no activadas.
+  expect_true(all(ev$resumen$estado_dinamico %in% "no_aplicable"))
+  expect_true(all(ev$resumen$n_inconsistencias %in% 0L))
+})
+
+test_that("evaluate_validation_bundle no tolera faltantes GIZ de p10 ni sufijos .1", {
+  rules <- list(
+    rule_required("p10_ule"),
+    rule_required("p17.1")
+  )
+  bundle <- list(
+    rules = rules,
+    plan = compile_rules_to_plan(rules),
+    compatibility = validation_profile_for_base("GIZ")
+  )
+
+  ev <- evaluate_validation_bundle(
+    bundle = bundle,
+    data_input = list(
+      principal = data.frame(`_uuid` = "U1", check.names = FALSE),
+      tables = list(principal = data.frame(`_uuid` = "U1", check.names = FALSE)),
+      data_multi = list(),
+      rc_checks = list()
+    )
+  )
+
+  expect_true(all(ev$resumen$issue_code %in% "missing_columns"))
+  expect_false(any(ev$resumen$issue_code %in% "compatible_missing_columns"))
+})
+
+test_that("evaluate_validation_bundle distingue required y constraint de p9 cuando la columna existe", {
+  survey <- data.frame(
+    type = c("integer", "integer", "date"),
+    name = c("filtro", "consent", "p9"),
+    label = c("Filtro", "Consentimiento", "Fecha de atencion"),
+    required = c("", "", "yes"),
+    relevant = c("", "", "${filtro} = 1 and ${consent} = 1"),
+    constraint = c("", "", ". >= today() - 396 and . <= today()"),
+    stringsAsFactors = FALSE
+  )
+  rules_all <- infer_rules_from_xlsform(list(survey = survey))$rules
+  rules <- Filter(function(r) r$tipo_regla %in% c("required", "constraint"), rules_all)
+  bundle <- list(
+    rules = rules,
+    plan = compile_rules_to_plan(rules),
+    compatibility = validation_profile_for_base("GIZ")
+  )
+  main <- data.frame(
+    filtro = c("1", "1", "1"),
+    consent = c("1", "1", "1"),
+    p9 = c("", "2026-01-15", "2025-10-01"),
+    end = c("2025-10-02", "2025-10-06", "2025-10-02"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  ev <- evaluate_validation_bundle(
+    bundle = bundle,
+    data_input = list(
+      principal = main,
+      tables = list(principal = main),
+      data_multi = list(),
+      rc_checks = list()
+    )
+  )
+
+  resumen_por_tipo <- setNames(ev$resumen$n_inconsistencias, ev$resumen$tipo_regla)
+  expect_equal(unname(resumen_por_tipo["required"]), 1L)
+  expect_equal(unname(resumen_por_tipo["constraint"]), 1L)
+})
+
+test_that("evaluate_validation_bundle deja constraint de p9 como no_evaluada sin fecha de captura", {
+  survey <- data.frame(
+    type = c("integer", "integer", "date"),
+    name = c("filtro", "consent", "p9"),
+    label = c("Filtro", "Consentimiento", "Fecha de atencion"),
+    required = c("", "", "yes"),
+    relevant = c("", "", "${filtro} = 1 and ${consent} = 1"),
+    constraint = c("", "", ". >= today() - 396 and . <= today()"),
+    stringsAsFactors = FALSE
+  )
+  rules_all <- infer_rules_from_xlsform(list(survey = survey))$rules
+  rules <- Filter(function(r) r$tipo_regla %in% c("required", "constraint"), rules_all)
+  bundle <- list(
+    rules = rules,
+    plan = compile_rules_to_plan(rules),
+    compatibility = validation_profile_for_base("GIZ")
+  )
+  main <- data.frame(
+    filtro = c("1", "1"),
+    consent = c("1", "1"),
+    p9 = c("", "2026-01-15"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  ev <- evaluate_validation_bundle(
+    bundle = bundle,
+    data_input = list(
+      principal = main,
+      tables = list(principal = main),
+      data_multi = list(),
+      rc_checks = list()
+    )
+  )
+
+  resumen_req <- ev$resumen[ev$resumen$tipo_regla == "required", , drop = FALSE]
+  resumen_cons <- ev$resumen[ev$resumen$tipo_regla == "constraint", , drop = FALSE]
+
+  expect_equal(resumen_req$n_inconsistencias[[1]], 1L)
+  expect_equal(resumen_req$estado_dinamico[[1]], "correcta")
+  expect_true(is.na(resumen_req$issue_code[[1]]))
+
+  expect_equal(resumen_cons$estado_dinamico[[1]], "no_evaluada")
+  expect_equal(resumen_cons$issue_code[[1]], "missing_collection_date")
+  expect_match(resumen_cons$detalle[[1]], "today\\(\\)")
+  expect_true(is.na(resumen_cons$n_inconsistencias[[1]]))
+})
+
+test_that("evaluate_validation_bundle usa fechas de captura ISO sucias cuando existen", {
+  survey <- data.frame(
+    type = c("integer", "integer", "date"),
+    name = c("filtro", "consent", "p9"),
+    label = c("Filtro", "Consentimiento", "Fecha de atencion"),
+    required = c("", "", "yes"),
+    relevant = c("", "", "${filtro} = 1 and ${consent} = 1"),
+    constraint = c("", "", ". >= today() - 396 and . <= today()"),
+    stringsAsFactors = FALSE
+  )
+  rules_all <- infer_rules_from_xlsform(list(survey = survey))$rules
+  rules <- Filter(function(r) r$tipo_regla %in% c("required", "constraint"), rules_all)
+  bundle <- list(
+    rules = rules,
+    plan = compile_rules_to_plan(rules),
+    compatibility = validation_profile_for_base("GIZ")
+  )
+  main <- data.frame(
+    filtro = c("1", "1"),
+    consent = c("1", "1"),
+    p9 = c("2025-10-01", "2024-09-01"),
+    end = c("2026-02-17T12:21:42.575-05:00", "2026-02-18T10:37:01.848-05:00"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  ev <- evaluate_validation_bundle(
+    bundle = bundle,
+    data_input = list(
+      principal = main,
+      tables = list(principal = main),
+      data_multi = list(),
+      rc_checks = list()
+    )
+  )
+
+  resumen_req <- ev$resumen[ev$resumen$tipo_regla == "required", , drop = FALSE]
+  resumen_cons <- ev$resumen[ev$resumen$tipo_regla == "constraint", , drop = FALSE]
+
+  expect_equal(resumen_req$n_inconsistencias[[1]], 0L)
+  expect_equal(resumen_cons$estado_dinamico[[1]], "correcta")
+  expect_true(is.na(resumen_cons$issue_code[[1]]))
+  expect_equal(resumen_cons$n_inconsistencias[[1]], 1L)
+})
+
+test_that("evaluate_validation_bundle evalúa repeat_length con rc_checks", {
+  rule <- rule_repeat_length("hh_repeat", expected = 2)
+  bundle <- list(
+    rules = list(rule),
+    plan = compile_rules_to_plan(list(rule)),
+    compatibility = make_validation_compatibility_profile()
+  )
+  main <- data.frame(`_uuid` = c("U1", "U2"), check.names = FALSE)
+  ev <- evaluate_validation_bundle(
+    bundle = bundle,
+    data_input = list(
+      principal = main,
+      tables = list(principal = main),
+      data_multi = list(),
+      rc_checks = list(
+        hh_repeat = list(
+          by_parent = data.frame(status = c("ok", "faltan"), stringsAsFactors = FALSE)
+        )
+      )
+    )
+  )
+  expect_equal(ev$resumen$n_inconsistencias[1], 1L)
+  expect_true(rule$flag_name %in% names(ev$datos))
+  expect_equal(sum(ev$datos[[rule$flag_name]], na.rm = TRUE), 1L)
+})
+
+test_that("ll_eval_repeats_count_expr tolera variables ausentes en repeat_count", {
+  parent_row <- tibble::tibble(`_index` = "U1", n_hijos = 2L)
+  expect_true(is.na(ll_eval_repeats_count_expr("${n_selected_child_edu_calcul_nc}", parent_row)))
+})
+
+test_that("legacy_safe_sum coerces character numerics before aggregating", {
+  expect_equal(.legacy_safe_sum(c("1", "2", "3"), na.rm = TRUE), 6)
+})
+
+test_that("evaluate_rules detalla faltantes por rol semantico", {
+  rule <- rule_required("edad", gate = ast_compare_const("consent", "==", "1"))
+  ev <- evaluate_rules(list(rule), data.frame(x = 1))
+  expect_equal(ev$resumen$issue_code[1], "missing_columns")
+  expect_match(ev$resumen$detalle[1], "objetivo: edad")
+  expect_match(ev$resumen$detalle[1], "gate: consent")
+})
+
+test_that("read_validation_data_ast fija la hoja principal como primera hoja del Excel", {
+  path <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(path), add = TRUE)
+
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "MAIN")
+  openxlsx::writeData(wb, "MAIN", data.frame(
+    `_index` = c("P1", "P2"),
+    edad = c(20, 30),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  ))
+  openxlsx::addWorksheet(wb, "REP")
+  openxlsx::writeData(wb, "REP", data.frame(
+    `_parent_index` = c("P1", "P1", "P2"),
+    valor = c("a", "b", "c"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  ))
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+
+  data_ctx <- read_validation_data_ast(path, "xlsx")
+  expect_equal(nrow(data_ctx$principal), 2L)
+  expect_true("edad" %in% names(data_ctx$principal))
+  expect_true("MAIN" %in% names(data_ctx$tables))
+  expect_true("edad" %in% names(data_ctx$tables$REP))
+  expect_equal(data_ctx$tables$REP$edad, c(20, 20, 30))
+})
+
+test_that("restore_instrument_case_aliases repone nombres del instrumento tras normalizacion", {
+  instrumento <- list(
+    survey = data.frame(
+      name = c("PERprofile", "Country"),
+      stringsAsFactors = FALSE
+    )
+  )
+  tables <- list(
+    principal = data.frame(
+      perprofile = "A",
+      country = "PE",
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  )
+
+  aliased <- .restore_instrument_case_aliases(tables, instrumento)
+  expect_true(all(c("PERprofile", "Country") %in% names(aliased$principal)))
+  expect_equal(aliased$principal$PERprofile, aliased$principal$perprofile)
+  expect_equal(aliased$principal$Country, aliased$principal$country)
 })
