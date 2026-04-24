@@ -74,6 +74,62 @@ resolve_label_es <- function(row, cols = names(row)) {
   stats::setNames(vals, as.character(survey$name))
 }
 
+# -----------------------------------------------------------------------------
+# .survey_choices_map: por cada variable de tipo select_one/select_multiple,
+# devuelve un named list (code -> label) usando el survey$type para encontrar
+# el `list_name` y luego choices$list_name + choices$name.
+#
+# Ejemplo de salida:
+#   list(
+#     filtro    = list(`1` = "Sí", `0` = "No"),
+#     consent   = list(`1` = "Sí", `0` = "No"),
+#     p13       = list(`1` = "Muy insatisfecho", `2` = "Insatisfecho", ...)
+#   )
+#
+# Se usa para que la narrativa diga «marcó «Sí»» en lugar de «debe ser igual
+# a '1'» — resuelve los códigos XLSForm a su texto legible.
+# -----------------------------------------------------------------------------
+.survey_choices_map <- function(survey, choices) {
+  if (is.null(survey) || is.null(choices) || !nrow(survey) || !nrow(choices)) {
+    return(list())
+  }
+  if (!all(c("list_name", "name") %in% names(choices))) return(list())
+  if (!all(c("type", "name") %in% names(survey))) return(list())
+
+  # Index choices por list_name — split es O(n) y da una estructura fácil.
+  choices_by_list <- split(choices, as.character(choices$list_name))
+
+  out <- list()
+  for (i in seq_len(nrow(survey))) {
+    row_type <- as.character(survey$type[i])
+    row_name <- as.character(survey$name[i])
+    if (is.na(row_type) || is.na(row_name) || !nzchar(row_type) || !nzchar(row_name)) next
+
+    # Captura "select_one <list>" o "select_multiple <list>" al inicio.
+    m <- regmatches(row_type, regexpr("^(select_one|select_multiple)\\s+(\\S+)",
+                                       row_type, perl = TRUE))
+    if (!length(m)) next
+    parts <- strsplit(m, "\\s+")[[1]]
+    if (length(parts) < 2L) next
+    list_name <- parts[2]
+    ch <- choices_by_list[[list_name]]
+    if (is.null(ch) || !nrow(ch)) next
+
+    code_to_label <- stats::setNames(
+      vapply(seq_len(nrow(ch)), function(j) {
+        resolve_label_es(as.list(ch[j, , drop = FALSE]), names(ch))
+      }, character(1)),
+      as.character(ch$name)
+    )
+    # Filtrar entradas vacías (code sin label usable).
+    keep <- nzchar(code_to_label) & !is.na(code_to_label)
+    if (any(keep)) {
+      out[[row_name]] <- as.list(code_to_label[keep])
+    }
+  }
+  out
+}
+
 .context_prefix <- function(tabla, repeat_context = NULL, seccion = NULL) {
   if (!is.null(repeat_context) && !is.na(repeat_context) && nzchar(repeat_context)) {
     return(sprintf("En la hoja de datos «%s» (sección repetida «%s»), ", tabla, repeat_context))
@@ -112,7 +168,8 @@ resolve_label_es <- function(row, cols = names(row)) {
                                          nombre_humano = NULL,
                                          objetivo = NULL,
                                          subtipo_semantico = NULL,
-                                         detalle_ast = NULL) {
+                                         detalle_ast = NULL,
+                                         choices_map = NULL) {
   label_map <- .survey_label_map(survey)
   gate_vars <- if (!is.null(gate_ast)) ast_variables(gate_ast) else character(0)
   roles <- list(
@@ -126,8 +183,8 @@ resolve_label_es <- function(row, cols = names(row)) {
       unique(c(target_var, compare_vars, gate_vars))
     )
   )
-  gate_humano <- if (!is.null(gate_ast)) .ast_to_human_text(gate_ast, label_map = label_map) else ""
-  detalle_condicion <- if (!is.null(detalle_ast)) .ast_to_human_text(detalle_ast, label_map = label_map) else ""
+  gate_humano <- if (!is.null(gate_ast)) .ast_to_human_text(gate_ast, label_map = label_map, choices_map = choices_map) else ""
+  detalle_condicion <- if (!is.null(detalle_ast)) .ast_to_human_text(detalle_ast, label_map = label_map, choices_map = choices_map) else ""
   .rule_apply_metadata(
     rule,
     primary_var = target_var,
@@ -278,7 +335,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
 # -----------------------------------------------------------------------------
 # Sub-introspectores por tipo
 # -----------------------------------------------------------------------------
-.infer_required <- function(survey, ctx_map) {
+.infer_required <- function(survey, ctx_map, choices_map = NULL) {
   rules <- list()
   if (!("required" %in% names(survey))) return(rules)
   label_map <- .survey_label_map(survey)
@@ -327,7 +384,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       repeat_context = row$repeat_context
     )
     tabla <- if (!is.null(row$repeat_context)) row$repeat_context else "principal"
-    gate_h <- if (!is.null(eff_gate)) .ast_to_human_text(eff_gate, label_map = label_map) else ""
+    gate_h <- if (!is.null(eff_gate)) .ast_to_human_text(eff_gate, label_map = label_map, choices_map = choices_map) else ""
     pref <- .context_prefix(tabla, row$repeat_context, seccion)
     objetivo <- if (nzchar(gate_h)) {
       sprintf("%sSi %s, entonces «%s» debe responderse.", pref, gate_h, label %||% var)
@@ -341,14 +398,15 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       gate_ast = eff_gate,
       nombre_humano = nombre,
       objetivo = objetivo,
-      subtipo_semantico = "req"
+      subtipo_semantico = "req",
+      choices_map = choices_map
     )
     rules[[length(rules) + 1L]] <- r
   }
   rules
 }
 
-.infer_skip <- function(survey, ctx_map) {
+.infer_skip <- function(survey, ctx_map, choices_map = NULL) {
   rules <- list()
   if (!("relevant" %in% names(survey))) return(rules)
   label_map <- .survey_label_map(survey)
@@ -406,7 +464,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       nombre = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — no debe responderse", var, label) else sprintf("[%s] Salto — no debe responderse", var),
       seccion = seccion_row, tabla = tabla_row, repeat_context = row$repeat_context
     )
-    gate_h <- .ast_to_human_text(gate_full, label_map = label_map)
+    gate_h <- .ast_to_human_text(gate_full, label_map = label_map, choices_map = choices_map)
     pref <- .context_prefix(tabla_row, row$repeat_context, seccion_row)
     obj_debe <- if (nzchar(gate_h)) {
       sprintf("%sSi %s, entonces «%s» debe responderse.", pref, gate_h, label %||% var)
@@ -426,7 +484,8 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       nombre_humano = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — debe responderse", var, label) else sprintf("[%s] Salto — debe responderse", var),
       objetivo = obj_debe,
       subtipo_semantico = "debe",
-      detalle_ast = gate_full
+      detalle_ast = gate_full,
+      choices_map = choices_map
     )
     r_nodebe <- .enrich_ast_rule_from_survey(
       r_nodebe,
@@ -436,7 +495,8 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       nombre_humano = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — no debe responderse", var, label) else sprintf("[%s] Salto — no debe responderse", var),
       objetivo = obj_nodebe,
       subtipo_semantico = "nodebe",
-      detalle_ast = gate_full
+      detalle_ast = gate_full,
+      choices_map = choices_map
     )
     rules[[length(rules) + 1L]] <- r_debe
     rules[[length(rules) + 1L]] <- r_nodebe
@@ -444,7 +504,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
   rules
 }
 
-.infer_constraint <- function(survey, ctx_map) {
+.infer_constraint <- function(survey, ctx_map, choices_map = NULL) {
   rules <- list()
   if (!("constraint" %in% names(survey))) return(rules)
   label_map <- .survey_label_map(survey)
@@ -523,8 +583,8 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       repeat_context = row$repeat_context
     )
     pref <- .context_prefix(tabla, row$repeat_context, seccion)
-    gate_h <- if (!is.null(eff_gate)) .ast_to_human_text(eff_gate, label_map = label_map) else ""
-    detalle_h <- .ast_to_human_text(parsed$ast, label_map = label_map)
+    gate_h <- if (!is.null(eff_gate)) .ast_to_human_text(eff_gate, label_map = label_map, choices_map = choices_map) else ""
+    detalle_h <- .ast_to_human_text(parsed$ast, label_map = label_map, choices_map = choices_map)
     objetivo <- if (nzchar(gate_h)) {
       sprintf("%sSi %s, entonces %s.", pref, gate_h, detalle_h)
     } else {
@@ -539,14 +599,15 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       nombre_humano = nombre,
       objetivo = objetivo,
       subtipo_semantico = "form",
-      detalle_ast = parsed$ast
+      detalle_ast = parsed$ast,
+      choices_map = choices_map
     )
     rules[[length(rules) + 1L]] <- r
   }
   rules
 }
 
-.infer_repeat_length <- function(survey, ctx_map) {
+.infer_repeat_length <- function(survey, ctx_map, choices_map = NULL) {
   rules <- list()
   if (!("repeat_count" %in% names(survey))) return(rules)
   label_map <- .survey_label_map(survey)
@@ -579,7 +640,8 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
           compare_vars = compare_vars,
           nombre_humano = sprintf("Longitud de «%s»", target_lab),
           objetivo = objetivo,
-          subtipo_semantico = "count"
+          subtipo_semantico = "count",
+          choices_map = choices_map
         )
         rules[[length(rules) + 1L]] <- r
       }
@@ -625,22 +687,26 @@ infer_rules_from_xlsform <- function(instrumento,
                                      dedup = TRUE) {
   if (is.null(instrumento$survey)) stop("infer_rules_from_xlsform(): falta survey.")
   survey <- instrumento$survey
+  # choices_map se construye una sola vez y se propaga a todos los
+  # sub-inferidores. Permite que los textos humanos resuelvan códigos
+  # de choice a labels (ej: "marcó «Sí»" en vez de "debe ser igual a '1'").
+  choices_map <- .survey_choices_map(survey, instrumento$choices)
   gate_full <- build_group_gate_map(survey, return_mode = "full")
   ctx_map <- gate_full$entries
   autoref_warnings <- gate_full$warnings
 
   all_rules <- list()
   if ("required" %in% include) {
-    all_rules <- c(all_rules, .infer_required(survey, ctx_map))
+    all_rules <- c(all_rules, .infer_required(survey, ctx_map, choices_map = choices_map))
   }
   if ("skip" %in% include) {
-    all_rules <- c(all_rules, .infer_skip(survey, ctx_map))
+    all_rules <- c(all_rules, .infer_skip(survey, ctx_map, choices_map = choices_map))
   }
   if ("constraint" %in% include) {
-    all_rules <- c(all_rules, .infer_constraint(survey, ctx_map))
+    all_rules <- c(all_rules, .infer_constraint(survey, ctx_map, choices_map = choices_map))
   }
   if ("repeat_length" %in% include) {
-    all_rules <- c(all_rules, .infer_repeat_length(survey, ctx_map))
+    all_rules <- c(all_rules, .infer_repeat_length(survey, ctx_map, choices_map = choices_map))
   }
 
   # Dedup por id (que ya incluye hash del predicate + gate + tipo).

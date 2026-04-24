@@ -954,13 +954,122 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
     ))
   }
 
+  # NUM × SO: boxplot con SO en eje X (categoría) y NUM en eje Y
+  # (distribución). Simétrico a so×num — el usuario puede pedir el
+  # cruce en cualquier orden y siempre se ve la distribución numérica
+  # descompuesta por categoría, que es la lectura natural.
+  if (tipo_x == "num" && tipo_y == "so") {
+    if (!(var_x %in% names(data)) || !(var_y %in% names(data))) {
+      return(vd_bar_h(
+        title = titulo, labels = character(), values = numeric(),
+        meta = list(empty_hint = "Variables no presentes en la base.")
+      ))
+    }
+    map_y <- .explorar_map_choices(var_y, instrumento)
+    xv <- suppressWarnings(as.numeric(data[[var_x]]))
+    yv <- as.character(data[[var_y]])
+    ok <- !is.na(yv) & nzchar(yv) & yv != "NA" & is.finite(xv)
+    xv <- xv[ok]; yv <- yv[ok]
+    if (!length(yv)) {
+      return(vd_bar_h(
+        title = titulo, labels = character(), values = numeric(),
+        meta = list(empty_hint = "Sin casos válidos en ambas variables.")
+      ))
+    }
+    yv_lab <- if (!is.null(map_y)) unname(map_y[yv]) else yv
+    yv_lab[is.na(yv_lab)] <- yv[is.na(yv_lab)]
+    cats <- if (!is.null(map_y)) unique(unname(map_y)) else sort(unique(yv_lab))
+    cats <- cats[cats %in% yv_lab]
+    trace <- list(
+      type = "box",
+      x = as.character(yv_lab),  # categoría en X
+      y = as.numeric(xv),         # número en Y
+      boxpoints = "outliers",
+      marker = list(color = "#2563eb"),
+      line = list(color = "#1e40af"),
+      hovertemplate = sprintf("%s=%%{x}<br>%s=%%{y}<extra></extra>",
+                                label_y, label_x)
+    )
+    layout <- list(
+      margin = list(l = 56, r = 24, t = 16, b = 60),
+      xaxis = list(title = list(text = label_y), tickangle = -20,
+                    categoryorder = "array",
+                    categoryarray = cats, automargin = TRUE),
+      yaxis = list(title = list(text = label_x), gridcolor = "#e5e7eb"),
+      plot_bgcolor = "#ffffff", paper_bgcolor = "#ffffff",
+      showlegend = FALSE,
+      height = 360L
+    )
+    return(list(
+      version = 1L, kind = "boxplot",
+      title = titulo,
+      subtitle = sprintf("Distribución de %s por categoría (n=%d).",
+                          label_x, length(xv)),
+      meta = list(var_x = var_x, var_y = var_y,
+                  tipo_x = tipo_x, tipo_y = tipo_y),
+      plotly = list(data = list(trace), layout = layout,
+                    config = list(displayModeBar = FALSE, responsive = TRUE)),
+      actions = list()
+    ))
+  }
+
+  # NUM × NUM: scatter simple para explorar correlación.
+  if (tipo_x == "num" && tipo_y == "num") {
+    if (!(var_x %in% names(data)) || !(var_y %in% names(data))) {
+      return(vd_bar_h(
+        title = titulo, labels = character(), values = numeric(),
+        meta = list(empty_hint = "Variables no presentes en la base.")
+      ))
+    }
+    xv <- suppressWarnings(as.numeric(data[[var_x]]))
+    yv <- suppressWarnings(as.numeric(data[[var_y]]))
+    ok <- is.finite(xv) & is.finite(yv)
+    xv <- xv[ok]; yv <- yv[ok]
+    if (!length(xv)) {
+      return(vd_bar_h(
+        title = titulo, labels = character(), values = numeric(),
+        meta = list(empty_hint = "Sin casos válidos en ambas variables.")
+      ))
+    }
+    trace <- list(
+      type = "scattergl",
+      mode = "markers",
+      x = as.numeric(xv),
+      y = as.numeric(yv),
+      marker = list(color = "#2457d6", size = 5, opacity = 0.55,
+                     line = list(width = 0)),
+      hovertemplate = sprintf("%s=%%{x}<br>%s=%%{y}<extra></extra>",
+                                label_x, label_y)
+    )
+    layout <- list(
+      margin = list(l = 56, r = 24, t = 16, b = 60),
+      xaxis = list(title = list(text = label_x), gridcolor = "#e5e7eb",
+                    zeroline = FALSE),
+      yaxis = list(title = list(text = label_y), gridcolor = "#e5e7eb",
+                    zeroline = FALSE),
+      plot_bgcolor = "#ffffff", paper_bgcolor = "#ffffff",
+      showlegend = FALSE,
+      height = 420L
+    )
+    return(list(
+      version = 1L, kind = "scatter",
+      title = titulo,
+      subtitle = sprintf("Dispersión (n=%d casos válidos).", length(xv)),
+      meta = list(var_x = var_x, var_y = var_y,
+                  tipo_x = tipo_x, tipo_y = tipo_y),
+      plotly = list(data = list(trace), layout = layout,
+                    config = list(displayModeBar = FALSE, responsive = TRUE)),
+      actions = list()
+    ))
+  }
+
   # Otros cruces: fallback con mensaje.
   vd_bar_h(
     title = titulo, labels = character(), values = numeric(),
     meta = list(
       tipo_x = tipo_x, tipo_y = tipo_y,
       empty_hint = sprintf(
-        "Cruce %s × %s no soportado (soportados: so×so, so×sm, so×num).",
+        "Cruce %s × %s no soportado (soportados: so×so, so×sm, so×num, num×so, num×num).",
         tipo_x, tipo_y
       )
     )

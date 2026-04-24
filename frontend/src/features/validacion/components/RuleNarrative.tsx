@@ -267,6 +267,46 @@ export default function RuleNarrative({
         )}
       </div>
 
+      {/* Chip con la variable target (nombre técnico) — facilita el
+          scan rápido en listas grandes con muchos labels similares.
+          Se deriva de variable_roles.target o, en fallback, de la
+          primera variable de la regla. */}
+      {(() => {
+        const target =
+          (roleSections.find((s) => s.role === "target")?.items[0]?.key) ??
+          (rule.variables && rule.variables.length > 0 ? rule.variables[0] : null);
+        if (!target) return null;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                color: "var(--pulso-text-soft)",
+              }}
+            >
+              Variable
+            </span>
+            <code
+              style={{
+                fontFamily: "ui-monospace, SFMono-Regular, Consolas, monospace",
+                fontSize: 13,
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: 6,
+                background: "white",
+                border: "1px solid var(--pulso-primary-border)",
+                color: "var(--pulso-primary)",
+              }}
+            >
+              {target}
+            </code>
+          </div>
+        );
+      })()}
+
       {/* Headline narrativo grande */}
       <div
         style={{

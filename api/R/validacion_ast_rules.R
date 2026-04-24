@@ -182,6 +182,10 @@ make_rule <- function(nombre,
     predicate = predicate,
     gate = gate,
     variables = variables,
+    # primary_var: la variable TARGET de la validación (la que se checa,
+    # no las que aparecen en el gate). Los constructores la setean
+    # explícitamente; si no, fallback al primer variable del predicate.
+    primary_var = if (length(variables)) variables[1] else NA_character_,
     predicate_hash = predicate_hash,
     gate_hash = gate_hash,
     tabla = tabla %||% "principal",
@@ -195,8 +199,7 @@ make_rule <- function(nombre,
     # flag name R-compatible para Procesamiento
     flag_name = .derive_flag_name(id)
   )
-  class(rule) <- c("vd_rule", "list")
-  rule
+  .rule_apply_metadata(rule)
 }
 
 #' @export
@@ -238,7 +241,7 @@ rule_required <- function(var,
                           repeat_context = NULL) {
   predicate <- ast_is_missing(var)
   if (is.null(nombre)) nombre <- sprintf("«%s» debe responderse", var)
-  make_rule(
+  r <- make_rule(
     nombre = nombre,
     tipo_regla = "required",
     fuente = fuente,
@@ -249,6 +252,17 @@ rule_required <- function(var,
     seccion = seccion,
     tabla = tabla,
     repeat_context = repeat_context
+  )
+  .rule_apply_metadata(
+    r,
+    primary_var = var,
+    variable_roles = list(
+      target = var,
+      drivers = if (!is.null(gate)) ast_variables(gate) else character(0),
+      compare = character(0),
+      gate = if (!is.null(gate)) ast_variables(gate) else character(0)
+    ),
+    presentation = list(subtipo_semantico = "req")
   )
 }
 
@@ -290,7 +304,7 @@ rule_skip <- function(var,
     nombre <- nombre %||% sprintf("«%s» debe responderse sí/no según corresponda al salto", var)
   }
 
-  make_rule(
+  r <- make_rule(
     nombre = nombre,
     tipo_regla = "skip",
     fuente = fuente,
@@ -301,6 +315,24 @@ rule_skip <- function(var,
     seccion = seccion,
     tabla = tabla,
     repeat_context = repeat_context
+  )
+  .rule_apply_metadata(
+    r,
+    primary_var = var,
+    variable_roles = list(
+      target = var,
+      drivers = ast_variables(gate),
+      compare = character(0),
+      gate = ast_variables(gate)
+    ),
+    presentation = list(
+      subtipo_semantico = switch(direction,
+        "must_answer_when_true" = "debe",
+        "must_be_empty_when_false" = "nodebe",
+        "both" = "ambos",
+        "regla"
+      )
+    )
   )
 }
 
@@ -328,7 +360,7 @@ rule_range <- function(var,
     nombre <- sprintf("«%s» dentro de rango [%s, %s]",
                       var, min %||% "-", max %||% "-")
   }
-  make_rule(
+  r <- make_rule(
     nombre = nombre,
     tipo_regla = "range",
     fuente = fuente,
@@ -339,6 +371,19 @@ rule_range <- function(var,
     seccion = seccion,
     tabla = tabla,
     repeat_context = repeat_context
+  )
+  .rule_apply_metadata(
+    r,
+    primary_var = var,
+    variable_roles = list(
+      target = var,
+      drivers = if (!is.null(gate)) ast_variables(gate) else character(0),
+      compare = character(0),
+      gate = if (!is.null(gate)) ast_variables(gate) else character(0)
+    ),
+    presentation = list(
+      subtipo_semantico = if (identical(type, "date")) "ventana_fecha" else "rango"
+    )
   )
 }
 
@@ -358,7 +403,7 @@ rule_catalog <- function(var,
     nombre <- sprintf("«%s» dentro del catálogo permitido (%d valores)",
                       var, length(values))
   }
-  make_rule(
+  r <- make_rule(
     nombre = nombre,
     tipo_regla = "catalog",
     fuente = fuente,
@@ -369,6 +414,17 @@ rule_catalog <- function(var,
     seccion = seccion,
     tabla = tabla,
     repeat_context = repeat_context
+  )
+  .rule_apply_metadata(
+    r,
+    primary_var = var,
+    variable_roles = list(
+      target = var,
+      drivers = if (!is.null(gate)) ast_variables(gate) else character(0),
+      compare = character(0),
+      gate = if (!is.null(gate)) ast_variables(gate) else character(0)
+    ),
+    presentation = list(subtipo_semantico = "catalogo")
   )
 }
 
@@ -390,7 +446,7 @@ rule_outlier <- function(var,
   if (is.null(nombre)) {
     nombre <- sprintf("«%s» outlier (%s, k=%s)", var, method, k)
   }
-  make_rule(
+  r <- make_rule(
     nombre = nombre,
     tipo_regla = "outlier",
     fuente = fuente,
@@ -401,6 +457,17 @@ rule_outlier <- function(var,
     seccion = seccion,
     tabla = tabla,
     repeat_context = repeat_context
+  )
+  .rule_apply_metadata(
+    r,
+    primary_var = var,
+    variable_roles = list(
+      target = var,
+      drivers = if (!is.null(gate)) ast_variables(gate) else character(0),
+      compare = character(0),
+      gate = if (!is.null(gate)) ast_variables(gate) else character(0)
+    ),
+    presentation = list(subtipo_semantico = method)
   )
 }
 
@@ -417,7 +484,7 @@ rule_duplicate <- function(vars,
   if (is.null(nombre)) {
     nombre <- sprintf("Duplicados en (%s)", paste(vars, collapse = ", "))
   }
-  make_rule(
+  r <- make_rule(
     nombre = nombre,
     tipo_regla = "duplicate",
     fuente = fuente,
@@ -427,6 +494,17 @@ rule_duplicate <- function(vars,
     objetivo = objetivo,
     seccion = seccion,
     tabla = tabla
+  )
+  .rule_apply_metadata(
+    r,
+    primary_var = vars[[1]] %||% NA_character_,
+    variable_roles = list(
+      target = vars[[1]] %||% NA_character_,
+      compare = vars[-1],
+      drivers = character(0),
+      gate = if (!is.null(gate)) ast_variables(gate) else character(0)
+    ),
+    presentation = list(subtipo_semantico = "duplicados")
   )
 }
 
@@ -446,7 +524,7 @@ rule_coherence <- function(when,
     stop("rule_coherence(): 'when' y 'then_must' deben ser AST.")
   }
   predicate <- ast_if_then(when, then_must)
-  make_rule(
+  r <- make_rule(
     nombre = nombre,
     tipo_regla = "coherence",
     fuente = fuente,
@@ -456,6 +534,17 @@ rule_coherence <- function(when,
     seccion = seccion,
     tabla = tabla,
     repeat_context = repeat_context
+  )
+  .rule_apply_metadata(
+    r,
+    primary_var = ast_variables(then_must)[1] %||% ast_variables(when)[1] %||% NA_character_,
+    variable_roles = list(
+      target = ast_variables(then_must)[1] %||% ast_variables(when)[1] %||% NA_character_,
+      compare = setdiff(ast_variables(then_must), ast_variables(then_must)[1] %||% NA_character_),
+      drivers = ast_variables(when),
+      gate = character(0)
+    ),
+    presentation = list(subtipo_semantico = "if_then")
   )
 }
 
@@ -489,7 +578,7 @@ rule_select_multiple_cardinality <- function(var,
     )
     nombre <- sprintf("«%s» cardinalidad (%s)", var, paste(bits, collapse = " · "))
   }
-  make_rule(
+  r <- make_rule(
     nombre = nombre,
     tipo_regla = "select_multiple_cardinality",
     fuente = fuente,
@@ -500,6 +589,17 @@ rule_select_multiple_cardinality <- function(var,
     seccion = seccion,
     tabla = tabla,
     repeat_context = repeat_context
+  )
+  .rule_apply_metadata(
+    r,
+    primary_var = var,
+    variable_roles = list(
+      target = var,
+      compare = character(0),
+      drivers = if (!is.null(gate)) ast_variables(gate) else character(0),
+      gate = if (!is.null(gate)) ast_variables(gate) else character(0)
+    ),
+    presentation = list(subtipo_semantico = "cardinalidad")
   )
 }
 
@@ -517,7 +617,7 @@ rule_pattern_straightline <- function(vars,
   if (is.null(nombre)) {
     nombre <- sprintf("Straight-lining en (%s)", paste(vars, collapse = ", "))
   }
-  make_rule(
+  r <- make_rule(
     nombre = nombre,
     tipo_regla = "pattern",
     fuente = fuente,
@@ -527,6 +627,17 @@ rule_pattern_straightline <- function(vars,
     objetivo = objetivo,
     seccion = seccion,
     tabla = tabla
+  )
+  .rule_apply_metadata(
+    r,
+    primary_var = vars[[1]] %||% NA_character_,
+    variable_roles = list(
+      target = vars[[1]] %||% NA_character_,
+      compare = vars[-1],
+      drivers = if (!is.null(gate)) ast_variables(gate) else character(0),
+      gate = if (!is.null(gate)) ast_variables(gate) else character(0)
+    ),
+    presentation = list(subtipo_semantico = "straightline")
   )
 }
 
@@ -546,7 +657,7 @@ rule_repeat_length <- function(repeat_name,
                       repeat_name,
                       if (is_ast(expected)) "AST" else format(expected))
   }
-  make_rule(
+  r <- make_rule(
     nombre = nombre,
     tipo_regla = "repeat_length",
     fuente = fuente,
@@ -555,6 +666,18 @@ rule_repeat_length <- function(repeat_name,
     objetivo = objetivo,
     seccion = seccion,
     tabla = repeat_name  # la regla vive en la tabla repeat
+  )
+  compare_vars <- if (is_ast(expected)) ast_variables(expected) else if (is.character(expected)) expected else character(0)
+  .rule_apply_metadata(
+    r,
+    primary_var = repeat_name,
+    variable_roles = list(
+      target = repeat_name,
+      compare = compare_vars,
+      drivers = character(0),
+      gate = character(0)
+    ),
+    presentation = list(subtipo_semantico = "count")
   )
 }
 
@@ -603,7 +726,17 @@ rule_aggregate_check <- function(host_var,
     seccion = seccion,
     tabla = tabla
   )
-  r
+  .rule_apply_metadata(
+    r,
+    primary_var = host_var,
+    variable_roles = list(
+      target = host_var,
+      compare = c(source_var, parent_key_local, parent_key_remote),
+      drivers = if (!is.null(gate)) ast_variables(gate) else character(0),
+      gate = if (!is.null(gate)) ast_variables(gate) else character(0)
+    ),
+    presentation = list(subtipo_semantico = agg_op)
+  )
 }
 
 #' Escape hatch: regla que envuelve una expresión ODK cruda.
@@ -635,7 +768,17 @@ rule_odk_raw <- function(odk_expression,
     repeat_context = repeat_context
   )
   rule$variables <- unique(c(rule$variables, as.character(variables)))
-  rule
+  .rule_apply_metadata(
+    rule,
+    primary_var = as.character(variables[[1]] %||% NA_character_),
+    variable_roles = list(
+      target = as.character(variables[[1]] %||% NA_character_),
+      compare = as.character(variables[-1] %||% character(0)),
+      drivers = character(0),
+      gate = character(0)
+    ),
+    presentation = list(subtipo_semantico = "raw")
+  )
 }
 
 # -----------------------------------------------------------------------------
@@ -717,12 +860,12 @@ validate_rule <- function(rule, instrumento = NULL) {
                                        op, v, t))
       }
     }
-    if (op == "range_date") {
+    if (op %in% c("range_date", "collection_date_cmp", "collection_date_offset_cmp")) {
       v <- node$var
       t <- type_of(v)
       if (!is.na(t) && !(t %in% c("date", "datetime"))) {
-        issues <<- c(issues, sprintf("range_date sobre '%s' de tipo '%s' (esperado date)",
-                                       v, t))
+        issues <<- c(issues, sprintf("%s sobre '%s' de tipo '%s' (esperado date)",
+                                       op, v, t))
       }
     }
     if (op %in% c("selected", "any_selected", "none_selected",
@@ -749,6 +892,7 @@ validate_rule <- function(rule, instrumento = NULL) {
 #' @export
 compile_rule <- function(rule) {
   if (!is_rule(rule)) stop("compile_rule(): x debe ser vd_rule.")
+  rule <- .rule_apply_metadata(rule)
 
   # Incorporar gate al predicate para el compilado final: si hay gate,
   # la inconsistencia es (gate AND predicate).
@@ -758,31 +902,42 @@ compile_rule <- function(rule) {
   rhs <- ast_to_r(effective_pred)
   procesamiento <- sprintf("%s <- %s", rule$flag_name, rhs)
 
-  # Variable 1/2/3 — primera 3 referenciadas (compatible con shape legacy).
-  vars_pad <- c(rule$variables, rep(NA_character_, 3))[1:3]
+  vars_slots <- .rule_variable_slots(rule)
+  vars_pad <- vars_slots$vars
+  labs_pad <- vars_slots$labels
 
   tibble::tibble(
     ID = rule$id,
     Tabla = rule$tabla,
     `Sección` = rule$seccion %||% NA_character_,
-    `Categoría` = rule$categoria_ux,
+    `Categoría` = .legacy_plan_categoria(rule$tipo_regla),
     `Tipo` = rule$tipo_regla,
-    `Nombre de regla` = rule$flag_name,
+    `Nombre de regla` = rule$presentation$nombre_humano %||% rule$nombre,
+    `Nombre técnico` = rule$presentation$nombre_tecnico %||% rule$flag_name,
     Objetivo = rule$objetivo,
     `Variable 1` = vars_pad[1],
-    `Variable 1 - Etiqueta` = NA_character_,
+    `Variable 1 - Etiqueta` = labs_pad[1],
     `Variable 2` = vars_pad[2],
-    `Variable 2 - Etiqueta` = NA_character_,
+    `Variable 2 - Etiqueta` = labs_pad[2],
     `Variable 3` = vars_pad[3],
-    `Variable 3 - Etiqueta` = NA_character_,
+    `Variable 3 - Etiqueta` = labs_pad[3],
     Procesamiento = procesamiento,
     # Metadata extendida (útil para la UI, ignorada por el evaluador legacy).
     `_rule_hash` = rule$predicate_hash,
     `_severidad` = rule$severidad,
     `_fuente` = rule$fuente,
+    `_tipo_regla` = rule$tipo_regla,
+    `_categoria_ux` = rule$categoria_ux,
     `_nombre_humano` = rule$nombre,
+    `_nombre_tecnico` = rule$presentation$nombre_tecnico %||% rule$flag_name,
+    `_primary_var` = rule$primary_var %||% NA_character_,
     `_remediation` = rule$remediation_default,
-    `_repeat_context` = rule$repeat_context %||% NA_character_
+    `_repeat_context` = rule$repeat_context %||% NA_character_,
+    `_ast_predicate` = as.character(ast_to_json(rule$predicate)),
+    `_ast_gate` = if (is.null(rule$gate)) NA_character_ else as.character(ast_to_json(rule$gate)),
+    `_variable_roles_json` = as.character(jsonlite::toJSON(rule$variable_roles %||% list(), auto_unbox = TRUE, null = "null")),
+    `_presentation_json` = as.character(jsonlite::toJSON(rule$presentation %||% list(), auto_unbox = TRUE, null = "null")),
+    `_ast_rule_json` = as.character(rule_to_json(rule))
   )
 }
 
@@ -865,6 +1020,25 @@ compile_rule <- function(rule) {
   )
 }
 
+.legacy_plan_categoria <- function(tipo_regla) {
+  switch(as.character(tipo_regla),
+    "required" = "Preguntas de control",
+    "skip" = "Saltos de preguntas",
+    "constraint" = "Consistencia",
+    "range" = "Consistencia",
+    "catalog" = "Consistencia",
+    "outlier" = "Valores atípicos",
+    "duplicate" = "Consistencia",
+    "coherence" = "Consistencia",
+    "select_multiple_cardinality" = "Consistencia",
+    "pattern" = "Valores atípicos",
+    "calculate_check" = "Valores calculados",
+    "repeat_length" = "Registros repetidos",
+    "odk_raw" = "Consistencia",
+    "Consistencia"
+  )
+}
+
 .derive_rule_id <- function(tipo_regla, variables, predicate_hash, gate_hash, fuente) {
   # Prefijo por fuente, luego hash corto del contenido.
   prefix <- if (fuente == "instrumento") "VR" else "CR"  # validation / custom rule
@@ -882,4 +1056,360 @@ compile_rule <- function(rule) {
   out <- tolower(out)
   if (!grepl("^[a-z_]", out)) out <- paste0("r_", out)
   out
+}
+
+.sanitize_rule_token <- function(x) {
+  out <- tolower(trimws(as.character(x %||% "")))
+  out <- gsub("[^a-z0-9_]+", "_", out)
+  out <- gsub("_+", "_", out)
+  out <- gsub("^_|_$", "", out)
+  if (!nzchar(out)) "regla" else out
+}
+
+.normalize_chr_vec <- function(x) {
+  x <- as.character(x %||% character(0))
+  x <- x[!is.na(x) & nzchar(trimws(x))]
+  unique(x)
+}
+
+.normalize_lookup_list <- function(x) {
+  if (is.null(x)) return(list())
+  if (is.list(x)) {
+    out <- lapply(x, function(v) as.character(v %||% NA_character_)[1])
+    out <- out[!vapply(out, function(v) is.na(v) || !nzchar(v), logical(1))]
+    return(out)
+  }
+  x <- as.character(x)
+  nm <- names(x)
+  if (is.null(nm)) return(list())
+  keep <- !is.na(x) & nzchar(x)
+  x <- x[keep]
+  as.list(stats::setNames(x, nm[keep]))
+}
+
+.short_rule_hash <- function(rule) {
+  sub("^.*_", "", as.character(rule$id %||% "rule"))
+}
+
+.rule_default_roles <- function(rule) {
+  target <- as.character(rule$primary_var %||% NA_character_)
+  if (is.na(target) || !nzchar(target)) {
+    pred_vars <- ast_variables(rule$predicate)
+    target <- pred_vars[1] %||% rule$variables[1] %||% NA_character_
+  }
+  pred_vars <- ast_variables(rule$predicate)
+  gate_vars <- if (!is.null(rule$gate)) ast_variables(rule$gate) else character(0)
+  compare <- setdiff(pred_vars, target)
+  drivers <- unique(c(compare, gate_vars))
+  list(
+    target = as.character(target %||% NA_character_),
+    drivers = .normalize_chr_vec(drivers),
+    compare = .normalize_chr_vec(compare),
+    gate = .normalize_chr_vec(gate_vars),
+    all = .normalize_chr_vec(c(target, drivers, compare, gate_vars, rule$variables)),
+    labels = .normalize_lookup_list(rule$variable_roles$labels %||% list()),
+    tables = .normalize_lookup_list(rule$variable_roles$tables %||% list())
+  )
+}
+
+.rule_merge_roles <- function(base, override = NULL) {
+  if (is.null(override)) return(base)
+  out <- base
+  if (!is.null(override$target)) out$target <- as.character(override$target %||% NA_character_)
+  if (!is.null(override$drivers)) out$drivers <- .normalize_chr_vec(override$drivers)
+  if (!is.null(override$compare)) out$compare <- .normalize_chr_vec(override$compare)
+  if (!is.null(override$gate)) out$gate <- .normalize_chr_vec(override$gate)
+  if (!is.null(override$labels)) out$labels <- utils::modifyList(out$labels, .normalize_lookup_list(override$labels))
+  if (!is.null(override$tables)) out$tables <- utils::modifyList(out$tables, .normalize_lookup_list(override$tables))
+  if (!is.null(override$all)) out$all <- .normalize_chr_vec(override$all)
+  out$all <- .normalize_chr_vec(c(out$target, out$drivers, out$compare, out$gate, out$all))
+  out
+}
+
+.rule_default_presentation <- function(rule) {
+  list(
+    nombre_humano = as.character(rule$nombre %||% rule$id),
+    nombre_tecnico = as.character(rule$flag_name %||% NA_character_),
+    objetivo = as.character(rule$objetivo %||% .default_objetivo(rule$tipo_regla, rule$nombre, rule$variables)),
+    detalle_condicion = as.character(NA_character_),
+    gate_humano = as.character(NA_character_),
+    subtipo_semantico = as.character(NA_character_)
+  )
+}
+
+.rule_merge_presentation <- function(base, override = NULL) {
+  if (is.null(override)) return(base)
+  out <- base
+  for (nm in names(base)) {
+    if (!is.null(override[[nm]]) && length(override[[nm]]) > 0L) {
+      out[[nm]] <- as.character(override[[nm]][1])
+    }
+  }
+  out
+}
+
+.derive_rule_slug <- function(rule) {
+  target <- .sanitize_rule_token(rule$primary_var %||% rule$variable_roles$target %||% "regla")
+  subtype <- .sanitize_rule_token(rule$presentation$subtipo_semantico %||% "")
+  prefix <- switch(as.character(rule$tipo_regla),
+    "required" = "req",
+    "skip" = "salto",
+    "constraint" = "cons",
+    "range" = "cons",
+    "catalog" = "cons",
+    "outlier" = "out",
+    "duplicate" = "dup",
+    "coherence" = "coh",
+    "select_multiple_cardinality" = "cons",
+    "pattern" = "pat",
+    "calculate_check" = "calc",
+    "repeat_length" = "rep",
+    "odk_raw" = "exp",
+    .sanitize_rule_token(rule$tipo_regla)
+  )
+  base <- switch(as.character(rule$tipo_regla),
+    "required" = paste0(prefix, "_", target, "_req"),
+    "skip" = paste0(prefix, "_", target, "_", if (nzchar(subtype)) subtype else "regla"),
+    "constraint" = paste0(prefix, "_", target, "_", if (nzchar(subtype)) subtype else "form"),
+    "range" = paste0(prefix, "_", target, "_", if (nzchar(subtype)) subtype else "rango"),
+    "catalog" = paste0(prefix, "_", target, "_", if (nzchar(subtype)) subtype else "catalogo"),
+    "calculate_check" = paste0(prefix, "_", target, "_", if (nzchar(subtype)) subtype else "eq"),
+    "repeat_length" = paste0(prefix, "_", target, "_", if (nzchar(subtype)) subtype else "count"),
+    paste0(prefix, "_", target, if (nzchar(subtype)) paste0("_", subtype) else "")
+  )
+  needs_hash <- as.character(rule$tipo_regla) %in% c(
+    "constraint", "range", "catalog", "outlier", "duplicate",
+    "coherence", "select_multiple_cardinality", "pattern",
+    "calculate_check", "odk_raw"
+  )
+  if (needs_hash) base <- paste0(base, "_", .short_rule_hash(rule))
+  .sanitize_rule_token(base)
+}
+
+.rule_apply_metadata <- function(rule,
+                                 primary_var = NULL,
+                                 variable_roles = NULL,
+                                 presentation = NULL) {
+  if (is.null(rule)) return(rule)
+  if (!is.null(primary_var) && !is.na(primary_var) && nzchar(primary_var)) {
+    rule$primary_var <- as.character(primary_var)
+  } else if (is.null(rule$primary_var) || is.na(rule$primary_var) || !nzchar(rule$primary_var)) {
+    rule$primary_var <- ast_variables(rule$predicate)[1] %||% rule$variables[1] %||% NA_character_
+  }
+
+  roles <- .rule_merge_roles(.rule_default_roles(rule), variable_roles)
+  if (!is.null(rule$primary_var) && !is.na(rule$primary_var) && nzchar(rule$primary_var)) {
+    roles$target <- as.character(rule$primary_var)
+  }
+  roles$all <- .normalize_chr_vec(c(roles$target, roles$drivers, roles$compare, roles$gate, roles$all, rule$variables))
+  rule$variables <- roles$all
+  rule$variable_roles <- roles
+
+  pres <- .rule_merge_presentation(.rule_default_presentation(rule), presentation)
+  force_regen_slug <- !is.null(presentation) &&
+    is.null(presentation$nombre_tecnico) &&
+    (!is.null(presentation$subtipo_semantico) || !is.null(primary_var) || !is.null(variable_roles))
+  if (isTRUE(force_regen_slug) ||
+      is.null(pres$nombre_tecnico) || is.na(pres$nombre_tecnico) ||
+      !nzchar(trimws(pres$nombre_tecnico)) ||
+      identical(.sanitize_rule_token(pres$nombre_tecnico), .derive_flag_name(rule$id))) {
+    pres$nombre_tecnico <- .derive_rule_slug(utils::modifyList(rule, list(variable_roles = roles, presentation = pres)))
+  } else {
+    pres$nombre_tecnico <- .sanitize_rule_token(pres$nombre_tecnico)
+  }
+  pres$nombre_humano <- as.character(pres$nombre_humano %||% rule$nombre %||% rule$id)
+  pres$objetivo <- as.character(pres$objetivo %||% rule$objetivo %||% pres$nombre_humano)
+  rule$presentation <- pres
+  rule$flag_name <- pres$nombre_tecnico
+  rule$nombre <- pres$nombre_humano
+  rule$objetivo <- pres$objetivo
+  class(rule) <- c("vd_rule", "list")
+  rule
+}
+
+.rule_label_for_var <- function(rule, var) {
+  if (is.null(var) || is.na(var) || !nzchar(var)) return(NA_character_)
+  labels <- rule$variable_roles$labels %||% list()
+  if (!is.null(labels[[var]]) && nzchar(as.character(labels[[var]])[1])) {
+    return(as.character(labels[[var]])[1])
+  }
+  as.character(var)
+}
+
+.rule_variable_slots <- function(rule) {
+  rule <- .rule_apply_metadata(rule)
+  roles <- rule$variable_roles %||% list()
+  vars <- .normalize_chr_vec(c(
+    roles$target,
+    roles$drivers,
+    roles$compare,
+    roles$gate,
+    roles$all,
+    rule$variables
+  ))
+  vars_pad <- c(vars, rep(NA_character_, 3))[1:3]
+  labs_pad <- vapply(vars_pad, function(v) {
+    if (is.na(v) || !nzchar(v)) return(NA_character_)
+    .rule_label_for_var(rule, v)
+  }, character(1))
+  list(vars = vars_pad, labels = labs_pad)
+}
+
+.human_label_for_var <- function(var, label_map = NULL) {
+  if (is.null(var) || is.na(var) || !nzchar(var)) return("esta variable")
+  lab <- if (!is.null(label_map) && length(label_map)) as.character(label_map[[var]] %||% "") else ""
+  if (length(lab) && !is.na(lab[1]) && nzchar(lab[1])) {
+    return(sprintf("«%s»", lab[1]))
+  }
+  sprintf("«%s»", var)
+}
+
+.human_op <- function(op) {
+  switch(as.character(op),
+    "==" = "debe ser igual a",
+    "!=" = "no debe ser igual a",
+    ">" = "debe ser mayor que",
+    ">=" = "debe ser mayor o igual que",
+    "<" = "debe ser menor que",
+    "<=" = "debe ser menor o igual que",
+    op
+  )
+}
+
+# -----------------------------------------------------------------------------
+# Resolución de códigos de choice a sus labels humanos.
+# `choices_map` es la lista construida por `.survey_choices_map()` —
+# `choices_map[[var]]` es named list code → label si la variable es select.
+# -----------------------------------------------------------------------------
+.is_select_var <- function(choices_map, var) {
+  if (is.null(choices_map) || !length(choices_map)) return(FALSE)
+  v <- as.character(var)
+  if (!length(v) || is.na(v) || !nzchar(v)) return(FALSE)
+  v %in% names(choices_map) && !is.null(choices_map[[v]]) && length(choices_map[[v]]) > 0L
+}
+
+.resolve_choice_label <- function(choices_map, var, code) {
+  if (!.is_select_var(choices_map, var)) return(NULL)
+  cm <- choices_map[[as.character(var)]]
+  key <- as.character(code)
+  if (!length(key) || is.na(key) || !(key %in% names(cm))) return(NULL)
+  lab <- as.character(cm[[key]])
+  if (!length(lab) || is.na(lab) || !nzchar(lab)) NULL else lab
+}
+
+.ast_to_human_text <- function(x, label_map = NULL, choices_map = NULL) {
+  if (is.null(x) || !is_ast(x)) return("")
+  op <- ast_op(x)
+  if (op == "not" && is_ast(x$arg) && ast_op(x$arg) == "range_numeric") {
+    inner <- x$arg
+    return(sprintf("%s debe estar entre %s y %s",
+                   .human_label_for_var(inner$var, label_map),
+                   inner$min %||% "-", inner$max %||% "-"))
+  }
+  if (op == "not" && is_ast(x$arg) && ast_op(x$arg) == "range_date") {
+    inner <- x$arg
+    return(sprintf("%s debe estar entre %s y %s",
+                   .human_label_for_var(inner$var, label_map),
+                   inner$min %||% "-", inner$max %||% "-"))
+  }
+  if (op == "not" && is_ast(x$arg) && ast_op(x$arg) == "is_missing") {
+    return(sprintf("%s debe tener valor", .human_label_for_var(x$arg$var, label_map)))
+  }
+  switch(op,
+    "compare_const" = {
+      lbl <- .human_label_for_var(x$var, label_map)
+      val_raw <- as.character(x$value)
+      choice_lbl <- .resolve_choice_label(choices_map, x$var, val_raw)
+      # Para variables select, "==" / "!=" se leen como "marcó" / "no marcó"
+      # con el label del choice — mucho más legible que "debe ser igual a '1'".
+      if (!is.null(choice_lbl) && x$op %in% c("==", "!=")) {
+        verb <- if (identical(x$op, "==")) "marcó" else "no marcó"
+        sprintf("%s %s «%s»", lbl, verb, choice_lbl)
+      } else {
+        sprintf("%s %s %s", lbl, .human_op(x$op), sQuote(val_raw))
+      }
+    },
+    "compare_vars" = sprintf("%s %s %s",
+      .human_label_for_var(x$left, label_map), .human_op(x$op), .human_label_for_var(x$right, label_map)),
+    "is_missing" = sprintf("%s está vacía", .human_label_for_var(x$var, label_map)),
+    "selected" = {
+      lbl <- .human_label_for_var(x$var, label_map)
+      choice_lbl <- .resolve_choice_label(choices_map, x$var, x$value)
+      if (!is.null(choice_lbl)) {
+        sprintf("%s marcó «%s»", lbl, choice_lbl)
+      } else {
+        sprintf("%s incluye %s", lbl, sQuote(as.character(x$value)))
+      }
+    },
+    "any_selected" = {
+      lbl <- .human_label_for_var(x$var, label_map)
+      labs <- vapply(as.character(x$values), function(code) {
+        cl <- .resolve_choice_label(choices_map, x$var, code)
+        if (is.null(cl)) sprintf("'%s'", code) else sprintf("«%s»", cl)
+      }, character(1))
+      sprintf("%s marcó alguna de %s", lbl, paste(labs, collapse = ", "))
+    },
+    "in_set" = {
+      lbl <- .human_label_for_var(x$var, label_map)
+      if (.is_select_var(choices_map, x$var)) {
+        labs <- vapply(as.character(x$values), function(code) {
+          cl <- .resolve_choice_label(choices_map, x$var, code)
+          if (is.null(cl)) sprintf("'%s'", code) else sprintf("«%s»", cl)
+        }, character(1))
+        sprintf("%s es alguna de %s", lbl, paste(labs, collapse = ", "))
+      } else {
+        sprintf("%s debe estar en {%s}", lbl, paste(as.character(x$values), collapse = ", "))
+      }
+    },
+    "not_in_set" = {
+      lbl <- .human_label_for_var(x$var, label_map)
+      if (.is_select_var(choices_map, x$var)) {
+        labs <- vapply(as.character(x$values), function(code) {
+          cl <- .resolve_choice_label(choices_map, x$var, code)
+          if (is.null(cl)) sprintf("'%s'", code) else sprintf("«%s»", cl)
+        }, character(1))
+        sprintf("%s no es ninguna de %s", lbl, paste(labs, collapse = ", "))
+      } else {
+        sprintf("%s no debe estar en {%s}", lbl, paste(as.character(x$values), collapse = ", "))
+      }
+    },
+    "range_numeric" = sprintf("%s está fuera del rango permitido [%s, %s]",
+      .human_label_for_var(x$var, label_map), x$min %||% "-", x$max %||% "-"),
+    "range_date" = sprintf("%s está fuera del rango permitido [%s, %s]",
+      .human_label_for_var(x$var, label_map), x$min %||% "-", x$max %||% "-"),
+    "count_selected_cmp" = sprintf("la cantidad de opciones marcadas en %s %s %s",
+      .human_label_for_var(x$var, label_map), .human_op(x$op), as.character(x$n)),
+    "collection_date_cmp" = sprintf("%s %s hoy",
+      .human_label_for_var(x$var, label_map), .human_op(x$op)),
+    "collection_date_offset_cmp" = {
+      ref <- if (isTRUE(as.integer(x$offset_days) < 0L)) {
+        sprintf("%s días antes de hoy", abs(as.integer(x$offset_days)))
+      } else {
+        sprintf("%s días después de hoy", abs(as.integer(x$offset_days)))
+      }
+      sprintf("%s %s %s", .human_label_for_var(x$var, label_map), .human_op(x$op), ref)
+    },
+    "matches_regex" = sprintf("%s debe coincidir con el patrón %s",
+      .human_label_for_var(x$var, label_map), sQuote(as.character(x$pattern))),
+    "select_multiple_exclusive" = {
+      lbl <- .human_label_for_var(x$var, label_map)
+      labs <- vapply(as.character(x$exclusive_codes), function(code) {
+        cl <- .resolve_choice_label(choices_map, x$var, code)
+        if (is.null(cl)) sprintf("'%s'", code) else sprintf("«%s»", cl)
+      }, character(1))
+      sprintf("en %s, %s no puede coexistir con otras opciones",
+              lbl, paste(labs, collapse = ", "))
+    },
+    "any_column_equals" = sprintf("alguna de {%s} debe ser igual a %s",
+      paste(vapply(as.character(x$cols), .human_label_for_var, character(1), label_map = label_map), collapse = ", "),
+      sQuote(as.character(x$value))),
+    "and" = paste(vapply(x$args, .ast_to_human_text, character(1), label_map = label_map, choices_map = choices_map), collapse = " y "),
+    "or" = paste(vapply(x$args, .ast_to_human_text, character(1), label_map = label_map, choices_map = choices_map), collapse = " o "),
+    "not" = {
+      inner <- .ast_to_human_text(x$arg, label_map = label_map, choices_map = choices_map)
+      if (!nzchar(inner)) "no se cumple la condición" else paste("no", inner)
+    },
+    "odk_raw" = "debe cumplir una condición experta del formulario",
+    ast_to_string(x)
+  )
 }
