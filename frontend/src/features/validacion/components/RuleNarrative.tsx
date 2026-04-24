@@ -58,6 +58,14 @@ export type RuleNarrativeProps = {
   onOpenDetail?: () => void;
   /** Abrir variable en Explorar (pasa al VariableChip / Var) */
   onOpenVariableInExplorar?: (varName: string) => void;
+  /**
+   * Desactivar hovercards de los chips de variable. Útil en previews
+   * del editor donde el hovercard portal genera re-renders en cascada
+   * con cada keystroke (el preview se actualiza reactivamente) y no
+   * aporta info extra — el usuario está precisamente editando la regla
+   * y ya ve los datos de sus variables en el propio paso del wizard.
+   */
+  disableVariableHover?: boolean;
   /** Estilos custom */
   style?: CSSProperties;
 };
@@ -79,6 +87,7 @@ export default function RuleNarrative({
   onClick,
   onOpenDetail,
   onOpenVariableInExplorar,
+  disableVariableHover = false,
   style,
 }: RuleNarrativeProps) {
   const label = labelLookup ?? (() => null);
@@ -116,7 +125,7 @@ export default function RuleNarrative({
   if (variant === "inline") {
     return (
       <span style={{ fontSize: "var(--pulso-narrative-size)", lineHeight: "var(--pulso-narrative-line-height)", ...style }}>
-        {renderWithVariables(headline, rule, { resolvedHover, variableType, onOpenVariableInExplorar })}
+        {renderWithVariables(headline, rule, { resolvedHover, variableType, onOpenVariableInExplorar, disableVariableHover })}
       </span>
     );
   }
@@ -183,7 +192,7 @@ export default function RuleNarrative({
             fontWeight: 500,
           }}
         >
-          {renderWithVariables(headline, rule, { resolvedHover, variableType, onOpenVariableInExplorar })}
+          {renderWithVariables(headline, rule, { resolvedHover, variableType, onOpenVariableInExplorar, disableVariableHover })}
         </div>
 
         {/* Bottom row: activación + acción actual + chevron */}
@@ -317,7 +326,7 @@ export default function RuleNarrative({
           letterSpacing: "-0.1px",
         }}
       >
-        {renderWithVariables(headline, rule, { resolvedHover, variableType, onOpenVariableInExplorar })}
+        {renderWithVariables(headline, rule, { resolvedHover, variableType, onOpenVariableInExplorar, disableVariableHover })}
       </div>
 
       {/* Sub-frases: activación + comparación */}
@@ -326,13 +335,13 @@ export default function RuleNarrative({
           {activation && (
             <div>
               <RoleTag role="drivers" />{" "}
-              {renderWithVariables(activation, rule, { resolvedHover, variableType, onOpenVariableInExplorar })}
+              {renderWithVariables(activation, rule, { resolvedHover, variableType, onOpenVariableInExplorar, disableVariableHover })}
             </div>
           )}
           {compareText && (
             <div>
               <RoleTag role="compare" />{" "}
-              {renderWithVariables(compareText, rule, { resolvedHover, variableType, onOpenVariableInExplorar })}
+              {renderWithVariables(compareText, rule, { resolvedHover, variableType, onOpenVariableInExplorar, disableVariableHover })}
             </div>
           )}
         </div>
@@ -345,6 +354,7 @@ export default function RuleNarrative({
           resolvedHover={resolvedHover}
           variableType={variableType}
           onOpenVariableInExplorar={onOpenVariableInExplorar}
+          disableVariableHover={disableVariableHover}
         />
       )}
     </section>
@@ -364,6 +374,7 @@ function renderWithVariables(
     resolvedHover: (n: string) => VariableHoverData | undefined;
     variableType: (n: string) => string | null;
     onOpenVariableInExplorar?: (varName: string) => void;
+    disableVariableHover?: boolean;
   },
 ): ReactNode {
   if (!text) return null;
@@ -388,6 +399,7 @@ function renderWithVariables(
           type={ctx.variableType(candidate)}
           hoverData={ctx.resolvedHover(candidate)}
           variant="inline"
+          disableHover={ctx.disableVariableHover}
           onOpenInExplorar={
             ctx.onOpenVariableInExplorar
               ? () => ctx.onOpenVariableInExplorar!(candidate)
@@ -592,11 +604,13 @@ function RoleChipsRow({
   resolvedHover,
   variableType,
   onOpenVariableInExplorar,
+  disableVariableHover,
 }: {
   sections: ReturnType<typeof buildRoleSections>;
   resolvedHover: (n: string) => VariableHoverData | undefined;
   variableType: (n: string) => string | null;
   onOpenVariableInExplorar?: (varName: string) => void;
+  disableVariableHover?: boolean;
 }) {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -639,6 +653,7 @@ function RoleChipsRow({
                   type={variableType(item.key)}
                   hoverData={resolvedHover(item.key) ?? { label: item.label ?? undefined }}
                   variant="default"
+                  disableHover={disableVariableHover}
                   onOpenInExplorar={
                     onOpenVariableInExplorar
                       ? () => onOpenVariableInExplorar(item.key)

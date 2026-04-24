@@ -56,7 +56,13 @@ export default function ReglaEditor({ inv, inicial, onSubmit, onCancel }: Props)
   const [error, setError] = useState<string>("");
 
   const tipoMeta = TIPOS.find((t) => t.key === tipo) ?? null;
-  const flatVars: ExploradorVariable[] = inv.secciones.flatMap((s) => s.variables);
+  // flatVars estabilizado: sin useMemo se recalcula en cada keystroke y
+  // dispara re-renders en cascada que acumulan portals de los hovercards
+  // de variable (crashes en bases grandes).
+  const flatVars: ExploradorVariable[] = useMemo(
+    () => inv.secciones.flatMap((s) => s.variables),
+    [inv.secciones],
+  );
 
   // Plano variable → sección para el hover lookup del preview.
   const varSections = useMemo(() => {
@@ -836,6 +842,13 @@ function NarrativePreview({
         variant="hero"
         variableHoverLookup={variableHoverLookup}
         labelLookup={labelLookup}
+        // Hovercards de variable desactivados en el preview: con cada
+        // keystroke el preview se re-renderiza y los portals del hover
+        // hacían que la app se cayera en bases grandes (acumulación de
+        // listeners + re-pos calcs en scroll). Además no aportan info
+        // aquí — el usuario está justo eligiendo las variables en el
+        // mismo wizard.
+        disableVariableHover
       />
     </div>
   );
