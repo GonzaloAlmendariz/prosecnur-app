@@ -283,19 +283,18 @@ export default function ExplorarTab() {
               ))}
             </div>
 
-            {/* Grid de charts: 1 col sin cruce, 2 cols cuando hay cruce.
-                Usa autofit con minmax para que en pantallas angostas
-                vuelva a apilarse en lugar de amontonar charts ilegibles. */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: cruzar
-                  ? "repeat(auto-fit, minmax(460px, 1fr))"
-                  : "1fr",
-                gap: 16,
-                alignItems: "start",
-              }}
-            >
+            {/* Chart principal: cuando hay cruce activo, el biv REEMPLAZA al
+                univariado (no se muestran lado a lado — la comparación en
+                sí contiene la distribución marginal). Cuando no hay cruce,
+                se ve el univariado a todo el ancho. */}
+            {cruzar && biv ? (
+              <ChartPanel
+                title={`${selected.name} × ${cruzar}`}
+                tone="cross"
+              >
+                <PlotlyView view={biv.view} />
+              </ChartPanel>
+            ) : (
               <ChartPanel
                 title={`Distribución de ${selected.name}`}
                 tone="self"
@@ -322,16 +321,7 @@ export default function ExplorarTab() {
                     </div>
                   )}
               </ChartPanel>
-
-              {cruzar && biv && (
-                <ChartPanel
-                  title={`${selected.name} × ${cruzar}`}
-                  tone="cross"
-                >
-                  <PlotlyView view={biv.view} />
-                </ChartPanel>
-              )}
-            </div>
+            )}
           </>
         )}
 

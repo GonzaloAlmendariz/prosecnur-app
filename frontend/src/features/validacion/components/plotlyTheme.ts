@@ -38,6 +38,34 @@ const PLOTLY_THEME = {
   },
 } as const;
 
+// -----------------------------------------------------------------------------
+// Paleta categórica de 10 niveles (qualitative) para usar en charts con
+// múltiples traces/series — ej. bivariados donde cada distrito es un trace.
+// Los colores están escogidos para tener buen contraste entre sí y contra
+// fondos claros; son accesibles AA para texto sobre fondo blanco cuando
+// se usan como chip-pills pequeños, y respetan la familia azul-indigo de
+// la app como "anclas" iniciales.
+// Cuando una serie tiene >10 niveles, se repite desde el inicio (ciclo).
+// -----------------------------------------------------------------------------
+export const CATEGORICAL_PALETTE_10 = [
+  "#2457d6", // primary azul (ancla Pulso)
+  "#0f766e", // teal
+  "#d97706", // ámbar
+  "#7c3aed", // púrpura
+  "#db2777", // rosa
+  "#65a30d", // lima
+  "#0891b2", // cyan
+  "#b91c1c", // rojo
+  "#4f46e5", // indigo
+  "#78350f", // marrón
+] as const;
+
+/** Devuelve el color de la paleta para un índice dado (ciclo). */
+export function categoricalColor(index: number): string {
+  const i = ((index % CATEGORICAL_PALETTE_10.length) + CATEGORICAL_PALETTE_10.length) % CATEGORICAL_PALETTE_10.length;
+  return CATEGORICAL_PALETTE_10[i];
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
@@ -268,22 +296,36 @@ function styleAxis(axis: Record<string, unknown> | undefined, orientation: "x" |
   );
 }
 
-function styleTrace(trace: unknown, accent: string, soft: string) {
+function styleTrace(
+  trace: unknown,
+  accent: string,
+  soft: string,
+  /** Color override de la paleta categórica para charts multi-trace
+      (ej. bivariado con una serie por nivel del eje Y). Si viene null,
+      se usa el `accent` como fallback (comportamiento original para
+      charts single-trace). */
+  paletteColor: string | null = null,
+) {
   if (!isRecord(trace)) return trace;
 
   const next = { ...trace };
   const type = typeof next.type === "string" ? next.type : "";
+  const traceColor = paletteColor ?? accent;
 
   if (type === "bar") {
+    // Respetar un marker.color explícito que venga del backend, si no
+    // usar el color de la paleta (multi) o el accent (single).
+    const existingMarker = isRecord(next.marker) ? next.marker : undefined;
+    const hasExplicitColor = existingMarker?.color != null;
     next.marker = mergeObjects(
       {
-        color: next.marker && isRecord(next.marker) && next.marker.color ? next.marker.color : accent,
+        color: hasExplicitColor ? existingMarker!.color : traceColor,
         line: {
           color: PLOTLY_THEME.surface,
           width: 1.2,
         },
       },
-      isRecord(next.marker) ? next.marker : undefined,
+      existingMarker,
     );
   }
 
@@ -352,7 +394,29 @@ function styleTrace(trace: unknown, accent: string, soft: string) {
 
 export function buildPlotlyData(view: ViewDescriptor) {
   const tone = getChartTone(view);
-  return view.plotly.data.map((trace) => styleTrace(trace, tone.accent, tone.soft));
+  const traces = view.plotly.data;
+
+  // Detectar si hay múltiples traces de tipo "bar" (típico en bivariados:
+  // un trace por cada nivel del eje de color / grupo). En ese caso
+  // asignamos un color distinto de la paleta categórica a cada trace,
+  // respetando cualquier `marker.color` explícito que venga del backend.
+  const barIndexes: number[] = [];
+  traces.forEach((trace, idx) => {
+    if (!isRecord(trace)) return;
+    if (trace.type !== "bar") return;
+    barIndexes.push(idx);
+  });
+  const multiBar = barIndexes.length > 1;
+  const paletteForIdx = new Map<number, string>();
+  if (multiBar) {
+    barIndexes.forEach((traceIdx, paletteIdx) => {
+      paletteForIdx.set(traceIdx, categoricalColor(paletteIdx));
+    });
+  }
+
+  return traces.map((trace, idx) =>
+    styleTrace(trace, tone.accent, tone.soft, paletteForIdx.get(idx) ?? null),
+  );
 }
 
 export function buildPlotlyLayout(view: ViewDescriptor, height?: number) {
@@ -399,14 +463,14 @@ export function buildPlotlyLayout(view: ViewDescriptor, height?: number) {
     yaxis: styleAxis(isRecord(layout.yaxis) ? layout.yaxis : undefined, "y"),
   };
 
+  // Colorway: se usa por Plotly cuando un trace no tiene color explícito.
+  // Prioridad: (1) color explícito en marker/line del trace, (2) nuestro
+  // `styleTrace` con paleta categórica si es multi-trace, (3) este colorway.
+  // El primer elemento es el accent del tono (contextual) seguido de los
+  // 10 colores de la paleta categórica — garantiza variedad sin exceder
+  // los ~11 tonos antes de repetirse.
   if (!next.colorway) {
-    next.colorway = [
-      tone.accent,
-      "#2563eb",
-      "#0f766e",
-      "#d97706",
-      "#7c3aed",
-    ];
+    next.colorway = [tone.accent, ...CATEGORICAL_PALETTE_10];
   }
   if (height) next.height = height;
 
