@@ -318,6 +318,11 @@ function ReglaRow({
           variant="compact"
           variableHoverLookup={hoverLookup}
           labelLookup={labelLookup}
+          // Hovercards desactivados en la lista: con muchas reglas, los
+          // portals + listeners de scroll se acumulaban y crasheaban la
+          // app. El detalle por variable se ve en el editor (preview
+          // narrativo) cuando se hace click en "Editar".
+          disableVariableHover
         />
       </div>
 

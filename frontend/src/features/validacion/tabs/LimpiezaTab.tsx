@@ -1008,6 +1008,10 @@ function QueueRow({
       porcentaje={item.porcentaje ?? null}
       currentAction={item.current_action ?? null}
       variableHoverLookup={variableHoverLookup}
+      // Sin hover en la cola: con muchas reglas pendientes los portals
+      // se acumulaban y tiraban la app. El hovercard rico aparece en el
+      // hero del editor (a la derecha), donde sí aporta valor.
+      disableVariableHover
     />
   );
 }

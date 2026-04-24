@@ -701,6 +701,12 @@ function NarrativeRuleCard({
       porcentaje={row.porcentaje ?? null}
       variableHoverLookup={hoverLookup}
       labelLookup={(v) => row.variables.find((x) => x.key === v)?.label ?? null}
+      // Hovercards desactivados en la grid: con muchas reglas, cada chip
+      // de variable agregaba un portal + listeners de scroll/resize que
+      // acumulaban en un solo viewport, llegando a tumbar la app. El
+      // detalle por variable se ve en el ContextLens (al click) que ya
+      // tiene la info completa.
+      disableVariableHover
     />
   );
 }
