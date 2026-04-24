@@ -4,7 +4,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Compass,
-  X as XIcon,
 } from "lucide-react";
 import {
   apiV2ExplorarBivariado,
@@ -20,6 +19,7 @@ import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States
 import PlotlyView from "../components/PlotlyView";
 import VariablePicker from "../components/VariablePicker";
 import FiltroCascada from "../components/FiltroCascada";
+import CrossBar from "../components/CrossBar";
 
 // =============================================================================
 // ExplorarTab — Sprint 3
@@ -153,6 +153,29 @@ export default function ExplorarTab() {
     setCruzar(null);
   }, []);
 
+  // Keyboard shortcuts: ← / → iteran variables mientras no haya foco en
+  // un input/textarea (para no pisar la edición de filtros).
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        if (target.isContentEditable) return;
+      }
+      if (event.key === "ArrowLeft" && prevVar) {
+        event.preventDefault();
+        setSelected(prevVar);
+      } else if (event.key === "ArrowRight" && nextVar) {
+        event.preventDefault();
+        setSelected(nextVar);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [prevVar, nextVar]);
+
   if (loading) return <LoadingBlock label="Inventariando variables…" />;
   if (error && !inv) {
     return (
@@ -227,91 +250,27 @@ export default function ExplorarTab() {
 
         {selected && uni && (
           <>
-            {/* Controles de iteración */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                padding: "6px 2px",
-              }}
-            >
-              <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
-                Variable {currentIdx + 1} / {flatVars.length}
-                {uni.filtros_aplicados > 0 && (
-                  <span style={{ marginLeft: 10, color: "var(--pulso-primary)", fontWeight: 600 }}>
-                    · {uni.n_tras_filtro} / {uni.n_total} casos tras filtros
-                  </span>
-                )}
-              </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button
-                  type="button"
-                  onClick={() => prevVar && setSelected(prevVar)}
-                  disabled={!prevVar}
-                  title={prevVar ? `Anterior: ${prevVar.name}` : "Ya estás en la primera variable"}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    fontSize: 11,
-                    padding: "5px 10px",
-                    border: "1px solid var(--pulso-border)",
-                    background: "white",
-                    borderRadius: 6,
-                    cursor: prevVar ? "pointer" : "not-allowed",
-                    opacity: prevVar ? 1 : 0.45,
-                  }}
-                >
-                  <ChevronLeft size={11} /> Anterior
-                </button>
-                <button
-                  type="button"
-                  onClick={() => nextVar && setSelected(nextVar)}
-                  disabled={!nextVar}
-                  title={nextVar ? `Siguiente: ${nextVar.name}` : "Ya estás en la última variable"}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    fontSize: 11,
-                    padding: "5px 10px",
-                    border: "1px solid var(--pulso-border)",
-                    background: "white",
-                    borderRadius: 6,
-                    cursor: nextVar ? "pointer" : "not-allowed",
-                    opacity: nextVar ? 1 : 0.45,
-                  }}
-                >
-                  Siguiente <ChevronRight size={11} />
-                </button>
-              </div>
-            </div>
+            {/* Header unificado: nav ← →, datos de la variable, cruce co-ubicado */}
+            <VariableHeader
+              uni={uni}
+              currentIdx={currentIdx}
+              totalVars={flatVars.length}
+              onPrev={prevVar ? () => setSelected(prevVar) : undefined}
+              onNext={nextVar ? () => setSelected(nextVar) : undefined}
+              prevName={prevVar?.name ?? null}
+              nextName={nextVar?.name ?? null}
+            />
 
-            {/* Header de la variable */}
-            <header
-              style={{
-                padding: "14px 18px",
-                borderRadius: 10,
-                background: "var(--pulso-primary-soft)",
-                border: "1px solid var(--pulso-primary-border)",
-              }}
-            >
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-primary)" }}>
-                Variable · {uni.tipo.toUpperCase()}
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--pulso-text)", marginTop: 2 }}>
-                <code style={{ fontFamily: "ui-monospace, monospace" }}>{uni.var}</code>
-              </div>
-              {uni.label && uni.label !== uni.var && (
-                <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginTop: 4, lineHeight: 1.4 }}>
-                  {uni.label}
-                </div>
-              )}
-            </header>
+            {/* Barra de cruce: siempre visible, arriba de los charts. */}
+            <CrossBar
+              secciones={inv.secciones}
+              selfVar={selected.name}
+              selfSeccion={findSeccionOf(selected.name, inv)}
+              cruzar={cruzar}
+              onChange={setCruzar}
+            />
 
-            {/* KPIs */}
+            {/* KPIs a todo el ancho (no se parten con el cruce). */}
             <div
               style={{
                 display: "grid",
@@ -324,41 +283,55 @@ export default function ExplorarTab() {
               ))}
             </div>
 
-            {/* Chart principal */}
-            <PlotlyView view={uni.chart} />
-
-            {/* Samples de texto, si aplica */}
-            {uni.chart.kind === "table" && uni.chart.samples && uni.chart.samples.length > 0 && (
-              <section
-                style={{
-                  padding: "14px 18px",
-                  borderRadius: 10,
-                  background: "white",
-                  border: "1px solid var(--pulso-border)",
-                }}
+            {/* Grid de charts: 1 col sin cruce, 2 cols cuando hay cruce.
+                Usa autofit con minmax para que en pantallas angostas
+                vuelva a apilarse en lugar de amontonar charts ilegibles. */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: cruzar
+                  ? "repeat(auto-fit, minmax(460px, 1fr))"
+                  : "1fr",
+                gap: 16,
+                alignItems: "start",
+              }}
+            >
+              <ChartPanel
+                title={`Distribución de ${selected.name}`}
+                tone="self"
               >
-                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
-                  Muestra de respuestas
-                </div>
-                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, lineHeight: 1.5, color: "var(--pulso-text)" }}>
-                  {uni.chart.samples.slice(0, 20).map((s, i) => (
-                    <li key={i} style={{ marginBottom: 4 }}>
-                      {s}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+                <PlotlyView view={uni.chart} />
+                {uni.chart.kind === "table" &&
+                  uni.chart.samples &&
+                  uni.chart.samples.length > 0 && (
+                    <div
+                      style={{
+                        marginTop: 10,
+                        fontSize: 11,
+                        color: "var(--pulso-text-soft)",
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                        Muestra de respuestas
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 16, lineHeight: 1.5 }}>
+                        {uni.chart.samples.slice(0, 12).map((s, i) => (
+                          <li key={i}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+              </ChartPanel>
 
-            {/* Cruzar con otra variable */}
-            <CruceControl
-              inv={inv}
-              selfVar={selected.name}
-              cruzar={cruzar}
-              onChange={setCruzar}
-            />
-
-            {biv && <PlotlyView view={biv.view} />}
+              {cruzar && biv && (
+                <ChartPanel
+                  title={`${selected.name} × ${cruzar}`}
+                  tone="cross"
+                >
+                  <PlotlyView view={biv.view} />
+                </ChartPanel>
+              )}
+            </div>
           </>
         )}
 
@@ -374,96 +347,175 @@ export default function ExplorarTab() {
 }
 
 // -----------------------------------------------------------------------------
-function CruceControl({
-  inv,
-  selfVar,
-  cruzar,
-  onChange,
+// VariableHeader — título + tipo + label + navegación ← → + contador
+// -----------------------------------------------------------------------------
+function VariableHeader({
+  uni,
+  currentIdx,
+  totalVars,
+  onPrev,
+  onNext,
+  prevName,
+  nextName,
 }: {
-  inv: ExploradorVariablesList;
-  selfVar: string;
-  cruzar: string | null;
-  onChange: (v: string | null) => void;
+  uni: ExplorarUnivariadoResult;
+  currentIdx: number;
+  totalVars: number;
+  onPrev: (() => void) | undefined;
+  onNext: (() => void) | undefined;
+  prevName: string | null;
+  nextName: string | null;
 }) {
-  // Soportamos cruces cuando la variable base es SO; la otra puede ser
-  // SO, SM o NUM. Si la base es SM/NUM, aún no soportamos.
-  const all = inv.secciones
-    .flatMap((s) => s.variables)
-    .filter((v) => v.name !== selfVar)
-    .filter((v) => v.tipo === "so" || v.tipo === "sm" || v.tipo === "num");
-
   return (
-    <section
+    <header
       style={{
-        padding: "12px 16px",
-        borderRadius: 10,
-        background: "var(--pulso-surface-2)",
-        border: "1px dashed var(--pulso-border)",
         display: "flex",
         alignItems: "center",
-        gap: 10,
+        justifyContent: "space-between",
+        gap: 16,
+        padding: "14px 18px",
+        borderRadius: 10,
+        background: "var(--pulso-primary-soft)",
+        border: "1px solid var(--pulso-primary-border)",
         flexWrap: "wrap",
       }}
     >
-      <label
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 200 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              color: "var(--pulso-primary)",
+              padding: "2px 8px",
+              borderRadius: 999,
+              background: "white",
+              border: "1px solid var(--pulso-primary-border)",
+            }}
+          >
+            {uni.tipo.toUpperCase()}
+          </span>
+          <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 16, fontWeight: 700, color: "var(--pulso-text)" }}>
+            {uni.var}
+          </code>
+        </div>
+        {uni.label && uni.label !== uni.var && (
+          <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+            {uni.label}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
+          {currentIdx + 1} / {totalVars}
+          {uni.filtros_aplicados > 0 && (
+            <span style={{ marginLeft: 8, color: "var(--pulso-primary)", fontWeight: 700 }}>
+              · {uni.n_tras_filtro} / {uni.n_total} tras filtros
+            </span>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button
+            type="button"
+            onClick={onPrev}
+            disabled={!onPrev}
+            title={prevName ? `Anterior: ${prevName} (←)` : "Ya estás en la primera variable"}
+            style={navBtnStyle(!!onPrev)}
+          >
+            <ChevronLeft size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={!onNext}
+            title={nextName ? `Siguiente: ${nextName} (→)` : "Ya estás en la última variable"}
+            style={navBtnStyle(!!onNext)}
+          >
+            <ChevronRight size={12} />
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function navBtnStyle(enabled: boolean) {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 28,
+    height: 28,
+    padding: 0,
+    border: "1px solid var(--pulso-primary-border)",
+    background: "white",
+    color: "var(--pulso-primary)",
+    borderRadius: 6,
+    cursor: enabled ? "pointer" : "not-allowed",
+    opacity: enabled ? 1 : 0.4,
+  } as const;
+}
+
+// -----------------------------------------------------------------------------
+// ChartPanel — wrapper unificado para charts: borde sutil + título + tono
+// "self" (variable principal) o "cross" (bivariado).
+// -----------------------------------------------------------------------------
+function ChartPanel({
+  title,
+  tone,
+  children,
+}: {
+  title: string;
+  tone: "self" | "cross";
+  children: React.ReactNode;
+}) {
+  const isCross = tone === "cross";
+  return (
+    <section
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        padding: "14px 16px 16px",
+        borderRadius: 12,
+        background: "white",
+        border: `1px solid ${isCross ? "var(--pulso-primary-border)" : "var(--pulso-border)"}`,
+        boxShadow: "var(--pulso-shadow-low)",
+      }}
+    >
+      <div
         style={{
-          fontSize: 11,
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: 0.4,
-          color: "var(--pulso-text-soft)",
-        }}
-      >
-        Cruzar con
-      </label>
-      <select
-        value={cruzar ?? ""}
-        onChange={(e) => onChange(e.target.value || null)}
-        style={{
-          fontSize: 12,
-          padding: "6px 10px",
-          borderRadius: 6,
-          border: "1px solid var(--pulso-border)",
-          background: "white",
-          minWidth: 240,
-        }}
-      >
-        <option value="">— Ninguna —</option>
-        {all.map((v) => (
-          <option key={v.name} value={v.name}>
-            {v.name} {v.label && v.label !== v.name ? `· ${v.label}` : ""}
-          </option>
-        ))}
-      </select>
-      {cruzar && (
-        <button
-          type="button"
-          onClick={() => onChange(null)}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            fontSize: 11,
-            padding: "4px 10px",
-            borderRadius: 6,
-            border: "1px solid var(--pulso-border)",
-            background: "white",
-            cursor: "pointer",
-          }}
-        >
-          <XIcon size={11} /> Quitar cruce
-        </button>
-      )}
-      <span
-        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
           fontSize: 10,
-          color: "var(--pulso-text-soft)",
-          lineHeight: 1.4,
-          marginLeft: 6,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          color: isCross ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
         }}
       >
-        SO × SO (barras apiladas) · SO × SM (comparación por opción) · SO × NUM (boxplot)
-      </span>
+        {isCross ? "Cruce" : "Distribución"}
+        <span style={{ color: "var(--pulso-text-soft)", fontWeight: 600, textTransform: "none", letterSpacing: 0, fontFamily: "ui-monospace, monospace" }}>
+          {title}
+        </span>
+      </div>
+      {children}
     </section>
   );
+}
+
+// Busca la sección donde vive una variable — para alimentar las sugerencias
+// del CrossBar.
+function findSeccionOf(
+  varName: string,
+  inv: ExploradorVariablesList,
+): string | null {
+  for (const sec of inv.secciones) {
+    if (sec.variables.some((v) => v.name === varName)) return sec.nombre;
+  }
+  return null;
 }
