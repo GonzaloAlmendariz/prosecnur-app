@@ -249,6 +249,33 @@
 }
 
 # -----------------------------------------------------------------------------
+# .num_clip_range: rango robusto [p1, p99] para recortar visualizaciones
+# numéricas. Evita que outliers extremos (errores de captura: edad=7173,
+# precio=999999, etc.) aplasten el chart.
+#
+# Devuelve list(lo, hi, n_below, n_above, n_total) o NULL si x es vacío
+# o el rango p1-p99 colapsa (todos los valores iguales).
+# -----------------------------------------------------------------------------
+.num_clip_range <- function(x, probs = c(0.01, 0.99)) {
+  x <- x[is.finite(x)]
+  if (!length(x)) return(NULL)
+  qs <- suppressWarnings(stats::quantile(x, probs, na.rm = TRUE, names = FALSE))
+  if (length(qs) != 2L || any(!is.finite(qs))) return(NULL)
+  lo <- qs[1]; hi <- qs[2]
+  if (lo >= hi) return(NULL)
+  # Pequeño padding para que las barras/cajas no peguen al borde visible.
+  span <- hi - lo
+  pad <- max(span * 0.02, 0)
+  list(
+    lo = lo - pad,
+    hi = hi + pad,
+    n_below = sum(x < lo),
+    n_above = sum(x > hi),
+    n_total = length(x)
+  )
+}
+
+# -----------------------------------------------------------------------------
 # KPIs básicos por tipo
 # -----------------------------------------------------------------------------
 .explorar_kpi_cards <- function(df, var, tipo, instrumento = NULL) {
@@ -527,6 +554,10 @@
                     empty_hint = "Sin valores numéricos para graficar.")
       ))
     }
+    # Recorte al percentil 1-99 para que outliers extremos (ej. edad=7173
+    # por data entry mal hecho) no aplasten el histograma. Las estadísticas
+    # reales (min, max, media) se preservan en el subtitle.
+    clip <- .num_clip_range(x)
     trace <- list(
       type = "histogram",
       x = x,
@@ -536,6 +567,16 @@
       ),
       hovertemplate = "Rango: %{x}<br>n=%{y}<extra></extra>"
     )
+    if (!is.null(clip)) {
+      # xbins alineados al rango recortado → bins más representativos.
+      trace$xbins <- list(
+        start = clip$lo,
+        end = clip$hi,
+        size = (clip$hi - clip$lo) / 30
+      )
+    }
+    xaxis_spec <- pulso_plotly_axis(title = label)
+    if (!is.null(clip)) xaxis_spec$range <- c(clip$lo, clip$hi)
     layout <- utils::modifyList(
       pulso_plotly_layout_base(
         height = 320L,
@@ -543,21 +584,40 @@
         showlegend = FALSE
       ),
       list(
-        xaxis = pulso_plotly_axis(title = label),
+        xaxis = xaxis_spec,
         yaxis = pulso_plotly_axis(title = "Frecuencia")
       )
     )
+    # Estadísticas robustas para el subtitle: mediana + rango típico
+    # (p1–p99). El min/max raw puede estar contaminado por errores de
+    # captura (ej. edad=7173) y daría una impresión engañosa.
+    med <- stats::median(x, na.rm = TRUE)
+    n_anomalos <- if (!is.null(clip)) clip$n_below + clip$n_above else 0L
+    range_note <- if (!is.null(clip)) {
+      sprintf("rango típico %.0f–%.0f", clip$lo, clip$hi)
+    } else {
+      sprintf("rango %.2f–%.2f", min(x), max(x))
+    }
+    anomalos_note <- if (n_anomalos > 0L) {
+      sprintf(" · ⚠ %d valor%s anómalo%s fuera del rango típico (posibles errores de captura: min=%.0f, max=%.0f)",
+               n_anomalos,
+               if (n_anomalos == 1L) "" else "es",
+               if (n_anomalos == 1L) "" else "s",
+               min(x), max(x))
+    } else {
+      ""
+    }
     return(list(
       version = 1L, kind = "histogram",
       title = titulo,
-      subtitle = sprintf("n=%d válidos · min=%.2f · max=%.2f · media=%.2f",
-                          length(x), min(x), max(x), mean(x)),
+      subtitle = sprintf("n=%d válidos · mediana=%.1f · %s%s",
+                          length(x), med, range_note, anomalos_note),
       meta = list(
         var = var,
         tipo = tipo,
         n_validos = length(x),
         eyebrow = "Numérica",
-        note = "Histograma disponible para variables integer y decimal."
+        note = "El histograma acota al rango p1–p99 para dar una vista útil; los valores fuera se reportan como posibles errores."
       ),
       plotly = list(data = list(trace), layout = layout,
                     config = pulso_plotly_config_base()),
@@ -921,6 +981,8 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
     xv_lab[is.na(xv_lab)] <- xv[is.na(xv_lab)]
     cats <- if (!is.null(map_x)) unique(unname(map_x)) else sort(unique(xv_lab))
     cats <- cats[cats %in% xv_lab]
+    # Recorte p1-p99 para que outliers extremos no aplasten el boxplot.
+    clip <- .num_clip_range(yv)
     trace <- list(
       type = "box",
       x = as.character(xv_lab),
@@ -931,21 +993,30 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
       hovertemplate = sprintf("%s=%%{x}<br>%s=%%{y}<extra></extra>",
                                 label_x, label_y)
     )
+    yaxis_spec <- list(title = list(text = label_y), gridcolor = "#e5e7eb")
+    if (!is.null(clip)) yaxis_spec$range <- c(clip$lo, clip$hi)
     layout <- list(
       margin = list(l = 56, r = 24, t = 16, b = 60),
       xaxis = list(title = list(text = label_x), tickangle = -20,
                     categoryorder = "array",
                     categoryarray = cats, automargin = TRUE),
-      yaxis = list(title = list(text = label_y), gridcolor = "#e5e7eb"),
+      yaxis = yaxis_spec,
       plot_bgcolor = "#ffffff", paper_bgcolor = "#ffffff",
       showlegend = FALSE,
       height = 360L
     )
+    n_anom <- if (!is.null(clip)) clip$n_below + clip$n_above else 0L
+    subtitle_txt <- if (n_anom > 0L) {
+      sprintf("Distribución de %s por categoría (n=%d · ⚠ %d valor%s fuera del rango típico).",
+               label_y, length(xv), n_anom,
+               if (n_anom == 1L) "" else "es")
+    } else {
+      sprintf("Distribución de %s por categoría (n=%d).", label_y, length(xv))
+    }
     return(list(
       version = 1L, kind = "boxplot",
       title = titulo,
-      subtitle = sprintf("Distribución de %s por categoría (n=%d).",
-                          label_y, length(xv)),
+      subtitle = subtitle_txt,
       meta = list(var_x = var_x, var_y = var_y,
                   tipo_x = tipo_x, tipo_y = tipo_y),
       plotly = list(data = list(trace), layout = layout,
@@ -980,6 +1051,8 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
     yv_lab[is.na(yv_lab)] <- yv[is.na(yv_lab)]
     cats <- if (!is.null(map_y)) unique(unname(map_y)) else sort(unique(yv_lab))
     cats <- cats[cats %in% yv_lab]
+    # Recorte p1-p99 sobre la variable numérica (que va en Y).
+    clip <- .num_clip_range(xv)
     trace <- list(
       type = "box",
       x = as.character(yv_lab),  # categoría en X
@@ -990,21 +1063,30 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
       hovertemplate = sprintf("%s=%%{x}<br>%s=%%{y}<extra></extra>",
                                 label_y, label_x)
     )
+    yaxis_spec <- list(title = list(text = label_x), gridcolor = "#e5e7eb")
+    if (!is.null(clip)) yaxis_spec$range <- c(clip$lo, clip$hi)
     layout <- list(
       margin = list(l = 56, r = 24, t = 16, b = 60),
       xaxis = list(title = list(text = label_y), tickangle = -20,
                     categoryorder = "array",
                     categoryarray = cats, automargin = TRUE),
-      yaxis = list(title = list(text = label_x), gridcolor = "#e5e7eb"),
+      yaxis = yaxis_spec,
       plot_bgcolor = "#ffffff", paper_bgcolor = "#ffffff",
       showlegend = FALSE,
       height = 360L
     )
+    n_anom <- if (!is.null(clip)) clip$n_below + clip$n_above else 0L
+    subtitle_txt <- if (n_anom > 0L) {
+      sprintf("Distribución de %s por categoría (n=%d · ⚠ %d valor%s fuera del rango típico).",
+               label_x, length(xv), n_anom,
+               if (n_anom == 1L) "" else "es")
+    } else {
+      sprintf("Distribución de %s por categoría (n=%d).", label_x, length(xv))
+    }
     return(list(
       version = 1L, kind = "boxplot",
       title = titulo,
-      subtitle = sprintf("Distribución de %s por categoría (n=%d).",
-                          label_x, length(xv)),
+      subtitle = subtitle_txt,
       meta = list(var_x = var_x, var_y = var_y,
                   tipo_x = tipo_x, tipo_y = tipo_y),
       plotly = list(data = list(trace), layout = layout,
@@ -1031,6 +1113,12 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
         meta = list(empty_hint = "Sin casos válidos en ambas variables.")
       ))
     }
+    # Recorte p1-p99 en ambos ejes — outliers en cualquiera aplastan
+    # la nube de puntos y ocultan la correlación real.
+    clip_x <- .num_clip_range(xv)
+    clip_y <- .num_clip_range(yv)
+    n_anom_x <- if (!is.null(clip_x)) clip_x$n_below + clip_x$n_above else 0L
+    n_anom_y <- if (!is.null(clip_y)) clip_y$n_below + clip_y$n_above else 0L
     trace <- list(
       type = "scattergl",
       mode = "markers",
@@ -1041,20 +1129,31 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
       hovertemplate = sprintf("%s=%%{x}<br>%s=%%{y}<extra></extra>",
                                 label_x, label_y)
     )
+    xaxis_spec <- list(title = list(text = label_x), gridcolor = "#e5e7eb",
+                        zeroline = FALSE)
+    if (!is.null(clip_x)) xaxis_spec$range <- c(clip_x$lo, clip_x$hi)
+    yaxis_spec <- list(title = list(text = label_y), gridcolor = "#e5e7eb",
+                        zeroline = FALSE)
+    if (!is.null(clip_y)) yaxis_spec$range <- c(clip_y$lo, clip_y$hi)
     layout <- list(
       margin = list(l = 56, r = 24, t = 16, b = 60),
-      xaxis = list(title = list(text = label_x), gridcolor = "#e5e7eb",
-                    zeroline = FALSE),
-      yaxis = list(title = list(text = label_y), gridcolor = "#e5e7eb",
-                    zeroline = FALSE),
+      xaxis = xaxis_spec,
+      yaxis = yaxis_spec,
       plot_bgcolor = "#ffffff", paper_bgcolor = "#ffffff",
       showlegend = FALSE,
       height = 420L
     )
+    anom_total <- n_anom_x + n_anom_y
+    subtitle_txt <- if (anom_total > 0L) {
+      sprintf("Dispersión (n=%d · ⚠ %d valor%s fuera del rango típico).",
+               length(xv), anom_total, if (anom_total == 1L) "" else "es")
+    } else {
+      sprintf("Dispersión (n=%d casos válidos).", length(xv))
+    }
     return(list(
       version = 1L, kind = "scatter",
       title = titulo,
-      subtitle = sprintf("Dispersión (n=%d casos válidos).", length(xv)),
+      subtitle = subtitle_txt,
       meta = list(var_x = var_x, var_y = var_y,
                   tipo_x = tipo_x, tipo_y = tipo_y),
       plotly = list(data = list(trace), layout = layout,
