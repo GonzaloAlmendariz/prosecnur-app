@@ -307,6 +307,117 @@ export async function apiUpload(file: File, kind: UploadKind) {
   );
 }
 
+export type XlsformEditorSheet = {
+  name?: string | null;
+  columns: string[];
+  rows: string[][];
+};
+
+export type XlsformEditorWorkbook = {
+  survey: XlsformEditorSheet;
+  choices: XlsformEditorSheet;
+  settings: XlsformEditorSheet;
+  diagnostico?: XlsformEditorSheet | null;
+};
+
+export type XlsformEditorPayload = {
+  ok: true;
+  workbook: XlsformEditorWorkbook;
+  summary: {
+    survey_rows: number;
+    choices_rows: number;
+    settings_rows: number;
+    diagnostico_rows: number;
+  };
+  source: {
+    kind: string | null;
+    original_name: string | null;
+  };
+  warnings: string[];
+};
+
+function asStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((item) => (item == null ? "" : String(item)));
+  if (value == null) return [];
+  return [String(value)];
+}
+
+function normalizeSheet(value: unknown, fallbackName?: string): XlsformEditorSheet {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const rowsRaw = Array.isArray(raw.rows) ? raw.rows : [];
+  return {
+    name: typeof raw.name === "string" ? raw.name : (fallbackName ?? null),
+    columns: asStringArray(raw.columns),
+    rows: rowsRaw.map((row) => asStringArray(row)),
+  };
+}
+
+function normalizeEditorPayload(value: unknown): XlsformEditorPayload {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const workbookRaw = (raw.workbook ?? {}) as Record<string, unknown>;
+  const summaryRaw = (raw.summary ?? {}) as Record<string, unknown>;
+  const sourceRaw = (raw.source ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    workbook: {
+      survey: normalizeSheet(workbookRaw.survey, "survey"),
+      choices: normalizeSheet(workbookRaw.choices, "choices"),
+      settings: normalizeSheet(workbookRaw.settings, "settings"),
+      diagnostico: workbookRaw.diagnostico ? normalizeSheet(workbookRaw.diagnostico, "diagnostico") : null,
+    },
+    summary: {
+      survey_rows: Number(summaryRaw.survey_rows ?? 0),
+      choices_rows: Number(summaryRaw.choices_rows ?? 0),
+      settings_rows: Number(summaryRaw.settings_rows ?? 0),
+      diagnostico_rows: Number(summaryRaw.diagnostico_rows ?? 0),
+    },
+    source: {
+      kind: sourceRaw.kind == null ? null : String(sourceRaw.kind),
+      original_name: sourceRaw.original_name == null ? null : String(sourceRaw.original_name),
+    },
+    warnings: Array.isArray(raw.warnings)
+      ? raw.warnings.map((item) => String(item))
+      : [],
+  };
+}
+
+export async function apiXlsformEditorImport(file_id: string) {
+  const raw = await handle<unknown>(
+    await fetch("/api/xlsform-editor/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id }),
+    })
+  );
+  return normalizeEditorPayload(raw);
+}
+
+export async function apiXlsformEditorImportSurveyMonkey(file_id: string, lang = "es") {
+  const raw = await handle<unknown>(
+    await fetch("/api/xlsform-editor/import-surveymonkey", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id, lang }),
+    })
+  );
+  return normalizeEditorPayload(raw);
+}
+
+export async function apiXlsformEditorExport(workbook: XlsformEditorWorkbook, filename?: string) {
+  return handle<{
+    ok: true;
+    file_id: string;
+    original_name: string;
+    size: number;
+  }>(
+    await fetch("/api/xlsform-editor/export", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ workbook, filename }),
+    })
+  );
+}
+
 export async function apiCargaInstrumento(file_id: string) {
   return handle<{
     ok: true;
@@ -1692,9 +1803,22 @@ export async function apiV2InstrumentoEstado(baseNombre?: string | null) {
   );
 }
 
-export async function apiV2ExplorarVariables(baseNombre?: string | null) {
+/**
+ * Fuente de datos del explorador:
+ *  - "raw" (default): data original cargada, antes de limpieza.
+ *  - "final": data tras aplicar todas las decisiones de Limpieza. Requiere
+ *    que Limpieza ya se haya finalizado — si no, el backend responde 409
+ *    E_NOT_FINALIZED.
+ */
+export type ExplorarFuente = "raw" | "final";
+
+export async function apiV2ExplorarVariables(
+  baseNombre?: string | null,
+  fuente: ExplorarFuente = "raw",
+) {
+  const qs = fuente === "raw" ? "" : `?fuente=${encodeURIComponent(fuente)}`;
   return handle<ExploradorVariablesList>(
-    await fetch("/api/validacion/v2/explorar/variables", {
+    await fetch(`/api/validacion/v2/explorar/variables${qs}`, {
       headers: v2Headers(baseNombre),
     }),
   );
@@ -1742,12 +1866,27 @@ export type InstrumentoResultado = {
 export type ReglaInstrumento = {
   id: string;
   nombre: string;
+  nombre_tecnico?: string | null;
   objetivo: string | null;
   tipo_observacion: string | null;
   seccion: string | null;
   categoria: string | null;
   tabla: string | null;
   variables: string[];
+  variable_roles?: {
+    target?: string | null;
+    drivers?: string | Array<string | null> | null;
+    compare?: string | Array<string | null> | null;
+    gate?: string | Array<string | null> | null;
+    all?: string | Array<string | null> | null;
+    labels?: Record<string, string | null>;
+    tables?: Record<string, string | null>;
+  } | null;
+  presentation?: {
+    gate_humano?: string | null;
+    detalle_condicion?: string | null;
+    subtipo_semantico?: string | null;
+  } | null;
   procesamiento: string | null;
   activa: boolean;
   n_inconsistencias: number | null;
@@ -1900,12 +2039,13 @@ export async function apiV2ExplorarUnivariado(
   vari: string,
   baseNombre?: string | null,
   filtros?: ExplorarFiltros,
+  fuente: ExplorarFuente = "raw",
 ) {
   return handle<ExplorarUnivariadoResult>(
     await fetch("/api/validacion/v2/explorar/univariado", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
-      body: JSON.stringify({ var: vari, filtros: filtros ?? {} }),
+      body: JSON.stringify({ var: vari, filtros: filtros ?? {}, fuente }),
     }),
   );
 }
@@ -1915,12 +2055,13 @@ export async function apiV2ExplorarBivariado(
   var_y: string,
   baseNombre?: string | null,
   filtros?: ExplorarFiltros,
+  fuente: ExplorarFuente = "raw",
 ) {
   return handle<ExplorarBivariadoResult>(
     await fetch("/api/validacion/v2/explorar/bivariado", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
-      body: JSON.stringify({ var_x, var_y, filtros: filtros ?? {} }),
+      body: JSON.stringify({ var_x, var_y, filtros: filtros ?? {}, fuente }),
     }),
   );
 }
@@ -1947,10 +2088,13 @@ export type ExplorarValoresResult = {
 export async function apiV2ExplorarValores(
   vari: string,
   baseNombre?: string | null,
+  fuente: ExplorarFuente = "raw",
 ) {
+  const qs = new URLSearchParams({ var: vari });
+  if (fuente !== "raw") qs.set("fuente", fuente);
   return handle<ExplorarValoresResult>(
     await fetch(
-      `/api/validacion/v2/explorar/valores?var=${encodeURIComponent(vari)}`,
+      `/api/validacion/v2/explorar/valores?${qs.toString()}`,
       { headers: v2Headers(baseNombre) },
     ),
   );

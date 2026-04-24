@@ -44,6 +44,64 @@
   validacion_scope_get(sid, base_nombre)
 }
 
+# -----------------------------------------------------------------------------
+# .resolve_explorar_data: devuelve la data para el explorador según fuente.
+#   - "raw" (default): data cargada originalmente (comportamiento histórico).
+#   - "final": la data tras aplicar todas las decisiones de Limpieza.
+#     Requiere que Limpieza ya se haya finalizado (artifacts$finalized_at).
+#     Si no, lanza 409 con mensaje claro.
+#
+# Devuelve list(data = <data.frame>, effective_base = <char>).
+# -----------------------------------------------------------------------------
+.resolve_explorar_data <- function(sid, base_nombre = NULL, fuente = "raw") {
+  fuente <- if (is.null(fuente)) "raw" else as.character(fuente)
+  if (!(fuente %in% c("raw", "final"))) {
+    stop_api(400, "E_BAD_FUENTE",
+             sprintf("fuente debe ser 'raw' o 'final' (recibido: '%s').", fuente))
+  }
+
+  data_sources <- estudio_data_sources(sid)
+  inst_sources <- estudio_inst_sources(sid)
+  effective_base <- if (!is.null(base_nombre) && nzchar(base_nombre)) base_nombre
+                     else if (length(data_sources) > 0L) names(data_sources)[1]
+                     else NULL
+  if (is.null(effective_base) ||
+      is.null(data_sources[[effective_base]]) ||
+      is.null(inst_sources[[effective_base]])) {
+    stop_api(409, "E_NO_DATA_INST",
+             "No hay data o instrumento cargado para esta base.")
+  }
+
+  inst <- inst_sources[[effective_base]]
+
+  if (identical(fuente, "raw")) {
+    return(list(
+      data = data_sources[[effective_base]],
+      instrumento = inst,
+      effective_base = effective_base,
+      fuente = "raw"
+    ))
+  }
+
+  # fuente == "final": requiere Limpieza finalizada.
+  scope <- validacion_scope_get(sid, effective_base)
+  preview <- scope$limpieza_preview %||% NULL
+  artifacts <- scope$limpieza_artifacts %||% NULL
+  finalized_at <- artifacts$finalized_at %||% NULL
+  if (is.null(preview) || is.null(preview$data_final) ||
+      is.null(finalized_at) || !nzchar(as.character(finalized_at))) {
+    stop_api(409, "E_NOT_FINALIZED",
+             "La base final aún no se ha cerrado. Termina Limpieza primero.")
+  }
+
+  list(
+    data = preview$data_final,
+    instrumento = inst,
+    effective_base = effective_base,
+    fuente = "final"
+  )
+}
+
 # Devuelve los paths (xlsform, data) de la base especificada. Para
 # multi-base: lee `s$estudio$bases[[base]]$xlsform_file_id` y
 # `data_file_id` del file store. Para legacy: busca el último xlsform y
@@ -303,7 +361,10 @@ mount_validacion <- function(pr) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
-      n_reglas <- if (!is.null(scope$plan_result) && !is.null(scope$plan_result$plan)) {
+      n_reglas <- if (!is.null(scope$plan_result) && !is.null(scope$plan_result$bundle) &&
+                      length(scope$plan_result$bundle$rules %||% list())) {
+        length(scope$plan_result$bundle$rules)
+      } else if (!is.null(scope$plan_result) && !is.null(scope$plan_result$plan)) {
         nrow(scope$plan_result$plan)
       } else 0L
       list(
@@ -333,15 +394,22 @@ mount_validacion <- function(pr) {
         repeat_min1 = FALSE, tiempo_ventana = FALSE
       ) else as.list(incluir)
 
-      plan <- generar_plan_limpieza(x = inst, incluir = incluir_final)
+      compat <- validation_profile_for_base(files$base_nombre %||% base)
+      bundle <- build_validation_bundle(
+        instrumento = inst,
+        reglas_custom = list(),
+        incluir = incluir_final,
+        compatibility = compat
+      )
+      plan <- bundle$plan %||% compile_rules_to_plan(bundle$rules)
       resumen <- tryCatch(
         dplyr::arrange(
-          dplyr::count(plan, `Tipo de observación`, name = "n_reglas"),
+          dplyr::count(plan, `Tipo`, name = "n_reglas"),
           dplyr::desc(n_reglas)
         ),
         error = function(e) NULL
       )
-      plan_result <- list(plan = plan, resumen = resumen,
+      plan_result <- list(plan = plan, bundle = bundle, resumen = resumen,
                           secciones = inst$meta$section_map, meta = inst$meta)
       validacion_scope_set(sid, base, "plan_result", plan_result)
       # Al reconstruir el plan, la evaluación vieja ya no aplica.
@@ -400,13 +468,20 @@ mount_validacion <- function(pr) {
         stop_api(400, "E_MISSING_FILE_ID", "Body must include file_id")
       }
       meta <- get_file(sid, file_id)
-      plan_df <- cargar_plan_excel(meta$path)
-
       prev <- .get_base_scope(sid, base)$plan_result
+      compat <- validation_profile_for_base(base)
+      imported <- validation_bundle_from_plan_xlsx(
+        path = meta$path,
+        existing_bundle = prev$bundle %||% NULL,
+        compatibility = compat
+      )
+      plan_df <- imported$plan %||% cargar_plan_excel(meta$path)
+
       new_result <- if (is.null(prev)) {
-        list(plan = plan_df, resumen = NULL, secciones = NULL, meta = NULL)
+        list(plan = plan_df, bundle = imported, resumen = NULL, secciones = NULL, meta = NULL)
       } else {
         prev$plan <- plan_df
+        prev$bundle <- imported
         prev
       }
       validacion_scope_set(sid, base, "plan_result", new_result)
@@ -434,17 +509,17 @@ mount_validacion <- function(pr) {
       # en legacy).
       base_effective <- files$base_nombre
 
+      compat <- validation_profile_for_base(base_effective %||% base)
+      bundle_efectivo <- scope$plan_result$bundle %||%
+        validation_bundle_from_plan_df(scope$plan_result$plan,
+                                       existing_bundle = scope$plan_result$bundle %||% NULL,
+                                       compatibility = compat)
+
       # Filtrar reglas desactivadas (toggle "ignorar") antes de correr.
-      plan_efectivo <- scope$plan_result$plan
       desactivadas <- scope$reglas_desactivadas %||% character(0)
-      if (length(desactivadas) && !is.null(plan_efectivo)) {
-        id_col <- if ("ID" %in% names(plan_efectivo)) "ID"
-                  else if ("id_regla" %in% names(plan_efectivo)) "id_regla"
-                  else NULL
-        if (!is.null(id_col)) {
-          keep <- !(as.character(plan_efectivo[[id_col]]) %in% desactivadas)
-          plan_efectivo <- plan_efectivo[keep, , drop = FALSE]
-        }
+      if (length(desactivadas) && length(bundle_efectivo$rules %||% list())) {
+        bundle_efectivo$rules <- Filter(function(r) !(r$id %in% desactivadas), bundle_efectivo$rules)
+        bundle_efectivo$plan <- compile_rules_to_plan(bundle_efectivo$rules)
       }
 
       # api_path para que el subprocess callr pueda cargar el paquete.
@@ -453,7 +528,7 @@ mount_validacion <- function(pr) {
       job_id <- job_submit(
         sid = sid,
         kind = "validacion.v2.auditoria",
-        func = function(data_path, data_ext, plan, api_path) {
+        func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path) {
           # Locale UTF-8 para que `pkgload::load_all()` pueda parsear
           # archivos .R con caracteres acentuados (el subprocess callr
           # no hereda las opciones locale del main process).
@@ -470,17 +545,17 @@ mount_validacion <- function(pr) {
           } else if (requireNamespace("devtools", quietly = TRUE)) {
             devtools::load_all(api_path, quiet = TRUE)
           }
-          datos <- switch(data_ext,
-            xlsx = readxl::read_excel(data_path),
-            xls  = readxl::read_excel(data_path),
-            csv  = utils::read.csv(data_path, stringsAsFactors = FALSE),
-            sav  = haven::read_sav(data_path),
-            stop(sprintf("Unsupported data extension: %s", data_ext))
+          inst <- leer_xlsform_limpieza(xlsform_path, verbose = FALSE)
+          datos <- read_validation_data_ast(
+            path = data_path,
+            ext = data_ext,
+            instrumento = inst
           )
-          ev <- evaluar_consistencia(
-            datos = datos,
-            plan = plan,
-            contar_na_como_inconsistencia = FALSE
+          ev <- evaluate_validation_bundle(
+            bundle = bundle,
+            data_input = datos,
+            compatibility = validation_profile_for_base(base_name),
+            strict = FALSE
           )
           total_raw <- tryCatch(total_inconsistencias(ev), error = function(e) NULL)
           total_scalar <- if (is.numeric(total_raw) && length(total_raw) == 1) {
@@ -494,7 +569,9 @@ mount_validacion <- function(pr) {
         args = list(
           data_path = files$data$path,
           data_ext = files$data_ext,
-          plan = plan_efectivo,
+          xlsform_path = files$xlsform$path,
+          bundle = bundle_efectivo,
+          base_name = base_effective %||% base,
           api_path = api_path
         ),
         on_complete = function(j) {
@@ -562,7 +639,7 @@ mount_validacion <- function(pr) {
       )
 
       # Top reglas violadas + heatmap sección × tipo.
-      top_reglas <- .vd_top_reglas(resumen, n = 20L)
+      top_reglas <- .vd_top_reglas(resumen, n = 8L)
       heatmap   <- .vd_heatmap_seccion_tipo(resumen)
 
       # Resumen tabla: versión ligera para el drill (solo las reglas con
@@ -591,9 +668,9 @@ mount_validacion <- function(pr) {
     # --- Instrumento: drill por regla (vista enriquecida) --------------------
     # Retorna objeto rico: metadata humana de la regla + lista de casos con
     # UUID detectado. Payload:
-    #   { ok, regla: {id, nombre, objetivo, tipo_observacion, seccion,
-    #                 categoria, variables:[], procesamiento, activa,
-    #                 n_inconsistencias, porcentaje},
+    #   { ok, regla: {id, nombre, nombre_tecnico, objetivo, tipo_observacion,
+    #                 seccion, categoria, variables:[], variable_roles,
+    #                 procesamiento, activa, n_inconsistencias, porcentaje},
     #     casos: [{uuid, ...campos}], uuid_col: string }
     plumber::pr_post("/api/validacion/v2/instrumento/regla", wrap_endpoint(function(req, res, id_regla = NULL, ...) {
       sid <- session_header(req)
@@ -625,6 +702,11 @@ mount_validacion <- function(pr) {
         if (length(val) == 0L) default else val[1]
       }
 
+      .col_list <- function(df, col) {
+        if (is.null(df) || !(col %in% names(df))) return(NULL)
+        df[[col]][[1]] %||% NULL
+      }
+
       row_idx_plan <- if (!is.null(plan_df)) {
         which(as.character(plan_df$`ID` %||% plan_df$id_regla) == id_regla)[1]
       } else integer(0)
@@ -639,8 +721,10 @@ mount_validacion <- function(pr) {
         reglas_meta[row_idx_meta, , drop = FALSE]
       } else NULL
 
-      nombre_regla <- .col(row_plan, c("Nombre de la regla", "nombre_regla")) |>
+      nombre_regla <- .col(row_plan, c("Nombre de regla", "Nombre de la regla", "nombre_regla")) |>
         (\(x) if (is.na(x)) .col(row_meta, "nombre_regla") else x)()
+      nombre_tecnico <- .col(row_plan, c("Nombre técnico", "_nombre_tecnico", "nombre_tecnico")) |>
+        (\(x) if (is.na(x)) .col(row_meta, "nombre_tecnico") else x)()
       objetivo <- if (length(aud$objetivo) && !is.na(aud$objetivo[1])) aud$objetivo[1]
                    else .col(row_plan, c("Objetivo", "objetivo")) |>
                         (\(x) if (is.na(x)) .col(row_meta, "objetivo") else x)()
@@ -669,6 +753,38 @@ mount_validacion <- function(pr) {
         )
       }
       vars <- vars[!is.na(vars) & nzchar(vars)]
+      variable_roles <- .col_list(row_meta, "variable_roles")
+      if (is.null(variable_roles) && !is.null(row_plan) && "_variable_roles_json" %in% names(row_plan)) {
+        raw_roles <- as.character(row_plan[["_variable_roles_json"]] %||% "")
+        if (nzchar(raw_roles)) {
+          variable_roles <- tryCatch(
+            jsonlite::fromJSON(raw_roles, simplifyVector = FALSE),
+            error = function(e) NULL
+          )
+        }
+      }
+      if (is.null(variable_roles)) {
+        variable_roles <- list(
+          target = vars[1] %||% NA_character_,
+          drivers = as.list(vars[-1] %||% character(0)),
+          compare = list(),
+          gate = list(),
+          all = as.list(vars)
+        )
+      }
+      presentation <- .col_list(row_meta, "presentation")
+      if (is.null(presentation) && !is.null(row_plan) && "_presentation_json" %in% names(row_plan)) {
+        raw_presentation <- as.character(row_plan[["_presentation_json"]] %||% "")
+        if (nzchar(raw_presentation)) {
+          presentation <- tryCatch(
+            jsonlite::fromJSON(raw_presentation, simplifyVector = FALSE),
+            error = function(e) NULL
+          )
+        }
+      }
+      if (is.null(presentation)) {
+        presentation <- list()
+      }
 
       # ¿Está la regla en la lista de desactivadas?
       desactivadas <- scope$reglas_desactivadas %||% character(0)
@@ -712,12 +828,15 @@ mount_validacion <- function(pr) {
         regla = list(
           id = id_regla,
           nombre = if (is.na(nombre_regla)) id_regla else nombre_regla,
+          nombre_tecnico = if (is.na(nombre_tecnico)) NA_character_ else nombre_tecnico,
           objetivo = if (is.na(objetivo)) NA_character_ else objetivo,
           tipo_observacion = if (is.na(tipo_obs)) NA_character_ else tipo_obs,
           seccion = if (is.na(seccion)) NA_character_ else seccion,
           categoria = if (is.na(categoria)) NA_character_ else categoria,
           tabla = if (is.na(tabla)) NA_character_ else tabla,
           variables = as.list(vars),
+          variable_roles = variable_roles,
+          presentation = presentation,
           procesamiento = if (is.null(procesamiento) || is.na(procesamiento)) NA_character_ else procesamiento,
           activa = activa,
           n_inconsistencias = n_inc,
@@ -796,10 +915,10 @@ mount_validacion <- function(pr) {
 
         # Mapa atributo canónico → columnas candidatas del plan.
         mapa <- list(
-          nombre = c("Nombre de la regla", "nombre_regla"),
+          nombre = c("_nombre_humano", "Nombre de la regla", "Nombre de regla", "nombre_regla"),
           objetivo = c("Objetivo", "objetivo"),
-          tipo_observacion = c("Tipo de observación", "tipo_observacion"),
-          categoria = c("Categoría", "categoria"),
+          tipo_observacion = c("Tipo de observación", "tipo_observacion", "_tipo_regla"),
+          categoria = c("Categoría", "categoria", "_categoria_ux"),
           mensaje = c("Mensaje", "mensaje")
         )
 
@@ -815,6 +934,11 @@ mount_validacion <- function(pr) {
 
         new_plan_result <- scope$plan_result
         new_plan_result$plan <- plan_df
+        new_plan_result$bundle <- validation_bundle_from_plan_df(
+          plan_df = plan_df,
+          existing_bundle = scope$plan_result$bundle %||% NULL,
+          compatibility = validation_profile_for_base(base)
+        )
         validacion_scope_set(sid, base, "plan_result", new_plan_result)
         validacion_scope_set(sid, base, "evaluacion", NULL)
         .limpieza_invalidate_outputs(sid, base)
@@ -824,30 +948,20 @@ mount_validacion <- function(pr) {
     })) |>
 
     # --- Explorar: inventario de variables agrupadas por sección ------------
-    plumber::pr_get("/api/validacion/v2/explorar/variables", wrap_endpoint(function(req, res) {
+    plumber::pr_get("/api/validacion/v2/explorar/variables", wrap_endpoint(function(req, res, fuente = "raw") {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       .get_base_scope(sid, base)  # valida existencia
 
-      # Resolver data + instrumento scoped por base (o legacy).
-      data_sources <- estudio_data_sources(sid)
-      inst_sources <- estudio_inst_sources(sid)
-      effective_base <- if (!is.null(base) && nzchar(base)) base
-                         else if (length(data_sources) > 0L) names(data_sources)[1]
-                         else NULL
-      if (is.null(effective_base) ||
-          is.null(data_sources[[effective_base]]) ||
-          is.null(inst_sources[[effective_base]])) {
-        stop_api(409, "E_NO_DATA_INST",
-                 "No hay data o instrumento cargado para esta base.")
-      }
+      resolved <- .resolve_explorar_data(sid, base, fuente)
       inv <- .explorar_inventario(
-        data = data_sources[[effective_base]],
-        instrumento = inst_sources[[effective_base]]
+        data = resolved$data,
+        instrumento = resolved$instrumento
       )
       list(
         ok = TRUE,
-        base_nombre = effective_base %||% NA_character_,
+        base_nombre = resolved$effective_base %||% NA_character_,
+        fuente = resolved$fuente,
         n_variables = as.integer(inv$n_variables),
         secciones = inv$secciones
       )
@@ -866,22 +980,17 @@ mount_validacion <- function(pr) {
       var <- as.character(parsed$var %||% "")
       if (!nzchar(var)) stop_api(400, "E_MISSING_VAR", "Body debe incluir 'var'.")
       filtros <- parsed$filtros %||% NULL
+      fuente <- parsed$fuente %||% "raw"
 
-      data_sources <- estudio_data_sources(sid)
-      inst_sources <- estudio_inst_sources(sid)
-      effective_base <- if (!is.null(base) && nzchar(base)) base
-                         else if (length(data_sources) > 0L) names(data_sources)[1]
-                         else NULL
-      if (is.null(effective_base)) {
-        stop_api(409, "E_NO_DATA_INST", "No hay data cargada.")
-      }
+      resolved <- .resolve_explorar_data(sid, base, fuente)
       view <- build_view_univariado(
-        data = data_sources[[effective_base]],
+        data = resolved$data,
         var = var,
-        instrumento = inst_sources[[effective_base]],
+        instrumento = resolved$instrumento,
         filtros = filtros
       )
-      view$base_nombre <- effective_base
+      view$base_nombre <- resolved$effective_base
+      view$fuente <- resolved$fuente
       view
     })) |>
 
@@ -898,45 +1007,33 @@ mount_validacion <- function(pr) {
       var_x <- as.character(parsed$var_x %||% "")
       var_y <- as.character(parsed$var_y %||% "")
       filtros <- parsed$filtros %||% NULL
+      fuente <- parsed$fuente %||% "raw"
       if (!nzchar(var_x) || !nzchar(var_y)) {
         stop_api(400, "E_MISSING_VARS", "Body debe incluir 'var_x' y 'var_y'.")
       }
-      data_sources <- estudio_data_sources(sid)
-      inst_sources <- estudio_inst_sources(sid)
-      effective_base <- if (!is.null(base) && nzchar(base)) base
-                         else if (length(data_sources) > 0L) names(data_sources)[1]
-                         else NULL
-      if (is.null(effective_base)) {
-        stop_api(409, "E_NO_DATA_INST", "No hay data cargada.")
-      }
+      resolved <- .resolve_explorar_data(sid, base, fuente)
       view <- build_view_bivariado(
-        data = data_sources[[effective_base]],
+        data = resolved$data,
         var_x = var_x, var_y = var_y,
-        instrumento = inst_sources[[effective_base]],
+        instrumento = resolved$instrumento,
         filtros = filtros
       )
-      list(ok = TRUE, base_nombre = effective_base, view = view)
+      list(ok = TRUE, base_nombre = resolved$effective_base,
+            fuente = resolved$fuente, view = view)
     })) |>
 
     # --- Explorar: valores distintos de una variable (para filtro UI) -------
     # GET con ?var=<name>. Retorna las opciones disponibles con label +
     # frecuencia. Usa el tipo detectado para resolver SM (retorna dummies).
-    plumber::pr_get("/api/validacion/v2/explorar/valores", wrap_endpoint(function(req, res, var = NULL) {
+    plumber::pr_get("/api/validacion/v2/explorar/valores", wrap_endpoint(function(req, res, var = NULL, fuente = "raw") {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       if (is.null(var) || !nzchar(var)) {
         stop_api(400, "E_MISSING_VAR", "Falta ?var=<nombre>")
       }
-      data_sources <- estudio_data_sources(sid)
-      inst_sources <- estudio_inst_sources(sid)
-      effective_base <- if (!is.null(base) && nzchar(base)) base
-                         else if (length(data_sources) > 0L) names(data_sources)[1]
-                         else NULL
-      if (is.null(effective_base)) {
-        stop_api(409, "E_NO_DATA_INST", "No hay data cargada.")
-      }
-      df <- data_sources[[effective_base]]
-      inst <- inst_sources[[effective_base]]
+      resolved <- .resolve_explorar_data(sid, base, fuente)
+      df <- resolved$data
+      inst <- resolved$instrumento
       tipo <- .explorar_tipo_var(var, survey = inst$survey %||% NULL, df = df)
       # Para num / fecha: devolvemos rango + cuantiles para que el UI
       # pueda armar un slider/inputs con defaults sensatos.
@@ -1119,32 +1216,33 @@ mount_validacion <- function(pr) {
         files <- .resolve_base_files(sid, base)
         base_effective <- files$base_nombre
 
-        # Plan efectivo = plan instrumento (si existe, filtrado por
-        # desactivadas) + compile(reglas_custom activas).
-        plan_inst <- scope$plan_result$plan %||% NULL
-        desactivadas <- scope$reglas_desactivadas %||% character(0)
-        if (length(desactivadas) && !is.null(plan_inst)) {
-          id_col <- if ("ID" %in% names(plan_inst)) "ID"
-                    else if ("id_regla" %in% names(plan_inst)) "id_regla" else NULL
-          if (!is.null(id_col)) {
-            plan_inst <- plan_inst[!(as.character(plan_inst[[id_col]]) %in% desactivadas), , drop = FALSE]
+        compat <- validation_profile_for_base(base_effective %||% base)
+        bundle_inst <- scope$plan_result$bundle %||%
+          if (!is.null(scope$plan_result$plan)) {
+            validation_bundle_from_plan_df(
+              plan_df = scope$plan_result$plan,
+              existing_bundle = scope$plan_result$bundle %||% NULL,
+              compatibility = compat
+            )
+          } else {
+            list(rules = list(), plan = compile_rules_to_plan(list()), compatibility = compat)
           }
+
+        desactivadas <- scope$reglas_desactivadas %||% character(0)
+        if (length(desactivadas) && length(bundle_inst$rules %||% list())) {
+          bundle_inst$rules <- Filter(function(r) !(r$id %in% desactivadas), bundle_inst$rules)
         }
-        # Cargar instrumento para obtener labels de variables.
-        inst <- tryCatch(leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE),
-                         error = function(e) NULL)
-        plan_custom <- compile_reglas_custom(activas, instrumento = inst)
-        plan_final <- if (!is.null(plan_inst) && nrow(plan_inst) > 0L) {
-          # bind_rows tolera columnas faltantes.
-          dplyr::bind_rows(plan_inst, plan_custom)
-        } else plan_custom
+        bundle_custom <- bridge_reglas_custom_list(activas)
+        bundle_final <- bundle_inst
+        bundle_final$rules <- .dedup_rules_exact(c(bundle_inst$rules %||% list(), bundle_custom))
+        bundle_final$plan <- compile_rules_to_plan(bundle_final$rules)
 
         api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
 
         job_id <- job_submit(
           sid = sid,
           kind = "validacion.v2.reglas_custom.ejecutar",
-          func = function(data_path, data_ext, plan, api_path) {
+          func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path) {
             tryCatch(Sys.setlocale("LC_ALL", "en_US.UTF-8"),
                      warning = function(w) NULL, error = function(e) NULL)
             options(encoding = "UTF-8")
@@ -1153,16 +1251,17 @@ mount_validacion <- function(pr) {
             } else if (requireNamespace("devtools", quietly = TRUE)) {
               devtools::load_all(api_path, quiet = TRUE)
             }
-            datos <- switch(data_ext,
-              xlsx = readxl::read_excel(data_path),
-              xls  = readxl::read_excel(data_path),
-              csv  = utils::read.csv(data_path, stringsAsFactors = FALSE),
-              sav  = haven::read_sav(data_path),
-              stop(sprintf("Unsupported data extension: %s", data_ext))
+            inst <- leer_xlsform_limpieza(xlsform_path, verbose = FALSE)
+            datos <- read_validation_data_ast(
+              path = data_path,
+              ext = data_ext,
+              instrumento = inst
             )
-            ev <- evaluar_consistencia(
-              datos = datos, plan = plan,
-              contar_na_como_inconsistencia = FALSE
+            ev <- evaluate_validation_bundle(
+              bundle = bundle,
+              data_input = datos,
+              compatibility = validation_profile_for_base(base_name),
+              strict = FALSE
             )
             total_raw <- tryCatch(total_inconsistencias(ev), error = function(e) NULL)
             total <- if (is.numeric(total_raw) && length(total_raw) == 1) {
@@ -1176,7 +1275,9 @@ mount_validacion <- function(pr) {
           args = list(
             data_path = files$data$path,
             data_ext = files$data_ext,
-            plan = plan_final,
+            xlsform_path = files$xlsform$path,
+            bundle = bundle_final,
+            base_name = base_effective %||% base,
             api_path = api_path
           ),
           on_complete = function(j) {

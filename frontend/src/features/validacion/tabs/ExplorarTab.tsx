@@ -9,8 +9,10 @@ import {
   apiV2ExplorarBivariado,
   apiV2ExplorarUnivariado,
   apiV2ExplorarVariables,
+  apiV2Limpieza,
   type ExplorarBivariadoResult,
   type ExplorarFiltros,
+  type ExplorarFuente,
   type ExplorarUnivariadoResult,
 } from "../../../api/client";
 import type { ExploradorVariable, ExploradorVariablesList } from "../types";
@@ -48,6 +50,12 @@ export default function ExplorarTab() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
+  // Fuente de los datos que se exploran: "raw" = data cargada original;
+  // "final" = data ya procesada por Limpieza (decisiones aplicadas).
+  const [fuente, setFuente] = useState<ExplorarFuente>("raw");
+  // Si la base tiene Limpieza cerrada, habilitamos el modo "final".
+  const [hasFinalizedBase, setHasFinalizedBase] = useState<boolean>(false);
+  const [finalizedAt, setFinalizedAt] = useState<string | null>(null);
 
   // Lista plana de variables (orden del inventario) — usada para iterar
   // con ←/→.
@@ -64,16 +72,41 @@ export default function ExplorarTab() {
   const prevVar = currentIdx > 0 ? flatVars[currentIdx - 1] : null;
   const nextVar = currentIdx >= 0 && currentIdx < flatVars.length - 1 ? flatVars[currentIdx + 1] : null;
 
-  // Inventario al montar / cambiar base.
+  // Al cambiar de base, reseteamos el modo fuente a "raw".
   useEffect(() => {
-    let cancel = false;
-    setLoading(true);
+    setFuente("raw");
     setSelected(null);
     setUni(null);
     setCruzar(null);
     setBiv(null);
     setFiltros({});
-    apiV2ExplorarVariables(baseNombre)
+  }, [baseNombre, version]);
+
+  // Chequear si hay base final (Limpieza finalizada) para habilitar el
+  // toggle "Data final".
+  useEffect(() => {
+    let cancel = false;
+    apiV2Limpieza(baseNombre)
+      .then((l) => {
+        if (cancel) return;
+        const at = l.artifacts?.finalized_at ?? null;
+        setFinalizedAt(at);
+        setHasFinalizedBase(!!at);
+      })
+      .catch(() => {
+        if (!cancel) {
+          setHasFinalizedBase(false);
+          setFinalizedAt(null);
+        }
+      });
+    return () => { cancel = true; };
+  }, [baseNombre, version]);
+
+  // Inventario al montar / cambiar base o fuente.
+  useEffect(() => {
+    let cancel = false;
+    setLoading(true);
+    apiV2ExplorarVariables(baseNombre, fuente)
       .then((i) => {
         if (!cancel) setInv(i);
       })
@@ -86,7 +119,7 @@ export default function ExplorarTab() {
     return () => {
       cancel = true;
     };
-  }, [baseNombre, version]);
+  }, [baseNombre, version, fuente]);
 
   // Consumir prefill deep-link: abre la variable indicada al cargar.
   useEffect(() => {
@@ -108,7 +141,7 @@ export default function ExplorarTab() {
     setBusy(`Cargando ${selected.name}…`);
     setError("");
     setUni(null);
-    apiV2ExplorarUnivariado(selected.name, baseNombre, filtros)
+    apiV2ExplorarUnivariado(selected.name, baseNombre, filtros, fuente)
       .then((u) => {
         if (!cancel) setUni(u);
       })
@@ -122,7 +155,7 @@ export default function ExplorarTab() {
       cancel = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, baseNombre, JSON.stringify(filtros)]);
+  }, [selected, baseNombre, fuente, JSON.stringify(filtros)]);
 
   // Cargar bivariado cuando el usuario elige "cruzar con" (o cambian filtros).
   useEffect(() => {
@@ -132,7 +165,7 @@ export default function ExplorarTab() {
     }
     let cancel = false;
     setBusy(`Cruzando ${selected.name} × ${cruzar}…`);
-    apiV2ExplorarBivariado(selected.name, cruzar, baseNombre, filtros)
+    apiV2ExplorarBivariado(selected.name, cruzar, baseNombre, filtros, fuente)
       .then((b) => {
         if (!cancel) setBiv(b);
       })
@@ -146,7 +179,7 @@ export default function ExplorarTab() {
       cancel = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, cruzar, baseNombre, JSON.stringify(filtros)]);
+  }, [selected, cruzar, baseNombre, fuente, JSON.stringify(filtros)]);
 
   const onPickVariable = useCallback((v: ExploradorVariable) => {
     setSelected(v);
@@ -232,6 +265,14 @@ export default function ExplorarTab() {
 
       {/* --- Vista principal ---------------------------------------------- */}
       <main style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+        {/* Toggle de fuente: data cruda vs final (tras Limpieza). */}
+        <FuenteToggle
+          fuente={fuente}
+          onChange={setFuente}
+          hasFinal={hasFinalizedBase}
+          finalizedAt={finalizedAt}
+        />
+
         {/* Filtros cascada (siempre visibles arriba cuando hay inventario) */}
         <FiltroCascada
           secciones={inv.secciones}
@@ -333,6 +374,146 @@ export default function ExplorarTab() {
         {error && <ErrorBlock label="Error" detail={error} />}
       </main>
     </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// FuenteToggle — selector "data cruda" vs "data final" (tras Limpieza)
+// -----------------------------------------------------------------------------
+// Segmentado de 2 posiciones. El botón "Data final" queda deshabilitado
+// (con tooltip explicativo) hasta que Limpieza se haya finalizado.
+// Cuando está activo, un pequeño hint muestra cuándo se cerró la base.
+function FuenteToggle({
+  fuente,
+  onChange,
+  hasFinal,
+  finalizedAt,
+}: {
+  fuente: ExplorarFuente;
+  onChange: (f: ExplorarFuente) => void;
+  hasFinal: boolean;
+  finalizedAt: string | null;
+}) {
+  const finalizedAtText = (() => {
+    if (!finalizedAt) return null;
+    try {
+      const d = new Date(finalizedAt);
+      if (Number.isNaN(d.getTime())) return null;
+      return d.toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" });
+    } catch {
+      return null;
+    }
+  })();
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "8px 12px",
+        borderRadius: 10,
+        background: "white",
+        border: "1px solid var(--pulso-border)",
+        boxShadow: "var(--pulso-shadow-low)",
+        flexWrap: "wrap",
+      }}
+    >
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: 0.4,
+          color: "var(--pulso-text-soft)",
+        }}
+      >
+        Fuente
+      </span>
+      <div
+        role="group"
+        aria-label="Fuente de datos del explorador"
+        style={{
+          display: "inline-flex",
+          border: "1px solid var(--pulso-border)",
+          borderRadius: 8,
+          overflow: "hidden",
+        }}
+      >
+        <FuenteButton
+          label="Data cruda"
+          hint="Data tal como se cargó. Útil para detectar errores."
+          active={fuente === "raw"}
+          disabled={false}
+          onClick={() => onChange("raw")}
+        />
+        <FuenteButton
+          label="Data final"
+          hint={
+            hasFinal
+              ? "Data tras aplicar todas las decisiones de Limpieza."
+              : "Cierra Limpieza primero para habilitar este modo."
+          }
+          active={fuente === "final"}
+          disabled={!hasFinal}
+          onClick={() => hasFinal && onChange("final")}
+        />
+      </div>
+      {fuente === "final" && finalizedAtText && (
+        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+          Cerrada el {finalizedAtText}
+        </span>
+      )}
+      {fuente === "raw" && hasFinal && (
+        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+          Hay una versión final disponible.
+        </span>
+      )}
+    </div>
+  );
+}
+
+function FuenteButton({
+  label,
+  hint,
+  active,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  hint: string;
+  active: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={hint}
+      aria-pressed={active}
+      style={{
+        padding: "6px 14px",
+        fontSize: 12,
+        fontWeight: 700,
+        border: "none",
+        background: active
+          ? "var(--pulso-primary-soft)"
+          : disabled
+          ? "var(--pulso-surface-2)"
+          : "white",
+        color: active
+          ? "var(--pulso-primary)"
+          : disabled
+          ? "var(--pulso-text-soft)"
+          : "var(--pulso-text)",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.7 : 1,
+        transition: "background 120ms ease",
+      }}
+    >
+      {label}
+    </button>
   );
 }
 
