@@ -76,6 +76,20 @@ export default function ReglasCustomTab() {
     setJobId(null);
   }, [refetch, version]);
 
+  // IMPORTANTE: este useMemo va arriba de los early returns. Si vive
+  // después de `if (loading) return ...` los hooks se llaman
+  // condicionalmente entre renders → React #310 ("Rendered more hooks
+  // than during the previous render") y la app se cae con pantalla
+  // gris al cambiar `loading` de true a false.
+  const flatVars: VarWithSection[] = useMemo(() => {
+    if (!inv) return [];
+    const out: VarWithSection[] = [];
+    for (const sec of inv.secciones) {
+      for (const v of sec.variables) out.push({ ...v, seccion: sec.nombre });
+    }
+    return out;
+  }, [inv]);
+
   async function handleSubmit(payload: Omit<ReglaCustom, "id" | "created_at"> & { id?: string }) {
     setBusy("Guardando regla…");
     try {
@@ -142,15 +156,8 @@ export default function ReglasCustomTab() {
 
   const reglas = list.reglas;
   const nActivas = reglas.filter((r) => r.activa).length;
-  // Plano de todas las variables del inventario con la sección de origen
-  // — para que los chips de variable del narrative sepan de qué grupo vienen.
-  const flatVars: VarWithSection[] = useMemo(() => {
-    const out: VarWithSection[] = [];
-    for (const sec of inv.secciones) {
-      for (const v of sec.variables) out.push({ ...v, seccion: sec.nombre });
-    }
-    return out;
-  }, [inv.secciones]);
+  // (flatVars se calcula arriba, antes de los early returns, para
+  // mantener el orden de hooks estable entre renders.)
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
