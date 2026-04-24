@@ -1,12 +1,8 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   AlertTriangle,
-  ArrowRight,
   Download,
-  Eye,
-  EyeOff,
   ListTree,
-  Pencil,
   Play,
   RefreshCcw,
   Upload,
@@ -19,7 +15,6 @@ import {
   apiV2InstrumentoEstado,
   apiV2InstrumentoExportPlan,
   apiV2InstrumentoImportPlan,
-  apiV2InstrumentoReglaPatchAtributos,
   apiV2InstrumentoReglaToggleActiva,
   apiV2InstrumentoResultado,
   downloadUrl,
@@ -35,8 +30,9 @@ import {
 import { JobProgress } from "../../../components/JobProgress";
 import { useValidacionStore } from "../store";
 import PlotlyView from "../components/PlotlyView";
-import DrilldownTable from "../components/DrilldownTable";
 import ReglaDrillPanel from "../components/ReglaDrillPanel";
+import { ContextLens, RuleNarrative } from "../components/v2";
+import type { ReglaLike, VariableHoverData } from "../components/v2";
 
 // =============================================================================
 // InstrumentoTab — Sprint 2
@@ -65,7 +61,6 @@ export default function InstrumentoTab() {
   const [drill, setDrill] = useState<InstrumentoDrillResult | null>(null);
   const [reglaDirty, setReglaDirty] = useState(false);
   const [selectedRuleId, setSelectedRuleId] = useState<string>("");
-  const [drillEditToken, setDrillEditToken] = useState(0);
 
   // Carga inicial + refetch al cambiar base.
   const refetchAll = useCallback(async () => {
@@ -190,19 +185,19 @@ export default function InstrumentoTab() {
     }
   }
 
-  async function openDrill(id: string, opts?: { edit?: boolean }) {
+  async function openDrill(id: string) {
     try {
       const out = await loadDrill(id);
       setDrill(out);
       setSelectedRuleId(id);
-      if (opts?.edit) {
-        setDrillEditToken((n) => n + 1);
-      } else {
-        setDrillEditToken(0);
-      }
     } catch (e) {
       setError((e as Error).message);
     }
+  }
+
+  function closeDrill() {
+    setDrill(null);
+    setReglaDirty(false);
   }
 
   async function onToggleReglaActiva(activa: boolean, ruleId?: string) {
@@ -226,52 +221,33 @@ export default function InstrumentoTab() {
     }
   }
 
-  async function onToggleSelectedRule() {
-    if (!selectedRuleId) return;
-    try {
-      const current = drill?.regla.id === selectedRuleId ? drill : await loadDrill(selectedRuleId);
-      if (!current) return;
-      setDrill(current);
-      await onToggleReglaActiva(!current.regla.activa, current.regla.id);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }
-
-  const ruleOptions = useMemo(() => {
-    if (!resultado) return [];
-    return resultado.resumen_tabla
-      .map((row) => ({
-        id: typeof row.id_regla === "string" ? row.id_regla : "",
-        label: typeof row.nombre_regla === "string" ? row.nombre_regla : "",
-        casos: typeof row.n_inconsistencias === "number" ? row.n_inconsistencias : null,
-      }))
-      .filter((row) => row.id);
-  }, [resultado]);
-
-  const selectedRuleMeta = useMemo(
-    () => ruleOptions.find((row) => row.id === selectedRuleId) ?? null,
-    [ruleOptions, selectedRuleId],
+  const compactRules = useMemo(
+    () => {
+      const baseRows =
+        resultado?.resumen_tabla
+          .map(normalizeCompactRuleRow)
+          .filter((row): row is CompactRuleRow => row !== null) ?? [];
+      const duplicateCounts = new Map<string, number>();
+      for (const row of baseRows) {
+        const key = row.nombre.trim().toLowerCase();
+        duplicateCounts.set(key, (duplicateCounts.get(key) ?? 0) + 1);
+      }
+      return baseRows.map((row) => {
+        const key = row.nombre.trim().toLowerCase();
+        return {
+          ...row,
+          displayName: buildDisplayRuleName(row.nombre, row.variables[0]?.key ?? null, (duplicateCounts.get(key) ?? 0) > 1),
+        };
+      });
+    },
+    [resultado],
   );
 
-  async function onPatchAtributos(patch: Record<string, string>) {
-    if (!drill) return;
-    setBusy("Guardando cambios…");
-    try {
-      await apiV2InstrumentoReglaPatchAtributos(drill.regla.id, patch, baseNombre);
-      // Refetch drill para ver los nuevos valores.
-      const refreshed = await apiV2InstrumentoDrill(drill.regla.id, baseNombre);
-      setDrill(refreshed);
-      setReglaDirty(true);
-      const e = await apiV2InstrumentoEstado(baseNombre);
-      setEstado(e);
-      setResultado(null);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy("");
-    }
-  }
+  const activeDisplayName = useMemo(() => {
+    if (!drill) return null;
+    const fromList = compactRules.find((row) => row.id === drill.regla.id)?.displayName;
+    return fromList ?? buildDisplayRuleName(drill.regla.nombre, getTargetVariableKey(drill.regla.variables), true);
+  }, [compactRules, drill]);
 
   if (loading) return <LoadingBlock label="Cargando estado…" />;
   if (!estado) {
@@ -478,26 +454,24 @@ export default function InstrumentoTab() {
               gap: 16,
             }}
           >
-            <PlotlyView
-              view={resultado.top_reglas}
-            />
-            <PlotlyView view={resultado.heatmap} />
+            <PlotlyView view={resultado.top_reglas} height={560} />
+            <PlotlyView view={resultado.heatmap} height={560} />
           </div>
 
           <section
             style={{
-              padding: "16px 20px",
+              padding: "16px 20px 20px",
               background: "white",
               border: "1px solid var(--pulso-border)",
               borderRadius: 10,
               boxShadow: "var(--pulso-shadow-low)",
               display: "flex",
               flexDirection: "column",
-              gap: 12,
+              gap: 14,
             }}
           >
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>Regla en detalle</div>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>Explorar reglas con casos</div>
               <div
                 style={{
                   fontSize: 11,
@@ -506,123 +480,60 @@ export default function InstrumentoTab() {
                   lineHeight: 1.5,
                 }}
               >
-                Selecciona una regla para verla, editarla o ignorarla sin depender de interactuar con los gráficos.
+                Cada tarjeta muestra la regla como narrativa. Pasa el mouse sobre una variable para ver su etiqueta completa, y haz click para abrir los casos.
               </div>
             </div>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-              <select
-                value={selectedRuleId}
-                onChange={(e) => setSelectedRuleId(e.target.value)}
-                style={{ minWidth: 320, maxWidth: 520, flex: "1 1 320px" }}
-              >
-                {ruleOptions.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.id} · {row.label || "Regla sin nombre"}
-                    {row.casos != null ? ` · ${row.casos} casos` : ""}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => selectedRuleId && void openDrill(selectedRuleId)}
-                disabled={!selectedRuleId}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 14px" }}
-              >
-                <Eye size={12} /> Ver regla
-              </button>
-              <button
-                type="button"
-                onClick={() => selectedRuleId && void openDrill(selectedRuleId, { edit: true })}
-                disabled={!selectedRuleId}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 14px" }}
-              >
-                <Pencil size={12} /> Editar
-              </button>
-              <button
-                type="button"
-                onClick={() => void onToggleSelectedRule()}
-                disabled={!selectedRuleId}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 14px" }}
-              >
-                {drill?.regla.id === selectedRuleId && drill.regla.activa ? <EyeOff size={12} /> : <Eye size={12} />}
-                {drill?.regla.id === selectedRuleId
-                  ? (drill.regla.activa ? "Ignorar" : "Reactivar")
-                  : "Ignorar / reactivar"}
-              </button>
-            </div>
-            {selectedRuleMeta && (
-              <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-                Regla seleccionada: <strong>{selectedRuleMeta.id}</strong>
-                {selectedRuleMeta.label ? ` · ${selectedRuleMeta.label}` : ""}
-              </div>
-            )}
-          </section>
 
-          {/* Drill inline si hay regla seleccionada */}
-          {drill && (
-            <ReglaDrillPanel
-              regla={drill.regla}
-              casos={drill.casos}
-              uuidCol={drill.uuid_col}
-              onToggleActiva={onToggleReglaActiva}
-              onPatchAtributos={onPatchAtributos}
-              onClose={() => {
-                setDrill(null);
-                setReglaDirty(false);
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+                gap: 10,
+                maxHeight: 480,
+                overflow: "auto",
+                paddingRight: 4,
               }}
-              invalidatedHint={
-                reglaDirty
-                  ? "Cambios aplicados. Vuelve a ejecutar la auditoría para actualizar KPIs y heatmap con el plan corregido."
-                  : undefined
-              }
-              startEditingToken={drillEditToken}
-            />
-          )}
-
-          {/* Tabla completa del resumen (drill por click en fila) */}
-          <section
-            style={{
-              padding: "16px 20px",
-              background: "white",
-              border: "1px solid var(--pulso-border)",
-              borderRadius: 10,
-              boxShadow: "var(--pulso-shadow-low)",
-            }}
-          >
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>
-                Reglas con casos
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: "var(--pulso-text-soft)",
-                  marginTop: 2,
-                }}
-              >
-                Click en una fila para ver los casos inconsistentes de esa regla.
-              </div>
+            >
+              {compactRules.map((row) => (
+                <NarrativeRuleCard
+                  key={row.id}
+                  row={row}
+                  selected={row.id === selectedRuleId}
+                  onClick={() => {
+                    setSelectedRuleId(row.id);
+                    void openDrill(row.id);
+                  }}
+                />
+              ))}
             </div>
-            <DrilldownTable
-              rows={resultado.resumen_tabla}
-              preferredOrder={[
-                "id_regla",
-                "nombre_regla",
-                "tipo_observacion",
-                "seccion",
-                "n_inconsistencias",
-                "tabla",
-                "porcentaje",
-              ]}
-              onRowClick={(row) => {
-                const id = row.id_regla as string | undefined;
-                if (id) void openDrill(id);
-              }}
-              emptyHint="Ninguna regla reportó casos — todo OK."
-            />
           </section>
         </section>
       )}
+
+      <ContextLens
+        open={!!drill}
+        onClose={closeDrill}
+        variant="wide"
+        title={activeDisplayName ?? drill?.regla.nombre ?? "Detalle de regla"}
+        subtitle={drill?.regla.seccion ?? undefined}
+      >
+        {drill ? (
+          <ReglaDrillPanel
+            regla={drill.regla}
+            displayName={activeDisplayName ?? undefined}
+            casos={drill.casos}
+            uuidCol={drill.uuid_col}
+            onToggleActiva={onToggleReglaActiva}
+            onClose={closeDrill}
+            invalidatedHint={
+              reglaDirty
+                ? "Cambios aplicados. Vuelve a ejecutar la auditoría para actualizar KPIs y heatmap con el plan corregido."
+                : undefined
+            }
+            surface="bubble"
+          />
+        ) : null}
+      </ContextLens>
 
       {busy && (
         <div style={{ marginTop: 4 }}>
@@ -635,6 +546,17 @@ export default function InstrumentoTab() {
 }
 
 // -----------------------------------------------------------------------------
+type CompactRuleRow = {
+  id: string;
+  nombre: string;
+  displayName: string;
+  tipo: string | null;
+  seccion: string | null;
+  porcentaje: number | null;
+  nInconsistencias: number | null;
+  variables: Array<{ key: string; label: string | null }>;
+};
+
 function StepHeader({
   idx,
   title,
@@ -720,3 +642,110 @@ function StepHeader({
     </div>
   );
 }
+
+function normalizeCompactRuleRow(row: Record<string, unknown>): CompactRuleRow | null {
+  const id = typeof row.id_regla === "string" ? row.id_regla : "";
+  if (!id) return null;
+  const variablePairs = [
+    {
+      key: typeof row.variable_1 === "string" ? row.variable_1 : "",
+      label: typeof row.variable_1_etiqueta === "string" ? row.variable_1_etiqueta : null,
+    },
+    {
+      key: typeof row.variable_2 === "string" ? row.variable_2 : "",
+      label: typeof row.variable_2_etiqueta === "string" ? row.variable_2_etiqueta : null,
+    },
+    {
+      key: typeof row.variable_3 === "string" ? row.variable_3 : "",
+      label: typeof row.variable_3_etiqueta === "string" ? row.variable_3_etiqueta : null,
+    },
+  ].filter((item) => item.key);
+
+  return {
+    id,
+    nombre: typeof row.nombre_regla === "string" ? row.nombre_regla : id,
+    displayName: typeof row.nombre_regla === "string" ? row.nombre_regla : id,
+    tipo: typeof row.tipo_observacion === "string" ? row.tipo_observacion : null,
+    seccion: typeof row.seccion === "string" ? row.seccion : null,
+    porcentaje: typeof row.porcentaje === "number" ? row.porcentaje : null,
+    nInconsistencias: typeof row.n_inconsistencias === "number" ? row.n_inconsistencias : null,
+    variables: variablePairs,
+  };
+}
+
+function NarrativeRuleCard({
+  row,
+  selected,
+  onClick,
+}: {
+  row: CompactRuleRow;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  const rule = useMemo(() => compactRowToRule(row), [row]);
+  const hoverLookup = useMemo(() => buildRowHoverLookup(row), [row]);
+  return (
+    <RuleNarrative
+      rule={rule}
+      variant="compact"
+      selected={selected}
+      onClick={onClick}
+      nCasos={row.nInconsistencias ?? null}
+      porcentaje={row.porcentaje ?? null}
+      variableHoverLookup={hoverLookup}
+      labelLookup={(v) => row.variables.find((x) => x.key === v)?.label ?? null}
+    />
+  );
+}
+
+function getTargetVariableKey(variables: Array<string | null | undefined>) {
+  const first = variables.find((value) => typeof value === "string" && value.trim().length > 0);
+  return typeof first === "string" ? first.trim() : null;
+}
+
+function buildDisplayRuleName(nombre: string, targetKey: string | null, disambiguate: boolean) {
+  const base = nombre.trim() || "Regla sin nombre";
+  if (!disambiguate || !targetKey) return base;
+  if (base.toLowerCase().includes(`[${targetKey.toLowerCase()}]`)) return base;
+  return `${base} [${targetKey}]`;
+}
+
+// ----------------------------------------------------------------------------
+// Adaptadores a los componentes v2 (RuleNarrative, hovercards de variable).
+// ----------------------------------------------------------------------------
+
+// Mapea un CompactRuleRow al shape ReglaLike que consume RuleNarrative.
+// Los labels por variable se pasan por separado al `labelLookup` de
+// RuleNarrative (ver `buildRowHoverLookup` + labelLookup inline).
+function compactRowToRule(row: CompactRuleRow): ReglaLike {
+  const variables = row.variables.map((v) => v.key);
+  const target = variables[0] ?? null;
+  return {
+    id: row.id,
+    nombre: row.displayName,
+    tipo_observacion: row.tipo ?? null,
+    fuente: "instrumento",
+    categoria_ux: row.tipo ?? null,
+    variables,
+    variable_roles: target ? { target } : null,
+    n_casos: row.nInconsistencias ?? null,
+    porcentaje: row.porcentaje ?? null,
+  };
+}
+
+// Hover lookup para variables: sólo tiene el label por fila (no hay drill
+// cargado). Suficiente para el listado — el ContextLens abre con datos
+// completos al hacer click.
+function buildRowHoverLookup(
+  row: CompactRuleRow,
+): (varName: string) => VariableHoverData | undefined {
+  const byKey = new Map<string, string | null>();
+  for (const v of row.variables) byKey.set(v.key, v.label);
+  return (varName: string): VariableHoverData | undefined => {
+    if (!varName) return undefined;
+    const label = byKey.get(varName) ?? null;
+    if (!label) return undefined;
+    return { label, seccion: row.seccion ?? null };
+  };
+}
+
