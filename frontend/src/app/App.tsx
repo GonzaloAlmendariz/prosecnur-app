@@ -7,7 +7,6 @@ import HomePage from "../features/dashboard/HomePage";
 import ProcesamientoEntry from "../features/dashboard/ProcesamientoEntry";
 import CargaPage from "../features/carga/CargaPage";
 import ValidacionPage from "../features/validacion/ValidacionPage";
-import ValidacionPlayground from "../features/validacion/ValidacionPlayground";
 import CodificacionPage from "../features/codificacion/CodificacionPage";
 import PreguntaDetalle from "../features/codificacion/PreguntaDetalle";
 import AnaliticaPage from "../features/analitica/AnaliticaPage";
@@ -41,10 +40,6 @@ export default function App() {
               <Route path="/procesamiento" element={<ProcesamientoEntry />} />
               <Route path="/carga" element={<CargaPage />} />
               <Route path="/validacion" element={<ValidacionPage />} />
-              {/* Playground aislado para ver los componentes Fase 1 del revamp.
-                  Temporal — se elimina cuando el revamp esté integrado en
-                  los 4 tabs reales. */}
-              <Route path="/validacion/playground" element={<ValidacionPlayground />} />
               <Route path="/codificacion" element={<CodificacionPage />} />
               <Route path="/codificacion/preguntas/:parent" element={<PreguntaDetalle />} />
               <Route path="/analitica" element={<AnaliticaPage />} />

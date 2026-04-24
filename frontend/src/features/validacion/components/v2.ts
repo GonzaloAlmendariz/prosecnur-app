@@ -1,10 +1,9 @@
 // =============================================================================
-// components/v2.ts — barrel de los componentes nuevos (Fase 1 revamp)
+// components/v2.ts — barrel de los componentes compartidos del revamp
 // =============================================================================
-// Centraliza los re-exports de los 5 componentes compartidos nuevos:
+// Centraliza los re-exports del kit nuevo:
 //   - VariableChip + Var (mención inline con hovercard)
 //   - RuleNarrative (compact / hero / inline)
-//   - StatCard (KPI con interpretación)
 //   - ContextLens (panel lateral deslizable)
 //   - DecisionStorageBar (barra segmentada estilo almacenamiento iPhone)
 //
@@ -17,9 +16,6 @@ export type { VariableChipProps, VariableHoverData } from "./VariableChip";
 
 export { default as RuleNarrative } from "./RuleNarrative";
 export type { RuleNarrativeProps, RuleNarrativeVariant } from "./RuleNarrative";
-
-export { default as StatCard } from "./StatCard";
-export type { StatCardProps, StatTone } from "./StatCard";
 
 export { default as ContextLens } from "./ContextLens";
 export type { ContextLensProps, ContextLensTab } from "./ContextLens";

@@ -3,8 +3,8 @@
 // narrativa (frase humana + roles + variables marcadas).
 // =============================================================================
 // Originalmente estos helpers vivían dentro de ReglaDrillPanel.tsx. Los
-// movemos aquí para que RuleNarrative, VariableChip, StatCard y cualquier
-// futuro consumidor compartan el mismo lenguaje visual.
+// movemos aquí para que RuleNarrative, VariableChip y cualquier futuro
+// consumidor compartan el mismo lenguaje visual.
 //
 // Contrato: trabajamos con un `ReglaLike` mínimo que acepta tanto
 // `ReglaInstrumento` (con presentation enriquecida) como reglas custom o
