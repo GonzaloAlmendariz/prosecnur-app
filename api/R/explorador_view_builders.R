@@ -249,30 +249,86 @@
 }
 
 # -----------------------------------------------------------------------------
-# .num_clip_range: rango robusto [p1, p99] para recortar visualizaciones
-# numéricas. Evita que outliers extremos (errores de captura: edad=7173,
-# precio=999999, etc.) aplasten el chart.
+# .num_viz_range: devuelve el rango ideal para mostrar una variable numérica.
 #
-# Devuelve list(lo, hi, n_below, n_above, n_total) o NULL si x es vacío
-# o el rango p1-p99 colapsa (todos los valores iguales).
+# Criterio:
+#   - Si NO hay outliers "duros" (Tukey con k=5: valores fuera de
+#     [Q1 - 5·IQR, Q3 + 5·IQR]), se muestra el rango completo [min, max].
+#     No hay razón para recortar datos que son solo colas razonables.
+#   - Si SÍ hay outliers duros (típicamente errores de captura como
+#     edad=7173), el chart se recorta al p1–p99 para que la mayoría
+#     de los datos se vea bien y los absurdos quedan fuera del plot.
+#
+# Devuelve list(lo, hi, n_anom, full_range, raw_min, raw_max).
+# NULL si x está vacío.
+#
+# La motivación: antes usábamos p1-p99 siempre, lo que generaba falsa
+# alarma cuando la distribución era normal (una variable con 384 casos
+# entre 20 y 84 años NO tiene nada anómalo, aunque 2% esté "fuera" de
+# cualquier p1-p99 arbitrario).
 # -----------------------------------------------------------------------------
-.num_clip_range <- function(x, probs = c(0.01, 0.99)) {
+.num_viz_range <- function(x, k_tukey = 5) {
   x <- x[is.finite(x)]
   if (!length(x)) return(NULL)
-  qs <- suppressWarnings(stats::quantile(x, probs, na.rm = TRUE, names = FALSE))
-  if (length(qs) != 2L || any(!is.finite(qs))) return(NULL)
-  lo <- qs[1]; hi <- qs[2]
-  if (lo >= hi) return(NULL)
-  # Pequeño padding para que las barras/cajas no peguen al borde visible.
+  raw_min <- min(x); raw_max <- max(x)
+  if (raw_min == raw_max) return(NULL)
+
+  # Criterio Tukey extendido — sólo valores muy fuera del IQR cuentan.
+  qs <- suppressWarnings(stats::quantile(x, c(0.25, 0.75), na.rm = TRUE, names = FALSE))
+  iqr <- if (length(qs) == 2L) qs[2] - qs[1] else 0
+  n_anom <- 0L
+  if (is.finite(iqr) && iqr > 0) {
+    tukey_lo <- qs[1] - k_tukey * iqr
+    tukey_hi <- qs[2] + k_tukey * iqr
+    n_anom <- sum(x < tukey_lo) + sum(x > tukey_hi)
+  }
+
+  if (n_anom == 0L) {
+    # Rango completo con pequeño padding para que no peguen al borde.
+    span <- raw_max - raw_min
+    pad <- max(span * 0.02, 0)
+    return(list(
+      lo = raw_min - pad, hi = raw_max + pad,
+      n_anom = 0L, full_range = TRUE,
+      raw_min = raw_min, raw_max = raw_max
+    ))
+  }
+
+  # Hay anómalos — recortamos al p1-p99 para la visualización.
+  qs99 <- suppressWarnings(stats::quantile(x, c(0.01, 0.99), na.rm = TRUE, names = FALSE))
+  if (length(qs99) != 2L || any(!is.finite(qs99)) || qs99[1] >= qs99[2]) {
+    return(list(
+      lo = raw_min, hi = raw_max,
+      n_anom = n_anom, full_range = FALSE,
+      raw_min = raw_min, raw_max = raw_max
+    ))
+  }
+  lo <- qs99[1]; hi <- qs99[2]
   span <- hi - lo
   pad <- max(span * 0.02, 0)
   list(
-    lo = lo - pad,
-    hi = hi + pad,
-    n_below = sum(x < lo),
-    n_above = sum(x > hi),
-    n_total = length(x)
+    lo = lo - pad, hi = hi + pad,
+    n_anom = n_anom, full_range = FALSE,
+    raw_min = raw_min, raw_max = raw_max
   )
+}
+
+# Formatea un número para subtitles: entero sin decimales si cabe, un
+# decimal si no. Ayuda a que "mediana 41" se vea mejor que "mediana 41.00".
+.fmt_num <- function(x) {
+  if (!is.finite(x)) return("—")
+  if (x == round(x) && abs(x) < 1e6) return(format(as.integer(x), big.mark = ","))
+  format(round(x, 1), big.mark = ",", nsmall = 0, trim = TRUE)
+}
+
+# Frase del recorte para el subtitle, amigable y sin alarma:
+#   - Sin anómalos:  ""                        (no mencionamos recorte)
+#   - Con anómalos:  " · 3 valores fuera de escala (máx 7,173)"
+.clip_phrase <- function(clip) {
+  if (is.null(clip) || clip$full_range || clip$n_anom == 0L) return("")
+  plural <- if (clip$n_anom == 1L) "" else "es"
+  sprintf(" · %d valor%s fuera de escala (máx %s)",
+           clip$n_anom, plural, .fmt_num(clip$raw_max))
 }
 
 # -----------------------------------------------------------------------------
@@ -554,10 +610,9 @@
                     empty_hint = "Sin valores numéricos para graficar.")
       ))
     }
-    # Recorte al percentil 1-99 para que outliers extremos (ej. edad=7173
-    # por data entry mal hecho) no aplasten el histograma. Las estadísticas
-    # reales (min, max, media) se preservan en el subtitle.
-    clip <- .num_clip_range(x)
+    # Rango visible: completo si no hay outliers duros; recortado si sí.
+    # Ver .num_viz_range para el criterio.
+    clip <- .num_viz_range(x)
     trace <- list(
       type = "histogram",
       x = x,
@@ -568,7 +623,7 @@
       hovertemplate = "Rango: %{x}<br>n=%{y}<extra></extra>"
     )
     if (!is.null(clip)) {
-      # xbins alineados al rango recortado → bins más representativos.
+      # xbins alineados al rango visible → bins más representativos.
       trace$xbins <- list(
         start = clip$lo,
         end = clip$hi,
@@ -588,36 +643,26 @@
         yaxis = pulso_plotly_axis(title = "Frecuencia")
       )
     )
-    # Estadísticas robustas para el subtitle: mediana + rango típico
-    # (p1–p99). El min/max raw puede estar contaminado por errores de
-    # captura (ej. edad=7173) y daría una impresión engañosa.
     med <- stats::median(x, na.rm = TRUE)
-    n_anomalos <- if (!is.null(clip)) clip$n_below + clip$n_above else 0L
-    range_note <- if (!is.null(clip)) {
-      sprintf("rango típico %.0f–%.0f", clip$lo, clip$hi)
-    } else {
-      sprintf("rango %.2f–%.2f", min(x), max(x))
-    }
-    anomalos_note <- if (n_anomalos > 0L) {
-      sprintf(" · ⚠ %d valor%s anómalo%s fuera del rango típico (posibles errores de captura: min=%.0f, max=%.0f)",
-               n_anomalos,
-               if (n_anomalos == 1L) "" else "es",
-               if (n_anomalos == 1L) "" else "s",
-               min(x), max(x))
-    } else {
-      ""
-    }
+    # Subtitle corto y natural: casos, mediana, rango. "Rango típico"
+    # sólo si recortamos. La frase de fuera-de-escala sólo si hay anómalos.
+    range_lo <- if (!is.null(clip)) clip$lo else min(x)
+    range_hi <- if (!is.null(clip)) clip$hi else max(x)
+    range_word <- if (!is.null(clip) && !clip$full_range) "rango típico" else "rango"
     return(list(
       version = 1L, kind = "histogram",
       title = titulo,
-      subtitle = sprintf("n=%d válidos · mediana=%.1f · %s%s",
-                          length(x), med, range_note, anomalos_note),
+      subtitle = sprintf("%d casos · mediana %s · %s %s a %s%s",
+                          length(x),
+                          .fmt_num(med),
+                          range_word,
+                          .fmt_num(range_lo), .fmt_num(range_hi),
+                          .clip_phrase(clip)),
       meta = list(
         var = var,
         tipo = tipo,
         n_validos = length(x),
-        eyebrow = "Numérica",
-        note = "El histograma acota al rango p1–p99 para dar una vista útil; los valores fuera se reportan como posibles errores."
+        eyebrow = "Numérica"
       ),
       plotly = list(data = list(trace), layout = layout,
                     config = pulso_plotly_config_base()),
@@ -981,8 +1026,8 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
     xv_lab[is.na(xv_lab)] <- xv[is.na(xv_lab)]
     cats <- if (!is.null(map_x)) unique(unname(map_x)) else sort(unique(xv_lab))
     cats <- cats[cats %in% xv_lab]
-    # Recorte p1-p99 para que outliers extremos no aplasten el boxplot.
-    clip <- .num_clip_range(yv)
+    # Solo recorta si hay outliers duros (ver .num_viz_range).
+    clip <- .num_viz_range(yv)
     trace <- list(
       type = "box",
       x = as.character(xv_lab),
@@ -994,7 +1039,7 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
                                 label_x, label_y)
     )
     yaxis_spec <- list(title = list(text = label_y), gridcolor = "#e5e7eb")
-    if (!is.null(clip)) yaxis_spec$range <- c(clip$lo, clip$hi)
+    if (!is.null(clip) && !clip$full_range) yaxis_spec$range <- c(clip$lo, clip$hi)
     layout <- list(
       margin = list(l = 56, r = 24, t = 16, b = 60),
       xaxis = list(title = list(text = label_x), tickangle = -20,
@@ -1005,18 +1050,11 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
       showlegend = FALSE,
       height = 360L
     )
-    n_anom <- if (!is.null(clip)) clip$n_below + clip$n_above else 0L
-    subtitle_txt <- if (n_anom > 0L) {
-      sprintf("Distribución de %s por categoría (n=%d · ⚠ %d valor%s fuera del rango típico).",
-               label_y, length(xv), n_anom,
-               if (n_anom == 1L) "" else "es")
-    } else {
-      sprintf("Distribución de %s por categoría (n=%d).", label_y, length(xv))
-    }
     return(list(
       version = 1L, kind = "boxplot",
       title = titulo,
-      subtitle = subtitle_txt,
+      subtitle = sprintf("Distribución de %s por categoría · %d casos%s",
+                          label_y, length(xv), .clip_phrase(clip)),
       meta = list(var_x = var_x, var_y = var_y,
                   tipo_x = tipo_x, tipo_y = tipo_y),
       plotly = list(data = list(trace), layout = layout,
@@ -1051,8 +1089,8 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
     yv_lab[is.na(yv_lab)] <- yv[is.na(yv_lab)]
     cats <- if (!is.null(map_y)) unique(unname(map_y)) else sort(unique(yv_lab))
     cats <- cats[cats %in% yv_lab]
-    # Recorte p1-p99 sobre la variable numérica (que va en Y).
-    clip <- .num_clip_range(xv)
+    # Solo recorta si hay outliers duros en el numérico (va en Y).
+    clip <- .num_viz_range(xv)
     trace <- list(
       type = "box",
       x = as.character(yv_lab),  # categoría en X
@@ -1064,7 +1102,7 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
                                 label_y, label_x)
     )
     yaxis_spec <- list(title = list(text = label_x), gridcolor = "#e5e7eb")
-    if (!is.null(clip)) yaxis_spec$range <- c(clip$lo, clip$hi)
+    if (!is.null(clip) && !clip$full_range) yaxis_spec$range <- c(clip$lo, clip$hi)
     layout <- list(
       margin = list(l = 56, r = 24, t = 16, b = 60),
       xaxis = list(title = list(text = label_y), tickangle = -20,
@@ -1075,18 +1113,11 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
       showlegend = FALSE,
       height = 360L
     )
-    n_anom <- if (!is.null(clip)) clip$n_below + clip$n_above else 0L
-    subtitle_txt <- if (n_anom > 0L) {
-      sprintf("Distribución de %s por categoría (n=%d · ⚠ %d valor%s fuera del rango típico).",
-               label_x, length(xv), n_anom,
-               if (n_anom == 1L) "" else "es")
-    } else {
-      sprintf("Distribución de %s por categoría (n=%d).", label_x, length(xv))
-    }
     return(list(
       version = 1L, kind = "boxplot",
       title = titulo,
-      subtitle = subtitle_txt,
+      subtitle = sprintf("Distribución de %s por categoría · %d casos%s",
+                          label_x, length(xv), .clip_phrase(clip)),
       meta = list(var_x = var_x, var_y = var_y,
                   tipo_x = tipo_x, tipo_y = tipo_y),
       plotly = list(data = list(trace), layout = layout,
@@ -1113,12 +1144,9 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
         meta = list(empty_hint = "Sin casos válidos en ambas variables.")
       ))
     }
-    # Recorte p1-p99 en ambos ejes — outliers en cualquiera aplastan
-    # la nube de puntos y ocultan la correlación real.
-    clip_x <- .num_clip_range(xv)
-    clip_y <- .num_clip_range(yv)
-    n_anom_x <- if (!is.null(clip_x)) clip_x$n_below + clip_x$n_above else 0L
-    n_anom_y <- if (!is.null(clip_y)) clip_y$n_below + clip_y$n_above else 0L
+    # Recorte solo si hay outliers duros en cada eje.
+    clip_x <- .num_viz_range(xv)
+    clip_y <- .num_viz_range(yv)
     trace <- list(
       type = "scattergl",
       mode = "markers",
@@ -1131,10 +1159,10 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
     )
     xaxis_spec <- list(title = list(text = label_x), gridcolor = "#e5e7eb",
                         zeroline = FALSE)
-    if (!is.null(clip_x)) xaxis_spec$range <- c(clip_x$lo, clip_x$hi)
+    if (!is.null(clip_x) && !clip_x$full_range) xaxis_spec$range <- c(clip_x$lo, clip_x$hi)
     yaxis_spec <- list(title = list(text = label_y), gridcolor = "#e5e7eb",
                         zeroline = FALSE)
-    if (!is.null(clip_y)) yaxis_spec$range <- c(clip_y$lo, clip_y$hi)
+    if (!is.null(clip_y) && !clip_y$full_range) yaxis_spec$range <- c(clip_y$lo, clip_y$hi)
     layout <- list(
       margin = list(l = 56, r = 24, t = 16, b = 60),
       xaxis = xaxis_spec,
@@ -1143,17 +1171,19 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
       showlegend = FALSE,
       height = 420L
     )
-    anom_total <- n_anom_x + n_anom_y
-    subtitle_txt <- if (anom_total > 0L) {
-      sprintf("Dispersión (n=%d · ⚠ %d valor%s fuera del rango típico).",
-               length(xv), anom_total, if (anom_total == 1L) "" else "es")
+    # Para scatter, sumar anómalos de ambos ejes como una sola nota.
+    n_anom_total <- (if (!is.null(clip_x)) clip_x$n_anom else 0L) +
+                    (if (!is.null(clip_y)) clip_y$n_anom else 0L)
+    clip_txt <- if (n_anom_total > 0L) {
+      sprintf(" · %d valor%s fuera de escala",
+               n_anom_total, if (n_anom_total == 1L) "" else "es")
     } else {
-      sprintf("Dispersión (n=%d casos válidos).", length(xv))
+      ""
     }
     return(list(
       version = 1L, kind = "scatter",
       title = titulo,
-      subtitle = subtitle_txt,
+      subtitle = sprintf("Dispersión · %d casos%s", length(xv), clip_txt),
       meta = list(var_x = var_x, var_y = var_y,
                   tipo_x = tipo_x, tipo_y = tipo_y),
       plotly = list(data = list(trace), layout = layout,
