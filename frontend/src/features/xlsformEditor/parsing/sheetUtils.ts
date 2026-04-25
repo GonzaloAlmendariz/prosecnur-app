@@ -173,6 +173,56 @@ export const SURVEY_COLUMNS_WITH_VAR_REFS: readonly string[] = [
   "trigger",
 ];
 
+/**
+ * Encuentra todas las filas que referencian `${name}` en cualquiera de
+ * las columnas indicadas. Usado para advertir antes de borrar/renombrar
+ * una pregunta que es referenciada por otras.
+ *
+ * Devuelve una lista de objetos con la fila, la columna y un snippet
+ * de la celda donde aparece. Útil para mostrar al usuario "esta
+ * pregunta está usada en N lugares" con detalle.
+ *
+ * Filtra `excludeRowIndex` para no incluir la propia fila (la pregunta
+ * que se está borrando podría auto-referenciarse via `calculate` y eso
+ * no es una "referencia a otra").
+ */
+export type VarReference = {
+  rowIndex: number;
+  column: string;
+  snippet: string;
+};
+export function findVarReferences(
+  sheet: XlsformEditorSheet,
+  name: string,
+  columns: readonly string[],
+  excludeRowIndex?: number,
+): VarReference[] {
+  if (!name) return [];
+  const needle = `\${${name}}`;
+  const out: VarReference[] = [];
+  for (const col of columns) {
+    const colIdx = sheet.columns.indexOf(col);
+    if (colIdx < 0) continue;
+    for (let r = 0; r < sheet.rows.length; r += 1) {
+      if (r === excludeRowIndex) continue;
+      const row = sheet.rows[r]!;
+      const cell = row[colIdx] ?? "";
+      if (cell.includes(needle)) {
+        // Snippet: hasta 60 chars centrados en el match.
+        const idx = cell.indexOf(needle);
+        const start = Math.max(0, idx - 20);
+        const end = Math.min(cell.length, idx + needle.length + 20);
+        const snippet =
+          (start > 0 ? "…" : "") +
+          cell.slice(start, end) +
+          (end < cell.length ? "…" : "");
+        out.push({ rowIndex: r, column: col, snippet });
+      }
+    }
+  }
+  return out;
+}
+
 /** Setea una celda creando columnas/filas faltantes con strings vacíos. */
 export function setCell(
   sheet: XlsformEditorSheet,

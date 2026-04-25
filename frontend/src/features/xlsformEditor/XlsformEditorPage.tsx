@@ -62,6 +62,7 @@ import {
   createBlankWorkbook,
   deleteRow,
   ensureColumn,
+  findVarReferences,
   getCell,
   insertRecord,
   makeColumnName,
@@ -871,10 +872,63 @@ export default function XlsformEditorPage() {
     const currentRow = selection.rowIndex;
     const currentNode = structure?.byRow.get(currentRow) ?? null;
     if (!currentNode) return;
-    const question = currentNode.kind === "section" || currentNode.kind === "repeat"
-      ? "esta sección"
-      : "este elemento";
-    if (!window.confirm(`¿Eliminar ${question} del formulario?`)) return;
+    const question =
+      currentNode.kind === "section" || currentNode.kind === "repeat"
+        ? "esta sección"
+        : "este elemento";
+
+    // Antes de pedir confirmación, escaneamos referencias `${name}` que
+    // viven en otras filas. Para secciones/repeats, recolectamos todos
+    // los names interiores. Si hay referencias, advertimos
+    // explícitamente cuántas y dónde — el usuario debe entender que va
+    // a romper lógica antes de aceptar.
+    const isContainer =
+      currentNode.kind === "section" || currentNode.kind === "repeat";
+    const namesAtRisk: string[] = [];
+    if (isContainer) {
+      const draftStructure = structure;
+      const section = draftStructure?.sections.get(`section-${currentRow}`);
+      const end = section?.endRowIndex ?? currentRow;
+      for (let r = currentRow; r <= end; r += 1) {
+        const node = draftStructure?.byRow.get(r);
+        if (node?.name) namesAtRisk.push(node.name);
+      }
+    } else if (currentNode.name) {
+      namesAtRisk.push(currentNode.name);
+    }
+    const allRefs = namesAtRisk.flatMap((name) =>
+      findVarReferences(
+        workbook.survey,
+        name,
+        SURVEY_COLUMNS_WITH_VAR_REFS,
+        // Excluir filas que se van a borrar — esas referencias se irán
+        // junto con el bloque, no son "referencias rotas".
+        undefined,
+      ).filter((ref) => {
+        if (isContainer) {
+          const section = structure?.sections.get(`section-${currentRow}`);
+          const end = section?.endRowIndex ?? currentRow;
+          return ref.rowIndex < currentRow || ref.rowIndex > end;
+        }
+        return ref.rowIndex !== currentRow;
+      }),
+    );
+
+    let confirmMsg: string;
+    if (allRefs.length === 0) {
+      confirmMsg = `¿Eliminar ${question} del formulario?`;
+    } else {
+      const lines = allRefs.slice(0, 6).map((ref) => {
+        const refNode = structure?.byRow.get(ref.rowIndex);
+        const refLabel = refNode?.name || `Fila ${ref.rowIndex + 1}`;
+        return `  · ${refLabel} (${ref.column}): ${ref.snippet}`;
+      });
+      const overflow =
+        allRefs.length > 6 ? `\n  · …y ${allRefs.length - 6} más` : "";
+      confirmMsg =
+        `Esta acción eliminará ${question}, pero queda referenciada en ${allRefs.length} ${allRefs.length === 1 ? "lugar" : "lugares"} del formulario:\n\n${lines.join("\n")}${overflow}\n\nSi continúas, esas referencias quedarán rotas. ¿Eliminar de todas formas?`;
+    }
+    if (!window.confirm(confirmMsg)) return;
 
     const nextRow = currentRow > 0 ? currentRow - 1 : null;
     updateWorkbook((draft) => {
@@ -887,7 +941,18 @@ export default function XlsformEditorPage() {
         deleteRow(draft.survey, currentRow);
       }
     });
-    setSelection(nextRow != null ? { kind: "survey", rowIndex: nextRow } : { kind: "settings" });
+    if (allRefs.length > 0) {
+      toasts.push({
+        kind: "warn",
+        title: "Eliminado con referencias rotas",
+        detail: `${allRefs.length} ${allRefs.length === 1 ? "celda" : "celdas"} ahora apuntan a un nombre inexistente. Revisa los diagnostics.`,
+      });
+    }
+    setSelection(
+      nextRow != null
+        ? { kind: "survey", rowIndex: nextRow }
+        : { kind: "settings" },
+    );
   }
 
   function addChoice() {
