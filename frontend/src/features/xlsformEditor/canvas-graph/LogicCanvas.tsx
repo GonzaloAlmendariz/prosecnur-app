@@ -156,6 +156,17 @@ export function LogicCanvas({
     }, 2400);
   };
 
+  /** Flag temporal: cuando el usuario dispara reset, fit-to-screen, o
+   *  un atajo de zoom (no el wheel/pinch continuo), aplicamos una
+   *  transición CSS al `transform` del SVG group para que la cámara
+   *  haga "ease" al nuevo estado. Se desactiva tras 320ms para que
+   *  los gestos continuos sigan respondiendo instantáneamente. */
+  const [smoothCamera, setSmoothCamera] = useState(false);
+  const triggerSmooth = () => {
+    setSmoothCamera(true);
+    setTimeout(() => setSmoothCamera(false), 360);
+  };
+
   // Atajos de teclado globales del canvas.
   // Esc → cierra panel/picker abierto; segundo Esc cierra canvas.
   // F   → fit-to-screen.
@@ -197,20 +208,24 @@ export function LogicCanvas({
           break;
         case "f":
         case "F":
+          triggerSmooth();
           fitToScreen();
           event.preventDefault();
           break;
         case "+":
         case "=":
+          triggerSmooth();
           setZoom((z) => Math.min(2.5, z + 0.15));
           event.preventDefault();
           break;
         case "-":
         case "_":
+          triggerSmooth();
           setZoom((z) => Math.max(0.3, z - 0.15));
           event.preventDefault();
           break;
         case "0":
+          triggerSmooth();
           setZoom(1);
           setPan({ x: 0, y: 0 });
           event.preventDefault();
@@ -559,7 +574,10 @@ export function LogicCanvas({
           <button
             type="button"
             className="pulso-icon"
-            onClick={() => setZoom((z) => Math.max(0.3, z - 0.15))}
+            onClick={() => {
+              triggerSmooth();
+              setZoom((z) => Math.max(0.3, z - 0.15));
+            }}
             title="Alejar (-)"
             aria-label="Alejar"
           >
@@ -568,7 +586,10 @@ export function LogicCanvas({
           <button
             type="button"
             className="pulso-icon"
-            onClick={() => setZoom((z) => Math.min(2.5, z + 0.15))}
+            onClick={() => {
+              triggerSmooth();
+              setZoom((z) => Math.min(2.5, z + 0.15));
+            }}
             title="Acercar (+)"
             aria-label="Acercar"
           >
@@ -577,7 +598,10 @@ export function LogicCanvas({
           <button
             type="button"
             className="pulso-icon"
-            onClick={() => fitToScreen()}
+            onClick={() => {
+              triggerSmooth();
+              fitToScreen();
+            }}
             title="Ajustar zoom para ver todos los bloques (F)"
             aria-label="Ajustar a la pantalla"
           >
@@ -631,7 +655,12 @@ export function LogicCanvas({
           <GraphEdgeMarkers />
           <g
             transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
-            style={{ transformOrigin: "0 0" }}
+            style={{
+              transformOrigin: "0 0",
+              transition: smoothCamera
+                ? "transform 320ms cubic-bezier(0.18, 0.89, 0.32, 1.18)"
+                : "none",
+            }}
           >
             {/* Edges primero para que queden detrás de los nodos.
                 El filtro de la toolbar ("macro" oculta var↔var, "micro"
@@ -888,10 +917,14 @@ export function LogicCanvas({
           className="pulso-graph-zoom-indicator"
           title="Click: 100%  ·  Dble-click: ajustar a pantalla"
           onClick={() => {
+            triggerSmooth();
             setZoom(1);
             setPan({ x: 0, y: 0 });
           }}
-          onDoubleClick={() => fitToScreen()}
+          onDoubleClick={() => {
+            triggerSmooth();
+            fitToScreen();
+          }}
         >
           {Math.round(zoom * 100)}%
         </div>
