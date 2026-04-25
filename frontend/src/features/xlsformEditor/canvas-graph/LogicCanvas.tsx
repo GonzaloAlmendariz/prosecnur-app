@@ -80,6 +80,11 @@ export function LogicCanvas({
   /** Índice del edge sobre el que está el mouse — para mostrar la
    *  etiqueta "si X = Y" cerca del centro del path. */
   const [hoveredEdgeIdx, setHoveredEdgeIdx] = useState<number | null>(null);
+  /** Índice del edge clicado — aísla esa rama (todas las demás se
+   *  atenúan). El select de nodo ya NO atenúa: ahora sólo este lo hace,
+   *  y el efecto se dispara únicamente al hacer click en una flecha,
+   *  no al pasar el mouse. */
+  const [selectedEdgeIdx, setSelectedEdgeIdx] = useState<number | null>(null);
 
   // ── Drag libre de cards (estilo Obsidian Canvas) ──────────────────
   // Cada vez que el usuario arrastra una card, registramos su posición
@@ -155,6 +160,7 @@ export function LogicCanvas({
       setConnectPicker(null);
       setFreshEdgeKey(null);
       setLegendOpen(false);
+      setSelectedEdgeIdx(null);
     }
   }, [open]);
 
@@ -340,7 +346,9 @@ export function LogicCanvas({
   };
   const onSvgClick = (event: React.MouseEvent<SVGSVGElement>) => {
     if ((event.target as Element).closest(".pulso-graph-node")) return;
+    if ((event.target as Element).closest(".pulso-graph-edge")) return;
     setSelectedId(null);
+    setSelectedEdgeIdx(null);
   };
 
   const onAnchorMouseDown =
@@ -533,11 +541,6 @@ export function LogicCanvas({
                 nunca eliminamos edges del DOM para que el grafo no
                 "pulse" al cambiar el filtro. */}
             {layout?.edges.map((edge, idx) => {
-              const isHL =
-                !!selectedId &&
-                (edge.edge.source === selectedId ||
-                  edge.edge.target === selectedId);
-              const isHovered = hoveredEdgeIdx === idx;
               const isMacroEdge =
                 edge.edge.relation === "section-to-section" ||
                 edge.edge.relation === "variable-to-section" ||
@@ -546,9 +549,19 @@ export function LogicCanvas({
                 edgeFilter === "all" ||
                 (edgeFilter === "macro" && isMacroEdge) ||
                 (edgeFilter === "micro" && !isMacroEdge);
-              const isDM =
-                !passesFilter ||
-                (!!selectedId && !isHL && !isHovered && relatedIds !== null);
+              // Aislamiento on-click: sólo cuando el usuario clica
+              // explícitamente una rama (selectedEdgeIdx) entran las
+              // demás en estado "dimmed". El select de nodo dejó de
+              // atenuar — abrir el detalle no debe oscurecer el lienzo.
+              const isClickIsolated =
+                selectedEdgeIdx !== null && selectedEdgeIdx !== idx;
+              const isHL =
+                selectedEdgeIdx === idx ||
+                (!!selectedId &&
+                  (edge.edge.source === selectedId ||
+                    edge.edge.target === selectedId));
+              const isHovered = hoveredEdgeIdx === idx;
+              const isDM = !passesFilter || isClickIsolated;
               // El color del edge se deriva del `relevant` del target
               // — todos los edges que llegan al mismo target comparten
               // expresión y por ende color. Cuando varios edges
@@ -567,6 +580,9 @@ export function LogicCanvas({
                   dimmed={isDM}
                   justAppeared={freshEdgeKey === edgeKey}
                   onHover={(h) => setHoveredEdgeIdx(h ? idx : null)}
+                  onClick={() =>
+                    setSelectedEdgeIdx((cur) => (cur === idx ? null : idx))
+                  }
                 />
               );
             })}
@@ -587,15 +603,32 @@ export function LogicCanvas({
                   transform={`translate(${edge.midX}, ${edge.midY})`}
                   pointerEvents="none"
                 >
+                  {/* foreignObject ANCHA + overflow visible para que la
+                      etiqueta nunca se trunque. El div interior usa
+                      flex centrado, por lo que la "card" de la etiqueta
+                      se ajusta a su contenido. */}
                   <foreignObject
-                    x={-140}
-                    y={-18}
-                    width={280}
-                    height={36}
+                    x={-360}
+                    y={-22}
+                    width={720}
+                    height={44}
+                    style={{ overflow: "visible" }}
                   >
-                    <div className="pulso-graph-edge-label">
-                      <span className="pulso-graph-edge-label-prefix">si</span>
-                      <code>{human}</code>
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <div className="pulso-graph-edge-label">
+                        <span className="pulso-graph-edge-label-prefix">
+                          si
+                        </span>
+                        <code>{human}</code>
+                      </div>
                     </div>
                   </foreignObject>
                 </g>
@@ -990,13 +1023,56 @@ export function LogicCanvas({
 // ─────────────────────────────────────────────────────────────────────
 
 /**
-/**
- * Convierte una expresión `relevant` cruda en texto legible. Misma
- * convención que `SeccionesPanel.tsx` usa en el módulo Carga: sustituye
- * `${name}` por `name` y deja la sintaxis ODK simple (`= '70'`, `and`,
- * etc.) como está. No es una traducción completa — es una limpieza
- * mínima para que el ojo agarre la idea.
+ * Convierte una expresión `relevant` cruda en texto legible en
+ * español. Antes era una limpieza mínima (sólo sacaba `${...}`) y
+ * dejaba la sintaxis ODK; el resultado era cosas tipo
+ * `selected(apoderado, '2') and edad != ''` que confundían al usuario.
+ *
+ * Reglas de traducción:
+ *   · `selected(${X}, 'v')`        →  `X contiene 'v'`
+ *   · `not(selected(${X}, 'v'))`   →  `X no contiene 'v'`
+ *   · `${X} != ''`                 →  `X tiene valor`
+ *   · `${X} = ''`                  →  `X está vacío`
+ *   · `${X} != Y`                  →  `X ≠ Y`
+ *   · `${X} = Y`                   →  `X = Y`
+ *   · `and` / `or` / `not(...)`    →  `y` / `o` / `no(...)`
+ *
+ * Se aplican en orden cuidadoso para no pisarse (selected primero,
+ * luego operadores, luego ${}). El resultado preserva los valores
+ * literales (números, strings entre comillas) tal cual.
  */
 function humanizeRelevant(expr: string): string {
-  return expr.replace(/\$\{([^}]+)\}/g, "$1");
+  let r = expr;
+  // selected(${X}, 'v') → X contiene 'v'  (variantes con comillas
+  // simples o dobles).
+  r = r.replace(
+    /selected\(\s*\$\{([^}]+)\}\s*,\s*'([^']*)'\s*\)/g,
+    "$1 contiene '$2'",
+  );
+  r = r.replace(
+    /selected\(\s*\$\{([^}]+)\}\s*,\s*"([^"]*)"\s*\)/g,
+    '$1 contiene "$2"',
+  );
+  // not( ... contiene ... ) → ... no contiene ...
+  r = r.replace(
+    /\bnot\s*\(\s*([a-zA-Z_][\w]*)\s+contiene\s+('[^']*'|"[^"]*")\s*\)/g,
+    "$1 no contiene $2",
+  );
+  // ${X} != '' / = '' (PRIMERO, antes de los != / = generales).
+  r = r.replace(/\$\{([^}]+)\}\s*!=\s*''/g, "$1 tiene valor");
+  r = r.replace(/\$\{([^}]+)\}\s*=\s*''/g, "$1 está vacío");
+  // ${X} → X (después de los casos anteriores).
+  r = r.replace(/\$\{([^}]+)\}/g, "$1");
+  // Operadores comunes con espacios alrededor.
+  r = r.replace(/\s*!=\s*/g, " ≠ ");
+  r = r.replace(/\s*>=\s*/g, " ≥ ");
+  r = r.replace(/\s*<=\s*/g, " ≤ ");
+  // and / or como palabras enteras.
+  r = r.replace(/\s+\band\b\s+/g, " y ");
+  r = r.replace(/\s+\bor\b\s+/g, " o ");
+  // not(...) genérico que no haya quedado capturado arriba.
+  r = r.replace(/\bnot\s*\(/g, "no(");
+  // Compactar espacios.
+  r = r.replace(/\s+/g, " ").trim();
+  return r;
 }

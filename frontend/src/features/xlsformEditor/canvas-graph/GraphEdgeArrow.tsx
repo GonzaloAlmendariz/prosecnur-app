@@ -31,6 +31,8 @@ export type GraphEdgeArrowProps = {
    *  reproduce una animación corta de "pulse" para feedback. */
   justAppeared?: boolean;
   onHover?: (hovering: boolean) => void;
+  /** Click en la rama → aísla esa relación (otras se atenúan). */
+  onClick?: () => void;
 };
 
 /** Detecta si un edge es var↔var (entre dos preguntas individuales,
@@ -83,7 +85,7 @@ export function colorForExpression(expr: string | null): string {
   return TABLEAU_10[h % TABLEAU_10.length]!;
 }
 
-const STROKE_WIDTH = 1.5;
+const STROKE_WIDTH = 1.9;
 
 export function GraphEdgeArrow({
   edge,
@@ -92,10 +94,16 @@ export function GraphEdgeArrow({
   dimmed,
   justAppeared,
   onHover,
+  onClick,
 }: GraphEdgeArrowProps) {
   const color = colorForExpression(relevantExpression);
-  const opacity = dimmed ? 0.18 : highlighted ? 1 : 0.78;
-  const strokeWidth = highlighted ? STROKE_WIDTH + 0.7 : STROKE_WIDTH;
+  // Visibilidad base alta — antes 0.78 lucía "fantasma" sobre fondo
+  // claro, en especial las dashed var↔var. Subimos a 0.95 para que
+  // el trazo se lea como "primera capa" del lienzo. El dim sigue
+  // siendo agresivo (0.16) para que el contraste de selección se
+  // mantenga.
+  const opacity = dimmed ? 0.16 : highlighted ? 1 : 0.95;
+  const strokeWidth = highlighted ? STROKE_WIDTH + 0.8 : STROKE_WIDTH;
   // Dashed solo para conexiones var↔var (entre preguntas individuales).
   // Las que tocan secciones (sec→sec, var→sec, sec→var) van sólidas
   // porque son las "macro" y deben leerse más fuerte visualmente.
@@ -103,10 +111,21 @@ export function GraphEdgeArrow({
 
   return (
     <g
-      className={`pulso-graph-edge ${justAppeared ? "is-fresh" : ""}`}
+      className={`pulso-graph-edge ${justAppeared ? "is-fresh" : ""} ${
+        onClick ? "is-clickable" : ""
+      }`}
       opacity={opacity}
       onMouseEnter={onHover ? () => onHover(true) : undefined}
       onMouseLeave={onHover ? () => onHover(false) : undefined}
+      onClick={
+        onClick
+          ? (event) => {
+              event.stopPropagation();
+              onClick();
+            }
+          : undefined
+      }
+      style={onClick ? { cursor: "pointer" } : undefined}
     >
       {/* Track invisible más ancho para hover generoso. */}
       <path d={edge.path} fill="none" stroke="transparent" strokeWidth={14} />

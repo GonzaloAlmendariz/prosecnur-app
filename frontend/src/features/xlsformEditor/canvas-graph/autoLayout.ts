@@ -190,13 +190,28 @@ export function layoutLogicGraph(
   }
 
   // ── 1.5 Aplicar overrides manuales ─────────────────────────────────
+  // Cuando una sección root tiene override, sus hijos visibles deben
+  // moverse JUNTO con ella (calculamos delta y lo propagamos). Sin esto
+  // el header se desliza y las preguntas de la sección quedan
+  // estáticas, rompiendo la unidad visual del bloque.
   if (positionOverrides.size > 0) {
     for (const placed of flatNodes) {
       if (!placed.visible) continue;
+      if (placed.depth !== 0) continue; // hijos se desplazan por delta
       const override = positionOverrides.get(placed.node.id);
-      if (override) {
-        placed.x = override.x;
-        placed.y = override.y;
+      if (!override) continue;
+      const dx = override.x - placed.x;
+      const dy = override.y - placed.y;
+      placed.x = override.x;
+      placed.y = override.y;
+      if (placed.node.kind === "section") {
+        for (const child of placed.node.children) {
+          const placedChild = positionByNodeId.get(child.id);
+          if (placedChild && placedChild.visible) {
+            placedChild.x += dx;
+            placedChild.y += dy;
+          }
+        }
       }
     }
   }
@@ -329,19 +344,63 @@ export function layoutLogicGraph(
     });
   }
 
+  // ── 5.5 Anchor Y por (source × bundle) — anti-peine ───────────────
+  // Antes `anchorOnRight` distribuía un anchor distinto por cada edge
+  // saliente, así que un source con K flechas al mismo bundle generaba
+  // K líneas paralelas (peine). Cambio: distribuimos UN anchor por
+  // GRUPO. Un grupo es:
+  //   · Un bundle (varias flechas del mismo source que comparten la
+  //     expresión de un bundle → todas overlap en una sola línea).
+  //   · Un edge "loose" sin bundle → su propio grupo.
+  // Resultado: si el source tiene 4 flechas al bundle A y 1 loose,
+  // se distribuyen 2 grupos (no 5 edges) → 2 lineas saliendo del card.
+  const anchorYByEdge = new Map<string, number>(); // key = `${srcId}->${tgtId}`
+  const groupsBySource = new Map<string, string[]>(); // ordered group keys per source
+  const edgesByGroup = new Map<string, ResolvedEdge[]>(); // key = `${srcId}::${groupKey}`
+  for (const r of resolved) {
+    const sId = r.src.node.id;
+    const expr = r.tgt.node.relevantExpression ?? "";
+    const groupKey = expr && bundlesByExpression.has(expr)
+      ? `b:${expr}`
+      : `loose:${r.tgt.node.id}`;
+    const composed = `${sId}::${groupKey}`;
+    if (!groupsBySource.has(sId)) groupsBySource.set(sId, []);
+    if (!edgesByGroup.has(composed)) {
+      edgesByGroup.set(composed, []);
+      groupsBySource.get(sId)!.push(groupKey);
+    }
+    edgesByGroup.get(composed)!.push(r);
+  }
+  for (const [sId, groups] of groupsBySource) {
+    const placed = positionByNodeId.get(sId);
+    if (!placed || !placed.visible) continue;
+    const headerH = Math.min(placed.height, options.rowHeight);
+    groups.forEach((groupKey, gIdx) => {
+      let yOffset: number;
+      if (groups.length === 1) {
+        yOffset = headerH / 2;
+      } else {
+        const usable = headerH * 0.6;
+        const start = (headerH - usable) / 2;
+        yOffset = start + (gIdx * usable) / (groups.length - 1);
+      }
+      const y = placed.y + yOffset;
+      for (const r of edgesByGroup.get(`${sId}::${groupKey}`) ?? []) {
+        anchorYByEdge.set(`${r.src.node.id}->${r.tgt.node.id}`, y);
+      }
+    });
+  }
+
   // ── 6. Construir paths ─────────────────────────────────────────────
   const laidOutEdges: LaidOutEdge[] = resolved.map((r) => {
     const expr = r.tgt.node.relevantExpression ?? "";
     const bundle = expr ? bundlesByExpression.get(expr) : null;
 
-    const sourceGroup = resolved.filter((e) => e.src.node.id === r.src.node.id);
-    const srcIdx = sourceGroup.indexOf(r);
-    const srcAnchor = anchorOnRight(
-      r.src,
-      srcIdx,
-      sourceGroup.length,
-      options.rowHeight,
-    );
+    const edgeKey = `${r.src.node.id}->${r.tgt.node.id}`;
+    const overrideY = anchorYByEdge.get(edgeKey);
+    const srcAnchor = overrideY != null
+      ? { x: r.src.x + r.src.width, y: overrideY }
+      : anchorOnRight(r.src, 0, 1, options.rowHeight);
 
     const targetGroup = edgesByTarget.get(r.tgt.node.id) ?? [r];
     const tgtIdx = targetGroup.indexOf(r);
