@@ -60,7 +60,7 @@ const MODULES: ModuleMeta[] = [
     iconBg: "#f5f3ff",
     iconFg: "#7c3aed",
     iconBorder: "#ddd6fe",
-    // to: undefined — placeholder "Próximamente"
+    to: "/editor-xlsform",
   },
   {
     slug: "recopiladores",
