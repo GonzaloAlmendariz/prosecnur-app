@@ -118,6 +118,13 @@ import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { DiagnosticsBadge } from "./shell/DiagnosticsPopover";
 import { CollapsibleSection } from "./shell/CollapsibleSection";
 import CatalogsContextLens from "./catalogs/CatalogsContextLens";
+import { CatalogLibrary as CatalogLibraryV2 } from "./catalogs/CatalogLibrary";
+import { CatalogWorkspace as CatalogWorkspaceV2 } from "./catalogs/CatalogWorkspace";
+import {
+  applyChoiceMove,
+  countCatalogUsage,
+  deleteCatalog as deleteCatalogFromSheet,
+} from "./catalogs/catalogUtils";
 import { SurveyOutline } from "./outline/SurveyOutline";
 import type { RowMovePlan } from "./outline/outlineUtils";
 import { applyRowMove } from "./outline/outlineUtils";
@@ -328,6 +335,21 @@ export default function XlsformEditorPage() {
   const movement = selection?.kind === "survey"
     ? getSiblingRows(structure, selection.rowIndex)
     : { prevRow: null as number | null, nextRow: null as number | null };
+
+  // Mapa nombre-de-catálogo → cuántas preguntas lo usan. Se calcula una vez
+  // y se pasa al CatalogLibrary para mostrar el badge "usado en N preguntas"
+  // y al CatalogWorkspace para habilitar/deshabilitar el botón "Borrar".
+  const usageByCatalog = useMemo(() => {
+    const map: Record<string, number> = {};
+    if (!workbook) return map;
+    for (const catalog of catalogs) {
+      map[catalog.listName] = countCatalogUsage(workbook.survey, catalog.listName);
+    }
+    return map;
+  }, [workbook, catalogs]);
+  const activeCatalogUsage = activeCatalogName
+    ? usageByCatalog[activeCatalogName] ?? 0
+    : 0;
 
   const uniqueChoiceLists = workbook
     ? (() => {
@@ -774,6 +796,38 @@ export default function XlsformEditorPage() {
   function removeChoice(rowIndex: number) {
     updateWorkbook((draft) => {
       deleteRow(draft.choices, rowIndex);
+    });
+  }
+
+  /**
+   * Reordena una opción dentro de un catálogo. `from`/`to` son rowIndex
+   * globales en `choices`. Inserta la fila origen INMEDIATAMENTE ANTES
+   * de la fila destino — el handler de drag-drop sigue la convención de
+   * "soltar antes de" la fila bajo el cursor.
+   */
+  function moveChoice(_listName: string, fromRowIndex: number, toRowIndex: number) {
+    if (!workbook) return;
+    if (fromRowIndex === toRowIndex) return;
+    updateWorkbook((draft) => {
+      applyChoiceMove(draft.choices, fromRowIndex, toRowIndex, true);
+    });
+  }
+
+  /**
+   * Borra el catálogo completo de la hoja `choices`. Solo se invoca desde
+   * la UI cuando el catálogo NO tiene preguntas que lo usen — el
+   * `CatalogWorkspace` solo muestra el botón en ese caso.
+   */
+  function deleteCatalogAction(listName: string) {
+    if (!workbook || !listName) return;
+    updateWorkbook((draft) => {
+      deleteCatalogFromSheet(draft.choices, listName);
+    });
+    if (catalogFocus === listName) setCatalogFocus(null);
+    toasts.push({
+      kind: "info",
+      title: "Catálogo borrado",
+      detail: `Eliminamos «${listName}» de la hoja choices.`,
     });
   }
 
@@ -1440,19 +1494,24 @@ export default function XlsformEditorPage() {
         catalogsCount={catalogs.length}
         onCreate={() => createCatalog(false)}
         library={(
-          <CatalogLibrary
+          <CatalogLibraryV2
             catalogs={catalogs}
             activeCatalogName={activeCatalogName}
+            usageByCatalog={usageByCatalog}
             onFocus={setCatalogFocus}
+            onCreate={() => createCatalog(false)}
           />
         )}
         workspace={(
-          <CatalogWorkspace
+          <CatalogWorkspaceV2
             catalog={activeCatalog}
+            usageCount={activeCatalogUsage}
             onRename={renameCatalog}
             onAddChoice={addCatalogChoice}
             onChoiceChange={updateChoice}
             onChoiceRemove={removeChoice}
+            onChoiceMove={moveChoice}
+            onDeleteCatalog={deleteCatalogAction}
           />
         )}
       />
