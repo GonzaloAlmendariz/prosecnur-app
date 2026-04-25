@@ -87,17 +87,46 @@ export type LayoutOptions = {
 const DEFAULT_OPTIONS: LayoutOptions = {
   columnWidth: 240,
   rowHeight: 60,
-  columnGap: 56,
+  // columnGap subió de 56 → 88 px: necesitamos espacio cómodo para
+  // distribuir los rails Mode C (var↔var en gap entre columnas) sin
+  // amontonarse. El usuario pidió explícitamente que el canvas no se
+  // vea apretado.
+  columnGap: 88,
   innerHeadGap: 14,
   innerRowGap: 10,
   childIndent: 14,
   marginX: 48,
-  marginY: 70,
+  // marginY subió porque blockClearance creció — los lanes top/bottom
+  // están más afuera del bloque, queremos que el viewport los muestre.
+  marginY: 90,
   cornerRadius: 10,
-  mergeOffset: 22,
-  lateralBreakout: 18,
-  blockClearance: 28,
+  // mergeOffset 22 → 28: el stem final de entrada al target es más
+  // visible (deja respiro entre la flecha y el borde del card).
+  mergeOffset: 28,
+  // lateralBreakout 18 → 24: el bump inicial es más generoso, da
+  // sensación de "sale del card" más clara.
+  lateralBreakout: 24,
+  // blockClearance 28 → 48: el lane top/bottom queda más despegado
+  // del bloque. Antes, con varios sub-rails apilados, los outermost
+  // casi tocaban el viewport.
+  blockClearance: 48,
 };
+
+// Constants para los nuevos modos de routing (sección de lane allocator
+// más abajo). No están en `LayoutOptions` porque son del routing puro,
+// no afectan layout de cards.
+/** Separación vertical entre sub-rails en lanes top/bottom (Mode A/D). */
+const SUB_Y_STEP = 16;
+/** Separación entre carriles Mode B dentro del side-rail de una sección. */
+const SIDE_RAIL_STEP = 12;
+/** Offset base del primer Mode B rail respecto al borde de la sección. */
+const SIDE_RAIL_BASE = 12;
+/** Padding lateral del primer/último rail Mode C dentro del column gap. */
+const GAP_RAIL_PADDING = 14;
+/** Umbral de |dy| para promover Mode C (gap-step) a Mode D (lane). */
+const ROW_PROXIMITY = 90;
+/** Umbral de desbalance para mandar bundles Mode A al lane bottom. */
+const LANE_BALANCE_THRESHOLD = 2;
 
 export function layoutLogicGraph(
   graph: LogicGraph,
@@ -291,47 +320,52 @@ export function layoutLogicGraph(
   if (!isFinite(blockTop)) blockTop = options.marginY;
   if (!isFinite(blockBottom)) blockBottom = options.marginY + options.rowHeight;
 
-  // ── 5. Routing unificado: lane allocator + path único ──────────────
-  // Rediseño completo. Antes había dos rutas (`routeOrthogonal` y
-  // `routeBundled`) con varias ramas (`sameColumn`, `forward`,
-  // `back-edge`, `goAbove` heurístico). Esa lógica generaba loops
-  // de 360° cuando una rama se equivocaba (típico: target a la
-  // derecha pero el path elegía lane inferior cuando arriba era
-  // mucho más corto), y permitía que dos edges loose con misma
-  // geometría pintaran encima.
+  // ── 5. Routing en 4 modos según geometría ──────────────────────────
   //
-  // El nuevo modelo es un solo algoritmo:
+  // Rediseño guiado por el dibujo a mano del usuario (canvas con secciones
+  // A-F, edges amarillas/rojas/moradas/marrones). El algoritmo único
+  // anterior mandaba TODAS las flechas por el lane global del bloque,
+  // lo cual era detour absurdo para edges var↔var en la misma columna.
   //
-  //   1. Cada edge tiene UN lane: superior (`top`) o inferior
-  //      (`bottom`). La elección es geométrica:
-  //        · target sección → siempre lane SUPERIOR (entrada
-  //          top-center, ya tiene que llegar por arriba).
-  //        · target variable → lane más cercano al midY del
-  //          edge (promedio de src.cy y tgt.cy).
+  // Cuatro modos según geometría:
   //
-  //   2. Cada edge pertenece a una "unidad de lane":
-  //        · Si su `relevantExpression` es compartida por ≥2
-  //          edges en total: unidad = el bundle de la expresión.
-  //          Todos los edges del bundle comparten subY → overlap
-  //          intencional (efecto subway).
-  //        · Si no: unidad = el edge mismo (loose).
+  //   Mode A "section"   — target es sección. Lane top o bottom (load-
+  //                        balanceado), entrada top-center o bottom-center.
+  //   Mode B "side-rail" — var↔var misma columna. Carril lateral tight
+  //                        (auto-balanceado izq/der según ocupación).
+  //   Mode C "gap"       — var↔var columnas adyacentes con |dy| chico.
+  //                        Carril dentro del column gap.
+  //   Mode D "lane"      — todo lo demás (multi-columna o adjacent lejos).
+  //                        Lane global como antes.
   //
-  //   3. Lane allocator asigna un subY único a cada unidad
-  //      (separación 9px). Edges del mismo bundle reusan el subY;
-  //      loose distintos quedan en sub-lanes adyacentes pero
-  //      visualmente diferenciables. Cero superposición de líneas
-  //      con misma geometría.
-  //
-  //   4. Path único, 5 tramos: src.right → breakout → laneY →
-  //      mergeX,laneY → mergeX,mergeY → entry. Sin ramas, sin
-  //      sorpresas. Para target sección añade un tramo extra
-  //      hacia el top-center (V final).
-  //
-  // El anchor Y se distribuye por (source × unidad) — un source
-  // con 4 flechas al mismo bundle genera UNA línea (no 4) porque
-  // todas comparten la misma unidad.
+  // Bundles (mismo color = misma `relevantExpression`) se preservan
+  // PER MODO: un bundle inter-modo (ej. naranja con F1→P1 Mode C +
+  // F1→E Mode A) tiene mismo color pero distintos allocators slot;
+  // cada rama usa su path óptimo.
 
-  // 5.1 Conteo de edges por expresión — define qué expresiones son
+  // 5.1 Column index por nodo (necesario para Mode B y Mode C).
+  // Las secciones root están ordenadas por su `x` absoluto. Cada
+  // child de sección expandida hereda el column index del padre.
+  // Top-level questions (sin sección padre) toman su propio column
+  // index secuencial.
+  const visibleRoots = flatNodes.filter((n) => n.visible && n.depth === 0);
+  visibleRoots.sort((a, b) => a.x - b.x);
+  const columnByNodeId = new Map<string, number>();
+  const sectionByColumn: LaidOutNode[] = [];
+  visibleRoots.forEach((root, idx) => {
+    columnByNodeId.set(root.node.id, idx);
+    sectionByColumn.push(root);
+    if (root.node.kind === "section") {
+      for (const child of root.node.children) {
+        const placed = positionByNodeId.get(child.id);
+        if (placed && placed.visible) {
+          columnByNodeId.set(child.id, idx);
+        }
+      }
+    }
+  });
+
+  // 5.2 Conteo de edges por expresión — define qué expresiones son
   // bundleables (≥2 edges) vs. genuinamente sueltas.
   const edgeCountByExpr = new Map<string, number>();
   for (const r of resolved) {
@@ -342,71 +376,243 @@ export function layoutLogicGraph(
   const isBundledExpr = (expr: string): boolean =>
     !!expr && (edgeCountByExpr.get(expr) ?? 0) >= 2;
 
-  // 5.2 Determinar lane side + unitKey por edge.
-  type EdgeMeta = {
-    side: "top" | "bottom";
-    unitKey: string;
+  // 5.3 Color index por orden de aparición (DFS por roots). Las
+  // primeras 10 expresiones distintas reciben colores Tableau-10
+  // garantizadamente únicos. Mismo color para edges con misma
+  // `relevantExpression` aunque estén en distintos modos.
+  const expressionColorIndex = new Map<string, number>();
+  const visitForColor = (n: GraphNode) => {
+    const expr = n.relevantExpression;
+    if (
+      expr &&
+      !isGenericExpressionLocal(expr) &&
+      !expressionColorIndex.has(expr)
+    ) {
+      expressionColorIndex.set(expr, expressionColorIndex.size);
+    }
+    for (const c of n.children) visitForColor(c);
   };
-  const blockMidY = (blockTop + blockBottom) / 2;
+  for (const r of rootNodes) visitForColor(r);
+
+  // 5.4 Decisión de modo por edge.
+  type EdgeMode = "section" | "side-rail" | "gap" | "lane";
+  type EdgeMeta = {
+    mode: EdgeMode;
+    /** unitKey identifica la unidad de allocator. Edges en la misma
+     *  unidad comparten geometría (bundle subway). Formato:
+     *  `${mode}::${expr}` para bundleables, `loose:${i}` para sueltos. */
+    unitKey: string;
+    laneSide?: "top" | "bottom"; // Mode A, D
+    laneY?: number;               // Mode A, D
+    railX?: number;               // Mode B
+    railSide?: "left" | "right";  // Mode B
+    gapX?: number;                // Mode C
+  };
+
   const edgeMeta: EdgeMeta[] = resolved.map((r, i) => {
     const expr = r.tgt.node.relevantExpression ?? "";
-    let side: "top" | "bottom";
+    let mode: EdgeMode;
     if (r.tgt.node.kind === "section") {
-      side = "top";
+      mode = "section";
     } else {
-      const srcMid = r.src.y + Math.min(r.src.height, options.rowHeight) / 2;
-      const tgtMid = r.tgt.y + Math.min(r.tgt.height, options.rowHeight) / 2;
-      const midY = (srcMid + tgtMid) / 2;
-      side = midY <= blockMidY ? "top" : "bottom";
+      const srcCol = columnByNodeId.get(r.src.node.id);
+      const tgtCol = columnByNodeId.get(r.tgt.node.id);
+      if (srcCol == null || tgtCol == null) {
+        mode = "lane";
+      } else if (srcCol === tgtCol) {
+        mode = "side-rail";
+      } else if (Math.abs(srcCol - tgtCol) === 1) {
+        const dy = Math.abs(
+          (r.src.y + r.src.height / 2) - (r.tgt.y + r.tgt.height / 2),
+        );
+        mode = dy < ROW_PROXIMITY ? "gap" : "lane";
+      } else {
+        mode = "lane";
+      }
     }
-    const unitKey = isBundledExpr(expr) ? `b:${expr}` : `loose:${i}`;
-    return { side, unitKey };
+    // unitKey: bundleable si la expresión se comparte ≥2 edges Y todos
+    // los edges del bundle caen en el mismo modo. Bundleable inter-modo
+    // sería complicado y el usuario aceptó "solo color compartido" —
+    // así que la unidad es por (modo + expresión).
+    const unitKey = isBundledExpr(expr) ? `${mode}::${expr}` : `loose:${i}`;
+    return { mode, unitKey };
   });
 
-  // 5.3 Lane allocator: subY único por unidad, separación 9px.
-  // Las unidades del mismo lado se ordenan según un proxy de
-  // "longitud del recorrido horizontal" — más cortas adentro
-  // (cerca del bloque), más largas afuera. Esto reduce cruces.
-  const SUB_Y_STEP = 9;
-  type UnitInfo = {
+  // 5.5 Allocator de Mode A y D (lanes top/bottom con load-balance).
+  // Para Mode D usamos midY del edge para decidir lane (igual que
+  // antes). Para Mode A aplicamos load-balance: si top tiene 2+
+  // unidades más que bottom, la siguiente unidad Mode A va a bottom.
+  const blockMidY = (blockTop + blockBottom) / 2;
+  type LaneUnitInfo = {
     key: string;
     side: "top" | "bottom";
-    sortKey: number; // proxy de longitud del recorrido
+    sortKey: number;
   };
-  const unitsByKey = new Map<string, UnitInfo>();
+  const laneUnits = new Map<string, LaneUnitInfo>();
+  // Primera pasada: Mode D (decisión geométrica fija).
   resolved.forEach((r, i) => {
     const meta = edgeMeta[i]!;
-    if (unitsByKey.has(meta.unitKey)) return;
+    if (meta.mode !== "lane") return;
+    if (laneUnits.has(meta.unitKey)) return;
+    const srcMid = r.src.y + Math.min(r.src.height, options.rowHeight) / 2;
+    const tgtMid = r.tgt.y + Math.min(r.tgt.height, options.rowHeight) / 2;
+    const midY = (srcMid + tgtMid) / 2;
+    const side: "top" | "bottom" = midY <= blockMidY ? "top" : "bottom";
     const span = Math.abs(
       (r.tgt.x + r.tgt.width / 2) - (r.src.x + r.src.width / 2),
     );
-    unitsByKey.set(meta.unitKey, {
-      key: meta.unitKey,
-      side: meta.side,
-      sortKey: span,
-    });
+    laneUnits.set(meta.unitKey, { key: meta.unitKey, side, sortKey: span });
   });
-  const topUnits = [...unitsByKey.values()]
+  // Segunda pasada: Mode A con load-balance.
+  let topCount = [...laneUnits.values()].filter((u) => u.side === "top").length;
+  let botCount = [...laneUnits.values()].filter((u) => u.side === "bottom").length;
+  resolved.forEach((r, i) => {
+    const meta = edgeMeta[i]!;
+    if (meta.mode !== "section") return;
+    if (laneUnits.has(meta.unitKey)) return;
+    // Default top; si top supera bottom por LANE_BALANCE_THRESHOLD,
+    // mandamos a bottom.
+    let side: "top" | "bottom" = "top";
+    if (topCount - botCount >= LANE_BALANCE_THRESHOLD) {
+      side = "bottom";
+      botCount += 1;
+    } else {
+      topCount += 1;
+    }
+    const span = Math.abs(
+      (r.tgt.x + r.tgt.width / 2) - (r.src.x + r.src.width / 2),
+    );
+    laneUnits.set(meta.unitKey, { key: meta.unitKey, side, sortKey: span });
+  });
+  // Asignación de subY: ordenar por span (cortos adentro, largos afuera).
+  const topLaneUnits = [...laneUnits.values()]
     .filter((u) => u.side === "top")
     .sort((a, b) => a.sortKey - b.sortKey);
-  const botUnits = [...unitsByKey.values()]
+  const botLaneUnits = [...laneUnits.values()]
     .filter((u) => u.side === "bottom")
     .sort((a, b) => a.sortKey - b.sortKey);
   const subYByUnit = new Map<string, number>();
-  topUnits.forEach((u, idx) => {
+  topLaneUnits.forEach((u, idx) => {
     subYByUnit.set(u.key, blockTop - options.blockClearance - idx * SUB_Y_STEP);
   });
-  botUnits.forEach((u, idx) => {
+  botLaneUnits.forEach((u, idx) => {
     subYByUnit.set(
       u.key,
       blockBottom + options.blockClearance + idx * SUB_Y_STEP,
     );
   });
 
-  // 5.4 Anchor Y por (source × unidad) — anti-peine.
+  // 5.6 Allocator de Mode C (gap-step rails dentro del column gap).
+  // Cada par de columnas adyacentes tiene su propio gap; las unidades
+  // Mode C que cruzan ese gap se distribuyen equiespaciadas.
+  // Mapeo: gap-index (= min(srcCol, tgtCol)) → orden de unidades.
+  const gapUnitsByGap = new Map<number, string[]>();
+  resolved.forEach((r, i) => {
+    const meta = edgeMeta[i]!;
+    if (meta.mode !== "gap") return;
+    const srcCol = columnByNodeId.get(r.src.node.id)!;
+    const tgtCol = columnByNodeId.get(r.tgt.node.id)!;
+    const gapIdx = Math.min(srcCol, tgtCol);
+    if (!gapUnitsByGap.has(gapIdx)) gapUnitsByGap.set(gapIdx, []);
+    const arr = gapUnitsByGap.get(gapIdx)!;
+    if (!arr.includes(meta.unitKey)) arr.push(meta.unitKey);
+  });
+  const gapXByUnit = new Map<string, number>();
+  for (const [gapIdx, units] of gapUnitsByGap) {
+    const leftSection = sectionByColumn[gapIdx];
+    const rightSection = sectionByColumn[gapIdx + 1];
+    if (!leftSection || !rightSection) continue;
+    const gapStart = leftSection.x + leftSection.width;
+    const gapEnd = rightSection.x;
+    const gapWidth = gapEnd - gapStart;
+    const usable = Math.max(0, gapWidth - 2 * GAP_RAIL_PADDING);
+    units.forEach((unitKey, idx) => {
+      let x: number;
+      if (units.length === 1) {
+        x = gapStart + gapWidth / 2;
+      } else {
+        x = gapStart + GAP_RAIL_PADDING + (idx * usable) / (units.length - 1);
+      }
+      gapXByUnit.set(unitKey, x);
+    });
+  }
+
+  // 5.7 Allocator de Mode B (side-rails con auto-balance izq/der).
+  // Para cada sección, contamos las unidades Mode B que viven en esa
+  // columna. Para cada una, elegimos lado (izq/der) según ocupación
+  // de Mode C en los gaps adyacentes (lado con menos load gana).
+  // Tie / leftmost → derecha. Rightmost → izquierda.
+  const railUnitsByCol = new Map<number, string[]>();
+  resolved.forEach((r, i) => {
+    const meta = edgeMeta[i]!;
+    if (meta.mode !== "side-rail") return;
+    const col = columnByNodeId.get(r.src.node.id);
+    if (col == null) return;
+    if (!railUnitsByCol.has(col)) railUnitsByCol.set(col, []);
+    const arr = railUnitsByCol.get(col)!;
+    if (!arr.includes(meta.unitKey)) arr.push(meta.unitKey);
+  });
+  const railResolved = new Map<string, { x: number; side: "left" | "right" }>();
+  for (const [col, units] of railUnitsByCol) {
+    const section = sectionByColumn[col];
+    if (!section) continue;
+    const isLeftmost = col === 0;
+    const isRightmost = col === sectionByColumn.length - 1;
+    // Conteo de Mode C en gaps adyacentes (gap izq = col-1, der = col).
+    const leftLoad = isLeftmost
+      ? Number.POSITIVE_INFINITY
+      : (gapUnitsByGap.get(col - 1)?.length ?? 0);
+    const rightLoad = isRightmost
+      ? Number.POSITIVE_INFINITY
+      : (gapUnitsByGap.get(col)?.length ?? 0);
+    let leftCount = 0;
+    let rightCount = 0;
+    units.forEach((unitKey) => {
+      // Lado con menos load gana. Tie → derecha (preferencia natural).
+      let side: "left" | "right";
+      if (isRightmost) side = "left";
+      else if (isLeftmost) side = "right";
+      else if (leftLoad + leftCount < rightLoad + rightCount) {
+        side = "left";
+      } else {
+        side = "right";
+      }
+      let x: number;
+      if (side === "right") {
+        x = section.x + section.width + SIDE_RAIL_BASE +
+          rightCount * SIDE_RAIL_STEP;
+        rightCount += 1;
+      } else {
+        x = section.x - SIDE_RAIL_BASE - leftCount * SIDE_RAIL_STEP;
+        leftCount += 1;
+      }
+      railResolved.set(unitKey, { x, side });
+    });
+  }
+
+  // 5.8 Resolver allocator outputs en cada EdgeMeta.
+  resolved.forEach((r, i) => {
+    const meta = edgeMeta[i]!;
+    if (meta.mode === "section" || meta.mode === "lane") {
+      const unit = laneUnits.get(meta.unitKey);
+      if (unit) {
+        meta.laneSide = unit.side;
+        meta.laneY = subYByUnit.get(meta.unitKey);
+      }
+    } else if (meta.mode === "side-rail") {
+      const rail = railResolved.get(meta.unitKey);
+      if (rail) {
+        meta.railX = rail.x;
+        meta.railSide = rail.side;
+      }
+    } else if (meta.mode === "gap") {
+      meta.gapX = gapXByUnit.get(meta.unitKey);
+    }
+  });
+
+  // 5.9 Anchor Y por (source × unidad) — anti-peine.
   // Si un source tiene K edges en la misma unidad (bundle), todos
-  // arrancan en el mismo Y → una sola línea visible. Si tiene
-  // edges en N unidades distintas, distribuye N anchors.
+  // arrancan en el mismo Y → una sola línea visible.
   const anchorYByEdge = new Map<string, number>();
   const unitsBySource = new Map<string, string[]>();
   const edgesBySourceUnit = new Map<string, ResolvedEdge[]>();
@@ -441,28 +647,9 @@ export function layoutLogicGraph(
     });
   }
 
-  // 5.5 Color index por orden de aparición (DFS por roots). Las
-  // primeras 10 expresiones distintas reciben colores Tableau-10
-  // garantizadamente únicos. A partir de la 11 se reciclan, pero
-  // antes era hash mod 10 con colisiones desde la primera.
-  const expressionColorIndex = new Map<string, number>();
-  const visitForColor = (n: GraphNode) => {
-    const expr = n.relevantExpression;
-    if (
-      expr &&
-      !isGenericExpressionLocal(expr) &&
-      !expressionColorIndex.has(expr)
-    ) {
-      expressionColorIndex.set(expr, expressionColorIndex.size);
-    }
-    for (const c of n.children) visitForColor(c);
-  };
-  for (const r of rootNodes) visitForColor(r);
-
-  // ── 6. Construir paths con el algoritmo único ──────────────────────
+  // ── 6. Construir paths con dispatcher por modo ─────────────────────
   const laidOutEdges: LaidOutEdge[] = resolved.map((r, i) => {
     const meta = edgeMeta[i]!;
-    const laneY = subYByUnit.get(meta.unitKey)!;
     const expr = r.tgt.node.relevantExpression ?? "";
     const colorIdx = expr ? (expressionColorIndex.get(expr) ?? null) : null;
 
@@ -472,15 +659,52 @@ export function layoutLogicGraph(
       r.src.y + Math.min(r.src.height, options.rowHeight) / 2;
     const sX = r.src.x + r.src.width;
 
-    const pathInfo = routeViaLane({
-      src: r.src,
-      tgt: r.tgt,
-      srcX: sX,
-      srcY: sY,
-      laneY,
-      laneSide: meta.side,
-      options,
-    });
+    let pathInfo: { d: string; midX: number; midY: number };
+    switch (meta.mode) {
+      case "section":
+        pathInfo = routeSectionTarget({
+          src: r.src,
+          tgt: r.tgt,
+          srcX: sX,
+          srcY: sY,
+          laneY: meta.laneY!,
+          laneSide: meta.laneSide!,
+          options,
+        });
+        break;
+      case "side-rail":
+        pathInfo = routeSideRail({
+          src: r.src,
+          tgt: r.tgt,
+          srcY: sY,
+          railX: meta.railX!,
+          railSide: meta.railSide!,
+          options,
+        });
+        break;
+      case "gap":
+        pathInfo = routeGapStep({
+          src: r.src,
+          tgt: r.tgt,
+          srcX: sX,
+          srcY: sY,
+          gapX: meta.gapX!,
+          options,
+        });
+        break;
+      case "lane":
+      default:
+        pathInfo = routeLongLane({
+          src: r.src,
+          tgt: r.tgt,
+          srcX: sX,
+          srcY: sY,
+          laneY: meta.laneY!,
+          laneSide: meta.laneSide!,
+          options,
+        });
+        break;
+    }
 
     const tgtHeaderH = Math.min(r.tgt.height, options.rowHeight);
     const srcHeaderH = Math.min(r.src.height, options.rowHeight);
@@ -528,31 +752,24 @@ export function layoutLogicGraph(
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Routing único: src → breakout → laneY → mergeX,laneY → mergeX,mergeY → entry
+// Path generators — uno por modo
 // ─────────────────────────────────────────────────────────────────────
 //
-// Un solo path para TODOS los edges, sin ramas heurísticas. El lane
-// (top/bottom + sub-Y específico) ya viene decidido por el lane
-// allocator de `layoutLogicGraph`. Aquí solo se construye la
-// geometría:
+// Cada generator construye el path SVG de su modo. Todos usan
+// `appendSegment` para esquinas redondeadas. La decisión geométrica
+// (lane, rail, gap) ya viene resuelta por el allocator del layout.
 //
-//   M src.right, src.cy
-//   L src.right + breakout, src.cy        ← breakout horizontal
-//   L src.right + breakout, laneY         ← V al lane
-//   L mergeX, laneY                       ← H a lo largo del lane
-//   L mergeX, mergeY                      ← V hasta el merge
-//   L tgt.entryX, tgt.entryY              ← entrada (lateral o top)
-//
-// Para target sección la entrada es por TOP — añade un quinto tramo
-// vertical hacia el header. Para variable la entrada es por izq
-// (forward) o der (back-edge), siempre lateral.
-//
-// El path siempre pasa por el lane (arriba o abajo del bloque entero
-// de cards), nunca por dentro del bloque. Resultado: cero cruces de
-// cards, cero loops de 360°.
 // ─────────────────────────────────────────────────────────────────────
 
-type RouteViaLaneInput = {
+/** Detecta `${X} != ''` (la expresión genérica del drag-arrow), local
+ *  para no acoplar con `GraphEdgeArrow`. Idéntica a la que vive ahí. */
+function isGenericExpressionLocal(expr: string): boolean {
+  return /^\s*\$\{[^}]+\}\s*!=\s*''\s*$/.test(expr);
+}
+
+// ── Mode A: target sección — entrada top-center o bottom-center ──────
+
+type RouteSectionInput = {
   src: LaidOutNode;
   tgt: LaidOutNode;
   srcX: number;
@@ -562,13 +779,7 @@ type RouteViaLaneInput = {
   options: LayoutOptions;
 };
 
-/** Detecta `${X} != ''` (la expresión genérica del drag-arrow), local
- *  para no acoplar con `GraphEdgeArrow`. Idéntica a la que vive ahí. */
-function isGenericExpressionLocal(expr: string): boolean {
-  return /^\s*\$\{[^}]+\}\s*!=\s*''\s*$/.test(expr);
-}
-
-function routeViaLane(input: RouteViaLaneInput): {
+function routeSectionTarget(input: RouteSectionInput): {
   d: string;
   midX: number;
   midY: number;
@@ -577,53 +788,158 @@ function routeViaLane(input: RouteViaLaneInput): {
   void src;
   const r = options.cornerRadius;
 
-  // Punto de entrada al target.
-  let tX: number, tY: number, mergeX: number, mergeY: number;
-  let entry: "top" | "left" | "right";
-  if (tgt.node.kind === "section") {
-    tX = tgt.x + tgt.width / 2;
+  // Entrada por top-center si lane es top, bottom-center si lane es
+  // bottom. Stem `mergeOffset` antes del target.
+  const tX = tgt.x + tgt.width / 2;
+  let tY: number, mergeY: number;
+  if (laneSide === "top") {
     tY = tgt.y;
-    mergeX = tX;
     mergeY = tY - options.mergeOffset;
-    entry = "top";
   } else {
-    if (srcX < tgt.x) {
-      tX = tgt.x;
-      tY = tgt.y + tgt.height / 2;
-      mergeX = tX - options.mergeOffset;
-      mergeY = tY;
-      entry = "left";
-    } else {
-      tX = tgt.x + tgt.width;
-      tY = tgt.y + tgt.height / 2;
-      mergeX = tX + options.mergeOffset;
-      mergeY = tY;
-      entry = "right";
-    }
+    tY = tgt.y + tgt.height;
+    mergeY = tY + options.mergeOffset;
   }
 
   const breakoutX = srcX + options.lateralBreakout;
   const segments: string[] = [`M ${srcX} ${srcY}`];
-
-  // Tramo 1: breakout (siempre hacia la derecha del source).
   appendSegment(segments, srcX, srcY, breakoutX, srcY, r);
-  // Tramo 2: V hacia el lane.
   appendSegment(segments, breakoutX, srcY, breakoutX, laneY, r);
-  // Tramo 3: H a lo largo del lane.
-  appendSegment(segments, breakoutX, laneY, mergeX, laneY, r);
-  // Tramo 4: V hacia el merge.
-  appendSegment(segments, mergeX, laneY, mergeX, mergeY, r);
-  // Tramo 5: entrada al target.
-  if (entry === "top") {
-    appendSegment(segments, mergeX, mergeY, tX, tY, r);
+  appendSegment(segments, breakoutX, laneY, tX, laneY, r);
+  appendSegment(segments, tX, laneY, tX, mergeY, r);
+  appendSegment(segments, tX, mergeY, tX, tY, r);
+
+  const tooltipPad = 22;
+  const midX = (breakoutX + tX) / 2;
+  const midY = laneSide === "top" ? laneY - tooltipPad : laneY + tooltipPad;
+  return { d: segments.join(" "), midX, midY };
+}
+
+// ── Mode B: side-rail — var↔var en la misma columna ─────────────────
+
+type RouteSideRailInput = {
+  src: LaidOutNode;
+  tgt: LaidOutNode;
+  srcY: number;
+  railX: number;
+  railSide: "left" | "right";
+  options: LayoutOptions;
+};
+
+function routeSideRail(input: RouteSideRailInput): {
+  d: string;
+  midX: number;
+  midY: number;
+} {
+  const { src, tgt, srcY, railX, railSide, options } = input;
+  const r = options.cornerRadius;
+
+  // Salida y entrada: por la derecha (railSide=right) o por la
+  // izquierda (railSide=left) de las cards.
+  const srcExitX = railSide === "right" ? src.x + src.width : src.x;
+  const tgtEntryX = railSide === "right" ? tgt.x + tgt.width : tgt.x;
+  const tY = tgt.y + Math.min(tgt.height, options.rowHeight) / 2;
+
+  const segments: string[] = [`M ${srcExitX} ${srcY}`];
+  appendSegment(segments, srcExitX, srcY, railX, srcY, r);
+  appendSegment(segments, railX, srcY, railX, tY, r);
+  appendSegment(segments, railX, tY, tgtEntryX, tY, r);
+
+  const midX = railX + (railSide === "right" ? 12 : -12);
+  const midY = (srcY + tY) / 2;
+  return { d: segments.join(" "), midX, midY };
+}
+
+// ── Mode C: gap-step — var→var en columnas adyacentes ───────────────
+
+type RouteGapStepInput = {
+  src: LaidOutNode;
+  tgt: LaidOutNode;
+  srcX: number;
+  srcY: number;
+  gapX: number;
+  options: LayoutOptions;
+};
+
+function routeGapStep(input: RouteGapStepInput): {
+  d: string;
+  midX: number;
+  midY: number;
+} {
+  const { src, tgt, srcX, srcY, gapX, options } = input;
+  void src;
+  const r = options.cornerRadius;
+
+  // Forward: src está a la izq del tgt, salimos por la derecha del src,
+  // entramos por la izq del tgt. (Si src está a la derecha — caso
+  // simétrico — se intercambian, pero el allocator pone src en la
+  // columna izq por convención de `gapIdx = min(srcCol, tgtCol)`.)
+  const tX = srcX < tgt.x ? tgt.x : tgt.x + tgt.width;
+  const tY = tgt.y + Math.min(tgt.height, options.rowHeight) / 2;
+
+  const segments: string[] = [`M ${srcX} ${srcY}`];
+  appendSegment(segments, srcX, srcY, gapX, srcY, r);
+  appendSegment(segments, gapX, srcY, gapX, tY, r);
+  appendSegment(segments, gapX, tY, tX, tY, r);
+
+  const midX = gapX;
+  const midY = (srcY + tY) / 2;
+  return { d: segments.join(" "), midX, midY };
+}
+
+// ── Mode D: long lane — wrap por arriba o abajo del bloque entero ───
+//
+// Path único de 5 tramos:
+//   M src.right, src.cy
+//   L src.right + breakout, src.cy
+//   L src.right + breakout, laneY
+//   L mergeX, laneY
+//   L mergeX, mergeY
+//   L tgt.entryX, tgt.entryY
+// Forward o back-edge a variable, siempre lateral. Cero cruces de
+// cards. Es el routing original (renombrado de `routeViaLane`).
+
+type RouteLongLaneInput = {
+  src: LaidOutNode;
+  tgt: LaidOutNode;
+  srcX: number;
+  srcY: number;
+  laneY: number;
+  laneSide: "top" | "bottom";
+  options: LayoutOptions;
+};
+
+function routeLongLane(input: RouteLongLaneInput): {
+  d: string;
+  midX: number;
+  midY: number;
+} {
+  const { src, tgt, srcX, srcY, laneY, laneSide, options } = input;
+  void src;
+  const r = options.cornerRadius;
+
+  // Forward (target a la der) → entrada lateral izq.
+  // Back-edge (target a la izq) → entrada lateral der.
+  let tX: number, tY: number, mergeX: number, mergeY: number;
+  if (srcX < tgt.x) {
+    tX = tgt.x;
+    tY = tgt.y + tgt.height / 2;
+    mergeX = tX - options.mergeOffset;
+    mergeY = tY;
   } else {
-    // Lateral (left o right): mergeX,mergeY ya está alineado
-    // verticalmente con el target — el último tramo es horizontal
-    // hasta el lateral.
-    appendSegment(segments, mergeX, mergeY, tX, tY, r);
+    tX = tgt.x + tgt.width;
+    tY = tgt.y + tgt.height / 2;
+    mergeX = tX + options.mergeOffset;
+    mergeY = tY;
   }
 
-  // Tooltip: centro del lane con padding según el lado.
+  const breakoutX = srcX + options.lateralBreakout;
+  const segments: string[] = [`M ${srcX} ${srcY}`];
+  appendSegment(segments, srcX, srcY, breakoutX, srcY, r);
+  appendSegment(segments, breakoutX, srcY, breakoutX, laneY, r);
+  appendSegment(segments, breakoutX, laneY, mergeX, laneY, r);
+  appendSegment(segments, mergeX, laneY, mergeX, mergeY, r);
+  appendSegment(segments, mergeX, mergeY, tX, tY, r);
+
   const tooltipPad = 22;
   const midX = (breakoutX + mergeX) / 2;
   const midY = laneSide === "top" ? laneY - tooltipPad : laneY + tooltipPad;
