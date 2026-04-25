@@ -121,6 +121,7 @@ import CatalogsContextLens from "./catalogs/CatalogsContextLens";
 import { SurveyOutline } from "./outline/SurveyOutline";
 import type { RowMovePlan } from "./outline/outlineUtils";
 import { applyRowMove } from "./outline/outlineUtils";
+import { PreviewCanvas } from "./canvas/PreviewCanvas";
 
 const QUESTION_TYPE_OPTIONS = [
   { value: "text", label: "Texto corto" },
@@ -1180,11 +1181,22 @@ export default function XlsformEditorPage() {
                   >
                     {selection?.kind === "settings" ? (
                       <SettingsCanvas settingsRecord={settingsRecord} />
-                    ) : selectedNode ? (
-                      <QuestionCanvas
+                    ) : selectedNode && structure ? (
+                      <PreviewCanvas
                         node={selectedNode}
-                        choiceItems={selectedChoices}
+                        structure={structure}
+                        choices={selectedChoices}
                         logicBlocks={selectedLogic}
+                        onSelectByRow={(target) =>
+                          target === "settings"
+                            ? setSelection({ kind: "settings" })
+                            : setSelection({ kind: "survey", rowIndex: target })
+                        }
+                        onMoveUp={() => moveSelection("up")}
+                        onMoveDown={() => moveSelection("down")}
+                        onDelete={deleteCurrentSelection}
+                        canMoveUp={!!movement.prevRow}
+                        canMoveDown={!!movement.nextRow}
                       />
                     ) : (
                       <EmptyState

@@ -894,3 +894,373 @@ button.pulso-empty-home-card:focus-visible {
   border-top: 1px solid var(--pulso-border);
   padding-top: 14px;
 }
+
+/* -----------------------------------------------------------------------------
+ * Canvas live preview (Sub-PR 5)
+ * --------------------------------------------------------------------------- */
+
+.pulso-canvas-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Breadcrumb */
+.pulso-canvas-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+.pulso-canvas-breadcrumb-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pulso-canvas-breadcrumb-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.pulso-canvas-breadcrumb-segment:hover:not(:disabled) {
+  background: var(--pulso-surface);
+  color: var(--pulso-primary);
+  border-color: var(--pulso-border);
+}
+.pulso-canvas-breadcrumb-segment:disabled {
+  cursor: default;
+}
+.pulso-canvas-breadcrumb-current {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  background: var(--pulso-primary-soft);
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 6px;
+}
+.pulso-canvas-breadcrumb-sep {
+  color: var(--pulso-text-soft);
+  opacity: 0.5;
+}
+
+/* Wrapper de la card + anchor de quickactions */
+.pulso-canvas-card-wrapper {
+  position: relative;
+}
+.pulso-canvas-quickactions-anchor {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.pulso-canvas-quickactions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+.pulso-canvas-quickactions-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--pulso-border);
+  margin: 0 2px;
+}
+
+/* Card principal — se ve como un formulario real, con el acento del tipo */
+.pulso-canvas-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 24px 18px;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  border-left: 4px solid var(--card-accent, var(--pulso-primary));
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  animation: pulso-canvas-card-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@keyframes pulso-canvas-card-in {
+  from { transform: translateY(4px) scale(0.99); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.pulso-canvas-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-right: 110px; /* deja espacio al toolbar de quickactions */
+}
+.pulso-canvas-card-typebadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.pulso-canvas-card-position {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--pulso-text-soft);
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+}
+.pulso-canvas-card-required {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: var(--pulso-warn-fg);
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 999px;
+}
+.pulso-canvas-card-conditional {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: var(--pulso-info-fg);
+  background: var(--pulso-info-bg);
+  border: 1px solid var(--pulso-info-border);
+  border-radius: 999px;
+}
+
+.pulso-canvas-card-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pulso-canvas-card-label {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--pulso-text);
+  letter-spacing: -0.2px;
+}
+.pulso-canvas-card-hint {
+  margin: 0;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-canvas-card-input {
+  margin-top: 4px;
+}
+
+.pulso-canvas-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--pulso-border);
+}
+.pulso-canvas-card-fieldname {
+  font-size: 10px;
+  color: var(--pulso-text-soft);
+  letter-spacing: 0.3px;
+}
+.pulso-canvas-card-fieldname code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--pulso-surface-2);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--pulso-text);
+}
+
+/* Choices preview (radio / check) */
+.pulso-canvas-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pulso-canvas-choice-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: white;
+}
+.pulso-canvas-choice-mark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--pulso-primary);
+  background: white;
+  flex-shrink: 0;
+}
+.pulso-canvas-choice-mark.is-radio {
+  border-radius: 999px;
+}
+.pulso-canvas-choice-mark.is-check {
+  border-radius: 4px;
+}
+.pulso-canvas-choice-label {
+  font-size: 13px;
+  color: var(--pulso-text);
+  flex: 1;
+}
+.pulso-canvas-choice-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  background: var(--pulso-surface-2);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.pulso-canvas-choice-more {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  padding-left: 30px;
+  font-style: italic;
+}
+
+/* Inputs fake (text, number, date, time) */
+.pulso-canvas-fakeinput {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1.5px dashed var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  cursor: not-allowed;
+}
+.pulso-canvas-fakeinput-icon {
+  display: inline-flex;
+}
+.pulso-canvas-fakeinput-placeholder {
+  font-size: 13px;
+  color: var(--pulso-text-soft);
+  font-style: italic;
+}
+
+/* Upload buttons (image/audio/video/file/barcode/geo) */
+.pulso-canvas-fakeupload {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--pulso-surface);
+  border: 1.5px dashed var(--pulso-border);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: not-allowed;
+}
+
+/* Acknowledge / hidden / auto-meta — preview boxes */
+.pulso-canvas-fakecheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  font-size: 13px;
+}
+.pulso-canvas-previewbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+}
+.pulso-canvas-previewbox-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Sección "Cómo se comporta" — lógica F1 importada del XLSForm */
+.pulso-canvas-logic {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+}
+.pulso-canvas-logic-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pulso-canvas-logic-hint {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  font-style: italic;
+}
+.pulso-canvas-logic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+.pulso-canvas-logic-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+}
+.pulso-canvas-logic-icon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-primary);
+  flex-shrink: 0;
+}
