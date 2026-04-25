@@ -747,6 +747,51 @@ export function layoutLogicGraph(
     }
   });
 
+  // 5.11 Para Mode A (target sección), además del stride en Y
+  // distribuimos el punto de entrada en X a lo largo del top edge
+  // de la sección. Antes TODAS las flechas Mode A a una misma
+  // sección entraban en `tgt.cx` (centro), apilando arrowheads en
+  // el mismo punto. Ahora cada unidad recibe un slot distinto
+  // — la entrada N de M se ubica en `tgt.x + (N+1)/(M+1) * tgt.width`,
+  // distribuyendo en el 60% central del top edge.
+  // Edges del mismo bundle (mismo unitKey) comparten slot →
+  // mantienen overlap intencional. Diferentes unidades al mismo
+  // target reciben slots distintos → desembocan en X diferentes.
+  const sectionEntryXByEdge = new Map<string, number>();
+  const modeASectionUnits = new Map<string, string[]>();
+  resolved.forEach((r, i) => {
+    const meta = edgeMeta[i]!;
+    if (meta.mode !== "section") return;
+    const tId = r.tgt.node.id;
+    if (!modeASectionUnits.has(tId)) modeASectionUnits.set(tId, []);
+    const arr = modeASectionUnits.get(tId)!;
+    if (!arr.includes(meta.unitKey)) arr.push(meta.unitKey);
+  });
+  for (const [tId, units] of modeASectionUnits) {
+    const placedTgt = positionByNodeId.get(tId);
+    if (!placedTgt) continue;
+    const usable = placedTgt.width * 0.6;
+    const start = (placedTgt.width - usable) / 2;
+    units.forEach((unitKey, idx) => {
+      let offsetInWidth: number;
+      if (units.length === 1) {
+        offsetInWidth = placedTgt.width / 2;
+      } else {
+        offsetInWidth = start + (idx * usable) / (units.length - 1);
+      }
+      const entryX = placedTgt.x + offsetInWidth;
+      // Marcar todos los edges con este unitKey y este target.
+      for (const r of resolved) {
+        if (r.tgt.node.id === tId && edgeMeta[resolved.indexOf(r)]!.unitKey === unitKey) {
+          sectionEntryXByEdge.set(
+            `${r.src.node.id}->${r.tgt.node.id}`,
+            entryX,
+          );
+        }
+      }
+    });
+  }
+
   // ── 6. Construir paths con dispatcher por modo ─────────────────────
   const laidOutEdges: LaidOutEdge[] = resolved.map((r, i) => {
     const meta = edgeMeta[i]!;
@@ -773,6 +818,7 @@ export function layoutLogicGraph(
           laneY: meta.laneY!,
           laneSide: meta.laneSide!,
           mergeOffset: effectiveMergeOffset,
+          entryX: sectionEntryXByEdge.get(edgeKey),
           options,
         });
         break;
@@ -886,6 +932,11 @@ type RouteSectionInput = {
    *  asignado por el allocator de target (5.10) — varía por unidad
    *  para evitar que los V finales se apilen al mismo X. */
   mergeOffset: number;
+  /** X de entrada al top/bottom edge de la sección. Por defecto es
+   *  el centro (`tgt.cx`). El allocator (5.11) lo distribuye a lo
+   *  largo del top edge cuando varios bundles entran a la misma
+   *  sección, así cada bundle desemboca en su propio X. */
+  entryX?: number;
   options: LayoutOptions;
 };
 
@@ -894,13 +945,14 @@ function routeSectionTarget(input: RouteSectionInput): {
   midX: number;
   midY: number;
 } {
-  const { src, tgt, srcX, srcY, laneY, laneSide, mergeOffset, options } = input;
+  const { src, tgt, srcX, srcY, laneY, laneSide, mergeOffset, entryX, options } =
+    input;
   void src;
   const r = options.cornerRadius;
 
-  // Entrada por top-center si lane es top, bottom-center si lane es
-  // bottom. Stem `mergeOffset` (per-edge) antes del target.
-  const tX = tgt.x + tgt.width / 2;
+  // Entrada por top o bottom de la sección, en el X distribuido por
+  // el allocator (default: centro).
+  const tX = entryX ?? tgt.x + tgt.width / 2;
   let tY: number, mergeY: number;
   if (laneSide === "top") {
     tY = tgt.y;
