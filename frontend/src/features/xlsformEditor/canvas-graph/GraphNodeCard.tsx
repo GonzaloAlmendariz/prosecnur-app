@@ -385,7 +385,8 @@ export function GraphNodeCard({
 
       {/* Anchor de "salida" — círculo a la derecha que el usuario arrastra
           para crear una conexión nueva. Solo visible si onAnchorMouseDown
-          está provisto (modo edición). */}
+          está provisto (modo edición). Halo extra visible al hover de
+          la card para hacerlo descubrible. */}
       {onAnchorMouseDown && (
         <g
           className="pulso-graph-node-anchor"
@@ -393,7 +394,17 @@ export function GraphNodeCard({
             event.stopPropagation();
             onAnchorMouseDown(event);
           }}
+          style={{ cursor: "crosshair" }}
         >
+          {/* Halo invisible por defecto; visible al hover de la card. */}
+          <circle
+            className="pulso-graph-node-anchor-halo"
+            cx={width}
+            cy={headerHeight / 2}
+            r={11}
+            fill={accent}
+            fillOpacity={0}
+          />
           <circle
             cx={width}
             cy={headerHeight / 2}

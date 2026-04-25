@@ -777,7 +777,10 @@ export function LogicCanvas({
                 );
               })}
 
-            {/* Ghost edge mientras se arrastra. */}
+            {/* Ghost edge mientras se arrastra. Bezier suave con
+                color primary y un círculo "snap" al cursor que indica
+                "puedes soltar acá". Si edgeHoverTargetId está set, el
+                ghost cambia a verde para confirmar el destino. */}
             {edgeDraft && (() => {
               const sourceLaid = layout?.nodes.find(
                 (n) => n.node.id === edgeDraft.sourceId && n.visible,
@@ -789,17 +792,37 @@ export function LogicCanvas({
               const ty = edgeDraft.cursorY;
               const dx = Math.max(40, Math.abs(tx - sx) * 0.4);
               const path = `M ${sx} ${sy} C ${sx + dx} ${sy}, ${tx - dx} ${ty}, ${tx} ${ty}`;
+              const onValidTarget = !!edgeHoverTargetId;
+              const ghostColor = onValidTarget
+                ? "#16a34a"
+                : "var(--pulso-primary)";
               return (
-                <path
-                  d={path}
-                  fill="none"
-                  stroke="var(--pulso-primary)"
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  pointerEvents="none"
-                />
+                <g pointerEvents="none" className="pulso-graph-ghost-edge">
+                  <path
+                    d={path}
+                    fill="none"
+                    stroke={ghostColor}
+                    strokeWidth={2.4}
+                    strokeDasharray="6 5"
+                    strokeLinecap="round"
+                    opacity={0.85}
+                  />
+                  {/* Círculo en el cursor — pulsea para indicar
+                      "soltar aquí". */}
+                  <circle
+                    cx={tx}
+                    cy={ty}
+                    r={onValidTarget ? 8 : 5}
+                    fill={ghostColor}
+                    fillOpacity={0.18}
+                    stroke={ghostColor}
+                    strokeWidth={1.5}
+                  />
+                  <circle cx={tx} cy={ty} r={2.5} fill={ghostColor} />
+                </g>
               );
             })()}
+
           </g>
         </svg>
 
