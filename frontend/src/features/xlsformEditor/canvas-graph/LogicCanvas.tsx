@@ -576,6 +576,7 @@ export function LogicCanvas({
                   key={`e-${idx}-${edge.edge.source}-${edge.edge.target}`}
                   edge={edge}
                   relevantExpression={targetRelevant}
+                  colorIndex={edge.colorIndex}
                   highlighted={(isHL || isHovered) && passesFilter}
                   dimmed={isDM}
                   justAppeared={freshEdgeKey === edgeKey}

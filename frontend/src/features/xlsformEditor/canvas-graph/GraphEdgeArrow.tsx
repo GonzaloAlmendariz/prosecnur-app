@@ -21,10 +21,16 @@ import type { LaidOutEdge } from "./autoLayout";
 
 export type GraphEdgeArrowProps = {
   edge: LaidOutEdge;
-  /** Expresión `relevant` del target — para colorear el edge según la
-   *  condición que lo dispara. Cuando varios edges convergen al mismo
-   *  target, todos comparten esta expresión y por ende el mismo color. */
+  /** Expresión `relevant` del target — para detectar si es la
+   *  expresión genérica (`${X} != ''`, color neutro) y para fallback
+   *  por hash si no se proveyó `colorIndex`. */
   relevantExpression: string | null;
+  /** Índice estable de Tableau-10 según orden de aparición (provisto
+   *  por el layout). Si está, se usa directamente: dos expresiones
+   *  distintas reciben colores distintos garantizadamente. Si es
+   *  null, se usa el color neutro. Si es `undefined`, fallback al
+   *  hash legacy (compatibilidad). */
+  colorIndex?: number | null | undefined;
   highlighted: boolean;
   dimmed: boolean;
   /** Si true, este edge acaba de aparecer (drag-arrow finalizado) y se
@@ -90,13 +96,21 @@ const STROKE_WIDTH = 1.9;
 export function GraphEdgeArrow({
   edge,
   relevantExpression,
+  colorIndex,
   highlighted,
   dimmed,
   justAppeared,
   onHover,
   onClick,
 }: GraphEdgeArrowProps) {
-  const color = colorForExpression(relevantExpression);
+  // Color: prioridad al colorIndex provisto por el layout (orden de
+  // aparición → sin colisiones para las primeras 10 condiciones). Si
+  // no se proveyó (compat), fallback al hash legacy. Si la expresión
+  // es genérica o nula, color neutro.
+  const color =
+    colorIndex == null
+      ? colorForExpression(relevantExpression)
+      : TABLEAU_10[colorIndex % TABLEAU_10.length]!;
   // Visibilidad base alta — antes 0.78 lucía "fantasma" sobre fondo
   // claro, en especial las dashed var↔var. Subimos a 0.95 para que
   // el trazo se lea como "primera capa" del lienzo. El dim sigue
