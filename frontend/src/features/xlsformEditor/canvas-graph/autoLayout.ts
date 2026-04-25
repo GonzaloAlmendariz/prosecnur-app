@@ -48,16 +48,15 @@ export type LaidOutEdge = {
   colorIndex: number | null;
   /** Identificador de la "unidad de bundle" a la que pertenece este
    *  edge. Edges con el mismo `unitKey` representan ramas de la
-   *  MISMA condición lógica (visual y conceptualmente una sola
-   *  flecha que desemboca en varios targets). Formato:
-   *  `${mode}::${expr}` para bundleables, `loose:${i}` para
-   *  edges con expresión única. La UI usa esto para:
-   *    · Bundle-aware selection: click en una rama selecciona
-   *      todas las del bundle.
-   *    · Highlight conjunto: todas las ramas del bundle se
-   *      resaltan juntas como "una sola flecha".
-   *    · Panel agregado: muestra todos los targets del bundle. */
+   *  MISMA condición lógica. */
   unitKey: string;
+  /** ID del NODO RESUELTO al ancestro visible. Cuando una sección
+   *  está colapsada, el target original (una pregunta interior) se
+   *  resuelve al ID de la sección. La UI debe usar estos IDs para
+   *  mostrar info, no `edge.source`/`edge.target` (que son los IDs
+   *  originales del grafo, antes de la resolución por colapso). */
+  resolvedSourceId: string;
+  resolvedTargetId: string;
   fromBBox: { x: number; y: number; width: number; height: number };
   toBBox: { x: number; y: number; width: number; height: number };
 };
@@ -945,6 +944,8 @@ export function layoutLogicGraph(
       midY: pathInfo.midY,
       colorIndex: colorIdx,
       unitKey: meta.unitKey,
+      resolvedSourceId: r.src.node.id,
+      resolvedTargetId: r.tgt.node.id,
       fromBBox: {
         x: r.src.x,
         y: r.src.y,

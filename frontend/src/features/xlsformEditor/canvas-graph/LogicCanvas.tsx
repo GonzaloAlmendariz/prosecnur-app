@@ -1565,22 +1565,26 @@ export function LogicCanvas({
             (e) => e.unitKey === clickedEdge.unitKey,
           );
           if (bundleEdges.length === 0) return null;
-          // Sources únicos (orden de aparición).
+          // Sources/targets únicos por ID RESUELTO (no el original).
+          // Cuando una sección está colapsada, los edges a sus
+          // preguntas internas se resuelven a la sección. Usar los
+          // IDs originales mostraría preguntas que no son visibles
+          // en el lienzo (bug reportado: "p29 aparecía en destinos
+          // cuando ACCESIBILIDAD estaba colapsada").
           const seenSrc = new Set<string>();
           const sources: GraphNode[] = [];
           for (const e of bundleEdges) {
-            if (seenSrc.has(e.edge.source)) continue;
-            seenSrc.add(e.edge.source);
-            const node = graph.byId.get(e.edge.source);
+            if (seenSrc.has(e.resolvedSourceId)) continue;
+            seenSrc.add(e.resolvedSourceId);
+            const node = graph.byId.get(e.resolvedSourceId);
             if (node) sources.push(node);
           }
-          // Targets únicos (orden de aparición).
           const seenTgt = new Set<string>();
           const targets: GraphNode[] = [];
           for (const e of bundleEdges) {
-            if (seenTgt.has(e.edge.target)) continue;
-            seenTgt.add(e.edge.target);
-            const node = graph.byId.get(e.edge.target);
+            if (seenTgt.has(e.resolvedTargetId)) continue;
+            seenTgt.add(e.resolvedTargetId);
+            const node = graph.byId.get(e.resolvedTargetId);
             if (node) targets.push(node);
           }
           if (sources.length === 0 || targets.length === 0) return null;

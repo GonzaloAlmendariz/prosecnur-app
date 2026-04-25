@@ -5053,15 +5053,18 @@ button.pulso-empty-home-card:focus-visible {
 }
 
 /* ─── Indicador de zoom flotante ─────────────────────────────────── */
+/* Posicionado top-LEFT debajo del header, en zona típicamente vacía
+ * del lienzo. Antes estaba en bottom-left donde solía solaparse con
+ * cards arrastradas o paneles. */
 .pulso-graph-zoom-indicator {
   position: absolute;
-  bottom: 16px;
+  top: 16px;
   left: 16px;
-  background: white;
+  background: rgba(255, 255, 255, 0.94);
   border: 1px solid var(--pulso-border);
   border-radius: 7px;
-  padding: 6px 12px;
-  font-size: 11.5px;
+  padding: 5px 10px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--pulso-text);
   box-shadow: var(--pulso-shadow-soft);
@@ -5069,13 +5072,18 @@ button.pulso-empty-home-card:focus-visible {
   user-select: none;
   -webkit-user-select: none;
   z-index: 35;
-  transition: background 140ms ease, transform 100ms ease;
+  transition: background 140ms ease, transform 100ms ease, opacity 200ms ease;
   font-variant-numeric: tabular-nums;
-  min-width: 50px;
+  min-width: 44px;
   text-align: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  /* Sutil por defecto, más visible al hover. */
+  opacity: 0.65;
 }
 .pulso-graph-zoom-indicator:hover {
   background: var(--pulso-surface-2);
+  opacity: 1;
   transform: translateY(-1px);
 }
 .pulso-graph-zoom-indicator:active {
