@@ -1,4 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -93,6 +102,17 @@ import {
   resolveInsertionIndex,
 } from "./parsing/buildIndex";
 import { buildDiagnostics } from "./parsing/diagnostics";
+import {
+  canRedoEditor,
+  canUndoEditor,
+  createInitialEditorState,
+  editorReducer,
+} from "./state/editorReducer";
+import {
+  clearSnapshot,
+  createPersistenceScheduler,
+  loadSnapshot,
+} from "./state/persistence";
 
 const QUESTION_TYPE_OPTIONS = [
   { value: "text", label: "Texto corto" },
@@ -121,20 +141,91 @@ function logicSummary(node: BuilderNode | null) {
 
 
 export default function XlsformEditorPage() {
-  const [workbook, setWorkbook] = useState<XlsformEditorWorkbook | null>(null);
+  // Estado del workbook + dirty + lastSavedAt + history (undo/redo) en un
+  // solo reducer para mantener consistencia transaccional. Las acciones
+  // disponibles son SET (mutación normal), LOAD (importar/restaurar),
+  // CLEAR (volver al EmptyHome), UNDO/REDO y MARK_SAVED.
+  const [editorState, dispatch] = useReducer(
+    editorReducer,
+    null,
+    () => createInitialEditorState(null),
+  );
+  const { workbook, dirty, lastSavedAt } = editorState;
+  const canUndo = canUndoEditor(editorState);
+  const canRedo = canRedoEditor(editorState);
+
   const [mode, setMode] = useState<EditorMode>("builder");
   const [advancedSheet, setAdvancedSheet] = useState<SheetKey>("survey");
   const [selection, setSelection] = useState<BuilderSelection | null>(null);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [status, setStatus] = useState("Todavía no hay un formulario abierto.");
-  const [dirty, setDirty] = useState(false);
   const [artifact, setArtifact] = useState<{ file_id: string; original_name: string } | null>(null);
   const [source, setSource] = useState<{ kind: string | null; original_name: string | null } | null>(null);
   const [catalogFocus, setCatalogFocus] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  /** Snapshot del autosave detectado al montar; muestra UI de "continuar". */
+  const [restoreOffer, setRestoreOffer] = useState<ReturnType<typeof loadSnapshot>>(null);
   const xlsInputRef = useRef<HTMLInputElement | null>(null);
   const smInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Scheduler de autosave a sessionStorage. Se crea una sola vez por
+  // montaje del componente; se reusa entre cambios.
+  const persistenceRef = useRef<ReturnType<typeof createPersistenceScheduler> | null>(null);
+  if (persistenceRef.current === null) {
+    persistenceRef.current = createPersistenceScheduler((savedAt) => {
+      dispatch({ type: "MARK_SAVED", savedAt });
+    }, 2000);
+  }
+  const persistence = persistenceRef.current;
+
+  // Detectar al montar si hay un snapshot persistido en sessionStorage
+  // (tras crash/reload). Lo ofrecemos como "Continuar editando" si el
+  // estado actual aún está vacío.
+  useEffect(() => {
+    const snap = loadSnapshot();
+    if (snap) setRestoreOffer(snap);
+    // Solo en mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Programar autosave después de cada edición. El scheduler debouncea 2s
+  // — si el usuario sigue editando, se posterga; si se queda quieto, escribe.
+  useEffect(() => {
+    if (!workbook) return;
+    if (!dirty) return;
+    persistence.schedule(workbook, {
+      sourceKind: source?.kind ?? null,
+      sourceName: source?.original_name ?? null,
+    });
+  }, [workbook, dirty, source, persistence]);
+
+  // Atajos de teclado para undo/redo (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Ctrl+Y).
+  // Se ignora si el foco está en un input/textarea/contentEditable.
+  useEffect(() => {
+    function isTypingTarget(el: EventTarget | null): boolean {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      if (el.isContentEditable) return true;
+      return false;
+    }
+    function onKey(event: KeyboardEvent) {
+      const isMod = event.metaKey || event.ctrlKey;
+      if (!isMod) return;
+      if (isTypingTarget(event.target)) return;
+      const key = event.key.toLowerCase();
+      if (key === "z" && !event.shiftKey) {
+        event.preventDefault();
+        dispatch({ type: "UNDO" });
+      } else if ((key === "z" && event.shiftKey) || key === "y") {
+        event.preventDefault();
+        dispatch({ type: "REDO" });
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const xlsformIndex = useMemo(
     () => (workbook ? buildXlsformIndex(workbook) : null),
@@ -237,26 +328,55 @@ export default function XlsformEditorPage() {
     setStatus("");
   }
 
-  function loadWorkbook(next: XlsformEditorWorkbook, nextSource: { kind: string | null; original_name: string | null }, nextStatus: string) {
-    setWorkbook(cloneWorkbook(next));
-    setSource(nextSource);
-    setArtifact(null);
-    setDirty(false);
-    setMode("builder");
-    setAdvancedSheet("survey");
-    setStatus(nextStatus);
-  }
+  const loadWorkbook = useCallback(
+    (
+      next: XlsformEditorWorkbook,
+      nextSource: { kind: string | null; original_name: string | null },
+      nextStatus: string,
+    ) => {
+      // LOAD resetea historia y dirty=false. Cancelamos cualquier autosave
+      // pendiente del workbook anterior para no pisar el snapshot nuevo.
+      persistence.cancel();
+      dispatch({ type: "LOAD", workbook: cloneWorkbook(next) });
+      setSource(nextSource);
+      setArtifact(null);
+      setMode("builder");
+      setAdvancedSheet("survey");
+      setStatus(nextStatus);
+      setRestoreOffer(null);
+      // El usuario confirmó qué workbook quiere → limpiamos snapshot viejo.
+      clearSnapshot();
+    },
+    [persistence],
+  );
 
-  function updateWorkbook(mutator: (draft: XlsformEditorWorkbook) => void) {
-    setWorkbook((current) => {
-      if (!current) return current;
-      const draft = cloneWorkbook(current);
+  const updateWorkbook = useCallback(
+    (mutator: (draft: XlsformEditorWorkbook) => void) => {
+      if (!workbook) return;
+      const draft = cloneWorkbook(workbook);
       mutator(draft);
-      return draft;
-    });
-    setDirty(true);
-    setArtifact(null);
-  }
+      dispatch({ type: "SET", workbook: draft });
+      setArtifact(null);
+    },
+    [workbook],
+  );
+
+  // Descartar el snapshot ofrecido al montar y empezar de cero.
+  const dismissRestoreOffer = useCallback(() => {
+    setRestoreOffer(null);
+    clearSnapshot();
+  }, []);
+
+  // Aceptar el snapshot ofrecido y restaurarlo como workbook actual.
+  const acceptRestoreOffer = useCallback(() => {
+    const snap = restoreOffer;
+    if (!snap) return;
+    loadWorkbook(
+      snap.workbook,
+      { kind: snap.sourceKind ?? null, original_name: snap.sourceName ?? null },
+      "Restauramos el formulario que tenías abierto antes del cierre.",
+    );
+  }, [restoreOffer, loadWorkbook]);
 
   async function onImportXls(file?: File) {
     if (!file) return;
@@ -305,7 +425,11 @@ export default function XlsformEditorPage() {
     try {
       const out = await apiXlsformEditorExport(workbook, cleanFilename(source?.original_name));
       setArtifact({ file_id: out.file_id, original_name: out.original_name });
-      setDirty(false);
+      // Tras un export exitoso el workbook está "guardado" (en disco).
+      // Forzamos el flush del autosave también para sellar el snapshot
+      // local con el mismo timestamp.
+      const savedAt = persistence.flush() ?? Date.now();
+      dispatch({ type: "MARK_SAVED", savedAt });
       setStatus(`Listo: generamos ${out.original_name} para descargarlo o seguir iterándolo.`);
     } catch (e: unknown) {
       setError((e as Error).message);
@@ -714,10 +838,55 @@ export default function XlsformEditorPage() {
         meta={(
           <div style={{ display: "inline-flex", flexWrap: "wrap", gap: 8 }}>
             <StatusChip label={workbook ? formatSource(source?.kind ?? null) : "Sin archivo"} tone={workbook ? "info" : "neutral"} />
-            <StatusChip label={dirty ? "Cambios sin exportar" : "Sin cambios pendientes"} tone={dirty ? "warn" : "success"} />
+            <StatusChip
+              label={
+                workbook
+                  ? formatSaveStatus(dirty, lastSavedAt)
+                  : "Sin cambios pendientes"
+              }
+              tone={
+                workbook && dirty
+                  ? "warn"
+                  : workbook && lastSavedAt != null
+                    ? "info"
+                    : "success"
+              }
+            />
+            {workbook && (canUndo || canRedo) && (
+              <div style={{ display: "inline-flex", gap: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => dispatch({ type: "UNDO" })}
+                  disabled={!canUndo}
+                  title="Deshacer (⌘Z)"
+                  style={undoButtonStyle(canUndo)}
+                  aria-label="Deshacer último cambio"
+                >
+                  ↶ Deshacer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => dispatch({ type: "REDO" })}
+                  disabled={!canRedo}
+                  title="Rehacer (⇧⌘Z)"
+                  style={undoButtonStyle(canRedo)}
+                  aria-label="Rehacer cambio deshecho"
+                >
+                  ↷ Rehacer
+                </button>
+              </div>
+            )}
           </div>
         )}
       />
+
+      {restoreOffer && !workbook && (
+        <RestoreOfferBanner
+          snapshot={restoreOffer}
+          onAccept={acceptRestoreOffer}
+          onDismiss={dismissRestoreOffer}
+        />
+      )}
 
       {error && <ErrorBlock label="No pudimos abrir el constructor" detail={error} />}
 
@@ -2706,6 +2875,112 @@ function SheetEditor({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Helpers añadidos en Sub-PR 2 (estado + autosave + undo/redo)
+// =============================================================================
+
+/** Texto humano del estado de guardado para el chip del header. */
+function formatSaveStatus(dirty: boolean, lastSavedAt: number | null): string {
+  if (dirty) {
+    if (lastSavedAt == null) return "Cambios sin guardar";
+    return `Cambios sin guardar · último guardado ${formatRelativeTime(lastSavedAt)}`;
+  }
+  if (lastSavedAt == null) return "Sin cambios pendientes";
+  return `Guardado ${formatRelativeTime(lastSavedAt)}`;
+}
+
+/** Convierte un timestamp ms epoch en frase tipo "hace 4 s" / "hace 2 min". */
+function formatRelativeTime(ts: number): string {
+  const diffMs = Date.now() - ts;
+  if (diffMs < 0) return "ahora";
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 5) return "ahora";
+  if (sec < 60) return `hace ${sec} s`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `hace ${min} min`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `hace ${hr} h`;
+  const day = Math.floor(hr / 24);
+  return `hace ${day} d`;
+}
+
+/** Estilo del par de botones undo/redo en el header. */
+function undoButtonStyle(enabled: boolean): CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    padding: "4px 10px",
+    fontSize: 11,
+    fontWeight: 700,
+    border: "1px solid var(--pulso-border)",
+    background: "white",
+    color: enabled ? "var(--pulso-text)" : "var(--pulso-text-soft)",
+    borderRadius: 6,
+    cursor: enabled ? "pointer" : "not-allowed",
+    opacity: enabled ? 1 : 0.5,
+  };
+}
+
+/**
+ * Banner que aparece cuando al montar detectamos un snapshot persistido en
+ * sessionStorage (típicamente por crash + reload). Le ofrece al usuario
+ * restaurar lo que estaba editando vs descartarlo.
+ */
+function RestoreOfferBanner({
+  snapshot,
+  onAccept,
+  onDismiss,
+}: {
+  snapshot: { savedAt: number; sourceName: string | null };
+  onAccept: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      role="region"
+      aria-label="Restaurar formulario anterior"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "12px 16px",
+        borderRadius: 10,
+        background: "var(--pulso-info-bg)",
+        border: "1px solid var(--pulso-info-border)",
+        color: "var(--pulso-text)",
+        flexWrap: "wrap",
+      }}
+    >
+      <Sparkles size={16} color="var(--pulso-info-fg)" />
+      <div style={{ flex: 1, minWidth: 240 }}>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>
+          Tenías un formulario abierto antes
+        </div>
+        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+          {snapshot.sourceName ? `Archivo: ${snapshot.sourceName} · ` : ""}
+          Guardado automáticamente {formatRelativeTime(snapshot.savedAt)}.
+        </div>
+      </div>
+      <button
+        type="button"
+        className="pulso-primary"
+        onClick={onAccept}
+        style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+      >
+        <Sparkles size={14} /> Continuar editando
+      </button>
+      <button
+        type="button"
+        onClick={onDismiss}
+        style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+      >
+        <Trash2 size={14} /> Empezar de cero
+      </button>
     </div>
   );
 }
