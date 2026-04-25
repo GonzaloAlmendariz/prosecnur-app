@@ -543,7 +543,7 @@ export function LogicCanvas({
             type="button"
             className="pulso-graph-allbutton"
             onClick={expandAll}
-            title="Expandir todas las secciones"
+            title="Expandir todas las secciones (E)"
           >
             <ChevronsDown size={13} /> Expandir todo
           </button>
@@ -551,7 +551,7 @@ export function LogicCanvas({
             type="button"
             className="pulso-graph-allbutton"
             onClick={collapseAll}
-            title="Colapsar todas las secciones"
+            title="Colapsar todas las secciones (C)"
           >
             <ChevronsUp size={13} /> Colapsar todo
           </button>
@@ -560,7 +560,7 @@ export function LogicCanvas({
             type="button"
             className="pulso-icon"
             onClick={() => setZoom((z) => Math.max(0.3, z - 0.15))}
-            title="Alejar"
+            title="Alejar (-)"
             aria-label="Alejar"
           >
             <ZoomOut size={14} />
@@ -569,7 +569,7 @@ export function LogicCanvas({
             type="button"
             className="pulso-icon"
             onClick={() => setZoom((z) => Math.min(2.5, z + 0.15))}
-            title="Acercar"
+            title="Acercar (+)"
             aria-label="Acercar"
           >
             <ZoomIn size={14} />
@@ -578,10 +578,19 @@ export function LogicCanvas({
             type="button"
             className="pulso-icon"
             onClick={() => fitToScreen()}
-            title="Ajustar zoom para ver todos los bloques"
+            title="Ajustar zoom para ver todos los bloques (F)"
             aria-label="Ajustar a la pantalla"
           >
             <Maximize2 size={14} />
+          </button>
+          <button
+            type="button"
+            className={`pulso-icon ${legendOpen ? "is-on" : ""}`}
+            onClick={() => setLegendOpen((v) => !v)}
+            title="Cómo leer el mapa (?)"
+            aria-label="Cómo leer el mapa"
+          >
+            <Info size={14} />
           </button>
           <button
             type="button"
@@ -764,15 +773,97 @@ export function LogicCanvas({
           </g>
         </svg>
 
+        {/* Loading state — mientras se computa el grafo o el layout. */}
+        {(!graph || !layout) && open && (
+          <div className="pulso-graph-loading" aria-live="polite">
+            <div className="pulso-graph-loading-spinner" aria-hidden="true">
+              <svg width="32" height="32" viewBox="0 0 32 32">
+                <circle
+                  cx="16"
+                  cy="16"
+                  r="12"
+                  fill="none"
+                  stroke="rgba(36, 87, 214, 0.15)"
+                  strokeWidth="3"
+                />
+                <circle
+                  cx="16"
+                  cy="16"
+                  r="12"
+                  fill="none"
+                  stroke="var(--pulso-primary)"
+                  strokeWidth="3"
+                  strokeDasharray="60 90"
+                  strokeLinecap="round"
+                  transform="rotate(-90 16 16)"
+                >
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from="-90 16 16"
+                    to="270 16 16"
+                    dur="1s"
+                    repeatCount="indefinite"
+                  />
+                </circle>
+              </svg>
+            </div>
+            <span>Calculando el mapa…</span>
+          </div>
+        )}
+
         {layout && layout.nodes.length === 0 && (
           <div className="pulso-graph-empty">
+            <div className="pulso-graph-empty-icon" aria-hidden="true">
+              <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                <circle
+                  cx="14"
+                  cy="14"
+                  r="6"
+                  fill="rgba(36, 87, 214, 0.15)"
+                  stroke="var(--pulso-primary)"
+                  strokeWidth="1.5"
+                />
+                <circle
+                  cx="42"
+                  cy="42"
+                  r="6"
+                  fill="rgba(15, 118, 110, 0.15)"
+                  stroke="#0f766e"
+                  strokeWidth="1.5"
+                />
+                <path
+                  d="M 18 18 L 28 28 L 28 36 L 38 38"
+                  fill="none"
+                  stroke="var(--pulso-text-soft)"
+                  strokeWidth="1.6"
+                  strokeDasharray="4 3"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
             <strong>Todavía no hay nada que mapear.</strong>
             <p>
               Agrega preguntas o secciones y, cuando alguna esté condicionada
-              a otra, la conexión aparecerá automáticamente acá.
+              a otra, la conexión aparecerá automáticamente acá. También puedes
+              <strong> arrastrar el círculo</strong> que aparece a la derecha
+              de cada card para crear una conexión nueva.
             </p>
           </div>
         )}
+
+        {/* Empty state alternativo: hay nodos pero no edges */}
+        {layout &&
+          layout.nodes.length > 0 &&
+          layout.edges.length === 0 && (
+            <div className="pulso-graph-empty pulso-graph-empty-no-edges">
+              <p>
+                Este formulario aún no tiene relaciones de visibilidad
+                (<code>relevant</code>). Arrastra desde el círculo a la derecha
+                de una card para crear la primera.
+              </p>
+            </div>
+          )}
 
         {/* Deck de toasts efímeros — top-right del overlay, fuera del
             SVG y de los paneles de detalle. Cada toast vive ~2.4s. */}
@@ -803,6 +894,100 @@ export function LogicCanvas({
         >
           {Math.round(zoom * 100)}%
         </div>
+
+        {/* Mini-map (bottom-right). Solo se muestra si hay 4+ secciones
+            visibles — para formularios chicos no aporta. Renderiza
+            cada nodo visible como un rectángulo escalado y un
+            rectángulo del viewport actual. Click navega ahí. */}
+        {layout && layout.nodes.filter((n) => n.visible).length >= 4 && (() => {
+          const visibles = layout.nodes.filter((n) => n.visible);
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          for (const n of visibles) {
+            if (n.x < minX) minX = n.x;
+            if (n.y < minY) minY = n.y;
+            if (n.x + n.width > maxX) maxX = n.x + n.width;
+            if (n.y + n.height > maxY) maxY = n.y + n.height;
+          }
+          const bbW = maxX - minX;
+          const bbH = maxY - minY;
+          const MAP_W = 200;
+          const MAP_H = 130;
+          const padding = 6;
+          const usableW = MAP_W - padding * 2;
+          const usableH = MAP_H - padding * 2;
+          const scale = Math.min(usableW / bbW, usableH / bbH);
+          const offsetX = padding + (usableW - bbW * scale) / 2;
+          const offsetY = padding + (usableH - bbH * scale) / 2;
+          // Viewport rect en coords del mini-map.
+          const rect = svgRef.current?.getBoundingClientRect();
+          const vpX = rect ? -pan.x / zoom : 0;
+          const vpY = rect ? -pan.y / zoom : 0;
+          const vpW = rect ? rect.width / zoom : 0;
+          const vpH = rect ? rect.height / zoom : 0;
+          const onMiniClick = (event: React.MouseEvent<SVGSVGElement>) => {
+            const target = event.currentTarget.getBoundingClientRect();
+            const cx = event.clientX - target.left;
+            const cy = event.clientY - target.top;
+            // Convertir click del mini-map a coordenadas del canvas.
+            const canvasX = (cx - offsetX) / scale + minX;
+            const canvasY = (cy - offsetY) / scale + minY;
+            if (!rect) return;
+            // Centrar en (canvasX, canvasY).
+            setPan({
+              x: rect.width / 2 - canvasX * zoom,
+              y: rect.height / 2 - canvasY * zoom,
+            });
+          };
+          return (
+            <div className="pulso-graph-minimap">
+              <svg
+                width={MAP_W}
+                height={MAP_H}
+                onClick={onMiniClick}
+                aria-label="Mini-mapa del lienzo"
+              >
+                {/* Cards visibles */}
+                {visibles.map((n) => {
+                  const isSection = n.node.kind === "section";
+                  return (
+                    <rect
+                      key={n.node.id}
+                      x={offsetX + (n.x - minX) * scale}
+                      y={offsetY + (n.y - minY) * scale}
+                      width={n.width * scale}
+                      height={n.height * scale}
+                      rx={1.5}
+                      ry={1.5}
+                      fill={
+                        isSection
+                          ? "rgba(15, 118, 110, 0.18)"
+                          : "rgba(36, 87, 214, 0.10)"
+                      }
+                      stroke={
+                        isSection
+                          ? "rgba(15, 118, 110, 0.55)"
+                          : "rgba(36, 87, 214, 0.35)"
+                      }
+                      strokeWidth={0.6}
+                    />
+                  );
+                })}
+                {/* Viewport actual */}
+                <rect
+                  x={offsetX + (vpX - minX) * scale}
+                  y={offsetY + (vpY - minY) * scale}
+                  width={vpW * scale}
+                  height={vpH * scale}
+                  fill="rgba(36, 87, 214, 0.08)"
+                  stroke="var(--pulso-primary)"
+                  strokeWidth={1.2}
+                  rx={2}
+                  ry={2}
+                />
+              </svg>
+            </div>
+          );
+        })()}
 
         {/* Picker de condición tras drag-arrow. Aparece anclado al
             cursor donde se soltó la flecha; el usuario elige operador

@@ -5042,6 +5042,114 @@ button.pulso-empty-home-card:focus-visible {
    * dejamos sutil con drop-shadow al hover. */
 }
 
+/* ─── Empty state pulido ────────────────────────────────────────── */
+.pulso-graph-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  padding: 32px 28px;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.10);
+  animation: pulso-edge-panel-in 280ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+}
+.pulso-graph-empty-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+  opacity: 0.85;
+}
+.pulso-graph-empty strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  margin-bottom: 8px;
+}
+.pulso-graph-empty p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.55;
+}
+.pulso-graph-empty p code {
+  font-family: ui-monospace, monospace;
+  font-size: 11.5px;
+  background: var(--pulso-surface-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--pulso-primary);
+}
+.pulso-graph-empty-no-edges {
+  top: 80px;
+  transform: translateX(-50%);
+  padding: 14px 22px;
+  max-width: 480px;
+}
+.pulso-graph-empty-no-edges p {
+  font-size: 12.5px;
+}
+
+/* ─── Loading spinner ───────────────────────────────────────────── */
+.pulso-graph-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 24px 32px;
+  border-radius: 12px;
+  box-shadow: var(--pulso-shadow-soft);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: pulso-edge-panel-in 200ms ease both;
+}
+.pulso-graph-loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── Botón "is-on" estado activo ───────────────────────────────── */
+.pulso-icon.is-on {
+  background: rgba(36, 87, 214, 0.12);
+  color: var(--pulso-primary);
+}
+
+/* ─── Mini-map ──────────────────────────────────────────────────── */
+.pulso-graph-minimap {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  box-shadow: var(--pulso-shadow-soft);
+  padding: 4px;
+  z-index: 35;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: pulso-edge-panel-in 240ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+}
+.pulso-graph-minimap svg {
+  display: block;
+  cursor: crosshair;
+  border-radius: 5px;
+}
+.pulso-graph-minimap svg rect {
+  transition: fill 140ms ease;
+}
+
 /* Botón de leyenda colapsada → pulse sutil para invitar al click la
  * primera vez que se carga. */
 @keyframes pulso-graph-legend-attention {
