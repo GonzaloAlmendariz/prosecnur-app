@@ -85,11 +85,36 @@ export type GraphNode = {
   relevantExpression: string | null;
 };
 
+/**
+ * Tipo de relación entre source y target. Aunque todos los edges del
+ * canvas representan visibilidad (`relevant`), distinguimos qué nivel
+ * granular tienen para que el usuario lea de un vistazo si la
+ * dependencia es macro (sección → sección) o micro (variable → variable
+ * dentro de la misma sección):
+ *
+ *   * "section-to-section"   — A y B son ambas secciones (macro).
+ *   * "variable-to-section"  — una pregunta condiciona una sección
+ *                              entera (afecta a todo lo que vive dentro).
+ *   * "section-to-variable"  — una sección condiciona una pregunta
+ *                              individual (raro pero sintácticamente
+ *                              posible si el `relevant` referencia
+ *                              `${seccion_name}`).
+ *   * "variable-to-variable" — ambos extremos son preguntas (micro).
+ */
+export type EdgeRelationKind =
+  | "section-to-section"
+  | "variable-to-section"
+  | "section-to-variable"
+  | "variable-to-variable";
+
 export type GraphEdge = {
   source: string;
   target: string;
-  /** Solo soportamos un tipo en este diseño. */
+  /** Visibilidad — único tipo lógico que el canvas modela. */
   kind: "depends-on";
+  /** Granularidad de los extremos (sección/variable) para diferenciar
+   *  visualmente edges macro vs micro. */
+  relation: EdgeRelationKind;
 };
 
 export type LogicGraph = {
@@ -186,7 +211,8 @@ export function buildLogicGraph(
   const edges: GraphEdge[] = [];
   for (const outlineNode of structure.outline) {
     const targetId = `q:${outlineNode.rowIndex}`;
-    if (!byId.has(targetId)) continue;
+    const targetNode = byId.get(targetId);
+    if (!targetNode) continue;
     const expression = outlineNode.relevant;
     if (!expression || !expression.trim()) continue;
     const ast = parseExpression(expression);
@@ -196,7 +222,24 @@ export function buildLogicGraph(
       const sourceNode = nodeByVarName.get(refName);
       if (!sourceNode) continue;
       if (sourceNode.id === targetId) continue; // sin auto-loops
-      edges.push({ source: sourceNode.id, target: targetId, kind: "depends-on" });
+      // Tipo de relación según granularidad de los extremos. Útil para
+      // diferenciar visualmente edges macro (sec↔sec) de micro (var↔var
+      // dentro de la misma sección).
+      const srcIsSection = sourceNode.kind === "section";
+      const tgtIsSection = targetNode.kind === "section";
+      const relation: EdgeRelationKind = srcIsSection && tgtIsSection
+        ? "section-to-section"
+        : !srcIsSection && tgtIsSection
+          ? "variable-to-section"
+          : srcIsSection && !tgtIsSection
+            ? "section-to-variable"
+            : "variable-to-variable";
+      edges.push({
+        source: sourceNode.id,
+        target: targetId,
+        kind: "depends-on",
+        relation,
+      });
     }
   }
 

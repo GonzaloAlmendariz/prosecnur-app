@@ -1,62 +1,66 @@
 // =============================================================================
-// canvas-graph/autoLayout.ts — layout jerárquico para el grafo
+// canvas-graph/autoLayout.ts — layout vertical estilo `GraficarSecciones`
 // =============================================================================
-// Posicionamiento de los nodes con dos consideraciones nuevas:
+// Inspirado en `api/R/validacion_read_xlsform.R::GraficarSecciones`, que
+// dibuja las secciones del XLSForm como columna vertical con flechas en L
+// pasando por carriles a la derecha.
 //
-//   1. Secciones colapsables: cuando una sección está colapsada, ocupa una
-//      sola fila (la card del header). Cuando está expandida, su altura
-//      crece para acomodar las cards de las preguntas / sub-secciones
-//      dentro. El layout calcula altura dinámica.
+// Diseño anterior: capas horizontales tipo Sugiyama. Las flechas eran
+// beziers diagonales que en archivos del corpus terminaban atravesando
+// cards vecinas y forzando arcos por arriba/abajo.
 //
-//   2. Edges depends-on solo: el orden por capas se calcula a partir de
-//      las dependencias entre los nodes top-level + visibles (preguntas
-//      que están dentro de secciones expandidas). Si un node está
-//      "oculto" porque su sección padre está colapsada, lo representa la
-//      sección padre en el grafo.
+// Diseño nuevo:
 //
-// El algoritmo es "Sugiyama-light" otra vez: BFS por capas desde fuentes
-// (in-degree=0) en el grafo aplanado de visible nodes, dentro de cada
-// capa orden por aparición original. Sin librerías externas — los
-// formularios del corpus rondan los 50-150 nodes.
+//   * Una sola columna vertical de cards. Cada nodo top-level visible
+//     ocupa una fila (rowHeight + rowGap). Si una sección está
+//     expandida, sus children se renderean indentados en filas
+//     adicionales debajo del header.
+//
+//   * Espacio "channel" a la derecha de las cards. Las flechas viven
+//     ahí — nunca pasan por encima ni por debajo de las cards.
+//
+//   * Cada flecha es una L de tres tramos:
+//       1. salida horizontal del lateral derecho del source,
+//       2. tramo vertical en un carril asignado dentro del channel,
+//       3. entrada horizontal por el lateral derecho del target.
+//
+//   * Asignación de carriles greedy: ordenamos edges por minY, asignamos
+//     a cada uno el primer carril libre. Así dos edges con spans que
+//     no se solapan verticalmente comparten carril, y los que sí
+//     se solapan reciben carriles separados — sin cruces.
 // =============================================================================
 
 import type { GraphEdge, GraphNode, LogicGraph } from "./buildGraph";
 
-/** Geometría calculada para un nodo (top-level o anidado). */
 export type LaidOutNode = {
   node: GraphNode;
-  /** Posición absoluta en el lienzo. Para nodos hijos, es absoluta también
-   *  (no relativa al padre — el render usa transform por nodo). */
   x: number;
   y: number;
   width: number;
   height: number;
-  /** Profundidad en el árbol: 0 = raíz, 1 = dentro de una sección, etc. */
   depth: number;
-  /** Si este node es un descendiente "expuesto" porque su sección padre
-   *  está expandida. Cuando false, el node no se renderiza pero su
-   *  representante visual es el ancestro colapsado más cercano. */
   visible: boolean;
 };
 
+/**
+ * Edge ya laid out con todo lo que el render necesita: el path SVG,
+ * los bbox del source y target (para el detail panel y el tooltip),
+ * y un punto medio (apex del carril) para anclar la etiqueta de hover.
+ */
 export type LaidOutEdge = {
   edge: GraphEdge;
-  fromX: number;
-  fromY: number;
-  toX: number;
-  toY: number;
-  /** Bounding box del nodo origen (para que el edge router sepa cómo
-   *  esquivarlo cuando es back-edge o same-layer). */
+  /** Path SVG `d` ya construido — la flecha es una L horizontal-vertical-
+   *  horizontal con esquinas redondeadas. */
+  path: string;
+  /** Punto medio del tramo vertical en el carril — anclaje del tooltip. */
+  midX: number;
+  midY: number;
   fromBBox: { x: number; y: number; width: number; height: number };
   toBBox: { x: number; y: number; width: number; height: number };
 };
 
 export type LaidOutGraph = {
-  /** Todos los nodes con sus posiciones — incluyendo los ocultos. La UI
-   *  filtra por `visible` al renderizar. */
   nodes: LaidOutNode[];
-  /** Edges proyectadas: si el source o target original está oculto, se
-   *  reemplaza por el ancestro colapsado más cercano. */
   edges: LaidOutEdge[];
   width: number;
   height: number;
@@ -64,36 +68,35 @@ export type LaidOutGraph = {
 
 export type LayoutOptions = {
   nodeWidth: number;
-  /** Altura de la "tarjeta" (header en secciones, body en preguntas). */
+  /** Altura de la card colapsada (header). */
   rowHeight: number;
-  /** Espacio horizontal entre capas. */
-  layerGap: number;
-  /** Espacio vertical entre rows en una misma capa. */
+  /** Espacio vertical entre filas. */
   rowGap: number;
-  /** Espacio vertical interno entre header y children de una sección
-   *  expandida. */
-  innerGap: number;
-  /** Espacio horizontal extra que indenta los hijos respecto al padre. */
+  /** Indent horizontal de un nodo hijo respecto a su padre. */
   childIndent: number;
+  /** Espacio entre el cuerpo de las cards y el primer carril del channel. */
+  channelGap: number;
+  /** Espacio entre carriles consecutivos del channel. */
+  laneGap: number;
+  /** Radio de las esquinas redondeadas en los paths L. */
+  cornerRadius: number;
+  /** Padding interno en cards de sección expandida. */
+  innerGap: number;
   marginX: number;
   marginY: number;
 };
 
 const DEFAULT_OPTIONS: LayoutOptions = {
-  nodeWidth: 220,
+  nodeWidth: 280,
   rowHeight: 56,
-  // El gap entre capas era 90 — apretado, las flechas no tenían espacio
-  // para arquear y terminaban atravesando los nodos vecinos. 160 deja
-  // suficiente margen para que el edge router dibuje beziers limpios
-  // dentro del gutter horizontal sin tocar otros nodos.
-  layerGap: 160,
-  rowGap: 18,
+  rowGap: 14,
+  childIndent: 20,
+  channelGap: 28,
+  laneGap: 22,
+  cornerRadius: 10,
   innerGap: 12,
-  childIndent: 18,
-  marginX: 48,
-  // El margen vertical sube para que las back-edges puedan arquear por
-  // arriba/abajo del bloque entero sin tocar el header del overlay.
-  marginY: 60,
+  marginX: 40,
+  marginY: 40,
 };
 
 export function layoutLogicGraph(
@@ -108,202 +111,81 @@ export function layoutLogicGraph(
     return { nodes: [], edges: [], width: 0, height: 0 };
   }
 
-  // Helper: ¿este nodo es "visible" (no está oculto dentro de una sección
-  // colapsada de algún ancestro)? Recursivamente: visible si todos los
-  // ancestros sección están expandidos.
-  // Para implementarlo simple, recorremos el árbol y vamos marcando.
-
-  // -- 1. Para cada root, calcular su altura y posiciones de hijos
-  // (recursivo sobre la expansión). --
+  // ── 1. Layout vertical: una columna, cards en orden ──────────────────
+  // Recorremos los rootNodes en orden. Para cada uno colocamos su card
+  // en (marginX, currentY) y avanzamos currentY. Si es sección expandida,
+  // recursivamente colocamos children indentados.
   const flatNodes: LaidOutNode[] = [];
-  const heightOf = (node: GraphNode, depth: number): number => {
-    if (node.kind !== "section") return options.rowHeight;
-    const isExpanded = expandedSectionIds.has(node.id);
-    if (!isExpanded || node.children.length === 0) return options.rowHeight;
-    let inner = 0;
-    for (let i = 0; i < node.children.length; i += 1) {
-      if (i > 0) inner += options.rowGap;
-      inner += heightOf(node.children[i]!, depth + 1);
+  const positionByNodeId = new Map<string, LaidOutNode>();
+  let currentY = options.marginY;
+
+  const placeNode = (node: GraphNode, depth: number, visible: boolean) => {
+    if (!visible) {
+      // Sections colapsadas: registramos los descendientes como "no visibles"
+      // para que `resolveVisibleAncestor` pueda saltar al ancestro visible.
+      flatNodes.push({
+        node,
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        depth,
+        visible: false,
+      });
+      positionByNodeId.set(node.id, flatNodes[flatNodes.length - 1]!);
+      if (node.kind === "section") {
+        for (const child of node.children) placeNode(child, depth + 1, false);
+      }
+      return;
     }
-    return options.rowHeight + options.innerGap + inner + options.innerGap;
-  };
 
-  /** Coloca un nodo en (x, y) y, recursivamente, a sus hijos si está
-   *  expandido. Devuelve la altura total ocupada. */
-  const placeNode = (
-    node: GraphNode,
-    x: number,
-    y: number,
-    depth: number,
-    visible: boolean,
-  ): number => {
-    const isSection = node.kind === "section";
-    const isExpanded =
-      isSection &&
-      expandedSectionIds.has(node.id) &&
-      node.children.length > 0;
-    const totalHeight = heightOf(node, depth);
-
-    flatNodes.push({
+    const x = options.marginX + depth * options.childIndent;
+    const y = currentY;
+    const placed: LaidOutNode = {
       node,
       x,
       y,
-      width: options.nodeWidth,
-      height: isSection && isExpanded ? totalHeight : options.rowHeight,
+      width: options.nodeWidth - depth * options.childIndent,
+      height: options.rowHeight,
       depth,
-      visible,
-    });
+      visible: true,
+    };
+    flatNodes.push(placed);
+    positionByNodeId.set(node.id, placed);
+    currentY += options.rowHeight + options.rowGap;
 
-    if (isExpanded) {
-      // Posicionamos los children debajo del header de la sección.
-      let childY = y + options.rowHeight + options.innerGap;
-      const childX = x + options.childIndent;
-      for (const child of node.children) {
-        const childHeight = heightOf(child, depth + 1);
-        placeNode(child, childX, childY, depth + 1, true);
-        childY += childHeight + options.rowGap;
-      }
-    } else if (isSection) {
-      // Sección colapsada: registramos sus children como invisibles para
-      // que las edges puedan resolverse al ancestro visible.
-      for (const child of node.children) {
-        registerHidden(child, depth + 1);
-      }
-    }
-
-    return totalHeight;
-  };
-
-  /** Registra un descendiente sin posicionarlo (porque está dentro de una
-   *  sección colapsada). Se llama recursivo. */
-  const registerHidden = (node: GraphNode, depth: number) => {
-    flatNodes.push({
-      node,
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 0,
-      depth,
-      visible: false,
-    });
-    if (node.kind === "section") {
-      for (const child of node.children) {
-        registerHidden(child, depth + 1);
-      }
+    if (
+      node.kind === "section" &&
+      expandedSectionIds.has(node.id) &&
+      node.children.length > 0
+    ) {
+      for (const child of node.children) placeNode(child, depth + 1, true);
+    } else if (node.kind === "section") {
+      // Sección colapsada: registrar hijos como no visibles.
+      for (const child of node.children) placeNode(child, depth + 1, false);
     }
   };
 
-  // -- 2. Calcular capas top-level por longest-path entre roots --
-  // Para cada root, capa basada en deps a otros roots.
-  const inDeg = new Map<string, number>();
-  const adjOut = new Map<string, string[]>();
-  for (const root of rootNodes) {
-    inDeg.set(root.id, 0);
-    adjOut.set(root.id, []);
-  }
-  // Hacemos un set para resolver edges al ancestro top-level más cercano.
-  const topLevelAncestor = new Map<string, string>();
-  const populateAncestor = (node: GraphNode, ancestorId: string) => {
-    topLevelAncestor.set(node.id, ancestorId);
-    for (const child of node.children) populateAncestor(child, ancestorId);
-  };
-  for (const root of rootNodes) populateAncestor(root, root.id);
+  for (const root of rootNodes) placeNode(root, 0, true);
 
-  for (const edge of edges) {
-    const srcRoot = topLevelAncestor.get(edge.source);
-    const tgtRoot = topLevelAncestor.get(edge.target);
-    if (!srcRoot || !tgtRoot || srcRoot === tgtRoot) continue;
-    adjOut.get(srcRoot)?.push(tgtRoot);
-    inDeg.set(tgtRoot, (inDeg.get(tgtRoot) ?? 0) + 1);
-  }
-
-  // Kahn's algorithm: orden topológico estable que termina SIEMPRE,
-  // incluso si el grafo tiene ciclos (caso real con instrumentos donde
-  // dos preguntas se condicionan mutuamente — visto en GIZ_INST.xlsx).
-  // El BFS por longest-path anterior se colgaba en loops si había ciclos.
-  //
-  // Algoritmo: cada nodo recibe layer = 1 + max(layer de los predecesores
-  // ya procesados). Procesamos un nodo cuando su `remainingIn` llega a 0.
-  // Si quedan nodos sin procesar al final → forman parte de un ciclo;
-  // los asignamos a capa 0 (mejor que colgarse).
-  const layer = new Map<string, number>();
-  const remainingIn = new Map<string, number>();
-  for (const root of rootNodes) {
-    remainingIn.set(root.id, inDeg.get(root.id) ?? 0);
-  }
-  const queue: string[] = [];
-  for (const root of rootNodes) {
-    if ((remainingIn.get(root.id) ?? 0) === 0) {
-      layer.set(root.id, 0);
-      queue.push(root.id);
-    }
-  }
-  while (queue.length) {
-    const id = queue.shift()!;
-    const myLayer = layer.get(id) ?? 0;
-    for (const next of adjOut.get(id) ?? []) {
-      // Cada predecesor procesado aumenta el max-layer del sucesor.
-      const proposed = Math.max(layer.get(next) ?? 0, myLayer + 1);
-      layer.set(next, proposed);
-      // Decrementamos in-degree restante; si llega a 0, listo para procesar.
-      const left = (remainingIn.get(next) ?? 1) - 1;
-      remainingIn.set(next, left);
-      if (left <= 0) queue.push(next);
-    }
-  }
-  // Cualquier nodo sin layer = parte de un ciclo o desconectado. Capa 0.
-  for (const root of rootNodes) {
-    if (!layer.has(root.id)) layer.set(root.id, 0);
-  }
-
-  // -- 3. Ordenar roots por capa, layout vertical de cada capa. --
-  const byLayer = new Map<number, GraphNode[]>();
-  for (const root of rootNodes) {
-    const l = layer.get(root.id) ?? 0;
-    if (!byLayer.has(l)) byLayer.set(l, []);
-    byLayer.get(l)!.push(root);
-  }
-  const layerCount = Math.max(...byLayer.keys()) + 1;
-
-  // Posicionamos cada capa.
-  let canvasWidth = options.marginX;
-  let maxLayerBottom = 0;
-  for (let l = 0; l < layerCount; l += 1) {
-    const inLayer = byLayer.get(l) ?? [];
-    const x = options.marginX + l * (options.nodeWidth + options.layerGap);
-    let y = options.marginY;
-    for (const root of inLayer) {
-      const heightHere = heightOf(root, 0);
-      placeNode(root, x, y, 0, true);
-      y += heightHere + options.rowGap;
-    }
-    if (y - options.rowGap > maxLayerBottom) maxLayerBottom = y - options.rowGap;
-    canvasWidth = x + options.nodeWidth + options.marginX;
-  }
-
-  // -- 4. Resolver edges: cada edge va del nodo visible más cercano al
-  // visible más cercano. --
-  const positionByNodeId = new Map<string, LaidOutNode>();
-  for (const placed of flatNodes) positionByNodeId.set(placed.node.id, placed);
-
-  // Mapa hijo→padre construido UNA vez recorriendo el árbol — antes
-  // findParent recorría todo el árbol para cada llamada (O(N²) en el
-  // peor caso). Con este map cada lookup es O(1).
+  // ── 2. Resolver edges al ancestro visible más cercano ───────────────
+  // Si A.relevant referencia B y B está dentro de una sección colapsada,
+  // el edge va al header de la sección colapsada. Igual al diseño previo,
+  // pero aquí el lookup es trivial porque ya tenemos el árbol.
   const parentByChildId = new Map<string, GraphNode>();
-  const seenForParent = new Set<string>();
-  const indexParents = (n: GraphNode) => {
-    if (seenForParent.has(n.id)) return; // defensa contra ciclos del árbol
-    seenForParent.add(n.id);
+  const indexParents = (n: GraphNode, seen = new Set<string>()) => {
+    if (seen.has(n.id)) return;
+    seen.add(n.id);
     for (const child of n.children) {
       parentByChildId.set(child.id, n);
-      indexParents(child);
+      indexParents(child, seen);
     }
   };
   for (const root of rootNodes) indexParents(root);
 
   const resolveVisible = (id: string): LaidOutNode | null => {
-    let cursor: GraphNode | null = graphNodeById(id);
-    let safety = 64; // tope absoluto contra árboles patológicos
+    let cursor: GraphNode | null = positionByNodeId.get(id)?.node ?? null;
+    let safety = 64;
     while (cursor && safety-- > 0) {
       const placed = positionByNodeId.get(cursor.id);
       if (placed && placed.visible) return placed;
@@ -311,51 +193,195 @@ export function layoutLogicGraph(
     }
     return null;
   };
-  function graphNodeById(id: string): GraphNode | null {
-    const placed = positionByNodeId.get(id);
-    return placed ? placed.node : null;
-  }
 
-  const laidOutEdges: LaidOutEdge[] = [];
-  const seenPair = new Set<string>(); // dedupe colapsado
+  // ── 3. Pre-calcular endpoints de cada edge ─────────────────────────
+  type ResolvedEdge = {
+    edge: GraphEdge;
+    src: LaidOutNode;
+    tgt: LaidOutNode;
+    srcRight: number;
+    srcMidY: number;
+    tgtRight: number;
+    tgtMidY: number;
+    minY: number;
+    maxY: number;
+    /** Asignado en la pasada de carriles. */
+    laneIdx: number;
+  };
+
+  const resolved: ResolvedEdge[] = [];
+  const seenPair = new Set<string>(); // dedupe cuando dos edges colapsan al mismo par
   for (const edge of edges) {
-    const fromVisible = resolveVisible(edge.source);
-    const toVisible = resolveVisible(edge.target);
-    if (!fromVisible || !toVisible) continue;
-    if (fromVisible === toVisible) continue;
-    const key = `${fromVisible.node.id}->${toVisible.node.id}`;
+    const src = resolveVisible(edge.source);
+    const tgt = resolveVisible(edge.target);
+    if (!src || !tgt || src === tgt) continue;
+    const key = `${src.node.id}->${tgt.node.id}`;
     if (seenPair.has(key)) continue;
     seenPair.add(key);
-    // bbox = el rect del header (siempre `rowHeight` de altura) que es
-    // donde queremos que las flechas se anclen, no la altura total de la
-    // sección expandida.
-    const fromHeaderH = Math.min(fromVisible.height, options.rowHeight);
-    const toHeaderH = Math.min(toVisible.height, options.rowHeight);
-    laidOutEdges.push({
+
+    const srcRight = src.x + src.width;
+    const tgtRight = tgt.x + tgt.width;
+    const srcMidY = src.y + src.height / 2;
+    const tgtMidY = tgt.y + tgt.height / 2;
+    resolved.push({
       edge,
-      fromX: fromVisible.x + fromVisible.width,
-      fromY: fromVisible.y + fromHeaderH / 2,
-      toX: toVisible.x,
-      toY: toVisible.y + toHeaderH / 2,
-      fromBBox: {
-        x: fromVisible.x,
-        y: fromVisible.y,
-        width: fromVisible.width,
-        height: fromHeaderH,
-      },
-      toBBox: {
-        x: toVisible.x,
-        y: toVisible.y,
-        width: toVisible.width,
-        height: toHeaderH,
-      },
+      src,
+      tgt,
+      srcRight,
+      srcMidY,
+      tgtRight,
+      tgtMidY,
+      minY: Math.min(srcMidY, tgtMidY),
+      maxY: Math.max(srcMidY, tgtMidY),
+      laneIdx: 0,
     });
   }
 
-  return {
-    nodes: flatNodes,
-    edges: laidOutEdges,
-    width: canvasWidth,
-    height: maxLayerBottom + options.marginY,
-  };
+  // ── 4. Asignación greedy de carriles ───────────────────────────────
+  // Ordenamos edges por su minY (cuál empieza más arriba). Para cada
+  // uno, asignamos el primer carril cuyo último maxY sea menor que
+  // nuestro minY (el carril está "libre" desde donde empezamos).
+  // Resultado: ningún tramo vertical se solapa con otro en el mismo
+  // carril → no hay cruces de líneas verticales.
+  const sortedByMin = [...resolved].sort((a, b) => a.minY - b.minY);
+  const laneLastMaxY: number[] = []; // laneLastMaxY[i] = último maxY usado en ese carril
+  for (const r of sortedByMin) {
+    let chosen = -1;
+    for (let l = 0; l < laneLastMaxY.length; l += 1) {
+      if (laneLastMaxY[l]! < r.minY) {
+        chosen = l;
+        break;
+      }
+    }
+    if (chosen === -1) {
+      chosen = laneLastMaxY.length;
+      laneLastMaxY.push(0);
+    }
+    laneLastMaxY[chosen] = r.maxY;
+    r.laneIdx = chosen;
+  }
+
+  // ── 5. Calcular x del channel y construir paths ────────────────────
+  // El channel arranca a la derecha de la card más ancha. Los carriles
+  // se ubican a `channelStart + lane * laneGap`. La flecha sale del
+  // lado derecho del source, va hasta el carril, baja/sube hasta la
+  // altura del target, y entra por el lado derecho del target.
+  let maxRight = options.marginX;
+  for (const placed of flatNodes) {
+    if (!placed.visible) continue;
+    const right = placed.x + placed.width;
+    if (right > maxRight) maxRight = right;
+  }
+  const channelStart = maxRight + options.channelGap;
+  const totalLanes = Math.max(1, laneLastMaxY.length);
+
+  const laidOutEdges: LaidOutEdge[] = resolved.map((r) => {
+    const laneX = channelStart + r.laneIdx * options.laneGap;
+    const path = buildLPath(
+      r.srcRight,
+      r.srcMidY,
+      laneX,
+      r.tgtRight,
+      r.tgtMidY,
+      options.cornerRadius,
+    );
+    return {
+      edge: r.edge,
+      path,
+      midX: laneX,
+      midY: (r.srcMidY + r.tgtMidY) / 2,
+      fromBBox: {
+        x: r.src.x,
+        y: r.src.y,
+        width: r.src.width,
+        height: r.src.height,
+      },
+      toBBox: {
+        x: r.tgt.x,
+        y: r.tgt.y,
+        width: r.tgt.width,
+        height: r.tgt.height,
+      },
+    };
+  });
+
+  // ── 6. Tamaño total ────────────────────────────────────────────────
+  const channelEnd = channelStart + totalLanes * options.laneGap;
+  const width = channelEnd + options.marginX;
+  const height = currentY - options.rowGap + options.marginY;
+
+  return { nodes: flatNodes, edges: laidOutEdges, width, height };
+}
+
+/**
+ * Construye el SVG `d` de una flecha en L:
+ *   M srcRight srcY
+ *   L laneX-r srcY                 ─── tramo horizontal
+ *   A r r 0 0 sweep1 laneX srcY±r  ─── esquina redondeada
+ *   L laneX tgtY∓r                 ─── tramo vertical en el carril
+ *   A r r 0 0 sweep2 laneX-r tgtY  ─── esquina redondeada
+ *   L tgtRight tgtY                ─── tramo horizontal de entrada
+ *
+ * sweep depende de si el target está arriba o abajo del source.
+ */
+function buildLPath(
+  srcRight: number,
+  srcY: number,
+  laneX: number,
+  tgtRight: number,
+  tgtY: number,
+  r: number,
+): string {
+  const goingDown = tgtY > srcY;
+  // Si los puntos están a la misma altura, no hay L — recta horizontal
+  // pasando por el carril.
+  const sameLevel = Math.abs(tgtY - srcY) < 1;
+
+  if (sameLevel) {
+    return `M ${srcRight} ${srcY} L ${laneX} ${srcY} L ${tgtRight} ${srcY}`;
+  }
+
+  // Limitamos el radio a la mitad del tramo horizontal y vertical
+  // mínimo para evitar que la curva colapse cuando el espacio es chico.
+  const horizontalRoom = Math.min(
+    Math.abs(laneX - srcRight),
+    Math.abs(laneX - tgtRight),
+  );
+  const verticalRoom = Math.abs(tgtY - srcY);
+  const radius = Math.max(2, Math.min(r, horizontalRoom * 0.45, verticalRoom * 0.45));
+
+  // Sweep flag: en SVG arc, 1 = clockwise.
+  // Vamos del source hacia el carril (este es horizontal-derecha) y luego
+  // verticalmente. Si vamos abajo, el cuarto de círculo es CW (sweep=1).
+  // Si vamos arriba, es CCW (sweep=0).
+  const sweep1 = goingDown ? 1 : 0;
+  // Después del tramo vertical, vamos del carril al target. Si target
+  // está abajo (goingDown), el segundo arco es desde abajo-arriba en X
+  // del carril hacia la izquierda — es CW si tgtRight < laneX.
+  const tgtIsLeftOfLane = tgtRight < laneX;
+  const sweep2 = goingDown ? (tgtIsLeftOfLane ? 1 : 0) : (tgtIsLeftOfLane ? 0 : 1);
+
+  // Coordenadas para los puntos de inflexión (entrada/salida de cada arco).
+  const corner1Y = goingDown ? srcY + radius : srcY - radius;
+  const corner2Y = goingDown ? tgtY - radius : tgtY + radius;
+  // Hacia dónde sale el segundo tramo horizontal: si tgtRight < laneX
+  // venimos desde la derecha del target (entra por la derecha, no la
+  // izquierda — convención del graficador R donde back-edges entran
+  // por el carril).
+  const corner1Xexit = laneX;
+  const corner2Xexit = laneX;
+  // Pre-arc x del primer arco: una unidad de radius antes del carril.
+  const preArc1X = laneX - radius;
+  // Post-arc x del segundo arco: una unidad de radius antes del carril
+  // (por la izquierda, ya que estamos volviendo del carril hacia el target).
+  const postArc2X = laneX - radius;
+
+  return [
+    `M ${srcRight} ${srcY}`,
+    `L ${preArc1X} ${srcY}`,
+    `A ${radius} ${radius} 0 0 ${sweep1} ${corner1Xexit} ${corner1Y}`,
+    `L ${laneX} ${corner2Y}`,
+    `A ${radius} ${radius} 0 0 ${sweep2} ${postArc2X} ${tgtY}`,
+    `L ${tgtRight} ${tgtY}`,
+  ].join(" ");
 }

@@ -385,11 +385,10 @@ export function LogicCanvas({
               const targetNode = graph?.byId.get(edge.edge.target);
               const expr = targetNode?.relevantExpression;
               if (!expr) return null;
-              const labelMid = midpointOfEdge(edge);
               const human = humanizeRelevant(expr);
               return (
                 <g
-                  transform={`translate(${labelMid.x}, ${labelMid.y})`}
+                  transform={`translate(${edge.midX}, ${edge.midY})`}
                   pointerEvents="none"
                 >
                   <foreignObject
@@ -479,6 +478,36 @@ export function LogicCanvas({
               a otra, la conexión aparecerá automáticamente acá.
             </p>
           </div>
+        )}
+
+        {/* Leyenda flotante: explica los 3 estilos de flechas (sec↔sec
+            azul gruesa, var↔sec azul punteada, var↔var gris fina).
+            Solo aparece si hay edges para no contaminar el lienzo
+            cuando está vacío. */}
+        {layout && layout.edges.length > 0 && (
+          <aside className="pulso-graph-legend" aria-label="Leyenda de relaciones">
+            <strong>Tipos de dependencia</strong>
+            <ul>
+              <li>
+                <svg width={28} height={4} aria-hidden="true">
+                  <line x1={0} y1={2} x2={28} y2={2} stroke="#2457d6" strokeWidth={2.2} strokeLinecap="round" />
+                </svg>
+                <span>sección → sección</span>
+              </li>
+              <li>
+                <svg width={28} height={4} aria-hidden="true">
+                  <line x1={0} y1={2} x2={28} y2={2} stroke="#2457d6" strokeWidth={1.6} strokeDasharray="6 4" strokeLinecap="round" />
+                </svg>
+                <span>variable → sección</span>
+              </li>
+              <li>
+                <svg width={28} height={4} aria-hidden="true">
+                  <line x1={0} y1={2} x2={28} y2={2} stroke="#5f6b7a" strokeWidth={1.4} strokeLinecap="round" />
+                </svg>
+                <span>variable → variable</span>
+              </li>
+            </ul>
+          </aside>
         )}
 
         {selectedNode && (() => {
@@ -623,35 +652,6 @@ export function LogicCanvas({
 // ─────────────────────────────────────────────────────────────────────
 
 /**
- * Aproxima el punto medio del edge para anclar la etiqueta de hover.
- * Para edges forward usa el midpoint del bezier; para back-edges
- * arquead usa el ápice de la curva (donde queda visualmente más
- * legible la etiqueta).
- */
-function midpointOfEdge(edge: import("./autoLayout").LaidOutEdge): { x: number; y: number } {
-  const { fromBBox: src, toBBox: tgt } = edge;
-  const srcRight = src.x + src.width;
-  const tgtLeft = tgt.x;
-  if (srcRight + 14 <= tgtLeft) {
-    // Forward: midpoint horizontal del gutter, vertical promedio.
-    return {
-      x: (srcRight + tgtLeft) / 2,
-      y: (edge.fromY + edge.toY) / 2,
-    };
-  }
-  // Back-edge / same-layer: ápice del arco (encima del top de la card
-  // más alta, o debajo del bottom de la más baja).
-  const goDown = edge.toY > edge.fromY + 4;
-  const archDepth = Math.max(36, Math.min(120, 36 + Math.abs(edge.toY - edge.fromY) * 0.45));
-  const apexY = goDown
-    ? Math.max(src.y + src.height, tgt.y + tgt.height) + archDepth
-    : Math.min(src.y, tgt.y) - archDepth;
-  return {
-    x: (srcRight + tgtLeft) / 2 + (src.width * 0.3),
-    y: apexY,
-  };
-}
-
 /**
  * Convierte una expresión `relevant` cruda en texto legible. Misma
  * convención que `SeccionesPanel.tsx` usa en el módulo Carga: sustituye

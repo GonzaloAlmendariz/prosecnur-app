@@ -4133,3 +4133,49 @@ button.pulso-empty-home-card:focus-visible {
   flex: 1;
   min-width: 0;
 }
+
+/* ============================================================================
+ * Logic canvas — leyenda flotante de tipos de dependencia (post review)
+ * Reaparece tras el rediseño con edges tipados (sec↔sec / var↔sec /
+ * var↔var). Posicionada en la esquina inferior izquierda, no consume
+ * espacio del lienzo. Compacta y silente — si el grafo está vacío
+ * tampoco aparece.
+ * ========================================================================= */
+.pulso-graph-legend {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  padding: 9px 12px;
+  box-shadow: var(--pulso-shadow-low);
+  font-size: 11px;
+  color: var(--pulso-text);
+  pointer-events: none;
+}
+.pulso-graph-legend strong {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--pulso-text-soft);
+  margin-bottom: 5px;
+}
+.pulso-graph-legend ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.pulso-graph-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pulso-graph-legend svg {
+  flex-shrink: 0;
+}
