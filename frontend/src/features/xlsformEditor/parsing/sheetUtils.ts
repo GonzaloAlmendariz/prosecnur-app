@@ -97,6 +97,82 @@ export function rowToRecord(sheet: XlsformEditorSheet, rowIndex: number): Record
   return out;
 }
 
+/**
+ * Lee la celda de una fila/columna. Devuelve "" si la celda no existe.
+ */
+export function getCell(
+  sheet: XlsformEditorSheet,
+  rowIndex: number,
+  columnName: string,
+): string {
+  const colIndex = sheet.columns.indexOf(columnName);
+  if (colIndex < 0) return "";
+  const row = sheet.rows[rowIndex];
+  if (!row) return "";
+  return row[colIndex] ?? "";
+}
+
+/**
+ * Reemplaza todas las apariciones de `${oldName}` por `${newName}` en
+ * cualquier celda de las columnas listadas, sobre TODAS las filas.
+ * Usado para refactor automático cuando se renombra una pregunta —
+ * actualiza referencias en relevant/constraint/calculation/etc.
+ *
+ * Devuelve el número de celdas modificadas (no el número de
+ * sustituciones — una celda puede tener múltiples ocurrencias de
+ * `${oldName}` y se cuenta como 1).
+ */
+export function replaceVarReferences(
+  sheet: XlsformEditorSheet,
+  oldName: string,
+  newName: string,
+  columns: string[],
+): number {
+  if (oldName === newName || !oldName || !newName) return 0;
+  // Escapar caracteres regex peligrosos en el old name. Los names
+  // válidos de XLSForm matchean /^[a-zA-Z_][a-zA-Z0-9_]*$/ así que no
+  // tienen metacharacters, pero por si acaso defensivo.
+  const escaped = oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`\\$\\{${escaped}\\}`, "g");
+  const replacement = `\${${newName}}`;
+  let cellsChanged = 0;
+  for (const col of columns) {
+    const colIdx = sheet.columns.indexOf(col);
+    if (colIdx < 0) continue;
+    for (let r = 0; r < sheet.rows.length; r += 1) {
+      const row = sheet.rows[r]!;
+      const cell = row[colIdx] ?? "";
+      if (!cell.includes(`\${${oldName}}`)) continue;
+      const newCell = cell.replace(pattern, replacement);
+      if (newCell !== cell) {
+        const nextRow = [...row];
+        nextRow[colIdx] = newCell;
+        sheet.rows[r] = nextRow;
+        cellsChanged += 1;
+      }
+    }
+  }
+  return cellsChanged;
+}
+
+/**
+ * Columnas del sheet `survey` que pueden contener referencias `${var}`.
+ * Usado por `replaceVarReferences` cuando se renombra una pregunta.
+ */
+export const SURVEY_COLUMNS_WITH_VAR_REFS: readonly string[] = [
+  "relevant",
+  "constraint",
+  "calculation",
+  "choice_filter",
+  "default",
+  "label",
+  "hint",
+  "repeat_count",
+  "constraint_message",
+  "required_message",
+  "trigger",
+];
+
 /** Setea una celda creando columnas/filas faltantes con strings vacíos. */
 export function setCell(
   sheet: XlsformEditorSheet,

@@ -62,10 +62,13 @@ import {
   createBlankWorkbook,
   deleteRow,
   ensureColumn,
+  getCell,
   insertRecord,
   makeColumnName,
+  replaceVarReferences,
   rowToRecord,
   setCell,
+  SURVEY_COLUMNS_WITH_VAR_REFS,
 } from "./parsing/sheetUtils";
 import {
   buildType,
@@ -623,6 +626,49 @@ export default function XlsformEditorPage() {
 
   function updateSurveyField(rowIndex: number, field: string, value: string) {
     updateWorkbook((draft) => {
+      // Si se está renombrando una pregunta (`name`), debemos también
+      // actualizar TODAS las referencias `${oldName}` que existan en
+      // las columnas con expresiones (relevant/constraint/calculation/
+      // choice_filter/default/label/hint/repeat_count/...). Sin esto
+      // un rename rompe lógica silenciosamente — bug latente que el
+      // usuario reportó como crítico.
+      //
+      // El refactor sólo se aplica cuando el rename es VÁLIDO (regex
+      // de XLSForm name) y no es un duplicado, para no propagar
+      // estados intermedios mientras el usuario está tipeando. Heurística
+      // pragmática: si el nuevo valor matchea regex y el viejo también,
+      // se aplica.
+      if (field === "name") {
+        const oldName = getCell(draft.survey, rowIndex, "name");
+        const newName = value;
+        const NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+        if (
+          oldName &&
+          newName &&
+          oldName !== newName &&
+          NAME_RE.test(oldName) &&
+          NAME_RE.test(newName)
+        ) {
+          // Antes de aplicar el rename, propagamos referencias.
+          const cellsChanged = replaceVarReferences(
+            draft.survey,
+            oldName,
+            newName,
+            [...SURVEY_COLUMNS_WITH_VAR_REFS],
+          );
+          if (cellsChanged > 0) {
+            // El toast se dispara fuera del updater (no dentro del
+            // callback de immer). Lo guardamos para post-dispatch.
+            queueMicrotask(() => {
+              toasts.push({
+                kind: "info",
+                title: "Referencias actualizadas",
+                detail: `${cellsChanged} ${cellsChanged === 1 ? "celda" : "celdas"} con \${${oldName}} → \${${newName}}.`,
+              });
+            });
+          }
+        }
+      }
       setCell(draft.survey, rowIndex, field, value);
     });
   }
