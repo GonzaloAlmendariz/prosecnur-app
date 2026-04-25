@@ -115,6 +115,9 @@ import {
 } from "./state/persistence";
 import EmptyHome from "./shell/EmptyHome";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
+import { DiagnosticsBadge } from "./shell/DiagnosticsPopover";
+import { CollapsibleSection } from "./shell/CollapsibleSection";
+import CatalogsContextLens from "./catalogs/CatalogsContextLens";
 import { SurveyOutline } from "./outline/SurveyOutline";
 import type { RowMovePlan } from "./outline/outlineUtils";
 import { applyRowMove } from "./outline/outlineUtils";
@@ -169,6 +172,9 @@ export default function XlsformEditorPage() {
   const [source, setSource] = useState<{ kind: string | null; original_name: string | null } | null>(null);
   const [catalogFocus, setCatalogFocus] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  /** Si está abierto el ContextLens de catálogos. Click en el botón
+   *  "Catálogos" del header del constructor lo abre; el lens lo cierra. */
+  const [catalogsLensOpen, setCatalogsLensOpen] = useState(false);
   /** Snapshot del autosave detectado al montar; muestra UI de "continuar". */
   const [restoreOffer, setRestoreOffer] = useState<ReturnType<typeof loadSnapshot>>(null);
   const xlsInputRef = useRef<HTMLInputElement | null>(null);
@@ -1053,33 +1059,63 @@ export default function XlsformEditorPage() {
             })}
           </div>
 
-          {mode === "builder" && (
-            <BuilderToolsDeck
-              index={xlsformIndex}
-              catalogs={catalogs}
-              activeCatalog={activeCatalog}
-              activeCatalogName={activeCatalogName}
-              diagnostics={diagnostics}
-              selection={selection}
-              onCreateCatalog={() => createCatalog(false)}
-              onFocusCatalog={setCatalogFocus}
-              onRenameCatalog={renameCatalog}
-              onAddCatalogChoice={addCatalogChoice}
-              onChoiceChange={updateChoice}
-              onChoiceRemove={removeChoice}
-              onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
-            />
-          )}
+          {/* Antes acá iba `BuilderToolsDeck` con catálogos + diagnostics +
+              índice en una grilla de 3 columnas que competía por ancho con
+              el constructor. En el revamp Sub-PR 4b:
+                - Catálogos → botón "Catálogos" en este header → ContextLens.
+                - Diagnostics → ícono colapsable (DiagnosticsBadge) en este
+                  header → popover floating al click.
+                - Índice → CollapsibleSection abajo, no en columna lateral. */}
 
           <Panel
             title="Espacio de construcción"
             hint={status || "Trabaja en modo Constructor para diseñar el formulario. La vista por hojas queda como recurso técnico secundario."}
-            actions={(
-              <ModeSwitch
-                value={mode}
-                onChange={setMode}
-              />
-            )}
+            actions={
+              mode === "builder" ? (
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => setCatalogsLensOpen(true)}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                    title="Editar listas de opciones"
+                  >
+                    <ListChecks size={14} />
+                    Catálogos
+                    {catalogs.length > 0 && (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          minWidth: 18,
+                          height: 16,
+                          padding: "0 5px",
+                          fontSize: 10,
+                          fontWeight: 800,
+                          background: "var(--pulso-primary-soft)",
+                          color: "var(--pulso-primary)",
+                          borderRadius: 999,
+                        }}
+                      >
+                        {catalogs.length}
+                      </span>
+                    )}
+                  </button>
+                  <DiagnosticsBadge
+                    diagnostics={diagnostics}
+                    selection={selection}
+                    onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
+                    onFocusCatalog={(name) => {
+                      setCatalogFocus(name);
+                      setCatalogsLensOpen(true);
+                    }}
+                  />
+                  <ModeSwitch value={mode} onChange={setMode} />
+                </div>
+              ) : (
+                <ModeSwitch value={mode} onChange={setMode} />
+              )
+            }
           >
             {mode === "builder" ? (
               <div
@@ -1335,8 +1371,48 @@ export default function XlsformEditorPage() {
               </div>
             )}
           </Panel>
+
+          {/* Índice del instrumento — sección colapsable secundaria que NO
+              compite por ancho con el constructor. Se abre on-demand cuando
+              el usuario quiere ver dependencias entre preguntas y catálogos. */}
+          {mode === "builder" && xlsformIndex && (
+            <CollapsibleSection
+              title="Índice del instrumento"
+              hint={`${xlsformIndex.stats.nQuestions} preguntas · ${xlsformIndex.stats.nDependencies} dependencias detectadas`}
+              icon={<Layers3 size={14} />}
+              count={xlsformIndex.stats.nMissingReferences || undefined}
+              defaultOpen={false}
+            >
+              <IndexPanel index={xlsformIndex} />
+            </CollapsibleSection>
+          )}
         </>
       )}
+
+      {/* ContextLens del editor de catálogos — se abre desde el header del
+          constructor o cuando un diagnostic apunta a un catálogo. */}
+      <CatalogsContextLens
+        open={catalogsLensOpen}
+        onClose={() => setCatalogsLensOpen(false)}
+        catalogsCount={catalogs.length}
+        onCreate={() => createCatalog(false)}
+        library={(
+          <CatalogLibrary
+            catalogs={catalogs}
+            activeCatalogName={activeCatalogName}
+            onFocus={setCatalogFocus}
+          />
+        )}
+        workspace={(
+          <CatalogWorkspace
+            catalog={activeCatalog}
+            onRename={renameCatalog}
+            onAddChoice={addCatalogChoice}
+            onChoiceChange={updateChoice}
+            onChoiceRemove={removeChoice}
+          />
+        )}
+      />
 
       {/* Toasts deslizables: mensajes efímeros de operaciones (import/export).
           El deck se monta una sola vez y se mantiene a nivel del editor —
