@@ -4571,3 +4571,30 @@ button.pulso-empty-home-card:focus-visible {
 .pulso-graph-edge-label {
   z-index: 30;
 }
+
+/* ============================================================================
+ * Logic canvas — user-select global OFF + override en componentes con texto
+ * copiable (detail, picker, tooltip). Antes el pan/drag hacía que se
+ * seleccionaran labels de cards, distrayendo.
+ * ========================================================================= */
+.pulso-graph-overlay,
+.pulso-graph-svg,
+.pulso-graph-node,
+.pulso-graph-toolbar {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Permitimos selección en los componentes donde tiene sentido copiar
+ * texto (códigos, expresiones, IDs técnicos). */
+.pulso-graph-detail,
+.pulso-graph-detail *,
+.pulso-graph-edge-label,
+.pulso-graph-edge-label *,
+.pulso-graph-condpicker,
+.pulso-graph-condpicker *,
+.pulso-graph-legend.is-open,
+.pulso-graph-legend.is-open * {
+  -webkit-user-select: text;
+  user-select: text;
+}

@@ -250,8 +250,6 @@ export function layoutLogicGraph(
   }
 
   // ── 4. Bounding box vertical del bloque visible (para lanes) ───────
-  // Lanes horizontales viajan ENCIMA o DEBAJO de todos los nodos
-  // visibles, no entre ellos — así nunca atraviesan cards.
   let blockTop = Infinity;
   let blockBottom = -Infinity;
   for (const placed of flatNodes) {
@@ -262,32 +260,119 @@ export function layoutLogicGraph(
   if (!isFinite(blockTop)) blockTop = options.marginY;
   if (!isFinite(blockBottom)) blockBottom = options.marginY + options.rowHeight;
 
-  // ── 5. Construir paths ─────────────────────────────────────────────
-  const laidOutEdges: LaidOutEdge[] = resolved.map((r) => {
-    const targetGroup = edgesByTarget.get(r.tgt.node.id) ?? [r];
+  // ── 5. Bundling por expresión "subway map" ─────────────────────────
+  // Cuando varios edges comparten EXACTAMENTE la misma expresión
+  // `relevant`, los agrupamos en un "bundle" y dibujamos sus paths
+  // compartiendo segmentos del TRUNK (lane horizontal por arriba/
+  // abajo del bloque). Visualmente se ve como UNA sola línea desde
+  // los sources hasta el branch point, y desde ahí se ramifica a cada
+  // target. Es el patrón subway map / transit diagram.
+  //
+  // Si una expresión solo tiene 1 source × 1 target, no hace falta
+  // bundle: routing normal.
+  type Bundle = {
+    expression: string;
+    /** trunkY = lane horizontal por arriba/abajo del bloque. */
+    trunkY: number;
+    /** Punto donde los sources convergen al trunk. */
+    convergeX: number;
+    /** Punto donde el trunk se ramifica a los targets. */
+    branchX: number;
+    /** Si todos los targets del bundle son secciones, los terminales
+     *  comparten también el segmento vertical hasta `tgt.y - mergeOffset`. */
+    allTargetsSections: boolean;
+  };
 
-    // Distribución de la salida en el source: si N edges salen del
-    // mismo source, distribuimos verticalmente para que cada flecha
-    // se vea separada en su origen aunque convergen al mismo merge
-    // point del target.
+  const bundlesByExpression = new Map<string, Bundle>();
+  for (const r of resolved) {
+    const expr = r.tgt.node.relevantExpression ?? "";
+    if (!expr) continue;
+    if (bundlesByExpression.has(expr)) continue;
+    // Recolectar TODOS los sources y targets de edges que comparten
+    // esta expresión.
+    const groupEdges = resolved.filter(
+      (e) => (e.tgt.node.relevantExpression ?? "") === expr,
+    );
+    const uniqueSources = new Set(groupEdges.map((e) => e.src.node.id));
+    const uniqueTargets = new Set(groupEdges.map((e) => e.tgt.node.id));
+    // Bundle solo tiene sentido si hay al menos 2 sources O 2 targets;
+    // 1 src × 1 tgt usa routing normal.
+    if (uniqueSources.size <= 1 && uniqueTargets.size <= 1) continue;
+
+    const sourceCards = [...uniqueSources]
+      .map((id) => positionByNodeId.get(id))
+      .filter((n): n is LaidOutNode => !!n && n.visible);
+    const targetCards = [...uniqueTargets]
+      .map((id) => positionByNodeId.get(id))
+      .filter((n): n is LaidOutNode => !!n && n.visible);
+    if (sourceCards.length === 0 || targetCards.length === 0) continue;
+
+    const sourceRightMax = Math.max(
+      ...sourceCards.map((s) => s.x + s.width),
+    );
+    const targetLeftMin = Math.min(...targetCards.map((t) => t.x));
+    const allSections = targetCards.every((t) => t.node.kind === "section");
+    // trunkY: por arriba si la mayoría de los targets son secciones
+    // (entrada por top), por abajo en otro caso.
+    const trunkY = allSections
+      ? blockTop - options.blockClearance
+      : blockBottom + options.blockClearance;
+    const convergeX = sourceRightMax + options.lateralBreakout * 1.6;
+    const branchX = targetLeftMin - options.mergeOffset * 1.4;
+
+    bundlesByExpression.set(expr, {
+      expression: expr,
+      trunkY,
+      convergeX,
+      branchX,
+      allTargetsSections: allSections,
+    });
+  }
+
+  // ── 6. Construir paths ─────────────────────────────────────────────
+  const laidOutEdges: LaidOutEdge[] = resolved.map((r) => {
+    const expr = r.tgt.node.relevantExpression ?? "";
+    const bundle = expr ? bundlesByExpression.get(expr) : null;
+
     const sourceGroup = resolved.filter((e) => e.src.node.id === r.src.node.id);
     const srcIdx = sourceGroup.indexOf(r);
-    const srcAnchor = anchorOnRight(r.src, srcIdx, sourceGroup.length, options.rowHeight);
+    const srcAnchor = anchorOnRight(
+      r.src,
+      srcIdx,
+      sourceGroup.length,
+      options.rowHeight,
+    );
 
+    const targetGroup = edgesByTarget.get(r.tgt.node.id) ?? [r];
     const tgtIdx = targetGroup.indexOf(r);
     const isSection = r.tgt.node.kind === "section";
 
-    const pathInfo = routeOrthogonal({
-      src: r.src,
-      tgt: r.tgt,
-      srcAnchor,
-      tgtIsSection: isSection,
-      tgtIdxInGroup: tgtIdx,
-      tgtGroupSize: targetGroup.length,
-      blockTop,
-      blockBottom,
-      options,
-    });
+    let pathInfo: { d: string; midX: number; midY: number };
+    if (bundle) {
+      // BUNDLE PATH — cada edge del bundle tiene un path en 5 tramos
+      // donde el segmento del trunk es IDÉNTICO para todos los edges
+      // del grupo, así visualmente se ve como una sola línea.
+      pathInfo = routeBundled({
+        src: r.src,
+        tgt: r.tgt,
+        srcAnchor,
+        tgtIsSection: isSection,
+        bundle,
+        options,
+      });
+    } else {
+      pathInfo = routeOrthogonal({
+        src: r.src,
+        tgt: r.tgt,
+        srcAnchor,
+        tgtIsSection: isSection,
+        tgtIdxInGroup: tgtIdx,
+        tgtGroupSize: targetGroup.length,
+        blockTop,
+        blockBottom,
+        options,
+      });
+    }
 
     const tgtHeaderH = Math.min(r.tgt.height, options.rowHeight);
     const srcHeaderH = Math.min(r.src.height, options.rowHeight);
@@ -511,9 +596,22 @@ function routeOrthogonal(input: RouteInput): {
 
   // Anclaje del tooltip — un poco "fuera" del trazo para no chocar
   // con cards. Si midY está cerca del bloque, lo subimos/bajamos.
-  const tooltipOffset = 14;
-  const tooltipY =
-    midY < blockTop ? midY - tooltipOffset : midY > blockBottom ? midY + tooltipOffset : midY;
+  // Tooltip SIEMPRE fuera del bloque para no taparse con cards.
+  // Si el midY natural cae dentro del rango [blockTop, blockBottom],
+  // lo "expulsamos" al borde más cercano + un padding generoso.
+  const tooltipPad = 24;
+  let tooltipY = midY;
+  if (midY >= blockTop && midY <= blockBottom) {
+    // Forzar afuera: el más cercano gana.
+    tooltipY =
+      Math.abs(midY - blockTop) < Math.abs(midY - blockBottom)
+        ? blockTop - tooltipPad
+        : blockBottom + tooltipPad;
+  } else if (midY < blockTop) {
+    tooltipY = Math.min(midY, blockTop - tooltipPad);
+  } else {
+    tooltipY = Math.max(midY, blockBottom + tooltipPad);
+  }
 
   return { d: segments.join(" "), midX, midY: tooltipY };
 }
@@ -662,4 +760,115 @@ function orthogonalSweep(
   // Producto cruzado 2D: positivo = CCW, negativo = CW.
   const cross = prevDx * newDy - prevDy * newDx;
   return cross > 0 ? 1 : 0;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Routing BUNDLED — para edges que comparten exactamente la misma
+// expresión `relevant`. Los paths convergen al trunk y se ramifican.
+//
+// Tramos del path (todos los edges del bundle comparten 2 y 3):
+//
+//   1. M src.right src.midY              ← cada source su tramo H
+//   2. L bundle.convergeX src.midY       ← H hasta el meridiano
+//   3. L bundle.convergeX bundle.trunkY  ← V hasta el trunk
+//   4. L bundle.branchX bundle.trunkY    ← H atravesando el TRUNK (compartido)
+//   5. L bundle.branchX tgt.mergeY       ← V bajando hacia el target
+//   6. L tgt.x|midX tgt.y|midY           ← entrada al target (top o lateral)
+//
+// Como los segmentos 4-5 tienen coordenadas idénticas para todos los
+// edges del bundle, los strokes SVG se superponen y se ven como UNA
+// sola línea.
+// ─────────────────────────────────────────────────────────────────────
+
+type RouteBundleInput = {
+  src: LaidOutNode;
+  tgt: LaidOutNode;
+  srcAnchor: { x: number; y: number };
+  tgtIsSection: boolean;
+  bundle: {
+    trunkY: number;
+    convergeX: number;
+    branchX: number;
+    allTargetsSections: boolean;
+  };
+  options: LayoutOptions;
+};
+
+function routeBundled(input: RouteBundleInput): {
+  d: string;
+  midX: number;
+  midY: number;
+} {
+  const { src, tgt, srcAnchor, tgtIsSection, bundle, options } = input;
+  const sX = srcAnchor.x;
+  const sY = srcAnchor.y;
+  void src; // bbox queda solo para anchorOnRight (ya consumido)
+
+  // Punto de entrada al target.
+  let tX: number, tY: number, mergeY: number;
+  if (tgtIsSection) {
+    tX = tgt.x + tgt.width / 2;
+    tY = tgt.y;
+    mergeY = tY - options.mergeOffset;
+  } else {
+    tX = tgt.x;
+    tY = tgt.y + tgt.height / 2;
+    mergeY = tY;
+  }
+
+  const segments: string[] = [`M ${sX} ${sY}`];
+
+  // Tramo 1+2: source → convergeX a la altura del source.
+  appendSegment(segments, sX, sY, bundle.convergeX, sY, options.cornerRadius);
+  // Tramo 3: V hacia trunk.
+  appendSegment(
+    segments,
+    bundle.convergeX,
+    sY,
+    bundle.convergeX,
+    bundle.trunkY,
+    options.cornerRadius,
+  );
+  // Tramo 4: H atravesando el TRUNK (compartido entre todos los edges).
+  appendSegment(
+    segments,
+    bundle.convergeX,
+    bundle.trunkY,
+    bundle.branchX,
+    bundle.trunkY,
+    options.cornerRadius,
+  );
+  // Tramo 5: V hacia el merge antes del target.
+  appendSegment(
+    segments,
+    bundle.branchX,
+    bundle.trunkY,
+    bundle.branchX,
+    mergeY,
+    options.cornerRadius,
+  );
+  // Tramo 6: entrada al target (H si target es sección con top-center,
+  // L corta si es variable).
+  if (tgtIsSection) {
+    // Llevar al X del top-center, luego bajar.
+    appendSegment(
+      segments,
+      bundle.branchX,
+      mergeY,
+      tX,
+      mergeY,
+      options.cornerRadius,
+    );
+    appendSegment(segments, tX, mergeY, tX, tY, options.cornerRadius);
+  } else {
+    // Variable: entrada lateral por izquierda.
+    appendSegment(segments, bundle.branchX, mergeY, tX, tY, options.cornerRadius);
+  }
+
+  // Anclaje del tooltip — punto medio del trunk con offset vertical
+  // pequeño para no chocar con cards.
+  const midX = (bundle.convergeX + bundle.branchX) / 2;
+  // Tooltip a 22px arriba/abajo del trunk para no chocar con cards.
+  const tooltipOffset = bundle.trunkY < src.y ? -22 : 22;
+  return { d: segments.join(" "), midX, midY: bundle.trunkY + tooltipOffset };
 }
