@@ -4370,6 +4370,34 @@ button.pulso-empty-home-card:focus-visible {
   gap: 2px;
   padding: 0 8px;
 }
+/* Bloques "Condición actual / Nueva condición" del step 2 (combiner). */
+.pulso-graph-condpicker-existing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin: 0 8px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  font-size: 11.5px;
+}
+.pulso-graph-condpicker-existing > span {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pulso-text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pulso-graph-condpicker-existing > code {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  color: var(--pulso-primary);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .pulso-graph-condpicker-option {
   display: flex;
   align-items: center;

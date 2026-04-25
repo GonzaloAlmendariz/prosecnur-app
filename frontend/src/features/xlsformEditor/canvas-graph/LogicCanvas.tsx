@@ -705,46 +705,43 @@ export function LogicCanvas({
               screenX={connectPicker.screenX}
               screenY={connectPicker.screenY}
               sourceCatalog={source.catalogContext}
+              existingExpression={target.relevantExpression ?? undefined}
               onCancel={() => setConnectPicker(null)}
-              onConfirm={(expression) => {
-                // Si el target ya tiene un `relevant`, COMBINAMOS la
-                // nueva condición con la existente usando `or`. Antes
-                // se sobreescribía, lo cual perdía la relación previa.
-                // El usuario reportó: "cuando establezco una relación
-                // logica y luego otra a la misma sección, una
-                // sobreescribe a la otra en vez de converger".
+              onConfirm={(expression, combiner) => {
+                // Si el target ya tiene `relevant`, el picker hizo
+                // step 2 y devolvió `combiner` ("and" o "or"). Si no,
+                // la nueva expresión se escribe directa.
                 //
-                // Detección de duplicado: si la nueva expresión ya
-                // está exactamente dentro de la existente (substring
-                // tras normalizar espacios), no la duplicamos.
+                // Detección de duplicado (idempotente): si la nueva
+                // ya está como rama exacta de la existente, no
+                // duplicar.
                 const existing = target.relevantExpression?.trim() ?? "";
                 const newExpr = expression.trim();
+                const norm = (s: string) => s.replace(/\s+/g, " ").trim();
                 let combined: string;
-                if (!existing) {
+                if (!existing || !combiner) {
                   combined = newExpr;
                 } else {
-                  const norm = (s: string) => s.replace(/\s+/g, " ").trim();
                   const existingNorm = norm(existing);
                   const newNorm = norm(newExpr);
-                  // Si la nueva ya aparece literal en la existente,
-                  // no añadir nada (idempotente).
+                  const splitter =
+                    combiner === "and"
+                      ? /\s+\band\b\s+/
+                      : /\s+\bor\b\s+/;
                   if (
                     existingNorm === newNorm ||
                     existingNorm
-                      .split(/\s+\bor\b\s+/)
+                      .split(splitter)
                       .some((part) => norm(part) === newNorm)
                   ) {
                     combined = existing;
                   } else {
-                    combined = `${existing} or ${newExpr}`;
+                    combined = `${existing} ${combiner} ${newExpr}`;
                   }
                 }
                 onSetRelevant(target.rowIndex, combined);
                 setFreshEdgeKey(`${source.id}->${target.id}`);
                 setConnectPicker(null);
-                // Limpiamos la marca "fresh" cuando termina la
-                // animación CSS (~600ms). Después el edge vuelve al
-                // render normal del color por condición.
                 setTimeout(() => setFreshEdgeKey(null), 700);
               }}
             />
