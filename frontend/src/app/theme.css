@@ -4103,12 +4103,12 @@ button.pulso-empty-home-card:focus-visible {
   gap: 3px;
 }
 .pulso-graph-detail-link {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
   width: 100%;
   text-align: left;
-  padding: 4px 7px;
+  padding: 6px 8px;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 5px;
@@ -4116,6 +4116,10 @@ button.pulso-empty-home-card:focus-visible {
   font-size: 11.5px;
   color: var(--pulso-text);
   transition: background 120ms ease, border-color 120ms ease;
+  /* Permitir flow natural: la fila puede ser multi-línea si la
+   * expresión es larga. Antes el span tenía white-space: nowrap +
+   * ellipsis, lo que truncaba "satisfaccion si consent = 'Sí' y..." */
+  flex-wrap: wrap;
 }
 .pulso-graph-detail-link:hover {
   background: var(--pulso-primary-soft);
@@ -4126,14 +4130,18 @@ button.pulso-empty-home-card:focus-visible {
   font-size: 11px;
   color: var(--pulso-primary);
   font-weight: 600;
+  flex-shrink: 0;
 }
 .pulso-graph-detail-link span {
   color: var(--pulso-text-soft);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   flex: 1;
   min-width: 0;
+  /* Wrap natural en lugar de truncar — el card debe crecer en
+   * altura para mostrar la condición completa. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.45;
 }
 
 /* ============================================================================

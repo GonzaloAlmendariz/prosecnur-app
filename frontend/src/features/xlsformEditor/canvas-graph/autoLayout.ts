@@ -628,36 +628,49 @@ export function layoutLogicGraph(
     }
   });
 
-  // 5.9 Anchor Y + breakoutX por (source × EXPRESIÓN) — anti-peine.
+  // 5.9 Anchor Y + breakoutX con OFFSET GLOBAL por expresión.
   //
-  // CLAVE: el grouping aquí es por EXPRESIÓN, no por unitKey. Edges
-  // con la misma `relevantExpression` (mismo color) son la MISMA
-  // flecha lógica conceptualmente, sin importar si algunos van a
-  // sección (Mode A) y otros a variable (Mode D). Comparten:
-  //   · anchorY → arrancan en el mismo punto Y del source.
-  //   · breakoutX → su V tramo de salida está en el mismo X.
+  // Insight clave (feedback del usuario):
+  //   "Si consent y filtro tienen la misma condición (rojo o verde),
+  //    deberían compartir carril X. La separación es solo cuando son
+  //    condiciones diferentes."
   //
-  // Esto hace que la flecha emerja UNIFICADA del source y solo se
-  // ramifique en el lane y en los target docks (donde el modo
-  // sí importa). Antes el grouping por unitKey separaba bundle
-  // members con distinto modo desde el source — el usuario reportó:
-  // "no se unen hasta llegar arriba cuando deberían unirse abajo".
+  // Antes el offset era per-source local (basado en el orden en que
+  // aparecía cada bundle en `resolved` por source). Resultado:
+  // consent encontraba [red, orange, green] en ese orden → red=0,
+  // orange=1, green=2. Filtro podía encontrar [green, red, orange]
+  // → green=0, red=1, orange=2. Mismo bundle → distintos offsets
+  // → distintos breakoutX → no compartían carril.
   //
-  // Loose edges (expresión única o no bundleable) cada uno es su
-  // propio grupo — distribuyen anchors normalmente.
+  // Fix: el offset por bundle es GLOBAL — basado en orden de
+  // aparición de la expresión en TODO el grafo. Bundle red siempre
+  // tiene offset 0, sin importar desde qué source emerge. Cualquier
+  // source que emita la expresión "red" usa breakoutX = src.right +
+  // base + 0 * stride. Si dos sources están en la misma columna
+  // (consent/filtro), sus V tramos de "red" se superponen exactamente.
+  //
+  // Loose edges (expresión única) reciben offsets per-source que
+  // arrancan después del máximo bundled offset que ese source toca.
   const anchorYByEdge = new Map<string, number>();
   const breakoutXByEdge = new Map<string, number>();
-  // BREAKOUT_STRIDE 14 → 18: separación más generosa entre carriles
-  // de salida del source. Combinado con columnGap=120 da espacio
-  // suficiente para que bundles distintos sean visualmente claros.
   const BREAKOUT_STRIDE = 18;
+
+  // 1. Asignación GLOBAL de offsets por expresión (bundles).
+  const globalBundleOffset = new Map<string, number>();
+  resolved.forEach((r) => {
+    const expr = r.tgt.node.relevantExpression ?? "";
+    if (expr && isBundledExpr(expr) && !globalBundleOffset.has(expr)) {
+      globalBundleOffset.set(expr, globalBundleOffset.size);
+    }
+  });
+
+  // 2. Recolectar grupos per source (manteniendo orden de aparición
+  //    para los loose).
   const groupsBySource = new Map<string, string[]>();
   const edgesByGroup = new Map<string, ResolvedEdge[]>();
   resolved.forEach((r, i) => {
     const sId = r.src.node.id;
     const expr = r.tgt.node.relevantExpression ?? "";
-    // Group key: por expresión si está bundleable; loose si no.
-    // Esto une sección+variable cuando comparten condición lógica.
     const groupKey =
       expr && isBundledExpr(expr) ? `expr:${expr}` : `loose:${i}`;
     const composed = `${sId}::${groupKey}`;
@@ -668,23 +681,42 @@ export function layoutLogicGraph(
     }
     edgesByGroup.get(composed)!.push(r);
   });
+
+  // 3. Por source: usar offset global para bundled, incremental
+  //    local para loose (después del máximo bundled).
   for (const [sId, groups] of groupsBySource) {
     const placed = positionByNodeId.get(sId);
     if (!placed || !placed.visible) continue;
     const headerH = Math.min(placed.height, options.rowHeight);
-    groups.forEach((groupKey, gIdx) => {
-      let yOffset: number;
-      if (groups.length === 1) {
-        yOffset = headerH / 2;
-      } else {
-        const usable = headerH * 0.6;
-        const start = (headerH - usable) / 2;
-        yOffset = start + (gIdx * usable) / (groups.length - 1);
+    // Encontrar el máximo offset bundled usado por este source.
+    let maxBundledOffset = -1;
+    for (const groupKey of groups) {
+      if (groupKey.startsWith("expr:")) {
+        const off = globalBundleOffset.get(groupKey.slice(5)) ?? -1;
+        if (off > maxBundledOffset) maxBundledOffset = off;
       }
-      const y = placed.y + yOffset;
+    }
+    let nextLooseOffset = maxBundledOffset + 1;
+    groups.forEach((groupKey) => {
+      let offset: number;
+      if (groupKey.startsWith("expr:")) {
+        offset = globalBundleOffset.get(groupKey.slice(5)) ?? 0;
+      } else {
+        offset = nextLooseOffset++;
+      }
+      // Anchor Y: distribuir cuando el source tiene varios grupos.
+      // Pero MANTENER consistencia: misma expresión → misma posición
+      // Y relativa dentro del header. Para eso anclamos al centro y
+      // sumamos un microoffset basado en `offset` (3 px por unidad)
+      // — suficiente para que se vean distintos pero no peine.
+      const baseY = placed.y + headerH / 2;
+      const yOffset = (offset - (groups.length - 1) / 2) * 3;
+      const y = baseY + yOffset;
       const breakoutX =
-        placed.x + placed.width + options.lateralBreakout +
-        gIdx * BREAKOUT_STRIDE;
+        placed.x +
+        placed.width +
+        options.lateralBreakout +
+        offset * BREAKOUT_STRIDE;
       for (const r of edgesByGroup.get(`${sId}::${groupKey}`) ?? []) {
         const k = `${r.src.node.id}->${r.tgt.node.id}`;
         anchorYByEdge.set(k, y);
