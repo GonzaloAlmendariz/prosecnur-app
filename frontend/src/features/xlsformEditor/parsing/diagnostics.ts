@@ -125,6 +125,27 @@ export function buildDiagnostics(
           "La variable está marcada como cálculo, pero todavía no tiene una fórmula definida.",
       });
     }
+    // Diagnostic INFO: pregunta requerida con relevant condicional.
+    // No es error — ODK sólo aplica `required` cuando `relevant` es
+    // verdadero, así que la pregunta puede no ser obligatoria si la
+    // condición no se cumple. Pero conviene avisarlo porque se
+    // confunde con frecuencia: el autor cree que es siempre
+    // obligatoria, y termina con envíos sin ese campo cuando la
+    // condición fue falsa.
+    if (
+      node.kind === "question" &&
+      node.required &&
+      (node.relevant ?? "").trim() !== ""
+    ) {
+      diagnostics.push({
+        id: `required-with-relevant-${node.rowIndex}`,
+        level: "info",
+        rowIndex: node.rowIndex,
+        title: "Obligatoria solo cuando se muestra",
+        detail:
+          "Esta pregunta es obligatoria y tiene una condición de visibilidad. ODK la pedirá únicamente cuando la condición sea verdadera; si es falsa, la pregunta se omite del envío sin marcarla como faltante.",
+      });
+    }
     if (node.kind === "repeat") {
       diagnostics.push({
         id: `repeat-${node.rowIndex}`,
@@ -218,6 +239,62 @@ export function buildDiagnostics(
       detail: `Revisa la expresión de ${dependency.kind}. El índice no encontró una pregunta con ese nombre interno.`,
     });
   });
+
+  // Referencias circulares — DFS sobre el grafo de dependencias.
+  // Para cada nombre `A` con dependencias salientes, exploramos el
+  // grafo siguiendo las flechas; si llegamos de vuelta a `A`, es un
+  // ciclo. Reportamos cada ciclo una sola vez (canonalizando por la
+  // permutación que arranca con el name lexicográficamente menor).
+  const reportedCycles = new Set<string>();
+  const detectCyclesFrom = (start: string) => {
+    // DFS iterativo con stack de paths para captuar el ciclo completo.
+    const stack: Array<{ node: string; path: string[] }> = [
+      { node: start, path: [start] },
+    ];
+    const visited = new Set<string>();
+    while (stack.length > 0) {
+      const { node, path } = stack.pop()!;
+      const deps = index.dependenciesByName.get(node) ?? [];
+      for (const dep of deps) {
+        const next = dep.toName;
+        if (next === start) {
+          // Ciclo cerrado.
+          const cycle = [...path, next];
+          // Canonicalizar: rotar para que arranque con el menor.
+          let minIdx = 0;
+          for (let i = 1; i < cycle.length - 1; i += 1) {
+            if (cycle[i]! < cycle[minIdx]!) minIdx = i;
+          }
+          const rotated = [
+            ...cycle.slice(minIdx, -1),
+            ...cycle.slice(0, minIdx),
+          ];
+          const key = rotated.join("→");
+          if (!reportedCycles.has(key)) {
+            reportedCycles.add(key);
+            const fromNode = structure.outline.find(
+              (n) => n.name === rotated[0],
+            );
+            diagnostics.push({
+              id: `cycle-${key}`,
+              level: "warn",
+              rowIndex: fromNode?.rowIndex,
+              title: "Ciclo detectado en la lógica",
+              detail: `Las variables se condicionan unas a otras formando un bucle: ${rotated.join(" → ")} → ${rotated[0]}. ODK no puede resolver dependencias circulares — alguna de estas referencias debe quitarse.`,
+            });
+          }
+          continue;
+        }
+        if (visited.has(next)) continue;
+        if (path.includes(next)) continue; // ya en el path actual
+        visited.add(next);
+        stack.push({ node: next, path: [...path, next] });
+      }
+    }
+  };
+  for (const name of index.dependenciesByName.keys()) {
+    detectCyclesFrom(name);
+  }
 
   return diagnostics;
 }
