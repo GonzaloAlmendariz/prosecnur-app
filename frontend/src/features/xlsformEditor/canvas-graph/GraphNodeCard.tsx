@@ -287,6 +287,37 @@ export function GraphNodeCard({
               />
             </span>
           )}
+          {/* Indicador de visibilidad HEREDADA de sección padre. Se
+              dibuja con tono soft/diagonal para distinguirlo del
+              ConditionalIcon "directo": la pregunta no tiene relevant
+              propio, pero su sección padre sí. Tooltip explica de
+              dónde viene. */}
+          {!isConditional && node.inheritedRelevant.length > 0 && (
+            <span
+              title={`Hereda visibilidad de ${
+                node.inheritedRelevant
+                  .map((p) => p.fromSectionName)
+                  .join(" → ")
+              }`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 20,
+                height: 20,
+                borderRadius: 5,
+                color: "var(--pulso-text-soft)",
+                background: "var(--pulso-surface-2)",
+                border: "1px dashed var(--pulso-border)",
+                flexShrink: 0,
+                fontSize: 9,
+                fontWeight: 700,
+                letterSpacing: 0.3,
+              }}
+            >
+              ⤷
+            </span>
+          )}
         </div>
       </foreignObject>
 

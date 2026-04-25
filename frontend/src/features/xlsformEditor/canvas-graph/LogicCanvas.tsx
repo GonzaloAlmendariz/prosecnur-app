@@ -674,6 +674,45 @@ export function LogicCanvas({
                 </div>
               )}
 
+              {/* Visibilidad HEREDADA de secciones ancestro. Lista la
+                  cadena de condiciones implícitas que afectan a este
+                  nodo aunque él no tenga `relevant` propio. Click en
+                  una sección padre navega a ella. */}
+              {selectedNode.inheritedRelevant.length > 0 && (
+                <div className="pulso-graph-detail-block">
+                  <span className="pulso-graph-detail-block-label">
+                    {selectedNode.relevantExpression
+                      ? "También hereda de"
+                      : "Hereda visibilidad de"}
+                  </span>
+                  <ul className="pulso-graph-detail-list">
+                    {selectedNode.inheritedRelevant.map((parent, i) => (
+                      <li key={i}>
+                        <button
+                          type="button"
+                          className="pulso-graph-detail-link"
+                          onClick={() => setSelectedId(parent.fromSectionId)}
+                          title={`Ver sección ${parent.fromSectionLabel}`}
+                        >
+                          <code>{parent.fromSectionName}</code>
+                          <span>
+                            si{" "}
+                            <em
+                              style={{
+                                fontStyle: "normal",
+                                fontFamily: "ui-monospace, monospace",
+                              }}
+                            >
+                              {humanizeRelevant(parent.expression)}
+                            </em>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* "Depende de": los nodos cuyo valor decide la
                   visibilidad de este. */}
               {incoming.length > 0 && (

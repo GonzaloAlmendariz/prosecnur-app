@@ -83,6 +83,27 @@ export type GraphNode = {
    *  el hover del edge ("si X = Y"). Solo en los nodos que tienen
    *  visibilidad condicional. */
   relevantExpression: string | null;
+  /** Visibilidad que esta pregunta/sección hereda implícitamente de
+   *  algún ancestro sección con `relevant`. Si ningún ancestro tiene
+   *  relevant, queda null. Si hay varios (anidados), guardamos la
+   *  cadena más cercana → más lejana — así la card puede mostrar
+   *  "heredado de Sección A (que a su vez depende de Sección B)".
+   *
+   *  Casos en los que es útil: imagine una sección "Datos del jefe"
+   *  con `relevant = ${tiene_jefe} = 'si'`. Las preguntas dentro NO
+   *  tienen relevant propio, pero implícitamente NO se muestran si
+   *  `tiene_jefe ≠ 'si'`. Esto refleja esa cadena. */
+  inheritedRelevant: Array<{
+    /** Id del ancestro sección que aporta esta capa de visibilidad. */
+    fromSectionId: string;
+    /** Nombre técnico del ancestro — para que el caller sepa qué
+     *  sección referenciar. */
+    fromSectionName: string;
+    /** Label visible del ancestro. */
+    fromSectionLabel: string;
+    /** Expresión `relevant` de ese ancestro. */
+    expression: string;
+  }>;
 };
 
 /**
@@ -160,8 +181,9 @@ export function buildLogicGraph(
       baseType: node.typeInfo.base,
       rowIndex: node.rowIndex,
       children: [],
-      sectionColor: null, // se asigna en paso 2 cuando ya tenemos el árbol
+      sectionColor: null, // se asigna en paso 5
       relevantExpression: node.relevant ? node.relevant : null,
+      inheritedRelevant: [], // se calcula en paso 6
     };
     // Catalog context para selects.
     if (
@@ -264,6 +286,36 @@ export function buildLogicGraph(
       paintChildren(root, color);
     }
   }
+
+  // -- 6. Visibilidad heredada de secciones ancestro --
+  // Recorre el árbol top-down. Para cada nodo, si su sección padre tiene
+  // `relevant`, esa condición se le agrega a `inheritedRelevant`. Como
+  // bajamos recursivamente, cada nodo acumula la cadena de ancestros
+  // condicionales (más cercano primero, más lejano al final).
+  //
+  // Ejemplo: sec_padre.relevant = ${X}=1, sec_hija.relevant = ${Y}=2,
+  //          pregunta dentro de sec_hija → inheritedRelevant = [sec_hija, sec_padre].
+  const inheritFrom = (
+    parents: GraphNode["inheritedRelevant"],
+    current: GraphNode,
+  ): void => {
+    current.inheritedRelevant = parents;
+    if (current.kind === "section") {
+      const next: GraphNode["inheritedRelevant"] = current.relevantExpression
+        ? [
+            {
+              fromSectionId: current.id,
+              fromSectionName: current.name,
+              fromSectionLabel: current.title,
+              expression: current.relevantExpression,
+            },
+            ...parents,
+          ]
+        : parents;
+      for (const child of current.children) inheritFrom(next, child);
+    }
+  };
+  for (const root of rootNodes) inheritFrom([], root);
 
   return { rootNodes, edges, byId };
 }
