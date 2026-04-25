@@ -32,6 +32,13 @@
 
 import { Magnet, RotateCcw, Undo2 } from "lucide-react";
 
+export type EdgeKindFilter = {
+  showRelevant: boolean;
+  showConstraint: boolean;
+  showCalculation: boolean;
+  showChoiceFilter: boolean;
+};
+
 export type CanvasToolbarProps = {
   hasOverrides: boolean;
   onResetLayout: () => void;
@@ -40,6 +47,11 @@ export type CanvasToolbarProps = {
   /** Si hay historia de drags para deshacer. */
   canUndoDrag?: boolean;
   onUndoDrag?: () => void;
+  /** Filtro por tipo de dependencia (relevant/constraint/calculation/
+   *  choice_filter). Por defecto solo se muestra relevant — los otros
+   *  son menos comunes y suman ruido. El usuario puede activarlos. */
+  edgeKindFilter?: EdgeKindFilter;
+  onChangeEdgeKindFilter?: (next: EdgeKindFilter) => void;
 };
 
 export function CanvasToolbar({
@@ -49,7 +61,13 @@ export function CanvasToolbar({
   onToggleSnap,
   canUndoDrag,
   onUndoDrag,
+  edgeKindFilter,
+  onChangeEdgeKindFilter,
 }: CanvasToolbarProps) {
+  const toggleKind = (key: keyof EdgeKindFilter) => {
+    if (!edgeKindFilter || !onChangeEdgeKindFilter) return;
+    onChangeEdgeKindFilter({ ...edgeKindFilter, [key]: !edgeKindFilter[key] });
+  };
   return (
     <div
       className="pulso-graph-toolbar"
@@ -103,6 +121,54 @@ export function CanvasToolbar({
         <Magnet size={13} />
         <span>Snap</span>
       </button>
+
+      {edgeKindFilter && onChangeEdgeKindFilter && (
+        <>
+          <span className="pulso-graph-toolbar-sep" aria-hidden="true" />
+          <div
+            className="pulso-graph-toolbar-segment"
+            role="group"
+            aria-label="Tipos de dependencia visibles"
+          >
+            <button
+              type="button"
+              className={edgeKindFilter.showRelevant ? "is-on" : ""}
+              onClick={() => toggleKind("showRelevant")}
+              title="Mostrar/ocultar flechas de visibilidad (relevant)"
+              aria-pressed={edgeKindFilter.showRelevant}
+            >
+              Visibilidad
+            </button>
+            <button
+              type="button"
+              className={edgeKindFilter.showConstraint ? "is-on" : ""}
+              onClick={() => toggleKind("showConstraint")}
+              title="Mostrar/ocultar flechas de restricción (constraint)"
+              aria-pressed={edgeKindFilter.showConstraint}
+            >
+              Restricción
+            </button>
+            <button
+              type="button"
+              className={edgeKindFilter.showCalculation ? "is-on" : ""}
+              onClick={() => toggleKind("showCalculation")}
+              title="Mostrar/ocultar flechas de cálculo (calculation)"
+              aria-pressed={edgeKindFilter.showCalculation}
+            >
+              Cálculo
+            </button>
+            <button
+              type="button"
+              className={edgeKindFilter.showChoiceFilter ? "is-on" : ""}
+              onClick={() => toggleKind("showChoiceFilter")}
+              title="Mostrar/ocultar filtros de opciones (choice_filter)"
+              aria-pressed={edgeKindFilter.showChoiceFilter}
+            >
+              Filtros
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

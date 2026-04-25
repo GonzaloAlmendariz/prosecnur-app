@@ -128,14 +128,37 @@ export type EdgeRelationKind =
   | "section-to-variable"
   | "variable-to-variable";
 
+/**
+ * Tipos de dependencia lógica que el canvas modela. Cada uno tiene
+ * un significado distinto:
+ *   - "depends-on" — visibilidad (relevant). El target aparece solo
+ *     cuando la condición sobre el source es verdadera.
+ *   - "constrained-by" — restricción (constraint). El valor del
+ *     target debe satisfacer una expresión que referencia al source.
+ *   - "calculated-from" — cálculo (calculation). El valor del target
+ *     se computa a partir del source.
+ *   - "choice-filter" — filtro de opciones (choice_filter). Las
+ *     opciones del target dependen del valor del source.
+ *
+ * Cada kind se renderiza con estilo visual distinto (color base
+ * por expresión + stroke pattern por kind).
+ */
+export type GraphEdgeKind =
+  | "depends-on"
+  | "constrained-by"
+  | "calculated-from"
+  | "choice-filter";
+
 export type GraphEdge = {
   source: string;
   target: string;
-  /** Visibilidad — único tipo lógico que el canvas modela. */
-  kind: "depends-on";
+  kind: GraphEdgeKind;
   /** Granularidad de los extremos (sección/variable) para diferenciar
    *  visualmente edges macro vs micro. */
   relation: EdgeRelationKind;
+  /** Expresión cruda de la dependencia (relevant/constraint/etc).
+   *  Usada para tooltip + bundling. */
+  expression: string;
 };
 
 export type LogicGraph = {
@@ -229,41 +252,55 @@ export function buildLogicGraph(
     }
   }
 
-  // -- 3. Edges: solo `relevant` — lo que el usuario llama "lógica" --
+  // -- 3. Edges: relevant + constraint + calculation + choice_filter --
+  // Cada tipo de dependencia genera edges propios con su `kind`. La UI
+  // los diferencia visualmente y permite filtrar por tipo en el toolbar.
   const edges: GraphEdge[] = [];
+  const edgeSources: Array<{
+    expression: string;
+    kind: GraphEdgeKind;
+  }>[] = [];
   for (const outlineNode of structure.outline) {
     const targetId = `q:${outlineNode.rowIndex}`;
     const targetNode = byId.get(targetId);
     if (!targetNode) continue;
-    const expression = outlineNode.relevant;
-    if (!expression || !expression.trim()) continue;
-    const ast = parseExpression(expression);
-    if (!ast) continue;
-    const refs = collectRefs(ast);
-    for (const refName of refs) {
-      const sourceNode = nodeByVarName.get(refName);
-      if (!sourceNode) continue;
-      if (sourceNode.id === targetId) continue; // sin auto-loops
-      // Tipo de relación según granularidad de los extremos. Útil para
-      // diferenciar visualmente edges macro (sec↔sec) de micro (var↔var
-      // dentro de la misma sección).
-      const srcIsSection = sourceNode.kind === "section";
-      const tgtIsSection = targetNode.kind === "section";
-      const relation: EdgeRelationKind = srcIsSection && tgtIsSection
-        ? "section-to-section"
-        : !srcIsSection && tgtIsSection
-          ? "variable-to-section"
-          : srcIsSection && !tgtIsSection
-            ? "section-to-variable"
-            : "variable-to-variable";
-      edges.push({
-        source: sourceNode.id,
-        target: targetId,
-        kind: "depends-on",
-        relation,
-      });
+    const candidates: Array<{ expression: string; kind: GraphEdgeKind }> = [
+      { expression: outlineNode.relevant, kind: "depends-on" as GraphEdgeKind },
+      { expression: outlineNode.constraint, kind: "constrained-by" as GraphEdgeKind },
+      { expression: outlineNode.calculation, kind: "calculated-from" as GraphEdgeKind },
+      { expression: outlineNode.choiceFilter, kind: "choice-filter" as GraphEdgeKind },
+    ];
+    const sources: Array<{ expression: string; kind: GraphEdgeKind }> =
+      candidates.filter((s) => s.expression && s.expression.trim());
+    edgeSources.push(sources);
+    for (const { expression, kind } of sources) {
+      const ast = parseExpression(expression);
+      if (!ast) continue;
+      const refs = collectRefs(ast);
+      for (const refName of refs) {
+        const sourceNode = nodeByVarName.get(refName);
+        if (!sourceNode) continue;
+        if (sourceNode.id === targetId) continue; // sin auto-loops
+        const srcIsSection = sourceNode.kind === "section";
+        const tgtIsSection = targetNode.kind === "section";
+        const relation: EdgeRelationKind = srcIsSection && tgtIsSection
+          ? "section-to-section"
+          : !srcIsSection && tgtIsSection
+            ? "variable-to-section"
+            : srcIsSection && !tgtIsSection
+              ? "section-to-variable"
+              : "variable-to-variable";
+        edges.push({
+          source: sourceNode.id,
+          target: targetId,
+          kind,
+          relation,
+          expression,
+        });
+      }
     }
   }
+  void edgeSources; // reservado para futuras agregaciones
 
   // -- 4. Subtítulo enriquecido para secciones colapsadas --
   // "<name técnico> · N preguntas dentro" (el campo `name` queda intacto).

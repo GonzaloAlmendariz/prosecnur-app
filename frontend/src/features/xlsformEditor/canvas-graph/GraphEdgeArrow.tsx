@@ -135,10 +135,24 @@ export function GraphEdgeArrow({
     : highlighted
       ? STROKE_WIDTH + 0.8
       : STROKE_WIDTH;
-  // Dashed solo para conexiones var↔var (entre preguntas individuales).
-  // Las que tocan secciones (sec→sec, var→sec, sec→var) van sólidas
-  // porque son las "macro" y deben leerse más fuerte visualmente.
-  const dashArray = isVarToVar(edge.edge.relation) ? "5 4" : undefined;
+  // Dashed por TIPO de dependencia, no por var-to-var.
+  // - depends-on (visibilidad/relevant): sólido (más prominente).
+  // - constrained-by: dashed largo (refleja "restricción").
+  // - calculated-from: dotted (refleja "cálculo").
+  // - choice-filter: dash-dot (refleja "filtro").
+  // El color sigue siendo por expresión (Tableau-10) — el dasharray
+  // diferencia el TIPO sin perder la identidad cromática del bundle.
+  const k = edge.edge.kind;
+  const dashArray =
+    k === "constrained-by"
+      ? "8 5"
+      : k === "calculated-from"
+        ? "2 4"
+        : k === "choice-filter"
+          ? "8 3 2 3"
+          : isVarToVar(edge.edge.relation)
+            ? undefined
+            : undefined;
 
   return (
     <g

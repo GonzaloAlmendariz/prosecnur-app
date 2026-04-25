@@ -112,9 +112,20 @@ export function LogicCanvas({
   } | null>(null);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
 
-  // ── Toolbar: snap + undo de drags ─────────────────────────────────
+  // ── Toolbar: snap + undo de drags + filtro por tipo de dependencia ──
   const [snapToGrid, setSnapToGrid] = useState(false);
   const SNAP_GRID = 16;
+  /** Filtro por tipo de edge. Por defecto solo `relevant` (visibilidad)
+   *  está visible — el más común y el que la mayoría del corpus usa.
+   *  Constraint, calculation y choice_filter son opt-in para no
+   *  saturar el lienzo cuando el usuario solo quiere ver "qué abre
+   *  qué". */
+  const [edgeKindFilter, setEdgeKindFilter] = useState({
+    showRelevant: true,
+    showConstraint: false,
+    showCalculation: false,
+    showChoiceFilter: false,
+  });
   /** Historia de cambios de `nodePositions` para Cmd/Ctrl+Z. Cada
    *  entrada es un snapshot inmutable del map de posiciones tomado
    *  ANTES del cambio. Se pushea al inicio de cada drag y al hacer
@@ -696,6 +707,8 @@ export function LogicCanvas({
           onToggleSnap={() => setSnapToGrid((s) => !s)}
           canUndoDrag={positionHistory.length > 0}
           onUndoDrag={undoLastDrag}
+          edgeKindFilter={edgeKindFilter}
+          onChangeEdgeKindFilter={setEdgeKindFilter}
         />
 
         <svg
@@ -743,10 +756,15 @@ export function LogicCanvas({
                 selectedUnitKey !== null && edge.unitKey === selectedUnitKey;
               const isClickIsolated =
                 selectedUnitKey !== null && !inSelectedBundle;
-              // Filtro eliminado — los chips "Entre secciones / Entre
-              // preguntas" ya no eran útiles (el bundling visual y los
-              // colores ya diferencian tipos suficientemente).
-              const passesFilter = true;
+              // Filtro por TIPO de dependencia — usuario decide qué
+              // tipos visualizar (relevant/constraint/calculation/
+              // choice_filter). Por defecto solo relevant.
+              const k = edge.edge.kind;
+              const passesFilter =
+                (k === "depends-on" && edgeKindFilter.showRelevant) ||
+                (k === "constrained-by" && edgeKindFilter.showConstraint) ||
+                (k === "calculated-from" && edgeKindFilter.showCalculation) ||
+                (k === "choice-filter" && edgeKindFilter.showChoiceFilter);
               const isHL =
                 inSelectedBundle ||
                 (!!selectedId &&
