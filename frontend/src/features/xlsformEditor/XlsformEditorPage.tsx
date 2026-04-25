@@ -113,6 +113,8 @@ import {
   createPersistenceScheduler,
   loadSnapshot,
 } from "./state/persistence";
+import EmptyHome from "./shell/EmptyHome";
+import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 
 const QUESTION_TYPE_OPTIONS = [
   { value: "text", label: "Texto corto" },
@@ -168,6 +170,9 @@ export default function XlsformEditorPage() {
   const [restoreOffer, setRestoreOffer] = useState<ReturnType<typeof loadSnapshot>>(null);
   const xlsInputRef = useRef<HTMLInputElement | null>(null);
   const smInputRef = useRef<HTMLInputElement | null>(null);
+  // Notificaciones efímeras (importé X, exporté Y) — reemplazan al setStatus
+  // sticky para mensajes de operaciones que cierran su ciclo en un evento.
+  const toasts = useToastDeck();
 
   // Scheduler de autosave a sessionStorage. Se crea una sola vez por
   // montaje del componente; se reusa entre cambios.
@@ -390,8 +395,15 @@ export default function XlsformEditorPage() {
         out.source,
         `Abrimos ${file.name} para trabajarlo como constructor de formulario dentro de Prosecnur.`
       );
+      toasts.push({
+        kind: "success",
+        title: "Formulario importado",
+        detail: `Abrimos ${file.name} en el constructor.`,
+      });
     } catch (e: unknown) {
-      setError((e as Error).message);
+      const msg = (e as Error).message;
+      setError(msg);
+      toasts.push({ kind: "danger", title: "No se pudo importar", detail: msg });
     } finally {
       setBusy("");
       if (xlsInputRef.current) xlsInputRef.current.value = "";
@@ -410,8 +422,15 @@ export default function XlsformEditorPage() {
         out.source,
         `Tradujimos ${file.name} a un constructor editable. Ahora ya puedes pulirlo sin pensar en la sintaxis ODK.`
       );
+      toasts.push({
+        kind: "success",
+        title: "Traducción completada",
+        detail: `${file.name} ahora es un XLSForm editable.`,
+      });
     } catch (e: unknown) {
-      setError((e as Error).message);
+      const msg = (e as Error).message;
+      setError(msg);
+      toasts.push({ kind: "danger", title: "No se pudo traducir", detail: msg });
     } finally {
       setBusy("");
       if (smInputRef.current) smInputRef.current.value = "";
@@ -431,8 +450,22 @@ export default function XlsformEditorPage() {
       const savedAt = persistence.flush() ?? Date.now();
       dispatch({ type: "MARK_SAVED", savedAt });
       setStatus(`Listo: generamos ${out.original_name} para descargarlo o seguir iterándolo.`);
+      toasts.push({
+        kind: "success",
+        title: "Exportación lista",
+        detail: out.original_name,
+        durationMs: 6000,
+        action: {
+          label: "Descargar",
+          onClick: () => {
+            window.open(downloadUrl(out.file_id), "_blank");
+          },
+        },
+      });
     } catch (e: unknown) {
-      setError((e as Error).message);
+      const msg = (e as Error).message;
+      setError(msg);
+      toasts.push({ kind: "danger", title: "No se pudo exportar", detail: msg });
     } finally {
       setBusy("");
     }
@@ -926,23 +959,11 @@ export default function XlsformEditorPage() {
         />
 
         {!workbook ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
-            <ActionBand
-              title="Diseño guiado"
-              description="Trabaja por secciones, preguntas y comportamiento. La lógica se presenta como decisiones del formulario, no como una hoja de cálculo."
-              icon={<Layers3 size={18} />}
-            />
-            <ActionBand
-              title="Importación desde SurveyMonkey"
-              description="Usa el traductor actual como puerta de entrada y termina de pulir el instrumento en una suite de construcción más cuidada."
-              icon={<Wand2 size={18} />}
-            />
-            <ActionBand
-              title="Modo avanzado separado"
-              description="Cuando necesites tocar la estructura cruda, la vista por hojas sigue ahí como apoyo técnico y no como experiencia principal."
-              icon={<Table2 size={18} />}
-            />
-          </div>
+          <EmptyHome
+            onNewBlank={onNewWorkbook}
+            onImportXls={() => xlsInputRef.current?.click()}
+            onImportSurveyMonkey={() => smInputRef.current?.click()}
+          />
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", color: "var(--pulso-text-soft)", fontSize: 13 }}>
             <Pill tone="info">{structure?.outline.length ?? 0} piezas</Pill>
@@ -1297,6 +1318,12 @@ export default function XlsformEditorPage() {
           </Panel>
         </>
       )}
+
+      {/* Toasts deslizables: mensajes efímeros de operaciones (import/export).
+          El deck se monta una sola vez y se mantiene a nivel del editor —
+          fuera del flujo Panel para que los toasts queden anclados a la
+          esquina inferior-derecha sin romper el layout. */}
+      <ToastDeck items={toasts.items} onDismiss={toasts.dismiss} />
     </div>
   );
 }

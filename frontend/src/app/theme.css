@@ -481,3 +481,41 @@ button.pulso-timeline-add:hover:not(:disabled) {
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
 }
+
+/* =============================================================================
+ * Editor de XLSForms — animaciones del shell (Sub-PR 3 del revamp)
+ * =========================================================================== */
+
+/* Toasts: slide-in desde abajo + fade. */
+@keyframes pulso-toast-in-kf {
+  from { transform: translateY(8px) scale(0.98); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes pulso-toast-out-kf {
+  from { transform: translateY(0) scale(1); opacity: 1; }
+  to   { transform: translateY(4px) scale(0.985); opacity: 0; }
+}
+.pulso-toast-in {
+  animation: pulso-toast-in-kf 220ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+.pulso-toast-out {
+  animation: pulso-toast-out-kf 180ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+/* EmptyHome: stagger entry de las tarjetas + hover lift. */
+@keyframes pulso-empty-home-in {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+button.pulso-empty-home-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+  border-color: var(--pulso-primary-border);
+}
+button.pulso-empty-home-card:active:not(:disabled) {
+  transform: translateY(0);
+}
+button.pulso-empty-home-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
