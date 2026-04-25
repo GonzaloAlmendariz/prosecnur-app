@@ -115,6 +115,9 @@ import {
 } from "./state/persistence";
 import EmptyHome from "./shell/EmptyHome";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
+import { SurveyOutline } from "./outline/SurveyOutline";
+import type { RowMovePlan } from "./outline/outlineUtils";
+import { applyRowMove } from "./outline/outlineUtils";
 
 const QUESTION_TYPE_OPTIONS = [
   { value: "text", label: "Texto corto" },
@@ -640,6 +643,21 @@ export default function XlsformEditorPage() {
     setSelection({ kind: "survey", rowIndex: insertionIndex });
   }
 
+  /**
+   * Aplica un plan de drag-drop calculado por el outline. El plan ya valida
+   * que el destino sea legal (ver `outline/outlineUtils.ts::computeRowMove`)
+   * y trae el rango fuente, count y posición de inserción ajustada.
+   */
+  function applyOutlineMove(plan: RowMovePlan) {
+    if (!workbook) return;
+    updateWorkbook((draft) => {
+      applyRowMove(draft.survey, plan);
+    });
+    // Mover la selección al begin del bloque en su nueva posición — feedback
+    // visual de que el item se mantuvo seleccionado.
+    setSelection({ kind: "survey", rowIndex: plan.newStart });
+  }
+
   function moveSelection(direction: "up" | "down") {
     if (!workbook || !selection || selection.kind !== "survey" || !structure) return;
     const currentRow = selection.rowIndex;
@@ -1095,7 +1113,7 @@ export default function XlsformEditorPage() {
                       </div>
                     )}
                   >
-                    <BuilderSidebar
+                    <SurveyOutline
                       structure={structure}
                       selection={selection}
                       onSelect={setSelection}
@@ -1103,6 +1121,7 @@ export default function XlsformEditorPage() {
                       onMoveDown={() => moveSelection("down")}
                       canMoveUp={!!movement.prevRow}
                       canMoveDown={!!movement.nextRow}
+                      onApplyMove={applyOutlineMove}
                     />
                   </Panel>
                 </div>

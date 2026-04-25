@@ -519,3 +519,151 @@ button.pulso-empty-home-card:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--pulso-primary-focus);
 }
+
+/* -----------------------------------------------------------------------------
+ * Outline drag-drop (Sub-PR 4a)
+ * --------------------------------------------------------------------------- */
+
+.pulso-outline-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px 6px 4px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid transparent;
+  /* Importante: la transición la gestiona @dnd-kit en `transform`, pero el
+     hover/select usa estas que sí podemos controlar acá. */
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  cursor: default;
+  user-select: none;
+}
+.pulso-outline-row:hover:not(.is-dragging) {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-border);
+}
+.pulso-outline-row.is-active {
+  background: var(--pulso-primary-soft);
+  border-color: var(--pulso-primary-border);
+}
+.pulso-outline-row.is-dragging {
+  /* Mientras se arrastra, el item original queda hueco con outline. */
+  opacity: 0.42;
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-primary-border);
+  box-shadow: inset 0 0 0 1px var(--pulso-primary-focus);
+}
+.pulso-outline-row.is-overlay {
+  /* Estilo del ghost que sigue al cursor — vive dentro de DragOverlay. */
+  background: white;
+  border: 1px solid var(--pulso-primary-border);
+}
+
+.pulso-outline-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  border-radius: 4px;
+  cursor: grab;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+}
+.pulso-outline-grip.is-decor {
+  /* En la fila "Ajustes del formulario" el icono es decorativo, no draggable. */
+  cursor: default;
+  opacity: 1;
+  color: var(--pulso-text-soft);
+}
+.pulso-outline-row:hover .pulso-outline-grip {
+  opacity: 1;
+}
+.pulso-outline-grip:hover:not(.is-decor) {
+  color: var(--pulso-primary);
+  background: var(--pulso-primary-soft);
+}
+.pulso-outline-grip:active {
+  cursor: grabbing;
+}
+
+.pulso-outline-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  outline: none;
+}
+.pulso-outline-body:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.pulso-outline-typeicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.pulso-outline-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.pulso-outline-title {
+  font-size: 13px;
+  color: var(--pulso-text);
+  line-height: 1.35;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  font-weight: 700;
+}
+.pulso-outline-subtitle {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.pulso-outline-required {
+  font-size: 12px;
+  color: var(--pulso-warn-fg);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.pulso-outline-actions {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+/* Variante específica para "Ajustes del formulario" — sutilmente distinta
+   para diferenciarla del resto. */
+.pulso-outline-settings {
+  margin-bottom: 6px;
+}
+.pulso-outline-settings .pulso-outline-title {
+  font-weight: 700;
+}
