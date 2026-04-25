@@ -22,6 +22,7 @@
 import { useEffect, useState } from "react";
 import { Layers, Paintbrush, Sliders, Workflow } from "lucide-react";
 import type { BuilderNode, CatalogSummary } from "../types";
+import type { LogicScope } from "../logic";
 import { iconForType } from "../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
 import { typeLabel } from "../parsing/parseType";
@@ -42,6 +43,9 @@ const TABS: Array<{ id: InspectorTabId; label: string; icon: typeof Layers }> = 
 export type InspectorProps = {
   node: BuilderNode;
   catalogs: CatalogSummary[];
+  /** Scope de lógica: variables y catálogos disponibles para el builder
+   *  guiado de relevant/constraint/calculation. */
+  logicScope: LogicScope;
   /** Posición de la pregunta dentro del outline (1-indexed), si aplica. */
   position?: number;
   onFieldChange: (field: string, value: string) => void;
@@ -56,6 +60,7 @@ export type InspectorProps = {
 export function Inspector({
   node,
   catalogs,
+  logicScope,
   position,
   onFieldChange,
   onTypeChange,
@@ -142,7 +147,9 @@ export function Inspector({
           <AppearanceTab node={node} onFieldChange={onFieldChange} />
         )}
         {activeTab === "more" && <MoreTab node={node} onFieldChange={onFieldChange} />}
-        {activeTab === "logic" && <LogicTab node={node} onFieldChange={onFieldChange} />}
+        {activeTab === "logic" && (
+          <LogicTab node={node} scope={logicScope} onFieldChange={onFieldChange} />
+        )}
       </div>
     </div>
   );

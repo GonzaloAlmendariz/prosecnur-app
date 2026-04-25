@@ -116,6 +116,11 @@ import { ForeignLanguageBadge } from "./inspector/ForeignLanguageBadge";
 import { scanForeignLanguages } from "./parsing/languageScan";
 import { iconForType } from "./helpers/icons";
 import { paletteForType } from "./helpers/paletteForType";
+import type {
+  LogicCatalog,
+  LogicScope,
+  LogicVariable,
+} from "./logic";
 
 const QUESTION_TYPE_OPTIONS = [
   { value: "text", label: "Texto corto" },
@@ -907,16 +912,36 @@ export default function XlsformEditorPage() {
 
   const settingsRecord = workbook ? rowToRecord(workbook.settings, 0) : null;
   const selectedLogic = logicSummary(selectedNode);
-  const logicSources = useMemo(
-    () => (structure?.outline ?? [])
-      .filter((entry) => entry.name && selectedNode?.rowIndex !== entry.rowIndex && entry.kind !== "section" && entry.kind !== "repeat")
+
+  // Scope de lógica que el Inspector pasa al LogicBuilder. Variables son
+  // todas las preguntas del outline excepto la actual (no tiene sentido
+  // que una pregunta dependa de sí misma), y excepto secciones/repeats
+  // (esos no producen valores comparables). Los catálogos se indexan por
+  // listName para lookup O(1) en el ValueInput.
+  const logicScope = useMemo<LogicScope>(() => {
+    const variables: LogicVariable[] = (structure?.outline ?? [])
+      .filter(
+        (entry) =>
+          entry.name &&
+          selectedNode?.rowIndex !== entry.rowIndex &&
+          entry.kind !== "section" &&
+          entry.kind !== "repeat",
+      )
       .map((entry) => ({
         name: entry.name,
         label: entry.label,
-        type: entry.typeInfo.base,
-      })),
-    [selectedNode?.rowIndex, structure]
-  );
+        baseType: entry.typeInfo.base,
+        listName: entry.typeInfo.listName || undefined,
+      }));
+    const catalogsByListName = new Map<string, LogicCatalog>();
+    for (const catalog of catalogs) {
+      catalogsByListName.set(catalog.listName, {
+        listName: catalog.listName,
+        items: catalog.items,
+      });
+    }
+    return { variables, catalogsByListName, allowCurrent: false };
+  }, [selectedNode?.rowIndex, structure, catalogs]);
   // Helper local — construye el icono del menú "+" reusando el mismo
   // mapping (iconForType + paletteForType) que el outline. Así el usuario
   // ve idéntico el "tipo" cuando lo agrega y cuando lo navega después.
@@ -1386,6 +1411,7 @@ export default function XlsformEditorPage() {
                       <Inspector
                         node={selectedNode}
                         catalogs={catalogs}
+                        logicScope={logicScope}
                         position={
                           structure
                             ? computeQuestionPosition(structure, selectedNode.rowIndex)

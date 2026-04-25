@@ -1,74 +1,65 @@
 // =============================================================================
-// inspector/LogicTab.tsx — cuarta tab: lógica avanzada (placeholder F2)
+// inspector/LogicTab.tsx — tab Lógica con builder visual (F2-2: relevant)
 // =============================================================================
-// La lógica visual (relevant / constraint / calculation / choice_filter)
-// con builder visual es trabajo de Fase 2. En esta Fase 1:
+// La tab Lógica ahora ofrece edición visual real para `relevant`
+// (visibilidad condicional). Los otros campos (constraint, calculation
+// no-calc, choice_filter) siguen como read-only por ahora — F2-3/4
+// los suben al builder con la misma forma.
 //
-//   - Si la pregunta YA tiene esa lógica (importada de un .xlsx existente)
-//     se muestra read-only con sintaxis monospace y un aviso explicando que
-//     se conserva al exportar.
-//   - Hay un botón "Quitar lógica" por si el usuario quiere borrarla.
-//   - Si la pregunta NO tiene lógica todavía, banner informativo con
-//     "Próximamente — el constructor visual de condiciones llega en Fase 2".
-//
-// Esta tab no aparece para secciones (sus reglas no usan la mayoría de
-// estos campos), aunque sí soporta `relevant`.
+// Reglas que cumple:
+//   - Builder visual cuando la expresión encaja en formas planas.
+//   - Caja read-only con CTA "Reemplazar" cuando es muy compleja para
+//     plana (NOT, anidados, mezclas y/o, llamadas no-`selected`).
+//   - "Quitar" disponible siempre.
+//   - Para secciones: solo se muestra `relevant` (su único campo lógico).
 // =============================================================================
 
-import { Sparkles, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import type { BuilderNode } from "../types";
+import type { LogicScope } from "../logic";
 import { InspectorBlock, InspectorField } from "./InspectorPrimitives";
+import { LogicBuilder } from "./logic/LogicBuilder";
 
 export type LogicTabProps = {
   node: BuilderNode;
+  scope: LogicScope;
   onFieldChange: (field: string, value: string) => void;
 };
 
-export function LogicTab({ node, onFieldChange }: LogicTabProps) {
+export function LogicTab({ node, scope, onFieldChange }: LogicTabProps) {
   const isSelect =
     node.typeInfo.base === "select_one" || node.typeInfo.base === "select_multiple";
   const isCalculate = node.kind === "calculate";
 
-  const blocks: Array<{
+  // Bloques que aún no tienen builder visual — quedan read-only y se
+  // preservan tal cual al exportar.
+  const readonlyBlocks: Array<{
     field: string;
     title: string;
     hint: string;
     value: string;
   }> = [];
-
-  if (node.relevant) {
-    blocks.push({
-      field: "relevant",
-      title: "Cuándo aparece",
-      hint: "La pregunta solo se muestra si esta condición se cumple.",
-      value: node.relevant,
-    });
-  }
   if (node.constraint) {
-    blocks.push({
+    readonlyBlocks.push({
       field: "constraint",
-      title: "Cómo se valida",
-      hint: "La respuesta solo se acepta si cumple esta condición.",
+      title: "Cómo se valida la respuesta",
+      hint: "Validación importada del .xlsx. La edición visual llega con F2-3.",
       value: node.constraint,
     });
   }
-  // `calculation` solo aparece aquí si la fila NO es `calculate` (caso raro
-  // de fórmula en una pregunta normal heredada). Para las filas `calculate`,
-  // la fórmula vive en el tab Básico — es su característica principal, no
-  // una capa avanzada.
   if (!isCalculate && node.calculation) {
-    blocks.push({
+    readonlyBlocks.push({
       field: "calculation",
       title: "Fórmula heredada",
-      hint: "Esta fila tiene una fórmula importada. Pulso la preserva al exportar.",
+      hint: "Esta fila tiene una fórmula importada en una pregunta no-calculate. Se preserva al exportar.",
       value: node.calculation,
     });
   }
   if (isSelect && node.choiceFilter) {
-    blocks.push({
+    readonlyBlocks.push({
       field: "choice_filter",
       title: "Cómo se filtran las opciones",
-      hint: "Filtro aplicado al catálogo según otras respuestas.",
+      hint: "Filtro del catálogo importado. La edición visual llega con F2-4.",
       value: node.choiceFilter,
     });
   }
@@ -76,40 +67,18 @@ export function LogicTab({ node, onFieldChange }: LogicTabProps) {
   return (
     <div className="pulso-inspector-tab">
       <InspectorBlock>
-        <div className="pulso-inspector-coming">
-          <span className="pulso-inspector-coming-icon">
-            <Sparkles size={16} />
-          </span>
-          <div>
-            <strong>El constructor visual de lógica llega en una próxima fase.</strong>
-            <p>
-              La idea es ofrecer dos modos: un <em>builder guiado</em> (lista
-              tipo dropdown con "se muestra si..." / "se valida con...") para los
-              casos rápidos, y un <em>canvas estilo Obsidian</em> para mapas más
-              complejos: bloques que se mueven, flechas entre preguntas y
-              secciones, dependencias declaradas, vista de árbol que deja ver de
-              un golpe cómo fluye el formulario.
-            </p>
-            <p>
-              Mientras tanto, las condiciones importadas (relevant, constraint,
-              calculation, choice_filter) se preservan al exportar. Acá las
-              puedes ver y limpiar selectivamente.
-            </p>
-          </div>
-        </div>
+        <LogicBuilder
+          expression={node.relevant}
+          scope={scope}
+          fieldLabel="Cuándo aparece"
+          hint="Define la condición que tiene que cumplirse para que esta pregunta se le muestre al encuestado."
+          onChange={(next) => onFieldChange("relevant", next)}
+        />
       </InspectorBlock>
 
-      {blocks.length === 0 ? (
+      {readonlyBlocks.length > 0 && (
         <InspectorBlock>
-          <p className="pulso-inspector-empty-logic">
-            Esta pregunta no tiene lógica avanzada definida. Cuando este editor
-            la soporte podrás configurar visibilidad condicional, validaciones y
-            fórmulas desde aquí.
-          </p>
-        </InspectorBlock>
-      ) : (
-        <InspectorBlock>
-          {blocks.map((block) => (
+          {readonlyBlocks.map((block) => (
             <InspectorField key={block.field} label={block.title} hint={block.hint}>
               <div className="pulso-inspector-logic-readout">
                 <pre>{block.value}</pre>

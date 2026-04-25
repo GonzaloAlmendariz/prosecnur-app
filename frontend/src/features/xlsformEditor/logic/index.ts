@@ -35,3 +35,13 @@ export {
   renameRef,
   walk,
 } from "./inspect";
+
+export type { LogicCatalog, LogicScope, LogicVariable } from "./builderTypes";
+export type { PredicateKind } from "./operators";
+export {
+  defaultPredicate,
+  predicateKey,
+  predicatesForType,
+} from "./operators";
+export type { FlatCondition } from "./conditionAdapter";
+export { expandCondition, tryFlattenCondition } from "./conditionAdapter";
