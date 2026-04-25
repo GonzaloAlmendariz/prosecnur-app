@@ -31,7 +31,7 @@ import {
   Type as TypeIcon,
 } from "lucide-react";
 import type { BuilderNode, ChoiceItem } from "../types";
-import { iconForType } from "../helpers/icons";
+import { ConditionalIcon, iconForType } from "../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
 import { typeLabel } from "../parsing/parseType";
 
@@ -75,7 +75,7 @@ export function PreviewQuestionCard({ node, choices, position }: PreviewQuestion
         )}
         {node.relevant && (
           <span className="pulso-canvas-card-conditional" title="Aparece bajo una condición">
-            👁 Condicional
+            <ConditionalIcon size={12} weight="thin" /> Condicional
           </span>
         )}
       </div>

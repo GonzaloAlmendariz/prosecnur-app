@@ -2439,3 +2439,61 @@ button.pulso-empty-home-card:focus-visible {
   color: var(--pulso-text);
   line-height: 1.5;
 }
+
+/* ============================================================================
+ * Indicador condicional en el outline + canvas
+ * Reemplaza al emoji "👁" por un icono "conditional rules" inline.
+ * `is-question` → trazo fino para no competir con el icono del tipo.
+ * `is-section` → trazo más marcado: la condición rige a todo el bloque.
+ * ========================================================================= */
+.pulso-outline-conditional {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  margin-left: 4px;
+  color: var(--pulso-primary);
+  background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.10));
+}
+.pulso-outline-conditional.is-section {
+  color: white;
+  background: var(--pulso-primary);
+}
+
+.pulso-canvas-card-conditional {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pulso-canvas-card-conditional svg {
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+ * Toggle "Pregunta obligatoria" — incluye estrella visual que se rellena al
+ * activar, igualando el badge ★ que aparece en el outline.
+ * ========================================================================= */
+.pulso-inspector-required-toggle {
+  align-items: center;
+  gap: 12px;
+}
+.pulso-inspector-required-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  flex-shrink: 0;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+.pulso-inspector-required-toggle.is-on .pulso-inspector-required-icon {
+  background: rgba(217, 119, 6, 0.12);
+  color: #d97706;
+  transform: scale(1.05);
+}

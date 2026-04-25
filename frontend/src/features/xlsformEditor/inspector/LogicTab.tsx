@@ -52,11 +52,15 @@ export function LogicTab({ node, onFieldChange }: LogicTabProps) {
       value: node.constraint,
     });
   }
-  if (isCalculate && node.calculation) {
+  // `calculation` solo aparece aquí si la fila NO es `calculate` (caso raro
+  // de fórmula en una pregunta normal heredada). Para las filas `calculate`,
+  // la fórmula vive en el tab Básico — es su característica principal, no
+  // una capa avanzada.
+  if (!isCalculate && node.calculation) {
     blocks.push({
       field: "calculation",
-      title: "Cómo se calcula",
-      hint: "Fórmula que el sistema evalúa para llenar el campo.",
+      title: "Fórmula heredada",
+      hint: "Esta fila tiene una fórmula importada. Pulso la preserva al exportar.",
       value: node.calculation,
     });
   }
@@ -79,10 +83,17 @@ export function LogicTab({ node, onFieldChange }: LogicTabProps) {
           <div>
             <strong>El constructor visual de lógica llega en una próxima fase.</strong>
             <p>
-              Por ahora, las condiciones (cuándo aparece, cómo se valida, cómo se
-              calcula) se importan desde el .xlsx y se preservan tal cual al
-              exportar. La edición visual estará disponible en la siguiente
-              iteración.
+              La idea es ofrecer dos modos: un <em>builder guiado</em> (lista
+              tipo dropdown con "se muestra si..." / "se valida con...") para los
+              casos rápidos, y un <em>canvas estilo Obsidian</em> para mapas más
+              complejos: bloques que se mueven, flechas entre preguntas y
+              secciones, dependencias declaradas, vista de árbol que deja ver de
+              un golpe cómo fluye el formulario.
+            </p>
+            <p>
+              Mientras tanto, las condiciones importadas (relevant, constraint,
+              calculation, choice_filter) se preservan al exportar. Acá las
+              puedes ver y limpiar selectivamente.
             </p>
           </div>
         </div>

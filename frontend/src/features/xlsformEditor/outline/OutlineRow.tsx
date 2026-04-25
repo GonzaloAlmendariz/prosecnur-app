@@ -17,7 +17,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 import type { BuilderNode } from "../types";
-import { iconForType } from "../helpers/icons";
+import { ConditionalIcon, iconForType } from "../helpers/icons";
 import { paletteForType } from "../helpers/paletteForType";
 import { typeLabel } from "../parsing/parseType";
 import { previewKindLabel } from "../parsing/buildIndex";
@@ -110,6 +110,32 @@ export function OutlineRow({
             {node.label && node.label !== node.name ? ` · ${node.label}` : ""}
           </span>
         </span>
+        {node.relevant && (
+          // Indicador visual de visibilidad condicional. Para secciones se
+          // dibuja con trazo más marcado (`bold`) — la condición rige todo
+          // un bloque y debe leerse antes que el contenido. Para preguntas
+          // se mantiene fino (`thin`) para no competir con el icono de tipo.
+          <span
+            className={`pulso-outline-conditional ${
+              node.kind === "section" || node.kind === "repeat"
+                ? "is-section"
+                : "is-question"
+            }`}
+            title={
+              node.kind === "section" || node.kind === "repeat"
+                ? "Sección con visibilidad condicional"
+                : "Pregunta condicional"
+            }
+            aria-label="Visibilidad condicional"
+          >
+            <ConditionalIcon
+              size={14}
+              weight={
+                node.kind === "section" || node.kind === "repeat" ? "bold" : "thin"
+              }
+            />
+          </span>
+        )}
         {node.required && (
           <span
             aria-label="Pregunta obligatoria"

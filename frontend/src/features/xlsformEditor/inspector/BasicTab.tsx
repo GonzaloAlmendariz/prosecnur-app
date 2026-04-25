@@ -12,6 +12,7 @@
 // La edición de catálogos no vive acá: el chip lleva al CatalogsContextLens.
 // =============================================================================
 
+import { Star } from "lucide-react";
 import type { BuilderNode, CatalogSummary } from "../types";
 import { TypePicker } from "./TypePicker";
 import { NameField } from "./NameField";
@@ -118,17 +119,53 @@ export function BasicTab({
         </InspectorBlock>
       )}
 
+      {/* Las filas `calculate` son campos automáticos: la fórmula es su
+          característica principal, no algo "avanzado". Por eso vive en
+          Básico (no en Lógica) — coincide con cómo el usuario las piensa
+          ("este campo se calcula con X", no "este campo tiene lógica X"). */}
+      {node.kind === "calculate" && (
+        <InspectorBlock>
+          <InspectorField
+            label="Cómo se calcula"
+            hint="Fórmula que el sistema evalúa para llenar este campo. Usa ${variable} para referenciar otras preguntas."
+          >
+            <textarea
+              rows={3}
+              value={node.calculation}
+              onChange={(event) => onFieldChange("calculation", event.target.value)}
+              placeholder="Ej. ${edad} * 12  ·  if(${respuesta}='si', 1, 0)"
+              spellCheck={false}
+              style={{ fontFamily: "ui-monospace, monospace", fontSize: 13 }}
+            />
+          </InspectorField>
+        </InspectorBlock>
+      )}
+
       {isQuestionLike && node.kind === "question" && (
         <InspectorBlock>
-          <label className="pulso-inspector-toggle">
+          <label
+            className={`pulso-inspector-toggle pulso-inspector-required-toggle ${
+              node.required ? "is-on" : ""
+            }`}
+          >
             <input
               type="checkbox"
               checked={node.required}
               onChange={(event) => onRequiredChange(event.target.checked)}
             />
+            <span className="pulso-inspector-required-icon" aria-hidden="true">
+              <Star
+                size={14}
+                fill={node.required ? "currentColor" : "none"}
+                strokeWidth={1.6}
+              />
+            </span>
             <span>
               <strong>Pregunta obligatoria</strong>
-              <em>El encuestado no puede avanzar sin responderla.</em>
+              <em>
+                Aparece marcada con <span aria-hidden="true">★</span> en la
+                estructura del cuestionario.
+              </em>
             </span>
           </label>
         </InspectorBlock>

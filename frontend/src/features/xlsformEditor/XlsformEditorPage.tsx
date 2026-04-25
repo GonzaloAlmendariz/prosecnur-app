@@ -114,6 +114,8 @@ import { PreviewCanvas } from "./canvas/PreviewCanvas";
 import { Inspector } from "./inspector/Inspector";
 import { ForeignLanguageBadge } from "./inspector/ForeignLanguageBadge";
 import { scanForeignLanguages } from "./parsing/languageScan";
+import { iconForType } from "./helpers/icons";
+import { paletteForType } from "./helpers/paletteForType";
 
 const QUESTION_TYPE_OPTIONS = [
   { value: "text", label: "Texto corto" },
@@ -915,68 +917,77 @@ export default function XlsformEditorPage() {
       })),
     [selectedNode?.rowIndex, structure]
   );
+  // Helper local — construye el icono del menú "+" reusando el mismo
+  // mapping (iconForType + paletteForType) que el outline. Así el usuario
+  // ve idéntico el "tipo" cuando lo agrega y cuando lo navega después.
+  const addMenuIcon = (baseType: string) => {
+    const Ico = iconForType(baseType);
+    const accent = paletteForType(baseType);
+    return <Ico size={16} color={accent} />;
+  };
+
   const addMenuItems: AddMenuItem[] = [
     {
       key: "section",
       label: "Sección",
       hint: "Agrupa preguntas y puede tener una condición propia.",
-      icon: <Layers3 size={16} />,
+      icon: addMenuIcon("begin_group"),
       action: addSection,
     },
     {
       key: "text",
       label: "Pregunta abierta",
       hint: "Texto libre para respuestas cortas o comentarios.",
-      icon: <Type size={16} />,
+      icon: addMenuIcon("text"),
       action: () => addQuestion("text"),
     },
     {
       key: "select_one",
       label: "Selección única",
       hint: "Una sola respuesta usando un catálogo de opciones.",
-      icon: <ListChecks size={16} />,
+      icon: addMenuIcon("select_one"),
       action: () => addQuestion("select_one"),
     },
     {
       key: "select_multiple",
       label: "Selección múltiple",
       hint: "Varias respuestas usando un catálogo reutilizable.",
-      icon: <CheckCircle2 size={16} />,
+      icon: addMenuIcon("select_multiple"),
       action: () => addQuestion("select_multiple"),
     },
     {
       key: "integer",
       label: "Número entero",
       hint: "Edad, cantidades, puntajes u otros valores sin decimales.",
-      icon: <Hash size={16} />,
+      icon: addMenuIcon("integer"),
       action: () => addQuestion("integer"),
     },
     {
       key: "decimal",
       label: "Número decimal",
       hint: "Montos, proporciones o medidas con decimales.",
-      icon: <Hash size={16} />,
+      icon: addMenuIcon("decimal"),
       action: () => addQuestion("decimal"),
     },
     {
       key: "date",
       label: "Fecha",
       hint: "Fechas de atención, nacimiento, visita o eventos.",
-      icon: <CalendarDays size={16} />,
+      icon: addMenuIcon("date"),
       action: () => addQuestion("date"),
     },
     {
       key: "note",
       label: "Texto informativo",
       hint: "Instrucciones o mensajes que no guardan respuesta.",
-      icon: <FileSpreadsheet size={16} />,
+      icon: addMenuIcon("note"),
       action: () => addQuestion("note"),
     },
     {
       key: "calculate",
       label: "Cálculo",
       hint: "Variable automática basada en otras respuestas.",
-      icon: <Settings2 size={16} />,
+      icon: addMenuIcon("calculate"),
       action: () => addQuestion("calculate"),
     },
   ];
