@@ -747,26 +747,42 @@ export function layoutLogicGraph(
     }
   });
 
-  // 5.11 Para Mode A (target sección), además del stride en Y
-  // distribuimos el punto de entrada en X a lo largo del top edge
-  // de la sección. Antes TODAS las flechas Mode A a una misma
-  // sección entraban en `tgt.cx` (centro), apilando arrowheads en
-  // el mismo punto. Ahora cada unidad recibe un slot distinto
-  // — la entrada N de M se ubica en `tgt.x + (N+1)/(M+1) * tgt.width`,
-  // distribuyendo en el 60% central del top edge.
-  // Edges del mismo bundle (mismo unitKey) comparten slot →
-  // mantienen overlap intencional. Diferentes unidades al mismo
-  // target reciben slots distintos → desembocan en X diferentes.
+  // 5.11 Para Mode A (target sección): distribuir entry X a lo largo
+  // del top/bottom edge.
+  // 5.12 Para Mode D (target var, back-edge): distribuir entry Y a lo
+  // largo del lateral derecho (o izquierdo) del card.
+  //
+  // Antes el problema era que aunque mergeOffset estaba estriado
+  // en X (V tramos separados), TODOS los edges convergían al mismo
+  // punto final: Mode A a `tgt.cx`, Mode D a `tgt.cy`. Resultado:
+  // arrowheads apilados en un solo punto aunque las V estaban
+  // separadas. Ahora cada bundle tiene su propio "dock" en el edge
+  // del target.
   const sectionEntryXByEdge = new Map<string, number>();
+  const varEntryYByEdge = new Map<string, number>();
+  // Index resolved por edge → pos para rápido lookup en allocators.
+  const edgeIndexById = new Map<string, number>();
+  resolved.forEach((r, i) => {
+    edgeIndexById.set(`${r.src.node.id}->${r.tgt.node.id}`, i);
+  });
+  // Recolectar unidades distintas por target separadas por modo.
   const modeASectionUnits = new Map<string, string[]>();
+  const modeDVarUnits = new Map<string, string[]>();
   resolved.forEach((r, i) => {
     const meta = edgeMeta[i]!;
-    if (meta.mode !== "section") return;
-    const tId = r.tgt.node.id;
-    if (!modeASectionUnits.has(tId)) modeASectionUnits.set(tId, []);
-    const arr = modeASectionUnits.get(tId)!;
-    if (!arr.includes(meta.unitKey)) arr.push(meta.unitKey);
+    if (meta.mode === "section") {
+      const tId = r.tgt.node.id;
+      if (!modeASectionUnits.has(tId)) modeASectionUnits.set(tId, []);
+      const arr = modeASectionUnits.get(tId)!;
+      if (!arr.includes(meta.unitKey)) arr.push(meta.unitKey);
+    } else if (meta.mode === "lane" && r.tgt.node.kind !== "section") {
+      const tId = r.tgt.node.id;
+      if (!modeDVarUnits.has(tId)) modeDVarUnits.set(tId, []);
+      const arr = modeDVarUnits.get(tId)!;
+      if (!arr.includes(meta.unitKey)) arr.push(meta.unitKey);
+    }
   });
+  // Mode A entry X distribution (top/bottom edge).
   for (const [tId, units] of modeASectionUnits) {
     const placedTgt = positionByNodeId.get(tId);
     if (!placedTgt) continue;
@@ -780,12 +796,46 @@ export function layoutLogicGraph(
         offsetInWidth = start + (idx * usable) / (units.length - 1);
       }
       const entryX = placedTgt.x + offsetInWidth;
-      // Marcar todos los edges con este unitKey y este target.
       for (const r of resolved) {
-        if (r.tgt.node.id === tId && edgeMeta[resolved.indexOf(r)]!.unitKey === unitKey) {
+        const idx2 = edgeIndexById.get(
+          `${r.src.node.id}->${r.tgt.node.id}`,
+        );
+        if (idx2 == null) continue;
+        if (r.tgt.node.id === tId && edgeMeta[idx2]!.unitKey === unitKey) {
           sectionEntryXByEdge.set(
             `${r.src.node.id}->${r.tgt.node.id}`,
             entryX,
+          );
+        }
+      }
+    });
+  }
+  // Mode D var entry Y distribution (lateral edge). Distribuir en
+  // el 65% central del card height — más generoso que Mode A
+  // porque las cards de pregunta son más cortas en Y.
+  for (const [tId, units] of modeDVarUnits) {
+    const placedTgt = positionByNodeId.get(tId);
+    if (!placedTgt) continue;
+    const headerH = Math.min(placedTgt.height, options.rowHeight);
+    const usable = headerH * 0.65;
+    const start = (headerH - usable) / 2;
+    units.forEach((unitKey, idx) => {
+      let yOffset: number;
+      if (units.length === 1) {
+        yOffset = headerH / 2;
+      } else {
+        yOffset = start + (idx * usable) / (units.length - 1);
+      }
+      const entryY = placedTgt.y + yOffset;
+      for (const r of resolved) {
+        const idx2 = edgeIndexById.get(
+          `${r.src.node.id}->${r.tgt.node.id}`,
+        );
+        if (idx2 == null) continue;
+        if (r.tgt.node.id === tId && edgeMeta[idx2]!.unitKey === unitKey) {
+          varEntryYByEdge.set(
+            `${r.src.node.id}->${r.tgt.node.id}`,
+            entryY,
           );
         }
       }
@@ -852,6 +902,7 @@ export function layoutLogicGraph(
           laneY: meta.laneY!,
           laneSide: meta.laneSide!,
           mergeOffset: effectiveMergeOffset,
+          entryY: varEntryYByEdge.get(edgeKey),
           options,
         });
         break;
@@ -1071,6 +1122,11 @@ type RouteLongLaneInput = {
    *  Per-edge stride para evitar que múltiples flechas al mismo
    *  target se apilen al mismo X. */
   mergeOffset: number;
+  /** Y de entrada al lateral del target. Por defecto es el centro
+   *  (`tgt.cy`). El allocator (5.12) lo distribuye verticalmente a
+   *  lo largo del lateral cuando varios bundles entran al mismo
+   *  var target — cada bundle tiene su propio dock. */
+  entryY?: number;
   options: LayoutOptions;
 };
 
@@ -1079,21 +1135,23 @@ function routeLongLane(input: RouteLongLaneInput): {
   midX: number;
   midY: number;
 } {
-  const { src, tgt, srcX, srcY, laneY, laneSide, mergeOffset, options } = input;
+  const { src, tgt, srcX, srcY, laneY, laneSide, mergeOffset, entryY, options } =
+    input;
   void src;
   const r = options.cornerRadius;
 
   // Forward (target a la der) → entrada lateral izq.
   // Back-edge (target a la izq) → entrada lateral der.
   let tX: number, tY: number, mergeX: number, mergeY: number;
+  const tgtCY = entryY ?? tgt.y + tgt.height / 2;
   if (srcX < tgt.x) {
     tX = tgt.x;
-    tY = tgt.y + tgt.height / 2;
+    tY = tgtCY;
     mergeX = tX - mergeOffset;
     mergeY = tY;
   } else {
     tX = tgt.x + tgt.width;
-    tY = tgt.y + tgt.height / 2;
+    tY = tgtCY;
     mergeX = tX + mergeOffset;
     mergeY = tY;
   }
