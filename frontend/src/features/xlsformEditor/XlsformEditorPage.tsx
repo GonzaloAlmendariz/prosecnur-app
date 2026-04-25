@@ -28,6 +28,7 @@ import {
   Type,
   Upload,
   Wand2,
+  Workflow,
 } from "lucide-react";
 import {
   apiUpload,
@@ -121,6 +122,7 @@ import type {
   LogicScope,
   LogicVariable,
 } from "./logic";
+import { LogicCanvas } from "./canvas-graph/LogicCanvas";
 
 const QUESTION_TYPE_OPTIONS = [
   { value: "text", label: "Texto corto" },
@@ -195,6 +197,9 @@ export default function XlsformEditorPage() {
   /** Si está abierto el ContextLens de catálogos. Click en el botón
    *  "Catálogos" del header del constructor lo abre; el lens lo cierra. */
   const [catalogsLensOpen, setCatalogsLensOpen] = useState(false);
+  /** Si está abierto el overlay del mapa de lógica (canvas Obsidian-style).
+   *  Se accede desde el botón "Mapa de lógica" del header del constructor. */
+  const [logicCanvasOpen, setLogicCanvasOpen] = useState(false);
   /** Snapshot del autosave detectado al montar; muestra UI de "continuar". */
   const [restoreOffer, setRestoreOffer] = useState<ReturnType<typeof loadSnapshot>>(null);
   const xlsInputRef = useRef<HTMLInputElement | null>(null);
@@ -1205,6 +1210,15 @@ export default function XlsformEditorPage() {
               <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <button
                   type="button"
+                  onClick={() => setLogicCanvasOpen(true)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                  title="Ver el grafo de dependencias del formulario"
+                >
+                  <Workflow size={14} />
+                  Mapa de lógica
+                </button>
+                <button
+                  type="button"
                   onClick={() => setCatalogsLensOpen(true)}
                   style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
                   title="Editar listas de opciones"
@@ -1491,6 +1505,17 @@ export default function XlsformEditorPage() {
             onDeleteCatalog={deleteCatalogAction}
           />
         )}
+      />
+
+      {/* Mapa de lógica — overlay full-screen estilo Obsidian. Se monta
+          siempre (no se desmonta al cerrar) para preservar zoom/pan entre
+          aperturas. La condición open={logicCanvasOpen} lo oculta. */}
+      <LogicCanvas
+        open={logicCanvasOpen}
+        onClose={() => setLogicCanvasOpen(false)}
+        structure={structure}
+        catalogs={catalogs}
+        onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
       />
 
       {/* Toasts deslizables: mensajes efímeros de operaciones (import/export).
