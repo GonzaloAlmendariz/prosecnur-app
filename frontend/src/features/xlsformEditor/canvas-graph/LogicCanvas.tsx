@@ -667,7 +667,18 @@ export function LogicCanvas({
                 oculta sec↔sec / var→sec) actúa como atenuación —
                 nunca eliminamos edges del DOM para que el grafo no
                 "pulse" al cambiar el filtro. */}
+            {/* Bundle-aware selection: cuando hay un edge seleccionado,
+                identificamos su `unitKey` y consideramos seleccionados
+                a TODOS los edges con ese mismo unitKey (representan la
+                misma condición lógica que se desbranda a varios
+                targets — son una sola flecha conceptual). Click en
+                cualquiera de las ramas resalta el bundle entero. */}
+            {(() => null)()}
             {layout?.edges.map((edge, idx) => {
+              const selectedUnitKey =
+                selectedEdgeIdx !== null
+                  ? layout.edges[selectedEdgeIdx]?.unitKey ?? null
+                  : null;
               const isMacroEdge =
                 edge.edge.relation === "section-to-section" ||
                 edge.edge.relation === "variable-to-section" ||
@@ -676,14 +687,16 @@ export function LogicCanvas({
                 edgeFilter === "all" ||
                 (edgeFilter === "macro" && isMacroEdge) ||
                 (edgeFilter === "micro" && !isMacroEdge);
-              // Aislamiento on-click: sólo cuando el usuario clica
-              // explícitamente una rama (selectedEdgeIdx) entran las
-              // demás en estado "dimmed". El select de nodo dejó de
-              // atenuar — abrir el detalle no debe oscurecer el lienzo.
+              // Aislamiento on-click: cuando el usuario selecciona una
+              // rama, dim a TODO lo que NO es del mismo bundle. Edges
+              // del mismo bundle (mismo unitKey) se quedan brillando
+              // juntos.
+              const inSelectedBundle =
+                selectedUnitKey !== null && edge.unitKey === selectedUnitKey;
               const isClickIsolated =
-                selectedEdgeIdx !== null && selectedEdgeIdx !== idx;
+                selectedUnitKey !== null && !inSelectedBundle;
               const isHL =
-                selectedEdgeIdx === idx ||
+                inSelectedBundle ||
                 (!!selectedId &&
                   (edge.edge.source === selectedId ||
                     edge.edge.target === selectedId));
@@ -708,11 +721,19 @@ export function LogicCanvas({
                   dimmed={isDM}
                   justAppeared={freshEdgeKey === edgeKey}
                   appearanceIndex={idx}
-                  isSelected={selectedEdgeIdx === idx}
+                  isSelected={inSelectedBundle}
                   onHover={(h) => setHoveredEdgeIdx(h ? idx : null)}
-                  onClick={() =>
-                    setSelectedEdgeIdx((cur) => (cur === idx ? null : idx))
-                  }
+                  onClick={() => {
+                    setSelectedEdgeIdx((cur) => {
+                      if (cur === null) return idx;
+                      // Si ya hay una rama del mismo bundle
+                      // seleccionada, des-seleccionar; si es de otro
+                      // bundle, cambiar a éste.
+                      const curUnit = layout?.edges[cur]?.unitKey;
+                      if (curUnit && curUnit === edge.unitKey) return null;
+                      return idx;
+                    });
+                  }}
                 />
               );
             })}
@@ -1528,102 +1549,149 @@ export function LogicCanvas({
           );
         })()}
 
-        {/* Panel de RELACIÓN (edge) — aparece al hacer click en una
-            flecha. Vive como DOM fijo en el viewport, no se mueve con
-            pan/zoom del canvas. Muestra la condición narrada en
-            español, source y target con iconos, y botón para editar
-            (re-abre `ConnectionConditionPicker` sobre el target). */}
+        {/* Panel de RELACIÓN LÓGICA — bundle-aware.
+            Cuando se selecciona una flecha, identificamos TODOS los
+            edges del mismo bundle (mismo `unitKey`) y mostramos la
+            relación lógica COMPLETA: todas las sources que originan
+            la condición + todos los targets a los que desemboca.
+            Conceptualmente es UNA SOLA flecha que se desbranda — el
+            panel lo refleja así con secciones "Origen(es)" + "Destino(s)".
+            Vive en posición fija, no se mueve con pan/zoom. */}
         {selectedEdgeIdx !== null && layout && graph && (() => {
-          const edge = layout.edges[selectedEdgeIdx];
-          if (!edge) return null;
-          const src = graph.byId.get(edge.edge.source);
-          const tgt = graph.byId.get(edge.edge.target);
-          if (!src || !tgt) return null;
-          const expr = tgt.relevantExpression ?? "";
+          const clickedEdge = layout.edges[selectedEdgeIdx];
+          if (!clickedEdge) return null;
+          // Recolectar TODOS los edges del bundle.
+          const bundleEdges = layout.edges.filter(
+            (e) => e.unitKey === clickedEdge.unitKey,
+          );
+          if (bundleEdges.length === 0) return null;
+          // Sources únicos (orden de aparición).
+          const seenSrc = new Set<string>();
+          const sources: GraphNode[] = [];
+          for (const e of bundleEdges) {
+            if (seenSrc.has(e.edge.source)) continue;
+            seenSrc.add(e.edge.source);
+            const node = graph.byId.get(e.edge.source);
+            if (node) sources.push(node);
+          }
+          // Targets únicos (orden de aparición).
+          const seenTgt = new Set<string>();
+          const targets: GraphNode[] = [];
+          for (const e of bundleEdges) {
+            if (seenTgt.has(e.edge.target)) continue;
+            seenTgt.add(e.edge.target);
+            const node = graph.byId.get(e.edge.target);
+            if (node) targets.push(node);
+          }
+          if (sources.length === 0 || targets.length === 0) return null;
+          // La expresión es la del target (todos los targets del
+          // bundle comparten expresión por definición).
+          const expr = targets[0]!.relevantExpression ?? "";
           const human = humanizeRelevant(expr);
-          const verb =
-            tgt.kind === "section"
+          // Verbo según los targets: si todos son secciones, "abre
+          // la(s) sección(es)"; si todos son preguntas, "muestra
+          // la(s) pregunta(s)"; si mixto, "habilita".
+          const allSections = targets.every((t) => t.kind === "section");
+          const allQuestions = targets.every((t) => t.kind === "question");
+          const verb = allSections
+            ? targets.length === 1
               ? "abre la sección"
-              : "muestra la pregunta";
+              : "abren las secciones"
+            : allQuestions
+              ? targets.length === 1
+                ? "muestra la pregunta"
+                : "muestran las preguntas"
+              : "habilitan";
           return (
             <aside className="pulso-graph-edge-panel">
               <header>
                 <span className="pulso-graph-edge-panel-eyebrow">
                   Relación lógica
+                  {bundleEdges.length > 1 && (
+                    <span className="pulso-graph-edge-panel-bundle-count">
+                      {" · "}
+                      {bundleEdges.length} ramas
+                    </span>
+                  )}
                 </span>
                 <button
                   type="button"
                   className="pulso-icon"
                   onClick={() => setSelectedEdgeIdx(null)}
-                  title="Cerrar"
+                  title="Cerrar (Esc)"
                   aria-label="Cerrar"
                 >
                   <X size={12} />
                 </button>
               </header>
 
-              {/* Visualización de la flecha: source → target con sus
-                  iconos y nombres, conectados por una flecha
-                  horizontal. */}
-              <div className="pulso-graph-edge-panel-flow">
-                <div
-                  className={`pulso-graph-edge-panel-card pulso-graph-edge-panel-card-${src.kind}`}
-                >
-                  <span className="pulso-graph-edge-panel-card-icon">
-                    {src.kind === "section" ? (
-                      <Folder size={14} />
-                    ) : (
-                      <CircleDot size={14} />
-                    )}
-                  </span>
-                  <div className="pulso-graph-edge-panel-card-text">
-                    <strong>{src.title || src.name}</strong>
-                    <code>{src.name}</code>
-                  </div>
-                </div>
-                <div className="pulso-graph-edge-panel-arrow">
-                  <svg width={36} height={12} aria-hidden="true">
-                    <line
-                      x1={0}
-                      y1={6}
-                      x2={28}
-                      y2={6}
-                      stroke="var(--pulso-primary)"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M 28 2 L 36 6 L 28 10 Z"
-                      fill="var(--pulso-primary)"
-                    />
-                  </svg>
-                </div>
-                <div
-                  className={`pulso-graph-edge-panel-card pulso-graph-edge-panel-card-${tgt.kind}`}
-                >
-                  <span className="pulso-graph-edge-panel-card-icon">
-                    {tgt.kind === "section" ? (
-                      <Folder size={14} />
-                    ) : (
-                      <CircleDot size={14} />
-                    )}
-                  </span>
-                  <div className="pulso-graph-edge-panel-card-text">
-                    <strong>{tgt.title || tgt.name}</strong>
-                    <code>{tgt.name}</code>
-                  </div>
+              {/* Bloque ORIGEN(ES) — uno o varios sources. */}
+              <div className="pulso-graph-edge-panel-block">
+                <span className="pulso-graph-edge-panel-block-label">
+                  {sources.length === 1 ? "Origen" : "Orígenes"}
+                </span>
+                <div className="pulso-graph-edge-panel-cards">
+                  {sources.map((src) => (
+                    <div
+                      key={src.id}
+                      className={`pulso-graph-edge-panel-card pulso-graph-edge-panel-card-${src.kind}`}
+                    >
+                      <span className="pulso-graph-edge-panel-card-icon">
+                        {src.kind === "section" ? (
+                          <Folder size={14} />
+                        ) : (
+                          <CircleDot size={14} />
+                        )}
+                      </span>
+                      <div className="pulso-graph-edge-panel-card-text">
+                        <strong>{src.title || src.name}</strong>
+                        <code>{src.name}</code>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Narrativa en lenguaje humano. */}
+              {/* Narrativa que combina todo. */}
               <div className="pulso-graph-edge-panel-narrative">
                 <p>
-                  Cuando se cumple la condición{" "}
+                  Cuando se cumple{" "}
                   <code className="pulso-graph-edge-panel-cond">{human}</code>
                   {", "}
-                  <strong>{verb}</strong>{" "}
-                  <code>{tgt.name}</code>.
+                  <strong>{verb}</strong>{":"}
                 </p>
+              </div>
+
+              {/* Bloque DESTINO(S) — todos los targets del bundle. */}
+              <div className="pulso-graph-edge-panel-block">
+                <span className="pulso-graph-edge-panel-block-label">
+                  {targets.length === 1
+                    ? "Destino"
+                    : `${targets.length} destinos`}
+                </span>
+                <div className="pulso-graph-edge-panel-cards">
+                  {targets.map((tgt) => (
+                    <button
+                      key={tgt.id}
+                      type="button"
+                      className={`pulso-graph-edge-panel-card pulso-graph-edge-panel-card-${tgt.kind} pulso-graph-edge-panel-card-clickable`}
+                      onClick={() => setSelectedId(tgt.id)}
+                      title={`Ver detalle de ${tgt.name}`}
+                    >
+                      <span className="pulso-graph-edge-panel-card-icon">
+                        {tgt.kind === "section" ? (
+                          <Folder size={14} />
+                        ) : (
+                          <CircleDot size={14} />
+                        )}
+                      </span>
+                      <div className="pulso-graph-edge-panel-card-text">
+                        <strong>{tgt.title || tgt.name}</strong>
+                        <code>{tgt.name}</code>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Acciones */}
@@ -1633,13 +1701,22 @@ export function LogicCanvas({
                     type="button"
                     className="pulso-graph-edge-panel-btn"
                     onClick={() => {
-                      // Reabre el picker sobre el target. La nueva
-                      // condición sobreescribirá la actual.
+                      // Reabre el picker sobre el target del edge
+                      // clicado. La nueva condición REEMPLAZA la
+                      // existente para ese target específico — para
+                      // editar otra rama el usuario debe seleccionarla.
+                      const clickedTgt = graph.byId.get(
+                        clickedEdge.edge.target,
+                      );
+                      const clickedSrc = graph.byId.get(
+                        clickedEdge.edge.source,
+                      );
+                      if (!clickedTgt || !clickedSrc) return;
                       const rect =
                         svgRef.current?.getBoundingClientRect();
                       setConnectPicker({
-                        sourceId: src.id,
-                        targetId: tgt.id,
+                        sourceId: clickedSrc.id,
+                        targetId: clickedTgt.id,
                         screenX: (rect?.left ?? 0) + (rect?.width ?? 600) / 2,
                         screenY: (rect?.top ?? 0) + 100,
                       });
@@ -1647,18 +1724,6 @@ export function LogicCanvas({
                     }}
                   >
                     <Pencil size={12} /> Editar condición
-                  </button>
-                )}
-                {onSelectRow && (
-                  <button
-                    type="button"
-                    className="pulso-graph-edge-panel-btn pulso-graph-edge-panel-btn-secondary"
-                    onClick={() => {
-                      onSelectRow(tgt.rowIndex);
-                      onClose();
-                    }}
-                  >
-                    <Edit3 size={12} /> Ir al destino
                   </button>
                 )}
               </div>

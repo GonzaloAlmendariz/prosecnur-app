@@ -44,10 +44,20 @@ export type LaidOutEdge = {
   midY: number;
   /** Índice del color de Tableau-10 según orden de aparición de la
    *  expresión `relevant`. `null` para expresiones genéricas
-   *  (`${X} != ''`) — esas usan el color neutro. Antes el color se
-   *  derivaba de un hash con colisiones; ahora las primeras 10
-   *  expresiones distintas reciben colores únicos garantizados. */
+   *  (`${X} != ''`) — esas usan el color neutro. */
   colorIndex: number | null;
+  /** Identificador de la "unidad de bundle" a la que pertenece este
+   *  edge. Edges con el mismo `unitKey` representan ramas de la
+   *  MISMA condición lógica (visual y conceptualmente una sola
+   *  flecha que desemboca en varios targets). Formato:
+   *  `${mode}::${expr}` para bundleables, `loose:${i}` para
+   *  edges con expresión única. La UI usa esto para:
+   *    · Bundle-aware selection: click en una rama selecciona
+   *      todas las del bundle.
+   *    · Highlight conjunto: todas las ramas del bundle se
+   *      resaltan juntas como "una sola flecha".
+   *    · Panel agregado: muestra todos los targets del bundle. */
+  unitKey: string;
   fromBBox: { x: number; y: number; width: number; height: number };
   toBBox: { x: number; y: number; width: number; height: number };
 };
@@ -809,6 +819,7 @@ export function layoutLogicGraph(
       midX: pathInfo.midX,
       midY: pathInfo.midY,
       colorIndex: colorIdx,
+      unitKey: meta.unitKey,
       fromBBox: {
         x: r.src.x,
         y: r.src.y,

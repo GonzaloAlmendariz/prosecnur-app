@@ -4677,7 +4677,8 @@ button.pulso-empty-home-card:focus-visible {
   color: var(--pulso-primary);
 }
 
-/* Visual flow: src → tgt cards conectadas por flecha */
+/* Visual flow: src → tgt cards conectadas por flecha (deprecado —
+ * ahora usamos `pulso-graph-edge-panel-block` con cards stack). */
 .pulso-graph-edge-panel-flow {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -4687,6 +4688,52 @@ button.pulso-empty-home-card:focus-visible {
   background: var(--pulso-surface-2);
   border-radius: 9px;
   border: 1px solid var(--pulso-border);
+}
+
+/* Bloques Origen / Destino — cada uno puede tener N cards. */
+.pulso-graph-edge-panel-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pulso-graph-edge-panel-block-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+.pulso-graph-edge-panel-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pulso-graph-edge-panel-card-clickable {
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 100ms ease;
+}
+.pulso-graph-edge-panel-card-clickable:hover {
+  background: rgba(36, 87, 214, 0.05);
+  border-color: var(--pulso-primary);
+  transform: translateX(2px);
+}
+.pulso-graph-edge-panel-card-clickable.pulso-graph-edge-panel-card-section:hover {
+  background: rgba(15, 118, 110, 0.06);
+  border-color: rgba(15, 118, 110, 0.5);
+}
+
+/* Contador de ramas en eyebrow. */
+.pulso-graph-edge-panel-bundle-count {
+  font-weight: 500;
+  color: var(--pulso-text-soft);
+  text-transform: none;
+  letter-spacing: 0;
 }
 .pulso-graph-edge-panel-card {
   display: flex;
