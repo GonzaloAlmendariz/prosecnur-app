@@ -1325,22 +1325,44 @@ export function LogicCanvas({
           return (
             <aside className="pulso-graph-detail">
               <header>
-                <strong>{selectedNode.title || selectedNode.subtitle}</strong>
+                <span
+                  className="pulso-graph-detail-avatar"
+                  style={{
+                    background:
+                      selectedNode.kind === "section"
+                        ? "rgba(15, 118, 110, 0.12)"
+                        : "rgba(36, 87, 214, 0.12)",
+                    color:
+                      selectedNode.kind === "section"
+                        ? "#0f766e"
+                        : "var(--pulso-primary)",
+                  }}
+                  aria-hidden="true"
+                >
+                  {selectedNode.kind === "section" ? (
+                    <Folder size={16} strokeWidth={2.2} />
+                  ) : (
+                    <CircleDot size={16} strokeWidth={2.2} />
+                  )}
+                </span>
+                <div className="pulso-graph-detail-title">
+                  <strong>{selectedNode.title || selectedNode.subtitle}</strong>
+                  <span>
+                    {selectedNode.kind === "section" ? "Sección" : "Pregunta"}
+                    {" · "}
+                    <code>{selectedNode.name}</code>
+                  </span>
+                </div>
                 <button
                   type="button"
                   className="pulso-icon"
                   onClick={() => setSelectedId(null)}
-                  title="Cerrar detalle"
+                  title="Cerrar detalle (Esc)"
                   aria-label="Cerrar detalle"
                 >
                   <X size={12} />
                 </button>
               </header>
-              <p>
-                {selectedNode.kind === "section" ? "Sección" : "Pregunta"}
-                {" · "}
-                <code>{selectedNode.name}</code>
-              </p>
               {selectedNode.kind === "question" &&
                 selectedNode.catalogContext && (
                   <p>

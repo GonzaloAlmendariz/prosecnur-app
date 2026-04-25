@@ -5126,6 +5126,48 @@ button.pulso-empty-home-card:focus-visible {
   color: var(--pulso-primary);
 }
 
+/* ─── Detail panel: avatar visual ───────────────────────────────── */
+.pulso-graph-detail-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pulso-graph-detail-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.pulso-graph-detail-title strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pulso-graph-detail-title span {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pulso-graph-detail-title code {
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px;
+}
+.pulso-graph-detail header {
+  align-items: flex-start !important;
+  gap: 10px !important;
+}
+
 /* ─── Mini-map ──────────────────────────────────────────────────── */
 .pulso-graph-minimap {
   position: absolute;
