@@ -2961,3 +2961,50 @@ button.pulso-empty-home-card:focus-visible {
   border-color: var(--pulso-border);
   cursor: not-allowed;
 }
+
+/* ============================================================================
+ * Constraint builder (F2-3) — chip read-only "Tu respuesta" en lugar del
+ * VariablePicker. El lhs de toda regla constraint es `.` (la respuesta de
+ * la pregunta misma), entonces solo mostramos un indicador visual del tipo.
+ * ========================================================================= */
+.pulso-logic-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  font-size: 12px;
+  color: var(--pulso-text);
+  min-width: 0;
+}
+.pulso-logic-current-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pulso-logic-current-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulso-logic-current-text strong {
+  font-weight: 600;
+  font-size: 12px;
+}
+.pulso-logic-current-text em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}

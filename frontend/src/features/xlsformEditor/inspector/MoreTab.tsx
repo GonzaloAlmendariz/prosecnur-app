@@ -63,7 +63,7 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
           <InspectorBlock>
             <InspectorField
               label="Mensaje cuando es obligatoria"
-              hint="Se muestra si el encuestado intenta avanzar sin responder."
+              hint="Se muestra si el encuestado intenta avanzar sin responder. El mensaje de validación vive en la tab Lógica, junto a la regla."
             >
               <input
                 type="text"
@@ -72,20 +72,6 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
                 }
                 onChange={(event) => onFieldChange("required_message", event.target.value)}
                 placeholder="Ej. Por favor responde para continuar."
-              />
-            </InspectorField>
-
-            <InspectorField
-              label="Mensaje cuando la respuesta no es válida"
-              hint="Se muestra si la respuesta no cumple la validación."
-            >
-              <input
-                type="text"
-                value={
-                  (node as BuilderNode & { constraint_message?: string }).constraint_message ?? ""
-                }
-                onChange={(event) => onFieldChange("constraint_message", event.target.value)}
-                placeholder="Ej. Ingresa un número entre 18 y 65."
               />
             </InspectorField>
           </InspectorBlock>

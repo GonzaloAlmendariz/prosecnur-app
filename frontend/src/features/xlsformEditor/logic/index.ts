@@ -43,5 +43,10 @@ export {
   predicateKey,
   predicatesForType,
 } from "./operators";
-export type { FlatCondition } from "./conditionAdapter";
-export { expandCondition, tryFlattenCondition } from "./conditionAdapter";
+export type { FlatCondition, FlatConstraint } from "./conditionAdapter";
+export {
+  expandCondition,
+  expandConstraint,
+  tryFlattenCondition,
+  tryFlattenConstraint,
+} from "./conditionAdapter";

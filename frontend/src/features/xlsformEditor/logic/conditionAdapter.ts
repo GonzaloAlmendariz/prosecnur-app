@@ -116,6 +116,61 @@ export function expandCondition(cond: FlatCondition): Expr {
   };
 }
 
+// ----------------------------------------------------------------------------
+// Constraint: el lhs es siempre `.` (current value de la pregunta misma).
+// El rhs sigue siendo literal o ref a otra variable.
+// ----------------------------------------------------------------------------
+
+export type FlatConstraint = {
+  predicate: PredicateKind;
+  value:
+    | { kind: "literal"; raw: string }
+    | { kind: "ref"; variableName: string };
+};
+
+/**
+ * Aplana una expresión constraint a un par {predicado, valor} cuando
+ * encaja en `. <op> X`. Si no, devuelve null y el caller usa la caja
+ * read-only.
+ */
+export function tryFlattenConstraint(expr: Expr): FlatConstraint | null {
+  if (expr.kind === "compare" && expr.left.kind === "current") {
+    if (expr.right.kind === "literal") {
+      return {
+        predicate: { kind: "compare", op: expr.op, label: opLabel(expr.op) },
+        value: { kind: "literal", raw: String(expr.right.value) },
+      };
+    }
+    if (expr.right.kind === "ref") {
+      return {
+        predicate: { kind: "compare", op: expr.op, label: opLabel(expr.op) },
+        value: { kind: "ref", variableName: expr.right.name },
+      };
+    }
+  }
+  return null;
+}
+
+/** Inversa de `tryFlattenConstraint`. Solo soporta compare (no selected). */
+export function expandConstraint(c: FlatConstraint): Expr {
+  if (c.predicate.kind !== "compare") {
+    // Defensivo — los predicados selected/not_selected no aplican a `.`.
+    // Caemos a `=` para no romper.
+    return {
+      kind: "compare",
+      op: "=",
+      left: { kind: "current" },
+      right: valueExpr(c.value),
+    };
+  }
+  return {
+    kind: "compare",
+    op: c.predicate.op,
+    left: { kind: "current" },
+    right: valueExpr(c.value),
+  };
+}
+
 function valueExpr(v: FlatCondition["value"]): Expr {
   if (v.kind === "ref") return { kind: "ref", name: v.variableName };
   // Detección heurística de tipo del literal — si es un número parseable
