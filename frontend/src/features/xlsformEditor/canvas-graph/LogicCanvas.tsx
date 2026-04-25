@@ -679,6 +679,7 @@ export function LogicCanvas({
                   dimmed={isDM}
                   justAppeared={freshEdgeKey === edgeKey}
                   appearanceIndex={idx}
+                  isSelected={selectedEdgeIdx === idx}
                   onHover={(h) => setHoveredEdgeIdx(h ? idx : null)}
                   onClick={() =>
                     setSelectedEdgeIdx((cur) => (cur === idx ? null : idx))

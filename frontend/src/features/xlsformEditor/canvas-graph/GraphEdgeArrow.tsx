@@ -39,6 +39,10 @@ export type GraphEdgeArrowProps = {
   /** Index dentro del layout — usado para stagger de aparición
    *  inicial. Edges con index alto entran un poco después. */
   appearanceIndex?: number;
+  /** Si true, este edge fue clicado y está aislado — render extra
+   *  con halo glow y stroke ligeramente más ancho para destacarlo
+   *  contra los edges atenuados. */
+  isSelected?: boolean;
   onHover?: (hovering: boolean) => void;
   /** Click en la rama → aísla esa relación (otras se atenúan). */
   onClick?: () => void;
@@ -104,6 +108,7 @@ export function GraphEdgeArrow({
   dimmed,
   justAppeared,
   appearanceIndex = 0,
+  isSelected,
   onHover,
   onClick,
 }: GraphEdgeArrowProps) {
@@ -121,7 +126,11 @@ export function GraphEdgeArrow({
   // siendo agresivo (0.16) para que el contraste de selección se
   // mantenga.
   const opacity = dimmed ? 0.16 : highlighted ? 1 : 0.95;
-  const strokeWidth = highlighted ? STROKE_WIDTH + 0.8 : STROKE_WIDTH;
+  const strokeWidth = isSelected
+    ? STROKE_WIDTH + 1.2
+    : highlighted
+      ? STROKE_WIDTH + 0.8
+      : STROKE_WIDTH;
   // Dashed solo para conexiones var↔var (entre preguntas individuales).
   // Las que tocan secciones (sec→sec, var→sec, sec→var) van sólidas
   // porque son las "macro" y deben leerse más fuerte visualmente.
@@ -131,7 +140,7 @@ export function GraphEdgeArrow({
     <g
       className={`pulso-graph-edge ${justAppeared ? "is-fresh" : ""} ${
         onClick ? "is-clickable" : ""
-      }`}
+      } ${isSelected ? "is-selected" : ""}`}
       opacity={opacity}
       onMouseEnter={onHover ? () => onHover(true) : undefined}
       onMouseLeave={onHover ? () => onHover(false) : undefined}
@@ -153,6 +162,21 @@ export function GraphEdgeArrow({
     >
       {/* Track invisible más ancho para hover generoso. */}
       <path d={edge.path} fill="none" stroke="transparent" strokeWidth={14} />
+      {/* Halo glow detrás del trazo cuando el edge está seleccionado.
+          Se renderiza ANTES del trazo principal para quedar debajo.
+          Usa el mismo color con alpha bajo y stroke ancho. */}
+      {isSelected && (
+        <path
+          d={edge.path}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth + 8}
+          strokeOpacity={0.22}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ filter: `drop-shadow(0 0 4px ${color})` }}
+        />
+      )}
       <path
         d={edge.path}
         fill="none"

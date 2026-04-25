@@ -165,6 +165,25 @@ export function GraphNodeCard({
         strokeDasharray={isSection && !expanded ? undefined : undefined}
       />
 
+      {/* Color band a la izquierda — solo en secciones expandidas.
+          Banda fina de 4 px del color de la sección (paleta
+          determinística) — ayuda al usuario a identificar
+          visualmente qué sección está mirando. */}
+      {isSection && expanded && (
+        <rect
+          x={0}
+          y={0}
+          width={4}
+          height={height}
+          fill={accent}
+          opacity={0.85}
+          style={{
+            // Esquinas redondeadas solo en el borde izquierdo.
+            clipPath: `inset(0 0 0 0 round 10px 0 0 10px)`,
+          }}
+        />
+      )}
+
       {/* Header (siempre presente en h=COLLAPSED_HEIGHT). Click selecciona
           el nodo. Para secciones, separamos un área del chevron a la
           izquierda que dispara el toggle. */}
