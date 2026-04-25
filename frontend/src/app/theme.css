@@ -2400,3 +2400,42 @@ button.pulso-empty-home-card:focus-visible {
   margin-top: auto;
   font-variant-numeric: tabular-nums;
 }
+
+/* ============================================================================
+ * ForeignLanguageBadge — banner de idiomas extra preservados
+ * ========================================================================= */
+.pulso-foreign-banner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--pulso-warn-bg, #fef3c7);
+  border: 1px solid var(--pulso-warn-border, rgba(217, 119, 6, 0.3));
+}
+.pulso-foreign-banner-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  color: var(--pulso-warn-fg, #b45309);
+  flex-shrink: 0;
+}
+.pulso-foreign-banner-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.pulso-foreign-banner-meta strong {
+  font-size: 12.5px;
+  color: var(--pulso-warn-fg, #b45309);
+}
+.pulso-foreign-banner-meta span {
+  font-size: 11.5px;
+  color: var(--pulso-text);
+  line-height: 1.5;
+}
