@@ -14,14 +14,19 @@
 
 import { Star } from "lucide-react";
 import type { BuilderNode, CatalogSummary } from "../types";
+import type { LogicScope } from "../logic";
 import { TypePicker } from "./TypePicker";
 import { NameField } from "./NameField";
 import { CatalogChip } from "./CatalogChip";
+import { CalculationBuilder } from "./logic/CalculationBuilder";
 import { InspectorField, InspectorBlock } from "./InspectorPrimitives";
 
 export type BasicTabProps = {
   node: BuilderNode;
   catalogs: CatalogSummary[];
+  /** Scope de lógica — necesario para el `CalculationBuilder` cuando la
+   *  fila es `calculate` (la fórmula vive aquí, no en Lógica). */
+  logicScope: LogicScope;
   onFieldChange: (field: string, value: string) => void;
   onTypeChange: (next: string) => void;
   onRequiredChange: (checked: boolean) => void;
@@ -33,6 +38,7 @@ export type BasicTabProps = {
 export function BasicTab({
   node,
   catalogs,
+  logicScope,
   onFieldChange,
   onTypeChange,
   onRequiredChange,
@@ -125,19 +131,13 @@ export function BasicTab({
           ("este campo se calcula con X", no "este campo tiene lógica X"). */}
       {node.kind === "calculate" && (
         <InspectorBlock>
-          <InspectorField
-            label="Cómo se calcula"
+          <CalculationBuilder
+            expression={node.calculation}
+            scope={logicScope}
+            fieldLabel="Cómo se calcula"
             hint="Fórmula que el sistema evalúa para llenar este campo. Usa ${variable} para referenciar otras preguntas."
-          >
-            <textarea
-              rows={3}
-              value={node.calculation}
-              onChange={(event) => onFieldChange("calculation", event.target.value)}
-              placeholder="Ej. ${edad} * 12  ·  if(${respuesta}='si', 1, 0)"
-              spellCheck={false}
-              style={{ fontFamily: "ui-monospace, monospace", fontSize: 13 }}
-            />
-          </InspectorField>
+            onChange={(next) => onFieldChange("calculation", next)}
+          />
         </InspectorBlock>
       )}
 

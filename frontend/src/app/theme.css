@@ -3008,3 +3008,195 @@ button.pulso-empty-home-card:focus-visible {
   font-size: 11px;
   color: var(--pulso-text-soft);
 }
+
+/* ============================================================================
+ * Calculation builder (F2-4) — empty state con templates, IfBlock visual,
+ * editor libre con toolbar de inserción de variable.
+ * ========================================================================= */
+.pulso-logic-calc-templates {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  border: 1px dashed var(--pulso-border);
+}
+.pulso-logic-calc-templates p {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.pulso-logic-calc-templates p svg {
+  color: var(--pulso-primary);
+}
+.pulso-logic-calc-templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 6px;
+}
+.pulso-logic-calc-template {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--pulso-border);
+  background: white;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 140ms ease, transform 140ms ease;
+}
+.pulso-logic-calc-template:hover {
+  border-color: var(--pulso-primary);
+  transform: translateY(-1px);
+}
+.pulso-logic-calc-template strong {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pulso-text);
+}
+.pulso-logic-calc-template span {
+  font-size: 10.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.4;
+}
+.pulso-logic-calc-blank {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  background: transparent;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+.pulso-logic-calc-blank:hover {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+
+/* IfBlock — bloque visual `if(cond, then, else)` */
+.pulso-logic-ifblock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+.pulso-logic-ifblock-cond {
+  padding: 4px 0;
+}
+.pulso-logic-ifblock-branch {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.pulso-logic-ifblock-branchlabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--pulso-text-soft);
+  text-align: right;
+}
+
+/* Editor libre — textarea con toolbar */
+.pulso-logic-calc-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pulso-logic-calc-insert {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--pulso-primary);
+  border-radius: 6px;
+  color: var(--pulso-primary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.pulso-logic-calc-insert:hover {
+  background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.08));
+}
+.pulso-logic-calc-textarea {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 12.5px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  resize: vertical;
+}
+.pulso-logic-calc-varpop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+  width: 240px;
+  max-height: 280px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.pulso-logic-calc-varempty {
+  padding: 12px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+.pulso-logic-calc-varpop ul {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+}
+.pulso-logic-calc-varpop button {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  gap: 1px;
+  transition: background 120ms ease;
+}
+.pulso-logic-calc-varpop button:hover {
+  background: var(--pulso-surface-2);
+}
+.pulso-logic-calc-varpop code {
+  font-family: ui-monospace, monospace;
+  font-size: 11.5px;
+  color: var(--pulso-primary);
+}
+.pulso-logic-calc-varpop em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

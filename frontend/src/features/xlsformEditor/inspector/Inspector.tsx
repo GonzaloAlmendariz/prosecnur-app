@@ -135,6 +135,7 @@ export function Inspector({
           <BasicTab
             node={node}
             catalogs={catalogs}
+            logicScope={logicScope}
             onFieldChange={onFieldChange}
             onTypeChange={onTypeChange}
             onRequiredChange={onRequiredChange}
