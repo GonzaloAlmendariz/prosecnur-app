@@ -646,11 +646,20 @@ export function layoutLogicGraph(
     }
     edgesBySourceUnit.get(composed)!.push(r);
   });
+  // breakoutX por (source × unidad) — anti-stack del lado del source.
+  // El breakoutX es donde la flecha sale lateralmente del card y
+  // sube/baja al lane. Antes era CONSTANTE (`src.right + 24`), así
+  // que múltiples bundles desde un mismo source apilaban sus V
+  // tramos en el mismo X. Ahora cada (source × unit) recibe su propio
+  // X con stride 14 px → V tramos distinguibles.
+  const breakoutXByEdge = new Map<string, number>();
+  const BREAKOUT_STRIDE = 14;
   for (const [sId, units] of unitsBySource) {
     const placed = positionByNodeId.get(sId);
     if (!placed || !placed.visible) continue;
     const headerH = Math.min(placed.height, options.rowHeight);
     units.forEach((unitKey, gIdx) => {
+      // Anchor Y (existente).
       let yOffset: number;
       if (units.length === 1) {
         yOffset = headerH / 2;
@@ -660,8 +669,14 @@ export function layoutLogicGraph(
         yOffset = start + (gIdx * usable) / (units.length - 1);
       }
       const y = placed.y + yOffset;
+      // BreakoutX: src.right + base + index * stride.
+      const breakoutX =
+        placed.x + placed.width + options.lateralBreakout +
+        gIdx * BREAKOUT_STRIDE;
       for (const r of edgesBySourceUnit.get(`${sId}::${unitKey}`) ?? []) {
-        anchorYByEdge.set(`${r.src.node.id}->${r.tgt.node.id}`, y);
+        const k = `${r.src.node.id}->${r.tgt.node.id}`;
+        anchorYByEdge.set(k, y);
+        breakoutXByEdge.set(k, breakoutX);
       }
     });
   }
@@ -856,6 +871,7 @@ export function layoutLogicGraph(
 
     const effectiveMergeOffset =
       mergeOffsetByEdge.get(edgeKey) ?? options.mergeOffset;
+    const effectiveBreakoutX = breakoutXByEdge.get(edgeKey);
 
     let pathInfo: { d: string; midX: number; midY: number };
     switch (meta.mode) {
@@ -869,6 +885,7 @@ export function layoutLogicGraph(
           laneSide: meta.laneSide!,
           mergeOffset: effectiveMergeOffset,
           entryX: sectionEntryXByEdge.get(edgeKey),
+          breakoutX: effectiveBreakoutX,
           options,
         });
         break;
@@ -903,6 +920,7 @@ export function layoutLogicGraph(
           laneSide: meta.laneSide!,
           mergeOffset: effectiveMergeOffset,
           entryY: varEntryYByEdge.get(edgeKey),
+          breakoutX: effectiveBreakoutX,
           options,
         });
         break;
@@ -988,6 +1006,11 @@ type RouteSectionInput = {
    *  largo del top edge cuando varios bundles entran a la misma
    *  sección, así cada bundle desemboca en su propio X. */
   entryX?: number;
+  /** X del breakout (V tramo de salida del source hacia el lane).
+   *  Por defecto `srcX + lateralBreakout`. El allocator distribuye
+   *  por (source × unit) cuando un mismo source emite múltiples
+   *  bundles, así sus V tramos no se apilan. */
+  breakoutX?: number;
   options: LayoutOptions;
 };
 
@@ -996,8 +1019,18 @@ function routeSectionTarget(input: RouteSectionInput): {
   midX: number;
   midY: number;
 } {
-  const { src, tgt, srcX, srcY, laneY, laneSide, mergeOffset, entryX, options } =
-    input;
+  const {
+    src,
+    tgt,
+    srcX,
+    srcY,
+    laneY,
+    laneSide,
+    mergeOffset,
+    entryX,
+    breakoutX,
+    options,
+  } = input;
   void src;
   const r = options.cornerRadius;
 
@@ -1013,16 +1046,16 @@ function routeSectionTarget(input: RouteSectionInput): {
     mergeY = tY + mergeOffset;
   }
 
-  const breakoutX = srcX + options.lateralBreakout;
+  const effBreakoutX = breakoutX ?? srcX + options.lateralBreakout;
   const segments: string[] = [`M ${srcX} ${srcY}`];
-  appendSegment(segments, srcX, srcY, breakoutX, srcY, r);
-  appendSegment(segments, breakoutX, srcY, breakoutX, laneY, r);
-  appendSegment(segments, breakoutX, laneY, tX, laneY, r);
+  appendSegment(segments, srcX, srcY, effBreakoutX, srcY, r);
+  appendSegment(segments, effBreakoutX, srcY, effBreakoutX, laneY, r);
+  appendSegment(segments, effBreakoutX, laneY, tX, laneY, r);
   appendSegment(segments, tX, laneY, tX, mergeY, r);
   appendSegment(segments, tX, mergeY, tX, tY, r);
 
   const tooltipPad = 22;
-  const midX = (breakoutX + tX) / 2;
+  const midX = (effBreakoutX + tX) / 2;
   const midY = laneSide === "top" ? laneY - tooltipPad : laneY + tooltipPad;
   return { d: segments.join(" "), midX, midY };
 }
@@ -1127,6 +1160,9 @@ type RouteLongLaneInput = {
    *  lo largo del lateral cuando varios bundles entran al mismo
    *  var target — cada bundle tiene su propio dock. */
   entryY?: number;
+  /** X del breakout (V tramo de salida). Default `srcX +
+   *  lateralBreakout`. Allocator distribuye por (source × unit). */
+  breakoutX?: number;
   options: LayoutOptions;
 };
 
@@ -1135,8 +1171,18 @@ function routeLongLane(input: RouteLongLaneInput): {
   midX: number;
   midY: number;
 } {
-  const { src, tgt, srcX, srcY, laneY, laneSide, mergeOffset, entryY, options } =
-    input;
+  const {
+    src,
+    tgt,
+    srcX,
+    srcY,
+    laneY,
+    laneSide,
+    mergeOffset,
+    entryY,
+    breakoutX,
+    options,
+  } = input;
   void src;
   const r = options.cornerRadius;
 
@@ -1156,16 +1202,16 @@ function routeLongLane(input: RouteLongLaneInput): {
     mergeY = tY;
   }
 
-  const breakoutX = srcX + options.lateralBreakout;
+  const effBreakoutX = breakoutX ?? srcX + options.lateralBreakout;
   const segments: string[] = [`M ${srcX} ${srcY}`];
-  appendSegment(segments, srcX, srcY, breakoutX, srcY, r);
-  appendSegment(segments, breakoutX, srcY, breakoutX, laneY, r);
-  appendSegment(segments, breakoutX, laneY, mergeX, laneY, r);
+  appendSegment(segments, srcX, srcY, effBreakoutX, srcY, r);
+  appendSegment(segments, effBreakoutX, srcY, effBreakoutX, laneY, r);
+  appendSegment(segments, effBreakoutX, laneY, mergeX, laneY, r);
   appendSegment(segments, mergeX, laneY, mergeX, mergeY, r);
   appendSegment(segments, mergeX, mergeY, tX, tY, r);
 
   const tooltipPad = 22;
-  const midX = (breakoutX + mergeX) / 2;
+  const midX = (effBreakoutX + mergeX) / 2;
   const midY = laneSide === "top" ? laneY - tooltipPad : laneY + tooltipPad;
   return { d: segments.join(" "), midX, midY };
 }
