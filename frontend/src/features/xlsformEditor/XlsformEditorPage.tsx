@@ -114,6 +114,8 @@ import {
   loadSnapshot,
 } from "./state/persistence";
 import EmptyHome from "./shell/EmptyHome";
+import { buildWorkbookFromSeed } from "./templates";
+import type { TemplateSeed } from "./templates";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { DiagnosticsBadge } from "./shell/DiagnosticsPopover";
 import { CollapsibleSection } from "./shell/CollapsibleSection";
@@ -535,6 +537,33 @@ export default function XlsformEditorPage() {
       { kind: null, original_name: null },
       "Creamos una base limpia para diseñar el formulario desde una interfaz guiada."
     );
+  }
+
+  /**
+   * Carga un template seed (galería del EmptyHome) materializándolo a
+   * workbook editable. Comparte el guardarraíl de "cambios sin exportar"
+   * con `onNewWorkbook` para que el usuario no pierda trabajo por descuido.
+   */
+  function onPickTemplate(template: TemplateSeed) {
+    if (
+      dirty &&
+      !window.confirm(
+        `Hay cambios sin exportar. ¿Reemplazar el formulario actual por la plantilla «${template.title}»?`,
+      )
+    ) {
+      return;
+    }
+    resetMessages();
+    loadWorkbook(
+      buildWorkbookFromSeed(template),
+      { kind: null, original_name: null },
+      `Cargamos la plantilla «${template.title}». Personaliza los textos y las opciones desde el constructor.`,
+    );
+    toasts.push({
+      kind: "success",
+      title: "Plantilla cargada",
+      detail: `Empezaste con «${template.title}». Edita lo que necesites.`,
+    });
   }
 
   function updateSurveyField(rowIndex: number, field: string, value: string) {
@@ -1066,6 +1095,7 @@ export default function XlsformEditorPage() {
             onNewBlank={onNewWorkbook}
             onImportXls={() => xlsInputRef.current?.click()}
             onImportSurveyMonkey={() => smInputRef.current?.click()}
+            onPickTemplate={onPickTemplate}
           />
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", color: "var(--pulso-text-soft)", fontSize: 13 }}>

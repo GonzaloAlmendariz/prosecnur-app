@@ -16,13 +16,9 @@
 // =============================================================================
 
 import type { ReactNode } from "react";
-import {
-  FileSpreadsheet,
-  Layers3,
-  Sparkles,
-  Upload,
-  Wand2,
-} from "lucide-react";
+import { FileSpreadsheet, Sparkles, Upload, Wand2 } from "lucide-react";
+import { TemplateGallery } from "../templates/TemplateGallery";
+import type { TemplateSeed } from "../templates/seedHelper";
 
 export type EmptyHomeAction = {
   key: string;
@@ -32,14 +28,14 @@ export type EmptyHomeAction = {
   onClick: () => void;
   /** Acento del borde superior (color de la paleta categórica). */
   accent: string;
-  /** Si true, la tarjeta queda visible pero deshabilitada con tag "Pronto". */
-  comingSoon?: boolean;
 };
 
 export type EmptyHomeProps = {
   onNewBlank: () => void;
   onImportXls: () => void;
   onImportSurveyMonkey: () => void;
+  /** Carga un template seed concreto. */
+  onPickTemplate: (template: TemplateSeed) => void;
   /** Si la base ya tiene cosas y el usuario está en el modo "no hay workbook"
    *  (raro, pero pasa al montar tras refresh sin snapshot). */
   hint?: string;
@@ -49,6 +45,7 @@ export default function EmptyHome({
   onNewBlank,
   onImportXls,
   onImportSurveyMonkey,
+  onPickTemplate,
   hint,
 }: EmptyHomeProps) {
   const actions: EmptyHomeAction[] = [
@@ -78,18 +75,6 @@ export default function EmptyHome({
       icon: <Wand2 size={22} />,
       onClick: onImportSurveyMonkey,
       accent: "#7c3aed",
-    },
-    {
-      key: "templates",
-      title: "Plantillas listas",
-      description:
-        "Encuestas de hogar, calidad de servicio, censo simple. Pronto: arranca con un esqueleto probado.",
-      icon: <Layers3 size={22} />,
-      onClick: () => {
-        /* placeholder hasta Sub-PR 8 */
-      },
-      accent: "#d97706",
-      comingSoon: true,
     },
   ];
 
@@ -171,17 +156,22 @@ export default function EmptyHome({
           <ActionCard key={action.key} action={action} delayMs={idx * 60} />
         ))}
       </div>
+
+      {/* Galería de plantillas: 3 esqueletos probados que el usuario puede
+          adaptar (la card "Empezar de cero" del seed `blank` ya está arriba
+          como acción principal, así que aquí la ocultamos). */}
+      <div style={{ marginTop: 12 }}>
+        <TemplateGallery onPick={onPickTemplate} hideBlank />
+      </div>
     </section>
   );
 }
 
 function ActionCard({ action, delayMs }: { action: EmptyHomeAction; delayMs: number }) {
-  const disabled = !!action.comingSoon;
   return (
     <button
       type="button"
-      onClick={action.comingSoon ? undefined : action.onClick}
-      disabled={disabled}
+      onClick={action.onClick}
       className="pulso-empty-home-card"
       style={{
         position: "relative",
@@ -195,8 +185,7 @@ function ActionCard({ action, delayMs }: { action: EmptyHomeAction; delayMs: num
         background: "white",
         border: "1px solid var(--pulso-border)",
         borderTop: `3px solid ${action.accent}`,
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.7 : 1,
+        cursor: "pointer",
         animation: `pulso-empty-home-in 360ms cubic-bezier(0.2, 0, 0, 1) ${delayMs}ms both`,
         transition: "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
       }}
@@ -237,26 +226,6 @@ function ActionCard({ action, delayMs }: { action: EmptyHomeAction; delayMs: num
           {action.description}
         </span>
       </div>
-      {action.comingSoon && (
-        <span
-          style={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            padding: "2px 8px",
-            fontSize: 10,
-            fontWeight: 800,
-            letterSpacing: 0.5,
-            textTransform: "uppercase",
-            color: action.accent,
-            background: hexToSoft(action.accent, 0.14),
-            border: `1px solid ${hexToSoft(action.accent, 0.45)}`,
-            borderRadius: 999,
-          }}
-        >
-          Pronto
-        </span>
-      )}
     </button>
   );
 }
