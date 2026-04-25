@@ -207,10 +207,23 @@ export function layoutLogicGraph(
     inDeg.set(tgtRoot, (inDeg.get(tgtRoot) ?? 0) + 1);
   }
 
+  // Kahn's algorithm: orden topológico estable que termina SIEMPRE,
+  // incluso si el grafo tiene ciclos (caso real con instrumentos donde
+  // dos preguntas se condicionan mutuamente — visto en GIZ_INST.xlsx).
+  // El BFS por longest-path anterior se colgaba en loops si había ciclos.
+  //
+  // Algoritmo: cada nodo recibe layer = 1 + max(layer de los predecesores
+  // ya procesados). Procesamos un nodo cuando su `remainingIn` llega a 0.
+  // Si quedan nodos sin procesar al final → forman parte de un ciclo;
+  // los asignamos a capa 0 (mejor que colgarse).
   const layer = new Map<string, number>();
+  const remainingIn = new Map<string, number>();
+  for (const root of rootNodes) {
+    remainingIn.set(root.id, inDeg.get(root.id) ?? 0);
+  }
   const queue: string[] = [];
   for (const root of rootNodes) {
-    if ((inDeg.get(root.id) ?? 0) === 0) {
+    if ((remainingIn.get(root.id) ?? 0) === 0) {
       layer.set(root.id, 0);
       queue.push(root.id);
     }
@@ -219,13 +232,16 @@ export function layoutLogicGraph(
     const id = queue.shift()!;
     const myLayer = layer.get(id) ?? 0;
     for (const next of adjOut.get(id) ?? []) {
-      const candidate = myLayer + 1;
-      if (candidate > (layer.get(next) ?? -1)) {
-        layer.set(next, candidate);
-        queue.push(next);
-      }
+      // Cada predecesor procesado aumenta el max-layer del sucesor.
+      const proposed = Math.max(layer.get(next) ?? 0, myLayer + 1);
+      layer.set(next, proposed);
+      // Decrementamos in-degree restante; si llega a 0, listo para procesar.
+      const left = (remainingIn.get(next) ?? 1) - 1;
+      remainingIn.set(next, left);
+      if (left <= 0) queue.push(next);
     }
   }
+  // Cualquier nodo sin layer = parte de un ciclo o desconectado. Capa 0.
   for (const root of rootNodes) {
     if (!layer.has(root.id)) layer.set(root.id, 0);
   }
@@ -260,35 +276,35 @@ export function layoutLogicGraph(
   const positionByNodeId = new Map<string, LaidOutNode>();
   for (const placed of flatNodes) positionByNodeId.set(placed.node.id, placed);
 
+  // Mapa hijo→padre construido UNA vez recorriendo el árbol — antes
+  // findParent recorría todo el árbol para cada llamada (O(N²) en el
+  // peor caso). Con este map cada lookup es O(1).
+  const parentByChildId = new Map<string, GraphNode>();
+  const seenForParent = new Set<string>();
+  const indexParents = (n: GraphNode) => {
+    if (seenForParent.has(n.id)) return; // defensa contra ciclos del árbol
+    seenForParent.add(n.id);
+    for (const child of n.children) {
+      parentByChildId.set(child.id, n);
+      indexParents(child);
+    }
+  };
+  for (const root of rootNodes) indexParents(root);
+
   const resolveVisible = (id: string): LaidOutNode | null => {
-    const placed = positionByNodeId.get(id);
-    if (!placed) return null;
-    if (placed.visible) return placed;
-    // Caminar hacia arriba en el árbol del grafo.
-    const findParent = (target: GraphNode): GraphNode | null => {
-      const visit = (current: GraphNode): GraphNode | null => {
-        for (const child of current.children) {
-          if (child.id === target.id) return current;
-          const found = visit(child);
-          if (found) return found;
-        }
-        return null;
-      };
-      for (const root of rootNodes) {
-        if (root.id === target.id) return null;
-        const found = visit(root);
-        if (found) return found;
-      }
-      return null;
-    };
-    let cursor: GraphNode | null = placed.node;
-    while (cursor) {
-      const visible = positionByNodeId.get(cursor.id);
-      if (visible && visible.visible) return visible;
-      cursor = findParent(cursor);
+    let cursor: GraphNode | null = graphNodeById(id);
+    let safety = 64; // tope absoluto contra árboles patológicos
+    while (cursor && safety-- > 0) {
+      const placed = positionByNodeId.get(cursor.id);
+      if (placed && placed.visible) return placed;
+      cursor = parentByChildId.get(cursor.id) ?? null;
     }
     return null;
   };
+  function graphNodeById(id: string): GraphNode | null {
+    const placed = positionByNodeId.get(id);
+    return placed ? placed.node : null;
+  }
 
   const laidOutEdges: LaidOutEdge[] = [];
   const seenPair = new Set<string>(); // dedupe colapsado

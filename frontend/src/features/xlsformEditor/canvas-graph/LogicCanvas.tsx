@@ -94,15 +94,19 @@ export function LogicCanvas({
     }
   }, [open]);
 
+  // El grafo y su layout pueden ser caros para formularios grandes (RMS:
+  // 4 niveles × 59 catálogos). Solo los calculamos cuando el canvas está
+  // abierto — antes corría siempre que cambiaba structure/catalogs y
+  // congelaba el editor incluso sin abrir el mapa.
   const graph = useMemo(() => {
-    if (!structure) return null;
+    if (!open || !structure) return null;
     return buildLogicGraph(structure, catalogs);
-  }, [structure, catalogs]);
+  }, [open, structure, catalogs]);
 
   const layout = useMemo(() => {
-    if (!graph) return null;
+    if (!open || !graph) return null;
     return layoutLogicGraph(graph, expandedSections);
-  }, [graph, expandedSections]);
+  }, [open, graph, expandedSections]);
 
   // Set de IDs relacionados con la selección (vecinos directos in/out).
   const relatedIds = useMemo(() => {
