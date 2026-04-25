@@ -205,8 +205,17 @@ export function layoutLogicGraph(
       root.kind === "section" &&
       expandedSectionIds.has(root.id) &&
       root.children.length > 0;
+    // Padding simétrico arriba y abajo: el `innerHeadGap` se aplica
+    // entre el header y el primer hijo, y también después del último
+    // hijo antes del border inferior. Antes la sección terminaba
+    // exactamente en el bottom del último hijo y se veía como si el
+    // border "no cubriera" la card hija — el usuario reportó "el box
+    // de sección no termina de cubrir los boxes de pregunta".
     const totalHeight = isExpanded
-      ? options.rowHeight + options.innerHeadGap + heightOfChildren(root)
+      ? options.rowHeight +
+        options.innerHeadGap +
+        heightOfChildren(root) +
+        options.innerHeadGap
       : options.rowHeight;
 
     const placed: LaidOutNode = {
@@ -647,42 +656,87 @@ export function layoutLogicGraph(
     });
   }
 
-  // 5.10 mergeOffset por (target × unidad) — anti-overlap en aproximación
-  // al target. Antes el tramo V final (mergeX, laneY → mergeX, mergeY)
-  // era el MISMO X para todas las flechas que entraban al mismo target,
-  // así que se apilaban visualmente. Ahora cada unidad distinta que
-  // termina en el mismo target recibe un stride creciente — el primer
-  // edge tiene `mergeOffset` base, el segundo +8, el tercero +16, etc.
-  // Edges en la misma unidad (bundle) comparten stride → mantienen el
-  // overlap intencional del subway. Aplica a Modes A y D (los que usan
-  // mergeOffset como stem).
-  const MERGE_STRIDE = 8;
-  const mergeOffsetByEdge = new Map<string, number>();
-  const unitsByTarget = new Map<string, string[]>();
-  const edgesByTargetUnit = new Map<string, ResolvedEdge[]>();
+  // 5.10 mergeOffset GLOBAL por unidad (anti-stack + carril compartido
+  // en bundles). Iteración anterior asignaba el stride per-target, lo
+  // cual rompía la unidad visual de un bundle: un mismo bundle podía
+  // recibir idx=0 en target A (offset 28) e idx=1 en target B (offset
+  // 36) si el orden de inserción difería, así que la V drop al target
+  // A estaba a un X y la V drop al target B a otro X — dos carriles
+  // distintos para "la misma flecha que se desbranda". Mal.
+  //
+  // Fix: cada unidad recibe UN solo offset y lo usa en TODOS sus
+  // edges. Bundle entero comparte mergeOffset → comparte mergeX (en
+  // misma columna) → carril visual único. Diferentes unidades al
+  // mismo target siguen recibiendo offsets escalonados gracias al
+  // orden global, así que el anti-stack al target también se
+  // mantiene.
+  // 14 px entre carriles de unidades distintas — antes 8 px y los
+  // carriles se veían pegados visualmente. El usuario reportó que
+  // "los carriles siguen convergiendo cuando deberían ser
+  // diferenciados".
+  const MERGE_STRIDE = 14;
+  const mergeOffsetByUnit = new Map<string, number>();
+  // Recolectar todas las unidades Mode A y Mode D en orden de aparición.
+  // Para cada target encontramos qué unidades lo tocan, y construimos
+  // un orden global donde unidades con muchos targets distintos
+  // alcanzan strides altos (deben "esquivar" las que ya tomaron los
+  // strides bajos). Algoritmo simple: primer come, primer servido.
+  const seenUnits: string[] = [];
   resolved.forEach((r, i) => {
-    const tId = r.tgt.node.id;
     const meta = edgeMeta[i]!;
     if (meta.mode !== "section" && meta.mode !== "lane") return;
-    const composed = `${tId}::${meta.unitKey}`;
-    if (!unitsByTarget.has(tId)) unitsByTarget.set(tId, []);
-    if (!edgesByTargetUnit.has(composed)) {
-      edgesByTargetUnit.set(composed, []);
-      unitsByTarget.get(tId)!.push(meta.unitKey);
-    }
-    edgesByTargetUnit.get(composed)!.push(r);
-  });
-  for (const [tId, units] of unitsByTarget) {
-    units.forEach((unitKey, idx) => {
-      const offset = options.mergeOffset + idx * MERGE_STRIDE;
-      for (const r of edgesByTargetUnit.get(`${tId}::${unitKey}`) ?? []) {
-        mergeOffsetByEdge.set(
-          `${r.src.node.id}->${r.tgt.node.id}`,
-          offset,
-        );
+    if (!mergeOffsetByUnit.has(meta.unitKey)) {
+      // Antes de asignar, calculamos el stride mínimo que evita
+      // colisión con otras unidades que comparten algún target con
+      // esta. Recorremos los edges de esta unidad, recolectamos sus
+      // targets, y vemos qué offsets ya están en uso por otras
+      // unidades en esos mismos targets.
+      const ourTargets = new Set<string>();
+      resolved.forEach((rr, j) => {
+        if (edgeMeta[j]!.unitKey === meta.unitKey) {
+          ourTargets.add(rr.tgt.node.id);
+        }
+      });
+      const usedOffsets = new Set<number>();
+      for (const otherKey of seenUnits) {
+        const otherOffset = mergeOffsetByUnit.get(otherKey)!;
+        // ¿Hay overlap en targets?
+        let overlap = false;
+        resolved.forEach((rr, j) => {
+          if (overlap) return;
+          if (
+            edgeMeta[j]!.unitKey === otherKey &&
+            ourTargets.has(rr.tgt.node.id)
+          ) {
+            overlap = true;
+          }
+        });
+        if (overlap) usedOffsets.add(otherOffset);
       }
-    });
-  }
+      // Asignar el primer offset disponible empezando por mergeOffset.
+      let stride = 0;
+      while (usedOffsets.has(options.mergeOffset + stride * MERGE_STRIDE)) {
+        stride += 1;
+      }
+      mergeOffsetByUnit.set(
+        meta.unitKey,
+        options.mergeOffset + stride * MERGE_STRIDE,
+      );
+      seenUnits.push(meta.unitKey);
+    }
+  });
+  const mergeOffsetByEdge = new Map<string, number>();
+  resolved.forEach((r, i) => {
+    const meta = edgeMeta[i]!;
+    if (meta.mode !== "section" && meta.mode !== "lane") return;
+    const offset = mergeOffsetByUnit.get(meta.unitKey);
+    if (offset != null) {
+      mergeOffsetByEdge.set(
+        `${r.src.node.id}->${r.tgt.node.id}`,
+        offset,
+      );
+    }
+  });
 
   // ── 6. Construir paths con dispatcher por modo ─────────────────────
   const laidOutEdges: LaidOutEdge[] = resolved.map((r, i) => {
