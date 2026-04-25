@@ -176,6 +176,121 @@
 }
 
 # -----------------------------------------------------------------------------
+# Safe gates — el archivo a importar tiene que verse como un XLSForm real.
+# -----------------------------------------------------------------------------
+# Antes del rediseño, si el .xlsx no tenía la hoja `survey` ni `choices`
+# (ej. instrumentos Pulso/GIZ propios con `Plan`/`Diccionario`/etc.) el
+# backend devolvía un workbook con 0 columnas y el frontend se colgaba al
+# intentar renderizarlo. Ahora cortamos en el endpoint con un error claro.
+#
+# Mínimo aceptable:
+#   - Hoja `survey` con al menos las columnas `type` y `name`.
+#   - Hoja `choices` (puede no existir si el instrumento no usa selects, pero
+#     si existe debe tener al menos `list_name` y `name`).
+# Settings es opcional; si no está la creamos vacía con defaults.
+# -----------------------------------------------------------------------------
+
+.xlsform_editor_assert_xlsform_shape <- function(path) {
+  sheets <- tryCatch(readxl::excel_sheets(path), error = function(e) character(0))
+  sheets_lower <- tolower(sheets)
+
+  # ¿Tiene `survey`?
+  if (!("survey" %in% sheets_lower)) {
+    detected <- if (length(sheets)) {
+      sprintf(" Hojas detectadas: %s.", paste(sheets, collapse = ", "))
+    } else {
+      ""
+    }
+    # Heurística: si tiene "Plan"/"Diccionario"/"Resumen" etc. es muy
+    # probable que sea un Plan Pulso, no un XLSForm — mensaje específico.
+    pulso_hints <- c("plan", "diccionario", "resumen", "secciones", "leyenda")
+    looks_like_pulso <- any(pulso_hints %in% sheets_lower)
+    if (looks_like_pulso) {
+      stop_api(
+        400, "E_NOT_AN_XLSFORM",
+        paste0(
+          "Este archivo parece un Plan/Diccionario de Pulso, no un XLSForm. ",
+          "El editor abre archivos en formato ODK / KoBoToolbox con hojas ",
+          "`survey` y `choices` (en minúsculas).",
+          detected
+        )
+      )
+    }
+    stop_api(
+      400, "E_NOT_AN_XLSFORM",
+      paste0(
+        "El archivo no tiene la hoja `survey` que el formato XLSForm requiere. ",
+        "Asegúrate de que el .xlsx siga el estándar ODK / KoBoToolbox.",
+        detected
+      )
+    )
+  }
+
+  # Verifico que survey tenga al menos `type` y `name`. Leo con .name_repair
+  # para aceptar nombres con espacios pero verifico la presencia case-insensitive.
+  survey_idx <- which(sheets_lower == "survey")[1]
+  survey_df <- tryCatch(
+    readxl::read_excel(
+      path,
+      sheet = sheets[survey_idx],
+      col_types = "text",
+      .name_repair = "minimal",
+      n_max = 1L  # solo necesitamos los nombres de columna
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(survey_df)) {
+    stop_api(
+      400, "E_NOT_AN_XLSFORM",
+      "No pude leer la hoja `survey`. ¿El archivo está corrupto o protegido?"
+    )
+  }
+  survey_cols <- tolower(as.character(names(survey_df)))
+  needed <- c("type", "name")
+  missing <- setdiff(needed, survey_cols)
+  if (length(missing) > 0) {
+    stop_api(
+      400, "E_NOT_AN_XLSFORM",
+      sprintf(
+        "La hoja `survey` no tiene las columnas mínimas (%s). XLSForm requiere al menos `type` y `name`.",
+        paste(missing, collapse = ", ")
+      )
+    )
+  }
+
+  # Si tiene hoja `choices`, verifico también su shape mínimo.
+  if ("choices" %in% sheets_lower) {
+    choices_idx <- which(sheets_lower == "choices")[1]
+    choices_df <- tryCatch(
+      readxl::read_excel(
+        path,
+        sheet = sheets[choices_idx],
+        col_types = "text",
+        .name_repair = "minimal",
+        n_max = 1L
+      ),
+      error = function(e) NULL
+    )
+    if (!is.null(choices_df)) {
+      choices_cols <- tolower(as.character(names(choices_df)))
+      needed_ch <- c("list_name", "name")
+      missing_ch <- setdiff(needed_ch, choices_cols)
+      if (length(missing_ch) > 0) {
+        stop_api(
+          400, "E_NOT_AN_XLSFORM",
+          sprintf(
+            "La hoja `choices` no tiene las columnas mínimas (%s). XLSForm requiere `list_name` y `name`.",
+            paste(missing_ch, collapse = ", ")
+          )
+        )
+      }
+    }
+  }
+
+  invisible(TRUE)
+}
+
+# -----------------------------------------------------------------------------
 # Validador estructural del workbook editor (Sub-PR 9 del revamp)
 # -----------------------------------------------------------------------------
 # Recibe los tres data.frames (survey/choices/settings) y devuelve un vector
@@ -519,7 +634,13 @@ mount_xlsform_editor <- function(pr) {
         message = "El editor espera un archivo subido con kind='xlsform'."
       )
 
-      survey <- .xlsform_editor_read_sheet(meta$path, "survey")
+      # Safe gate: aborta con mensaje claro si el archivo no parece XLSForm.
+      # Sin esto, archivos como los Plan de Pulso/GIZ (con hojas Plan,
+      # Diccionario, Resumen, etc.) producían un workbook con 0 columnas
+      # que colgaba al frontend.
+      .xlsform_editor_assert_xlsform_shape(meta$path)
+
+      survey <- .xlsform_editor_read_sheet(meta$path, "survey", .xlsform_editor_default_columns("survey"))
       choices <- .xlsform_editor_read_sheet(meta$path, "choices", .xlsform_editor_default_columns("choices"))
       settings <- .xlsform_editor_read_sheet(meta$path, "settings", .xlsform_editor_default_columns("settings"))
 
