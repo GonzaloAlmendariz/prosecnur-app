@@ -1,19 +1,23 @@
 // =============================================================================
-// canvas-graph/LogicCanvas.tsx — overlay full-screen del mapa de lógica
+// canvas-graph/LogicCanvas.tsx — overlay del mapa de visibilidad
 // =============================================================================
-// Vista estilo "Obsidian Canvas" del workbook: cada pregunta/sección/
-// catálogo es una caja, las dependencias son flechas tipadas.
+// Vista jerárquica del workbook (post-rediseño): cada sección es una card
+// colapsable; las preguntas internas solo se ven si la sección está
+// expandida. Las flechas conectan únicamente preguntas/secciones unidas
+// por `relevant` — el catálogo de opciones se muestra inline dentro de
+// las preguntas select y los demás campos lógicos viven solo en el
+// inspector.
 //
-// Interacciones (F2-5):
-//   - Pan: arrastrar el fondo.
-//   - Zoom: scroll wheel sobre el lienzo.
-//   - Click en nodo: lo selecciona + atenúa los no relacionados.
-//   - Click en fondo: deselecciona todo.
-//   - "Centrar" en el header: resetea zoom + pan.
-//   - "Cerrar": disparado por Escape o el botón × del header.
+// Interacciones:
 //
-// Sin librería de grafos — SVG nativo para portabilidad y bajo bundle.
-// La edición (drag-arrows-to-write-expressions) entra en F2-6.
+//   * Drag fondo            → pan.
+//   * Wheel sobre lienzo    → zoom.
+//   * Click sección         → toggle expandir/colapsar.
+//   * Click pregunta        → la selecciona y atenúa los no relacionados.
+//   * Click fondo           → deselecciona.
+//   * Drag desde anchor →   → escribe `relevant` en el destino con
+//                            `${source} != ''`. Sin picker (solo hay un
+//                            tipo de relación posible en este diseño).
 // =============================================================================
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -29,62 +33,17 @@ import { buildLogicGraph } from "./buildGraph";
 import type { GraphNode } from "./buildGraph";
 import { layoutLogicGraph } from "./autoLayout";
 import { GraphNodeCard } from "./GraphNodeCard";
-import {
-  GraphEdgeArrow,
-  GraphEdgeMarkers,
-  edgeStyleByKind,
-} from "./GraphEdgeArrow";
-import { EdgeKindPicker } from "./EdgeKindPicker";
-import type { EdgeKindOption } from "./EdgeKindPicker";
-
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 56;
-
-/**
- * Construye la expresión ODK inicial para una relación recién creada
- * desde el canvas. El usuario podrá refinarla luego en el inspector
- * con los builders visuales de F2-2/3/4.
- */
-function buildExpressionForOption(
-  field: "relevant" | "constraint" | "calculation" | "choice_filter",
-  sourceRef: string,
-): string {
-  if (!sourceRef) return "";
-  switch (field) {
-    case "relevant":
-      // "Aparece si X tiene valor" → string ODK estándar para "no vacío".
-      return `\${${sourceRef}} != ''`;
-    case "constraint":
-      // "Valida con X" → la respuesta debe ser igual a la otra. Es un
-      // placeholder razonable: el usuario refina después en el inspector.
-      return `. = \${${sourceRef}}`;
-    case "calculation":
-      // "Calcula con X" → directamente el valor.
-      return `\${${sourceRef}}`;
-    case "choice_filter":
-      // Filtros canónicos: la opción debe coincidir con la respuesta de X.
-      // Los catálogos del corpus usan columnas filter::* — este es un
-      // patrón razonable.
-      return `name = \${${sourceRef}}`;
-  }
-}
+import { GraphEdgeArrow, GraphEdgeMarkers } from "./GraphEdgeArrow";
 
 export type LogicCanvasProps = {
   open: boolean;
   onClose: () => void;
   structure: BuilderStructure | null;
   catalogs: CatalogSummary[];
-  /** Si el usuario clickea un nodo de pregunta/sección, llamamos esto
-   *  para que el editor seleccione esa fila al cerrar el canvas. */
   onSelectRow?: (rowIndex: number) => void;
-  /** Escribe (o reemplaza) la expresión de un campo lógico en una fila
-   *  concreta del survey. Lo invoca el EdgeKindPicker al confirmar la
-   *  relación: source.name + tipo de relación → expresión ODK lista. */
-  onSetExpression?: (
-    rowIndex: number,
-    field: "relevant" | "constraint" | "calculation" | "choice_filter",
-    expression: string,
-  ) => void;
+  /** Escribe la expresión de visibilidad (`relevant`) cuando el usuario
+   *  declara una nueva conexión via drag-arrow. */
+  onSetRelevant?: (rowIndex: number, expression: string) => void;
 };
 
 export function LogicCanvas({
@@ -93,32 +52,27 @@ export function LogicCanvas({
   structure,
   catalogs,
   onSelectRow,
-  onSetExpression,
+  onSetRelevant,
 }: LogicCanvasProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set(),
+  );
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
 
-  // -- Estado para crear edges -------------------------------------------
-  // Cuando el usuario presiona el anchor de un nodo, guardamos su id.
-  // Mientras el mouse se mueve, registramos la posición del cursor en
-  // espacio del canvas (post-pan/zoom inverso). Al soltar, si está sobre
-  // otro nodo, abrimos el EdgeKindPicker.
+  // Estado de creación de edge (drag desde anchor).
   const [edgeDraft, setEdgeDraft] = useState<{
     sourceId: string;
-    cursorX: number; // canvas coords
+    cursorX: number;
     cursorY: number;
   } | null>(null);
-  const [edgeHoverTargetId, setEdgeHoverTargetId] = useState<string | null>(null);
-  const [edgePicker, setEdgePicker] = useState<{
-    sourceId: string;
-    targetId: string;
-    screenX: number;
-    screenY: number;
-  } | null>(null);
+  const [edgeHoverTargetId, setEdgeHoverTargetId] = useState<string | null>(
+    null,
+  );
 
   // Cerrar con Escape.
   useEffect(() => {
@@ -136,6 +90,7 @@ export function LogicCanvas({
       setZoom(1);
       setPan({ x: 0, y: 0 });
       setSelectedId(null);
+      setExpandedSections(new Set());
     }
   }, [open]);
 
@@ -146,45 +101,22 @@ export function LogicCanvas({
 
   const layout = useMemo(() => {
     if (!graph) return null;
-    return layoutLogicGraph(graph, {
-      nodeWidth: NODE_WIDTH,
-      nodeHeight: NODE_HEIGHT,
-    });
-  }, [graph]);
+    return layoutLogicGraph(graph, expandedSections);
+  }, [graph, expandedSections]);
 
-  // Set de IDs relacionados con la selección actual: el nodo + sus
-  // vecinos directos (in y out). Lo usamos para atenuar los no
-  // relacionados.
+  // Set de IDs relacionados con la selección (vecinos directos in/out).
   const relatedIds = useMemo(() => {
     if (!selectedId || !layout) return null;
     const set = new Set<string>([selectedId]);
-    for (const edge of layout.edges) {
-      if (edge.source === selectedId) set.add(edge.target);
-      if (edge.target === selectedId) set.add(edge.source);
+    for (const e of layout.edges) {
+      if (e.edge.source === selectedId) set.add(e.edge.target);
+      if (e.edge.target === selectedId) set.add(e.edge.source);
     }
     return set;
   }, [selectedId, layout]);
 
-  // Conteo de edges por kind para mostrar leyenda.
-  const edgeKindCounts = useMemo(() => {
-    if (!layout) return new Map<string, number>();
-    const m = new Map<string, number>();
-    for (const e of layout.edges) {
-      m.set(e.kind, (m.get(e.kind) ?? 0) + 1);
-    }
-    return m;
-  }, [layout]);
-
   if (!open) return null;
 
-  const onWheel = (event: React.WheelEvent<SVGSVGElement>) => {
-    event.preventDefault();
-    const delta = -event.deltaY * 0.0015;
-    setZoom((z) => Math.max(0.3, Math.min(2.5, z * (1 + delta))));
-  };
-  /** Convierte coordenadas de pantalla (clientX/Y) a coordenadas del
-   *  espacio interno del canvas (post-pan/zoom). Útil para posicionar la
-   *  punta de un edge fantasma en el cursor real del usuario. */
   const toCanvasCoords = (clientX: number, clientY: number) => {
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
@@ -195,9 +127,11 @@ export function LogicCanvas({
     };
   };
 
-  /** Detecta si el cursor está sobre un nodo distinto al source del draft.
-   *  Devuelve el id del nodo, o null. */
-  const findNodeUnderCursor = (clientX: number, clientY: number, sourceId: string) => {
+  const findNodeUnderCursor = (
+    clientX: number,
+    clientY: number,
+    sourceId: string,
+  ) => {
     const el = document.elementFromPoint(clientX, clientY);
     if (!el) return null;
     const nodeEl = el.closest("[data-graph-node-id]") as HTMLElement | null;
@@ -207,6 +141,11 @@ export function LogicCanvas({
     return id;
   };
 
+  const onWheel = (event: React.WheelEvent<SVGSVGElement>) => {
+    event.preventDefault();
+    const delta = -event.deltaY * 0.0015;
+    setZoom((z) => Math.max(0.3, Math.min(2.5, z * (1 + delta))));
+  };
   const onMouseDown = (event: React.MouseEvent<SVGSVGElement>) => {
     if ((event.target as Element).closest(".pulso-graph-node")) return;
     isDraggingRef.current = true;
@@ -239,18 +178,22 @@ export function LogicCanvas({
   };
   const onMouseUp = (event: React.MouseEvent<SVGSVGElement>) => {
     if (edgeDraft) {
-      const target = findNodeUnderCursor(
+      const targetId = findNodeUnderCursor(
         event.clientX,
         event.clientY,
         edgeDraft.sourceId,
       );
-      if (target) {
-        setEdgePicker({
-          sourceId: edgeDraft.sourceId,
-          targetId: target,
-          screenX: event.clientX,
-          screenY: event.clientY,
-        });
+      if (targetId && onSetRelevant && graph) {
+        const sourceNode = graph.byId.get(edgeDraft.sourceId);
+        const targetNode = graph.byId.get(targetId);
+        if (sourceNode && targetNode) {
+          // Conectamos hacia preguntas/secciones (todas tienen rowIndex).
+          // Escribimos la expresión de visibilidad por defecto: "aparece
+          // si la fuente tiene valor". El usuario refina el predicado
+          // exacto en el inspector con el LogicBuilder.
+          const expression = `\${${sourceNode.name}} != ''`;
+          onSetRelevant(targetNode.rowIndex, expression);
+        }
       }
       setEdgeDraft(null);
       setEdgeHoverTargetId(null);
@@ -261,69 +204,92 @@ export function LogicCanvas({
   };
   const onSvgClick = (event: React.MouseEvent<SVGSVGElement>) => {
     if ((event.target as Element).closest(".pulso-graph-node")) return;
-    if (edgePicker) return;
     setSelectedId(null);
   };
 
-  /** Inicia un drag de edge desde el anchor de un nodo. */
-  const onAnchorMouseDown = (sourceId: string) => (event: React.MouseEvent) => {
-    const { x, y } = toCanvasCoords(event.clientX, event.clientY);
-    setEdgeDraft({ sourceId, cursorX: x, cursorY: y });
-    setEdgeHoverTargetId(null);
+  const onAnchorMouseDown =
+    (sourceId: string) => (event: React.MouseEvent) => {
+      const { x, y } = toCanvasCoords(event.clientX, event.clientY);
+      setEdgeDraft({ sourceId, cursorX: x, cursorY: y });
+      setEdgeHoverTargetId(null);
+    };
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
   };
 
-  /** Aplica la elección del EdgeKindPicker: serializa la expresión y la
-   *  envía al callback que provee el monolito. */
-  const handleEdgePick = (option: EdgeKindOption) => {
-    if (!edgePicker || !structure || !onSetExpression) {
-      setEdgePicker(null);
-      return;
+  const expandAll = () => {
+    if (!graph) return;
+    const all = new Set<string>();
+    for (const node of graph.byId.values()) {
+      if (node.kind === "section") all.add(node.id);
     }
-    const sourceNode = nodeById.get(edgePicker.sourceId);
-    const targetNode = nodeById.get(edgePicker.targetId);
-    if (!sourceNode || !targetNode || targetNode.rowIndex == null) {
-      setEdgePicker(null);
-      return;
-    }
-    // Construimos la expresión ODK según el tipo elegido. Usamos el
-    // `subtitle` (que es el name técnico) del source. Para casos donde el
-    // source es un catálogo el name es el listName.
-    const sourceRef = sourceNode.kind === "catalog"
-      ? sourceNode.listName ?? ""
-      : sourceNode.subtitle;
-    const expression = buildExpressionForOption(option.key, sourceRef);
-    onSetExpression(targetNode.rowIndex, option.key, expression);
-    setEdgePicker(null);
+    setExpandedSections(all);
+  };
+  const collapseAll = () => setExpandedSections(new Set());
+
+  // Lookup a "está condicional" para el badge en el header.
+  const isConditional = (id: string): boolean => {
+    if (!structure) return false;
+    const rowIndex = parseInt(id.replace(/^q:/, ""), 10);
+    if (isNaN(rowIndex)) return false;
+    const builderNode = structure.byRow.get(rowIndex);
+    return !!builderNode?.relevant;
   };
 
-  const nodeById = new Map<string, GraphNode>();
-  for (const node of graph?.nodes ?? []) nodeById.set(node.id, node);
-
-  const selectedNode = selectedId ? nodeById.get(selectedId) ?? null : null;
+  const selectedNode: GraphNode | null = selectedId && graph
+    ? graph.byId.get(selectedId) ?? null
+    : null;
 
   const stats = layout
     ? {
-        nodes: layout.nodes.length,
+        visible: layout.nodes.filter((n) => n.visible).length,
         edges: layout.edges.length,
       }
-    : { nodes: 0, edges: 0 };
+    : { visible: 0, edges: 0 };
 
   return (
-    <div className="pulso-graph-overlay" role="dialog" aria-label="Mapa de lógica del formulario">
+    <div
+      className="pulso-graph-overlay"
+      role="dialog"
+      aria-label="Mapa de visibilidad del formulario"
+    >
       <header className="pulso-graph-header">
         <div className="pulso-graph-header-left">
           <button type="button" className="pulso-graph-back" onClick={onClose}>
             <ChevronLeft size={14} /> Volver al editor
           </button>
           <div className="pulso-graph-header-title">
-            <strong>Mapa de lógica</strong>
+            <strong>Mapa de visibilidad</strong>
             <span>
-              {stats.nodes} {stats.nodes === 1 ? "nodo" : "nodos"} ·{" "}
+              {stats.visible} {stats.visible === 1 ? "nodo visible" : "nodos visibles"} ·{" "}
               {stats.edges} {stats.edges === 1 ? "conexión" : "conexiones"}
             </span>
           </div>
         </div>
         <div className="pulso-graph-header-right">
+          <button
+            type="button"
+            className="pulso-graph-allbutton"
+            onClick={expandAll}
+            title="Expandir todas las secciones"
+          >
+            Expandir todo
+          </button>
+          <button
+            type="button"
+            className="pulso-graph-allbutton"
+            onClick={collapseAll}
+            title="Colapsar todas las secciones"
+          >
+            Colapsar todo
+          </button>
+          <span className="pulso-graph-sep" aria-hidden="true" />
           <button
             type="button"
             className="pulso-icon"
@@ -382,60 +348,70 @@ export function LogicCanvas({
             transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
             style={{ transformOrigin: "0 0" }}
           >
+            {/* Edges primero para que queden detrás de los nodos. */}
             {layout?.edges.map((edge, idx) => {
-              const isHighlighted =
+              const isHL =
                 !!selectedId &&
-                (edge.source === selectedId || edge.target === selectedId);
-              const isDimmed =
-                !!selectedId && !isHighlighted && relatedIds !== null;
+                (edge.edge.source === selectedId ||
+                  edge.edge.target === selectedId);
+              const isDM =
+                !!selectedId && !isHL && relatedIds !== null;
               return (
                 <GraphEdgeArrow
-                  key={`e-${idx}-${edge.source}-${edge.target}-${edge.kind}`}
+                  key={`e-${idx}-${edge.edge.source}-${edge.edge.target}`}
                   edge={edge}
-                  nodeWidth={NODE_WIDTH}
-                  nodeHeight={NODE_HEIGHT}
-                  highlighted={isHighlighted}
-                  dimmed={isDimmed}
-                />
-              );
-            })}
-            {layout?.nodes.map((node) => {
-              const isSelected = node.id === selectedId;
-              const isHighlighted =
-                !!relatedIds && relatedIds.has(node.id) && !isSelected;
-              const isDraggingFrom = edgeDraft?.sourceId === node.id;
-              const isMarkedTarget =
-                !!edgeDraft &&
-                edgeDraft.sourceId !== node.id &&
-                edgeHoverTargetId === node.id;
-              return (
-                <GraphNodeCard
-                  key={node.id}
-                  node={node}
-                  width={NODE_WIDTH}
-                  height={NODE_HEIGHT}
-                  selected={isSelected}
-                  highlighted={isHighlighted}
-                  draggingFrom={isDraggingFrom}
-                  markedAsTarget={isMarkedTarget}
-                  onClick={() => setSelectedId(node.id)}
-                  onAnchorMouseDown={
-                    onSetExpression ? onAnchorMouseDown(node.id) : undefined
-                  }
+                  highlighted={isHL}
+                  dimmed={isDM}
                 />
               );
             })}
 
-            {/* Ghost edge: línea que sigue al cursor mientras el usuario
-                arrastra desde un anchor. Se dibuja por encima de los nodos
-                para que el usuario siempre la vea. */}
+            {/* Nodos: solo los visibles. */}
+            {layout?.nodes
+              .filter((n) => n.visible)
+              .map((laid) => {
+                const id = laid.node.id;
+                const isSelected = id === selectedId;
+                const isHL =
+                  !!relatedIds && relatedIds.has(id) && !isSelected;
+                const isDraggingFrom = edgeDraft?.sourceId === id;
+                const isMarkedTarget =
+                  !!edgeDraft &&
+                  edgeDraft.sourceId !== id &&
+                  edgeHoverTargetId === id;
+                const expanded =
+                  laid.node.kind === "section" && expandedSections.has(id);
+                return (
+                  <GraphNodeCard
+                    key={id}
+                    laid={laid}
+                    selected={isSelected}
+                    highlighted={isHL}
+                    expanded={expanded}
+                    isConditional={isConditional(id)}
+                    draggingFrom={isDraggingFrom}
+                    markedAsTarget={isMarkedTarget}
+                    onClick={() => setSelectedId(id)}
+                    onToggleExpand={
+                      laid.node.kind === "section"
+                        ? () => toggleSection(id)
+                        : undefined
+                    }
+                    onAnchorMouseDown={
+                      onSetRelevant ? onAnchorMouseDown(id) : undefined
+                    }
+                  />
+                );
+              })}
+
+            {/* Ghost edge mientras se arrastra. */}
             {edgeDraft && (() => {
-              const source = layout?.nodes.find(
-                (n) => n.id === edgeDraft.sourceId,
+              const sourceLaid = layout?.nodes.find(
+                (n) => n.node.id === edgeDraft.sourceId && n.visible,
               );
-              if (!source) return null;
-              const sx = source.x + NODE_WIDTH;
-              const sy = source.y + NODE_HEIGHT / 2;
+              if (!sourceLaid) return null;
+              const sx = sourceLaid.x + sourceLaid.width;
+              const sy = sourceLaid.y + Math.min(sourceLaid.height, 56) / 2;
               const tx = edgeDraft.cursorX;
               const ty = edgeDraft.cursorY;
               const dx = Math.max(40, Math.abs(tx - sx) * 0.4);
@@ -458,78 +434,12 @@ export function LogicCanvas({
           <div className="pulso-graph-empty">
             <strong>Todavía no hay nada que mapear.</strong>
             <p>
-              Agrega preguntas y, opcionalmente, asígnales lógica condicional
-              o fórmulas. El mapa se construye automáticamente.
+              Agrega preguntas o secciones y, cuando alguna esté condicionada
+              a otra, la conexión aparecerá automáticamente acá.
             </p>
           </div>
         )}
 
-        {/* Leyenda flotante abajo a la izquierda */}
-        {layout && layout.edges.length > 0 && (
-          <aside className="pulso-graph-legend">
-            <strong>Tipos de conexión</strong>
-            <ul>
-              {Array.from(edgeKindCounts.entries()).map(([kind, count]) => {
-                const style = edgeStyleByKind(
-                  kind as Parameters<typeof edgeStyleByKind>[0],
-                );
-                return (
-                  <li key={kind}>
-                    <svg width={32} height={6} aria-hidden="true">
-                      <line
-                        x1={2}
-                        y1={3}
-                        x2={30}
-                        y2={3}
-                        stroke={style.color}
-                        strokeWidth={style.strokeWidth + 0.4}
-                        strokeDasharray={style.dasharray}
-                      />
-                    </svg>
-                    <span>{style.label}</span>
-                    <em>{count}</em>
-                  </li>
-                );
-              })}
-            </ul>
-          </aside>
-        )}
-
-        {/* EdgeKindPicker: se monta cuando el usuario suelta un drag de
-            edge sobre un nodo válido. Click en una opción → escribe la
-            expresión en el destino vía onSetExpression. */}
-        {edgePicker && (() => {
-          const source = nodeById.get(edgePicker.sourceId);
-          const target = nodeById.get(edgePicker.targetId);
-          if (!source || !target) return null;
-          // El target debe tener rowIndex (no es catalog). Si es catalog,
-          // no podemos escribir lógica en él.
-          if (target.rowIndex == null) return null;
-          // Buscamos el estado actual de los campos lógicos del target
-          // para mostrar "(reemplaza)" donde corresponda.
-          const targetCurrent = (() => {
-            const node = structure?.byRow.get(target.rowIndex);
-            return {
-              relevant: node?.relevant ?? "",
-              constraint: node?.constraint ?? "",
-              calculation: node?.calculation ?? "",
-              choiceFilter: node?.choiceFilter ?? "",
-            };
-          })();
-          return (
-            <EdgeKindPicker
-              x={edgePicker.screenX}
-              y={edgePicker.screenY}
-              source={source}
-              target={target}
-              targetCurrent={targetCurrent}
-              onPick={handleEdgePick}
-              onClose={() => setEdgePicker(null)}
-            />
-          );
-        })()}
-
-        {/* Panel de detalle del nodo seleccionado */}
         {selectedNode && (
           <aside className="pulso-graph-detail">
             <header>
@@ -545,30 +455,29 @@ export function LogicCanvas({
               </button>
             </header>
             <p>
-              {selectedNode.kind === "catalog"
-                ? "Catálogo de opciones"
-                : selectedNode.kind === "section"
-                  ? "Sección"
-                  : "Pregunta"}
+              {selectedNode.kind === "section"
+                ? "Sección"
+                : "Pregunta"}
               {" · "}
-              <code>{selectedNode.subtitle}</code>
+              <code>{selectedNode.name}</code>
             </p>
-            {selectedNode.kind !== "catalog" && (
+            {selectedNode.kind === "question" && selectedNode.catalogContext && (
               <p>
-                <span>{selectedNode.inDegree} entradas</span>
+                Catálogo: <code>{selectedNode.catalogContext.listName}</code>
                 {" · "}
-                <span>{selectedNode.outDegree} salidas</span>
+                {selectedNode.catalogContext.itemCount}{" "}
+                {selectedNode.catalogContext.itemCount === 1
+                  ? "opción"
+                  : "opciones"}
               </p>
             )}
-            {onSelectRow && selectedNode.rowIndex != null && (
+            {onSelectRow && (
               <button
                 type="button"
                 className="pulso-graph-detail-go"
                 onClick={() => {
-                  if (selectedNode.rowIndex != null) {
-                    onSelectRow(selectedNode.rowIndex);
-                    onClose();
-                  }
+                  onSelectRow(selectedNode.rowIndex);
+                  onClose();
                 }}
               >
                 Abrir en el editor →

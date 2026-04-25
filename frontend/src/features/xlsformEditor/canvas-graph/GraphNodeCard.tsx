@@ -1,60 +1,79 @@
 // =============================================================================
-// canvas-graph/GraphNodeCard.tsx — caja visual de un nodo del grafo
+// canvas-graph/GraphNodeCard.tsx — caja del nodo (sección o pregunta)
 // =============================================================================
-// Render SVG de un node: caja con borde, icono del tipo, título y subtítulo.
-// El click selecciona; hover resalta. La caja se rota a una posición pasada
-// como prop (calculada por `autoLayout`).
+// Render SVG de un node usando `<foreignObject>` para layout HTML interno
+// (más fácil de estilizar que SVG puro). Tres modos visuales:
+//
+//   1. Pregunta normal: header con icono + label + name técnico.
+//      Si es select_one/multiple, chip "Catálogo: <listName> · N opciones"
+//      al pie con muestra de hasta 5 opciones en grayscale (apenas
+//      legibles, son contexto).
+//
+//   2. Sección colapsada: como una pregunta pero con chevron > a la
+//      izquierda y subtítulo "<name> · N preguntas dentro". Click expande.
+//
+//   3. Sección expandida: header con chevron v + body que ocupa la altura
+//      total (calculada por autoLayout). Los hijos se renderizan por
+//      separado con sus propias <GraphNodeCard> — esta solo dibuja el
+//      borde contenedor.
 // =============================================================================
 
-import { ListChecks } from "lucide-react";
+import { ChevronDown, ChevronRight, ListChecks } from "lucide-react";
 import type { LaidOutNode } from "./autoLayout";
 import { iconForType } from "../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
+import { ConditionalIcon } from "../helpers/icons";
 
 export type GraphNodeCardProps = {
-  node: LaidOutNode;
-  width: number;
-  height: number;
+  laid: LaidOutNode;
   selected: boolean;
   highlighted: boolean;
-  /** Si true, este nodo se ve "marked" como candidato válido durante un
-   *  drag de edge en curso. */
+  /** Si la sección está expandida (solo aplica si laid.node.kind === "section"). */
+  expanded?: boolean;
+  /** True cuando este node tiene `relevant` no vacío — se muestra
+   *  ConditionalIcon en el header. */
+  isConditional: boolean;
+  /** Estados auxiliares para el modo edición (drag de edge). */
   markedAsTarget?: boolean;
-  /** Si true, este nodo está siendo arrastrado como source de un edge —
-   *  lo dimmeamos un poco para distinguirlo. */
   draggingFrom?: boolean;
+  /** Toggle expand/collapse para secciones. */
+  onToggleExpand?: () => void;
+  /** Click en el body (no chevron) selecciona / abre detalle. */
   onClick: () => void;
-  /** Se dispara cuando el usuario empieza a arrastrar desde el anchor del
-   *  lado derecho. Coordenadas en espacio del canvas (post-zoom/pan ya
-   *  transformados por el caller). */
+  /** Inicio de drag de edge desde el anchor del lado derecho. */
   onAnchorMouseDown?: (event: React.MouseEvent) => void;
 };
 
+const COLLAPSED_HEIGHT = 56;
+
 export function GraphNodeCard({
-  node,
-  width,
-  height,
+  laid,
   selected,
   highlighted,
+  expanded,
+  isConditional,
   markedAsTarget,
   draggingFrom,
+  onToggleExpand,
   onClick,
   onAnchorMouseDown,
 }: GraphNodeCardProps) {
-  const accent =
-    node.kind === "catalog"
-      ? "#0f766e"
-      : node.kind === "section"
-        ? paletteForType("begin_group")
-        : paletteForType(node.baseType);
-  const accentSoft =
-    node.kind === "catalog"
-      ? "rgba(15, 118, 110, 0.12)"
-      : node.kind === "section"
-        ? paletteSoftForType("begin_group")
-        : paletteSoftForType(node.baseType);
+  const { node, x, y, width, height } = laid;
+  const isSection = node.kind === "section";
+  const isSelect =
+    node.baseType === "select_one" || node.baseType === "select_multiple";
 
-  const Icon = node.kind === "catalog" ? ListChecks : iconForType(node.baseType);
+  const accent = isSection
+    ? paletteForType("begin_group")
+    : paletteForType(node.baseType);
+  const accentSoft = isSection
+    ? paletteSoftForType("begin_group")
+    : paletteSoftForType(node.baseType);
+  const Icon = isSection
+    ? expanded
+      ? iconForType("begin_group")
+      : iconForType("begin_group")
+    : iconForType(node.baseType);
 
   const fill = markedAsTarget
     ? "rgba(34, 197, 94, 0.08)"
@@ -64,7 +83,9 @@ export function GraphNodeCard({
         ? accentSoft
         : highlighted
           ? "rgba(36, 87, 214, 0.04)"
-          : "white";
+          : isSection && expanded
+            ? "rgba(15, 118, 110, 0.04)"
+            : "white";
   const stroke = markedAsTarget
     ? "#16a34a"
     : draggingFrom
@@ -73,48 +94,94 @@ export function GraphNodeCard({
         ? accent
         : highlighted
           ? "var(--pulso-primary)"
-          : "var(--pulso-border)";
+          : isSection
+            ? accent
+            : "var(--pulso-border)";
   const strokeWidth = markedAsTarget || draggingFrom
     ? 2.2
     : selected
       ? 2
-      : highlighted
+      : highlighted || isSection
         ? 1.6
         : 1;
 
+  const headerHeight = COLLAPSED_HEIGHT;
+
   return (
     <g
-      transform={`translate(${node.x}, ${node.y})`}
-      style={{ cursor: "pointer" }}
-      onClick={onClick}
+      transform={`translate(${x}, ${y})`}
       data-graph-node-id={node.id}
       className={`pulso-graph-node ${selected ? "is-selected" : ""} ${
         highlighted ? "is-highlighted" : ""
       } ${markedAsTarget ? "is-target" : ""} ${
         draggingFrom ? "is-source" : ""
-      } pulso-graph-node-${node.kind}`}
+      } ${expanded ? "is-expanded" : ""} pulso-graph-node-${node.kind}`}
+      style={{ cursor: "pointer" }}
     >
+      {/* Caja contenedora: si es sección expandida ocupa height total;
+          si es colapsada o pregunta, ocupa COLLAPSED_HEIGHT. */}
       <rect
         width={width}
         height={height}
-        rx={9}
-        ry={9}
+        rx={10}
+        ry={10}
         fill={fill}
         stroke={stroke}
         strokeWidth={strokeWidth}
+        strokeDasharray={isSection && !expanded ? undefined : undefined}
       />
-      <foreignObject x={0} y={0} width={width} height={height} style={{ pointerEvents: "none" }}>
+
+      {/* Header (siempre presente en h=COLLAPSED_HEIGHT). Click selecciona
+          el nodo. Para secciones, separamos un área del chevron a la
+          izquierda que dispara el toggle. */}
+      <foreignObject
+        x={0}
+        y={0}
+        width={width}
+        height={headerHeight}
+        style={{ pointerEvents: "auto" }}
+      >
         <div
+          onClick={(event) => {
+            event.stopPropagation();
+            onClick();
+          }}
           style={{
             width: "100%",
             height: "100%",
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: 6,
             padding: "6px 10px",
             boxSizing: "border-box",
           }}
         >
+          {isSection && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleExpand?.();
+              }}
+              title={expanded ? "Colapsar sección" : "Expandir sección"}
+              aria-label={expanded ? "Colapsar sección" : "Expandir sección"}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                background: "transparent",
+                border: "1px solid var(--pulso-border)",
+                color: accent,
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            >
+              {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+            </button>
+          )}
           <span
             style={{
               width: 26,
@@ -141,12 +208,13 @@ export function GraphNodeCard({
           >
             <strong
               style={{
-                fontSize: 12,
+                fontSize: 12.5,
                 color: "var(--pulso-text)",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 lineHeight: 1.2,
+                fontWeight: 700,
               }}
             >
               {node.title || node.subtitle}
@@ -159,20 +227,81 @@ export function GraphNodeCard({
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 lineHeight: 1.2,
-                fontFamily:
-                  node.kind === "catalog" ? undefined : "ui-monospace, monospace",
+                fontFamily: "ui-monospace, monospace",
               }}
             >
               {node.subtitle}
             </span>
           </span>
+          {isConditional && (
+            <span
+              title={
+                isSection
+                  ? "Sección con visibilidad condicional"
+                  : "Pregunta condicional"
+              }
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 20,
+                height: 20,
+                borderRadius: 5,
+                color: isSection ? "white" : "var(--pulso-primary)",
+                background: isSection
+                  ? "var(--pulso-primary)"
+                  : "var(--pulso-primary-bg, rgba(36, 87, 214, 0.10))",
+                flexShrink: 0,
+              }}
+            >
+              <ConditionalIcon
+                size={12}
+                weight={isSection ? "bold" : "thin"}
+                color="currentColor"
+              />
+            </span>
+          )}
         </div>
       </foreignObject>
 
-      {/* Anchor de "salida" — puntito en el lado derecho que el usuario
-          arrastra para crear un edge nuevo. Se ve siempre pero solo se
-          resalta en hover (CSS). Se renderiza al final del <g> para
-          quedar por encima del rect y captar el mousedown limpio. */}
+      {/* Catálogo inline para preguntas select (solo cuando NO es sección).
+          Chip pequeño debajo del header con nombre del catálogo y conteo. */}
+      {!isSection && isSelect && node.catalogContext && (
+        <foreignObject
+          x={0}
+          y={headerHeight - 14}
+          width={width}
+          height={20}
+          style={{ pointerEvents: "none" }}
+        >
+          <div
+            style={{
+              padding: "0 10px",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 9.5,
+              color: "var(--pulso-text-soft)",
+            }}
+          >
+            <ListChecks size={10} style={{ color: "#0f766e" }} />
+            <span
+              style={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {node.catalogContext.listName} · {node.catalogContext.itemCount}{" "}
+              {node.catalogContext.itemCount === 1 ? "opción" : "opciones"}
+            </span>
+          </div>
+        </foreignObject>
+      )}
+
+      {/* Anchor de "salida" — círculo a la derecha que el usuario arrastra
+          para crear una conexión nueva. Solo visible si onAnchorMouseDown
+          está provisto (modo edición). */}
       {onAnchorMouseDown && (
         <g
           className="pulso-graph-node-anchor"
@@ -183,13 +312,13 @@ export function GraphNodeCard({
         >
           <circle
             cx={width}
-            cy={height / 2}
+            cy={headerHeight / 2}
             r={6}
             fill="white"
             stroke={accent}
             strokeWidth={1.6}
           />
-          <circle cx={width} cy={height / 2} r={3} fill={accent} />
+          <circle cx={width} cy={headerHeight / 2} r={3} fill={accent} />
         </g>
       )}
     </g>

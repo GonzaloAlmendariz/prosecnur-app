@@ -1,28 +1,46 @@
 // =============================================================================
-// canvas-graph/autoLayout.ts — algoritmo de capas para posicionar nodos
+// canvas-graph/autoLayout.ts — layout jerárquico para el grafo
 // =============================================================================
-// Sugiyama-light: capas por longest-path desde fuentes (in-degree=0),
-// dentro de cada capa los nodos se ordenan por orden de aparición original
-// (preguntas) o alfabético (catálogos).
+// Posicionamiento de los nodes con dos consideraciones nuevas:
 //
-// Sin librerías externas — el algoritmo es suficiente para grafos de los
-// instrumentos del corpus (≤ ~150 nodos). Para grafos más grandes habría
-// que pasar a `dagre` o `elk`, pero nos ahorramos ~30 KB gz por ahora.
+//   1. Secciones colapsables: cuando una sección está colapsada, ocupa una
+//      sola fila (la card del header). Cuando está expandida, su altura
+//      crece para acomodar las cards de las preguntas / sub-secciones
+//      dentro. El layout calcula altura dinámica.
+//
+//   2. Edges depends-on solo: el orden por capas se calcula a partir de
+//      las dependencias entre los nodes top-level + visibles (preguntas
+//      que están dentro de secciones expandidas). Si un node está
+//      "oculto" porque su sección padre está colapsada, lo representa la
+//      sección padre en el grafo.
+//
+// El algoritmo es "Sugiyama-light" otra vez: BFS por capas desde fuentes
+// (in-degree=0) en el grafo aplanado de visible nodes, dentro de cada
+// capa orden por aparición original. Sin librerías externas — los
+// formularios del corpus rondan los 50-150 nodes.
 // =============================================================================
 
 import type { GraphEdge, GraphNode, LogicGraph } from "./buildGraph";
 
-export type LaidOutNode = GraphNode & {
-  /** Posición x absoluta (px) en el canvas. */
+/** Geometría calculada para un nodo (top-level o anidado). */
+export type LaidOutNode = {
+  node: GraphNode;
+  /** Posición absoluta en el lienzo. Para nodos hijos, es absoluta también
+   *  (no relativa al padre — el render usa transform por nodo). */
   x: number;
-  /** Posición y absoluta (px). */
   y: number;
-  /** Capa (depth desde fuentes). */
-  layer: number;
+  width: number;
+  height: number;
+  /** Profundidad en el árbol: 0 = raíz, 1 = dentro de una sección, etc. */
+  depth: number;
+  /** Si este node es un descendiente "expuesto" porque su sección padre
+   *  está expandida. Cuando false, el node no se renderiza pero su
+   *  representante visual es el ancestro colapsado más cercano. */
+  visible: boolean;
 };
 
-export type LaidOutEdge = GraphEdge & {
-  /** Endpoints calculados (centros de los nodos respectivos). */
+export type LaidOutEdge = {
+  edge: GraphEdge;
   fromX: number;
   fromY: number;
   toX: number;
@@ -30,73 +48,173 @@ export type LaidOutEdge = GraphEdge & {
 };
 
 export type LaidOutGraph = {
+  /** Todos los nodes con sus posiciones — incluyendo los ocultos. La UI
+   *  filtra por `visible` al renderizar. */
   nodes: LaidOutNode[];
+  /** Edges proyectadas: si el source o target original está oculto, se
+   *  reemplaza por el ancestro colapsado más cercano. */
   edges: LaidOutEdge[];
   width: number;
   height: number;
 };
 
-/**
- * Configuración del layout. Los defaults producen un grafo legible para
- * formularios típicos (ESPP, GIZ, HST). Para RMS (4 niveles, 59 listas)
- * conviene aumentar `layerGap` y achicar `nodeWidth`.
- */
 export type LayoutOptions = {
   nodeWidth: number;
-  nodeHeight: number;
+  /** Altura de la "tarjeta" (header en secciones, body en preguntas). */
+  rowHeight: number;
+  /** Espacio horizontal entre capas. */
   layerGap: number;
+  /** Espacio vertical entre rows en una misma capa. */
   rowGap: number;
+  /** Espacio vertical interno entre header y children de una sección
+   *  expandida. */
+  innerGap: number;
+  /** Espacio horizontal extra que indenta los hijos respecto al padre. */
+  childIndent: number;
   marginX: number;
   marginY: number;
 };
 
 const DEFAULT_OPTIONS: LayoutOptions = {
-  nodeWidth: 200,
-  nodeHeight: 56,
-  layerGap: 80,
-  rowGap: 14,
+  nodeWidth: 220,
+  rowHeight: 56,
+  layerGap: 90,
+  rowGap: 16,
+  innerGap: 12,
+  childIndent: 18,
   marginX: 40,
   marginY: 40,
 };
 
 export function layoutLogicGraph(
   graph: LogicGraph,
+  expandedSectionIds: Set<string>,
   optionsOverride: Partial<LayoutOptions> = {},
 ): LaidOutGraph {
   const options = { ...DEFAULT_OPTIONS, ...optionsOverride };
-  const { nodes, edges } = graph;
+  const { rootNodes, edges } = graph;
 
-  if (nodes.length === 0) {
+  if (rootNodes.length === 0) {
     return { nodes: [], edges: [], width: 0, height: 0 };
   }
 
-  // -- 1. Calcular capas via longest-path desde fuentes (in-degree=0) ----
-  // Filtramos las edges "contains" del cálculo de capas porque crearían
-  // capas artificiales (la sección "contiene" sus preguntas pero
-  // visualmente queremos las preguntas debajo de las cosas que las
-  // alimentan, no debajo de su sección contenedora).
+  // Helper: ¿este nodo es "visible" (no está oculto dentro de una sección
+  // colapsada de algún ancestro)? Recursivamente: visible si todos los
+  // ancestros sección están expandidos.
+  // Para implementarlo simple, recorremos el árbol y vamos marcando.
+
+  // -- 1. Para cada root, calcular su altura y posiciones de hijos
+  // (recursivo sobre la expansión). --
+  const flatNodes: LaidOutNode[] = [];
+  const heightOf = (node: GraphNode, depth: number): number => {
+    if (node.kind !== "section") return options.rowHeight;
+    const isExpanded = expandedSectionIds.has(node.id);
+    if (!isExpanded || node.children.length === 0) return options.rowHeight;
+    let inner = 0;
+    for (let i = 0; i < node.children.length; i += 1) {
+      if (i > 0) inner += options.rowGap;
+      inner += heightOf(node.children[i]!, depth + 1);
+    }
+    return options.rowHeight + options.innerGap + inner + options.innerGap;
+  };
+
+  /** Coloca un nodo en (x, y) y, recursivamente, a sus hijos si está
+   *  expandido. Devuelve la altura total ocupada. */
+  const placeNode = (
+    node: GraphNode,
+    x: number,
+    y: number,
+    depth: number,
+    visible: boolean,
+  ): number => {
+    const isSection = node.kind === "section";
+    const isExpanded =
+      isSection &&
+      expandedSectionIds.has(node.id) &&
+      node.children.length > 0;
+    const totalHeight = heightOf(node, depth);
+
+    flatNodes.push({
+      node,
+      x,
+      y,
+      width: options.nodeWidth,
+      height: isSection && isExpanded ? totalHeight : options.rowHeight,
+      depth,
+      visible,
+    });
+
+    if (isExpanded) {
+      // Posicionamos los children debajo del header de la sección.
+      let childY = y + options.rowHeight + options.innerGap;
+      const childX = x + options.childIndent;
+      for (const child of node.children) {
+        const childHeight = heightOf(child, depth + 1);
+        placeNode(child, childX, childY, depth + 1, true);
+        childY += childHeight + options.rowGap;
+      }
+    } else if (isSection) {
+      // Sección colapsada: registramos sus children como invisibles para
+      // que las edges puedan resolverse al ancestro visible.
+      for (const child of node.children) {
+        registerHidden(child, depth + 1);
+      }
+    }
+
+    return totalHeight;
+  };
+
+  /** Registra un descendiente sin posicionarlo (porque está dentro de una
+   *  sección colapsada). Se llama recursivo. */
+  const registerHidden = (node: GraphNode, depth: number) => {
+    flatNodes.push({
+      node,
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      depth,
+      visible: false,
+    });
+    if (node.kind === "section") {
+      for (const child of node.children) {
+        registerHidden(child, depth + 1);
+      }
+    }
+  };
+
+  // -- 2. Calcular capas top-level por longest-path entre roots --
+  // Para cada root, capa basada en deps a otros roots.
+  const inDeg = new Map<string, number>();
   const adjOut = new Map<string, string[]>();
-  const inDegree = new Map<string, number>();
-  for (const node of nodes) {
-    adjOut.set(node.id, []);
-    inDegree.set(node.id, 0);
+  for (const root of rootNodes) {
+    inDeg.set(root.id, 0);
+    adjOut.set(root.id, []);
   }
+  // Hacemos un set para resolver edges al ancestro top-level más cercano.
+  const topLevelAncestor = new Map<string, string>();
+  const populateAncestor = (node: GraphNode, ancestorId: string) => {
+    topLevelAncestor.set(node.id, ancestorId);
+    for (const child of node.children) populateAncestor(child, ancestorId);
+  };
+  for (const root of rootNodes) populateAncestor(root, root.id);
+
   for (const edge of edges) {
-    if (edge.kind === "contains") continue;
-    adjOut.get(edge.source)?.push(edge.target);
-    inDegree.set(edge.target, (inDegree.get(edge.target) ?? 0) + 1);
+    const srcRoot = topLevelAncestor.get(edge.source);
+    const tgtRoot = topLevelAncestor.get(edge.target);
+    if (!srcRoot || !tgtRoot || srcRoot === tgtRoot) continue;
+    adjOut.get(srcRoot)?.push(tgtRoot);
+    inDeg.set(tgtRoot, (inDeg.get(tgtRoot) ?? 0) + 1);
   }
 
   const layer = new Map<string, number>();
   const queue: string[] = [];
-  for (const node of nodes) {
-    if ((inDegree.get(node.id) ?? 0) === 0) {
-      layer.set(node.id, 0);
-      queue.push(node.id);
+  for (const root of rootNodes) {
+    if ((inDeg.get(root.id) ?? 0) === 0) {
+      layer.set(root.id, 0);
+      queue.push(root.id);
     }
   }
-
-  // BFS por capas (longest path entre fuentes).
   while (queue.length) {
     const id = queue.shift()!;
     const myLayer = layer.get(id) ?? 0;
@@ -108,83 +226,93 @@ export function layoutLogicGraph(
       }
     }
   }
-
-  // Cualquier nodo sin capa (raro: un ciclo) lo plantamos en capa 0.
-  for (const node of nodes) {
-    if (!layer.has(node.id)) layer.set(node.id, 0);
+  for (const root of rootNodes) {
+    if (!layer.has(root.id)) layer.set(root.id, 0);
   }
 
-  // -- 2. Agrupar por capa, ordenar dentro de cada capa ------------------
+  // -- 3. Ordenar roots por capa, layout vertical de cada capa. --
   const byLayer = new Map<number, GraphNode[]>();
-  for (const node of nodes) {
-    const l = layer.get(node.id) ?? 0;
+  for (const root of rootNodes) {
+    const l = layer.get(root.id) ?? 0;
     if (!byLayer.has(l)) byLayer.set(l, []);
-    byLayer.get(l)!.push(node);
+    byLayer.get(l)!.push(root);
   }
-  for (const arr of byLayer.values()) {
-    arr.sort((a, b) => {
-      // Catálogos al fondo de su capa.
-      if (a.kind !== b.kind) {
-        if (a.kind === "catalog") return 1;
-        if (b.kind === "catalog") return -1;
-        if (a.kind === "section") return -1;
-        if (b.kind === "section") return 1;
+  const layerCount = Math.max(...byLayer.keys()) + 1;
+
+  // Posicionamos cada capa.
+  let canvasWidth = options.marginX;
+  let maxLayerBottom = 0;
+  for (let l = 0; l < layerCount; l += 1) {
+    const inLayer = byLayer.get(l) ?? [];
+    const x = options.marginX + l * (options.nodeWidth + options.layerGap);
+    let y = options.marginY;
+    for (const root of inLayer) {
+      const heightHere = heightOf(root, 0);
+      placeNode(root, x, y, 0, true);
+      y += heightHere + options.rowGap;
+    }
+    if (y - options.rowGap > maxLayerBottom) maxLayerBottom = y - options.rowGap;
+    canvasWidth = x + options.nodeWidth + options.marginX;
+  }
+
+  // -- 4. Resolver edges: cada edge va del nodo visible más cercano al
+  // visible más cercano. --
+  const positionByNodeId = new Map<string, LaidOutNode>();
+  for (const placed of flatNodes) positionByNodeId.set(placed.node.id, placed);
+
+  const resolveVisible = (id: string): LaidOutNode | null => {
+    const placed = positionByNodeId.get(id);
+    if (!placed) return null;
+    if (placed.visible) return placed;
+    // Caminar hacia arriba en el árbol del grafo.
+    const findParent = (target: GraphNode): GraphNode | null => {
+      const visit = (current: GraphNode): GraphNode | null => {
+        for (const child of current.children) {
+          if (child.id === target.id) return current;
+          const found = visit(child);
+          if (found) return found;
+        }
+        return null;
+      };
+      for (const root of rootNodes) {
+        if (root.id === target.id) return null;
+        const found = visit(root);
+        if (found) return found;
       }
-      // Por rowIndex si ambos son preguntas/secciones.
-      if (a.rowIndex != null && b.rowIndex != null) {
-        return a.rowIndex - b.rowIndex;
-      }
-      return a.title.localeCompare(b.title);
+      return null;
+    };
+    let cursor: GraphNode | null = placed.node;
+    while (cursor) {
+      const visible = positionByNodeId.get(cursor.id);
+      if (visible && visible.visible) return visible;
+      cursor = findParent(cursor);
+    }
+    return null;
+  };
+
+  const laidOutEdges: LaidOutEdge[] = [];
+  const seenPair = new Set<string>(); // dedupe colapsado
+  for (const edge of edges) {
+    const fromVisible = resolveVisible(edge.source);
+    const toVisible = resolveVisible(edge.target);
+    if (!fromVisible || !toVisible) continue;
+    if (fromVisible === toVisible) continue;
+    const key = `${fromVisible.node.id}->${toVisible.node.id}`;
+    if (seenPair.has(key)) continue;
+    seenPair.add(key);
+    laidOutEdges.push({
+      edge,
+      fromX: fromVisible.x + fromVisible.width,
+      fromY: fromVisible.y + Math.min(fromVisible.height, options.rowHeight) / 2,
+      toX: toVisible.x,
+      toY: toVisible.y + Math.min(toVisible.height, options.rowHeight) / 2,
     });
   }
 
-  const layerCount = Math.max(...byLayer.keys()) + 1;
-
-  // -- 3. Asignar coordenadas --------------------------------------------
-  const laidOutNodes: LaidOutNode[] = [];
-  const positions = new Map<string, { x: number; y: number }>();
-
-  for (let l = 0; l < layerCount; l += 1) {
-    const inLayer = byLayer.get(l) ?? [];
-    const layerHeight = inLayer.length * options.nodeHeight + (inLayer.length - 1) * options.rowGap;
-    const startY = options.marginY + maxLayerHeight(byLayer, options) / 2 - layerHeight / 2;
-
-    for (let i = 0; i < inLayer.length; i += 1) {
-      const node = inLayer[i]!;
-      const x = options.marginX + l * (options.nodeWidth + options.layerGap);
-      const y = startY + i * (options.nodeHeight + options.rowGap);
-      const placed: LaidOutNode = { ...node, x, y, layer: l };
-      laidOutNodes.push(placed);
-      positions.set(node.id, {
-        x: x + options.nodeWidth / 2,
-        y: y + options.nodeHeight / 2,
-      });
-    }
-  }
-
-  // -- 4. Calcular endpoints de cada edge --------------------------------
-  const laidOutEdges: LaidOutEdge[] = edges.map((edge) => {
-    const from = positions.get(edge.source) ?? { x: 0, y: 0 };
-    const to = positions.get(edge.target) ?? { x: 0, y: 0 };
-    return { ...edge, fromX: from.x, fromY: from.y, toX: to.x, toY: to.y };
-  });
-
-  // -- 5. Tamaño total del canvas ----------------------------------------
-  const width =
-    options.marginX * 2 + layerCount * options.nodeWidth + (layerCount - 1) * options.layerGap;
-  const height = options.marginY * 2 + maxLayerHeight(byLayer, options);
-
-  return { nodes: laidOutNodes, edges: laidOutEdges, width, height };
-}
-
-function maxLayerHeight(
-  byLayer: Map<number, GraphNode[]>,
-  options: LayoutOptions,
-): number {
-  let max = 0;
-  for (const arr of byLayer.values()) {
-    const h = arr.length * options.nodeHeight + (arr.length - 1) * options.rowGap;
-    if (h > max) max = h;
-  }
-  return max;
+  return {
+    nodes: flatNodes,
+    edges: laidOutEdges,
+    width: canvasWidth,
+    height: maxLayerBottom + options.marginY,
+  };
 }

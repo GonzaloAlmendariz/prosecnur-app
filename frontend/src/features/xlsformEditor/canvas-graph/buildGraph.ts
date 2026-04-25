@@ -1,207 +1,212 @@
 // =============================================================================
-// canvas-graph/buildGraph.ts — del workbook al grafo de dependencias
+// canvas-graph/buildGraph.ts — del workbook al grafo de visibilidad
 // =============================================================================
-// Recorre la estructura + lógica del workbook y produce un grafo dirigido
-// de nodes y edges. Lo que nos interesa visualizar:
+// El canvas Obsidian-style se enfoca exclusivamente en VISIBILIDAD: qué
+// pregunta o sección se condiciona a qué otra (campo `relevant` del
+// XLSForm). Constraint, calculation, choice_filter y catálogos viven en
+// el inspector — meterlos al canvas crea ruido sin sumar valor estructural.
 //
-//   * Preguntas (kind=question/note/calculate) — nodes individuales.
-//   * Secciones (kind=section/repeat) — nodes contenedor visible.
-//   * Catálogos — nodes para `select_one X` / `select_multiple X`.
+// Modelo del grafo (rediseño post-feedback):
 //
-//   * Edges tipadas:
-//     - "depends-on" — A.relevant referencia B → B → A.
-//     - "validates-with" — A.constraint usa B → B → A.
-//     - "calculates-from" — A.calculation usa B → B → A.
-//     - "filters-by" — A.choice_filter usa B → B → A.
-//     - "uses-catalog" — A es select_X foo → catalog(foo) → A.
-//     - "contains" — sección S agrupa pregunta P → S → P.
+//   * Solo dos tipos de node:
+//       - "section"  — begin_group / begin_repeat. Tiene `children` con las
+//                      preguntas (y sub-secciones) que viven adentro.
+//       - "question" — pregunta normal o calculate / note. Si es select_one
+//                      o select_multiple guardamos `catalogContext` con el
+//                      nombre y conteo del catálogo, para mostrarlo INLINE
+//                      dentro de la card. NO hay nodo separado para catálogos.
 //
-// El grafo es derivado puro (función del workbook + index) y se rebuilds
-// en cada cambio. No hay layout aquí — solo topología.
+//   * Solo un tipo de edge:
+//       - "depends-on" — A.relevant referencia B → B → A. La conexión
+//                        representa "B condiciona la aparición de A".
+//                        Containment, uses-catalog, validates-with,
+//                        calculates-from y filters-by ya no son edges
+//                        del grafo: la jerarquía se renderiza como árbol
+//                        colapsable, los demás campos solo viven en el
+//                        inspector.
+//
+// El grafo es derivado puro (función del workbook + index). Mismo input
+// → mismo output.
 // =============================================================================
 
-import type { BuilderNode, BuilderStructure, CatalogSummary } from "../types";
+import type { BuilderStructure, CatalogSummary, ChoiceItem } from "../types";
 import { collectRefs, parseExpression } from "../logic";
 
-export type GraphNodeKind = "question" | "section" | "catalog";
+export type GraphNodeKind = "question" | "section";
 
-export type GraphNode = {
-  /** Identificador único del nodo en el grafo. Para preguntas/secciones
-   *  usamos `q:<rowIndex>`; para catálogos `cat:<listName>`. */
-  id: string;
-  kind: GraphNodeKind;
-  /** Texto principal del nodo (label de la pregunta o nombre del catálogo). */
-  title: string;
-  /** Texto secundario (nombre técnico para preguntas, conteo de opciones
-   *  para catálogos). */
-  subtitle: string;
-  /** Tipo XLSForm para preguntas (`text`, `select_one`, …). Para
-   *  catálogos: "catalog". Para secciones: `begin_group`/`begin_repeat`. */
-  baseType: string;
-  /** Solo para preguntas/secciones: el rowIndex original del survey. */
-  rowIndex?: number;
-  /** Solo para catálogos: el listName. */
-  listName?: string;
-  /** Cantidad de edges entrantes (in-degree) — útil para layout. */
-  inDegree: number;
-  /** Cantidad de edges salientes (out-degree). */
-  outDegree: number;
+/**
+ * Contexto compacto del catálogo asignado a una pregunta select. Se
+ * dibuja como mini-chip dentro de la card de la pregunta (sin que sea
+ * un nodo separado del grafo).
+ */
+export type CatalogContext = {
+  listName: string;
+  itemCount: number;
+  /** Hasta 5 opciones para mostrar como pista; el resto se resume en
+   *  "+ N más". */
+  preview: ChoiceItem[];
 };
 
-export type GraphEdgeKind =
-  | "depends-on"
-  | "validates-with"
-  | "calculates-from"
-  | "filters-by"
-  | "uses-catalog"
-  | "contains";
+export type GraphNode = {
+  /** Identificador único del nodo. `q:<rowIndex>` para preguntas y
+   *  secciones — la única forma posible ahora que los catálogos no son
+   *  nodos. */
+  id: string;
+  kind: GraphNodeKind;
+  /** Nombre técnico (campo `name` del XLSForm). Único en el survey y se
+   *  usa en expresiones ODK como `${name}`. */
+  name: string;
+  /** Texto visible del nodo (label de la pregunta / nombre de la sección). */
+  title: string;
+  /** Texto secundario que se muestra debajo del título. Para preguntas
+   *  es el `name`; para secciones es `<name> · N preguntas dentro`. */
+  subtitle: string;
+  /** Tipo XLSForm. Para secciones: `begin_group` / `begin_repeat`.
+   *  Para preguntas: `text`, `select_one`, `integer`, etc. */
+  baseType: string;
+  /** rowIndex original del survey — para que el canvas pueda saltar al
+   *  inspector al click. */
+  rowIndex: number;
+  /** Para secciones: lista de hijos (preguntas y sub-secciones). Vacía
+   *  si la sección no tiene contenido todavía. */
+  children: GraphNode[];
+  /** Para preguntas select_one / select_multiple: contexto del catálogo
+   *  asignado, para mostrarlo inline en la card. */
+  catalogContext?: CatalogContext;
+};
 
 export type GraphEdge = {
-  /** Origen → Destino. Convención semántica: el origen es lo que
-   *  "alimenta" o "contiene" al destino. */
   source: string;
   target: string;
-  kind: GraphEdgeKind;
+  /** Solo soportamos un tipo en este diseño. */
+  kind: "depends-on";
 };
 
 export type LogicGraph = {
-  nodes: GraphNode[];
+  /** Nodes top-level: secciones raíz + preguntas que NO están dentro de
+   *  ninguna sección (caso raro pero posible — preguntas previas al
+   *  primer begin_group, por ejemplo). */
+  rootNodes: GraphNode[];
+  /** Todos los edges depends-on, indexados por id de source/target. La
+   *  resolución (a qué nodo "real" apunta el edge cuando hay sección
+   *  colapsada en medio) se hace en el render. */
   edges: GraphEdge[];
+  /** Indexa todos los nodos del árbol — incluso los anidados — para
+   *  lookup O(1) en el render. */
+  byId: Map<string, GraphNode>;
 };
 
 /**
- * Construye el grafo a partir del workbook ya estructurado. La función es
- * pura — mismo input → mismo output.
+ * Construye el grafo a partir del workbook ya estructurado.
  */
 export function buildLogicGraph(
   structure: BuilderStructure,
   catalogs: CatalogSummary[],
 ): LogicGraph {
-  const nodes: GraphNode[] = [];
-  const nodeById = new Map<string, GraphNode>();
-  const edges: GraphEdge[] = [];
+  // Indexamos catálogos para lookup rápido.
+  const catalogMap = new Map<string, CatalogSummary>();
+  for (const catalog of catalogs) {
+    catalogMap.set(catalog.listName, catalog);
+  }
 
-  // -- 1. Crear nodos para cada fila relevante (preguntas + secciones) ----
-  // Mapas auxiliares para resolver edges por nombre.
+  // -- 1. Crear todos los nodes (sin parent), con catalogContext donde aplique --
+  const byId = new Map<string, GraphNode>();
   const nodeByVarName = new Map<string, GraphNode>();
   for (const node of structure.outline) {
     if (!node.name) continue;
-    const isCatalogQuestion =
-      node.typeInfo.base === "select_one" ||
-      node.typeInfo.base === "select_multiple";
-    const isSectionLike = node.kind === "section" || node.kind === "repeat";
+    const isSection = node.kind === "section" || node.kind === "repeat";
     const id = `q:${node.rowIndex}`;
     const graphNode: GraphNode = {
       id,
-      kind: isSectionLike ? "section" : "question",
+      kind: isSection ? "section" : "question",
+      name: node.name,
       title: node.label || node.name,
       subtitle: node.name,
       baseType: node.typeInfo.base,
       rowIndex: node.rowIndex,
-      inDegree: 0,
-      outDegree: 0,
+      children: [],
     };
-    nodes.push(graphNode);
-    nodeById.set(id, graphNode);
-    nodeByVarName.set(node.name, graphNode);
-
-    // Para preguntas select_*, conectaremos al catálogo más abajo.
-    void isCatalogQuestion;
-  }
-
-  // -- 2. Crear nodos para los catálogos ---------------------------------
-  for (const catalog of catalogs) {
-    const id = `cat:${catalog.listName}`;
-    const graphNode: GraphNode = {
-      id,
-      kind: "catalog",
-      title: catalog.listName,
-      subtitle: `${catalog.items.length} ${
-        catalog.items.length === 1 ? "opción" : "opciones"
-      }`,
-      baseType: "catalog",
-      listName: catalog.listName,
-      inDegree: 0,
-      outDegree: 0,
-    };
-    nodes.push(graphNode);
-    nodeById.set(id, graphNode);
-  }
-
-  // -- 3. Edges: containment (sección → pregunta) -------------------------
-  for (const node of structure.outline) {
-    if (node.kind === "section" || node.kind === "repeat") {
-      // El span cubre [begin, end]. Las filas dentro pertenecen a esta
-      // sección. Pero un grupo NO es padre de sub-grupos directamente —
-      // queremos solo edges padre→hijo inmediato, no transitivo.
-      // Heurística simple: para cada pregunta dentro del span cuya
-      // sectionId apunte a este begin, conectamos.
-      const span = structure.spans.get(node.rowIndex);
-      if (!span) continue;
-      const sectionId = `section-${node.rowIndex}`;
-      for (const candidate of structure.outline) {
-        if (candidate.rowIndex <= span.start) continue;
-        if (candidate.rowIndex >= span.end) continue;
-        if (candidate.sectionId !== sectionId) continue;
-        edges.push({
-          source: `q:${node.rowIndex}`,
-          target: `q:${candidate.rowIndex}`,
-          kind: "contains",
-        });
-      }
-    }
-  }
-
-  // -- 4. Edges: dependencias por expresión -------------------------------
-  for (const node of structure.outline) {
-    const targetId = `q:${node.rowIndex}`;
-    if (!nodeById.has(targetId)) continue;
-    pushExpressionDeps(node.relevant, "depends-on", targetId);
-    pushExpressionDeps(node.constraint, "validates-with", targetId);
-    pushExpressionDeps(node.calculation, "calculates-from", targetId);
-    pushExpressionDeps(node.choiceFilter, "filters-by", targetId);
-  }
-
-  function pushExpressionDeps(
-    expression: string,
-    kind: GraphEdgeKind,
-    targetId: string,
-  ) {
-    if (!expression || !expression.trim()) return;
-    const ast = parseExpression(expression);
-    if (!ast) return;
-    const refs = collectRefs(ast);
-    for (const refName of refs) {
-      const sourceNode = nodeByVarName.get(refName);
-      if (!sourceNode) continue;
-      // No emitimos auto-loops (ej. `${self} != ''` en su propio relevant).
-      if (sourceNode.id === targetId) continue;
-      edges.push({ source: sourceNode.id, target: targetId, kind });
-    }
-  }
-
-  // -- 5. Edges: select_* → catálogo --------------------------------------
-  for (const node of structure.outline) {
+    // Catalog context para selects.
     if (
       (node.typeInfo.base === "select_one" ||
         node.typeInfo.base === "select_multiple") &&
       node.typeInfo.listName
     ) {
-      const catId = `cat:${node.typeInfo.listName}`;
-      const qId = `q:${node.rowIndex}`;
-      if (nodeById.has(catId) && nodeById.has(qId)) {
-        edges.push({ source: catId, target: qId, kind: "uses-catalog" });
+      const catalog = catalogMap.get(node.typeInfo.listName);
+      if (catalog) {
+        graphNode.catalogContext = {
+          listName: catalog.listName,
+          itemCount: catalog.items.length,
+          preview: catalog.items.slice(0, 5),
+        };
       }
+    }
+    byId.set(id, graphNode);
+    nodeByVarName.set(node.name, graphNode);
+  }
+
+  // -- 2. Construir el árbol: cada pregunta/sección apunta a su contenedor --
+  // `structure.rowToSectionId` mapea rowIndex → id de su sección padre
+  // ("section-<rowIndex_del_begin>" o "section-root" para top-level).
+  const rootNodes: GraphNode[] = [];
+  for (const outlineNode of structure.outline) {
+    const node = byId.get(`q:${outlineNode.rowIndex}`);
+    if (!node) continue;
+    const sectionId = structure.rowToSectionId.get(outlineNode.rowIndex);
+    if (!sectionId || sectionId === "section-root") {
+      rootNodes.push(node);
+      continue;
+    }
+    // El sectionId es del estilo `section-<beginRow>`; la sección está
+    // en byId con id `q:<beginRow>`.
+    const parentBeginRow = sectionId.replace(/^section-/, "");
+    const parentNode = byId.get(`q:${parentBeginRow}`);
+    if (parentNode && parentNode.kind === "section") {
+      parentNode.children.push(node);
+    } else {
+      // Si por alguna razón no encontramos el padre (datos corruptos),
+      // colocamos el nodo como root para no perderlo.
+      rootNodes.push(node);
     }
   }
 
-  // -- 6. Calcular in/out degree ------------------------------------------
-  for (const edge of edges) {
-    const src = nodeById.get(edge.source);
-    const tgt = nodeById.get(edge.target);
-    if (src) src.outDegree += 1;
-    if (tgt) tgt.inDegree += 1;
+  // -- 3. Edges: solo `relevant` — lo que el usuario llama "lógica" --
+  const edges: GraphEdge[] = [];
+  for (const outlineNode of structure.outline) {
+    const targetId = `q:${outlineNode.rowIndex}`;
+    if (!byId.has(targetId)) continue;
+    const expression = outlineNode.relevant;
+    if (!expression || !expression.trim()) continue;
+    const ast = parseExpression(expression);
+    if (!ast) continue;
+    const refs = collectRefs(ast);
+    for (const refName of refs) {
+      const sourceNode = nodeByVarName.get(refName);
+      if (!sourceNode) continue;
+      if (sourceNode.id === targetId) continue; // sin auto-loops
+      edges.push({ source: sourceNode.id, target: targetId, kind: "depends-on" });
+    }
   }
 
-  return { nodes, edges };
+  // -- 4. Subtítulo enriquecido para secciones colapsadas --
+  // "<name técnico> · N preguntas dentro" (el campo `name` queda intacto).
+  for (const node of byId.values()) {
+    if (node.kind === "section") {
+      const count = countQuestionsDeep(node);
+      const noun = count === 1 ? "pregunta" : "preguntas";
+      node.subtitle = `${node.name} · ${count} ${noun}`;
+    }
+  }
+
+  return { rootNodes, edges, byId };
+}
+
+/** Cuenta recursivamente las preguntas (no secciones) dentro de un nodo. */
+function countQuestionsDeep(node: GraphNode): number {
+  let count = 0;
+  for (const child of node.children) {
+    if (child.kind === "question") count += 1;
+    else count += countQuestionsDeep(child);
+  }
+  return count;
 }

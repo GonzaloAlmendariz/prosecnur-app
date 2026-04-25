@@ -2627,23 +2627,30 @@ button.pulso-empty-home-card:focus-visible {
   flex-wrap: wrap;
 }
 
-/* ConditionRow — una fila atómica del builder */
+/* ConditionRow — una fila atómica del builder
+ * Usa flex-wrap en lugar de grid para que con anchos chicos (el inspector
+ * mide 340px - paddings) los pickers bajen a una segunda línea en vez
+ * de desbordar el contenedor. Cada pieza tiene flex-basis razonable para
+ * que en pantallas anchas se distribuyan en una sola fila. */
 .pulso-logic-condition-row {
-  display: grid;
-  grid-template-columns: minmax(140px, 1.4fr) minmax(80px, 0.8fr) minmax(120px, 1.4fr) auto;
-  gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 6px;
   padding: 8px;
   border: 1px solid var(--pulso-border);
   border-radius: 9px;
   background: var(--pulso-surface);
+  min-width: 0;
 }
 .pulso-logic-condition-piece {
   display: flex;
   min-width: 0;
+  flex: 1 1 110px;
 }
 .pulso-logic-condition-var,
 .pulso-logic-condition-value {
+  flex: 2 1 130px;
   min-width: 0;
 }
 .pulso-logic-condition-remove {
@@ -3327,47 +3334,42 @@ button.pulso-empty-home-card:focus-visible {
   line-height: 1.5;
 }
 
-.pulso-graph-legend {
-  position: absolute;
-  bottom: 18px;
-  left: 18px;
-  background: white;
-  border: 1px solid var(--pulso-border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10);
-  min-width: 180px;
-}
-.pulso-graph-legend strong {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--pulso-text-soft);
-  margin-bottom: 6px;
-}
-.pulso-graph-legend ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.pulso-graph-legend li {
-  display: grid;
-  grid-template-columns: 36px 1fr auto;
+/* Botones "Expandir todo" / "Colapsar todo" en el header del canvas */
+.pulso-graph-allbutton {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
   color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
 }
-.pulso-graph-legend em {
-  font-style: normal;
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-  font-variant-numeric: tabular-nums;
+.pulso-graph-allbutton:hover {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-primary);
+  color: var(--pulso-primary);
+}
+.pulso-graph-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--pulso-border);
+  margin: 0 4px;
+}
+
+/* Sección expandida — animación sutil al cambiar la altura del rect.
+ * Como cambiamos la altura via re-layout (no via CSS height), el
+ * efecto visual viene de un transition en transform/opacity de los
+ * children. Aquí solo damos un fondo sutil al rect para distinguir
+ * visualmente que la sección "contiene" otros nodes adentro. */
+.pulso-graph-node.is-expanded > rect {
+  transition: height 200ms ease;
+}
+.pulso-graph-node-section > rect {
+  filter: drop-shadow(0 1px 0 rgba(15, 23, 42, 0.04));
 }
 
 .pulso-graph-detail {
