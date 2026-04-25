@@ -629,51 +629,61 @@ export function layoutLogicGraph(
     }
   });
 
-  // 5.9 Anchor Y por (source × unidad) — anti-peine.
-  // Si un source tiene K edges en la misma unidad (bundle), todos
-  // arrancan en el mismo Y → una sola línea visible.
+  // 5.9 Anchor Y + breakoutX por (source × EXPRESIÓN) — anti-peine.
+  //
+  // CLAVE: el grouping aquí es por EXPRESIÓN, no por unitKey. Edges
+  // con la misma `relevantExpression` (mismo color) son la MISMA
+  // flecha lógica conceptualmente, sin importar si algunos van a
+  // sección (Mode A) y otros a variable (Mode D). Comparten:
+  //   · anchorY → arrancan en el mismo punto Y del source.
+  //   · breakoutX → su V tramo de salida está en el mismo X.
+  //
+  // Esto hace que la flecha emerja UNIFICADA del source y solo se
+  // ramifique en el lane y en los target docks (donde el modo
+  // sí importa). Antes el grouping por unitKey separaba bundle
+  // members con distinto modo desde el source — el usuario reportó:
+  // "no se unen hasta llegar arriba cuando deberían unirse abajo".
+  //
+  // Loose edges (expresión única o no bundleable) cada uno es su
+  // propio grupo — distribuyen anchors normalmente.
   const anchorYByEdge = new Map<string, number>();
-  const unitsBySource = new Map<string, string[]>();
-  const edgesBySourceUnit = new Map<string, ResolvedEdge[]>();
-  resolved.forEach((r, i) => {
-    const sId = r.src.node.id;
-    const meta = edgeMeta[i]!;
-    const composed = `${sId}::${meta.unitKey}`;
-    if (!unitsBySource.has(sId)) unitsBySource.set(sId, []);
-    if (!edgesBySourceUnit.has(composed)) {
-      edgesBySourceUnit.set(composed, []);
-      unitsBySource.get(sId)!.push(meta.unitKey);
-    }
-    edgesBySourceUnit.get(composed)!.push(r);
-  });
-  // breakoutX por (source × unidad) — anti-stack del lado del source.
-  // El breakoutX es donde la flecha sale lateralmente del card y
-  // sube/baja al lane. Antes era CONSTANTE (`src.right + 24`), así
-  // que múltiples bundles desde un mismo source apilaban sus V
-  // tramos en el mismo X. Ahora cada (source × unit) recibe su propio
-  // X con stride 14 px → V tramos distinguibles.
   const breakoutXByEdge = new Map<string, number>();
   const BREAKOUT_STRIDE = 14;
-  for (const [sId, units] of unitsBySource) {
+  const groupsBySource = new Map<string, string[]>();
+  const edgesByGroup = new Map<string, ResolvedEdge[]>();
+  resolved.forEach((r, i) => {
+    const sId = r.src.node.id;
+    const expr = r.tgt.node.relevantExpression ?? "";
+    // Group key: por expresión si está bundleable; loose si no.
+    // Esto une sección+variable cuando comparten condición lógica.
+    const groupKey =
+      expr && isBundledExpr(expr) ? `expr:${expr}` : `loose:${i}`;
+    const composed = `${sId}::${groupKey}`;
+    if (!groupsBySource.has(sId)) groupsBySource.set(sId, []);
+    if (!edgesByGroup.has(composed)) {
+      edgesByGroup.set(composed, []);
+      groupsBySource.get(sId)!.push(groupKey);
+    }
+    edgesByGroup.get(composed)!.push(r);
+  });
+  for (const [sId, groups] of groupsBySource) {
     const placed = positionByNodeId.get(sId);
     if (!placed || !placed.visible) continue;
     const headerH = Math.min(placed.height, options.rowHeight);
-    units.forEach((unitKey, gIdx) => {
-      // Anchor Y (existente).
+    groups.forEach((groupKey, gIdx) => {
       let yOffset: number;
-      if (units.length === 1) {
+      if (groups.length === 1) {
         yOffset = headerH / 2;
       } else {
         const usable = headerH * 0.6;
         const start = (headerH - usable) / 2;
-        yOffset = start + (gIdx * usable) / (units.length - 1);
+        yOffset = start + (gIdx * usable) / (groups.length - 1);
       }
       const y = placed.y + yOffset;
-      // BreakoutX: src.right + base + index * stride.
       const breakoutX =
         placed.x + placed.width + options.lateralBreakout +
         gIdx * BREAKOUT_STRIDE;
-      for (const r of edgesBySourceUnit.get(`${sId}::${unitKey}`) ?? []) {
+      for (const r of edgesByGroup.get(`${sId}::${groupKey}`) ?? []) {
         const k = `${r.src.node.id}->${r.tgt.node.id}`;
         anchorYByEdge.set(k, y);
         breakoutXByEdge.set(k, breakoutX);
