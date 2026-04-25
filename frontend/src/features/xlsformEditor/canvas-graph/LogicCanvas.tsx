@@ -25,7 +25,12 @@ import {
   ChevronLeft,
   ChevronsDown,
   ChevronsUp,
+  CircleDot,
+  Edit3,
+  Folder,
+  Info,
   Maximize2,
+  Pencil,
   ZoomIn,
   ZoomOut,
   X,
@@ -588,53 +593,13 @@ export function LogicCanvas({
               );
             })}
 
-            {/* Tooltip flotante sobre el edge en hover — muestra la
-                condición legible "si X = Y" tomada del relevant del
-                target. Estilo similar al `SeccionesPanel` del módulo
-                Carga: prefijo "si" en gris + expresión sin ${...}. */}
-            {hoveredEdgeIdx !== null && layout && (() => {
-              const edge = layout.edges[hoveredEdgeIdx];
-              if (!edge) return null;
-              const targetNode = graph?.byId.get(edge.edge.target);
-              const expr = targetNode?.relevantExpression;
-              if (!expr) return null;
-              const human = humanizeRelevant(expr);
-              return (
-                <g
-                  transform={`translate(${edge.midX}, ${edge.midY})`}
-                  pointerEvents="none"
-                >
-                  {/* foreignObject ANCHA + overflow visible para que la
-                      etiqueta nunca se trunque. El div interior usa
-                      flex centrado, por lo que la "card" de la etiqueta
-                      se ajusta a su contenido. */}
-                  <foreignObject
-                    x={-360}
-                    y={-22}
-                    width={720}
-                    height={44}
-                    style={{ overflow: "visible" }}
-                  >
-                    <div
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <div className="pulso-graph-edge-label">
-                        <span className="pulso-graph-edge-label-prefix">
-                          si
-                        </span>
-                        <code>{human}</code>
-                      </div>
-                    </div>
-                  </foreignObject>
-                </g>
-              );
-            })()}
+            {/* (Tooltip de hover eliminado — el detalle de la
+                relación ahora se ve en el panel fijo a la derecha
+                cuando se hace click en una flecha. Eso permite
+                describir la condición de forma narrativa, mostrar
+                source y target con sus iconos, y ofrecer botón de
+                editar. El panel queda anclado al viewport — no se
+                mueve con pan/zoom.) */}
 
             {/* Nodos: solo los visibles. */}
             {layout?.nodes
@@ -742,7 +707,39 @@ export function LogicCanvas({
               sourceCatalog={source.catalogContext}
               onCancel={() => setConnectPicker(null)}
               onConfirm={(expression) => {
-                onSetRelevant(target.rowIndex, expression);
+                // Si el target ya tiene un `relevant`, COMBINAMOS la
+                // nueva condición con la existente usando `or`. Antes
+                // se sobreescribía, lo cual perdía la relación previa.
+                // El usuario reportó: "cuando establezco una relación
+                // logica y luego otra a la misma sección, una
+                // sobreescribe a la otra en vez de converger".
+                //
+                // Detección de duplicado: si la nueva expresión ya
+                // está exactamente dentro de la existente (substring
+                // tras normalizar espacios), no la duplicamos.
+                const existing = target.relevantExpression?.trim() ?? "";
+                const newExpr = expression.trim();
+                let combined: string;
+                if (!existing) {
+                  combined = newExpr;
+                } else {
+                  const norm = (s: string) => s.replace(/\s+/g, " ").trim();
+                  const existingNorm = norm(existing);
+                  const newNorm = norm(newExpr);
+                  // Si la nueva ya aparece literal en la existente,
+                  // no añadir nada (idempotente).
+                  if (
+                    existingNorm === newNorm ||
+                    existingNorm
+                      .split(/\s+\bor\b\s+/)
+                      .some((part) => norm(part) === newNorm)
+                  ) {
+                    combined = existing;
+                  } else {
+                    combined = `${existing} or ${newExpr}`;
+                  }
+                }
+                onSetRelevant(target.rowIndex, combined);
                 setFreshEdgeKey(`${source.id}->${target.id}`);
                 setConnectPicker(null);
                 // Limpiamos la marca "fresh" cuando termina la
@@ -776,68 +773,197 @@ export function LogicCanvas({
             </button>
             {legendOpen && (
               <div className="pulso-graph-legend-body">
-                <strong>Tipos de relación</strong>
-                <ul className="pulso-graph-legend-types">
-                  <li>
-                    <svg width={32} height={4} aria-hidden="true">
-                      <line
-                        x1={0}
-                        y1={2}
-                        x2={32}
-                        y2={2}
-                        stroke="#5f6b7a"
-                        strokeWidth={1.8}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span>Sección controla otra sección</span>
-                  </li>
-                  <li>
-                    <svg width={32} height={4} aria-hidden="true">
-                      <line
-                        x1={0}
-                        y1={2}
-                        x2={32}
-                        y2={2}
-                        stroke="#5f6b7a"
-                        strokeWidth={1.8}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span>Pregunta abre o cierra una sección</span>
-                  </li>
-                  <li>
-                    <svg width={32} height={4} aria-hidden="true">
-                      <line
-                        x1={0}
-                        y1={2}
-                        x2={32}
-                        y2={2}
-                        stroke="#5f6b7a"
-                        strokeWidth={1.6}
-                        strokeDasharray="5 4"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span>Pregunta condiciona otra pregunta</span>
-                  </li>
-                </ul>
+                {/* === Cabecera con título y subtítulo === */}
+                <div className="pulso-graph-legend-head">
+                  <strong>Cómo se lee el mapa</strong>
+                  <p>
+                    Las flechas conectan condiciones (<em>relevant</em>)
+                    con sus destinos. Mismo <strong>color</strong> = misma
+                    condición lógica.
+                  </p>
+                </div>
 
-                <strong>Cómo leer las flechas</strong>
-                <ul className="pulso-graph-legend-explainer">
-                  <li>
-                    Cada flecha sale del <strong>valor</strong> que decide
-                    cuándo aparece el destino.
-                  </li>
-                  <li>
-                    Las que <strong>comparten color</strong> dependen de
-                    la <strong>misma condición</strong> exacta.
-                  </li>
-                  <li>
-                    Pasa el cursor sobre una flecha para ver la condición
-                    en lenguaje legible.
-                  </li>
-                </ul>
+                {/* === Bloque 1: relaciones que abren/cierran SECCIONES === */}
+                <div className="pulso-graph-legend-section">
+                  <div className="pulso-graph-legend-section-head">
+                    <span
+                      className="pulso-graph-legend-icon-box"
+                      style={{
+                        background: "rgba(15, 118, 110, 0.10)",
+                        color: "#0f766e",
+                      }}
+                    >
+                      <Folder size={14} strokeWidth={2.2} />
+                    </span>
+                    <div>
+                      <strong>Habilita una sección</strong>
+                      <span>Una pregunta o sección abre/oculta un grupo entero</span>
+                    </div>
+                  </div>
+                  <ul className="pulso-graph-legend-examples">
+                    <li>
+                      <svg width={48} height={20} aria-hidden="true">
+                        <path
+                          d="M 2 16 L 12 16 L 12 6 L 38 6 L 38 14"
+                          fill="none"
+                          stroke="#4E79A7"
+                          strokeWidth={1.9}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          markerEnd="url(#pulso-graph-arrow-c-4e79a7)"
+                        />
+                      </svg>
+                      <span>
+                        Entra por <strong>arriba</strong> al header de la
+                        sección
+                      </span>
+                    </li>
+                    <li>
+                      <svg width={48} height={20} aria-hidden="true">
+                        <path
+                          d="M 2 4 L 12 4 L 12 14 L 38 14 L 38 6"
+                          fill="none"
+                          stroke="#B07AA1"
+                          strokeWidth={1.9}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          markerEnd="url(#pulso-graph-arrow-c-b07aa1)"
+                        />
+                      </svg>
+                      <span>
+                        Si el <em>top lane</em> está saturado, entra por
+                        <strong> abajo</strong>
+                      </span>
+                    </li>
+                    <li>
+                      <svg width={48} height={20} aria-hidden="true">
+                        <path
+                          d="M 2 4 L 24 4 L 24 14 M 24 4 L 38 4 L 38 14"
+                          fill="none"
+                          stroke="#F28E2B"
+                          strokeWidth={1.9}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <span>
+                        Una sola condición puede <strong>ramificar</strong>
+                        a varias secciones
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* === Bloque 2: relaciones entre PREGUNTAS === */}
+                <div className="pulso-graph-legend-section">
+                  <div className="pulso-graph-legend-section-head">
+                    <span
+                      className="pulso-graph-legend-icon-box"
+                      style={{
+                        background: "rgba(36, 87, 214, 0.10)",
+                        color: "var(--pulso-primary)",
+                      }}
+                    >
+                      <CircleDot size={14} strokeWidth={2.2} />
+                    </span>
+                    <div>
+                      <strong>Habilita una pregunta</strong>
+                      <span>El valor de una pregunta abre/oculta otra individualmente</span>
+                    </div>
+                  </div>
+                  <ul className="pulso-graph-legend-examples">
+                    <li>
+                      <svg width={48} height={20} aria-hidden="true">
+                        <path
+                          d="M 2 10 L 18 10 L 18 6 L 38 6"
+                          fill="none"
+                          stroke="#59A14F"
+                          strokeWidth={1.7}
+                          strokeDasharray="5 4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          markerEnd="url(#pulso-graph-arrow-c-59a14f)"
+                        />
+                      </svg>
+                      <span>
+                        Pregunta <strong>condiciona</strong> a otra (línea
+                        punteada)
+                      </span>
+                    </li>
+                    <li>
+                      <svg width={48} height={20} aria-hidden="true">
+                        <path
+                          d="M 2 4 L 38 4 L 38 16"
+                          fill="none"
+                          stroke="#E15759"
+                          strokeWidth={1.7}
+                          strokeDasharray="5 4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          markerEnd="url(#pulso-graph-arrow-c-e15759)"
+                        />
+                      </svg>
+                      <span>
+                        Misma columna → carril <strong>lateral tight</strong>
+                      </span>
+                    </li>
+                    <li>
+                      <svg width={48} height={20} aria-hidden="true">
+                        <path
+                          d="M 2 10 L 24 10 L 24 6 L 38 6"
+                          fill="none"
+                          stroke="#76B7B2"
+                          strokeWidth={1.7}
+                          strokeDasharray="5 4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          markerEnd="url(#pulso-graph-arrow-c-76b7b2)"
+                        />
+                      </svg>
+                      <span>
+                        Columnas vecinas → <strong>paso directo</strong> en
+                        el espacio entre cards
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* === Bloque 3: tips de interacción === */}
+                <div className="pulso-graph-legend-section">
+                  <div className="pulso-graph-legend-section-head">
+                    <span
+                      className="pulso-graph-legend-icon-box"
+                      style={{
+                        background: "var(--pulso-surface-2)",
+                        color: "var(--pulso-text-soft)",
+                      }}
+                    >
+                      <Info size={14} strokeWidth={2.2} />
+                    </span>
+                    <div>
+                      <strong>Cómo interactuar</strong>
+                      <span>Atajos para explorar el mapa</span>
+                    </div>
+                  </div>
+                  <ul className="pulso-graph-legend-tips">
+                    <li>
+                      <kbd>Click</kbd> en una flecha → abre el panel con la
+                      condición narrada y opción de editar.
+                    </li>
+                    <li>
+                      <kbd>Click</kbd> en una card → abre el detalle del
+                      nodo con sus dependencias.
+                    </li>
+                    <li>
+                      <kbd>Drag</kbd> el círculo de la derecha → crea una
+                      nueva relación.
+                    </li>
+                    <li>
+                      <kbd>Two-finger drag</kbd> → desplazar el lienzo.
+                      <kbd>Pinch</kbd> → zoom.
+                    </li>
+                  </ul>
+                </div>
               </div>
             )}
           </aside>
@@ -1011,6 +1137,144 @@ export function LogicCanvas({
                   Abrir en el editor →
                 </button>
               )}
+            </aside>
+          );
+        })()}
+
+        {/* Panel de RELACIÓN (edge) — aparece al hacer click en una
+            flecha. Vive como DOM fijo en el viewport, no se mueve con
+            pan/zoom del canvas. Muestra la condición narrada en
+            español, source y target con iconos, y botón para editar
+            (re-abre `ConnectionConditionPicker` sobre el target). */}
+        {selectedEdgeIdx !== null && layout && graph && (() => {
+          const edge = layout.edges[selectedEdgeIdx];
+          if (!edge) return null;
+          const src = graph.byId.get(edge.edge.source);
+          const tgt = graph.byId.get(edge.edge.target);
+          if (!src || !tgt) return null;
+          const expr = tgt.relevantExpression ?? "";
+          const human = humanizeRelevant(expr);
+          const verb =
+            tgt.kind === "section"
+              ? "abre la sección"
+              : "muestra la pregunta";
+          return (
+            <aside className="pulso-graph-edge-panel">
+              <header>
+                <span className="pulso-graph-edge-panel-eyebrow">
+                  Relación lógica
+                </span>
+                <button
+                  type="button"
+                  className="pulso-icon"
+                  onClick={() => setSelectedEdgeIdx(null)}
+                  title="Cerrar"
+                  aria-label="Cerrar"
+                >
+                  <X size={12} />
+                </button>
+              </header>
+
+              {/* Visualización de la flecha: source → target con sus
+                  iconos y nombres, conectados por una flecha
+                  horizontal. */}
+              <div className="pulso-graph-edge-panel-flow">
+                <div
+                  className={`pulso-graph-edge-panel-card pulso-graph-edge-panel-card-${src.kind}`}
+                >
+                  <span className="pulso-graph-edge-panel-card-icon">
+                    {src.kind === "section" ? (
+                      <Folder size={14} />
+                    ) : (
+                      <CircleDot size={14} />
+                    )}
+                  </span>
+                  <div className="pulso-graph-edge-panel-card-text">
+                    <strong>{src.title || src.name}</strong>
+                    <code>{src.name}</code>
+                  </div>
+                </div>
+                <div className="pulso-graph-edge-panel-arrow">
+                  <svg width={36} height={12} aria-hidden="true">
+                    <line
+                      x1={0}
+                      y1={6}
+                      x2={28}
+                      y2={6}
+                      stroke="var(--pulso-primary)"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M 28 2 L 36 6 L 28 10 Z"
+                      fill="var(--pulso-primary)"
+                    />
+                  </svg>
+                </div>
+                <div
+                  className={`pulso-graph-edge-panel-card pulso-graph-edge-panel-card-${tgt.kind}`}
+                >
+                  <span className="pulso-graph-edge-panel-card-icon">
+                    {tgt.kind === "section" ? (
+                      <Folder size={14} />
+                    ) : (
+                      <CircleDot size={14} />
+                    )}
+                  </span>
+                  <div className="pulso-graph-edge-panel-card-text">
+                    <strong>{tgt.title || tgt.name}</strong>
+                    <code>{tgt.name}</code>
+                  </div>
+                </div>
+              </div>
+
+              {/* Narrativa en lenguaje humano. */}
+              <div className="pulso-graph-edge-panel-narrative">
+                <p>
+                  Cuando se cumple la condición{" "}
+                  <code className="pulso-graph-edge-panel-cond">{human}</code>
+                  {", "}
+                  <strong>{verb}</strong>{" "}
+                  <code>{tgt.name}</code>.
+                </p>
+              </div>
+
+              {/* Acciones */}
+              <div className="pulso-graph-edge-panel-actions">
+                {onSetRelevant && (
+                  <button
+                    type="button"
+                    className="pulso-graph-edge-panel-btn"
+                    onClick={() => {
+                      // Reabre el picker sobre el target. La nueva
+                      // condición sobreescribirá la actual.
+                      const rect =
+                        svgRef.current?.getBoundingClientRect();
+                      setConnectPicker({
+                        sourceId: src.id,
+                        targetId: tgt.id,
+                        screenX: (rect?.left ?? 0) + (rect?.width ?? 600) / 2,
+                        screenY: (rect?.top ?? 0) + 100,
+                      });
+                      setSelectedEdgeIdx(null);
+                    }}
+                  >
+                    <Pencil size={12} /> Editar condición
+                  </button>
+                )}
+                {onSelectRow && (
+                  <button
+                    type="button"
+                    className="pulso-graph-edge-panel-btn pulso-graph-edge-panel-btn-secondary"
+                    onClick={() => {
+                      onSelectRow(tgt.rowIndex);
+                      onClose();
+                    }}
+                  >
+                    <Edit3 size={12} /> Ir al destino
+                  </button>
+                )}
+              </div>
             </aside>
           );
         })()}

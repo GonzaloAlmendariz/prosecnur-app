@@ -670,11 +670,10 @@ export function layoutLogicGraph(
   // mismo target siguen recibiendo offsets escalonados gracias al
   // orden global, así que el anti-stack al target también se
   // mantiene.
-  // 14 px entre carriles de unidades distintas — antes 8 px y los
-  // carriles se veían pegados visualmente. El usuario reportó que
-  // "los carriles siguen convergiendo cuando deberían ser
-  // diferenciados".
-  const MERGE_STRIDE = 14;
+  // 22 px entre carriles de unidades distintas. 14 px aún se veían
+  // pegados (el usuario reportó "siguen convergiendo"). 22 da
+  // separación clara incluso con strokes gruesos y dashes.
+  const MERGE_STRIDE = 22;
   const mergeOffsetByUnit = new Map<string, number>();
   // Recolectar todas las unidades Mode A y Mode D en orden de aparición.
   // Para cada target encontramos qué unidades lo tocan, y construimos

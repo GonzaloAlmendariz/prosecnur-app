@@ -4594,7 +4594,301 @@ button.pulso-empty-home-card:focus-visible {
 .pulso-graph-condpicker,
 .pulso-graph-condpicker *,
 .pulso-graph-legend.is-open,
-.pulso-graph-legend.is-open * {
+.pulso-graph-legend.is-open *,
+.pulso-graph-edge-panel,
+.pulso-graph-edge-panel * {
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* ============================================================================
+ * Logic canvas — panel de RELACIÓN (edge) anclado al viewport
+ * Aparece al hacer click en una flecha. Permanece fijo en su posición
+ * aunque el usuario haga pan/zoom del lienzo. Estilo paralelo al
+ * `pulso-graph-detail` (panel de nodo) pero con flow visual src → tgt.
+ * ========================================================================= */
+.pulso-graph-edge-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 360px;
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  z-index: 40;
+  animation: pulso-edge-panel-in 220ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+}
+@keyframes pulso-edge-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+.pulso-graph-edge-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pulso-graph-edge-panel-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--pulso-primary);
+}
+
+/* Visual flow: src → tgt cards conectadas por flecha */
+.pulso-graph-edge-panel-flow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  align-items: stretch;
+  padding: 10px;
+  background: var(--pulso-surface-2);
+  border-radius: 9px;
+  border: 1px solid var(--pulso-border);
+}
+.pulso-graph-edge-panel-card {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  background: white;
+  border-radius: 7px;
+  border: 1px solid var(--pulso-border);
+  min-width: 0;
+}
+.pulso-graph-edge-panel-card-section {
+  background: rgba(15, 118, 110, 0.04);
+  border-color: rgba(15, 118, 110, 0.30);
+}
+.pulso-graph-edge-panel-card-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(36, 87, 214, 0.10);
+  color: var(--pulso-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pulso-graph-edge-panel-card-section .pulso-graph-edge-panel-card-icon {
+  background: rgba(15, 118, 110, 0.10);
+  color: #0f766e;
+}
+.pulso-graph-edge-panel-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.pulso-graph-edge-panel-card-text strong {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.pulso-graph-edge-panel-card-text code {
+  font-size: 10px;
+  font-family: ui-monospace, monospace;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pulso-graph-edge-panel-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  animation: pulso-edge-panel-arrow-pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulso-edge-panel-arrow-pulse {
+  0%, 100% { transform: translateX(0); opacity: 0.95; }
+  50%      { transform: translateX(2px); opacity: 1; }
+}
+
+/* Narrativa */
+.pulso-graph-edge-panel-narrative {
+  font-size: 12.5px;
+  color: var(--pulso-text);
+  line-height: 1.55;
+}
+.pulso-graph-edge-panel-narrative p {
+  margin: 0;
+}
+.pulso-graph-edge-panel-cond {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  padding: 1px 7px;
+  border-radius: 5px;
+  color: var(--pulso-primary);
+  font-weight: 600;
+}
+
+/* Acciones */
+.pulso-graph-edge-panel-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pulso-graph-edge-panel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--pulso-primary);
+  color: white;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 140ms ease, transform 100ms ease;
+}
+.pulso-graph-edge-panel-btn:hover {
+  background: #1f47b3;
+  transform: translateY(-1px);
+}
+.pulso-graph-edge-panel-btn:active {
+  transform: translateY(0);
+}
+.pulso-graph-edge-panel-btn-secondary {
+  background: white;
+  color: var(--pulso-text);
+  border: 1px solid var(--pulso-border);
+}
+.pulso-graph-edge-panel-btn-secondary:hover {
+  background: var(--pulso-surface-2);
+}
+
+/* ============================================================================
+ * Logic canvas — leyenda extensa COLAPSABLE
+ * Bloques diferenciados por tipo de relación, con ejemplos de SVG y
+ * tips de interacción.
+ * ========================================================================= */
+.pulso-graph-legend-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.pulso-graph-legend-head strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pulso-text);
+}
+.pulso-graph-legend-head p {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.4;
+}
+.pulso-graph-legend-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.pulso-graph-legend-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.pulso-graph-legend-section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.pulso-graph-legend-section-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.pulso-graph-legend-section-head strong {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--pulso-text);
+}
+.pulso-graph-legend-section-head span {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  line-height: 1.3;
+}
+.pulso-graph-legend-icon-box {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pulso-graph-legend-examples,
+.pulso-graph-legend-tips {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.pulso-graph-legend-examples li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11.5px;
+  color: var(--pulso-text);
+  line-height: 1.35;
+}
+.pulso-graph-legend-examples li svg {
+  flex-shrink: 0;
+}
+.pulso-graph-legend-tips li {
+  font-size: 11.5px;
+  color: var(--pulso-text);
+  line-height: 1.4;
+}
+.pulso-graph-legend-tips kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 4px;
+  color: var(--pulso-text);
+  margin-right: 2px;
+}
+
+/* La leyenda colapsada → ahora más generosa cuando se abre */
+.pulso-graph-legend.is-open {
+  width: 320px;
+  max-height: calc(100vh - 160px);
+  overflow: auto;
+}
+.pulso-graph-legend-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
