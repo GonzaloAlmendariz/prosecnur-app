@@ -647,6 +647,43 @@ export function layoutLogicGraph(
     });
   }
 
+  // 5.10 mergeOffset por (target × unidad) — anti-overlap en aproximación
+  // al target. Antes el tramo V final (mergeX, laneY → mergeX, mergeY)
+  // era el MISMO X para todas las flechas que entraban al mismo target,
+  // así que se apilaban visualmente. Ahora cada unidad distinta que
+  // termina en el mismo target recibe un stride creciente — el primer
+  // edge tiene `mergeOffset` base, el segundo +8, el tercero +16, etc.
+  // Edges en la misma unidad (bundle) comparten stride → mantienen el
+  // overlap intencional del subway. Aplica a Modes A y D (los que usan
+  // mergeOffset como stem).
+  const MERGE_STRIDE = 8;
+  const mergeOffsetByEdge = new Map<string, number>();
+  const unitsByTarget = new Map<string, string[]>();
+  const edgesByTargetUnit = new Map<string, ResolvedEdge[]>();
+  resolved.forEach((r, i) => {
+    const tId = r.tgt.node.id;
+    const meta = edgeMeta[i]!;
+    if (meta.mode !== "section" && meta.mode !== "lane") return;
+    const composed = `${tId}::${meta.unitKey}`;
+    if (!unitsByTarget.has(tId)) unitsByTarget.set(tId, []);
+    if (!edgesByTargetUnit.has(composed)) {
+      edgesByTargetUnit.set(composed, []);
+      unitsByTarget.get(tId)!.push(meta.unitKey);
+    }
+    edgesByTargetUnit.get(composed)!.push(r);
+  });
+  for (const [tId, units] of unitsByTarget) {
+    units.forEach((unitKey, idx) => {
+      const offset = options.mergeOffset + idx * MERGE_STRIDE;
+      for (const r of edgesByTargetUnit.get(`${tId}::${unitKey}`) ?? []) {
+        mergeOffsetByEdge.set(
+          `${r.src.node.id}->${r.tgt.node.id}`,
+          offset,
+        );
+      }
+    });
+  }
+
   // ── 6. Construir paths con dispatcher por modo ─────────────────────
   const laidOutEdges: LaidOutEdge[] = resolved.map((r, i) => {
     const meta = edgeMeta[i]!;
@@ -659,6 +696,9 @@ export function layoutLogicGraph(
       r.src.y + Math.min(r.src.height, options.rowHeight) / 2;
     const sX = r.src.x + r.src.width;
 
+    const effectiveMergeOffset =
+      mergeOffsetByEdge.get(edgeKey) ?? options.mergeOffset;
+
     let pathInfo: { d: string; midX: number; midY: number };
     switch (meta.mode) {
       case "section":
@@ -669,6 +709,7 @@ export function layoutLogicGraph(
           srcY: sY,
           laneY: meta.laneY!,
           laneSide: meta.laneSide!,
+          mergeOffset: effectiveMergeOffset,
           options,
         });
         break;
@@ -701,6 +742,7 @@ export function layoutLogicGraph(
           srcY: sY,
           laneY: meta.laneY!,
           laneSide: meta.laneSide!,
+          mergeOffset: effectiveMergeOffset,
           options,
         });
         break;
@@ -776,6 +818,10 @@ type RouteSectionInput = {
   srcY: number;
   laneY: number;
   laneSide: "top" | "bottom";
+  /** Stem length entre el merge point y el target. Per-edge stride
+   *  asignado por el allocator de target (5.10) — varía por unidad
+   *  para evitar que los V finales se apilen al mismo X. */
+  mergeOffset: number;
   options: LayoutOptions;
 };
 
@@ -784,20 +830,20 @@ function routeSectionTarget(input: RouteSectionInput): {
   midX: number;
   midY: number;
 } {
-  const { src, tgt, srcX, srcY, laneY, laneSide, options } = input;
+  const { src, tgt, srcX, srcY, laneY, laneSide, mergeOffset, options } = input;
   void src;
   const r = options.cornerRadius;
 
   // Entrada por top-center si lane es top, bottom-center si lane es
-  // bottom. Stem `mergeOffset` antes del target.
+  // bottom. Stem `mergeOffset` (per-edge) antes del target.
   const tX = tgt.x + tgt.width / 2;
   let tY: number, mergeY: number;
   if (laneSide === "top") {
     tY = tgt.y;
-    mergeY = tY - options.mergeOffset;
+    mergeY = tY - mergeOffset;
   } else {
     tY = tgt.y + tgt.height;
-    mergeY = tY + options.mergeOffset;
+    mergeY = tY + mergeOffset;
   }
 
   const breakoutX = srcX + options.lateralBreakout;
@@ -905,6 +951,10 @@ type RouteLongLaneInput = {
   srcY: number;
   laneY: number;
   laneSide: "top" | "bottom";
+  /** Stem horizontal del último tramo de aproximación al target.
+   *  Per-edge stride para evitar que múltiples flechas al mismo
+   *  target se apilen al mismo X. */
+  mergeOffset: number;
   options: LayoutOptions;
 };
 
@@ -913,7 +963,7 @@ function routeLongLane(input: RouteLongLaneInput): {
   midX: number;
   midY: number;
 } {
-  const { src, tgt, srcX, srcY, laneY, laneSide, options } = input;
+  const { src, tgt, srcX, srcY, laneY, laneSide, mergeOffset, options } = input;
   void src;
   const r = options.cornerRadius;
 
@@ -923,12 +973,12 @@ function routeLongLane(input: RouteLongLaneInput): {
   if (srcX < tgt.x) {
     tX = tgt.x;
     tY = tgt.y + tgt.height / 2;
-    mergeX = tX - options.mergeOffset;
+    mergeX = tX - mergeOffset;
     mergeY = tY;
   } else {
     tX = tgt.x + tgt.width;
     tY = tgt.y + tgt.height / 2;
-    mergeX = tX + options.mergeOffset;
+    mergeX = tX + mergeOffset;
     mergeY = tY;
   }
 
