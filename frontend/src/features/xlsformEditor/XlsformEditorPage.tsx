@@ -71,6 +71,7 @@ import {
   setCell,
   SURVEY_COLUMNS_WITH_VAR_REFS,
 } from "./parsing/sheetUtils";
+import { SheetsView } from "./sheets/SheetsView";
 import {
   buildType,
   cleanFilename,
@@ -201,6 +202,11 @@ export default function XlsformEditorPage() {
   /** Si está abierto el ContextLens de catálogos. Click en el botón
    *  "Catálogos" del header del constructor lo abre; el lens lo cierra. */
   const [catalogsLensOpen, setCatalogsLensOpen] = useState(false);
+  /** Modo de visualización del workbook. "builder" = constructor visual
+   *  guiado (default). "sheets" = vista por hojas tipo Excel, donde el
+   *  usuario edita celdas crudas. Cualquier cambio en sheets se refleja
+   *  automáticamente en builder porque ambos leen del mismo workbook. */
+  const [editorMode, setEditorMode] = useState<"builder" | "sheets">("builder");
   /** Si está abierto el overlay del mapa de lógica (canvas Obsidian-style).
    *  Se accede desde el botón "Mapa de lógica" del header del constructor. */
   const [logicCanvasOpen, setLogicCanvasOpen] = useState(false);
@@ -680,6 +686,85 @@ export default function XlsformEditorPage() {
         draft.settings.rows.push(new Array(draft.settings.columns.length).fill(""));
       }
       setCell(draft.settings, 0, field, value);
+    });
+  }
+
+  // ── Handlers del modo Hojas (sheets) — operan a nivel de celda raw ──
+  function sheetsUpdateCell(
+    sheetName: "survey" | "choices" | "settings",
+    rowIndex: number,
+    columnName: string,
+    value: string,
+  ) {
+    updateWorkbook((draft) => {
+      // Si es la columna `name` de survey, también propagamos referencias
+      // (mismo refactor que en updateSurveyField). Sheets no debería ser
+      // un escape hatch silencioso para romper referencias.
+      if (sheetName === "survey" && columnName === "name") {
+        const oldName = getCell(draft.survey, rowIndex, "name");
+        const newName = value;
+        const NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+        if (
+          oldName &&
+          newName &&
+          oldName !== newName &&
+          NAME_RE.test(oldName) &&
+          NAME_RE.test(newName)
+        ) {
+          const cellsChanged = replaceVarReferences(
+            draft.survey,
+            oldName,
+            newName,
+            [...SURVEY_COLUMNS_WITH_VAR_REFS],
+          );
+          if (cellsChanged > 0) {
+            queueMicrotask(() => {
+              toasts.push({
+                kind: "info",
+                title: "Referencias actualizadas",
+                detail: `${cellsChanged} ${cellsChanged === 1 ? "celda" : "celdas"} con \${${oldName}} → \${${newName}}.`,
+              });
+            });
+          }
+        }
+      }
+      setCell(draft[sheetName], rowIndex, columnName, value);
+    });
+  }
+  function sheetsAddRow(sheetName: "survey" | "choices" | "settings") {
+    updateWorkbook((draft) => {
+      const sheet = draft[sheetName];
+      sheet.rows.push(new Array(sheet.columns.length).fill(""));
+    });
+  }
+  function sheetsDeleteRow(
+    sheetName: "survey" | "choices" | "settings",
+    rowIndex: number,
+  ) {
+    updateWorkbook((draft) => {
+      deleteRow(draft[sheetName], rowIndex);
+    });
+  }
+  function sheetsMoveRow(
+    sheetName: "survey" | "choices" | "settings",
+    rowIndex: number,
+    direction: "up" | "down",
+  ) {
+    updateWorkbook((draft) => {
+      const sheet = draft[sheetName];
+      const target = direction === "up" ? rowIndex - 1 : rowIndex + 1;
+      if (target < 0 || target >= sheet.rows.length) return;
+      const next = [...sheet.rows];
+      [next[rowIndex], next[target]] = [next[target]!, next[rowIndex]!];
+      sheet.rows = next;
+    });
+  }
+  function sheetsAddColumn(
+    sheetName: "survey" | "choices" | "settings",
+    columnName: string,
+  ) {
+    updateWorkbook((draft) => {
+      ensureColumn(draft[sheetName], columnName);
     });
   }
 
@@ -1316,9 +1401,40 @@ export default function XlsformEditorPage() {
 
           <Panel
             title="Espacio de construcción"
-            hint={status || "Trabaja en modo Constructor para diseñar el formulario. La vista por hojas queda como recurso técnico secundario."}
+            hint={
+              editorMode === "sheets"
+                ? "Vista de hojas — edita celdas crudas del XLSForm. Los cambios se reflejan en el constructor automáticamente."
+                : status ||
+                  "Trabaja en modo Constructor para diseñar el formulario. La vista por hojas queda como recurso técnico secundario."
+            }
             actions={
               <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <div
+                  className="pulso-mode-toggle"
+                  role="radiogroup"
+                  aria-label="Modo de edición"
+                >
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={editorMode === "builder"}
+                    className={editorMode === "builder" ? "is-on" : ""}
+                    onClick={() => setEditorMode("builder")}
+                    title="Editor visual guiado"
+                  >
+                    Constructor
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={editorMode === "sheets"}
+                    className={editorMode === "sheets" ? "is-on" : ""}
+                    onClick={() => setEditorMode("sheets")}
+                    title="Vista por hojas — edición de celdas crudas"
+                  >
+                    Hojas
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={() => setLogicCanvasOpen(true)}
@@ -1368,6 +1484,17 @@ export default function XlsformEditorPage() {
               </div>
             }
           >
+            {editorMode === "sheets" && workbook && (
+              <SheetsView
+                workbook={workbook}
+                onUpdateCell={sheetsUpdateCell}
+                onAddRow={sheetsAddRow}
+                onDeleteRow={sheetsDeleteRow}
+                onMoveRow={sheetsMoveRow}
+                onAddColumn={sheetsAddColumn}
+              />
+            )}
+            {editorMode === "builder" && (
             <div
               style={{
                 display: "grid",
@@ -1569,6 +1696,7 @@ export default function XlsformEditorPage() {
                   </Panel>
                 </div>
               </div>
+            )}
           </Panel>
 
           {/* Índice del instrumento — sección colapsable secundaria que NO
