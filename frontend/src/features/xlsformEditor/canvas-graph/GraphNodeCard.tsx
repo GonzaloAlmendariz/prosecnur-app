@@ -17,7 +17,17 @@ export type GraphNodeCardProps = {
   height: number;
   selected: boolean;
   highlighted: boolean;
+  /** Si true, este nodo se ve "marked" como candidato válido durante un
+   *  drag de edge en curso. */
+  markedAsTarget?: boolean;
+  /** Si true, este nodo está siendo arrastrado como source de un edge —
+   *  lo dimmeamos un poco para distinguirlo. */
+  draggingFrom?: boolean;
   onClick: () => void;
+  /** Se dispara cuando el usuario empieza a arrastrar desde el anchor del
+   *  lado derecho. Coordenadas en espacio del canvas (post-zoom/pan ya
+   *  transformados por el caller). */
+  onAnchorMouseDown?: (event: React.MouseEvent) => void;
 };
 
 export function GraphNodeCard({
@@ -26,7 +36,10 @@ export function GraphNodeCard({
   height,
   selected,
   highlighted,
+  markedAsTarget,
+  draggingFrom,
   onClick,
+  onAnchorMouseDown,
 }: GraphNodeCardProps) {
   const accent =
     node.kind === "catalog"
@@ -43,25 +56,42 @@ export function GraphNodeCard({
 
   const Icon = node.kind === "catalog" ? ListChecks : iconForType(node.baseType);
 
-  const fill = selected
-    ? accentSoft
-    : highlighted
-      ? "rgba(36, 87, 214, 0.04)"
-      : "white";
-  const stroke = selected
-    ? accent
-    : highlighted
+  const fill = markedAsTarget
+    ? "rgba(34, 197, 94, 0.08)"
+    : draggingFrom
+      ? "rgba(36, 87, 214, 0.06)"
+      : selected
+        ? accentSoft
+        : highlighted
+          ? "rgba(36, 87, 214, 0.04)"
+          : "white";
+  const stroke = markedAsTarget
+    ? "#16a34a"
+    : draggingFrom
       ? "var(--pulso-primary)"
-      : "var(--pulso-border)";
-  const strokeWidth = selected ? 2 : highlighted ? 1.6 : 1;
+      : selected
+        ? accent
+        : highlighted
+          ? "var(--pulso-primary)"
+          : "var(--pulso-border)";
+  const strokeWidth = markedAsTarget || draggingFrom
+    ? 2.2
+    : selected
+      ? 2
+      : highlighted
+        ? 1.6
+        : 1;
 
   return (
     <g
       transform={`translate(${node.x}, ${node.y})`}
       style={{ cursor: "pointer" }}
       onClick={onClick}
+      data-graph-node-id={node.id}
       className={`pulso-graph-node ${selected ? "is-selected" : ""} ${
         highlighted ? "is-highlighted" : ""
+      } ${markedAsTarget ? "is-target" : ""} ${
+        draggingFrom ? "is-source" : ""
       } pulso-graph-node-${node.kind}`}
     >
       <rect
@@ -138,6 +168,30 @@ export function GraphNodeCard({
           </span>
         </div>
       </foreignObject>
+
+      {/* Anchor de "salida" — puntito en el lado derecho que el usuario
+          arrastra para crear un edge nuevo. Se ve siempre pero solo se
+          resalta en hover (CSS). Se renderiza al final del <g> para
+          quedar por encima del rect y captar el mousedown limpio. */}
+      {onAnchorMouseDown && (
+        <g
+          className="pulso-graph-node-anchor"
+          onMouseDown={(event) => {
+            event.stopPropagation();
+            onAnchorMouseDown(event);
+          }}
+        >
+          <circle
+            cx={width}
+            cy={height / 2}
+            r={6}
+            fill="white"
+            stroke={accent}
+            strokeWidth={1.6}
+          />
+          <circle cx={width} cy={height / 2} r={3} fill={accent} />
+        </g>
+      )}
     </g>
   );
 }

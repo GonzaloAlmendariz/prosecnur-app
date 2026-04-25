@@ -34,9 +34,40 @@ import {
   GraphEdgeMarkers,
   edgeStyleByKind,
 } from "./GraphEdgeArrow";
+import { EdgeKindPicker } from "./EdgeKindPicker";
+import type { EdgeKindOption } from "./EdgeKindPicker";
 
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 56;
+
+/**
+ * Construye la expresión ODK inicial para una relación recién creada
+ * desde el canvas. El usuario podrá refinarla luego en el inspector
+ * con los builders visuales de F2-2/3/4.
+ */
+function buildExpressionForOption(
+  field: "relevant" | "constraint" | "calculation" | "choice_filter",
+  sourceRef: string,
+): string {
+  if (!sourceRef) return "";
+  switch (field) {
+    case "relevant":
+      // "Aparece si X tiene valor" → string ODK estándar para "no vacío".
+      return `\${${sourceRef}} != ''`;
+    case "constraint":
+      // "Valida con X" → la respuesta debe ser igual a la otra. Es un
+      // placeholder razonable: el usuario refina después en el inspector.
+      return `. = \${${sourceRef}}`;
+    case "calculation":
+      // "Calcula con X" → directamente el valor.
+      return `\${${sourceRef}}`;
+    case "choice_filter":
+      // Filtros canónicos: la opción debe coincidir con la respuesta de X.
+      // Los catálogos del corpus usan columnas filter::* — este es un
+      // patrón razonable.
+      return `name = \${${sourceRef}}`;
+  }
+}
 
 export type LogicCanvasProps = {
   open: boolean;
@@ -46,6 +77,14 @@ export type LogicCanvasProps = {
   /** Si el usuario clickea un nodo de pregunta/sección, llamamos esto
    *  para que el editor seleccione esa fila al cerrar el canvas. */
   onSelectRow?: (rowIndex: number) => void;
+  /** Escribe (o reemplaza) la expresión de un campo lógico en una fila
+   *  concreta del survey. Lo invoca el EdgeKindPicker al confirmar la
+   *  relación: source.name + tipo de relación → expresión ODK lista. */
+  onSetExpression?: (
+    rowIndex: number,
+    field: "relevant" | "constraint" | "calculation" | "choice_filter",
+    expression: string,
+  ) => void;
 };
 
 export function LogicCanvas({
@@ -54,6 +93,7 @@ export function LogicCanvas({
   structure,
   catalogs,
   onSelectRow,
+  onSetExpression,
 }: LogicCanvasProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -61,6 +101,24 @@ export function LogicCanvas({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+
+  // -- Estado para crear edges -------------------------------------------
+  // Cuando el usuario presiona el anchor de un nodo, guardamos su id.
+  // Mientras el mouse se mueve, registramos la posición del cursor en
+  // espacio del canvas (post-pan/zoom inverso). Al soltar, si está sobre
+  // otro nodo, abrimos el EdgeKindPicker.
+  const [edgeDraft, setEdgeDraft] = useState<{
+    sourceId: string;
+    cursorX: number; // canvas coords
+    cursorY: number;
+  } | null>(null);
+  const [edgeHoverTargetId, setEdgeHoverTargetId] = useState<string | null>(null);
+  const [edgePicker, setEdgePicker] = useState<{
+    sourceId: string;
+    targetId: string;
+    screenX: number;
+    screenY: number;
+  } | null>(null);
 
   // Cerrar con Escape.
   useEffect(() => {
@@ -124,6 +182,31 @@ export function LogicCanvas({
     const delta = -event.deltaY * 0.0015;
     setZoom((z) => Math.max(0.3, Math.min(2.5, z * (1 + delta))));
   };
+  /** Convierte coordenadas de pantalla (clientX/Y) a coordenadas del
+   *  espacio interno del canvas (post-pan/zoom). Útil para posicionar la
+   *  punta de un edge fantasma en el cursor real del usuario. */
+  const toCanvasCoords = (clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0 };
+    const rect = svg.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left - pan.x) / zoom,
+      y: (clientY - rect.top - pan.y) / zoom,
+    };
+  };
+
+  /** Detecta si el cursor está sobre un nodo distinto al source del draft.
+   *  Devuelve el id del nodo, o null. */
+  const findNodeUnderCursor = (clientX: number, clientY: number, sourceId: string) => {
+    const el = document.elementFromPoint(clientX, clientY);
+    if (!el) return null;
+    const nodeEl = el.closest("[data-graph-node-id]") as HTMLElement | null;
+    if (!nodeEl) return null;
+    const id = nodeEl.getAttribute("data-graph-node-id");
+    if (!id || id === sourceId) return null;
+    return id;
+  };
+
   const onMouseDown = (event: React.MouseEvent<SVGSVGElement>) => {
     if ((event.target as Element).closest(".pulso-graph-node")) return;
     isDraggingRef.current = true;
@@ -135,6 +218,17 @@ export function LogicCanvas({
     };
   };
   const onMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (edgeDraft) {
+      const { x, y } = toCanvasCoords(event.clientX, event.clientY);
+      setEdgeDraft({ ...edgeDraft, cursorX: x, cursorY: y });
+      const target = findNodeUnderCursor(
+        event.clientX,
+        event.clientY,
+        edgeDraft.sourceId,
+      );
+      setEdgeHoverTargetId(target);
+      return;
+    }
     if (!isDraggingRef.current) return;
     const dx = event.clientX - dragStartRef.current.x;
     const dy = event.clientY - dragStartRef.current.y;
@@ -143,12 +237,63 @@ export function LogicCanvas({
       y: dragStartRef.current.panY + dy,
     });
   };
-  const onMouseUp = () => {
+  const onMouseUp = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (edgeDraft) {
+      const target = findNodeUnderCursor(
+        event.clientX,
+        event.clientY,
+        edgeDraft.sourceId,
+      );
+      if (target) {
+        setEdgePicker({
+          sourceId: edgeDraft.sourceId,
+          targetId: target,
+          screenX: event.clientX,
+          screenY: event.clientY,
+        });
+      }
+      setEdgeDraft(null);
+      setEdgeHoverTargetId(null);
+      isDraggingRef.current = false;
+      return;
+    }
     isDraggingRef.current = false;
   };
   const onSvgClick = (event: React.MouseEvent<SVGSVGElement>) => {
     if ((event.target as Element).closest(".pulso-graph-node")) return;
+    if (edgePicker) return;
     setSelectedId(null);
+  };
+
+  /** Inicia un drag de edge desde el anchor de un nodo. */
+  const onAnchorMouseDown = (sourceId: string) => (event: React.MouseEvent) => {
+    const { x, y } = toCanvasCoords(event.clientX, event.clientY);
+    setEdgeDraft({ sourceId, cursorX: x, cursorY: y });
+    setEdgeHoverTargetId(null);
+  };
+
+  /** Aplica la elección del EdgeKindPicker: serializa la expresión y la
+   *  envía al callback que provee el monolito. */
+  const handleEdgePick = (option: EdgeKindOption) => {
+    if (!edgePicker || !structure || !onSetExpression) {
+      setEdgePicker(null);
+      return;
+    }
+    const sourceNode = nodeById.get(edgePicker.sourceId);
+    const targetNode = nodeById.get(edgePicker.targetId);
+    if (!sourceNode || !targetNode || targetNode.rowIndex == null) {
+      setEdgePicker(null);
+      return;
+    }
+    // Construimos la expresión ODK según el tipo elegido. Usamos el
+    // `subtitle` (que es el name técnico) del source. Para casos donde el
+    // source es un catálogo el name es el listName.
+    const sourceRef = sourceNode.kind === "catalog"
+      ? sourceNode.listName ?? ""
+      : sourceNode.subtitle;
+    const expression = buildExpressionForOption(option.key, sourceRef);
+    onSetExpression(targetNode.rowIndex, option.key, expression);
+    setEdgePicker(null);
   };
 
   const nodeById = new Map<string, GraphNode>();
@@ -258,6 +403,11 @@ export function LogicCanvas({
               const isSelected = node.id === selectedId;
               const isHighlighted =
                 !!relatedIds && relatedIds.has(node.id) && !isSelected;
+              const isDraggingFrom = edgeDraft?.sourceId === node.id;
+              const isMarkedTarget =
+                !!edgeDraft &&
+                edgeDraft.sourceId !== node.id &&
+                edgeHoverTargetId === node.id;
               return (
                 <GraphNodeCard
                   key={node.id}
@@ -266,10 +416,41 @@ export function LogicCanvas({
                   height={NODE_HEIGHT}
                   selected={isSelected}
                   highlighted={isHighlighted}
+                  draggingFrom={isDraggingFrom}
+                  markedAsTarget={isMarkedTarget}
                   onClick={() => setSelectedId(node.id)}
+                  onAnchorMouseDown={
+                    onSetExpression ? onAnchorMouseDown(node.id) : undefined
+                  }
                 />
               );
             })}
+
+            {/* Ghost edge: línea que sigue al cursor mientras el usuario
+                arrastra desde un anchor. Se dibuja por encima de los nodos
+                para que el usuario siempre la vea. */}
+            {edgeDraft && (() => {
+              const source = layout?.nodes.find(
+                (n) => n.id === edgeDraft.sourceId,
+              );
+              if (!source) return null;
+              const sx = source.x + NODE_WIDTH;
+              const sy = source.y + NODE_HEIGHT / 2;
+              const tx = edgeDraft.cursorX;
+              const ty = edgeDraft.cursorY;
+              const dx = Math.max(40, Math.abs(tx - sx) * 0.4);
+              const path = `M ${sx} ${sy} C ${sx + dx} ${sy}, ${tx - dx} ${ty}, ${tx} ${ty}`;
+              return (
+                <path
+                  d={path}
+                  fill="none"
+                  stroke="var(--pulso-primary)"
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  pointerEvents="none"
+                />
+              );
+            })()}
           </g>
         </svg>
 
@@ -313,6 +494,40 @@ export function LogicCanvas({
             </ul>
           </aside>
         )}
+
+        {/* EdgeKindPicker: se monta cuando el usuario suelta un drag de
+            edge sobre un nodo válido. Click en una opción → escribe la
+            expresión en el destino vía onSetExpression. */}
+        {edgePicker && (() => {
+          const source = nodeById.get(edgePicker.sourceId);
+          const target = nodeById.get(edgePicker.targetId);
+          if (!source || !target) return null;
+          // El target debe tener rowIndex (no es catalog). Si es catalog,
+          // no podemos escribir lógica en él.
+          if (target.rowIndex == null) return null;
+          // Buscamos el estado actual de los campos lógicos del target
+          // para mostrar "(reemplaza)" donde corresponda.
+          const targetCurrent = (() => {
+            const node = structure?.byRow.get(target.rowIndex);
+            return {
+              relevant: node?.relevant ?? "",
+              constraint: node?.constraint ?? "",
+              calculation: node?.calculation ?? "",
+              choiceFilter: node?.choiceFilter ?? "",
+            };
+          })();
+          return (
+            <EdgeKindPicker
+              x={edgePicker.screenX}
+              y={edgePicker.screenY}
+              source={source}
+              target={target}
+              targetCurrent={targetCurrent}
+              onPick={handleEdgePick}
+              onClose={() => setEdgePicker(null)}
+            />
+          );
+        })()}
 
         {/* Panel de detalle del nodo seleccionado */}
         {selectedNode && (

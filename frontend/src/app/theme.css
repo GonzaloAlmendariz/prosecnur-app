@@ -3433,3 +3433,152 @@ button.pulso-empty-home-card:focus-visible {
 .pulso-graph-detail-go:hover {
   background: var(--pulso-primary-hover, #1d4ed8);
 }
+
+/* ============================================================================
+ * Logic canvas — modo edición (F2-6)
+ * Anchor visible en cada nodo + EdgeKindPicker popover cuando se
+ * declara una relación nueva.
+ * ========================================================================= */
+.pulso-graph-node-anchor {
+  cursor: crosshair;
+  opacity: 0.55;
+  transition: opacity 140ms ease;
+}
+.pulso-graph-node:hover .pulso-graph-node-anchor,
+.pulso-graph-node.is-selected .pulso-graph-node-anchor,
+.pulso-graph-node.is-source .pulso-graph-node-anchor {
+  opacity: 1;
+}
+.pulso-graph-node-anchor:hover {
+  filter: drop-shadow(0 0 4px rgba(36, 87, 214, 0.5));
+}
+
+.pulso-graph-edgepicker {
+  position: fixed;
+  z-index: 90;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: pulso-stagger-in 160ms ease both;
+  /* offsets para que el popover quede debajo a la derecha del cursor */
+  transform: translate(8px, 8px);
+}
+.pulso-graph-edgepicker-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+.pulso-graph-edgepicker-header strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--pulso-text-soft);
+  margin-bottom: 2px;
+}
+.pulso-graph-edgepicker-header span {
+  font-size: 11.5px;
+  color: var(--pulso-text);
+  display: inline-flex;
+  gap: 4px;
+}
+.pulso-graph-edgepicker-header code {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--pulso-primary);
+}
+.pulso-graph-edgepicker-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--pulso-text-soft);
+  border-radius: 5px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.pulso-graph-edgepicker-close:hover {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+.pulso-graph-edgepicker-empty {
+  padding: 16px 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+.pulso-graph-edgepicker-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pulso-graph-edgepicker-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease;
+}
+.pulso-graph-edgepicker-item:hover {
+  background: var(--pulso-surface-2);
+}
+.pulso-graph-edgepicker-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.10));
+  color: var(--pulso-primary);
+  flex-shrink: 0;
+}
+.pulso-graph-edgepicker-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.pulso-graph-edgepicker-meta strong {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--pulso-text);
+}
+.pulso-graph-edgepicker-meta span {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  line-height: 1.4;
+}
+.pulso-graph-edgepicker-replace {
+  font-style: normal;
+  color: var(--pulso-warn-fg, #b45309);
+  font-weight: 600;
+}

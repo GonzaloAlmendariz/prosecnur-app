@@ -1516,6 +1516,18 @@ export default function XlsformEditorPage() {
         structure={structure}
         catalogs={catalogs}
         onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
+        onSetExpression={(rowIndex, field, expression) => {
+          // El canvas permite declarar relaciones via drag-arrow → escribe
+          // la expresión correspondiente en la fila destino. El usuario
+          // luego puede refinarla en el inspector con los builders
+          // visuales de F2-2/3/4.
+          updateSurveyField(rowIndex, field, expression);
+          toasts.push({
+            kind: "success",
+            title: "Conexión creada",
+            detail: `Se actualizó "${field}" en la pregunta destino. Refínalo en el inspector si lo necesitas.`,
+          });
+        }}
       />
 
       {/* Toasts deslizables: mensajes efímeros de operaciones (import/export).
