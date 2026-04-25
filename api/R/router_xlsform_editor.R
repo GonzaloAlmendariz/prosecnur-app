@@ -175,6 +175,212 @@
   meta
 }
 
+# -----------------------------------------------------------------------------
+# Validador estructural del workbook editor (Sub-PR 9 del revamp)
+# -----------------------------------------------------------------------------
+# Recibe los tres data.frames (survey/choices/settings) y devuelve un vector
+# de diagnostics tipados para que el frontend los muestre en el
+# `DiagnosticsBadge`. No incluye validación AST de expresiones (relevant /
+# constraint / calculation) — eso es Fase 2 cuando reusemos
+# `odk_parse_to_ast()`. En Fase 1 solo verificamos:
+#   1. `name` por fila cumple ^[a-zA-Z_][a-zA-Z0-9_]*$
+#   2. No hay duplicados de `name` en survey (excepto end_*).
+#   3. Cada select_one X / select_multiple X tiene X en choices.list_name.
+#   4. Balance estricto de begin_group/end_group y begin_repeat/end_repeat.
+#   5. settings.form_id no vacío y con formato slug.
+# -----------------------------------------------------------------------------
+
+.xlsform_editor_diag <- function(id, level, title, detail, row_index = NULL, catalog_name = NULL) {
+  out <- list(
+    id = as.character(id)[1],
+    level = as.character(level)[1],
+    title = as.character(title)[1],
+    detail = as.character(detail)[1]
+  )
+  if (!is.null(row_index)) out$rowIndex <- as.integer(row_index)[1]
+  if (!is.null(catalog_name)) out$catalogName <- as.character(catalog_name)[1]
+  out
+}
+
+.xlsform_editor_name_is_valid <- function(value) {
+  v <- as.character(value)[1]
+  if (is.na(v) || !nzchar(v)) return(FALSE)
+  grepl("^[a-zA-Z_][a-zA-Z0-9_]*$", v)
+}
+
+.xlsform_editor_form_id_is_valid <- function(value) {
+  v <- as.character(value)[1]
+  if (is.na(v) || !nzchar(v)) return(FALSE)
+  grepl("^[a-zA-Z_][a-zA-Z0-9_-]*$", v)
+}
+
+xlsform_editor_validate <- function(survey, choices, settings) {
+  diagnostics <- list()
+
+  # ---- Survey ---------------------------------------------------------------
+  if (is.null(survey$type)) survey$type <- character(nrow(survey))
+  if (is.null(survey$name)) survey$name <- character(nrow(survey))
+
+  type_col <- as.character(survey$type %||% character(nrow(survey)))
+  name_col <- as.character(survey$name %||% character(nrow(survey)))
+
+  # 1. names inválidos
+  for (i in seq_along(name_col)) {
+    nm <- trimws(name_col[i])
+    base <- trimws(strsplit(type_col[i] %||% "", "\\s+")[[1]][1] %||% "")
+    if (!nzchar(nm)) {
+      # Filas de marcador end_group/end_repeat tienen name vacío en muchos
+      # archivos; las saltamos. Igualmente saltamos start/end/today/etc.
+      if (base %in% c("end_group", "end_repeat", "start", "end", "today", "deviceid", "username", "")) next
+      diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
+        id = paste0("name-empty-", i - 1L),
+        level = "warn",
+        title = "Pregunta sin nombre interno",
+        detail = "Cada pregunta necesita un identificador. Asignalo desde el inspector.",
+        row_index = i - 1L
+      )
+      next
+    }
+    if (!.xlsform_editor_name_is_valid(nm)) {
+      diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
+        id = paste0("name-invalid-", i - 1L),
+        level = "warn",
+        title = sprintf("Nombre inválido: \"%s\"", nm),
+        detail = "Usa solo letras, números y guion bajo. Empieza con letra.",
+        row_index = i - 1L
+      )
+    }
+  }
+
+  # 2. duplicados en survey (excepto si están vacíos)
+  trimmed_names <- trimws(name_col)
+  bases <- vapply(type_col, function(x) trimws(strsplit(x %||% "", "\\s+")[[1]][1] %||% ""), character(1))
+  for (nm in unique(trimmed_names)) {
+    if (!nzchar(nm)) next
+    idxs <- which(trimmed_names == nm & !(bases %in% c("end_group", "end_repeat")))
+    if (length(idxs) > 1) {
+      diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
+        id = paste0("name-duplicate-", nm),
+        level = "warn",
+        title = sprintf("Nombre duplicado: \"%s\"", nm),
+        detail = sprintf("El identificador \"%s\" se usa en %d filas. Cada pregunta debe tener un nombre único.", nm, length(idxs)),
+        row_index = idxs[1] - 1L
+      )
+    }
+  }
+
+  # 3. select_one/multiple sin lista en choices
+  if (!is.null(choices) && !is.null(choices$list_name)) {
+    list_names <- unique(trimws(as.character(choices$list_name)))
+    list_names <- list_names[nzchar(list_names)]
+  } else {
+    list_names <- character(0)
+  }
+  for (i in seq_along(type_col)) {
+    raw <- as.character(type_col[i] %||% "")
+    parts <- trimws(strsplit(raw, "\\s+")[[1]])
+    base <- parts[1] %||% ""
+    if (base %in% c("select_one", "select_multiple")) {
+      list_ref <- if (length(parts) >= 2) paste(parts[-1], collapse = " ") else ""
+      list_ref <- trimws(list_ref)
+      if (!nzchar(list_ref)) {
+        diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
+          id = paste0("select-no-list-", i - 1L),
+          level = "warn",
+          title = "Pregunta de selección sin catálogo",
+          detail = "Asigna un catálogo desde el inspector para que la pregunta tenga opciones.",
+          row_index = i - 1L
+        )
+      } else if (!(list_ref %in% list_names)) {
+        diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
+          id = paste0("select-missing-list-", i - 1L, "-", list_ref),
+          level = "warn",
+          title = sprintf("Catálogo \"%s\" no existe", list_ref),
+          detail = "La pregunta referencia un catálogo que no está definido en la hoja choices.",
+          row_index = i - 1L,
+          catalog_name = list_ref
+        )
+      }
+    }
+  }
+
+  # 4. balance group/repeat
+  stack_kind <- character(0)
+  stack_row <- integer(0)
+  for (i in seq_along(type_col)) {
+    base <- bases[i]
+    if (base %in% c("begin_group", "begin_repeat")) {
+      stack_kind <- c(stack_kind, base)
+      stack_row <- c(stack_row, i - 1L)
+    } else if (base %in% c("end_group", "end_repeat")) {
+      expected <- if (base == "end_group") "begin_group" else "begin_repeat"
+      if (!length(stack_kind)) {
+        diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
+          id = paste0("orphan-end-", i - 1L),
+          level = "warn",
+          title = sprintf("\"%s\" sin apertura previa", base),
+          detail = "Esta fila cierra un bloque pero no hay un begin_* correspondiente arriba.",
+          row_index = i - 1L
+        )
+      } else {
+        top_kind <- stack_kind[length(stack_kind)]
+        top_row <- stack_row[length(stack_row)]
+        stack_kind <- stack_kind[-length(stack_kind)]
+        stack_row <- stack_row[-length(stack_row)]
+        if (top_kind != expected) {
+          diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
+            id = paste0("mismatch-end-", i - 1L),
+            level = "warn",
+            title = "Cierre cruzado de bloque",
+            detail = sprintf("Un \"%s\" abrió pero llegó \"%s\" antes de cerrarlo.", top_kind, base),
+            row_index = top_row
+          )
+        }
+      }
+    }
+  }
+  for (k in seq_along(stack_kind)) {
+    diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
+      id = paste0("unclosed-", stack_row[k]),
+      level = "warn",
+      title = sprintf("\"%s\" sin cierre", stack_kind[k]),
+      detail = "Este bloque no tiene su end_* correspondiente. El XLSForm no se exportará bien.",
+      row_index = stack_row[k]
+    )
+  }
+
+  # 5. settings.form_id
+  form_id_val <- ""
+  if (!is.null(settings$form_id) && nrow(settings) >= 1L) {
+    form_id_val <- as.character(settings$form_id[1])
+  }
+  if (!nzchar(trimws(form_id_val))) {
+    diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
+      id = "settings-form-id-empty",
+      level = "warn",
+      title = "Formulario sin ID",
+      detail = "Define un form_id en la pestaña de configuración. Es obligatorio para publicar."
+    )
+  } else if (!.xlsform_editor_form_id_is_valid(form_id_val)) {
+    diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
+      id = "settings-form-id-invalid",
+      level = "warn",
+      title = sprintf("form_id \"%s\" inválido", form_id_val),
+      detail = "Usa solo letras, números, guion y guion bajo. Debe empezar con letra o _."
+    )
+  }
+
+  diagnostics
+}
+
+# Atajo legible cuando ya tenemos el workbook serializado del frontend.
+.xlsform_editor_validate_workbook <- function(workbook) {
+  survey <- .xlsform_editor_payload_to_df(workbook$survey, "survey")
+  choices <- .xlsform_editor_payload_to_df(workbook$choices, "choices")
+  settings <- .xlsform_editor_payload_to_df(workbook$settings, "settings")
+  xlsform_editor_validate(survey, choices, settings)
+}
+
 mount_xlsform_editor <- function(pr) {
   pr |>
     plumber::pr_post("/api/xlsform-editor/import", wrap_endpoint(function(req, res, ...) {
@@ -285,6 +491,20 @@ mount_xlsform_editor <- function(pr) {
         file_id = meta$file_id,
         original_name = meta$original_name,
         size = meta$size
+      )
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/validate", wrap_endpoint(function(req, res, ...) {
+      # Validador estructural ligero. El frontend lo invoca debounced (cada
+      # ~1s tras una edición) para refrescar el DiagnosticsBadge. Devuelve
+      # SIEMPRE 200 con la lista de diagnostics — los problemas son del
+      # contenido del workbook, no del request.
+      parsed <- .xlsform_editor_parse_body(req)
+      workbook <- parsed$workbook %||% list()
+      diagnostics <- .xlsform_editor_validate_workbook(workbook)
+      list(
+        ok = TRUE,
+        diagnostics = diagnostics,
+        count = length(diagnostics)
       )
     }))
 }

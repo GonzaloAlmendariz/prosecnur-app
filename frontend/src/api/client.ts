@@ -418,6 +418,40 @@ export async function apiXlsformEditorExport(workbook: XlsformEditorWorkbook, fi
   );
 }
 
+/**
+ * Diagnostic estructural devuelto por el validador de R. La forma coincide
+ * con `BuilderDiagnostic` del frontend para que el badge pueda renderizarlos
+ * directo, sin transformación. `rowIndex` y `catalogName` son opcionales.
+ */
+export type XlsformEditorRemoteDiagnostic = {
+  id: string;
+  level: "warn" | "info";
+  title: string;
+  detail: string;
+  rowIndex?: number;
+  catalogName?: string;
+};
+
+/**
+ * Llama al validador estructural en R. El frontend lo invoca debounced
+ * (~1 s después de la última edición) para refrescar diagnostics que
+ * conviene calcular en R (balance de begin/end, integridad de catálogos,
+ * regex de form_id, etc.).
+ */
+export async function apiXlsformEditorValidate(workbook: XlsformEditorWorkbook) {
+  return handle<{
+    ok: true;
+    diagnostics: XlsformEditorRemoteDiagnostic[];
+    count: number;
+  }>(
+    await fetch("/api/xlsform-editor/validate", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ workbook }),
+    })
+  );
+}
+
 export async function apiCargaInstrumento(file_id: string) {
   return handle<{
     ok: true;

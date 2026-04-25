@@ -38,6 +38,7 @@ import {
   apiXlsformEditorExport,
   apiXlsformEditorImport,
   apiXlsformEditorImportSurveyMonkey,
+  apiXlsformEditorValidate,
   downloadUrl,
 } from "../../api/client";
 import { Panel } from "../../components/Panel";
@@ -330,10 +331,72 @@ export default function XlsformEditorPage() {
     : [];
   const activeCatalogName = selectedTypeInfo?.listName || catalogFocus || catalogs[0]?.listName || null;
   const activeCatalog = catalogs.find((catalog) => catalog.listName === activeCatalogName) ?? null;
-  const diagnostics = useMemo(
+  // Diagnostics locales (cliente): integridad estructural calculada al vuelo
+  // a partir del index. Se complementan con los diagnostics remotos (R) que
+  // viajan via /api/xlsform-editor/validate.
+  const localDiagnostics = useMemo(
     () => buildDiagnostics(workbook, xlsformIndex),
     [workbook, xlsformIndex]
   );
+
+  // Diagnostics remotos (servidor R): balance estricto de begin/end, regex
+  // de names, refs de catálogos, slug de form_id. Se invocan debounced ~1s
+  // tras cualquier edición. Usamos un useRef + useEffect para debouncear
+  // sin librerías extras.
+  const [remoteDiagnostics, setRemoteDiagnostics] = useState<BuilderDiagnostic[]>([]);
+  const validateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const validateRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!workbook) {
+      setRemoteDiagnostics([]);
+      return;
+    }
+    if (validateTimerRef.current) clearTimeout(validateTimerRef.current);
+    validateTimerRef.current = setTimeout(() => {
+      const requestId = ++validateRequestIdRef.current;
+      apiXlsformEditorValidate(workbook)
+        .then((result) => {
+          // Si llegó otro request mientras este iba en vuelo, descartamos.
+          if (requestId !== validateRequestIdRef.current) return;
+          const remote: BuilderDiagnostic[] = (result.diagnostics ?? []).map(
+            (d): BuilderDiagnostic => ({
+              id: d.id,
+              level: d.level,
+              title: d.title,
+              detail: d.detail,
+              rowIndex: d.rowIndex,
+              catalogName: d.catalogName,
+            }),
+          );
+          setRemoteDiagnostics(remote);
+        })
+        .catch(() => {
+          // Si el endpoint falla no rompemos la UI — los locales son suficientes.
+          if (requestId === validateRequestIdRef.current) setRemoteDiagnostics([]);
+        });
+    }, 1000);
+    return () => {
+      if (validateTimerRef.current) clearTimeout(validateTimerRef.current);
+    };
+  }, [workbook]);
+
+  // Merge local + remote, deduplicando por id (los locales pueden coincidir
+  // con los remotos en patrones obvios — preferimos los del cliente porque
+  // se calculan al vuelo y son más frescos).
+  const diagnostics = useMemo<BuilderDiagnostic[]>(() => {
+    const seen = new Set<string>();
+    const out: BuilderDiagnostic[] = [];
+    for (const d of localDiagnostics) {
+      seen.add(d.id);
+      out.push(d);
+    }
+    for (const d of remoteDiagnostics) {
+      if (seen.has(d.id)) continue;
+      out.push(d);
+    }
+    return out;
+  }, [localDiagnostics, remoteDiagnostics]);
   const movement = selection?.kind === "survey"
     ? getSiblingRows(structure, selection.rowIndex)
     : { prevRow: null as number | null, nextRow: null as number | null };
