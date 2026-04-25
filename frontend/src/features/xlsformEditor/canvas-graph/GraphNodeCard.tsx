@@ -134,7 +134,15 @@ export function GraphNodeCard({
       } ${expanded ? "is-expanded" : ""} ${
         beingDragged ? "is-dragging" : ""
       } pulso-graph-node-${node.kind}`}
-      style={{ cursor: beingDragged ? "grabbing" : "grab" }}
+      style={{
+        // Cursor refleja capacidad: si la card es movible (top-level
+        // con onCardMouseDown), grab/grabbing; si no, pointer normal.
+        cursor: !onCardMouseDown
+          ? "pointer"
+          : beingDragged
+            ? "grabbing"
+            : "grab",
+      }}
       onMouseDown={(event) => {
         // El drag de card SOLO se dispara desde el rect/foreignObject
         // del body — el chevron y el anchor de edge tienen

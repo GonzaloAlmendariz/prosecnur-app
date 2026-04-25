@@ -1,35 +1,25 @@
 // =============================================================================
-// canvas-graph/autoLayout.ts — layout horizontal "kanban-style"
+// canvas-graph/autoLayout.ts — layout horizontal + routing ortogonal con merge
 // =============================================================================
-// Cambio respecto al diseño anterior (vertical en una columna): las
-// secciones top-level fluyen en una FILA HORIZONTAL, lado a lado. Cuando
-// el usuario expande una sección, sus variables se despliegan VERTICAL
-// hacia abajo, indentadas. Esto refleja mejor la mentalidad "cada
-// sección es una pieza del cuestionario" y permite ver muchas secciones
-// de un vistazo.
+// Iteración tras feedback del usuario:
 //
-// Estructura visual:
+//   * Las flechas son ORTOGONALES (segmentos H y V con esquinas
+//     redondeadas), no beziers diagonales. Líneas rectas que viajan
+//     por encima o por debajo del bloque de cards, nunca atravesándolo.
 //
-//   [ Sec A   ▾ ]   [ Sec B   ▸ ]   [ Sec C   ▾ ]   [ Sec D   ▸ ]
-//   │  v1       │                   │  v1       │
-//   │  v2       │                   │  v2       │
-//   │  v3       │                   │  v3       │
-//                                   │  v4       │
+//   * Las flechas que terminan en una SECCIÓN entran por el TOP-CENTER
+//     del header — visualmente "desembocan arriba en el medio". Las
+//     que terminan en una VARIABLE entran por el lateral (izq forward,
+//     der back-edge).
 //
-// Edges:
+//   * MERGE POINT: cuando varios edges convergen al mismo target,
+//     todos comparten el último tramo justo antes del target. El
+//     efecto visual es Sankey/subway: las flechas se UNEN en una
+//     sola línea antes de entrar.
 //
-//   * Cada edge sale por el lateral DERECHO del source y entra por el
-//     lateral IZQUIERDO del target — bezier suave en el espacio
-//     horizontal entre ambos. Los control points son proporcionales a
-//     la distancia para que la curva sea natural.
-//
-//   * Si varios edges llegan al mismo target o salen del mismo source,
-//     sus anchors se DISTRIBUYEN VERTICALMENTE sobre el borde para
-//     que cada uno se vea separado. Igual que el `off_map` de
-//     `GraficarSecciones` cuando varias condiciones confluyen.
-//
-//   * Si target queda atrás del source (back-edge raro), la curva
-//     arquea por arriba/abajo del bloque entero.
+//   * Para var↔var dentro de la MISMA sección expandida, hacemos
+//     bezier arqueada por la derecha (más legible que un U-turn
+//     ortogonal en espacio chico).
 // =============================================================================
 
 import type { GraphEdge, GraphNode, LogicGraph } from "./buildGraph";
@@ -48,7 +38,8 @@ export type LaidOutEdge = {
   edge: GraphEdge;
   /** Path SVG `d` precomputado. */
   path: string;
-  /** Punto medio del path — anclaje del tooltip de hover. */
+  /** Punto medio sugerido para anclar el tooltip — siempre OFFSET
+   *  respecto al trazo para no chocar con cards. */
   midX: number;
   midY: number;
   fromBBox: { x: number; y: number; width: number; height: number };
@@ -63,23 +54,24 @@ export type LaidOutGraph = {
 };
 
 export type LayoutOptions = {
-  /** Ancho de cada columna top-level (sección o pregunta sin sección). */
   columnWidth: number;
-  /** Altura del header (card colapsada). */
   rowHeight: number;
-  /** Espacio horizontal entre columnas top-level. */
   columnGap: number;
-  /** Espacio vertical entre header de sección y sus variables expandidas. */
   innerHeadGap: number;
-  /** Espacio vertical entre variables internas. */
   innerRowGap: number;
-  /** Indentación horizontal de las variables dentro de su sección. */
   childIndent: number;
-  /** Margen exterior. */
   marginX: number;
   marginY: number;
-  /** Radio de las esquinas de las flechas redondeadas. */
   cornerRadius: number;
+  /** Distancia entre el merge point y el target — es la longitud del
+   *  "stem" final que comparten todas las flechas convergentes. */
+  mergeOffset: number;
+  /** Cuánto se sale lateral del source antes de subir/bajar — define
+   *  la primera esquina del path ortogonal. */
+  lateralBreakout: number;
+  /** Distancia mínima de un lane horizontal por encima/debajo del
+   *  bloque de cards para evitar atravesarlo. */
+  blockClearance: number;
 };
 
 const DEFAULT_OPTIONS: LayoutOptions = {
@@ -90,8 +82,11 @@ const DEFAULT_OPTIONS: LayoutOptions = {
   innerRowGap: 10,
   childIndent: 14,
   marginX: 48,
-  marginY: 56,
-  cornerRadius: 12,
+  marginY: 70,
+  cornerRadius: 10,
+  mergeOffset: 22,
+  lateralBreakout: 18,
+  blockClearance: 28,
 };
 
 export function layoutLogicGraph(
@@ -110,19 +105,15 @@ export function layoutLogicGraph(
   const flatNodes: LaidOutNode[] = [];
   const positionByNodeId = new Map<string, LaidOutNode>();
 
-  // ── 1. Layout horizontal: cada root node ocupa una columna ─────────
-  // Recorremos los rootNodes y los colocamos lado a lado horizontalmente.
-  // Si un root es sección expandida, sus children se despliegan
-  // verticalmente debajo del header de la sección, indentados.
+  // ── 1. Layout horizontal (idéntico a la versión anterior) ──────────
   let cursorX = options.marginX;
 
   const heightOfChildren = (node: GraphNode): number => {
-    if (node.kind !== "section") return 0;
-    if (node.children.length === 0) return 0;
+    if (node.kind !== "section" || node.children.length === 0) return 0;
     let h = 0;
     for (let i = 0; i < node.children.length; i += 1) {
       if (i > 0) h += options.innerRowGap;
-      h += options.rowHeight; // children siempre se ven como rows colapsadas
+      h += options.rowHeight;
     }
     return h;
   };
@@ -132,8 +123,6 @@ export function layoutLogicGraph(
     columnX: number,
     childY: number,
   ): number => {
-    // Children se renderean a misma columna, indentados — el ancho útil
-    // baja un poco para que se vea "dentro de" la sección.
     const placed: LaidOutNode = {
       node: child,
       x: columnX + options.childIndent,
@@ -194,8 +183,6 @@ export function layoutLogicGraph(
         childY = placeChild(root.children[i]!, x, childY);
       }
     } else if (root.kind === "section") {
-      // Sección colapsada: registrar children invisibles (para que las
-      // edges puedan resolverse al ancestro visible).
       for (const child of root.children) registerHidden(child, 1);
     }
 
@@ -214,7 +201,7 @@ export function layoutLogicGraph(
     }
   }
 
-  // ── 2. Resolver edges al ancestro visible más cercano ───────────────
+  // ── 2. Resolver edges al ancestro visible ──────────────────────────
   const parentByChildId = new Map<string, GraphNode>();
   const indexParents = (n: GraphNode, seen = new Set<string>()) => {
     if (seen.has(n.id)) return;
@@ -237,7 +224,7 @@ export function layoutLogicGraph(
     return null;
   };
 
-  // ── 3. Resolver edges + agrupar por target/source para offset ──────
+  // ── 3. Resolver y agrupar por target ───────────────────────────────
   type ResolvedEdge = {
     edge: GraphEdge;
     src: LaidOutNode;
@@ -256,64 +243,59 @@ export function layoutLogicGraph(
     resolved.push({ edge, src, tgt });
   }
 
-  // Cuántos edges entran a cada target / salen de cada source.
-  // Cuando hay varios, distribuimos sus anchors verticalmente sobre el
-  // borde de la card para que cada flecha se vea separada (igual que
-  // hace `GraficarSecciones` con su `off_map`).
   const edgesByTarget = new Map<string, ResolvedEdge[]>();
-  const edgesBySource = new Map<string, ResolvedEdge[]>();
   for (const r of resolved) {
     if (!edgesByTarget.has(r.tgt.node.id)) edgesByTarget.set(r.tgt.node.id, []);
     edgesByTarget.get(r.tgt.node.id)!.push(r);
-    if (!edgesBySource.has(r.src.node.id)) edgesBySource.set(r.src.node.id, []);
-    edgesBySource.get(r.src.node.id)!.push(r);
   }
 
-  /** Calcula el offset vertical para el i-ésimo de N edges en el borde
-   *  de una card de altura `cardHeight`. Distribuye uniformemente
-   *  dentro del 60% central (deja 20% arriba y abajo libres). */
-  const anchorOffset = (
-    indexInGroup: number,
-    groupSize: number,
-    cardHeight: number,
-  ): number => {
-    if (groupSize <= 1) return cardHeight / 2;
-    const usable = Math.min(cardHeight * 0.6, options.rowHeight * 0.6);
-    const start = (cardHeight - usable) / 2;
-    return start + (indexInGroup * usable) / (groupSize - 1);
-  };
+  // ── 4. Bounding box vertical del bloque visible (para lanes) ───────
+  // Lanes horizontales viajan ENCIMA o DEBAJO de todos los nodos
+  // visibles, no entre ellos — así nunca atraviesan cards.
+  let blockTop = Infinity;
+  let blockBottom = -Infinity;
+  for (const placed of flatNodes) {
+    if (!placed.visible) continue;
+    if (placed.y < blockTop) blockTop = placed.y;
+    if (placed.y + placed.height > blockBottom) blockBottom = placed.y + placed.height;
+  }
+  if (!isFinite(blockTop)) blockTop = options.marginY;
+  if (!isFinite(blockBottom)) blockBottom = options.marginY + options.rowHeight;
 
-  // ── 4. Construir paths ─────────────────────────────────────────────
+  // ── 5. Construir paths ─────────────────────────────────────────────
   const laidOutEdges: LaidOutEdge[] = resolved.map((r) => {
     const targetGroup = edgesByTarget.get(r.tgt.node.id) ?? [r];
-    const sourceGroup = edgesBySource.get(r.src.node.id) ?? [r];
-    const tgtIdx = targetGroup.indexOf(r);
+
+    // Distribución de la salida en el source: si N edges salen del
+    // mismo source, distribuimos verticalmente para que cada flecha
+    // se vea separada en su origen aunque convergen al mismo merge
+    // point del target.
+    const sourceGroup = resolved.filter((e) => e.src.node.id === r.src.node.id);
     const srcIdx = sourceGroup.indexOf(r);
+    const srcAnchor = anchorOnRight(r.src, srcIdx, sourceGroup.length, options.rowHeight);
 
-    // Anclas. Para cards expandidas (section + children), los anchors se
-    // pegan al header (rowHeight), no al alto total.
-    const srcHeaderH = Math.min(r.src.height, options.rowHeight);
-    const tgtHeaderH = Math.min(r.tgt.height, options.rowHeight);
-    const fromY = r.src.y + anchorOffset(srcIdx, sourceGroup.length, srcHeaderH);
-    const toY = r.tgt.y + anchorOffset(tgtIdx, targetGroup.length, tgtHeaderH);
+    const tgtIdx = targetGroup.indexOf(r);
+    const isSection = r.tgt.node.kind === "section";
 
-    const path = routeEdge(
-      {
-        srcX: r.src.x + r.src.width,
-        srcY: fromY,
-        tgtX: r.tgt.x,
-        tgtY: toY,
-        srcBBox: r.src,
-        tgtBBox: r.tgt,
-      },
+    const pathInfo = routeOrthogonal({
+      src: r.src,
+      tgt: r.tgt,
+      srcAnchor,
+      tgtIsSection: isSection,
+      tgtIdxInGroup: tgtIdx,
+      tgtGroupSize: targetGroup.length,
+      blockTop,
+      blockBottom,
       options,
-    );
+    });
 
+    const tgtHeaderH = Math.min(r.tgt.height, options.rowHeight);
+    const srcHeaderH = Math.min(r.src.height, options.rowHeight);
     return {
       edge: r.edge,
-      path: path.d,
-      midX: path.midX,
-      midY: path.midY,
+      path: pathInfo.d,
+      midX: pathInfo.midX,
+      midY: pathInfo.midY,
       fromBBox: {
         x: r.src.x,
         y: r.src.y,
@@ -329,7 +311,7 @@ export function layoutLogicGraph(
     };
   });
 
-  // ── 5. Tamaño total ────────────────────────────────────────────────
+  // ── 6. Tamaño total ────────────────────────────────────────────────
   let maxRight = options.marginX;
   let maxBottom = options.marginY;
   for (const placed of flatNodes) {
@@ -345,79 +327,339 @@ export function layoutLogicGraph(
   return { nodes: flatNodes, edges: laidOutEdges, width, height };
 }
 
+/**
+ * Distribuye verticalmente el ancla en el lateral derecho de una card
+ * cuando hay varios edges saliendo. Para 1 edge → centro. Para N edges
+ * → distribuidos en el 60% central del header.
+ */
+function anchorOnRight(
+  card: LaidOutNode,
+  indexInGroup: number,
+  groupSize: number,
+  headerH: number,
+): { x: number; y: number } {
+  const cardHeaderH = Math.min(card.height, headerH);
+  let yOffset: number;
+  if (groupSize <= 1) {
+    yOffset = cardHeaderH / 2;
+  } else {
+    const usable = cardHeaderH * 0.6;
+    const start = (cardHeaderH - usable) / 2;
+    yOffset = start + (indexInGroup * usable) / (groupSize - 1);
+  }
+  return { x: card.x + card.width, y: card.y + yOffset };
+}
+
 // ─────────────────────────────────────────────────────────────────────
-// Routing de un edge en layout horizontal
+// Routing ortogonal — segmentos H/V con esquinas redondeadas.
 // ─────────────────────────────────────────────────────────────────────
 //
-// Tres casos:
+// Tres casos principales:
 //
-//   * Forward (target a la derecha del source): bezier suave en el
-//     gutter horizontal. Control points a 50% de la distancia hacen
-//     una curva natural.
+//   1. Forward (target a la derecha del source) + entrada top-center
+//      a sección: H → V → H breve hasta el merge → V hasta el header.
 //
-//   * Same column (target en la misma columna que source): sale por
-//     la derecha, arquea por la derecha y vuelve a entrar por la
-//     derecha del target. Caso raro en layout horizontal — solo pasa
-//     cuando dos variables internas de la misma sección se conectan.
+//   2. Forward + entrada lateral a variable: H → V → H entrando por
+//      el lateral izquierdo del target.
 //
-//   * Back-edge (target a la izquierda del source): arco por arriba
-//     o abajo del bloque entero, decidido según altura relativa.
+//   3. Back-edge / same-column: U-turn por arriba o abajo del bloque.
+//
+// Para var↔var dentro de una misma sección expandida (no es ninguno
+// de los anteriores tal cual), el U-turn funciona también.
 // ─────────────────────────────────────────────────────────────────────
 
 type RouteInput = {
-  srcX: number;
-  srcY: number;
-  tgtX: number;
-  tgtY: number;
-  srcBBox: { x: number; y: number; width: number; height: number };
-  tgtBBox: { x: number; y: number; width: number; height: number };
+  src: LaidOutNode;
+  tgt: LaidOutNode;
+  srcAnchor: { x: number; y: number };
+  tgtIsSection: boolean;
+  tgtIdxInGroup: number;
+  tgtGroupSize: number;
+  blockTop: number;
+  blockBottom: number;
+  options: LayoutOptions;
 };
 
-function routeEdge(
-  r: RouteInput,
-  options: LayoutOptions,
-): { d: string; midX: number; midY: number } {
-  const { srcX, srcY, tgtX, tgtY } = r;
-  const dx = tgtX - srcX;
+function routeOrthogonal(input: RouteInput): {
+  d: string;
+  midX: number;
+  midY: number;
+} {
+  const {
+    src,
+    tgt,
+    srcAnchor,
+    tgtIsSection,
+    blockTop,
+    blockBottom,
+    options,
+  } = input;
+  const r = options.cornerRadius;
+  const sX = srcAnchor.x;
+  const sY = srcAnchor.y;
 
-  // Forward edge — bezier estándar entre los dos lados.
-  if (dx >= 24) {
-    const half = dx * 0.5;
-    const c1x = srcX + half;
-    const c1y = srcY;
-    const c2x = tgtX - half;
-    const c2y = tgtY;
-    const d = `M ${srcX} ${srcY} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${tgtX} ${tgtY}`;
-    return { d, midX: (srcX + tgtX) / 2, midY: (srcY + tgtY) / 2 };
+  // Punto de entrada al target. Para sección, top-center con stem
+  // (mergeOffset arriba). Para variable, lateral izquierdo o derecho
+  // según la geometría (forward vs back-edge).
+  let tX: number;
+  let tY: number;
+  let mergeX: number;
+  let mergeY: number;
+  let entryDir: "top" | "left" | "right";
+
+  if (tgtIsSection) {
+    tX = tgt.x + tgt.width / 2;
+    tY = tgt.y;
+    mergeX = tX;
+    mergeY = tY - options.mergeOffset;
+    entryDir = "top";
+  } else {
+    const enterFromLeft = sX <= tgt.x - 8;
+    if (enterFromLeft) {
+      tX = tgt.x;
+      tY = tgt.y + tgt.height / 2;
+      mergeX = tX - options.mergeOffset;
+      mergeY = tY;
+      entryDir = "left";
+    } else {
+      tX = tgt.x + tgt.width;
+      tY = tgt.y + tgt.height / 2;
+      mergeX = tX + options.mergeOffset;
+      mergeY = tY;
+      entryDir = "right";
+    }
   }
 
-  // Same-column o back-edge: arco por arriba o abajo.
-  // Decidimos goUp/goDown según la altura relativa del target. Si están
-  // a la misma altura, default a arriba.
-  const goDown = tgtY > srcY + 4;
-  const archDepth = Math.max(40, Math.min(140, Math.abs(tgtY - srcY) * 0.5 + 50));
-  const archY = goDown
-    ? Math.max(r.srcBBox.y + r.srcBBox.height, r.tgtBBox.y + r.tgtBBox.height) +
-      archDepth
-    : Math.min(r.srcBBox.y, r.tgtBBox.y) - archDepth;
+  // Decidimos cuál routing usar para llegar al merge point.
+  const dx = mergeX - sX;
+  const dy = mergeY - sY;
+  const sameColumn = Math.abs(dx) < 30 && entryDir !== "top";
 
-  // Salida horizontal por la derecha del source, vuelta por arriba/abajo,
-  // entrada por la derecha del target.
-  const lateralReach = Math.max(60, Math.min(200, options.columnWidth * 0.55));
-  const startX = srcX;
-  const startY = srcY;
-  const endX = tgtX + r.tgtBBox.width; // entra por la DERECHA del target
-  const endY = tgtY;
+  // ─── Routing ────────────────────────────────────────────────────
+  const segments: string[] = [`M ${sX} ${sY}`];
+  let midX: number;
+  let midY: number;
 
-  const c1x = startX + lateralReach;
-  const c1y = archY;
-  const c2x = endX + lateralReach;
-  const c2y = archY;
+  if (sameColumn) {
+    // Caso: misma columna o muy cerca. U-turn por la derecha del
+    // source a la altura del target.
+    const ext = options.lateralBreakout * 2;
+    const turnX = sX + ext;
+    appendSegment(segments, sX, sY, turnX, sY, r); // H breve
+    appendSegment(segments, turnX, sY, turnX, mergeY, r); // V
+    appendSegment(segments, turnX, mergeY, mergeX, mergeY, r); // H al merge
+    appendSegment(segments, mergeX, mergeY, tX, tY, r); // entrada
+    midX = turnX + 4;
+    midY = (sY + mergeY) / 2;
+  } else if (dx > 0 || (entryDir === "top" && dx > -options.columnWidth)) {
+    // Forward o casi-forward. Path en L horizontal + vertical.
+    // Decidimos si el codo va antes o después del cruce.
 
-  const d = `M ${startX} ${startY} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${endX} ${endY}`;
-  return {
-    d,
-    midX: (startX + endX) / 2 + lateralReach * 0.5,
-    midY: archY,
-  };
+    if (entryDir === "top") {
+      // Entra por arriba: H → V (subiendo al stem) → entrada vertical.
+      // Verificamos que el camino no choca con otras cards entre
+      // medio. Si la diferencia vertical es chica, podemos ir directo
+      // al lane horizontal por encima del bloque y bajar al stem.
+      const goAbove =
+        sY > blockTop + 24 && // hay espacio arriba
+        Math.abs(dx) > options.columnWidth * 0.6; // suficientemente lejos
+      if (goAbove) {
+        const laneY = blockTop - options.blockClearance;
+        const ext = sX + options.lateralBreakout;
+        appendSegment(segments, sX, sY, ext, sY, r);
+        appendSegment(segments, ext, sY, ext, laneY, r);
+        appendSegment(segments, ext, laneY, mergeX, laneY, r);
+        appendSegment(segments, mergeX, laneY, mergeX, mergeY, r);
+        appendSegment(segments, mergeX, mergeY, tX, tY, r); // stem
+        midX = (ext + mergeX) / 2;
+        midY = laneY;
+      } else {
+        // Path simple: H hasta mergeX, V hasta mergeY, entra al top.
+        appendSegment(segments, sX, sY, mergeX, sY, r);
+        appendSegment(segments, mergeX, sY, mergeX, mergeY, r);
+        appendSegment(segments, mergeX, mergeY, tX, tY, r);
+        midX = mergeX + 12;
+        midY = (sY + mergeY) / 2;
+      }
+    } else {
+      // Entrada lateral: simple L o "step".
+      // Si dx > 0: H sale a (mergeX, sY), V baja a (mergeX, mergeY),
+      //           H entra por izquierda del target.
+      // Si dx ≈ 0: ya cubierto en sameColumn arriba.
+      appendSegment(segments, sX, sY, mergeX, sY, r);
+      appendSegment(segments, mergeX, sY, mergeX, mergeY, r);
+      appendSegment(segments, mergeX, mergeY, tX, tY, r);
+      midX = (sX + mergeX) / 2;
+      midY = (sY + mergeY) / 2;
+    }
+  } else {
+    // Back-edge: target detrás del source. U-turn POR ARRIBA o por
+    // ABAJO según orientación.
+    const goAbove = sY <= mergeY + 8; // si target está arriba o al mismo nivel, vamos por arriba
+    const laneY = goAbove
+      ? blockTop - options.blockClearance
+      : blockBottom + options.blockClearance;
+    const ext = sX + options.lateralBreakout;
+    appendSegment(segments, sX, sY, ext, sY, r);
+    appendSegment(segments, ext, sY, ext, laneY, r);
+    appendSegment(segments, ext, laneY, mergeX, laneY, r);
+    appendSegment(segments, mergeX, laneY, mergeX, mergeY, r);
+    appendSegment(segments, mergeX, mergeY, tX, tY, r);
+    midX = (ext + mergeX) / 2;
+    midY = laneY;
+  }
+
+  // Anclaje del tooltip — un poco "fuera" del trazo para no chocar
+  // con cards. Si midY está cerca del bloque, lo subimos/bajamos.
+  const tooltipOffset = 14;
+  const tooltipY =
+    midY < blockTop ? midY - tooltipOffset : midY > blockBottom ? midY + tooltipOffset : midY;
+
+  return { d: segments.join(" "), midX, midY: tooltipY };
+}
+
+/**
+ * Agrega un segmento ortogonal (horizontal o vertical) con esquina
+ * redondeada al final si la dirección cambia. La esquina solo se
+ * inserta si no es el primer punto y hay cambio de dirección. Para
+ * simplicidad, siempre agregamos arc + line; el SVG renderiza bien
+ * incluso con radios chicos.
+ */
+function appendSegment(
+  segments: string[],
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+  r: number,
+): void {
+  // Solo agregamos un L recto sin esquina aquí — las esquinas las
+  // cubre la curva implícita entre segmentos consecutivos cuando hay
+  // cambio de dirección. Para tener esquinas redondeadas REALES
+  // tendríamos que insertar arcos entre cada par de segmentos.
+  // Hacemos eso a continuación.
+  const len = segments.length;
+  if (len === 1) {
+    // Primer L después del M. Sin curva.
+    segments.push(`L ${toX} ${toY}`);
+    return;
+  }
+  // Inspeccionamos el último L para ver si hay cambio de dirección
+  // y aplicar la esquina redondeada con arc.
+  const lastL = segments[len - 1]!;
+  const m = lastL.match(/^L\s+(-?[\d.]+)\s+(-?[\d.]+)$/);
+  if (!m) {
+    segments.push(`L ${toX} ${toY}`);
+    return;
+  }
+  const prevX = parseFloat(m[1]!);
+  const prevY = parseFloat(m[2]!);
+  const dx0 = prevX - fromX; // dirección del segmento previo (no la usamos directamente; fromX/fromY son el punto de inicio del nuevo segmento que es el final del previo)
+  // Si fromX/fromY no coinciden con el final del segmento previo,
+  // confiamos y ajustamos.
+  void dx0;
+
+  // Calculamos la dirección del segmento nuevo y del previo para
+  // detectar codo.
+  // El segmento previo termina en (fromX, fromY) y el nuevo va a
+  // (toX, toY). El segmento previo PROVIENE de (prevPrevX, prevPrevY)
+  // si lo encontramos. Por simplicidad: si los dos segmentos son
+  // perpendiculares, intercalamos un arc.
+
+  // Buscamos el segmento anterior al `lastL` para saber de dónde venía.
+  // Si len === 2 (M + L), el "anterior" es el M.
+  let prevStartX: number, prevStartY: number;
+  if (len === 2) {
+    const mLine = segments[0]!;
+    const mm = mLine.match(/^M\s+(-?[\d.]+)\s+(-?[\d.]+)$/);
+    if (!mm) {
+      segments.push(`L ${toX} ${toY}`);
+      return;
+    }
+    prevStartX = parseFloat(mm[1]!);
+    prevStartY = parseFloat(mm[2]!);
+  } else {
+    // Recuperamos el último punto de inicio.
+    const prev2 = segments[len - 2]!;
+    const m2 = prev2.match(
+      /(?:M|L|A\s+[\d.]+\s+[\d.]+\s+\d+\s+\d+\s+\d+)\s+(-?[\d.]+)\s+(-?[\d.]+)$/,
+    );
+    if (!m2) {
+      segments.push(`L ${toX} ${toY}`);
+      return;
+    }
+    prevStartX = parseFloat(m2[1]!);
+    prevStartY = parseFloat(m2[2]!);
+  }
+
+  const prevDx = fromX - prevStartX;
+  const prevDy = fromY - prevStartY;
+  const newDx = toX - fromX;
+  const newDy = toY - fromY;
+
+  // Si los dos segmentos están en la MISMA dirección (no hay codo),
+  // simplemente extendemos.
+  const sameDir =
+    (Math.abs(prevDx) > 0.5 && Math.abs(newDx) > 0.5 && Math.sign(prevDx) === Math.sign(newDx) && Math.abs(prevDy) < 0.5 && Math.abs(newDy) < 0.5) ||
+    (Math.abs(prevDy) > 0.5 && Math.abs(newDy) > 0.5 && Math.sign(prevDy) === Math.sign(newDy) && Math.abs(prevDx) < 0.5 && Math.abs(newDx) < 0.5);
+  if (sameDir) {
+    // Simplemente reemplazamos el último L extendiéndolo.
+    segments[len - 1] = `L ${toX} ${toY}`;
+    return;
+  }
+
+  // Codo perpendicular: ajustamos el L previo para terminar antes del
+  // codo, insertamos arc, y agregamos el nuevo L.
+  const radius = Math.min(
+    r,
+    Math.abs(prevDx) / 2,
+    Math.abs(prevDy) / 2,
+    Math.abs(newDx) / 2,
+    Math.abs(newDy) / 2,
+  );
+  if (radius < 1) {
+    // Espacio insuficiente — codo recto sin redondear.
+    segments.push(`L ${toX} ${toY}`);
+    return;
+  }
+  // Punto donde el L previo termina (antes del codo).
+  let preCornerX = fromX;
+  let preCornerY = fromY;
+  if (Math.abs(prevDx) > 0.5) {
+    preCornerX = fromX - Math.sign(prevDx) * radius;
+  } else {
+    preCornerY = fromY - Math.sign(prevDy) * radius;
+  }
+  // Punto donde el nuevo L empieza (después del codo).
+  let postCornerX = fromX;
+  let postCornerY = fromY;
+  if (Math.abs(newDx) > 0.5) {
+    postCornerX = fromX + Math.sign(newDx) * radius;
+  } else {
+    postCornerY = fromY + Math.sign(newDy) * radius;
+  }
+  // sweep flag del arc: depende de la orientación del codo.
+  // Convención: sweep=1 (CW) si el cambio de dirección es en sentido
+  // horario, sweep=0 (CCW) si es antihorario.
+  // Para un codo H→V que va a la derecha-abajo (prevDx>0, newDy>0):
+  // CW (sweep=1).
+  const sweep = orthogonalSweep(prevDx, prevDy, newDx, newDy);
+
+  // Ajustamos el último L para que termine en preCorner.
+  segments[len - 1] = `L ${preCornerX} ${preCornerY}`;
+  segments.push(
+    `A ${radius} ${radius} 0 0 ${sweep} ${postCornerX} ${postCornerY}`,
+  );
+  segments.push(`L ${toX} ${toY}`);
+}
+
+function orthogonalSweep(
+  prevDx: number,
+  prevDy: number,
+  newDx: number,
+  newDy: number,
+): 0 | 1 {
+  // Producto cruzado 2D: positivo = CCW, negativo = CW.
+  const cross = prevDx * newDy - prevDy * newDx;
+  return cross > 0 ? 1 : 0;
 }

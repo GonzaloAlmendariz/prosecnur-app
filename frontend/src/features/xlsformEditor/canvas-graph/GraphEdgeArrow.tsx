@@ -33,6 +33,13 @@ export type GraphEdgeArrowProps = {
   onHover?: (hovering: boolean) => void;
 };
 
+/** Detecta si un edge es var↔var (entre dos preguntas individuales,
+ *  no involucra secciones). Lo usamos para aplicar dasharray solo
+ *  a esas — el resto va sólido. */
+function isVarToVar(relation: string): boolean {
+  return relation === "variable-to-variable";
+}
+
 /**
  * Paleta categórica Tableau-10 — la misma que usa `GraficarSecciones`
  * en R/ggplot. Ofrece contraste razonable sobre fondo blanco.
@@ -89,6 +96,10 @@ export function GraphEdgeArrow({
   const color = colorForExpression(relevantExpression);
   const opacity = dimmed ? 0.18 : highlighted ? 1 : 0.78;
   const strokeWidth = highlighted ? STROKE_WIDTH + 0.7 : STROKE_WIDTH;
+  // Dashed solo para conexiones var↔var (entre preguntas individuales).
+  // Las que tocan secciones (sec→sec, var→sec, sec→var) van sólidas
+  // porque son las "macro" y deben leerse más fuerte visualmente.
+  const dashArray = isVarToVar(edge.edge.relation) ? "5 4" : undefined;
 
   return (
     <g
@@ -104,6 +115,7 @@ export function GraphEdgeArrow({
         fill="none"
         stroke={color}
         strokeWidth={strokeWidth}
+        strokeDasharray={dashArray}
         strokeLinecap="round"
         strokeLinejoin="round"
         markerEnd={`url(#pulso-graph-arrow-${markerIdFor(color)})`}

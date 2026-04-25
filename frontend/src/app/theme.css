@@ -4480,3 +4480,94 @@ button.pulso-empty-home-card:focus-visible {
   color: var(--pulso-text);
   font-weight: 600;
 }
+
+/* ============================================================================
+ * Logic canvas — leyenda colapsable + estilos refinados (post review)
+ * Por defecto la leyenda muestra solo el botón "?" en la esquina; al
+ * abrir despliega tipos de relación + cómo leer.
+ * ========================================================================= */
+.pulso-graph-legend.is-collapsed {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pulso-graph-legend.is-open {
+  width: 280px;
+  padding: 8px 10px 10px;
+  pointer-events: auto;
+}
+.pulso-graph-legend-toggle {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  pointer-events: auto;
+}
+.pulso-graph-legend.is-collapsed .pulso-graph-legend-toggle {
+  position: static;
+  width: 32px;
+  height: 32px;
+  font-size: 15px;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  box-shadow: var(--pulso-shadow-low);
+}
+.pulso-graph-legend-toggle:hover {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  border-color: var(--pulso-primary-border);
+}
+.pulso-graph-legend-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 24px; /* dejar espacio al botón × */
+}
+.pulso-graph-legend-body strong {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+  margin-top: 2px;
+}
+.pulso-graph-legend-types {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pulso-graph-legend-types li {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--pulso-text);
+}
+
+/* Tooltip de hover — el path SVG ya nos da `midY` con offset cuando
+ * lane está fuera del bloque; aquí solo aseguramos que la card del
+ * tooltip no se solape con cards: usamos pointer-events:none y
+ * z-index alto. */
+.pulso-graph-edge-label {
+  z-index: 30;
+}

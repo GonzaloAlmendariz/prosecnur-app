@@ -127,6 +127,10 @@ export function LogicCanvas({
   /** Id del edge que acaba de aparecer — para reproducir la animación
    *  de pulse una sola vez. Limpiamos a los 600ms. */
   const [freshEdgeKey, setFreshEdgeKey] = useState<string | null>(null);
+  /** La leyenda "Cómo leer las flechas" arranca colapsada (solo icono).
+   *  El usuario la expande con click. Por defecto colapsada porque la
+   *  versión expandida ocupaba demasiado espacio en el lienzo. */
+  const [legendOpen, setLegendOpen] = useState(false);
 
   // Cerrar con Escape.
   useEffect(() => {
@@ -150,6 +154,7 @@ export function LogicCanvas({
       setSnapToGrid(false);
       setConnectPicker(null);
       setFreshEdgeKey(null);
+      setLegendOpen(false);
     }
   }, [open]);
 
@@ -364,6 +369,39 @@ export function LogicCanvas({
   };
   const collapseAll = () => setExpandedSections(new Set());
 
+  /** Ajusta zoom y pan para que TODOS los bloques visibles entren en
+   *  el viewport, dejando un margen de 8% alrededor. Si hay un solo
+   *  nodo, lo centra al 100% de zoom. */
+  const fitToScreen = () => {
+    if (!layout || !svgRef.current) return;
+    const visibles = layout.nodes.filter((n) => n.visible);
+    if (visibles.length === 0) return;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of visibles) {
+      if (n.x < minX) minX = n.x;
+      if (n.y < minY) minY = n.y;
+      if (n.x + n.width > maxX) maxX = n.x + n.width;
+      if (n.y + n.height > maxY) maxY = n.y + n.height;
+    }
+    const bbox = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+    const rect = svgRef.current.getBoundingClientRect();
+    const padding = 0.08; // 8% a cada lado
+    const targetZoom = Math.min(
+      (rect.width * (1 - padding * 2)) / bbox.w,
+      (rect.height * (1 - padding * 2)) / bbox.h,
+      2.5,
+    );
+    const z = Math.max(0.3, targetZoom);
+    // Centrar: el centro del bbox * zoom debe quedar en el centro del
+    // viewport. pan = viewportCenter - bboxCenter * zoom.
+    const bboxCenterX = bbox.x + bbox.w / 2;
+    const bboxCenterY = bbox.y + bbox.h / 2;
+    const panX = rect.width / 2 - bboxCenterX * z;
+    const panY = rect.height / 2 - bboxCenterY * z;
+    setZoom(z);
+    setPan({ x: panX, y: panY });
+  };
+
   // Lookup a "está condicional" para el badge en el header.
   const isConditional = (id: string): boolean => {
     if (!structure) return false;
@@ -442,12 +480,9 @@ export function LogicCanvas({
           <button
             type="button"
             className="pulso-icon"
-            onClick={() => {
-              setZoom(1);
-              setPan({ x: 0, y: 0 });
-            }}
-            title="Centrar y restaurar zoom"
-            aria-label="Centrar"
+            onClick={() => fitToScreen()}
+            title="Ajustar zoom para ver todos los bloques"
+            aria-label="Ajustar a la pantalla"
           >
             <Maximize2 size={14} />
           </button>
@@ -607,7 +642,14 @@ export function LogicCanvas({
                     onAnchorMouseDown={
                       onSetRelevant ? onAnchorMouseDown(id) : undefined
                     }
-                    onCardMouseDown={onCardMouseDown(id)}
+                    onCardMouseDown={
+                      // Solo las cards top-level (depth === 0) son
+                      // movibles. Las preguntas dentro de una sección
+                      // expandida se posicionan automáticamente en
+                      // función de la sección padre — moverlas
+                      // individualmente rompería esa estructura.
+                      laid.depth === 0 ? onCardMouseDown(id) : undefined
+                    }
                   />
                 );
               })}
@@ -678,27 +720,92 @@ export function LogicCanvas({
           );
         })()}
 
-        {/* Leyenda flotante: explica los 3 estilos de flechas (sec↔sec
-            azul gruesa, var↔sec azul punteada, var↔var gris fina).
-            Solo aparece si hay edges para no contaminar el lienzo
-            cuando está vacío. */}
+        {/* Leyenda flotante COLAPSABLE — arranca cerrada (solo el botón
+            "?") para no contaminar el lienzo. Al abrir, muestra dos
+            secciones:
+              · Tipos de relación (color = condición distinta + estilo
+                de línea distingue var↔var de sec↔var).
+              · Cómo leer las flechas (3 bullets explicativos). */}
         {layout && layout.edges.length > 0 && (
-          <aside className="pulso-graph-legend" aria-label="Leyenda de conexiones">
-            <strong>Cómo leer las flechas</strong>
-            <ul className="pulso-graph-legend-explainer">
-              <li>
-                Cada flecha sale del valor que <strong>determina</strong>{" "}
-                cuándo aparece la pregunta o sección destino.
-              </li>
-              <li>
-                Las que <strong>comparten color</strong> dependen de la{" "}
-                <strong>misma condición</strong> exacta.
-              </li>
-              <li>
-                Pasa el cursor sobre una flecha para ver la condición en
-                lenguaje legible.
-              </li>
-            </ul>
+          <aside
+            className={`pulso-graph-legend ${legendOpen ? "is-open" : "is-collapsed"}`}
+            aria-label="Leyenda de conexiones"
+          >
+            <button
+              type="button"
+              className="pulso-graph-legend-toggle"
+              onClick={() => setLegendOpen((v) => !v)}
+              aria-expanded={legendOpen}
+              title={legendOpen ? "Colapsar leyenda" : "Cómo leer el mapa"}
+            >
+              {legendOpen ? "×" : "?"}
+            </button>
+            {legendOpen && (
+              <div className="pulso-graph-legend-body">
+                <strong>Tipos de relación</strong>
+                <ul className="pulso-graph-legend-types">
+                  <li>
+                    <svg width={32} height={4} aria-hidden="true">
+                      <line
+                        x1={0}
+                        y1={2}
+                        x2={32}
+                        y2={2}
+                        stroke="#5f6b7a"
+                        strokeWidth={1.8}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span>Sección controla otra sección</span>
+                  </li>
+                  <li>
+                    <svg width={32} height={4} aria-hidden="true">
+                      <line
+                        x1={0}
+                        y1={2}
+                        x2={32}
+                        y2={2}
+                        stroke="#5f6b7a"
+                        strokeWidth={1.8}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span>Pregunta abre o cierra una sección</span>
+                  </li>
+                  <li>
+                    <svg width={32} height={4} aria-hidden="true">
+                      <line
+                        x1={0}
+                        y1={2}
+                        x2={32}
+                        y2={2}
+                        stroke="#5f6b7a"
+                        strokeWidth={1.6}
+                        strokeDasharray="5 4"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span>Pregunta condiciona otra pregunta</span>
+                  </li>
+                </ul>
+
+                <strong>Cómo leer las flechas</strong>
+                <ul className="pulso-graph-legend-explainer">
+                  <li>
+                    Cada flecha sale del <strong>valor</strong> que decide
+                    cuándo aparece el destino.
+                  </li>
+                  <li>
+                    Las que <strong>comparten color</strong> dependen de
+                    la <strong>misma condición</strong> exacta.
+                  </li>
+                  <li>
+                    Pasa el cursor sobre una flecha para ver la condición
+                    en lenguaje legible.
+                  </li>
+                </ul>
+              </div>
+            )}
           </aside>
         )}
 
