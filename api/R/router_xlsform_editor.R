@@ -370,7 +370,129 @@ xlsform_editor_validate <- function(survey, choices, settings) {
     )
   }
 
+  # 6. AST de cada expresión lógica — usamos `odk_parse_to_ast` (Fase 2).
+  #    Si el parseo cae al escape hatch raw (degraded_to_raw=TRUE) y el
+  #    origen NO es "pulldata" (que se descarta a propósito), emitimos
+  #    diagnostic warn con la fila afectada.
+  diagnostics <- c(
+    diagnostics,
+    .xlsform_editor_validate_expressions(survey, name_col, type_col)
+  )
+
   diagnostics
+}
+
+# -----------------------------------------------------------------------------
+# Validador de expresiones via odk_parse_to_ast (F2-7)
+# -----------------------------------------------------------------------------
+.xlsform_editor_validate_expressions <- function(survey, name_col, type_col) {
+  out <- list()
+  if (!exists("odk_parse_to_ast", mode = "function")) return(out)
+
+  # Set de names válidos en el survey — para detectar referencias a
+  # variables que no existen.
+  valid_names <- unique(trimws(name_col))
+  valid_names <- valid_names[nzchar(valid_names)]
+
+  fields <- list(
+    list(col = "relevant", context = "relevant", title = "Visibilidad"),
+    list(col = "constraint", context = "constraint", title = "Validación"),
+    list(col = "calculation", context = "calculate", title = "Fórmula"),
+    list(col = "choice_filter", context = "choice_filter", title = "Filtro de catálogo")
+  )
+
+  for (field in fields) {
+    col_data <- survey[[field$col]]
+    if (is.null(col_data)) next
+    col_data <- as.character(col_data)
+    for (i in seq_along(col_data)) {
+      raw <- trimws(col_data[i] %||% "")
+      if (!nzchar(raw)) next
+      self_var <- if (field$context == "constraint") trimws(name_col[i] %||% "") else NULL
+      parsed <- tryCatch(
+        odk_parse_to_ast(raw, context = field$context, self_var = self_var),
+        error = function(e) NULL
+      )
+      if (is.null(parsed)) next
+      degraded <- isTRUE(parsed$degraded_to_raw)
+      origin <- tryCatch(
+        as.character(parsed$ast$origin %||% ""),
+        error = function(e) ""
+      )
+      # Pulldata se descarta a propósito — no lo reportamos.
+      if (degraded && !grepl("^pulldata", origin)) {
+        out[[length(out) + 1]] <- .xlsform_editor_diag(
+          id = sprintf("ast-unparseable-%s-%d", field$col, i - 1L),
+          level = "warn",
+          title = sprintf("%s no se pudo interpretar", field$title),
+          detail = sprintf(
+            "La expresión \"%s\" no encaja en la sintaxis ODK estándar. Pulso la conserva al exportar pero el editor visual no la podrá editar.",
+            substr(raw, 1L, 80L)
+          ),
+          row_index = i - 1L
+        )
+        next
+      }
+
+      # Si parseó OK, miramos si referencia variables que no existen.
+      missing <- .xlsform_editor_collect_missing_refs(parsed$ast, valid_names)
+      for (ref in missing) {
+        out[[length(out) + 1]] <- .xlsform_editor_diag(
+          id = sprintf("ast-missing-ref-%s-%d-%s", field$col, i - 1L, ref),
+          level = "warn",
+          title = sprintf("Referencia a variable inexistente: \"%s\"", ref),
+          detail = sprintf(
+            "El campo \"%s\" usa ${%s} pero esa pregunta no existe en el formulario.",
+            field$title, ref
+          ),
+          row_index = i - 1L
+        )
+      }
+    }
+  }
+  out
+}
+
+# Recorre un AST devuelto por odk_parse_to_ast (estilo `vd_ast` del paquete)
+# y devuelve los nombres de variables `${var}` referenciadas que no están
+# en valid_names. Los AST primitives usan campos `var`, `var_a`, `var_b`,
+# `vars` (vector), `host_var`, `repeat_name`, `cols` (vector). Recorrido
+# defensivo — para nodos desconocidos seguimos bajando por args/condition/
+# consequence.
+.xlsform_editor_collect_missing_refs <- function(ast, valid_names) {
+  if (is.null(ast)) return(character(0))
+  vars <- character(0)
+  walk <- function(node) {
+    if (is.null(node) || !is.list(node)) return()
+    # Campos escalares con nombre de variable.
+    for (key in c("var", "var_a", "var_b", "host_var", "repeat_name")) {
+      v <- node[[key]]
+      if (is.character(v) && length(v) == 1 && nzchar(v)) {
+        vars[length(vars) + 1L] <<- v
+      }
+    }
+    # Campos vector con varios nombres.
+    for (key in c("vars", "cols")) {
+      v <- node[[key]]
+      if (is.character(v) && length(v) >= 1) {
+        for (vi in v) if (nzchar(vi)) vars[length(vars) + 1L] <<- vi
+      }
+    }
+    # Recursión a ramas conocidas.
+    for (key in c("args", "condition", "consequence")) {
+      child <- node[[key]]
+      if (is.list(child)) {
+        if (inherits(child, "vd_ast")) {
+          walk(child)
+        } else {
+          for (k in child) if (is.list(k)) walk(k)
+        }
+      }
+    }
+  }
+  walk(ast)
+  vars <- unique(vars[!is.na(vars) & nzchar(vars)])
+  vars[!(vars %in% valid_names)]
 }
 
 # Atajo legible cuando ya tenemos el workbook serializado del frontend.
