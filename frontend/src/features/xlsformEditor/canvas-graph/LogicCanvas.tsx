@@ -33,6 +33,7 @@ import { buildLogicGraph } from "./buildGraph";
 import type { GraphNode } from "./buildGraph";
 import { layoutLogicGraph } from "./autoLayout";
 import { GraphNodeCard } from "./GraphNodeCard";
+import { CanvasToolbar } from "./CanvasToolbar";
 import { GraphEdgeArrow, GraphEdgeMarkers } from "./GraphEdgeArrow";
 
 export type LogicCanvasProps = {
@@ -77,6 +78,35 @@ export function LogicCanvas({
    *  etiqueta "si X = Y" cerca del centro del path. */
   const [hoveredEdgeIdx, setHoveredEdgeIdx] = useState<number | null>(null);
 
+  // ── Drag libre de cards (estilo Obsidian Canvas) ──────────────────
+  // Cada vez que el usuario arrastra una card, registramos su posición
+  // override en `nodePositions`. El layout greedy se respeta como
+  // baseline; los nodos con override en este map se renderizan en
+  // (x, y) absoluto. "Auto-layout" del toolbar limpia el map.
+  const [nodePositions, setNodePositions] = useState<
+    Map<string, { x: number; y: number }>
+  >(new Map());
+  /** Drag de una card en curso. `cardOriginX/Y` es la posición de la
+   *  card al inicio del drag; los deltas del cursor se suman a esos
+   *  valores (no nos importa donde estaba el cursor cuando empezó). */
+  const cardDragRef = useRef<{
+    nodeId: string;
+    cardOriginX: number;
+    cardOriginY: number;
+    cursorOriginX: number;
+    cursorOriginY: number;
+    moved: boolean;
+  } | null>(null);
+  const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
+
+  // ── Toolbar: filtro de tipos de edge + snap ──────────────────────
+  /** "all" | "macro" (sec↔sec / var→sec) | "micro" (var↔var). */
+  const [edgeFilter, setEdgeFilter] = useState<"all" | "macro" | "micro">(
+    "all",
+  );
+  const [snapToGrid, setSnapToGrid] = useState(false);
+  const SNAP_GRID = 16;
+
   // Cerrar con Escape.
   useEffect(() => {
     if (!open) return;
@@ -94,6 +124,9 @@ export function LogicCanvas({
       setPan({ x: 0, y: 0 });
       setSelectedId(null);
       setExpandedSections(new Set());
+      setNodePositions(new Map());
+      setEdgeFilter("all");
+      setSnapToGrid(false);
     }
   }, [open]);
 
@@ -108,8 +141,8 @@ export function LogicCanvas({
 
   const layout = useMemo(() => {
     if (!open || !graph) return null;
-    return layoutLogicGraph(graph, expandedSections);
-  }, [open, graph, expandedSections]);
+    return layoutLogicGraph(graph, expandedSections, nodePositions);
+  }, [open, graph, expandedSections, nodePositions]);
 
   // Set de IDs relacionados con la selección (vecinos directos in/out).
   const relatedIds = useMemo(() => {
@@ -164,6 +197,27 @@ export function LogicCanvas({
     };
   };
   const onMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
+    // Card drag tiene prioridad sobre los demás modos.
+    if (cardDragRef.current) {
+      const drag = cardDragRef.current;
+      const dx = (event.clientX - drag.cursorOriginX) / zoom;
+      const dy = (event.clientY - drag.cursorOriginY) / zoom;
+      // Detectamos si fue un drag real (>3px) para no consumir el click
+      // de selección/expand al soltar.
+      if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+      let nextX = drag.cardOriginX + dx;
+      let nextY = drag.cardOriginY + dy;
+      if (snapToGrid) {
+        nextX = Math.round(nextX / SNAP_GRID) * SNAP_GRID;
+        nextY = Math.round(nextY / SNAP_GRID) * SNAP_GRID;
+      }
+      setNodePositions((prev) => {
+        const next = new Map(prev);
+        next.set(drag.nodeId, { x: nextX, y: nextY });
+        return next;
+      });
+      return;
+    }
     if (edgeDraft) {
       const { x, y } = toCanvasCoords(event.clientX, event.clientY);
       setEdgeDraft({ ...edgeDraft, cursorX: x, cursorY: y });
@@ -184,6 +238,14 @@ export function LogicCanvas({
     });
   };
   const onMouseUp = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (cardDragRef.current) {
+      // Si el usuario solo hizo click sin mover, consideramos selección
+      // del nodo (lo manejará el onClick del propio card). Si sí movió,
+      // ya quedó la nueva posición persistida en `nodePositions`.
+      cardDragRef.current = null;
+      setDraggingCardId(null);
+      return;
+    }
     if (edgeDraft) {
       const targetId = findNodeUnderCursor(
         event.clientX,
@@ -194,10 +256,6 @@ export function LogicCanvas({
         const sourceNode = graph.byId.get(edgeDraft.sourceId);
         const targetNode = graph.byId.get(targetId);
         if (sourceNode && targetNode) {
-          // Conectamos hacia preguntas/secciones (todas tienen rowIndex).
-          // Escribimos la expresión de visibilidad por defecto: "aparece
-          // si la fuente tiene valor". El usuario refina el predicado
-          // exacto en el inspector con el LogicBuilder.
           const expression = `\${${sourceNode.name}} != ''`;
           onSetRelevant(targetNode.rowIndex, expression);
         }
@@ -208,6 +266,23 @@ export function LogicCanvas({
       return;
     }
     isDraggingRef.current = false;
+  };
+
+  /** Inicia el drag de una card. La toolbar siempre lo expone (no hay
+   *  un toggle de "modo mover" — siempre se puede arrastrar). */
+  const onCardMouseDown = (nodeId: string) => (event: React.MouseEvent) => {
+    event.stopPropagation();
+    const placed = layout?.nodes.find((n) => n.node.id === nodeId && n.visible);
+    if (!placed) return;
+    cardDragRef.current = {
+      nodeId,
+      cardOriginX: placed.x,
+      cardOriginY: placed.y,
+      cursorOriginX: event.clientX,
+      cursorOriginY: event.clientY,
+      moved: false,
+    };
+    setDraggingCardId(nodeId);
   };
   const onSvgClick = (event: React.MouseEvent<SVGSVGElement>) => {
     if ((event.target as Element).closest(".pulso-graph-node")) return;
@@ -340,6 +415,19 @@ export function LogicCanvas({
       </header>
 
       <div className="pulso-graph-body">
+        {/* Toolbar flotante estilo Obsidian Canvas: auto-layout, filtro
+            de tipos de edge, snap, zoom. Vive sobre el lienzo, fija al
+            top-center. Las acciones que rara vez se usan (expandir/
+            colapsar todas) siguen en el header del overlay. */}
+        <CanvasToolbar
+          hasOverrides={nodePositions.size > 0}
+          onResetLayout={() => setNodePositions(new Map())}
+          edgeFilter={edgeFilter}
+          onChangeEdgeFilter={setEdgeFilter}
+          snapToGrid={snapToGrid}
+          onToggleSnap={() => setSnapToGrid((s) => !s)}
+        />
+
         <svg
           ref={svgRef}
           className="pulso-graph-svg"
@@ -355,20 +443,33 @@ export function LogicCanvas({
             transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
             style={{ transformOrigin: "0 0" }}
           >
-            {/* Edges primero para que queden detrás de los nodos. */}
+            {/* Edges primero para que queden detrás de los nodos.
+                El filtro de la toolbar ("macro" oculta var↔var, "micro"
+                oculta sec↔sec / var→sec) actúa como atenuación —
+                nunca eliminamos edges del DOM para que el grafo no
+                "pulse" al cambiar el filtro. */}
             {layout?.edges.map((edge, idx) => {
               const isHL =
                 !!selectedId &&
                 (edge.edge.source === selectedId ||
                   edge.edge.target === selectedId);
               const isHovered = hoveredEdgeIdx === idx;
+              const isMacroEdge =
+                edge.edge.relation === "section-to-section" ||
+                edge.edge.relation === "variable-to-section" ||
+                edge.edge.relation === "section-to-variable";
+              const passesFilter =
+                edgeFilter === "all" ||
+                (edgeFilter === "macro" && isMacroEdge) ||
+                (edgeFilter === "micro" && !isMacroEdge);
               const isDM =
-                !!selectedId && !isHL && !isHovered && relatedIds !== null;
+                !passesFilter ||
+                (!!selectedId && !isHL && !isHovered && relatedIds !== null);
               return (
                 <GraphEdgeArrow
                   key={`e-${idx}-${edge.edge.source}-${edge.edge.target}`}
                   edge={edge}
-                  highlighted={isHL || isHovered}
+                  highlighted={(isHL || isHovered) && passesFilter}
                   dimmed={isDM}
                   onHover={(h) => setHoveredEdgeIdx(h ? idx : null)}
                 />
@@ -431,7 +532,13 @@ export function LogicCanvas({
                     isConditional={isConditional(id)}
                     draggingFrom={isDraggingFrom}
                     markedAsTarget={isMarkedTarget}
-                    onClick={() => setSelectedId(id)}
+                    beingDragged={draggingCardId === id}
+                    onClick={() => {
+                      // Si veníamos de un drag (moved=true), no
+                      // disparamos selección — fue solo reposicionar.
+                      if (cardDragRef.current?.moved) return;
+                      setSelectedId(id);
+                    }}
                     onToggleExpand={
                       laid.node.kind === "section"
                         ? () => toggleSection(id)
@@ -440,6 +547,7 @@ export function LogicCanvas({
                     onAnchorMouseDown={
                       onSetRelevant ? onAnchorMouseDown(id) : undefined
                     }
+                    onCardMouseDown={onCardMouseDown(id)}
                   />
                 );
               })}

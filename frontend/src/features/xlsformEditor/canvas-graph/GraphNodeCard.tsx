@@ -42,6 +42,14 @@ export type GraphNodeCardProps = {
   onClick: () => void;
   /** Inicio de drag de edge desde el anchor del lado derecho. */
   onAnchorMouseDown?: (event: React.MouseEvent) => void;
+  /** Inicio de drag de la card entera para reposicionarla. La toolbar
+   *  pasa este handler cuando el modo "mover" está habilitado (siempre
+   *  por ahora). El componente lo dispara desde el body — no desde el
+   *  chevron ni desde el anchor para no chocar con esos affordances. */
+  onCardMouseDown?: (event: React.MouseEvent) => void;
+  /** Si esta card se está arrastrando ahora — solo afecta visualmente
+   *  (cursor grabbing, sombra elevada). */
+  beingDragged?: boolean;
 };
 
 const COLLAPSED_HEIGHT = 56;
@@ -57,6 +65,8 @@ export function GraphNodeCard({
   onToggleExpand,
   onClick,
   onAnchorMouseDown,
+  onCardMouseDown,
+  beingDragged,
 }: GraphNodeCardProps) {
   const { node, x, y, width, height } = laid;
   const isSection = node.kind === "section";
@@ -121,8 +131,18 @@ export function GraphNodeCard({
         highlighted ? "is-highlighted" : ""
       } ${markedAsTarget ? "is-target" : ""} ${
         draggingFrom ? "is-source" : ""
-      } ${expanded ? "is-expanded" : ""} pulso-graph-node-${node.kind}`}
-      style={{ cursor: "pointer" }}
+      } ${expanded ? "is-expanded" : ""} ${
+        beingDragged ? "is-dragging" : ""
+      } pulso-graph-node-${node.kind}`}
+      style={{ cursor: beingDragged ? "grabbing" : "grab" }}
+      onMouseDown={(event) => {
+        // El drag de card SOLO se dispara desde el rect/foreignObject
+        // del body — el chevron y el anchor de edge tienen
+        // stopPropagation para quedarse con su propio drag/click.
+        if ((event.target as Element).closest(".pulso-graph-node-anchor")) return;
+        if ((event.target as HTMLElement).tagName === "BUTTON") return; // chevron
+        onCardMouseDown?.(event);
+      }}
     >
       {/* Caja contenedora: si es sección expandida ocupa height total;
           si es colapsada o pregunta, ocupa COLLAPSED_HEIGHT. */}

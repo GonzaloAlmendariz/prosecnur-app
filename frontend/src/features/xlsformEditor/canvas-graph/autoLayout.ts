@@ -102,6 +102,11 @@ const DEFAULT_OPTIONS: LayoutOptions = {
 export function layoutLogicGraph(
   graph: LogicGraph,
   expandedSectionIds: Set<string>,
+  /** Posiciones manuales que sobrescriben el layout automático. Cuando
+   *  el usuario arrastra una card, guardamos su posición acá; el layout
+   *  respeta el override y recalcula los edges contra esa posición.
+   *  Si una card no tiene override, cae al layout greedy. */
+  positionOverrides: Map<string, { x: number; y: number }> = new Map(),
   optionsOverride: Partial<LayoutOptions> = {},
 ): LaidOutGraph {
   const options = { ...DEFAULT_OPTIONS, ...optionsOverride };
@@ -167,6 +172,20 @@ export function layoutLogicGraph(
   };
 
   for (const root of rootNodes) placeNode(root, 0, true);
+
+  // ── 1.5 Aplicar overrides manuales del usuario ─────────────────────
+  // Si el usuario arrastró una card, su posición se respeta como
+  // (x, y) absolutos. El resto sigue con su posición greedy.
+  if (positionOverrides.size > 0) {
+    for (const placed of flatNodes) {
+      if (!placed.visible) continue;
+      const override = positionOverrides.get(placed.node.id);
+      if (override) {
+        placed.x = override.x;
+        placed.y = override.y;
+      }
+    }
+  }
 
   // ── 2. Resolver edges al ancestro visible más cercano ───────────────
   // Si A.relevant referencia B y B está dentro de una sección colapsada,
@@ -262,15 +281,17 @@ export function layoutLogicGraph(
   }
 
   // ── 5. Calcular x del channel y construir paths ────────────────────
-  // El channel arranca a la derecha de la card más ancha. Los carriles
-  // se ubican a `channelStart + lane * laneGap`. La flecha sale del
-  // lado derecho del source, va hasta el carril, baja/sube hasta la
-  // altura del target, y entra por el lado derecho del target.
+  // El channel arranca a la derecha de la card más a la derecha. Si el
+  // usuario arrastró cards, alguna puede estar muy a la derecha; el
+  // channel se mueve para no atravesarlas.
   let maxRight = options.marginX;
+  let maxBottom = options.marginY;
   for (const placed of flatNodes) {
     if (!placed.visible) continue;
     const right = placed.x + placed.width;
     if (right > maxRight) maxRight = right;
+    const bottom = placed.y + placed.height;
+    if (bottom > maxBottom) maxBottom = bottom;
   }
   const channelStart = maxRight + options.channelGap;
   const totalLanes = Math.max(1, laneLastMaxY.length);
@@ -306,9 +327,11 @@ export function layoutLogicGraph(
   });
 
   // ── 6. Tamaño total ────────────────────────────────────────────────
+  // Cuando hay overrides, el width/height se calcula según la card más
+  // a la derecha/abajo (puede haberse movido fuera del rango greedy).
   const channelEnd = channelStart + totalLanes * options.laneGap;
-  const width = channelEnd + options.marginX;
-  const height = currentY - options.rowGap + options.marginY;
+  const width = Math.max(channelEnd + options.marginX, maxRight + options.marginX);
+  const height = Math.max(currentY - options.rowGap + options.marginY, maxBottom + options.marginY);
 
   return { nodes: flatNodes, edges: laidOutEdges, width, height };
 }
