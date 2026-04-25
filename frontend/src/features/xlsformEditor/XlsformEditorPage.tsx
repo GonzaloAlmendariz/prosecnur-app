@@ -122,6 +122,7 @@ import { SurveyOutline } from "./outline/SurveyOutline";
 import type { RowMovePlan } from "./outline/outlineUtils";
 import { applyRowMove } from "./outline/outlineUtils";
 import { PreviewCanvas } from "./canvas/PreviewCanvas";
+import { Inspector } from "./inspector/Inspector";
 
 const QUESTION_TYPE_OPTIONS = [
   { value: "text", label: "Texto corto" },
@@ -137,6 +138,29 @@ const QUESTION_TYPE_OPTIONS = [
 // (parsing/sheetUtils, parsing/parseType, parsing/buildIndex, parsing/diagnostics
 // concentran toda la lógica que antes vivía inline. Mantenemos solo `logicSummary`
 // aquí porque depende de iconos JSX — `parsing/*` es puro TS sin JSX.)
+
+/**
+ * Posición 1-indexed de una fila dentro del outline, contando solo
+ * preguntas reales (question/note/calculate). Si la fila es una sección o
+ * un marcador begin/end, devuelve `undefined`. Útil para el header del
+ * Inspector y el Breadcrumb del Canvas — comparten esta misma noción.
+ */
+function computeQuestionPosition(
+  structure: BuilderStructure,
+  rowIndex: number,
+): number | undefined {
+  let count = 0;
+  for (const n of structure.outline) {
+    if (n.kind === "question" || n.kind === "note" || n.kind === "calculate") {
+      count += 1;
+    }
+    if (n.rowIndex === rowIndex) {
+      if (n.kind === "question" || n.kind === "note" || n.kind === "calculate") return count;
+      return undefined;
+    }
+  }
+  return undefined;
+}
 
 function logicSummary(node: BuilderNode | null) {
   if (!node) return [];
@@ -1279,22 +1303,29 @@ export default function XlsformEditorPage() {
                         onChange={updateSettingsField}
                       />
                     ) : selectedNode ? (
-                      <QuestionInspector
+                      <Inspector
                         node={selectedNode}
                         catalogs={catalogs}
-                        activeCatalogName={activeCatalogName}
-                        choiceItems={selectedChoices}
-                        onFieldChange={(field, value) => updateSurveyField(selectedNode.rowIndex, field, value)}
+                        position={
+                          structure
+                            ? computeQuestionPosition(structure, selectedNode.rowIndex)
+                            : undefined
+                        }
+                        onFieldChange={(field, value) =>
+                          updateSurveyField(selectedNode.rowIndex, field, value)
+                        }
                         onTypeChange={(value) => updateQuestionType(selectedNode.rowIndex, value)}
-                        onRequiredChange={(checked) => toggleRequired(selectedNode.rowIndex, checked)}
-                        onSectionKindChange={(value) => updateSectionKind(selectedNode.rowIndex, value)}
-                        logicSources={logicSources}
-                        onCatalogAssign={(listName) => assignCatalogToQuestion(selectedNode.rowIndex, listName)}
+                        onRequiredChange={(checked) =>
+                          toggleRequired(selectedNode.rowIndex, checked)
+                        }
+                        onCatalogAssign={(listName) =>
+                          assignCatalogToQuestion(selectedNode.rowIndex, listName)
+                        }
                         onCatalogCreate={() => createCatalog(true)}
-                        onCatalogRename={(listName, nextName) => renameCatalog(listName, nextName)}
-                        onAddChoice={addChoice}
-                        onChoiceChange={updateChoice}
-                        onChoiceRemove={removeChoice}
+                        onOpenCatalogLens={(focusListName) => {
+                          if (focusListName) setCatalogFocus(focusListName);
+                          setCatalogsLensOpen(true);
+                        }}
                       />
                     ) : (
                       <EmptyState
