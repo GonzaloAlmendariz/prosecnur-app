@@ -112,13 +112,24 @@ export function LogicCanvas({
   } | null>(null);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
 
-  // ── Toolbar: filtro de tipos de edge + snap ──────────────────────
-  /** "all" | "macro" (sec↔sec / var→sec) | "micro" (var↔var). */
-  const [edgeFilter, setEdgeFilter] = useState<"all" | "macro" | "micro">(
-    "all",
-  );
+  // ── Toolbar: snap + undo de drags ─────────────────────────────────
   const [snapToGrid, setSnapToGrid] = useState(false);
   const SNAP_GRID = 16;
+  /** Historia de cambios de `nodePositions` para Cmd/Ctrl+Z. Cada
+   *  entrada es un snapshot inmutable del map de posiciones tomado
+   *  ANTES del cambio. Se pushea al inicio de cada drag y al hacer
+   *  reset; se popea con undo. */
+  const [positionHistory, setPositionHistory] = useState<
+    Array<Map<string, { x: number; y: number }>>
+  >([]);
+  const undoLastDrag = () => {
+    setPositionHistory((hist) => {
+      if (hist.length === 0) return hist;
+      const prev = hist[hist.length - 1]!;
+      setNodePositions(prev);
+      return hist.slice(0, -1);
+    });
+  };
 
   // ── Picker de condición al conectar ──────────────────────────────
   // Cuando el usuario suelta una flecha drag-arrow sobre un target,
@@ -188,6 +199,12 @@ export function LogicCanvas({
         tag === "SELECT" ||
         (event.target as HTMLElement | null)?.isContentEditable;
       if (isEditable && event.key !== "Escape") return;
+      // Cmd/Ctrl+Z deshace el último drag de card.
+      if ((event.metaKey || event.ctrlKey) && event.key === "z" && !event.shiftKey) {
+        event.preventDefault();
+        undoLastDrag();
+        return;
+      }
       if (event.metaKey || event.ctrlKey || event.altKey) return;
 
       switch (event.key) {
@@ -259,8 +276,8 @@ export function LogicCanvas({
       setSelectedId(null);
       setExpandedSections(new Set());
       setNodePositions(new Map());
-      setEdgeFilter("all");
       setSnapToGrid(false);
+      setPositionHistory([]);
       setConnectPicker(null);
       setFreshEdgeKey(null);
       setLegendOpen(false);
@@ -281,6 +298,32 @@ export function LogicCanvas({
     if (!open || !graph) return null;
     return layoutLogicGraph(graph, expandedSections, nodePositions);
   }, [open, graph, expandedSections, nodePositions]);
+
+  /** Lookup para resolver `${X} = 'code'` → `'label legible'` usando
+   *  el catálogo de la pregunta X. Memo para no recalcular en cada
+   *  render. */
+  const labelLookup = useMemo<LabelLookup>(() => {
+    if (!structure) return () => null;
+    return (varName: string, code: string) => {
+      // Encuentra la pregunta por name.
+      let listName: string | null = null;
+      for (const node of structure.byRow.values()) {
+        if (node.name === varName) {
+          listName = node.typeInfo?.listName ?? null;
+          break;
+        }
+      }
+      if (!listName) return null;
+      const catalog = catalogs.find((c) => c.listName === listName);
+      if (!catalog) return null;
+      const item = catalog.items.find((it) => it.name === code);
+      return item?.label ?? null;
+    };
+  }, [structure, catalogs]);
+
+  /** Atajo para humanizar con labels resueltos. */
+  const humanize = (expr: string): string =>
+    humanizeRelevantWithLabels(expr, labelLookup);
 
   // Set de IDs relacionados con la selección (vecinos directos in/out).
   const relatedIds = useMemo(() => {
@@ -402,6 +445,11 @@ export function LogicCanvas({
       // Si el usuario solo hizo click sin mover, consideramos selección
       // del nodo (lo manejará el onClick del propio card). Si sí movió,
       // ya quedó la nueva posición persistida en `nodePositions`.
+      // Si NO movió, popeamos el snapshot que pusheamos en mouseDown
+      // (ese snapshot no aporta nada — no hay cambio que deshacer).
+      if (!cardDragRef.current.moved) {
+        setPositionHistory((h) => h.slice(0, -1));
+      }
       cardDragRef.current = null;
       setDraggingCardId(null);
       return;
@@ -447,6 +495,11 @@ export function LogicCanvas({
       moved: false,
     };
     setDraggingCardId(nodeId);
+    // Snapshot de posiciones ANTES del drag — para Cmd+Z. Si el
+    // usuario realmente mueve la card (dx+dy > 3 px), esta entrada
+    // se conserva en el history. Si solo es un click, no la conservamos
+    // porque no hay "deshacer" relevante.
+    setPositionHistory((h) => [...h, new Map(nodePositions)]);
   };
   const onSvgClick = (event: React.MouseEvent<SVGSVGElement>) => {
     if ((event.target as Element).closest(".pulso-graph-node")) return;
@@ -635,11 +688,14 @@ export function LogicCanvas({
             colapsar todas) siguen en el header del overlay. */}
         <CanvasToolbar
           hasOverrides={nodePositions.size > 0}
-          onResetLayout={() => setNodePositions(new Map())}
-          edgeFilter={edgeFilter}
-          onChangeEdgeFilter={setEdgeFilter}
+          onResetLayout={() => {
+            setPositionHistory((h) => [...h, nodePositions]);
+            setNodePositions(new Map());
+          }}
           snapToGrid={snapToGrid}
           onToggleSnap={() => setSnapToGrid((s) => !s)}
+          canUndoDrag={positionHistory.length > 0}
+          onUndoDrag={undoLastDrag}
         />
 
         <svg
@@ -679,14 +735,6 @@ export function LogicCanvas({
                 selectedEdgeIdx !== null
                   ? layout.edges[selectedEdgeIdx]?.unitKey ?? null
                   : null;
-              const isMacroEdge =
-                edge.edge.relation === "section-to-section" ||
-                edge.edge.relation === "variable-to-section" ||
-                edge.edge.relation === "section-to-variable";
-              const passesFilter =
-                edgeFilter === "all" ||
-                (edgeFilter === "macro" && isMacroEdge) ||
-                (edgeFilter === "micro" && !isMacroEdge);
               // Aislamiento on-click: cuando el usuario selecciona una
               // rama, dim a TODO lo que NO es del mismo bundle. Edges
               // del mismo bundle (mismo unitKey) se quedan brillando
@@ -695,6 +743,10 @@ export function LogicCanvas({
                 selectedUnitKey !== null && edge.unitKey === selectedUnitKey;
               const isClickIsolated =
                 selectedUnitKey !== null && !inSelectedBundle;
+              // Filtro eliminado — los chips "Entre secciones / Entre
+              // preguntas" ya no eran útiles (el bundling visual y los
+              // colores ya diferencian tipos suficientemente).
+              const passesFilter = true;
               const isHL =
                 inSelectedBundle ||
                 (!!selectedId &&
@@ -1428,7 +1480,7 @@ export function LogicCanvas({
                     Aparece si
                   </span>
                   <code className="pulso-graph-detail-block-code">
-                    {humanizeRelevant(selectedNode.relevantExpression)}
+                    {humanize(selectedNode.relevantExpression)}
                   </code>
                 </div>
               )}
@@ -1462,7 +1514,7 @@ export function LogicCanvas({
                                 fontFamily: "ui-monospace, monospace",
                               }}
                             >
-                              {humanizeRelevant(parent.expression)}
+                              {humanize(parent.expression)}
                             </em>
                           </span>
                         </button>
@@ -1591,7 +1643,7 @@ export function LogicCanvas({
           // La expresión es la del target (todos los targets del
           // bundle comparten expresión por definición).
           const expr = targets[0]!.relevantExpression ?? "";
-          const human = humanizeRelevant(expr);
+          const human = humanize(expr);
           // Verbo según los targets: si todos son secciones, "abre
           // la(s) sección(es)"; si todos son preguntas, "muestra
           // la(s) pregunta(s)"; si mixto, "habilita".
@@ -1762,17 +1814,44 @@ export function LogicCanvas({
  * luego operadores, luego ${}). El resultado preserva los valores
  * literales (números, strings entre comillas) tal cual.
  */
+/** Versión simple sin acceso a catálogo — fallback cuando no hay
+ *  contexto. Mantiene los códigos como están. */
 function humanizeRelevant(expr: string): string {
+  return humanizeRelevantWithLabels(expr, null);
+}
+
+/** Versión completa que resuelve códigos `'1'` a labels (`'Sí'`).
+ *
+ *  `lookup(varName, code)` debe devolver el label legible o null
+ *  si no se encuentra. Lo construye `LogicCanvas` a partir de
+ *  `structure` + `catalogs`. */
+type LabelLookup = (varName: string, code: string) => string | null;
+
+function humanizeRelevantWithLabels(
+  expr: string,
+  lookup: LabelLookup | null,
+): string {
   let r = expr;
-  // selected(${X}, 'v') → X contiene 'v'  (variantes con comillas
-  // simples o dobles).
+  const resolveCode = (varName: string, code: string): string => {
+    if (!lookup) return code;
+    const label = lookup(varName, code);
+    if (label && label !== code) {
+      // Si el label es muy largo, lo recortamos.
+      const trimmed = label.length > 40 ? label.slice(0, 38) + "…" : label;
+      return `${trimmed}`;
+    }
+    return code;
+  };
+  // selected(${X}, 'v') → X contiene 'v_label'
   r = r.replace(
     /selected\(\s*\$\{([^}]+)\}\s*,\s*'([^']*)'\s*\)/g,
-    "$1 contiene '$2'",
+    (_, varName: string, code: string) =>
+      `${varName} contiene '${resolveCode(varName, code)}'`,
   );
   r = r.replace(
     /selected\(\s*\$\{([^}]+)\}\s*,\s*"([^"]*)"\s*\)/g,
-    '$1 contiene "$2"',
+    (_, varName: string, code: string) =>
+      `${varName} contiene "${resolveCode(varName, code)}"`,
   );
   // not( ... contiene ... ) → ... no contiene ...
   r = r.replace(
@@ -1782,9 +1861,21 @@ function humanizeRelevant(expr: string): string {
   // ${X} != '' / = '' (PRIMERO, antes de los != / = generales).
   r = r.replace(/\$\{([^}]+)\}\s*!=\s*''/g, "$1 tiene valor");
   r = r.replace(/\$\{([^}]+)\}\s*=\s*''/g, "$1 está vacío");
+  // ${X} = 'code' / != 'code' → resolver código a label.
+  r = r.replace(
+    /\$\{([^}]+)\}\s*=\s*'([^']*)'/g,
+    (_, varName: string, code: string) =>
+      `${varName} = '${resolveCode(varName, code)}'`,
+  );
+  r = r.replace(
+    /\$\{([^}]+)\}\s*!=\s*'([^']*)'/g,
+    (_, varName: string, code: string) =>
+      `${varName} ≠ '${resolveCode(varName, code)}'`,
+  );
   // ${X} → X (después de los casos anteriores).
   r = r.replace(/\$\{([^}]+)\}/g, "$1");
-  // Operadores comunes con espacios alrededor.
+  // Operadores comunes con espacios alrededor (los que no fueron
+  // capturados con valor).
   r = r.replace(/\s*!=\s*/g, " ≠ ");
   r = r.replace(/\s*>=\s*/g, " ≥ ");
   r = r.replace(/\s*<=\s*/g, " ≤ ");

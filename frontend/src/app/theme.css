@@ -3225,11 +3225,13 @@ button.pulso-empty-home-card:focus-visible {
 @keyframes pulso-graph-in {
   from {
     opacity: 0;
-    transform: scale(0.985);
+    /* No `transform: scale(...)` aquí — un transform en el overlay
+     * rompe `position: fixed` para sus descendientes (los popups
+     * empezaban a moverse con pan/scroll porque el containing block
+     * pasaba a ser el overlay en vez del viewport). Solo opacity. */
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 .pulso-graph-header {

@@ -96,11 +96,11 @@ export type LayoutOptions = {
 const DEFAULT_OPTIONS: LayoutOptions = {
   columnWidth: 240,
   rowHeight: 60,
-  // columnGap subió de 56 → 88 px: necesitamos espacio cómodo para
-  // distribuir los rails Mode C (var↔var en gap entre columnas) sin
-  // amontonarse. El usuario pidió explícitamente que el canvas no se
-  // vea apretado.
-  columnGap: 88,
+  // columnGap 56 → 88 → 120: el usuario reportó que aún hay
+  // condiciones no homogéneas compartiendo carril X y pidió mayor
+  // separación entre secciones. 120 px da espacio para 5+ rails Mode C
+  // distinguibles entre cada par de columnas.
+  columnGap: 120,
   innerHeadGap: 14,
   innerRowGap: 10,
   childIndent: 14,
@@ -647,7 +647,10 @@ export function layoutLogicGraph(
   // propio grupo — distribuyen anchors normalmente.
   const anchorYByEdge = new Map<string, number>();
   const breakoutXByEdge = new Map<string, number>();
-  const BREAKOUT_STRIDE = 14;
+  // BREAKOUT_STRIDE 14 → 18: separación más generosa entre carriles
+  // de salida del source. Combinado con columnGap=120 da espacio
+  // suficiente para que bundles distintos sean visualmente claros.
+  const BREAKOUT_STRIDE = 18;
   const groupsBySource = new Map<string, string[]>();
   const edgesByGroup = new Map<string, ResolvedEdge[]>();
   resolved.forEach((r, i) => {

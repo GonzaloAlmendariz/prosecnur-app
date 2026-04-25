@@ -30,27 +30,32 @@
 //     principal; el canvas es lectura + drag-arrow → relevant.
 // =============================================================================
 
-import { Magnet, RotateCcw } from "lucide-react";
+import { Magnet, RotateCcw, Undo2 } from "lucide-react";
 
 export type CanvasToolbarProps = {
   hasOverrides: boolean;
   onResetLayout: () => void;
-  edgeFilter: "all" | "macro" | "micro";
-  onChangeEdgeFilter: (next: "all" | "macro" | "micro") => void;
   snapToGrid: boolean;
   onToggleSnap: () => void;
+  /** Si hay historia de drags para deshacer. */
+  canUndoDrag?: boolean;
+  onUndoDrag?: () => void;
 };
 
 export function CanvasToolbar({
   hasOverrides,
   onResetLayout,
-  edgeFilter,
-  onChangeEdgeFilter,
   snapToGrid,
   onToggleSnap,
+  canUndoDrag,
+  onUndoDrag,
 }: CanvasToolbarProps) {
   return (
-    <div className="pulso-graph-toolbar" role="toolbar" aria-label="Herramientas del lienzo">
+    <div
+      className="pulso-graph-toolbar"
+      role="toolbar"
+      aria-label="Herramientas del lienzo"
+    >
       <button
         type="button"
         className="pulso-graph-toolbar-btn"
@@ -69,54 +74,35 @@ export function CanvasToolbar({
 
       <button
         type="button"
+        className="pulso-graph-toolbar-btn"
+        onClick={onUndoDrag}
+        disabled={!canUndoDrag}
+        title={
+          canUndoDrag
+            ? "Deshacer último movimiento de card (Cmd/Ctrl+Z)"
+            : "Sin movimientos para deshacer"
+        }
+        aria-label="Deshacer movimiento"
+      >
+        <Undo2 size={13} />
+        <span>Deshacer</span>
+      </button>
+
+      <button
+        type="button"
         className={`pulso-graph-toolbar-btn ${snapToGrid ? "is-on" : ""}`}
         onClick={onToggleSnap}
-        title={snapToGrid ? "Desactivar snap a la grilla" : "Activar snap a la grilla (16 px)"}
+        title={
+          snapToGrid
+            ? "Desactivar snap a la grilla"
+            : "Activar snap a la grilla (16 px)"
+        }
         aria-pressed={snapToGrid}
         aria-label="Snap to grid"
       >
         <Magnet size={13} />
         <span>Snap</span>
       </button>
-
-      <span className="pulso-graph-toolbar-sep" aria-hidden="true" />
-
-      <div
-        className="pulso-graph-toolbar-segment"
-        role="radiogroup"
-        aria-label="Filtro de dependencias"
-      >
-        <button
-          type="button"
-          role="radio"
-          aria-checked={edgeFilter === "all"}
-          className={edgeFilter === "all" ? "is-on" : ""}
-          onClick={() => onChangeEdgeFilter("all")}
-          title="Mostrar todas las conexiones"
-        >
-          Todo
-        </button>
-        <button
-          type="button"
-          role="radio"
-          aria-checked={edgeFilter === "macro"}
-          className={edgeFilter === "macro" ? "is-on" : ""}
-          onClick={() => onChangeEdgeFilter("macro")}
-          title="Solo conexiones que afectan secciones enteras"
-        >
-          Entre secciones
-        </button>
-        <button
-          type="button"
-          role="radio"
-          aria-checked={edgeFilter === "micro"}
-          className={edgeFilter === "micro" ? "is-on" : ""}
-          onClick={() => onChangeEdgeFilter("micro")}
-          title="Solo conexiones entre preguntas individuales"
-        >
-          Entre preguntas
-        </button>
-      </div>
     </div>
   );
 }

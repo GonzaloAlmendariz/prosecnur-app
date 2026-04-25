@@ -222,17 +222,25 @@ export function GraphNodeCard({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 22,
-                height: 22,
+                width: 24,
+                height: 24,
                 borderRadius: 6,
-                background: "transparent",
-                border: "1px solid var(--pulso-border)",
+                // Background tinted con el accent color para hacer
+                // el botón visible sobre el fondo de la sección.
+                // Antes era transparent → el chevron se perdía.
+                background: accentSoft,
+                border: `1px solid ${accent}`,
                 color: accent,
                 cursor: "pointer",
                 flexShrink: 0,
+                padding: 0,
               }}
             >
-              {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+              {expanded ? (
+                <ChevronDown size={16} strokeWidth={2.4} />
+              ) : (
+                <ChevronRight size={16} strokeWidth={2.4} />
+              )}
             </button>
           )}
           <span

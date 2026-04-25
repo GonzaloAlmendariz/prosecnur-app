@@ -48,11 +48,15 @@ export type GraphEdgeArrowProps = {
   onClick?: () => void;
 };
 
-/** Detecta si un edge es var↔var (entre dos preguntas individuales,
- *  no involucra secciones). Lo usamos para aplicar dasharray solo
- *  a esas — el resto va sólido. */
-function isVarToVar(relation: string): boolean {
-  return relation === "variable-to-variable";
+/** [Deprecado] Antes usábamos dashed para var↔var. El usuario
+ *  reportó: "en la condición roja aún hay un dashed line cuando no
+ *  es una condición del rojo" — el dasharray dentro de un mismo
+ *  bundle generaba inconsistencia visual (algunas ramas dashed,
+ *  otras solid). Y la punta de flecha también se distinguía menos
+ *  con dashes. Ahora TODOS los edges van sólidos; el color y el
+ *  bundle ya diferencian tipos suficientemente. */
+function isVarToVar(_relation: string): boolean {
+  return false;
 }
 
 /**
@@ -209,15 +213,24 @@ export function GraphEdgeMarkers() {
         <marker
           key={color}
           id={`pulso-graph-arrow-${markerIdFor(color)}`}
-          viewBox="0 0 10 10"
-          refX={9}
-          refY={5}
+          viewBox="0 0 12 12"
+          refX={11}
+          refY={6}
           markerUnits="strokeWidth"
-          markerWidth={6}
-          markerHeight={6}
+          markerWidth={8}
+          markerHeight={8}
           orient="auto"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={color} />
+          {/* Triángulo más afilado y prominente: viewBox 12×12 vs
+              10×10 anterior, markerWidth 8 vs 6. Refleja "punta de
+              flecha clara" reportado como difícil de distinguir. */}
+          <path
+            d="M 0 1 L 12 6 L 0 11 L 2 6 z"
+            fill={color}
+            stroke={color}
+            strokeWidth={0.5}
+            strokeLinejoin="round"
+          />
         </marker>
       ))}
     </defs>
