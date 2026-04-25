@@ -45,6 +45,10 @@ export type LaidOutEdge = {
   fromY: number;
   toX: number;
   toY: number;
+  /** Bounding box del nodo origen (para que el edge router sepa cómo
+   *  esquivarlo cuando es back-edge o same-layer). */
+  fromBBox: { x: number; y: number; width: number; height: number };
+  toBBox: { x: number; y: number; width: number; height: number };
 };
 
 export type LaidOutGraph = {
@@ -78,12 +82,18 @@ export type LayoutOptions = {
 const DEFAULT_OPTIONS: LayoutOptions = {
   nodeWidth: 220,
   rowHeight: 56,
-  layerGap: 90,
-  rowGap: 16,
+  // El gap entre capas era 90 — apretado, las flechas no tenían espacio
+  // para arquear y terminaban atravesando los nodos vecinos. 160 deja
+  // suficiente margen para que el edge router dibuje beziers limpios
+  // dentro del gutter horizontal sin tocar otros nodos.
+  layerGap: 160,
+  rowGap: 18,
   innerGap: 12,
   childIndent: 18,
-  marginX: 40,
-  marginY: 40,
+  marginX: 48,
+  // El margen vertical sube para que las back-edges puedan arquear por
+  // arriba/abajo del bloque entero sin tocar el header del overlay.
+  marginY: 60,
 };
 
 export function layoutLogicGraph(
@@ -316,12 +326,29 @@ export function layoutLogicGraph(
     const key = `${fromVisible.node.id}->${toVisible.node.id}`;
     if (seenPair.has(key)) continue;
     seenPair.add(key);
+    // bbox = el rect del header (siempre `rowHeight` de altura) que es
+    // donde queremos que las flechas se anclen, no la altura total de la
+    // sección expandida.
+    const fromHeaderH = Math.min(fromVisible.height, options.rowHeight);
+    const toHeaderH = Math.min(toVisible.height, options.rowHeight);
     laidOutEdges.push({
       edge,
       fromX: fromVisible.x + fromVisible.width,
-      fromY: fromVisible.y + Math.min(fromVisible.height, options.rowHeight) / 2,
+      fromY: fromVisible.y + fromHeaderH / 2,
       toX: toVisible.x,
-      toY: toVisible.y + Math.min(toVisible.height, options.rowHeight) / 2,
+      toY: toVisible.y + toHeaderH / 2,
+      fromBBox: {
+        x: fromVisible.x,
+        y: fromVisible.y,
+        width: fromVisible.width,
+        height: fromHeaderH,
+      },
+      toBBox: {
+        x: toVisible.x,
+        y: toVisible.y,
+        width: toVisible.width,
+        height: toHeaderH,
+      },
     });
   }
 

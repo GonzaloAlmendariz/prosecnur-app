@@ -75,6 +75,12 @@ export function GraphNodeCard({
       : iconForType("begin_group")
     : iconForType(node.baseType);
 
+  // Fondo por estado, con fallback al color de sección heredado (igual
+  // hash determinístico que `PreguntasPanel.tsx`) — así un nodo dentro
+  // de una sección expandida tiene un tinte sutil que lo agrupa con sus
+  // hermanos. Top-level questions y secciones colapsadas mantienen el
+  // fondo blanco/expandido por defecto.
+  const baseFill = node.sectionColor && !isSection ? node.sectionColor : "white";
   const fill = markedAsTarget
     ? "rgba(34, 197, 94, 0.08)"
     : draggingFrom
@@ -85,7 +91,7 @@ export function GraphNodeCard({
           ? "rgba(36, 87, 214, 0.04)"
           : isSection && expanded
             ? "rgba(15, 118, 110, 0.04)"
-            : "white";
+            : baseFill;
   const stroke = markedAsTarget
     ? "#16a34a"
     : draggingFrom

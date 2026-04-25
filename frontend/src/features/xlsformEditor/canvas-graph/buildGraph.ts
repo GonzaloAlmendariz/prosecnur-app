@@ -73,6 +73,16 @@ export type GraphNode = {
   /** Para preguntas select_one / select_multiple: contexto del catálogo
    *  asignado, para mostrarlo inline en la card. */
   catalogContext?: CatalogContext;
+  /** Color pastel HSL determinístico de la sección a la que pertenece
+   *  el nodo (igual que `PreguntasPanel.tsx` en el módulo de carga).
+   *  Para top-level nodes el color es null y la card mantiene fondo
+   *  blanco. Para hijos de una sección expandida, el color tiñe sutil
+   *  el fondo para que el ojo agrupe visualmente. */
+  sectionColor: string | null;
+  /** Expresión `relevant` cruda — para mostrar en el detail panel y en
+   *  el hover del edge ("si X = Y"). Solo en los nodos que tienen
+   *  visibilidad condicional. */
+  relevantExpression: string | null;
 };
 
 export type GraphEdge = {
@@ -125,6 +135,8 @@ export function buildLogicGraph(
       baseType: node.typeInfo.base,
       rowIndex: node.rowIndex,
       children: [],
+      sectionColor: null, // se asigna en paso 2 cuando ya tenemos el árbol
+      relevantExpression: node.relevant ? node.relevant : null,
     };
     // Catalog context para selects.
     if (
@@ -198,7 +210,43 @@ export function buildLogicGraph(
     }
   }
 
+  // -- 5. Color por sección (hash determinístico igual a PreguntasPanel) --
+  // Cada sección recibe un color pastel HSL único; sus hijos lo heredan.
+  // Las top-level questions (sin sección padre) tienen color = null y
+  // la card se queda con fondo blanco.
+  for (const root of rootNodes) {
+    if (root.kind === "section") {
+      const color = pastelHueFromName(root.name);
+      root.sectionColor = color;
+      paintChildren(root, color);
+    }
+  }
+
   return { rootNodes, edges, byId };
+}
+
+/** Pinta recursivamente el `sectionColor` de los hijos de una sección. */
+function paintChildren(parent: GraphNode, color: string) {
+  for (const child of parent.children) {
+    child.sectionColor = color;
+    if (child.kind === "section") {
+      // Sub-sección: si quiere, podríamos darle un tono distinto, pero
+      // por simplicidad heredamos el del ancestro top-level.
+      paintChildren(child, color);
+    }
+  }
+}
+
+/**
+ * Hash determinístico nombre → color pastel HSL. Misma fórmula que usa
+ * `PreguntasPanel.tsx` para que el ojo asocie las secciones del canvas
+ * con las del módulo de Carga (consistencia cross-feature).
+ */
+function pastelHueFromName(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
+  return `hsl(${hue}, 42%, 95%)`;
 }
 
 /** Cuenta recursivamente las preguntas (no secciones) dentro de un nodo. */

@@ -4028,3 +4028,108 @@ button.pulso-empty-home-card:focus-visible {
   color: var(--pulso-text-soft);
   opacity: 0.7;
 }
+
+/* ============================================================================
+ * Logic canvas — refinamientos del routing/feedback (post review)
+ * Etiqueta flotante "si X = Y" sobre edges al hover, bloques del detail
+ * panel que listan "depende de" / "condiciona a" con links navegables.
+ * ========================================================================= */
+
+/* Etiqueta flotante en el centro del edge en hover. */
+.pulso-graph-edge-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: white;
+  border: 1px solid var(--pulso-primary);
+  box-shadow: var(--pulso-shadow-soft);
+  font-size: 11.5px;
+  color: var(--pulso-text);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  animation: pulso-stagger-in 140ms ease both;
+}
+.pulso-graph-edge-label-prefix {
+  font-style: italic;
+  color: var(--pulso-text-soft);
+}
+.pulso-graph-edge-label code {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--pulso-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Bloques del detail panel (Depende de / Condiciona a). */
+.pulso-graph-detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 10px;
+  border-top: 1px solid var(--pulso-border);
+}
+.pulso-graph-detail-block-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+.pulso-graph-detail-block-code {
+  font-family: ui-monospace, monospace;
+  font-size: 11.5px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: var(--pulso-text);
+  word-break: break-all;
+  line-height: 1.4;
+}
+.pulso-graph-detail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.pulso-graph-detail-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+  padding: 4px 7px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11.5px;
+  color: var(--pulso-text);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.pulso-graph-detail-link:hover {
+  background: var(--pulso-primary-soft);
+  border-color: var(--pulso-primary-border);
+}
+.pulso-graph-detail-link code {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--pulso-primary);
+  font-weight: 600;
+}
+.pulso-graph-detail-link span {
+  color: var(--pulso-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}

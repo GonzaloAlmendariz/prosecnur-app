@@ -73,6 +73,9 @@ export function LogicCanvas({
   const [edgeHoverTargetId, setEdgeHoverTargetId] = useState<string | null>(
     null,
   );
+  /** Índice del edge sobre el que está el mouse — para mostrar la
+   *  etiqueta "si X = Y" cerca del centro del path. */
+  const [hoveredEdgeIdx, setHoveredEdgeIdx] = useState<number | null>(null);
 
   // Cerrar con Escape.
   useEffect(() => {
@@ -358,17 +361,51 @@ export function LogicCanvas({
                 !!selectedId &&
                 (edge.edge.source === selectedId ||
                   edge.edge.target === selectedId);
+              const isHovered = hoveredEdgeIdx === idx;
               const isDM =
-                !!selectedId && !isHL && relatedIds !== null;
+                !!selectedId && !isHL && !isHovered && relatedIds !== null;
               return (
                 <GraphEdgeArrow
                   key={`e-${idx}-${edge.edge.source}-${edge.edge.target}`}
                   edge={edge}
-                  highlighted={isHL}
+                  highlighted={isHL || isHovered}
                   dimmed={isDM}
+                  onHover={(h) => setHoveredEdgeIdx(h ? idx : null)}
                 />
               );
             })}
+
+            {/* Tooltip flotante sobre el edge en hover — muestra la
+                condición legible "si X = Y" tomada del relevant del
+                target. Estilo similar al `SeccionesPanel` del módulo
+                Carga: prefijo "si" en gris + expresión sin ${...}. */}
+            {hoveredEdgeIdx !== null && layout && (() => {
+              const edge = layout.edges[hoveredEdgeIdx];
+              if (!edge) return null;
+              const targetNode = graph?.byId.get(edge.edge.target);
+              const expr = targetNode?.relevantExpression;
+              if (!expr) return null;
+              const labelMid = midpointOfEdge(edge);
+              const human = humanizeRelevant(expr);
+              return (
+                <g
+                  transform={`translate(${labelMid.x}, ${labelMid.y})`}
+                  pointerEvents="none"
+                >
+                  <foreignObject
+                    x={-140}
+                    y={-18}
+                    width={280}
+                    height={36}
+                  >
+                    <div className="pulso-graph-edge-label">
+                      <span className="pulso-graph-edge-label-prefix">si</span>
+                      <code>{human}</code>
+                    </div>
+                  </foreignObject>
+                </g>
+              );
+            })()}
 
             {/* Nodos: solo los visibles. */}
             {layout?.nodes
@@ -444,52 +481,184 @@ export function LogicCanvas({
           </div>
         )}
 
-        {selectedNode && (
-          <aside className="pulso-graph-detail">
-            <header>
-              <strong>{selectedNode.title || selectedNode.subtitle}</strong>
-              <button
-                type="button"
-                className="pulso-icon"
-                onClick={() => setSelectedId(null)}
-                title="Cerrar detalle"
-                aria-label="Cerrar detalle"
-              >
-                <X size={12} />
-              </button>
-            </header>
-            <p>
-              {selectedNode.kind === "section"
-                ? "Sección"
-                : "Pregunta"}
-              {" · "}
-              <code>{selectedNode.name}</code>
-            </p>
-            {selectedNode.kind === "question" && selectedNode.catalogContext && (
+        {selectedNode && (() => {
+          // Listas de "alimentadores" (lo que condiciona a este nodo)
+          // y "consumidores" (a quién afecta este nodo). Se calculan a
+          // partir de los edges del grafo. Click en una fila navega al
+          // nodo correspondiente.
+          const incoming = (graph?.edges ?? []).filter(
+            (e) => e.target === selectedNode.id,
+          );
+          const outgoing = (graph?.edges ?? []).filter(
+            (e) => e.source === selectedNode.id,
+          );
+          return (
+            <aside className="pulso-graph-detail">
+              <header>
+                <strong>{selectedNode.title || selectedNode.subtitle}</strong>
+                <button
+                  type="button"
+                  className="pulso-icon"
+                  onClick={() => setSelectedId(null)}
+                  title="Cerrar detalle"
+                  aria-label="Cerrar detalle"
+                >
+                  <X size={12} />
+                </button>
+              </header>
               <p>
-                Catálogo: <code>{selectedNode.catalogContext.listName}</code>
+                {selectedNode.kind === "section" ? "Sección" : "Pregunta"}
                 {" · "}
-                {selectedNode.catalogContext.itemCount}{" "}
-                {selectedNode.catalogContext.itemCount === 1
-                  ? "opción"
-                  : "opciones"}
+                <code>{selectedNode.name}</code>
               </p>
-            )}
-            {onSelectRow && (
-              <button
-                type="button"
-                className="pulso-graph-detail-go"
-                onClick={() => {
-                  onSelectRow(selectedNode.rowIndex);
-                  onClose();
-                }}
-              >
-                Abrir en el editor →
-              </button>
-            )}
-          </aside>
-        )}
+              {selectedNode.kind === "question" &&
+                selectedNode.catalogContext && (
+                  <p>
+                    Catálogo:{" "}
+                    <code>{selectedNode.catalogContext.listName}</code>
+                    {" · "}
+                    {selectedNode.catalogContext.itemCount}{" "}
+                    {selectedNode.catalogContext.itemCount === 1
+                      ? "opción"
+                      : "opciones"}
+                  </p>
+                )}
+
+              {/* Si este nodo tiene un relevant, mostramos la
+                  expresión humanizada estilo `SeccionesPanel`. */}
+              {selectedNode.relevantExpression && (
+                <div className="pulso-graph-detail-block">
+                  <span className="pulso-graph-detail-block-label">
+                    Aparece si
+                  </span>
+                  <code className="pulso-graph-detail-block-code">
+                    {humanizeRelevant(selectedNode.relevantExpression)}
+                  </code>
+                </div>
+              )}
+
+              {/* "Depende de": los nodos cuyo valor decide la
+                  visibilidad de este. */}
+              {incoming.length > 0 && (
+                <div className="pulso-graph-detail-block">
+                  <span className="pulso-graph-detail-block-label">
+                    Depende de
+                  </span>
+                  <ul className="pulso-graph-detail-list">
+                    {incoming.map((e, i) => {
+                      const src = graph?.byId.get(e.source);
+                      if (!src) return null;
+                      return (
+                        <li key={i}>
+                          <button
+                            type="button"
+                            className="pulso-graph-detail-link"
+                            onClick={() => setSelectedId(src.id)}
+                            title={src.title || src.name}
+                          >
+                            <code>{src.name}</code>
+                            {src.title && src.title !== src.name && (
+                              <span>· {src.title}</span>
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {/* "Condiciona a": nodos cuyo relevant referencia a este. */}
+              {outgoing.length > 0 && (
+                <div className="pulso-graph-detail-block">
+                  <span className="pulso-graph-detail-block-label">
+                    Condiciona a
+                  </span>
+                  <ul className="pulso-graph-detail-list">
+                    {outgoing.map((e, i) => {
+                      const tgt = graph?.byId.get(e.target);
+                      if (!tgt) return null;
+                      return (
+                        <li key={i}>
+                          <button
+                            type="button"
+                            className="pulso-graph-detail-link"
+                            onClick={() => setSelectedId(tgt.id)}
+                            title={tgt.title || tgt.name}
+                          >
+                            <code>{tgt.name}</code>
+                            {tgt.title && tgt.title !== tgt.name && (
+                              <span>· {tgt.title}</span>
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {onSelectRow && (
+                <button
+                  type="button"
+                  className="pulso-graph-detail-go"
+                  onClick={() => {
+                    onSelectRow(selectedNode.rowIndex);
+                    onClose();
+                  }}
+                >
+                  Abrir en el editor →
+                </button>
+              )}
+            </aside>
+          );
+        })()}
       </div>
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Helpers locales — humanización de expresiones + geometría de edges
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Aproxima el punto medio del edge para anclar la etiqueta de hover.
+ * Para edges forward usa el midpoint del bezier; para back-edges
+ * arquead usa el ápice de la curva (donde queda visualmente más
+ * legible la etiqueta).
+ */
+function midpointOfEdge(edge: import("./autoLayout").LaidOutEdge): { x: number; y: number } {
+  const { fromBBox: src, toBBox: tgt } = edge;
+  const srcRight = src.x + src.width;
+  const tgtLeft = tgt.x;
+  if (srcRight + 14 <= tgtLeft) {
+    // Forward: midpoint horizontal del gutter, vertical promedio.
+    return {
+      x: (srcRight + tgtLeft) / 2,
+      y: (edge.fromY + edge.toY) / 2,
+    };
+  }
+  // Back-edge / same-layer: ápice del arco (encima del top de la card
+  // más alta, o debajo del bottom de la más baja).
+  const goDown = edge.toY > edge.fromY + 4;
+  const archDepth = Math.max(36, Math.min(120, 36 + Math.abs(edge.toY - edge.fromY) * 0.45));
+  const apexY = goDown
+    ? Math.max(src.y + src.height, tgt.y + tgt.height) + archDepth
+    : Math.min(src.y, tgt.y) - archDepth;
+  return {
+    x: (srcRight + tgtLeft) / 2 + (src.width * 0.3),
+    y: apexY,
+  };
+}
+
+/**
+ * Convierte una expresión `relevant` cruda en texto legible. Misma
+ * convención que `SeccionesPanel.tsx` usa en el módulo Carga: sustituye
+ * `${name}` por `name` y deja la sintaxis ODK simple (`= '70'`, `and`,
+ * etc.) como está. No es una traducción completa — es una limpieza
+ * mínima para que el ojo agarre la idea.
+ */
+function humanizeRelevant(expr: string): string {
+  return expr.replace(/\$\{([^}]+)\}/g, "$1");
 }
