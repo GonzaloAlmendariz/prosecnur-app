@@ -92,9 +92,9 @@ export function CanvasToolbar({
           aria-checked={edgeFilter === "all"}
           className={edgeFilter === "all" ? "is-on" : ""}
           onClick={() => onChangeEdgeFilter("all")}
-          title="Mostrar todas las dependencias"
+          title="Mostrar todas las conexiones"
         >
-          Todas
+          Todo
         </button>
         <button
           type="button"
@@ -102,9 +102,9 @@ export function CanvasToolbar({
           aria-checked={edgeFilter === "macro"}
           className={edgeFilter === "macro" ? "is-on" : ""}
           onClick={() => onChangeEdgeFilter("macro")}
-          title="Solo sección ↔ sección y variable → sección"
+          title="Solo conexiones que afectan secciones enteras"
         >
-          Macro
+          Entre secciones
         </button>
         <button
           type="button"
@@ -112,9 +112,9 @@ export function CanvasToolbar({
           aria-checked={edgeFilter === "micro"}
           className={edgeFilter === "micro" ? "is-on" : ""}
           onClick={() => onChangeEdgeFilter("micro")}
-          title="Solo variable ↔ variable"
+          title="Solo conexiones entre preguntas individuales"
         >
-          Micro
+          Entre preguntas
         </button>
       </div>
     </div>

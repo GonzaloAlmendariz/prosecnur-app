@@ -23,6 +23,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
+  ChevronsDown,
+  ChevronsUp,
   Maximize2,
   ZoomIn,
   ZoomOut,
@@ -34,6 +36,7 @@ import type { GraphNode } from "./buildGraph";
 import { layoutLogicGraph } from "./autoLayout";
 import { GraphNodeCard } from "./GraphNodeCard";
 import { CanvasToolbar } from "./CanvasToolbar";
+import { ConnectionConditionPicker } from "./ConnectionConditionPicker";
 import { GraphEdgeArrow, GraphEdgeMarkers } from "./GraphEdgeArrow";
 
 export type LogicCanvasProps = {
@@ -107,6 +110,24 @@ export function LogicCanvas({
   const [snapToGrid, setSnapToGrid] = useState(false);
   const SNAP_GRID = 16;
 
+  // ── Picker de condición al conectar ──────────────────────────────
+  // Cuando el usuario suelta una flecha drag-arrow sobre un target,
+  // mostramos un mini-modal en la posición del cursor con opciones
+  // para definir QUÉ condición usar — "tiene valor", "es igual a X",
+  // "es distinto de X", o las opciones del catálogo si el source es
+  // un select. El usuario elige y solo entonces se escribe el
+  // `relevant`. Sin esto, hoy escribíamos siempre `${X} != ''` directo,
+  // lo cual era cómodo pero pobre.
+  const [connectPicker, setConnectPicker] = useState<{
+    sourceId: string;
+    targetId: string;
+    screenX: number;
+    screenY: number;
+  } | null>(null);
+  /** Id del edge que acaba de aparecer — para reproducir la animación
+   *  de pulse una sola vez. Limpiamos a los 600ms. */
+  const [freshEdgeKey, setFreshEdgeKey] = useState<string | null>(null);
+
   // Cerrar con Escape.
   useEffect(() => {
     if (!open) return;
@@ -127,6 +148,8 @@ export function LogicCanvas({
       setNodePositions(new Map());
       setEdgeFilter("all");
       setSnapToGrid(false);
+      setConnectPicker(null);
+      setFreshEdgeKey(null);
     }
   }, [open]);
 
@@ -181,8 +204,30 @@ export function LogicCanvas({
     return id;
   };
 
+  // Convención macOS / trackpad estándar (igual que Figma, Miro, Obsidian
+  // Canvas): two-finger drag dispara `wheel` sin ctrlKey → PAN.
+  // Pinch-to-zoom dispara `wheel` con ctrlKey=true sintético → ZOOM.
+  // Mouse wheel discreto (rueda física) también dispara sin ctrlKey;
+  // para que ese caso siga haciendo zoom, detectamos `deltaMode !== 0`
+  // (line/page mode) o un deltaY chico — proxy razonable para "no es
+  // trackpad". Si dudas, el usuario puede mantener Cmd para forzar zoom.
   const onWheel = (event: React.WheelEvent<SVGSVGElement>) => {
     event.preventDefault();
+    const isPinch = event.ctrlKey;
+    const isTrackpadPan =
+      !event.ctrlKey && event.deltaMode === 0 && Math.abs(event.deltaX) > 0;
+    if (isPinch) {
+      const delta = -event.deltaY * 0.005;
+      setZoom((z) => Math.max(0.3, Math.min(2.5, z * (1 + delta))));
+      return;
+    }
+    if (isTrackpadPan || (event.deltaMode === 0 && !event.ctrlKey)) {
+      // Two-finger drag → pan (siguiendo el cursor, no invertido).
+      setPan((p) => ({ x: p.x - event.deltaX, y: p.y - event.deltaY }));
+      return;
+    }
+    // Mouse wheel discreto (deltaMode 1 = lines, 2 = pages) → zoom
+    // tradicional. Cmd/Ctrl + wheel también cae acá.
     const delta = -event.deltaY * 0.0015;
     setZoom((z) => Math.max(0.3, Math.min(2.5, z * (1 + delta))));
   };
@@ -253,12 +298,16 @@ export function LogicCanvas({
         edgeDraft.sourceId,
       );
       if (targetId && onSetRelevant && graph) {
-        const sourceNode = graph.byId.get(edgeDraft.sourceId);
-        const targetNode = graph.byId.get(targetId);
-        if (sourceNode && targetNode) {
-          const expression = `\${${sourceNode.name}} != ''`;
-          onSetRelevant(targetNode.rowIndex, expression);
-        }
+        // Abrimos el picker en lugar de escribir directamente. El
+        // usuario elige la condición exacta (tiene valor, igual a X,
+        // distinto de X, o una opción del catálogo si el source es
+        // select). Antes la escribíamos `${X} != ''` sin preguntar.
+        setConnectPicker({
+          sourceId: edgeDraft.sourceId,
+          targetId,
+          screenX: event.clientX,
+          screenY: event.clientY,
+        });
       }
       setEdgeDraft(null);
       setEdgeHoverTargetId(null);
@@ -361,7 +410,7 @@ export function LogicCanvas({
             onClick={expandAll}
             title="Expandir todas las secciones"
           >
-            Expandir todo
+            <ChevronsDown size={13} /> Expandir todo
           </button>
           <button
             type="button"
@@ -369,7 +418,7 @@ export function LogicCanvas({
             onClick={collapseAll}
             title="Colapsar todas las secciones"
           >
-            Colapsar todo
+            <ChevronsUp size={13} /> Colapsar todo
           </button>
           <span className="pulso-graph-sep" aria-hidden="true" />
           <button
@@ -465,12 +514,23 @@ export function LogicCanvas({
               const isDM =
                 !passesFilter ||
                 (!!selectedId && !isHL && !isHovered && relatedIds !== null);
+              // El color del edge se deriva del `relevant` del target
+              // — todos los edges que llegan al mismo target comparten
+              // expresión y por ende color. Cuando varios edges
+              // convergen al mismo nodo, sus anchors ya están
+              // distribuidos en `autoLayout` (anchorOffset).
+              const targetRelevant =
+                graph?.byId.get(edge.edge.target)?.relevantExpression ??
+                null;
+              const edgeKey = `${edge.edge.source}->${edge.edge.target}`;
               return (
                 <GraphEdgeArrow
                   key={`e-${idx}-${edge.edge.source}-${edge.edge.target}`}
                   edge={edge}
+                  relevantExpression={targetRelevant}
                   highlighted={(isHL || isHovered) && passesFilter}
                   dimmed={isDM}
+                  justAppeared={freshEdgeKey === edgeKey}
                   onHover={(h) => setHoveredEdgeIdx(h ? idx : null)}
                 />
               );
@@ -588,31 +648,55 @@ export function LogicCanvas({
           </div>
         )}
 
+        {/* Picker de condición tras drag-arrow. Aparece anclado al
+            cursor donde se soltó la flecha; el usuario elige operador
+            (tiene valor / vacío / igual a / distinto de) y opcionalmente
+            un valor; al confirmar se escribe el `relevant` y se anima
+            la flecha nueva. */}
+        {connectPicker && graph && onSetRelevant && (() => {
+          const source = graph.byId.get(connectPicker.sourceId);
+          const target = graph.byId.get(connectPicker.targetId);
+          if (!source || !target) return null;
+          return (
+            <ConnectionConditionPicker
+              source={source}
+              target={target}
+              screenX={connectPicker.screenX}
+              screenY={connectPicker.screenY}
+              sourceCatalog={source.catalogContext}
+              onCancel={() => setConnectPicker(null)}
+              onConfirm={(expression) => {
+                onSetRelevant(target.rowIndex, expression);
+                setFreshEdgeKey(`${source.id}->${target.id}`);
+                setConnectPicker(null);
+                // Limpiamos la marca "fresh" cuando termina la
+                // animación CSS (~600ms). Después el edge vuelve al
+                // render normal del color por condición.
+                setTimeout(() => setFreshEdgeKey(null), 700);
+              }}
+            />
+          );
+        })()}
+
         {/* Leyenda flotante: explica los 3 estilos de flechas (sec↔sec
             azul gruesa, var↔sec azul punteada, var↔var gris fina).
             Solo aparece si hay edges para no contaminar el lienzo
             cuando está vacío. */}
         {layout && layout.edges.length > 0 && (
-          <aside className="pulso-graph-legend" aria-label="Leyenda de relaciones">
-            <strong>Tipos de dependencia</strong>
-            <ul>
+          <aside className="pulso-graph-legend" aria-label="Leyenda de conexiones">
+            <strong>Cómo leer las flechas</strong>
+            <ul className="pulso-graph-legend-explainer">
               <li>
-                <svg width={28} height={4} aria-hidden="true">
-                  <line x1={0} y1={2} x2={28} y2={2} stroke="#2457d6" strokeWidth={2.2} strokeLinecap="round" />
-                </svg>
-                <span>sección → sección</span>
+                Cada flecha sale del valor que <strong>determina</strong>{" "}
+                cuándo aparece la pregunta o sección destino.
               </li>
               <li>
-                <svg width={28} height={4} aria-hidden="true">
-                  <line x1={0} y1={2} x2={28} y2={2} stroke="#2457d6" strokeWidth={1.6} strokeDasharray="6 4" strokeLinecap="round" />
-                </svg>
-                <span>variable → sección</span>
+                Las que <strong>comparten color</strong> dependen de la{" "}
+                <strong>misma condición</strong> exacta.
               </li>
               <li>
-                <svg width={28} height={4} aria-hidden="true">
-                  <line x1={0} y1={2} x2={28} y2={2} stroke="#5f6b7a" strokeWidth={1.4} strokeLinecap="round" />
-                </svg>
-                <span>variable → variable</span>
+                Pasa el cursor sobre una flecha para ver la condición en
+                lenguaje legible.
               </li>
             </ul>
           </aside>

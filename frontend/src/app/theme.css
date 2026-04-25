@@ -4269,3 +4269,214 @@ button.pulso-empty-home-card:focus-visible {
 .pulso-graph-node.is-dragging {
   cursor: grabbing !important;
 }
+
+/* ============================================================================
+ * Logic canvas — picker de condición tras drag-arrow + animación de edge
+ * fresh + leyenda explicativa actualizada.
+ * ========================================================================= */
+
+/* Animación de "pulse" para el edge recién creado vía drag-arrow. Se
+ * dibuja con stroke más grueso y opacidad oscilante por 600ms para
+ * que el ojo lo vea aparecer. */
+@keyframes pulso-graph-edge-fresh {
+  0%   { opacity: 0.4; stroke-width: 4; }
+  40%  { opacity: 1;   stroke-width: 3; }
+  100% { opacity: 0.78; stroke-width: 1.5; }
+}
+.pulso-graph-edge.is-fresh path:not([stroke="transparent"]) {
+  animation: pulso-graph-edge-fresh 600ms ease-out both;
+}
+
+/* Picker de condición — popover anclado al cursor del drop. */
+.pulso-graph-condpicker {
+  position: fixed;
+  z-index: 90;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  box-shadow: var(--pulso-shadow-high);
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translate(8px, 8px);
+  animation: pulso-stagger-in 160ms ease both;
+}
+.pulso-graph-condpicker > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--pulso-surface-2);
+  border-bottom: 1px solid var(--pulso-border);
+}
+.pulso-graph-condpicker-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--pulso-text);
+}
+.pulso-graph-condpicker-pair code {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  padding: 2px 6px;
+  border-radius: 5px;
+  color: var(--pulso-primary);
+  font-weight: 600;
+}
+.pulso-graph-condpicker-pair span {
+  color: var(--pulso-text-soft);
+  font-weight: 700;
+}
+.pulso-graph-condpicker-close {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--pulso-text-soft);
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pulso-graph-condpicker-close:hover {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+.pulso-graph-condpicker-prompt {
+  margin: 0;
+  padding: 12px 14px 6px;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+.pulso-graph-condpicker-prompt code {
+  font-family: ui-monospace, monospace;
+  font-size: 11.5px;
+  color: var(--pulso-primary);
+  background: var(--pulso-primary-soft);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.pulso-graph-condpicker-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px;
+}
+.pulso-graph-condpicker-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--pulso-text);
+  transition: background 100ms ease;
+}
+.pulso-graph-condpicker-option:hover {
+  background: var(--pulso-surface-2);
+}
+.pulso-graph-condpicker-option.is-on {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+.pulso-graph-condpicker-option input {
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--pulso-primary);
+}
+.pulso-graph-condpicker-option code {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--pulso-primary);
+}
+.pulso-graph-condpicker-value {
+  padding: 6px 14px 0;
+}
+.pulso-graph-condpicker-value input,
+.pulso-graph-condpicker-value select {
+  width: 100%;
+  padding: 7px 9px;
+  font-size: 12.5px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: white;
+}
+.pulso-graph-condpicker-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+.pulso-graph-condpicker-actions button {
+  padding: 6px 11px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--pulso-border);
+  background: white;
+  color: var(--pulso-text);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.pulso-graph-condpicker-actions button:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-primary);
+}
+.pulso-graph-condpicker-actions button.pulso-primary {
+  background: var(--pulso-primary);
+  color: white;
+  border-color: var(--pulso-primary);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.pulso-graph-condpicker-actions button.pulso-primary:hover:not(:disabled) {
+  background: #013371;
+  border-color: #013371;
+}
+.pulso-graph-condpicker-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Leyenda actualizada — ahora explica que el COLOR es la condición y
+ * las flechas que comparten color comparten condición exacta. */
+.pulso-graph-legend-explainer {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pulso-graph-legend-explainer li {
+  display: list-item;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+  padding-left: 10px;
+  position: relative;
+}
+.pulso-graph-legend-explainer li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--pulso-primary);
+  font-weight: 700;
+}
+.pulso-graph-legend-explainer li strong {
+  color: var(--pulso-text);
+  font-weight: 600;
+}
