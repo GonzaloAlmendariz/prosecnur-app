@@ -142,15 +142,99 @@ export function LogicCanvas({
    *  versión expandida ocupaba demasiado espacio en el lienzo. */
   const [legendOpen, setLegendOpen] = useState(false);
 
-  // Cerrar con Escape.
+  /** Toasts efímeros para confirmar acciones (crear conexión, editar
+   *  condición, etc.). Cada toast se auto-elimina a los ~2.4 s. */
+  const [toasts, setToasts] = useState<
+    Array<{ id: number; kind: "success" | "info"; text: string }>
+  >([]);
+  const toastIdRef = useRef(0);
+  const pushToast = (text: string, kind: "success" | "info" = "success") => {
+    const id = ++toastIdRef.current;
+    setToasts((t) => [...t, { id, kind, text }]);
+    setTimeout(() => {
+      setToasts((t) => t.filter((x) => x.id !== id));
+    }, 2400);
+  };
+
+  // Atajos de teclado globales del canvas.
+  // Esc → cierra panel/picker abierto; segundo Esc cierra canvas.
+  // F   → fit-to-screen.
+  // +/= → zoom in.
+  // -   → zoom out.
+  // 0   → reset zoom 100%.
+  // ?   → toggle legenda.
+  // E   → expandir todo.
+  // C   → colapsar todo.
+  // Inputs/textareas no disparan los atajos (se hace skip si focus
+  // está en un campo editable).
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      const tag = (event.target as HTMLElement | null)?.tagName;
+      const isEditable =
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        (event.target as HTMLElement | null)?.isContentEditable;
+      if (isEditable && event.key !== "Escape") return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+      switch (event.key) {
+        case "Escape":
+          // Prioridad: cerrar el panel/picker abierto antes que el canvas.
+          if (connectPicker) {
+            setConnectPicker(null);
+          } else if (selectedEdgeIdx !== null) {
+            setSelectedEdgeIdx(null);
+          } else if (selectedId) {
+            setSelectedId(null);
+          } else if (legendOpen) {
+            setLegendOpen(false);
+          } else {
+            onClose();
+          }
+          event.preventDefault();
+          break;
+        case "f":
+        case "F":
+          fitToScreen();
+          event.preventDefault();
+          break;
+        case "+":
+        case "=":
+          setZoom((z) => Math.min(2.5, z + 0.15));
+          event.preventDefault();
+          break;
+        case "-":
+        case "_":
+          setZoom((z) => Math.max(0.3, z - 0.15));
+          event.preventDefault();
+          break;
+        case "0":
+          setZoom(1);
+          setPan({ x: 0, y: 0 });
+          event.preventDefault();
+          break;
+        case "?":
+          setLegendOpen((v) => !v);
+          event.preventDefault();
+          break;
+        case "e":
+        case "E":
+          expandAll();
+          event.preventDefault();
+          break;
+        case "c":
+        case "C":
+          collapseAll();
+          event.preventDefault();
+          break;
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, connectPicker, selectedEdgeIdx, selectedId, legendOpen]);
 
   // Reset al abrir.
   useEffect(() => {
@@ -585,6 +669,7 @@ export function LogicCanvas({
                   highlighted={(isHL || isHovered) && passesFilter}
                   dimmed={isDM}
                   justAppeared={freshEdgeKey === edgeKey}
+                  appearanceIndex={idx}
                   onHover={(h) => setHoveredEdgeIdx(h ? idx : null)}
                   onClick={() =>
                     setSelectedEdgeIdx((cur) => (cur === idx ? null : idx))
@@ -689,6 +774,36 @@ export function LogicCanvas({
           </div>
         )}
 
+        {/* Deck de toasts efímeros — top-right del overlay, fuera del
+            SVG y de los paneles de detalle. Cada toast vive ~2.4s. */}
+        {toasts.length > 0 && (
+          <div className="pulso-graph-toasts" aria-live="polite">
+            {toasts.map((t) => (
+              <div
+                key={t.id}
+                className={`pulso-graph-toast pulso-graph-toast-${t.kind}`}
+                role="status"
+              >
+                {t.text}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Indicador de zoom flotante (bottom-left). Click para reset
+            a 100%. Doble-click → fit-to-screen. */}
+        <div
+          className="pulso-graph-zoom-indicator"
+          title="Click: 100%  ·  Dble-click: ajustar a pantalla"
+          onClick={() => {
+            setZoom(1);
+            setPan({ x: 0, y: 0 });
+          }}
+          onDoubleClick={() => fitToScreen()}
+        >
+          {Math.round(zoom * 100)}%
+        </div>
+
         {/* Picker de condición tras drag-arrow. Aparece anclado al
             cursor donde se soltó la flecha; el usuario elige operador
             (tiene valor / vacío / igual a / distinto de) y opcionalmente
@@ -743,6 +858,17 @@ export function LogicCanvas({
                 setFreshEdgeKey(`${source.id}->${target.id}`);
                 setConnectPicker(null);
                 setTimeout(() => setFreshEdgeKey(null), 700);
+                // Toast de confirmación. Texto distinto si fue
+                // combinación (Y/O) o creación nueva.
+                if (combiner) {
+                  pushToast(
+                    `Condición combinada con "${combiner === "and" ? "Y" : "O"}"`,
+                  );
+                } else if (existing && existing === combined) {
+                  pushToast("La condición ya existía", "info");
+                } else {
+                  pushToast("Conexión creada");
+                }
               }}
             />
           );

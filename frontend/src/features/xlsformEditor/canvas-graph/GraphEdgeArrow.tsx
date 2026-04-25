@@ -36,6 +36,9 @@ export type GraphEdgeArrowProps = {
   /** Si true, este edge acaba de aparecer (drag-arrow finalizado) y se
    *  reproduce una animación corta de "pulse" para feedback. */
   justAppeared?: boolean;
+  /** Index dentro del layout — usado para stagger de aparición
+   *  inicial. Edges con index alto entran un poco después. */
+  appearanceIndex?: number;
   onHover?: (hovering: boolean) => void;
   /** Click en la rama → aísla esa relación (otras se atenúan). */
   onClick?: () => void;
@@ -100,6 +103,7 @@ export function GraphEdgeArrow({
   highlighted,
   dimmed,
   justAppeared,
+  appearanceIndex = 0,
   onHover,
   onClick,
 }: GraphEdgeArrowProps) {
@@ -139,7 +143,13 @@ export function GraphEdgeArrow({
             }
           : undefined
       }
-      style={onClick ? { cursor: "pointer" } : undefined}
+      style={{
+        ...(onClick ? { cursor: "pointer" } : {}),
+        // Stagger de aparición inicial — cada edge entra ~25ms después
+        // del anterior. Cap a 1.2s para que formularios grandes no
+        // tarden eternamente en mostrar todo.
+        animationDelay: `${Math.min(appearanceIndex * 25, 1200)}ms`,
+      }}
     >
       {/* Track invisible más ancho para hover generoso. */}
       <path d={edge.path} fill="none" stroke="transparent" strokeWidth={14} />
