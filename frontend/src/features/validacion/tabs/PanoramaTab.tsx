@@ -1,7 +1,26 @@
 import { useEffect, useState } from "react";
 import { Activity, AlertTriangle } from "lucide-react";
-import { apiV2Panorama } from "../../../api/client";
-import type { PanoramaSummary, ValidacionTabId } from "../types";
+// TODO(sprint-5): cuando exista, importar de la fuente real:
+//   import { apiV2Panorama } from "../../../api/client";
+//   import type { PanoramaSummary } from "../types";
+// Hasta entonces, stub local que tipifica correctamente la respuesta
+// esperada (reusa `ViewDescriptor` que ya existe). La lógica UI queda
+// intacta y se conecta sola cuando el endpoint y el tipo aterricen.
+import type { ValidacionTabId, ViewDescriptor } from "../types";
+type PanoramaProgreso = {
+  plan_construido: boolean;
+  auditoria_corrida: boolean;
+  n_reglas_custom: number;
+};
+type PanoramaSummary = {
+  progreso: PanoramaProgreso;
+  kpis: ViewDescriptor[];
+  top_reglas: ViewDescriptor | null;
+  top_variables: ViewDescriptor | null;
+};
+async function apiV2Panorama(_baseNombre: string | null): Promise<PanoramaSummary> {
+  throw new Error("apiV2Panorama: pendiente de implementación (Sprint 5)");
+}
 import { useValidacionStore } from "../store";
 import { LoadingBlock, EmptyState } from "../../../components/States";
 import PlotlyView from "../components/PlotlyView";
@@ -34,8 +53,8 @@ export default function PanoramaTab() {
     setLoading(true);
     setError("");
     apiV2Panorama(baseNombre)
-      .then((p) => { if (!cancel) setData(p); })
-      .catch((e) => { if (!cancel) setError((e as Error).message); })
+      .then((p: PanoramaSummary) => { if (!cancel) setData(p); })
+      .catch((e: unknown) => { if (!cancel) setError((e as Error).message); })
       .finally(() => { if (!cancel) setLoading(false); });
     return () => { cancel = true; };
   }, [baseNombre, version]);
@@ -122,7 +141,7 @@ export default function PanoramaTab() {
             gap: 12,
           }}
         >
-          {kpis.map((k, i) => <PlotlyView key={i} view={k} />)}
+          {kpis.map((k: ViewDescriptor, i: number) => <PlotlyView key={i} view={k} />)}
         </div>
       )}
 
