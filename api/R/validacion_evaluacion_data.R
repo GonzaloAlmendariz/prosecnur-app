@@ -702,7 +702,9 @@ cargar_plan_excel <- function(path, sheet = "Plan"){
 #' Preparar contexto de agregación
 #' @keywords internal
 .AGG_prepare <- function(tablas, base_key) {
-  list(tablas = tablas, base_key = base_key, n_base = nrow(tablas[[base_key]] %||% tibble()))
+  base_df <- tablas[[base_key]]
+  if (is.null(base_df)) base_df <- tibble()
+  list(tablas = tablas, base_key = base_key, n_base = nrow(base_df))
 }
 
 #' Determinar si una variable cruzada puede leerse desde el padre directo

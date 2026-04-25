@@ -176,12 +176,14 @@ Validado contra 4 XLSForms reales (ACNUR ESPP, ACNUR RMS, HST, GIZ):
 
 | Form | Rows | Reglas inferidas | odk_raw | Smart quotes |
 |------|------|------------------|---------|--------------|
-| ESPP | 122 | 107 | 0 | 0 |
-| RMS  | 410 | 339 | 0 | 16 |
-| HST  | 162 | 171 | 0 | 1 |
-| GIZ  | 97  | 80  | 1 | 12 |
+| ESPP | 121 | 138 | 0 | 0 |
+| RMS  | 409 | 455 | 0 | 16 |
+| HST  | 161 | 210 | 0 | 2 |
+| GIZ  | 96  | 96  | 0 | 12 |
 
-**697 reglas inferidas, 1 fallback al escape hatch (0.14%).**
+**899 reglas inferidas, 0 fallbacks al escape hatch.** Las expresiones con
+`pulldata(...)` se descartan explícitamente porque dependen de catálogos
+externos.
 
 ## Tests
 
@@ -190,4 +192,4 @@ cd api
 Rscript -e 'library(testthat); test_file("tests/testthat/test-validacion-ast.R")'
 ```
 
-70 tests, 100% pass, cubriendo las 7 capas + el bridge.
+84 tests, 100% pass, cubriendo las 7 capas + el bridge.

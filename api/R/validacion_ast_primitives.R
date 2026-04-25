@@ -66,6 +66,7 @@
   # fila. Se usa para verificar que la fecha reportada en `var` sea
   # coherente con el día de captura (típicamente `var <= today()`).
   "collection_date_cmp",  # (var, op)   op ∈ ==,!=,<,<=,>,>=
+  "collection_date_offset_cmp", # (var, op, offset_days) compara contra today()+offset
   # --- Agregación cross-tabla (repeat → principal) ----------------------
   # Compara un valor de la tabla HOST con una agregación sobre una tabla
   # relacionada (típicamente un repeat). El evaluador necesita recibir
@@ -355,6 +356,23 @@ ast_collection_date_cmp <- function(var, op) {
   ast("collection_date_cmp", var = var, op = op)
 }
 
+#' Compara una fecha contra la fecha de captura con desplazamiento en días.
+#' Ejemplo ODK: `. >= today() - 396`.
+#' @export
+ast_collection_date_offset_cmp <- function(var, op, offset_days) {
+  .check_var(var)
+  if (!(op %in% .BINOP_CMP)) {
+    stop(sprintf("ast_collection_date_offset_cmp(): op '%s' inválido.", op))
+  }
+  if (!is.numeric(offset_days) || length(offset_days) != 1L || is.na(offset_days)) {
+    stop("ast_collection_date_offset_cmp(): offset_days debe ser número.")
+  }
+  ast("collection_date_offset_cmp",
+      var = var,
+      op = op,
+      offset_days = as.integer(offset_days))
+}
+
 #' @export
 ast_repeat_length_matches <- function(repeat_name, expected) {
   if (!is.character(repeat_name) || length(repeat_name) != 1L) {
@@ -480,6 +498,7 @@ ast_is_valid <- function(x) {
     "straight_line"            = c("vars", "max_variance"),
     "repeat_length_matches"    = c("repeat_name", "expected"),
     "collection_date_cmp"      = c("var", "op"),
+    "collection_date_offset_cmp" = c("var", "op", "offset_days"),
     "aggregate_cmp"            = c("host_var", "op", "source_table", "source_var", "agg_op"),
     "and"                      = "args",
     "or"                       = "args",

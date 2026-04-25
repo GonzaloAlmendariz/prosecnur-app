@@ -328,7 +328,7 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
 }
 
 .parse_cmp <- function(state) {
-  left <- .parse_atom(state)
+  left <- .parse_additive(state)
   if (is.null(left)) return(NULL)
   state <- attr(left, "state")
   tok <- .peek(state)
@@ -339,7 +339,7 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
   op <- tok$value
   consumed <- .consume(state, type = "op_bin")
   state <- consumed$state
-  right <- .parse_atom(state)
+  right <- .parse_additive(state)
   if (is.null(right)) return(NULL)
   state <- attr(right, "state")
 
@@ -349,6 +349,43 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
   out <- list(ast = ast_cmp)
   attr(out, "state") <- state
   out
+}
+
+.parse_additive <- function(state) {
+  left <- .parse_atom(state)
+  if (is.null(left)) return(NULL)
+  state <- attr(left, "state")
+
+  tok <- .peek(state)
+  if (is.null(tok) || tok$type != "plus_minus") {
+    attr(left, "state") <- state
+    return(left)
+  }
+
+  op <- tok$value
+  consumed <- .consume(state, type = "plus_minus")
+  state <- consumed$state
+  right <- .parse_atom(state)
+  if (is.null(right)) return(NULL)
+  state <- attr(right, "state")
+
+  left_ast <- left$ast
+  right_ast <- right$ast
+  out_ast <- .build_additive(left_ast, op, right_ast)
+  out <- list(ast = out_ast)
+  attr(out, "state") <- state
+  out
+}
+
+.build_additive <- function(left, op, right) {
+  l_is_today <- is_ast(left) && ast_op(left) == "__today"
+  r_is_lit_num <- is_ast(right) && ast_op(right) == "__num"
+  if (l_is_today && r_is_lit_num) {
+    offset <- as.integer(right$value)
+    if (op == "-") offset <- -offset
+    return(.__today_offset(offset))
+  }
+  ast_odk_raw(sprintf("ARITH[%s]", op), origin = "arithmetic_unsupported")
 }
 
 # Construye un AST de comparación a partir de nodos izquierdo/derecho.
@@ -366,6 +403,10 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
   r_is_lit <- is_ast(right) && ast_op(right) %in% c("__str", "__num")
   l_is_today <- is_ast(left) && ast_op(left) == "__today"
   r_is_today <- is_ast(right) && ast_op(right) == "__today"
+  l_is_today_offset <- is_ast(left) && ast_op(left) == "__today_offset"
+  r_is_today_offset <- is_ast(right) && ast_op(right) == "__today_offset"
+  l_is_count_selected <- is_ast(left) && ast_op(left) == "__count_selected"
+  r_is_count_selected <- is_ast(right) && ast_op(right) == "__count_selected"
 
   # var OP today() → collection_date_cmp(var, op)
   # today() OP var → invertimos el operador
@@ -376,6 +417,24 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
     swapped <- switch(op, "==" = "==", "!=" = "!=",
                       "<" = ">", "<=" = ">=", ">" = "<", ">=" = "<=")
     return(ast_collection_date_cmp(right$name, swapped))
+  }
+  if (l_is_var && r_is_today_offset) {
+    return(ast_collection_date_offset_cmp(left$name, op, right$offset_days))
+  }
+  if (r_is_var && l_is_today_offset) {
+    swapped <- switch(op, "==" = "==", "!=" = "!=",
+                      "<" = ">", "<=" = ">=", ">" = "<", ">=" = "<=")
+    return(ast_collection_date_offset_cmp(right$name, swapped, left$offset_days))
+  }
+
+  # count-selected(var) OP n
+  if (l_is_count_selected && r_is_lit && ast_op(right) == "__num") {
+    return(ast_count_selected_cmp(left$var, op, right$value))
+  }
+  if (r_is_count_selected && l_is_lit && ast_op(left) == "__num") {
+    swapped <- switch(op, "==" = "==", "!=" = "!=",
+                      "<" = ">", "<=" = ">=", ">" = "<", ">=" = "<=")
+    return(ast_count_selected_cmp(right$var, swapped, left$value))
   }
 
   # var OP lit
@@ -566,13 +625,10 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
 }
 
 .resolve_count_selected <- function(args) {
-  # count-selected(var) — devuelve número. Solo útil en comparación → el caller
-  # tiene que cruzarlo con un op. Aquí producimos un "atom" que luego .parse_cmp
-  # detectará. Como no tenemos un tipo "counted", retornamos un odk_raw marcador
-  # que el pattern pass de normalización puede reconocer.
-  # Simplificación: no soportamos count-selected fuera de comparación directa.
-  ast_odk_raw(sprintf("count_selected(%s)", .arg_repr(args[[1]])),
-              origin = "count_selected_standalone")
+  if (length(args) != 1L) return(NULL)
+  a1 <- args[[1]]
+  if (!is_ast(a1) || ast_op(a1) != "__var") return(NULL)
+  .__count_selected(a1$name)
 }
 
 .resolve_regex <- function(args) {
@@ -611,6 +667,8 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
   if (op == "__var") return(x$name)
   if (op == "__str") return(sprintf("'%s'", x$value))
   if (op == "__num") return(format(x$value))
+  if (op == "__count_selected") return(sprintf("count-selected(%s)", x$var))
+  if (op == "__today_offset") return(sprintf("today()%+d", x$offset_days))
   ast_to_string(x)
 }
 
@@ -642,6 +700,18 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
 .__today <- function() {
   out <- list()
   attr(out, "op") <- "__today"
+  class(out) <- c("vd_ast", "list")
+  out
+}
+.__today_offset <- function(offset_days) {
+  out <- list(offset_days = as.integer(offset_days))
+  attr(out, "op") <- "__today_offset"
+  class(out) <- c("vd_ast", "list")
+  out
+}
+.__count_selected <- function(var) {
+  out <- list(var = var)
+  attr(out, "op") <- "__count_selected"
   class(out) <- c("vd_ast", "list")
   out
 }
