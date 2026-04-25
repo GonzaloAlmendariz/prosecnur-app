@@ -5593,3 +5593,126 @@ button.pulso-empty-home-card:focus-visible {
   min-height: 40px;
   white-space: pre-wrap;
 }
+
+/* ============================================================================
+ * MarkdownField — editor + preview de campos con subset XLSForm de markdown
+ * ========================================================================= */
+.pulso-md-field {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  overflow: hidden;
+  background: white;
+}
+.pulso-md-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+.pulso-md-toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+.pulso-md-toolbar-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 7px;
+  cursor: pointer;
+  color: var(--pulso-text-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 100ms ease, color 100ms ease;
+}
+.pulso-md-toolbar-btn:hover:not(:disabled) {
+  background: white;
+  color: var(--pulso-primary);
+}
+.pulso-md-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.pulso-md-toolbar-tabs {
+  display: inline-flex;
+  background: white;
+  border: 1px solid var(--pulso-border);
+  border-radius: 5px;
+  padding: 1px;
+  gap: 1px;
+}
+.pulso-md-toolbar-tabs button {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 120ms ease, color 120ms ease;
+}
+.pulso-md-toolbar-tabs button.is-on {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+.pulso-md-field textarea {
+  border: none;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.5;
+  width: 100%;
+  resize: vertical;
+  outline: none;
+  background: white;
+  box-sizing: border-box;
+}
+.pulso-md-field textarea:focus {
+  background: white;
+  outline: 2px solid var(--pulso-primary-soft);
+  outline-offset: -2px;
+}
+.pulso-md-preview {
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--pulso-text);
+  background: rgba(36, 87, 214, 0.025);
+  min-height: 56px;
+}
+.pulso-md-preview p {
+  margin: 0;
+}
+.pulso-md-preview p + p {
+  margin-top: 8px;
+}
+.pulso-md-preview a {
+  color: var(--pulso-primary);
+  text-decoration: underline;
+}
+.pulso-md-preview strong {
+  font-weight: 700;
+}
+.pulso-md-preview em {
+  font-style: italic;
+}
+.pulso-md-preview s {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+.pulso-md-empty {
+  color: var(--pulso-text-soft);
+  font-style: italic;
+}

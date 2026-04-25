@@ -20,6 +20,7 @@ import { NameField } from "./NameField";
 import { CatalogChip } from "./CatalogChip";
 import { CalculationBuilder } from "./logic/CalculationBuilder";
 import { InspectorField, InspectorBlock } from "./InspectorPrimitives";
+import { MarkdownField } from "./MarkdownField";
 
 export type BasicTabProps = {
   node: BuilderNode;
@@ -59,28 +60,29 @@ export function BasicTab({
           label={isSection ? "Título de la sección" : "Texto que ve el encuestado"}
           hint={
             isSection
-              ? "Aparece como cabecera del bloque."
-              : "Se muestra arriba del control."
+              ? "Aparece como cabecera del bloque. Acepta **negrita**, *itálica* y enlaces."
+              : "Se muestra arriba del control. Acepta **negrita**, *itálica* y enlaces."
           }
         >
-          <textarea
-            rows={2}
+          <MarkdownField
             value={node.label}
-            onChange={(event) => onFieldChange("label", event.target.value)}
-            placeholder="Ej. ¿Cuál es tu edad?"
+            onChange={(next) => onFieldChange("label", next)}
+            placeholder="Ej. ¿Cuál es tu **edad**?"
+            rows={2}
           />
         </InspectorField>
 
         {!isSection && (
           <InspectorField
             label="Pista o ayuda"
-            hint="Texto pequeño debajo del label. Opcional."
+            hint="Texto pequeño debajo del label. Opcional. Acepta markdown."
           >
-            <textarea
-              rows={2}
+            <MarkdownField
               value={node.hint}
-              onChange={(event) => onFieldChange("hint", event.target.value)}
-              placeholder="Ej. Indica años cumplidos."
+              onChange={(next) => onFieldChange("hint", next)}
+              placeholder="Ej. Indica años *cumplidos*."
+              rows={2}
+              compact
             />
           </InspectorField>
         )}
