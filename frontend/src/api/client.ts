@@ -2049,7 +2049,17 @@ export type DashboardConfig = {
   semaforo_green_color?: string;
   semaforo_red_max?: number;
   semaforo_amber_max?: number;
+  // Cortes/paradas adicionales para ajuste fino del color sin aparecer
+  // en la leyenda. Cada entrada es un par {value: 0-100, color: "#hex"}.
+  semaforo_stops_extra?: { value: number; color: string }[];
   radar_min?: number;
+  radar_max?: number;
+  radar_gridshape?: "linear" | "circular";
+  radar_modo?: "uno" | "facet" | "alternante";
+  radar_animado?: boolean;
+  barras_orientacion?: "horizontal" | "vertical" | "facet";
+  barras_x_min?: number;
+  barras_x_max?: number;
   foda_iconos_enabled?: boolean;
   foda_icon_tint?: string;
   foda_icon_size?: number;

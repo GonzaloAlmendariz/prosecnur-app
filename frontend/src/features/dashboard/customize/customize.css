@@ -93,6 +93,66 @@
   margin-top: 12px;
 }
 
+.dashboard-scope .dash-customize-stops {
+  border-top: 1px solid var(--dash-divider);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.dashboard-scope .dash-customize-stops-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+.dashboard-scope .dash-customize-stops-list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.dashboard-scope .dash-customize-stops-item {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 70px 1fr 28px;
+}
+.dashboard-scope .dash-customize-stops-item input[type="color"] {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  cursor: pointer;
+  height: 28px;
+  padding: 2px;
+  width: 100%;
+}
+.dashboard-scope .dash-customize-stops-remove {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  transition:
+    color var(--dash-dur-hover) var(--dash-ease-out),
+    border-color var(--dash-dur-hover) var(--dash-ease-out);
+  width: 28px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-customize-stops-remove:hover {
+    border-color: #d84b55;
+    color: #d84b55;
+  }
+}
+
 .dashboard-scope .dash-customize-foda-grid {
   display: grid;
   gap: 12px;

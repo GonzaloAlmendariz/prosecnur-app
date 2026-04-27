@@ -10,6 +10,8 @@ export type SemaforoConfig = {
   green: string;
   redMax: number;   // 0-100, fin del rango bajo
   amberMax: number; // redMax-100, fin del rango medio
+  // Cortes adicionales para fineza de color (no aparecen en la leyenda).
+  stopsExtra: { value: number; color: string }[];
 };
 
 export type DashboardConfigLike = {
@@ -19,6 +21,7 @@ export type DashboardConfigLike = {
   semaforo_green_color?: string;
   semaforo_red_max?: number;
   semaforo_amber_max?: number;
+  semaforo_stops_extra?: { value: number; color: string }[];
 };
 
 export function semaforoFromConfig(
@@ -38,51 +41,80 @@ export function semaforoFromConfig(
     green: cfg.semaforo_green_color ?? payloadFallback?.green_color ?? "#3A9A5B",
     redMax: cfg.semaforo_red_max ?? payloadFallback?.red_max ?? 60,
     amberMax: cfg.semaforo_amber_max ?? payloadFallback?.amber_max ?? 80,
+    stopsExtra: Array.isArray(cfg.semaforo_stops_extra) ? cfg.semaforo_stops_extra : [],
   };
 }
 
-// Color de un score (0-100) según el modo:
-//   - "cortes": devuelve uno de los 3 colores según los umbrales.
-//   - "gradiente": interpola linealmente entre los 3 colores.
-export function colorOfScore(value: number | null | undefined, sem: SemaforoConfig): string | null {
-  if (value == null || !Number.isFinite(value)) return null;
-  if (sem.modo === "cortes") {
-    if (value < sem.redMax) return sem.red;
-    if (value < sem.amberMax) return sem.amber;
-    return sem.green;
-  }
-  // Gradiente continuo: interpolar (red→amber) en [0, redMax],
-  // (amber→green) en [redMax, amberMax], y green saturado en [amberMax, 100].
-  const v = Math.max(0, Math.min(100, value));
-  if (v <= sem.redMax) {
-    const t = sem.redMax > 0 ? v / sem.redMax : 0;
-    return mixHex(sem.red, sem.amber, t);
-  }
-  if (v <= sem.amberMax) {
-    const t = sem.amberMax > sem.redMax ? (v - sem.redMax) / (sem.amberMax - sem.redMax) : 0;
-    return mixHex(sem.amber, sem.green, t);
-  }
-  return sem.green;
+// Construye la lista ORDENADA y EXTENDIDA de stops base + extras del usuario.
+// Cada stop = { value (0-100), color }. Los extras se intercalan según value.
+function allStops(sem: SemaforoConfig): { value: number; color: string }[] {
+  const base: { value: number; color: string }[] = [
+    { value: 0, color: sem.red },
+    { value: sem.redMax, color: sem.amber },
+    { value: sem.amberMax, color: sem.green },
+    { value: 100, color: sem.green },
+  ];
+  const extras = (sem.stopsExtra ?? []).map((s) => ({
+    value: Math.max(0, Math.min(100, s.value)),
+    color: s.color,
+  }));
+  return [...base, ...extras].sort((a, b) => a.value - b.value);
 }
 
-// Construye el colorscale para Plotly heatmap (array [t, color]).
-export function plotlyColorscale(sem: SemaforoConfig): [number, string][] {
-  if (sem.modo === "gradiente") {
-    return [
-      [0, sem.red],
-      [sem.redMax / 100, sem.amber],
-      [sem.amberMax / 100, sem.green],
-      [1, sem.green],
-    ];
+// Color de un score (0-100) según el modo:
+//   - "cortes": devuelve el color del stop inmediatamente <= value.
+//   - "gradiente": interpola linealmente entre los stops vecinos.
+export function colorOfScore(value: number | null | undefined, sem: SemaforoConfig): string | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  const stops = allStops(sem);
+  const v = Math.max(0, Math.min(100, value));
+  if (sem.modo === "cortes") {
+    // Cortes: el último stop con value <= v gana.
+    let color = stops[0].color;
+    for (const s of stops) {
+      if (s.value <= v) color = s.color;
+      else break;
+    }
+    return color;
   }
-  return [
-    [0, sem.red],
-    [(sem.redMax - 0.001) / 100, sem.red],
-    [sem.redMax / 100, sem.amber],
-    [(sem.amberMax - 0.001) / 100, sem.amber],
-    [sem.amberMax / 100, sem.green],
-    [1, sem.green],
-  ];
+  // Gradiente: localizar el segmento [a, b] que contiene v y mezclar.
+  for (let i = 0; i < stops.length - 1; i++) {
+    const a = stops[i];
+    const b = stops[i + 1];
+    if (v >= a.value && v <= b.value) {
+      const span = b.value - a.value;
+      const t = span > 0 ? (v - a.value) / span : 0;
+      return mixHex(a.color, b.color, t);
+    }
+  }
+  return stops[stops.length - 1].color;
+}
+
+// Construye el colorscale para Plotly heatmap. Incluye los stops extras
+// (los del usuario) además de los 3 base, intercalados por valor.
+export function plotlyColorscale(sem: SemaforoConfig): [number, string][] {
+  const stops = allStops(sem);
+  if (sem.modo === "gradiente") {
+    // Stops únicos por value (Plotly requiere monotónico no decreciente).
+    const out: [number, string][] = [];
+    for (const s of stops) {
+      const t = s.value / 100;
+      out.push([t, s.color]);
+    }
+    return out;
+  }
+  // Cortes: duplicar cada stop (doble step) para que el cambio sea abrupto.
+  const out: [number, string][] = [];
+  for (let i = 0; i < stops.length - 1; i++) {
+    const a = stops[i];
+    const b = stops[i + 1];
+    out.push([a.value / 100, a.color]);
+    if (b.value > a.value) {
+      out.push([Math.max(0, b.value - 0.001) / 100, a.color]);
+    }
+  }
+  out.push([1, stops[stops.length - 1].color]);
+  return out;
 }
 
 // Interpolación lineal entre dos colores hex.

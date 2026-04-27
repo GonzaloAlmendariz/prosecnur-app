@@ -61,7 +61,35 @@ function sanitizeConfig(c: DashboardConfig): DashboardConfig {
       Math.max(5, Math.min(95, num(c.semaforo_red_max, 60))) + 1,
       Math.min(99, num(c.semaforo_amber_max, 80)),
     ),
+    semaforo_stops_extra: Array.isArray(c.semaforo_stops_extra)
+      ? c.semaforo_stops_extra
+          .filter(
+            (s): s is { value: number; color: string } =>
+              !!s && typeof s === "object" && typeof s.value === "number" && typeof s.color === "string",
+          )
+          .map((s) => ({
+            value: Math.max(0, Math.min(100, s.value)),
+            color: s.color,
+          }))
+          .sort((a, b) => a.value - b.value)
+      : [],
     radar_min: Math.max(0, Math.min(95, num(c.radar_min, 0))),
+    radar_max: Math.max(
+      Math.max(0, Math.min(95, num(c.radar_min, 0))) + 5,
+      Math.min(200, num(c.radar_max, 100)),
+    ),
+    radar_gridshape: c.radar_gridshape === "circular" ? "circular" : "linear",
+    radar_modo: c.radar_modo === "facet" || c.radar_modo === "alternante" ? c.radar_modo : "uno",
+    radar_animado: typeof c.radar_animado === "boolean" ? c.radar_animado : true,
+    barras_orientacion:
+      c.barras_orientacion === "vertical" || c.barras_orientacion === "facet"
+        ? c.barras_orientacion
+        : "horizontal",
+    barras_x_min: Math.max(0, Math.min(90, num(c.barras_x_min, 0))),
+    barras_x_max: Math.max(
+      Math.max(0, Math.min(90, num(c.barras_x_min, 0))) + 10,
+      Math.min(200, num(c.barras_x_max, 100)),
+    ),
     foda_iconos_enabled: typeof c.foda_iconos_enabled === "boolean" ? c.foda_iconos_enabled : true,
     foda_icon_tint: typeof c.foda_icon_tint === "string" && c.foda_icon_tint.length > 0
       ? c.foda_icon_tint
@@ -92,7 +120,15 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   semaforo_green_color: "#3A9A5B",
   semaforo_red_max: 60,
   semaforo_amber_max: 80,
+  semaforo_stops_extra: [],
   radar_min: 0,
+  radar_max: 100,
+  radar_gridshape: "linear",
+  radar_modo: "uno",
+  radar_animado: true,
+  barras_orientacion: "horizontal",
+  barras_x_min: 0,
+  barras_x_max: 100,
   foda_iconos_enabled: true,
   foda_icon_tint: "#FFFFFF",
   foda_icon_size: 1,
@@ -211,7 +247,17 @@ type DashboardStore = {
   setSemaforoGreenColor: (hex: string) => void;
   setSemaforoRedMax: (n: number) => void;
   setSemaforoAmberMax: (n: number) => void;
+  addSemaforoStop: (stop: { value: number; color: string }) => void;
+  removeSemaforoStop: (index: number) => void;
+  updateSemaforoStop: (index: number, patch: Partial<{ value: number; color: string }>) => void;
   setRadarMin: (n: number) => void;
+  setRadarMax: (n: number) => void;
+  setRadarGridshape: (m: "linear" | "circular") => void;
+  setRadarModo: (m: "uno" | "facet" | "alternante") => void;
+  setRadarAnimado: (b: boolean) => void;
+  setBarrasOrientacion: (m: "horizontal" | "vertical" | "facet") => void;
+  setBarrasXMin: (n: number) => void;
+  setBarrasXMax: (n: number) => void;
   setFodaIconosEnabled: (enabled: boolean) => void;
   setFodaIconTint: (hex: string) => void;
   setFodaIconSize: (n: number) => void;
@@ -325,10 +371,64 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
       const a = Math.max(r + 1, Math.min(99, Math.round(n)));
       return dirtyPatch({ config: { ...st.config, semaforo_amber_max: a } });
     }),
+  addSemaforoStop: (stop) =>
+    set((st) => {
+      const next = [...(st.config.semaforo_stops_extra ?? []), stop].sort(
+        (a, b) => a.value - b.value,
+      );
+      return dirtyPatch({ config: { ...st.config, semaforo_stops_extra: next } });
+    }),
+  removeSemaforoStop: (index) =>
+    set((st) => {
+      const arr = [...(st.config.semaforo_stops_extra ?? [])];
+      arr.splice(index, 1);
+      return dirtyPatch({ config: { ...st.config, semaforo_stops_extra: arr } });
+    }),
+  updateSemaforoStop: (index, patch) =>
+    set((st) => {
+      const arr = [...(st.config.semaforo_stops_extra ?? [])];
+      const current = arr[index];
+      if (!current) return st;
+      const value = patch.value !== undefined
+        ? Math.max(0, Math.min(100, patch.value))
+        : current.value;
+      const color = patch.color ?? current.color;
+      arr[index] = { value, color };
+      arr.sort((a, b) => a.value - b.value);
+      return dirtyPatch({ config: { ...st.config, semaforo_stops_extra: arr } });
+    }),
   setRadarMin: (n) =>
-    set((st) =>
-      dirtyPatch({ config: { ...st.config, radar_min: Math.max(0, Math.min(95, Math.round(n))) } }),
-    ),
+    set((st) => {
+      const r = Math.max(0, Math.min(95, Math.round(n)));
+      const max = Math.max(r + 5, st.config.radar_max ?? 100);
+      return dirtyPatch({ config: { ...st.config, radar_min: r, radar_max: max } });
+    }),
+  setRadarMax: (n) =>
+    set((st) => {
+      const r = st.config.radar_min ?? 0;
+      const max = Math.max(r + 5, Math.min(200, Math.round(n)));
+      return dirtyPatch({ config: { ...st.config, radar_max: max } });
+    }),
+  setRadarGridshape: (m) =>
+    set((st) => dirtyPatch({ config: { ...st.config, radar_gridshape: m } })),
+  setRadarModo: (m) =>
+    set((st) => dirtyPatch({ config: { ...st.config, radar_modo: m } })),
+  setRadarAnimado: (b) =>
+    set((st) => dirtyPatch({ config: { ...st.config, radar_animado: b } })),
+  setBarrasOrientacion: (m) =>
+    set((st) => dirtyPatch({ config: { ...st.config, barras_orientacion: m } })),
+  setBarrasXMin: (n) =>
+    set((st) => {
+      const min = Math.max(0, Math.min(90, Math.round(n)));
+      const max = Math.max(min + 10, st.config.barras_x_max ?? 100);
+      return dirtyPatch({ config: { ...st.config, barras_x_min: min, barras_x_max: max } });
+    }),
+  setBarrasXMax: (n) =>
+    set((st) => {
+      const min = st.config.barras_x_min ?? 0;
+      const max = Math.max(min + 10, Math.min(200, Math.round(n)));
+      return dirtyPatch({ config: { ...st.config, barras_x_max: max } });
+    }),
   setFodaIconosEnabled: (enabled) =>
     set((st) => dirtyPatch({ config: { ...st.config, foda_iconos_enabled: enabled } })),
   setFodaIconTint: (hex) =>

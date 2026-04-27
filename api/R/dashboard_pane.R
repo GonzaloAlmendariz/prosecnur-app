@@ -33,6 +33,13 @@
     semaforo_red_max        = 60L,         # umbral superior del rojo (0-100)
     semaforo_amber_max      = 80L,         # umbral superior del ámbar (red_max-100)
     radar_min               = 0L,          # límite inferior del eje radial (0-95)
+    radar_max               = 100L,        # límite superior del eje radial (5-200)
+    radar_gridshape         = "linear",    # "linear" (polígono) | "circular"
+    radar_modo              = "uno",       # "uno" | "facet" | "alternante"
+    radar_animado           = TRUE,        # ordena ejes por score desc + entrada animada
+    barras_orientacion      = "horizontal",# "horizontal" | "vertical" | "facet"
+    barras_x_min            = 0L,          # 0-90 — límite inferior del eje x
+    barras_x_max            = 100L,        # 10-200 — límite superior
     foda_iconos_enabled     = TRUE,
     foda_icon_tint          = "#FFFFFF",
     foda_icon_size          = 1,

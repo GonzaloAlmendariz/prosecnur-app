@@ -23,11 +23,20 @@
   border-radius: var(--dash-radius-sm);
   display: inline-flex;
   flex: 1 1 260px;
+  flex-wrap: nowrap;
   gap: 4px;
-  justify-content: center;
+  justify-content: flex-start;
   max-width: 100%;
   overflow-x: auto;
   padding: 4px;
+  scrollbar-width: thin;
+}
+.dashboard-scope .dash-foda-group-filter::-webkit-scrollbar {
+  height: 6px;
+}
+.dashboard-scope .dash-foda-group-filter::-webkit-scrollbar-thumb {
+  background: var(--dash-borde);
+  border-radius: 3px;
 }
 
 .dashboard-scope .dash-foda-group-filter span {
@@ -455,6 +464,35 @@
   height: 18px;
   object-fit: contain;
   width: 18px;
+}
+
+/* En la leyenda los iconos son del color primario del dashboard (azul)
+ * — los iconos blancos solo van en los chips del scatter. Esto permite
+ * distinguir bien la leyenda sobre fondo blanco. */
+.dashboard-scope .dash-foda-icon-legend-item img {
+  filter:
+    brightness(0)
+    saturate(100%)
+    invert(13%)
+    sepia(60%)
+    saturate(2400%)
+    hue-rotate(210deg)
+    brightness(35%);
+}
+
+.dashboard-scope .dash-foda-icon-legend-text {
+  color: var(--dash-texto);
+}
+
+.dashboard-scope .dash-foda-icon-legend-vals {
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: 999px;
+  color: var(--dash-primario);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  padding: 1px 7px;
 }
 
 /* Hover lift en cards FODA: sube ligeramente y gana sombra/z-index para

@@ -38,6 +38,7 @@ import {
 import { EmptyState } from "../../shared/EmptyState";
 import { FiltrosMultiRow } from "../ResumenTab/FiltrosMultiRow";
 import { PlotlyChart } from "../../shared/PlotlyChart";
+import { FullscreenWrapper } from "../../shared/FullscreenWrapper";
 import {
   colorOfScore as semColorOfScore,
   plotlyColorscale,
@@ -598,7 +599,16 @@ function VisualizadorCard({
         </div>
       </div>
 
-      <div className="dash-dim-vis-body" key={visualMode}>
+      <FullscreenWrapper
+        title={
+          visualMode === "heatmap" ? "Heatmap"
+          : visualMode === "barras" ? "Scores por dimensión"
+          : visualMode === "radar" ? "Radar de dimensiones"
+          : "Matriz FODA"
+        }
+        className="dash-dim-vis-body"
+      >
+      <div key={visualMode}>
         {visualMode === "foda" ? (
           fodaLoading && !foda ? (
             <DimSkeleton mode="foda" />
@@ -625,6 +635,7 @@ function VisualizadorCard({
           <MainPlotView payload={payload} visualMode={visualMode} />
         )}
       </div>
+      </FullscreenWrapper>
     </section>
   );
 }
@@ -641,11 +652,30 @@ function IterStepper({
   onLevel: (l: string) => void;
 }) {
   const { valores } = useDimCategoriasVar(variable || null);
-  if (!valores.length) return null;
   const idx = Math.max(0, valores.findIndex((v) => v.value === level));
-  const prev = valores[(idx - 1 + valores.length) % valores.length];
-  const next = valores[(idx + 1) % valores.length];
+  const prev = valores[(idx - 1 + Math.max(1, valores.length)) % Math.max(1, valores.length)];
+  const next = valores[(idx + 1) % Math.max(1, valores.length)];
   const current = valores[idx];
+
+  // Shortcut Alt+← / Alt+→ para ciclar niveles desde cualquier sitio.
+  useEffect(() => {
+    if (!valores.length) return;
+    function onKey(e: KeyboardEvent) {
+      if (!e.altKey) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        onLevel(prev.value);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        onLevel(next.value);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [valores, prev, next, onLevel]);
+
+  if (!valores.length) return null;
   return (
     <div className="dash-iter-stepper" role="group" aria-label="Cambiar nivel de iteración">
       <button
@@ -843,6 +873,15 @@ function MainPlotView({
   const semaforo = payload.semaforo;
   const config = useDashboardStore((s) => s.config);
   const radarMin = config.radar_min ?? 0;
+  const radarMax = config.radar_max ?? 100;
+  const radarGridshape = config.radar_gridshape ?? "linear";
+  const radarModo = config.radar_modo ?? "uno";
+  const radarAnimado = config.radar_animado ?? true;
+  const barrasOrientacion = config.barras_orientacion ?? "horizontal";
+  const barrasXMin = config.barras_x_min ?? 0;
+  const barrasXMax = config.barras_x_max ?? 100;
+  // Para modo radar "alternante": índice del grupo activo (cicla entre grupos).
+  const [alternanteIdx, setAlternanteIdx] = useState(0);
 
   // Color del semáforo según el score (cortes/gradiente y umbrales del
   // config personalizable). Helper compartido que también usan heatmap y FODA.
@@ -859,131 +898,263 @@ function MainPlotView({
     return (v: number | null | undefined) => semColorOfScore(v, sem);
   }, [config, semaforo]);
 
-  const traces = useMemo(() => {
-    if (visualMode === "radar") {
-      return groups.map((g) => {
-        const r = axes.map((a) => {
-          const row = rows.find((x) => x.grupo === g && x.axis_label === a);
-          return row?.score_round ?? null;
-        });
-        const closedTheta = [...axes, axes[0]];
-        const closedR = [...r, r[0]];
-        const color = groupColors[g] ?? "#0E3B74";
-        return {
-          type: "scatterpolar" as const,
-          mode: "lines+markers",
-          name: g,
-          theta: closedTheta,
-          r: closedR,
-          fill: "toself",
-          fillcolor: colorToRgba(color, 0.08),
-          opacity: 1,
-          line: { color, width: 3.4 },
-          marker: { color, size: 7.5, line: { color: "#fff", width: 1.3 } },
-          hovertemplate: `${g}<br>%{theta}: %{r:.0f}<extra></extra>`,
-        };
-      });
-    }
-    return groups.map((g) => {
-      const xv = axes.map((a) => {
-        const row = rows.find((x) => x.grupo === g && x.axis_label === a);
-        return row?.score_round ?? null;
-      });
-      return {
-        type: "bar" as const,
-        name: g,
-        orientation: "h" as const,
-        x: xv,
-        y: axes,
-        marker: { color: groupColors[g] ?? undefined },
-        hovertemplate: `${g}<br>%{y}: %{x:.0f}<extra></extra>`,
-      };
-    });
-  }, [visualMode, groups, axes, rows, groupColors]);
-
-  // Modo barras: chip rectangular al final de cada barra con el score y
-  // color del semáforo. Plotly barmode="group" distribuye n barras dentro
-  // de cada categoría: ancho = (1 - bargap) / n, offset por barra =
-  // (g - (n-1)/2) * ancho. Eso nos da la posición Y exacta de cada chip.
-  const barAnnotations = useMemo(() => {
-    if (visualMode !== "barras") return [] as unknown[];
-    const nGroups = Math.max(1, groups.length);
-    const bargap = 0.2;
-    const widthPerBar = (1 - bargap) / nGroups;
-    const out: unknown[] = [];
-    for (let gi = 0; gi < groups.length; gi++) {
-      const g = groups[gi];
-      const yOffset = (gi - (nGroups - 1) / 2) * widthPerBar;
-      for (let ai = 0; ai < axes.length; ai++) {
-        const axis = axes[ai];
-        const row = rows.find((r) => r.grupo === g && r.axis_label === axis);
-        const v = row?.score_round ?? null;
-        if (v == null) continue;
-        const color = colorOfScore(v) ?? "#5f6b7a";
-        out.push({
-          x: v,
-          y: ai + yOffset,
-          xref: "x",
-          yref: "y",
-          text: `<b>${Math.round(v)}</b>`,
-          showarrow: false,
-          xanchor: "left",
-          yanchor: "middle",
-          xshift: 5,
-          font: { color: "#fff", size: 10, family: "system-ui, sans-serif" },
-          bgcolor: color,
-          bordercolor: color,
-          borderpad: 3,
-          borderwidth: 0,
-          opacity: 0.96,
-        });
-      }
-    }
-    return out;
-  }, [visualMode, groups, axes, rows, colorOfScore]);
-
-  const layout = useMemo(() => {
-    if (visualMode === "radar") {
-      return {
-        polar: {
-          radialaxis: { range: [radarMin, 100], tickfont: { size: 10 }, fixedrange: true },
-          angularaxis: { tickfont: { size: 11 }, fixedrange: true },
-        },
-        showlegend: true,
-        legend: { orientation: "h", x: 0.5, xanchor: "center", y: -0.1 },
-        margin: { t: 24, r: 24, b: 50, l: 24 },
-      };
-    }
-    return {
-      barmode: "group",
-      // X termina en 110 para dejar espacio al chip rectangular (ancho ~6 unidades).
-      xaxis: { range: [0, 112], fixedrange: true, tickfont: { size: 11 }, tickvals: [0, 20, 40, 60, 80, 100] },
-      yaxis: {
-        autorange: "reversed",
-        tickfont: { size: 11 },
-        automargin: true,
-        tickmode: "array",
-        tickvals: axes,
-        ticktext: axes,
-      },
-      showlegend: groups.length > 1,
-      legend: { orientation: "h", x: 0.5, xanchor: "center", y: -0.18 },
-      margin: { t: 16, r: 24, b: 50, l: 24 },
-      annotations: barAnnotations,
-      // bargap explícito para que el cálculo de Y de los chips sea consistente.
-      bargap: 0.2,
-      bargroupgap: 0,
-    };
-  }, [visualMode, groups, axes, radarMin, barAnnotations]);
-
   if (!rows.length) {
     return <p className="dash-cardbox-help">Sin datos para graficar.</p>;
   }
 
-  // Altura: en modo barras agrupadas con muchos grupos, cada axis necesita
-  // ~22px por barra individual + padding. En radar la altura es fija.
-  const altura = visualMode === "radar"
-    ? 600
+  // ── Modo BARRAS ────────────────────────────────────────────────────────
+  if (visualMode === "barras") {
+    if (barrasOrientacion === "facet") {
+      // Facet: divide los axes en dos mitades y renderiza dos sub-plots
+      // horizontales lado a lado (top half / bottom half).
+      const half = Math.ceil(axes.length / 2);
+      const left = axes.slice(0, half);
+      const right = axes.slice(half);
+      return (
+        <div className="dash-dim-bars-facet">
+          <BarrasPlot
+            axes={left}
+            groups={groups}
+            rows={rows}
+            groupColors={groupColors}
+            orientation="horizontal"
+            xMin={barrasXMin}
+            xMax={barrasXMax}
+            colorOfScore={colorOfScore}
+            ariaLabel="Barras facet izquierda"
+          />
+          <BarrasPlot
+            axes={right}
+            groups={groups}
+            rows={rows}
+            groupColors={groupColors}
+            orientation="horizontal"
+            xMin={barrasXMin}
+            xMax={barrasXMax}
+            colorOfScore={colorOfScore}
+            ariaLabel="Barras facet derecha"
+          />
+        </div>
+      );
+    }
+    return (
+      <BarrasPlot
+        axes={axes}
+        groups={groups}
+        rows={rows}
+        groupColors={groupColors}
+        orientation={barrasOrientacion}
+        xMin={barrasXMin}
+        xMax={barrasXMax}
+        colorOfScore={colorOfScore}
+        ariaLabel="Barras de scores"
+      />
+    );
+  }
+
+  // ── Modo RADAR ─────────────────────────────────────────────────────────
+  // Si está animado, ordenar axes por score desc del primer grupo (Total).
+  const radarAxes = (() => {
+    if (!radarAnimado) {
+      return payload.axis_order_plot?.length
+        ? [...payload.axis_order_plot]
+        : uniqueOrdered(rows.map((r) => r.axis_label));
+    }
+    return [...axes];
+  })();
+
+  if (radarModo === "facet" && groups.length > 1) {
+    return (
+      <div className="dash-dim-radar-facet">
+        {groups.map((g) => (
+          <RadarPlot
+            key={g}
+            axes={radarAxes}
+            groups={[g]}
+            rows={rows}
+            groupColors={groupColors}
+            radarMin={radarMin}
+            radarMax={radarMax}
+            gridshape={radarGridshape}
+            animado={radarAnimado}
+            title={g}
+            height={360}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (radarModo === "alternante" && groups.length > 1) {
+    const safeIdx = ((alternanteIdx % groups.length) + groups.length) % groups.length;
+    const activeGroup = groups[safeIdx];
+    return (
+      <>
+        <RadarAlternanteToolbar
+          groups={groups}
+          activeIdx={safeIdx}
+          onIdx={setAlternanteIdx}
+          colors={groupColors}
+        />
+        <RadarPlot
+          axes={radarAxes}
+          groups={[activeGroup]}
+          rows={rows}
+          groupColors={groupColors}
+          radarMin={radarMin}
+          radarMax={radarMax}
+          gridshape={radarGridshape}
+          animado={radarAnimado}
+          height={560}
+        />
+      </>
+    );
+  }
+
+  return (
+    <RadarPlot
+      axes={radarAxes}
+      groups={groups}
+      rows={rows}
+      groupColors={groupColors}
+      radarMin={radarMin}
+      radarMax={radarMax}
+      gridshape={radarGridshape}
+      animado={radarAnimado}
+      height={600}
+    />
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Subcomponente Barras (h | v) con chip rectangular del semáforo.
+// ─────────────────────────────────────────────────────────────────────────────
+function BarrasPlot({
+  axes,
+  groups,
+  rows,
+  groupColors,
+  orientation,
+  xMin,
+  xMax,
+  colorOfScore,
+  ariaLabel,
+}: {
+  axes: string[];
+  groups: string[];
+  rows: { grupo: string; axis_label: string; score_round: number | null }[];
+  groupColors: Record<string, string>;
+  orientation: "horizontal" | "vertical";
+  xMin: number;
+  xMax: number;
+  colorOfScore: (v: number | null | undefined) => string | null;
+  ariaLabel: string;
+}) {
+  const isV = orientation === "vertical";
+  const traces = groups.map((g) => {
+    const vals = axes.map((a) => {
+      const row = rows.find((x) => x.grupo === g && x.axis_label === a);
+      return row?.score_round ?? null;
+    });
+    return isV
+      ? {
+          type: "bar" as const,
+          name: g,
+          orientation: "v" as const,
+          x: axes,
+          y: vals,
+          marker: { color: groupColors[g] ?? undefined },
+          hovertemplate: `${g}<br>%{x}: %{y:.0f}<extra></extra>`,
+        }
+      : {
+          type: "bar" as const,
+          name: g,
+          orientation: "h" as const,
+          x: vals,
+          y: axes,
+          marker: { color: groupColors[g] ?? undefined },
+          hovertemplate: `${g}<br>%{y}: %{x:.0f}<extra></extra>`,
+        };
+  });
+
+  // Chips semáforo al final de cada barra. Plotly barmode="group":
+  // ancho_barra = (1 - bargap) / n, offset = (gi - (n-1)/2) * ancho.
+  const annotations: unknown[] = [];
+  const nGroups = Math.max(1, groups.length);
+  const bargap = 0.2;
+  const widthPerBar = (1 - bargap) / nGroups;
+  for (let gi = 0; gi < groups.length; gi++) {
+    const offset = (gi - (nGroups - 1) / 2) * widthPerBar;
+    for (let ai = 0; ai < axes.length; ai++) {
+      const row = rows.find((r) => r.grupo === groups[gi] && r.axis_label === axes[ai]);
+      const v = row?.score_round ?? null;
+      if (v == null) continue;
+      const color = colorOfScore(v) ?? "#5f6b7a";
+      annotations.push({
+        x: isV ? ai + offset : v,
+        y: isV ? v : ai + offset,
+        xref: "x",
+        yref: "y",
+        text: `<b>${Math.round(v)}</b>`,
+        showarrow: false,
+        xanchor: isV ? "center" : "left",
+        yanchor: isV ? "bottom" : "middle",
+        xshift: isV ? 0 : 5,
+        yshift: isV ? 4 : 0,
+        font: { color: "#fff", size: 10, family: "system-ui, sans-serif" },
+        bgcolor: color,
+        bordercolor: color,
+        borderpad: 3,
+        borderwidth: 0,
+        opacity: 0.96,
+      });
+    }
+  }
+
+  // Buffer al final del eje numérico para que quepan los chips.
+  const buffer = (xMax - xMin) * 0.12;
+  const numericRange: [number, number] = [xMin, xMax + buffer];
+  const numericTicks = computeTicks(xMin, xMax);
+
+  const layout = isV
+    ? {
+        barmode: "group",
+        xaxis: {
+          tickfont: { size: 11 },
+          automargin: true,
+          tickmode: "array" as const,
+          tickvals: axes,
+          ticktext: axes,
+        },
+        yaxis: { range: numericRange, fixedrange: true, tickfont: { size: 11 }, tickvals: numericTicks },
+        showlegend: groups.length > 1,
+        legend: { orientation: "h", x: 0.5, xanchor: "center", y: -0.18 },
+        margin: { t: 16, r: 24, b: 80, l: 40 },
+        annotations,
+        bargap: 0.2,
+        bargroupgap: 0,
+      }
+    : {
+        barmode: "group",
+        xaxis: { range: numericRange, fixedrange: true, tickfont: { size: 11 }, tickvals: numericTicks },
+        yaxis: {
+          autorange: "reversed",
+          tickfont: { size: 11 },
+          automargin: true,
+          tickmode: "array" as const,
+          tickvals: axes,
+          ticktext: axes,
+        },
+        showlegend: groups.length > 1,
+        legend: { orientation: "h", x: 0.5, xanchor: "center", y: -0.18 },
+        margin: { t: 16, r: 24, b: 50, l: 24 },
+        annotations,
+        bargap: 0.2,
+        bargroupgap: 0,
+      };
+
+  const altura = isV
+    ? Math.max(380, axes.length * Math.max(40, groups.length * 22 + 14) * 0.6 + 120)
     : Math.max(360, axes.length * Math.max(40, groups.length * 22 + 14) + 100);
 
   return (
@@ -991,8 +1162,143 @@ function MainPlotView({
       data={traces}
       layout={layout}
       height={altura}
-      ariaLabel={visualMode === "radar" ? "Radar de dimensiones" : "Barras de scores"}
+      ariaLabel={ariaLabel}
     />
+  );
+}
+
+// Calcula tick values bonitos en un rango [min, max].
+function computeTicks(min: number, max: number): number[] {
+  const span = max - min;
+  const step = span <= 30 ? 5 : span <= 60 ? 10 : 20;
+  const out: number[] = [];
+  for (let v = Math.ceil(min / step) * step; v <= max; v += step) out.push(v);
+  if (!out.length || out[out.length - 1] !== max) out.push(max);
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Subcomponente RadarPlot.
+// ─────────────────────────────────────────────────────────────────────────────
+function RadarPlot({
+  axes,
+  groups,
+  rows,
+  groupColors,
+  radarMin,
+  radarMax,
+  gridshape,
+  animado,
+  title,
+  height = 600,
+}: {
+  axes: string[];
+  groups: string[];
+  rows: { grupo: string; axis_label: string; score_round: number | null }[];
+  groupColors: Record<string, string>;
+  radarMin: number;
+  radarMax: number;
+  gridshape: "linear" | "circular";
+  animado: boolean;
+  title?: string;
+  height?: number;
+}) {
+  const traces = groups.map((g) => {
+    const r = axes.map((a) => {
+      const row = rows.find((x) => x.grupo === g && x.axis_label === a);
+      return row?.score_round ?? null;
+    });
+    const closedTheta = [...axes, axes[0]];
+    const closedR = [...r, r[0]];
+    const color = groupColors[g] ?? "#0E3B74";
+    return {
+      type: "scatterpolar" as const,
+      mode: "lines+markers",
+      name: g,
+      theta: closedTheta,
+      r: closedR,
+      fill: "toself",
+      fillcolor: colorToRgba(color, 0.1),
+      opacity: 1,
+      line: { color, width: 3.2, shape: "linear" as const },
+      marker: { color, size: 7, line: { color: "#fff", width: 1.2 } },
+      hovertemplate: `<b>${g}</b><br>%{theta}: %{r:.0f}<extra></extra>`,
+    };
+  });
+
+  const layout = {
+    polar: {
+      radialaxis: {
+        range: [radarMin, radarMax],
+        tickfont: { size: 10 },
+        fixedrange: true,
+        showline: false,
+        gridcolor: "rgba(15, 23, 42, 0.08)",
+      },
+      angularaxis: {
+        tickfont: { size: 11 },
+        fixedrange: true,
+        gridcolor: "rgba(15, 23, 42, 0.08)",
+      },
+      gridshape,
+      bgcolor: "rgba(0,0,0,0)",
+    },
+    showlegend: groups.length > 1,
+    legend: { orientation: "h", x: 0.5, xanchor: "center", y: -0.08 },
+    margin: { t: title ? 36 : 24, r: 24, b: 50, l: 24 },
+    title: title ? { text: title, font: { size: 12 }, x: 0.5, xanchor: "center", y: 0.97 } : undefined,
+    transition: animado
+      ? { duration: 500, easing: "cubic-in-out" }
+      : undefined,
+  };
+
+  return (
+    <div className={animado ? "dash-dim-radar dash-dim-radar-animado" : "dash-dim-radar"}>
+      <PlotlyChart
+        data={traces}
+        layout={layout}
+        height={height}
+        ariaLabel={title ? `Radar ${title}` : "Radar de dimensiones"}
+      />
+    </div>
+  );
+}
+
+// Toolbar para modo radar alternante: chips clickeables para cada grupo.
+function RadarAlternanteToolbar({
+  groups,
+  activeIdx,
+  onIdx,
+  colors,
+}: {
+  groups: string[];
+  activeIdx: number;
+  onIdx: (i: number) => void;
+  colors: Record<string, string>;
+}) {
+  return (
+    <div className="dash-dim-radar-alt-toolbar" role="tablist" aria-label="Alternar grupo del radar">
+      {groups.map((g, i) => {
+        const active = i === activeIdx;
+        return (
+          <button
+            key={g}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            className={`dash-dim-radar-alt-chip ${active ? "is-active" : ""}`}
+            onClick={() => onIdx(i)}
+            style={active && colors[g] ? { ["--alt-accent" as string]: colors[g] } : undefined}
+          >
+            <span
+              className="dash-dim-radar-alt-dot"
+              style={{ background: colors[g] ?? "var(--dash-primario)" }}
+            />
+            {g}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -1059,30 +1365,92 @@ function FodaView({
           <span><strong>Corte SD:</strong> {payload.cortes?.sd ?? 0}</span>
         </div>
         {groupOptions.length > 1 && (
-          <div className="dash-foda-group-filter" aria-label="Filtrar FODA por grupo">
-            <span>Ver</span>
-            <button
-              type="button"
-              className={selectedGroup === "__all__" ? "is-active" : ""}
-              onClick={() => setSelectedGroup("__all__")}
-            >
-              Todos
-            </button>
-            {groupOptions.map((g) => (
-              <button
-                key={g.key}
-                type="button"
-                className={selectedGroup === g.key ? "is-active" : ""}
-                onClick={() => setSelectedGroup(g.key)}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
+          <FodaGroupNav
+            options={groupOptions}
+            selected={selectedGroup}
+            onSelect={setSelectedGroup}
+          />
         )}
         <FodaCounts counts={counts} payload={payload} />
       </div>
       <FodaDispersion items={visibleItems} payload={payload} />
+    </div>
+  );
+}
+
+// Navegador de grupos del FODA — modo doble:
+// - Si hay ≤4 grupos: chips horizontales con scroll (no se tapan).
+// - Si hay >4 grupos: stepper [‹] [grupo · idx/total] [›] como el de
+//   iteración para que no se solapen.
+function FodaGroupNav({
+  options,
+  selected,
+  onSelect,
+}: {
+  options: { key: string; label: string }[];
+  selected: string;
+  onSelect: (key: string) => void;
+}) {
+  const ALL: { key: string; label: string } = { key: "__all__", label: "Todos" };
+  const all = [ALL, ...options];
+  const useStepper = options.length > 4;
+
+  if (useStepper) {
+    const idx = Math.max(0, all.findIndex((o) => o.key === selected));
+    const prev = all[(idx - 1 + all.length) % all.length];
+    const next = all[(idx + 1) % all.length];
+    const current = all[idx];
+    return (
+      <div className="dash-iter-stepper" role="group" aria-label="Cambiar grupo del FODA">
+        <button
+          type="button"
+          className="dash-iter-stepper-btn"
+          onClick={() => onSelect(prev.key)}
+          aria-label={`Anterior: ${prev.label}`}
+          title={`Anterior: ${prev.label}`}
+        >
+          <ChevronLeft size={14} />
+        </button>
+        <div className="dash-iter-stepper-info">
+          <span className="dash-iter-stepper-label">{current.label}</span>
+          <span className="dash-iter-stepper-meta">
+            {idx + 1} / {all.length}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="dash-iter-stepper-btn"
+          onClick={() => onSelect(next.key)}
+          aria-label={`Siguiente: ${next.label}`}
+          title={`Siguiente: ${next.label}`}
+        >
+          <ChevronRight size={14} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="dash-foda-group-filter" aria-label="Filtrar FODA por grupo">
+      <span>Ver</span>
+      <button
+        type="button"
+        className={selected === "__all__" ? "is-active" : ""}
+        onClick={() => onSelect("__all__")}
+      >
+        Todos
+      </button>
+      {options.map((g) => (
+        <button
+          key={g.key}
+          type="button"
+          className={selected === g.key ? "is-active" : ""}
+          onClick={() => onSelect(g.key)}
+          title={g.label}
+        >
+          {g.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -1251,17 +1619,36 @@ function FodaDispersion({
       )}
       {fodaIconosEnabled && fodaIconLegend && Boolean(iconLegend.length) && (
         <div className="dash-foda-icon-legend" aria-label="Leyenda de iconos FODA">
-          {iconLegend.map((it) => (
-            <span key={it.var} className="dash-foda-icon-legend-item">
-              <FodaAxisIcon
-                label={it.label}
-                src={it.icono_url}
-                tint={fodaIconTint}
-                scale={0.75}
-              />
-              {it.label}
-            </span>
-          ))}
+          {iconLegend.map((it) => {
+            // Reúne TODOS los scores reales de esta dimensión (uno por
+            // grupo del cruce). El usuario quiere ver los valores reales,
+            // no solo el extremo. Si solo hay 1, mostramos el número
+            // simple; si hay varios, mostramos un rango compacto.
+            const scores = items
+              .filter((x) => x.var === it.var && Number.isFinite(x.score_mean))
+              .map((x) => Math.round(x.score_mean));
+            const min = scores.length ? Math.min(...scores) : null;
+            const max = scores.length ? Math.max(...scores) : null;
+            const same = min !== null && min === max;
+            return (
+              <span key={it.var} className="dash-foda-icon-legend-item">
+                <FodaAxisIcon
+                  label={it.label}
+                  src={it.icono_url}
+                  tint="var(--dash-primario)"
+                  scale={0.75}
+                />
+                <span className="dash-foda-icon-legend-text">{it.label}</span>
+                {min !== null && (
+                  <span className="dash-foda-icon-legend-vals">
+                    {same
+                      ? min
+                      : `${min}–${max}`}
+                  </span>
+                )}
+              </span>
+            );
+          })}
         </div>
       )}
     </>

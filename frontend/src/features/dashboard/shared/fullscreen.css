@@ -1,0 +1,115 @@
+.dashboard-scope .dash-fs-wrap {
+  position: relative;
+}
+
+.dashboard-scope .dash-fs-btn {
+  align-items: center;
+  appearance: none;
+  background: var(--dash-superficie);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  opacity: 0;
+  padding: 0;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  transition:
+    opacity var(--dash-dur-hover) var(--dash-ease-out),
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-out);
+  width: 26px;
+  z-index: 4;
+}
+.dashboard-scope .dash-fs-wrap:hover .dash-fs-btn,
+.dashboard-scope .dash-fs-btn:focus-visible {
+  opacity: 0.85;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-fs-btn:hover {
+    background: var(--dash-superficie-2);
+    color: var(--dash-primario);
+    opacity: 1;
+  }
+}
+.dashboard-scope .dash-fs-btn:active {
+  transform: scale(0.94);
+}
+
+/* Overlay y panel del fullscreen. */
+.dashboard-scope .dash-fs-overlay {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 32px;
+  position: fixed;
+  z-index: 90;
+  animation: dash-fs-fade-in var(--dash-dur-modal) var(--dash-ease-out);
+}
+
+.dashboard-scope .dash-fs-panel {
+  background: var(--dash-superficie);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-lg);
+  box-shadow: var(--dash-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: min(96vh, 1080px);
+  padding: 16px 18px 18px;
+  width: min(96vw, 1600px);
+  animation: dash-fs-zoom-in var(--dash-dur-modal) var(--dash-ease-out);
+}
+
+.dashboard-scope .dash-fs-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding-bottom: 8px;
+}
+
+.dashboard-scope .dash-fs-title {
+  color: var(--dash-primario);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  margin: 0;
+}
+
+.dashboard-scope .dash-fs-actions {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.dashboard-scope .dash-fs-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+@keyframes dash-fs-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dash-fs-zoom-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-scope .dash-fs-overlay,
+  .dashboard-scope .dash-fs-panel {
+    animation: none;
+  }
+}
