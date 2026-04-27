@@ -10,6 +10,7 @@ import { DashboardSourceGate } from "./source/DashboardSourceGate";
 import { ResumenTab } from "./tabs/ResumenTab";
 import { RelacionTab } from "./tabs/RelacionTab";
 import { BaseDatosTab } from "./tabs/BaseDatosTab";
+import { DimensionesTab } from "./tabs/DimensionesTab";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { useDashboardAutosave, useDashboardStore } from "./store";
 import { useDashboardManifest } from "./useDashboardData";
@@ -162,11 +163,6 @@ function TabContent({ tab }: { tab: DashboardTabId }) {
     case "base_datos":
       return <BaseDatosTab />;
     case "dimensiones":
-      return (
-        <EmptyState
-          title="Dimensiones — próximamente"
-          subtitle="Esta pestaña se implementará en la próxima fase."
-        />
-      );
+      return <DimensionesTab />;
   }
 }

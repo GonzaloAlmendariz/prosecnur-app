@@ -74,6 +74,33 @@ const DEFAULT_RELACION_STATE: DashboardRelacionState = {
   filtrosOn: false,
 };
 
+// Estado de exploración para Dimensiones (no persistido).
+export type DashboardDimensionesState = {
+  modo: "general" | "indicadores";
+  objetivo: string;
+  cruce: string;
+  incluirTotal: boolean;
+  iterarOn: boolean;
+  iterarVar: string;
+  iterarLevel: string;
+  filtrosOn: boolean;
+  enfoqueOn: boolean;
+  enfoqueGrupo: string;
+};
+
+const DEFAULT_DIMENSIONES_STATE: DashboardDimensionesState = {
+  modo: "general",
+  objetivo: "",
+  cruce: "",
+  incluirTotal: true,
+  iterarOn: false,
+  iterarVar: "",
+  iterarLevel: "",
+  filtrosOn: false,
+  enfoqueOn: false,
+  enfoqueGrupo: "",
+};
+
 // Estado de exploración para Base de datos (no persistido).
 export type DashboardBaseDatosState = {
   modo: "codigos" | "etiquetas";
@@ -106,6 +133,7 @@ type DashboardStore = {
   filtros: DashboardFiltro[];
   relacion: DashboardRelacionState;
   baseDatos: DashboardBaseDatosState;
+  dimensiones: DashboardDimensionesState;
 
   hydrate: (c: DashboardConfig) => void;
   markClean: () => void;
@@ -140,6 +168,10 @@ type DashboardStore = {
   setBaseDatosVariables: (names: string[]) => void;
   toggleBaseDatosSeccion: (id: string) => void;
   resetBaseDatos: () => void;
+
+  // Dimensiones
+  setDimensiones: (patch: Partial<DashboardDimensionesState>) => void;
+  resetDimensiones: () => void;
 };
 
 function dirtyPatch<T extends Partial<DashboardStore>>(p: T): T & { dirty: true } {
@@ -156,6 +188,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   filtros: [],
   relacion: DEFAULT_RELACION_STATE,
   baseDatos: DEFAULT_BASE_DATOS_STATE,
+  dimensiones: DEFAULT_DIMENSIONES_STATE,
 
   hydrate: (c) => set({ config: c, hydrated: true, dirty: false }),
   markClean: () => set({ dirty: false }),
@@ -238,6 +271,10 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
       return { baseDatos: { ...st.baseDatos, seccionesAbiertas: next } };
     }),
   resetBaseDatos: () => set({ baseDatos: DEFAULT_BASE_DATOS_STATE }),
+
+  setDimensiones: (patch) =>
+    set((st) => ({ dimensiones: { ...st.dimensiones, ...patch } })),
+  resetDimensiones: () => set({ dimensiones: DEFAULT_DIMENSIONES_STATE }),
 }));
 
 // Hook de hidratación + autosave (debounced 2s). Se monta una vez en

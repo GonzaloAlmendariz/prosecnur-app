@@ -3,6 +3,10 @@ import {
   apiDashboardBaseDatosData,
   apiDashboardBaseDatosDiccionario,
   apiDashboardBaseDatosEstructura,
+  apiDashboardDimCatalogo,
+  apiDashboardDimCategoriasVar,
+  apiDashboardDimPayload,
+  apiDashboardDimSeccionesVars,
   apiDashboardManifest,
   apiDashboardRelacionCross,
   apiDashboardResumenKpis,
@@ -11,6 +15,10 @@ import {
   DashboardBaseDatosData,
   DashboardBaseDatosDiccionario,
   DashboardBaseDatosEstructura,
+  DashboardDimCatalogo,
+  DashboardDimCategoria,
+  DashboardDimPayload,
+  DashboardDimSeccionesPayload,
   DashboardFiltro,
   DashboardKpisPayload,
   DashboardManifest,
@@ -324,6 +332,151 @@ export function useBaseDatosData(opts: {
   }, [opts.modo, variablesKey, opts.page, opts.pageSize, opts.search, sortKey]);
 
   return { loading, error, payload };
+}
+
+// =============================================================================
+// Tab Dimensiones — catálogo, secciones-vars, payload, categorías-var.
+// =============================================================================
+
+export function useDimCatalogo() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [payload, setPayload] = useState<DashboardDimCatalogo | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    apiDashboardDimCatalogo()
+      .then((r) => {
+        if (cancelled) return;
+        setPayload(r.payload);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { loading, error, payload };
+}
+
+export function useDimSeccionesVars() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [payload, setPayload] = useState<DashboardDimSeccionesPayload | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    apiDashboardDimSeccionesVars()
+      .then((r) => {
+        if (cancelled) return;
+        setPayload(r.payload);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { loading, error, payload };
+}
+
+export function useDimPayload(opts: {
+  modo: "general" | "indicadores";
+  objetivo: string;
+  cruce: string;
+  incluirTotal: boolean;
+  iter: { var: string; level?: string } | null;
+  filtros: DashboardFiltro[];
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [payload, setPayload] = useState<DashboardDimPayload | null>(null);
+
+  const filtrosKey = JSON.stringify(opts.filtros);
+  const iterKey = JSON.stringify(opts.iter);
+
+  useEffect(() => {
+    if (!opts.objetivo) {
+      setPayload(null);
+      return;
+    }
+    let cancelled = false;
+    const handle = window.setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      apiDashboardDimPayload({
+        modo: opts.modo,
+        objetivo: opts.objetivo,
+        cruce: opts.cruce || undefined,
+        incluir_total: opts.incluirTotal,
+        iter: opts.iter,
+        filtros: opts.filtros,
+      })
+        .then((r) => {
+          if (cancelled) return;
+          setPayload(r.payload);
+        })
+        .catch((e: unknown) => {
+          if (!cancelled) setError((e as Error).message);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opts.modo, opts.objetivo, opts.cruce, opts.incluirTotal, iterKey, filtrosKey]);
+
+  return { loading, error, payload };
+}
+
+export function useDimCategoriasVar(variable: string | null) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [valores, setValores] = useState<DashboardDimCategoria[]>([]);
+
+  useEffect(() => {
+    if (!variable) {
+      setValores([]);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    apiDashboardDimCategoriasVar(variable)
+      .then((r) => {
+        if (cancelled) return;
+        setValores(r.valores);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [variable]);
+
+  return { loading, error, valores };
 }
 
 export function useDiccionarioVariable(variable: string | null) {

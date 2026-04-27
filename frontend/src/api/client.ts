@@ -2308,6 +2308,112 @@ export async function apiDashboardBaseDatosDiccionario(variable: string) {
   );
 }
 
+// =============================================================================
+// Dashboard — Tab Dimensiones
+// =============================================================================
+
+export type DashboardDimObjetivo = {
+  id: string;
+  label: string;
+  n_axes: number;
+};
+
+export type DashboardDimCatalogo = {
+  ready: boolean;
+  general: DashboardDimObjetivo[];
+  indicadores: DashboardDimObjetivo[];
+};
+
+export type DashboardDimSeccionVar = {
+  nombre: string;
+  vars: { name: string; label: string }[];
+};
+
+export type DashboardDimSeccionesPayload = {
+  secciones: DashboardDimSeccionVar[];
+};
+
+export type DashboardDimScoreRow = {
+  grupo: string;
+  axis_label: string;
+  score_raw: number | null;
+  score_round: number | null;
+  base: number | null;
+  [key: string]: unknown;
+};
+
+export type DashboardDimPayload = {
+  ready: boolean;
+  error?: string;
+  mode?: "general" | "indicadores";
+  objective?: string;
+  objective_id?: string;
+  visual_mode?: "barras" | "radar";
+  principal_var?: string | null;
+  principal_label?: string | null;
+  principal_hidden?: number;
+  iter_active?: boolean;
+  iter_var?: string | null;
+  iter_var_label?: string | null;
+  iter_level?: string | null;
+  iter_level_label?: string | null;
+  iter_hidden_levels?: number;
+  axis_order_plot?: string[];
+  axis_order_heat?: string[];
+  score_plot?: DashboardDimScoreRow[];
+  score_heat?: DashboardDimScoreRow[];
+  group_colors?: Record<string, string>;
+  semaforo?: {
+    red_max: number;
+    amber_max: number;
+    red_color: string;
+    amber_color: string;
+    green_color: string;
+    na_color: string;
+  };
+};
+
+export type DashboardDimCategoria = { value: string; label: string; base: number };
+
+export async function apiDashboardDimCatalogo() {
+  return handle<{ ok: true; payload: DashboardDimCatalogo }>(
+    await apiFetch("/api/dashboard/dimensiones/catalogo", { headers: headers() }),
+  );
+}
+
+export async function apiDashboardDimSeccionesVars() {
+  return handle<{ ok: true; payload: DashboardDimSeccionesPayload }>(
+    await apiFetch("/api/dashboard/dimensiones/secciones-vars", { headers: headers() }),
+  );
+}
+
+export async function apiDashboardDimPayload(opts: {
+  modo: "general" | "indicadores";
+  objetivo: string;
+  cruce?: string;
+  incluir_total?: boolean;
+  iter?: { var: string; level?: string } | null;
+  filtros?: DashboardFiltro[];
+}) {
+  return handle<{ ok: true; payload: DashboardDimPayload }>(
+    await apiFetch("/api/dashboard/dimensiones/payload", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(opts),
+    }),
+  );
+}
+
+export async function apiDashboardDimCategoriasVar(varName: string) {
+  return handle<{ ok: true; valores: DashboardDimCategoria[] }>(
+    await apiFetch("/api/dashboard/dimensiones/categorias-var", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ var: varName }),
+    }),
+  );
+}
+
 export type AplicarResult = {
   ok: true;
   data_adaptada: { file_id: string; size: number };

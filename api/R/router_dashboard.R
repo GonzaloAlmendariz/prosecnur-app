@@ -208,6 +208,38 @@ mount_dashboard <- function(pr) {
       } else ""
       if (!nzchar(var)) stop_api(400, "E_BAD_REQUEST", "Falta query 'variable'.")
       list(ok = TRUE, payload = .dashboard_base_datos_diccionario(s, var))
+    })) |>
+    plumber::pr_get("/api/dashboard/dimensiones/catalogo", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      list(ok = TRUE, payload = .dashboard_dim_catalogo(s))
+    })) |>
+    plumber::pr_get("/api/dashboard/dimensiones/secciones-vars", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      list(ok = TRUE, payload = .dashboard_dim_secciones_vars(s))
+    })) |>
+    plumber::pr_post("/api/dashboard/dimensiones/payload", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body <- .dashboard_parse_body(req)
+      modo <- as.character(body$modo %||% "general")[1]
+      objetivo <- as.character(body$objetivo %||% "")[1]
+      if (!nzchar(objetivo)) stop_api(400, "E_BAD_REQUEST", "Falta 'objetivo'.")
+      cruce <- as.character(body$cruce %||% "")[1]
+      incluir_total <- if (is.null(body$incluir_total)) NULL else isTRUE(body$incluir_total)
+      iter <- body$iter
+      filtros <- body$filtros %||% list()
+      payload <- .dashboard_dim_payload(s, modo, objetivo, cruce, incluir_total, iter, filtros)
+      list(ok = TRUE, payload = payload)
+    })) |>
+    plumber::pr_post("/api/dashboard/dimensiones/categorias-var", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body <- .dashboard_parse_body(req)
+      var <- as.character(body$var %||% "")[1]
+      if (!nzchar(var)) stop_api(400, "E_BAD_REQUEST", "Falta 'var'.")
+      list(ok = TRUE, valores = .dashboard_dim_categorias_var(s, var))
     }))
 }
 

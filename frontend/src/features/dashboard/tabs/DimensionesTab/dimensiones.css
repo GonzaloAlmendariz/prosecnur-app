@@ -1,0 +1,46 @@
+.dashboard-scope .dash-dim-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dashboard-scope .dash-dim-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dashboard-scope .dash-dim-subtitle {
+  color: var(--dash-texto-suave);
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: auto;
+  text-align: right;
+}
+
+/* Leyenda semáforo (legacy: .dim-heat-legend). */
+.dashboard-scope .dash-dim-heat-legend {
+  align-items: center;
+  border-top: 1px solid var(--dash-divider);
+  color: var(--dash-texto-suave);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 16px;
+  justify-content: center;
+  padding-top: 10px;
+}
+
+.dashboard-scope .dash-dim-heat-legend-item {
+  align-items: center;
+  display: inline-flex;
+  font-variant-numeric: tabular-nums;
+  gap: 7px;
+}
+
+.dashboard-scope .dash-dim-heat-legend-swatch {
+  border-radius: 3px;
+  display: inline-block;
+  height: 12px;
+  width: 18px;
+}
