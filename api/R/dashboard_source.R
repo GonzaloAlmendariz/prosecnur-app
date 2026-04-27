@@ -176,7 +176,7 @@
   )
 }
 
-.dashboard_import_source <- function(sid, body) {
+.dashboard_import_source <- function(sid, body, keep_curacion = FALSE) {
   s <- session_get(sid)
 
   xls_meta <- NULL
@@ -238,7 +238,13 @@
   session_set(sid, "dashboard_rp_inst", rp_inst)
   session_set(sid, "dashboard_rp_data", rp_data)
   session_set(sid, "dashboard_source", source)
-  session_set(sid, "dashboard_curacion", NULL)
+  # Una importación nueva invalida la curaduría previa (las variables
+  # disponibles cambian con el XLSForm). Excepción: el rebuild tras
+  # load_pulso usa el mismo XLSForm y debe preservar la curaduría que
+  # ya viajaba en el .pulso.
+  if (!isTRUE(keep_curacion)) {
+    session_set(sid, "dashboard_curacion", NULL)
+  }
   source
 }
 

@@ -262,6 +262,36 @@ test_that("build_pulso preserva dashboard_source, dashboard_config y dashboard_c
                c("fecha_inicio", "device_id"))
 })
 
+test_that("load_pulso preserva la curaduría confirmada (rebuild no la pisa)", {
+  setup <- .fake_session_with_state()
+  on.exit({ session_delete(setup$sid) })
+
+  # Source válido + curaduría confirmada antes de guardar.
+  session_set(setup$sid, "dashboard_source", list(
+    ready = TRUE,
+    xlsform_file_id = setup$file_id,
+    data_file_id = setup$data_file_id
+  ))
+  session_set(setup$sid, "dashboard_curacion", list(
+    confirmed = TRUE,
+    exclude_sections = list(),
+    exclude_vars = list("var_excluida")
+  ))
+
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit(unlink(tmp, force = TRUE), add = TRUE)
+  build_pulso(setup$sid, tmp)
+
+  res_load <- load_pulso(tmp)
+  on.exit(session_delete(res_load$session_id), add = TRUE)
+  s <- session_get(res_load$session_id)
+
+  # El rebuild post-load NO debe resetear la curaduría — usa keep_curacion=TRUE.
+  expect_true(isTRUE(s$dashboard_curacion$confirmed))
+  expect_equal(as.character(unlist(s$dashboard_curacion$exclude_vars)),
+               "var_excluida")
+})
+
 test_that("build_pulso excluye dashboard_rp_inst y dashboard_rp_data del state", {
   setup <- .fake_session_with_state()
   on.exit({ session_delete(setup$sid) })

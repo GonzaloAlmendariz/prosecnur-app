@@ -68,10 +68,11 @@
   dat_fid <- as.character(s$dashboard_source$data_file_id %||% "")[1]
   if (!nzchar(xls_fid) || !nzchar(dat_fid)) return(invisible(NULL))
   tryCatch(
-    .dashboard_import_source(sid, list(
-      xlsform_file_id = xls_fid,
-      data_file_id    = dat_fid
-    )),
+    .dashboard_import_source(
+      sid,
+      list(xlsform_file_id = xls_fid, data_file_id = dat_fid),
+      keep_curacion = TRUE
+    ),
     error = function(e) {
       # No-op: el dashboard mostrará "carga la fuente" en la UI.
       invisible(NULL)
