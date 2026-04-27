@@ -61,19 +61,29 @@ function SoBar({
 }) {
   const traces = useMemo(
     () =>
-      dist.map((d, i) => ({
-        type: "bar" as const,
-        x: [d.pct],
-        y: ["Total"],
-        name: d.label,
-        orientation: "h" as const,
-        marker: { color: palette?.[d.label] || d.color || legendColor(i) },
-        text: d.pct >= 0.04 ? `${Math.round(d.pct * 100)}%` : "",
-        textposition: "inside" as const,
-        insidetextanchor: "middle" as const,
-        textfont: { color: "white", size: 12 },
-        hovertemplate: `${d.label}: ${(d.pct * 100).toFixed(1)}%<br>n: ${d.n}<extra></extra>`,
-      })),
+      dist.map((d, i) => {
+        const segColor = palette?.[d.label] || d.color || legendColor(i);
+        const pequeno = d.pct < 0.06;
+        return {
+          type: "bar" as const,
+          x: [d.pct],
+          y: ["Total"],
+          name: d.label,
+          orientation: "h" as const,
+          marker: { color: segColor },
+          text: `${Math.round(d.pct * 100)}%`,
+          // Si el segmento es chico, Plotly coloca el texto FUERA al lado
+          // (a la derecha en orientación h). Si cabe, lo pone adentro.
+          textposition: pequeno ? ("outside" as const) : ("inside" as const),
+          insidetextanchor: "middle" as const,
+          textfont: pequeno
+            ? { color: segColor, size: 11 }
+            : { color: "white", size: 12 },
+          cliponaxis: false,
+          constraintext: "none" as const,
+          hovertemplate: `${d.label}: ${(d.pct * 100).toFixed(1)}%<br>n: ${d.n}<extra></extra>`,
+        };
+      }),
     [dist, palette],
   );
 

@@ -27,6 +27,11 @@
     notas                   = "",
     # ---- Personalización visual avanzada (Dimensiones) ----
     semaforo_modo           = "cortes",    # "cortes" | "gradiente"
+    semaforo_red_color      = "#D84B55",   # color del rango bajo
+    semaforo_amber_color    = "#E0B44C",   # color del rango medio
+    semaforo_green_color    = "#3A9A5B",   # color del rango alto
+    semaforo_red_max        = 60L,         # umbral superior del rojo (0-100)
+    semaforo_amber_max      = 80L,         # umbral superior del ámbar (red_max-100)
     radar_min               = 0L,          # límite inferior del eje radial (0-95)
     foda_iconos_enabled     = TRUE,
     foda_icon_tint          = "#FFFFFF",

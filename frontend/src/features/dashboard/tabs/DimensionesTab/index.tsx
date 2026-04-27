@@ -3,6 +3,8 @@ import {
   Accessibility,
   BarChart3,
   Building2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Compass,
   HandHeart,
@@ -36,6 +38,11 @@ import {
 import { EmptyState } from "../../shared/EmptyState";
 import { FiltrosMultiRow } from "../ResumenTab/FiltrosMultiRow";
 import { PlotlyChart } from "../../shared/PlotlyChart";
+import {
+  colorOfScore as semColorOfScore,
+  plotlyColorscale,
+  semaforoFromConfig,
+} from "../../shared/semaforo";
 import "./dimensiones.css";
 import "./foda.css";
 
@@ -555,6 +562,13 @@ function VisualizadorCard({
               : "Scores por dimensión"}
           </h2>
           {payload && payload.ready && <SubtituloDim payload={payload} />}
+          {dim.iterarOn && dim.iterarVar && (
+            <IterStepper
+              variable={dim.iterarVar}
+              level={dim.iterarLevel}
+              onLevel={(l) => setDim({ iterarLevel: l })}
+            />
+          )}
         </div>
         <div className="dash-dim-vis-segmented" role="tablist" aria-label="Modo de visualización">
           <SegmentedItem
@@ -615,6 +629,54 @@ function VisualizadorCard({
   );
 }
 
+// Stepper compacto prev/next del nivel actual de iteración. Reemplaza
+// la fricción de tener que ir al sidebar para cambiar de nivel.
+function IterStepper({
+  variable,
+  level,
+  onLevel,
+}: {
+  variable: string;
+  level: string;
+  onLevel: (l: string) => void;
+}) {
+  const { valores } = useDimCategoriasVar(variable || null);
+  if (!valores.length) return null;
+  const idx = Math.max(0, valores.findIndex((v) => v.value === level));
+  const prev = valores[(idx - 1 + valores.length) % valores.length];
+  const next = valores[(idx + 1) % valores.length];
+  const current = valores[idx];
+  return (
+    <div className="dash-iter-stepper" role="group" aria-label="Cambiar nivel de iteración">
+      <button
+        type="button"
+        className="dash-iter-stepper-btn"
+        onClick={() => onLevel(prev.value)}
+        aria-label={`Anterior: ${prev.label}`}
+        title={`Anterior: ${prev.label}`}
+      >
+        <ChevronLeft size={14} />
+      </button>
+      <div className="dash-iter-stepper-info">
+        <span className="dash-iter-stepper-label">{current?.label ?? "—"}</span>
+        <span className="dash-iter-stepper-meta">
+          {idx + 1} / {valores.length}
+          {current?.base ? ` · n=${Math.round(current.base)}` : ""}
+        </span>
+      </div>
+      <button
+        type="button"
+        className="dash-iter-stepper-btn"
+        onClick={() => onLevel(next.value)}
+        aria-label={`Siguiente: ${next.label}`}
+        title={`Siguiente: ${next.label}`}
+      >
+        <ChevronRight size={14} />
+      </button>
+    </div>
+  );
+}
+
 function SegmentedItem({
   active,
   onClick,
@@ -648,7 +710,18 @@ function SegmentedItem({
 function HeatmapView({ payload }: { payload: DashboardDimPayload }) {
   const heat = payload.score_heat ?? [];
   const semaforo = payload.semaforo!;
-  const semaforoModo = useDashboardStore((s) => s.config.semaforo_modo ?? "cortes");
+  const config = useDashboardStore((s) => s.config);
+  const sem = useMemo(
+    () =>
+      semaforoFromConfig(config, {
+        red_color: semaforo.red_color,
+        amber_color: semaforo.amber_color,
+        green_color: semaforo.green_color,
+        red_max: semaforo.red_max,
+        amber_max: semaforo.amber_max,
+      }),
+    [config, semaforo],
+  );
 
   const { traces, layout, axes } = useMemo(() => {
     if (!heat.length) {
@@ -669,23 +742,8 @@ function HeatmapView({ payload }: { payload: DashboardDimPayload }) {
       row.map((v) => (v == null ? "—" : String(Math.round(v)))),
     );
 
-    // Colorscale: en modo "cortes" hay saltos abruptos en los umbrales;
-    // en modo "gradiente" se interpola linealmente entre los 3 colores.
-    const cs: [number, string][] = semaforoModo === "gradiente"
-      ? [
-          [0, semaforo.red_color],
-          [semaforo.red_max / 100, semaforo.amber_color],
-          [semaforo.amber_max / 100, semaforo.green_color],
-          [1, semaforo.green_color],
-        ]
-      : [
-          [0, semaforo.red_color],
-          [(semaforo.red_max - 0.001) / 100, semaforo.red_color],
-          [semaforo.red_max / 100, semaforo.amber_color],
-          [(semaforo.amber_max - 0.001) / 100, semaforo.amber_color],
-          [semaforo.amber_max / 100, semaforo.green_color],
-          [1, semaforo.green_color],
-        ];
+    // Colorscale unificado vía helper compartido (modo y umbrales del config).
+    const cs = plotlyColorscale(sem);
 
     const traces = [
       {
@@ -714,7 +772,7 @@ function HeatmapView({ payload }: { payload: DashboardDimPayload }) {
       margin: { t: 40, r: 16, b: 16, l: 16 },
     };
     return { traces, layout, axes: { x: xVals, y: yVals } };
-  }, [heat, payload.axis_order_heat, semaforo, semaforoModo]);
+  }, [heat, payload.axis_order_heat, sem]);
 
   if (!heat.length) {
     return <p className="dash-cardbox-help">Sin datos para mostrar.</p>;
@@ -732,16 +790,16 @@ function HeatmapView({ payload }: { payload: DashboardDimPayload }) {
       />
       <div className="dash-dim-heat-legend" aria-label="Leyenda semáforo">
         <span className="dash-dim-heat-legend-item">
-          <span className="dash-dim-heat-legend-swatch" style={{ background: semaforo.red_color }} />
-          0–{semaforo.red_max - 1} bajo
+          <span className="dash-dim-heat-legend-swatch" style={{ background: sem.red }} />
+          0–{sem.redMax - 1} bajo
         </span>
         <span className="dash-dim-heat-legend-item">
-          <span className="dash-dim-heat-legend-swatch" style={{ background: semaforo.amber_color }} />
-          {semaforo.red_max}–{semaforo.amber_max - 1} medio
+          <span className="dash-dim-heat-legend-swatch" style={{ background: sem.amber }} />
+          {sem.redMax}–{sem.amberMax - 1} medio
         </span>
         <span className="dash-dim-heat-legend-item">
-          <span className="dash-dim-heat-legend-swatch" style={{ background: semaforo.green_color }} />
-          {semaforo.amber_max}–100 alto
+          <span className="dash-dim-heat-legend-swatch" style={{ background: sem.green }} />
+          {sem.amberMax}–100 alto
         </span>
       </div>
     </>
@@ -783,18 +841,23 @@ function MainPlotView({
 
   const groupColors = payload.group_colors ?? {};
   const semaforo = payload.semaforo;
-  const radarMin = useDashboardStore((s) => s.config.radar_min ?? 0);
+  const config = useDashboardStore((s) => s.config);
+  const radarMin = config.radar_min ?? 0;
 
-  // Color del semáforo según el score (rojo/ámbar/verde según los cortes
-  // configurados). Reutilizado por annotations y trace de barras.
+  // Color del semáforo según el score (cortes/gradiente y umbrales del
+  // config personalizable). Helper compartido que también usan heatmap y FODA.
   const colorOfScore = useMemo(() => {
-    return (v: number | null | undefined): string | null => {
-      if (v == null || !semaforo) return null;
-      if (v < semaforo.red_max) return semaforo.red_color;
-      if (v < semaforo.amber_max) return semaforo.amber_color;
-      return semaforo.green_color;
-    };
-  }, [semaforo]);
+    const sem = semaforoFromConfig(config, semaforo
+      ? {
+          red_color: semaforo.red_color,
+          amber_color: semaforo.amber_color,
+          green_color: semaforo.green_color,
+          red_max: semaforo.red_max,
+          amber_max: semaforo.amber_max,
+        }
+      : null);
+    return (v: number | null | undefined) => semColorOfScore(v, sem);
+  }, [config, semaforo]);
 
   const traces = useMemo(() => {
     if (visualMode === "radar") {
@@ -904,7 +967,7 @@ function MainPlotView({
         ticktext: axes,
       },
       showlegend: groups.length > 1,
-      legend: { orientation: "h", y: -0.15 },
+      legend: { orientation: "h", x: 0.5, xanchor: "center", y: -0.18 },
       margin: { t: 16, r: 24, b: 50, l: 24 },
       annotations: barAnnotations,
       // bargap explícito para que el cálculo de Y de los chips sea consistente.
@@ -1067,14 +1130,25 @@ function FodaDispersion({
   const semaforo = payload.semaforo!;
   const corteScore = payload.cortes?.score ?? 80;
   const corteSd = payload.cortes?.sd ?? 0;
-  const fodaIconosEnabled = useDashboardStore((s) => s.config.foda_iconos_enabled ?? true);
-  const fodaIconTint = useDashboardStore((s) => s.config.foda_icon_tint ?? "#FFFFFF");
-  const fodaIconSize = useDashboardStore((s) => s.config.foda_icon_size ?? 1);
-  const fodaIconLegend = useDashboardStore((s) => s.config.foda_icon_legend ?? true);
-  const fodaScoreMin = useDashboardStore((s) => s.config.foda_score_min ?? 0);
-  const fodaScoreMax = useDashboardStore((s) => s.config.foda_score_max ?? 120);
-  const fodaSpacing = useDashboardStore((s) => s.config.foda_spacing ?? 1.15);
-  const fodaGridIntensity = useDashboardStore((s) => s.config.foda_grid_intensity ?? 0.42);
+  const config = useDashboardStore((s) => s.config);
+  const fodaIconosEnabled = config.foda_iconos_enabled ?? true;
+  const fodaIconTint = config.foda_icon_tint ?? "#FFFFFF";
+  const fodaIconSize = config.foda_icon_size ?? 1;
+  const fodaIconLegend = config.foda_icon_legend ?? true;
+  const fodaScoreMin = config.foda_score_min ?? 0;
+  const fodaScoreMax = config.foda_score_max ?? 120;
+  const fodaSpacing = config.foda_spacing ?? 1.15;
+  const fodaGridIntensity = config.foda_grid_intensity ?? 0.42;
+  const sem = useMemo(
+    () => semaforoFromConfig(config, {
+      red_color: semaforo.red_color,
+      amber_color: semaforo.amber_color,
+      green_color: semaforo.green_color,
+      red_max: semaforo.red_max,
+      amber_max: semaforo.amber_max,
+    }),
+    [config, semaforo],
+  );
 
   const plot = useMemo(
     () => buildFodaLegacyPlot(
@@ -1088,7 +1162,7 @@ function FodaDispersion({
     ),
     [items, payload.group_colors, corteScore, corteSd, fodaScoreMin, fodaScoreMax, fodaSpacing],
   );
-  const iconScale = Math.max(0.6, Math.min(1.8, fodaIconSize));
+  const iconScale = Math.max(0.5, Math.min(1.8, fodaIconSize));
   const gridAlpha = (0.012 + Math.max(0, Math.min(1, fodaGridIntensity)) * 0.045).toFixed(3);
   const iconLegend = useMemo(
     () => buildFodaIconLegend(items, payload.icon_legend ?? []),
@@ -1149,7 +1223,7 @@ function FodaDispersion({
               </span>
               <span
                 className="dash-foda-legacy-score"
-                style={{ background: semaforoColor(p.score_mean, semaforo) }}
+                style={{ background: semColorOfScore(p.score_mean, sem) ?? sem.green }}
               >
                 {Math.round(p.score_mean)}
               </span>

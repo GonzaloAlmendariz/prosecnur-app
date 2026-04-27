@@ -371,7 +371,7 @@ function CrucesView({ payload }: { payload: { iterado: boolean; iter_label?: str
                 yaxis: { tickformat: ".0%", range: [0, 1], fixedrange: true },
                 xaxis: { fixedrange: true },
                 showlegend: true,
-                legend: { orientation: "h", y: -0.15 },
+                legend: { orientation: "h", x: 0.5, xanchor: "center", y: -0.18 },
                 margin: { t: 10, r: 18, b: 50, l: 40 },
               }}
               height={320}

@@ -163,6 +163,74 @@
   }
 }
 
+/* Iteration stepper — botones prev/next + label del nivel actual. */
+.dashboard-scope .dash-iter-stepper {
+  align-items: stretch;
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  transition:
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out);
+}
+.dashboard-scope .dash-iter-stepper:hover {
+  border-color: var(--dash-primario-ring);
+  box-shadow: var(--dash-shadow-xs);
+}
+.dashboard-scope .dash-iter-stepper-btn {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--dash-primario);
+  cursor: pointer;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-out);
+  width: 30px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-iter-stepper-btn:hover {
+    background: var(--dash-primario-soft);
+  }
+}
+.dashboard-scope .dash-iter-stepper-btn:active {
+  transform: scale(0.92);
+}
+.dashboard-scope .dash-iter-stepper-info {
+  align-items: center;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 130px;
+  padding: 0 10px;
+}
+.dashboard-scope .dash-iter-stepper-label {
+  color: var(--dash-texto);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.1;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-scope .dash-iter-stepper-meta {
+  color: var(--dash-texto-suave);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  margin-top: 1px;
+  text-transform: uppercase;
+}
+
 /* Subtítulo dinámico — chips para indicadores ocultos. */
 .dashboard-scope .dash-dim-subtitle {
   align-items: center;

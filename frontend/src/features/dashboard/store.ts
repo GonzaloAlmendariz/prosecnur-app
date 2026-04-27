@@ -47,12 +47,26 @@ function sanitizeConfig(c: DashboardConfig): DashboardConfig {
     color_primario_override: str(c.color_primario_override),
     notas: typeof c.notas === "string" ? c.notas : "",
     semaforo_modo: c.semaforo_modo === "gradiente" ? "gradiente" : "cortes",
+    semaforo_red_color: typeof c.semaforo_red_color === "string" && c.semaforo_red_color.length > 0
+      ? c.semaforo_red_color
+      : "#D84B55",
+    semaforo_amber_color: typeof c.semaforo_amber_color === "string" && c.semaforo_amber_color.length > 0
+      ? c.semaforo_amber_color
+      : "#E0B44C",
+    semaforo_green_color: typeof c.semaforo_green_color === "string" && c.semaforo_green_color.length > 0
+      ? c.semaforo_green_color
+      : "#3A9A5B",
+    semaforo_red_max: Math.max(5, Math.min(95, num(c.semaforo_red_max, 60))),
+    semaforo_amber_max: Math.max(
+      Math.max(5, Math.min(95, num(c.semaforo_red_max, 60))) + 1,
+      Math.min(99, num(c.semaforo_amber_max, 80)),
+    ),
     radar_min: Math.max(0, Math.min(95, num(c.radar_min, 0))),
     foda_iconos_enabled: typeof c.foda_iconos_enabled === "boolean" ? c.foda_iconos_enabled : true,
     foda_icon_tint: typeof c.foda_icon_tint === "string" && c.foda_icon_tint.length > 0
       ? c.foda_icon_tint
       : "#FFFFFF",
-    foda_icon_size: Math.max(0.6, Math.min(1.8, num(c.foda_icon_size, 1))),
+    foda_icon_size: Math.max(0.5, Math.min(1.8, num(c.foda_icon_size, 1))),
     foda_icon_legend: typeof c.foda_icon_legend === "boolean" ? c.foda_icon_legend : true,
     foda_score_min: fodaScoreMin,
     foda_score_max: fodaScoreMax,
@@ -73,6 +87,11 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   color_primario_override: null,
   notas: "",
   semaforo_modo: "cortes",
+  semaforo_red_color: "#D84B55",
+  semaforo_amber_color: "#E0B44C",
+  semaforo_green_color: "#3A9A5B",
+  semaforo_red_max: 60,
+  semaforo_amber_max: 80,
   radar_min: 0,
   foda_iconos_enabled: true,
   foda_icon_tint: "#FFFFFF",
@@ -187,6 +206,11 @@ type DashboardStore = {
   setColorPrimarioOverride: (hex: string | null) => void;
   setNotas: (s: string) => void;
   setSemaforoModo: (m: "cortes" | "gradiente") => void;
+  setSemaforoRedColor: (hex: string) => void;
+  setSemaforoAmberColor: (hex: string) => void;
+  setSemaforoGreenColor: (hex: string) => void;
+  setSemaforoRedMax: (n: number) => void;
+  setSemaforoAmberMax: (n: number) => void;
   setRadarMin: (n: number) => void;
   setFodaIconosEnabled: (enabled: boolean) => void;
   setFodaIconTint: (hex: string) => void;
@@ -283,6 +307,24 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   setNotas: (s) => set((st) => dirtyPatch({ config: { ...st.config, notas: s } })),
   setSemaforoModo: (m) =>
     set((st) => dirtyPatch({ config: { ...st.config, semaforo_modo: m } })),
+  setSemaforoRedColor: (hex) =>
+    set((st) => dirtyPatch({ config: { ...st.config, semaforo_red_color: hex } })),
+  setSemaforoAmberColor: (hex) =>
+    set((st) => dirtyPatch({ config: { ...st.config, semaforo_amber_color: hex } })),
+  setSemaforoGreenColor: (hex) =>
+    set((st) => dirtyPatch({ config: { ...st.config, semaforo_green_color: hex } })),
+  setSemaforoRedMax: (n) =>
+    set((st) => {
+      const r = Math.max(5, Math.min(95, Math.round(n)));
+      const a = Math.max(r + 1, st.config.semaforo_amber_max ?? 80);
+      return dirtyPatch({ config: { ...st.config, semaforo_red_max: r, semaforo_amber_max: a } });
+    }),
+  setSemaforoAmberMax: (n) =>
+    set((st) => {
+      const r = st.config.semaforo_red_max ?? 60;
+      const a = Math.max(r + 1, Math.min(99, Math.round(n)));
+      return dirtyPatch({ config: { ...st.config, semaforo_amber_max: a } });
+    }),
   setRadarMin: (n) =>
     set((st) =>
       dirtyPatch({ config: { ...st.config, radar_min: Math.max(0, Math.min(95, Math.round(n))) } }),

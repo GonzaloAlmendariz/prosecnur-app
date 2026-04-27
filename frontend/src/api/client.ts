@@ -2044,6 +2044,11 @@ export type DashboardConfig = {
   notas: string;
   // Personalización visual avanzada (Dimensiones).
   semaforo_modo?: "cortes" | "gradiente";
+  semaforo_red_color?: string;
+  semaforo_amber_color?: string;
+  semaforo_green_color?: string;
+  semaforo_red_max?: number;
+  semaforo_amber_max?: number;
   radar_min?: number;
   foda_iconos_enabled?: boolean;
   foda_icon_tint?: string;

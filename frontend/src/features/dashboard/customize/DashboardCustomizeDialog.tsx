@@ -12,6 +12,11 @@ import { useDashboardStore } from "../store";
 export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
   const config = useDashboardStore((s) => s.config);
   const setSemaforoModo = useDashboardStore((s) => s.setSemaforoModo);
+  const setSemaforoRedColor = useDashboardStore((s) => s.setSemaforoRedColor);
+  const setSemaforoAmberColor = useDashboardStore((s) => s.setSemaforoAmberColor);
+  const setSemaforoGreenColor = useDashboardStore((s) => s.setSemaforoGreenColor);
+  const setSemaforoRedMax = useDashboardStore((s) => s.setSemaforoRedMax);
+  const setSemaforoAmberMax = useDashboardStore((s) => s.setSemaforoAmberMax);
   const setRadarMin = useDashboardStore((s) => s.setRadarMin);
   const setFodaIconosEnabled = useDashboardStore((s) => s.setFodaIconosEnabled);
   const setFodaIconTint = useDashboardStore((s) => s.setFodaIconTint);
@@ -24,6 +29,11 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
   const setFodaGridIntensity = useDashboardStore((s) => s.setFodaGridIntensity);
 
   const semaforoModo = config.semaforo_modo ?? "cortes";
+  const semRed = config.semaforo_red_color ?? "#D84B55";
+  const semAmber = config.semaforo_amber_color ?? "#E0B44C";
+  const semGreen = config.semaforo_green_color ?? "#3A9A5B";
+  const semRedMax = config.semaforo_red_max ?? 60;
+  const semAmberMax = config.semaforo_amber_max ?? 80;
   const radarMin = config.radar_min ?? 0;
   const fodaIconosEnabled = config.foda_iconos_enabled ?? true;
   const fodaIconTint = config.foda_icon_tint ?? "#FFFFFF";
@@ -71,11 +81,11 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
         <div style={{ padding: 18, display: "grid", gap: 18 }}>
           {/* ── Semáforo ── */}
           <section>
-            <h3 className="dash-customize-section-title">Semáforo del heatmap</h3>
+            <h3 className="dash-customize-section-title">Semáforo</h3>
             <p className="dash-customize-help">
-              En <strong>cortes</strong> los colores cambian abruptamente al cruzar los
-              umbrales. En <strong>gradiente</strong> se interpolan continuamente entre
-              rojo, ámbar y verde.
+              Aplica a <strong>todos</strong> los gráficos (heatmap, chips de barras,
+              FODA). En <strong>cortes</strong> los colores cambian al cruzar los
+              umbrales; en <strong>gradiente</strong> se interpolan continuamente.
             </p>
             <div
               className="dash-source-segments"
@@ -102,7 +112,75 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
                 Gradiente
               </button>
             </div>
-            <SemaforoPreview modo={semaforoModo} />
+            <div className="dash-customize-sem-grid">
+              <label className="dash-customize-color-field">
+                <span className="dash-filtro-label">Bajo</span>
+                <input
+                  type="color"
+                  value={semRed}
+                  onChange={(e) => setSemaforoRedColor(e.target.value)}
+                  aria-label="Color del rango bajo"
+                />
+              </label>
+              <label className="dash-customize-color-field">
+                <span className="dash-filtro-label">Medio</span>
+                <input
+                  type="color"
+                  value={semAmber}
+                  onChange={(e) => setSemaforoAmberColor(e.target.value)}
+                  aria-label="Color del rango medio"
+                />
+              </label>
+              <label className="dash-customize-color-field">
+                <span className="dash-filtro-label">Alto</span>
+                <input
+                  type="color"
+                  value={semGreen}
+                  onChange={(e) => setSemaforoGreenColor(e.target.value)}
+                  aria-label="Color del rango alto"
+                />
+              </label>
+            </div>
+            <div className="dash-customize-slider-row">
+              <label htmlFor="dash-sem-red-max" className="dash-filtro-label">
+                Bajo &lt;
+              </label>
+              <input
+                id="dash-sem-red-max"
+                type="range"
+                min={5}
+                max={95}
+                step={1}
+                value={semRedMax}
+                onChange={(e) => setSemaforoRedMax(Number(e.target.value))}
+                className="dash-customize-slider"
+              />
+              <span className="dash-customize-slider-value">{semRedMax}</span>
+            </div>
+            <div className="dash-customize-slider-row">
+              <label htmlFor="dash-sem-amber-max" className="dash-filtro-label">
+                Medio &lt;
+              </label>
+              <input
+                id="dash-sem-amber-max"
+                type="range"
+                min={semRedMax + 1}
+                max={99}
+                step={1}
+                value={semAmberMax}
+                onChange={(e) => setSemaforoAmberMax(Number(e.target.value))}
+                className="dash-customize-slider"
+              />
+              <span className="dash-customize-slider-value">{semAmberMax}</span>
+            </div>
+            <SemaforoPreview
+              modo={semaforoModo}
+              red={semRed}
+              amber={semAmber}
+              green={semGreen}
+              redMax={semRedMax}
+              amberMax={semAmberMax}
+            />
           </section>
 
           {/* ── Radar ── */}
@@ -183,9 +261,9 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
                 <input
                   id="dash-foda-icon-size"
                   type="range"
-                  min={0.6}
+                  min={0.5}
                   max={1.8}
-                  step={0.1}
+                  step={0.05}
                   value={fodaIconSize}
                   disabled={!fodaIconosEnabled}
                   onChange={(e) => setFodaIconSize(Number(e.target.value))}
@@ -291,29 +369,44 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-function SemaforoPreview({ modo }: { modo: "cortes" | "gradiente" }) {
-  const red = "#D84B55";
-  const amber = "#E0B44C";
-  const green = "#3A9A5B";
+function SemaforoPreview({
+  modo,
+  red,
+  amber,
+  green,
+  redMax,
+  amberMax,
+}: {
+  modo: "cortes" | "gradiente";
+  red: string;
+  amber: string;
+  green: string;
+  redMax: number;
+  amberMax: number;
+}) {
   const bg = modo === "gradiente"
-    ? `linear-gradient(90deg, ${red} 0%, ${amber} 60%, ${green} 100%)`
+    ? `linear-gradient(90deg, ${red} 0%, ${amber} ${redMax}%, ${green} ${amberMax}%, ${green} 100%)`
     : `linear-gradient(
         to right,
         ${red} 0%,
-        ${red} 60%,
-        ${amber} 60%,
-        ${amber} 80%,
-        ${green} 80%,
+        ${red} ${redMax}%,
+        ${amber} ${redMax}%,
+        ${amber} ${amberMax}%,
+        ${green} ${amberMax}%,
         ${green} 100%
       )`;
   return (
     <div className="dash-customize-preview" aria-hidden="true">
       <div className="dash-customize-preview-bar" style={{ background: bg }} />
-      <div className="dash-customize-preview-marks">
-        <span>0</span>
-        <span>60</span>
-        <span>80</span>
-        <span>100</span>
+      <div
+        className="dash-customize-preview-marks"
+        style={{
+          gridTemplateColumns: `${redMax}fr ${amberMax - redMax}fr ${100 - amberMax}fr`,
+        }}
+      >
+        <span>0–{redMax}</span>
+        <span>{redMax}–{amberMax}</span>
+        <span>{amberMax}–100</span>
       </div>
     </div>
   );
