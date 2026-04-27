@@ -4,6 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DashboardTabId } from "../../api/client";
 import { DashboardCurationGate } from "./curation/DashboardCurationGate";
 import { DashboardHeader } from "./header/DashboardHeader";
+import { DashboardCustomizeDialog } from "./customize/DashboardCustomizeDialog";
+import "./customize/customize.css";
 import { DashboardPalettesDialog } from "./palettes/DashboardPalettesDialog";
 import { EmptyState } from "./shared/EmptyState";
 import { DashboardSourceGate } from "./source/DashboardSourceGate";
@@ -36,6 +38,7 @@ export default function DashboardPage() {
   const setSeccionActiva = useDashboardStore((s) => s.setSeccionActiva);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [palettesOpen, setPalettesOpen] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
 
   const { loading, error, manifest, themeDefault, refresh } = useDashboardManifest();
   const hasDashboardSource = !!manifest?.estado.tiene_data;
@@ -58,6 +61,7 @@ export default function DashboardPage() {
       <DashboardHeader
         onImportarClick={manifest ? () => setSourceOpen((v) => !v) : undefined}
         onPaletasClick={hasDashboardSource ? () => setPalettesOpen(true) : undefined}
+        onPersonalizarClick={hasDashboardSource ? () => setCustomizeOpen(true) : undefined}
       />
 
       {loading && <EmptyState title="Cargando dashboard…" />}
@@ -100,6 +104,7 @@ export default function DashboardPage() {
       )}
 
       {palettesOpen && <DashboardPalettesDialog onClose={() => setPalettesOpen(false)} />}
+      {customizeOpen && <DashboardCustomizeDialog onClose={() => setCustomizeOpen(false)} />}
     </ThemeProvider>
   );
 }

@@ -24,7 +24,10 @@
     paleta_id               = NULL,        # FK a paletas de Gráficos; NULL = default
     paletas_listas          = list(),      # list_name -> label -> hex
     color_primario_override = NULL,        # hex; si set, sobreescribe primario derivado
-    notas                   = ""
+    notas                   = "",
+    # ---- Personalización visual avanzada (Dimensiones) ----
+    semaforo_modo           = "cortes",    # "cortes" | "gradiente"
+    radar_min               = 0L           # límite inferior del eje radial (0-95)
   )
 }
 

@@ -549,11 +549,7 @@ function VisualizadorCard({
           ) : foda.error ? (
             <EmptyState title="Sin datos para FODA" subtitle={foda.error} />
           ) : (
-            <FodaView
-              payload={foda}
-              submode={dim.fodaSubmode}
-              onSubmode={(m) => setDim({ fodaSubmode: m })}
-            />
+            <FodaView payload={foda} />
           )
         ) : payloadLoading && !payload ? (
           <DimSkeleton mode={visualMode} />
@@ -606,6 +602,7 @@ function SegmentedItem({
 function HeatmapView({ payload }: { payload: DashboardDimPayload }) {
   const heat = payload.score_heat ?? [];
   const semaforo = payload.semaforo!;
+  const semaforoModo = useDashboardStore((s) => s.config.semaforo_modo ?? "cortes");
 
   const { traces, layout, axes } = useMemo(() => {
     if (!heat.length) {
@@ -626,14 +623,23 @@ function HeatmapView({ payload }: { payload: DashboardDimPayload }) {
       row.map((v) => (v == null ? "—" : String(Math.round(v)))),
     );
 
-    const cs: [number, string][] = [
-      [0, semaforo.red_color],
-      [(semaforo.red_max - 0.001) / 100, semaforo.red_color],
-      [semaforo.red_max / 100, semaforo.amber_color],
-      [(semaforo.amber_max - 0.001) / 100, semaforo.amber_color],
-      [semaforo.amber_max / 100, semaforo.green_color],
-      [1, semaforo.green_color],
-    ];
+    // Colorscale: en modo "cortes" hay saltos abruptos en los umbrales;
+    // en modo "gradiente" se interpola linealmente entre los 3 colores.
+    const cs: [number, string][] = semaforoModo === "gradiente"
+      ? [
+          [0, semaforo.red_color],
+          [semaforo.red_max / 100, semaforo.amber_color],
+          [semaforo.amber_max / 100, semaforo.green_color],
+          [1, semaforo.green_color],
+        ]
+      : [
+          [0, semaforo.red_color],
+          [(semaforo.red_max - 0.001) / 100, semaforo.red_color],
+          [semaforo.red_max / 100, semaforo.amber_color],
+          [(semaforo.amber_max - 0.001) / 100, semaforo.amber_color],
+          [semaforo.amber_max / 100, semaforo.green_color],
+          [1, semaforo.green_color],
+        ];
 
     const traces = [
       {
@@ -662,7 +668,7 @@ function HeatmapView({ payload }: { payload: DashboardDimPayload }) {
       margin: { t: 40, r: 16, b: 16, l: 16 },
     };
     return { traces, layout, axes: { x: xVals, y: yVals } };
-  }, [heat, payload.axis_order_heat, semaforo]);
+  }, [heat, payload.axis_order_heat, semaforo, semaforoModo]);
 
   if (!heat.length) {
     return <p className="dash-cardbox-help">Sin datos para mostrar.</p>;
@@ -709,15 +715,51 @@ function MainPlotView({
 }) {
   const rows = payload.score_plot ?? [];
   const groups = useMemo(() => uniqueOrdered(rows.map((r) => r.grupo)), [rows]);
-  const axes = useMemo(
-    () =>
-      payload.axis_order_plot?.length
-        ? [...payload.axis_order_plot]
-        : uniqueOrdered(rows.map((r) => r.axis_label)),
-    [rows, payload.axis_order_plot],
-  );
+
+  // En modo barras: ordenar ejes por score descendente del primer grupo
+  // (el grupo de referencia, típicamente "Total"). En modo radar: respetar
+  // el orden del payload para no romper la simetría angular.
+  const axes = useMemo(() => {
+    const fallback = payload.axis_order_plot?.length
+      ? [...payload.axis_order_plot]
+      : uniqueOrdered(rows.map((r) => r.axis_label));
+    if (visualMode !== "barras") return fallback;
+    const refGroup = groups[0];
+    if (!refGroup) return fallback;
+    const scoreByAxis = new Map<string, number>();
+    for (const axis of fallback) {
+      const row = rows.find((r) => r.axis_label === axis && r.grupo === refGroup);
+      scoreByAxis.set(axis, row?.score_round ?? -Infinity);
+    }
+    // Sort desc por score; los axes sin score (-Infinity) van al final.
+    return [...fallback].sort((a, b) => (scoreByAxis.get(b)! - scoreByAxis.get(a)!));
+  }, [rows, payload.axis_order_plot, groups, visualMode]);
 
   const groupColors = payload.group_colors ?? {};
+  const semaforo = payload.semaforo;
+  const radarMin = useDashboardStore((s) => s.config.radar_min ?? 0);
+
+  // Chip de semáforo por axis (solo en modo barras): color rojo/ámbar/verde
+  // según el score del grupo de referencia vs los cortes del semáforo.
+  const semColorByAxis = useMemo(() => {
+    if (visualMode !== "barras" || !semaforo) return new Map<string, string>();
+    const m = new Map<string, string>();
+    const refGroup = groups[0];
+    if (!refGroup) return m;
+    for (const axis of axes) {
+      const row = rows.find((r) => r.axis_label === axis && r.grupo === refGroup);
+      const v = row?.score_round;
+      if (v == null) continue;
+      const color =
+        v < semaforo.red_max
+          ? semaforo.red_color
+          : v < semaforo.amber_max
+          ? semaforo.amber_color
+          : semaforo.green_color;
+      m.set(axis, color);
+    }
+    return m;
+  }, [visualMode, axes, rows, groups, semaforo]);
 
   const traces = useMemo(() => {
     if (visualMode === "radar") {
@@ -763,7 +805,7 @@ function MainPlotView({
     if (visualMode === "radar") {
       return {
         polar: {
-          radialaxis: { range: [0, 100], tickfont: { size: 10 } },
+          radialaxis: { range: [radarMin, 100], tickfont: { size: 10 } },
           angularaxis: { tickfont: { size: 11 } },
         },
         showlegend: true,
@@ -771,15 +813,31 @@ function MainPlotView({
         margin: { t: 24, r: 24, b: 50, l: 24 },
       };
     }
+    // Modo barras: chip semáforo prefijado al label del eje Y
+    // (Plotly acepta <span style="color:..."> en ticktext).
+    const ticktext = axes.map((axis) => {
+      const color = semColorByAxis.get(axis);
+      const dot = color
+        ? `<span style="color:${color}">●</span> `
+        : "";
+      return `${dot}${axis}`;
+    });
     return {
       barmode: "group",
       xaxis: { range: [0, 100], fixedrange: true, tickfont: { size: 11 } },
-      yaxis: { autorange: "reversed", tickfont: { size: 11 }, automargin: true },
+      yaxis: {
+        autorange: "reversed",
+        tickfont: { size: 11 },
+        automargin: true,
+        tickmode: "array",
+        tickvals: axes,
+        ticktext,
+      },
       showlegend: groups.length > 1,
       legend: { orientation: "h", y: -0.15 },
       margin: { t: 16, r: 16, b: 50, l: 24 },
     };
-  }, [visualMode, groups]);
+  }, [visualMode, groups, axes, semColorByAxis, radarMin]);
 
   if (!rows.length) {
     return <p className="dash-cardbox-help">Sin datos para graficar.</p>;
@@ -817,12 +875,8 @@ const CUADRANTE_DESC: Record<DashboardDimFodaCuadrante, string> = {
 
 function FodaView({
   payload,
-  submode,
-  onSubmode,
 }: {
   payload: DashboardDimFodaPayload;
-  submode: "matriz" | "dispersion";
-  onSubmode: (m: "matriz" | "dispersion") => void;
 }) {
   const items = payload.items ?? [];
   const counts = payload.counts ?? { fortaleza: 0, oportunidad: 0, debilidad: 0, amenaza: 0 };
@@ -835,49 +889,21 @@ function FodaView({
           <span className="dash-foda-cortes-sep">·</span>
           <span><strong>Corte SD:</strong> {payload.cortes?.sd ?? 0}</span>
         </div>
-        <div className="dash-foda-segmented" role="tablist" aria-label="Vista FODA">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={submode === "matriz"}
-            className={`dash-foda-seg ${submode === "matriz" ? "is-active" : ""}`}
-            onClick={() => onSubmode("matriz")}
-          >
-            Matriz
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={submode === "dispersion"}
-            className={`dash-foda-seg ${submode === "dispersion" ? "is-active" : ""}`}
-            onClick={() => onSubmode("dispersion")}
-          >
-            Dispersión
-          </button>
-        </div>
+        <FodaCounts counts={counts} payload={payload} />
       </div>
-
-      {submode === "matriz" ? (
-        <FodaMatriz items={items} counts={counts} payload={payload} />
-      ) : (
-        <FodaDispersion items={items} payload={payload} />
-      )}
+      <FodaDispersion items={items} payload={payload} />
     </div>
   );
 }
 
-function FodaMatriz({
-  items,
+// Mini-leyenda con counts por cuadrante (reemplaza el header de la matriz).
+function FodaCounts({
   counts,
   payload,
 }: {
-  items: DashboardDimFodaItem[];
   counts: Record<DashboardDimFodaCuadrante, number>;
   payload: DashboardDimFodaPayload;
 }) {
-  // Orden visual: F (arriba-izq), O (arriba-der), D (abajo-izq), A (abajo-der).
-  const orden: DashboardDimFodaCuadrante[] = ["fortaleza", "oportunidad", "debilidad", "amenaza"];
-
   const semaforo = payload.semaforo!;
   const accent: Record<DashboardDimFodaCuadrante, string> = {
     fortaleza: semaforo.green_color,
@@ -885,74 +911,21 @@ function FodaMatriz({
     debilidad: semaforo.amber_color,
     amenaza: semaforo.red_color,
   };
-
+  const orden: DashboardDimFodaCuadrante[] = ["fortaleza", "oportunidad", "debilidad", "amenaza"];
   return (
-    <div className="dash-foda-grid">
-      {orden.map((q) => {
-        const subset = items.filter((it) => it.cuadrante === q);
-        return (
-          <FodaCuadrante
-            key={q}
-            cuadrante={q}
-            label={CUADRANTE_LABELS[q]}
-            desc={CUADRANTE_DESC[q]}
-            count={counts[q] ?? 0}
-            accent={accent[q]}
-            items={subset}
+    <div className="dash-foda-counts" aria-label="Conteo por cuadrante">
+      {orden.map((q) => (
+        <span key={q} className="dash-foda-count-chip">
+          <span
+            className="dash-foda-count-dot"
+            style={{ background: accent[q] }}
+            aria-hidden="true"
           />
-        );
-      })}
+          <span className="dash-foda-count-label">{CUADRANTE_LABELS[q]}</span>
+          <strong>{counts[q] ?? 0}</strong>
+        </span>
+      ))}
     </div>
-  );
-}
-
-function FodaCuadrante({
-  cuadrante,
-  label,
-  desc,
-  count,
-  accent,
-  items,
-}: {
-  cuadrante: DashboardDimFodaCuadrante;
-  label: string;
-  desc: string;
-  count: number;
-  accent: string;
-  items: DashboardDimFodaItem[];
-}) {
-  return (
-    <article
-      className={`dash-foda-cuadrante dash-foda-cuadrante-${cuadrante}`}
-      style={{ ["--foda-accent" as string]: accent }}
-    >
-      <header className="dash-foda-cuadrante-head">
-        <div>
-          <h3 className="dash-foda-cuadrante-title">{label}</h3>
-          <p className="dash-foda-cuadrante-desc">{desc}</p>
-        </div>
-        <span className="dash-foda-count" aria-label={`${count} dimensiones`}>{count}</span>
-      </header>
-      {items.length === 0 ? (
-        <p className="dash-foda-empty">Sin dimensiones en este cuadrante.</p>
-      ) : (
-        <ul className="dash-foda-items">
-          {items.map((it) => (
-            <li key={it.var} className="dash-foda-item">
-              {it.icono_url ? (
-                <img src={it.icono_url} alt="" className="dash-foda-item-icon" aria-hidden="true" />
-              ) : (
-                <span className="dash-foda-item-icon dash-foda-item-icon-placeholder" aria-hidden="true" />
-              )}
-              <span className="dash-foda-item-label" title={it.axis_label}>{it.axis_label}</span>
-              <span className="dash-foda-item-score" title={`SD: ${it.score_sd}`}>
-                {Math.round(it.score_mean)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </article>
   );
 }
 

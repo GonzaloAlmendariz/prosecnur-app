@@ -1,0 +1,83 @@
+.dashboard-scope .dash-customize-section-title {
+  color: var(--dash-primario);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  margin: 0 0 4px 0;
+}
+
+.dashboard-scope .dash-customize-help {
+  color: var(--dash-texto-suave);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.dashboard-scope .dash-customize-slider-row {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto 1fr 70px;
+  margin-top: 10px;
+}
+
+.dashboard-scope .dash-customize-slider {
+  appearance: none;
+  background: var(--dash-borde);
+  border-radius: 999px;
+  cursor: pointer;
+  height: 4px;
+  outline: none;
+  width: 100%;
+}
+.dashboard-scope .dash-customize-slider::-webkit-slider-thumb {
+  appearance: none;
+  background: var(--dash-primario);
+  border-radius: 50%;
+  box-shadow: var(--dash-shadow-sm);
+  height: 16px;
+  width: 16px;
+  transition: transform var(--dash-dur-press) var(--dash-ease-out);
+}
+.dashboard-scope .dash-customize-slider::-webkit-slider-thumb:active {
+  transform: scale(1.18);
+}
+.dashboard-scope .dash-customize-slider::-moz-range-thumb {
+  background: var(--dash-primario);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: var(--dash-shadow-sm);
+  height: 16px;
+  width: 16px;
+}
+
+.dashboard-scope .dash-customize-slider-value {
+  color: var(--dash-texto);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+.dashboard-scope .dash-customize-preview {
+  margin-top: 10px;
+}
+.dashboard-scope .dash-customize-preview-bar {
+  border-radius: var(--dash-radius-sm);
+  box-shadow: var(--dash-shadow-xs);
+  height: 14px;
+  width: 100%;
+}
+.dashboard-scope .dash-customize-preview-marks {
+  color: var(--dash-texto-suave);
+  display: grid;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  margin-top: 4px;
+  padding: 0 2px;
+}
+.dashboard-scope .dash-customize-preview-marks span:nth-child(1) { text-align: left; }
+.dashboard-scope .dash-customize-preview-marks span:nth-child(2) { text-align: center; }
+.dashboard-scope .dash-customize-preview-marks span:nth-child(3) { text-align: center; }
+.dashboard-scope .dash-customize-preview-marks span:nth-child(4) { text-align: right; }

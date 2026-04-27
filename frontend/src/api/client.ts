@@ -2042,6 +2042,9 @@ export type DashboardConfig = {
   paletas_listas: Record<string, Record<string, string>>;
   color_primario_override: string | null;
   notas: string;
+  // Personalización visual avanzada (Dimensiones).
+  semaforo_modo?: "cortes" | "gradiente";
+  radar_min?: number;
 };
 
 export async function apiDashboardConfigGet() {

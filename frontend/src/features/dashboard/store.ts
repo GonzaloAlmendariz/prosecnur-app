@@ -42,6 +42,8 @@ function sanitizeConfig(c: DashboardConfig): DashboardConfig {
     paletas_listas: paletasListas,
     color_primario_override: str(c.color_primario_override),
     notas: typeof c.notas === "string" ? c.notas : "",
+    semaforo_modo: c.semaforo_modo === "gradiente" ? "gradiente" : "cortes",
+    radar_min: Math.max(0, Math.min(95, num(c.radar_min, 0))),
   };
 }
 
@@ -55,6 +57,8 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   paletas_listas: {},
   color_primario_override: null,
   notas: "",
+  semaforo_modo: "cortes",
+  radar_min: 0,
 };
 
 // Estado de exploración para Relaciones (no persistido).
@@ -158,6 +162,8 @@ type DashboardStore = {
   removePaletaLista: (listName: string) => void;
   setColorPrimarioOverride: (hex: string | null) => void;
   setNotas: (s: string) => void;
+  setSemaforoModo: (m: "cortes" | "gradiente") => void;
+  setRadarMin: (n: number) => void;
 
   // Estado de exploración (local, no marca dirty)
   setTabActiva: (t: DashboardTabId) => void;
@@ -242,6 +248,12 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   setColorPrimarioOverride: (hex) =>
     set((st) => dirtyPatch({ config: { ...st.config, color_primario_override: hex } })),
   setNotas: (s) => set((st) => dirtyPatch({ config: { ...st.config, notas: s } })),
+  setSemaforoModo: (m) =>
+    set((st) => dirtyPatch({ config: { ...st.config, semaforo_modo: m } })),
+  setRadarMin: (n) =>
+    set((st) =>
+      dirtyPatch({ config: { ...st.config, radar_min: Math.max(0, Math.min(95, Math.round(n))) } }),
+    ),
 
   setTabActiva: (t) => set({ tabActiva: t }),
   setSeccionActiva: (s) => set({ seccionActiva: s }),

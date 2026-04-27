@@ -1,5 +1,6 @@
 /* =============================================================================
- * FODA — matriz 2×2 con cuadrantes coloreados + scatter de dispersión.
+ * FODA — vista única tipo scatter de dispersión con líneas de corte
+ * y animación flotante en los markers (Plotly SVG points).
  * ============================================================================= */
 
 .dashboard-scope .dash-foda {
@@ -36,204 +37,101 @@
   color: var(--dash-borde);
 }
 
-/* Sub-segmented Matriz / Dispersión. */
-.dashboard-scope .dash-foda-segmented {
-  background: var(--dash-superficie-2);
-  border: 1px solid var(--dash-borde);
-  border-radius: var(--dash-radius-md);
+/* Conteo por cuadrante (chips horizontales). */
+.dashboard-scope .dash-foda-counts {
+  align-items: center;
   display: inline-flex;
-  gap: 2px;
-  padding: 3px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
-.dashboard-scope .dash-foda-seg {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  border-radius: var(--dash-radius-sm);
-  color: var(--dash-texto-suave);
-  cursor: pointer;
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 6px 12px;
-  transition:
-    background-color var(--dash-dur-hover) var(--dash-ease-out),
-    color var(--dash-dur-hover) var(--dash-ease-out),
-    transform var(--dash-dur-press) var(--dash-ease-out);
-}
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-scope .dash-foda-seg:hover:not(.is-active) {
-    background: var(--dash-primario-soft);
-  }
-}
-.dashboard-scope .dash-foda-seg:active:not(.is-active) {
-  transform: scale(0.97);
-}
-.dashboard-scope .dash-foda-seg.is-active {
-  background: var(--dash-primario);
-  box-shadow: var(--dash-shadow-xs);
-  color: #fff;
-}
-
-/* Grid 2×2 de cuadrantes. */
-.dashboard-scope .dash-foda-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-}
-
-.dashboard-scope .dash-foda-cuadrante {
-  background: var(--dash-superficie);
-  border: 1px solid var(--dash-borde);
-  border-left: 3px solid var(--foda-accent, var(--dash-primario));
-  border-radius: var(--dash-radius-md);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px 14px 12px;
-  position: relative;
-  transition:
-    box-shadow var(--dash-dur-hover) var(--dash-ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-scope .dash-foda-cuadrante:hover {
-    box-shadow: var(--dash-shadow-sm);
-  }
-}
-
-/* Tinte muy sutil de fondo según cuadrante (10%). */
-.dashboard-scope .dash-foda-cuadrante::before {
-  background: var(--foda-accent, var(--dash-primario));
-  border-radius: inherit;
-  content: "";
-  inset: 0;
-  opacity: 0.04;
-  pointer-events: none;
-  position: absolute;
-  z-index: 0;
-}
-.dashboard-scope .dash-foda-cuadrante > * {
-  position: relative;
-  z-index: 1;
-}
-
-.dashboard-scope .dash-foda-cuadrante-head {
-  align-items: flex-start;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-}
-
-.dashboard-scope .dash-foda-cuadrante-title {
-  color: var(--foda-accent, var(--dash-primario));
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 1.2;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.dashboard-scope .dash-foda-cuadrante-desc {
-  color: var(--dash-texto-suave);
-  font-size: 11px;
-  line-height: 1.3;
-  margin: 3px 0 0;
-}
-
-.dashboard-scope .dash-foda-count {
-  background: var(--foda-accent, var(--dash-primario));
-  border-radius: 999px;
-  color: #fff;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  min-width: 22px;
-  padding: 2px 8px;
-  text-align: center;
-}
-
-.dashboard-scope .dash-foda-empty {
-  color: var(--dash-texto-suave);
-  font-size: 12px;
-  font-style: italic;
-  margin: 0;
-}
-
-.dashboard-scope .dash-foda-items {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.dashboard-scope .dash-foda-item {
+.dashboard-scope .dash-foda-count-chip {
   align-items: center;
   background: var(--dash-superficie-2);
-  border: 1px solid var(--dash-divider);
-  border-radius: var(--dash-radius-sm);
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
-  padding: 7px 10px;
-  transition:
-    border-color var(--dash-dur-hover) var(--dash-ease-out),
-    background-color var(--dash-dur-hover) var(--dash-ease-out),
-    transform var(--dash-dur-hover) var(--dash-ease-out),
-    box-shadow var(--dash-dur-hover) var(--dash-ease-out);
+  border: 1px solid var(--dash-borde);
+  border-radius: 999px;
+  color: var(--dash-texto-suave);
+  display: inline-flex;
+  font-size: 11px;
+  gap: 6px;
+  padding: 4px 10px;
+}
+.dashboard-scope .dash-foda-count-dot {
+  border-radius: 50%;
+  display: inline-block;
+  height: 8px;
+  width: 8px;
+}
+.dashboard-scope .dash-foda-count-label {
+  color: var(--dash-texto);
+}
+.dashboard-scope .dash-foda-count-chip strong {
+  color: var(--dash-primario);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  margin-left: 2px;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-scope .dash-foda-item:hover {
-    background: var(--dash-superficie);
-    border-color: var(--foda-accent, var(--dash-primario-ring));
-    box-shadow: var(--dash-shadow-xs);
-    transform: translateY(-1px);
+/* =============================================================================
+ * Animación flotante en los markers del scatter Plotly.
+ * Cada trace renderiza sus puntos como <path class="point"> dentro de
+ * <g class="trace scatter">. Damos un float vertical sutil con desfase
+ * por trace (los traces son los 4 cuadrantes).
+ * ============================================================================= */
+
+.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace .point {
+  animation: dash-foda-point-float 4.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(1) .point {
+  animation-delay: 0s;
+}
+.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(2) .point {
+  animation-delay: -1.05s;
+}
+.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(3) .point {
+  animation-delay: -2.1s;
+}
+.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(4) .point {
+  animation-delay: -3.15s;
+}
+
+@keyframes dash-foda-point-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.06);
   }
 }
 
-.dashboard-scope .dash-foda-item-icon {
-  height: 18px;
-  object-fit: contain;
-  width: 18px;
+/* Etiquetas (textpoint) acompañan el float más sutil. */
+.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace .textpoint {
+  animation: dash-foda-text-float 4.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
 }
-.dashboard-scope .dash-foda-item-icon-placeholder {
-  background: var(--dash-borde);
-  border-radius: 4px;
-  display: inline-block;
-  height: 14px;
-  margin: 2px;
-  width: 14px;
+.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(1) .textpoint {
+  animation-delay: 0s;
 }
-
-.dashboard-scope .dash-foda-item-label {
-  color: var(--dash-texto);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(2) .textpoint {
+  animation-delay: -1.05s;
+}
+.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(3) .textpoint {
+  animation-delay: -2.1s;
+}
+.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(4) .textpoint {
+  animation-delay: -3.15s;
 }
 
-.dashboard-scope .dash-foda-item-score {
-  background: var(--foda-accent, var(--dash-primario));
-  border-radius: var(--dash-radius-sm);
-  color: #fff;
-  font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  min-width: 30px;
-  padding: 2px 8px;
-  text-align: center;
+@keyframes dash-foda-text-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
 }
 
-@media (max-width: 900px) {
-  .dashboard-scope .dash-foda-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace .point,
+  .dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace .textpoint {
+    animation: none;
   }
 }
