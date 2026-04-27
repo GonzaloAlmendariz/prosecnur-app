@@ -54,8 +54,14 @@
   --dash-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --dash-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 
-  background: var(--dash-fondo);
+  background:
+    radial-gradient(1200px 600px at 12% -10%, rgba(0, 36, 87, 0.045) 0%, transparent 60%),
+    radial-gradient(900px 500px at 95% 0%, rgba(15, 75, 165, 0.035) 0%, transparent 55%),
+    var(--dash-fondo);
   color: var(--dash-texto);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
 }
 
 .dashboard-scope *,
@@ -67,8 +73,17 @@
 .dashboard-scope .dash-card {
   background: var(--dash-superficie);
   border: 1px solid var(--dash-borde);
-  border-radius: 12px;
+  border-radius: var(--dash-radius-lg);
   padding: 16px;
+}
+
+/* Focus ring uniforme en inputs/selects/textareas dentro del scope. */
+.dashboard-scope input:focus-visible,
+.dashboard-scope select:focus-visible,
+.dashboard-scope textarea:focus-visible,
+.dashboard-scope button:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 3px var(--dash-primario-soft);
 }
 
 .dashboard-scope .dash-header {
@@ -143,9 +158,32 @@
   display: inline-flex;
   gap: 4px;
   padding: 4px;
-  border-radius: 10px;
+  border-radius: var(--dash-radius-md);
   background: var(--dash-superficie-2);
   border: 1px solid var(--dash-borde);
+  position: relative;
+  isolation: isolate;
+}
+/* Pill que se desliza siguiendo el tab activo (legacy: .navbar .nav::before). */
+.dashboard-scope .dash-tab-nav::before {
+  background: var(--dash-primario);
+  border-radius: var(--dash-radius-md);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    var(--dash-shadow-sm);
+  content: "";
+  height: var(--dash-tab-pill-h, 0);
+  left: var(--dash-tab-pill-x, 0);
+  opacity: var(--dash-tab-pill-op, 0);
+  pointer-events: none;
+  position: absolute;
+  top: var(--dash-tab-pill-y, 0);
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    width 220ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    opacity var(--dash-dur-hover) var(--dash-ease-out);
+  width: var(--dash-tab-pill-w, 0);
+  z-index: 0;
 }
 .dashboard-scope .dash-tab {
   appearance: none;
@@ -167,12 +205,14 @@
     background: var(--dash-primario-soft);
   }
 }
+.dashboard-scope .dash-tab {
+  position: relative;
+  z-index: 1;
+}
 .dashboard-scope .dash-tab.is-active {
-  background: var(--dash-primario);
+  /* La pill viene del ::before del nav. Aquí solo cambiamos el color
+   * del texto para que contraste con el fondo primario animado. */
   color: #fff;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
-    var(--dash-shadow-sm);
 }
 .dashboard-scope .dash-tab:disabled {
   opacity: 0.45;

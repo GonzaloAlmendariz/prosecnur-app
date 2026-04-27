@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Book, Download, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Book, Download, RotateCcw, Search, X } from "lucide-react";
 import {
   apiDashboardBaseDatosDescargar,
   type DashboardBaseDatosSeccion,
@@ -13,9 +13,9 @@ import {
 import { EmptyState } from "../../shared/EmptyState";
 import "./baseDatos.css";
 
-// Tab Base de datos — vista tabular con secciones expandibles, modo
-// códigos/etiquetas, búsqueda, paginación y descarga. Reproduce la
-// pestaña "Base de datos" del legacy `prosecnur::reporte_interactivo()`.
+// Tab Base de datos — fiel al legacy `prosecnur::reporte_interactivo()`:
+// toolbar pegada a la tabla con [Dicc] [Reset] [Buscar], fila de filtros
+// por columna bajo el header, sidebar con vista/secciones/descarga.
 
 export function BaseDatosTab() {
   const baseDatos = useDashboardStore((s) => s.baseDatos);
@@ -23,6 +23,10 @@ export function BaseDatosTab() {
   const toggleVar = useDashboardStore((s) => s.toggleBaseDatosVariable);
   const setVariables = useDashboardStore((s) => s.setBaseDatosVariables);
   const toggleSeccion = useDashboardStore((s) => s.toggleBaseDatosSeccion);
+
+  // Filtros por columna (estado local — se aplican client-side sobre la
+  // página actual, mismo modelo que el DT del legacy).
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
 
   const { loading: loadingEst, error: errEst, payload: estructura } =
     useBaseDatosEstructura();
@@ -41,22 +45,19 @@ export function BaseDatosTab() {
   const [downloadFormato, setDownloadFormato] = useState<"xlsx" | "csv">("xlsx");
   const [downloadBusy, setDownloadBusy] = useState(false);
 
-  // Todos los names (incluyendo dummies SM) para el toggle "Todas".
   const allVarNames = useMemo(() => {
     if (!estructura) return [];
     const names: string[] = [];
     for (const sec of estructura.secciones) {
-      for (const v of sec.variables) {
-        if (v.tipo === "sm" && v.dummies) {
-          // Para SM, sumamos la madre (que el backend expandirá).
-          names.push(v.name);
-        } else {
-          names.push(v.name);
-        }
-      }
+      for (const v of sec.variables) names.push(v.name);
     }
     return names;
   }, [estructura]);
+
+  function resetFiltros() {
+    setBaseDatos({ search: "", page: 1 });
+    setColumnFilters({});
+  }
 
   function handleDescargar() {
     if (!baseDatos.variables.length) return;
@@ -70,10 +71,7 @@ export function BaseDatosTab() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        const ts = new Date()
-          .toISOString()
-          .replace(/[:.]/g, "")
-          .slice(0, 15);
+        const ts = new Date().toISOString().replace(/[:.]/g, "").slice(0, 15);
         a.download = `base_datos_${ts}.${downloadFormato}`;
         document.body.appendChild(a);
         a.click();
@@ -82,6 +80,11 @@ export function BaseDatosTab() {
       })
       .finally(() => setDownloadBusy(false));
   }
+
+  // Resumen "Filas a exportar / Columnas" — mismo cálculo que el legacy
+  // hace pre-descarga (interactivo_base_datos.R:924-951).
+  const resumenFilas = dataPayload?.total ?? 0;
+  const resumenCols = dataPayload?.columnas.length ?? 0;
 
   return (
     <div className="dash-base-layout">
@@ -177,41 +180,25 @@ export function BaseDatosTab() {
             onClick={handleDescargar}
             style={{ marginTop: 10 }}
           >
-            <Download size={14} style={{ marginRight: 6, display: "inline-block" }} />
+            <Download size={14} style={{ marginRight: 6 }} />
             {downloadBusy ? "Generando…" : "Descargar"}
           </button>
-        </section>
-
-        <section className="dash-cardbox">
-          <button
-            type="button"
-            className="dash-subtle-btn"
-            onClick={() => setDiccionarioOpen(true)}
-            disabled={!estructura?.secciones.length}
-          >
-            <Book size={14} />
-            Libro de códigos
-          </button>
+          {/* Resumen pre-descarga (legacy: interactivo_base_datos.R:924-951). */}
+          <div className="dash-base-download-summary">
+            <div><strong>{resumenFilas.toLocaleString("es-PE")}</strong> filas a exportar</div>
+            <div><strong>{resumenCols}</strong> columna{resumenCols === 1 ? "" : "s"}</div>
+          </div>
         </section>
       </aside>
 
       {/* ───── Main ───── */}
       <main>
-        <div className="dash-base-toolbar">
-          <input
-            className="dash-input"
-            placeholder="Buscar en la tabla…"
-            value={baseDatos.search}
-            onChange={(e) => setBaseDatos({ search: e.target.value, page: 1 })}
-            style={{ maxWidth: 320 }}
-          />
-        </div>
         {!baseDatos.variables.length ? (
           <EmptyState
             title="Selecciona variables"
             subtitle="Marca al menos una variable en el panel de la izquierda."
           />
-        ) : loadingData ? (
+        ) : loadingData && !dataPayload ? (
           <EmptyState title="Cargando filas…" />
         ) : errData ? (
           <EmptyState title="No se pudo cargar la data" subtitle={errData} />
@@ -222,10 +209,25 @@ export function BaseDatosTab() {
             payload={dataPayload}
             page={baseDatos.page}
             pageSize={baseDatos.pageSize}
+            search={baseDatos.search}
+            columnFilters={columnFilters}
+            onSearch={(s) => setBaseDatos({ search: s, page: 1 })}
+            onColumnFilter={(col, val) => {
+              setColumnFilters((prev) => {
+                const next = { ...prev };
+                if (val) next[col] = val;
+                else delete next[col];
+                return next;
+              });
+            }}
+            onReset={resetFiltros}
             onPage={(p) => setBaseDatos({ page: p })}
             onPageSize={(ps) => setBaseDatos({ pageSize: ps, page: 1 })}
+            onOpenDiccionario={() => setDiccionarioOpen(true)}
           />
         )}
+        {/* Spacer footer (legacy: 48px de respiro al final). */}
+        <div style={{ height: 48 }} aria-hidden="true" />
       </main>
 
       {diccionarioOpen && estructura && (
@@ -239,7 +241,7 @@ export function BaseDatosTab() {
 }
 
 // -----------------------------------------------------------------------------
-// Item de sección con checkbox + expansión.
+// Sección con checkbox + expansión.
 // -----------------------------------------------------------------------------
 function SeccionItem({
   sec,
@@ -306,45 +308,128 @@ function SeccionItem({
 }
 
 // -----------------------------------------------------------------------------
-// Tabla paginada.
+// Tabla con toolbar pegada arriba (legacy DT toolbar) + filtros por columna +
+// paginación abajo.
 // -----------------------------------------------------------------------------
 function BaseDatosTabla({
   payload,
   page,
   pageSize,
+  search,
+  columnFilters,
+  onSearch,
+  onColumnFilter,
+  onReset,
   onPage,
   onPageSize,
+  onOpenDiccionario,
 }: {
   payload: { rows: Record<string, string>[]; columnas: { key: string; label: string }[]; total: number };
   page: number;
   pageSize: number;
+  search: string;
+  columnFilters: Record<string, string>;
+  onSearch: (s: string) => void;
+  onColumnFilter: (col: string, val: string) => void;
+  onReset: () => void;
   onPage: (p: number) => void;
   onPageSize: (ps: number) => void;
+  onOpenDiccionario: () => void;
 }) {
+  // Filtro client-side por columna sobre la página visible.
+  const filteredRows = useMemo(() => {
+    const activeFilters = Object.entries(columnFilters).filter(
+      ([, v]) => v && v.trim().length > 0,
+    );
+    if (!activeFilters.length) return payload.rows;
+    return payload.rows.filter((row) =>
+      activeFilters.every(([col, val]) => {
+        const cell = (row[col] ?? "").toLowerCase();
+        return cell.includes(val.toLowerCase());
+      }),
+    );
+  }, [payload.rows, columnFilters]);
+
   const totalPages = Math.max(1, Math.ceil(payload.total / pageSize));
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(payload.total, start + payload.rows.length - 1);
 
+  const hasFiltros = !!search || Object.values(columnFilters).some((v) => v.trim().length > 0);
+
   return (
     <div className="dash-base-tabla-wrap">
+      {/* ── Toolbar pegada a la tabla (legacy: .dt-toolbar). ── */}
+      <div className="dash-dt-toolbar">
+        <div className="dash-dt-toolbar-left">
+          <button
+            type="button"
+            className="dash-dt-dicc-btn"
+            onClick={onOpenDiccionario}
+            aria-label="Libro de códigos"
+            title="Libro de códigos"
+          >
+            <Book size={15} />
+          </button>
+          <button
+            type="button"
+            className="dash-dt-reset-btn"
+            onClick={onReset}
+            disabled={!hasFiltros}
+            title="Restablecer filtros"
+          >
+            <RotateCcw size={13} />
+            <span>Restablecer filtros</span>
+          </button>
+        </div>
+        <div className="dash-dt-toolbar-right">
+          <label className="dash-dt-search">
+            <Search size={13} aria-hidden="true" />
+            <span className="dash-dt-search-label">Buscar:</span>
+            <input
+              type="search"
+              className="dash-dt-search-input"
+              value={search}
+              onChange={(e) => onSearch(e.target.value)}
+              placeholder=""
+            />
+          </label>
+        </div>
+      </div>
+
       <div className="dash-base-tabla-scroll">
         <table className="dash-base-tabla">
           <thead>
+            {/* Header fila 1: nombre columna. */}
             <tr>
               {payload.columnas.map((c) => (
                 <th key={c.key} title={c.key}>{c.label}</th>
               ))}
             </tr>
+            {/* Header fila 2: filtro por columna (legacy: fila bajo header). */}
+            <tr className="dash-dt-filter-row">
+              {payload.columnas.map((c) => (
+                <th key={`f-${c.key}`}>
+                  <input
+                    type="text"
+                    className="dash-dt-filter-input"
+                    value={columnFilters[c.key] ?? ""}
+                    onChange={(e) => onColumnFilter(c.key, e.target.value)}
+                    placeholder="Filtrar…"
+                    aria-label={`Filtrar columna ${c.label}`}
+                  />
+                </th>
+              ))}
+            </tr>
           </thead>
           <tbody>
-            {payload.rows.length === 0 ? (
+            {filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={payload.columnas.length} style={{ textAlign: "center", color: "var(--dash-texto-suave)" }}>
-                  Sin filas.
+                <td colSpan={payload.columnas.length} className="dash-dt-empty">
+                  Sin filas que coincidan con los filtros.
                 </td>
               </tr>
             ) : (
-              payload.rows.map((row, i) => (
+              filteredRows.map((row, i) => (
                 <tr key={i}>
                   {payload.columnas.map((c) => (
                     <td key={c.key}>{row[c.key] ?? ""}</td>
@@ -355,6 +440,7 @@ function BaseDatosTabla({
           </tbody>
         </table>
       </div>
+
       <div className="dash-base-paginacion">
         <span className="dash-base-paginacion-info">
           {payload.total > 0
@@ -368,7 +454,7 @@ function BaseDatosTabla({
             onChange={(e) => onPageSize(Number(e.target.value))}
             style={{ width: "auto" }}
           >
-            {[10, 25, 50, 100].map((n) => (
+            {[10, 15, 25, 50].map((n) => (
               <option key={n} value={n}>{n} por página</option>
             ))}
           </select>
@@ -398,7 +484,7 @@ function BaseDatosTabla({
 }
 
 // -----------------------------------------------------------------------------
-// Modal — Libro de códigos (selecciona sección + variable, muestra opciones).
+// Modal — Libro de códigos.
 // -----------------------------------------------------------------------------
 function DiccionarioModal({
   estructura,
@@ -411,6 +497,15 @@ function DiccionarioModal({
   const seccion = estructura.secciones.find((s) => s.id === seccionId);
   const [variable, setVariable] = useState(seccion?.variables[0]?.name ?? "");
   const { loading, error, payload } = useDiccionarioVariable(variable);
+
+  // Cierre por Esc.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
     <div className="dash-modal-backdrop" onClick={onClose}>

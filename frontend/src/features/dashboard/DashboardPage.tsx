@@ -1,6 +1,6 @@
 import "./theme/tokens.css";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DashboardTabId } from "../../api/client";
 import { DashboardCurationGate } from "./curation/DashboardCurationGate";
 import { DashboardHeader } from "./header/DashboardHeader";
@@ -87,20 +87,11 @@ export default function DashboardPage() {
       {manifest && manifest.estado.tiene_data && !sourceOpen && manifest.estado.curacion_confirmed && (
         <>
           <nav aria-label="Pestañas del dashboard" style={{ marginBottom: 16 }}>
-            <div className="dash-tab-nav">
-              {manifest.tabs.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`dash-tab ${t.id === tabActiva ? "is-active" : ""}`}
-                  disabled={!t.available}
-                  title={!t.available ? t.reason ?? undefined : t.label}
-                  onClick={() => setTabActiva(t.id)}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+            <TabNav
+              tabs={manifest.tabs}
+              activeId={tabActiva}
+              onSelect={setTabActiva}
+            />
           </nav>
 
           <TabContent tab={tabActiva} />
@@ -109,6 +100,56 @@ export default function DashboardPage() {
 
       {palettesOpen && <DashboardPalettesDialog onClose={() => setPalettesOpen(false)} />}
     </ThemeProvider>
+  );
+}
+
+// Tab nav con pill animado (legacy: .navbar .nav::before con cubic-bezier).
+// Mide el offsetLeft/Width del tab activo y setea CSS vars en el contenedor
+// para que el ::before se posicione/anche con transición.
+function TabNav({
+  tabs,
+  activeId,
+  onSelect,
+}: {
+  tabs: { id: DashboardTabId; label: string; available: boolean; reason: string | null }[];
+  activeId: DashboardTabId;
+  onSelect: (id: DashboardTabId) => void;
+}) {
+  const navRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const active = nav.querySelector<HTMLElement>(".dash-tab.is-active");
+    if (!active) {
+      nav.style.setProperty("--dash-tab-pill-op", "0");
+      return;
+    }
+    const x = active.offsetLeft;
+    const y = active.offsetTop;
+    const w = active.offsetWidth;
+    const h = active.offsetHeight;
+    nav.style.setProperty("--dash-tab-pill-x", `${x}px`);
+    nav.style.setProperty("--dash-tab-pill-y", `${y}px`);
+    nav.style.setProperty("--dash-tab-pill-w", `${w}px`);
+    nav.style.setProperty("--dash-tab-pill-h", `${h}px`);
+    nav.style.setProperty("--dash-tab-pill-op", "1");
+  }, [activeId, tabs]);
+
+  return (
+    <div className="dash-tab-nav" ref={navRef}>
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          className={`dash-tab ${t.id === activeId ? "is-active" : ""}`}
+          disabled={!t.available}
+          title={!t.available ? t.reason ?? undefined : t.label}
+          onClick={() => onSelect(t.id)}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
   );
 }
 

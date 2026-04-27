@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { X } from "lucide-react";
 import { apiDashboardRelacionDescargar, type DashboardRelacionCruce } from "../../../../api/client";
 import { useDashboardSecciones, useRelacionCross } from "../../useDashboardData";
 import { useDashboardStore } from "../../store";
@@ -73,6 +74,7 @@ export function RelacionTab() {
       <aside className="dash-sidebar">
         <SelectorVariable
           titulo="Variable principal"
+          variableLabel="Variable"
           secciones={seccionesElegibles}
           loading={loadingSecs}
           error={errSecs}
@@ -81,7 +83,8 @@ export function RelacionTab() {
         />
 
         <SelectorVariable
-          titulo="Variable segmento"
+          titulo="Cruce"
+          variableLabel="Segmento"
           secciones={seccionesElegibles}
           loading={loadingSecs}
           error={null}
@@ -101,26 +104,13 @@ export function RelacionTab() {
           />
         </section>
 
-        <section className="dash-cardbox">
-          <div className="dash-cardbox-header">
-            <h2 className="dash-cardbox-title">Iterar</h2>
-            <label className="dash-switch" aria-label="Activar iteración">
-              <input
-                type="checkbox"
-                checked={relacion.iterarOn}
-                onChange={(e) => setRelacion({ iterarOn: e.target.checked })}
-              />
-              <span className="dash-switch-slider"></span>
-            </label>
-          </div>
-          {relacion.iterarOn && (
-            <SelectVarInline
-              secciones={seccionesElegibles}
-              value={relacion.iterarVar}
-              onChange={(v) => setRelacion({ iterarVar: v })}
-            />
-          )}
-        </section>
+        <IterarCard
+          secciones={seccionesElegibles}
+          value={relacion.iterarVar}
+          enabled={relacion.iterarOn}
+          onToggle={(on) => setRelacion({ iterarOn: on })}
+          onChange={(v) => setRelacion({ iterarVar: v })}
+        />
 
         <button
           type="button"
@@ -159,6 +149,7 @@ export function RelacionTab() {
 // -----------------------------------------------------------------------------
 function SelectorVariable({
   titulo,
+  variableLabel = "Variable",
   secciones,
   loading,
   error,
@@ -166,6 +157,7 @@ function SelectorVariable({
   onChange,
 }: {
   titulo: string;
+  variableLabel?: string;
   secciones: { nombre: string; vars: { name: string; label: string; tipo: string }[] }[];
   loading: boolean;
   error: string | null;
@@ -208,7 +200,7 @@ function SelectorVariable({
               <option key={s.nombre} value={s.nombre}>{s.nombre}</option>
             ))}
           </select>
-          <label className="dash-filtro-label" style={{ marginTop: 8 }}>Variable</label>
+          <label className="dash-filtro-label" style={{ marginTop: 8 }}>{variableLabel}</label>
           <select
             className="dash-select"
             value={value}
@@ -225,30 +217,133 @@ function SelectorVariable({
   );
 }
 
-function SelectVarInline({
+// -----------------------------------------------------------------------------
+// Card "Iterar" con popover (legacy: .iter-popover-wrap.is-open).
+// El header tiene toggle + botón "Configurar" que abre un popover lateral.
+// -----------------------------------------------------------------------------
+function IterarCard({
   secciones,
   value,
+  enabled,
+  onToggle,
   onChange,
 }: {
-  secciones: { nombre: string; vars: { name: string; label: string }[] }[];
+  secciones: { nombre: string; vars: { name: string; label: string; tipo: string }[] }[];
   value: string;
+  enabled: boolean;
+  onToggle: (on: boolean) => void;
   onChange: (v: string) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Cierre por Esc / click fuera.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    function onClick(e: MouseEvent) {
+      if (!popoverRef.current) return;
+      if (!popoverRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    setTimeout(() => window.addEventListener("mousedown", onClick), 0);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onClick);
+    };
+  }, [open]);
+
+  // Resolver sección de la var actual.
+  const seccionDeVar = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const sec of secciones) for (const v of sec.vars) m[v.name] = sec.nombre;
+    return m;
+  }, [secciones]);
+  const [seccionLocal, setSeccionLocal] = useState<string>("");
+  const seccion = seccionLocal || seccionDeVar[value] || (secciones[0]?.nombre ?? "");
+  const seccionActiva = secciones.find((s) => s.nombre === seccion);
+
+  const valueLabel = useMemo(() => {
+    if (!value) return null;
+    for (const sec of secciones) {
+      const v = sec.vars.find((x) => x.name === value);
+      if (v) return v.label;
+    }
+    return value;
+  }, [value, secciones]);
+
   return (
-    <select
-      className="dash-select"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value="">— Selecciona —</option>
-      {secciones.map((s) => (
-        <optgroup key={s.nombre} label={s.nombre}>
-          {s.vars.map((v) => (
-            <option key={v.name} value={v.name}>{v.label}</option>
-          ))}
-        </optgroup>
-      ))}
-    </select>
+    <section className="dash-cardbox dash-iter-card">
+      <div className="dash-cardbox-header">
+        <h2 className="dash-cardbox-title">Iterar</h2>
+        <label className="dash-switch" aria-label="Activar iteración">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => onToggle(e.target.checked)}
+          />
+          <span className="dash-switch-slider"></span>
+        </label>
+      </div>
+      {enabled && (
+        <div className="dash-iter-popover-wrap" ref={popoverRef}>
+          <button
+            type="button"
+            className="dash-iter-trigger"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+          >
+            <span className="dash-iter-trigger-label">
+              {valueLabel ?? "Sin iteración"}
+            </span>
+            <span className="dash-iter-trigger-caret" aria-hidden="true">▾</span>
+          </button>
+          {open && (
+            <div className={`dash-iter-popover ${open ? "is-open" : ""}`} role="dialog" aria-label="Configurar iteración">
+              <div className="dash-iter-popover-head">
+                <strong>Configurar iteración</strong>
+                <button
+                  type="button"
+                  className="dash-icon-btn"
+                  onClick={() => setOpen(false)}
+                  aria-label="Cerrar"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="dash-iter-popover-body">
+                <label className="dash-filtro-label">Sección</label>
+                <select
+                  className="dash-select"
+                  value={seccion}
+                  onChange={(e) => {
+                    setSeccionLocal(e.target.value);
+                    onChange("");
+                  }}
+                >
+                  {secciones.map((s) => (
+                    <option key={s.nombre} value={s.nombre}>{s.nombre}</option>
+                  ))}
+                </select>
+                <label className="dash-filtro-label" style={{ marginTop: 8 }}>Variable</label>
+                <select
+                  className="dash-select"
+                  value={value}
+                  onChange={(e) => onChange(e.target.value)}
+                >
+                  <option value="">— Sin iteración —</option>
+                  {seccionActiva?.vars.map((v) => (
+                    <option key={v.name} value={v.name}>{v.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -292,39 +387,70 @@ function CrucesView({ payload }: { payload: { iterado: boolean; iter_label?: str
   );
 }
 
+// Encabezado multinivel del legacy (interactivo_relacion.R:1239-1279):
+//   Fila 1:  [Cruce*] [Total*] [Estrato 1     ] [Estrato 2     ] ...
+//   Fila 2:  [      ] [   *  ] [    n   |  %  ] [    n   |  %  ] ...
+//   * = celdas con rowspan; "Total" tiene colspan 2 sobre n y % implícitos
 function ContingenciaTable({ cruce }: { cruce: DashboardRelacionCruce }) {
-  const fmt = (n: number, pct: number) =>
-    `${n} (${(pct * 100).toFixed(1)}%)`;
+  const fmtPct = (pct: number) => `${(pct * 100).toFixed(1)}%`;
+
   return (
     <div className="dash-cross-table-wrap">
-      <table className="dash-cross-table">
+      <table className="dash-cross-table dash-cross-table-multi">
         <thead>
           <tr>
-            <th></th>
+            <th rowSpan={2} className="dash-cross-corner">Cruce</th>
             {cruce.columnas.map((c) => (
-              <th key={c.code}>{c.label}</th>
+              <th key={c.code} colSpan={2} className="dash-cross-col-group">
+                {c.label}
+              </th>
             ))}
-            <th>Total</th>
+            <th colSpan={2} className="dash-cross-col-total">Total</th>
+          </tr>
+          <tr>
+            {cruce.columnas.map((c) => (
+              <Fragment key={c.code}>
+                <th className="dash-cross-subhdr">n</th>
+                <th className="dash-cross-subhdr">%</th>
+              </Fragment>
+            ))}
+            <th className="dash-cross-subhdr">n</th>
+            <th className="dash-cross-subhdr">%</th>
           </tr>
         </thead>
         <tbody>
           {cruce.filas.map((f, i) => (
             <tr key={f.code}>
-              <th scope="row">{f.label}</th>
-              {cruce.columnas.map((_, j) => {
+              <th scope="row" className="dash-cross-rowhdr">{f.label}</th>
+              {cruce.columnas.map((c, j) => {
                 const cell = cruce.celdas[i]?.[j];
-                if (!cell) return <td key={j}>—</td>;
-                return <td key={j}>{fmt(cell.n, cell.pct_col)}</td>;
+                const n = cell?.n ?? 0;
+                const pct = cell?.pct_col ?? 0;
+                return (
+                  <Fragment key={c.code}>
+                    <td>{n}</td>
+                    <td className="dash-cross-pct">{fmtPct(pct)}</td>
+                  </Fragment>
+                );
               })}
               <td>{f.n_total}</td>
+              <td className="dash-cross-pct">
+                {fmtPct(cruce.n_total > 0 ? f.n_total / cruce.n_total : 0)}
+              </td>
             </tr>
           ))}
           <tr className="dash-cross-table-total">
-            <th scope="row">Total</th>
+            <th scope="row" className="dash-cross-rowhdr">Total</th>
             {cruce.columnas.map((c) => (
-              <td key={c.code}>{c.n_total}</td>
+              <Fragment key={c.code}>
+                <td>{c.n_total}</td>
+                <td className="dash-cross-pct">
+                  {fmtPct(cruce.n_total > 0 ? c.n_total / cruce.n_total : 0)}
+                </td>
+              </Fragment>
             ))}
             <td>{cruce.n_total}</td>
+            <td className="dash-cross-pct">100.0%</td>
           </tr>
         </tbody>
       </table>

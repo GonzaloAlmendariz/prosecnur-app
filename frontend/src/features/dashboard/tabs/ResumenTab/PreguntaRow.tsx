@@ -8,7 +8,10 @@ import { useDashboardStore } from "../../store";
 // - SO: barra horizontal apilada (1 trace por categoría).
 // - SM: una mini-barra por opción (fill-only estilo "chip").
 
-const BAR_HEIGHT = 36;
+// Alturas espejo del legacy (interactivo_resumen.R: BAR_HEIGHT=64 para SO,
+// chips SM con altura ~32px individuales).
+const BAR_HEIGHT = 56;
+const SM_BAR_HEIGHT = 32;
 
 export function PreguntaRow({ row }: { row: DashboardResumenRow }) {
   const palette = useDashboardStore((s) =>
@@ -241,7 +244,7 @@ function SmBar({
     <PlotlyChart
       data={tracesResolved}
       layout={layout}
-      height={28}
+      height={SM_BAR_HEIGHT}
       ariaLabel="Porcentaje de selección"
     />
   );

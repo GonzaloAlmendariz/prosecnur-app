@@ -14,10 +14,173 @@
   min-width: 0;
 }
 
-.dashboard-scope .dash-base-toolbar {
+/* Toolbar pegada arriba de la tabla — espejo del .dt-toolbar del legacy
+ * (interactivo_estetica.R:573-621). [Dicc circular] [Reset filtros]   [Buscar:___] */
+.dashboard-scope .dash-dt-toolbar {
+  align-items: center;
+  background: var(--dash-superficie-2);
+  border-bottom: 1px solid var(--dash-borde);
   display: flex;
   gap: 10px;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+.dashboard-scope .dash-dt-toolbar-left {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+.dashboard-scope .dash-dt-toolbar-right {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+.dashboard-scope .dash-dt-dicc-btn {
+  align-items: center;
+  appearance: none;
+  background: var(--dash-primario);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--dash-shadow-sm);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-out),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out);
+  width: 34px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-dt-dicc-btn:hover {
+    background: color-mix(in srgb, var(--dash-primario) 88%, black 12%);
+    box-shadow: var(--dash-shadow-md);
+  }
+}
+.dashboard-scope .dash-dt-dicc-btn:active {
+  transform: scale(0.95);
+}
+.dashboard-scope .dash-dt-reset-btn {
+  align-items: center;
+  appearance: none;
+  background: var(--dash-superficie);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 7px 11px;
+  transition:
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-dt-reset-btn:hover:not(:disabled) {
+    border-color: var(--dash-primario-ring);
+    color: var(--dash-primario);
+  }
+}
+.dashboard-scope .dash-dt-reset-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dashboard-scope .dash-dt-search {
+  align-items: center;
+  background: var(--dash-superficie);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  display: inline-flex;
+  gap: 6px;
+  padding: 0 10px;
+  transition:
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out);
+}
+.dashboard-scope .dash-dt-search:focus-within {
+  border-color: var(--dash-primario);
+  box-shadow: 0 0 0 3px var(--dash-primario-soft);
+}
+.dashboard-scope .dash-dt-search-label {
+  color: var(--dash-texto-suave);
+  font-size: 12px;
+  font-weight: 600;
+}
+.dashboard-scope .dash-dt-search-input {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--dash-texto);
+  font-size: 12px;
+  height: 30px;
+  outline: none;
+  padding: 0;
+  width: 200px;
+}
+.dashboard-scope .dash-dt-search > svg {
+  color: var(--dash-texto-suave);
+}
+
+/* Fila de filtros por columna (legacy: filtro inline bajo header). */
+.dashboard-scope .dash-dt-filter-row > th {
+  background: var(--dash-superficie);
+  padding: 6px 8px;
+  position: sticky;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  top: 32px;
+  z-index: 1;
+  border-bottom: 1px solid var(--dash-divider);
+}
+.dashboard-scope .dash-dt-filter-input {
+  appearance: none;
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-texto);
+  font-size: 11px;
+  outline: none;
+  padding: 4px 7px;
+  transition:
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    background-color var(--dash-dur-hover) var(--dash-ease-out);
+  width: 100%;
+}
+.dashboard-scope .dash-dt-filter-input:focus {
+  background: var(--dash-superficie);
+  border-color: var(--dash-primario-ring);
+}
+.dashboard-scope .dash-dt-filter-input::placeholder {
+  color: var(--dash-texto-suave);
+  opacity: 0.6;
+}
+.dashboard-scope .dash-dt-empty {
+  color: var(--dash-texto-suave);
+  padding: 24px 16px;
+  text-align: center;
+}
+
+/* Resumen de descarga en sidebar. */
+.dashboard-scope .dash-base-download-summary {
+  background: var(--dash-superficie-2);
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-texto-suave);
+  display: grid;
+  font-size: 11px;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 8px 10px;
+}
+.dashboard-scope .dash-base-download-summary strong {
+  color: var(--dash-primario);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
 .dashboard-scope .dash-base-secciones {
@@ -118,7 +281,7 @@
   width: 100%;
 }
 
-.dashboard-scope .dash-base-tabla thead th {
+.dashboard-scope .dash-base-tabla thead tr:first-child th {
   background: var(--dash-superficie-2);
   border-bottom: 1px solid var(--dash-borde);
   color: var(--dash-primario);
@@ -131,7 +294,7 @@
   letter-spacing: 0.03em;
   top: 0;
   white-space: nowrap;
-  z-index: 1;
+  z-index: 2;
 }
 
 .dashboard-scope .dash-base-tabla tbody td {
