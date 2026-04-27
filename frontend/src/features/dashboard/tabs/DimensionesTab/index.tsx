@@ -1,5 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, Compass, Grid3x3, ScatterChart, Target } from "lucide-react";
+import {
+  Accessibility,
+  BarChart3,
+  Building2,
+  Clock3,
+  Compass,
+  HandHeart,
+  Info,
+  MessageCircle,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  Grid3x3,
+  ScatterChart,
+  type LucideIcon,
+} from "lucide-react";
 import type {
   DashboardDimFodaCuadrante,
   DashboardDimFodaItem,
@@ -34,6 +49,15 @@ export function DimensionesTab() {
   const filtros = useDashboardStore((s) => s.filtros);
   const setFiltros = useDashboardStore((s) => s.setFiltros);
   const dim = useDashboardStore((s) => s.dimensiones);
+  const fodaIconosEnabled = useDashboardStore((s) => s.config.foda_iconos_enabled ?? true);
+  const fodaIconTint = useDashboardStore((s) => s.config.foda_icon_tint ?? "#FFFFFF");
+  const fodaIconSize = useDashboardStore((s) => s.config.foda_icon_size ?? 1);
+  const fodaIconLegend = useDashboardStore((s) => s.config.foda_icon_legend ?? true);
+  const fodaScoreMin = useDashboardStore((s) => s.config.foda_score_min ?? 0);
+  const fodaScoreMax = useDashboardStore((s) => s.config.foda_score_max ?? 120);
+  const fodaShowTotal = useDashboardStore((s) => s.config.foda_show_total ?? true);
+  const fodaSpacing = useDashboardStore((s) => s.config.foda_spacing ?? 1.15);
+  const fodaGridIntensity = useDashboardStore((s) => s.config.foda_grid_intensity ?? 0.42);
   const setDim = useDashboardStore((s) => s.setDimensiones);
 
   const { loading: loadingCat, error: errCat, payload: catalogo } = useDimCatalogo();
@@ -56,6 +80,27 @@ export function DimensionesTab() {
   const iter = dim.iterarOn && dim.iterarVar
     ? { var: dim.iterarVar, level: dim.iterarLevel || undefined }
     : null;
+  const fodaConfig = useMemo(() => ({
+    foda_iconos_enabled: fodaIconosEnabled,
+    foda_icon_tint: fodaIconTint,
+    foda_icon_size: fodaIconSize,
+    foda_icon_legend: fodaIconLegend,
+    foda_score_min: fodaScoreMin,
+    foda_score_max: fodaScoreMax,
+    foda_show_total: fodaShowTotal,
+    foda_spacing: fodaSpacing,
+    foda_grid_intensity: fodaGridIntensity,
+  }), [
+    fodaIconosEnabled,
+    fodaIconTint,
+    fodaIconSize,
+    fodaIconLegend,
+    fodaScoreMin,
+    fodaScoreMax,
+    fodaShowTotal,
+    fodaSpacing,
+    fodaGridIntensity,
+  ]);
 
   const { loading, error, payload } = useDimPayload({
     modo: dim.modo,
@@ -74,6 +119,7 @@ export function DimensionesTab() {
     incluirTotal: dim.incluirTotal,
     iter,
     filtros: filtrosActivos,
+    fodaConfig,
   });
 
   if (catalogo && !catalogo.ready) {
@@ -663,8 +709,8 @@ function HeatmapView({ payload }: { payload: DashboardDimPayload }) {
       },
     ];
     const layout = {
-      xaxis: { side: "top", tickfont: { size: 11 }, automargin: true },
-      yaxis: { autorange: "reversed", tickfont: { size: 11 }, automargin: true },
+      xaxis: { side: "top", tickfont: { size: 11 }, automargin: true, fixedrange: true },
+      yaxis: { autorange: "reversed", tickfont: { size: 11 }, automargin: true, fixedrange: true },
       margin: { t: 40, r: 16, b: 16, l: 16 },
     };
     return { traces, layout, axes: { x: xVals, y: yVals } };
@@ -739,27 +785,16 @@ function MainPlotView({
   const semaforo = payload.semaforo;
   const radarMin = useDashboardStore((s) => s.config.radar_min ?? 0);
 
-  // Chip de semáforo por axis (solo en modo barras): color rojo/ámbar/verde
-  // según el score del grupo de referencia vs los cortes del semáforo.
-  const semColorByAxis = useMemo(() => {
-    if (visualMode !== "barras" || !semaforo) return new Map<string, string>();
-    const m = new Map<string, string>();
-    const refGroup = groups[0];
-    if (!refGroup) return m;
-    for (const axis of axes) {
-      const row = rows.find((r) => r.axis_label === axis && r.grupo === refGroup);
-      const v = row?.score_round;
-      if (v == null) continue;
-      const color =
-        v < semaforo.red_max
-          ? semaforo.red_color
-          : v < semaforo.amber_max
-          ? semaforo.amber_color
-          : semaforo.green_color;
-      m.set(axis, color);
-    }
-    return m;
-  }, [visualMode, axes, rows, groups, semaforo]);
+  // Color del semáforo según el score (rojo/ámbar/verde según los cortes
+  // configurados). Reutilizado por annotations y trace de barras.
+  const colorOfScore = useMemo(() => {
+    return (v: number | null | undefined): string | null => {
+      if (v == null || !semaforo) return null;
+      if (v < semaforo.red_max) return semaforo.red_color;
+      if (v < semaforo.amber_max) return semaforo.amber_color;
+      return semaforo.green_color;
+    };
+  }, [semaforo]);
 
   const traces = useMemo(() => {
     if (visualMode === "radar") {
@@ -770,6 +805,7 @@ function MainPlotView({
         });
         const closedTheta = [...axes, axes[0]];
         const closedR = [...r, r[0]];
+        const color = groupColors[g] ?? "#0E3B74";
         return {
           type: "scatterpolar" as const,
           mode: "lines+markers",
@@ -777,9 +813,10 @@ function MainPlotView({
           theta: closedTheta,
           r: closedR,
           fill: "toself",
-          opacity: 0.6,
-          line: { color: groupColors[g] ?? undefined, width: 2 },
-          marker: { color: groupColors[g] ?? undefined, size: 6 },
+          fillcolor: colorToRgba(color, 0.08),
+          opacity: 1,
+          line: { color, width: 3.4 },
+          marker: { color, size: 7.5, line: { color: "#fff", width: 1.3 } },
           hovertemplate: `${g}<br>%{theta}: %{r:.0f}<extra></extra>`,
         };
       });
@@ -801,49 +838,90 @@ function MainPlotView({
     });
   }, [visualMode, groups, axes, rows, groupColors]);
 
+  // Modo barras: chip rectangular al final de cada barra con el score y
+  // color del semáforo. Plotly barmode="group" distribuye n barras dentro
+  // de cada categoría: ancho = (1 - bargap) / n, offset por barra =
+  // (g - (n-1)/2) * ancho. Eso nos da la posición Y exacta de cada chip.
+  const barAnnotations = useMemo(() => {
+    if (visualMode !== "barras") return [] as unknown[];
+    const nGroups = Math.max(1, groups.length);
+    const bargap = 0.2;
+    const widthPerBar = (1 - bargap) / nGroups;
+    const out: unknown[] = [];
+    for (let gi = 0; gi < groups.length; gi++) {
+      const g = groups[gi];
+      const yOffset = (gi - (nGroups - 1) / 2) * widthPerBar;
+      for (let ai = 0; ai < axes.length; ai++) {
+        const axis = axes[ai];
+        const row = rows.find((r) => r.grupo === g && r.axis_label === axis);
+        const v = row?.score_round ?? null;
+        if (v == null) continue;
+        const color = colorOfScore(v) ?? "#5f6b7a";
+        out.push({
+          x: v,
+          y: ai + yOffset,
+          xref: "x",
+          yref: "y",
+          text: `<b>${Math.round(v)}</b>`,
+          showarrow: false,
+          xanchor: "left",
+          yanchor: "middle",
+          xshift: 5,
+          font: { color: "#fff", size: 10, family: "system-ui, sans-serif" },
+          bgcolor: color,
+          bordercolor: color,
+          borderpad: 3,
+          borderwidth: 0,
+          opacity: 0.96,
+        });
+      }
+    }
+    return out;
+  }, [visualMode, groups, axes, rows, colorOfScore]);
+
   const layout = useMemo(() => {
     if (visualMode === "radar") {
       return {
         polar: {
-          radialaxis: { range: [radarMin, 100], tickfont: { size: 10 } },
-          angularaxis: { tickfont: { size: 11 } },
+          radialaxis: { range: [radarMin, 100], tickfont: { size: 10 }, fixedrange: true },
+          angularaxis: { tickfont: { size: 11 }, fixedrange: true },
         },
         showlegend: true,
-        legend: { orientation: "h", y: -0.1 },
+        legend: { orientation: "h", x: 0.5, xanchor: "center", y: -0.1 },
         margin: { t: 24, r: 24, b: 50, l: 24 },
       };
     }
-    // Modo barras: chip semáforo prefijado al label del eje Y
-    // (Plotly acepta <span style="color:..."> en ticktext).
-    const ticktext = axes.map((axis) => {
-      const color = semColorByAxis.get(axis);
-      const dot = color
-        ? `<span style="color:${color}">●</span> `
-        : "";
-      return `${dot}${axis}`;
-    });
     return {
       barmode: "group",
-      xaxis: { range: [0, 100], fixedrange: true, tickfont: { size: 11 } },
+      // X termina en 110 para dejar espacio al chip rectangular (ancho ~6 unidades).
+      xaxis: { range: [0, 112], fixedrange: true, tickfont: { size: 11 }, tickvals: [0, 20, 40, 60, 80, 100] },
       yaxis: {
         autorange: "reversed",
         tickfont: { size: 11 },
         automargin: true,
         tickmode: "array",
         tickvals: axes,
-        ticktext,
+        ticktext: axes,
       },
       showlegend: groups.length > 1,
       legend: { orientation: "h", y: -0.15 },
-      margin: { t: 16, r: 16, b: 50, l: 24 },
+      margin: { t: 16, r: 24, b: 50, l: 24 },
+      annotations: barAnnotations,
+      // bargap explícito para que el cálculo de Y de los chips sea consistente.
+      bargap: 0.2,
+      bargroupgap: 0,
     };
-  }, [visualMode, groups, axes, semColorByAxis, radarMin]);
+  }, [visualMode, groups, axes, radarMin, barAnnotations]);
 
   if (!rows.length) {
     return <p className="dash-cardbox-help">Sin datos para graficar.</p>;
   }
 
-  const altura = visualMode === "radar" ? 600 : Math.max(360, axes.length * 36 + 100);
+  // Altura: en modo barras agrupadas con muchos grupos, cada axis necesita
+  // ~22px por barra individual + padding. En radar la altura es fija.
+  const altura = visualMode === "radar"
+    ? 600
+    : Math.max(360, axes.length * Math.max(40, groups.length * 22 + 14) + 100);
 
   return (
     <PlotlyChart
@@ -879,7 +957,35 @@ function FodaView({
   payload: DashboardDimFodaPayload;
 }) {
   const items = payload.items ?? [];
-  const counts = payload.counts ?? { fortaleza: 0, oportunidad: 0, debilidad: 0, amenaza: 0 };
+  const showTotal = useDashboardStore((s) => s.config.foda_show_total ?? true);
+  const [selectedGroup, setSelectedGroup] = useState<string>("__all__");
+  const groupOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const it of items) {
+      if (!showTotal && isFodaTotalItem(it)) continue;
+      const label = it.grupo || "Total";
+      const key = it.grupo_key || label;
+      if (!seen.has(key)) seen.set(key, label);
+    }
+    return [...seen.entries()].map(([key, label]) => ({ key, label }));
+  }, [items, showTotal]);
+  useEffect(() => {
+    if (selectedGroup === "__all__") return;
+    if (groupOptions.some((g) => g.key === selectedGroup)) return;
+    setSelectedGroup("__all__");
+  }, [groupOptions, selectedGroup]);
+  const visibleItems = useMemo(
+    () => items.filter((it) => {
+      if (!showTotal && isFodaTotalItem(it)) return false;
+      if (selectedGroup === "__all__") return true;
+      return (it.grupo_key || it.grupo || "Total") === selectedGroup;
+    }),
+    [items, selectedGroup, showTotal],
+  );
+  const counts = useMemo(
+    () => countFodaQuadrants(visibleItems),
+    [visibleItems],
+  );
 
   return (
     <div className="dash-foda">
@@ -889,9 +995,31 @@ function FodaView({
           <span className="dash-foda-cortes-sep">·</span>
           <span><strong>Corte SD:</strong> {payload.cortes?.sd ?? 0}</span>
         </div>
+        {groupOptions.length > 1 && (
+          <div className="dash-foda-group-filter" aria-label="Filtrar FODA por grupo">
+            <span>Ver</span>
+            <button
+              type="button"
+              className={selectedGroup === "__all__" ? "is-active" : ""}
+              onClick={() => setSelectedGroup("__all__")}
+            >
+              Todos
+            </button>
+            {groupOptions.map((g) => (
+              <button
+                key={g.key}
+                type="button"
+                className={selectedGroup === g.key ? "is-active" : ""}
+                onClick={() => setSelectedGroup(g.key)}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
+        )}
         <FodaCounts counts={counts} payload={payload} />
       </div>
-      <FodaDispersion items={items} payload={payload} />
+      <FodaDispersion items={visibleItems} payload={payload} />
     </div>
   );
 }
@@ -939,100 +1067,381 @@ function FodaDispersion({
   const semaforo = payload.semaforo!;
   const corteScore = payload.cortes?.score ?? 80;
   const corteSd = payload.cortes?.sd ?? 0;
+  const fodaIconosEnabled = useDashboardStore((s) => s.config.foda_iconos_enabled ?? true);
+  const fodaIconTint = useDashboardStore((s) => s.config.foda_icon_tint ?? "#FFFFFF");
+  const fodaIconSize = useDashboardStore((s) => s.config.foda_icon_size ?? 1);
+  const fodaIconLegend = useDashboardStore((s) => s.config.foda_icon_legend ?? true);
+  const fodaScoreMin = useDashboardStore((s) => s.config.foda_score_min ?? 0);
+  const fodaScoreMax = useDashboardStore((s) => s.config.foda_score_max ?? 120);
+  const fodaSpacing = useDashboardStore((s) => s.config.foda_spacing ?? 1.15);
+  const fodaGridIntensity = useDashboardStore((s) => s.config.foda_grid_intensity ?? 0.42);
 
-  const colorMap: Record<DashboardDimFodaCuadrante, string> = {
-    fortaleza: semaforo.green_color,
-    oportunidad: "#1B679D",
-    debilidad: semaforo.amber_color,
-    amenaza: semaforo.red_color,
-  };
-
-  const traces = useMemo(() => {
-    const grupos: Record<DashboardDimFodaCuadrante, DashboardDimFodaItem[]> = {
-      fortaleza: [],
-      oportunidad: [],
-      debilidad: [],
-      amenaza: [],
-    };
-    for (const it of items) {
-      if (it.cuadrante) grupos[it.cuadrante].push(it);
-    }
-    return (Object.keys(grupos) as DashboardDimFodaCuadrante[]).map((q) => {
-      const subset = grupos[q];
-      return {
-        type: "scatter" as const,
-        mode: "markers+text",
-        name: CUADRANTE_LABELS[q],
-        x: subset.map((it) => it.score_mean),
-        y: subset.map((it) => it.score_sd),
-        text: subset.map((it) => it.axis_label),
-        textposition: "top center",
-        textfont: { size: 10 },
-        marker: { color: colorMap[q], size: 12, line: { color: "#fff", width: 1 } },
-        hovertemplate: subset.map((it) =>
-          `<b>${it.axis_label}</b><br>Score: ${it.score_mean}<br>SD: ${it.score_sd}<br>n: ${it.n_valid}<extra>${CUADRANTE_LABELS[q]}</extra>`,
-        ),
-      };
-    });
-  }, [items, colorMap]);
-
-  const maxSd = Math.max(...items.map((it) => it.score_sd), corteSd, 1);
-  const layout = {
-    xaxis: {
-      title: { text: "Score (0–100)", font: { size: 11 } },
-      range: [0, 100],
-      tickfont: { size: 10 },
-      zeroline: false,
-    },
-    yaxis: {
-      title: { text: "Variabilidad (SD)", font: { size: 11 } },
-      range: [0, maxSd * 1.1],
-      tickfont: { size: 10 },
-      zeroline: false,
-    },
-    shapes: [
-      // Línea vertical en corte_score.
-      {
-        type: "line",
-        x0: corteScore,
-        x1: corteScore,
-        y0: 0,
-        y1: maxSd * 1.1,
-        line: { color: "rgba(15,23,42,0.18)", width: 1, dash: "dash" },
-      },
-      // Línea horizontal en corte_sd.
-      {
-        type: "line",
-        x0: 0,
-        x1: 100,
-        y0: corteSd,
-        y1: corteSd,
-        line: { color: "rgba(15,23,42,0.18)", width: 1, dash: "dash" },
-      },
-    ],
-    annotations: [
-      { x: 100, y: maxSd * 1.05, xanchor: "right", showarrow: false, text: "Oportunidad", font: { size: 10, color: colorMap.oportunidad } },
-      { x: 100, y: 0, xanchor: "right", yanchor: "bottom", showarrow: false, text: "Fortaleza", font: { size: 10, color: colorMap.fortaleza } },
-      { x: 0, y: maxSd * 1.05, xanchor: "left", showarrow: false, text: "Amenaza", font: { size: 10, color: colorMap.amenaza } },
-      { x: 0, y: 0, xanchor: "left", yanchor: "bottom", showarrow: false, text: "Debilidad", font: { size: 10, color: colorMap.debilidad } },
-    ],
-    showlegend: true,
-    legend: { orientation: "h", y: -0.18 },
-    margin: { t: 16, r: 16, b: 60, l: 56 },
-  };
+  const plot = useMemo(
+    () => buildFodaLegacyPlot(
+      items,
+      payload.group_colors ?? {},
+      corteScore,
+      corteSd,
+      fodaScoreMin,
+      fodaScoreMax,
+      fodaSpacing,
+    ),
+    [items, payload.group_colors, corteScore, corteSd, fodaScoreMin, fodaScoreMax, fodaSpacing],
+  );
+  const iconScale = Math.max(0.6, Math.min(1.8, fodaIconSize));
+  const gridAlpha = (0.012 + Math.max(0, Math.min(1, fodaGridIntensity)) * 0.045).toFixed(3);
+  const iconLegend = useMemo(
+    () => buildFodaIconLegend(items, payload.icon_legend ?? []),
+    [items, payload.icon_legend],
+  );
 
   if (!items.length) {
     return <p className="dash-cardbox-help">Sin datos para la dispersión.</p>;
   }
 
   return (
-    <PlotlyChart
-      data={traces}
-      layout={layout}
-      height={520}
-      ariaLabel="Dispersión FODA score vs variabilidad"
+    <>
+      <div className="dash-foda-legacy" role="img" aria-label="Dispersión FODA de puntaje y variabilidad">
+        <div className="dash-foda-axis-note is-y-high">Mayor puntaje</div>
+        <div className="dash-foda-axis-note is-y-low">Menor puntaje</div>
+        <div
+          className="dash-foda-legacy-panel"
+          style={{ ["--dash-foda-grid-alpha" as string]: gridAlpha }}
+        >
+          <div className="dash-foda-legacy-area-label is-fortaleza">Fortaleza</div>
+          <div className="dash-foda-legacy-area-label is-oportunidad">Oportunidad</div>
+          <div className="dash-foda-legacy-area-label is-debilidad">Debilidad</div>
+          <div className="dash-foda-legacy-area-label is-amenaza">Amenaza</div>
+          <div
+            className="dash-foda-legacy-cut is-vertical"
+            style={{ left: `${plot.cutX}%` }}
+            aria-hidden="true"
+          />
+          <div
+            className="dash-foda-legacy-cut is-horizontal"
+            style={{ top: `${plot.cutY}%` }}
+            aria-hidden="true"
+          />
+          {plot.points.map((p) => (
+            <div
+              key={p.key}
+              className={`dash-foda-legacy-card ${isFodaTotalItem(p) ? "is-total" : ""}`}
+              style={{
+                left: `${p.left}%`,
+                top: `${p.top}%`,
+                background: p.color,
+                ["--dash-foda-icon-scale" as string]: iconScale,
+                ["--dash-foda-card-scale" as string]: iconScale,
+              }}
+              title={`${p.axis_label}${p.grupo ? ` · ${p.grupo}` : ""}\nPuntaje: ${p.score_mean}\nSD: ${p.score_sd}\nn: ${p.n_valid}`}
+            >
+              <span className="dash-foda-legacy-title">
+                {fodaIconosEnabled ? (
+                  <FodaAxisIcon
+                    label={p.axis_label}
+                    src={p.icono_url}
+                    tint={fodaIconTint}
+                    scale={iconScale}
+                  />
+                ) : (
+                  shortAxisLabel(p.axis_label)
+                )}
+              </span>
+              <span
+                className="dash-foda-legacy-score"
+                style={{ background: semaforoColor(p.score_mean, semaforo) }}
+              >
+                {Math.round(p.score_mean)}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="dash-foda-axis-note is-x-low">Menor dispersión</div>
+        <div className="dash-foda-axis-note is-x-high">Mayor dispersión</div>
+        <div className="dash-foda-legacy-xaxis">
+          <span>0</span>
+          <span>{formatFodaTick(corteSd)}</span>
+          <span>{formatFodaTick(plot.xMax)}</span>
+        </div>
+        <div className="dash-foda-legacy-xtitle">Variabilidad</div>
+      </div>
+      {plot.groups.length > 1 && (
+        <div className="dash-foda-group-legend" aria-label="Leyenda por comparación">
+          {plot.groups.map((g) => (
+            <span key={g.label} className="dash-foda-group-legend-item">
+              <span style={{ background: g.color }} />
+              {g.label}
+            </span>
+          ))}
+        </div>
+      )}
+      {fodaIconosEnabled && fodaIconLegend && Boolean(iconLegend.length) && (
+        <div className="dash-foda-icon-legend" aria-label="Leyenda de iconos FODA">
+          {iconLegend.map((it) => (
+            <span key={it.var} className="dash-foda-icon-legend-item">
+              <FodaAxisIcon
+                label={it.label}
+                src={it.icono_url}
+                tint={fodaIconTint}
+                scale={0.75}
+              />
+              {it.label}
+            </span>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+type FodaIconLegendUiItem = {
+  var: string;
+  label: string;
+  icono_url?: string;
+};
+
+const FODA_FALLBACK_ICONS: Record<string, LucideIcon> = {
+  trato: HandHeart,
+  tiempo: Clock3,
+  informacion: Info,
+  accesibilidad: Accessibility,
+  ambiente: Building2,
+  confianza: ShieldCheck,
+  comunicacion: MessageCircle,
+  calidad: Sparkles,
+  default: Target,
+};
+
+function FodaAxisIcon({
+  label,
+  src,
+  tint,
+  scale,
+}: {
+  label: string;
+  src?: string;
+  tint: string;
+  scale: number;
+}) {
+  if (src) return <img src={src} alt="" />;
+  const Icon = FODA_FALLBACK_ICONS[fodaIconKey(label)] ?? FODA_FALLBACK_ICONS.default;
+  const size = Math.round(18 + Math.max(0.6, Math.min(1.8, scale)) * 8);
+  return (
+    <Icon
+      className="dash-foda-fallback-icon"
+      color={tint}
+      size={size}
+      strokeWidth={2.35}
+      aria-hidden="true"
     />
   );
+}
+
+function buildFodaIconLegend(
+  items: DashboardDimFodaItem[],
+  payloadLegend: NonNullable<DashboardDimFodaPayload["icon_legend"]>,
+): FodaIconLegendUiItem[] {
+  const iconByVar = new Map(payloadLegend.map((it) => [it.var, it.icono_url]));
+  const out = new Map<string, FodaIconLegendUiItem>();
+  for (const it of items) {
+    if (out.has(it.var)) continue;
+    out.set(it.var, {
+      var: it.var,
+      label: it.axis_label,
+      icono_url: it.icono_url ?? iconByVar.get(it.var),
+    });
+  }
+  return [...out.values()];
+}
+
+function fodaIconKey(label: string): string {
+  const s = normalizeSearchText(label);
+  if (/trato|atencion|servicio|amabilidad|respeto|personal/.test(s)) return "trato";
+  if (/tiempo|espera|rapidez|demora|horario|puntual/.test(s)) return "tiempo";
+  if (/info|informacion|comunicacion|orientacion|claridad/.test(s)) return "informacion";
+  if (/acces|facil|discap|inclusion|tramite/.test(s)) return "accesibilidad";
+  if (/ambi|ambiente|infra|espacio|local|instalac|comodidad/.test(s)) return "ambiente";
+  if (/confianza|seguridad|transparen|cumpl/.test(s)) return "confianza";
+  if (/calidad|satisf|resultado|efectiv/.test(s)) return "calidad";
+  return "default";
+}
+
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function isFodaTotalItem(it: Pick<DashboardDimFodaItem, "grupo" | "grupo_key" | "is_total_global">): boolean {
+  return Boolean(it.is_total_global) || it.grupo_key === "__total__" || (it.grupo || "").toLowerCase() === "total";
+}
+
+function countFodaQuadrants(items: DashboardDimFodaItem[]): Record<DashboardDimFodaCuadrante, number> {
+  const counts: Record<DashboardDimFodaCuadrante, number> = {
+    fortaleza: 0,
+    oportunidad: 0,
+    debilidad: 0,
+    amenaza: 0,
+  };
+  for (const it of items) {
+    if (it.cuadrante) counts[it.cuadrante] += 1;
+  }
+  return counts;
+}
+
+function buildFodaLegacyPlot(
+  items: DashboardDimFodaItem[],
+  groupColors: Record<string, string>,
+  corteScore: number,
+  corteSd: number,
+  scoreMin: number,
+  scoreMax: number,
+  spacing: number,
+) {
+  const maxSd = Math.max(...items.map((it) => it.score_sd), corteSd, 1);
+  const xMax = Math.max(1, maxSd * 1.22, corteSd * 2.05);
+  const yMin = Math.max(0, Math.min(95, scoreMin));
+  const yMax = Math.max(yMin + 5, Math.min(140, scoreMax));
+  const clampPct = (v: number) => Math.max(5, Math.min(95, v));
+  const groupLabels = uniqueOrdered(items.map((it) => it.grupo || "Total"));
+  const groups = groupLabels.map((label) => {
+    const item = items.find((it) => (it.grupo || "Total") === label);
+    return { label, color: groupColors[label] ?? item?.color ?? "#2F4A66" };
+  });
+  const rawPoints = items.map((it, i) => {
+    const jitterX = Math.sin((i + 1) * 2.399 + 0.7) * 2.6 * spacing;
+    const jitterY = Math.cos((i + 1) * 1.913 + 0.2) * 1.9 * spacing;
+    const left = clampPct((it.score_sd / xMax) * 100 + jitterX);
+    const top = clampPct(100 - ((it.score_mean - yMin) / (yMax - yMin)) * 100 + jitterY);
+    const group = it.grupo || "Total";
+    return {
+      ...it,
+      key: `${it.var}-${it.grupo_key ?? group}-${i}`,
+      left,
+      top,
+      color: groupColors[group] ?? it.color ?? "#2F4A66",
+    };
+  });
+  const points = repelFodaPoints(rawPoints, spacing);
+  return {
+    xMax,
+    cutX: clampPct((corteSd / xMax) * 100),
+    cutY: clampPct(100 - ((corteScore - yMin) / (yMax - yMin)) * 100),
+    groups,
+    points,
+  };
+}
+
+function repelFodaPoints<T extends { left: number; top: number; cuadrante?: DashboardDimFodaCuadrante | null }>(
+  points: T[],
+  spacing: number,
+): T[] {
+  const out = points.map((p) => ({ ...p }));
+  const minX = 7.5;
+  const maxX = 92.5;
+  const minY = 7;
+  const maxY = 93;
+  const k = Math.max(0.7, Math.min(1.8, spacing));
+  const minDistX = 7.6 + k * 3.2;
+  const minDistY = 5.2 + k * 2.6;
+  for (let iter = 0; iter < 34 + Math.round(k * 12); iter += 1) {
+    for (let i = 0; i < out.length; i += 1) {
+      for (let j = i + 1; j < out.length; j += 1) {
+        const dx = out[j].left - out[i].left;
+        const dy = out[j].top - out[i].top;
+        if (Math.abs(dx) >= minDistX || Math.abs(dy) >= minDistY) continue;
+        const pushX = (minDistX - Math.abs(dx)) / 2;
+        const pushY = (minDistY - Math.abs(dy)) / 2;
+        const sx = dx >= 0 ? 1 : -1;
+        const sy = dy >= 0 ? 1 : -1;
+        out[i].left -= sx * pushX * 0.46;
+        out[j].left += sx * pushX * 0.46;
+        out[i].top -= sy * pushY * 0.52;
+        out[j].top += sy * pushY * 0.52;
+        out[i].left = Math.max(minX, Math.min(maxX, out[i].left));
+        out[j].left = Math.max(minX, Math.min(maxX, out[j].left));
+        out[i].top = Math.max(minY, Math.min(maxY, out[i].top));
+        out[j].top = Math.max(minY, Math.min(maxY, out[j].top));
+      }
+    }
+  }
+  return laneFodaPoints(out, minDistX, minDistY, minX, maxX, minY, maxY);
+}
+
+function laneFodaPoints<T extends { left: number; top: number; cuadrante?: DashboardDimFodaCuadrante | null }>(
+  points: T[],
+  minDistX: number,
+  minDistY: number,
+  minX: number,
+  maxX: number,
+  minY: number,
+  maxY: number,
+): T[] {
+  const out = points.map((p) => ({ ...p }));
+  const quadrants: Array<DashboardDimFodaCuadrante | "none"> = [
+    "fortaleza",
+    "oportunidad",
+    "debilidad",
+    "amenaza",
+    "none",
+  ];
+  for (const q of quadrants) {
+    const members = out
+      .map((p) => ({ p }))
+      .filter(({ p }) => (p.cuadrante ?? "none") === q)
+      .sort((a, b) => (a.p.top - b.p.top) || (a.p.left - b.p.left));
+    const placed: Array<{ left: number; top: number }> = [];
+    for (const { p } of members) {
+      let tries = 0;
+      while (
+        tries < 24 &&
+        placed.some((prev) => Math.abs(prev.left - p.left) < minDistX && Math.abs(prev.top - p.top) < minDistY)
+      ) {
+        const lane = Math.ceil((tries + 1) / 2) * (tries % 2 === 0 ? 1 : -1);
+        p.left = Math.max(minX, Math.min(maxX, p.left + lane * minDistX * 0.34));
+        p.top = Math.max(minY, Math.min(maxY, p.top + ((tries % 3) - 1) * minDistY * 0.28));
+        tries += 1;
+      }
+      placed.push({ left: p.left, top: p.top });
+    }
+  }
+  return out;
+}
+
+function shortAxisLabel(label: string): string {
+  const clean = label.replace(/\s+/g, " ").trim();
+  if (!clean) return "";
+  const words = clean.split(" ");
+  if (words.length === 1) return clean.slice(0, 4).toUpperCase();
+  return words.slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+}
+
+function semaforoColor(score: number, semaforo: NonNullable<DashboardDimPayload["semaforo"]>): string {
+  if (score < semaforo.red_max) return semaforo.red_color;
+  if (score < semaforo.amber_max) return semaforo.amber_color;
+  return semaforo.green_color;
+}
+
+function colorToRgba(color: string, alpha: number): string {
+  const hex = color.trim();
+  const short = /^#([0-9a-f]{3})$/i.exec(hex);
+  if (short) {
+    const [r, g, b] = short[1].split("").map((x) => parseInt(`${x}${x}`, 16));
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  const full = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (full) {
+    const n = parseInt(full[1], 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+  }
+  return `rgba(14, 59, 116, ${alpha})`;
+}
+
+function formatFodaTick(v: number): string {
+  if (!Number.isFinite(v)) return "0";
+  if (v >= 10) return String(Math.round(v));
+  return v.toFixed(1).replace(/\.0$/, "");
 }
 
 // =============================================================================

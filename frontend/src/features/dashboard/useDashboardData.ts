@@ -457,6 +457,17 @@ export function useDimFoda(opts: {
   incluirTotal: boolean;
   iter: { var: string; level?: string } | null;
   filtros: DashboardFiltro[];
+  fodaConfig?: {
+    foda_iconos_enabled?: boolean;
+    foda_icon_tint?: string;
+    foda_icon_size?: number;
+    foda_icon_legend?: boolean;
+    foda_score_min?: number;
+    foda_score_max?: number;
+    foda_show_total?: boolean;
+    foda_spacing?: number;
+    foda_grid_intensity?: number;
+  };
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -464,6 +475,7 @@ export function useDimFoda(opts: {
 
   const filtrosKey = JSON.stringify(opts.filtros);
   const iterKey = JSON.stringify(opts.iter);
+  const fodaConfigKey = JSON.stringify(opts.fodaConfig ?? {});
 
   useEffect(() => {
     if (!opts.enabled || !opts.objetivo) {
@@ -481,6 +493,7 @@ export function useDimFoda(opts: {
         incluir_total: opts.incluirTotal,
         iter: opts.iter,
         filtros: opts.filtros,
+        foda_config: opts.fodaConfig,
       })
         .then((r) => {
           if (cancelled) return;
@@ -498,7 +511,7 @@ export function useDimFoda(opts: {
       window.clearTimeout(handle);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opts.enabled, opts.modo, opts.objetivo, opts.cruce, opts.incluirTotal, iterKey, filtrosKey]);
+  }, [opts.enabled, opts.modo, opts.objetivo, opts.cruce, opts.incluirTotal, iterKey, filtrosKey, fodaConfigKey]);
 
   return { loading, error, payload };
 }

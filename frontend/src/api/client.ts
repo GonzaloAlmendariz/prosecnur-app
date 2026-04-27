@@ -2045,6 +2045,15 @@ export type DashboardConfig = {
   // Personalización visual avanzada (Dimensiones).
   semaforo_modo?: "cortes" | "gradiente";
   radar_min?: number;
+  foda_iconos_enabled?: boolean;
+  foda_icon_tint?: string;
+  foda_icon_size?: number;
+  foda_icon_legend?: boolean;
+  foda_score_min?: number;
+  foda_score_max?: number;
+  foda_show_total?: boolean;
+  foda_spacing?: number;
+  foda_grid_intensity?: number;
 };
 
 export async function apiDashboardConfigGet() {
@@ -2426,11 +2435,21 @@ export type DashboardDimFodaCuadrante =
 export type DashboardDimFodaItem = {
   var: string;
   axis_label: string;
+  grupo?: string;
+  grupo_key?: string;
+  color?: string;
   score_mean: number;
   score_sd: number;
   n_valid: number;
   cuadrante: DashboardDimFodaCuadrante | null;
   icono_url?: string;
+  is_total_global?: boolean;
+};
+
+export type DashboardDimFodaIconLegendItem = {
+  var: string;
+  label: string;
+  icono_url: string;
 };
 
 export type DashboardDimFodaPayload = {
@@ -2442,6 +2461,8 @@ export type DashboardDimFodaPayload = {
   items?: DashboardDimFodaItem[];
   cortes?: { score: number; sd: number };
   counts?: Record<DashboardDimFodaCuadrante, number>;
+  group_colors?: Record<string, string>;
+  icon_legend?: DashboardDimFodaIconLegendItem[];
   semaforo?: DashboardDimPayload["semaforo"];
 };
 
@@ -2452,6 +2473,7 @@ export async function apiDashboardDimFoda(opts: {
   incluir_total?: boolean;
   iter?: { var: string; level?: string } | null;
   filtros?: DashboardFiltro[];
+  foda_config?: Pick<DashboardConfig, "foda_iconos_enabled" | "foda_icon_tint" | "foda_icon_size" | "foda_icon_legend" | "foda_score_min" | "foda_score_max" | "foda_show_total" | "foda_spacing" | "foda_grid_intensity">;
 }) {
   return handle<{ ok: true; payload: DashboardDimFodaPayload }>(
     await apiFetch("/api/dashboard/dimensiones/foda", {

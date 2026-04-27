@@ -252,7 +252,8 @@ mount_dashboard <- function(pr) {
       incluir_total <- if (is.null(body$incluir_total)) NULL else isTRUE(body$incluir_total)
       iter <- body$iter
       filtros <- body$filtros %||% list()
-      payload <- .dashboard_dim_foda(s, modo, objetivo, cruce, incluir_total, iter, filtros)
+      foda_config <- body$foda_config %||% NULL
+      payload <- .dashboard_dim_foda(s, modo, objetivo, cruce, incluir_total, iter, filtros, foda_config)
       list(ok = TRUE, payload = payload)
     }))
 }

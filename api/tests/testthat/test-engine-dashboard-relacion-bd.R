@@ -244,3 +244,124 @@ test_that("dashboard_dim_foda devuelve estructura ready=FALSE sin rp_dim", {
   out <- .dashboard_dim_foda(s, modo = "general", objetivo = "x")
   expect_false(isTRUE(out$ready))
 })
+
+.fx_dim_icon_path <- function() {
+  p <- tempfile(fileext = ".png")
+  grDevices::png(p, width = 8, height = 8, bg = "transparent")
+  graphics::par(mar = c(0, 0, 0, 0))
+  graphics::plot.new()
+  graphics::rect(0.1, 0.1, 0.9, 0.9, col = "black", border = NA)
+  grDevices::dev.off()
+  p
+}
+
+.fx_dashboard_dimensiones_session <- function() {
+  icon_path <- .fx_dim_icon_path()
+  dat <- data.frame(
+    p1 = c("5", "4", "5", "4", "5", "4"),
+    p2 = c("3", "3", "4", "3", "2", "3"),
+    p3 = c("2", "1", "2", "1", "2", "1"),
+    servicio = c("A", "A", "B", "B", "C", "C"),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$p1, "label") <- "P1"
+  attr(dat$p2, "label") <- "P2"
+  attr(dat$p3, "label") <- "P3"
+  attr(dat$servicio, "label") <- "Servicio"
+
+  inst <- list(
+    survey = data.frame(
+      name = c("p1", "p2", "p3", "servicio"),
+      type = c("select_one sat", "select_one sat", "select_one sat", "select_one srv"),
+      list_name = c("sat", "sat", "sat", "srv"),
+      stringsAsFactors = FALSE
+    ),
+    choices = rbind(
+      data.frame(
+        list_name = "sat",
+        name = c("1", "2", "3", "4", "5"),
+        label = c("1", "2", "3", "4", "5"),
+        stringsAsFactors = FALSE
+      ),
+      data.frame(
+        list_name = "srv",
+        name = c("A", "B", "C"),
+        label = c("A", "B", "C"),
+        stringsAsFactors = FALSE
+      )
+    ),
+    orders_list = NULL
+  )
+
+  d1 <- reporte_dimensiones(
+    data = dat,
+    instrumento = inst,
+    vars = c("p1", "p2", "p3"),
+    prefijo = "r100_",
+    reemplazar = FALSE,
+    orden_por_lista = list(sat = c("1", "2", "3", "4", "5"))
+  )
+  d2 <- reporte_dimensiones_indices(
+    data = d1,
+    subindices = list(
+      subindice("s1", "S1", c("r100_p1"), icono = icon_path),
+      subindice("s2", "S2", c("r100_p2"), icono = icon_path),
+      subindice("s3", "S3", c("r100_p3"), icono = icon_path)
+    ),
+    indices = list(indice("idx", "Indice", c("s1", "s2", "s3")))
+  )
+
+  sid <- session_create()
+  session_set(sid, "analitica_dim_ok", TRUE)
+  session_set(sid, "rp_dim", d2)
+  session_set(sid, "rp_inst", inst)
+  session_set(sid, "dashboard_rp_data", d2)
+  session_set(sid, "dashboard_rp_inst", inst)
+  session_set(sid, "dashboard_config", utils::modifyList(
+    .dashboard_default_config(),
+    list(
+      paletas_listas = list(srv = list(A = "#111111", B = "#222222", C = "#333333")),
+      foda_icon_tint = "#FFFFFF"
+    )
+  ))
+  list(sid = sid, session = session_get(sid))
+}
+
+test_that("dashboard_dim_foda con cruce devuelve dimension por grupo, colores e iconos", {
+  fx <- .fx_dashboard_dimensiones_session()
+  on.exit(session_delete(fx$sid), add = TRUE)
+
+  out <- .dashboard_dim_foda(
+    fx$session,
+    modo = "general",
+    objetivo = "idx_idx",
+    cruce = "servicio",
+    incluir_total = FALSE
+  )
+
+  expect_true(isTRUE(out$ready))
+  expect_equal(length(unique(vapply(out$items, `[[`, character(1), "grupo"))), 3L)
+  expect_setequal(names(out$group_colors), c("A", "B", "C"))
+  expect_identical(out$group_colors$A, "#111111")
+  expect_equal(length(out$items), 9L)
+  expect_true(all(grepl("^data:image/png;base64,", vapply(out$items, `[[`, character(1), "icono_url"))))
+  expect_equal(length(out$icon_legend), 3L)
+})
+
+test_that("dashboard_dim_foda sin cruce mantiene fallback total y counts", {
+  fx <- .fx_dashboard_dimensiones_session()
+  on.exit(session_delete(fx$sid), add = TRUE)
+
+  out <- .dashboard_dim_foda(
+    fx$session,
+    modo = "general",
+    objetivo = "idx_idx",
+    cruce = "",
+    incluir_total = TRUE
+  )
+
+  expect_true(isTRUE(out$ready))
+  expect_equal(unique(vapply(out$items, `[[`, character(1), "grupo")), "Total")
+  expect_equal(length(out$items), 3L)
+  expect_named(out$counts, c("fortaleza", "oportunidad", "debilidad", "amenaza"))
+})

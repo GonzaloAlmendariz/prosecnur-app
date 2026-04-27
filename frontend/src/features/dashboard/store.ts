@@ -31,6 +31,10 @@ function sanitizeConfig(c: DashboardConfig): DashboardConfig {
     c.paletas_listas && typeof c.paletas_listas === "object" && !Array.isArray(c.paletas_listas)
       ? c.paletas_listas
       : {};
+  const fodaScoreMin = Math.max(0, Math.min(95, num(c.foda_score_min, 0)));
+  const fodaScoreMax = Math.max(fodaScoreMin + 5, Math.min(140, num(c.foda_score_max, 120)));
+  const fodaSpacing = Math.max(0.7, Math.min(1.8, num(c.foda_spacing, 1.15)));
+  const fodaGridIntensity = Math.max(0, Math.min(1, num(c.foda_grid_intensity, 0.42)));
   return {
     ...c,
     titulo: typeof c.titulo === "string" ? c.titulo : "Dashboard",
@@ -44,6 +48,17 @@ function sanitizeConfig(c: DashboardConfig): DashboardConfig {
     notas: typeof c.notas === "string" ? c.notas : "",
     semaforo_modo: c.semaforo_modo === "gradiente" ? "gradiente" : "cortes",
     radar_min: Math.max(0, Math.min(95, num(c.radar_min, 0))),
+    foda_iconos_enabled: typeof c.foda_iconos_enabled === "boolean" ? c.foda_iconos_enabled : true,
+    foda_icon_tint: typeof c.foda_icon_tint === "string" && c.foda_icon_tint.length > 0
+      ? c.foda_icon_tint
+      : "#FFFFFF",
+    foda_icon_size: Math.max(0.6, Math.min(1.8, num(c.foda_icon_size, 1))),
+    foda_icon_legend: typeof c.foda_icon_legend === "boolean" ? c.foda_icon_legend : true,
+    foda_score_min: fodaScoreMin,
+    foda_score_max: fodaScoreMax,
+    foda_show_total: typeof c.foda_show_total === "boolean" ? c.foda_show_total : true,
+    foda_spacing: fodaSpacing,
+    foda_grid_intensity: fodaGridIntensity,
   };
 }
 
@@ -59,6 +74,15 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   notas: "",
   semaforo_modo: "cortes",
   radar_min: 0,
+  foda_iconos_enabled: true,
+  foda_icon_tint: "#FFFFFF",
+  foda_icon_size: 1,
+  foda_icon_legend: true,
+  foda_score_min: 0,
+  foda_score_max: 120,
+  foda_show_total: true,
+  foda_spacing: 1.15,
+  foda_grid_intensity: 0.42,
 };
 
 // Estado de exploración para Relaciones (no persistido).
@@ -164,6 +188,15 @@ type DashboardStore = {
   setNotas: (s: string) => void;
   setSemaforoModo: (m: "cortes" | "gradiente") => void;
   setRadarMin: (n: number) => void;
+  setFodaIconosEnabled: (enabled: boolean) => void;
+  setFodaIconTint: (hex: string) => void;
+  setFodaIconSize: (n: number) => void;
+  setFodaIconLegend: (enabled: boolean) => void;
+  setFodaScoreMin: (n: number) => void;
+  setFodaScoreMax: (n: number) => void;
+  setFodaShowTotal: (enabled: boolean) => void;
+  setFodaSpacing: (n: number) => void;
+  setFodaGridIntensity: (n: number) => void;
 
   // Estado de exploración (local, no marca dirty)
   setTabActiva: (t: DashboardTabId) => void;
@@ -253,6 +286,38 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   setRadarMin: (n) =>
     set((st) =>
       dirtyPatch({ config: { ...st.config, radar_min: Math.max(0, Math.min(95, Math.round(n))) } }),
+    ),
+  setFodaIconosEnabled: (enabled) =>
+    set((st) => dirtyPatch({ config: { ...st.config, foda_iconos_enabled: enabled } })),
+  setFodaIconTint: (hex) =>
+    set((st) => dirtyPatch({ config: { ...st.config, foda_icon_tint: hex || "#FFFFFF" } })),
+  setFodaIconSize: (n) =>
+    set((st) =>
+      dirtyPatch({ config: { ...st.config, foda_icon_size: Math.max(0.6, Math.min(1.8, n)) } }),
+    ),
+  setFodaIconLegend: (enabled) =>
+    set((st) => dirtyPatch({ config: { ...st.config, foda_icon_legend: enabled } })),
+  setFodaScoreMin: (n) =>
+    set((st) => {
+      const max = st.config.foda_score_max ?? 120;
+      const min = Math.max(0, Math.min(95, Math.round(n)));
+      return dirtyPatch({ config: { ...st.config, foda_score_min: Math.min(min, max - 5) } });
+    }),
+  setFodaScoreMax: (n) =>
+    set((st) => {
+      const min = st.config.foda_score_min ?? 0;
+      const max = Math.max(60, Math.min(140, Math.round(n)));
+      return dirtyPatch({ config: { ...st.config, foda_score_max: Math.max(max, min + 5) } });
+    }),
+  setFodaShowTotal: (enabled) =>
+    set((st) => dirtyPatch({ config: { ...st.config, foda_show_total: enabled } })),
+  setFodaSpacing: (n) =>
+    set((st) =>
+      dirtyPatch({ config: { ...st.config, foda_spacing: Math.max(0.7, Math.min(1.8, n)) } }),
+    ),
+  setFodaGridIntensity: (n) =>
+    set((st) =>
+      dirtyPatch({ config: { ...st.config, foda_grid_intensity: Math.max(0, Math.min(1, n)) } }),
     ),
 
   setTabActiva: (t) => set({ tabActiva: t }),

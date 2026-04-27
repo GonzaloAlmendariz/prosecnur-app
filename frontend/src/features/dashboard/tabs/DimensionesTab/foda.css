@@ -1,6 +1,5 @@
 /* =============================================================================
- * FODA — vista única tipo scatter de dispersión con líneas de corte
- * y animación flotante en los markers (Plotly SVG points).
+ * FODA — dispersión con bloques rectangulares e iconos de dimensión.
  * ============================================================================= */
 
 .dashboard-scope .dash-foda {
@@ -15,6 +14,63 @@
   flex-wrap: wrap;
   gap: 12px;
   justify-content: space-between;
+}
+
+.dashboard-scope .dash-foda-group-filter {
+  align-items: center;
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  display: inline-flex;
+  flex: 1 1 260px;
+  gap: 4px;
+  justify-content: center;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 4px;
+}
+
+.dashboard-scope .dash-foda-group-filter span {
+  color: var(--dash-texto-suave);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 0 6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dashboard-scope .dash-foda-group-filter button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  transition:
+    background-color 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    color 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+  white-space: nowrap;
+}
+
+.dashboard-scope .dash-foda-group-filter button:hover {
+  background: rgba(14, 59, 116, 0.06);
+  color: var(--dash-texto);
+}
+
+.dashboard-scope .dash-foda-group-filter button:active {
+  transform: scale(0.97);
+}
+
+.dashboard-scope .dash-foda-group-filter button.is-active {
+  background: #fff;
+  border-color: rgba(14, 59, 116, 0.14);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+  color: var(--dash-primario);
 }
 
 .dashboard-scope .dash-foda-cortes {
@@ -71,67 +127,348 @@
   margin-left: 2px;
 }
 
-/* =============================================================================
- * Animación flotante en los markers del scatter Plotly.
- * Cada trace renderiza sus puntos como <path class="point"> dentro de
- * <g class="trace scatter">. Damos un float vertical sutil con desfase
- * por trace (los traces son los 4 cuadrantes).
- * ============================================================================= */
-
-.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace .point {
-  animation: dash-foda-point-float 4.2s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(1) .point {
-  animation-delay: 0s;
-}
-.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(2) .point {
-  animation-delay: -1.05s;
-}
-.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(3) .point {
-  animation-delay: -2.1s;
-}
-.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(4) .point {
-  animation-delay: -3.15s;
+.dashboard-scope .dash-foda-legacy {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  grid-template-rows: 500px 18px auto auto;
+  min-height: 586px;
+  width: 100%;
 }
 
-@keyframes dash-foda-point-float {
-  0%, 100% {
-    transform: translateY(0) scale(1);
+.dashboard-scope .dash-foda-legacy-ytitle {
+  align-self: center;
+  color: var(--dash-texto-suave);
+  font-size: 11px;
+  font-weight: 700;
+  grid-column: 1;
+  grid-row: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transform: rotate(-90deg);
+  white-space: nowrap;
+}
+
+.dashboard-scope .dash-foda-axis-note {
+  color: var(--dash-texto-suave);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  pointer-events: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dashboard-scope .dash-foda-axis-note.is-y-high,
+.dashboard-scope .dash-foda-axis-note.is-y-low {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: center;
+  transform: rotate(-90deg);
+}
+
+.dashboard-scope .dash-foda-axis-note.is-y-high {
+  align-self: start;
+  margin-top: 58px;
+}
+
+.dashboard-scope .dash-foda-axis-note.is-y-low {
+  align-self: end;
+  margin-bottom: 58px;
+}
+
+.dashboard-scope .dash-foda-axis-note.is-x-low,
+.dashboard-scope .dash-foda-axis-note.is-x-high {
+  align-self: center;
+  grid-row: 2;
+}
+
+.dashboard-scope .dash-foda-axis-note.is-x-low {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.dashboard-scope .dash-foda-axis-note.is-x-high {
+  grid-column: 2;
+  justify-self: end;
+}
+
+.dashboard-scope .dash-foda-legacy-panel {
+  background:
+    linear-gradient(to right, rgba(15, 23, 42, var(--dash-foda-grid-alpha, 0.031)) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, var(--dash-foda-grid-alpha, 0.031)) 1px, transparent 1px);
+  background-size: 10% 20%;
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-md);
+  grid-column: 2;
+  grid-row: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.dashboard-scope .dash-foda-legacy-panel::before {
+  background:
+    linear-gradient(90deg, rgba(58, 154, 91, 0.032), rgba(27, 103, 157, 0.032)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 252, 0.58));
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.dashboard-scope .dash-foda-legacy-cut {
+  background: rgba(15, 23, 42, 0.15);
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.dashboard-scope .dash-foda-legacy-cut.is-vertical {
+  bottom: 0;
+  top: 0;
+  width: 1px;
+}
+
+.dashboard-scope .dash-foda-legacy-cut.is-horizontal {
+  height: 1px;
+  left: 0;
+  right: 0;
+}
+
+.dashboard-scope .dash-foda-legacy-cut::after {
+  background: inherit;
+  content: "";
+  opacity: 0.2;
+  position: absolute;
+}
+
+.dashboard-scope .dash-foda-legacy-cut.is-vertical::after {
+  bottom: 0;
+  left: -2px;
+  top: 0;
+  width: 5px;
+}
+
+.dashboard-scope .dash-foda-legacy-cut.is-horizontal::after {
+  height: 5px;
+  left: 0;
+  right: 0;
+  top: -2px;
+}
+
+.dashboard-scope .dash-foda-legacy-area-label {
+  color: rgba(32, 50, 77, 0.52);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  position: absolute;
+  text-transform: uppercase;
+  z-index: 2;
+}
+
+.dashboard-scope .dash-foda-legacy-area-label.is-fortaleza {
+  left: 18px;
+  top: 16px;
+}
+
+.dashboard-scope .dash-foda-legacy-area-label.is-oportunidad {
+  right: 18px;
+  top: 16px;
+}
+
+.dashboard-scope .dash-foda-legacy-area-label.is-debilidad {
+  bottom: 16px;
+  left: 18px;
+}
+
+.dashboard-scope .dash-foda-legacy-area-label.is-amenaza {
+  bottom: 16px;
+  right: 18px;
+}
+
+.dashboard-scope .dash-foda-legacy-card {
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 4px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 7px 14px rgba(15, 23, 42, 0.12);
+  color: #fff;
+  display: grid;
+  gap: calc(3px * var(--dash-foda-card-scale, 1));
+  grid-template-columns:
+    calc(28px + 16px * var(--dash-foda-card-scale, 1))
+    calc(27px + 6px * var(--dash-foda-card-scale, 1));
+  height: calc(30px + 10px * var(--dash-foda-card-scale, 1));
+  min-width: calc(60px + 24px * var(--dash-foda-card-scale, 1));
+  padding:
+    calc(3px + 1px * var(--dash-foda-card-scale, 1))
+    calc(5px + 1px * var(--dash-foda-card-scale, 1))
+    calc(3px + 1px * var(--dash-foda-card-scale, 1))
+    calc(6px + 2px * var(--dash-foda-card-scale, 1));
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  transition:
+    box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.dashboard-scope .dash-foda-legacy-card.is-total {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.72) inset,
+    0 7px 14px rgba(15, 23, 42, 0.11);
+  opacity: 0.86;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-foda-legacy-card:hover {
+    box-shadow: 0 13px 26px rgba(15, 23, 42, 0.2);
+    transform: translate(-50%, -50%) scale(1.035);
+    z-index: 8;
   }
-  50% {
-    transform: translateY(-3px) scale(1.06);
+}
+
+.dashboard-scope .dash-foda-legacy-title {
+  align-items: center;
+  display: flex;
+  font-size: 9px;
+  font-weight: 800;
+  justify-content: center;
+  line-height: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.dashboard-scope .dash-foda-legacy-title img {
+  display: block;
+  height: calc(17px + 9px * var(--dash-foda-icon-scale, 1));
+  max-height: 34px;
+  max-width: 100%;
+  object-fit: contain;
+  width: calc(17px + 9px * var(--dash-foda-icon-scale, 1));
+}
+
+.dashboard-scope .dash-foda-fallback-icon {
+  display: block;
+  filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.12));
+}
+
+.dashboard-scope .dash-foda-legacy-score {
+  align-items: center;
+  border: 1px solid rgba(36, 57, 79, 0.72);
+  color: #0f172a;
+  display: inline-flex;
+  border-radius: 3px;
+  font-size: calc(9px + 2px * var(--dash-foda-card-scale, 1));
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  height: calc(18px + 5px * var(--dash-foda-card-scale, 1));
+  justify-content: center;
+  min-width: calc(26px + 5px * var(--dash-foda-card-scale, 1));
+  padding: 0 4px;
+}
+
+.dashboard-scope .dash-foda-legacy-xaxis {
+  color: var(--dash-texto-suave);
+  display: grid;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  grid-column: 2;
+  grid-row: 3;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 5px 4px 0;
+}
+
+.dashboard-scope .dash-foda-legacy-xaxis span:nth-child(1) {
+  text-align: left;
+}
+
+.dashboard-scope .dash-foda-legacy-xaxis span:nth-child(2) {
+  text-align: center;
+}
+
+.dashboard-scope .dash-foda-legacy-xaxis span:nth-child(3) {
+  text-align: right;
+}
+
+.dashboard-scope .dash-foda-legacy-xtitle {
+  color: var(--dash-texto-suave);
+  font-size: 11px;
+  font-weight: 700;
+  grid-column: 2;
+  grid-row: 4;
+  letter-spacing: 0.04em;
+  padding-top: 2px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.dashboard-scope .dash-foda-group-legend {
+  align-items: center;
+  color: var(--dash-texto-suave);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  gap: 8px 14px;
+  justify-content: center;
+}
+
+.dashboard-scope .dash-foda-group-legend-item {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.dashboard-scope .dash-foda-group-legend-item span {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  display: inline-block;
+  height: 10px;
+  width: 16px;
+}
+
+.dashboard-scope .dash-foda-icon-legend {
+  align-items: center;
+  border-top: 1px solid var(--dash-divider);
+  color: var(--dash-texto-suave);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  gap: 10px 14px;
+  justify-content: center;
+  padding-top: 10px;
+}
+
+.dashboard-scope .dash-foda-icon-legend-item {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.dashboard-scope .dash-foda-icon-legend-item img,
+.dashboard-scope .dash-foda-icon-legend-item svg {
+  display: block;
+  height: 18px;
+  object-fit: contain;
+  width: 18px;
+}
+
+@media (max-width: 720px) {
+  .dashboard-scope .dash-foda-legacy {
+    grid-template-columns: 20px 1fr;
+    grid-template-rows: 430px 18px auto auto;
+    min-height: 514px;
   }
-}
 
-/* Etiquetas (textpoint) acompañan el float más sutil. */
-.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace .textpoint {
-  animation: dash-foda-text-float 4.2s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(1) .textpoint {
-  animation-delay: 0s;
-}
-.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(2) .textpoint {
-  animation-delay: -1.05s;
-}
-.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(3) .textpoint {
-  animation-delay: -2.1s;
-}
-.dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace:nth-child(4) .textpoint {
-  animation-delay: -3.15s;
-}
+  .dashboard-scope .dash-foda-legacy-card {
+    grid-template-columns: minmax(24px, 1fr) 30px;
+    height: 34px;
+    min-width: 64px;
+    padding: 3px 4px 3px 6px;
+  }
 
-@keyframes dash-foda-text-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace .point,
-  .dashboard-scope .dash-foda .js-plotly-plot .scatterlayer .trace .textpoint {
-    animation: none;
+  .dashboard-scope .dash-foda-legacy-score {
+    font-size: 11px;
+    height: 22px;
+    min-width: 27px;
   }
 }

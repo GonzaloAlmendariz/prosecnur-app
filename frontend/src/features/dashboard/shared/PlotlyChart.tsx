@@ -42,11 +42,14 @@ export function PlotlyChart({
         paper_bgcolor: "transparent",
         plot_bgcolor: "transparent",
         showlegend: false,
+        dragmode: false,
         ...(layout ?? {}),
       };
       const finalConfig: PlotlyConfig = {
         displayModeBar: false,
+        doubleClick: false,
         responsive: true,
+        scrollZoom: false,
         ...(config ?? {}),
       };
       Plotly.newPlot(

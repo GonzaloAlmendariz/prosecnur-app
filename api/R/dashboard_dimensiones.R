@@ -33,7 +33,9 @@
   rp_id <- digest::digest(list(
     n = nrow(s$rp_dim),
     cols = names(s$rp_dim),
-    cfg_id = digest::digest(s$dimensiones_config %||% list())
+    cfg_id = digest::digest(s$dimensiones_config %||% list()),
+    theme_color = s$dashboard_config$color_primario_override
+      %||% .dashboard_theme_default()$color_primario
   ), algo = "xxhash64")
   if (!is.null(cached) && identical(cached$id, rp_id)) {
     return(cached$ctx)
@@ -215,7 +217,7 @@
 # Helper: convierte una ruta local de icono a data-uri base64. Si la ruta
 # no existe o no es legible, devuelve "" (frontend cae a fallback solo
 # texto). Solo soporta extensiones de imagen comunes.
-.dashboard_dim_icon_data_uri <- function(path) {
+.dashboard_dim_icon_data_uri <- function(path, tint_color = NULL) {
   if (is.null(path) || !nzchar(as.character(path))) return("")
   p <- as.character(path)[1]
   if (!file.exists(p)) return("")
@@ -229,6 +231,23 @@
     NA_character_
   )
   if (is.na(mime)) return("")
+
+  tint_color <- as.character(tint_color %||% "")[1]
+  tint_color <- trimws(tint_color)
+  if (identical(ext, "png") && nzchar(tint_color) &&
+      !inherits(try(grDevices::col2rgb(tint_color), silent = TRUE), "try-error") &&
+      requireNamespace("png", quietly = TRUE) &&
+      exists(".dim_tint_icon", mode = "function", inherits = TRUE)) {
+    tinted <- tryCatch({
+      img <- png::readPNG(p)
+      img <- .dim_tint_icon(img, tint_color = tint_color)
+      png::writePNG(img, target = raw())
+    }, error = function(e) NULL)
+    if (!is.null(tinted) && length(tinted)) {
+      return(paste0("data:", mime, ";base64,", jsonlite::base64_enc(tinted)))
+    }
+  }
+
   bytes <- tryCatch(readBin(p, what = "raw", n = file.info(p)$size),
                     error = function(e) NULL)
   if (is.null(bytes) || !length(bytes)) return("")
@@ -238,7 +257,7 @@
 # Resuelve el mapeo axis_var -> data-uri usando obj$axis_iconos.
 # obj$axis_iconos suele ser una lista nombrada por axis_label apuntando
 # a paths de PNG (definidos en config). Devuelve list nombrado por var.
-.dashboard_dim_axis_icons <- function(obj) {
+.dashboard_dim_axis_icons <- function(obj, tint_color = NULL) {
   iconos <- obj$axis_iconos
   if (!is.list(iconos) || !length(iconos)) return(list())
   vars <- as.character(obj$axis_vars %||% character(0))
@@ -246,8 +265,8 @@
   out <- list()
   for (i in seq_along(vars)) {
     label <- labels[i]
-    raw <- iconos[[label]] %||% iconos[[vars[i]]]
-    uri <- .dashboard_dim_icon_data_uri(raw)
+    raw <- iconos[[label]] %||% iconos[[vars[i]]] %||% iconos[[i]]
+    uri <- .dashboard_dim_icon_data_uri(raw, tint_color = tint_color)
     if (nzchar(uri)) out[[vars[i]]] <- uri
   }
   out
@@ -256,10 +275,45 @@
 # Payload FODA — estructura JSON-friendly con items, cortes y counts.
 .dashboard_dim_foda <- function(s, modo, objetivo,
                                 cruce = NULL, incluir_total = NULL,
-                                iter = NULL, filtros = list()) {
+                                iter = NULL, filtros = list(),
+                                foda_config = NULL) {
   if (!.dashboard_dim_ready(s)) return(list(ready = FALSE))
   ctx <- .dashboard_dim_ctx(s$id, s)
   if (is.null(ctx)) return(list(ready = FALSE))
+
+  cfg_dash <- s$dashboard_config %||% .dashboard_default_config()
+  if (is.list(foda_config) && length(foda_config)) {
+    cfg_dash <- utils::modifyList(cfg_dash, foda_config)
+  }
+  iconos_enabled <- isTRUE(cfg_dash$foda_iconos_enabled %||% TRUE)
+  icon_tint <- as.character(cfg_dash$foda_icon_tint %||% "#FFFFFF")[1]
+  if (!nzchar(trimws(icon_tint)) ||
+      inherits(try(grDevices::col2rgb(icon_tint), silent = TRUE), "try-error")) {
+    icon_tint <- "#FFFFFF"
+  }
+
+  semaforo_payload <- function() {
+    list(
+      red_max = as.numeric(ctx$semaforo$red_max %||% 60),
+      amber_max = as.numeric(ctx$semaforo$amber_max %||% 80),
+      red_color = as.character(ctx$semaforo$red_color %||% "#D84B55"),
+      amber_color = as.character(ctx$semaforo$amber_color %||% "#E0B44C"),
+      green_color = as.character(ctx$semaforo$green_color %||% "#3A9A5B"),
+      na_color = as.character(ctx$semaforo$na_color %||% "#CCCCCC")
+    )
+  }
+
+  empty_payload <- function(corte_score = 80, corte_sd = 0) {
+    list(
+      ready = TRUE,
+      items = list(),
+      cortes = list(score = round(as.numeric(corte_score), 2), sd = round(as.numeric(corte_sd), 2)),
+      counts = list(fortaleza = 0L, oportunidad = 0L, debilidad = 0L, amenaza = 0L),
+      group_colors = list(),
+      icon_legend = list(),
+      semaforo = semaforo_payload()
+    )
+  }
 
   modo <- match.arg(as.character(modo %||% "general")[1],
                     c("general", "indicadores"))
@@ -271,14 +325,11 @@
 
   vars <- as.character(obj$axis_vars %||% character(0))
   labels <- as.character(obj$axis_labels %||% vars)
+  keep_vars <- vars %in% names(ctx$data)
+  vars <- vars[keep_vars]
+  labels <- labels[keep_vars]
   if (!length(vars)) {
-    return(list(
-      ready = TRUE,
-      items = list(),
-      cortes = list(score = 80, sd = 0),
-      counts = list(fortaleza = 0L, oportunidad = 0L, debilidad = 0L, amenaza = 0L),
-      semaforo = ctx$semaforo
-    ))
+    return(empty_payload())
   }
 
   # Filtrar data + iteración (mismo patrón que .dim_build_payload).
@@ -292,24 +343,68 @@
   }
 
   if (!nrow(df)) {
-    return(list(
-      ready = TRUE,
-      items = list(),
-      cortes = list(score = 80, sd = 0),
-      counts = list(fortaleza = 0L, oportunidad = 0L, debilidad = 0L, amenaza = 0L),
-      semaforo = ctx$semaforo
-    ))
+    return(empty_payload())
   }
 
-  # Computar stats por dimensión (sin pesos por simplicidad — el ctx no
-  # carga weight_col en dashboard).
-  stats_df <- .foda_compute_stats(
-    df,
-    vars = vars,
-    labels = labels,
-    usar_pesos = FALSE,
-    weight_col = NULL
-  )
+  cruce <- as.character(cruce %||% "")[1]
+  cruce_valido <- nzchar(cruce) && cruce %in% names(df)
+  include_total <- if (is.null(incluir_total)) TRUE else isTRUE(incluir_total)
+
+  w <- .dim_safe_weights(df, NULL)
+  groups <- list()
+  if (include_total || !cruce_valido) {
+    groups[[length(groups) + 1L]] <- list(
+      key = "__total__",
+      label = "Total",
+      mask = rep(TRUE, nrow(df)),
+      is_total_global = TRUE
+    )
+  }
+
+  if (cruce_valido) {
+    cats <- .dim_categorias_var(
+      df,
+      cruce,
+      w = w,
+      data_ref = ctx$data,
+      instrumento = ctx$instrumento,
+      max_levels = ctx$max_categorias_principal %||% 12L
+    )
+    x_cruce <- trimws(as.character(df[[cruce]]))
+    if (nrow(cats$rows)) {
+      for (i in seq_len(nrow(cats$rows))) {
+        key_i <- as.character(cats$rows$value[i] %||% "")
+        if (!nzchar(key_i)) next
+        groups[[length(groups) + 1L]] <- list(
+          key = key_i,
+          label = as.character(cats$rows$label[i] %||% key_i),
+          mask = !is.na(x_cruce) & nzchar(x_cruce) & x_cruce == key_i,
+          is_total_global = FALSE
+        )
+      }
+    }
+  }
+
+  if (!length(groups)) return(empty_payload())
+
+  stats_list <- lapply(groups, function(g) {
+    if (!any(g$mask)) return(NULL)
+    out <- .foda_compute_stats(
+      df[g$mask, , drop = FALSE],
+      vars = vars,
+      labels = labels,
+      usar_pesos = FALSE,
+      weight_col = NULL
+    )
+    if (!nrow(out)) return(NULL)
+    out$grupo_key <- as.character(g$key)
+    out$grupo <- as.character(g$label)
+    out$is_total_global <- isTRUE(g$is_total_global)
+    out
+  })
+  stats_list <- stats_list[vapply(stats_list, function(x) !is.null(x), logical(1))]
+  if (!length(stats_list)) return(empty_payload())
+  stats_df <- do.call(rbind, stats_list)
 
   # Cortes: corte_score = amber_max del semáforo (default 80);
   # corte_sd = mediana de SDs (excluye NAs).
@@ -319,18 +414,47 @@
 
   stats_df <- .foda_classify(stats_df, corte_score, corte_sd)
 
+  group_ref <- unique(stats_df[, c("grupo", "grupo_key"), drop = FALSE])
+  palette_override <- if (cruce_valido) .dashboard_palette_for_var(cruce, s$rp_inst, s) else NULL
+  group_colors_vec <- .dim_group_colors(
+    groups = as.character(group_ref$grupo),
+    paleta_radar = ctx$paleta_radar,
+    total_color = ctx$theme_color,
+    palette_override = palette_override,
+    group_keys = as.character(group_ref$grupo_key)
+  )
+  group_colors <- if (length(group_colors_vec)) {
+    stats::setNames(as.list(as.character(group_colors_vec)), names(group_colors_vec))
+  } else list()
+
   # Iconos opcionales por dimensión.
-  icon_map <- .dashboard_dim_axis_icons(obj)
+  icon_map <- if (iconos_enabled) .dashboard_dim_axis_icons(obj, tint_color = icon_tint) else list()
+  icon_legend <- lapply(seq_along(vars), function(i) {
+    uri <- icon_map[[vars[i]]] %||% ""
+    if (!nzchar(uri)) return(NULL)
+    list(var = vars[i], label = labels[i], icono_url = uri)
+  })
+  icon_legend <- Filter(Negate(is.null), icon_legend)
 
   items <- lapply(seq_len(nrow(stats_df)), function(i) {
     var <- as.character(stats_df$var[i])
+    grupo <- as.character(stats_df$grupo[i] %||% "Total")
+    color <- if (grupo %in% names(group_colors_vec)) {
+      as.character(group_colors_vec[[grupo]])
+    } else {
+      as.character(ctx$theme_color %||% "#0E3B74")
+    }
     out <- list(
       var = var,
       axis_label = as.character(stats_df$label[i]),
+      grupo = grupo,
+      grupo_key = as.character(stats_df$grupo_key[i] %||% grupo),
+      color = color,
       score_mean = round(as.numeric(stats_df$score_mean[i]), 2),
       score_sd = round(as.numeric(stats_df$score_sd[i] %||% 0), 2),
       n_valid = as.integer(stats_df$n_valid[i]),
-      cuadrante = as.character(stats_df$cuadrante[i] %||% NA_character_)
+      cuadrante = as.character(stats_df$cuadrante[i] %||% NA_character_),
+      is_total_global = isTRUE(stats_df$is_total_global[i])
     )
     if (!is.null(icon_map[[var]])) out$icono_url <- icon_map[[var]]
     out
@@ -354,14 +478,9 @@
       sd = round(as.numeric(corte_sd), 2)
     ),
     counts = lapply(counts, as.integer),
-    semaforo = list(
-      red_max = as.numeric(ctx$semaforo$red_max %||% 60),
-      amber_max = as.numeric(ctx$semaforo$amber_max %||% 80),
-      red_color = as.character(ctx$semaforo$red_color %||% "#D84B55"),
-      amber_color = as.character(ctx$semaforo$amber_color %||% "#E0B44C"),
-      green_color = as.character(ctx$semaforo$green_color %||% "#3A9A5B"),
-      na_color = as.character(ctx$semaforo$na_color %||% "#CCCCCC")
-    )
+    group_colors = group_colors,
+    icon_legend = icon_legend,
+    semaforo = semaforo_payload()
   )
 }
 

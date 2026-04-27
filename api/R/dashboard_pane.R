@@ -27,7 +27,16 @@
     notas                   = "",
     # ---- Personalización visual avanzada (Dimensiones) ----
     semaforo_modo           = "cortes",    # "cortes" | "gradiente"
-    radar_min               = 0L           # límite inferior del eje radial (0-95)
+    radar_min               = 0L,          # límite inferior del eje radial (0-95)
+    foda_iconos_enabled     = TRUE,
+    foda_icon_tint          = "#FFFFFF",
+    foda_icon_size          = 1,
+    foda_icon_legend        = TRUE,
+    foda_score_min          = 0L,
+    foda_score_max          = 120L,
+    foda_show_total         = TRUE,
+    foda_spacing            = 1.15,
+    foda_grid_intensity     = 0.42
   )
 }
 
