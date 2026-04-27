@@ -75,6 +75,9 @@ const DEFAULT_RELACION_STATE: DashboardRelacionState = {
 };
 
 // Estado de exploración para Dimensiones (no persistido).
+export type DashboardDimVisualMode = "heatmap" | "barras" | "radar" | "foda";
+export type DashboardDimFodaSubmode = "matriz" | "dispersion";
+
 export type DashboardDimensionesState = {
   modo: "general" | "indicadores";
   objetivo: string;
@@ -86,6 +89,10 @@ export type DashboardDimensionesState = {
   filtrosOn: boolean;
   enfoqueOn: boolean;
   enfoqueGrupo: string;
+  // Visual mode controlado por el usuario (override del payload.visual_mode).
+  visualMode: DashboardDimVisualMode;
+  // Submodo dentro de FODA.
+  fodaSubmode: DashboardDimFodaSubmode;
 };
 
 const DEFAULT_DIMENSIONES_STATE: DashboardDimensionesState = {
@@ -99,6 +106,8 @@ const DEFAULT_DIMENSIONES_STATE: DashboardDimensionesState = {
   filtrosOn: false,
   enfoqueOn: false,
   enfoqueGrupo: "",
+  visualMode: "heatmap",
+  fodaSubmode: "matriz",
 };
 
 // Estado de exploración para Base de datos (no persistido).

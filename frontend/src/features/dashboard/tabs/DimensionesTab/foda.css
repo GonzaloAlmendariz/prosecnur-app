@@ -1,0 +1,239 @@
+/* =============================================================================
+ * FODA — matriz 2×2 con cuadrantes coloreados + scatter de dispersión.
+ * ============================================================================= */
+
+.dashboard-scope .dash-foda {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dashboard-scope .dash-foda-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.dashboard-scope .dash-foda-cortes {
+  align-items: center;
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-texto-suave);
+  display: inline-flex;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  gap: 6px;
+  padding: 5px 10px;
+}
+.dashboard-scope .dash-foda-cortes strong {
+  color: var(--dash-texto);
+  font-weight: 600;
+}
+.dashboard-scope .dash-foda-cortes-sep {
+  color: var(--dash-borde);
+}
+
+/* Sub-segmented Matriz / Dispersión. */
+.dashboard-scope .dash-foda-segmented {
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-md);
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+}
+.dashboard-scope .dash-foda-seg {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 12px;
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-foda-seg:hover:not(.is-active) {
+    background: var(--dash-primario-soft);
+  }
+}
+.dashboard-scope .dash-foda-seg:active:not(.is-active) {
+  transform: scale(0.97);
+}
+.dashboard-scope .dash-foda-seg.is-active {
+  background: var(--dash-primario);
+  box-shadow: var(--dash-shadow-xs);
+  color: #fff;
+}
+
+/* Grid 2×2 de cuadrantes. */
+.dashboard-scope .dash-foda-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.dashboard-scope .dash-foda-cuadrante {
+  background: var(--dash-superficie);
+  border: 1px solid var(--dash-borde);
+  border-left: 3px solid var(--foda-accent, var(--dash-primario));
+  border-radius: var(--dash-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  position: relative;
+  transition:
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-foda-cuadrante:hover {
+    box-shadow: var(--dash-shadow-sm);
+  }
+}
+
+/* Tinte muy sutil de fondo según cuadrante (10%). */
+.dashboard-scope .dash-foda-cuadrante::before {
+  background: var(--foda-accent, var(--dash-primario));
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  opacity: 0.04;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+.dashboard-scope .dash-foda-cuadrante > * {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-scope .dash-foda-cuadrante-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.dashboard-scope .dash-foda-cuadrante-title {
+  color: var(--foda-accent, var(--dash-primario));
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.dashboard-scope .dash-foda-cuadrante-desc {
+  color: var(--dash-texto-suave);
+  font-size: 11px;
+  line-height: 1.3;
+  margin: 3px 0 0;
+}
+
+.dashboard-scope .dash-foda-count {
+  background: var(--foda-accent, var(--dash-primario));
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  min-width: 22px;
+  padding: 2px 8px;
+  text-align: center;
+}
+
+.dashboard-scope .dash-foda-empty {
+  color: var(--dash-texto-suave);
+  font-size: 12px;
+  font-style: italic;
+  margin: 0;
+}
+
+.dashboard-scope .dash-foda-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard-scope .dash-foda-item {
+  align-items: center;
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-divider);
+  border-radius: var(--dash-radius-sm);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  padding: 7px 10px;
+  transition:
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-hover) var(--dash-ease-out),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-foda-item:hover {
+    background: var(--dash-superficie);
+    border-color: var(--foda-accent, var(--dash-primario-ring));
+    box-shadow: var(--dash-shadow-xs);
+    transform: translateY(-1px);
+  }
+}
+
+.dashboard-scope .dash-foda-item-icon {
+  height: 18px;
+  object-fit: contain;
+  width: 18px;
+}
+.dashboard-scope .dash-foda-item-icon-placeholder {
+  background: var(--dash-borde);
+  border-radius: 4px;
+  display: inline-block;
+  height: 14px;
+  margin: 2px;
+  width: 14px;
+}
+
+.dashboard-scope .dash-foda-item-label {
+  color: var(--dash-texto);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-scope .dash-foda-item-score {
+  background: var(--foda-accent, var(--dash-primario));
+  border-radius: var(--dash-radius-sm);
+  color: #fff;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  min-width: 30px;
+  padding: 2px 8px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .dashboard-scope .dash-foda-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+}

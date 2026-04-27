@@ -206,6 +206,165 @@
   )
 }
 
+# ============================================================
+# FODA — clasificación 2x2 (fortaleza/oportunidad/debilidad/amenaza)
+# basada en score_mean (eje Y) y score_sd (eje X), reusando
+# .foda_compute_stats() + .foda_classify() del paquete prosecnur.
+# ============================================================
+
+# Helper: convierte una ruta local de icono a data-uri base64. Si la ruta
+# no existe o no es legible, devuelve "" (frontend cae a fallback solo
+# texto). Solo soporta extensiones de imagen comunes.
+.dashboard_dim_icon_data_uri <- function(path) {
+  if (is.null(path) || !nzchar(as.character(path))) return("")
+  p <- as.character(path)[1]
+  if (!file.exists(p)) return("")
+  ext <- tolower(tools::file_ext(p))
+  mime <- switch(ext,
+    "png" = "image/png",
+    "jpg" = "image/jpeg",
+    "jpeg" = "image/jpeg",
+    "svg" = "image/svg+xml",
+    "gif" = "image/gif",
+    NA_character_
+  )
+  if (is.na(mime)) return("")
+  bytes <- tryCatch(readBin(p, what = "raw", n = file.info(p)$size),
+                    error = function(e) NULL)
+  if (is.null(bytes) || !length(bytes)) return("")
+  paste0("data:", mime, ";base64,", jsonlite::base64_enc(bytes))
+}
+
+# Resuelve el mapeo axis_var -> data-uri usando obj$axis_iconos.
+# obj$axis_iconos suele ser una lista nombrada por axis_label apuntando
+# a paths de PNG (definidos en config). Devuelve list nombrado por var.
+.dashboard_dim_axis_icons <- function(obj) {
+  iconos <- obj$axis_iconos
+  if (!is.list(iconos) || !length(iconos)) return(list())
+  vars <- as.character(obj$axis_vars %||% character(0))
+  labels <- as.character(obj$axis_labels %||% vars)
+  out <- list()
+  for (i in seq_along(vars)) {
+    label <- labels[i]
+    raw <- iconos[[label]] %||% iconos[[vars[i]]]
+    uri <- .dashboard_dim_icon_data_uri(raw)
+    if (nzchar(uri)) out[[vars[i]]] <- uri
+  }
+  out
+}
+
+# Payload FODA — estructura JSON-friendly con items, cortes y counts.
+.dashboard_dim_foda <- function(s, modo, objetivo,
+                                cruce = NULL, incluir_total = NULL,
+                                iter = NULL, filtros = list()) {
+  if (!.dashboard_dim_ready(s)) return(list(ready = FALSE))
+  ctx <- .dashboard_dim_ctx(s$id, s)
+  if (is.null(ctx)) return(list(ready = FALSE))
+
+  modo <- match.arg(as.character(modo %||% "general")[1],
+                    c("general", "indicadores"))
+  obj_map <- if (identical(modo, "indicadores")) ctx$catalog_indicadores else ctx$catalog_general
+  if (!(objetivo %in% names(obj_map))) {
+    return(list(ready = TRUE, error = "Objetivo no existe en el catálogo."))
+  }
+  obj <- obj_map[[objetivo]]
+
+  vars <- as.character(obj$axis_vars %||% character(0))
+  labels <- as.character(obj$axis_labels %||% vars)
+  if (!length(vars)) {
+    return(list(
+      ready = TRUE,
+      items = list(),
+      cortes = list(score = 80, sd = 0),
+      counts = list(fortaleza = 0L, oportunidad = 0L, debilidad = 0L, amenaza = 0L),
+      semaforo = ctx$semaforo
+    ))
+  }
+
+  # Filtrar data + iteración (mismo patrón que .dim_build_payload).
+  df <- .dim_apply_filters(ctx$data, filters = filtros %||% list())
+  iter_var <- if (is.list(iter)) as.character(iter$var %||% "")[1] else ""
+  iter_level <- if (is.list(iter)) as.character(iter$level %||% "")[1] else ""
+  if (nzchar(iter_var) && nzchar(iter_level) && iter_var %in% names(df)) {
+    keep <- !is.na(df[[iter_var]]) &
+      as.character(df[[iter_var]]) == iter_level
+    df <- df[keep, , drop = FALSE]
+  }
+
+  if (!nrow(df)) {
+    return(list(
+      ready = TRUE,
+      items = list(),
+      cortes = list(score = 80, sd = 0),
+      counts = list(fortaleza = 0L, oportunidad = 0L, debilidad = 0L, amenaza = 0L),
+      semaforo = ctx$semaforo
+    ))
+  }
+
+  # Computar stats por dimensión (sin pesos por simplicidad — el ctx no
+  # carga weight_col en dashboard).
+  stats_df <- .foda_compute_stats(
+    df,
+    vars = vars,
+    labels = labels,
+    usar_pesos = FALSE,
+    weight_col = NULL
+  )
+
+  # Cortes: corte_score = amber_max del semáforo (default 80);
+  # corte_sd = mediana de SDs (excluye NAs).
+  corte_score <- as.numeric(ctx$semaforo$amber_max %||% 80)
+  sds_valid <- stats_df$score_sd[!is.na(stats_df$score_sd)]
+  corte_sd <- if (length(sds_valid)) stats::median(sds_valid) else 0
+
+  stats_df <- .foda_classify(stats_df, corte_score, corte_sd)
+
+  # Iconos opcionales por dimensión.
+  icon_map <- .dashboard_dim_axis_icons(obj)
+
+  items <- lapply(seq_len(nrow(stats_df)), function(i) {
+    var <- as.character(stats_df$var[i])
+    out <- list(
+      var = var,
+      axis_label = as.character(stats_df$label[i]),
+      score_mean = round(as.numeric(stats_df$score_mean[i]), 2),
+      score_sd = round(as.numeric(stats_df$score_sd[i] %||% 0), 2),
+      n_valid = as.integer(stats_df$n_valid[i]),
+      cuadrante = as.character(stats_df$cuadrante[i] %||% NA_character_)
+    )
+    if (!is.null(icon_map[[var]])) out$icono_url <- icon_map[[var]]
+    out
+  })
+
+  counts <- list(
+    fortaleza   = sum(stats_df$cuadrante == "fortaleza",  na.rm = TRUE),
+    oportunidad = sum(stats_df$cuadrante == "oportunidad", na.rm = TRUE),
+    debilidad   = sum(stats_df$cuadrante == "debilidad",  na.rm = TRUE),
+    amenaza     = sum(stats_df$cuadrante == "amenaza",    na.rm = TRUE)
+  )
+
+  list(
+    ready = TRUE,
+    objetivo = as.character(obj$label %||% objetivo),
+    objetivo_id = as.character(objetivo),
+    modo = modo,
+    items = items,
+    cortes = list(
+      score = round(as.numeric(corte_score), 2),
+      sd = round(as.numeric(corte_sd), 2)
+    ),
+    counts = lapply(counts, as.integer),
+    semaforo = list(
+      red_max = as.numeric(ctx$semaforo$red_max %||% 60),
+      amber_max = as.numeric(ctx$semaforo$amber_max %||% 80),
+      red_color = as.character(ctx$semaforo$red_color %||% "#D84B55"),
+      amber_color = as.character(ctx$semaforo$amber_color %||% "#E0B44C"),
+      green_color = as.character(ctx$semaforo$green_color %||% "#3A9A5B"),
+      na_color = as.character(ctx$semaforo$na_color %||% "#CCCCCC")
+    )
+  )
+}
+
 # Categorías de una variable para iteración (selector de nivel actual).
 .dashboard_dim_categorias_var <- function(s, var) {
   if (!.dashboard_dim_ready(s) || !nzchar(var)) return(list())

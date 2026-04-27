@@ -2414,6 +2414,51 @@ export async function apiDashboardDimCategoriasVar(varName: string) {
   );
 }
 
+export type DashboardDimFodaCuadrante =
+  | "fortaleza"
+  | "oportunidad"
+  | "debilidad"
+  | "amenaza";
+
+export type DashboardDimFodaItem = {
+  var: string;
+  axis_label: string;
+  score_mean: number;
+  score_sd: number;
+  n_valid: number;
+  cuadrante: DashboardDimFodaCuadrante | null;
+  icono_url?: string;
+};
+
+export type DashboardDimFodaPayload = {
+  ready: boolean;
+  error?: string;
+  objetivo?: string;
+  objetivo_id?: string;
+  modo?: "general" | "indicadores";
+  items?: DashboardDimFodaItem[];
+  cortes?: { score: number; sd: number };
+  counts?: Record<DashboardDimFodaCuadrante, number>;
+  semaforo?: DashboardDimPayload["semaforo"];
+};
+
+export async function apiDashboardDimFoda(opts: {
+  modo: "general" | "indicadores";
+  objetivo: string;
+  cruce?: string;
+  incluir_total?: boolean;
+  iter?: { var: string; level?: string } | null;
+  filtros?: DashboardFiltro[];
+}) {
+  return handle<{ ok: true; payload: DashboardDimFodaPayload }>(
+    await apiFetch("/api/dashboard/dimensiones/foda", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(opts),
+    }),
+  );
+}
+
 export type AplicarResult = {
   ok: true;
   data_adaptada: { file_id: string; size: number };

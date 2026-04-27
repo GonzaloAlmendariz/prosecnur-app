@@ -195,3 +195,52 @@ test_that("dashboard_base_datos_diccionario devuelve opciones SO", {
   expect_equal(sort(vapply(d$opciones, function(o) o$etiqueta, character(1))),
                c("Femenino", "Masculino"))
 })
+
+# ----- FODA — backbone helpers que mi wrapper consume ----------------------
+
+test_that(".foda_compute_stats calcula score_mean y score_sd correctamente", {
+  df <- data.frame(
+    dim_a = c(80, 85, 90, 75, 82),
+    dim_b = c(50, 55, 45, 60, 50),
+    dim_c = c(95, 30, 80, 40, 60),  # alta variabilidad
+    stringsAsFactors = FALSE
+  )
+  stats <- .foda_compute_stats(
+    df,
+    vars = c("dim_a", "dim_b", "dim_c"),
+    labels = c("Dim A", "Dim B", "Dim C"),
+    usar_pesos = FALSE
+  )
+  expect_equal(nrow(stats), 3L)
+  expect_equal(stats$score_mean[1], mean(df$dim_a))
+  expect_gt(stats$score_sd[3], stats$score_sd[1])  # Dim C dispersa
+  expect_true(all(stats$n_valid == 5L))
+})
+
+test_that(".foda_classify asigna 4 cuadrantes según cortes", {
+  stats_df <- data.frame(
+    var = c("a", "b", "c", "d"),
+    label = c("A", "B", "C", "D"),
+    score_mean = c(85, 85, 50, 50),
+    score_sd   = c(2,  10, 2,  10),
+    n_valid = c(5L, 5L, 5L, 5L),
+    stringsAsFactors = FALSE
+  )
+  out <- .foda_classify(stats_df, corte_score = 80, corte_sd = 5)
+  expect_equal(out$cuadrante[out$var == "a"], "fortaleza")    # alto + consistente
+  expect_equal(out$cuadrante[out$var == "b"], "oportunidad")  # alto + disperso
+  expect_equal(out$cuadrante[out$var == "c"], "debilidad")    # bajo + consistente
+  expect_equal(out$cuadrante[out$var == "d"], "amenaza")      # bajo + disperso
+})
+
+test_that("dashboard_dim_icon_data_uri devuelve '' si la ruta no existe", {
+  expect_equal(.dashboard_dim_icon_data_uri(""), "")
+  expect_equal(.dashboard_dim_icon_data_uri("/no/existe.png"), "")
+  expect_equal(.dashboard_dim_icon_data_uri(NULL), "")
+})
+
+test_that("dashboard_dim_foda devuelve estructura ready=FALSE sin rp_dim", {
+  s <- list()  # sesión vacía, sin dashboard_rp_dim
+  out <- .dashboard_dim_foda(s, modo = "general", objetivo = "x")
+  expect_false(isTRUE(out$ready))
+})

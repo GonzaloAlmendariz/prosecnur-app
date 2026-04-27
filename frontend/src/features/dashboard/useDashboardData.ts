@@ -5,6 +5,7 @@ import {
   apiDashboardBaseDatosEstructura,
   apiDashboardDimCatalogo,
   apiDashboardDimCategoriasVar,
+  apiDashboardDimFoda,
   apiDashboardDimPayload,
   apiDashboardDimSeccionesVars,
   apiDashboardManifest,
@@ -17,6 +18,7 @@ import {
   DashboardBaseDatosEstructura,
   DashboardDimCatalogo,
   DashboardDimCategoria,
+  DashboardDimFodaPayload,
   DashboardDimPayload,
   DashboardDimSeccionesPayload,
   DashboardFiltro,
@@ -443,6 +445,60 @@ export function useDimPayload(opts: {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opts.modo, opts.objetivo, opts.cruce, opts.incluirTotal, iterKey, filtrosKey]);
+
+  return { loading, error, payload };
+}
+
+export function useDimFoda(opts: {
+  enabled: boolean;
+  modo: "general" | "indicadores";
+  objetivo: string;
+  cruce: string;
+  incluirTotal: boolean;
+  iter: { var: string; level?: string } | null;
+  filtros: DashboardFiltro[];
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [payload, setPayload] = useState<DashboardDimFodaPayload | null>(null);
+
+  const filtrosKey = JSON.stringify(opts.filtros);
+  const iterKey = JSON.stringify(opts.iter);
+
+  useEffect(() => {
+    if (!opts.enabled || !opts.objetivo) {
+      setPayload(null);
+      return;
+    }
+    let cancelled = false;
+    const handle = window.setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      apiDashboardDimFoda({
+        modo: opts.modo,
+        objetivo: opts.objetivo,
+        cruce: opts.cruce || undefined,
+        incluir_total: opts.incluirTotal,
+        iter: opts.iter,
+        filtros: opts.filtros,
+      })
+        .then((r) => {
+          if (cancelled) return;
+          setPayload(r.payload);
+        })
+        .catch((e: unknown) => {
+          if (!cancelled) setError((e as Error).message);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opts.enabled, opts.modo, opts.objetivo, opts.cruce, opts.incluirTotal, iterKey, filtrosKey]);
 
   return { loading, error, payload };
 }

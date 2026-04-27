@@ -240,6 +240,20 @@ mount_dashboard <- function(pr) {
       var <- as.character(body$var %||% "")[1]
       if (!nzchar(var)) stop_api(400, "E_BAD_REQUEST", "Falta 'var'.")
       list(ok = TRUE, valores = .dashboard_dim_categorias_var(s, var))
+    })) |>
+    plumber::pr_post("/api/dashboard/dimensiones/foda", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body <- .dashboard_parse_body(req)
+      modo <- as.character(body$modo %||% "general")[1]
+      objetivo <- as.character(body$objetivo %||% "")[1]
+      if (!nzchar(objetivo)) stop_api(400, "E_BAD_REQUEST", "Falta 'objetivo'.")
+      cruce <- as.character(body$cruce %||% "")[1]
+      incluir_total <- if (is.null(body$incluir_total)) NULL else isTRUE(body$incluir_total)
+      iter <- body$iter
+      filtros <- body$filtros %||% list()
+      payload <- .dashboard_dim_foda(s, modo, objetivo, cruce, incluir_total, iter, filtros)
+      list(ok = TRUE, payload = payload)
     }))
 }
 

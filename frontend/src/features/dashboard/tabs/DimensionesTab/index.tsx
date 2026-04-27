@@ -1,14 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BarChart3, Compass, Grid3x3, ScatterChart, Target } from "lucide-react";
 import type {
+  DashboardDimFodaCuadrante,
+  DashboardDimFodaItem,
+  DashboardDimFodaPayload,
   DashboardDimPayload,
-  DashboardDimScoreRow,
   DashboardDimSeccionesPayload,
 } from "../../../../api/client";
-import { useDashboardStore } from "../../store";
+import {
+  useDashboardStore,
+  type DashboardDimVisualMode,
+} from "../../store";
 import {
   useDimCatalogo,
   useDimCategoriasVar,
+  useDimFoda,
   useDimPayload,
   useDimSeccionesVars,
 } from "../../useDashboardData";
@@ -16,10 +22,13 @@ import { EmptyState } from "../../shared/EmptyState";
 import { FiltrosMultiRow } from "../ResumenTab/FiltrosMultiRow";
 import { PlotlyChart } from "../../shared/PlotlyChart";
 import "./dimensiones.css";
+import "./foda.css";
 
-// Tab Dimensiones — heatmap semáforo + gráfico principal (barras o radar)
-// con catálogo de objetivos (general | indicadores). Reproduce la pestaña
-// "Dimensiones" del legacy `prosecnur::reporte_interactivo()`.
+// Tab Dimensiones — heatmap semáforo + barras / radar / FODA en un único
+// visualizador con segmented control. Sidebar consolidado a 2 cards
+// (Configuración con segmented Vista/Comparación/Iterar + Filtros).
+
+type ConfigTab = "vista" | "comparacion" | "iterar";
 
 export function DimensionesTab() {
   const filtros = useDashboardStore((s) => s.filtros);
@@ -29,6 +38,7 @@ export function DimensionesTab() {
 
   const { loading: loadingCat, error: errCat, payload: catalogo } = useDimCatalogo();
   const { payload: seccionesVars } = useDimSeccionesVars();
+  const [configTab, setConfigTab] = useState<ConfigTab>("vista");
 
   const objetivos = useMemo(() => {
     if (!catalogo) return [];
@@ -56,6 +66,16 @@ export function DimensionesTab() {
     filtros: filtrosActivos,
   });
 
+  const fodaQuery = useDimFoda({
+    enabled: dim.visualMode === "foda" && Boolean(dim.objetivo),
+    modo: dim.modo,
+    objetivo: dim.objetivo,
+    cruce: dim.cruce,
+    incluirTotal: dim.incluirTotal,
+    iter,
+    filtros: filtrosActivos,
+  });
+
   if (catalogo && !catalogo.ready) {
     return (
       <EmptyState
@@ -67,35 +87,17 @@ export function DimensionesTab() {
 
   return (
     <div className="dash-resumen-layout">
-      {/* ───── Sidebar ───── */}
+      {/* ───── Sidebar — 2 cards ───── */}
       <aside className="dash-sidebar">
-        <VistaCard
-          modo={dim.modo}
-          objetivo={dim.objetivo}
+        <ConfiguracionCard
+          tab={configTab}
+          onTab={setConfigTab}
+          dim={dim}
+          setDim={setDim}
           objetivos={objetivos}
-          loading={loadingCat}
-          error={errCat}
-          onModo={(m) => setDim({ modo: m, objetivo: "" })}
-          onObjetivo={(id) => setDim({ objetivo: id })}
-        />
-
-        <ComparacionCard
+          loadingCat={loadingCat}
+          errCat={errCat}
           secciones={seccionesVars?.secciones ?? []}
-          cruce={dim.cruce}
-          incluirTotal={dim.incluirTotal}
-          onCruce={(v) => setDim({ cruce: v })}
-          onIncluirTotal={(b) => setDim({ incluirTotal: b })}
-        />
-
-        <IterarCard
-          secciones={seccionesVars?.secciones ?? []}
-          enabled={dim.iterarOn}
-          variable={dim.iterarVar}
-          level={dim.iterarLevel}
-          excludeVar={dim.cruce}
-          onToggle={(on) => setDim({ iterarOn: on })}
-          onVariable={(v) => setDim({ iterarVar: v, iterarLevel: "" })}
-          onLevel={(l) => setDim({ iterarLevel: l })}
         />
 
         <section className="dash-cardbox">
@@ -114,26 +116,25 @@ export function DimensionesTab() {
         </section>
       </aside>
 
-      {/* ───── Main ───── */}
+      {/* ───── Main — VisualizadorCard ───── */}
       <main>
         {!dim.objetivo ? (
           <EmptyState
+            icon={<Target size={32} aria-hidden="true" />}
             title="Selecciona un objetivo"
             subtitle="Elige un índice o subíndice del panel izquierdo para ver las dimensiones."
           />
-        ) : loading && !payload ? (
-          <EmptyState title="Calculando dimensiones…" />
-        ) : error ? (
-          <EmptyState title="No se pudieron calcular las dimensiones" subtitle={error} />
-        ) : !payload || !payload.ready ? (
-          <EmptyState
-            title="Genera dimensiones primero"
-            subtitle="Ve a Analítica → Dimensiones para construir índices y subíndices."
-          />
-        ) : payload.error ? (
-          <EmptyState title="Sin datos para esta vista" subtitle={payload.error} />
         ) : (
-          <DimensionesView payload={payload} />
+          <VisualizadorCard
+            dim={dim}
+            setDim={setDim}
+            payload={payload}
+            payloadLoading={loading}
+            payloadError={error}
+            foda={fodaQuery.payload}
+            fodaLoading={fodaQuery.loading}
+            fodaError={fodaQuery.error}
+          />
         )}
         <div style={{ height: 48 }} aria-hidden="true" />
       </main>
@@ -141,10 +142,85 @@ export function DimensionesTab() {
   );
 }
 
-// -----------------------------------------------------------------------------
-// Card "Vista" — modo (General/Indicadores) + objetivo.
-// -----------------------------------------------------------------------------
-function VistaCard({
+// =============================================================================
+// Sidebar — Card Configuración con segmented Vista/Comparación/Iterar
+// =============================================================================
+
+function ConfiguracionCard({
+  tab,
+  onTab,
+  dim,
+  setDim,
+  objetivos,
+  loadingCat,
+  errCat,
+  secciones,
+}: {
+  tab: ConfigTab;
+  onTab: (t: ConfigTab) => void;
+  dim: ReturnType<typeof useDashboardStore.getState>["dimensiones"];
+  setDim: (p: Partial<typeof dim>) => void;
+  objetivos: { id: string; label: string; n_axes: number }[];
+  loadingCat: boolean;
+  errCat: string | null;
+  secciones: DashboardDimSeccionesPayload["secciones"];
+}) {
+  return (
+    <section className="dash-cardbox dash-dim-config">
+      <div className="dash-dim-config-tabs" role="tablist" aria-label="Configuración">
+        {(["vista", "comparacion", "iterar"] as ConfigTab[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={tab === t}
+            className={`dash-dim-config-tab ${tab === t ? "is-active" : ""}`}
+            onClick={() => onTab(t)}
+          >
+            {t === "vista" ? "Vista" : t === "comparacion" ? "Comparación" : "Iterar"}
+          </button>
+        ))}
+      </div>
+
+      <div className="dash-dim-config-panel">
+        {tab === "vista" && (
+          <PanelVista
+            modo={dim.modo}
+            objetivo={dim.objetivo}
+            objetivos={objetivos}
+            loading={loadingCat}
+            error={errCat}
+            onModo={(m) => setDim({ modo: m, objetivo: "" })}
+            onObjetivo={(id) => setDim({ objetivo: id })}
+          />
+        )}
+        {tab === "comparacion" && (
+          <PanelComparacion
+            secciones={secciones}
+            cruce={dim.cruce}
+            incluirTotal={dim.incluirTotal}
+            onCruce={(v) => setDim({ cruce: v })}
+            onIncluirTotal={(b) => setDim({ incluirTotal: b })}
+          />
+        )}
+        {tab === "iterar" && (
+          <PanelIterar
+            secciones={secciones}
+            enabled={dim.iterarOn}
+            variable={dim.iterarVar}
+            level={dim.iterarLevel}
+            excludeVar={dim.cruce}
+            onToggle={(on) => setDim({ iterarOn: on })}
+            onVariable={(v) => setDim({ iterarVar: v, iterarLevel: "" })}
+            onLevel={(l) => setDim({ iterarLevel: l })}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PanelVista({
   modo,
   objetivo,
   objetivos,
@@ -162,10 +238,8 @@ function VistaCard({
   onObjetivo: (id: string) => void;
 }) {
   return (
-    <section className="dash-cardbox">
-      <div className="dash-cardbox-header">
-        <h2 className="dash-cardbox-title">Vista</h2>
-      </div>
+    <>
+      <label className="dash-dim-label">Modo</label>
       <div className="dash-source-segments" role="tablist" aria-label="Modo de vista">
         <button
           type="button"
@@ -186,7 +260,9 @@ function VistaCard({
           Indicadores
         </button>
       </div>
-      <label className="dash-filtro-label" style={{ marginTop: 10 }}>Objetivo</label>
+      <label htmlFor="dim-objetivo" className="dash-dim-label" style={{ marginTop: 12 }}>
+        Objetivo
+      </label>
       {loading ? (
         <p className="dash-cardbox-help">Cargando catálogo…</p>
       ) : error ? (
@@ -195,6 +271,7 @@ function VistaCard({
         <p className="dash-cardbox-help">Sin objetivos en este modo.</p>
       ) : (
         <select
+          id="dim-objetivo"
           className="dash-select"
           value={objetivo}
           onChange={(e) => onObjetivo(e.target.value)}
@@ -206,14 +283,11 @@ function VistaCard({
           ))}
         </select>
       )}
-    </section>
+    </>
   );
 }
 
-// -----------------------------------------------------------------------------
-// Card "Comparación" — sección + variable de cruce + toggle "Incluir total".
-// -----------------------------------------------------------------------------
-function ComparacionCard({
+function PanelComparacion({
   secciones,
   cruce,
   incluirTotal,
@@ -236,65 +310,53 @@ function ComparacionCard({
   const seccion = seccionLocal || seccionDeVar[cruce] || (secciones[0]?.nombre ?? "");
   const seccionActiva = secciones.find((s) => s.nombre === seccion);
 
+  if (!secciones.length) {
+    return <p className="dash-cardbox-help">Sin variables de cruce.</p>;
+  }
+
   return (
-    <section className="dash-cardbox">
-      <div className="dash-cardbox-header">
-        <h2 className="dash-cardbox-title">Comparación</h2>
-      </div>
-      {!secciones.length ? (
-        <p className="dash-cardbox-help">Sin variables de cruce.</p>
-      ) : (
-        <>
-          <label className="dash-filtro-label">Sección</label>
-          <select
-            className="dash-select"
-            value={seccion}
-            onChange={(e) => {
-              setSeccionLocal(e.target.value);
-              onCruce("");
-            }}
-          >
-            {secciones.map((s) => (
-              <option key={s.nombre} value={s.nombre}>{s.nombre}</option>
-            ))}
-          </select>
-          <label className="dash-filtro-label" style={{ marginTop: 8 }}>Comparar por</label>
-          <select
-            className="dash-select"
-            value={cruce}
-            onChange={(e) => onCruce(e.target.value)}
-          >
-            <option value="">— Sin cruce —</option>
-            {seccionActiva?.vars.map((v) => (
-              <option key={v.name} value={v.name}>{v.label}</option>
-            ))}
-          </select>
-          <label
-            style={{
-              alignItems: "center",
-              display: "flex",
-              fontSize: 12,
-              gap: 8,
-              marginTop: 10,
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={incluirTotal}
-              onChange={(e) => onIncluirTotal(e.target.checked)}
-            />
-            Incluir total
-          </label>
-        </>
-      )}
-    </section>
+    <>
+      <label htmlFor="dim-cmp-seccion" className="dash-dim-label">Sección</label>
+      <select
+        id="dim-cmp-seccion"
+        className="dash-select"
+        value={seccion}
+        onChange={(e) => {
+          setSeccionLocal(e.target.value);
+          onCruce("");
+        }}
+      >
+        {secciones.map((s) => (
+          <option key={s.nombre} value={s.nombre}>{s.nombre}</option>
+        ))}
+      </select>
+      <label htmlFor="dim-cmp-var" className="dash-dim-label" style={{ marginTop: 8 }}>
+        Comparar por
+      </label>
+      <select
+        id="dim-cmp-var"
+        className="dash-select"
+        value={cruce}
+        onChange={(e) => onCruce(e.target.value)}
+      >
+        <option value="">— Sin cruce —</option>
+        {seccionActiva?.vars.map((v) => (
+          <option key={v.name} value={v.name}>{v.label}</option>
+        ))}
+      </select>
+      <label className="dash-dim-checkbox">
+        <input
+          type="checkbox"
+          checked={incluirTotal}
+          onChange={(e) => onIncluirTotal(e.target.checked)}
+        />
+        Incluir total
+      </label>
+    </>
   );
 }
 
-// -----------------------------------------------------------------------------
-// Card "Iterar" — toggle + sección + variable + selector de nivel.
-// -----------------------------------------------------------------------------
-function IterarCard({
+function PanelIterar({
   secciones,
   enabled,
   variable,
@@ -333,7 +395,6 @@ function IterarCard({
 
   const { valores: niveles } = useDimCategoriasVar(enabled && variable ? variable : null);
 
-  // Auto-seleccionar primer nivel si no hay seleccionado.
   useEffect(() => {
     if (!enabled || !variable) return;
     if (level && niveles.some((n) => n.value === level)) return;
@@ -341,22 +402,20 @@ function IterarCard({
   }, [enabled, variable, level, niveles, onLevel]);
 
   return (
-    <section className="dash-cardbox">
-      <div className="dash-cardbox-header">
-        <h2 className="dash-cardbox-title">Iterar</h2>
-        <label className="dash-switch" aria-label="Activar iteración">
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={(e) => onToggle(e.target.checked)}
-          />
-          <span className="dash-switch-slider"></span>
-        </label>
-      </div>
+    <>
+      <label className="dash-dim-checkbox" style={{ marginBottom: 8 }}>
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => onToggle(e.target.checked)}
+        />
+        Activar iteración
+      </label>
       {enabled && (
         <>
-          <label className="dash-filtro-label">Sección</label>
+          <label htmlFor="dim-it-seccion" className="dash-dim-label">Sección</label>
           <select
+            id="dim-it-seccion"
             className="dash-select"
             value={seccion}
             onChange={(e) => {
@@ -368,8 +427,11 @@ function IterarCard({
               <option key={s.nombre} value={s.nombre}>{s.nombre}</option>
             ))}
           </select>
-          <label className="dash-filtro-label" style={{ marginTop: 8 }}>Variable</label>
+          <label htmlFor="dim-it-var" className="dash-dim-label" style={{ marginTop: 8 }}>
+            Variable
+          </label>
           <select
+            id="dim-it-var"
             className="dash-select"
             value={variable}
             onChange={(e) => onVariable(e.target.value)}
@@ -381,8 +443,11 @@ function IterarCard({
           </select>
           {variable && niveles.length > 0 && (
             <>
-              <label className="dash-filtro-label" style={{ marginTop: 8 }}>Nivel</label>
+              <label htmlFor="dim-it-level" className="dash-dim-label" style={{ marginTop: 8 }}>
+                Nivel
+              </label>
               <select
+                id="dim-it-level"
                 className="dash-select"
                 value={level}
                 onChange={(e) => onLevel(e.target.value)}
@@ -397,26 +462,148 @@ function IterarCard({
           )}
         </>
       )}
+    </>
+  );
+}
+
+// =============================================================================
+// VisualizadorCard — header con segmented [Heatmap | Barras | Radar | FODA]
+// + body que renderiza el modo activo. Reúne lo que antes eran HeatmapCard
+// y MainPlotCard en un solo container.
+// =============================================================================
+
+function VisualizadorCard({
+  dim,
+  setDim,
+  payload,
+  payloadLoading,
+  payloadError,
+  foda,
+  fodaLoading,
+  fodaError,
+}: {
+  dim: ReturnType<typeof useDashboardStore.getState>["dimensiones"];
+  setDim: (p: Partial<typeof dim>) => void;
+  payload: DashboardDimPayload | null;
+  payloadLoading: boolean;
+  payloadError: string | null;
+  foda: DashboardDimFodaPayload | null;
+  fodaLoading: boolean;
+  fodaError: string | null;
+}) {
+  const visualMode: DashboardDimVisualMode = dim.visualMode;
+
+  // Modo informativo del payload (sugerencia inicial). Si el usuario no
+  // cambió aún, podríamos respetarla; de momento el toggle es libre.
+  return (
+    <section className="dash-cardbox dash-dim-vis">
+      <div className="dash-dim-vis-header">
+        <div className="dash-dim-vis-title">
+          <h2 className="dash-cardbox-title">
+            {visualMode === "heatmap"
+              ? "Heatmap"
+              : visualMode === "radar"
+              ? "Radar de dimensiones"
+              : visualMode === "foda"
+              ? "Matriz FODA"
+              : "Scores por dimensión"}
+          </h2>
+          {payload && payload.ready && <SubtituloDim payload={payload} />}
+        </div>
+        <div className="dash-dim-vis-segmented" role="tablist" aria-label="Modo de visualización">
+          <SegmentedItem
+            active={visualMode === "heatmap"}
+            onClick={() => setDim({ visualMode: "heatmap" })}
+            icon={<Grid3x3 size={13} />}
+            label="Heatmap"
+          />
+          <SegmentedItem
+            active={visualMode === "barras"}
+            onClick={() => setDim({ visualMode: "barras" })}
+            icon={<BarChart3 size={13} />}
+            label="Barras"
+          />
+          <SegmentedItem
+            active={visualMode === "radar"}
+            onClick={() => setDim({ visualMode: "radar" })}
+            icon={<Compass size={13} />}
+            label="Radar"
+          />
+          <SegmentedItem
+            active={visualMode === "foda"}
+            onClick={() => setDim({ visualMode: "foda" })}
+            icon={<ScatterChart size={13} />}
+            label="FODA"
+          />
+        </div>
+      </div>
+
+      <div className="dash-dim-vis-body" key={visualMode}>
+        {visualMode === "foda" ? (
+          fodaLoading && !foda ? (
+            <DimSkeleton mode="foda" />
+          ) : fodaError ? (
+            <EmptyState title="No se pudo calcular FODA" subtitle={fodaError} />
+          ) : !foda || !foda.ready ? (
+            <DimSkeleton mode="foda" />
+          ) : foda.error ? (
+            <EmptyState title="Sin datos para FODA" subtitle={foda.error} />
+          ) : (
+            <FodaView
+              payload={foda}
+              submode={dim.fodaSubmode}
+              onSubmode={(m) => setDim({ fodaSubmode: m })}
+            />
+          )
+        ) : payloadLoading && !payload ? (
+          <DimSkeleton mode={visualMode} />
+        ) : payloadError ? (
+          <EmptyState title="No se pudieron calcular las dimensiones" subtitle={payloadError} />
+        ) : !payload || !payload.ready ? (
+          <DimSkeleton mode={visualMode} />
+        ) : payload.error ? (
+          <EmptyState title="Sin datos para esta vista" subtitle={payload.error} />
+        ) : visualMode === "heatmap" ? (
+          <HeatmapView payload={payload} />
+        ) : (
+          <MainPlotView payload={payload} visualMode={visualMode} />
+        )}
+      </div>
     </section>
   );
 }
 
-// -----------------------------------------------------------------------------
-// Vista principal — heatmap + gráfico principal (barras o radar).
-// -----------------------------------------------------------------------------
-function DimensionesView({ payload }: { payload: DashboardDimPayload }) {
+function SegmentedItem({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
   return (
-    <div className="dash-dim-stack">
-      <HeatmapCard payload={payload} />
-      <MainPlotCard payload={payload} />
-    </div>
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      className={`dash-dim-vis-segment ${active ? "is-active" : ""}`}
+      onClick={onClick}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
   );
 }
 
-// -----------------------------------------------------------------------------
-// Heatmap semáforo (legacy: graficador_dimensiones.R, .heat_colorscale).
-// -----------------------------------------------------------------------------
-function HeatmapCard({ payload }: { payload: DashboardDimPayload }) {
+// =============================================================================
+// HeatmapView — sigue mostrando matriz semáforo, pero ahora dentro del
+// VisualizadorCard. Misma lógica de antes.
+// =============================================================================
+
+function HeatmapView({ payload }: { payload: DashboardDimPayload }) {
   const heat = payload.score_heat ?? [];
   const semaforo = payload.semaforo!;
 
@@ -429,7 +616,6 @@ function HeatmapCard({ payload }: { payload: DashboardDimPayload }) {
       ? [...payload.axis_order_heat]
       : uniqueOrdered(heat.map((r) => r.axis_label));
 
-    // Matriz Z = filas axis_label × columnas grupo.
     const z: (number | null)[][] = yVals.map((axis) =>
       xVals.map((g) => {
         const row = heat.find((r) => r.axis_label === axis && r.grupo === g);
@@ -440,8 +626,6 @@ function HeatmapCard({ payload }: { payload: DashboardDimPayload }) {
       row.map((v) => (v == null ? "—" : String(Math.round(v)))),
     );
 
-    // Colorscale: na→gris no se usa en colorscale (Plotly maneja null como
-    // gap); construimos escala roja → ámbar → verde según semaforo.
     const cs: [number, string][] = [
       [0, semaforo.red_color],
       [(semaforo.red_max - 0.001) / 100, semaforo.red_color],
@@ -459,7 +643,9 @@ function HeatmapCard({ payload }: { payload: DashboardDimPayload }) {
         z,
         text,
         texttemplate: "%{text}",
-        textfont: { color: "#fff", size: 12 },
+        // Texto blanco con sombra para garantizar contraste sobre ámbar
+        // (legibilidad WCAG AA aunque el color base no llegue a ratio puro).
+        textfont: { color: "#fff", size: 12, family: "system-ui, sans-serif" },
         hovertemplate:
           "<b>%{y}</b><br>%{x}: %{z:.0f}<extra></extra>",
         zmin: 0,
@@ -479,24 +665,13 @@ function HeatmapCard({ payload }: { payload: DashboardDimPayload }) {
   }, [heat, payload.axis_order_heat, semaforo]);
 
   if (!heat.length) {
-    return (
-      <section className="dash-cardbox dash-dim-card">
-        <div className="dash-cardbox-header">
-          <h2 className="dash-cardbox-title">Heatmap semáforo</h2>
-        </div>
-        <p className="dash-cardbox-help">Sin datos para mostrar.</p>
-      </section>
-    );
+    return <p className="dash-cardbox-help">Sin datos para mostrar.</p>;
   }
 
-  const altura = Math.max(280, axes.y.length * 36 + 80);
+  const altura = Math.min(560, Math.max(280, axes.y.length * 36 + 80));
 
   return (
-    <section className="dash-cardbox dash-dim-card">
-      <div className="dash-cardbox-header">
-        <h2 className="dash-cardbox-title">Heatmap</h2>
-        <SubtituloDim payload={payload} />
-      </div>
+    <>
       <PlotlyChart
         data={traces}
         layout={layout}
@@ -517,14 +692,21 @@ function HeatmapCard({ payload }: { payload: DashboardDimPayload }) {
           {semaforo.amber_max}–100 alto
         </span>
       </div>
-    </section>
+    </>
   );
 }
 
-// -----------------------------------------------------------------------------
-// Gráfico principal: barras horizontales o radar (según visual_mode).
-// -----------------------------------------------------------------------------
-function MainPlotCard({ payload }: { payload: DashboardDimPayload }) {
+// =============================================================================
+// MainPlotView — barras horizontales o radar.
+// =============================================================================
+
+function MainPlotView({
+  payload,
+  visualMode,
+}: {
+  payload: DashboardDimPayload;
+  visualMode: "barras" | "radar";
+}) {
   const rows = payload.score_plot ?? [];
   const groups = useMemo(() => uniqueOrdered(rows.map((r) => r.grupo)), [rows]);
   const axes = useMemo(
@@ -536,10 +718,9 @@ function MainPlotCard({ payload }: { payload: DashboardDimPayload }) {
   );
 
   const groupColors = payload.group_colors ?? {};
-  const visual = payload.visual_mode ?? "barras";
 
   const traces = useMemo(() => {
-    if (visual === "radar") {
+    if (visualMode === "radar") {
       return groups.map((g) => {
         const r = axes.map((a) => {
           const row = rows.find((x) => x.grupo === g && x.axis_label === a);
@@ -561,7 +742,6 @@ function MainPlotCard({ payload }: { payload: DashboardDimPayload }) {
         };
       });
     }
-    // barras horizontales.
     return groups.map((g) => {
       const xv = axes.map((a) => {
         const row = rows.find((x) => x.grupo === g && x.axis_label === a);
@@ -577,10 +757,10 @@ function MainPlotCard({ payload }: { payload: DashboardDimPayload }) {
         hovertemplate: `${g}<br>%{y}: %{x:.0f}<extra></extra>`,
       };
     });
-  }, [visual, groups, axes, rows, groupColors]);
+  }, [visualMode, groups, axes, rows, groupColors]);
 
   const layout = useMemo(() => {
-    if (visual === "radar") {
+    if (visualMode === "radar") {
       return {
         polar: {
           radialaxis: { range: [0, 100], tickfont: { size: 10 } },
@@ -599,59 +779,359 @@ function MainPlotCard({ payload }: { payload: DashboardDimPayload }) {
       legend: { orientation: "h", y: -0.15 },
       margin: { t: 16, r: 16, b: 50, l: 24 },
     };
-  }, [visual, groups]);
+  }, [visualMode, groups]);
 
   if (!rows.length) {
-    return (
-      <section className="dash-cardbox dash-dim-card">
-        <div className="dash-cardbox-header">
-          <h2 className="dash-cardbox-title">{visual === "radar" ? "Radar" : "Barras"}</h2>
-        </div>
-        <p className="dash-cardbox-help">Sin datos para graficar.</p>
-      </section>
-    );
+    return <p className="dash-cardbox-help">Sin datos para graficar.</p>;
   }
 
-  const altura = visual === "radar" ? 600 : Math.max(360, axes.length * 36 + 100);
+  const altura = visualMode === "radar" ? 600 : Math.max(360, axes.length * 36 + 100);
 
   return (
-    <section className="dash-cardbox dash-dim-card">
-      <div className="dash-cardbox-header">
-        <h2 className="dash-cardbox-title">
-          {visual === "radar" ? "Radar de dimensiones" : "Scores por dimensión"}
-        </h2>
-        <SubtituloDim payload={payload} />
-      </div>
-      <PlotlyChart
-        data={traces}
-        layout={layout}
-        height={altura}
-        ariaLabel={visual === "radar" ? "Radar de dimensiones" : "Barras de scores"}
-      />
-    </section>
+    <PlotlyChart
+      data={traces}
+      layout={layout}
+      height={altura}
+      ariaLabel={visualMode === "radar" ? "Radar de dimensiones" : "Barras de scores"}
+    />
   );
 }
 
-// -----------------------------------------------------------------------------
-// Subtítulo dinámico (legacy: hint con modo, objetivo, cruce, iteración).
-// -----------------------------------------------------------------------------
-function SubtituloDim({ payload }: { payload: DashboardDimPayload }) {
-  const parts: string[] = [];
-  if (payload.principal_label) {
-    parts.push(`Cruce: ${payload.principal_label}`);
+// =============================================================================
+// FodaView — matriz 2×2 + scatter de dispersión, con sub-segmented.
+// =============================================================================
+
+const CUADRANTE_LABELS: Record<DashboardDimFodaCuadrante, string> = {
+  fortaleza: "Fortalezas",
+  oportunidad: "Oportunidades",
+  debilidad: "Debilidades",
+  amenaza: "Amenazas",
+};
+
+const CUADRANTE_DESC: Record<DashboardDimFodaCuadrante, string> = {
+  fortaleza: "Score alto · variabilidad baja",
+  oportunidad: "Score alto · variabilidad alta",
+  debilidad: "Score bajo · variabilidad baja",
+  amenaza: "Score bajo · variabilidad alta",
+};
+
+function FodaView({
+  payload,
+  submode,
+  onSubmode,
+}: {
+  payload: DashboardDimFodaPayload;
+  submode: "matriz" | "dispersion";
+  onSubmode: (m: "matriz" | "dispersion") => void;
+}) {
+  const items = payload.items ?? [];
+  const counts = payload.counts ?? { fortaleza: 0, oportunidad: 0, debilidad: 0, amenaza: 0 };
+
+  return (
+    <div className="dash-foda">
+      <div className="dash-foda-toolbar">
+        <div className="dash-foda-cortes" aria-label="Cortes FODA">
+          <span><strong>Corte score:</strong> {payload.cortes?.score ?? 80}</span>
+          <span className="dash-foda-cortes-sep">·</span>
+          <span><strong>Corte SD:</strong> {payload.cortes?.sd ?? 0}</span>
+        </div>
+        <div className="dash-foda-segmented" role="tablist" aria-label="Vista FODA">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={submode === "matriz"}
+            className={`dash-foda-seg ${submode === "matriz" ? "is-active" : ""}`}
+            onClick={() => onSubmode("matriz")}
+          >
+            Matriz
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={submode === "dispersion"}
+            className={`dash-foda-seg ${submode === "dispersion" ? "is-active" : ""}`}
+            onClick={() => onSubmode("dispersion")}
+          >
+            Dispersión
+          </button>
+        </div>
+      </div>
+
+      {submode === "matriz" ? (
+        <FodaMatriz items={items} counts={counts} payload={payload} />
+      ) : (
+        <FodaDispersion items={items} payload={payload} />
+      )}
+    </div>
+  );
+}
+
+function FodaMatriz({
+  items,
+  counts,
+  payload,
+}: {
+  items: DashboardDimFodaItem[];
+  counts: Record<DashboardDimFodaCuadrante, number>;
+  payload: DashboardDimFodaPayload;
+}) {
+  // Orden visual: F (arriba-izq), O (arriba-der), D (abajo-izq), A (abajo-der).
+  const orden: DashboardDimFodaCuadrante[] = ["fortaleza", "oportunidad", "debilidad", "amenaza"];
+
+  const semaforo = payload.semaforo!;
+  const accent: Record<DashboardDimFodaCuadrante, string> = {
+    fortaleza: semaforo.green_color,
+    oportunidad: "#1B679D",
+    debilidad: semaforo.amber_color,
+    amenaza: semaforo.red_color,
+  };
+
+  return (
+    <div className="dash-foda-grid">
+      {orden.map((q) => {
+        const subset = items.filter((it) => it.cuadrante === q);
+        return (
+          <FodaCuadrante
+            key={q}
+            cuadrante={q}
+            label={CUADRANTE_LABELS[q]}
+            desc={CUADRANTE_DESC[q]}
+            count={counts[q] ?? 0}
+            accent={accent[q]}
+            items={subset}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function FodaCuadrante({
+  cuadrante,
+  label,
+  desc,
+  count,
+  accent,
+  items,
+}: {
+  cuadrante: DashboardDimFodaCuadrante;
+  label: string;
+  desc: string;
+  count: number;
+  accent: string;
+  items: DashboardDimFodaItem[];
+}) {
+  return (
+    <article
+      className={`dash-foda-cuadrante dash-foda-cuadrante-${cuadrante}`}
+      style={{ ["--foda-accent" as string]: accent }}
+    >
+      <header className="dash-foda-cuadrante-head">
+        <div>
+          <h3 className="dash-foda-cuadrante-title">{label}</h3>
+          <p className="dash-foda-cuadrante-desc">{desc}</p>
+        </div>
+        <span className="dash-foda-count" aria-label={`${count} dimensiones`}>{count}</span>
+      </header>
+      {items.length === 0 ? (
+        <p className="dash-foda-empty">Sin dimensiones en este cuadrante.</p>
+      ) : (
+        <ul className="dash-foda-items">
+          {items.map((it) => (
+            <li key={it.var} className="dash-foda-item">
+              {it.icono_url ? (
+                <img src={it.icono_url} alt="" className="dash-foda-item-icon" aria-hidden="true" />
+              ) : (
+                <span className="dash-foda-item-icon dash-foda-item-icon-placeholder" aria-hidden="true" />
+              )}
+              <span className="dash-foda-item-label" title={it.axis_label}>{it.axis_label}</span>
+              <span className="dash-foda-item-score" title={`SD: ${it.score_sd}`}>
+                {Math.round(it.score_mean)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
+  );
+}
+
+function FodaDispersion({
+  items,
+  payload,
+}: {
+  items: DashboardDimFodaItem[];
+  payload: DashboardDimFodaPayload;
+}) {
+  const semaforo = payload.semaforo!;
+  const corteScore = payload.cortes?.score ?? 80;
+  const corteSd = payload.cortes?.sd ?? 0;
+
+  const colorMap: Record<DashboardDimFodaCuadrante, string> = {
+    fortaleza: semaforo.green_color,
+    oportunidad: "#1B679D",
+    debilidad: semaforo.amber_color,
+    amenaza: semaforo.red_color,
+  };
+
+  const traces = useMemo(() => {
+    const grupos: Record<DashboardDimFodaCuadrante, DashboardDimFodaItem[]> = {
+      fortaleza: [],
+      oportunidad: [],
+      debilidad: [],
+      amenaza: [],
+    };
+    for (const it of items) {
+      if (it.cuadrante) grupos[it.cuadrante].push(it);
+    }
+    return (Object.keys(grupos) as DashboardDimFodaCuadrante[]).map((q) => {
+      const subset = grupos[q];
+      return {
+        type: "scatter" as const,
+        mode: "markers+text",
+        name: CUADRANTE_LABELS[q],
+        x: subset.map((it) => it.score_mean),
+        y: subset.map((it) => it.score_sd),
+        text: subset.map((it) => it.axis_label),
+        textposition: "top center",
+        textfont: { size: 10 },
+        marker: { color: colorMap[q], size: 12, line: { color: "#fff", width: 1 } },
+        hovertemplate: subset.map((it) =>
+          `<b>${it.axis_label}</b><br>Score: ${it.score_mean}<br>SD: ${it.score_sd}<br>n: ${it.n_valid}<extra>${CUADRANTE_LABELS[q]}</extra>`,
+        ),
+      };
+    });
+  }, [items, colorMap]);
+
+  const maxSd = Math.max(...items.map((it) => it.score_sd), corteSd, 1);
+  const layout = {
+    xaxis: {
+      title: { text: "Score (0–100)", font: { size: 11 } },
+      range: [0, 100],
+      tickfont: { size: 10 },
+      zeroline: false,
+    },
+    yaxis: {
+      title: { text: "Variabilidad (SD)", font: { size: 11 } },
+      range: [0, maxSd * 1.1],
+      tickfont: { size: 10 },
+      zeroline: false,
+    },
+    shapes: [
+      // Línea vertical en corte_score.
+      {
+        type: "line",
+        x0: corteScore,
+        x1: corteScore,
+        y0: 0,
+        y1: maxSd * 1.1,
+        line: { color: "rgba(15,23,42,0.18)", width: 1, dash: "dash" },
+      },
+      // Línea horizontal en corte_sd.
+      {
+        type: "line",
+        x0: 0,
+        x1: 100,
+        y0: corteSd,
+        y1: corteSd,
+        line: { color: "rgba(15,23,42,0.18)", width: 1, dash: "dash" },
+      },
+    ],
+    annotations: [
+      { x: 100, y: maxSd * 1.05, xanchor: "right", showarrow: false, text: "Oportunidad", font: { size: 10, color: colorMap.oportunidad } },
+      { x: 100, y: 0, xanchor: "right", yanchor: "bottom", showarrow: false, text: "Fortaleza", font: { size: 10, color: colorMap.fortaleza } },
+      { x: 0, y: maxSd * 1.05, xanchor: "left", showarrow: false, text: "Amenaza", font: { size: 10, color: colorMap.amenaza } },
+      { x: 0, y: 0, xanchor: "left", yanchor: "bottom", showarrow: false, text: "Debilidad", font: { size: 10, color: colorMap.debilidad } },
+    ],
+    showlegend: true,
+    legend: { orientation: "h", y: -0.18 },
+    margin: { t: 16, r: 16, b: 60, l: 56 },
+  };
+
+  if (!items.length) {
+    return <p className="dash-cardbox-help">Sin datos para la dispersión.</p>;
   }
+
+  return (
+    <PlotlyChart
+      data={traces}
+      layout={layout}
+      height={520}
+      ariaLabel="Dispersión FODA score vs variabilidad"
+    />
+  );
+}
+
+// =============================================================================
+// Subtítulo dinámico con chip badges.
+// =============================================================================
+
+function SubtituloDim({ payload }: { payload: DashboardDimPayload }) {
+  const parts: { label: string; value?: string; chip?: boolean }[] = [];
+  if (payload.principal_label) parts.push({ label: "Cruce", value: payload.principal_label });
   if (payload.iter_active && payload.iter_var_label && payload.iter_level_label) {
-    parts.push(`${payload.iter_var_label} = ${payload.iter_level_label}`);
+    parts.push({ label: payload.iter_var_label, value: payload.iter_level_label });
   }
   if ((payload.principal_hidden ?? 0) > 0) {
-    parts.push(`+${payload.principal_hidden} categorías ocultas`);
+    parts.push({ label: `+${payload.principal_hidden} categorías ocultas`, chip: true });
   }
   if ((payload.iter_hidden_levels ?? 0) > 0) {
-    parts.push(`+${payload.iter_hidden_levels} niveles ocultos`);
+    parts.push({ label: `+${payload.iter_hidden_levels} niveles ocultos`, chip: true });
   }
   if (!parts.length) return null;
   return (
-    <span className="dash-dim-subtitle">{parts.join(" · ")}</span>
+    <div className="dash-dim-subtitle">
+      {parts.map((p, i) => (
+        <span
+          key={i}
+          className={`dash-dim-subtitle-item ${p.chip ? "is-chip" : ""}`}
+        >
+          {p.value ? (
+            <>
+              <span className="dash-dim-subtitle-key">{p.label}:</span>
+              <span>{p.value}</span>
+            </>
+          ) : (
+            p.label
+          )}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// =============================================================================
+// Skeleton loader con shimmer.
+// =============================================================================
+
+function DimSkeleton({ mode }: { mode: DashboardDimVisualMode }) {
+  if (mode === "foda") {
+    return (
+      <div className="dash-dim-skeleton dash-dim-skeleton-foda">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="dash-dim-skel-block" />
+        ))}
+      </div>
+    );
+  }
+  if (mode === "radar") {
+    return (
+      <div className="dash-dim-skeleton">
+        <div className="dash-dim-skel-circle" />
+      </div>
+    );
+  }
+  // heatmap o barras: 5 barras horizontales.
+  return (
+    <div className="dash-dim-skeleton">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="dash-dim-skel-bar"
+          style={{ width: `${60 + (i * 7) % 35}%` }}
+        />
+      ))}
+    </div>
   );
 }
 

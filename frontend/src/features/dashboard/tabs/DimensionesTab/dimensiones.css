@@ -1,24 +1,196 @@
-.dashboard-scope .dash-dim-stack {
+/* =============================================================================
+ * Dimensiones — sidebar consolidado (Configuración + Filtros) + VisualizadorCard
+ * con segmented [Heatmap | Barras | Radar | FODA].
+ * ============================================================================= */
+
+/* Card Configuración — segmented tabs internos. */
+.dashboard-scope .dash-dim-config {
+  padding: 12px;
+}
+.dashboard-scope .dash-dim-config-tabs {
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-md);
+  display: grid;
+  gap: 2px;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 3px;
+}
+.dashboard-scope .dash-dim-config-tab {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  padding: 7px 6px;
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-dim-config-tab:hover:not(.is-active) {
+    background: var(--dash-primario-soft);
+  }
+}
+.dashboard-scope .dash-dim-config-tab.is-active {
+  background: var(--dash-superficie);
+  box-shadow: var(--dash-shadow-xs);
+  color: var(--dash-primario);
+}
+
+.dashboard-scope .dash-dim-config-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+}
+
+/* Label uniforme para todos los selects del sidebar. */
+.dashboard-scope .dash-dim-label {
+  color: var(--dash-texto-suave);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Checkbox row con label inline. */
+.dashboard-scope .dash-dim-checkbox {
+  align-items: center;
+  color: var(--dash-texto);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* =============================================================================
+ * VisualizadorCard — header con segmented + body que cambia según modo.
+ * ============================================================================= */
+
+.dashboard-scope .dash-dim-vis {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-.dashboard-scope .dash-dim-card {
+.dashboard-scope .dash-dim-vis-header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--dash-divider);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  padding-bottom: 10px;
+}
+
+.dashboard-scope .dash-dim-vis-title {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dashboard-scope .dash-dim-vis-title .dash-cardbox-title {
+  letter-spacing: -0.01em;
+}
+
+.dashboard-scope .dash-dim-vis-segmented {
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-md);
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+}
+
+.dashboard-scope .dash-dim-vis-segment {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 11.5px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 6px 10px;
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-dim-vis-segment:hover:not(.is-active) {
+    background: var(--dash-primario-soft);
+  }
+}
+.dashboard-scope .dash-dim-vis-segment:active:not(.is-active) {
+  transform: scale(0.97);
+}
+.dashboard-scope .dash-dim-vis-segment.is-active {
+  background: var(--dash-primario);
+  box-shadow: var(--dash-shadow-xs);
+  color: #fff;
+}
+.dashboard-scope .dash-dim-vis-segment > svg {
+  flex: 0 0 auto;
+}
+
+.dashboard-scope .dash-dim-vis-body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* Animación de entrada al cambiar de modo (key={visualMode} fuerza remount). */
+  animation: dash-dim-fade-in var(--dash-dur-modal) var(--dash-ease-out);
 }
 
+@keyframes dash-dim-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Subtítulo dinámico — chips para indicadores ocultos. */
 .dashboard-scope .dash-dim-subtitle {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dashboard-scope .dash-dim-subtitle-item {
+  align-items: center;
   color: var(--dash-texto-suave);
+  display: inline-flex;
+  font-size: 12px;
+  gap: 4px;
+}
+.dashboard-scope .dash-dim-subtitle-key {
+  color: var(--dash-texto);
+  font-weight: 600;
+}
+.dashboard-scope .dash-dim-subtitle-item.is-chip {
+  background: var(--dash-primario-soft);
+  border-radius: 999px;
+  color: var(--dash-primario);
   font-size: 11px;
-  font-weight: 500;
-  margin-left: auto;
-  text-align: right;
+  font-weight: 600;
+  padding: 2px 9px;
 }
 
-/* Leyenda semáforo (legacy: .dim-heat-legend). */
+/* Leyenda semáforo (sin cambios funcionales pero re-estilada). */
 .dashboard-scope .dash-dim-heat-legend {
   align-items: center;
   border-top: 1px solid var(--dash-divider);
@@ -30,17 +202,86 @@
   justify-content: center;
   padding-top: 10px;
 }
-
 .dashboard-scope .dash-dim-heat-legend-item {
   align-items: center;
   display: inline-flex;
   font-variant-numeric: tabular-nums;
   gap: 7px;
 }
-
 .dashboard-scope .dash-dim-heat-legend-swatch {
   border-radius: 3px;
   display: inline-block;
   height: 12px;
   width: 18px;
+}
+
+/* =============================================================================
+ * Skeleton loader con shimmer (legacy: spinner/text "Cargando…").
+ * ============================================================================= */
+
+.dashboard-scope .dash-dim-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.dashboard-scope .dash-dim-skel-bar,
+.dashboard-scope .dash-dim-skel-block,
+.dashboard-scope .dash-dim-skel-circle {
+  background: linear-gradient(
+    90deg,
+    var(--dash-superficie-2) 0%,
+    rgba(15, 23, 42, 0.05) 50%,
+    var(--dash-superficie-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: dash-dim-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--dash-radius-sm);
+}
+
+.dashboard-scope .dash-dim-skel-bar {
+  height: 36px;
+}
+
+.dashboard-scope .dash-dim-skel-circle {
+  border-radius: 50%;
+  height: 320px;
+  margin: 0 auto;
+  width: 320px;
+}
+
+.dashboard-scope .dash-dim-skeleton-foda {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.dashboard-scope .dash-dim-skel-block {
+  height: 180px;
+}
+
+@keyframes dash-dim-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-scope .dash-dim-skel-bar,
+  .dashboard-scope .dash-dim-skel-block,
+  .dashboard-scope .dash-dim-skel-circle {
+    animation: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .dashboard-scope .dash-dim-vis-header {
+    flex-direction: column;
+  }
+  .dashboard-scope .dash-dim-vis-segmented {
+    overflow-x: auto;
+  }
+  .dashboard-scope .dash-dim-skeleton-foda {
+    grid-template-columns: 1fr;
+  }
 }
