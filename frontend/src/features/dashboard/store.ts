@@ -57,6 +57,44 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   notas: "",
 };
 
+// Estado de exploración para Relaciones (no persistido).
+export type DashboardRelacionState = {
+  varPrincipal: string;
+  varSegmento: string;
+  iterarVar: string;
+  iterarOn: boolean;
+  filtrosOn: boolean;
+};
+
+const DEFAULT_RELACION_STATE: DashboardRelacionState = {
+  varPrincipal: "",
+  varSegmento: "",
+  iterarVar: "",
+  iterarOn: false,
+  filtrosOn: false,
+};
+
+// Estado de exploración para Base de datos (no persistido).
+export type DashboardBaseDatosState = {
+  modo: "codigos" | "etiquetas";
+  variables: string[];
+  seccionesAbiertas: string[];
+  page: number;
+  pageSize: number;
+  search: string;
+  sort: { col: string; desc: boolean } | null;
+};
+
+const DEFAULT_BASE_DATOS_STATE: DashboardBaseDatosState = {
+  modo: "etiquetas",
+  variables: [],
+  seccionesAbiertas: [],
+  page: 1,
+  pageSize: 25,
+  search: "",
+  sort: null,
+};
+
 type DashboardStore = {
   config: DashboardConfig;
   hydrated: boolean;
@@ -66,6 +104,8 @@ type DashboardStore = {
   tabActiva: DashboardTabId;
   seccionActiva: string | null;
   filtros: DashboardFiltro[];
+  relacion: DashboardRelacionState;
+  baseDatos: DashboardBaseDatosState;
 
   hydrate: (c: DashboardConfig) => void;
   markClean: () => void;
@@ -89,6 +129,17 @@ type DashboardStore = {
   addFiltro: (f: DashboardFiltro) => void;
   removeFiltro: (varName: string) => void;
   clearFiltros: () => void;
+
+  // Relaciones
+  setRelacion: (patch: Partial<DashboardRelacionState>) => void;
+  resetRelacion: () => void;
+
+  // Base de datos
+  setBaseDatos: (patch: Partial<DashboardBaseDatosState>) => void;
+  toggleBaseDatosVariable: (name: string) => void;
+  setBaseDatosVariables: (names: string[]) => void;
+  toggleBaseDatosSeccion: (id: string) => void;
+  resetBaseDatos: () => void;
 };
 
 function dirtyPatch<T extends Partial<DashboardStore>>(p: T): T & { dirty: true } {
@@ -103,6 +154,8 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   tabActiva: "resumen",
   seccionActiva: null,
   filtros: [],
+  relacion: DEFAULT_RELACION_STATE,
+  baseDatos: DEFAULT_BASE_DATOS_STATE,
 
   hydrate: (c) => set({ config: c, hydrated: true, dirty: false }),
   markClean: () => set({ dirty: false }),
@@ -159,6 +212,32 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   removeFiltro: (varName) =>
     set((st) => ({ filtros: st.filtros.filter((f) => f.var !== varName) })),
   clearFiltros: () => set({ filtros: [] }),
+
+  setRelacion: (patch) =>
+    set((st) => ({ relacion: { ...st.relacion, ...patch } })),
+  resetRelacion: () => set({ relacion: DEFAULT_RELACION_STATE }),
+
+  setBaseDatos: (patch) =>
+    set((st) => ({ baseDatos: { ...st.baseDatos, ...patch } })),
+  toggleBaseDatosVariable: (name) =>
+    set((st) => {
+      const has = st.baseDatos.variables.includes(name);
+      const next = has
+        ? st.baseDatos.variables.filter((v) => v !== name)
+        : [...st.baseDatos.variables, name];
+      return { baseDatos: { ...st.baseDatos, variables: next, page: 1 } };
+    }),
+  setBaseDatosVariables: (names) =>
+    set((st) => ({ baseDatos: { ...st.baseDatos, variables: names, page: 1 } })),
+  toggleBaseDatosSeccion: (id) =>
+    set((st) => {
+      const has = st.baseDatos.seccionesAbiertas.includes(id);
+      const next = has
+        ? st.baseDatos.seccionesAbiertas.filter((s) => s !== id)
+        : [...st.baseDatos.seccionesAbiertas, id];
+      return { baseDatos: { ...st.baseDatos, seccionesAbiertas: next } };
+    }),
+  resetBaseDatos: () => set({ baseDatos: DEFAULT_BASE_DATOS_STATE }),
 }));
 
 // Hook de hidratación + autosave (debounced 2s). Se monta una vez en

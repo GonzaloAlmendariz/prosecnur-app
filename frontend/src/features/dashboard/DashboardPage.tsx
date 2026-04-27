@@ -8,6 +8,8 @@ import { DashboardPalettesDialog } from "./palettes/DashboardPalettesDialog";
 import { EmptyState } from "./shared/EmptyState";
 import { DashboardSourceGate } from "./source/DashboardSourceGate";
 import { ResumenTab } from "./tabs/ResumenTab";
+import { RelacionTab } from "./tabs/RelacionTab";
+import { BaseDatosTab } from "./tabs/BaseDatosTab";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { useDashboardAutosave, useDashboardStore } from "./store";
 import { useDashboardManifest } from "./useDashboardData";
@@ -115,19 +117,9 @@ function TabContent({ tab }: { tab: DashboardTabId }) {
     case "resumen":
       return <ResumenTab />;
     case "relaciones":
-      return (
-        <EmptyState
-          title="Relaciones — próximamente"
-          subtitle="Esta pestaña se implementará en la próxima fase."
-        />
-      );
+      return <RelacionTab />;
     case "base_datos":
-      return (
-        <EmptyState
-          title="Base de datos — próximamente"
-          subtitle="Esta pestaña se implementará en la próxima fase."
-        />
-      );
+      return <BaseDatosTab />;
     case "dimensiones":
       return (
         <EmptyState

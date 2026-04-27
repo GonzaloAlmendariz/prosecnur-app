@@ -14,14 +14,20 @@
 #   POST /api/dashboard/source/import        — cargar XLSForm + data al dashboard
 #   GET  /api/dashboard/paletas-listas       — choices para paletas por lista
 #
+# Endpoints (Fase 4-5):
+#   POST /api/dashboard/relacion/cross           — payload de cruce + iteración
+#   POST /api/dashboard/relacion/descargar       — Excel del cruce (multi-hoja si itera)
+#   GET  /api/dashboard/base-datos               — estructura de secciones/variables
+#   POST /api/dashboard/base-datos/data          — data paginada (modo + filtros + sort + search)
+#   POST /api/dashboard/base-datos/descargar     — CSV/XLSX de la vista actual
+#   GET  /api/dashboard/base-datos/diccionario   — opciones código→etiqueta de una variable
+#
 # Endpoints pendientes (fases siguientes):
-#   POST /api/dashboard/relacion/cross       — Fase 4
-#   GET  /api/dashboard/base-datos           — Fase 5
-#   POST /api/dashboard/base-datos/descargar — Fase 5
 #   POST /api/dashboard/publish              — Fase 7
 #
 # Helpers en `dashboard_pane.R`, `dashboard_curacion.R`,
-# `dashboard_secciones.R`, `dashboard_resumen.R`.
+# `dashboard_secciones.R`, `dashboard_resumen.R`,
+# `dashboard_relacion.R`, `dashboard_base_datos.R`.
 
 mount_dashboard <- function(pr) {
   pr |>
@@ -110,6 +116,98 @@ mount_dashboard <- function(pr) {
       body <- .dashboard_parse_body(req)
       cur <- .dashboard_curacion_save(sid, body)
       list(ok = TRUE, curacion = cur)
+    })) |>
+    plumber::pr_post("/api/dashboard/relacion/cross", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body <- .dashboard_parse_body(req)
+      var_p <- as.character(body$var_principal %||% "")[1]
+      var_s <- as.character(body$var_segmento %||% "")[1]
+      if (!nzchar(var_p) || !nzchar(var_s)) {
+        stop_api(400, "E_BAD_REQUEST", "Faltan 'var_principal' o 'var_segmento'.")
+      }
+      filtros <- body$filtros %||% list()
+      iterar <- body$iterar
+      payload <- .dashboard_relacion_payload(s, var_p, var_s, filtros, iterar)
+      list(ok = TRUE, payload = payload)
+    })) |>
+    plumber::pr_post("/api/dashboard/relacion/descargar", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body <- .dashboard_parse_body(req)
+      var_p <- as.character(body$var_principal %||% "")[1]
+      var_s <- as.character(body$var_segmento %||% "")[1]
+      if (!nzchar(var_p) || !nzchar(var_s)) {
+        stop_api(400, "E_BAD_REQUEST", "Faltan 'var_principal' o 'var_segmento'.")
+      }
+      filtros <- body$filtros %||% list()
+      iterar <- body$iterar
+      path <- .dashboard_relacion_descargar(s, var_p, var_s, filtros, iterar)
+      n <- file.info(path)$size
+      bytes <- readBin(path, what = "raw", n = n)
+      filename <- sprintf("relacion_%s_x_%s_%s.xlsx",
+                          gsub("[^A-Za-z0-9_-]", "_", var_p),
+                          gsub("[^A-Za-z0-9_-]", "_", var_s),
+                          format(Sys.time(), "%Y%m%d_%H%M%S"))
+      res$setHeader("Content-Type",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+      res$setHeader("Content-Length", as.character(n))
+      res$setHeader("Content-Disposition",
+                    sprintf('attachment; filename="%s"', filename))
+      res$body <- bytes
+      res
+    })) |>
+    plumber::pr_get("/api/dashboard/base-datos", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      list(ok = TRUE, payload = .dashboard_base_datos_estructura(s))
+    })) |>
+    plumber::pr_post("/api/dashboard/base-datos/data", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body <- .dashboard_parse_body(req)
+      modo <- as.character(body$modo %||% "codigos")[1]
+      variables <- body$variables %||% list()
+      page <- as.integer(body$page %||% 1L)
+      page_size <- as.integer(body$page_size %||% 25L)
+      search <- as.character(body$search %||% "")
+      sort <- body$sort
+      payload <- .dashboard_base_datos_data(s, modo, variables, page, page_size, search, sort)
+      list(ok = TRUE, payload = payload)
+    })) |>
+    plumber::pr_post("/api/dashboard/base-datos/descargar", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body <- .dashboard_parse_body(req)
+      modo <- as.character(body$modo %||% "codigos")[1]
+      variables <- body$variables %||% list()
+      formato <- as.character(body$formato %||% "xlsx")[1]
+      result <- .dashboard_base_datos_descargar(s, modo, variables, formato)
+      n <- file.info(result$path)$size
+      bytes <- readBin(result$path, what = "raw", n = n)
+      ts <- format(Sys.time(), "%Y%m%d_%H%M%S")
+      if (identical(result$formato, "csv")) {
+        filename <- sprintf("base_datos_%s.csv", ts)
+        res$setHeader("Content-Type", "text/csv; charset=utf-8")
+      } else {
+        filename <- sprintf("base_datos_%s.xlsx", ts)
+        res$setHeader("Content-Type",
+                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+      }
+      res$setHeader("Content-Length", as.character(n))
+      res$setHeader("Content-Disposition",
+                    sprintf('attachment; filename="%s"', filename))
+      res$body <- bytes
+      res
+    })) |>
+    plumber::pr_get("/api/dashboard/base-datos/diccionario", wrap_endpoint(function(req, res, variable = NULL) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      var <- if (!is.null(variable) && length(variable) >= 1) {
+        as.character(variable)[[1]]
+      } else ""
+      if (!nzchar(var)) stop_api(400, "E_BAD_REQUEST", "Falta query 'variable'.")
+      list(ok = TRUE, payload = .dashboard_base_datos_diccionario(s, var))
     }))
 }
 

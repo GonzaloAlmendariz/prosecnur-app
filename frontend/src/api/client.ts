@@ -1,4 +1,31 @@
 const SESSION_KEY = "pulso.sessionId";
+const APP_BASE = import.meta.env.BASE_URL || "/";
+
+export function apiPath(path: string): string {
+  if (/^(https?:)?\/\//.test(path) || path.startsWith("data:") || path.startsWith("blob:")) {
+    return path;
+  }
+
+  const normalizedBase = APP_BASE === "./" ? "/" : APP_BASE;
+  const base = normalizedBase.endsWith("/")
+    ? normalizedBase.slice(0, -1)
+    : normalizedBase;
+
+  if (path === "/api" || path.startsWith("/api/")) {
+    return `${base}${path}`;
+  }
+  if (path === "api" || path.startsWith("api/")) {
+    return `${base}/${path}`;
+  }
+  return path;
+}
+
+function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  if (typeof input === "string") {
+    return globalThis.fetch(apiPath(input), init);
+  }
+  return globalThis.fetch(input, init);
+}
 
 function getSession(): string | null {
   return localStorage.getItem(SESSION_KEY);
@@ -52,7 +79,7 @@ async function handle<T>(res: Response): Promise<T> {
 
 export async function apiHealth() {
   return handle<{ ok: boolean; version: string; prosecnur_version: string; time: string }>(
-    await fetch("/api/system/health", { headers: headers() })
+    await apiFetch("/api/system/health", { headers: headers() })
   );
 }
 
@@ -70,12 +97,12 @@ export type DiagnosticInfo = {
 
 export async function apiSystemDiagnostic() {
   return handle<DiagnosticInfo>(
-    await fetch("/api/system/diagnostic", { headers: headers() })
+    await apiFetch("/api/system/diagnostic", { headers: headers() })
   );
 }
 
 export async function apiCreateSession() {
-  const res = await fetch("/api/session", { method: "POST", headers: headers() });
+  const res = await apiFetch("/api/session", { method: "POST", headers: headers() });
   const body = await handle<{ session_id: string; reused: boolean }>(res);
   setSession(body.session_id);
   return body;
@@ -101,6 +128,7 @@ export type SessionState = {
   analitica_cruces_ok: boolean;
   analitica_spss_ok: boolean;
   analitica_enumeradores_ok: boolean;
+  analitica_dim_ok: boolean;
   analitica_fuente: string | null;
   graficos_ppt_ok: boolean;
   graficos_word_ok: boolean;
@@ -115,7 +143,7 @@ export type SessionState = {
 };
 
 export async function apiSessionState() {
-  return handle<SessionState>(await fetch("/api/session/state", { headers: headers() }));
+  return handle<SessionState>(await apiFetch("/api/session/state", { headers: headers() }));
 }
 
 // ============================================================================
@@ -143,13 +171,13 @@ export type EstudioPayload = {
 
 export async function apiEstudioGet() {
   return handle<EstudioPayload>(
-    await fetch("/api/estudio", { headers: headers() }),
+    await apiFetch("/api/estudio", { headers: headers() }),
   );
 }
 
 export async function apiEstudioSetNombre(nombre: string) {
   return handle<EstudioPayload>(
-    await fetch("/api/estudio", {
+    await apiFetch("/api/estudio", {
       method: "PATCH",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ nombre }),
@@ -172,7 +200,7 @@ export async function apiEstudioAddBase(payload: {
     n_bases: number;
     max_bases: number;
   }>(
-    await fetch("/api/estudio/base", {
+    await apiFetch("/api/estudio/base", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
@@ -182,7 +210,7 @@ export async function apiEstudioAddBase(payload: {
 
 export async function apiEstudioRemoveBase(nombre: string) {
   return handle<{ ok: true; n_bases: number }>(
-    await fetch(`/api/estudio/base/${encodeURIComponent(nombre)}`, {
+    await apiFetch(`/api/estudio/base/${encodeURIComponent(nombre)}`, {
       method: "DELETE",
       headers: headers(),
     }),
@@ -202,7 +230,7 @@ export async function apiEstudioFromSession(nombre?: string) {
     n_bases: number;
     max_bases: number;
   }>(
-    await fetch("/api/estudio/from-session", {
+    await apiFetch("/api/estudio/from-session", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ nombre }),
@@ -212,7 +240,7 @@ export async function apiEstudioFromSession(nombre?: string) {
 
 export async function apiEstudioRenameBase(nombre_actual: string, nombre_nuevo: string) {
   return handle<EstudioPayload>(
-    await fetch(`/api/estudio/base/${encodeURIComponent(nombre_actual)}`, {
+    await apiFetch(`/api/estudio/base/${encodeURIComponent(nombre_actual)}`, {
       method: "PATCH",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ nombre_nuevo }),
@@ -229,7 +257,7 @@ export async function apiEstudioReplaceBaseFiles(
   payload: { xlsform_file_id?: string; data_file_id?: string },
 ) {
   return handle<EstudioPayload>(
-    await fetch(`/api/estudio/base/${encodeURIComponent(nombre)}/files`, {
+    await apiFetch(`/api/estudio/base/${encodeURIComponent(nombre)}/files`, {
       method: "PATCH",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
@@ -242,7 +270,7 @@ export async function apiEstudioReplaceBaseFiles(
 // si ya hay un estudio, no hace nada y devuelve el payload actual.
 export async function apiEstudioInit() {
   return handle<EstudioPayload>(
-    await fetch("/api/estudio/init", {
+    await apiFetch("/api/estudio/init", {
       method: "POST",
       headers: headers(),
     }),
@@ -255,7 +283,7 @@ export async function apiEstudioInit() {
 // bases (debe resolverse manualmente antes).
 export async function apiEstudioDowngradeToSingle() {
   return handle<{ ok: true }>(
-    await fetch("/api/estudio/downgrade-to-single", {
+    await apiFetch("/api/estudio/downgrade-to-single", {
       method: "POST",
       headers: headers(),
     }),
@@ -273,13 +301,13 @@ export type CodifSourceState = {
 
 export async function apiCodifSourceGet() {
   return handle<CodifSourceState>(
-    await fetch("/api/estudio/codif-source", { headers: headers() }),
+    await apiFetch("/api/estudio/codif-source", { headers: headers() }),
   );
 }
 
 export async function apiCodifSourceSet(source: string) {
   return handle<{ ok: true; active: string }>(
-    await fetch("/api/estudio/codif-source", {
+    await apiFetch("/api/estudio/codif-source", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ source }),
@@ -299,7 +327,7 @@ export async function apiUpload(file: File, kind: UploadKind) {
     size: number;
     ext: string;
   }>(
-    await fetch(`/api/files/upload?kind=${encodeURIComponent(kind)}`, {
+    await apiFetch(`/api/files/upload?kind=${encodeURIComponent(kind)}`, {
       method: "POST",
       headers: headers(),
       body: fd,
@@ -383,7 +411,7 @@ function normalizeEditorPayload(value: unknown): XlsformEditorPayload {
 
 export async function apiXlsformEditorImport(file_id: string) {
   const raw = await handle<unknown>(
-    await fetch("/api/xlsform-editor/import", {
+    await apiFetch("/api/xlsform-editor/import", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ file_id }),
@@ -394,7 +422,7 @@ export async function apiXlsformEditorImport(file_id: string) {
 
 export async function apiXlsformEditorImportSurveyMonkey(file_id: string, lang = "es") {
   const raw = await handle<unknown>(
-    await fetch("/api/xlsform-editor/import-surveymonkey", {
+    await apiFetch("/api/xlsform-editor/import-surveymonkey", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ file_id, lang }),
@@ -410,7 +438,7 @@ export async function apiXlsformEditorExport(workbook: XlsformEditorWorkbook, fi
     original_name: string;
     size: number;
   }>(
-    await fetch("/api/xlsform-editor/export", {
+    await apiFetch("/api/xlsform-editor/export", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ workbook, filename }),
@@ -444,7 +472,7 @@ export async function apiXlsformEditorValidate(workbook: XlsformEditorWorkbook) 
     diagnostics: XlsformEditorRemoteDiagnostic[];
     count: number;
   }>(
-    await fetch("/api/xlsform-editor/validate", {
+    await apiFetch("/api/xlsform-editor/validate", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ workbook }),
@@ -462,7 +490,7 @@ export async function apiCargaInstrumento(file_id: string) {
       n_listas_opciones: number;
     };
   }>(
-    await fetch("/api/carga/instrumento", {
+    await apiFetch("/api/carga/instrumento", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ file_id }),
@@ -492,7 +520,7 @@ export type Pregunta = {
 
 export async function apiInstrumentoEstructura() {
   return handle<{ secciones: Seccion[]; preguntas: Pregunta[] }>(
-    await fetch("/api/carga/instrumento/estructura", { headers: headers() })
+    await apiFetch("/api/carga/instrumento/estructura", { headers: headers() })
   );
 }
 
@@ -506,7 +534,7 @@ export async function apiCargaData(file_id: string) {
       preview_filas: Record<string, unknown>[];
     };
   }>(
-    await fetch("/api/carga/data", {
+    await apiFetch("/api/carga/data", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ file_id }),
@@ -519,7 +547,7 @@ export async function apiCargaData(file_id: string) {
 // vacía de insumos — el usuario puede cargar otro XLSForm.
 export async function apiQuitarInstrumento() {
   return handle<{ ok: true }>(
-    await fetch("/api/carga/instrumento", {
+    await apiFetch("/api/carga/instrumento", {
       method: "DELETE",
       headers: headers(),
     })
@@ -531,7 +559,7 @@ export async function apiQuitarInstrumento() {
 // mismo formulario". También resetea rp_data + validación.
 export async function apiQuitarData() {
   return handle<{ ok: true }>(
-    await fetch("/api/carga/data", {
+    await apiFetch("/api/carga/data", {
       method: "DELETE",
       headers: headers(),
     })
@@ -549,7 +577,7 @@ export type DemoMeta = {
 
 export async function apiListDemos() {
   return handle<{ demos: DemoMeta[] }>(
-    await fetch("/api/system/demos", { headers: headers() }),
+    await apiFetch("/api/system/demos", { headers: headers() }),
   );
 }
 
@@ -568,12 +596,12 @@ export async function apiLoadDemo(name?: string) {
     resumen_instrumento: { n_preguntas: number; n_secciones: number; secciones: string[]; n_listas_opciones: number };
     n_filas: number;
     n_columnas: number;
-  }>(await fetch(url, { method: "POST", headers: headers() }));
+  }>(await apiFetch(url, { method: "POST", headers: headers() }));
 }
 
 export async function apiShutdown() {
   return handle<{ ok: boolean; message: string }>(
-    await fetch("/api/system/shutdown", { method: "POST", headers: headers() })
+    await apiFetch("/api/system/shutdown", { method: "POST", headers: headers() })
   );
 }
 
@@ -599,18 +627,18 @@ export type JobSnapshot<T = unknown> = {
 
 export async function apiJobStatus<T = unknown>(id: string) {
   return handle<JobSnapshot<T>>(
-    await fetch(`/api/jobs/${encodeURIComponent(id)}`, { headers: headers() })
+    await apiFetch(`/api/jobs/${encodeURIComponent(id)}`, { headers: headers() })
   );
 }
 
 export async function apiJobCancel(id: string) {
   return handle<{ ok: boolean }>(
-    await fetch(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST", headers: headers() })
+    await apiFetch(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST", headers: headers() })
   );
 }
 
 export function jobResultUrl(id: string) {
-  return `/api/jobs/${encodeURIComponent(id)}/result`;
+  return apiPath(`/api/jobs/${encodeURIComponent(id)}/result`);
 }
 
 // ---------- Validación ----------
@@ -627,7 +655,7 @@ export function downloadUrl(file_id: string) {
   // (header o ?sid=), con el header teniendo prioridad.
   const sid = getSession();
   const qs = sid ? `?sid=${encodeURIComponent(sid)}` : "";
-  return `/api/files/${file_id}/download${qs}`;
+  return apiPath(`/api/files/${file_id}/download${qs}`);
 }
 
 // ---------- Codificación ----------
@@ -682,19 +710,19 @@ export type FamiliasCommitResponse = {
 
 export async function apiCodifColumnas() {
   return handle<{ ok: true; columnas: string[] }>(
-    await fetch("/api/codificacion/columnas", { headers: headers() })
+    await apiFetch("/api/codificacion/columnas", { headers: headers() })
   );
 }
 
 export async function apiCodifFamiliasDraftGet() {
   return handle<FamiliasDraftResponse>(
-    await fetch("/api/codificacion/familias/draft", { headers: headers() })
+    await apiFetch("/api/codificacion/familias/draft", { headers: headers() })
   );
 }
 
 export async function apiCodifFamiliasDraftSave(rows: FamiliaRow[]) {
   return handle<{ ok: true; n_rows: number; updated_at: string }>(
-    await fetch("/api/codificacion/familias/draft", {
+    await apiFetch("/api/codificacion/familias/draft", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ rows }),
@@ -704,7 +732,7 @@ export async function apiCodifFamiliasDraftSave(rows: FamiliaRow[]) {
 
 export async function apiCodifFamiliasCommit() {
   return handle<FamiliasCommitResponse>(
-    await fetch("/api/codificacion/familias/commit", { method: "POST", headers: headers() })
+    await apiFetch("/api/codificacion/familias/commit", { method: "POST", headers: headers() })
   );
 }
 
@@ -774,7 +802,7 @@ export type PreguntaAbierta = {
 
 export async function apiCodifMarcar(parent: string, marcada: boolean) {
   return handle<{ ok: true; parent: string; marcada: boolean }>(
-    await fetch("/api/codificacion/marcar", {
+    await apiFetch("/api/codificacion/marcar", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ parent, marcada }),
@@ -814,7 +842,7 @@ export function guessDummyColFromOpciones(opciones: OpcionSM[] | undefined): str
 
 export async function apiCodifPreguntasAbiertas() {
   return handle<{ ok: true; preguntas: PreguntaAbierta[] }>(
-    await fetch("/api/codificacion/preguntas-abiertas", { headers: headers() })
+    await apiFetch("/api/codificacion/preguntas-abiertas", { headers: headers() })
   );
 }
 
@@ -826,7 +854,7 @@ export async function apiCodifPareja(
   opts?: { clear_dummy?: boolean },
 ) {
   return handle<{ ok: true; parent: string; child_col: string; modo_so: string; dummy_col: string }>(
-    await fetch("/api/codificacion/pareja", {
+    await apiFetch("/api/codificacion/pareja", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ parent, child_col, modo_so, dummy_col, clear_dummy: opts?.clear_dummy }),
@@ -896,13 +924,13 @@ export type RespuestasResponse = {
 
 export async function apiCodifRespuestas(parent: string) {
   return handle<RespuestasResponse>(
-    await fetch(`/api/codificacion/respuestas?parent=${encodeURIComponent(parent)}`, { headers: headers() })
+    await apiFetch(`/api/codificacion/respuestas?parent=${encodeURIComponent(parent)}`, { headers: headers() })
   );
 }
 
 export async function apiCodifGrupos(parent: string, grupos: Grupo[]) {
   return handle<{ ok: true; parent: string; n_grupos: number; n_codificadas: number; updated_at: string }>(
-    await fetch("/api/codificacion/grupos", {
+    await apiFetch("/api/codificacion/grupos", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ parent, grupos }),
@@ -912,7 +940,7 @@ export async function apiCodifGrupos(parent: string, grupos: Grupo[]) {
 
 export async function apiCodifDesemparejar(parent: string) {
   return handle<{ ok: true; parent: string }>(
-    await fetch(`/api/codificacion/pareja?parent=${encodeURIComponent(parent)}`, {
+    await apiFetch(`/api/codificacion/pareja?parent=${encodeURIComponent(parent)}`, {
       method: "DELETE",
       headers: headers(),
     })
@@ -938,25 +966,25 @@ export type CodigoPatch = { row: number; col_index: number; value: string };
 
 export async function apiCodifPlantillaCodigosGenerar() {
   return handle<{ ok: true; file_id: string; size: number; sheets: CodigosSheetMeta[] }>(
-    await fetch("/api/codificacion/plantilla-codigos/generar", { method: "POST", headers: headers() })
+    await apiFetch("/api/codificacion/plantilla-codigos/generar", { method: "POST", headers: headers() })
   );
 }
 
 export async function apiCodifCodigosSheets() {
   return handle<{ ok: true; sheets: CodigosSheetMeta[] }>(
-    await fetch("/api/codificacion/codigos/sheets", { headers: headers() })
+    await apiFetch("/api/codificacion/codigos/sheets", { headers: headers() })
   );
 }
 
 export async function apiCodifCodigosSheet(name: string) {
   return handle<CodigosSheetResponse>(
-    await fetch(`/api/codificacion/codigos/sheet?name=${encodeURIComponent(name)}`, { headers: headers() })
+    await apiFetch(`/api/codificacion/codigos/sheet?name=${encodeURIComponent(name)}`, { headers: headers() })
   );
 }
 
 export async function apiCodifCodigosPatches(name: string, patches: CodigoPatch[]) {
   return handle<{ ok: true; applied: number; updated_at: string }>(
-    await fetch("/api/codificacion/codigos/sheet/patches", {
+    await apiFetch("/api/codificacion/codigos/sheet/patches", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ name, patches }),
@@ -966,13 +994,13 @@ export async function apiCodifCodigosPatches(name: string, patches: CodigoPatch[
 
 export async function apiCodifPlantillaFamilias() {
   return handle<{ ok: true; file_id: string; size: number }>(
-    await fetch("/api/codificacion/plantilla-familias", { method: "POST", headers: headers() })
+    await apiFetch("/api/codificacion/plantilla-familias", { method: "POST", headers: headers() })
   );
 }
 
 export async function apiCodifFamiliasAplicar(file_id: string) {
   return handle<{ ok: true; file_id: string; size: number }>(
-    await fetch("/api/codificacion/familias/aplicar", {
+    await apiFetch("/api/codificacion/familias/aplicar", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ file_id }),
@@ -982,7 +1010,7 @@ export async function apiCodifFamiliasAplicar(file_id: string) {
 
 export async function apiCodifPlantillaCodigosSubir(file_id: string) {
   return handle<{ ok: true; original_name: string; size: number }>(
-    await fetch("/api/codificacion/plantilla-codigos/subir", {
+    await apiFetch("/api/codificacion/plantilla-codigos/subir", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ file_id }),
@@ -997,13 +1025,13 @@ export async function apiCodifPlantillaCodigosSubir(file_id: string) {
 // definición; los panes la tipan con `AnaliticaConfig` via import directo.
 export async function apiAnaliticaConfigGet() {
   return handle<{ ok: true; config: unknown }>(
-    await fetch("/api/analitica/config", { headers: headers() })
+    await apiFetch("/api/analitica/config", { headers: headers() })
   );
 }
 
 export async function apiAnaliticaConfigPut(config: unknown) {
   return handle<{ ok: true; saved_at: string }>(
-    await fetch("/api/analitica/config", {
+    await apiFetch("/api/analitica/config", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ config }),
@@ -1013,13 +1041,13 @@ export async function apiAnaliticaConfigPut(config: unknown) {
 
 export async function apiAnaliticaConfigExport() {
   return handle<{ ok: true; version: string; exported_at: string; config: unknown }>(
-    await fetch("/api/analitica/config/export", { headers: headers() })
+    await apiFetch("/api/analitica/config/export", { headers: headers() })
   );
 }
 
 export async function apiAnaliticaConfigImport(bundle: unknown) {
   return handle<{ ok: true; imported_at: string }>(
-    await fetch("/api/analitica/config/import", {
+    await apiFetch("/api/analitica/config/import", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(bundle),
@@ -1029,7 +1057,7 @@ export async function apiAnaliticaConfigImport(bundle: unknown) {
 
 export async function apiAnaliticaPreparar() {
   return handle<{ ok: true; fuente: string; n_filas: number; n_columnas: number }>(
-    await fetch("/api/analitica/preparar", { method: "POST", headers: headers() })
+    await apiFetch("/api/analitica/preparar", { method: "POST", headers: headers() })
   );
 }
 
@@ -1043,7 +1071,7 @@ export type SeccionDetectada = {
 
 export async function apiAnaliticaDetectSecciones() {
   return handle<{ ok: true; secciones: SeccionDetectada[] }>(
-    await fetch("/api/analitica/detect-secciones", { method: "POST", headers: headers() })
+    await apiFetch("/api/analitica/detect-secciones", { method: "POST", headers: headers() })
   );
 }
 
@@ -1056,7 +1084,7 @@ export type VariableInstrumento = {
 
 export async function apiAnaliticaVariables() {
   return handle<{ ok: true; variables: VariableInstrumento[] }>(
-    await fetch("/api/analitica/variables", { headers: headers() })
+    await apiFetch("/api/analitica/variables", { headers: headers() })
   );
 }
 
@@ -1064,7 +1092,7 @@ export type ValorColumna = { value: string; label: string };
 
 export async function apiAnaliticaColumnValues(name: string) {
   return handle<{ ok: true; column: string; n_total: number; truncated: boolean; values: ValorColumna[] }>(
-    await fetch(`/api/analitica/column-values?name=${encodeURIComponent(name)}`, { headers: headers() })
+    await apiFetch(`/api/analitica/column-values?name=${encodeURIComponent(name)}`, { headers: headers() })
   );
 }
 
@@ -1102,13 +1130,13 @@ export type MultiBaseResult = {
 
 export async function apiAnaliticaCodebook() {
   return handle<MultiBaseResult>(
-    await fetch("/api/analitica/codebook", { method: "POST", headers: headers() })
+    await apiFetch("/api/analitica/codebook", { method: "POST", headers: headers() })
   );
 }
 
 export async function apiAnaliticaFrecuencias() {
   return handle<MultiBaseResult>(
-    await fetch("/api/analitica/frecuencias", { method: "POST", headers: headers() })
+    await apiFetch("/api/analitica/frecuencias", { method: "POST", headers: headers() })
   );
 }
 
@@ -1116,7 +1144,7 @@ export async function apiAnaliticaFrecuencias() {
 // `cruces` y `modo` quedan opcionales para backcompat con tests manuales.
 export async function apiAnaliticaCruces(cruces?: string, modo?: "estandar" | "dimensiones") {
   return handle<JobStart>(
-    await fetch("/api/analitica/cruces", {
+    await apiFetch("/api/analitica/cruces", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(cruces ? { cruces, modo: modo ?? "estandar" } : {}),
@@ -1130,7 +1158,7 @@ export async function apiAnaliticaCruces(cruces?: string, modo?: "estandar" | "d
 // externas antiguas.
 export async function apiAnaliticaSpss() {
   return handle<{ ok: true; file_id: string; size: number }>(
-    await fetch("/api/analitica/spss", { method: "POST", headers: headers() })
+    await apiFetch("/api/analitica/spss", { method: "POST", headers: headers() })
   );
 }
 
@@ -1152,7 +1180,7 @@ export type BasesXlsxBody = {
 
 export async function apiAnaliticaBasesSav(body: BasesSavBody = {}) {
   return handle<MultiBaseResult>(
-    await fetch("/api/analitica/bases/sav", {
+    await apiFetch("/api/analitica/bases/sav", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
@@ -1162,7 +1190,7 @@ export async function apiAnaliticaBasesSav(body: BasesSavBody = {}) {
 
 export async function apiAnaliticaBasesCsv(body: BasesCsvBody = {}) {
   return handle<MultiBaseResult>(
-    await fetch("/api/analitica/bases/csv", {
+    await apiFetch("/api/analitica/bases/csv", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
@@ -1172,7 +1200,7 @@ export async function apiAnaliticaBasesCsv(body: BasesCsvBody = {}) {
 
 export async function apiAnaliticaBasesXlsx(body: BasesXlsxBody = {}) {
   return handle<MultiBaseResult>(
-    await fetch("/api/analitica/bases/xlsx", {
+    await apiFetch("/api/analitica/bases/xlsx", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
@@ -1206,7 +1234,7 @@ export async function apiAnaliticaBasesMetadata() {
     variables: BasesMetadataVariable[];
     overrides: Record<string, BasesMetadataOverride>;
   }>(
-    await fetch("/api/analitica/bases/metadata", { headers: headers() })
+    await apiFetch("/api/analitica/bases/metadata", { headers: headers() })
   );
 }
 
@@ -1370,7 +1398,7 @@ export type VarInfo = {
 };
 
 export async function apiGraficosRegistry() {
-  return handle<Registry>(await fetch("/api/graficos/registry", { headers: headers() }));
+  return handle<Registry>(await apiFetch("/api/graficos/registry", { headers: headers() }));
 }
 
 // Metadata de los presets globales (p_presets). Cada entrada es un tipo
@@ -1391,7 +1419,7 @@ export type PresetsRegistry = {
 
 export async function apiGraficosPresetsMetadata() {
   return handle<PresetsRegistry>(
-    await fetch("/api/graficos/presets-metadata", { headers: headers() })
+    await apiFetch("/api/graficos/presets-metadata", { headers: headers() })
   );
 }
 
@@ -1404,13 +1432,13 @@ export async function apiGraficosPresetsMetadata() {
 
 export async function apiGraficosPresetsDefaultsGet() {
   return handle<{ ok: true; presets: Record<string, Record<string, unknown>>; es_custom: boolean }>(
-    await fetch("/api/graficos/presets-defaults", { headers: headers() })
+    await apiFetch("/api/graficos/presets-defaults", { headers: headers() })
   );
 }
 
 export async function apiGraficosPresetsDefaultsSave(presets?: Record<string, Record<string, unknown>>) {
   return handle<{ ok: true; saved_at: string }>(
-    await fetch("/api/graficos/presets-defaults", {
+    await apiFetch("/api/graficos/presets-defaults", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(presets ? { presets } : {}),
@@ -1420,7 +1448,7 @@ export async function apiGraficosPresetsDefaultsSave(presets?: Record<string, Re
 
 export async function apiGraficosPresetsDefaultsReset() {
   return handle<{ ok: true }>(
-    await fetch("/api/graficos/presets-defaults", {
+    await apiFetch("/api/graficos/presets-defaults", {
       method: "DELETE",
       headers: headers(),
     })
@@ -1440,13 +1468,13 @@ export type OverrideDefaultEntry = {
 
 export async function apiGraficosOverridesDefaultsGet() {
   return handle<{ ok: true; overrides: OverrideDefaultEntry[]; es_custom: boolean }>(
-    await fetch("/api/graficos/overrides-defaults", { headers: headers() })
+    await apiFetch("/api/graficos/overrides-defaults", { headers: headers() })
   );
 }
 
 export async function apiGraficosOverridesDefaultsSave(overrides?: OverrideDefaultEntry[]) {
   return handle<{ ok: true; saved_at: string }>(
-    await fetch("/api/graficos/overrides-defaults", {
+    await apiFetch("/api/graficos/overrides-defaults", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(overrides ? { overrides } : {}),
@@ -1456,7 +1484,7 @@ export async function apiGraficosOverridesDefaultsSave(overrides?: OverrideDefau
 
 export async function apiGraficosOverridesDefaultsReset() {
   return handle<{ ok: true }>(
-    await fetch("/api/graficos/overrides-defaults", {
+    await apiFetch("/api/graficos/overrides-defaults", {
       method: "DELETE",
       headers: headers(),
     })
@@ -1477,7 +1505,7 @@ export type TemplateMeta = {
 
 export async function apiGraficosTemplates() {
   return handle<{ templates: TemplateMeta[] }>(
-    await fetch("/api/graficos/templates", { headers: headers() })
+    await apiFetch("/api/graficos/templates", { headers: headers() })
   );
 }
 
@@ -1485,13 +1513,13 @@ export async function apiGraficosTemplates() {
 // Autosave debounced 2s vía `useGraficosAutosave`. Export/import como respaldo.
 export async function apiGraficosConfigGet() {
   return handle<{ ok: true; config: unknown }>(
-    await fetch("/api/graficos/config", { headers: headers() })
+    await apiFetch("/api/graficos/config", { headers: headers() })
   );
 }
 
 export async function apiGraficosConfigPut(config: unknown) {
   return handle<{ ok: true; saved_at: string }>(
-    await fetch("/api/graficos/config", {
+    await apiFetch("/api/graficos/config", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ config }),
@@ -1501,13 +1529,13 @@ export async function apiGraficosConfigPut(config: unknown) {
 
 export async function apiGraficosConfigExport() {
   return handle<{ ok: true; version: string; exported_at: string; config: unknown }>(
-    await fetch("/api/graficos/config/export", { headers: headers() })
+    await apiFetch("/api/graficos/config/export", { headers: headers() })
   );
 }
 
 export async function apiGraficosConfigImport(bundle: unknown) {
   return handle<{ ok: true; imported_at: string }>(
-    await fetch("/api/graficos/config/import", {
+    await apiFetch("/api/graficos/config/import", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(bundle),
@@ -1524,7 +1552,7 @@ export type PaletaSugeridaEntry = { list_name: string; choices: PaletaChoiceItem
 
 export async function apiGraficosPaletasSugeridas() {
   return handle<{ listas: PaletaSugeridaEntry[] }>(
-    await fetch("/api/graficos/paletas-sugeridas", { headers: headers() })
+    await apiFetch("/api/graficos/paletas-sugeridas", { headers: headers() })
   );
 }
 
@@ -1542,7 +1570,7 @@ export type IconoUploadResponse = {
 
 export async function apiGraficosIconoUpload(nombre: string, dataBase64: string) {
   return handle<IconoUploadResponse>(
-    await fetch("/api/graficos/icons/upload", {
+    await apiFetch("/api/graficos/icons/upload", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ nombre, data_base64: dataBase64 }),
@@ -1574,7 +1602,7 @@ export type PreviewSlideResponse = {
 
 export async function apiGraficosPreviewSlide(slide: Slide) {
   return handle<PreviewSlideResponse>(
-    await fetch("/api/graficos/preview-slide", {
+    await apiFetch("/api/graficos/preview-slide", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ slide }),
@@ -1592,13 +1620,13 @@ export type VariablesBySource = {
 
 export async function apiGraficosVariables() {
   return handle<VariablesBySource>(
-    await fetch("/api/graficos/variables", { headers: headers() })
+    await apiFetch("/api/graficos/variables", { headers: headers() })
   );
 }
 
 export async function apiGraficosValidar(plan: PlanJson) {
   return handle<{ ok: boolean; errors: string[]; warnings: string[]; n_slides: number }>(
-    await fetch("/api/graficos/validar", {
+    await apiFetch("/api/graficos/validar", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ plan }),
@@ -1608,7 +1636,7 @@ export async function apiGraficosValidar(plan: PlanJson) {
 
 export async function apiGraficosPpt(plan: PlanJson, presets?: Record<string, unknown>, w_presets?: Record<string, unknown>) {
   return handle<JobStart>(
-    await fetch("/api/graficos/ppt", {
+    await apiFetch("/api/graficos/ppt", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ plan, presets, w_presets }),
@@ -1618,7 +1646,7 @@ export async function apiGraficosPpt(plan: PlanJson, presets?: Record<string, un
 
 export async function apiGraficosWord(plan: PlanJson, presets?: Record<string, unknown>, w_presets?: Record<string, unknown>) {
   return handle<JobStart>(
-    await fetch("/api/graficos/word", {
+    await apiFetch("/api/graficos/word", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ plan, presets, w_presets }),
@@ -1628,11 +1656,655 @@ export async function apiGraficosWord(plan: PlanJson, presets?: Record<string, u
 
 export async function apiAnaliticaEnumeradores(col_enumerador: string) {
   return handle<JobStart>(
-    await fetch("/api/analitica/enumeradores", {
+    await apiFetch("/api/analitica/enumeradores", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ col_enumerador }),
     })
+  );
+}
+
+// ---- Dimensiones (tab Analítica → Dimensiones) ---------------------------
+
+export type DimensionesChoice = {
+  code: string;
+  label: string;
+};
+
+export type DimensionesEscalaDetectada = {
+  list_name: string;
+  n: number;
+  vars: string[];
+  // Choices del list_name en orden tentativo (numérico cuando aplica,
+  // si no alfabético). El usuario reordena en el wizard para fijar la
+  // dirección ascendente 0→100.
+  choices: DimensionesChoice[];
+  // TRUE si esta lista coincide con el whitelist evaluativo estándar
+  // (satisfaccion, acuerdo, si_no, …). El wizard usa este flag para
+  // pre-marcar automáticamente solo las "típicas" y dejar el resto al
+  // usuario.
+  es_default_evaluativa: boolean;
+};
+
+export type DimensionesBaseExistente =
+  | { detected: false }
+  | {
+      detected: true;
+      n_r100: number;
+      n_sub: number;
+      n_idx: number;
+      vars_r100: string[];
+      vars_sub: string[];
+      vars_idx: string[];
+      has_config_attr: boolean;
+      has_indices_meta: boolean;
+    };
+
+export async function apiAnaliticaDimensionesDetect() {
+  return handle<{
+    ok: true;
+    escalas: DimensionesEscalaDetectada[];
+    base_dimensionada: DimensionesBaseExistente;
+    listas_objetivo_disponibles: string[];
+  }>(await apiFetch("/api/analitica/dimensiones/detect", { headers: headers() }));
+}
+
+export async function apiAnaliticaDimensionesBuild() {
+  return handle<{
+    ok: true;
+    n_filas: number;
+    n_r100: number;
+    n_sub: number;
+    n_idx: number;
+    vars_idx: string[];
+    vars_sub: string[];
+  }>(
+    await apiFetch("/api/analitica/dimensiones/build", { method: "POST", headers: headers() }),
+  );
+}
+
+export type DimensionesCobertura = {
+  var: string;
+  n: number;
+  n_validos: number;
+  pct_validos: number;
+  media: number | null;
+  sd: number | null;
+};
+
+export async function apiAnaliticaDimensionesPreview() {
+  return handle<{
+    ok: true;
+    preview: {
+      filas: Array<Record<string, number | null>>;
+      cobertura: DimensionesCobertura[];
+      columnas: string[];
+    };
+  }>(await apiFetch("/api/analitica/dimensiones/preview", { headers: headers() }));
+}
+
+export async function apiAnaliticaDimensionesStatus() {
+  return handle<{
+    ok: true;
+    built: boolean;
+    n_filas: number;
+    n_idx: number;
+    n_sub: number;
+  }>(await apiFetch("/api/analitica/dimensiones/status", { headers: headers() }));
+}
+
+export type BloqueSugerido = {
+  nombre: string;
+  etiqueta: string;
+  vars: string[];
+};
+
+export async function apiAnaliticaDimensionesSugerir() {
+  return handle<{
+    ok: true;
+    bloques: BloqueSugerido[];
+  }>(await apiFetch("/api/analitica/dimensiones/sugerir", { headers: headers() }));
+}
+
+export type ValidacionSubindice = {
+  nombre: string;
+  etiqueta: string;
+  vars_solicitadas: string[];
+  vars_ok: string[];
+  vars_faltantes: string[];
+  ok: boolean;
+  n_solicitadas: number;
+  n_ok: number;
+};
+
+export type ValidacionIndice = {
+  nombre: string;
+  etiqueta: string;
+  subindices_solicitados: string[];
+  subindices_ok: string[];
+  subindices_faltantes: string[];
+  ok: boolean;
+};
+
+export type ValidacionSubcriterio = {
+  nombre: string;
+  // Etiqueta humana del subcriterio (ej. "Diligencia"). Si el JSON no la
+  // provee, el backend cae al `nombre` técnico para no devolver vacío.
+  etiqueta: string;
+  fuente: string[];
+  ok: boolean;
+  vars_fuente_faltantes: string[];
+};
+
+export type ValidacionReporte = {
+  listas: { coincidentes: string[]; no_usadas: string[] };
+  subindices: ValidacionSubindice[];
+  indices: ValidacionIndice[];
+  subcriterios: ValidacionSubcriterio[];
+  resumen: {
+    n_listas_ok: number;
+    n_listas_no_usadas: number;
+    n_vars_ok: number;
+    n_vars_faltantes: number;
+    n_subindices_completos: number;
+    n_subindices_parciales: number;
+    n_indices_completos: number;
+    n_indices_parciales: number;
+    n_subcriterios_resueltos: number;
+    n_subcriterios_incompletos: number;
+  };
+};
+
+export async function apiAnaliticaDimensionesValidarJson(jsonConfig: unknown) {
+  return handle<{ ok: true; reporte: ValidacionReporte }>(
+    await apiFetch("/api/analitica/dimensiones/validar-json", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(jsonConfig),
+    }),
+  );
+}
+
+// ---- Dashboard module ----------------------------------------------------
+//
+// El módulo Dashboard renderiza la estructura definida por el paquete
+// legacy `prosecnur::reporte_interactivo()`: pestañas fijas (Resumen,
+// Relaciones, Base de datos, Dimensiones opcional). El usuario solo
+// twitchea estética (logo, paleta, título, subtítulo) — no toca
+// estructura ni contenido. Endpoints en api/R/router_dashboard.R.
+
+export type DashboardTabId = "resumen" | "relaciones" | "base_datos" | "dimensiones";
+
+export type DashboardTabManifest = {
+  id: DashboardTabId;
+  label: string;
+  available: boolean;
+  reason: string | null;
+};
+
+export type DashboardThemeDefault = {
+  color_primario: string;
+  color_fondo_app: string;
+  color_borde: string;
+  color_texto: string;
+  color_texto_suave: string;
+  color_superficie: string;
+  color_superficie_2: string;
+  color_header_tabla: string;
+};
+
+export type DashboardManifest = {
+  tabs: DashboardTabManifest[];
+  estado: {
+    tiene_data: boolean;
+    tiene_dim: boolean;
+    n_secciones: number;
+    curacion_confirmed: boolean;
+  };
+};
+
+export async function apiDashboardManifest() {
+  return handle<{
+    ok: true;
+    manifest: DashboardManifest;
+    theme_default: DashboardThemeDefault;
+  }>(await apiFetch("/api/dashboard/manifest", { headers: headers() }));
+}
+
+export type DashboardVarTipo = "so" | "sm" | "otro";
+export type DashboardVar = {
+  name: string;
+  label: string;
+  tipo: DashboardVarTipo;
+};
+export type DashboardSeccion = {
+  nombre: string;
+  vars: DashboardVar[];
+};
+
+export async function apiDashboardSecciones() {
+  return handle<{
+    ok: true;
+    secciones: DashboardSeccion[];
+    kpi_vars: string[];
+  }>(await apiFetch("/api/dashboard/secciones", { headers: headers() }));
+}
+
+export type DashboardCurationVar = {
+  name: string;
+  label: string;
+  raw_type: string;
+  tipo: DashboardVarTipo;
+  n_unique: number | null;
+  default_include: boolean;
+  suggested_exclude: boolean;
+  reason: string | null;
+  excluded: boolean;
+};
+
+export type DashboardCurationSection = {
+  nombre: string;
+  n_vars: number;
+  suggested_exclude: boolean;
+  reason: string | null;
+  excluded: boolean;
+  vars: DashboardCurationVar[];
+};
+
+export type DashboardCurationPayload = {
+  confirmed: boolean;
+  exclude_sections: string[];
+  exclude_vars: string[];
+  secciones: DashboardCurationSection[];
+};
+
+export async function apiDashboardCurationGet() {
+  return handle<{ ok: true; payload: DashboardCurationPayload }>(
+    await apiFetch("/api/dashboard/curacion", { headers: headers() }),
+  );
+}
+
+export async function apiDashboardCurationPut(payload: {
+  exclude_sections: string[];
+  exclude_vars: string[];
+}) {
+  return handle<{ ok: true; curacion: { confirmed: boolean; saved_at: string } }>(
+    await apiFetch("/api/dashboard/curacion", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export type DashboardFiltro = {
+  var: string;
+  valores: string[];
+};
+
+export type DashboardCategoriaValor = { value: string; label: string };
+
+export async function apiDashboardCategoriasVar(varName: string) {
+  return handle<{ ok: true; valores: DashboardCategoriaValor[] }>(
+    await apiFetch("/api/dashboard/categorias-var", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ var: varName }),
+    }),
+  );
+}
+
+export type DashboardDistSO = {
+  code: string;
+  label: string;
+  n: number;
+  pct: number;
+  color?: string | null;
+};
+export type DashboardDistSMOption = {
+  code: string;
+  label: string;
+  col_dummy: string;
+  n_yes: number;
+  n_total: number;
+  pct_yes: number;
+  color?: string | null;
+};
+export type DashboardResumenRow =
+  | {
+      type: "so";
+      var: string;
+      label: string;
+      list_name?: string | null;
+      dist: DashboardDistSO[];
+      options: never[];
+    }
+  | {
+      type: "sm";
+      var: string;
+      label: string;
+      list_name?: string | null;
+      options: DashboardDistSMOption[];
+    };
+
+export type DashboardResumenPayload = {
+  seccion: string;
+  n_total: number;
+  rows: DashboardResumenRow[];
+};
+
+export async function apiDashboardResumenSeccion(opts: {
+  seccion: string;
+  filtros?: DashboardFiltro[];
+}) {
+  return handle<{ ok: true; payload: DashboardResumenPayload }>(
+    await apiFetch("/api/dashboard/resumen/seccion", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        seccion: opts.seccion,
+        filtros: opts.filtros ?? [],
+      }),
+    }),
+  );
+}
+
+export type DashboardKpi = {
+  var: string;
+  list_name?: string | null;
+  label: string;
+  dist: DashboardDistSO[];
+};
+export type DashboardKpisPayload = {
+  n_total: number;
+  kpis: DashboardKpi[];
+};
+
+export async function apiDashboardResumenKpis(opts?: {
+  filtros?: DashboardFiltro[];
+}) {
+  return handle<{ ok: true; payload: DashboardKpisPayload }>(
+    await apiFetch("/api/dashboard/resumen/kpis", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ filtros: opts?.filtros ?? [] }),
+    }),
+  );
+}
+
+export type DashboardConfig = {
+  titulo: string;
+  subtitulo: string;
+  logo_data_uri: string | null;
+  logo_alt: string;
+  logo_height_px: number;
+  paleta_id: string | null;
+  paletas_listas: Record<string, Record<string, string>>;
+  color_primario_override: string | null;
+  notas: string;
+};
+
+export async function apiDashboardConfigGet() {
+  return handle<{ ok: true; config: DashboardConfig }>(
+    await apiFetch("/api/dashboard/config", { headers: headers() }),
+  );
+}
+
+export async function apiDashboardConfigPut(config: DashboardConfig) {
+  return handle<{ ok: true; saved_at: string }>(
+    await apiFetch("/api/dashboard/config", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export type DashboardSourceFileCandidate = {
+  id: string;
+  origin: "project" | "session" | string;
+  kind: "xlsform" | "data" | string;
+  file_id: string | null;
+  path: string | null;
+  name: string;
+  ext: string;
+  size: number | null;
+  modified_at: string | null;
+  suggested: boolean;
+};
+
+export type DashboardSourceMeta = {
+  ready: boolean;
+  source_kind: string | null;
+  xlsform_file_id?: string | null;
+  data_file_id?: string | null;
+  xlsform_name: string | null;
+  data_name: string | null;
+  data_ext?: string | null;
+  n_filas: number | null;
+  n_columnas: number | null;
+  loaded_at: string | null;
+};
+
+export type DashboardSourcePayload = {
+  has_source: boolean;
+  source: DashboardSourceMeta;
+  project_dir: string | null;
+  candidates: {
+    project: {
+      xlsforms: DashboardSourceFileCandidate[];
+      data: DashboardSourceFileCandidate[];
+    };
+    session: {
+      xlsforms: DashboardSourceFileCandidate[];
+      data: DashboardSourceFileCandidate[];
+    };
+  };
+};
+
+export async function apiDashboardSourceGet() {
+  return handle<{ ok: true; payload: DashboardSourcePayload }>(
+    await apiFetch("/api/dashboard/source", { headers: headers() }),
+  );
+}
+
+export async function apiDashboardSourceImport(payload:
+  | { xlsform_file_id: string; data_file_id: string }
+  | { xlsform_path: string; data_path: string }
+) {
+  return handle<{ ok: true; source: DashboardSourceMeta; manifest: DashboardManifest }>(
+    await apiFetch("/api/dashboard/source/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export type DashboardChoiceList = {
+  list_name: string;
+  choices: Array<{ name: string; label: string }>;
+};
+
+export async function apiDashboardPaletasListas() {
+  return handle<{ ok: true; listas: DashboardChoiceList[] }>(
+    await apiFetch("/api/dashboard/paletas-listas", { headers: headers() }),
+  );
+}
+
+// =============================================================================
+// Dashboard — Tab Relaciones
+// =============================================================================
+
+export type DashboardRelacionFila = {
+  code: string;
+  label: string;
+  n_total: number;
+};
+
+export type DashboardRelacionColumna = {
+  code: string;
+  label: string;
+  n_total: number;
+};
+
+export type DashboardRelacionCelda = {
+  n: number;
+  pct_col: number;
+  pct_row: number;
+};
+
+export type DashboardRelacionPlotTrace = {
+  type: "bar";
+  name: string;
+  x: string[];
+  y: number[];
+  text: string[];
+  hoverinfo?: string;
+  marker?: { color: string };
+};
+
+export type DashboardRelacionCruce = {
+  nivel: string | null;
+  nivel_code?: string;
+  n_total: number;
+  filas: DashboardRelacionFila[];
+  columnas: DashboardRelacionColumna[];
+  celdas: DashboardRelacionCelda[][];
+  plot_traces: DashboardRelacionPlotTrace[];
+};
+
+export type DashboardRelacionPayload = {
+  n_total: number;
+  iterado: boolean;
+  iter_var?: string;
+  iter_label?: string;
+  cruces: DashboardRelacionCruce[];
+};
+
+export async function apiDashboardRelacionCross(opts: {
+  var_principal: string;
+  var_segmento: string;
+  filtros?: DashboardFiltro[];
+  iterar?: { var: string } | null;
+}) {
+  return handle<{ ok: true; payload: DashboardRelacionPayload }>(
+    await apiFetch("/api/dashboard/relacion/cross", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(opts),
+    }),
+  );
+}
+
+export async function apiDashboardRelacionDescargar(opts: {
+  var_principal: string;
+  var_segmento: string;
+  filtros?: DashboardFiltro[];
+  iterar?: { var: string } | null;
+}): Promise<Blob> {
+  const res = await apiFetch("/api/dashboard/relacion/descargar", {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify(opts),
+  });
+  if (!res.ok) {
+    throw new Error(`Descarga falló (${res.status})`);
+  }
+  return await res.blob();
+}
+
+// =============================================================================
+// Dashboard — Tab Base de datos
+// =============================================================================
+
+export type DashboardBaseDatosDummy = {
+  name: string;
+  label: string;
+  opt_code: string;
+  opt_label: string;
+};
+
+export type DashboardBaseDatosVariable = {
+  name: string;
+  label: string;
+  tipo: DashboardVarTipo;
+  dummies?: DashboardBaseDatosDummy[];
+};
+
+export type DashboardBaseDatosSeccion = {
+  id: string;
+  label: string;
+  variables: DashboardBaseDatosVariable[];
+};
+
+export type DashboardBaseDatosEstructura = {
+  secciones: DashboardBaseDatosSeccion[];
+};
+
+export async function apiDashboardBaseDatosEstructura() {
+  return handle<{ ok: true; payload: DashboardBaseDatosEstructura }>(
+    await apiFetch("/api/dashboard/base-datos", { headers: headers() }),
+  );
+}
+
+export type DashboardBaseDatosColumna = { key: string; label: string };
+
+export type DashboardBaseDatosData = {
+  rows: Record<string, string>[];
+  columnas: DashboardBaseDatosColumna[];
+  total: number;
+};
+
+export async function apiDashboardBaseDatosData(opts: {
+  modo: "codigos" | "etiquetas";
+  variables: string[];
+  page?: number;
+  page_size?: number;
+  search?: string;
+  sort?: { col: string; desc: boolean } | null;
+}) {
+  return handle<{ ok: true; payload: DashboardBaseDatosData }>(
+    await apiFetch("/api/dashboard/base-datos/data", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(opts),
+    }),
+  );
+}
+
+export async function apiDashboardBaseDatosDescargar(opts: {
+  modo: "codigos" | "etiquetas";
+  variables: string[];
+  formato: "xlsx" | "csv";
+}): Promise<Blob> {
+  const res = await apiFetch("/api/dashboard/base-datos/descargar", {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify(opts),
+  });
+  if (!res.ok) {
+    throw new Error(`Descarga falló (${res.status})`);
+  }
+  return await res.blob();
+}
+
+export type DashboardBaseDatosOpcion = { codigo: string; etiqueta: string };
+
+export type DashboardBaseDatosDiccionario = {
+  variable: string;
+  etiqueta: string;
+  tipo: DashboardVarTipo | string;
+  tipo_medicion: string;
+  opciones: DashboardBaseDatosOpcion[];
+};
+
+export async function apiDashboardBaseDatosDiccionario(variable: string) {
+  return handle<{ ok: true; payload: DashboardBaseDatosDiccionario }>(
+    await apiFetch(
+      `/api/dashboard/base-datos/diccionario?variable=${encodeURIComponent(variable)}`,
+      { headers: headers() },
+    ),
   );
 }
 
@@ -1644,7 +2316,7 @@ export type AplicarResult = {
 
 export async function apiCodifAplicar() {
   return handle<{ ok: true; job_id: string; kind: string }>(
-    await fetch("/api/codificacion/aplicar", { method: "POST", headers: headers() })
+    await apiFetch("/api/codificacion/aplicar", { method: "POST", headers: headers() })
   );
 }
 
@@ -1685,7 +2357,7 @@ export type PlanAdaptacion = {
 
 export async function apiCodifPlanAdaptacion() {
   return handle<PlanAdaptacion>(
-    await fetch("/api/codificacion/plan-adaptacion", { headers: headers() })
+    await apiFetch("/api/codificacion/plan-adaptacion", { headers: headers() })
   );
 }
 
@@ -1705,13 +2377,13 @@ export type CodifJsonBundle = {
 
 export async function apiCodifExportJson() {
   return handle<CodifJsonBundle>(
-    await fetch("/api/codificacion/export-json", { headers: headers() })
+    await apiFetch("/api/codificacion/export-json", { headers: headers() })
   );
 }
 
 export async function apiCodifImportJson(bundle: unknown) {
   return handle<{ ok: true; n_rows: number; n_preguntas_con_grupos: number; n_marcadas: number }>(
-    await fetch("/api/codificacion/import-json", {
+    await apiFetch("/api/codificacion/import-json", {
       method: "POST",
       headers: { ...headers(), "Content-Type": "application/json" },
       body: JSON.stringify(bundle),
@@ -1742,7 +2414,7 @@ function v2Headers(baseNombre?: string | null, extra: Record<string, string> = {
 
 export async function apiV2Limpieza(baseNombre?: string | null) {
   return handle<LimpiezaSummary>(
-    await fetch("/api/validacion/v2/limpieza", {
+    await apiFetch("/api/validacion/v2/limpieza", {
       headers: v2Headers(baseNombre),
     }),
   );
@@ -1750,7 +2422,7 @@ export async function apiV2Limpieza(baseNombre?: string | null) {
 
 export async function apiV2LimpiezaDecisions(baseNombre?: string | null) {
   return handle<{ ok: true; base_nombre: string | null; decisions: LimpiezaDecision[] }>(
-    await fetch("/api/validacion/v2/limpieza/decisions", {
+    await apiFetch("/api/validacion/v2/limpieza/decisions", {
       headers: v2Headers(baseNombre),
     }),
   );
@@ -1770,7 +2442,7 @@ export async function apiV2LimpiezaDecisionSave(
     before_after_preview: LimpiezaBeforeAfterPreview | null;
     summary: LimpiezaSummary["summary"];
   }>(
-    await fetch("/api/validacion/v2/limpieza/decision", {
+    await apiFetch("/api/validacion/v2/limpieza/decision", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
@@ -1788,7 +2460,7 @@ export async function apiV2LimpiezaDecisionDelete(
     decision_draft: LimpiezaDecision[];
     summary: LimpiezaSummary["summary"];
   }>(
-    await fetch(`/api/validacion/v2/limpieza/decision/${encodeURIComponent(id)}`, {
+    await apiFetch(`/api/validacion/v2/limpieza/decision/${encodeURIComponent(id)}`, {
       method: "DELETE",
       headers: v2Headers(baseNombre),
     }),
@@ -1797,7 +2469,7 @@ export async function apiV2LimpiezaDecisionDelete(
 
 export async function apiV2LimpiezaPreview(baseNombre?: string | null) {
   return handle<{ ok: true; base_nombre: string | null; before_after_preview: LimpiezaBeforeAfterPreview | null }>(
-    await fetch("/api/validacion/v2/limpieza/preview", {
+    await apiFetch("/api/validacion/v2/limpieza/preview", {
       headers: v2Headers(baseNombre),
     }),
   );
@@ -1810,7 +2482,7 @@ export async function apiV2LimpiezaFinalize(baseNombre?: string | null) {
     before_after_preview: LimpiezaBeforeAfterPreview | null;
     artifacts: LimpiezaSummary["artifacts"];
   }>(
-    await fetch("/api/validacion/v2/limpieza/finalize", {
+    await apiFetch("/api/validacion/v2/limpieza/finalize", {
       method: "POST",
       headers: v2Headers(baseNombre),
     }),
@@ -1822,7 +2494,7 @@ export async function apiV2LimpiezaFinalize(baseNombre?: string | null) {
 // archivo en el file store con original_name "reporte_validacion.html".
 export async function apiV2ReportHtml(baseNombre?: string | null) {
   return handle<{ ok: true; file_id: string; size: number; original_name: string }>(
-    await fetch("/api/validacion/v2/report/html", {
+    await apiFetch("/api/validacion/v2/report/html", {
       method: "POST",
       headers: v2Headers(baseNombre),
     }),
@@ -1831,7 +2503,7 @@ export async function apiV2ReportHtml(baseNombre?: string | null) {
 
 export async function apiV2InstrumentoEstado(baseNombre?: string | null) {
   return handle<InstrumentoEstado>(
-    await fetch("/api/validacion/v2/instrumento/estado", {
+    await apiFetch("/api/validacion/v2/instrumento/estado", {
       headers: v2Headers(baseNombre),
     }),
   );
@@ -1852,7 +2524,7 @@ export async function apiV2ExplorarVariables(
 ) {
   const qs = fuente === "raw" ? "" : `?fuente=${encodeURIComponent(fuente)}`;
   return handle<ExploradorVariablesList>(
-    await fetch(`/api/validacion/v2/explorar/variables${qs}`, {
+    await apiFetch(`/api/validacion/v2/explorar/variables${qs}`, {
       headers: v2Headers(baseNombre),
     }),
   );
@@ -1860,7 +2532,7 @@ export async function apiV2ExplorarVariables(
 
 export async function apiV2ReglasCustomList(baseNombre?: string | null) {
   return handle<ReglasCustomList>(
-    await fetch("/api/validacion/v2/reglas_custom", {
+    await apiFetch("/api/validacion/v2/reglas_custom", {
       headers: v2Headers(baseNombre),
     }),
   );
@@ -1940,7 +2612,7 @@ export async function apiV2InstrumentoBuildPlan(
   incluir?: IncluirReglas,
 ) {
   return handle<InstrumentoPlanResult>(
-    await fetch("/api/validacion/v2/instrumento/plan", {
+    await apiFetch("/api/validacion/v2/instrumento/plan", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
       body: JSON.stringify(incluir ? { incluir } : {}),
@@ -1950,7 +2622,7 @@ export async function apiV2InstrumentoBuildPlan(
 
 export async function apiV2InstrumentoExportPlan(baseNombre?: string | null) {
   return handle<{ ok: true; file_id: string; size: number }>(
-    await fetch("/api/validacion/v2/instrumento/plan/export", {
+    await apiFetch("/api/validacion/v2/instrumento/plan/export", {
       method: "POST",
       headers: v2Headers(baseNombre),
     }),
@@ -1966,7 +2638,7 @@ export async function apiV2InstrumentoImportPlan(
     n_reglas: number;
     plan_preview: Array<Record<string, unknown>>;
   }>(
-    await fetch("/api/validacion/v2/instrumento/plan/import", {
+    await apiFetch("/api/validacion/v2/instrumento/plan/import", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
       body: JSON.stringify({ file_id }),
@@ -1976,7 +2648,7 @@ export async function apiV2InstrumentoImportPlan(
 
 export async function apiV2InstrumentoAuditoria(baseNombre?: string | null) {
   return handle<{ ok: true; job_id: string; kind: string }>(
-    await fetch("/api/validacion/v2/instrumento/auditoria", {
+    await apiFetch("/api/validacion/v2/instrumento/auditoria", {
       method: "POST",
       headers: v2Headers(baseNombre),
     }),
@@ -1985,7 +2657,7 @@ export async function apiV2InstrumentoAuditoria(baseNombre?: string | null) {
 
 export async function apiV2InstrumentoResultado(baseNombre?: string | null) {
   return handle<InstrumentoResultado>(
-    await fetch("/api/validacion/v2/instrumento/resultado", {
+    await apiFetch("/api/validacion/v2/instrumento/resultado", {
       headers: v2Headers(baseNombre),
     }),
   );
@@ -1996,7 +2668,7 @@ export async function apiV2InstrumentoDrill(
   baseNombre?: string | null,
 ) {
   return handle<InstrumentoDrillResult>(
-    await fetch("/api/validacion/v2/instrumento/regla", {
+    await apiFetch("/api/validacion/v2/instrumento/regla", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
       body: JSON.stringify({ id_regla }),
@@ -2010,7 +2682,7 @@ export async function apiV2InstrumentoReglaToggleActiva(
   baseNombre?: string | null,
 ) {
   return handle<{ ok: true; id_regla: string; activa: boolean; n_desactivadas: number }>(
-    await fetch(
+    await apiFetch(
       `/api/validacion/v2/instrumento/regla/${encodeURIComponent(id_regla)}/activa`,
       {
         method: "PATCH",
@@ -2035,7 +2707,7 @@ export async function apiV2InstrumentoReglaPatchAtributos(
   baseNombre?: string | null,
 ) {
   return handle<{ ok: true; id_regla: string; fila: Array<Record<string, unknown>> }>(
-    await fetch(
+    await apiFetch(
       `/api/validacion/v2/instrumento/regla/${encodeURIComponent(id_regla)}/atributos`,
       {
         method: "PATCH",
@@ -2076,7 +2748,7 @@ export async function apiV2ExplorarUnivariado(
   fuente: ExplorarFuente = "raw",
 ) {
   return handle<ExplorarUnivariadoResult>(
-    await fetch("/api/validacion/v2/explorar/univariado", {
+    await apiFetch("/api/validacion/v2/explorar/univariado", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
       body: JSON.stringify({ var: vari, filtros: filtros ?? {}, fuente }),
@@ -2092,7 +2764,7 @@ export async function apiV2ExplorarBivariado(
   fuente: ExplorarFuente = "raw",
 ) {
   return handle<ExplorarBivariadoResult>(
-    await fetch("/api/validacion/v2/explorar/bivariado", {
+    await apiFetch("/api/validacion/v2/explorar/bivariado", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
       body: JSON.stringify({ var_x, var_y, filtros: filtros ?? {}, fuente }),
@@ -2127,7 +2799,7 @@ export async function apiV2ExplorarValores(
   const qs = new URLSearchParams({ var: vari });
   if (fuente !== "raw") qs.set("fuente", fuente);
   return handle<ExplorarValoresResult>(
-    await fetch(
+    await apiFetch(
       `/api/validacion/v2/explorar/valores?${qs.toString()}`,
       { headers: v2Headers(baseNombre) },
     ),
@@ -2142,7 +2814,7 @@ export async function apiV2ReglasCustomCreate(
   baseNombre?: string | null,
 ) {
   return handle<{ ok: true; regla: ReglaCustom }>(
-    await fetch("/api/validacion/v2/reglas_custom", {
+    await apiFetch("/api/validacion/v2/reglas_custom", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
       body: JSON.stringify(regla),
@@ -2156,7 +2828,7 @@ export async function apiV2ReglasCustomUpdate(
   baseNombre?: string | null,
 ) {
   return handle<{ ok: true; regla: ReglaCustom }>(
-    await fetch(`/api/validacion/v2/reglas_custom/${encodeURIComponent(id)}`, {
+    await apiFetch(`/api/validacion/v2/reglas_custom/${encodeURIComponent(id)}`, {
       method: "PUT",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
       body: JSON.stringify(patch),
@@ -2166,7 +2838,7 @@ export async function apiV2ReglasCustomUpdate(
 
 export async function apiV2ReglasCustomDelete(id: string, baseNombre?: string | null) {
   return handle<{ ok: true; id: string }>(
-    await fetch(`/api/validacion/v2/reglas_custom/${encodeURIComponent(id)}`, {
+    await apiFetch(`/api/validacion/v2/reglas_custom/${encodeURIComponent(id)}`, {
       method: "DELETE",
       headers: v2Headers(baseNombre),
     }),
@@ -2175,7 +2847,7 @@ export async function apiV2ReglasCustomDelete(id: string, baseNombre?: string | 
 
 export async function apiV2ReglasCustomEjecutar(baseNombre?: string | null) {
   return handle<{ ok: true; job_id: string; kind: string; n_custom: number }>(
-    await fetch("/api/validacion/v2/reglas_custom/ejecutar", {
+    await apiFetch("/api/validacion/v2/reglas_custom/ejecutar", {
       method: "POST",
       headers: v2Headers(baseNombre),
     }),
@@ -2201,7 +2873,7 @@ export type ProjectStatus = {
 
 export async function apiProjectStatus(): Promise<ProjectStatus> {
   return handle<ProjectStatus>(
-    await fetch("/api/project/status", { headers: headers() })
+    await apiFetch("/api/project/status", { headers: headers() })
   );
 }
 
@@ -2212,7 +2884,7 @@ export async function apiProjectSave(path: string | null = null, projectName?: s
   if (path) body.path = path;
   if (projectName) body.project_name = projectName;
   return handle<{ ok: true; path: string; size: number; saved_at: string }>(
-    await fetch("/api/project/save", {
+    await apiFetch("/api/project/save", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
@@ -2230,7 +2902,7 @@ export async function apiProjectOpen(path: string) {
     project_path: string;
     manifest: Record<string, unknown>;
   }>(
-    await fetch("/api/project/open", {
+    await apiFetch("/api/project/open", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ path }),
@@ -2242,7 +2914,7 @@ export async function apiProjectOpen(path: string) {
 // preservando los datos cargados.
 export async function apiProjectClose() {
   return handle<{ ok: true }>(
-    await fetch("/api/project/close", {
+    await apiFetch("/api/project/close", {
       method: "POST",
       headers: headers(),
     })
@@ -2257,7 +2929,7 @@ export async function apiSaveEntregable(
   options: { subdir?: string; overwrite?: boolean } = {}
 ) {
   return handle<{ ok: true; path: string; filename: string; size: number }>(
-    await fetch("/api/fs/save-to-project", {
+    await apiFetch("/api/fs/save-to-project", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({
@@ -2274,6 +2946,6 @@ export async function apiSaveEntregable(
 // FilenameInput detecte colisiones antes de pedir confirmación.
 export async function apiListProjectDir() {
   return handle<{ ok: true; project_dir: string | null; files: string[] }>(
-    await fetch("/api/fs/list-project-dir", { headers: headers() })
+    await apiFetch("/api/fs/list-project-dir", { headers: headers() })
   );
 }

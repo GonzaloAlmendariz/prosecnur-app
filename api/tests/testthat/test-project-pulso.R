@@ -211,6 +211,91 @@ test_that("build_pulso excluye outputs/entregables del zip — solo inputs viaja
   expect_false(any(grepl(output_meta$file_id, files_entries, fixed = TRUE)))
 })
 
+# ----- Persistencia del estado del dashboard --------------------------------
+
+test_that("build_pulso preserva dashboard_source, dashboard_config y dashboard_curacion", {
+  setup <- .fake_session_with_state()
+  on.exit({ session_delete(setup$sid) })
+
+  # Simular estado del dashboard: source con file_ids, config estético,
+  # curaduría confirmada.
+  session_set(setup$sid, "dashboard_source", list(
+    ready = TRUE,
+    source_kind = "session",
+    xlsform_file_id = setup$file_id,
+    data_file_id = setup$data_file_id,
+    xlsform_name = "demo_inst.xlsx",
+    data_name = "demo_data.xlsx",
+    n_filas = 100L,
+    n_columnas = 10L,
+    loaded_at = "2026-04-26T00:00:00Z"
+  ))
+  session_set(setup$sid, "dashboard_config", list(
+    titulo = "Mi Tablero",
+    subtitulo = "Demo",
+    paleta_id = "tableau10",
+    paletas_listas = list(likert = list("Sí" = "#1f77b4", "No" = "#d62728")),
+    color_primario_override = "#FF6600",
+    notas = "Notas de prueba"
+  ))
+  session_set(setup$sid, "dashboard_curacion", list(
+    confirmed = TRUE,
+    exclude_sections = c("metadatos"),
+    exclude_vars = c("fecha_inicio", "device_id")
+  ))
+
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit(unlink(tmp, force = TRUE), add = TRUE)
+  build_pulso(setup$sid, tmp)
+
+  res_load <- load_pulso(tmp)
+  on.exit(session_delete(res_load$session_id), add = TRUE)
+  s <- session_get(res_load$session_id)
+
+  expect_equal(s$dashboard_source$xlsform_file_id, setup$file_id)
+  expect_equal(s$dashboard_source$xlsform_name, "demo_inst.xlsx")
+  expect_equal(s$dashboard_config$titulo, "Mi Tablero")
+  expect_equal(s$dashboard_config$paleta_id, "tableau10")
+  expect_equal(s$dashboard_config$color_primario_override, "#FF6600")
+  expect_true(isTRUE(s$dashboard_curacion$confirmed))
+  expect_equal(s$dashboard_curacion$exclude_vars,
+               c("fecha_inicio", "device_id"))
+})
+
+test_that("build_pulso excluye dashboard_rp_inst y dashboard_rp_data del state", {
+  setup <- .fake_session_with_state()
+  on.exit({ session_delete(setup$sid) })
+
+  # Inyectar caches gordos simulados (NO van por byte-a-byte: son
+  # derivables del par xlsform/data referenciado en dashboard_source).
+  session_set(setup$sid, "dashboard_rp_inst", list(
+    survey = data.frame(name = paste0("v", 1:50), type = "text"),
+    choices = data.frame(list_name = "lista", name = letters, label = letters)
+  ))
+  session_set(setup$sid, "dashboard_rp_data", data.frame(a = 1:1000, b = 1:1000))
+  # Source mínimo para que el rebuild encuentre algo (file_ids reales del
+  # setup); si reporte_instrumento falla con el xlsx falso, el tryCatch lo
+  # absorbe y los caches quedan NULL.
+  session_set(setup$sid, "dashboard_source", list(
+    ready = TRUE,
+    xlsform_file_id = setup$file_id,
+    data_file_id = setup$data_file_id
+  ))
+
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit(unlink(tmp, force = TRUE), add = TRUE)
+  build_pulso(setup$sid, tmp)
+
+  res_load <- load_pulso(tmp)
+  on.exit(session_delete(res_load$session_id), add = TRUE)
+  s <- session_get(res_load$session_id)
+  # rp_inst/data nunca viajan en el state.rds — quedan NULL si el rebuild
+  # falla (xlsform demo no es parseable). El strip evita que el .pulso se
+  # infle con tibbles regenerables.
+  expect_null(s$dashboard_rp_inst)
+  expect_null(s$dashboard_rp_data)
+})
+
 # ----- Errores ---------------------------------------------------------------
 
 test_that("load_pulso falla con mensaje claro si el archivo no existe", {

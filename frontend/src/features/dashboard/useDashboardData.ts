@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import {
+  apiDashboardBaseDatosData,
+  apiDashboardBaseDatosDiccionario,
+  apiDashboardBaseDatosEstructura,
   apiDashboardManifest,
+  apiDashboardRelacionCross,
   apiDashboardResumenKpis,
   apiDashboardResumenSeccion,
   apiDashboardSecciones,
+  DashboardBaseDatosData,
+  DashboardBaseDatosDiccionario,
+  DashboardBaseDatosEstructura,
   DashboardFiltro,
   DashboardKpisPayload,
   DashboardManifest,
+  DashboardRelacionPayload,
   DashboardResumenPayload,
   DashboardSeccion,
   DashboardThemeDefault,
@@ -170,6 +178,182 @@ export function useResumenKpis(filtros: DashboardFiltro[]): ResumenKpisState {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtrosKey]);
+
+  return { loading, error, payload };
+}
+
+// =============================================================================
+// Tab Relaciones — cruce con debounce.
+// =============================================================================
+
+export type RelacionState = {
+  loading: boolean;
+  error: string | null;
+  payload: DashboardRelacionPayload | null;
+};
+
+export function useRelacionCross(
+  varPrincipal: string,
+  varSegmento: string,
+  filtros: DashboardFiltro[],
+  iterar: { var: string } | null,
+): RelacionState {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [payload, setPayload] = useState<DashboardRelacionPayload | null>(null);
+
+  const filtrosKey = JSON.stringify(filtros);
+  const iterarKey = iterar?.var ?? "";
+
+  useEffect(() => {
+    if (!varPrincipal || !varSegmento) {
+      setPayload(null);
+      return;
+    }
+    let cancelled = false;
+    const handle = window.setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      apiDashboardRelacionCross({
+        var_principal: varPrincipal,
+        var_segmento: varSegmento,
+        filtros,
+        iterar: iterar?.var ? iterar : null,
+      })
+        .then((r) => {
+          if (cancelled) return;
+          setPayload(r.payload);
+        })
+        .catch((e: unknown) => {
+          if (!cancelled) setError((e as Error).message);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [varPrincipal, varSegmento, filtrosKey, iterarKey]);
+
+  return { loading, error, payload };
+}
+
+// =============================================================================
+// Tab Base de datos — estructura, data paginada, diccionario.
+// =============================================================================
+
+export function useBaseDatosEstructura() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [payload, setPayload] = useState<DashboardBaseDatosEstructura | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    apiDashboardBaseDatosEstructura()
+      .then((r) => {
+        if (cancelled) return;
+        setPayload(r.payload);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { loading, error, payload };
+}
+
+export function useBaseDatosData(opts: {
+  modo: "codigos" | "etiquetas";
+  variables: string[];
+  page: number;
+  pageSize: number;
+  search: string;
+  sort: { col: string; desc: boolean } | null;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [payload, setPayload] = useState<DashboardBaseDatosData | null>(null);
+
+  const variablesKey = JSON.stringify(opts.variables);
+  const sortKey = JSON.stringify(opts.sort);
+
+  useEffect(() => {
+    if (!opts.variables.length) {
+      setPayload(null);
+      return;
+    }
+    let cancelled = false;
+    const handle = window.setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      apiDashboardBaseDatosData({
+        modo: opts.modo,
+        variables: opts.variables,
+        page: opts.page,
+        page_size: opts.pageSize,
+        search: opts.search,
+        sort: opts.sort,
+      })
+        .then((r) => {
+          if (cancelled) return;
+          setPayload(r.payload);
+        })
+        .catch((e: unknown) => {
+          if (!cancelled) setError((e as Error).message);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opts.modo, variablesKey, opts.page, opts.pageSize, opts.search, sortKey]);
+
+  return { loading, error, payload };
+}
+
+export function useDiccionarioVariable(variable: string | null) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [payload, setPayload] = useState<DashboardBaseDatosDiccionario | null>(null);
+
+  useEffect(() => {
+    if (!variable) {
+      setPayload(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    apiDashboardBaseDatosDiccionario(variable)
+      .then((r) => {
+        if (cancelled) return;
+        setPayload(r.payload);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [variable]);
 
   return { loading, error, payload };
 }

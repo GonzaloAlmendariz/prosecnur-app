@@ -1,0 +1,63 @@
+.dashboard-scope .dash-relacion-cruces {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dashboard-scope .dash-relacion-cruce {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dashboard-scope .dash-relacion-n {
+  color: var(--dash-texto-suave);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.dashboard-scope .dash-cross-table-wrap {
+  overflow-x: auto;
+}
+
+.dashboard-scope .dash-cross-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  width: 100%;
+}
+
+.dashboard-scope .dash-cross-table th,
+.dashboard-scope .dash-cross-table td {
+  border-bottom: 1px solid var(--dash-divider);
+  padding: 8px 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.dashboard-scope .dash-cross-table thead th {
+  background: var(--dash-superficie-2);
+  color: var(--dash-primario);
+  font-weight: 600;
+  text-align: right;
+}
+
+.dashboard-scope .dash-cross-table thead th:first-child {
+  text-align: left;
+}
+
+.dashboard-scope .dash-cross-table tbody th {
+  color: var(--dash-texto);
+  font-weight: 500;
+  text-align: left;
+}
+
+.dashboard-scope .dash-cross-table-total {
+  background: var(--dash-superficie-2);
+  font-weight: 600;
+}
+
+.dashboard-scope .dash-cross-table-total th {
+  color: var(--dash-primario);
+}

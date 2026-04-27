@@ -21,6 +21,8 @@
 #   - s$codif_por_base[[*]]$inst  — cache del XLSForm parseado
 #   - s$codif_por_base[[*]]$data  — cache del dataframe crudo
 #   - s$estudio$bases[[*]]$validacion$explorador_cache — hashes de views
+#   - s$dashboard_rp_inst / s$dashboard_rp_data — caches del dashboard,
+#       derivables de s$dashboard_source$(xlsform|data)_file_id
 # Esto evita serializar objetos gordos (tibbles con 50k filas) que son
 # derivables de los file_id que sí están en el zip.
 
@@ -45,7 +47,36 @@
       }
     }
   }
+  # Dashboard: el rp_inst y rp_data son tibbles gordos derivables del par
+  # XLSForm + data referenciado en s$dashboard_source. Al cargar se
+  # re-importan vía .dashboard_rebuild_after_load.
+  s$dashboard_rp_inst <- NULL
+  s$dashboard_rp_data <- NULL
   s
+}
+
+# Tras un load_pulso, si el state restaurado tiene `dashboard_source` con
+# file_ids válidos, regeneramos los caches `dashboard_rp_inst` y
+# `dashboard_rp_data` reusando .dashboard_import_source. Esto cierra la
+# brecha entre lo persistido (paths + meta) y lo que el dashboard necesita
+# para renderizar. Si el rebuild falla, dejamos los caches vacíos (el
+# dashboard pedirá al usuario re-importar la fuente).
+.dashboard_rebuild_after_load <- function(sid) {
+  s <- session_get(sid)
+  if (is.null(s$dashboard_source)) return(invisible(NULL))
+  xls_fid <- as.character(s$dashboard_source$xlsform_file_id %||% "")[1]
+  dat_fid <- as.character(s$dashboard_source$data_file_id %||% "")[1]
+  if (!nzchar(xls_fid) || !nzchar(dat_fid)) return(invisible(NULL))
+  tryCatch(
+    .dashboard_import_source(sid, list(
+      xlsform_file_id = xls_fid,
+      data_file_id    = dat_fid
+    )),
+    error = function(e) {
+      # No-op: el dashboard mostrará "carga la fuente" en la UI.
+      invisible(NULL)
+    }
+  )
 }
 
 # Recolecta los file_ids que son INPUTS del proyecto — los que el state
@@ -84,6 +115,18 @@
   if (!is.null(s$data_raw_meta) && !is.null(s$data_raw_meta$file_id) &&
       nzchar(s$data_raw_meta$file_id)) {
     out <- c(out, s$data_raw_meta$file_id)
+  }
+  # Dashboard autónomo: su importador guarda su propio par XLSForm+data.
+  # Si el proyecto se guarda, estos inputs deben viajar en el .pulso.
+  if (!is.null(s$dashboard_source)) {
+    if (!is.null(s$dashboard_source$xlsform_file_id) &&
+        nzchar(s$dashboard_source$xlsform_file_id)) {
+      out <- c(out, s$dashboard_source$xlsform_file_id)
+    }
+    if (!is.null(s$dashboard_source$data_file_id) &&
+        nzchar(s$dashboard_source$data_file_id)) {
+      out <- c(out, s$dashboard_source$data_file_id)
+    }
   }
   # Defensivo: si la sesión tiene un xlsform en s$files pero no está
   # referenciado por ninguna base (ej. el user lo cargó pero no llamó a
@@ -324,6 +367,10 @@ load_pulso <- function(src_path) {
     manifest$saved_at %||% format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   )
   .session_env[[new_sid]] <- s_saved
+
+  # 7) Rebuild de caches dashboard (rp_inst / rp_data) a partir de los
+  #    file_ids persistidos en dashboard_source. No falla si no hay fuente.
+  .dashboard_rebuild_after_load(new_sid)
 
   list(
     ok            = TRUE,
