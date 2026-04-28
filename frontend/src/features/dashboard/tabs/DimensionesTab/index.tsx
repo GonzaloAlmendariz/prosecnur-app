@@ -41,7 +41,11 @@ import {
 import { EmptyState } from "../../shared/EmptyState";
 import { FiltrosMultiRow } from "../ResumenTab/FiltrosMultiRow";
 import { PlotlyChart } from "../../shared/PlotlyChart";
-import { FullscreenWrapper } from "../../shared/FullscreenWrapper";
+import {
+  FullscreenButton,
+  FullscreenWrapper,
+  type FullscreenCtx,
+} from "../../shared/FullscreenWrapper";
 import {
   colorOfScore as semColorOfScore,
   plotlyColorscale,
@@ -155,6 +159,15 @@ export function DimensionesTab() {
   }
 
   return (
+    <FullscreenWrapper
+      title={
+        dim.visualMode === "heatmap" ? "Heatmap"
+        : dim.visualMode === "barras" ? "Scores por dimensión"
+        : dim.visualMode === "radar" ? "Radar de dimensiones"
+        : "Matriz FODA"
+      }
+    >
+      {(fsCtx) => (
     <div className="dash-resumen-layout">
       {/* ───── Sidebar — 2 cards ───── */}
       <aside className="dash-sidebar">
@@ -203,11 +216,14 @@ export function DimensionesTab() {
             foda={fodaQuery.payload}
             fodaLoading={fodaQuery.loading}
             fodaError={fodaQuery.error}
+            fsCtx={fsCtx}
           />
         )}
         <div style={{ height: 48 }} aria-hidden="true" />
       </main>
     </div>
+      )}
+    </FullscreenWrapper>
   );
 }
 
@@ -589,6 +605,7 @@ function VisualizadorCard({
   foda,
   fodaLoading,
   fodaError,
+  fsCtx,
 }: {
   dim: ReturnType<typeof useDashboardStore.getState>["dimensiones"];
   setDim: (p: Partial<typeof dim>) => void;
@@ -598,8 +615,10 @@ function VisualizadorCard({
   foda: DashboardDimFodaPayload | null;
   fodaLoading: boolean;
   fodaError: string | null;
+  fsCtx: FullscreenCtx;
 }) {
   const visualMode: DashboardDimVisualMode = dim.visualMode;
+  const maxed = fsCtx.maxed;
 
   // Modo informativo del payload (sugerencia inicial). Si el usuario no
   // cambió aún, podríamos respetarla; de momento el toggle es libre.
@@ -650,51 +669,40 @@ function VisualizadorCard({
             icon={<ScatterChart size={13} />}
             label="FODA"
           />
+          <FullscreenButton ctx={fsCtx} />
         </div>
       </div>
 
-      <FullscreenWrapper
-        title={
-          visualMode === "heatmap" ? "Heatmap"
-          : visualMode === "barras" ? "Scores por dimensión"
-          : visualMode === "radar" ? "Radar de dimensiones"
-          : "Matriz FODA"
-        }
-        className="dash-dim-vis-body"
+      <div
+        key={visualMode}
+        className={`dash-dim-vis-body ${maxed ? "dash-dim-fullscreen-content" : ""}`}
       >
-        {(maxed) => (
-          <div
-            key={visualMode}
-            className={maxed ? "dash-dim-fullscreen-content" : undefined}
-          >
-            {visualMode === "foda" ? (
-              fodaLoading && !foda ? (
-                <DimSkeleton mode="foda" />
-              ) : fodaError ? (
-                <EmptyState title="No se pudo calcular FODA" subtitle={fodaError} />
-              ) : !foda || !foda.ready ? (
-                <DimSkeleton mode="foda" />
-              ) : foda.error ? (
-                <EmptyState title="Sin datos para FODA" subtitle={foda.error} />
-              ) : (
-                <FodaView payload={foda} maxed={maxed} />
-              )
-            ) : payloadLoading && !payload ? (
-              <DimSkeleton mode={visualMode} />
-            ) : payloadError ? (
-              <EmptyState title="No se pudieron calcular las dimensiones" subtitle={payloadError} />
-            ) : !payload || !payload.ready ? (
-              <DimSkeleton mode={visualMode} />
-            ) : payload.error ? (
-              <EmptyState title="Sin datos para esta vista" subtitle={payload.error} />
-            ) : visualMode === "heatmap" ? (
-              <HeatmapView payload={payload} />
-            ) : (
-              <MainPlotView payload={payload} visualMode={visualMode} maxed={maxed} />
-            )}
-          </div>
+        {visualMode === "foda" ? (
+          fodaLoading && !foda ? (
+            <DimSkeleton mode="foda" />
+          ) : fodaError ? (
+            <EmptyState title="No se pudo calcular FODA" subtitle={fodaError} />
+          ) : !foda || !foda.ready ? (
+            <DimSkeleton mode="foda" />
+          ) : foda.error ? (
+            <EmptyState title="Sin datos para FODA" subtitle={foda.error} />
+          ) : (
+            <FodaView payload={foda} maxed={maxed} />
+          )
+        ) : payloadLoading && !payload ? (
+          <DimSkeleton mode={visualMode} />
+        ) : payloadError ? (
+          <EmptyState title="No se pudieron calcular las dimensiones" subtitle={payloadError} />
+        ) : !payload || !payload.ready ? (
+          <DimSkeleton mode={visualMode} />
+        ) : payload.error ? (
+          <EmptyState title="Sin datos para esta vista" subtitle={payload.error} />
+        ) : visualMode === "heatmap" ? (
+          <HeatmapView payload={payload} />
+        ) : (
+          <MainPlotView payload={payload} visualMode={visualMode} maxed={maxed} />
         )}
-      </FullscreenWrapper>
+      </div>
     </section>
   );
 }

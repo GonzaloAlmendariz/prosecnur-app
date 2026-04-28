@@ -4,7 +4,11 @@ import { apiDashboardRelacionDescargar, type DashboardRelacionCruce } from "../.
 import { useDashboardSecciones, useRelacionCross } from "../../useDashboardData";
 import { useDashboardStore } from "../../store";
 import { EmptyState } from "../../shared/EmptyState";
-import { FullscreenWrapper } from "../../shared/FullscreenWrapper";
+import {
+  FullscreenButton,
+  FullscreenWrapper,
+  type FullscreenCtx,
+} from "../../shared/FullscreenWrapper";
 import { FiltrosMultiRow } from "../ResumenTab/FiltrosMultiRow";
 import { PlotlyChart } from "../../shared/PlotlyChart";
 import "./relacion.css";
@@ -70,6 +74,8 @@ export function RelacionTab() {
   }
 
   return (
+    <FullscreenWrapper title={payload ? relacionFullscreenTitle(payload) : "Relaciones"}>
+      {(fsCtx) => (
     <div className="dash-resumen-layout">
       {/* ───── Sidebar ───── */}
       <aside className="dash-sidebar">
@@ -136,14 +142,20 @@ export function RelacionTab() {
         ) : error ? (
           <EmptyState title="No se pudo calcular el cruce" subtitle={error} />
         ) : payload && payload.cruces.length > 0 ? (
-          <FullscreenWrapper title={relacionFullscreenTitle(payload)}>
-            {(maxed) => <CrucesView payload={payload} maxed={maxed} />}
-          </FullscreenWrapper>
+          <section className="dash-cardbox">
+            <div className="dash-cardbox-header">
+              <h2 className="dash-cardbox-title">Cruce</h2>
+              <FullscreenButton ctx={fsCtx} />
+            </div>
+            <CrucesView payload={payload} maxed={fsCtx.maxed} />
+          </section>
         ) : (
           <EmptyState title="Sin datos para cruzar" />
         )}
       </main>
     </div>
+      )}
+    </FullscreenWrapper>
   );
 }
 
