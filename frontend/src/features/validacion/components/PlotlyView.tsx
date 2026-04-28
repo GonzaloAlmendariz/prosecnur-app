@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo } from "react";
+import { useMemo } from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -16,8 +16,7 @@ import {
   getChartTone,
   hasPlotlyData,
 } from "./plotlyTheme";
-
-const Plot = lazy(() => import("react-plotly.js"));
+import { PlotlyChart as SharedPlotlyChart } from "../../../lib/PlotlyChart";
 
 type OnAction = (action: { id: string; payload?: Record<string, unknown>; target_tab?: string }) => void;
 
@@ -248,15 +247,13 @@ function PlotlyChart({
           {empty ? (
             <EmptyChartHint hint={(view.meta?.empty_hint as string) ?? "Sin datos para mostrar."} />
           ) : (
-            <Suspense fallback={<ChartSkeleton height={height ?? 260} />}>
-              <Plot
-                data={data as Parameters<typeof Plot>[0]["data"]}
-                layout={layout as Parameters<typeof Plot>[0]["layout"]}
-                config={config as Parameters<typeof Plot>[0]["config"]}
-                useResizeHandler
-                style={{ width: "100%" }}
-              />
-            </Suspense>
+            <SharedPlotlyChart
+              data={data as unknown[]}
+              layout={layout as Record<string, unknown>}
+              config={config as Record<string, unknown>}
+              height={height ?? 260}
+              ariaLabel={view.title}
+            />
           )}
         </div>
 
@@ -485,17 +482,3 @@ function EmptyChartHint({ hint }: { hint: string }) {
   );
 }
 
-function ChartSkeleton({ height }: { height: number }) {
-  return (
-    <div
-      style={{
-        height,
-        borderRadius: 10,
-        background:
-          "linear-gradient(90deg, var(--pulso-surface-2) 0%, rgba(216, 224, 239, 0.92) 50%, var(--pulso-surface-2) 100%)",
-        backgroundSize: "200% 100%",
-        animation: "pulso-shimmer 1.6s ease-in-out infinite",
-      }}
-    />
-  );
-}
