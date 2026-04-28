@@ -1,9 +1,10 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { Download } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
 import { apiDashboardRelacionDescargar, type DashboardRelacionCruce } from "../../../../api/client";
 import { useDashboardSecciones, useRelacionCross } from "../../useDashboardData";
 import { useDashboardStore } from "../../store";
 import { EmptyState } from "../../shared/EmptyState";
+import { FullscreenWrapper } from "../../shared/FullscreenWrapper";
 import { FiltrosMultiRow } from "../ResumenTab/FiltrosMultiRow";
 import { PlotlyChart } from "../../shared/PlotlyChart";
 import "./relacion.css";
@@ -114,11 +115,11 @@ export function RelacionTab() {
 
         <button
           type="button"
-          className="dash-subtle-btn"
+          className="dash-subtle-btn dash-sidebar-action"
           disabled={!relacion.varPrincipal || !relacion.varSegmento || downloadBusy}
           onClick={handleDescargar}
-          style={{ alignSelf: "flex-start" }}
         >
+          <Download size={14} aria-hidden="true" />
           {downloadBusy ? "Generando…" : "Descargar Excel"}
         </button>
       </aside>
@@ -135,13 +136,28 @@ export function RelacionTab() {
         ) : error ? (
           <EmptyState title="No se pudo calcular el cruce" subtitle={error} />
         ) : payload && payload.cruces.length > 0 ? (
-          <CrucesView payload={payload} />
+          <FullscreenWrapper title={relacionFullscreenTitle(payload)}>
+            {(maxed) => <CrucesView payload={payload} maxed={maxed} />}
+          </FullscreenWrapper>
         ) : (
           <EmptyState title="Sin datos para cruzar" />
         )}
       </main>
     </div>
   );
+}
+
+function relacionFullscreenTitle(payload: {
+  iterado: boolean;
+  iter_label?: string;
+  cruces: DashboardRelacionCruce[];
+}) {
+  if (!payload.iterado) return "Relaciones";
+  const iterLabel = payload.iter_label ?? "Iteración";
+  if (payload.cruces.length === 1 && payload.cruces[0]?.nivel) {
+    return `Relaciones — ${iterLabel}: ${payload.cruces[0].nivel}`;
+  }
+  return `Relaciones — ${iterLabel} (${payload.cruces.length} niveles)`;
 }
 
 // -----------------------------------------------------------------------------
@@ -218,8 +234,8 @@ function SelectorVariable({
 }
 
 // -----------------------------------------------------------------------------
-// Card "Iterar" con popover (legacy: .iter-popover-wrap.is-open).
-// El header tiene toggle + botón "Configurar" que abre un popover lateral.
+// Card "Iterar" directa: toggle + selects visibles. Evita esconder la
+// configuración en un popover y deja el estado actual escaneable.
 // -----------------------------------------------------------------------------
 function IterarCard({
   secciones,
@@ -234,27 +250,6 @@ function IterarCard({
   onToggle: (on: boolean) => void;
   onChange: (v: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
-
-  // Cierre por Esc / click fuera.
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    function onClick(e: MouseEvent) {
-      if (!popoverRef.current) return;
-      if (!popoverRef.current.contains(e.target as Node)) setOpen(false);
-    }
-    window.addEventListener("keydown", onKey);
-    setTimeout(() => window.addEventListener("mousedown", onClick), 0);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("mousedown", onClick);
-    };
-  }, [open]);
-
   // Resolver sección de la var actual.
   const seccionDeVar = useMemo(() => {
     const m: Record<string, string> = {};
@@ -264,15 +259,6 @@ function IterarCard({
   const [seccionLocal, setSeccionLocal] = useState<string>("");
   const seccion = seccionLocal || seccionDeVar[value] || (secciones[0]?.nombre ?? "");
   const seccionActiva = secciones.find((s) => s.nombre === seccion);
-
-  const valueLabel = useMemo(() => {
-    if (!value) return null;
-    for (const sec of secciones) {
-      const v = sec.vars.find((x) => x.name === value);
-      if (v) return v.label;
-    }
-    return value;
-  }, [value, secciones]);
 
   return (
     <section className="dash-cardbox dash-iter-card">
@@ -288,59 +274,31 @@ function IterarCard({
         </label>
       </div>
       {enabled && (
-        <div className="dash-iter-popover-wrap" ref={popoverRef}>
-          <button
-            type="button"
-            className="dash-iter-trigger"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
+        <div className="dash-iter-direct">
+          <label className="dash-filtro-label">Sección</label>
+          <select
+            className="dash-select"
+            value={seccion}
+            onChange={(e) => {
+              setSeccionLocal(e.target.value);
+              onChange("");
+            }}
           >
-            <span className="dash-iter-trigger-label">
-              {valueLabel ?? "Sin iteración"}
-            </span>
-            <span className="dash-iter-trigger-caret" aria-hidden="true">▾</span>
-          </button>
-          {open && (
-            <div className={`dash-iter-popover ${open ? "is-open" : ""}`} role="dialog" aria-label="Configurar iteración">
-              <div className="dash-iter-popover-head">
-                <strong>Configurar iteración</strong>
-                <button
-                  type="button"
-                  className="dash-icon-btn"
-                  onClick={() => setOpen(false)}
-                  aria-label="Cerrar"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-              <div className="dash-iter-popover-body">
-                <label className="dash-filtro-label">Sección</label>
-                <select
-                  className="dash-select"
-                  value={seccion}
-                  onChange={(e) => {
-                    setSeccionLocal(e.target.value);
-                    onChange("");
-                  }}
-                >
-                  {secciones.map((s) => (
-                    <option key={s.nombre} value={s.nombre}>{s.nombre}</option>
-                  ))}
-                </select>
-                <label className="dash-filtro-label" style={{ marginTop: 8 }}>Variable</label>
-                <select
-                  className="dash-select"
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                >
-                  <option value="">— Sin iteración —</option>
-                  {seccionActiva?.vars.map((v) => (
-                    <option key={v.name} value={v.name}>{v.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
+            {secciones.map((s) => (
+              <option key={s.nombre} value={s.nombre}>{s.nombre}</option>
+            ))}
+          </select>
+          <label className="dash-filtro-label" style={{ marginTop: 8 }}>Variable</label>
+          <select
+            className="dash-select"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+          >
+            <option value="">— Sin iteración —</option>
+            {seccionActiva?.vars.map((v) => (
+              <option key={v.name} value={v.name}>{v.label}</option>
+            ))}
+          </select>
         </div>
       )}
     </section>
@@ -350,7 +308,13 @@ function IterarCard({
 // -----------------------------------------------------------------------------
 // Vista de cruces (uno o varios si itera).
 // -----------------------------------------------------------------------------
-function CrucesView({ payload }: { payload: { iterado: boolean; iter_label?: string; cruces: DashboardRelacionCruce[] } }) {
+function CrucesView({
+  payload,
+  maxed = false,
+}: {
+  payload: { iterado: boolean; iter_label?: string; cruces: DashboardRelacionCruce[] };
+  maxed?: boolean;
+}) {
   return (
     <div className="dash-relacion-cruces">
       {payload.cruces.map((cruce, idx) => (
@@ -374,7 +338,7 @@ function CrucesView({ payload }: { payload: { iterado: boolean; iter_label?: str
                 legend: { orientation: "h", x: 0.5, xanchor: "center", y: -0.18 },
                 margin: { t: 10, r: 18, b: 50, l: 40 },
               }}
-              height={320}
+              height={maxed ? 720 : 320}
               ariaLabel="Cruce de variables"
             />
           ) : (

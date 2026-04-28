@@ -224,13 +224,12 @@ export function FiltrosMultiRow({
                       <div className="dash-checkboxes">
                         {cats.length === 0 ? (
                           <div
-                            style={{
-                              fontSize: 11,
-                              color: "var(--dash-texto-suave)",
-                              padding: 4,
-                            }}
+                            className="dash-filtro-cats-skeleton"
+                            aria-label="Cargando categorías"
                           >
-                            Cargando…
+                            <span className="dash-filtro-cats-skel-bar" />
+                            <span className="dash-filtro-cats-skel-bar" />
+                            <span className="dash-filtro-cats-skel-bar" />
                           </div>
                         ) : (
                           cats.map((c) => (

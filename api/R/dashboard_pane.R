@@ -48,8 +48,64 @@
     foda_score_max          = 120L,
     foda_show_total         = TRUE,
     foda_spacing            = 1.15,
-    foda_grid_intensity     = 0.42
+    foda_grid_intensity     = 0.42,
+    foda_vista              = "conductores",
+    foda_views              = list(
+      list(
+        id = "conductores",
+        label = "Conductores",
+        variable = "",
+        metric_var = "",
+        card_mode = "iconos",
+        aliases = list(),
+        icons = list()
+      ),
+      list(
+        id = "servicios",
+        label = "Servicios",
+        variable = "servicio",
+        metric_var = "idx_indice_general",
+        card_mode = "iconos",
+        aliases = list(),
+        icons = list()
+      ),
+      list(
+        id = "municipios",
+        label = "Municipios",
+        variable = "distrito",
+        metric_var = "idx_indice_general",
+        card_mode = "alias",
+        aliases = as.list(stats::setNames(
+          c("ATE", "RIM", "SJL", "VES", "LE", "EP"),
+          c("Ate", "Rimac", "San Juan de Lurigancho", "Villa El Salvador", "La Esperanza", "El Porvenir")
+        )),
+        icons = list()
+      )
+    ),
+    foda_aliases            = list(
+      distrito = as.list(stats::setNames(
+        c("ATE", "RIM", "SJL", "VES", "LE", "EP"),
+        c("Ate", "Rimac", "San Juan de Lurigancho", "Villa El Salvador", "La Esperanza", "El Porvenir")
+      ))
+    ),
+    foda_service_icons      = list()
   )
+}
+
+.dashboard_config_with_defaults <- function(config = NULL) {
+  out <- utils::modifyList(
+    .dashboard_default_config(),
+    config %||% list(),
+    keep.null = TRUE
+  )
+  # `foda_views` es una lista ordenada de objetos, no un mapa anidable.
+  # `modifyList()` mezcla listas por posición y puede pisar aliases/icons
+  # personalizados con los defaults. Si el usuario ya trae vistas, ganan
+  # completas sobre la plantilla.
+  if (is.list(config) && !is.null(config$foda_views)) {
+    out$foda_views <- config$foda_views
+  }
+  out
 }
 
 # Defaults del tema visual — espejo 1:1 de

@@ -73,7 +73,7 @@ export function FullscreenWrapper({
                   className="dash-icon-btn"
                   onClick={() => setMaxed(false)}
                   title="Salir de pantalla completa (Esc)"
-                  aria-label="Cerrar"
+                  aria-label="Salir de pantalla completa"
                 >
                   <Minimize2 size={14} />
                 </button>

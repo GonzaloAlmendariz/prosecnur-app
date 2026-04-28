@@ -58,7 +58,20 @@ function allStops(sem: SemaforoConfig): { value: number; color: string }[] {
     value: Math.max(0, Math.min(100, s.value)),
     color: s.color,
   }));
-  return [...base, ...extras].sort((a, b) => a.value - b.value);
+  return dedupeStopsByValue([...base, ...extras].sort((a, b) => a.value - b.value));
+}
+
+function dedupeStopsByValue(stops: { value: number; color: string }[]) {
+  const out: { value: number; color: string }[] = [];
+  for (const stop of stops) {
+    const last = out[out.length - 1];
+    if (last && last.value === stop.value) {
+      last.color = stop.color;
+    } else {
+      out.push({ ...stop });
+    }
+  }
+  return out;
 }
 
 // Color de un score (0-100) según el modo:

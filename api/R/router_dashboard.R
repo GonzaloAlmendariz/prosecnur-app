@@ -96,14 +96,14 @@ mount_dashboard <- function(pr) {
     plumber::pr_get("/api/dashboard/config", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)
-      list(ok = TRUE, config = s$dashboard_config %||% .dashboard_default_config())
+      list(ok = TRUE, config = .dashboard_config_with_defaults(s$dashboard_config))
     })) |>
     plumber::pr_post("/api/dashboard/config", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .dashboard_parse_body(req)
       cfg <- body$config
       if (is.null(cfg)) stop_api(400, "E_NO_CONFIG", "Body debe incluir 'config'.")
-      session_set(sid, "dashboard_config", cfg)
+      session_set(sid, "dashboard_config", .dashboard_config_with_defaults(cfg))
       list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
     plumber::pr_get("/api/dashboard/curacion", wrap_endpoint(function(req, res) {

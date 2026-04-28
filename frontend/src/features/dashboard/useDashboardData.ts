@@ -467,6 +467,10 @@ export function useDimFoda(opts: {
     foda_show_total?: boolean;
     foda_spacing?: number;
     foda_grid_intensity?: number;
+    foda_vista?: string;
+    foda_views?: import("../../api/client").DashboardFodaViewConfig[];
+    foda_aliases?: Record<string, Record<string, string>>;
+    foda_service_icons?: Record<string, string>;
   };
 }) {
   const [loading, setLoading] = useState(false);

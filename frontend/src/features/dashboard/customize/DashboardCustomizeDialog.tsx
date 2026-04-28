@@ -1,13 +1,28 @@
-import { Image, X } from "lucide-react";
-import { useEffect } from "react";
-import { useDashboardStore } from "../store";
+import {
+  BarChart3,
+  Image,
+  Plus,
+  Radar,
+  SlidersHorizontal,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import type { DashboardFodaViewConfig } from "../../../api/client";
+import {
+  DEFAULT_FODA_SERVICE_CATEGORIES,
+  DEFAULT_FODA_VIEWS,
+  useDashboardStore,
+} from "../store";
 
-// Diálogo "Personalizar" — controles avanzados de visualización del
-// dashboard. Por ahora cubre dos parámetros de la pestaña Dimensiones:
-//   - Modo del semáforo: cortes discretos vs gradiente continuo.
-//   - Límite inferior del eje radial del radar (radar_min, 0–95).
-//   - Iconos de FODA: uso, tinte, tamaño y leyenda.
-// Persistido en `dashboard_config` vía store autosave.
+type CustomizePanel = "foda" | "graficos" | "semaforo";
+
+const PANELS: Array<{ id: CustomizePanel; label: string; icon: typeof SlidersHorizontal }> = [
+  { id: "foda", label: "FODA", icon: Image },
+  { id: "graficos", label: "Gráficos", icon: BarChart3 },
+  { id: "semaforo", label: "Semáforo", icon: SlidersHorizontal },
+];
 
 export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
   const config = useDashboardStore((s) => s.config);
@@ -37,6 +52,14 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
   const setFodaShowTotal = useDashboardStore((s) => s.setFodaShowTotal);
   const setFodaSpacing = useDashboardStore((s) => s.setFodaSpacing);
   const setFodaGridIntensity = useDashboardStore((s) => s.setFodaGridIntensity);
+  const setFodaVista = useDashboardStore((s) => s.setFodaVista);
+  const addFodaView = useDashboardStore((s) => s.addFodaView);
+  const updateFodaView = useDashboardStore((s) => s.updateFodaView);
+  const removeFodaView = useDashboardStore((s) => s.removeFodaView);
+  const setFodaViewAlias = useDashboardStore((s) => s.setFodaViewAlias);
+  const setFodaViewIcon = useDashboardStore((s) => s.setFodaViewIcon);
+
+  const [panel, setPanel] = useState<CustomizePanel>("foda");
 
   const semaforoModo = config.semaforo_modo ?? "cortes";
   const semRed = config.semaforo_red_color ?? "#D84B55";
@@ -62,8 +85,14 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
   const fodaShowTotal = config.foda_show_total ?? true;
   const fodaSpacing = config.foda_spacing ?? 1.15;
   const fodaGridIntensity = config.foda_grid_intensity ?? 0.42;
+  const fodaVista = config.foda_vista ?? "conductores";
+  const fodaViews = config.foda_views ?? DEFAULT_FODA_VIEWS;
+  const activeView = useMemo(
+    () => fodaViews.find((view) => view.id === fodaVista) ?? fodaViews[0] ?? DEFAULT_FODA_VIEWS[0],
+    [fodaViews, fodaVista],
+  );
+  const activeCategories = useMemo(() => fodaCategoriesForView(activeView), [activeView]);
 
-  // Cierre con Esc.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -72,502 +101,582 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  function addCategory(view: DashboardFodaViewConfig) {
+    const base = view.variable === "servicio" ? "Nuevo servicio" : "Nueva categoria";
+    let label = base;
+    let i = 2;
+    const used = new Set(fodaCategoriesForView(view));
+    while (used.has(label)) {
+      label = `${base} ${i}`;
+      i += 1;
+    }
+    setFodaViewAlias(view.id, label, view.card_mode === "alias" ? initialsAlias(label) : label);
+    if (view.card_mode === "iconos") setFodaViewIcon(view.id, label, "");
+  }
+
   return (
     <div className="dash-modal-backdrop" onClick={onClose}>
       <div
-        className="dash-modal"
-        style={{ width: "min(540px, 100%)" }}
+        className="dash-modal dash-customize-dialog"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
-        aria-label="Personalizar visualización"
+        aria-label="Personalizar dashboard"
       >
         <div className="dash-modal-head">
           <div>
             <h2>Personalizar</h2>
-            <p>Ajustes finos de la pestaña Dimensiones.</p>
+            <p>Configura vistas, tarjetas y escalas del dashboard.</p>
           </div>
-          <button
-            type="button"
-            className="dash-icon-btn"
-            onClick={onClose}
-            aria-label="Cerrar"
-          >
+          <button type="button" className="dash-icon-btn" onClick={onClose} aria-label="Cerrar">
             <X size={16} />
           </button>
         </div>
 
-        <div style={{ padding: 18, display: "grid", gap: 18 }}>
-          {/* ── Semáforo ── */}
-          <section>
-            <h3 className="dash-customize-section-title">Semáforo</h3>
-            <p className="dash-customize-help">
-              Aplica a <strong>todos</strong> los gráficos (heatmap, chips de barras,
-              FODA). En <strong>cortes</strong> los colores cambian al cruzar los
-              umbrales; en <strong>gradiente</strong> se interpolan continuamente.
-            </p>
-            <div
-              className="dash-source-segments"
-              role="tablist"
-              aria-label="Modo del semáforo"
-              style={{ marginTop: 8 }}
-            >
+        <div className="dash-customize-shell">
+          <nav className="dash-customize-nav" aria-label="Secciones de personalización">
+            {PANELS.map(({ id, label, icon: Icon }) => (
               <button
+                key={id}
                 type="button"
-                role="tab"
-                aria-selected={semaforoModo === "cortes"}
-                className={`dash-source-segment ${semaforoModo === "cortes" ? "is-active" : ""}`}
-                onClick={() => setSemaforoModo("cortes")}
+                className={panel === id ? "is-active" : ""}
+                onClick={() => setPanel(id)}
               >
-                Cortes
+                <Icon size={16} />
+                <span>{label}</span>
               </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={semaforoModo === "gradiente"}
-                className={`dash-source-segment ${semaforoModo === "gradiente" ? "is-active" : ""}`}
-                onClick={() => setSemaforoModo("gradiente")}
-              >
-                Gradiente
-              </button>
-            </div>
-            <div className="dash-customize-sem-grid">
-              <label className="dash-customize-color-field">
-                <span className="dash-filtro-label">Bajo</span>
-                <input
-                  type="color"
-                  value={semRed}
-                  onChange={(e) => setSemaforoRedColor(e.target.value)}
-                  aria-label="Color del rango bajo"
+            ))}
+          </nav>
+
+          <div className="dash-customize-body">
+            {panel === "foda" && (
+              <section className="dash-customize-panel">
+                <PanelTitle
+                  title="Tarjetas FODA"
+                  text="Elige qué compara la matriz y cómo se ven sus tarjetas: conductores, servicios, municipios o cualquier variable categórica."
                 />
-              </label>
-              <label className="dash-customize-color-field">
-                <span className="dash-filtro-label">Medio</span>
-                <input
-                  type="color"
-                  value={semAmber}
-                  onChange={(e) => setSemaforoAmberColor(e.target.value)}
-                  aria-label="Color del rango medio"
-                />
-              </label>
-              <label className="dash-customize-color-field">
-                <span className="dash-filtro-label">Alto</span>
-                <input
-                  type="color"
-                  value={semGreen}
-                  onChange={(e) => setSemaforoGreenColor(e.target.value)}
-                  aria-label="Color del rango alto"
-                />
-              </label>
-            </div>
-            <div className="dash-customize-slider-row">
-              <label htmlFor="dash-sem-red-max" className="dash-filtro-label">
-                Bajo &lt;
-              </label>
-              <input
-                id="dash-sem-red-max"
-                type="range"
-                min={5}
-                max={95}
-                step={1}
-                value={semRedMax}
-                onChange={(e) => setSemaforoRedMax(Number(e.target.value))}
-                className="dash-customize-slider"
-              />
-              <span className="dash-customize-slider-value">{semRedMax}</span>
-            </div>
-            <div className="dash-customize-slider-row">
-              <label htmlFor="dash-sem-amber-max" className="dash-filtro-label">
-                Medio &lt;
-              </label>
-              <input
-                id="dash-sem-amber-max"
-                type="range"
-                min={semRedMax + 1}
-                max={99}
-                step={1}
-                value={semAmberMax}
-                onChange={(e) => setSemaforoAmberMax(Number(e.target.value))}
-                className="dash-customize-slider"
-              />
-              <span className="dash-customize-slider-value">{semAmberMax}</span>
-            </div>
-            <SemaforoPreview
-              modo={semaforoModo}
-              red={semRed}
-              amber={semAmber}
-              green={semGreen}
-              redMax={semRedMax}
-              amberMax={semAmberMax}
-              stopsExtra={semStopsExtra}
-            />
-            <div className="dash-customize-stops">
-              <div className="dash-customize-stops-head">
-                <span className="dash-filtro-label">Cortes finos (no se muestran en la leyenda)</span>
-                <button
-                  type="button"
-                  className="dash-quick-btn"
-                  onClick={() => addSemaforoStop({ value: 50, color: "#FFFFFF" })}
-                  title="Agregar un corte para fineza de color"
-                >
-                  + Agregar
-                </button>
-              </div>
-              {semStopsExtra.length === 0 ? (
-                <p className="dash-customize-help" style={{ marginTop: 6 }}>
-                  Sin cortes extra. Los 3 colores base controlan toda la escala.
-                </p>
-              ) : (
-                <ul className="dash-customize-stops-list">
-                  {semStopsExtra.map((stop, i) => (
-                    <li key={i} className="dash-customize-stops-item">
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={stop.value}
-                        onChange={(e) => updateSemaforoStop(i, { value: Number(e.target.value) })}
-                        className="dash-input"
-                        style={{ width: 70 }}
-                        aria-label={`Valor del corte ${i + 1}`}
-                      />
-                      <input
-                        type="color"
-                        value={stop.color}
-                        onChange={(e) => updateSemaforoStop(i, { color: e.target.value })}
-                        aria-label={`Color del corte ${i + 1}`}
-                      />
-                      <button
-                        type="button"
-                        className="dash-customize-stops-remove"
-                        onClick={() => removeSemaforoStop(i)}
-                        aria-label={`Quitar corte ${i + 1}`}
-                        title="Quitar"
-                      >
-                        ×
+
+                <div className="dash-customize-foda-layout">
+                  <div className="dash-customize-view-list">
+                    <div className="dash-customize-stops-head">
+                      <span className="dash-filtro-label">Vistas disponibles</span>
+                      <button type="button" className="dash-quick-btn" onClick={addFodaView}>
+                        <Plus size={14} /> Vista
                       </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </section>
+                    </div>
+                    {fodaViews.map((view) => (
+                      <button
+                        key={view.id}
+                        type="button"
+                        className={`dash-customize-view-card ${view.id === activeView.id ? "is-active" : ""}`}
+                        onClick={() => setFodaVista(view.id)}
+                      >
+                        <span className="dash-customize-view-name">{view.label}</span>
+                        <span className="dash-customize-view-meta">
+                          {view.variable ? view.variable : "Dimensiones"} · {view.card_mode === "alias" ? "Alias" : "Iconos"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
 
-          {/* ── Barras ── */}
-          <section>
-            <h3 className="dash-customize-section-title">Barras</h3>
-            <p className="dash-customize-help">
-              Orientación y rango del eje numérico. <strong>Facet</strong> divide
-              las dimensiones en dos columnas para evitar colas largas.
-            </p>
-            <div
-              className="dash-source-segments"
-              role="tablist"
-              aria-label="Orientación de barras"
-              style={{ marginTop: 8 }}
-            >
-              {(["horizontal", "vertical", "facet"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  role="tab"
-                  aria-selected={barrasOrientacion === m}
-                  className={`dash-source-segment ${barrasOrientacion === m ? "is-active" : ""}`}
-                  onClick={() => setBarrasOrientacion(m)}
-                >
-                  {m === "horizontal" ? "Horizontal" : m === "vertical" ? "Vertical" : "Facet"}
-                </button>
-              ))}
-            </div>
-            <div className="dash-customize-slider-row">
-              <label htmlFor="dash-barras-min" className="dash-filtro-label">Mín</label>
-              <input
-                id="dash-barras-min"
-                type="range"
-                min={0}
-                max={90}
-                step={5}
-                value={barrasXMin}
-                onChange={(e) => setBarrasXMin(Number(e.target.value))}
-                className="dash-customize-slider"
-              />
-              <span className="dash-customize-slider-value">{barrasXMin}</span>
-            </div>
-            <div className="dash-customize-slider-row">
-              <label htmlFor="dash-barras-max" className="dash-filtro-label">Máx</label>
-              <input
-                id="dash-barras-max"
-                type="range"
-                min={Math.max(barrasXMin + 10, 50)}
-                max={200}
-                step={5}
-                value={barrasXMax}
-                onChange={(e) => setBarrasXMax(Number(e.target.value))}
-                className="dash-customize-slider"
-              />
-              <span className="dash-customize-slider-value">{barrasXMax}</span>
-            </div>
-          </section>
+                  <div className="dash-customize-view-editor">
+                    <div className="dash-customize-editor-head">
+                      <div>
+                        <span className="dash-filtro-label">Vista activa</span>
+                        <strong>{activeView.label}</strong>
+                      </div>
+                      {activeView.id !== "conductores" && (
+                        <button
+                          type="button"
+                          className="dash-customize-danger"
+                          onClick={() => removeFodaView(activeView.id)}
+                          title="Quitar vista"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
 
-          {/* ── Radar ── */}
-          <section>
-            <h3 className="dash-customize-section-title">Radar</h3>
-            <p className="dash-customize-help">
-              Forma de la grilla, rango del eje radial y comportamiento de la animación
-              y comparación entre niveles.
-            </p>
-            <label className="dash-filtro-label" style={{ marginTop: 8 }}>Forma de grilla</label>
-            <div
-              className="dash-source-segments"
-              role="tablist"
-              aria-label="Forma de la grilla del radar"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={radarGridshape === "linear"}
-                className={`dash-source-segment ${radarGridshape === "linear" ? "is-active" : ""}`}
-                onClick={() => setRadarGridshape("linear")}
-              >
-                Polígono
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={radarGridshape === "circular"}
-                className={`dash-source-segment ${radarGridshape === "circular" ? "is-active" : ""}`}
-                onClick={() => setRadarGridshape("circular")}
-              >
-                Circular
-              </button>
-            </div>
-            <label className="dash-filtro-label" style={{ marginTop: 10 }}>Modo</label>
-            <div
-              className="dash-source-segments"
-              role="tablist"
-              aria-label="Modo del radar"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={radarModo === "uno"}
-                className={`dash-source-segment ${radarModo === "uno" ? "is-active" : ""}`}
-                onClick={() => setRadarModo("uno")}
-              >
-                Uno
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={radarModo === "facet"}
-                className={`dash-source-segment ${radarModo === "facet" ? "is-active" : ""}`}
-                onClick={() => setRadarModo("facet")}
-              >
-                Facet
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={radarModo === "alternante"}
-                className={`dash-source-segment ${radarModo === "alternante" ? "is-active" : ""}`}
-                onClick={() => setRadarModo("alternante")}
-              >
-                Alternante
-              </button>
-            </div>
-            <label className="dash-dim-checkbox" style={{ marginTop: 10 }}>
-              <input
-                type="checkbox"
-                checked={radarAnimado}
-                onChange={(e) => setRadarAnimado(e.target.checked)}
-              />
-              Animar entrada (mayor → menor)
-            </label>
-            <div className="dash-customize-slider-row">
-              <label htmlFor="dash-radar-min" className="dash-filtro-label">Mín</label>
-              <input
-                id="dash-radar-min"
-                type="range"
-                min={0}
-                max={95}
-                step={5}
-                value={radarMin}
-                onChange={(e) => setRadarMin(Number(e.target.value))}
-                className="dash-customize-slider"
-              />
-              <span className="dash-customize-slider-value">{radarMin}</span>
-            </div>
-            <div className="dash-customize-slider-row">
-              <label htmlFor="dash-radar-max" className="dash-filtro-label">Máx</label>
-              <input
-                id="dash-radar-max"
-                type="range"
-                min={Math.max(radarMin + 5, 50)}
-                max={200}
-                step={5}
-                value={radarMax}
-                onChange={(e) => setRadarMax(Number(e.target.value))}
-                className="dash-customize-slider"
-              />
-              <span className="dash-customize-slider-value">{radarMax}</span>
-            </div>
-          </section>
+                    <div className="dash-customize-field-grid">
+                      <label>
+                        <span className="dash-filtro-label">Nombre visible</span>
+                        <input
+                          className="dash-input"
+                          value={activeView.label}
+                          onChange={(e) => updateFodaView(activeView.id, { label: e.target.value })}
+                        />
+                      </label>
+                      <label>
+                        <span className="dash-filtro-label">Variable categórica</span>
+                        <input
+                          className="dash-input"
+                          value={activeView.variable}
+                          disabled={activeView.id === "conductores"}
+                          placeholder="servicio, distrito, sede..."
+                          onChange={(e) => updateFodaView(activeView.id, { variable: e.target.value })}
+                        />
+                      </label>
+                      <label>
+                        <span className="dash-filtro-label">Métrica</span>
+                        <input
+                          className="dash-input"
+                          value={activeView.metric_var ?? ""}
+                          disabled={activeView.id === "conductores"}
+                          placeholder="idx_indice_general"
+                          onChange={(e) => updateFodaView(activeView.id, { metric_var: e.target.value })}
+                        />
+                      </label>
+                      <label>
+                        <span className="dash-filtro-label">Representación</span>
+                        <select
+                          className="dash-select"
+                          value={activeView.card_mode}
+                          disabled={activeView.id === "conductores"}
+                          onChange={(e) => updateFodaView(activeView.id, { card_mode: e.target.value as "iconos" | "alias" })}
+                        >
+                          <option value="iconos">Iconos / logos</option>
+                          <option value="alias">Alias de texto</option>
+                        </select>
+                      </label>
+                    </div>
 
-          {/* ── FODA ── */}
-          <section>
-            <h3 className="dash-customize-section-title">Iconos FODA</h3>
-            <p className="dash-customize-help">
-              Los iconos representan la dimensión o conductor. El color de cada
-              bloque viene de la comparación seleccionada.
-            </p>
-            <label className="dash-dim-checkbox" style={{ marginTop: 8 }}>
-              <input
-                type="checkbox"
-                checked={fodaIconosEnabled}
-                onChange={(e) => setFodaIconosEnabled(e.target.checked)}
-              />
-              Usar iconos de dimensión
-            </label>
-            <label className="dash-dim-checkbox" style={{ marginTop: 8 }}>
-              <input
-                type="checkbox"
-                checked={fodaIconLegend}
-                disabled={!fodaIconosEnabled}
-                onChange={(e) => setFodaIconLegend(e.target.checked)}
-              />
-              Mostrar leyenda de iconos
-            </label>
-            <label className="dash-dim-checkbox" style={{ marginTop: 8 }}>
-              <input
-                type="checkbox"
-                checked={fodaShowTotal}
-                onChange={(e) => setFodaShowTotal(e.target.checked)}
-              />
-              Mostrar Total en FODA
-            </label>
-            <div className="dash-customize-foda-grid">
-              <label className="dash-customize-color-field">
-                <span className="dash-filtro-label">Color icono</span>
-                <input
-                  type="color"
-                  value={fodaIconTint}
-                  disabled={!fodaIconosEnabled}
-                  onChange={(e) => setFodaIconTint(e.target.value)}
-                  aria-label="Color del icono FODA"
+                    <div className="dash-customize-foda-toggles">
+                      <label className="dash-dim-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={fodaIconosEnabled}
+                          onChange={(e) => setFodaIconosEnabled(e.target.checked)}
+                        />
+                        Usar iconos cuando la vista lo permita
+                      </label>
+                      <label className="dash-dim-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={fodaIconLegend}
+                          disabled={!fodaIconosEnabled}
+                          onChange={(e) => setFodaIconLegend(e.target.checked)}
+                        />
+                        Mostrar leyenda de iconos
+                      </label>
+                      <label className="dash-dim-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={fodaShowTotal}
+                          onChange={(e) => setFodaShowTotal(e.target.checked)}
+                        />
+                        Mostrar Total
+                      </label>
+                    </div>
+
+                    <div className="dash-customize-field-grid">
+                      <label className="dash-customize-color-field">
+                        <span className="dash-filtro-label">Color icono</span>
+                        <input
+                          type="color"
+                          value={fodaIconTint}
+                          disabled={!fodaIconosEnabled}
+                          onChange={(e) => setFodaIconTint(e.target.value)}
+                        />
+                      </label>
+                      <SliderField
+                        id="dash-foda-icon-size"
+                        label="Tamaño"
+                        min={0.5}
+                        max={1.8}
+                        step={0.05}
+                        value={fodaIconSize}
+                        suffix="x"
+                        disabled={!fodaIconosEnabled}
+                        onChange={setFodaIconSize}
+                      />
+                    </div>
+
+                    <div className="dash-customize-foda-limits">
+                      <SliderField id="dash-foda-score-min" label="Puntaje mín." min={0} max={95} step={5} value={fodaScoreMin} onChange={setFodaScoreMin} />
+                      <SliderField id="dash-foda-score-max" label="Puntaje máx." min={60} max={140} step={5} value={fodaScoreMax} onChange={setFodaScoreMax} />
+                      <SliderField id="dash-foda-spacing" label="Separación" min={0.7} max={1.8} step={0.05} value={fodaSpacing} suffix="x" onChange={setFodaSpacing} />
+                      <SliderField id="dash-foda-grid-intensity" label="Grilla" min={0} max={1} step={0.05} value={fodaGridIntensity} suffix="%" format={(v) => `${Math.round(v * 100)}%`} onChange={setFodaGridIntensity} />
+                    </div>
+
+                    {activeView.id === "conductores" ? (
+                      <p className="dash-customize-help">
+                        Conductores usa las dimensiones curadas del módulo Analítica. Sus iconos salen de cada dimensión.
+                      </p>
+                    ) : (
+                      <div className="dash-customize-category-editor">
+                        <div className="dash-customize-stops-head">
+                          <span className="dash-filtro-label">
+                            Categorías de {activeView.variable || "la variable"}
+                          </span>
+                          <button type="button" className="dash-quick-btn" onClick={() => addCategory(activeView)}>
+                            <Plus size={14} /> Categoría
+                          </button>
+                        </div>
+                        {activeCategories.length === 0 ? (
+                          <p className="dash-customize-help">Agrega categorías para definir sus alias o logos.</p>
+                        ) : (
+                          <div className="dash-customize-category-list">
+                            {activeCategories.map((category) => (
+                              <CategoryEditorRow
+                                key={category}
+                                view={activeView}
+                                category={category}
+                                onAlias={setFodaViewAlias}
+                                onIcon={setFodaViewIcon}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {panel === "graficos" && (
+              <section className="dash-customize-panel">
+                <PanelTitle
+                  title="Gráficos"
+                  text="Controla orientación de barras y comportamiento del radar sin tocar los datos."
                 />
-              </label>
-              <div className="dash-customize-slider-row">
-                <label htmlFor="dash-foda-icon-size" className="dash-filtro-label">
-                  Tamaño
-                </label>
-                <input
-                  id="dash-foda-icon-size"
-                  type="range"
-                  min={0.5}
-                  max={1.8}
-                  step={0.05}
-                  value={fodaIconSize}
-                  disabled={!fodaIconosEnabled}
-                  onChange={(e) => setFodaIconSize(Number(e.target.value))}
-                  className="dash-customize-slider"
-                  aria-valuetext={`${fodaIconSize.toFixed(1)}x`}
+                <SettingBlock title="Barras" icon={<BarChart3 size={16} />}>
+                  <Segmented
+                    label="Orientación de barras"
+                    value={barrasOrientacion}
+                    options={[
+                      ["horizontal", "Horizontal"],
+                      ["vertical", "Vertical"],
+                      ["facet", "Facet"],
+                    ]}
+                    onChange={(v) => setBarrasOrientacion(v as "horizontal" | "vertical" | "facet")}
+                  />
+                  <SliderField id="dash-barras-min" label="Mín" min={0} max={90} step={5} value={barrasXMin} onChange={setBarrasXMin} />
+                  <SliderField id="dash-barras-max" label="Máx" min={Math.max(barrasXMin + 10, 50)} max={200} step={5} value={barrasXMax} onChange={setBarrasXMax} />
+                </SettingBlock>
+                <SettingBlock title="Radar" icon={<Radar size={16} />}>
+                  <Segmented
+                    label="Forma de grilla"
+                    value={radarGridshape}
+                    options={[
+                      ["linear", "Polígono"],
+                      ["circular", "Circular"],
+                    ]}
+                    onChange={(v) => setRadarGridshape(v as "linear" | "circular")}
+                  />
+                  <Segmented
+                    label="Modo"
+                    value={radarModo}
+                    options={[
+                      ["uno", "Uno"],
+                      ["facet", "Facet"],
+                      ["alternante", "Alternante"],
+                    ]}
+                    onChange={(v) => setRadarModo(v as "uno" | "facet" | "alternante")}
+                  />
+                  <label className="dash-dim-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={radarAnimado}
+                      onChange={(e) => setRadarAnimado(e.target.checked)}
+                    />
+                    Animar entrada de mayor a menor
+                  </label>
+                  <SliderField id="dash-radar-min" label="Mín" min={0} max={95} step={5} value={radarMin} onChange={setRadarMin} />
+                  <SliderField id="dash-radar-max" label="Máx" min={Math.max(radarMin + 5, 50)} max={200} step={5} value={radarMax} onChange={setRadarMax} />
+                </SettingBlock>
+              </section>
+            )}
+
+            {panel === "semaforo" && (
+              <section className="dash-customize-panel">
+                <PanelTitle
+                  title="Semáforo"
+                  text="Ajusta colores y cortes para los indicadores de score. Los cortes finos no ensucian la leyenda."
                 />
-                <span className="dash-customize-slider-value">
-                  {fodaIconSize.toFixed(1)}x
-                </span>
-              </div>
-            </div>
-            <div className="dash-customize-foda-preview" aria-hidden="true">
-              <span style={{ background: "#4A9377" }}>
-                <Image size={Math.round(18 * fodaIconSize)} color={fodaIconTint} />
-              </span>
-              <span style={{ background: "#D18755" }}>
-                <Image size={Math.round(18 * fodaIconSize)} color={fodaIconTint} />
-              </span>
-              <span style={{ background: "#4F8195" }}>
-                <Image size={Math.round(18 * fodaIconSize)} color={fodaIconTint} />
-              </span>
-            </div>
-            <div className="dash-customize-foda-limits">
-              <div className="dash-customize-slider-row">
-                <label htmlFor="dash-foda-spacing" className="dash-filtro-label">
-                  Separación
-                </label>
-                <input
-                  id="dash-foda-spacing"
-                  type="range"
-                  min={0.7}
-                  max={1.8}
-                  step={0.05}
-                  value={fodaSpacing}
-                  onChange={(e) => setFodaSpacing(Number(e.target.value))}
-                  className="dash-customize-slider"
-                  aria-valuetext={`${fodaSpacing.toFixed(2)}x`}
+                <Segmented
+                  label="Modo del semáforo"
+                  value={semaforoModo}
+                  options={[
+                    ["cortes", "Cortes"],
+                    ["gradiente", "Gradiente"],
+                  ]}
+                  onChange={(v) => setSemaforoModo(v as "cortes" | "gradiente")}
                 />
-                <span className="dash-customize-slider-value">
-                  {fodaSpacing.toFixed(2)}x
-                </span>
-              </div>
-              <div className="dash-customize-slider-row">
-                <label htmlFor="dash-foda-grid-intensity" className="dash-filtro-label">
-                  Grilla
-                </label>
-                <input
-                  id="dash-foda-grid-intensity"
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={fodaGridIntensity}
-                  onChange={(e) => setFodaGridIntensity(Number(e.target.value))}
-                  className="dash-customize-slider"
-                  aria-valuetext={`${Math.round(fodaGridIntensity * 100)}%`}
+                <div className="dash-customize-sem-grid">
+                  <ColorField label="Bajo" value={semRed} onChange={setSemaforoRedColor} />
+                  <ColorField label="Medio" value={semAmber} onChange={setSemaforoAmberColor} />
+                  <ColorField label="Alto" value={semGreen} onChange={setSemaforoGreenColor} />
+                </div>
+                <SliderField id="dash-sem-red-max" label="Bajo <" min={5} max={95} step={1} value={semRedMax} onChange={setSemaforoRedMax} />
+                <SliderField id="dash-sem-amber-max" label="Medio <" min={semRedMax + 1} max={99} step={1} value={semAmberMax} onChange={setSemaforoAmberMax} />
+                <SemaforoPreview
+                  modo={semaforoModo}
+                  red={semRed}
+                  amber={semAmber}
+                  green={semGreen}
+                  redMax={semRedMax}
+                  amberMax={semAmberMax}
+                  stopsExtra={semStopsExtra}
                 />
-                <span className="dash-customize-slider-value">
-                  {Math.round(fodaGridIntensity * 100)}%
-                </span>
-              </div>
-            </div>
-            <div className="dash-customize-foda-limits">
-              <div className="dash-customize-slider-row">
-                <label htmlFor="dash-foda-score-min" className="dash-filtro-label">
-                  Puntaje mín.
-                </label>
-                <input
-                  id="dash-foda-score-min"
-                  type="range"
-                  min={0}
-                  max={95}
-                  step={5}
-                  value={fodaScoreMin}
-                  onChange={(e) => setFodaScoreMin(Number(e.target.value))}
-                  className="dash-customize-slider"
-                  aria-valuetext={`${fodaScoreMin}`}
-                />
-                <span className="dash-customize-slider-value">{fodaScoreMin}</span>
-              </div>
-              <div className="dash-customize-slider-row">
-                <label htmlFor="dash-foda-score-max" className="dash-filtro-label">
-                  Puntaje máx.
-                </label>
-                <input
-                  id="dash-foda-score-max"
-                  type="range"
-                  min={60}
-                  max={140}
-                  step={5}
-                  value={fodaScoreMax}
-                  onChange={(e) => setFodaScoreMax(Number(e.target.value))}
-                  className="dash-customize-slider"
-                  aria-valuetext={`${fodaScoreMax}`}
-                />
-                <span className="dash-customize-slider-value">{fodaScoreMax}</span>
-              </div>
-            </div>
-          </section>
+                <div className="dash-customize-stops">
+                  <div className="dash-customize-stops-head">
+                    <span className="dash-filtro-label">Cortes finos</span>
+                    <button
+                      type="button"
+                      className="dash-quick-btn"
+                      onClick={() => addSemaforoStop({ value: 50, color: "#FFFFFF" })}
+                    >
+                      <Plus size={14} /> Corte
+                    </button>
+                  </div>
+                  {semStopsExtra.length === 0 ? (
+                    <p className="dash-customize-help">Sin cortes extra.</p>
+                  ) : (
+                    <ul className="dash-customize-stops-list">
+                      {semStopsExtra.map((stop, i) => (
+                        <li key={i} className="dash-customize-stops-item">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={stop.value}
+                            onChange={(e) => updateSemaforoStop(i, { value: Number(e.target.value) })}
+                            className="dash-input"
+                          />
+                          <input
+                            type="color"
+                            value={stop.color}
+                            onChange={(e) => updateSemaforoStop(i, { color: e.target.value })}
+                          />
+                          <button
+                            type="button"
+                            className="dash-customize-stops-remove"
+                            onClick={() => removeSemaforoStop(i)}
+                            aria-label={`Quitar corte ${i + 1}`}
+                          >
+                            ×
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </section>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
+}
+
+function PanelTitle({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="dash-customize-panel-title">
+      <h3>{title}</h3>
+      <p>{text}</p>
+    </div>
+  );
+}
+
+function SettingBlock({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+  return (
+    <div className="dash-customize-setting-block">
+      <div className="dash-customize-setting-title">
+        {icon}
+        <strong>{title}</strong>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Segmented({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Array<[string, string]>;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <span className="dash-filtro-label">{label}</span>
+      <div
+        className="dash-source-segments"
+        role="tablist"
+        aria-label={label}
+        style={{ marginTop: 8, gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+      >
+        {options.map(([id, labelText]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={value === id}
+            className={`dash-source-segment ${value === id ? "is-active" : ""}`}
+            onClick={() => onChange(id)}
+          >
+            {labelText}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SliderField({
+  id,
+  label,
+  min,
+  max,
+  step,
+  value,
+  suffix,
+  disabled,
+  format,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  suffix?: string;
+  disabled?: boolean;
+  format?: (value: number) => string;
+  onChange: (value: number) => void;
+}) {
+  const text = format ? format(value) : `${Number.isInteger(value) ? value : value.toFixed(2)}${suffix ?? ""}`;
+  return (
+    <div className="dash-customize-slider-row">
+      <label htmlFor={id} className="dash-filtro-label">{label}</label>
+      <input
+        id={id}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="dash-customize-slider"
+      />
+      <span className="dash-customize-slider-value">{text}</span>
+    </div>
+  );
+}
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="dash-customize-color-field">
+      <span className="dash-filtro-label">{label}</span>
+      <input type="color" value={value} onChange={(e) => onChange(e.target.value)} />
+    </label>
+  );
+}
+
+function CategoryEditorRow({
+  view,
+  category,
+  onAlias,
+  onIcon,
+}: {
+  view: DashboardFodaViewConfig;
+  category: string;
+  onAlias: (id: string, category: string, alias: string) => void;
+  onIcon: (id: string, category: string, icon: string) => void;
+}) {
+  const alias = view.aliases?.[category] ?? "";
+  const icon = view.icons?.[category] ?? "";
+  const isIconMode = view.card_mode === "iconos";
+
+  function readIconFile(file: File | null) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") onIcon(view.id, category, reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div className="dash-customize-category-row">
+      <div className="dash-customize-category-key">
+        <span>{category}</span>
+        <small>valor real</small>
+      </div>
+      <label>
+        <span className="dash-filtro-label">Alias</span>
+        <input
+          className="dash-input"
+          value={alias}
+          placeholder={initialsAlias(category)}
+          onChange={(e) => onAlias(view.id, category, e.target.value)}
+        />
+      </label>
+      <label>
+        <span className="dash-filtro-label">Logo / icono</span>
+        <div className="dash-customize-icon-field">
+          <span className="dash-customize-icon-preview">
+            {icon ? <img src={icon} alt="" /> : <Image size={16} />}
+          </span>
+          <input
+            className="dash-input"
+            value={icon}
+            disabled={!isIconMode}
+            placeholder="URL, ruta o data:image"
+            onChange={(e) => onIcon(view.id, category, e.target.value)}
+          />
+          <label className={`dash-customize-upload ${!isIconMode ? "is-disabled" : ""}`}>
+            <Upload size={14} />
+            <input
+              type="file"
+              accept="image/*"
+              disabled={!isIconMode}
+              onChange={(e) => readIconFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+        </div>
+      </label>
+      <button
+        type="button"
+        className="dash-customize-danger"
+        onClick={() => {
+          onAlias(view.id, category, "");
+          onIcon(view.id, category, "");
+        }}
+        title="Limpiar categoría"
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
+  );
+}
+
+function fodaCategoriesForView(view: DashboardFodaViewConfig): string[] {
+  const seed =
+    view.variable === "distrito"
+      ? Object.keys(DEFAULT_FODA_VIEWS.find((v) => v.id === "municipios")?.aliases ?? {})
+      : view.variable === "servicio"
+      ? DEFAULT_FODA_SERVICE_CATEGORIES
+      : [];
+  return [...new Set([
+    ...seed,
+    ...Object.keys(view.aliases ?? {}),
+    ...Object.keys(view.icons ?? {}),
+  ])].filter(Boolean);
+}
+
+function initialsAlias(value: string): string {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "CAT";
+  if (words.length === 1) return words[0].slice(0, 4).toUpperCase();
+  return words.slice(0, 3).map((word) => word[0]?.toUpperCase() ?? "").join("");
 }
 
 function SemaforoPreview({
@@ -587,8 +696,6 @@ function SemaforoPreview({
   amberMax: number;
   stopsExtra?: { value: number; color: string }[];
 }) {
-  // Combina los stops base con los extras y arma un linear-gradient con
-  // todos. Para "cortes" duplicamos cada stop para hacer saltos abruptos.
   const stops = [
     { value: 0, color: red },
     { value: redMax, color: amber },
@@ -619,14 +726,16 @@ function SemaforoPreview({
       <div className="dash-customize-preview-bar" style={{ background: bg }} />
       <div
         className="dash-customize-preview-marks"
-        style={{
-          gridTemplateColumns: `${redMax}fr ${amberMax - redMax}fr ${100 - amberMax}fr`,
-        }}
+        style={{ gridTemplateColumns: `${redMax}fr ${amberMax - redMax}fr ${100 - amberMax}fr` }}
       >
-        <span>0–{redMax}</span>
-        <span>{redMax}–{amberMax}</span>
-        <span>{amberMax}–100</span>
+        <span>0-{redMax}</span>
+        <span>{redMax}-{semAmberMaxSafe(redMax, amberMax)}</span>
+        <span>{amberMax}-100</span>
       </div>
     </div>
   );
+}
+
+function semAmberMaxSafe(redMax: number, amberMax: number) {
+  return Math.max(redMax + 1, amberMax);
 }

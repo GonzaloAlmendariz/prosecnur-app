@@ -3,6 +3,7 @@ import {
   Accessibility,
   BarChart3,
   Building2,
+  BriefcaseBusiness,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -16,6 +17,7 @@ import {
   Grid3x3,
   ScatterChart,
   type LucideIcon,
+  UsersRound,
 } from "lucide-react";
 import type {
   DashboardDimFodaCuadrante,
@@ -25,6 +27,7 @@ import type {
   DashboardDimSeccionesPayload,
 } from "../../../../api/client";
 import {
+  DEFAULT_FODA_VIEWS,
   useDashboardStore,
   type DashboardDimVisualMode,
 } from "../../store";
@@ -66,6 +69,10 @@ export function DimensionesTab() {
   const fodaShowTotal = useDashboardStore((s) => s.config.foda_show_total ?? true);
   const fodaSpacing = useDashboardStore((s) => s.config.foda_spacing ?? 1.15);
   const fodaGridIntensity = useDashboardStore((s) => s.config.foda_grid_intensity ?? 0.42);
+  const fodaVista = useDashboardStore((s) => s.config.foda_vista ?? "conductores");
+  const fodaViews = useDashboardStore((s) => s.config.foda_views ?? DEFAULT_FODA_VIEWS);
+  const fodaAliases = useDashboardStore((s) => s.config.foda_aliases ?? {});
+  const fodaServiceIcons = useDashboardStore((s) => s.config.foda_service_icons ?? {});
   const setDim = useDashboardStore((s) => s.setDimensiones);
 
   const { loading: loadingCat, error: errCat, payload: catalogo } = useDimCatalogo();
@@ -98,6 +105,10 @@ export function DimensionesTab() {
     foda_show_total: fodaShowTotal,
     foda_spacing: fodaSpacing,
     foda_grid_intensity: fodaGridIntensity,
+    foda_vista: fodaVista,
+    foda_views: fodaViews,
+    foda_aliases: fodaAliases,
+    foda_service_icons: fodaServiceIcons,
   }), [
     fodaIconosEnabled,
     fodaIconTint,
@@ -108,6 +119,10 @@ export function DimensionesTab() {
     fodaShowTotal,
     fodaSpacing,
     fodaGridIntensity,
+    fodaVista,
+    fodaViews,
+    fodaAliases,
+    fodaServiceIcons,
   ]);
 
   const { loading, error, payload } = useDimPayload({
@@ -496,27 +511,66 @@ function PanelIterar({
             ))}
           </select>
           {variable && niveles.length > 0 && (
-            <>
-              <label htmlFor="dim-it-level" className="dash-dim-label" style={{ marginTop: 8 }}>
-                Nivel
-              </label>
-              <select
-                id="dim-it-level"
-                className="dash-select"
-                value={level}
-                onChange={(e) => onLevel(e.target.value)}
-              >
-                {niveles.map((n) => (
-                  <option key={n.value} value={n.value}>
-                    {n.label} (n={Math.round(n.base)})
-                  </option>
-                ))}
-              </select>
-            </>
+            <DimIterLevelControl niveles={niveles} level={level} onLevel={onLevel} />
           )}
         </>
       )}
     </>
+  );
+}
+
+function DimIterLevelControl({
+  niveles,
+  level,
+  onLevel,
+}: {
+  niveles: { value: string; label: string; base?: number }[];
+  level: string;
+  onLevel: (l: string) => void;
+}) {
+  const idx = Math.max(0, niveles.findIndex((n) => n.value === level));
+  const current = niveles[idx] ?? niveles[0];
+  const prev = niveles[(idx - 1 + niveles.length) % niveles.length];
+  const next = niveles[(idx + 1) % niveles.length];
+
+  return (
+    <div className="dash-dim-iter-level" aria-label="Nivel de iteración">
+      <label htmlFor="dim-it-level" className="dash-dim-label">
+        Nivel
+      </label>
+      <div className="dash-iter-stepper is-sidebar" role="group">
+        <button
+          type="button"
+          className="dash-iter-stepper-btn"
+          onClick={() => onLevel(prev.value)}
+          aria-label={`Anterior: ${prev.label}`}
+          title={`Anterior: ${prev.label}`}
+        >
+          <ChevronLeft size={14} />
+        </button>
+        <select
+          id="dim-it-level"
+          className="dash-iter-stepper-select"
+          value={current.value}
+          onChange={(e) => onLevel(e.target.value)}
+        >
+          {niveles.map((n) => (
+            <option key={n.value} value={n.value}>
+              {n.label} (n={Math.round(n.base ?? 0)})
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="dash-iter-stepper-btn"
+          onClick={() => onLevel(next.value)}
+          aria-label={`Siguiente: ${next.label}`}
+          title={`Siguiente: ${next.label}`}
+        >
+          <ChevronRight size={14} />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -608,33 +662,38 @@ function VisualizadorCard({
         }
         className="dash-dim-vis-body"
       >
-      <div key={visualMode}>
-        {visualMode === "foda" ? (
-          fodaLoading && !foda ? (
-            <DimSkeleton mode="foda" />
-          ) : fodaError ? (
-            <EmptyState title="No se pudo calcular FODA" subtitle={fodaError} />
-          ) : !foda || !foda.ready ? (
-            <DimSkeleton mode="foda" />
-          ) : foda.error ? (
-            <EmptyState title="Sin datos para FODA" subtitle={foda.error} />
-          ) : (
-            <FodaView payload={foda} />
-          )
-        ) : payloadLoading && !payload ? (
-          <DimSkeleton mode={visualMode} />
-        ) : payloadError ? (
-          <EmptyState title="No se pudieron calcular las dimensiones" subtitle={payloadError} />
-        ) : !payload || !payload.ready ? (
-          <DimSkeleton mode={visualMode} />
-        ) : payload.error ? (
-          <EmptyState title="Sin datos para esta vista" subtitle={payload.error} />
-        ) : visualMode === "heatmap" ? (
-          <HeatmapView payload={payload} />
-        ) : (
-          <MainPlotView payload={payload} visualMode={visualMode} />
+        {(maxed) => (
+          <div
+            key={visualMode}
+            className={maxed ? "dash-dim-fullscreen-content" : undefined}
+          >
+            {visualMode === "foda" ? (
+              fodaLoading && !foda ? (
+                <DimSkeleton mode="foda" />
+              ) : fodaError ? (
+                <EmptyState title="No se pudo calcular FODA" subtitle={fodaError} />
+              ) : !foda || !foda.ready ? (
+                <DimSkeleton mode="foda" />
+              ) : foda.error ? (
+                <EmptyState title="Sin datos para FODA" subtitle={foda.error} />
+              ) : (
+                <FodaView payload={foda} maxed={maxed} />
+              )
+            ) : payloadLoading && !payload ? (
+              <DimSkeleton mode={visualMode} />
+            ) : payloadError ? (
+              <EmptyState title="No se pudieron calcular las dimensiones" subtitle={payloadError} />
+            ) : !payload || !payload.ready ? (
+              <DimSkeleton mode={visualMode} />
+            ) : payload.error ? (
+              <EmptyState title="Sin datos para esta vista" subtitle={payload.error} />
+            ) : visualMode === "heatmap" ? (
+              <HeatmapView payload={payload} />
+            ) : (
+              <MainPlotView payload={payload} visualMode={visualMode} maxed={maxed} />
+            )}
+          </div>
         )}
-      </div>
       </FullscreenWrapper>
     </section>
   );
@@ -843,9 +902,11 @@ function HeatmapView({ payload }: { payload: DashboardDimPayload }) {
 function MainPlotView({
   payload,
   visualMode,
+  maxed = false,
 }: {
   payload: DashboardDimPayload;
   visualMode: "barras" | "radar";
+  maxed?: boolean;
 }) {
   const rows = payload.score_plot ?? [];
   const groups = useMemo(() => uniqueOrdered(rows.map((r) => r.grupo)), [rows]);
@@ -880,6 +941,7 @@ function MainPlotView({
   const barrasOrientacion = config.barras_orientacion ?? "horizontal";
   const barrasXMin = config.barras_x_min ?? 0;
   const barrasXMax = config.barras_x_max ?? 100;
+  const viewportH = typeof window === "undefined" ? 900 : window.innerHeight;
   // Para modo radar "alternante": índice del grupo activo (cicla entre grupos).
   const [alternanteIdx, setAlternanteIdx] = useState(0);
 
@@ -905,11 +967,12 @@ function MainPlotView({
   // ── Modo BARRAS ────────────────────────────────────────────────────────
   if (visualMode === "barras") {
     if (barrasOrientacion === "facet") {
-      // Facet: divide los axes en dos mitades y renderiza dos sub-plots
-      // horizontales lado a lado (top half / bottom half).
+      // Facet: divide los axes en dos mitades y renderiza dos filas
+      // horizontales (mitad arriba / mitad abajo).
       const half = Math.ceil(axes.length / 2);
       const left = axes.slice(0, half);
       const right = axes.slice(half);
+      const facetHeight = maxed ? Math.max(320, (viewportH - 170) / 2) : undefined;
       return (
         <div className="dash-dim-bars-facet">
           <BarrasPlot
@@ -921,7 +984,9 @@ function MainPlotView({
             xMin={barrasXMin}
             xMax={barrasXMax}
             colorOfScore={colorOfScore}
-            ariaLabel="Barras facet izquierda"
+            ariaLabel="Barras facet superior"
+            heightOverride={facetHeight}
+            showLegend={false}
           />
           <BarrasPlot
             axes={right}
@@ -932,7 +997,9 @@ function MainPlotView({
             xMin={barrasXMin}
             xMax={barrasXMax}
             colorOfScore={colorOfScore}
-            ariaLabel="Barras facet derecha"
+            ariaLabel="Barras facet inferior"
+            heightOverride={facetHeight}
+            showLegend
           />
         </div>
       );
@@ -948,6 +1015,7 @@ function MainPlotView({
         xMax={barrasXMax}
         colorOfScore={colorOfScore}
         ariaLabel="Barras de scores"
+        heightOverride={maxed ? Math.max(520, viewportH - 130) : undefined}
       />
     );
   }
@@ -955,12 +1023,17 @@ function MainPlotView({
   // ── Modo RADAR ─────────────────────────────────────────────────────────
   // Si está animado, ordenar axes por score desc del primer grupo (Total).
   const radarAxes = (() => {
-    if (!radarAnimado) {
-      return payload.axis_order_plot?.length
-        ? [...payload.axis_order_plot]
-        : uniqueOrdered(rows.map((r) => r.axis_label));
+    const fallback = payload.axis_order_plot?.length
+      ? [...payload.axis_order_plot]
+      : uniqueOrdered(rows.map((r) => r.axis_label));
+    if (!radarAnimado) return fallback;
+    const refGroup = groups[0];
+    const scoreByAxis = new Map<string, number>();
+    for (const axis of fallback) {
+      const row = rows.find((r) => r.axis_label === axis && r.grupo === refGroup);
+      scoreByAxis.set(axis, row?.score_round ?? -Infinity);
     }
-    return [...axes];
+    return [...fallback].sort((a, b) => (scoreByAxis.get(b)! - scoreByAxis.get(a)!));
   })();
 
   if (radarModo === "facet" && groups.length > 1) {
@@ -978,7 +1051,7 @@ function MainPlotView({
             gridshape={radarGridshape}
             animado={radarAnimado}
             title={g}
-            height={360}
+            height={maxed ? 460 : 360}
           />
         ))}
       </div>
@@ -1005,7 +1078,7 @@ function MainPlotView({
           radarMax={radarMax}
           gridshape={radarGridshape}
           animado={radarAnimado}
-          height={560}
+          height={maxed ? Math.max(620, viewportH - 180) : 560}
         />
       </>
     );
@@ -1021,7 +1094,7 @@ function MainPlotView({
       radarMax={radarMax}
       gridshape={radarGridshape}
       animado={radarAnimado}
-      height={600}
+      height={maxed ? Math.max(640, viewportH - 140) : 600}
     />
   );
 }
@@ -1039,6 +1112,8 @@ function BarrasPlot({
   xMax,
   colorOfScore,
   ariaLabel,
+  heightOverride,
+  showLegend,
 }: {
   axes: string[];
   groups: string[];
@@ -1049,8 +1124,11 @@ function BarrasPlot({
   xMax: number;
   colorOfScore: (v: number | null | undefined) => string | null;
   ariaLabel: string;
+  heightOverride?: number;
+  showLegend?: boolean;
 }) {
   const isV = orientation === "vertical";
+  const shouldShowLegend = showLegend ?? groups.length > 1;
   const traces = groups.map((g) => {
     const vals = axes.map((a) => {
       const row = rows.find((x) => x.grupo === g && x.axis_label === a);
@@ -1127,9 +1205,9 @@ function BarrasPlot({
           ticktext: axes,
         },
         yaxis: { range: numericRange, fixedrange: true, tickfont: { size: 11 }, tickvals: numericTicks },
-        showlegend: groups.length > 1,
+        showlegend: shouldShowLegend,
         legend: { orientation: "h", x: 0.5, xanchor: "center", y: -0.18 },
-        margin: { t: 16, r: 24, b: 80, l: 40 },
+        margin: { t: 16, r: 24, b: shouldShowLegend ? 80 : 34, l: 40 },
         annotations,
         bargap: 0.2,
         bargroupgap: 0,
@@ -1145,9 +1223,9 @@ function BarrasPlot({
           tickvals: axes,
           ticktext: axes,
         },
-        showlegend: groups.length > 1,
+        showlegend: shouldShowLegend,
         legend: { orientation: "h", x: 0.5, xanchor: "center", y: -0.18 },
-        margin: { t: 16, r: 24, b: 50, l: 24 },
+        margin: { t: 16, r: 24, b: shouldShowLegend ? 50 : 24, l: 24 },
         annotations,
         bargap: 0.2,
         bargroupgap: 0,
@@ -1161,7 +1239,7 @@ function BarrasPlot({
     <PlotlyChart
       data={traces}
       layout={layout}
-      height={altura}
+      height={heightOverride ?? altura}
       ariaLabel={ariaLabel}
     />
   );
@@ -1322,11 +1400,21 @@ const CUADRANTE_DESC: Record<DashboardDimFodaCuadrante, string> = {
 
 function FodaView({
   payload,
+  maxed = false,
 }: {
   payload: DashboardDimFodaPayload;
+  maxed?: boolean;
 }) {
   const items = payload.items ?? [];
   const showTotal = useDashboardStore((s) => s.config.foda_show_total ?? true);
+  const fodaVista = useDashboardStore((s) => s.config.foda_vista ?? "conductores");
+  const fodaViews = useDashboardStore((s) => s.config.foda_views ?? DEFAULT_FODA_VIEWS);
+  const setFodaVista = useDashboardStore((s) => s.setFodaVista);
+  const activeView = useMemo(
+    () => fodaViews.find((view) => view.id === fodaVista) ?? fodaViews[0] ?? DEFAULT_FODA_VIEWS[0],
+    [fodaViews, fodaVista],
+  );
+  const itemKind = payload.item_kind ?? fodaVista ?? "conductores";
   const [selectedGroup, setSelectedGroup] = useState<string>("__all__");
   const groupOptions = useMemo(() => {
     const seen = new Map<string, string>();
@@ -1336,29 +1424,51 @@ function FodaView({
       const key = it.grupo_key || label;
       if (!seen.has(key)) seen.set(key, label);
     }
-    return [...seen.entries()].map(([key, label]) => ({ key, label }));
+    const options = [...seen.entries()].map(([key, label]) => ({ key, label }));
+    return options.length > 1 ? options : [];
   }, [items, showTotal]);
   useEffect(() => {
+    if (!groupOptions.length) setSelectedGroup("__all__");
     if (selectedGroup === "__all__") return;
     if (groupOptions.some((g) => g.key === selectedGroup)) return;
     setSelectedGroup("__all__");
   }, [groupOptions, selectedGroup]);
-  const visibleItems = useMemo(
+  const fodaItems = useMemo(
     () => items.filter((it) => {
       if (!showTotal && isFodaTotalItem(it)) return false;
+      return true;
+    }),
+    [items, showTotal],
+  );
+  const activeItems = useMemo(
+    () => fodaItems.filter((it) => {
       if (selectedGroup === "__all__") return true;
       return (it.grupo_key || it.grupo || "Total") === selectedGroup;
     }),
-    [items, selectedGroup, showTotal],
+    [fodaItems, selectedGroup],
   );
   const counts = useMemo(
-    () => countFodaQuadrants(visibleItems),
-    [visibleItems],
+    () => countFodaQuadrants(activeItems),
+    [activeItems],
   );
 
   return (
-    <div className="dash-foda">
+    <div className={`dash-foda ${maxed ? "is-fullscreen" : ""}`}>
       <div className="dash-foda-toolbar">
+        <div className="dash-foda-view-switch" role="tablist" aria-label="Vista FODA">
+          {fodaViews.map((view) => (
+            <button
+              key={view.id}
+              type="button"
+              role="tab"
+              aria-selected={fodaVista === view.id}
+              className={`dash-source-segment ${fodaVista === view.id ? "is-active" : ""}`}
+              onClick={() => setFodaVista(view.id)}
+            >
+              {view.label}
+            </button>
+          ))}
+        </div>
         <div className="dash-foda-cortes" aria-label="Cortes FODA">
           <span><strong>Corte score:</strong> {payload.cortes?.score ?? 80}</span>
           <span className="dash-foda-cortes-sep">·</span>
@@ -1373,7 +1483,11 @@ function FodaView({
         )}
         <FodaCounts counts={counts} payload={payload} />
       </div>
-      <FodaDispersion items={visibleItems} payload={payload} />
+      <FodaDispersion
+        items={fodaItems}
+        payload={payload}
+        selectedGroup={selectedGroup}
+      />
     </div>
   );
 }
@@ -1393,7 +1507,7 @@ function FodaGroupNav({
 }) {
   const ALL: { key: string; label: string } = { key: "__all__", label: "Todos" };
   const all = [ALL, ...options];
-  const useStepper = options.length > 4;
+  const useStepper = options.length > 3 || options.some((o) => o.label.length > 18);
 
   if (useStepper) {
     const idx = Math.max(0, all.findIndex((o) => o.key === selected));
@@ -1491,9 +1605,11 @@ function FodaCounts({
 function FodaDispersion({
   items,
   payload,
+  selectedGroup,
 }: {
   items: DashboardDimFodaItem[];
   payload: DashboardDimFodaPayload;
+  selectedGroup: string;
 }) {
   const semaforo = payload.semaforo!;
   const corteScore = payload.cortes?.score ?? 80;
@@ -1564,39 +1680,72 @@ function FodaDispersion({
             style={{ top: `${plot.cutY}%` }}
             aria-hidden="true"
           />
-          {plot.points.map((p) => (
-            <div
-              key={p.key}
-              className={`dash-foda-legacy-card ${isFodaTotalItem(p) ? "is-total" : ""}`}
-              style={{
-                left: `${p.left}%`,
-                top: `${p.top}%`,
-                background: p.color,
-                ["--dash-foda-icon-scale" as string]: iconScale,
-                ["--dash-foda-card-scale" as string]: iconScale,
-              }}
-              title={`${p.axis_label}${p.grupo ? ` · ${p.grupo}` : ""}\nPuntaje: ${p.score_mean}\nSD: ${p.score_sd}\nn: ${p.n_valid}`}
-            >
-              <span className="dash-foda-legacy-title">
-                {fodaIconosEnabled ? (
-                  <FodaAxisIcon
-                    label={p.axis_label}
-                    src={p.icono_url}
-                    tint={fodaIconTint}
-                    scale={iconScale}
-                  />
-                ) : (
-                  shortAxisLabel(p.axis_label)
-                )}
-              </span>
-              <span
-                className="dash-foda-legacy-score"
-                style={{ background: semColorOfScore(p.score_mean, sem) ?? sem.green }}
+          {plot.points.map((p) => {
+            const groupKey = p.grupo_key || p.grupo || "Total";
+            const isFiltered = selectedGroup !== "__all__";
+            const isActive = !isFiltered || groupKey === selectedGroup;
+            const scoreText = formatFodaMetric(p.score_mean);
+            const sdText = formatFodaMetric(p.score_sd);
+            const pointKind = p.item_kind ?? payload.item_kind ?? "conductores";
+            const cardMode = p.card_mode ?? payload.card_mode ?? (pointKind === "municipios" ? "alias" : "iconos");
+            const usePointIcon = fodaIconosEnabled && cardMode !== "alias";
+            const cardLabel = (p.card_label || "").trim() || shortAxisLabel(p.axis_label);
+            const showGroup = Boolean(p.grupo) && p.grupo_key !== pointKind && p.grupo !== payload.item_label;
+            return (
+              <div
+                key={p.key}
+                className={[
+                  "dash-foda-legacy-card",
+                  !usePointIcon ? "is-alias-card" : "",
+                  isFodaTotalItem(p) ? "is-total" : "",
+                  isFiltered ? (isActive ? "is-selected-group" : "is-muted-group") : "",
+                ].filter(Boolean).join(" ")}
+                style={{
+                  left: `${p.left}%`,
+                  top: `${p.top}%`,
+                  background: p.color,
+                  ["--dash-foda-icon-scale" as string]: iconScale,
+                  ["--dash-foda-card-scale" as string]: iconScale,
+                }}
+                tabIndex={0}
+                aria-label={`${p.axis_label}${showGroup ? `, ${p.grupo}` : ""}. Puntaje ${scoreText}. Desviación ${sdText}.`}
+                title={`${p.axis_label}${showGroup ? ` · ${p.grupo}` : ""}\nPuntaje: ${scoreText}\nDesviación: ${sdText}\nn: ${p.n_valid}`}
               >
-                {Math.round(p.score_mean)}
-              </span>
-            </div>
-          ))}
+                <span className="dash-foda-legacy-title">
+                  {usePointIcon ? (
+                    <FodaAxisIcon
+                      label={p.axis_label}
+                      src={p.icono_url}
+                      tint={fodaIconTint}
+                      scale={iconScale}
+                    />
+                  ) : (
+                    cardLabel
+                  )}
+                </span>
+                <span
+                  className="dash-foda-legacy-score"
+                  style={{ background: semColorOfScore(p.score_mean, sem) ?? sem.green }}
+                >
+                  {Math.round(p.score_mean)}
+                </span>
+                <span className="dash-foda-hover-card" role="tooltip">
+                  <span className="dash-foda-hover-title">{p.axis_label}</span>
+                  {showGroup && (
+                    <span className="dash-foda-hover-group">{p.grupo}</span>
+                  )}
+                  <span className="dash-foda-hover-row">
+                    <span>Puntaje</span>
+                    <strong>{scoreText}</strong>
+                  </span>
+                  <span className="dash-foda-hover-row">
+                    <span>Desviación</span>
+                    <strong>{sdText}</strong>
+                  </span>
+                </span>
+              </div>
+            );
+          })}
         </div>
         <div className="dash-foda-axis-note is-x-low">Menor dispersión</div>
         <div className="dash-foda-axis-note is-x-high">Mayor dispersión</div>
@@ -1629,7 +1778,13 @@ function FodaDispersion({
               .map((x) => Math.round(x.score_mean));
             const min = scores.length ? Math.min(...scores) : null;
             const max = scores.length ? Math.max(...scores) : null;
+            const uniqueScores = [...new Set(scores)].sort((a, b) => a - b);
             const same = min !== null && min === max;
+            const scoreText = uniqueScores.length <= 6
+              ? uniqueScores.join(", ")
+              : same
+              ? String(min)
+              : `${min}–${max}`;
             return (
               <span key={it.var} className="dash-foda-icon-legend-item">
                 <FodaAxisIcon
@@ -1640,10 +1795,11 @@ function FodaDispersion({
                 />
                 <span className="dash-foda-icon-legend-text">{it.label}</span>
                 {min !== null && (
-                  <span className="dash-foda-icon-legend-vals">
-                    {same
-                      ? min
-                      : `${min}–${max}`}
+                  <span
+                    className="dash-foda-icon-legend-vals"
+                    title={`Valores reales: ${uniqueScores.join(", ")}`}
+                  >
+                    {scoreText}
                   </span>
                 )}
               </span>
@@ -1667,6 +1823,11 @@ const FODA_FALLBACK_ICONS: Record<string, LucideIcon> = {
   informacion: Info,
   accesibilidad: Accessibility,
   ambiente: Building2,
+  ule: Building2,
+  ciam: UsersRound,
+  demuna: ShieldCheck,
+  omaped: Accessibility,
+  upsep: BriefcaseBusiness,
   confianza: ShieldCheck,
   comunicacion: MessageCircle,
   calidad: Sparkles,
@@ -1722,6 +1883,11 @@ function fodaIconKey(label: string): string {
   if (/info|informacion|comunicacion|orientacion|claridad/.test(s)) return "informacion";
   if (/acces|facil|discap|inclusion|tramite/.test(s)) return "accesibilidad";
   if (/ambi|ambiente|infra|espacio|local|instalac|comodidad/.test(s)) return "ambiente";
+  if (/\bule\b|unidad local|empadron/.test(s)) return "ule";
+  if (/\bciam\b|adulto mayor|mayor/.test(s)) return "ciam";
+  if (/\bdemuna\b|nina|nino|adolesc|familia/.test(s)) return "demuna";
+  if (/\bomaped\b|discapacidad|conadis/.test(s)) return "omaped";
+  if (/\bupsep\b|empleo|trabajo|bolsa/.test(s)) return "upsep";
   if (/confianza|seguridad|transparen|cumpl/.test(s)) return "confianza";
   if (/calidad|satisf|resultado|efectiv/.test(s)) return "calidad";
   return "default";
@@ -1902,6 +2068,11 @@ function colorToRgba(color: string, alpha: number): string {
 function formatFodaTick(v: number): string {
   if (!Number.isFinite(v)) return "0";
   if (v >= 10) return String(Math.round(v));
+  return v.toFixed(1).replace(/\.0$/, "");
+}
+
+function formatFodaMetric(v: number): string {
+  if (!Number.isFinite(v)) return "0";
   return v.toFixed(1).replace(/\.0$/, "");
 }
 

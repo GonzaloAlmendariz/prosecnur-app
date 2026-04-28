@@ -52,6 +52,7 @@
   --dash-dur-modal: 240ms;
   /* Easings (Emil curves — más fuertes que `cubic-bezier(0.4,0,0.2,1)`). */
   --dash-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --dash-ease-press: cubic-bezier(0.2, 0.9, 0.2, 1);
   --dash-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 
   background:
@@ -84,6 +85,16 @@
 .dashboard-scope button:focus-visible {
   outline: 2px solid transparent;
   box-shadow: 0 0 0 3px var(--dash-primario-soft);
+}
+
+.dashboard-scope button {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dashboard-scope button:not(:disabled) {
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .dashboard-scope .dash-header {
@@ -173,14 +184,16 @@
     var(--dash-shadow-sm);
   content: "";
   height: var(--dash-tab-pill-h, 0);
-  left: var(--dash-tab-pill-x, 0);
+  left: 0;
   opacity: var(--dash-tab-pill-op, 0);
   pointer-events: none;
   position: absolute;
-  top: var(--dash-tab-pill-y, 0);
+  top: 0;
+  transform: translate3d(var(--dash-tab-pill-x, 0), var(--dash-tab-pill-y, 0), 0);
   transition:
-    transform 220ms cubic-bezier(0.2, 0.9, 0.2, 1),
-    width 220ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    transform 220ms var(--dash-ease-press),
+    width 220ms var(--dash-ease-press),
+    height 220ms var(--dash-ease-press),
     opacity var(--dash-dur-hover) var(--dash-ease-out);
   width: var(--dash-tab-pill-w, 0);
   z-index: 0;
@@ -198,7 +211,8 @@
   transition:
     background-color var(--dash-dur-hover) var(--dash-ease-out),
     color var(--dash-dur-hover) var(--dash-ease-out),
-    box-shadow var(--dash-dur-hover) var(--dash-ease-out);
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-press);
 }
 @media (hover: hover) and (pointer: fine) {
   .dashboard-scope .dash-tab:hover:not(:disabled):not(.is-active) {
@@ -213,6 +227,9 @@
   /* La pill viene del ::before del nav. Aquí solo cambiamos el color
    * del texto para que contraste con el fondo primario animado. */
   color: #fff;
+}
+.dashboard-scope .dash-tab:active:not(:disabled) {
+  transform: scale(0.975);
 }
 .dashboard-scope .dash-tab:disabled {
   opacity: 0.45;
@@ -288,40 +305,57 @@
   .dashboard-scope .dash-resumen-layout {
     grid-template-columns: 1fr;
   }
+
+  .dashboard-scope .dash-sidebar {
+    position: static;
+  }
 }
 
 .dashboard-scope .dash-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
+  position: sticky;
+  top: 74px;
 }
 .dashboard-scope .dash-resumen-layout > main { min-width: 0; }
 
 /* Cardbox base — espejo de .cardbox / .sidebar-module del legacy. */
 .dashboard-scope .dash-cardbox {
-  background: var(--dash-superficie);
-  border: 1px solid var(--dash-borde);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--dash-superficie) 96%, var(--dash-primario) 4%) 0%, var(--dash-superficie) 42%);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 82%, var(--dash-primario) 18%);
   border-radius: 8px;
-  padding: 14px 14px 16px 14px;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 12px 28px var(--dash-shadow-color);
+  box-shadow: var(--dash-shadow-sm);
   min-width: 0;
+  padding: 12px;
+  transition:
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-sidebar .dash-cardbox:hover {
+    border-color: color-mix(in srgb, var(--dash-borde) 58%, var(--dash-primario) 42%);
+    box-shadow: var(--dash-shadow-md);
+  }
 }
 .dashboard-scope .dash-cardbox-header {
-  display: flex;
   align-items: center;
+  border-bottom: 1px solid var(--dash-divider);
+  display: flex;
   gap: 8px;
-  margin: -2px 0 10px 0;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--dash-borde);
+  justify-content: space-between;
+  margin: -1px 0 10px 0;
+  min-height: 28px;
+  padding-bottom: 9px;
 }
 .dashboard-scope .dash-cardbox-title {
-  font-size: 14px;
-  font-weight: 800;
   color: var(--dash-primario);
+  font-size: 13.5px;
+  font-weight: 800;
   letter-spacing: 0;
+  margin: 0;
 }
 .dashboard-scope .dash-cardbox-help {
   font-size: 12px;
@@ -405,34 +439,43 @@
 .dashboard-scope .dash-switch {
   position: relative;
   display: inline-block;
-  width: 32px;
-  height: 18px;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 22px;
 }
 .dashboard-scope .dash-switch input { opacity: 0; width: 0; height: 0; }
 .dashboard-scope .dash-switch-slider {
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background: var(--dash-borde);
-  border-radius: 18px;
-  transition: background 120ms;
+  background: color-mix(in srgb, var(--dash-borde) 86%, var(--dash-texto-suave) 14%);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 70%, var(--dash-texto-suave) 30%);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out);
 }
 .dashboard-scope .dash-switch-slider::before {
   content: "";
   position: absolute;
-  height: 14px;
-  width: 14px;
+  height: 16px;
+  width: 16px;
   left: 2px;
   top: 2px;
   background: #fff;
   border-radius: 50%;
-  transition: transform 120ms;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.22);
+  transition: transform var(--dash-dur-hover) var(--dash-ease-out);
 }
 .dashboard-scope .dash-switch input:checked + .dash-switch-slider {
   background: var(--dash-primario);
+  border-color: var(--dash-primario);
+  box-shadow: 0 0 0 3px var(--dash-primario-soft);
 }
 .dashboard-scope .dash-switch input:checked + .dash-switch-slider::before {
-  transform: translateX(14px);
+  transform: translateX(16px);
 }
 
 .dashboard-scope .dash-filtros-rows {
@@ -480,31 +523,74 @@
 }
 
 .dashboard-scope .dash-filtro-label {
-  font-size: 11px;
   color: var(--dash-texto-suave);
+  display: inline-flex;
+  font-size: 10.5px;
   font-weight: 600;
+  letter-spacing: 0.035em;
+  margin-bottom: 4px;
+  text-transform: uppercase;
 }
 .dashboard-scope .dash-input,
 .dashboard-scope .dash-select {
   appearance: none;
-  border: 1px solid var(--dash-borde);
-  background: var(--dash-superficie);
+  background:
+    linear-gradient(180deg, var(--dash-superficie) 0%, color-mix(in srgb, var(--dash-superficie-2) 78%, var(--dash-superficie) 22%) 100%);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 82%, var(--dash-texto-suave) 18%);
+  border-radius: 7px;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
   color: var(--dash-texto);
-  padding: 6px 10px;
-  border-radius: 6px;
   font-size: 12px;
-  width: 100%;
   outline: none;
+  padding: 7px 10px;
   transition:
     border-color 160ms var(--dash-ease-out),
     box-shadow 160ms var(--dash-ease-out),
     background-color 160ms var(--dash-ease-out);
+  width: 100%;
+}
+.dashboard-scope .dash-select {
+  background-image:
+    url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235f6b7a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, var(--dash-superficie) 0%, color-mix(in srgb, var(--dash-superficie-2) 78%, var(--dash-superficie) 22%) 100%);
+  background-position: right 9px center, 0 0;
+  background-repeat: no-repeat;
+  padding-right: 30px;
 }
 .dashboard-scope .dash-input:focus,
 .dashboard-scope .dash-select:focus {
   border-color: var(--dash-primario);
   box-shadow: 0 0 0 3px var(--dash-primario-soft);
 }
+/* Skeleton shimmer para categorías de filtro mientras hidratan. */
+.dashboard-scope .dash-filtro-cats-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 4px;
+}
+.dashboard-scope .dash-filtro-cats-skel-bar {
+  background: linear-gradient(
+    90deg,
+    var(--dash-superficie-2) 0%,
+    rgba(15, 23, 42, 0.05) 50%,
+    var(--dash-superficie-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: dash-dim-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--dash-radius-sm);
+  display: block;
+  height: 12px;
+}
+.dashboard-scope .dash-filtro-cats-skel-bar:nth-child(1) { width: 86%; }
+.dashboard-scope .dash-filtro-cats-skel-bar:nth-child(2) { width: 72%; }
+.dashboard-scope .dash-filtro-cats-skel-bar:nth-child(3) { width: 90%; }
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-scope .dash-filtro-cats-skel-bar {
+    animation: none;
+  }
+}
+
 .dashboard-scope .dash-checkboxes {
   display: flex;
   flex-direction: column;
@@ -532,18 +618,29 @@
 }
 .dashboard-scope .dash-quick-btn {
   appearance: none;
-  border: 1px solid var(--dash-borde);
   background: var(--dash-superficie);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 76%, var(--dash-primario) 24%);
+  border-radius: 7px;
+  box-shadow: var(--dash-shadow-xs);
   color: var(--dash-primario);
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
   cursor: pointer;
   flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-out);
 }
-.dashboard-scope .dash-quick-btn:hover {
-  background: var(--dash-primario-soft);
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-quick-btn:hover {
+    background: var(--dash-primario-soft);
+    border-color: var(--dash-primario);
+  }
+}
+.dashboard-scope .dash-quick-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 .dashboard-scope .dash-quick-btn:disabled {
   opacity: 0.45;
@@ -708,10 +805,27 @@
   font-size: 12px;
   font-weight: 700;
   padding: 6px 8px;
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-press);
 }
 .dashboard-scope .dash-source-segment.is-active {
   background: var(--dash-primario);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    var(--dash-shadow-xs);
   color: #fff;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-source-segment:hover:not(:disabled):not(.is-active) {
+    background: var(--dash-primario-soft);
+    color: var(--dash-primario);
+  }
+}
+.dashboard-scope .dash-source-segment:active:not(:disabled) {
+  transform: scale(0.97);
 }
 .dashboard-scope .dash-source-segment:disabled {
   cursor: not-allowed;
@@ -812,20 +926,63 @@
   height: 30px;
   justify-content: center;
   width: 30px;
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-icon-btn:hover:not(:disabled) {
+    background: var(--dash-primario-soft);
+    border-color: color-mix(in srgb, var(--dash-borde) 62%, var(--dash-primario) 38%);
+    color: var(--dash-primario);
+  }
+}
+.dashboard-scope .dash-icon-btn:active:not(:disabled) {
+  transform: scale(0.96);
 }
 .dashboard-scope .dash-subtle-btn {
   align-items: center;
   appearance: none;
-  background: var(--dash-superficie);
-  border: 1px solid var(--dash-borde);
-  border-radius: 7px;
-  color: var(--dash-texto-suave);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--dash-superficie) 92%, var(--dash-primario) 8%) 0%, var(--dash-superficie) 100%);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 70%, var(--dash-primario) 30%);
+  border-radius: var(--dash-radius-md);
+  box-shadow: var(--dash-shadow-xs);
+  color: var(--dash-primario);
   cursor: pointer;
   display: inline-flex;
   font-size: 12px;
   font-weight: 700;
   gap: 6px;
-  padding: 7px 10px;
+  justify-content: center;
+  min-height: 34px;
+  padding: 8px 11px;
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-out),
+    opacity var(--dash-dur-hover) var(--dash-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-subtle-btn:hover:not(:disabled) {
+    border-color: var(--dash-primario);
+    box-shadow: var(--dash-shadow-sm);
+  }
+}
+.dashboard-scope .dash-subtle-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.dashboard-scope .dash-subtle-btn:disabled {
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.dashboard-scope .dash-sidebar-action {
+  align-self: stretch;
+  width: 100%;
 }
 
 /* Paletas por lista. */
@@ -1073,9 +1230,15 @@
   font-weight: 700;
   padding: 9px 14px;
   transition:
-    transform var(--dash-dur-press) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-press),
     box-shadow var(--dash-dur-hover) var(--dash-ease-out),
     opacity var(--dash-dur-hover) var(--dash-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-primary-btn:hover:not(:disabled) {
+    box-shadow: var(--dash-shadow-md);
+    filter: saturate(1.04);
+  }
 }
 .dashboard-scope .dash-primary-btn:active:not(:disabled) {
   transform: scale(0.97);
@@ -1083,6 +1246,179 @@
 .dashboard-scope .dash-primary-btn:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Motion táctil transversal.
+ * La capa ::after no es decorativa pesada: aparece solo durante hover/press
+ * para que cada botón confirme que recibió el gesto. */
+.dashboard-scope :is(
+  .dash-header-action,
+  .dash-tab,
+  .dash-quick-btn,
+  .dash-source-segment,
+  .dash-icon-btn,
+  .dash-subtle-btn,
+  .dash-primary-btn,
+  .dash-preset-btn,
+  .dash-dim-config-tab,
+  .dash-dim-vis-segment,
+  .dash-iter-stepper-btn,
+  .dash-fs-btn,
+  .dash-dt-dicc-btn,
+  .dash-dt-reset-btn,
+  .dash-foda-group-filter button,
+  .dash-customize-nav button,
+  .dash-customize-view-card,
+  .dash-customize-upload,
+  .dash-customize-danger,
+  .dash-iter-trigger
+) {
+  backface-visibility: hidden;
+  overflow: hidden;
+  position: relative;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.dashboard-scope :is(
+  .dash-header-action,
+  .dash-tab,
+  .dash-quick-btn,
+  .dash-source-segment,
+  .dash-icon-btn,
+  .dash-subtle-btn,
+  .dash-primary-btn,
+  .dash-preset-btn,
+  .dash-dim-config-tab,
+  .dash-dim-vis-segment,
+  .dash-iter-stepper-btn,
+  .dash-fs-btn,
+  .dash-dt-dicc-btn,
+  .dash-dt-reset-btn,
+  .dash-foda-group-filter button,
+  .dash-customize-nav button,
+  .dash-customize-view-card,
+  .dash-customize-upload,
+  .dash-customize-danger,
+  .dash-iter-trigger
+)::after {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.32), transparent 46%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 70%);
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 140ms var(--dash-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope :is(
+    .dash-header-action,
+    .dash-quick-btn,
+    .dash-subtle-btn,
+    .dash-primary-btn,
+    .dash-preset-btn,
+    .dash-dt-dicc-btn,
+    .dash-dt-reset-btn,
+    .dash-customize-view-card,
+    .dash-iter-trigger
+  ):hover:not(:disabled) {
+    transform: translateY(-1px) translateZ(0);
+  }
+
+  .dashboard-scope :is(
+    .dash-header-action,
+    .dash-tab,
+    .dash-quick-btn,
+    .dash-source-segment,
+    .dash-icon-btn,
+    .dash-subtle-btn,
+    .dash-primary-btn,
+    .dash-preset-btn,
+    .dash-dim-config-tab,
+    .dash-dim-vis-segment,
+    .dash-iter-stepper-btn,
+    .dash-fs-btn,
+    .dash-dt-dicc-btn,
+    .dash-dt-reset-btn,
+    .dash-foda-group-filter button,
+    .dash-customize-nav button,
+    .dash-customize-view-card,
+    .dash-customize-upload,
+    .dash-customize-danger,
+    .dash-iter-trigger
+  ):hover:not(:disabled)::after {
+    opacity: 0.42;
+  }
+}
+
+.dashboard-scope :is(
+  .dash-header-action,
+  .dash-tab,
+  .dash-quick-btn,
+  .dash-source-segment,
+  .dash-icon-btn,
+  .dash-subtle-btn,
+  .dash-primary-btn,
+  .dash-preset-btn,
+  .dash-dim-config-tab,
+  .dash-dim-vis-segment,
+  .dash-iter-stepper-btn,
+  .dash-fs-btn,
+  .dash-dt-dicc-btn,
+  .dash-dt-reset-btn,
+  .dash-foda-group-filter button,
+  .dash-customize-nav button,
+  .dash-customize-view-card,
+  .dash-customize-upload,
+  .dash-customize-danger,
+  .dash-iter-trigger
+):active:not(:disabled) {
+  box-shadow:
+    inset 0 1px 2px rgba(15, 23, 42, 0.12),
+    0 1px 1px rgba(15, 23, 42, 0.04);
+  transform: translateY(1px) scale(0.975) translateZ(0);
+  transition-duration: 90ms;
+}
+
+.dashboard-scope :is(
+  .dash-icon-btn,
+  .dash-iter-stepper-btn,
+  .dash-fs-btn,
+  .dash-dt-dicc-btn,
+  .dash-customize-upload,
+  .dash-customize-danger
+):active:not(:disabled) {
+  transform: translateY(1px) scale(0.94) translateZ(0);
+}
+
+.dashboard-scope :is(
+  .dash-header-action,
+  .dash-tab,
+  .dash-quick-btn,
+  .dash-source-segment,
+  .dash-icon-btn,
+  .dash-subtle-btn,
+  .dash-primary-btn,
+  .dash-preset-btn,
+  .dash-dim-config-tab,
+  .dash-dim-vis-segment,
+  .dash-iter-stepper-btn,
+  .dash-fs-btn,
+  .dash-dt-dicc-btn,
+  .dash-dt-reset-btn,
+  .dash-foda-group-filter button,
+  .dash-customize-nav button,
+  .dash-customize-view-card,
+  .dash-customize-upload,
+  .dash-customize-danger,
+  .dash-iter-trigger
+):active:not(:disabled)::after {
+  opacity: 0.72;
+  transition-duration: 60ms;
 }
 
 /* Accesibilidad: respeta prefers-reduced-motion.
@@ -1095,6 +1431,41 @@
     transition-duration: 1ms !important;
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
+  }
+  .dashboard-scope :is(
+    .dash-header-action,
+    .dash-tab,
+    .dash-quick-btn,
+    .dash-source-segment,
+    .dash-icon-btn,
+    .dash-subtle-btn,
+    .dash-primary-btn,
+    .dash-preset-btn,
+    .dash-dim-config-tab,
+    .dash-dim-vis-segment,
+    .dash-iter-stepper-btn,
+    .dash-fs-btn,
+    .dash-dt-dicc-btn,
+    .dash-dt-reset-btn,
+    .dash-foda-group-filter button,
+    .dash-customize-nav button,
+    .dash-customize-view-card,
+    .dash-customize-upload,
+    .dash-customize-danger,
+    .dash-iter-trigger
+  ):active:not(:disabled),
+  .dashboard-scope :is(
+    .dash-header-action,
+    .dash-quick-btn,
+    .dash-subtle-btn,
+    .dash-primary-btn,
+    .dash-preset-btn,
+    .dash-dt-dicc-btn,
+    .dash-dt-reset-btn,
+    .dash-customize-view-card,
+    .dash-iter-trigger
+  ):hover:not(:disabled) {
+    transform: none !important;
   }
 }
 

@@ -262,18 +262,20 @@ test_that("dashboard_dim_foda devuelve estructura ready=FALSE sin rp_dim", {
     p2 = c("3", "3", "4", "3", "2", "3"),
     p3 = c("2", "1", "2", "1", "2", "1"),
     servicio = c("A", "A", "B", "B", "C", "C"),
+    distrito = c("Ate", "Rimac", "Ate", "Rimac", "Villa El Salvador", "Villa El Salvador"),
     stringsAsFactors = FALSE
   )
   attr(dat$p1, "label") <- "P1"
   attr(dat$p2, "label") <- "P2"
   attr(dat$p3, "label") <- "P3"
   attr(dat$servicio, "label") <- "Servicio"
+  attr(dat$distrito, "label") <- "Distrito"
 
   inst <- list(
     survey = data.frame(
-      name = c("p1", "p2", "p3", "servicio"),
-      type = c("select_one sat", "select_one sat", "select_one sat", "select_one srv"),
-      list_name = c("sat", "sat", "sat", "srv"),
+      name = c("p1", "p2", "p3", "servicio", "distrito"),
+      type = c("select_one sat", "select_one sat", "select_one sat", "select_one srv", "select_one dist"),
+      list_name = c("sat", "sat", "sat", "srv", "dist"),
       stringsAsFactors = FALSE
     ),
     choices = rbind(
@@ -287,6 +289,12 @@ test_that("dashboard_dim_foda devuelve estructura ready=FALSE sin rp_dim", {
         list_name = "srv",
         name = c("A", "B", "C"),
         label = c("A", "B", "C"),
+        stringsAsFactors = FALSE
+      ),
+      data.frame(
+        list_name = "dist",
+        name = c("Ate", "Rimac", "Villa El Salvador"),
+        label = c("Ate", "Rimac", "Villa El Salvador"),
         stringsAsFactors = FALSE
       )
     ),
@@ -310,6 +318,7 @@ test_that("dashboard_dim_foda devuelve estructura ready=FALSE sin rp_dim", {
     ),
     indices = list(indice("idx", "Indice", c("s1", "s2", "s3")))
   )
+  d2$idx_indice_general <- d2$idx_idx
 
   sid <- session_create()
   session_set(sid, "analitica_dim_ok", TRUE)
@@ -321,7 +330,8 @@ test_that("dashboard_dim_foda devuelve estructura ready=FALSE sin rp_dim", {
     .dashboard_default_config(),
     list(
       paletas_listas = list(srv = list(A = "#111111", B = "#222222", C = "#333333")),
-      foda_icon_tint = "#FFFFFF"
+      foda_icon_tint = "#FFFFFF",
+      foda_aliases = list(distrito = list(Ate = "ATE", Rimac = "RIM", "Villa El Salvador" = "VES"))
     )
   ))
   list(sid = sid, session = session_get(sid))
@@ -346,6 +356,136 @@ test_that("dashboard_dim_foda con cruce devuelve dimension por grupo, colores e 
   expect_equal(length(out$items), 9L)
   expect_true(all(grepl("^data:image/png;base64,", vapply(out$items, `[[`, character(1), "icono_url"))))
   expect_equal(length(out$icon_legend), 3L)
+})
+
+test_that("dashboard_dim_foda por servicios usa Índice General como métrica", {
+  fx <- .fx_dashboard_dimensiones_session()
+  on.exit(session_delete(fx$sid), add = TRUE)
+
+  out <- .dashboard_dim_foda(
+    fx$session,
+    modo = "general",
+    objetivo = "idx_idx",
+    cruce = "servicio",
+    incluir_total = FALSE,
+    foda_config = list(foda_vista = "servicios")
+  )
+
+  expect_true(isTRUE(out$ready))
+  expect_equal(out$item_kind, "servicios")
+  expect_equal(out$item_var, "servicio")
+  expect_equal(out$metric_var, "idx_indice_general")
+  expect_equal(length(out$items), 3L)
+  expect_setequal(vapply(out$items, `[[`, character(1), "axis_label"), c("A", "B", "C"))
+  expect_true(all(vapply(out$items, `[[`, character(1), "grupo") == "Servicios"))
+  expect_true(all(vapply(out$items, `[[`, numeric(1), "score_mean") >= 0))
+  expect_true(all(vapply(out$items, `[[`, integer(1), "n_valid") == 2L))
+  expect_named(out$counts, c("fortaleza", "oportunidad", "debilidad", "amenaza"))
+})
+
+test_that("dashboard_dim_foda por municipios devuelve aliases de distrito", {
+  fx <- .fx_dashboard_dimensiones_session()
+  on.exit(session_delete(fx$sid), add = TRUE)
+
+  out <- .dashboard_dim_foda(
+    fx$session,
+    modo = "general",
+    objetivo = "idx_idx",
+    cruce = "",
+    incluir_total = FALSE,
+    foda_config = list(foda_vista = "municipios")
+  )
+
+  expect_true(isTRUE(out$ready))
+  expect_equal(out$item_kind, "municipios")
+  expect_equal(out$item_var, "distrito")
+  expect_equal(length(out$items), 3L)
+  aliases <- stats::setNames(
+    vapply(out$items, `[[`, character(1), "card_label"),
+    vapply(out$items, `[[`, character(1), "axis_label")
+  )
+  expect_equal(aliases[["Ate"]], "ATE")
+  expect_equal(aliases[["Rimac"]], "RIM")
+  expect_equal(aliases[["Villa El Salvador"]], "VES")
+  expect_true(all(vapply(out$items, `[[`, character(1), "grupo") == "Municipios"))
+})
+
+test_that("dashboard_dim_foda por municipios aplica comparación por servicio", {
+  fx <- .fx_dashboard_dimensiones_session()
+  on.exit(session_delete(fx$sid), add = TRUE)
+
+  out <- .dashboard_dim_foda(
+    fx$session,
+    modo = "general",
+    objetivo = "idx_idx",
+    cruce = "servicio",
+    incluir_total = FALSE,
+    foda_config = list(foda_vista = "municipios")
+  )
+
+  expect_true(isTRUE(out$ready))
+  expect_equal(out$item_kind, "municipios")
+  expect_equal(out$item_var, "distrito")
+  expect_gt(length(out$items), 3L)
+  expect_setequal(unique(vapply(out$items, `[[`, character(1), "grupo")), c("A", "B", "C"))
+  expect_setequal(names(out$group_colors), c("A", "B", "C"))
+  expect_true(all(vapply(out$items, `[[`, character(1), "card_mode") == "alias"))
+  expect_true(all(vapply(out$items, `[[`, integer(1), "n_valid") >= 1L))
+})
+
+test_that("dashboard_dim_foda ignora comparación redundante con la misma variable", {
+  fx <- .fx_dashboard_dimensiones_session()
+  on.exit(session_delete(fx$sid), add = TRUE)
+
+  out <- .dashboard_dim_foda(
+    fx$session,
+    modo = "general",
+    objetivo = "idx_idx",
+    cruce = "distrito",
+    incluir_total = FALSE,
+    foda_config = list(foda_vista = "municipios")
+  )
+
+  expect_true(isTRUE(out$ready))
+  expect_equal(length(out$items), 3L)
+  expect_true(all(vapply(out$items, `[[`, character(1), "grupo") == "Municipios"))
+  expect_equal(out$group_colors, list())
+})
+
+test_that("dashboard_dim_foda acepta vistas configurables por variable", {
+  fx <- .fx_dashboard_dimensiones_session()
+  on.exit(session_delete(fx$sid), add = TRUE)
+
+  out <- .dashboard_dim_foda(
+    fx$session,
+    modo = "general",
+    objetivo = "idx_idx",
+    cruce = "",
+    incluir_total = FALSE,
+    foda_config = list(
+      foda_vista = "sedes",
+      foda_views = list(
+        list(
+          id = "sedes",
+          label = "Sedes",
+          variable = "distrito",
+          metric_var = "idx_indice_general",
+          card_mode = "alias",
+          aliases = list(Ate = "ATE", Rimac = "RIM", "Villa El Salvador" = "VES"),
+          icons = list()
+        )
+      )
+    )
+  )
+
+  expect_true(isTRUE(out$ready))
+  expect_equal(out$item_kind, "sedes")
+  expect_equal(out$item_label, "Sedes")
+  expect_equal(out$item_var, "distrito")
+  expect_equal(out$card_mode, "alias")
+  expect_equal(length(out$items), 3L)
+  expect_true(all(vapply(out$items, `[[`, character(1), "grupo") == "Sedes"))
+  expect_equal(out$items[[1]]$card_mode, "alias")
 })
 
 test_that("dashboard_dim_foda sin cruce mantiene fallback total y counts", {

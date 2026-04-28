@@ -77,11 +77,14 @@
   padding: 7px 11px;
   transition:
     border-color var(--dash-dur-hover) var(--dash-ease-out),
-    color var(--dash-dur-hover) var(--dash-ease-out);
+    color var(--dash-dur-hover) var(--dash-ease-out),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-press);
 }
 @media (hover: hover) and (pointer: fine) {
   .dashboard-scope .dash-dt-reset-btn:hover:not(:disabled) {
     border-color: var(--dash-primario-ring);
+    box-shadow: var(--dash-shadow-xs);
     color: var(--dash-primario);
   }
 }

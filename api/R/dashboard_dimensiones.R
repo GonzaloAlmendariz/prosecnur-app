@@ -30,11 +30,12 @@
   if (!.dashboard_dim_ready(s)) return(NULL)
 
   cached <- s$dashboard_dim_ctx
+  cfg_dash <- .dashboard_config_with_defaults(s$dashboard_config)
   rp_id <- digest::digest(list(
     n = nrow(s$rp_dim),
     cols = names(s$rp_dim),
     cfg_id = digest::digest(s$dimensiones_config %||% list()),
-    theme_color = s$dashboard_config$color_primario_override
+    theme_color = cfg_dash$color_primario_override
       %||% .dashboard_theme_default()$color_primario
   ), algo = "xxhash64")
   if (!is.null(cached) && identical(cached$id, rp_id)) {
@@ -47,7 +48,7 @@
     instrumento = s$rp_inst,
     config = config,
     secciones_limpias = .dashboard_curated_secciones(s),
-    theme_color = s$dashboard_config$color_primario_override
+    theme_color = cfg_dash$color_primario_override
       %||% .dashboard_theme_default()$color_primario,
     weight_col = NULL
   )
@@ -220,6 +221,7 @@
 .dashboard_dim_icon_data_uri <- function(path, tint_color = NULL) {
   if (is.null(path) || !nzchar(as.character(path))) return("")
   p <- as.character(path)[1]
+  if (grepl("^data:image/", p)) return(p)
   if (!file.exists(p)) return("")
   ext <- tolower(tools::file_ext(p))
   mime <- switch(ext,
@@ -281,9 +283,11 @@
   ctx <- .dashboard_dim_ctx(s$id, s)
   if (is.null(ctx)) return(list(ready = FALSE))
 
-  cfg_dash <- s$dashboard_config %||% .dashboard_default_config()
+  cfg_dash <- .dashboard_config_with_defaults(s$dashboard_config)
   if (is.list(foda_config) && length(foda_config)) {
     cfg_dash <- utils::modifyList(cfg_dash, foda_config)
+    if (!is.null(foda_config$foda_vista)) cfg_dash$foda_vista <- foda_config$foda_vista
+    if (!is.null(foda_config$foda_views)) cfg_dash$foda_views <- foda_config$foda_views
   }
   iconos_enabled <- isTRUE(cfg_dash$foda_iconos_enabled %||% TRUE)
   icon_tint <- as.character(cfg_dash$foda_icon_tint %||% "#FFFFFF")[1]
@@ -306,6 +310,7 @@
   empty_payload <- function(corte_score = 80, corte_sd = 0) {
     list(
       ready = TRUE,
+      item_kind = "conductores",
       items = list(),
       cortes = list(score = round(as.numeric(corte_score), 2), sd = round(as.numeric(corte_sd), 2)),
       counts = list(fortaleza = 0L, oportunidad = 0L, debilidad = 0L, amenaza = 0L),
@@ -344,6 +349,265 @@
 
   if (!nrow(df)) {
     return(empty_payload())
+  }
+
+  foda_views <- cfg_dash$foda_views %||% list()
+  if (!is.list(foda_views) || !length(foda_views)) {
+    foda_views <- .dashboard_default_config()$foda_views
+  }
+  foda_vista <- as.character(cfg_dash$foda_vista %||% "conductores")[1]
+  active_view <- NULL
+  for (view in foda_views) {
+    if (!is.list(view)) next
+    view_id <- as.character(view$id %||% "")[1]
+    if (identical(view_id, foda_vista)) {
+      active_view <- view
+      break
+    }
+  }
+  if (is.null(active_view)) {
+    foda_vista <- "conductores"
+    active_view <- list(
+      id = "conductores",
+      label = "Conductores",
+      variable = "",
+      metric_var = "",
+      card_mode = "iconos",
+      aliases = list(),
+      icons = list()
+    )
+  }
+  item_var <- as.character(active_view$variable %||% "")[1]
+  metric_var <- as.character(active_view$metric_var %||% "idx_indice_general")[1]
+  card_mode <- as.character(active_view$card_mode %||% "iconos")[1]
+  if (!(card_mode %in% c("iconos", "alias"))) card_mode <- "iconos"
+  view_label <- as.character(active_view$label %||% foda_vista)[1]
+
+  if (nzchar(item_var) && !identical(foda_vista, "conductores")) {
+    if (!nzchar(item_var) || !(item_var %in% names(df))) {
+      out <- empty_payload()
+      out$item_kind <- foda_vista
+      out$item_label <- view_label
+      out$card_mode <- card_mode
+      out$error <- paste0("No se encontró la variable requerida para FODA: ", item_var, ".")
+      return(out)
+    }
+    if (!(metric_var %in% names(df))) {
+      out <- empty_payload()
+      out$item_kind <- foda_vista
+      out$item_label <- view_label
+      out$card_mode <- card_mode
+      out$error <- paste0("No se encontró ", metric_var, " para calcular el FODA por variable.")
+      return(out)
+    }
+
+    cats <- .dim_categorias_var(
+      df,
+      item_var,
+      w = .dim_safe_weights(df, NULL),
+      data_ref = ctx$data,
+      instrumento = ctx$instrumento,
+      max_levels = ctx$max_categorias_principal %||% 12L
+    )
+    if (!nrow(cats$rows)) {
+      out <- empty_payload()
+      out$item_kind <- foda_vista
+      out$item_label <- view_label
+      out$card_mode <- card_mode
+      return(out)
+    }
+
+    cruce <- as.character(cruce %||% "")[1]
+    cruce_valido <- nzchar(cruce) && cruce %in% names(df) && !identical(cruce, item_var)
+    include_total <- if (is.null(incluir_total)) TRUE else isTRUE(incluir_total)
+
+    compare_groups <- list()
+    if (include_total || !cruce_valido) {
+      compare_groups[[length(compare_groups) + 1L]] <- list(
+        key = if (cruce_valido) "__total__" else foda_vista,
+        label = if (cruce_valido) "Total" else view_label,
+        mask = rep(TRUE, nrow(df)),
+        is_total_global = cruce_valido
+      )
+    }
+    if (cruce_valido) {
+      cats_cruce <- .dim_categorias_var(
+        df,
+        cruce,
+        w = .dim_safe_weights(df, NULL),
+        data_ref = ctx$data,
+        instrumento = ctx$instrumento,
+        max_levels = ctx$max_categorias_principal %||% 12L
+      )
+      x_cruce <- trimws(as.character(df[[cruce]]))
+      if (nrow(cats_cruce$rows)) {
+        for (i in seq_len(nrow(cats_cruce$rows))) {
+          key_i <- as.character(cats_cruce$rows$value[i] %||% "")
+          if (!nzchar(key_i)) next
+          compare_groups[[length(compare_groups) + 1L]] <- list(
+            key = key_i,
+            label = as.character(cats_cruce$rows$label[i] %||% key_i),
+            mask = !is.na(x_cruce) & nzchar(x_cruce) & x_cruce == key_i,
+            is_total_global = FALSE
+          )
+        }
+      }
+    }
+    if (!length(compare_groups)) {
+      compare_groups[[1L]] <- list(
+        key = foda_vista,
+        label = view_label,
+        mask = rep(TRUE, nrow(df)),
+        is_total_global = FALSE
+      )
+    }
+
+    x_group <- trimws(as.character(df[[item_var]]))
+    y_metric <- suppressWarnings(as.numeric(df[[metric_var]]))
+    stats_list <- list()
+    for (g in compare_groups) {
+      if (!any(g$mask)) next
+      for (i in seq_len(nrow(cats$rows))) {
+        key_i <- as.character(cats$rows$value[i] %||% "")
+        label_i <- as.character(cats$rows$label[i] %||% key_i)
+        if (!nzchar(key_i)) next
+        mask <- g$mask & !is.na(x_group) & nzchar(x_group) & x_group == key_i
+        vals <- y_metric[mask]
+        vals <- vals[!is.na(vals) & is.finite(vals)]
+        if (!length(vals)) next
+        stats_list[[length(stats_list) + 1L]] <- data.frame(
+          var = paste0(item_var, ":", key_i, "::", as.character(g$key)),
+          label = label_i,
+          item_key = key_i,
+          item_label = label_i,
+          grupo_key = as.character(g$key),
+          grupo = as.character(g$label),
+          is_total_global = isTRUE(g$is_total_global),
+          score_mean = mean(vals),
+          score_sd = if (length(vals) >= 2L) stats::sd(vals) else 0,
+          n_valid = length(vals),
+          stringsAsFactors = FALSE
+        )
+      }
+    }
+    if (!length(stats_list)) {
+      out <- empty_payload()
+      out$item_kind <- foda_vista
+      out$item_label <- view_label
+      out$card_mode <- card_mode
+      return(out)
+    }
+    stats_df <- do.call(rbind, stats_list)
+
+    corte_score <- as.numeric(ctx$semaforo$amber_max %||% 80)
+    sds_valid <- stats_df$score_sd[!is.na(stats_df$score_sd)]
+    corte_sd <- if (length(sds_valid)) stats::median(sds_valid) else 0
+    stats_df <- .foda_classify(stats_df, corte_score, corte_sd)
+
+    color_var <- if (cruce_valido) cruce else item_var
+    color_ref <- if (cruce_valido) {
+      unique(stats_df[, c("grupo", "grupo_key"), drop = FALSE])
+    } else {
+      unique(data.frame(
+        grupo = as.character(stats_df$item_label),
+        grupo_key = as.character(stats_df$item_key),
+        stringsAsFactors = FALSE
+      ))
+    }
+    palette_override <- .dashboard_palette_for_var(color_var, s$rp_inst, s)
+    color_vec <- .dim_group_colors(
+      groups = as.character(color_ref$grupo),
+      paleta_radar = ctx$paleta_radar,
+      total_color = ctx$theme_color,
+      palette_override = palette_override,
+      group_keys = as.character(color_ref$grupo_key)
+    )
+    group_colors <- if (cruce_valido && length(color_vec)) {
+      stats::setNames(as.list(as.character(color_vec)), names(color_vec))
+    } else list()
+
+    aliases_var <- active_view$aliases %||% list()
+    if (!is.list(aliases_var)) aliases_var <- list()
+    if (is.list(cfg_dash$foda_aliases)) {
+      aliases_var <- utils::modifyList(
+        cfg_dash$foda_aliases[[item_var]] %||% list(),
+        aliases_var,
+        keep.null = TRUE
+      )
+    }
+    view_icons <- active_view$icons %||% list()
+    if (!is.list(view_icons)) view_icons <- list()
+    service_icons <- if (is.list(cfg_dash$foda_service_icons)) cfg_dash$foda_service_icons else list()
+    icon_sources <- utils::modifyList(service_icons, view_icons, keep.null = TRUE)
+    icon_map <- list()
+    if (identical(card_mode, "iconos") && iconos_enabled && length(icon_sources)) {
+      for (i in seq_len(nrow(stats_df))) {
+        key_i <- as.character(stats_df$item_key[i])
+        label_i <- as.character(stats_df$item_label[i])
+        raw <- icon_sources[[key_i]] %||% icon_sources[[label_i]]
+        uri <- .dashboard_dim_icon_data_uri(raw, tint_color = icon_tint)
+        if (nzchar(uri)) icon_map[[key_i]] <- uri
+      }
+    }
+
+    items <- lapply(seq_len(nrow(stats_df)), function(i) {
+      key_i <- as.character(stats_df$item_key[i])
+      label_i <- as.character(stats_df$item_label[i])
+      alias_i <- aliases_var[[key_i]] %||% aliases_var[[label_i]] %||% ""
+      color_key <- if (cruce_valido) as.character(stats_df$grupo[i]) else label_i
+      color <- if (color_key %in% names(color_vec)) {
+        as.character(color_vec[[color_key]])
+      } else {
+        as.character(ctx$theme_color %||% "#0E3B74")
+      }
+      out <- list(
+        var = as.character(stats_df$var[i]),
+        axis_label = label_i,
+        card_label = as.character(alias_i),
+        item_kind = foda_vista,
+        card_mode = card_mode,
+        grupo = as.character(stats_df$grupo[i] %||% view_label),
+        grupo_key = as.character(stats_df$grupo_key[i] %||% foda_vista),
+        color = color,
+        score_mean = round(as.numeric(stats_df$score_mean[i]), 2),
+        score_sd = round(as.numeric(stats_df$score_sd[i] %||% 0), 2),
+        n_valid = as.integer(stats_df$n_valid[i]),
+        cuadrante = as.character(stats_df$cuadrante[i] %||% NA_character_),
+        is_total_global = isTRUE(stats_df$is_total_global[i])
+      )
+      if (!is.null(icon_map[[key_i]])) out$icono_url <- icon_map[[key_i]]
+      out
+    })
+
+    counts <- list(
+      fortaleza   = sum(stats_df$cuadrante == "fortaleza",  na.rm = TRUE),
+      oportunidad = sum(stats_df$cuadrante == "oportunidad", na.rm = TRUE),
+      debilidad   = sum(stats_df$cuadrante == "debilidad",  na.rm = TRUE),
+      amenaza     = sum(stats_df$cuadrante == "amenaza",    na.rm = TRUE)
+    )
+
+    return(list(
+      ready = TRUE,
+      objetivo = ctx$label_idx(metric_var),
+      objetivo_id = metric_var,
+      modo = modo,
+      item_kind = foda_vista,
+      item_label = view_label,
+      card_mode = card_mode,
+      item_var = item_var,
+      item_var_label = ctx$label_var(item_var),
+      metric_var = metric_var,
+      metric_label = ctx$label_idx(metric_var),
+      items = items,
+      cortes = list(
+        score = round(as.numeric(corte_score), 2),
+        sd = round(as.numeric(corte_sd), 2)
+      ),
+      counts = lapply(counts, as.integer),
+      group_colors = group_colors,
+      icon_legend = list(),
+      semaforo = semaforo_payload()
+    ))
   }
 
   cruce <- as.character(cruce %||% "")[1]
@@ -447,6 +711,7 @@
     out <- list(
       var = var,
       axis_label = as.character(stats_df$label[i]),
+      item_kind = "conductores",
       grupo = grupo,
       grupo_key = as.character(stats_df$grupo_key[i] %||% grupo),
       color = color,
@@ -472,6 +737,7 @@
     objetivo = as.character(obj$label %||% objetivo),
     objetivo_id = as.character(objetivo),
     modo = modo,
+    item_kind = "conductores",
     items = items,
     cortes = list(
       score = round(as.numeric(corte_score), 2),

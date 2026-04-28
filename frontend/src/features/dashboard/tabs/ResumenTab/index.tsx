@@ -6,6 +6,7 @@ import {
   useResumenSeccion,
 } from "../../useDashboardData";
 import { EmptyState } from "../../shared/EmptyState";
+import { FullscreenWrapper } from "../../shared/FullscreenWrapper";
 import { SeccionSelector } from "./SeccionSelector";
 import { PreguntaRow } from "./PreguntaRow";
 import { KpiCard } from "./KpiCard";
@@ -112,48 +113,50 @@ export function ResumenTab() {
 
       {/* ───── Main ───── */}
       <main>
-        <section className="dash-cardbox">
-          <div className="dash-cardbox-header">
-            <div className="dash-section-title-inline">
-              <span className="dash-cardbox-title">Resumen de sección:</span>
-              <SeccionSelector
-                secciones={secciones}
-                active={seccionActiva}
-                onSelect={setSeccionActiva}
-              />
-            </div>
-          </div>
-
-          {loadingSecs && <EmptyState title="Cargando secciones…" />}
-          {errSecs && (
-            <EmptyState title="No se pudo cargar el dashboard" subtitle={errSecs} />
-          )}
-          {noHayDatos && (
-            <EmptyState
-              title="No hay secciones disponibles"
-              subtitle="El instrumento aún no se cargó o no tiene grupos definidos. Carga XLSForm + base en Procesamiento."
-            />
-          )}
-          {!loadingSecs && !errSecs && !noHayDatos && (
-            <>
-              {loadingPay && <EmptyState title="Cargando…" />}
-              {errPay && <EmptyState title="Error" subtitle={errPay} />}
-              {!loadingPay && !errPay && payload && payload.rows.length === 0 && (
-                <EmptyState
-                  title="Sin preguntas en esta sección"
-                  subtitle="No hay variables disponibles para mostrar."
+        <FullscreenWrapper title={seccionActiva ? `Resumen — ${seccionActiva}` : "Resumen"}>
+          <section className="dash-cardbox">
+            <div className="dash-cardbox-header">
+              <div className="dash-section-title-inline">
+                <span className="dash-cardbox-title">Resumen de sección:</span>
+                <SeccionSelector
+                  secciones={secciones}
+                  active={seccionActiva}
+                  onSelect={setSeccionActiva}
                 />
-              )}
-              {!loadingPay && payload && payload.rows.length > 0 && (
-                <div>
-                  {payload.rows.map((row) => (
-                    <PreguntaRow key={row.var} row={row} />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </section>
+              </div>
+            </div>
+
+            {loadingSecs && <EmptyState title="Cargando secciones…" />}
+            {errSecs && (
+              <EmptyState title="No se pudo cargar el dashboard" subtitle={errSecs} />
+            )}
+            {noHayDatos && (
+              <EmptyState
+                title="No hay secciones disponibles"
+                subtitle="El instrumento aún no se cargó o no tiene grupos definidos. Carga XLSForm + base en Procesamiento."
+              />
+            )}
+            {!loadingSecs && !errSecs && !noHayDatos && (
+              <>
+                {loadingPay && <EmptyState title="Cargando…" />}
+                {errPay && <EmptyState title="Error" subtitle={errPay} />}
+                {!loadingPay && !errPay && payload && payload.rows.length === 0 && (
+                  <EmptyState
+                    title="Sin preguntas en esta sección"
+                    subtitle="No hay variables disponibles para mostrar."
+                  />
+                )}
+                {!loadingPay && payload && payload.rows.length > 0 && (
+                  <div>
+                    {payload.rows.map((row) => (
+                      <PreguntaRow key={row.var} row={row} />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        </FullscreenWrapper>
       </main>
     </div>
   );

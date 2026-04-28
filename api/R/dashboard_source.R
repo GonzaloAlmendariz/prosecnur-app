@@ -280,7 +280,7 @@
 .dashboard_palette_for_var <- function(var, rp_inst, s) {
   list_name <- .dashboard_list_name_for_var(var, rp_inst)
   if (!nzchar(list_name)) return(NULL)
-  cfg <- s$dashboard_config %||% .dashboard_default_config()
+  cfg <- .dashboard_config_with_defaults(s$dashboard_config)
   paletas <- cfg$paletas_listas %||% list()
   pal <- paletas[[list_name]]
   if (!is.list(pal) || !length(pal)) return(NULL)

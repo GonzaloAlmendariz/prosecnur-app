@@ -71,6 +71,7 @@ export function PlotlyChart({
   return (
     <div
       ref={ref}
+      className="dash-plotly-chart"
       role="img"
       aria-label={ariaLabel}
       style={{ width: "100%", height, minHeight: height }}

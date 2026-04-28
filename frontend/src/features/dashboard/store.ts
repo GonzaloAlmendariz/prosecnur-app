@@ -4,6 +4,7 @@ import {
   apiDashboardConfigGet,
   apiDashboardConfigPut,
   DashboardConfig,
+  DashboardFodaViewConfig,
   DashboardFiltro,
   DashboardTabId,
 } from "../../api/client";
@@ -35,6 +36,62 @@ function sanitizeConfig(c: DashboardConfig): DashboardConfig {
   const fodaScoreMax = Math.max(fodaScoreMin + 5, Math.min(140, num(c.foda_score_max, 120)));
   const fodaSpacing = Math.max(0.7, Math.min(1.8, num(c.foda_spacing, 1.15)));
   const fodaGridIntensity = Math.max(0, Math.min(1, num(c.foda_grid_intensity, 0.42)));
+  const recordOfRecords = (v: unknown): Record<string, Record<string, string>> => {
+    if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+    const out: Record<string, Record<string, string>> = {};
+    for (const [key, value] of Object.entries(v)) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      const inner: Record<string, string> = {};
+      for (const [k, val] of Object.entries(value)) {
+        if (typeof val === "string" && val.length > 0) inner[k] = val;
+      }
+      if (Object.keys(inner).length) out[key] = inner;
+    }
+    return out;
+  };
+  const recordOfStrings = (v: unknown): Record<string, string> => {
+    if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+    const out: Record<string, string> = {};
+    for (const [key, value] of Object.entries(v)) {
+      if (typeof value === "string" && value.length > 0) out[key] = value;
+    }
+    return out;
+  };
+  const sanitizeFodaView = (view: unknown, fallbackIndex: number): DashboardFodaViewConfig | null => {
+    if (!view || typeof view !== "object" || Array.isArray(view)) return null;
+    const v = view as Record<string, unknown>;
+    const id = typeof v.id === "string" && v.id.trim() ? slugifyFodaId(v.id) : `vista_${fallbackIndex + 1}`;
+    const label = typeof v.label === "string" && v.label.trim() ? v.label.trim() : titleFromFodaId(id);
+    const variable = typeof v.variable === "string" ? v.variable.trim() : "";
+    const metric = typeof v.metric_var === "string" ? v.metric_var.trim() : "";
+    const cardMode = v.card_mode === "alias" ? "alias" : "iconos";
+    return {
+      id,
+      label,
+      variable,
+      metric_var: metric,
+      card_mode: cardMode,
+      aliases: recordOfStrings(v.aliases),
+      icons: recordOfStrings(v.icons),
+    };
+  };
+  const incomingViews = Array.isArray(c.foda_views)
+    ? c.foda_views
+        .map((view, index) => sanitizeFodaView(view, index))
+        .filter((view): view is DashboardFodaViewConfig => Boolean(view))
+    : [];
+  const legacyAliases = {
+    ...DEFAULT_FODA_ALIASES,
+    ...recordOfRecords(c.foda_aliases),
+  };
+  const legacyServiceIcons = recordOfStrings(c.foda_service_icons);
+  const mergedViews = mergeDefaultFodaViews(incomingViews, legacyAliases, legacyServiceIcons);
+  const fodaVistaRaw = typeof c.foda_vista === "string" && c.foda_vista.trim()
+    ? slugifyFodaId(c.foda_vista)
+    : "conductores";
+  const fodaVista = mergedViews.some((view) => view.id === fodaVistaRaw)
+    ? fodaVistaRaw
+    : "conductores";
   return {
     ...c,
     titulo: typeof c.titulo === "string" ? c.titulo : "Dashboard",
@@ -101,7 +158,107 @@ function sanitizeConfig(c: DashboardConfig): DashboardConfig {
     foda_show_total: typeof c.foda_show_total === "boolean" ? c.foda_show_total : true,
     foda_spacing: fodaSpacing,
     foda_grid_intensity: fodaGridIntensity,
+    foda_vista: fodaVista,
+    foda_views: mergedViews,
+    foda_aliases: legacyAliases,
+    foda_service_icons: legacyServiceIcons,
   };
+}
+
+export const DEFAULT_FODA_ALIASES: Record<string, Record<string, string>> = {
+  distrito: {
+    Ate: "ATE",
+    Rimac: "RIM",
+    "San Juan de Lurigancho": "SJL",
+    "Villa El Salvador": "VES",
+    "La Esperanza": "LE",
+    "El Porvenir": "EP",
+  },
+};
+
+export const DEFAULT_FODA_SERVICE_CATEGORIES = ["ULE", "CIAM", "DEMUNA", "OMAPED", "UPSEP"];
+
+export const DEFAULT_FODA_VIEWS: DashboardFodaViewConfig[] = [
+  {
+    id: "conductores",
+    label: "Conductores",
+    variable: "",
+    metric_var: "",
+    card_mode: "iconos",
+    aliases: {},
+    icons: {},
+  },
+  {
+    id: "servicios",
+    label: "Servicios",
+    variable: "servicio",
+    metric_var: "idx_indice_general",
+    card_mode: "iconos",
+    aliases: {},
+    icons: {},
+  },
+  {
+    id: "municipios",
+    label: "Municipios",
+    variable: "distrito",
+    metric_var: "idx_indice_general",
+    card_mode: "alias",
+    aliases: DEFAULT_FODA_ALIASES.distrito,
+    icons: {},
+  },
+];
+
+function slugifyFodaId(value: string): string {
+  const slug = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return slug || "vista";
+}
+
+function titleFromFodaId(value: string): string {
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function uniqueFodaId(base: string, views: DashboardFodaViewConfig[]) {
+  const root = slugifyFodaId(base);
+  const used = new Set(views.map((view) => view.id));
+  if (!used.has(root)) return root;
+  let i = 2;
+  while (used.has(`${root}_${i}`)) i += 1;
+  return `${root}_${i}`;
+}
+
+function mergeDefaultFodaViews(
+  incoming: DashboardFodaViewConfig[],
+  aliases: Record<string, Record<string, string>>,
+  serviceIcons: Record<string, string>,
+): DashboardFodaViewConfig[] {
+  const byId = new Map<string, DashboardFodaViewConfig>();
+  for (const view of DEFAULT_FODA_VIEWS) {
+    byId.set(view.id, { ...view, aliases: { ...(view.aliases ?? {}) }, icons: { ...(view.icons ?? {}) } });
+  }
+  for (const view of incoming) {
+    byId.set(view.id, {
+      ...view,
+      aliases: { ...(view.aliases ?? {}) },
+      icons: { ...(view.icons ?? {}) },
+    });
+  }
+  const servicios = byId.get("servicios");
+  if (servicios) {
+    servicios.icons = { ...serviceIcons, ...(servicios.icons ?? {}) };
+  }
+  for (const view of byId.values()) {
+    if (view.variable && aliases[view.variable]) {
+      view.aliases = { ...aliases[view.variable], ...(view.aliases ?? {}) };
+    }
+  }
+  return [...byId.values()];
 }
 
 export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
@@ -138,6 +295,10 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   foda_show_total: true,
   foda_spacing: 1.15,
   foda_grid_intensity: 0.42,
+  foda_vista: "conductores",
+  foda_views: DEFAULT_FODA_VIEWS,
+  foda_aliases: DEFAULT_FODA_ALIASES,
+  foda_service_icons: {},
 };
 
 // Estado de exploración para Relaciones (no persistido).
@@ -267,6 +428,13 @@ type DashboardStore = {
   setFodaShowTotal: (enabled: boolean) => void;
   setFodaSpacing: (n: number) => void;
   setFodaGridIntensity: (n: number) => void;
+  setFodaVista: (v: string) => void;
+  setFodaViews: (views: DashboardFodaViewConfig[]) => void;
+  addFodaView: () => void;
+  updateFodaView: (id: string, patch: Partial<DashboardFodaViewConfig>) => void;
+  removeFodaView: (id: string) => void;
+  setFodaViewAlias: (id: string, category: string, alias: string) => void;
+  setFodaViewIcon: (id: string, category: string, icon: string) => void;
 
   // Estado de exploración (local, no marca dirty)
   setTabActiva: (t: DashboardTabId) => void;
@@ -461,6 +629,105 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
     set((st) =>
       dirtyPatch({ config: { ...st.config, foda_grid_intensity: Math.max(0, Math.min(1, n)) } }),
     ),
+  setFodaVista: (v) =>
+    set((st) => {
+      const views = st.config.foda_views ?? DEFAULT_FODA_VIEWS;
+      const next = views.some((view) => view.id === v) ? v : (views[0]?.id ?? "conductores");
+      return dirtyPatch({ config: { ...st.config, foda_vista: next } });
+    }),
+  setFodaViews: (views) =>
+    set((st) => {
+      const clean = mergeDefaultFodaViews(views, {}, {});
+      const active = clean.some((view) => view.id === st.config.foda_vista)
+        ? st.config.foda_vista
+        : (clean[0]?.id ?? "conductores");
+      return dirtyPatch({ config: { ...st.config, foda_views: clean, foda_vista: active } });
+    }),
+  addFodaView: () =>
+    set((st) => {
+      const views = [...(st.config.foda_views ?? DEFAULT_FODA_VIEWS)];
+      const id = uniqueFodaId("vista_personalizada", views);
+      const nextView: DashboardFodaViewConfig = {
+        id,
+        label: "Vista personalizada",
+        variable: "",
+        metric_var: "idx_indice_general",
+        card_mode: "alias",
+        aliases: {},
+        icons: {},
+      };
+      return dirtyPatch({
+        config: {
+          ...st.config,
+          foda_vista: id,
+          foda_views: [...views, nextView],
+        },
+      });
+    }),
+  updateFodaView: (id, patch) =>
+    set((st) => {
+      const views = st.config.foda_views ?? DEFAULT_FODA_VIEWS;
+      let nextActive = st.config.foda_vista ?? "conductores";
+      const next = views.map((view) => {
+        if (view.id !== id) return view;
+        const proposedId = patch.id !== undefined && patch.id.trim()
+          ? uniqueFodaId(patch.id, views.filter((v) => v.id !== id))
+          : view.id;
+        if (nextActive === id) nextActive = proposedId;
+        return {
+          ...view,
+          ...patch,
+          id: proposedId,
+          label: patch.label !== undefined ? patch.label : view.label,
+          variable: patch.variable !== undefined ? patch.variable.trim() : view.variable,
+          metric_var: patch.metric_var !== undefined ? patch.metric_var.trim() : view.metric_var,
+          aliases: patch.aliases !== undefined ? patch.aliases : view.aliases,
+          icons: patch.icons !== undefined ? patch.icons : view.icons,
+          card_mode: patch.card_mode === "alias" ? "alias" : patch.card_mode === "iconos" ? "iconos" : view.card_mode,
+        };
+      });
+      return dirtyPatch({ config: { ...st.config, foda_views: next, foda_vista: nextActive } });
+    }),
+  removeFodaView: (id) =>
+    set((st) => {
+      if (id === "conductores") return st;
+      const next = (st.config.foda_views ?? DEFAULT_FODA_VIEWS).filter((view) => view.id !== id);
+      const active = st.config.foda_vista === id ? "conductores" : (st.config.foda_vista ?? "conductores");
+      return dirtyPatch({ config: { ...st.config, foda_views: next, foda_vista: active } });
+    }),
+  setFodaViewAlias: (id, category, alias) =>
+    set((st) => {
+      const key = category.trim();
+      if (!key) return st;
+      const next = (st.config.foda_views ?? DEFAULT_FODA_VIEWS).map((view) => {
+        if (view.id !== id) return view;
+        const aliases = { ...(view.aliases ?? {}) };
+        if (alias.trim()) aliases[key] = alias.trim();
+        else delete aliases[key];
+        return { ...view, aliases };
+      });
+      const aliasesByVar: Record<string, Record<string, string>> = { ...(st.config.foda_aliases ?? {}) };
+      const view = next.find((v) => v.id === id);
+      if (view?.variable) aliasesByVar[view.variable] = { ...(view.aliases ?? {}) };
+      return dirtyPatch({ config: { ...st.config, foda_views: next, foda_aliases: aliasesByVar } });
+    }),
+  setFodaViewIcon: (id, category, icon) =>
+    set((st) => {
+      const key = category.trim();
+      if (!key) return st;
+      const next = (st.config.foda_views ?? DEFAULT_FODA_VIEWS).map((view) => {
+        if (view.id !== id) return view;
+        const icons = { ...(view.icons ?? {}) };
+        if (icon.trim()) icons[key] = icon.trim();
+        else delete icons[key];
+        return { ...view, icons };
+      });
+      const view = next.find((v) => v.id === id);
+      const serviceIcons = view?.id === "servicios"
+        ? { ...(view.icons ?? {}) }
+        : { ...(st.config.foda_service_icons ?? {}) };
+      return dirtyPatch({ config: { ...st.config, foda_views: next, foda_service_icons: serviceIcons } });
+    }),
 
   setTabActiva: (t) => set({ tabActiva: t }),
   setSeccionActiva: (s) => set({ seccionActiva: s }),

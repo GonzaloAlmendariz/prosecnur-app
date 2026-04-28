@@ -43,14 +43,12 @@
 
 /* Overlay y panel del fullscreen. */
 .dashboard-scope .dash-fs-overlay {
-  align-items: center;
-  background: rgba(15, 23, 42, 0.42);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  align-items: stretch;
+  background: var(--dash-superficie);
   display: flex;
   inset: 0;
-  justify-content: center;
-  padding: 32px;
+  justify-content: stretch;
+  padding: 0;
   position: fixed;
   z-index: 90;
   animation: dash-fs-fade-in var(--dash-dur-modal) var(--dash-ease-out);
@@ -58,24 +56,27 @@
 
 .dashboard-scope .dash-fs-panel {
   background: var(--dash-superficie);
-  border: 1px solid var(--dash-borde);
-  border-radius: var(--dash-radius-lg);
-  box-shadow: var(--dash-shadow-lg);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  height: min(96vh, 1080px);
-  padding: 16px 18px 18px;
-  width: min(96vw, 1600px);
+  gap: 0;
+  height: 100vh;
+  height: 100dvh;
+  padding: 0;
+  width: 100vw;
   animation: dash-fs-zoom-in var(--dash-dur-modal) var(--dash-ease-out);
 }
 
 .dashboard-scope .dash-fs-head {
   align-items: center;
+  background: color-mix(in srgb, var(--dash-superficie) 92%, transparent);
+  border-bottom: 1px solid var(--dash-borde);
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  padding-bottom: 8px;
+  padding: 10px 14px;
 }
 
 .dashboard-scope .dash-fs-title {
@@ -93,9 +94,34 @@
 }
 
 .dashboard-scope .dash-fs-body {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: auto;
+  padding: 12px;
+}
+
+.dashboard-scope .dash-dim-fullscreen-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.dashboard-scope .dash-fs-body .dash-plotly-chart {
+  height: calc(100dvh - 92px) !important;
+  min-height: calc(100dvh - 92px) !important;
+}
+
+.dashboard-scope .dash-fs-body .dash-dim-bars-facet .dash-plotly-chart {
+  height: calc((100dvh - 240px) / 2) !important;
+  min-height: 240px !important;
+}
+
+.dashboard-scope .dash-fs-body .dash-dim-radar-facet .dash-plotly-chart {
+  height: min(42dvh, 360px) !important;
+  min-height: 300px !important;
 }
 
 @keyframes dash-fs-fade-in {
@@ -111,5 +137,20 @@
   .dashboard-scope .dash-fs-overlay,
   .dashboard-scope .dash-fs-panel {
     animation: none;
+  }
+}
+
+@supports not (height: 100dvh) {
+  .dashboard-scope .dash-fs-body .dash-plotly-chart {
+    height: calc(100vh - 92px) !important;
+    min-height: calc(100vh - 92px) !important;
+  }
+
+  .dashboard-scope .dash-fs-body .dash-dim-bars-facet .dash-plotly-chart {
+    height: calc((100vh - 240px) / 2) !important;
+  }
+
+  .dashboard-scope .dash-fs-body .dash-dim-radar-facet .dash-plotly-chart {
+    height: min(42vh, 360px) !important;
   }
 }

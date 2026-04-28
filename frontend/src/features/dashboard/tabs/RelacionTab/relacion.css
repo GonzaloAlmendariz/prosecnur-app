@@ -106,9 +106,15 @@
   font-size: 11px;
 }
 
-/* ── Card Iterar con popover (legacy: .iter-popover-wrap.is-open). ── */
+/* ── Card Iterar directa. ── */
 .dashboard-scope .dash-iter-card {
   position: relative;
+}
+.dashboard-scope .dash-iter-direct {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 2px;
 }
 .dashboard-scope .dash-iter-popover-wrap {
   position: relative;
@@ -128,12 +134,15 @@
   padding: 8px 10px;
   transition:
     border-color var(--dash-dur-hover) var(--dash-ease-out),
-    background-color var(--dash-dur-hover) var(--dash-ease-out);
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-press);
   width: 100%;
 }
 .dashboard-scope .dash-iter-trigger:hover {
   border-color: var(--dash-primario-ring);
   background: var(--dash-superficie);
+  box-shadow: var(--dash-shadow-xs);
 }
 .dashboard-scope .dash-iter-trigger-label {
   flex: 1;
