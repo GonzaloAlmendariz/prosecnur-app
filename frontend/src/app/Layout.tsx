@@ -129,7 +129,7 @@ function SessionChip() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: "var(--pulso-text-soft)" }}>
       {version && <span>{version}</span>}
-      {sessionId && (
+      {typeof sessionId === "string" && sessionId.length > 0 && (
         <span style={{ fontFamily: "ui-monospace,monospace" }}>
           sid {sessionId.slice(0, 6)}…
         </span>
