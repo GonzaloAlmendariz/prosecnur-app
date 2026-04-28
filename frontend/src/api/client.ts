@@ -83,6 +83,17 @@ export async function apiHealth() {
   );
 }
 
+// Bootstrap session: si el backend arrancó con PULSO_BOOTSTRAP_PROJECT,
+// devuelve el sid de la sesión pre-cargada. Útil para que herramientas
+// externas (Claude Code, scripts) levanten el stack con un .pulso ya
+// abierto sin pasar por la UI. El backend "consume" el sid una vez —
+// recargas posteriores reciben sid=null y se comportan normalmente.
+export async function apiSystemBootstrap() {
+  return handle<{ sid: string | null }>(
+    await apiFetch("/api/system/bootstrap", { headers: headers() })
+  );
+}
+
 export type DiagnosticInfo = {
   ok: boolean;
   quarto: {
@@ -2069,6 +2080,32 @@ export type DashboardConfig = {
   foda_show_total?: boolean;
   foda_spacing?: number;
   foda_grid_intensity?: number;
+  foda_vista?: string;
+  foda_views?: DashboardFodaViewConfig[];
+  foda_aliases?: Record<string, Record<string, string>>;
+  foda_service_icons?: Record<string, string>;
+  // Logos del header — hasta 3 slots. Cada uno opcional (data URI base64).
+  // Si está vacío, el header se hidrata desde el legacy `logo_data_uri`.
+  logos?: DashboardLogoConfig[];
+  // Habilitar/deshabilitar pestañas individualmente. Las pestañas no
+  // listadas se consideran habilitadas (default true). Permite que el
+  // editor recorte el dashboard final sin tocar el manifest del backend.
+  tabs_enabled?: Partial<Record<DashboardTabId, boolean>>;
+};
+
+export type DashboardLogoConfig = {
+  data_uri: string;
+  alt: string;
+};
+
+export type DashboardFodaViewConfig = {
+  id: string;
+  label: string;
+  variable: string;
+  metric_var?: string;
+  card_mode: "iconos" | "alias";
+  aliases?: Record<string, string>;
+  icons?: Record<string, string>;
 };
 
 export async function apiDashboardConfigGet() {
@@ -2390,6 +2427,9 @@ export type DashboardDimPayload = {
   score_plot?: DashboardDimScoreRow[];
   score_heat?: DashboardDimScoreRow[];
   group_colors?: Record<string, string>;
+  // Mapa axis_label → data-uri PNG/SVG. Vacío si el objetivo no
+  // declara iconos en su config.
+  axis_icons?: Record<string, string>;
   semaforo?: {
     red_max: number;
     amber_max: number;
@@ -2450,6 +2490,9 @@ export type DashboardDimFodaCuadrante =
 export type DashboardDimFodaItem = {
   var: string;
   axis_label: string;
+  card_label?: string;
+  item_kind?: string;
+  card_mode?: "iconos" | "alias";
   grupo?: string;
   grupo_key?: string;
   color?: string;
@@ -2473,6 +2516,13 @@ export type DashboardDimFodaPayload = {
   objetivo?: string;
   objetivo_id?: string;
   modo?: "general" | "indicadores";
+  item_kind?: string;
+  item_label?: string;
+  card_mode?: "iconos" | "alias";
+  item_var?: string;
+  item_var_label?: string;
+  metric_var?: string;
+  metric_label?: string;
   items?: DashboardDimFodaItem[];
   cortes?: { score: number; sd: number };
   counts?: Record<DashboardDimFodaCuadrante, number>;
@@ -2488,7 +2538,7 @@ export async function apiDashboardDimFoda(opts: {
   incluir_total?: boolean;
   iter?: { var: string; level?: string } | null;
   filtros?: DashboardFiltro[];
-  foda_config?: Pick<DashboardConfig, "foda_iconos_enabled" | "foda_icon_tint" | "foda_icon_size" | "foda_icon_legend" | "foda_score_min" | "foda_score_max" | "foda_show_total" | "foda_spacing" | "foda_grid_intensity">;
+  foda_config?: Pick<DashboardConfig, "foda_iconos_enabled" | "foda_icon_tint" | "foda_icon_size" | "foda_icon_legend" | "foda_score_min" | "foda_score_max" | "foda_show_total" | "foda_spacing" | "foda_grid_intensity" | "foda_vista" | "foda_views" | "foda_aliases" | "foda_service_icons">;
 }) {
   return handle<{ ok: true; payload: DashboardDimFodaPayload }>(
     await apiFetch("/api/dashboard/dimensiones/foda", {

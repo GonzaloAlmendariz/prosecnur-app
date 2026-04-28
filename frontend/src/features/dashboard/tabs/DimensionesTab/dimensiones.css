@@ -3,14 +3,82 @@
  * con segmented [Heatmap | Barras | Radar | FODA].
  * ============================================================================= */
 
+/* Sidebar colapsable: el grid del layout transiciona la columna izquierda
+ * a 0 y el aside se atenúa/desliza fuera. En modo Construcción se fuerza
+ * a "closed" desde el componente; en los demás modos el toggle es manual. */
+.dashboard-scope .dash-resumen-layout {
+  transition:
+    grid-template-columns var(--dash-dur-modal) var(--dash-ease-in-out),
+    gap var(--dash-dur-modal) var(--dash-ease-in-out);
+}
+.dashboard-scope .dash-resumen-layout[data-sidebar="closed"] {
+  grid-template-columns: 0 minmax(0, 1fr);
+  gap: 0;
+}
+.dashboard-scope .dash-resumen-layout > .dash-sidebar {
+  overflow: hidden;
+  transition:
+    opacity var(--dash-dur-modal) var(--dash-ease-in-out),
+    transform var(--dash-dur-modal) var(--dash-ease-in-out);
+}
+.dashboard-scope .dash-resumen-layout[data-sidebar="closed"] > .dash-sidebar {
+  opacity: 0;
+  transform: translateX(-12px);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-scope .dash-resumen-layout,
+  .dashboard-scope .dash-resumen-layout > .dash-sidebar { transition: none; }
+}
+
+/* Toggle del sidebar — vive al inicio del título del visualizador (modos
+ * que NO son Construcción). Cuadrado, sutil, alineado con el h2. */
+.dashboard-scope .dash-dim-sidebar-toggle {
+  appearance: none;
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 30px;
+  justify-content: center;
+  margin-right: 10px;
+  padding: 0;
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out);
+  width: 30px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-dim-sidebar-toggle:hover {
+    background: var(--dash-primario-soft);
+    border-color: color-mix(in srgb, var(--dash-borde) 50%, var(--dash-primario) 50%);
+    color: var(--dash-primario);
+  }
+}
+.dashboard-scope .dash-dim-sidebar-toggle:focus-visible {
+  outline: 2px solid var(--dash-primario);
+  outline-offset: 2px;
+}
+
 /* Card Configuración — segmented tabs internos. */
 .dashboard-scope .dash-dim-config {
   padding: 12px;
 }
 .dashboard-scope .dash-dim-config-tabs {
-  background: color-mix(in srgb, var(--dash-superficie-2) 82%, var(--dash-primario) 18%);
-  border: 1px solid color-mix(in srgb, var(--dash-borde) 78%, var(--dash-primario) 22%);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--dash-superficie-2) 88%, var(--dash-primario) 12%) 0%,
+      color-mix(in srgb, var(--dash-superficie-2) 96%, var(--dash-primario) 4%) 100%);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 82%, var(--dash-primario) 18%);
   border-radius: var(--dash-radius-md);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    var(--dash-shadow-xs);
   display: grid;
   gap: 2px;
   grid-template-columns: repeat(3, 1fr);
@@ -23,27 +91,53 @@
   border-radius: var(--dash-radius-sm);
   color: var(--dash-texto-suave);
   cursor: pointer;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: -0.005em;
-  padding: 7px 6px;
+  letter-spacing: -0.01em;
+  padding: 7px 4px;
+  position: relative;
+  white-space: nowrap;
   transition:
     background-color var(--dash-dur-hover) var(--dash-ease-out),
     color var(--dash-dur-hover) var(--dash-ease-out),
-    transform var(--dash-dur-press) var(--dash-ease-out);
+    transform var(--dash-dur-press) var(--dash-ease-press),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out);
 }
 @media (hover: hover) and (pointer: fine) {
   .dashboard-scope .dash-dim-config-tab:hover:not(.is-active) {
     background: var(--dash-primario-soft);
+    color: var(--dash-primario);
+    transform: translateY(-1px);
+  }
+  .dashboard-scope .dash-dim-config-tab.is-active:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      var(--dash-shadow-sm),
+      0 0 0 3px color-mix(in srgb, var(--dash-primario) 16%, transparent);
   }
 }
 .dashboard-scope .dash-dim-config-tab.is-active {
-  background: var(--dash-primario);
-  box-shadow: var(--dash-shadow-xs);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--dash-primario) 100%, white 6%) 0%,
+      var(--dash-primario) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    var(--dash-shadow-xs);
   color: #fff;
 }
 .dashboard-scope .dash-dim-config-tab:active {
-  transform: scale(0.97);
+  transform: translateY(0) scale(0.97);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.14);
+}
+.dashboard-scope .dash-dim-config-tab:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--dash-primario) 55%, transparent);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-scope .dash-dim-config-tab,
+  .dashboard-scope .dash-dim-config-tab:hover,
+  .dashboard-scope .dash-dim-config-tab:active { transform: none; }
 }
 
 .dashboard-scope .dash-dim-config-panel {
@@ -51,6 +145,56 @@
   flex-direction: column;
   gap: 6px;
   padding-top: 12px;
+  transition: padding-top var(--dash-dur-modal) var(--dash-ease-in-out);
+}
+/* Cuando el segmented superior está colapsado (Construcción), reducimos
+   el padding-top del panel para que la card quede visualmente compacta. */
+.dashboard-scope .dash-dim-config
+  > .dash-collapse[data-open="false"]
+  + .dash-dim-config-panel {
+  padding-top: 0;
+}
+
+/* =============================================================================
+ * dash-collapse — wrapper genérico para mostrar/ocultar bloques con animación
+ * de aparición/colapsamiento (height + opacity + cancelación de gap).
+ *
+ * Uso:
+ *   <div className="dash-collapse" data-open={open}>...</div>
+ *
+ * Variante --sidebar-gap: cuando el wrapper es hijo directo de .dash-sidebar
+ * (flex con gap: 12px), cancela el gap colapsando margin-top y margin-bottom
+ * para que la card vecina suba/baje sin huecos.
+ * ============================================================================= */
+.dashboard-scope .dash-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--dash-dur-modal) var(--dash-ease-in-out),
+    opacity calc(var(--dash-dur-modal) - 40ms) var(--dash-ease-out),
+    margin-top var(--dash-dur-modal) var(--dash-ease-in-out),
+    margin-bottom var(--dash-dur-modal) var(--dash-ease-in-out);
+  /* fade-in/out con desplazamiento mínimo para que se sienta vivo */
+  transform-origin: top;
+}
+.dashboard-scope .dash-collapse > * {
+  min-height: 0;
+  overflow: hidden;
+}
+.dashboard-scope .dash-collapse[data-open="false"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+.dashboard-scope .dash-collapse--sidebar-gap[data-open="false"] {
+  /* el padre .dash-sidebar usa gap: 12px — cancelamos ese gap cuando
+     el wrapper colapsa para que el card de arriba no deje hueco. */
+  margin-top: -12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-scope .dash-collapse,
+  .dashboard-scope .dash-dim-config-panel { transition: none; }
 }
 
 /* Label uniforme para todos los selects del sidebar. */
@@ -105,9 +249,15 @@
 }
 
 .dashboard-scope .dash-dim-vis-segmented {
-  background: var(--dash-superficie-2);
-  border: 1px solid var(--dash-borde);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--dash-superficie-2) 90%, var(--dash-primario) 10%) 0%,
+      color-mix(in srgb, var(--dash-superficie-2) 98%, var(--dash-primario) 2%) 100%);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 80%, var(--dash-primario) 20%);
   border-radius: var(--dash-radius-md);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    var(--dash-shadow-xs);
   display: inline-flex;
   gap: 2px;
   padding: 3px;
@@ -126,26 +276,51 @@
   font-weight: 600;
   gap: 6px;
   padding: 6px 10px;
+  position: relative;
   transition:
     background-color var(--dash-dur-hover) var(--dash-ease-out),
     color var(--dash-dur-hover) var(--dash-ease-out),
-    transform var(--dash-dur-press) var(--dash-ease-out);
+    transform var(--dash-dur-press) var(--dash-ease-press),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out);
 }
 @media (hover: hover) and (pointer: fine) {
   .dashboard-scope .dash-dim-vis-segment:hover:not(.is-active) {
     background: var(--dash-primario-soft);
+    color: var(--dash-primario);
+    transform: translateY(-1px);
+  }
+  .dashboard-scope .dash-dim-vis-segment.is-active:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      var(--dash-shadow-sm),
+      0 0 0 3px color-mix(in srgb, var(--dash-primario) 16%, transparent);
   }
 }
-.dashboard-scope .dash-dim-vis-segment:active:not(.is-active) {
-  transform: scale(0.97);
+.dashboard-scope .dash-dim-vis-segment:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.14);
+}
+.dashboard-scope .dash-dim-vis-segment:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--dash-primario) 55%, transparent);
+  outline-offset: 2px;
 }
 .dashboard-scope .dash-dim-vis-segment.is-active {
-  background: var(--dash-primario);
-  box-shadow: var(--dash-shadow-xs);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--dash-primario) 100%, white 6%) 0%,
+      var(--dash-primario) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    var(--dash-shadow-xs);
   color: #fff;
 }
 .dashboard-scope .dash-dim-vis-segment > svg {
   flex: 0 0 auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-scope .dash-dim-vis-segment,
+  .dashboard-scope .dash-dim-vis-segment:hover,
+  .dashboard-scope .dash-dim-vis-segment:active { transform: none; }
 }
 
 .dashboard-scope .dash-dim-vis-body {
@@ -154,6 +329,75 @@
   gap: 12px;
   /* Animación de entrada al cambiar de modo (key={visualMode} fuerza remount). */
   animation: dash-dim-fade-in var(--dash-dur-modal) var(--dash-ease-out);
+}
+
+/* Stagger de aparición sobre los elementos internos que Plotly genera —
+ * barras, puntos del radar/FODA, labels del heatmap. Plotly usa una
+ * <image> única para el heatmap (no celdas individuales), así que la
+ * imagen entera fade-in y los labels stagger. */
+@media (prefers-reduced-motion: no-preference) {
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer image {
+    animation: dash-dim-fade-in-soft 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label,
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point,
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point,
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .points path {
+    animation: dash-dim-cell-pop 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 1) { animation-delay: 200ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 2) { animation-delay: 220ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 3) { animation-delay: 240ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 4) { animation-delay: 260ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 5) { animation-delay: 280ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 6) { animation-delay: 300ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 7) { animation-delay: 320ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .heatmap-label:nth-child(20n + 8) { animation-delay: 340ms; }
+
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 1),
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 1) { animation-delay: 0ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 2),
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 2) { animation-delay: 28ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 3),
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 3) { animation-delay: 56ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 4),
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 4) { animation-delay: 84ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 5),
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 5) { animation-delay: 112ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 6),
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 6) { animation-delay: 140ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 7),
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 7) { animation-delay: 168ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 8),
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 8) { animation-delay: 196ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 9),
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 9) { animation-delay: 224ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .barlayer .point:nth-child(20n + 10),
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .heatmaplayer .hm path:nth-child(20n + 10) { animation-delay: 252ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 1) { animation-delay: 0ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 2) { animation-delay: 60ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 3) { animation-delay: 120ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 4) { animation-delay: 180ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 5) { animation-delay: 240ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 6) { animation-delay: 300ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 7) { animation-delay: 360ms; }
+  .dashboard-scope .dash-dim-vis-body .js-plotly-plot .scatterlayer .point:nth-child(10n + 8) { animation-delay: 420ms; }
+}
+
+@keyframes dash-dim-cell-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes dash-dim-fade-in-soft {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes dash-dim-fade-in {
@@ -441,4 +685,228 @@
   .dashboard-scope .dash-dim-skeleton-foda {
     grid-template-columns: 1fr;
   }
+}
+
+/* =============================================================================
+ * ConstruccionView — Sunburst radial Índice → Dimensiones → Subcriterios.
+ * ============================================================================= */
+.dashboard-scope .dash-construccion-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  width: 100%;
+  animation: dash-dim-fade-in 280ms var(--dash-ease-out);
+}
+.dashboard-scope .dash-construccion-loading {
+  align-self: center;
+  background: color-mix(in srgb, var(--dash-superficie) 88%, transparent);
+  border: 1px solid var(--dash-borde);
+  border-radius: 999px;
+  color: var(--dash-texto-suave);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 6px 14px;
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  box-shadow: var(--dash-shadow-xs);
+}
+.dashboard-scope .dash-construccion-legend {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 14px;
+  justify-content: center;
+  letter-spacing: 0.01em;
+  padding-top: 4px;
+}
+.dashboard-scope .dash-construccion-leyenda-item {
+  align-items: center;
+  color: var(--dash-texto-suave);
+  display: inline-flex;
+  font-variant-numeric: tabular-nums;
+  gap: 6px;
+}
+.dashboard-scope .dash-construccion-leyenda-item > span {
+  border-radius: 3px;
+  display: inline-block;
+  height: 10px;
+  width: 18px;
+}
+
+/* =============================================================================
+ * Sidebar unificado — un solo card con secciones apiladas. Reemplaza el
+ * viejo split (ConfiguracionCard + Filtros como cards separadas).
+ * ============================================================================= */
+.dashboard-scope .dash-dim-sidebar-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+/* Header del sidebar — vive en el card mismo (no afuera). */
+.dashboard-scope .dash-dim-sidebar-head {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--dash-divider);
+  display: flex;
+  gap: 10px;
+  padding: 14px 14px 12px;
+}
+.dashboard-scope .dash-dim-sidebar-head-text {
+  flex: 1;
+  min-width: 0;
+}
+.dashboard-scope .dash-dim-sidebar-head-text .dash-cardbox-title {
+  margin: 0;
+}
+.dashboard-scope .dash-dim-sidebar-head-help {
+  color: var(--dash-texto-suave);
+  font-size: 11.5px;
+  line-height: 1.35;
+  margin: 4px 0 0;
+}
+.dashboard-scope .dash-dim-sidebar-collapse {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--dash-borde);
+  border-radius: 8px;
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out);
+  width: 28px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-dim-sidebar-collapse:hover {
+    background: var(--dash-primario-soft);
+    border-color: color-mix(in srgb, var(--dash-borde) 50%, var(--dash-primario) 50%);
+    color: var(--dash-primario);
+  }
+}
+
+/* Secciones apiladas — cada una con su título + helper + (opcional) switch. */
+.dashboard-scope .dash-dim-sidebar-section {
+  border-top: 1px solid var(--dash-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+}
+.dashboard-scope .dash-dim-sidebar-section:first-of-type {
+  border-top: 0;
+}
+.dashboard-scope .dash-dim-sidebar-section.is-disabled {
+  opacity: 0.55;
+}
+.dashboard-scope .dash-dim-sidebar-section.is-disabled .dash-dim-sidebar-section-body {
+  pointer-events: none;
+}
+.dashboard-scope .dash-dim-sidebar-section-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+.dashboard-scope .dash-dim-sidebar-section-head-text {
+  flex: 1;
+  min-width: 0;
+}
+.dashboard-scope .dash-dim-sidebar-section-title {
+  color: var(--dash-texto);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: -0.005em;
+  margin: 0;
+}
+.dashboard-scope .dash-dim-sidebar-section.is-on .dash-dim-sidebar-section-title {
+  color: var(--dash-primario);
+}
+.dashboard-scope .dash-dim-sidebar-section-help {
+  color: var(--dash-texto-suave);
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 2px 0 0;
+}
+.dashboard-scope .dash-dim-sidebar-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Switch row — para toggles inline con label largo (ej. "Mostrar promedio total"). */
+.dashboard-scope .dash-switch-row {
+  align-items: center;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 6px 0;
+}
+.dashboard-scope .dash-switch-row-text {
+  color: var(--dash-texto);
+  flex: 1;
+}
+
+/* Botón flotante para reabrir el sidebar cuando está cerrado.
+ * Posicionado absoluto al margen izquierdo del main. */
+.dashboard-scope .dash-resumen-layout > main {
+  position: relative;
+}
+.dashboard-scope .dash-dim-sidebar-reopen {
+  align-items: center;
+  appearance: none;
+  background: var(--dash-superficie);
+  border: 1px solid var(--dash-borde);
+  border-radius: 8px;
+  box-shadow: var(--dash-shadow-sm);
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  left: 0;
+  padding: 0;
+  position: absolute;
+  top: 0;
+  transition:
+    background var(--dash-dur-hover) var(--dash-ease-out),
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out);
+  width: 32px;
+  z-index: 5;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-dim-sidebar-reopen:hover {
+    background: var(--dash-primario-soft);
+    border-color: color-mix(in srgb, var(--dash-borde) 50%, var(--dash-primario) 50%);
+    color: var(--dash-primario);
+  }
+}
+
+/* Fix overflow del Visualizador — Plotly heatmap se sale del card cuando el
+ * cruce tiene muchas categorías (>6 columnas). El card debe contener su
+ * contenido y hacer scroll horizontal interno si hace falta. */
+.dashboard-scope .dash-cardbox.dash-dim-vis {
+  min-width: 0;
+  overflow: hidden;
+}
+.dashboard-scope .dash-cardbox.dash-dim-vis .dash-dim-vis-body {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
 }

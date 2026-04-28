@@ -1,6 +1,7 @@
 import "./theme/tokens.css";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Palette, Settings, UploadCloud } from "lucide-react";
 import type { DashboardTabId } from "../../api/client";
 import { DashboardCurationGate } from "./curation/DashboardCurationGate";
 import { DashboardHeader } from "./header/DashboardHeader";
@@ -14,7 +15,7 @@ import { RelacionTab } from "./tabs/RelacionTab";
 import { BaseDatosTab } from "./tabs/BaseDatosTab";
 import { DimensionesTab } from "./tabs/DimensionesTab";
 import { ThemeProvider } from "./theme/ThemeProvider";
-import { useDashboardAutosave, useDashboardStore } from "./store";
+import { DEFAULT_TABS_ENABLED, useDashboardAutosave, useDashboardStore } from "./store";
 import { useDashboardManifest } from "./useDashboardData";
 
 // Página principal del Dashboard.
@@ -43,14 +44,27 @@ export default function DashboardPage() {
   const { loading, error, manifest, themeDefault, refresh } = useDashboardManifest();
   const hasDashboardSource = !!manifest?.estado.tiene_data;
 
-  // Si la tab activa deja de estar disponible, fallback a la primera disponible.
+  // Filtrado de tabs por config.tabs_enabled — vive en el store (editable
+  // desde Personalizar → Pestañas). Los tabs deshabilitados no aparecen
+  // en el nav del dashboard final.
+  const tabsEnabled = useMemo(
+    () => ({ ...DEFAULT_TABS_ENABLED, ...(config.tabs_enabled ?? {}) }),
+    [config.tabs_enabled],
+  );
+  const visibleTabs = useMemo(
+    () => (manifest?.tabs ?? []).filter((t) => tabsEnabled[t.id] !== false),
+    [manifest, tabsEnabled],
+  );
+
+  // Si la tab activa deja de estar disponible (manifest o config), fallback
+  // a la primera disponible y habilitada.
   useEffect(() => {
     if (!manifest) return;
-    const active = manifest.tabs.find((t) => t.id === tabActiva);
+    const active = visibleTabs.find((t) => t.id === tabActiva);
     if (active && active.available) return;
-    const first = manifest.tabs.find((t) => t.available);
+    const first = visibleTabs.find((t) => t.available);
     if (first) setTabActiva(first.id);
-  }, [manifest, tabActiva, setTabActiva]);
+  }, [manifest, visibleTabs, tabActiva, setTabActiva]);
 
   return (
     <ThemeProvider
@@ -58,11 +72,37 @@ export default function DashboardPage() {
       colorPrimarioOverride={config.color_primario_override}
       themeDefault={themeDefault ?? undefined}
     >
-      <DashboardHeader
-        onImportarClick={manifest ? () => setSourceOpen((v) => !v) : undefined}
-        onPaletasClick={hasDashboardSource ? () => setPalettesOpen(true) : undefined}
-        onPersonalizarClick={hasDashboardSource ? () => setCustomizeOpen(true) : undefined}
-      />
+      <div className="dash-admin-toolbar-wrap">
+        <div className="dash-admin-toolbar" role="toolbar" aria-label="Edición del dashboard">
+          <button
+            type="button"
+            disabled={!manifest}
+            className={sourceOpen ? "is-active" : ""}
+            onClick={() => setSourceOpen((v) => !v)}
+            title="Cambiar XLSForm y data del dashboard"
+          >
+            <UploadCloud size={13} /> Datos
+          </button>
+          <button
+            type="button"
+            disabled={!hasDashboardSource}
+            onClick={() => setPalettesOpen(true)}
+            title="Paletas de colores por lista"
+          >
+            <Palette size={13} /> Paletas
+          </button>
+          <button
+            type="button"
+            disabled={!hasDashboardSource}
+            onClick={() => setCustomizeOpen(true)}
+            title="Personalizar marca, pestañas y vistas"
+          >
+            <Settings size={13} /> Personalizar
+          </button>
+        </div>
+      </div>
+
+      <DashboardHeader />
 
       {loading && <EmptyState title="Cargando dashboard…" />}
       {error && (
@@ -72,6 +112,7 @@ export default function DashboardPage() {
       {manifest && (!manifest.estado.tiene_data || sourceOpen) && (
         <DashboardSourceGate
           compact={manifest.estado.tiene_data}
+          onCancel={manifest.estado.tiene_data ? () => setSourceOpen(false) : undefined}
           onImported={() => {
             setSourceOpen(false);
             setSeccionActiva(null);
@@ -93,7 +134,7 @@ export default function DashboardPage() {
         <>
           <nav aria-label="Pestañas del dashboard" style={{ marginBottom: 16 }}>
             <TabNav
-              tabs={manifest.tabs}
+              tabs={visibleTabs}
               activeId={tabActiva}
               onSelect={setTabActiva}
             />

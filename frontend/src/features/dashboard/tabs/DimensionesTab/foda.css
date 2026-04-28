@@ -156,11 +156,32 @@
 
 .dashboard-scope .dash-foda-legacy {
   display: grid;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: 52px 1fr;
   grid-template-rows: 500px 18px auto auto;
   min-height: 586px;
   width: 100%;
 }
+
+.dashboard-scope .dash-foda-yaxis {
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+  height: 100%;
+  pointer-events: none;
+}
+
+.dashboard-scope .dash-foda-ytick {
+  color: var(--dash-texto-suave);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  position: absolute;
+  right: 6px;
+  transform: translateY(-50%);
+  letter-spacing: 0.01em;
+}
+.dashboard-scope .dash-foda-ytick:first-child { transform: translateY(0); }
+.dashboard-scope .dash-foda-ytick:last-child  { transform: translateY(-100%); }
 
 .dashboard-scope .dash-foda.is-fullscreen .dash-foda-legacy {
   flex: 1 1 auto;
@@ -677,4 +698,395 @@
     height: 22px;
     min-width: 27px;
   }
+}
+
+/* =============================================================================
+ * FodaLectura — vista pedagógica con animación CSS pura (sin Plotly).
+ * Recorre los 4 cuadrantes en C invertida explicando el significado de
+ * cada posición.
+ *
+ * Layout:
+ *   .dash-foda-lectura            grid filas: intro / frame / caption
+ *     .dash-foda-lectura-intro    texto de bienvenida
+ *     .dash-foda-lectura-frame    grid 2 cols × 3 rows:
+ *       [ Y-axis | board     ]    fila 1: ejes a la izquierda
+ *       [        | X-axis    ]    fila 2: eje X debajo del board
+ *       [        | X-title   ]    fila 3: título eje X
+ *     .dash-foda-lectura-caption  chip + hint + dots
+ * ============================================================================= */
+.dashboard-scope .dash-foda-lectura {
+  display: grid;
+  gap: 14px;
+  grid-template-rows: auto auto auto;
+  padding: 18px 20px 22px;
+}
+.dashboard-scope .dash-foda-lectura-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 760px;
+}
+.dashboard-scope .dash-foda-lectura-eyebrow {
+  color: var(--dash-primario);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.dashboard-scope .dash-foda-lectura-lead {
+  color: var(--dash-texto);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+.dashboard-scope .dash-foda-lectura-lead strong {
+  color: var(--dash-primario);
+  font-weight: 700;
+}
+
+/* Frame — agrupa eje Y, board y eje X en un grid externo.
+ * Las bandas de eje viven afuera del board así nunca pisan los chips. */
+.dashboard-scope .dash-foda-lectura-frame {
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-rows: minmax(220px, 1fr) auto auto;
+  margin: 4px auto 0;
+  max-width: 920px;
+  width: 100%;
+}
+
+/* Banda eje Y — vive en columna 1, fila 1. Texto rotado 90° con flecha. */
+.dashboard-scope .dash-foda-lectura-yaxis {
+  align-items: stretch;
+  display: flex;
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+}
+.dashboard-scope .dash-foda-lectura-yaxis-label {
+  color: var(--dash-texto);
+  font-size: 11px;
+  font-weight: 800;
+  left: 4px;
+  letter-spacing: 0.06em;
+  position: absolute;
+  text-transform: uppercase;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: left center;
+  white-space: nowrap;
+}
+.dashboard-scope .dash-foda-lectura-yaxis-arrows {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  justify-content: space-between;
+  margin-left: auto;
+  padding: 6px 0;
+}
+.dashboard-scope .dash-foda-lectura-yaxis-pole {
+  color: var(--dash-texto-suave);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.dashboard-scope .dash-foda-lectura-yaxis-line {
+  background: linear-gradient(
+    180deg,
+    var(--dash-primario) 0%,
+    color-mix(in srgb, var(--dash-primario) 25%, transparent) 100%
+  );
+  border-radius: 999px;
+  flex: 1;
+  width: 2px;
+}
+
+/* Banda eje X — vive en columna 2, fila 2. Spacer en col 1 para alinear. */
+.dashboard-scope .dash-foda-lectura-xaxis {
+  display: grid;
+  gap: 0 12px;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  grid-template-columns: 36px minmax(0, 1fr);
+}
+.dashboard-scope .dash-foda-lectura-xaxis-track {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  grid-column: 2;
+}
+.dashboard-scope .dash-foda-lectura-xaxis-pole {
+  color: var(--dash-texto-suave);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.dashboard-scope .dash-foda-lectura-xaxis-line {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--dash-primario) 25%, transparent) 0%,
+    var(--dash-primario) 100%
+  );
+  border-radius: 999px;
+  flex: 1;
+  height: 2px;
+}
+.dashboard-scope .dash-foda-lectura-xaxis-title {
+  color: var(--dash-texto);
+  font-size: 11px;
+  font-weight: 800;
+  grid-column: 2;
+  grid-row: 3;
+  letter-spacing: 0.06em;
+  margin-left: 48px; /* alinea con el track del eje X */
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Board — 2x2 con líneas de corte y trazo C invertida superpuesto.
+ * Vive en col 2, fila 1 del frame. */
+.dashboard-scope .dash-foda-lectura-board {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--dash-superficie-2) 78%, var(--dash-primario) 22%) 0%, var(--dash-superficie) 60%);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 60%, var(--dash-primario) 40%);
+  border-radius: 14px;
+  box-shadow: var(--dash-shadow-sm);
+  display: grid;
+  grid-column: 2;
+  grid-row: 1;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  min-height: 220px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* Fullscreen: el frame ocupa el alto disponible, el board crece con él. */
+.dashboard-scope .dash-foda.is-fullscreen .dash-foda-lectura {
+  height: 100%;
+  padding: 22px clamp(20px, 4vw, 64px) 22px;
+}
+.dashboard-scope .dash-foda.is-fullscreen .dash-foda-lectura-frame {
+  flex: 1;
+  grid-template-rows: minmax(360px, 1fr) auto auto;
+  max-width: 1280px;
+}
+.dashboard-scope .dash-foda.is-fullscreen .dash-foda-lectura-board {
+  height: 100%;
+  min-height: 360px;
+}
+.dashboard-scope .dash-foda.is-fullscreen .dash-foda-lectura-yaxis-pole,
+.dashboard-scope .dash-foda.is-fullscreen .dash-foda-lectura-xaxis-pole {
+  font-size: 11px;
+}
+.dashboard-scope .dash-foda.is-fullscreen .dash-foda-lectura-yaxis-label,
+.dashboard-scope .dash-foda.is-fullscreen .dash-foda-lectura-xaxis-title {
+  font-size: 13px;
+}
+
+.dashboard-scope .dash-foda-lectura-quad {
+  align-items: flex-start;
+  display: flex;
+  font-size: 11px;
+  font-weight: 800;
+  justify-content: flex-start;
+  letter-spacing: 0.04em;
+  padding: 10px 14px;
+  position: relative;
+  text-transform: uppercase;
+  transition:
+    background var(--dash-dur-modal) var(--dash-ease-in-out),
+    color var(--dash-dur-modal) var(--dash-ease-in-out);
+}
+.dashboard-scope .dash-foda-lectura-quad-name {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  color: color-mix(in srgb, var(--dash-texto) 75%, transparent 25%);
+  padding: 3px 8px;
+  transition:
+    background var(--dash-dur-modal) var(--dash-ease-in-out),
+    color var(--dash-dur-modal) var(--dash-ease-in-out),
+    transform var(--dash-dur-modal) var(--dash-ease-in-out);
+}
+.dashboard-scope .dash-foda-lectura-quad.is-active .dash-foda-lectura-quad-name {
+  background: var(--dash-primario);
+  color: #fff;
+  transform: scale(1.06);
+}
+/* Posición FIJA por clase — el orden del array de stops es el del recorrido
+ * en C invertida (Fortaleza → Oportunidad → Amenaza → Debilidad), no el del
+ * grid 2×2. Sin esto los cuadrantes Debilidad y Amenaza quedaban en posición
+ * incorrecta (Amenaza salía abajo-izquierda, Debilidad abajo-derecha). */
+.dashboard-scope .dash-foda-lectura-quad.is-fortaleza {
+  align-items: flex-start;
+  color: #1f7a4a;
+  grid-column: 1;
+  grid-row: 1;
+  justify-content: flex-start;
+}
+.dashboard-scope .dash-foda-lectura-quad.is-oportunidad {
+  align-items: flex-start;
+  color: #1d4ed8;
+  grid-column: 2;
+  grid-row: 1;
+  justify-content: flex-end;
+}
+.dashboard-scope .dash-foda-lectura-quad.is-debilidad {
+  align-items: flex-end;
+  color: #b45309;
+  grid-column: 1;
+  grid-row: 2;
+  justify-content: flex-start;
+}
+.dashboard-scope .dash-foda-lectura-quad.is-amenaza {
+  align-items: flex-end;
+  color: #b91c1c;
+  grid-column: 2;
+  grid-row: 2;
+  justify-content: flex-end;
+}
+
+.dashboard-scope .dash-foda-lectura-cut {
+  background: color-mix(in srgb, var(--dash-borde) 50%, var(--dash-primario) 50%);
+  position: absolute;
+  z-index: 1;
+}
+.dashboard-scope .dash-foda-lectura-cut.is-vertical {
+  bottom: 0;
+  height: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+}
+.dashboard-scope .dash-foda-lectura-cut.is-horizontal {
+  height: 1px;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+}
+
+/* Trazo C invertida — SVG dashado que el avatar va recorriendo. */
+.dashboard-scope .dash-foda-lectura-path {
+  height: 100%;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 100%;
+  z-index: 2;
+}
+.dashboard-scope .dash-foda-lectura-path path {
+  fill: none;
+  stroke: var(--dash-primario);
+  stroke-dasharray: 2.5 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-opacity: 0.45;
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Avatar — círculo con halo, anima entre stops vía top/left + transition. */
+.dashboard-scope .dash-foda-lectura-avatar {
+  background: var(--dash-primario);
+  border: 3px solid #fff;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--dash-primario) 30%, transparent),
+    0 6px 16px rgba(15, 23, 42, 0.22);
+  display: block;
+  height: 22px;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transition:
+    top 1.4s cubic-bezier(0.65, 0, 0.35, 1),
+    left 1.4s cubic-bezier(0.65, 0, 0.35, 1);
+  width: 22px;
+  z-index: 3;
+}
+.dashboard-scope .dash-foda-lectura-avatar::after {
+  animation: dash-foda-lectura-pulse 2.4s ease-out infinite;
+  background: var(--dash-primario);
+  border-radius: 999px;
+  content: "";
+  inset: -3px;
+  opacity: 0.35;
+  position: absolute;
+  z-index: -1;
+}
+@keyframes dash-foda-lectura-pulse {
+  0%   { transform: scale(0.85); opacity: 0.5; }
+  60%  { transform: scale(1.7); opacity: 0; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-scope .dash-foda-lectura-avatar { transition: none; }
+  .dashboard-scope .dash-foda-lectura-avatar::after { animation: none; }
+}
+
+/* Caption debajo del board — actualiza con el stop activo. */
+.dashboard-scope .dash-foda-lectura-caption {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin: 0 auto;
+  max-width: 720px;
+  padding-top: 4px;
+}
+.dashboard-scope .dash-foda-lectura-caption-label {
+  background: var(--dash-primario);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 4px 12px;
+  text-transform: uppercase;
+}
+.dashboard-scope .dash-foda-lectura-caption-hint {
+  color: var(--dash-texto);
+  flex: 1 1 320px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  min-width: 0;
+}
+.dashboard-scope .dash-foda-lectura-dots {
+  display: inline-flex;
+  gap: 6px;
+}
+.dashboard-scope .dash-foda-lectura-dot {
+  appearance: none;
+  background: color-mix(in srgb, var(--dash-borde) 70%, var(--dash-primario) 30%);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  height: 8px;
+  padding: 0;
+  transition:
+    background var(--dash-dur-hover) var(--dash-ease-out),
+    width var(--dash-dur-hover) var(--dash-ease-out);
+  width: 8px;
+}
+.dashboard-scope .dash-foda-lectura-dot.is-active {
+  background: var(--dash-primario);
+  width: 22px;
+}
+
+/* Fullscreen: agrandar el chip de cuadrante activo y el avatar. La sección
+ * de fullscreen del board y frame ya está más arriba (junto al layout base). */
+.dashboard-scope .dash-foda.is-fullscreen .dash-foda-lectura-quad-name {
+  font-size: 13px;
+  padding: 4px 10px;
+}
+.dashboard-scope .dash-foda.is-fullscreen .dash-foda-lectura-avatar {
+  height: 28px;
+  width: 28px;
 }

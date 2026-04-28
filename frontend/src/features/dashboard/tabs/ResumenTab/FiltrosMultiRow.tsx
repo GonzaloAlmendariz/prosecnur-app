@@ -32,11 +32,16 @@ export function FiltrosMultiRow({
   enabled,
   onToggleEnabled,
   onChange,
+  headless = false,
 }: {
   secciones: DashboardSeccion[];
   enabled: boolean;
   onToggleEnabled: (v: boolean) => void;
   onChange: (filtros: DashboardFiltro[]) => void;
+  /** Cuando true, omite el header propio (título "Filtros" + switch).
+   * Pensado para cuando el padre ya tiene su propio toggle/título y no
+   * queremos doble encabezado (caso del sidebar de Dimensiones). */
+  headless?: boolean;
 }) {
   const [filas, setFilas] = useState<FilaState[]>(() => [
     { uid: nextUid(), seccion: "", varName: "", valoresSeleccionados: [] },
@@ -136,20 +141,22 @@ export function FiltrosMultiRow({
 
   return (
     <div>
-      <div className="dash-filtros-head">
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--dash-primario)" }}>
-          Filtros
+      {!headless && (
+        <div className="dash-filtros-head">
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--dash-primario)" }}>
+            Filtros
+          </div>
+          <label className="dash-switch">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => onToggleEnabled(e.target.checked)}
+              aria-label="Activar filtros"
+            />
+            <span className="dash-switch-slider" />
+          </label>
         </div>
-        <label className="dash-switch">
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={(e) => onToggleEnabled(e.target.checked)}
-            aria-label="Activar filtros"
-          />
-          <span className="dash-switch-slider" />
-        </label>
-      </div>
+      )}
 
       {enabled && (
         <>

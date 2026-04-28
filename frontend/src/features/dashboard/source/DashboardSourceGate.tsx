@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Database, FileSpreadsheet, FolderOpen, Loader2, Upload } from "lucide-react";
+import { Database, FileSpreadsheet, FolderOpen, Loader2, Upload, X } from "lucide-react";
 import {
   apiDashboardSourceGet,
   apiDashboardSourceImport,
@@ -14,9 +14,11 @@ type SourceGroup = "project" | "session";
 
 export function DashboardSourceGate({
   onImported,
+  onCancel,
   compact = false,
 }: {
   onImported: () => void;
+  onCancel?: () => void;
   compact?: boolean;
 }) {
   const [payload, setPayload] = useState<DashboardSourcePayload | null>(null);
@@ -133,8 +135,8 @@ export function DashboardSourceGate({
 
   return (
     <section className={`dash-source dash-cardbox ${compact ? "is-compact" : ""}`}>
-      <div className="dash-cardbox-header">
-        <div>
+      <div className="dash-cardbox-header" style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h2 className="dash-cardbox-title" style={{ margin: 0 }}>
             Fuente del dashboard
           </h2>
@@ -142,6 +144,17 @@ export function DashboardSourceGate({
             Carga un XLSForm y una base para construir este tablero de forma independiente.
           </p>
         </div>
+        {onCancel && (
+          <button
+            type="button"
+            className="dash-icon-btn"
+            onClick={onCancel}
+            aria-label="Cerrar y volver al dashboard"
+            title="Cerrar"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
       {payload?.has_source && (

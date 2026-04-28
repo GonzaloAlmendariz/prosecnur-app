@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Accessibility,
   BarChart3,
+  Blocks,
+  BookOpen,
   Building2,
   BriefcaseBusiness,
   ChevronLeft,
@@ -11,6 +13,8 @@ import {
   HandHeart,
   Info,
   MessageCircle,
+  PanelLeftClose,
+  PanelLeftOpen,
   ShieldCheck,
   Sparkles,
   Target,
@@ -25,7 +29,9 @@ import type {
   DashboardDimFodaPayload,
   DashboardDimPayload,
   DashboardDimSeccionesPayload,
+  DashboardFiltro,
 } from "../../../../api/client";
+import { apiDashboardDimPayload } from "../../../../api/client";
 import {
   DEFAULT_FODA_VIEWS,
   useDashboardStore,
@@ -43,8 +49,8 @@ import { FiltrosMultiRow } from "../ResumenTab/FiltrosMultiRow";
 import { PlotlyChart } from "../../shared/PlotlyChart";
 import {
   FullscreenButton,
-  FullscreenWrapper,
-  type FullscreenCtx,
+  FullscreenScope,
+  useFullscreen,
 } from "../../shared/FullscreenWrapper";
 import {
   colorOfScore as semColorOfScore,
@@ -53,12 +59,12 @@ import {
 } from "../../shared/semaforo";
 import "./dimensiones.css";
 import "./foda.css";
+import { IndicadorAssembly } from "./IndicadorAssembly";
 
 // Tab Dimensiones — heatmap semáforo + barras / radar / FODA en un único
 // visualizador con segmented control. Sidebar consolidado a 2 cards
 // (Configuración con segmented Vista/Comparación/Iterar + Filtros).
 
-type ConfigTab = "vista" | "comparacion" | "iterar";
 
 export function DimensionesTab() {
   const filtros = useDashboardStore((s) => s.filtros);
@@ -81,7 +87,18 @@ export function DimensionesTab() {
 
   const { loading: loadingCat, error: errCat, payload: catalogo } = useDimCatalogo();
   const { payload: seccionesVars } = useDimSeccionesVars();
-  const [configTab, setConfigTab] = useState<ConfigTab>("vista");
+  // Colapso manual del sidebar (chevron). En Construcción el sidebar se
+  // oculta sin importar este flag. En los demás modos, el usuario puede
+  // alternar para ganar espacio horizontal del visualizador.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Construcción es una vista pedagógica plana: no permite comparación,
+  // filtros ni iteración. El sidebar entero se oculta en este modo.
+  const isConstruccion = dim.visualMode === "construccion";
+
+  // El sidebar entero queda fuera del flujo en Construcción (se oculta sin
+  // dejar columna vacía en el grid) o cuando el usuario lo colapsó.
+  const sidebarOpen = !isConstruccion && !sidebarCollapsed;
 
   const objetivos = useMemo(() => {
     if (!catalogo) return [];
@@ -95,10 +112,14 @@ export function DimensionesTab() {
     setDim({ objetivo: objetivos[0].id });
   }, [objetivos, dim.objetivo, setDim]);
 
-  const filtrosActivos = dim.filtrosOn ? filtros : [];
-  const iter = dim.iterarOn && dim.iterarVar
+  const filtrosActivos = !isConstruccion && dim.filtrosOn ? filtros : [];
+  const iter = !isConstruccion && dim.iterarOn && dim.iterarVar
     ? { var: dim.iterarVar, level: dim.iterarLevel || undefined }
     : null;
+  // En Construcción anulamos también cruce/incluirTotal aunque el store los
+  // tenga seteados de una vista previa (Heatmap/Barras/etc).
+  const cruceEfectivo = isConstruccion ? "" : dim.cruce;
+  const incluirTotalEfectivo = isConstruccion ? false : dim.incluirTotal;
   const fodaConfig = useMemo(() => ({
     foda_iconos_enabled: fodaIconosEnabled,
     foda_icon_tint: fodaIconTint,
@@ -132,18 +153,21 @@ export function DimensionesTab() {
   const { loading, error, payload } = useDimPayload({
     modo: dim.modo,
     objetivo: dim.objetivo,
-    cruce: dim.cruce,
-    incluirTotal: dim.incluirTotal,
+    cruce: cruceEfectivo,
+    incluirTotal: incluirTotalEfectivo,
     iter,
     filtros: filtrosActivos,
   });
 
   const fodaQuery = useDimFoda({
-    enabled: dim.visualMode === "foda" && Boolean(dim.objetivo),
+    // "lectura" es una vista virtual del FODA (pedagógica, sin datos
+    // reales). No fetcheamos al backend en ese caso — evita re-fetches
+    // innecesarios y posibles errores si R no reconoce el slug.
+    enabled: dim.visualMode === "foda" && Boolean(dim.objetivo) && fodaVista !== "lectura",
     modo: dim.modo,
     objetivo: dim.objetivo,
-    cruce: dim.cruce,
-    incluirTotal: dim.incluirTotal,
+    cruce: cruceEfectivo,
+    incluirTotal: incluirTotalEfectivo,
     iter,
     filtros: filtrosActivos,
     fodaConfig,
@@ -159,52 +183,46 @@ export function DimensionesTab() {
   }
 
   return (
-    <FullscreenWrapper
-      title={
-        dim.visualMode === "heatmap" ? "Heatmap"
-        : dim.visualMode === "barras" ? "Scores por dimensión"
-        : dim.visualMode === "radar" ? "Radar de dimensiones"
-        : "Matriz FODA"
-      }
-    >
-      {(fsCtx) => (
-    <div className="dash-resumen-layout">
-      {/* ───── Sidebar — 2 cards ───── */}
-      <aside className="dash-sidebar">
-        <ConfiguracionCard
-          tab={configTab}
-          onTab={setConfigTab}
+    <div className="dash-resumen-layout" data-sidebar={sidebarOpen ? "open" : "closed"}>
+      {/* ───── Sidebar unificado ─────
+          Un solo card con secciones apiladas y header propio (incluye el
+          toggle de colapso). Reemplaza el viejo split en dos cards
+          (ConfiguracionCard + Filtros) que se sentía como islas. */}
+      <aside className="dash-sidebar" aria-hidden={!sidebarOpen}>
+        <DimensionesSidebar
           dim={dim}
           setDim={setDim}
           objetivos={objetivos}
           loadingCat={loadingCat}
           errCat={errCat}
           secciones={seccionesVars?.secciones ?? []}
+          filtros={filtros}
+          setFiltros={setFiltros}
+          onCollapse={() => setSidebarCollapsed(true)}
         />
-
-        <section className="dash-cardbox">
-          <div className="dash-cardbox-header">
-            <h2 className="dash-cardbox-title">Filtros</h2>
-          </div>
-          <FiltrosMultiRow
-            secciones={(seccionesVars?.secciones ?? []).map((s) => ({
-              nombre: s.nombre,
-              vars: s.vars.map((v) => ({ name: v.name, label: v.label, tipo: "so" as const })),
-            }))}
-            enabled={dim.filtrosOn}
-            onToggleEnabled={(on) => setDim({ filtrosOn: on })}
-            onChange={setFiltros}
-          />
-        </section>
       </aside>
 
       {/* ───── Main — VisualizadorCard ───── */}
       <main>
+        {/* Botón flotante para reabrir el sidebar cuando el usuario lo
+            cerró manualmente. No aparece en Construcción (ahí el sidebar
+            se oculta por diseño y no hay nada que reabrir). */}
+        {!isConstruccion && !sidebarOpen && (
+          <button
+            type="button"
+            className="dash-dim-sidebar-reopen"
+            onClick={() => setSidebarCollapsed(false)}
+            aria-label="Mostrar panel lateral"
+            title="Mostrar panel lateral"
+          >
+            <PanelLeftOpen size={16} />
+          </button>
+        )}
         {!dim.objetivo ? (
           <EmptyState
             icon={<Target size={32} aria-hidden="true" />}
-            title="Selecciona un objetivo"
-            subtitle="Elige un índice o subíndice del panel izquierdo para ver las dimensiones."
+            title="Selecciona un indicador"
+            subtitle="Elige un índice o subíndice del panel lateral para ver las dimensiones."
           />
         ) : (
           <VisualizadorCard
@@ -216,79 +234,151 @@ export function DimensionesTab() {
             foda={fodaQuery.payload}
             fodaLoading={fodaQuery.loading}
             fodaError={fodaQuery.error}
-            fsCtx={fsCtx}
           />
         )}
         <div style={{ height: 48 }} aria-hidden="true" />
       </main>
     </div>
-      )}
-    </FullscreenWrapper>
   );
 }
 
 // =============================================================================
-// Sidebar — Card Configuración con segmented Vista/Comparación/Iterar
+// Sidebar unificado — un solo card con secciones apiladas
 // =============================================================================
+// Reemplaza el viejo ConfiguracionCard (que abría 3 paneles tipo tab) +
+// la card de Filtros separada. Ahora todo vive en un solo card vertical
+// con header propio (título + chevron de colapso) y secciones que se
+// activan progresivamente: ① Indicador → ② Comparar → ③ Desglosar → ④ Filtrar.
+// El switch de cada sección hace de propio título cuando aplica (no hay
+// doble encabezado, como pasaba en Filtros).
 
-function ConfiguracionCard({
-  tab,
-  onTab,
+function DimensionesSidebar({
   dim,
   setDim,
   objetivos,
   loadingCat,
   errCat,
   secciones,
+  filtros,
+  setFiltros,
+  onCollapse,
 }: {
-  tab: ConfigTab;
-  onTab: (t: ConfigTab) => void;
   dim: ReturnType<typeof useDashboardStore.getState>["dimensiones"];
   setDim: (p: Partial<typeof dim>) => void;
   objetivos: { id: string; label: string; n_axes: number }[];
   loadingCat: boolean;
   errCat: string | null;
   secciones: DashboardDimSeccionesPayload["secciones"];
+  filtros: DashboardFiltro[];
+  setFiltros: (f: DashboardFiltro[]) => void;
+  onCollapse: () => void;
 }) {
+  const hasCruce = dim.cruce.length > 0;
+
   return (
-    <section className="dash-cardbox dash-dim-config">
-      <div className="dash-dim-config-tabs" role="tablist" aria-label="Configuración">
-        {(["vista", "comparacion", "iterar"] as ConfigTab[]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            className={`dash-dim-config-tab ${tab === t ? "is-active" : ""}`}
-            onClick={() => onTab(t)}
-          >
-            {t === "vista" ? "Vista" : t === "comparacion" ? "Comparación" : "Iterar"}
-          </button>
-        ))}
+    <section className="dash-cardbox dash-dim-sidebar-card">
+      <div className="dash-dim-sidebar-head">
+        <div className="dash-dim-sidebar-head-text">
+          <h2 className="dash-cardbox-title">Configuración</h2>
+          <p className="dash-dim-sidebar-head-help">
+            Ajusta qué se muestra y cómo comparar.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="dash-dim-sidebar-collapse"
+          onClick={onCollapse}
+          aria-label="Ocultar panel lateral"
+          title="Ocultar panel"
+        >
+          <PanelLeftClose size={15} />
+        </button>
       </div>
 
-      <div className="dash-dim-config-panel">
-        {tab === "vista" && (
-          <PanelVista
-            modo={dim.modo}
-            objetivo={dim.objetivo}
-            objetivos={objetivos}
-            loading={loadingCat}
-            error={errCat}
-            onModo={(m) => setDim({ modo: m, objetivo: "" })}
-            onObjetivo={(id) => setDim({ objetivo: id })}
-          />
-        )}
-        {tab === "comparacion" && (
-          <PanelComparacion
-            secciones={secciones}
-            cruce={dim.cruce}
-            incluirTotal={dim.incluirTotal}
-            onCruce={(v) => setDim({ cruce: v })}
-            onIncluirTotal={(b) => setDim({ incluirTotal: b })}
-          />
-        )}
-        {tab === "iterar" && (
+      {/* ── ① Indicador ── */}
+      <SidebarSection
+        title="Indicador"
+        helper="Qué quieres ver."
+      >
+        <PanelVista
+          modo={dim.modo}
+          objetivo={dim.objetivo}
+          objetivos={objetivos}
+          loading={loadingCat}
+          error={errCat}
+          onModo={(m) =>
+            setDim({
+              modo: m,
+              objetivo: "",
+              // Construcción solo aplica a modo general — si pasamos a
+              // indicadores estando en construcción, fallback a heatmap.
+              ...(m === "indicadores" && dim.visualMode === "construccion"
+                ? { visualMode: "heatmap" as const }
+                : {}),
+            })
+          }
+          onObjetivo={(id) => setDim({ objetivo: id })}
+        />
+      </SidebarSection>
+
+      {/* ── ② Comparar grupos ── */}
+      <SidebarSection
+        title="Comparar grupos"
+        helper="Divide el resultado por una variable (ej. distrito o servicio)."
+        toggle={{
+          on: hasCruce,
+          onChange: (on) => {
+            if (!on) {
+              // Apagar comparación arrastra apagar también el desglose,
+              // que solo tiene sentido como segundo nivel.
+              setDim({ cruce: "", iterarOn: false, iterarVar: "", iterarLevel: "" });
+            }
+          },
+          ariaLabel: "Activar comparación",
+          // Apagar el toggle es siempre OK; encender requiere elegir variable
+          // primero (no abrimos el toggle solo, dejamos que el select lo
+          // active al elegir un valor).
+          allowToggleOn: false,
+        }}
+      >
+        <PanelComparacion
+          secciones={secciones}
+          cruce={dim.cruce}
+          incluirTotal={dim.incluirTotal}
+          onCruce={(v) => {
+            // Si quitan el cruce, también limpian iteración (no hay segundo
+            // nivel sin primer nivel).
+            if (!v) {
+              setDim({ cruce: "", iterarOn: false, iterarVar: "", iterarLevel: "" });
+            } else {
+              setDim({ cruce: v });
+            }
+          }}
+          onIncluirTotal={(b) => setDim({ incluirTotal: b })}
+        />
+      </SidebarSection>
+
+      {/* ── ③ Desglosar (segundo nivel) ── */}
+      <SidebarSection
+        title="Desglosar por"
+        helper={
+          hasCruce
+            ? "Agrega un segundo corte sobre la comparación."
+            : "Disponible cuando hayas elegido una variable para comparar."
+        }
+        disabled={!hasCruce}
+        toggle={{
+          on: dim.iterarOn,
+          onChange: (on) =>
+            setDim({
+              iterarOn: on,
+              ...(on ? {} : { iterarVar: "", iterarLevel: "" }),
+            }),
+          ariaLabel: "Activar segundo nivel",
+          allowToggleOn: hasCruce,
+        }}
+      >
+        {dim.iterarOn && (
           <PanelIterar
             secciones={secciones}
             enabled={dim.iterarOn}
@@ -300,8 +390,90 @@ function ConfiguracionCard({
             onLevel={(l) => setDim({ iterarLevel: l })}
           />
         )}
-      </div>
+      </SidebarSection>
+
+      {/* ── ④ Filtrar muestra ── */}
+      <SidebarSection
+        title="Filtrar muestra"
+        helper="Limita los datos a un subgrupo."
+        toggle={{
+          on: dim.filtrosOn,
+          onChange: (on) => setDim({ filtrosOn: on }),
+          ariaLabel: "Activar filtros",
+          allowToggleOn: true,
+        }}
+      >
+        {dim.filtrosOn && (
+          <FiltrosMultiRow
+            secciones={secciones.map((s) => ({
+              nombre: s.nombre,
+              vars: s.vars.map((v) => ({ name: v.name, label: v.label, tipo: "so" as const })),
+            }))}
+            // El switch de filtros vive en el header de la sección, no
+            // queremos que FiltrosMultiRow renderee su propio toggle ni
+            // su título. Le pasamos enabled=true y un onToggle no-op para
+            // que solo muestre las filas (el componente ya es así cuando
+            // headless={true}).
+            enabled
+            onToggleEnabled={() => undefined}
+            onChange={setFiltros}
+            headless
+          />
+        )}
+      </SidebarSection>
     </section>
+  );
+}
+
+// SidebarSection — un bloque del sidebar con título, helper opcional y
+// switch propio. Reemplaza el patrón viejo "card aparte con su propio
+// header". Cuando hay toggle, el título incluye el switch a la derecha.
+function SidebarSection({
+  title,
+  helper,
+  toggle,
+  disabled,
+  children,
+}: {
+  title: string;
+  helper?: string;
+  toggle?: {
+    on: boolean;
+    onChange: (on: boolean) => void;
+    ariaLabel: string;
+    /** Si false, el toggle se muestra pero no permite encender desde
+     * cero (típico cuando encender requiere elegir algo primero, p.ej.
+     * "Comparar" se enciende cuando seleccionas una variable, no cuando
+     * tocas el switch). Apagar siempre se permite. */
+    allowToggleOn: boolean;
+  };
+  disabled?: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <div
+      className={`dash-dim-sidebar-section ${disabled ? "is-disabled" : ""} ${toggle?.on ? "is-on" : ""}`}
+    >
+      <div className="dash-dim-sidebar-section-head">
+        <div className="dash-dim-sidebar-section-head-text">
+          <h3 className="dash-dim-sidebar-section-title">{title}</h3>
+          {helper && <p className="dash-dim-sidebar-section-help">{helper}</p>}
+        </div>
+        {toggle && (
+          <label className="dash-switch" title={toggle.ariaLabel}>
+            <input
+              type="checkbox"
+              checked={toggle.on}
+              disabled={disabled || (!toggle.on && !toggle.allowToggleOn)}
+              onChange={(e) => toggle.onChange(e.target.checked)}
+              aria-label={toggle.ariaLabel}
+            />
+            <span className="dash-switch-slider" />
+          </label>
+        )}
+      </div>
+      {children && <div className="dash-dim-sidebar-section-body">{children}</div>}
+    </div>
   );
 }
 
@@ -416,7 +588,7 @@ function PanelComparacion({
         ))}
       </select>
       <label htmlFor="dim-cmp-var" className="dash-dim-label" style={{ marginTop: 8 }}>
-        Comparar por
+        Variable
       </label>
       <select
         id="dim-cmp-var"
@@ -424,18 +596,24 @@ function PanelComparacion({
         value={cruce}
         onChange={(e) => onCruce(e.target.value)}
       >
-        <option value="">— Sin cruce —</option>
+        <option value="">Selecciona una…</option>
         {seccionActiva?.vars.map((v) => (
           <option key={v.name} value={v.name}>{v.label}</option>
         ))}
       </select>
-      <label className="dash-dim-checkbox">
-        <input
-          type="checkbox"
-          checked={incluirTotal}
-          onChange={(e) => onIncluirTotal(e.target.checked)}
-        />
-        Incluir total
+      <label className="dash-switch-row">
+        <span className="dash-switch-row-text">
+          Mostrar también el promedio total
+        </span>
+        <span className="dash-switch">
+          <input
+            type="checkbox"
+            checked={incluirTotal}
+            onChange={(e) => onIncluirTotal(e.target.checked)}
+            aria-label="Mostrar también el promedio total"
+          />
+          <span className="dash-switch-slider" />
+        </span>
       </label>
     </>
   );
@@ -486,16 +664,11 @@ function PanelIterar({
     if (niveles.length) onLevel(niveles[0].value);
   }, [enabled, variable, level, niveles, onLevel]);
 
+  // El toggle "Activar iteración" ahora vive en el header de la sección
+  // (DimensionesSidebar). Aquí solo renderizamos el contenido cuando está
+  // habilitada — el switch externo controla `enabled`.
   return (
     <>
-      <label className="dash-dim-checkbox" style={{ marginBottom: 8 }}>
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(e) => onToggle(e.target.checked)}
-        />
-        Activar iteración
-      </label>
       {enabled && (
         <>
           <label htmlFor="dim-it-seccion" className="dash-dim-label">Sección</label>
@@ -521,7 +694,7 @@ function PanelIterar({
             value={variable}
             onChange={(e) => onVariable(e.target.value)}
           >
-            <option value="">— Sin iteración —</option>
+            <option value="">Selecciona una…</option>
             {seccionActiva?.vars.map((v) => (
               <option key={v.name} value={v.name}>{v.label}</option>
             ))}
@@ -596,6 +769,16 @@ function DimIterLevelControl({
 // y MainPlotCard en un solo container.
 // =============================================================================
 
+// Payload mínimo para que FodaView pueda renderizar la sub-vista "Lectura"
+// (que no consume datos reales) aún cuando el backend no haya devuelto un
+// payload de FODA. Mantiene los memos internos contentos sin disparar gates
+// de loading o error.
+const FODA_LECTURA_FALLBACK_PAYLOAD: DashboardDimFodaPayload = {
+  ready: true,
+  items: [],
+  cortes: { score: 80, sd: 0 },
+};
+
 function VisualizadorCard({
   dim,
   setDim,
@@ -605,7 +788,6 @@ function VisualizadorCard({
   foda,
   fodaLoading,
   fodaError,
-  fsCtx,
 }: {
   dim: ReturnType<typeof useDashboardStore.getState>["dimensiones"];
   setDim: (p: Partial<typeof dim>) => void;
@@ -615,13 +797,21 @@ function VisualizadorCard({
   foda: DashboardDimFodaPayload | null;
   fodaLoading: boolean;
   fodaError: string | null;
-  fsCtx: FullscreenCtx;
 }) {
   const visualMode: DashboardDimVisualMode = dim.visualMode;
-  const maxed = fsCtx.maxed;
+  const fodaVista = useDashboardStore((s) => s.config.foda_vista ?? "conductores");
+  const fodaVistaIsLectura = fodaVista === "lectura";
+  const fs = useFullscreen();
+  const maxed = fs.maxed;
+  const fsTitle =
+    visualMode === "heatmap"
+      ? "Heatmap"
+      : visualMode === "barras"
+      ? "Scores por dimensión"
+      : visualMode === "radar"
+      ? "Radar de dimensiones"
+      : "Matriz FODA";
 
-  // Modo informativo del payload (sugerencia inicial). Si el usuario no
-  // cambió aún, podríamos respetarla; de momento el toggle es libre.
   return (
     <section className="dash-cardbox dash-dim-vis">
       <div className="dash-dim-vis-header">
@@ -633,6 +823,8 @@ function VisualizadorCard({
               ? "Radar de dimensiones"
               : visualMode === "foda"
               ? "Matriz FODA"
+              : visualMode === "construccion"
+              ? "Construcción del indicador"
               : "Scores por dimensión"}
           </h2>
           {payload && payload.ready && <SubtituloDim payload={payload} />}
@@ -645,6 +837,14 @@ function VisualizadorCard({
           )}
         </div>
         <div className="dash-dim-vis-segmented" role="tablist" aria-label="Modo de visualización">
+          {dim.modo === "general" && (
+            <SegmentedItem
+              active={visualMode === "construccion"}
+              onClick={() => setDim({ visualMode: "construccion" })}
+              icon={<Blocks size={13} />}
+              label="Construcción"
+            />
+          )}
           <SegmentedItem
             active={visualMode === "heatmap"}
             onClick={() => setDim({ visualMode: "heatmap" })}
@@ -669,40 +869,60 @@ function VisualizadorCard({
             icon={<ScatterChart size={13} />}
             label="FODA"
           />
-          <FullscreenButton ctx={fsCtx} />
+          <FullscreenButton ctx={fs} />
         </div>
       </div>
 
-      <div
-        key={visualMode}
-        className={`dash-dim-vis-body ${maxed ? "dash-dim-fullscreen-content" : ""}`}
-      >
-        {visualMode === "foda" ? (
-          fodaLoading && !foda ? (
-            <DimSkeleton mode="foda" />
-          ) : fodaError ? (
-            <EmptyState title="No se pudo calcular FODA" subtitle={fodaError} />
-          ) : !foda || !foda.ready ? (
-            <DimSkeleton mode="foda" />
-          ) : foda.error ? (
-            <EmptyState title="Sin datos para FODA" subtitle={foda.error} />
+      <FullscreenScope ctx={fs} title={fsTitle}>
+        <div
+          key={visualMode}
+          className={`dash-dim-vis-body ${maxed ? "dash-dim-fullscreen-content" : ""}`}
+        >
+          {visualMode === "foda" ? (
+            // Lectura es una vista pedagógica que NO depende del payload
+            // del backend — cortocircuitamos los gates de loading/error
+            // para que se renderice instantáneamente al hacer click.
+            fodaVistaIsLectura ? (
+              <FodaView payload={foda ?? FODA_LECTURA_FALLBACK_PAYLOAD} maxed={maxed} />
+            ) : fodaLoading && !foda ? (
+              <DimSkeleton mode="foda" />
+            ) : fodaError ? (
+              <EmptyState title="No se pudo calcular FODA" subtitle={fodaError} />
+            ) : !foda || !foda.ready ? (
+              <DimSkeleton mode="foda" />
+            ) : foda.error ? (
+              <EmptyState title="Sin datos para FODA" subtitle={foda.error} />
+            ) : (
+              <FodaView payload={foda} maxed={maxed} />
+            )
+          ) : payloadLoading && !payload ? (
+            <DimSkeleton mode={visualMode} />
+          ) : payloadError ? (
+            <EmptyState title="No se pudieron calcular las dimensiones" subtitle={payloadError} />
+          ) : !payload || !payload.ready ? (
+            <DimSkeleton mode={visualMode} />
+          ) : payload.error ? (
+            <EmptyState title="Sin datos para esta vista" subtitle={payload.error} />
+          ) : visualMode === "construccion" ? (
+            // Construcción es estrictamente plana: pasamos los valores
+            // EFECTIVOS (cruce/incluirTotal/iter neutralizados) desde el
+            // padre vía props, NO los del store crudo. Esto evita que el
+            // state olvidado de Heatmap/Barras (p.ej. un cruce activo)
+            // contamine la vista pedagógica.
+            <IndicadorAssembly
+              payload={payload}
+              modo={dim.modo}
+              cruce=""
+              incluirTotal={false}
+              maxed={maxed}
+            />
+          ) : visualMode === "heatmap" ? (
+            <HeatmapView payload={payload} />
           ) : (
-            <FodaView payload={foda} maxed={maxed} />
-          )
-        ) : payloadLoading && !payload ? (
-          <DimSkeleton mode={visualMode} />
-        ) : payloadError ? (
-          <EmptyState title="No se pudieron calcular las dimensiones" subtitle={payloadError} />
-        ) : !payload || !payload.ready ? (
-          <DimSkeleton mode={visualMode} />
-        ) : payload.error ? (
-          <EmptyState title="Sin datos para esta vista" subtitle={payload.error} />
-        ) : visualMode === "heatmap" ? (
-          <HeatmapView payload={payload} />
-        ) : (
-          <MainPlotView payload={payload} visualMode={visualMode} maxed={maxed} />
-        )}
-      </div>
+            <MainPlotView payload={payload} visualMode={visualMode} maxed={maxed} />
+          )}
+        </div>
+      </FullscreenScope>
     </section>
   );
 }
@@ -1460,10 +1680,26 @@ function FodaView({
     [activeItems],
   );
 
+  const isLectura = fodaVista === "lectura";
+
   return (
     <div className={`dash-foda ${maxed ? "is-fullscreen" : ""}`}>
       <div className="dash-foda-toolbar">
         <div className="dash-foda-view-switch" role="tablist" aria-label="Vista FODA">
+          {/* "Lectura" — vista virtual pedagógica que enseña a leer la
+              matriz. Va primero para que el usuario nuevo entienda los
+              cuadrantes antes de entrar a los datos reales. */}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={isLectura}
+            className={`dash-source-segment ${isLectura ? "is-active" : ""}`}
+            onClick={() => setFodaVista("lectura")}
+            title="Cómo leer esta matriz"
+          >
+            <BookOpen size={12} aria-hidden="true" style={{ marginRight: 6, verticalAlign: "-2px" }} />
+            Lectura
+          </button>
           {fodaViews.map((view) => (
             <button
               key={view.id}
@@ -1477,25 +1713,191 @@ function FodaView({
             </button>
           ))}
         </div>
-        <div className="dash-foda-cortes" aria-label="Cortes FODA">
-          <span><strong>Corte score:</strong> {payload.cortes?.score ?? 80}</span>
-          <span className="dash-foda-cortes-sep">·</span>
-          <span><strong>Corte SD:</strong> {payload.cortes?.sd ?? 0}</span>
-        </div>
-        {groupOptions.length > 1 && (
-          <FodaGroupNav
-            options={groupOptions}
-            selected={selectedGroup}
-            onSelect={setSelectedGroup}
-          />
+        {!isLectura && (
+          <>
+            <div className="dash-foda-cortes" aria-label="Cortes FODA">
+              <span><strong>Corte score:</strong> {payload.cortes?.score ?? 80}</span>
+              <span className="dash-foda-cortes-sep">·</span>
+              <span><strong>Corte SD:</strong> {payload.cortes?.sd ?? 0}</span>
+            </div>
+            {groupOptions.length > 1 && (
+              <FodaGroupNav
+                options={groupOptions}
+                selected={selectedGroup}
+                onSelect={setSelectedGroup}
+              />
+            )}
+            <FodaCounts counts={counts} payload={payload} />
+          </>
         )}
-        <FodaCounts counts={counts} payload={payload} />
       </div>
-      <FodaDispersion
-        items={fodaItems}
-        payload={payload}
-        selectedGroup={selectedGroup}
-      />
+      {isLectura ? (
+        <FodaLectura />
+      ) : (
+        <FodaDispersion
+          items={fodaItems}
+          payload={payload}
+          selectedGroup={selectedGroup}
+        />
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// FodaLectura — vista pedagógica antes de entrar a los datos reales.
+// =============================================================================
+// Anima un avatar que recorre los 4 cuadrantes en C invertida (Fortaleza →
+// Oportunidad → Amenaza → Debilidad → loop) explicando qué significa cada
+// posición. El recorrido enseña que el eje Y es puntaje (alto = bueno) y el
+// eje X es consistencia (izquierda = todos coinciden), de modo que un
+// servicio "consistentemente alto" vive arriba-izquierda y uno
+// "consistentemente bajo" vive abajo-izquierda.
+
+type FodaLecturaStop = {
+  id: DashboardDimFodaCuadrante;
+  label: string;
+  hint: string;
+  // Posición del avatar dentro del board (porcentajes).
+  top: number;
+  left: number;
+};
+
+const FODA_LECTURA_STOPS: FodaLecturaStop[] = [
+  {
+    id: "fortaleza",
+    label: "Fortaleza",
+    hint: "Puntaje alto y todos opinan parecido. Es terreno sólido.",
+    top: 26,
+    left: 26,
+  },
+  {
+    id: "oportunidad",
+    label: "Oportunidad",
+    hint: "Puntaje alto pero hay grupos que opinan distinto. Espacio para destacar.",
+    top: 26,
+    left: 74,
+  },
+  {
+    id: "amenaza",
+    label: "Amenaza",
+    hint: "Puntaje bajo y opiniones divididas. Riesgo a vigilar.",
+    top: 74,
+    left: 74,
+  },
+  {
+    id: "debilidad",
+    label: "Debilidad",
+    hint: "Puntaje bajo y consistente. Área a mejorar de forma sistemática.",
+    top: 74,
+    left: 26,
+  },
+];
+
+const FODA_LECTURA_INTERVAL_MS = 2400;
+
+function FodaLectura() {
+  const [stopIdx, setStopIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return undefined;
+    const id = window.setInterval(() => {
+      setStopIdx((i) => (i + 1) % FODA_LECTURA_STOPS.length);
+    }, FODA_LECTURA_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [paused]);
+
+  const stop = FODA_LECTURA_STOPS[stopIdx];
+
+  return (
+    <div className="dash-foda-lectura">
+      <div className="dash-foda-lectura-intro">
+        <span className="dash-foda-lectura-eyebrow">Cómo leer la matriz</span>
+        <p className="dash-foda-lectura-lead">
+          La altura del punto es el <strong>puntaje</strong>: arriba está mejor evaluado.
+          La distancia horizontal es la <strong>consistencia</strong>: a la izquierda todos opinan parecido, a la derecha hay desacuerdo.
+        </p>
+      </div>
+
+      <div className="dash-foda-lectura-frame">
+        {/* Banda eje Y — vertical, a la izquierda del board. */}
+        <div className="dash-foda-lectura-yaxis" aria-hidden="true">
+          <span className="dash-foda-lectura-yaxis-label">Puntaje</span>
+          <span className="dash-foda-lectura-yaxis-arrows">
+            <span className="dash-foda-lectura-yaxis-pole">Mejor</span>
+            <span className="dash-foda-lectura-yaxis-line" />
+            <span className="dash-foda-lectura-yaxis-pole">Peor</span>
+          </span>
+        </div>
+
+        <div
+          className="dash-foda-lectura-board"
+          role="img"
+          aria-label={`Cuadrante activo: ${stop.label}. ${stop.hint}`}
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+          {FODA_LECTURA_STOPS.map((s, i) => (
+            <div
+              key={s.id}
+              className={`dash-foda-lectura-quad is-${s.id} ${i === stopIdx ? "is-active" : ""}`}
+            >
+              <span className="dash-foda-lectura-quad-name">{s.label}</span>
+            </div>
+          ))}
+          <div className="dash-foda-lectura-cut is-vertical" aria-hidden="true" />
+          <div className="dash-foda-lectura-cut is-horizontal" aria-hidden="true" />
+
+          {/* Trazo C invertida que conecta los 4 stops. SVG sobre el board. */}
+          <svg
+            className="dash-foda-lectura-path"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <path d="M 26 26 H 74 V 74 H 26" />
+          </svg>
+
+          {/* Avatar — se mueve entre stops con transition CSS. */}
+          <span
+            className="dash-foda-lectura-avatar"
+            style={{ top: `${stop.top}%`, left: `${stop.left}%` }}
+            aria-hidden="true"
+          />
+        </div>
+
+        {/* Banda eje X — horizontal, debajo del board. */}
+        <div className="dash-foda-lectura-xaxis" aria-hidden="true">
+          {/* Spacer para alinear con la banda Y de la izquierda. */}
+          <span />
+          <span className="dash-foda-lectura-xaxis-track">
+            <span className="dash-foda-lectura-xaxis-pole">Todos coinciden</span>
+            <span className="dash-foda-lectura-xaxis-line" />
+            <span className="dash-foda-lectura-xaxis-pole">Opiniones divididas</span>
+          </span>
+        </div>
+        <div className="dash-foda-lectura-xaxis-title">Consistencia entre quienes responden</div>
+      </div>
+
+      <div className="dash-foda-lectura-caption">
+        <span className="dash-foda-lectura-caption-label">{stop.label}</span>
+        <span className="dash-foda-lectura-caption-hint">{stop.hint}</span>
+        <div className="dash-foda-lectura-dots" role="tablist" aria-label="Cuadrante en foco">
+          {FODA_LECTURA_STOPS.map((s, i) => (
+            <button
+              key={s.id}
+              type="button"
+              role="tab"
+              aria-selected={i === stopIdx}
+              className={`dash-foda-lectura-dot ${i === stopIdx ? "is-active" : ""}`}
+              onClick={() => setStopIdx(i)}
+              aria-label={`Ver ${s.label}`}
+              title={s.label}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1665,11 +2067,22 @@ function FodaDispersion({
     return <p className="dash-cardbox-help">Sin datos para la dispersión.</p>;
   }
 
+  // Ticks Y: 3 valores (max, corteScore, min) — alineados con la posición
+  // del panel. plot.cutY (en %) coincide con corteScore.
+  const yTickHigh = Math.round(fodaScoreMax);
+  const yTickMid = Math.round(corteScore);
+  const yTickLow = Math.round(fodaScoreMin);
+
   return (
     <>
       <div className="dash-foda-legacy" role="img" aria-label="Dispersión FODA de puntaje y variabilidad">
         <div className="dash-foda-axis-note is-y-high">Mayor puntaje</div>
         <div className="dash-foda-axis-note is-y-low">Menor puntaje</div>
+        <div className="dash-foda-yaxis" aria-hidden="true">
+          <span className="dash-foda-ytick" style={{ top: "0%" }}>{yTickHigh}</span>
+          <span className="dash-foda-ytick" style={{ top: `${plot.cutY}%` }}>{yTickMid}</span>
+          <span className="dash-foda-ytick" style={{ top: "100%" }}>{yTickLow}</span>
+        </div>
         <div
           className="dash-foda-legacy-panel"
           style={{ ["--dash-foda-grid-alpha" as string]: gridAlpha }}
@@ -1774,47 +2187,34 @@ function FodaDispersion({
           ))}
         </div>
       )}
-      {fodaIconosEnabled && fodaIconLegend && Boolean(iconLegend.length) && (
-        <div className="dash-foda-icon-legend" aria-label="Leyenda de iconos FODA">
-          {iconLegend.map((it) => {
-            // Reúne TODOS los scores reales de esta dimensión (uno por
-            // grupo del cruce). El usuario quiere ver los valores reales,
-            // no solo el extremo. Si solo hay 1, mostramos el número
-            // simple; si hay varios, mostramos un rango compacto.
-            const scores = items
-              .filter((x) => x.var === it.var && Number.isFinite(x.score_mean))
-              .map((x) => Math.round(x.score_mean));
-            const min = scores.length ? Math.min(...scores) : null;
-            const max = scores.length ? Math.max(...scores) : null;
-            const uniqueScores = [...new Set(scores)].sort((a, b) => a - b);
-            const same = min !== null && min === max;
-            const scoreText = uniqueScores.length <= 6
-              ? uniqueScores.join(", ")
-              : same
-              ? String(min)
-              : `${min}–${max}`;
-            return (
+      {fodaIconosEnabled && fodaIconLegend && Boolean(iconLegend.length) && (() => {
+        // Detectar si la vista usa aliases (cards de texto, p.ej. Municipios)
+        // en vez de íconos. En ese modo, la leyenda muestra los aliases como
+        // chips de texto, NO íconos genéricos del fallback.
+        const itemKind = payload.item_kind ?? "conductores";
+        const cardMode = payload.card_mode ?? (itemKind === "municipios" ? "alias" : "iconos");
+        const useAlias = cardMode === "alias";
+        return (
+          <div
+            className={`dash-foda-icon-legend ${useAlias ? "is-alias" : ""}`}
+            aria-label="Leyenda de iconos FODA"
+          >
+            {iconLegend.map((it) => (
               <span key={it.var} className="dash-foda-icon-legend-item">
-                <FodaAxisIcon
-                  label={it.label}
-                  src={it.icono_url}
-                  tint="var(--dash-primario)"
-                  scale={0.75}
-                />
-                <span className="dash-foda-icon-legend-text">{it.label}</span>
-                {min !== null && (
-                  <span
-                    className="dash-foda-icon-legend-vals"
-                    title={`Valores reales: ${uniqueScores.join(", ")}`}
-                  >
-                    {scoreText}
-                  </span>
+                {useAlias ? null : (
+                  <FodaAxisIcon
+                    label={it.label}
+                    src={it.icono_url}
+                    tint="var(--dash-primario)"
+                    scale={0.75}
+                  />
                 )}
+                <span className="dash-foda-icon-legend-text">{it.label}</span>
               </span>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        );
+      })()}
     </>
   );
 }
@@ -1872,10 +2272,16 @@ function buildFodaIconLegend(
   payloadLegend: NonNullable<DashboardDimFodaPayload["icon_legend"]>,
 ): FodaIconLegendUiItem[] {
   const iconByVar = new Map(payloadLegend.map((it) => [it.var, it.icono_url]));
+  // Dedup por axis_label (case-insensitive). Cuando el FODA se cruza con
+  // un grupo (ej. Servicios × Municipios), cada combinación llega con
+  // `var` distinto (p.ej. `ciam_ate`, `ciam_rimac`...) pero el label de
+  // servicio es el mismo ("CIAM"). Si dedupiéramos por var saldrían 6×5
+  // entradas en la leyenda — usamos el label que es lo que el lector ve.
   const out = new Map<string, FodaIconLegendUiItem>();
   for (const it of items) {
-    if (out.has(it.var)) continue;
-    out.set(it.var, {
+    const key = (it.axis_label || it.var).toLowerCase().trim();
+    if (!key || out.has(key)) continue;
+    out.set(key, {
       var: it.var,
       label: it.axis_label,
       icono_url: it.icono_url ?? iconByVar.get(it.var),
@@ -2167,4 +2573,401 @@ function uniqueOrdered<T>(arr: T[]): T[] {
     }
   }
   return out;
+}
+
+// =============================================================================
+// ConstruccionView — Sunburst radial Índice → Dimensiones → Subcriterios
+// =============================================================================
+// Anillos concéntricos: el indicador raíz al centro, las dimensiones en el
+// anillo medio y los subcriterios en el externo. Cada arco coloreado según
+// el semáforo (rojo / ámbar / verde) sobre su score; el área refleja la
+// cantidad de subcriterios contenidos. Click en un anillo hace drill-down
+// nativo de Plotly.
+//
+// Estrategia de fetch: reutiliza el payload del modo activo (que ya está
+// cargado para Heatmap/Barras/Radar/FODA) para el primer nivel y, sólo en
+// modo "general", pide en paralelo los payloads de cada dimensión como
+// indicador para el tercer nivel.
+
+type ConstruccionRow = {
+  axis_label: string;
+  score_round: number | null;
+  base: number | null;
+  axis_var?: string;
+  tipo?: string;
+};
+
+function ConstruccionView({
+  payload,
+  modo,
+  cruce,
+  incluirTotal,
+  maxed,
+}: {
+  payload: DashboardDimPayload;
+  modo: "general" | "indicadores";
+  cruce: string;
+  incluirTotal: boolean;
+  maxed: boolean;
+}) {
+  const config = useDashboardStore((s) => s.config);
+  const { payload: catalogo } = useDimCatalogo();
+  const filtros = useDashboardStore((s) => s.filtros);
+  const dim = useDashboardStore((s) => s.dimensiones);
+  const filtrosKey = JSON.stringify(dim.filtrosOn ? filtros : []);
+
+  const sem = useMemo(
+    () => semaforoFromConfig(config, payload.semaforo),
+    [config, payload.semaforo],
+  );
+
+  const dimensiones: ConstruccionRow[] = useMemo(() => {
+    const rows = (payload.score_heat ?? []) as ConstruccionRow[];
+    return rows.filter(
+      (r) => (r.tipo === "apertura" || r.tipo === undefined) && r.axis_label !== "Total cruce",
+    );
+  }, [payload.score_heat]);
+
+  // Paleta categórica por conductor (dimensión). Cada dim recibe un color
+  // distintivo; los subcriterios heredan el color con tinte más claro para
+  // que la "construcción" se lea como capas de una misma rama.
+  const CONSTRUCCION_PALETA = [
+    "#3a6df0", // azul
+    "#16a37e", // verde-teal
+    "#e2802c", // naranja
+    "#a259d9", // púrpura
+    "#0d8a9b", // cian
+    "#d94a8a", // rosa
+    "#6b8e23", // oliva
+    "#c63d3d", // rojo
+  ];
+  const dimColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    dimensiones.forEach((d, i) => {
+      map[d.axis_label] = CONSTRUCCION_PALETA[i % CONSTRUCCION_PALETA.length];
+    });
+    return map;
+  }, [dimensiones]);
+
+  // Tinte más claro para los subcriterios — mezcla el color del conductor
+  // con blanco para diferenciar el anillo externo del medio sin perder la
+  // identidad de rama. mix=0 → color saturado; mix=1 → blanco.
+  const tintColor = (hex: string, mix = 0.32) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const tr = Math.round(r + (255 - r) * mix);
+    const tg = Math.round(g + (255 - g) * mix);
+    const tb = Math.round(b + (255 - b) * mix);
+    return `rgb(${tr}, ${tg}, ${tb})`;
+  };
+
+  // Escala adaptativa: dentro de cada conductor, el subcriterio con score
+  // más alto recibe el tinte más saturado (mix=0.18) y el más bajo el más
+  // claro (mix=0.55). Si todos tienen el mismo score, usan el tinte medio.
+  // Esto preserva identidad de conductor y muestra brechas internas sin
+  // mezclarse con la paleta del semáforo.
+  const adaptiveTint = (
+    baseHex: string,
+    score: number | null,
+    minScore: number,
+    maxScore: number,
+  ) => {
+    if (score == null || maxScore <= minScore) return tintColor(baseHex, 0.34);
+    const t = (score - minScore) / (maxScore - minScore); // 0..1, 1 = max
+    const mix = 0.55 - t * 0.37; // 0.55 (low) → 0.18 (high)
+    return tintColor(baseHex, mix);
+  };
+
+  // Subcriterios por dimensión — sólo se piden en modo "general" porque ahí
+  // el payload del índice no los trae. En modo "indicadores" el payload
+  // ya entrega los subcriterios como axis_label, así que lo usamos directo.
+  const [subRows, setSubRows] = useState<Record<string, ConstruccionRow[]>>({});
+  const [subLoading, setSubLoading] = useState(false);
+
+  useEffect(() => {
+    if (modo !== "general") {
+      setSubRows({});
+      return;
+    }
+    if (!catalogo || !catalogo.indicadores?.length) return;
+    let cancelled = false;
+    setSubLoading(true);
+    const indByLabel = new Map<string, string>();
+    for (const ind of catalogo.indicadores) indByLabel.set(ind.label, ind.id);
+    const promises = dimensiones
+      .map((d) => ({ label: d.axis_label, id: indByLabel.get(d.axis_label) }))
+      .filter((x): x is { label: string; id: string } => Boolean(x.id))
+      .map(({ label, id }) =>
+        apiDashboardDimPayload({
+          modo: "indicadores",
+          objetivo: id,
+          cruce: cruce || undefined,
+          incluir_total: incluirTotal,
+          iter: null,
+          filtros: dim.filtrosOn ? filtros : [],
+        })
+          .then((r) => ({ label, rows: (r.payload.score_heat ?? []) as ConstruccionRow[] }))
+          .catch(() => ({ label, rows: [] as ConstruccionRow[] })),
+      );
+    Promise.all(promises).then((results) => {
+      if (cancelled) return;
+      const map: Record<string, ConstruccionRow[]> = {};
+      for (const { label, rows } of results) {
+        map[label] = rows.filter(
+          (r) => r.tipo === "apertura" || r.tipo === undefined || r.tipo === "subcriterio",
+        ).filter((r) => r.axis_label !== "Total cruce");
+      }
+      setSubRows(map);
+      setSubLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modo, payload.objective_id, cruce, incluirTotal, filtrosKey, catalogo?.indicadores?.length, dimensiones.length]);
+
+  const traceData = useMemo(() => {
+    const labels: string[] = [];
+    const parents: string[] = [];
+    const values: number[] = [];
+    const colors: string[] = [];
+    const textColors: string[] = [];
+    const customdata: (number | string)[][] = [];
+    const ids: string[] = [];
+
+    const indiceLabel = payload.objective ?? "Índice";
+    // Score del índice = "Total cruce" o promedio simple de las dimensiones.
+    const totalRow = (payload.score_heat ?? []).find((r) => r.axis_label === "Total cruce");
+    const indiceScore = totalRow?.score_round ?? null;
+
+    // Total leaves (preliminar): suma de subcriterios; si no hay, usar n de dims
+    const totalLeaves = dimensiones.reduce((acc, d) => {
+      const subs = subRows[d.axis_label]?.length ?? 0;
+      return acc + (subs > 0 ? subs : 1);
+    }, 0) || dimensiones.length || 1;
+
+    ids.push("__root__");
+    // Score inline al lado del nombre — evita doble lectura entre arco y hover.
+    labels.push(
+      indiceScore != null ? `${indiceLabel}\n${indiceScore}` : indiceLabel,
+    );
+    parents.push("");
+    values.push(totalLeaves);
+    colors.push("#1f2a3a"); // raíz: gris oscuro neutro para contrastar
+    textColors.push("#ffffff");
+    customdata.push([
+      indiceScore != null ? indiceScore : "—",
+      totalRow?.base ?? "",
+    ]);
+
+    for (const d of dimensiones) {
+      const dimId = `dim:${d.axis_label}`;
+      const subs = subRows[d.axis_label] ?? [];
+      const dimValue = subs.length > 0 ? subs.length : 1;
+      const dimColor = dimColorMap[d.axis_label] ?? "#94a3b8";
+
+      // Rango adaptativo del conductor — usado para modular el tinte de los
+      // subcriterios. min/max sólo de los subs con score válido.
+      const subScores = subs
+        .map((s) => s.score_round)
+        .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+      const subMin = subScores.length ? Math.min(...subScores) : 0;
+      const subMax = subScores.length ? Math.max(...subScores) : 100;
+
+      ids.push(dimId);
+      labels.push(
+        d.score_round != null
+          ? `${d.axis_label}\n${d.score_round}`
+          : d.axis_label,
+      );
+      parents.push("__root__");
+      values.push(dimValue);
+      colors.push(dimColor);
+      textColors.push("#ffffff"); // texto blanco sobre color saturado
+      customdata.push([d.score_round ?? "—", d.base ?? ""]);
+
+      for (const s of subs) {
+        ids.push(`${dimId}:${s.axis_label}`);
+        labels.push(
+          s.score_round != null
+            ? `${s.axis_label}\n${s.score_round}`
+            : s.axis_label,
+        );
+        parents.push(dimId);
+        values.push(1);
+        colors.push(adaptiveTint(dimColor, s.score_round ?? null, subMin, subMax));
+        textColors.push("#1f2a3a"); // texto oscuro sobre tinte claro
+        customdata.push([s.score_round ?? "—", s.base ?? ""]);
+      }
+    }
+
+    return { ids, labels, parents, values, colors, textColors, customdata };
+  }, [payload.objective, payload.score_heat, dimensiones, subRows, dimColorMap]);
+
+  // Mapping para highlight contextual: para cada nodo, qué IDs forman su
+  // rama (ancestros + propio + descendientes). En hover se usa para atenuar
+  // los OTROS nodos manteniendo la rama activa nítida.
+  const branchMap = useMemo(() => {
+    const childrenOf: Record<string, string[]> = {};
+    traceData.ids.forEach((id, i) => {
+      const p = traceData.parents[i];
+      if (p) (childrenOf[p] ??= []).push(id);
+    });
+    const collectDesc = (id: string): string[] => {
+      const direct = childrenOf[id] ?? [];
+      return [id, ...direct.flatMap(collectDesc)];
+    };
+    const parentOf: Record<string, string> = {};
+    traceData.ids.forEach((id, i) => {
+      parentOf[id] = traceData.parents[i];
+    });
+    const ancestorsOf = (id: string): string[] => {
+      const out: string[] = [];
+      let cur = parentOf[id];
+      while (cur) {
+        out.push(cur);
+        cur = parentOf[cur];
+      }
+      return out;
+    };
+    const map: Record<string, Set<string>> = {};
+    for (const id of traceData.ids) {
+      map[id] = new Set([...ancestorsOf(id), ...collectDesc(id)]);
+    }
+    return map;
+  }, [traceData.ids, traceData.parents]);
+
+  const handlePlotReady = useCallback(
+    (gd: HTMLElement) => {
+      let plotlyMod: typeof import("plotly.js-dist-min") | null = null;
+      let active = true;
+      import("plotly.js-dist-min").then((P) => {
+        if (!active) return;
+        plotlyMod = P;
+      });
+
+      const dimmedColors = traceData.colors.map((c) => {
+        // Para hex (#rrggbb): convertir a rgba con opacity. Para rgb(...):
+        // sustituir por rgba(...).
+        if (c.startsWith("#")) {
+          const r = parseInt(c.slice(1, 3), 16);
+          const g = parseInt(c.slice(3, 5), 16);
+          const b = parseInt(c.slice(5, 7), 16);
+          return `rgba(${r}, ${g}, ${b}, 0.18)`;
+        }
+        if (c.startsWith("rgb(")) return c.replace("rgb(", "rgba(").replace(")", ", 0.18)");
+        return c;
+      });
+
+      const onHover = (ev: { points?: { id?: string; pointNumber?: number }[] }) => {
+        if (!plotlyMod) return;
+        const hoveredId = ev.points?.[0]?.id;
+        if (!hoveredId) return;
+        const branch = branchMap[hoveredId];
+        if (!branch) return;
+        const newColors = traceData.ids.map((id, i) =>
+          branch.has(id) ? traceData.colors[i] : dimmedColors[i],
+        );
+        // Plotly.restyle acepta dot-notation en runtime ("marker.colors"),
+        // pero el tipo `Data` no lo declara — cast obligatorio.
+        plotlyMod.restyle(gd, { "marker.colors": [newColors] } as Parameters<
+          typeof plotlyMod.restyle
+        >[1]);
+      };
+      const onUnhover = () => {
+        if (!plotlyMod) return;
+        plotlyMod.restyle(gd, { "marker.colors": [traceData.colors] } as Parameters<
+          typeof plotlyMod.restyle
+        >[1]);
+      };
+
+      // Plotly emite eventos via .on() en el div graph.
+      const g = gd as HTMLElement & {
+        on?: (event: string, cb: (ev: unknown) => void) => void;
+        removeAllListeners?: (event: string) => void;
+      };
+      g.on?.("plotly_hover", onHover as (ev: unknown) => void);
+      g.on?.("plotly_unhover", onUnhover);
+
+      return () => {
+        active = false;
+        g.removeAllListeners?.("plotly_hover");
+        g.removeAllListeners?.("plotly_unhover");
+      };
+    },
+    [traceData.colors, traceData.ids, branchMap],
+  );
+
+  if (!dimensiones.length) {
+    return <p className="dash-cardbox-help">Sin dimensiones para construir el indicador.</p>;
+  }
+
+  const showLoading = modo === "general" && subLoading && !Object.keys(subRows).length;
+
+  return (
+    <div className="dash-construccion-wrap">
+      {showLoading && (
+        <div className="dash-construccion-loading" aria-live="polite">
+          Cargando subcriterios…
+        </div>
+      )}
+      <PlotlyChart
+        data={[
+          {
+            type: "sunburst" as const,
+            ids: traceData.ids,
+            labels: traceData.labels,
+            parents: traceData.parents,
+            values: traceData.values,
+            branchvalues: "total",
+            marker: {
+              colors: traceData.colors,
+              line: { color: "#ffffff", width: 1.5 },
+            },
+            customdata: traceData.customdata,
+            hovertemplate:
+              "<b>%{label}</b><br>Score: %{customdata[0]}<br>Base: %{customdata[1]}<extra></extra>",
+            // "auto" deja que Plotly elija — usa horizontal en el centro y
+            // se ajusta a tangencial en arcos pequeños para que TODAS las
+            // etiquetas entren. Subcriterios con tinte claro toleran texto
+            // oscuro (mejor legibilidad que blanco sobre pastel).
+            insidetextorientation: "auto",
+            textfont: {
+              size: 12,
+              color: traceData.textColors,
+              family: "system-ui, -apple-system, 'Segoe UI', sans-serif",
+              weight: 600,
+            },
+            leaf: { opacity: 0.96 },
+            sort: false,
+            rotation: 90,
+          },
+        ]}
+        layout={{
+          margin: { t: 12, r: 12, b: 12, l: 12 },
+          paper_bgcolor: "rgba(0,0,0,0)",
+          plot_bgcolor: "rgba(0,0,0,0)",
+          showlegend: false,
+          // No hide: muestra todas las etiquetas que quepan, aunque rote.
+          uniformtext: { minsize: 9, mode: "show" },
+          transition: {
+            duration: 320,
+            easing: "cubic-in-out",
+          },
+        }}
+        height={maxed ? 760 : 620}
+        ariaLabel={`Construcción del indicador ${payload.objective ?? ""}`}
+        onReady={handlePlotReady}
+      />
+      <div className="dash-construccion-legend" aria-hidden="true">
+        {dimensiones.map((d) => (
+          <span key={d.axis_label} className="dash-construccion-leyenda-item">
+            <span style={{ background: dimColorMap[d.axis_label] }} />
+            {d.axis_label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }

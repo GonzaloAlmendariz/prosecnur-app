@@ -6,8 +6,25 @@ import {
   DashboardConfig,
   DashboardFodaViewConfig,
   DashboardFiltro,
+  DashboardLogoConfig,
   DashboardTabId,
 } from "../../api/client";
+
+// Máximo de logos en el header. Tres es el número práctico que cabe sin
+// apretar el título y que sirve a la mayoría de los reportes (logo
+// principal + cliente + auspiciador).
+export const MAX_DASHBOARD_LOGOS = 3;
+
+// Vistas virtuales del FODA — no son cruces reales ni se editan en
+// Personalizar; viven solo del lado del switch del visualizador y se
+// preservan al rehidratar (sin esto, el sanitizer las pisa con "conductores").
+export const VIRTUAL_FODA_VIEWS = new Set<string>(["lectura"]);
+export const DEFAULT_TABS_ENABLED: Record<DashboardTabId, boolean> = {
+  resumen: true,
+  relaciones: true,
+  base_datos: true,
+  dimensiones: true,
+};
 
 // Store del Dashboard. Patrón mismo que features/analitica/store.ts:
 // hidrata desde backend al montar, autosave debounced 2s, setters
@@ -89,16 +106,50 @@ function sanitizeConfig(c: DashboardConfig): DashboardConfig {
   const fodaVistaRaw = typeof c.foda_vista === "string" && c.foda_vista.trim()
     ? slugifyFodaId(c.foda_vista)
     : "conductores";
-  const fodaVista = mergedViews.some((view) => view.id === fodaVistaRaw)
+  // "lectura" es una vista virtual (pedagógica, no es un cruce real ni
+  // se persiste como vista editable). El usuario puede activarla desde
+  // el switch del FODA y queremos preservarla al rehidratar.
+  const isVirtualVista = VIRTUAL_FODA_VIEWS.has(fodaVistaRaw);
+  const fodaVista = isVirtualVista || mergedViews.some((view) => view.id === fodaVistaRaw)
     ? fodaVistaRaw
     : "conductores";
+  // Logos: si el array nuevo viene poblado, gana. Si está vacío y hay
+  // `logo_data_uri` legacy, lo migramos al primer slot. Limitamos a
+  // MAX_DASHBOARD_LOGOS y filtramos slots inválidos (sin data URI).
+  const incomingLogos = Array.isArray(c.logos) ? c.logos : [];
+  const sanitizedLogos: DashboardLogoConfig[] = incomingLogos
+    .filter(
+      (l): l is DashboardLogoConfig =>
+        !!l && typeof l === "object" && typeof (l as DashboardLogoConfig).data_uri === "string" && (l as DashboardLogoConfig).data_uri.length > 0,
+    )
+    .slice(0, MAX_DASHBOARD_LOGOS)
+    .map((l) => ({ data_uri: l.data_uri, alt: typeof l.alt === "string" ? l.alt : "" }));
+  const logoLegacy = str(c.logo_data_uri);
+  const logos: DashboardLogoConfig[] =
+    sanitizedLogos.length > 0
+      ? sanitizedLogos
+      : logoLegacy
+        ? [{ data_uri: logoLegacy, alt: typeof c.logo_alt === "string" ? c.logo_alt : "" }]
+        : [];
+  // Tabs habilitadas: cualquier valor distinto a `false` se considera true
+  // (defaults). Restringe a las claves conocidas.
+  const tabsEnabledIn =
+    c.tabs_enabled && typeof c.tabs_enabled === "object" && !Array.isArray(c.tabs_enabled)
+      ? c.tabs_enabled
+      : {};
+  const tabsEnabled: Record<DashboardTabId, boolean> = { ...DEFAULT_TABS_ENABLED };
+  for (const k of Object.keys(DEFAULT_TABS_ENABLED) as DashboardTabId[]) {
+    if (typeof tabsEnabledIn[k] === "boolean") tabsEnabled[k] = tabsEnabledIn[k] as boolean;
+  }
   return {
     ...c,
     titulo: typeof c.titulo === "string" ? c.titulo : "Dashboard",
     subtitulo: typeof c.subtitulo === "string" ? c.subtitulo : "",
-    logo_data_uri: str(c.logo_data_uri),
-    logo_alt: typeof c.logo_alt === "string" ? c.logo_alt : "",
+    logos,
+    logo_data_uri: logos[0]?.data_uri ?? null,
+    logo_alt: logos[0]?.alt ?? "",
     logo_height_px: num(c.logo_height_px, 36),
+    tabs_enabled: tabsEnabled,
     paleta_id: str(c.paleta_id),
     paletas_listas: paletasListas,
     color_primario_override: str(c.color_primario_override),
@@ -264,6 +315,8 @@ function mergeDefaultFodaViews(
 export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   titulo: "Dashboard",
   subtitulo: "",
+  logos: [],
+  tabs_enabled: { ...DEFAULT_TABS_ENABLED },
   logo_data_uri: null,
   logo_alt: "",
   logo_height_px: 36,
@@ -319,7 +372,7 @@ const DEFAULT_RELACION_STATE: DashboardRelacionState = {
 };
 
 // Estado de exploración para Dimensiones (no persistido).
-export type DashboardDimVisualMode = "heatmap" | "barras" | "radar" | "foda";
+export type DashboardDimVisualMode = "construccion" | "heatmap" | "barras" | "radar" | "foda";
 export type DashboardDimFodaSubmode = "matriz" | "dispersion";
 
 export type DashboardDimensionesState = {
@@ -350,7 +403,7 @@ const DEFAULT_DIMENSIONES_STATE: DashboardDimensionesState = {
   filtrosOn: false,
   enfoqueOn: false,
   enfoqueGrupo: "",
-  visualMode: "heatmap",
+  visualMode: "construccion",
   fodaSubmode: "matriz",
 };
 
@@ -396,6 +449,9 @@ type DashboardStore = {
   setSubtitulo: (s: string) => void;
   setLogo: (dataUri: string | null, alt?: string) => void;
   setLogoHeight: (px: number) => void;
+  setLogoSlot: (index: number, logo: DashboardLogoConfig | null) => void;
+  removeLogoSlot: (index: number) => void;
+  setTabEnabled: (tab: DashboardTabId, enabled: boolean) => void;
   setPaletaId: (id: string | null) => void;
   setPaletaLista: (listName: string, paleta: Record<string, string>) => void;
   setColorEnPaletaLista: (listName: string, label: string, color: string) => void;
@@ -482,13 +538,70 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   setTitulo: (s) => set((st) => dirtyPatch({ config: { ...st.config, titulo: s } })),
   setSubtitulo: (s) => set((st) => dirtyPatch({ config: { ...st.config, subtitulo: s } })),
   setLogo: (dataUri, alt) =>
-    set((st) =>
-      dirtyPatch({
-        config: { ...st.config, logo_data_uri: dataUri, logo_alt: alt ?? st.config.logo_alt },
-      }),
-    ),
+    set((st) => {
+      // Compat: el setter legacy actualiza el primer slot del array.
+      const next = [...(st.config.logos ?? [])];
+      if (dataUri) {
+        next[0] = { data_uri: dataUri, alt: alt ?? next[0]?.alt ?? "" };
+      } else {
+        next.shift();
+      }
+      const filtered = next.filter((l): l is DashboardLogoConfig => !!l);
+      return dirtyPatch({
+        config: {
+          ...st.config,
+          logos: filtered,
+          logo_data_uri: filtered[0]?.data_uri ?? null,
+          logo_alt: filtered[0]?.alt ?? "",
+        },
+      });
+    }),
   setLogoHeight: (px) =>
     set((st) => dirtyPatch({ config: { ...st.config, logo_height_px: Math.max(16, Math.min(120, px)) } })),
+  setLogoSlot: (index, logo) =>
+    set((st) => {
+      const current = [...(st.config.logos ?? [])];
+      // Permite escribir hasta MAX_DASHBOARD_LOGOS slots; pad con
+      // strings vacíos no, simplemente ignora índices fuera de rango.
+      if (index < 0 || index >= MAX_DASHBOARD_LOGOS) return st;
+      if (logo) {
+        current[index] = logo;
+      } else {
+        current[index] = undefined as unknown as DashboardLogoConfig;
+      }
+      const compacted = current.filter((l): l is DashboardLogoConfig => !!l);
+      return dirtyPatch({
+        config: {
+          ...st.config,
+          logos: compacted,
+          logo_data_uri: compacted[0]?.data_uri ?? null,
+          logo_alt: compacted[0]?.alt ?? "",
+        },
+      });
+    }),
+  removeLogoSlot: (index) =>
+    set((st) => {
+      const current = [...(st.config.logos ?? [])];
+      if (index < 0 || index >= current.length) return st;
+      current.splice(index, 1);
+      return dirtyPatch({
+        config: {
+          ...st.config,
+          logos: current,
+          logo_data_uri: current[0]?.data_uri ?? null,
+          logo_alt: current[0]?.alt ?? "",
+        },
+      });
+    }),
+  setTabEnabled: (tab, enabled) =>
+    set((st) =>
+      dirtyPatch({
+        config: {
+          ...st.config,
+          tabs_enabled: { ...DEFAULT_TABS_ENABLED, ...(st.config.tabs_enabled ?? {}), [tab]: enabled },
+        },
+      }),
+    ),
   setPaletaId: (id) => set((st) => dirtyPatch({ config: { ...st.config, paleta_id: id } })),
   setPaletaLista: (listName, paleta) =>
     set((st) =>
@@ -632,15 +745,25 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   setFodaVista: (v) =>
     set((st) => {
       const views = st.config.foda_views ?? DEFAULT_FODA_VIEWS;
-      const next = views.some((view) => view.id === v) ? v : (views[0]?.id ?? "conductores");
+      // Acepta el id si está en las vistas reales O si es una vista virtual
+      // whitelistada (ej. "lectura"). Sin esto, el setter rebotaba la vista
+      // virtual al primer id real y el click en Lectura "no hacía nada".
+      const accepted =
+        VIRTUAL_FODA_VIEWS.has(v) || views.some((view) => view.id === v);
+      const next = accepted ? v : (views[0]?.id ?? "conductores");
       return dirtyPatch({ config: { ...st.config, foda_vista: next } });
     }),
   setFodaViews: (views) =>
     set((st) => {
       const clean = mergeDefaultFodaViews(views, {}, {});
-      const active = clean.some((view) => view.id === st.config.foda_vista)
-        ? st.config.foda_vista
-        : (clean[0]?.id ?? "conductores");
+      // Si la vista activa es virtual ("lectura"), preservarla. Solo
+      // forzamos fallback cuando la vista activa era una vista real que
+      // dejó de existir tras el cambio en `views`.
+      const current = st.config.foda_vista ?? "conductores";
+      const active =
+        VIRTUAL_FODA_VIEWS.has(current) || clean.some((view) => view.id === current)
+          ? current
+          : (clean[0]?.id ?? "conductores");
       return dirtyPatch({ config: { ...st.config, foda_views: clean, foda_vista: active } });
     }),
   addFodaView: () =>

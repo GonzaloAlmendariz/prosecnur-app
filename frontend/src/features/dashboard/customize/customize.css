@@ -559,3 +559,140 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ======= Marca → grid de slots de logo ======= */
+.dashboard-scope .dash-customize-logo-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.dashboard-scope .dash-customize-logo-slot {
+  align-items: center;
+  background: var(--dash-superficie-2);
+  border: 1px dashed var(--dash-borde);
+  border-radius: var(--dash-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.dashboard-scope .dash-customize-logo-preview {
+  align-items: center;
+  background:
+    linear-gradient(45deg, transparent 49%, rgba(0,0,0,0.04) 49%, rgba(0,0,0,0.04) 51%, transparent 51%) 0 0 / 12px 12px,
+    #ffffff;
+  border-radius: 6px;
+  display: flex;
+  height: 72px;
+  justify-content: center;
+  width: 100%;
+}
+.dashboard-scope .dash-customize-logo-empty {
+  color: var(--dash-texto-suave);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.dashboard-scope .dash-customize-logo-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ======= Pestañas → lista de switches ======= */
+.dashboard-scope .dash-customize-tabs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dashboard-scope .dash-customize-tab-row {
+  align-items: center;
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-md);
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 10px;
+  padding: 10px 14px;
+  transition: border-color var(--dash-dur-hover) var(--dash-ease-out), background var(--dash-dur-hover) var(--dash-ease-out);
+}
+.dashboard-scope .dash-customize-tab-row.is-on {
+  border-color: color-mix(in srgb, var(--dash-primario) 35%, var(--dash-borde));
+}
+.dashboard-scope .dash-customize-tab-row.is-off {
+  color: var(--dash-texto-suave);
+  opacity: 0.7;
+}
+.dashboard-scope .dash-customize-tab-row input[type="checkbox"] {
+  accent-color: var(--dash-primario);
+  cursor: pointer;
+  height: 16px;
+  margin: 0;
+  width: 16px;
+}
+.dashboard-scope .dash-customize-tab-row input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+}
+.dashboard-scope .dash-customize-tab-name {
+  flex: 1;
+}
+.dashboard-scope .dash-customize-tab-hint {
+  color: var(--dash-texto-suave);
+  font-size: 11px;
+  font-weight: 600;
+  font-style: italic;
+}
+
+/* ======= Admin toolbar — fuera del Dashboard, arriba centrado ======= */
+.dashboard-scope .dash-admin-toolbar {
+  align-items: center;
+  background: color-mix(in srgb, var(--dash-superficie-2) 92%, var(--dash-primario) 8%);
+  border: 1px solid var(--dash-borde);
+  border-radius: 999px;
+  box-shadow: var(--dash-shadow-xs);
+  display: inline-flex;
+  gap: 4px;
+  margin: 0 auto 12px;
+  padding: 4px;
+}
+.dashboard-scope .dash-admin-toolbar-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+  margin-top: 4px;
+}
+.dashboard-scope .dash-admin-toolbar button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: -0.005em;
+  padding: 7px 14px;
+  transition:
+    background var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-admin-toolbar button:hover:not(:disabled) {
+    background: #ffffff;
+    color: var(--dash-primario);
+  }
+}
+.dashboard-scope .dash-admin-toolbar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.dashboard-scope .dash-admin-toolbar button.is-active {
+  background: var(--dash-primario);
+  color: #ffffff;
+  box-shadow: var(--dash-shadow-sm);
+}

@@ -1,31 +1,52 @@
 import {
   BarChart3,
   Image,
+  LayoutGrid,
   Plus,
   Radar,
   SlidersHorizontal,
+  Tag,
   Trash2,
   Upload,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type { DashboardFodaViewConfig } from "../../../api/client";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { DashboardFodaViewConfig, DashboardTabId } from "../../../api/client";
 import {
   DEFAULT_FODA_SERVICE_CATEGORIES,
   DEFAULT_FODA_VIEWS,
+  DEFAULT_TABS_ENABLED,
+  MAX_DASHBOARD_LOGOS,
   useDashboardStore,
 } from "../store";
 
-type CustomizePanel = "foda" | "graficos" | "semaforo";
+type CustomizePanel = "marca" | "pestanas" | "foda" | "graficos" | "semaforo";
 
 const PANELS: Array<{ id: CustomizePanel; label: string; icon: typeof SlidersHorizontal }> = [
+  { id: "marca", label: "Marca", icon: Tag },
+  { id: "pestanas", label: "Pestañas", icon: LayoutGrid },
   { id: "foda", label: "FODA", icon: Image },
   { id: "graficos", label: "Gráficos", icon: BarChart3 },
   { id: "semaforo", label: "Semáforo", icon: SlidersHorizontal },
 ];
 
+const TAB_LABELS: Record<DashboardTabId, string> = {
+  resumen: "Resumen",
+  relaciones: "Relaciones",
+  base_datos: "Base de datos",
+  dimensiones: "Dimensiones",
+};
+
+const TAB_ORDER: DashboardTabId[] = ["resumen", "relaciones", "base_datos", "dimensiones"];
+
 export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
   const config = useDashboardStore((s) => s.config);
+  const setTitulo = useDashboardStore((s) => s.setTitulo);
+  const setSubtitulo = useDashboardStore((s) => s.setSubtitulo);
+  const setLogoHeight = useDashboardStore((s) => s.setLogoHeight);
+  const setLogoSlot = useDashboardStore((s) => s.setLogoSlot);
+  const removeLogoSlot = useDashboardStore((s) => s.removeLogoSlot);
+  const setTabEnabled = useDashboardStore((s) => s.setTabEnabled);
   const setSemaforoModo = useDashboardStore((s) => s.setSemaforoModo);
   const setSemaforoRedColor = useDashboardStore((s) => s.setSemaforoRedColor);
   const setSemaforoAmberColor = useDashboardStore((s) => s.setSemaforoAmberColor);
@@ -59,7 +80,21 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
   const setFodaViewAlias = useDashboardStore((s) => s.setFodaViewAlias);
   const setFodaViewIcon = useDashboardStore((s) => s.setFodaViewIcon);
 
-  const [panel, setPanel] = useState<CustomizePanel>("foda");
+  const [panel, setPanel] = useState<CustomizePanel>("marca");
+  const logoInputRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  function handleLogoUpload(slot: number, file: File | undefined) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === "string") setLogoSlot(slot, { data_uri: result, alt: file.name });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  const logos = config.logos ?? [];
+  const tabsEnabled = { ...DEFAULT_TABS_ENABLED, ...(config.tabs_enabled ?? {}) };
 
   const semaforoModo = config.semaforo_modo ?? "cortes";
   const semRed = config.semaforo_red_color ?? "#D84B55";
@@ -148,6 +183,145 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
           </nav>
 
           <div className="dash-customize-body">
+            {panel === "marca" && (
+              <section className="dash-customize-panel">
+                <PanelTitle
+                  title="Marca del dashboard"
+                  text="Título, subtítulo y hasta 3 logos que aparecen en el header. Estos campos forman parte del producto final exportable."
+                />
+
+                <div className="dash-customize-field-grid">
+                  <label>
+                    <span className="dash-filtro-label">Título</span>
+                    <input
+                      className="dash-input"
+                      value={config.titulo ?? ""}
+                      placeholder="Dashboard"
+                      onChange={(e) => setTitulo(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span className="dash-filtro-label">Subtítulo</span>
+                    <input
+                      className="dash-input"
+                      value={config.subtitulo ?? ""}
+                      placeholder="Estudio, periodo, equipo…"
+                      onChange={(e) => setSubtitulo(e.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <SettingBlock title="Logos" icon={<Image size={16} />}>
+                  <div className="dash-customize-logo-grid">
+                    {Array.from({ length: MAX_DASHBOARD_LOGOS }).map((_, slot) => {
+                      const logo = logos[slot] ?? null;
+                      return (
+                        <div key={slot} className="dash-customize-logo-slot">
+                          <div className="dash-customize-logo-preview">
+                            {logo ? (
+                              <img
+                                src={logo.data_uri}
+                                alt={logo.alt || `Logo ${slot + 1}`}
+                                style={{
+                                  height: Math.min(56, config.logo_height_px ?? 36),
+                                  width: "auto",
+                                  objectFit: "contain",
+                                }}
+                              />
+                            ) : (
+                              <span className="dash-customize-logo-empty">Slot {slot + 1}</span>
+                            )}
+                          </div>
+                          <div className="dash-customize-logo-actions">
+                            <button
+                              type="button"
+                              className="dash-quick-btn"
+                              onClick={() => logoInputRefs.current[slot]?.click()}
+                            >
+                              <Upload size={13} /> {logo ? "Cambiar" : "Subir"}
+                            </button>
+                            {logo && (
+                              <button
+                                type="button"
+                                className="dash-customize-danger"
+                                onClick={() => removeLogoSlot(slot)}
+                                title="Quitar logo"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                            <input
+                              ref={(el) => { logoInputRefs.current[slot] = el; }}
+                              type="file"
+                              accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                              style={{ display: "none" }}
+                              onChange={(e) => {
+                                handleLogoUpload(slot, e.target.files?.[0]);
+                                e.target.value = "";
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <label style={{ display: "block", marginTop: 12, maxWidth: 220 }}>
+                    <span className="dash-filtro-label">Altura común (px)</span>
+                    <input
+                      className="dash-input"
+                      type="number"
+                      min={16}
+                      max={120}
+                      step={2}
+                      value={config.logo_height_px ?? 36}
+                      onChange={(e) => {
+                        const n = Number(e.target.value);
+                        if (Number.isFinite(n) && n > 0) setLogoHeight(n);
+                      }}
+                    />
+                  </label>
+                  <p className="dash-customize-help">
+                    Hasta {MAX_DASHBOARD_LOGOS} logos, ordenados de izquierda a derecha. PNG / JPG / SVG / WEBP. Quedan embebidos en el .pulso (data URI).
+                  </p>
+                </SettingBlock>
+              </section>
+            )}
+
+            {panel === "pestanas" && (
+              <section className="dash-customize-panel">
+                <PanelTitle
+                  title="Pestañas visibles"
+                  text="Decide qué pestañas aparecen en el dashboard final. Las pestañas deshabilitadas se ocultan y el lector va directo a la primera disponible."
+                />
+
+                <div className="dash-customize-tabs-list">
+                  {TAB_ORDER.map((id) => {
+                    const enabled = tabsEnabled[id];
+                    const enabledCount = TAB_ORDER.filter((t) => tabsEnabled[t]).length;
+                    const isLastEnabled = enabled && enabledCount === 1;
+                    return (
+                      <label
+                        key={id}
+                        className={`dash-customize-tab-row ${enabled ? "is-on" : "is-off"}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={enabled}
+                          disabled={isLastEnabled}
+                          onChange={(e) => setTabEnabled(id, e.target.checked)}
+                        />
+                        <span className="dash-customize-tab-name">{TAB_LABELS[id]}</span>
+                        {isLastEnabled && (
+                          <span className="dash-customize-tab-hint">Mínimo una activa</span>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {panel === "foda" && (
               <section className="dash-customize-panel">
                 <PanelTitle
