@@ -45,10 +45,18 @@ export type DebugPh = {
   lwd: number;      // grosor de línea (default 0.6)
 };
 
+// UI-state persistido (v3): preferencias visuales del editor v2. No
+// participa del undo/redo (es estado de vista, no de contenido).
+export type ViewMode = "timeline" | "canvas";
+export type InspectorTab = "content" | "data" | "style" | "filters";
+export type Density = "comfortable" | "compact";
+export type CanvasViewport = { x: number; y: number; zoom: number };
+
 // Config persistida en el backend. Lo que el autosave envía y recibe.
-// Version 2 añade: paletas, iconos, overrides_reusables, debug_ph.
+// Version 2 añadió: paletas, iconos, overrides_reusables, debug_ph.
+// Version 3 añade UI-state del editor v2 (view_mode, inspector_tab, density, canvas_viewport).
 export type GraficosConfig = {
-  version: 2;
+  version: 2 | 3;
   plan: PlanJson;
   presets: Record<string, Record<string, unknown>>;
   w_presets: Record<string, Record<string, unknown>>;
@@ -59,6 +67,12 @@ export type GraficosConfig = {
   iconos: IconoConfig[];
   overrides_reusables: OverrideReusable[];
   debug_ph: DebugPh;
+
+  // Bloque v3: UI-state del editor v2 (opcional para retro-compat)
+  view_mode?: ViewMode;
+  inspector_tab?: InspectorTab;
+  density?: Density;
+  canvas_viewport?: CanvasViewport;
 };
 
 // Snapshot del estado persistido — lo que va al undo/redo stack. No
@@ -90,6 +104,12 @@ type PlanStore = {
   iconos: IconoConfig[];
   overridesReusables: OverrideReusable[];
   debugPh: DebugPh;
+
+  // --- UI-state del editor v2 (persistido pero NO historizado) ---
+  viewMode: ViewMode;
+  inspectorTab: InspectorTab;
+  density: Density;
+  canvasViewport: CanvasViewport;
 
   // --- Flags de sincronización ---
   hydrated: boolean;
@@ -144,7 +164,19 @@ type PlanStore = {
 
   // Debug de placeholders (toggle global)
   setDebugPh: (patch: Partial<DebugPh>) => void;
+
+  // --- Setters UI-state v2 (NO marcan dirty: persisten via autosave junto al resto, pero no historizan) ---
+  setViewMode: (mode: ViewMode) => void;
+  setInspectorTab: (tab: InspectorTab) => void;
+  setDensity: (d: Density) => void;
+  setCanvasViewport: (vp: CanvasViewport) => void;
+
+  // Reordenar a una posición arbitraria (drag&drop). Diferente de moveSlide
+  // (que solo hace ±1). Usado por TimelinePanelV2 con @dnd-kit.
+  moveSlideTo: (id: string, newIndex: number) => void;
 };
+
+export const DEFAULT_CANVAS_VIEWPORT: CanvasViewport = { x: 0, y: 0, zoom: 1 };
 
 // Valores por defecto del debug. Alineado con los QMDs de GIZ y las
 // pruebas (magenta + grosor 0.6). `activo: false` por defecto: se
@@ -254,6 +286,11 @@ export const usePlanStore = create<PlanStore>((set) => ({
   overridesReusables: [],
   debugPh: DEFAULT_DEBUG_PH,
 
+  viewMode: "timeline",
+  inspectorTab: "content",
+  density: "comfortable",
+  canvasViewport: DEFAULT_CANVAS_VIEWPORT,
+
   hydrated: false,
   dirty: false,
 
@@ -301,6 +338,10 @@ export const usePlanStore = create<PlanStore>((set) => ({
     iconos: cfg.iconos ?? [],
     overridesReusables: cfg.overrides_reusables ?? [],
     debugPh: { ...DEFAULT_DEBUG_PH, ...(cfg.debug_ph ?? {}) },
+    viewMode: cfg.view_mode ?? "timeline",
+    inspectorTab: cfg.inspector_tab ?? "content",
+    density: cfg.density ?? "comfortable",
+    canvasViewport: cfg.canvas_viewport ?? DEFAULT_CANVAS_VIEWPORT,
     hydrated: true,
     dirty: false,
     // El hydrate viene del backend (autosave inicial o import). No
@@ -518,6 +559,24 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((state) => dirty(state, {
       debugPh: { ...state.debugPh, ...patch },
     })),
+
+  // ----- UI-state v2 (NO historizado, marca dirty para autosave) ----------
+  setViewMode: (mode) => set({ viewMode: mode, dirty: true }),
+  setInspectorTab: (tab) => set({ inspectorTab: tab, dirty: true }),
+  setDensity: (d) => set({ density: d, dirty: true }),
+  setCanvasViewport: (vp) => set({ canvasViewport: vp, dirty: true }),
+
+  moveSlideTo: (id, newIndex) => {
+    set((state) => {
+      const i = state.plan.slides.findIndex((s) => s.id === id);
+      if (i < 0) return state;
+      const slides = [...state.plan.slides];
+      const [moved] = slides.splice(i, 1);
+      const target = Math.max(0, Math.min(slides.length, newIndex));
+      slides.splice(target, 0, moved);
+      return dirty(state, { plan: { slides } });
+    });
+  },
 }));
 
 // Mapa exportado de nombres humanos (para UIs que necesitan mostrar el

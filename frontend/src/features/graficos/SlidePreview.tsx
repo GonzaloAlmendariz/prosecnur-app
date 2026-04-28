@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Download, Eye, Loader2, AlertCircle, CheckCircle2, Image as ImageIcon } from "lucide-react";
-import { apiGraficosPreviewSlide, downloadUrl, PreviewImage, Slide } from "../../api/client";
+import { apiGraficosPreviewSlide, downloadUrl, GraficadorRef, PreviewImage, Slide } from "../../api/client";
+import { SLIDE_GRAF_SLOTS } from "./store";
 
 // Preview de un slide individual. Al generar, el backend:
 //   1. Crea un mini-PPTX con este slide (fuente de verdad, descargable).
@@ -19,13 +20,16 @@ import { apiGraficosPreviewSlide, downloadUrl, PreviewImage, Slide } from "../..
 type Props = {
   slide: Slide;
   prepOk: boolean;
+  /** Cuando es true, oculta el texto descriptivo y se muestra como un
+   *  card compacto (usado en el header del inspector V2). */
+  compact?: boolean;
 };
 
 function hashSlide(slide: Slide): string {
   return JSON.stringify({ tipo: slide.tipo, payload: slide.payload });
 }
 
-export function SlidePreview({ slide, prepOk }: Props) {
+export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const [busy, setBusy] = useState(false);
   const [fileId, setFileId] = useState<string | null>(null);
   const [images, setImages] = useState<PreviewImage[]>([]);
@@ -35,7 +39,15 @@ export function SlidePreview({ slide, prepOk }: Props) {
   const currentHash = hashSlide(slide);
   const isStale = fileId !== null && lastHash !== currentHash;
 
+  // Pre-validación local. Detecta problemas comunes ANTES de llamar al
+  // backend para evitar errores opacos. Cubre los 2 casos más frecuentes:
+  // (a) un slot sin graficador (slide con barras_apiladas vacío); (b) un
+  // graficador sin la variable principal (`var`) configurada.
+  const preIssues = useMemo(() => preValidateSlide(slide), [slide]);
+  const blocked = preIssues.length > 0;
+
   async function onGenerate() {
+    if (blocked) return;
     setBusy(true);
     setError("");
     try {
@@ -62,29 +74,56 @@ export function SlidePreview({ slide, prepOk }: Props) {
       }}
     >
       <header style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "var(--pulso-text)" }}>
-          <Eye size={14} /> Preview de este slide
-        </span>
-        <span style={{ flex: 1, fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-          Ejecuta el slide con los datos reales y muestra cada gráfico acá.
-          El PPTX completo queda disponible para descarga.
-        </span>
+        {!compact && (
+          <>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "var(--pulso-text)" }}>
+              <Eye size={14} /> Previsualizar este slide
+            </span>
+            <span style={{ flex: 1, fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+              Renderiza el slide con datos reales. El PPTX queda disponible para descarga.
+            </span>
+          </>
+        )}
 
         <button
           type="button"
           className="pulso-primary"
           onClick={onGenerate}
-          disabled={!prepOk || busy}
-          title={!prepOk ? "Primero prepara los datos en Analítica" : undefined}
+          disabled={!prepOk || busy || blocked}
+          title={
+            !prepOk
+              ? "Primero prepara los datos en Analítica"
+              : blocked
+                ? `Faltan datos: ${preIssues[0]}`
+                : undefined
+          }
           style={{
-            fontSize: 12, padding: "6px 12px",
+            fontSize: compact ? 12 : 12, padding: compact ? "6px 12px" : "6px 12px",
             display: "inline-flex", alignItems: "center", gap: 6,
+            marginLeft: compact ? "auto" : undefined,
           }}
         >
           {busy ? <Loader2 size={13} className="pulso-spin" /> : <Eye size={13} />}
-          {busy ? "Generando…" : fileId ? "Regenerar preview" : "Generar preview"}
+          {busy ? "Generando…" : fileId ? "Volver a previsualizar" : "Previsualizar"}
         </button>
       </header>
+
+      {blocked && !error && (
+        <div
+          style={{
+            display: "flex", alignItems: "flex-start", gap: 7,
+            padding: "8px 10px", borderRadius: 6,
+            background: "var(--pulso-warn-bg, rgba(217, 119, 6, 0.08))",
+            border: "1px solid var(--pulso-warn-border, rgba(217, 119, 6, 0.4))",
+            fontSize: 11, color: "var(--pulso-warn-fg, #92400e)", lineHeight: 1.45,
+          }}
+        >
+          <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>
+            <strong>Antes de previsualizar:</strong> {preIssues.join(" · ")}
+          </span>
+        </div>
+      )}
 
       {!prepOk && (
         <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
@@ -103,7 +142,7 @@ export function SlidePreview({ slide, prepOk }: Props) {
         >
           <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>
-            <strong>No se pudo generar:</strong> {error}
+            <strong>No pudimos generar la previsualización.</strong> {humanizePreviewError(error)}
           </span>
         </div>
       )}
@@ -228,4 +267,58 @@ function formatKb(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Pre-validación del slide antes de pegarle al backend. Detecta los
+// problemas más comunes (slot vacío, var faltante) para que el usuario
+// reciba feedback inmediato sin esperar el roundtrip + error opaco.
+function preValidateSlide(slide: Slide): string[] {
+  const issues: string[] = [];
+  const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
+  for (const slot of slots) {
+    const v = (slide.payload as Record<string, unknown>)[slot] as GraficadorRef | undefined | null;
+    if (!v || !v.graficador) {
+      issues.push(`elige un gráfico para "${slot}" en la pestaña Datos`);
+      continue;
+    }
+    const args = (v.args ?? {}) as Record<string, unknown>;
+    const hasVar = typeof args.var === "string" && args.var.length > 0;
+    const hasVars = Array.isArray(args.vars) && (args.vars as unknown[]).length > 0;
+    if (!hasVar && !hasVars) {
+      issues.push(`configura la variable principal del gráfico "${slot}" en la pestaña Datos`);
+    }
+  }
+  return issues;
+}
+
+// Convierte mensajes técnicos del backend en frases legibles. El backend
+// devuelve cosas como "[E_PREVIEW_FAILED] La plantilla NO tiene el layout
+// requerido: '1_Grafico_narrativo'" — el usuario no necesita ver códigos
+// internos ni nombres de layout.
+function humanizePreviewError(raw: string): string {
+  // Quita códigos tipo [E_X] y prefijos genéricos del backend
+  let cleaned = raw.replace(/^\s*\[[A-Z_]+\]\s*/i, "").trim();
+  cleaned = cleaned.replace(/^No se pudo generar el preview:\s*/i, "");
+
+  // Argumento requerido faltante (R: "argument 'var' is missing, with no default")
+  const argMissing = cleaned.match(/argument ['"]?([a-z_]+)['"]?\s+is missing/i);
+  if (argMissing) {
+    const argName = argMissing[1];
+    return `Falta configurar "${argName}" en la pestaña Datos. Es un valor requerido por este tipo de gráfico.`;
+  }
+
+  if (/layout requerido|template.*layout|layout.*not found/i.test(cleaned)) {
+    return "La plantilla actual no incluye el diseño que este slide necesita. Si usas una plantilla custom, añade ese layout o elige otro tipo de slide.";
+  }
+  if (/rp_data|rp_inst|prepar.*datos|preparar/i.test(cleaned)) {
+    return "Los datos no están listos. Ve a la fase 4 → Preparar datos y vuelve a intentarlo.";
+  }
+  if (/timeout|timed out/i.test(cleaned)) {
+    return "El render tardó demasiado. Intenta de nuevo o simplifica el gráfico.";
+  }
+  if (/variable.*no existe|var.*unknown|variable inv/i.test(cleaned)) {
+    return "Una de las variables del gráfico no existe en el instrumento. Revísala en la pestaña Datos.";
+  }
+  // Fallback: muestra el mensaje del backend pero sin el código de error
+  return cleaned || "Algo salió mal al renderizar. Intenta de nuevo.";
 }

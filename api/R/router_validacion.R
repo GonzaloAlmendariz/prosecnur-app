@@ -523,7 +523,7 @@ mount_validacion <- function(pr) {
       }
 
       # api_path para que el subprocess callr pueda cargar el paquete.
-      api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
+      api_path <- .app_api_dir()
 
       job_id <- job_submit(
         sid = sid,
@@ -1240,7 +1240,7 @@ mount_validacion <- function(pr) {
         bundle_final$rules <- .dedup_rules_exact(c(bundle_inst$rules %||% list(), bundle_custom))
         bundle_final$plan <- compile_rules_to_plan(bundle_final$rules)
 
-        api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
+        api_path <- .app_api_dir()
 
         job_id <- job_submit(
           sid = sid,

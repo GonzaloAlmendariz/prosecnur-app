@@ -83,10 +83,10 @@ function SlideTitleMockup({ slide }: { slide: Slide }) {
         textAlign: "center", gap: 8, color: "#fff", margin: -10, padding: 20,
         background: "linear-gradient(135deg, var(--pulso-primary) 0%, #013371 100%)",
       }}>
-        <div style={{ fontSize: 22, fontWeight: 700 }}>{p.title || "(sin título)"}</div>
-        {p.subtitle && <div style={{ fontSize: 14, color: "rgba(255,255,255,0.78)" }}>{p.subtitle}</div>}
-        {p.date && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 12 }}>{p.date}</div>}
-        {p.meta_line && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>{p.meta_line}</div>}
+        <div style={{ fontSize: 22, fontWeight: 700 }}>{p.titulo || "(sin título)"}</div>
+        {p.subtitulo && <div style={{ fontSize: 14, color: "rgba(255,255,255,0.78)" }}>{p.subtitulo}</div>}
+        {p.fecha && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 12 }}>{p.fecha}</div>}
+        {p.subtexto && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>{p.subtexto}</div>}
       </div>
     </SlideFrame>
   );
@@ -97,9 +97,10 @@ function SlideSectionMockup({ slide }: { slide: Slide }) {
   return (
     <SlideFrame>
       <div style={{ flex: 1, borderLeft: "6px solid var(--pulso-primary)", padding: "0.5rem 0.75rem", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: "var(--pulso-primary)" }}>{p.title || "(sin título)"}</div>
-        {p.subtitle && <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginTop: 4 }}>{p.subtitle}</div>}
-        {p.intro_word && <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 8, fontStyle: "italic" }}>{p.intro_word}</div>}
+        <div style={{ fontSize: 18, fontWeight: 700, color: "var(--pulso-primary)" }}>{p.titulo || "(sin título)"}</div>
+        {p.subtitulo && <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginTop: 4 }}>{p.subtitulo}</div>}
+        {p.introduccion_word && <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 8, fontStyle: "italic" }}>{p.introduccion_word}</div>}
+        {p.texto && <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 8 }}>{p.texto.slice(0, 90)}{p.texto.length > 90 ? "…" : ""}</div>}
       </div>
     </SlideFrame>
   );
@@ -108,41 +109,47 @@ function SlideSectionMockup({ slide }: { slide: Slide }) {
 function HeaderFooter({ p, children }: { p: Record<string, string>; children: React.ReactNode }) {
   return (
     <SlideFrame>
-      {p.title && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-primary)", marginBottom: 6 }}>{p.title}</div>}
+      {p.titulo && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-primary)", marginBottom: 6 }}>{p.titulo}</div>}
       <div style={{ flex: 1, minHeight: 0 }}>{children}</div>
       {p.base && <div style={{ fontSize: 9, color: "var(--pulso-text-soft)", marginTop: 4, fontStyle: "italic" }}>{p.base}</div>}
-      {p.footer && <div style={{ fontSize: 9, color: "var(--pulso-text-soft)" }}>{p.footer}</div>}
+      {p.pie && <div style={{ fontSize: 9, color: "var(--pulso-text-soft)" }}>{p.pie}</div>}
     </SlideFrame>
   );
 }
 
-function SlideContenidoMockup({ slide, layout }: { slide: Slide; layout: "1" | "2" | "text_l" | "text_r" }) {
+function SlideContenidoMockup({ slide, layout }: { slide: Slide; layout: "1" | "2" | "text_l" | "text_r" | "2_alt" }) {
   const p = slide.payload as Record<string, string>;
   const payloadMap = slide.payload as Record<string, GraficadorRef | null | undefined>;
   let body: React.ReactNode;
   switch (layout) {
     case "1":
-      body = <SlotBox slot={payloadMap.plot} label="plot" />;
+      body = <SlotBox slot={payloadMap.grafico} label="gráfico" />;
       break;
     case "2":
       body = <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, height: "100%" }}>
-        <SlotBox slot={payloadMap.left} label="left" />
-        <SlotBox slot={payloadMap.right} label="right" />
+        <SlotBox slot={payloadMap.izquierda} label="izquierda" />
+        <SlotBox slot={payloadMap.derecha} label="derecha" />
+      </div>;
+      break;
+    case "2_alt":
+      body = <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, height: "100%" }}>
+        <SlotBox slot={payloadMap.grafico_1} label="gráfico 1" />
+        <SlotBox slot={payloadMap.grafico_2} label="gráfico 2" />
       </div>;
       break;
     case "text_l":
       body = <div style={{ display: "grid", gridTemplateColumns: "0.8fr 1fr", gap: 6, height: "100%" }}>
         <div style={{ border: "1px dashed var(--pulso-border)", borderRadius: 6, padding: 6, fontSize: 10, color: "var(--pulso-text-soft)", overflow: "hidden", whiteSpace: "pre-wrap" }}>
-          {p.text || "(texto)"}
+          {p.texto || "(texto)"}
         </div>
-        <SlotBox slot={payloadMap.plot} label="plot" />
+        <SlotBox slot={payloadMap.grafico} label="gráfico" />
       </div>;
       break;
     case "text_r":
       body = <div style={{ display: "grid", gridTemplateColumns: "1fr 0.8fr", gap: 6, height: "100%" }}>
-        <SlotBox slot={payloadMap.plot} label="plot" />
+        <SlotBox slot={payloadMap.grafico} label="gráfico" />
         <div style={{ border: "1px dashed var(--pulso-border)", borderRadius: 6, padding: 6, fontSize: 10, color: "var(--pulso-text-soft)", overflow: "hidden", whiteSpace: "pre-wrap" }}>
-          {p.text || "(texto)"}
+          {p.texto || "(texto)"}
         </div>
       </div>;
       break;
@@ -160,11 +167,10 @@ function SlidePoblacionMockup({ slide, slots, layout }: { slide: Slide; slots: s
   };
   return (
     <HeaderFooter p={p}>
-      {p.tag && <div style={{ fontSize: 10, color: "var(--pulso-primary)", fontWeight: 600, marginBottom: 4 }}>{p.tag}</div>}
+      {p.etiqueta && <div style={{ fontSize: 10, color: "var(--pulso-primary)", fontWeight: 600, marginBottom: 4 }}>{p.etiqueta}</div>}
       <div style={grid}>
-        {slots.map((s) => <SlotBox key={s} slot={payloadMap[s]} label={s} />)}
+        {slots.map((s) => <SlotBox key={s} slot={payloadMap[s]} label={s.replace(/_/g, " ")} />)}
       </div>
-      {(p.center_note) && <div style={{ fontSize: 10, color: "var(--pulso-primary)", textAlign: "center", marginTop: 4 }}>{p.center_note}</div>}
     </HeaderFooter>
   );
 }
@@ -191,8 +197,8 @@ export default function SlidePreviewMockup({ slide }: { slide: Slide }) {
     // 2 gráficos
     case "p_slide_2_graficos":                  return <SlideContenidoMockup slide={slide} layout="2" />;
     case "p_slide_2_graficos_narrativo":        return <SlideContenidoMockup slide={slide} layout="2" />;
-    case "p_slide_2_graficos_texto_izquierda":  return <SlideContenidoMockup slide={slide} layout="2" />;
-    case "p_slide_2_graficos_texto_derecha":    return <SlideContenidoMockup slide={slide} layout="2" />;
+    case "p_slide_2_graficos_texto_izquierda":  return <SlideContenidoMockup slide={slide} layout="2_alt" />;
+    case "p_slide_2_graficos_texto_derecha":    return <SlideContenidoMockup slide={slide} layout="2_alt" />;
 
     // Grid 4
     case "p_slide_4_graficos":

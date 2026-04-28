@@ -99,14 +99,26 @@
 
 .dashboard-scope .dash-header {
   align-items: center;
-  border-bottom: 1px solid var(--dash-divider);
   display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
-  padding: 14px 0 16px;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 18px 0 14px;
+}
+.dashboard-scope .dash-header-logos {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 14px;
 }
 .dashboard-scope .dash-header-logo {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: block;
+  filter: none;
   flex: 0 0 auto;
+  object-fit: contain;
   width: auto;
 }
 .dashboard-scope .dash-header-copy {
@@ -217,6 +229,16 @@
 @media (hover: hover) and (pointer: fine) {
   .dashboard-scope .dash-tab:hover:not(:disabled):not(.is-active) {
     background: var(--dash-primario-soft);
+    color: var(--dash-primario);
+  }
+  /* Hover sobre la pestaña activa: tapar la pill primaria con un fondo
+   * opaco y mostrar el texto en color primario. Da feedback claro sin
+   * dejar texto blanco sobre fondo claro (que era invisible). El fondo
+   * usa color-mix para una mezcla soft sobre la superficie del nav. */
+  .dashboard-scope .dash-tab.is-active:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--dash-superficie-2) 86%, var(--dash-primario) 14%);
+    color: var(--dash-primario);
+    text-shadow: none;
   }
 }
 .dashboard-scope .dash-tab {
@@ -225,8 +247,11 @@
 }
 .dashboard-scope .dash-tab.is-active {
   /* La pill viene del ::before del nav. Aquí solo cambiamos el color
-   * del texto para que contraste con el fondo primario animado. */
+   * del texto para que contraste con el fondo primario animado.
+   * text-shadow garantiza legibilidad incluso si la pill aún no llegó
+   * a posición durante la transición. */
   color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 .dashboard-scope .dash-tab:active:not(:disabled) {
   transform: scale(0.975);
@@ -537,30 +562,57 @@
   background:
     linear-gradient(180deg, var(--dash-superficie) 0%, color-mix(in srgb, var(--dash-superficie-2) 78%, var(--dash-superficie) 22%) 100%);
   border: 1px solid color-mix(in srgb, var(--dash-borde) 82%, var(--dash-texto-suave) 18%);
-  border-radius: 7px;
-  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 1px 2px rgba(15, 23, 42, 0.04);
   color: var(--dash-texto);
   font-size: 12px;
   outline: none;
-  padding: 7px 10px;
+  padding: 9px 12px;
   transition:
-    border-color 160ms var(--dash-ease-out),
-    box-shadow 160ms var(--dash-ease-out),
-    background-color 160ms var(--dash-ease-out);
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out),
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-press);
   width: 100%;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-input:hover:not(:focus):not(:disabled),
+  .dashboard-scope .dash-select:hover:not(:focus):not(:disabled) {
+    border-color: color-mix(in srgb, var(--dash-borde) 50%, var(--dash-primario) 50%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      0 1px 4px rgba(15, 23, 42, 0.06);
+  }
 }
 .dashboard-scope .dash-select {
   background-image:
     url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235f6b7a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"),
     linear-gradient(180deg, var(--dash-superficie) 0%, color-mix(in srgb, var(--dash-superficie-2) 78%, var(--dash-superficie) 22%) 100%);
-  background-position: right 9px center, 0 0;
+  background-position: right 11px center, 0 0;
   background-repeat: no-repeat;
-  padding-right: 30px;
+  cursor: pointer;
+  padding-right: 32px;
+  transition:
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    box-shadow var(--dash-dur-hover) var(--dash-ease-out),
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    background-position var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-press);
+}
+.dashboard-scope .dash-select:focus {
+  background-position: right 11px center, 0 0;
 }
 .dashboard-scope .dash-input:focus,
 .dashboard-scope .dash-select:focus {
   border-color: var(--dash-primario);
-  box-shadow: 0 0 0 3px var(--dash-primario-soft);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 0 0 3px color-mix(in srgb, var(--dash-primario) 22%, transparent);
+}
+.dashboard-scope .dash-select:active {
+  transform: scale(0.995);
 }
 /* Skeleton shimmer para categorías de filtro mientras hidratan. */
 .dashboard-scope .dash-filtro-cats-skeleton {
@@ -788,9 +840,15 @@
   gap: 7px;
 }
 .dashboard-scope .dash-source-segments {
-  background: var(--dash-superficie);
-  border: 1px solid var(--dash-borde);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--dash-superficie-2) 90%, var(--dash-primario) 10%) 0%,
+      color-mix(in srgb, var(--dash-superficie-2) 98%, var(--dash-primario) 2%) 100%);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 80%, var(--dash-primario) 20%);
   border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    var(--dash-shadow-xs);
   display: inline-grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 3px;
@@ -804,7 +862,8 @@
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
-  padding: 6px 8px;
+  padding: 7px 8px;
+  position: relative;
   transition:
     background-color var(--dash-dur-hover) var(--dash-ease-out),
     color var(--dash-dur-hover) var(--dash-ease-out),
@@ -812,9 +871,12 @@
     transform var(--dash-dur-press) var(--dash-ease-press);
 }
 .dashboard-scope .dash-source-segment.is-active {
-  background: var(--dash-primario);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--dash-primario) 100%, white 6%) 0%,
+      var(--dash-primario) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
     var(--dash-shadow-xs);
   color: #fff;
 }
@@ -822,10 +884,27 @@
   .dashboard-scope .dash-source-segment:hover:not(:disabled):not(.is-active) {
     background: var(--dash-primario-soft);
     color: var(--dash-primario);
+    transform: translateY(-1px);
+  }
+  .dashboard-scope .dash-source-segment.is-active:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow:
+      var(--dash-shadow-sm),
+      0 0 0 3px color-mix(in srgb, var(--dash-primario) 16%, transparent);
   }
 }
 .dashboard-scope .dash-source-segment:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: translateY(0) scale(0.97);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.14);
+}
+.dashboard-scope .dash-source-segment:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--dash-primario) 55%, transparent);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-scope .dash-source-segment,
+  .dashboard-scope .dash-source-segment:hover,
+  .dashboard-scope .dash-source-segment:active { transform: none; }
 }
 .dashboard-scope .dash-source-segment:disabled {
   cursor: not-allowed;

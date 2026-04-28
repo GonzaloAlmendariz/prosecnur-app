@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  apiCreateSession,
   apiProjectClose,
   apiProjectOpen,
   apiProjectSave,
@@ -29,13 +30,14 @@ const EMPTY_STATUS: ProjectStatus = {
   last_saved_at: null,
 };
 
-export function useProject() {
+export function useProject(sessionId?: string) {
   const [status, setStatus] = useState<ProjectStatus>(EMPTY_STATUS);
   const [recents, setRecents] = useState<RecentProject[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>("");
 
   const refresh = useCallback(async () => {
+    if (!sessionId) return;
     try {
       const s = await apiProjectStatus();
       setStatus(s);
@@ -43,7 +45,7 @@ export function useProject() {
       // Falla silenciosa — el polling reintenta.
       // No spamear UI cuando el backend está reiniciando.
     }
-  }, []);
+  }, [sessionId]);
 
   const refreshRecents = useCallback(async () => {
     if (!window.prosecnurApi) {
@@ -105,6 +107,10 @@ export function useProject() {
       }
       const path = await electronApi.saveProjectDialog(defaultName);
       if (!path) return null;
+      // Si el navegador conserva un sid viejo tras reiniciar el backend,
+      // /api/session crea uno fresco antes de que /api/project/save valide
+      // X-Pulso-Session.
+      await apiCreateSession();
       const r = await apiProjectSave(path);
       if (electronApi) await electronApi.pushRecentProject(r.path);
       await refresh();

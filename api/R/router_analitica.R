@@ -337,7 +337,8 @@
       ordenar_por = "total",
       modalidad_reglas = list(),
       modalidad_default = "Presencial"
-    )
+    ),
+    dimensiones = .dimensiones_default_config()
   )
 }
 
@@ -633,7 +634,7 @@ mount_analitica <- function(pr) {
       rp_data_path <- job_save_rds(sid, "rp_data_sources", data_sources_filt)
       rp_inst_path <- job_save_rds(sid, "rp_inst_sources", inst_sources)
       # api_path para que el worker callr pueda load_all(prosecnurapp).
-      api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
+      api_path <- .app_api_dir()
 
       job_id <- job_submit(
         sid = sid,
@@ -1026,7 +1027,7 @@ mount_analitica <- function(pr) {
       # result_path es un .pdf; con N: un .zip con N pdfs.
       data_sources <- estudio_data_sources(sid)
       rp_data_path <- job_save_rds(sid, "rp_data_sources", data_sources)
-      api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
+      api_path <- .app_api_dir()
       multi <- length(data_sources) > 1L
 
       job_id <- job_submit(
@@ -1138,5 +1139,107 @@ mount_analitica <- function(pr) {
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "analitica.enumeradores")
+    })) |>
+    plumber::pr_get("/api/analitica/dimensiones/detect", wrap_endpoint(function(req, res) {
+      # Escanea el instrumento para identificar variables select_one con
+      # list_name en las "listas objetivo" (escalas tipo satisfacción /
+      # acuerdo / si-no), y revisa si la base ya contiene columnas
+      # `r100_*`, `sub_*` o `idx_*` (señal de que el proyecto pasó por una
+      # construcción previa de dimensiones). La UI usa este endpoint para
+      # decidir si arranca con "base detectada" o con "construir manual".
+      sid <- session_header(req)
+      ctx <- .load_rp_data(sid)
+      cfg <- .analitica_get_config(sid)
+      dim_cfg <- cfg$dimensiones %||% .dimensiones_default_config()
+      escalas <- .dimensiones_detectar_escalas(ctx$rp_inst, dim_cfg$listas_objetivo)
+      base <- .dimensiones_detectar_base_existente(ctx$rp_data)
+      list(
+        ok = TRUE,
+        escalas = unname(escalas),
+        base_dimensionada = base,
+        listas_objetivo_disponibles = as.list(.dimensiones_listas_objetivo_default())
+      )
+    })) |>
+    plumber::pr_post("/api/analitica/dimensiones/build", wrap_endpoint(function(req, res) {
+      # Aplica la pipeline completa: recodifica → subcriterios → sub-índices
+      # → índices → genera config (etiquetas + semáforo). Persiste la base
+      # enriquecida en `s$rp_dim` y la config en `s$rp_dim_config`. Marca el
+      # flag `analitica_dim_ok` para que río abajo (Cruces, Gráficos,
+      # Tablero) pueda condicionar UI sin re-ejecutar.
+      sid <- session_header(req)
+      ctx <- .load_rp_data(sid)
+      cfg <- .analitica_get_config(sid)
+      dim_cfg <- cfg$dimensiones %||% .dimensiones_default_config()
+      out <- .dimensiones_construir(ctx$rp_data, ctx$rp_inst, dim_cfg)
+      session_set(sid, "rp_dim", out$data_dim)
+      session_set(sid, "rp_dim_config", out$dim_cfg)
+      session_set(sid, "analitica_dim_ok", TRUE)
+      list(
+        ok = TRUE,
+        n_filas = out$n_filas,
+        n_r100 = length(out$vars_r100),
+        n_sub = length(out$vars_sub),
+        n_idx = length(out$vars_idx),
+        vars_idx = as.list(out$vars_idx),
+        vars_sub = as.list(out$vars_sub)
+      )
+    })) |>
+    plumber::pr_get("/api/analitica/dimensiones/preview", wrap_endpoint(function(req, res) {
+      # Devuelve primeras N filas + stats de cobertura por columna
+      # `idx_*` / `sub_*`. Requiere haber corrido /build antes.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      if (is.null(s$rp_dim) || !isTRUE(s$analitica_dim_ok)) {
+        stop_api(409, "E_NO_DIM",
+          "Aún no se han construido dimensiones. Pulsa 'Generar dimensiones' primero.")
+      }
+      out <- .dimensiones_preview(s$rp_dim, max_rows = 10L)
+      list(ok = TRUE, preview = out)
+    })) |>
+    plumber::pr_get("/api/analitica/dimensiones/status", wrap_endpoint(function(req, res) {
+      # Estado liviano para que la UI sepa si hay dimensiones construidas
+      # sin tener que pedir el preview. Útil al montar el pane.
+      sid <- session_header(req)
+      s <- session_get(sid)
+      list(
+        ok = TRUE,
+        built = isTRUE(s$analitica_dim_ok),
+        n_filas = if (!is.null(s$rp_dim)) nrow(s$rp_dim) else 0L,
+        n_idx = if (!is.null(s$rp_dim)) length(grep("^idx_", names(s$rp_dim))) else 0L,
+        n_sub = if (!is.null(s$rp_dim)) length(grep("^sub_", names(s$rp_dim))) else 0L
+      )
+    })) |>
+    plumber::pr_get("/api/analitica/dimensiones/sugerir", wrap_endpoint(function(req, res) {
+      # Step 3 del wizard: arranca un set inicial de bloques desde los
+      # begin_group/end_group del XLSForm. El analista refina con drag-drop
+      # encima de la sugerencia.
+      sid <- session_header(req)
+      ctx <- .load_rp_data(sid)
+      cfg <- .analitica_get_config(sid)
+      dim_cfg <- cfg$dimensiones %||% .dimensiones_default_config()
+      bloques <- .dimensiones_sugerir_bloques(ctx$rp_inst, dim_cfg$listas_objetivo)
+      list(ok = TRUE, bloques = bloques)
+    })) |>
+    plumber::pr_post("/api/analitica/dimensiones/validar-json", wrap_endpoint(function(req, res, ...) {
+      # Step 1 del wizard ("Confirmar contra instrumento"): recibe el JSON
+      # subido por el usuario y devuelve un reporte de coincidencias /
+      # faltantes contra el rp_inst del proyecto activo. La UI usa este
+      # reporte para mostrar ✓/⚠/✗ y dejar al analista decidir si continúa.
+      #
+      # Importante: la firma incluye `...` para absorber los args nombrados
+      # que plumber intenta bindear desde las top-level keys del JSON
+      # (`version`, `exported_at`, `_nota`, `config`, …). Sin `...` falla
+      # con "unused arguments".
+      sid <- session_header(req)
+      ctx <- .load_rp_data(sid)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      reporte <- .dimensiones_validar_contra_instrumento(parsed, ctx$rp_inst)
+      list(ok = TRUE, reporte = reporte)
     }))
 }

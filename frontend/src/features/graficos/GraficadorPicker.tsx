@@ -4,6 +4,7 @@ import { Search, SearchX, X } from "lucide-react";
 import { GraficadorMetadata } from "../../api/client";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
+import { useSession } from "../../lib/SessionContext";
 
 // Picker visual de graficador. En vez de una lista textual, mostramos
 // cada graficador como card con icono + titulo_humano + descripción,
@@ -44,6 +45,8 @@ export default function GraficadorPicker({
 }) {
   const { registry, loading, error } = useGraficosRegistry();
   const [query, setQuery] = useState("");
+  const { state } = useSession();
+  const dimOk = !!state?.analitica_dim_ok;
 
   const categoriasConItems = useMemo(() => {
     if (!registry) return [];
@@ -176,7 +179,7 @@ export default function GraficadorPicker({
                 }}
               >
                 {cat.items.map((g) => (
-                  <GraficadorCard key={g.name} graf={g} onPick={onPick} />
+                  <GraficadorCard key={g.name} graf={g} dimOk={dimOk} onPick={onPick} />
                 ))}
               </div>
             </div>
@@ -187,8 +190,19 @@ export default function GraficadorPicker({
   );
 }
 
-function GraficadorCard({ graf, onPick }: { graf: GraficadorMetadata; onPick: (g: GraficadorMetadata) => void }) {
+function GraficadorCard({
+  graf,
+  dimOk,
+  onPick,
+}: {
+  graf: GraficadorMetadata;
+  dimOk: boolean;
+  onPick: (g: GraficadorMetadata) => void;
+}) {
   const Icon = resolveLucide(graf.icono_ui);
+  const requiereDim = graf.requisito === "dimensiones";
+  const dimReady = requiereDim && dimOk;
+  const dimMissing = requiereDim && !dimOk;
   return (
     <button
       type="button"
@@ -231,7 +245,20 @@ function GraficadorCard({ graf, onPick }: { graf: GraficadorMetadata; onPick: (g
       <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
         {graf.descripcion}
       </div>
-      {graf.requisito === "dimensiones" && (
+      {dimReady && (
+        <div
+          style={{
+            fontSize: 9, fontWeight: 700,
+            textTransform: "uppercase", letterSpacing: 0.4,
+            color: "var(--pulso-success-fg, #15803d)",
+            marginTop: 2,
+          }}
+          title="Las dimensiones del proyecto ya están construidas. Este graficador puede usarse directamente."
+        >
+          ✓ Dimensiones listas
+        </div>
+      )}
+      {dimMissing && (
         <div
           style={{
             fontSize: 9, fontWeight: 700,
@@ -239,8 +266,9 @@ function GraficadorCard({ graf, onPick }: { graf: GraficadorMetadata; onPick: (g
             color: "var(--tipo-int-fg, #6d28d9)",
             marginTop: 2,
           }}
+          title="Construye las dimensiones en Fase 4 → Analítica → tab Dimensiones antes de generar este gráfico."
         >
-          Requiere dimensiones
+          Requiere dimensiones · ve a Analítica
         </div>
       )}
     </button>

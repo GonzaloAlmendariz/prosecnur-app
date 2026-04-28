@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Database, Type, Palette, Filter, Gauge, Sparkles, LayoutPanelTop, Table2 } from "lucide-react";
 import { ArgGrupo, ArgMetadata, VarInfo } from "../../api/client";
-import { ArgField } from "./ArgField";
+import { ArgField, ArgState } from "./ArgField";
 
 // Agrupa los args de un graficador o preset por su `grupo` semántico.
 // Los grupos son colapsables; "datos" y "textos" arrancan expandidos
@@ -31,18 +31,53 @@ export function ArgGroup({
   values,
   onChangeArg,
   variables,
+  flatten = false,
+  argStates,
+  inheritedValues,
+  onResetArg,
 }: {
   grupo: ArgGrupo;
   args: ArgMetadata[];
   values: Record<string, unknown>;
   onChangeArg: (name: string, value: unknown) => void;
   variables: VarInfo[];
+  flatten?: boolean;
+  /** Map name → estado visual del arg (inherited|from-mode|custom). Si
+   *  no se provee, todos los args son "custom" cuando tienen valor (i.e.
+   *  comportamiento previo). */
+  argStates?: Record<string, ArgState>;
+  /** Map name → valor del preset (o del modo) que el ArgField muestra
+   *  cuando el arg está en estado "inherited" sin valor propio. */
+  inheritedValues?: Record<string, unknown>;
+  /** Handler para resetear un arg al valor del preset. */
+  onResetArg?: (name: string) => void;
 }) {
   const meta = GRUPO_META[grupo];
   const [open, setOpen] = useState(meta.defaultOpen);
   const [hover, setHover] = useState(false);
 
   if (args.length === 0) return null;
+
+  // Modo flatten: render plano sin header colapsable. Usado cuando el
+  // ArgGroup vive dentro de una card mayor (StylePanel/FiltersPanel).
+  if (flatten) {
+    return (
+      <div style={{ marginBottom: 8 }}>
+        {args.map((a) => (
+          <ArgField
+            key={a.name}
+            meta={a}
+            value={values[a.name]}
+            onChange={(v) => onChangeArg(a.name, v)}
+            variables={variables}
+            argState={argStates?.[a.name] ?? "inherited"}
+            inheritedValue={inheritedValues?.[a.name]}
+            onReset={onResetArg ? () => onResetArg(a.name) : undefined}
+          />
+        ))}
+      </div>
+    );
+  }
 
   const Icon = meta.icon;
   const nValuados = args.filter((a) => {
@@ -111,6 +146,9 @@ export function ArgGroup({
               value={values[a.name]}
               onChange={(v) => onChangeArg(a.name, v)}
               variables={variables}
+              argState={argStates?.[a.name] ?? "inherited"}
+              inheritedValue={inheritedValues?.[a.name]}
+              onReset={onResetArg ? () => onResetArg(a.name) : undefined}
             />
           ))}
         </div>

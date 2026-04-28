@@ -104,6 +104,70 @@ export type EnumeradoresConfig = {
   modalidad_default: string;
 };
 
+// ----- Dimensiones (tab Analítica → Dimensiones) ----------------------------
+// Los "subindices" del paquete R se exponen en la UI como "bloques" porque es
+// más intuitivo. La API conserva ambos términos. La pipeline es:
+//   recodificar items 0-100 (listas_objetivo) →
+//   subcriterios promediados (opcional) →
+//   bloques (subindices) →
+//   indices compuestos →
+//   semáforo + paleta radar.
+
+export type SubcriterioConfig = {
+  // Nombre técnico de la nueva columna calculada (ej. "r100_p17_prom").
+  nombre: string;
+  // Etiqueta humana del subcriterio (ej. "Diligencia"). Usada en UI y
+  // como label de la columna generada para que aparezca con nombre
+  // humano en preview, cruces y dashboard. Si no se provee, el sistema
+  // cae al `nombre` técnico.
+  etiqueta?: string;
+  // Columnas fuente cuyo promedio fila-a-fila genera `nombre`.
+  fuente: string[];
+};
+
+export type BloqueConfig = {
+  nombre: string;       // id interno (ej. "trato"). Crea col `sub_<nombre>`.
+  etiqueta: string;     // título humano ("Trato").
+  vars: string[];       // vars `r100_*` que componen el bloque.
+};
+
+export type IndiceConfig = {
+  nombre: string;       // id interno (ej. "indice_general"). Crea `idx_<nombre>`.
+  etiqueta: string;
+  subindices: string[]; // nombres de bloques que componen este índice.
+};
+
+export type DimensionesSemaforo = {
+  cortes: number[];     // [rojo→ámbar, ámbar→verde], 0-100.
+  colores: { rojo: string; ambar: string; verde: string };
+};
+
+export type DimensionesConfig = {
+  // Listas de respuestas tipo escala para identificar variables a recodificar.
+  listas_objetivo: string[];
+  // Vars excluidas explícitamente de la recodificación (ej. consent).
+  excluir_vars: string[];
+  // Override del orden ascendente por list_name. Vacío = usar orden del instrumento.
+  orden_por_lista: Record<string, string[]>;
+  codigos_missing: string[];                // global o {"_default": [...]}
+  codigos_no_aplica: Record<string, string[]>;
+  prefijo: string;                          // "r100_" por default.
+  subcriterios: SubcriterioConfig[];
+  subindices: BloqueConfig[];
+  indices: IndiceConfig[];
+  semaforo: DimensionesSemaforo;
+  radar: { paleta: "okabe_ito" | "ipe"; min_ejes: number };
+  labels_indices: Record<string, string>;
+  labels_subindices: Record<string, string>;
+  // Etiqueta humana corta por variable individual (ej. "r100_p12" →
+  // "Respeto y amabilidad"). Equivalente a `labels_indicadores_tbl` del
+  // qmd canónico. Se aplica como `attr(col, "label")` al construir, y
+  // alimenta los títulos de gráficos/tablas en Cruces, Gráficos y
+  // Dashboard. Si no hay entry para una var, se cae al label largo del
+  // instrumento.
+  labels_indicadores: Record<string, string>;
+};
+
 // ----- Bases -----------------------------------------------------------------
 // El pane "Bases" expone 3 formatos independientes. Cada uno tiene su
 // propio botón "Generar" y su propia sub-config. Evitamos un zip único
@@ -172,6 +236,7 @@ export type AnaliticaConfig = {
   cruces: CrucesConfig;
   enumeradores: EnumeradoresConfig;
   bases: BasesConfig;
+  dimensiones: DimensionesConfig;
 };
 
 // ----- Defaults --------------------------------------------------------------
@@ -225,6 +290,32 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
     xlsx: { valores: "ambos", multi_select: "dummy_01" },
     overrides: {},
   },
+  dimensiones: {
+    listas_objetivo: [
+      "satisfaccion", "acuerdo", "oportunidad", "info_disponible",
+      "flex_horario", "canales", "prioridad", "acceso_local", "senal",
+      "si_parcial_no", "si_masmenos_no", "equip",
+      "si_nosabe", "parcialnosabe", "masmenosnosabe",
+      "recomendable", "recuerda_parcialnosabe", "recuerda_masmenosnosabe",
+      "si_no",
+    ],
+    excluir_vars: ["consent"],
+    orden_por_lista: {},
+    codigos_missing: ["75", "88", "90"],
+    codigos_no_aplica: {},
+    prefijo: "r100_",
+    subcriterios: [],
+    subindices: [],
+    indices: [],
+    semaforo: {
+      cortes: [60, 80],
+      colores: { rojo: "#D84B55", ambar: "#E0B44C", verde: "#3A9A5B" },
+    },
+    radar: { paleta: "okabe_ito", min_ejes: 3 },
+    labels_indices: {},
+    labels_subindices: {},
+    labels_indicadores: {},
+  },
 };
 
 // ----- Store -----------------------------------------------------------------
@@ -274,6 +365,15 @@ type AnaliticaStore = {
   addCruceVar: (name: string) => void;
   removeCruceVar: (name: string) => void;
   setCruceVarExcluidas: (name: string, excluidas: string[]) => void;
+
+  // Setters de dimensiones. Granularidad media: la UI emite patches por
+  // sub-grupo (listas_objetivo, subindices, indices, semaforo, …). Cambios
+  // estructurales (añadir/quitar bloque) se hacen reescribiendo el array
+  // completo desde el componente, igual que Cruces hace con cruces_vars.
+  setDimensiones: (patch: Partial<DimensionesConfig>) => void;
+  setDimensionesSubindices: (subindices: BloqueConfig[]) => void;
+  setDimensionesIndices: (indices: IndiceConfig[]) => void;
+  setDimensionesSemaforo: (patch: Partial<DimensionesSemaforo>) => void;
 };
 
 function dirty(partial: Partial<AnaliticaStore>): Partial<AnaliticaStore> {
@@ -465,6 +565,34 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
             cruces_vars: s.config.cruces.cruces_vars.map((cv) =>
               cv.name === name ? { ...cv, excluidas: excluidas.length > 0 ? excluidas : undefined } : cv,
             ),
+          },
+        },
+      }),
+    ),
+
+  setDimensiones: (patch) =>
+    set((s) =>
+      dirty({ config: { ...s.config, dimensiones: { ...s.config.dimensiones, ...patch } } }),
+    ),
+
+  setDimensionesSubindices: (subindices) =>
+    set((s) =>
+      dirty({ config: { ...s.config, dimensiones: { ...s.config.dimensiones, subindices } } }),
+    ),
+
+  setDimensionesIndices: (indices) =>
+    set((s) =>
+      dirty({ config: { ...s.config, dimensiones: { ...s.config.dimensiones, indices } } }),
+    ),
+
+  setDimensionesSemaforo: (patch) =>
+    set((s) =>
+      dirty({
+        config: {
+          ...s.config,
+          dimensiones: {
+            ...s.config.dimensiones,
+            semaforo: { ...s.config.dimensiones.semaforo, ...patch },
           },
         },
       }),

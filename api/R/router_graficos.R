@@ -802,7 +802,7 @@ mount_graficos <- function(pr) {
       # cargar el paquete prosecnurapp en el subproceso para que resuelva
       # los p_slide_*/p_barras_*/reporte_ppt_plan (ahora todos viven en
       # prosecnurapp, no en un paquete externo).
-      api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
+      api_path <- .app_api_dir()
 
       job_id <- job_submit(
         sid = sid,
@@ -903,7 +903,7 @@ mount_graficos <- function(pr) {
 
       # Ver comentario en /ppt: el worker necesita cargar prosecnurapp
       # (el motor ya vive dentro del paquete de la app).
-      api_path <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api")
+      api_path <- .app_api_dir()
 
       job_id <- job_submit(
         sid = sid,

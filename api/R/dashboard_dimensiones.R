@@ -178,6 +178,30 @@
     stats::setNames(as.list(as.character(gc)), names(gc))
   } else list()
 
+  # Mapeo {axis_label → data-uri} resolviendo obj$axis_iconos del
+  # objetivo activo. Frontend lo usa para pintar iconos en nodos
+  # (heatmap, IndicadorAssembly, FODA). Si el objetivo no expone
+  # iconos, el mapa queda vacío y el frontend cae a fallback texto.
+  obj_active <- ctx$catalog_general[[objetivo]] %||%
+                ctx$catalog_indicadores[[objetivo]]
+  axis_icons_map <- list()
+  if (is.list(obj_active)) {
+    icon_map <- tryCatch(
+      .dashboard_dim_axis_icons(obj_active, tint_color = NULL),
+      error = function(e) list()
+    )
+    if (length(icon_map)) {
+      vars_o <- as.character(obj_active$axis_vars %||% character(0))
+      labels_o <- as.character(obj_active$axis_labels %||% vars_o)
+      for (i in seq_along(vars_o)) {
+        uri <- icon_map[[vars_o[i]]] %||% ""
+        if (nzchar(uri) && i <= length(labels_o)) {
+          axis_icons_map[[labels_o[i]]] <- uri
+        }
+      }
+    }
+  }
+
   list(
     ready = TRUE,
     mode = as.character(inner$mode %||% modo),
@@ -198,6 +222,7 @@
     score_plot = score_plot_rows,
     score_heat = score_heat_rows,
     group_colors = group_colors,
+    axis_icons = axis_icons_map,
     semaforo = list(
       red_max = as.numeric(inner$semaforo$red_max %||% 60),
       amber_max = as.numeric(inner$semaforo$amber_max %||% 80),

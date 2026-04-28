@@ -65,4 +65,21 @@ port <- as.integer(Sys.getenv("PULSO_PORT", "8787"))
 host <- Sys.getenv("PULSO_HOST", "127.0.0.1")
 open_browser <- !tolower(Sys.getenv("PULSO_OPEN_BROWSER", "true")) %in% c("0", "false", "no")
 
+# Bootstrap opcional: si PULSO_BOOTSTRAP_PROJECT apunta a un .pulso válido,
+# crea una sesión cargando ese proyecto antes de levantar el servidor. Útil
+# para que un agente externo (Claude Code, scripts CI) arranque el stack
+# con datos pre-cargados sin pasar por la UI.
+.bootstrap_path <- Sys.getenv("PULSO_BOOTSTRAP_PROJECT", "")
+if (nzchar(.bootstrap_path)) {
+  if (!file.exists(.bootstrap_path)) {
+    stop(sprintf("[bootstrap] PULSO_BOOTSTRAP_PROJECT apunta a un archivo que no existe: %s", .bootstrap_path))
+  }
+  cat(sprintf("[bootstrap] cargando %s ...\n", .bootstrap_path))
+  .bs <- tryCatch(load_pulso(.bootstrap_path), error = function(e) {
+    stop(sprintf("[bootstrap] error cargando .pulso: %s", conditionMessage(e)))
+  })
+  Sys.setenv(PULSO_BOOTSTRAP_SID = .bs$session_id)
+  cat(sprintf("[bootstrap] sesión SID=%s cargada desde %s\n", .bs$session_id, .bootstrap_path))
+}
+
 run_app(host = host, port = port, static_dir = static_dir, open_browser = open_browser)

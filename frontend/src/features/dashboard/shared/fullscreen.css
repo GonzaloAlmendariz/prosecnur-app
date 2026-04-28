@@ -105,27 +105,19 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 12px;
+  padding: 24px 32px;
 }
 
-/* En fullscreen, el layout sidebar+main aprovecha toda la altura
- * disponible. El sidebar mantiene scroll independiente. El main crece. */
-.dashboard-scope .dash-fs-body .dash-resumen-layout {
-  align-items: stretch;
+/* Chart-only protagonism: el body del wrapper SOLO contiene el body del
+ * chart (sidebar y selectores quedan FUERA). El chart ocupa todo el
+ * espacio del overlay menos el header. */
+.dashboard-scope .dash-fs-body > .dash-dim-vis-body,
+.dashboard-scope .dash-fs-body > .dash-relacion-cruces {
+  display: flex;
   flex: 1;
-  height: 100%;
+  flex-direction: column;
   min-height: 0;
-}
-.dashboard-scope .dash-fs-body .dash-sidebar {
-  height: 100%;
-  max-height: calc(100dvh - 92px);
-  overflow-y: auto;
-  padding-right: 4px;
-}
-.dashboard-scope .dash-fs-body .dash-resumen-layout > main {
-  height: 100%;
-  min-height: 0;
-  overflow-y: auto;
+  width: 100%;
 }
 
 .dashboard-scope .dash-dim-fullscreen-content {

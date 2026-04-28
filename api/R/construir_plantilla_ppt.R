@@ -1413,7 +1413,19 @@ p_construir_plantilla <- function(
   }
 
   if (is.null(base)) {
-    base <- system.file("plantillas/plantilla_16_9.pptx", package = "prosecnur")
+    # Buscar primero en el paquete actual `prosecnurapp`, luego en el
+    # legacy `prosecnur`, y finalmente en el repo dev via PULSO_REPO_ROOT.
+    base <- system.file("plantillas/plantilla_16_9.pptx", package = "prosecnurapp")
+    if (!nzchar(base) || !file.exists(base)) {
+      base <- system.file("plantillas/plantilla_16_9.pptx", package = "prosecnur")
+    }
+    if (!nzchar(base) || !file.exists(base)) {
+      repo_root <- Sys.getenv("PULSO_REPO_ROOT", "")
+      if (nzchar(repo_root)) {
+        candidate <- file.path(repo_root, "api", "inst", "plantillas", "plantilla_16_9.pptx")
+        if (file.exists(candidate)) base <- candidate
+      }
+    }
     if (!nzchar(base) || !file.exists(base)) {
       stop(
         "No se encontro la plantilla interna `inst/plantillas/plantilla_16_9.pptx`. ",

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { LayoutPanelTop } from "lucide-react";
 import {
   apiGraficosPpt,
   apiGraficosWord,
@@ -8,7 +7,6 @@ import {
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
-import { EmptyState, SectionEyebrow } from "../../components/States";
 import { PageHeader } from "../../components/PageHeader";
 import { usePlanStore } from "./store";
 import { useGraficosAutosave } from "./useGraficosAutosave";
@@ -16,18 +14,14 @@ import { useGraficosShortcuts } from "./useGraficosShortcuts";
 import { ShortcutsModal } from "./ShortcutsModal";
 import { humanizeGraficosExportError, HumanizedError } from "./humanizeExportError";
 import { GraficosHeader } from "./GraficosHeader";
-import { ConfiguracionGlobal } from "./ConfiguracionGlobal";
-import TimelinePanel from "./TimelinePanel";
-import SlideEditor from "./SlideEditor";
-import SlidePreviewMockup from "./SlidePreviewMockup";
-import PresetsModal from "./PresetsModal";
+import { EditorShell } from "./v2/shell/EditorShell";
+import { useShortcutsV2 } from "./v2/shortcuts/useShortcutsV2";
 
 type ExportResult = { ok: true; file_id: string; size: number; n_slides: number };
 
 export default function GraficosPage() {
   const { state, refresh } = useSession();
   const plan = usePlanStore((s) => s.plan);
-  const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
   const presets = usePlanStore((s) => s.presets);
   const wPresets = usePlanStore((s) => s.wPresets);
   const hydrated = usePlanStore((s) => s.hydrated);
@@ -37,6 +31,8 @@ export default function GraficosPage() {
   // Atajos: Cmd/Ctrl+Z (undo), +Shift+Z (redo), +D (duplicar), ? (ayuda).
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   useGraficosShortcuts({ onOpenHelp: () => setShortcutsOpen(true) });
+  // Atajos V2: J/K (nav), / (búsqueda), V/T/S (modo), 1-4 (tabs), F (fit canvas)
+  useShortcutsV2();
 
   const [busyValidating, setBusyValidating] = useState("");
   const [error, setError] = useState<HumanizedError | null>(null);
@@ -44,7 +40,6 @@ export default function GraficosPage() {
   const select = usePlanStore((s) => s.select);
   const [pptFileId, setPptFileId] = useState<string | null>(null);
   const [docxFileId, setDocxFileId] = useState<string | null>(null);
-  const [presetsOpen, setPresetsOpen] = useState<"ppt" | "word" | null>(null);
   const [exportJob, setExportJob] = useState<{ kind: "ppt" | "word"; id: string } | null>(null);
 
   const prepOk = !!state?.analitica_prep_ok;
@@ -104,15 +99,12 @@ export default function GraficosPage() {
       <GraficosHeader
         onExportPpt={() => onExport("ppt")}
         onExportWord={() => onExport("word")}
-        onOpenPresets={(kind) => setPresetsOpen(kind)}
         pptFileId={pptFileId}
         docxFileId={docxFileId}
         exportBusy={!!busyValidating || !!exportJob}
         exportJobKind={exportJob?.kind ?? null}
         canExport={canExport}
       />
-
-      {prepOk && <ConfiguracionGlobal />}
 
       {exportJob && (
         <div style={{ marginBottom: 10 }}>
@@ -126,54 +118,7 @@ export default function GraficosPage() {
         </div>
       )}
 
-      {presetsOpen && <PresetsModal kind={presetsOpen} onClose={() => setPresetsOpen(null)} />}
-
-      <div style={{
-        display: "flex", flex: 1, overflow: "hidden",
-        border: "1px solid var(--pulso-border)", borderRadius: "var(--pulso-radius)",
-        background: "var(--pulso-surface)", boxShadow: "var(--pulso-shadow-low)",
-      }}>
-        <TimelinePanel />
-        <SlideEditor />
-        <aside style={{ width: 420, borderLeft: "1px solid var(--pulso-border)", padding: "1rem", overflowY: "auto", background: "var(--pulso-surface-2)" }}>
-          <div style={{ marginBottom: 12 }}>
-            <SectionEyebrow
-              label="Preview de la secuencia"
-              hint="Maquetación aproximada de cada slide. Click selecciona el slide en el editor."
-            />
-          </div>
-          {plan.slides.length === 0 ? (
-            <EmptyState
-              variant="inline"
-              icon={<LayoutPanelTop size={16} />}
-              title="Sin slides todavía"
-              hint="Agrégalos desde el timeline a la izquierda."
-            />
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-              {plan.slides.map((s, i) => (
-                <div
-                  key={s.id}
-                  onClick={() => usePlanStore.setState({ selectedSlideId: s.id })}
-                  style={{
-                    cursor: "pointer",
-                    padding: 4,
-                    borderRadius: 8,
-                    background: selectedSlideId === s.id ? "var(--pulso-primary-soft)" : "transparent",
-                    transition: "background 120ms",
-                  }}
-                >
-                  <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace,monospace", marginBottom: 3, display: "flex", justifyContent: "space-between" }}>
-                    <span>#{i + 1} · {s.tipo.replace("p_slide_", "")}</span>
-                    {selectedSlideId === s.id && <span style={{ color: "var(--pulso-primary)" }}>editando</span>}
-                  </div>
-                  <SlidePreviewMockup slide={s} />
-                </div>
-              ))}
-            </div>
-          )}
-        </aside>
-      </div>
+      <EditorShell />
 
       {busyValidating && <div style={{ marginTop: 10 }}><Alert kind="info">{busyValidating}</Alert></div>}
       {warns.length > 0 && <div style={{ marginTop: 10 }}><Alert kind="warn">{warns.join(" · ")}</Alert></div>}

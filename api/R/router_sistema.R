@@ -85,7 +85,7 @@ shutdown_requested <- function() isTRUE(.shutdown_flag$value)
   # dev. Si ninguno existe, devuelve NULL.
   d <- system.file("samples", package = "prosecnurapp")
   if (nzchar(d) && dir.exists(d)) return(d)
-  d <- file.path(Sys.getenv("PULSO_REPO_ROOT", "."), "api", "inst", "samples")
+  d <- file.path(.app_api_dir(), "inst", "samples")
   if (dir.exists(d)) return(d)
   NULL
 }
@@ -184,6 +184,17 @@ mount_sistema <- function(pr) {
         time = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
       )
     })) |>
+    # Bootstrap session: si el launcher arrancó con PULSO_BOOTSTRAP_PROJECT,
+    # devuelve el sid de la sesión pre-cargada para que el frontend la use
+    # en vez de crear una efímera. Se "consume" una vez para que recargas
+    # posteriores no fuercen el mismo proyecto. Devuelve {sid: null} si no
+    # hay bootstrap pendiente.
+    plumber::pr_get("/api/system/bootstrap", wrap_endpoint(function(req, res) {
+      sid <- Sys.getenv("PULSO_BOOTSTRAP_SID", "")
+      if (!nzchar(sid)) return(list(sid = NULL))
+      Sys.setenv(PULSO_BOOTSTRAP_SID = "")
+      list(sid = sid)
+    })) |>
     # Reporta el estado de las dependencias opcionales del sistema (Quarto,
     # paquetes R secundarios). El frontend usa esto para deshabilitar
     # acciones que dependen de toolchain ausente y mostrar instrucciones
@@ -248,11 +259,16 @@ mount_sistema <- function(pr) {
       # Solo debería exponerse en dev. En producción quedaría detrás de
       # un flag; por ahora lo dejamos siempre ON porque la app es local
       # y de un solo usuario.
-      api_dir <- Sys.getenv("PULSO_REPO_ROOT", "")
+      api_dir <- Sys.getenv("PULSO_API_DIR", "")
+      if (!nzchar(api_dir)) {
+        api_dir <- Sys.getenv("PULSO_REPO_ROOT", "")
+      }
       if (!nzchar(api_dir)) {
         api_dir <- normalizePath(file.path(dirname(getwd()), "api"), mustWork = FALSE)
       } else {
-        api_dir <- file.path(api_dir, "api")
+        if (!identical(basename(api_dir), "api")) {
+          api_dir <- file.path(api_dir, "api")
+        }
       }
       if (!dir.exists(api_dir)) {
         stop_api(500, "E_RELOAD_NO_DIR",
@@ -462,6 +478,7 @@ mount_sistema <- function(pr) {
         analitica_cruces_ok = isTRUE(s$analitica_cruces_ok),
         analitica_spss_ok = isTRUE(s$analitica_spss_ok),
         analitica_enumeradores_ok = isTRUE(s$analitica_enumeradores_ok),
+        analitica_dim_ok = isTRUE(s$analitica_dim_ok),
         analitica_fuente = s$analitica_fuente %||% NA_character_,
         graficos_ppt_ok = isTRUE(s$graficos_ppt_ok),
         graficos_word_ok = isTRUE(s$graficos_word_ok),

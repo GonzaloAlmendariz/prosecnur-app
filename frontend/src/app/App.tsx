@@ -1,10 +1,10 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { SessionProvider } from "../lib/SessionContext";
 import Layout from "./Layout";
 import { SessionLostBanner } from "./SessionLostBanner";
-import HomePage from "../features/dashboard/HomePage";
-import ProcesamientoEntry from "../features/dashboard/ProcesamientoEntry";
+import HomePage from "../features/home/HomePage";
+import ProcesamientoEntry from "../features/home/ProcesamientoEntry";
 import CargaPage from "../features/carga/CargaPage";
 import ValidacionPage from "../features/validacion/ValidacionPage";
 import CodificacionPage from "../features/codificacion/CodificacionPage";
@@ -15,7 +15,17 @@ import ProjectShell from "../features/project/ProjectShell";
 import XlsformEditorPage from "../features/xlsformEditor/XlsformEditorPage";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import LogsPanel from "../components/LogsPanel";
+import { LoadingBlock } from "../components/States";
 import { install as installLogSink, note as logNote } from "../lib/logSink";
+
+// Dashboard — code-split para no arrastrar plotly al bundle principal.
+// Su payload solo se carga cuando el usuario entra a /tablero. La ruta
+// se mantiene como `/tablero` por compatibilidad de URLs.
+const DashboardPage = lazy(() => import("../features/dashboard/DashboardPage"));
+const ROUTER_BASENAME =
+  import.meta.env.BASE_URL && import.meta.env.BASE_URL !== "/"
+    ? import.meta.env.BASE_URL.replace(/\/$/, "")
+    : undefined;
 
 // Instalar el log sink antes que cualquier render — captura console.*,
 // window.error y unhandledrejection desde el primer momento.
@@ -31,7 +41,7 @@ export default function App() {
       <SessionProvider>
         <ProjectShell>
           <SessionLostBanner />
-          <BrowserRouter>
+          <BrowserRouter basename={ROUTER_BASENAME}>
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
@@ -45,6 +55,14 @@ export default function App() {
               <Route path="/analitica" element={<AnaliticaPage />} />
               <Route path="/graficos" element={<GraficosPage />} />
               <Route path="/editor-xlsform" element={<XlsformEditorPage />} />
+              <Route
+                path="/tablero"
+                element={
+                  <Suspense fallback={<LoadingBlock label="Cargando dashboard…" />}>
+                    <DashboardPage />
+                  </Suspense>
+                }
+              />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

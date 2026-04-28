@@ -3835,10 +3835,28 @@ reporte_ppt_plan <- function(
     doc <- NULL
   } else {
 
-    # Si el usuario no paso template_pptx (NULL/NA/"") -> intentar interna
+    # Si el usuario no paso template_pptx (NULL/NA/"") -> intentar interna.
+    # Busca primero en `prosecnurapp` (paquete actual de la app), luego en
+    # `prosecnur` (paquete legacy) como fallback. Esto permite que el repo
+    # del proyecto incluya su propia plantilla actualizada en
+    # api/inst/plantillas/ sin depender del paquete viejo instalado.
     if (is.null(template_pptx) || is.na(template_pptx) || !nzchar(template_pptx)) {
 
-      template_interno <- system.file("plantillas/plantilla_16_9.pptx", package = "prosecnur")
+      template_interno <- system.file("plantillas/plantilla_16_9.pptx", package = "prosecnurapp")
+      if (!nzchar(template_interno) || !file.exists(template_interno)) {
+        # Fallback: paquete legacy `prosecnur`
+        template_interno <- system.file("plantillas/plantilla_16_9.pptx", package = "prosecnur")
+      }
+      # Fallback adicional: ruta absoluta dentro del repo (útil cuando el
+      # paquete prosecnurapp se carga via pkgload::load_all() y system.file()
+      # aún no encuentra inst/ por el modo dev)
+      if (!nzchar(template_interno) || !file.exists(template_interno)) {
+        repo_root <- Sys.getenv("PULSO_REPO_ROOT", "")
+        if (nzchar(repo_root)) {
+          candidate <- file.path(repo_root, "api", "inst", "plantillas", "plantilla_16_9.pptx")
+          if (file.exists(candidate)) template_interno <- candidate
+        }
+      }
 
       if (nzchar(template_interno) && file.exists(template_interno)) {
         if (isTRUE(mensajes_progreso)) message("Usando plantilla interna: ", template_interno)

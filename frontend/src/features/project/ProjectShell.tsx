@@ -22,6 +22,7 @@ import {
 import StartModal from "./StartModal";
 import { useAutosave } from "./useAutosave";
 import { useProject, type UseProjectReturn } from "./useProject";
+import { useSession } from "../../lib/SessionContext";
 
 type ProjectShellCtx = {
   project: UseProjectReturn;
@@ -37,7 +38,8 @@ export function useProjectShell(): ProjectShellCtx {
 }
 
 export default function ProjectShell({ children }: { children: React.ReactNode }) {
-  const project = useProject();
+  const { sessionId } = useSession();
+  const project = useProject(sessionId);
   useAutosave(project);
 
   // El modal aparece una vez al arranque cuando NO hay proyecto activo.

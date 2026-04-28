@@ -9,6 +9,7 @@ import {
   Workflow,
   FilePen,
   QrCode,
+  LayoutDashboard,
 } from "lucide-react";
 import { apiShutdown } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
@@ -68,6 +69,17 @@ const MODULES: ModuleMeta[] = [
     iconFg: "#7c3aed",
     iconBorder: "#ddd6fe",
     to: "/editor-xlsform",
+  },
+  {
+    slug: "dashboard",
+    title: "Dashboard interactivo",
+    blurb:
+      "Explorador interactivo del cuestionario: Resumen por sección, Relaciones (cruces) y Base de datos. Personaliza logo, paleta y título — la estructura sigue el estándar del paquete prosecnur.",
+    icon: LayoutDashboard,
+    iconBg: "#eff6ff",
+    iconFg: "#1d4ed8",
+    iconBorder: "#bfdbfe",
+    to: "/tablero",
   },
   {
     slug: "recopiladores",

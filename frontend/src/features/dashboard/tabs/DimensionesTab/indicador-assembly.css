@@ -1,0 +1,399 @@
+/* =============================================================================
+ * IndicadorAssembly — escena interactiva con ensamblaje progresivo.
+ *
+ * Fases (orquestadas por animation-delay inline):
+ *   1. Índice central: scale-in 0–280ms + glow pulse infinite.
+ *   2. Conductores:    pop+fade-in 280–920ms (stagger 100ms).
+ *   3. Líneas:         draw stroke-dasharray 640–1320ms (stagger 80ms).
+ *   4. Subcriterios:   pop+fade tras click, stagger 60ms.
+ *
+ * Easing tipo Apple/Stripe (cubic-bezier(0.23, 1, 0.32, 1)).
+ * ============================================================================= */
+
+.dashboard-scope .dash-assembly {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  width: 100%;
+  user-select: none;
+}
+
+.dashboard-scope .dash-assembly-svg {
+  display: block;
+  height: auto;
+  max-height: 720px;
+  width: 100%;
+}
+
+/* Stage: capa que se traslada+escala suavemente al seleccionar un
+ * conductor — auto-zoom narrativo para no recortar la zona desplegada.
+ * Easing tipo Apple — duración generosa para que el flow se sienta
+ * cinematográfico, no instantáneo. */
+.dashboard-scope .dash-assembly-stage {
+  transform: none;
+  transform-origin: 0 0;
+  transition: transform 720ms cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+
+/* Chip semáforo con score (rect rounded + texto blanco). El nodo conserva
+ * su color por conductor, el chip aporta la lectura semáforo. */
+.dashboard-scope .dash-assembly-chip rect {
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.18));
+}
+.dashboard-scope .dash-assembly-chip-text {
+  fill: #ffffff;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Índice central                                                          */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+.dashboard-scope .dash-assembly-index {
+  animation: dash-assembly-index-in 280ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.dashboard-scope .dash-assembly-index-circle {
+  animation: dash-assembly-index-pulse 3.6s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.dashboard-scope .dash-assembly-index-label {
+  fill: #ffffff;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  pointer-events: none;
+}
+
+.dashboard-scope .dash-assembly-index-score {
+  fill: #ffffff;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+}
+
+@keyframes dash-assembly-index-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dash-assembly-index-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(58, 109, 240, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 14px rgba(58, 109, 240, 0.32));
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Conductores                                                             */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+.dashboard-scope .dash-assembly-dim {
+  animation: dash-assembly-dim-in 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  cursor: pointer;
+  outline: none;
+  transform-origin: center;
+  transform-box: fill-box;
+  transition:
+    opacity 280ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.dashboard-scope .dash-assembly-dim-circle {
+  transform-origin: center;
+  transform-box: fill-box;
+  transition:
+    transform 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    filter 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-assembly-dim:hover .dash-assembly-dim-circle {
+    transform: scale(1.06);
+    filter: drop-shadow(0 6px 18px rgba(15, 23, 42, 0.18));
+  }
+}
+
+.dashboard-scope .dash-assembly-dim:focus-visible .dash-assembly-dim-circle {
+  filter: drop-shadow(0 0 0 3px rgba(58, 109, 240, 0.5));
+}
+
+.dashboard-scope .dash-assembly-dim.is-selected .dash-assembly-dim-circle {
+  transform: scale(1.12);
+  filter: drop-shadow(0 8px 22px rgba(15, 23, 42, 0.24));
+}
+
+.dashboard-scope .dash-assembly-dim.is-muted {
+  opacity: 0.22;
+}
+
+.dashboard-scope .dash-assembly-dim-label {
+  fill: #ffffff;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  pointer-events: none;
+}
+
+.dashboard-scope .dash-assembly-dim-score {
+  fill: #ffffff;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+/* Orbit-in: el conductor parte desde el centro del índice (offset
+ * --orbit-dx/dy hacia adentro) y vuela hasta su posición final, mientras
+ * crece. Los offsets son la diferencia entre el centro y la posición
+ * final, calculados en el componente. Si las variables no están
+ * definidas (defensivo), cae a 0px y solo se anima la escala. */
+@keyframes dash-assembly-dim-in {
+  0% {
+    opacity: 0;
+    transform: translate(var(--orbit-dx, 0px), var(--orbit-dy, 0px)) scale(0.35);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Aristas (líneas índice → conductor)                                     */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+.dashboard-scope .dash-assembly-edge {
+  animation: dash-assembly-edge-draw 680ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  stroke-linecap: round;
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  opacity: 0.7;
+  transition: opacity 280ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.dashboard-scope .dash-assembly-edge.is-muted {
+  opacity: 0.14;
+}
+
+@keyframes dash-assembly-edge-draw {
+  from {
+    stroke-dashoffset: 600;
+    opacity: 0;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 0.7;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Subcriterios (sólo cuando hay un conductor seleccionado)                */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+.dashboard-scope .dash-assembly-sub {
+  animation: dash-assembly-sub-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.dashboard-scope .dash-assembly-sub-rect {
+  filter: drop-shadow(0 2px 8px rgba(15, 23, 42, 0.10));
+  transition: filter 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-assembly-sub:hover .dash-assembly-sub-rect {
+    filter: drop-shadow(0 4px 14px rgba(15, 23, 42, 0.16));
+  }
+}
+
+.dashboard-scope .dash-assembly-sub-label {
+  fill: #1f2a3a;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  pointer-events: none;
+}
+
+/* El subcriterio brota desde el conductor padre (orbit-dx/dy = vector
+ * conductor → posición final del rect, en coords locales del rect).
+ * Combina translate + scale para una entrada cinematográfica. */
+@keyframes dash-assembly-sub-in {
+  0% {
+    opacity: 0;
+    transform: translate(var(--orbit-dx, 0px), var(--orbit-dy, 0px)) scale(0.45);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+.dashboard-scope .dash-assembly-sub-edge {
+  animation: dash-assembly-sub-edge-draw 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  stroke-dasharray: 900;
+  stroke-dashoffset: 900;
+  stroke-linecap: round;
+}
+
+/* Animación dedicada con offset 900 (cubre cualquier diagonal del
+ * viewBox) — la edge índice→conductor sigue usando edge-draw con
+ * dashoffset 600, así no rompemos su timing. */
+@keyframes dash-assembly-sub-edge-draw {
+  from {
+    stroke-dashoffset: 900;
+    opacity: 0;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 0.7;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Texto contextual + leyenda                                              */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+.dashboard-scope .dash-assembly-context {
+  align-items: center;
+  animation: dash-assembly-fade-up 240ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  background: color-mix(in srgb, var(--dash-superficie) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--dash-borde);
+  border-radius: 999px;
+  box-shadow: var(--dash-shadow-sm);
+  color: var(--dash-texto);
+  display: inline-flex;
+  font-size: 12.5px;
+  gap: 8px;
+  left: 50%;
+  padding: 8px 16px;
+  position: absolute;
+  top: 12px;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.dashboard-scope .dash-assembly-context strong {
+  color: var(--dash-primario);
+  font-weight: 700;
+}
+
+.dashboard-scope .dash-assembly-context span {
+  color: var(--dash-texto-suave);
+}
+
+@keyframes dash-assembly-fade-up {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.dashboard-scope .dash-assembly-legend {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.dashboard-scope .dash-assembly-legend-item {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 11.5px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: 0.01em;
+  padding: 5px 12px;
+  transition:
+    background-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 120ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.dashboard-scope .dash-assembly-legend-item > span {
+  border-radius: 3px;
+  display: inline-block;
+  height: 10px;
+  width: 18px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-assembly-legend-item:hover {
+    background: var(--dash-primario-soft);
+    border-color: var(--dash-borde);
+    color: var(--dash-primario);
+    transform: translateY(-1px);
+  }
+}
+
+.dashboard-scope .dash-assembly-legend-item.is-active {
+  background: color-mix(in srgb, var(--dash-superficie-2) 60%, var(--dash-primario) 16%);
+  border-color: var(--dash-primario-ring);
+  color: var(--dash-primario);
+}
+
+.dashboard-scope .dash-assembly-legend-item:active {
+  transform: scale(0.97);
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* Reduced motion                                                          */
+/* ──────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-scope .dash-assembly-index,
+  .dashboard-scope .dash-assembly-index-circle,
+  .dashboard-scope .dash-assembly-dim,
+  .dashboard-scope .dash-assembly-edge,
+  .dashboard-scope .dash-assembly-sub,
+  .dashboard-scope .dash-assembly-sub-edge,
+  .dashboard-scope .dash-assembly-context {
+    animation: none !important;
+  }
+  .dashboard-scope .dash-assembly-stage {
+    transition: none !important;
+  }
+}

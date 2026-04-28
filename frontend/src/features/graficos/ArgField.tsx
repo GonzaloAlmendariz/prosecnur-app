@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Info, Sparkles, PencilLine, Image as ImageIcon, Palette, Pipette, X as XIcon } from "lucide-react";
+import { Info, Sparkles, PencilLine, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw } from "lucide-react";
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
 import { downloadUrl } from "../../api/client";
@@ -27,32 +27,79 @@ import VarsListPicker from "./VarsListPicker";
 
 type ArgValue = unknown;
 
+/** Tres estados visuales para args de un graficador en el inspector V2:
+ *  - "inherited": el valor proviene del preset (sin override). Dot oculto,
+ *    input en gris claro mostrando el valor heredado.
+ *  - "from-mode": el valor proviene de un modo aplicado (override exacto).
+ *    Dot morado.
+ *  - "custom": el usuario lo cambió individualmente (edit ad-hoc encima
+ *    del preset o del modo). Dot azul. */
+export type ArgState = "inherited" | "from-mode" | "custom";
+
 export function ArgField({
   meta,
   value,
   onChange,
   variables,
+  argState = "inherited",
+  inheritedValue,
+  onReset,
 }: {
   meta: ArgMetadata;
   value: ArgValue;
   onChange: (v: ArgValue) => void;
   variables: VarInfo[];
+  /** Estado visual del arg. Por defecto `inherited`. */
+  argState?: ArgState;
+  /** Valor del preset (o del modo). Si `argState === "inherited"` y
+   *  `value` es undefined/null/"", el control muestra `inheritedValue`
+   *  con styling apagado para indicar que es heredado. */
+  inheritedValue?: ArgValue;
+  /** Si se provee y `argState !== "inherited"`, muestra un botón ↺ que
+   *  llama a esta función para resetear el arg al preset/default. */
+  onReset?: () => void;
 }) {
+  // Si el arg está heredado y no tiene valor propio, mostramos el
+  // valor del preset en el input pero con styling gris.
+  const isInherited = argState === "inherited";
+  const hasOwnValue = value !== undefined && value !== null && value !== "";
+  const displayValue: ArgValue = hasOwnValue ? value : inheritedValue;
+
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10 }}>
-      <FieldHeader meta={meta} />
-      <FieldControl meta={meta} value={value} onChange={onChange} variables={variables} />
+    <label
+      data-arg-state={argState}
+      style={{
+        display: "flex", flexDirection: "column", gap: 4, marginBottom: 10,
+        opacity: isInherited && !hasOwnValue ? 0.78 : 1,
+      }}
+    >
+      <FieldHeader meta={meta} argState={argState} onReset={onReset} />
+      <FieldControl meta={meta} value={displayValue} onChange={onChange} variables={variables} />
     </label>
   );
 }
 
 // ---- Header con label + tooltip info ------------------------------------
 
-function FieldHeader({ meta }: { meta: ArgMetadata }) {
+function FieldHeader({ meta, argState, onReset }: { meta: ArgMetadata; argState: ArgState; onReset?: () => void }) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const isCustom = argState === "custom";
+  const isFromMode = argState === "from-mode";
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12 }}>
       <span style={{ fontWeight: 600, color: "var(--pulso-text)" }}>{meta.label}</span>
+      {(isCustom || isFromMode) && (
+        <span
+          title={isCustom ? "Valor custom (azul): tú lo cambiaste sobre el preset/modo" : "Valor del modo (morado): proviene del modo aplicado"}
+          aria-label={isCustom ? "Valor custom" : "Valor del modo"}
+          style={{
+            width: 7, height: 7, borderRadius: 999,
+            background: isCustom ? "var(--pulso-primary)" : "#7c3aed",
+            display: "inline-block",
+            flexShrink: 0,
+          }}
+        />
+      )}
       {meta.descripcion && (
         <span
           onMouseEnter={() => setShowTooltip(true)}
@@ -83,6 +130,36 @@ function FieldHeader({ meta }: { meta: ArgMetadata }) {
             </span>
           )}
         </span>
+      )}
+      {(isCustom || isFromMode) && onReset && (
+        <button
+          type="button"
+          onClick={(e) => { e.preventDefault(); onReset(); }}
+          title={isCustom ? "Restaurar al valor del preset" : "Quitar este arg del modo (volver al preset)"}
+          aria-label="Restaurar al preset"
+          style={{
+            marginLeft: "auto",
+            display: "inline-flex", alignItems: "center", gap: 3,
+            padding: "2px 6px", borderRadius: 4,
+            border: "1px solid var(--pulso-border)",
+            background: "white",
+            color: "var(--pulso-text-soft)",
+            fontSize: 10, fontWeight: 500,
+            cursor: "pointer",
+            transition: "background 120ms, color 120ms",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--pulso-surface-2)";
+            e.currentTarget.style.color = "var(--pulso-primary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "white";
+            e.currentTarget.style.color = "var(--pulso-text-soft)";
+          }}
+        >
+          <RotateCcw size={10} />
+          preset
+        </button>
       )}
     </span>
   );

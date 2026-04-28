@@ -31,7 +31,13 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
 
   async function ioImport(parsed: unknown) {
     await apiAnaliticaConfigImport(parsed as never);
-    return "Importado ✓ (recarga para aplicar)";
+    // Forzamos que el store re-hidrate desde backend inmediatamente
+    // para que los cambios (ej. el subtab Dimensiones recién pre-llenado)
+    // aparezcan sin que el usuario tenga que recargar la página. El
+    // listener de `pulso:session-changed` en useAnaliticaAutosave hace
+    // el GET /api/analitica/config y aplica el resultado al Zustand.
+    window.dispatchEvent(new Event("pulso:session-changed"));
+    return "Importado ✓";
   }
 
   return (

@@ -53,6 +53,20 @@ function mergeWithDefaults(remote: unknown): AnaliticaConfig {
           ? (basesRemote.overrides as AnaliticaConfig["bases"]["overrides"])
           : {},
     },
+    dimensiones: {
+      ...DEFAULT_CONFIG.dimensiones,
+      ...(r.dimensiones ?? {}),
+      semaforo: {
+        ...DEFAULT_CONFIG.dimensiones.semaforo,
+        ...(r.dimensiones?.semaforo ?? {}),
+        colores: {
+          ...DEFAULT_CONFIG.dimensiones.semaforo.colores,
+          ...(r.dimensiones?.semaforo?.colores ?? {}),
+        },
+      },
+      radar: { ...DEFAULT_CONFIG.dimensiones.radar, ...(r.dimensiones?.radar ?? {}) },
+      labels_indicadores: r.dimensiones?.labels_indicadores ?? {},
+    },
   };
 }
 

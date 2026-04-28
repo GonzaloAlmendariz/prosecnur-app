@@ -13,7 +13,7 @@ DIST_ROOT := $(REPO_ROOT)/dist.nosync
 PACKAGE_DIR := $(DIST_ROOT)/$(PACKAGE_NAME)
 PACKAGE_STAGING := $(DIST_ROOT)/.package-staging/$(PACKAGE_NAME)
 
-.PHONY: help dev-api dev-frontend build clean install-r install-frontend install-desktop desktop package-local
+.PHONY: help dev-api dev-frontend dev-pulso build clean install-r install-frontend install-desktop desktop package-local
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -45,6 +45,17 @@ dev-api:
 
 dev-frontend:
 	cd frontend && pnpm dev
+
+# Arranca API + frontend con un .pulso ya cargado en una sesión bootstrap.
+# Útil para que un agente externo (Claude Code, scripts) verifique cambios
+# end-to-end sin abrir manualmente el proyecto desde la UI. El backend
+# carga `load_pulso(PULSO)` y expone el sid vía /api/system/bootstrap;
+# el frontend lo consume en su primer arranque.
+# Uso: make dev-pulso PULSO=/ruta/al/proyecto.pulso
+dev-pulso:
+	@test -n "$(PULSO)" || (echo "uso: make dev-pulso PULSO=/ruta/al/proyecto.pulso"; exit 1)
+	@test -f "$(PULSO)" || (echo "no existe el archivo: $(PULSO)"; exit 1)
+	PULSO_BOOTSTRAP_PROJECT="$(abspath $(PULSO))" PULSO_OPEN_BROWSER=false $(MAKE) -j2 dev-api dev-frontend
 
 build:
 	cd frontend && pnpm build

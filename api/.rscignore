@@ -1,0 +1,8 @@
+tests
+outputs
+scripts
+man
+*.Rproj
+.Rproj.user
+*.tar.gz
+*.Rcheck

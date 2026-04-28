@@ -6,8 +6,8 @@ import { useDashboardStore } from "../../store";
 import { EmptyState } from "../../shared/EmptyState";
 import {
   FullscreenButton,
-  FullscreenWrapper,
-  type FullscreenCtx,
+  FullscreenScope,
+  useFullscreen,
 } from "../../shared/FullscreenWrapper";
 import { FiltrosMultiRow } from "../ResumenTab/FiltrosMultiRow";
 import { PlotlyChart } from "../../shared/PlotlyChart";
@@ -73,9 +73,10 @@ export function RelacionTab() {
       .finally(() => setDownloadBusy(false));
   }
 
+  const fs = useFullscreen();
+  const fsTitle = payload ? relacionFullscreenTitle(payload) : "Relaciones";
+
   return (
-    <FullscreenWrapper title={payload ? relacionFullscreenTitle(payload) : "Relaciones"}>
-      {(fsCtx) => (
     <div className="dash-resumen-layout">
       {/* ───── Sidebar ───── */}
       <aside className="dash-sidebar">
@@ -145,17 +146,17 @@ export function RelacionTab() {
           <section className="dash-cardbox">
             <div className="dash-cardbox-header">
               <h2 className="dash-cardbox-title">Cruce</h2>
-              <FullscreenButton ctx={fsCtx} />
+              <FullscreenButton ctx={fs} />
             </div>
-            <CrucesView payload={payload} maxed={fsCtx.maxed} />
+            <FullscreenScope ctx={fs} title={fsTitle}>
+              <CrucesView payload={payload} maxed={fs.maxed} />
+            </FullscreenScope>
           </section>
         ) : (
           <EmptyState title="Sin datos para cruzar" />
         )}
       </main>
     </div>
-      )}
-    </FullscreenWrapper>
   );
 }
 

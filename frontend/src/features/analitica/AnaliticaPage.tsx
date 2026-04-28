@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, BookOpen, Database, Grid3x3, Users } from "lucide-react";
+import { BarChart2, BookOpen, Database, Grid3x3, Layers, Users } from "lucide-react";
 import { apiAnaliticaPreparar } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
@@ -15,17 +15,21 @@ import { FrecuenciasPane } from "./panes/FrecuenciasPane";
 import { CrucesPane } from "./panes/CrucesPane";
 import { BasesPane } from "./panes/BasesPane";
 import { EnumeradoresPane } from "./panes/EnumeradoresPane";
+import { DimensionesPane } from "./panes/DimensionesPane";
 
-// 5 reportes en el orden que el analista suele correrlos: primero calidad
+// 6 reportes en el orden que el analista suele correrlos: primero calidad
 // de campo (enumeradores), luego diccionario (codebook), luego datos
-// exportables (bases), luego tablas (frecuencias, cruces).
-type Reporte = "enumeradores" | "codebook" | "bases" | "frecuencias" | "cruces";
+// exportables (bases), luego tablas univariadas y, antes de los cruces,
+// dimensiones (insumo opcional pero compartido por Cruces, Gráficos y
+// el módulo Dashboard).
+type Reporte = "enumeradores" | "codebook" | "bases" | "frecuencias" | "dimensiones" | "cruces";
 
 const REPORTES: TabMeta<Reporte>[] = [
   { key: "enumeradores", label: "Enumeradores",      icon: Users,     desc: "PDF de producción" },
   { key: "codebook",     label: "Libro de códigos",  icon: BookOpen,  desc: "Diccionario de variables" },
   { key: "bases",        label: "Bases",             icon: Database,  desc: "Datos exportables (SPSS)" },
   { key: "frecuencias",  label: "Frecuencias",       icon: BarChart2, desc: "Tablas univariadas" },
+  { key: "dimensiones",  label: "Dimensiones",       icon: Layers,    desc: "Índices 0-100 jerárquicos" },
   { key: "cruces",       label: "Cruces",            icon: Grid3x3,   desc: "Tablas 2D con semáforo" },
 ];
 
@@ -114,6 +118,7 @@ export default function AnaliticaPage() {
               {active === "codebook"     && <CodebookPane />}
               {active === "bases"        && <BasesPane />}
               {active === "frecuencias"  && <FrecuenciasPane />}
+              {active === "dimensiones"  && <DimensionesPane />}
               {active === "cruces"       && <CrucesPane />}
             </>
           ) : (

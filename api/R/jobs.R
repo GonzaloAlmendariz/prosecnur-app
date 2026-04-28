@@ -42,7 +42,8 @@ job_submit <- function(sid,
   # Los nombres de los args del bootstrap son intencionalmente feos
   # para no colisionar con args del inner func.
   repo_root <- Sys.getenv("PULSO_REPO_ROOT", "")
-  bootstrap <- function(.__job_inner_func__, .__job_repo_root__, .__job_args__) {
+  api_dir <- Sys.getenv("PULSO_API_DIR", "")
+  bootstrap <- function(.__job_inner_func__, .__job_repo_root__, .__job_api_dir__, .__job_args__) {
     # Locale UTF-8 en el subprocess. Igual que en launcher/launch.R: sin
     # esto, pkgload::load_all falla al parsear .R que tienen tildes en
     # comentarios o strings (ej. "Estadísticas"), porque callr arranca
@@ -55,7 +56,19 @@ job_submit <- function(sid,
     }
     options(encoding = "UTF-8")
 
-    if (nzchar(.__job_repo_root__) && dir.exists(file.path(.__job_repo_root__, "api"))) {
+    if (nzchar(.__job_api_dir__) && dir.exists(.__job_api_dir__)) {
+      if (requireNamespace("pkgload", quietly = TRUE)) {
+        suppressMessages(pkgload::load_all(
+          .__job_api_dir__,
+          quiet = TRUE
+        ))
+      } else if (requireNamespace("devtools", quietly = TRUE)) {
+        suppressMessages(devtools::load_all(
+          .__job_api_dir__,
+          quiet = TRUE
+        ))
+      }
+    } else if (nzchar(.__job_repo_root__) && dir.exists(file.path(.__job_repo_root__, "api"))) {
       if (requireNamespace("pkgload", quietly = TRUE)) {
         suppressMessages(pkgload::load_all(
           file.path(.__job_repo_root__, "api"),
@@ -80,6 +93,7 @@ job_submit <- function(sid,
     args = list(
       .__job_inner_func__ = func,
       .__job_repo_root__ = repo_root,
+      .__job_api_dir__ = api_dir,
       .__job_args__ = args
     ),
     stdout = file.path(jobs_dir, paste0(job_id, ".out")),

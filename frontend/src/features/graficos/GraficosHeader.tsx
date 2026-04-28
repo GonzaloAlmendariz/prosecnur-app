@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bug, Download, FileText, Palette, RotateCcw, Loader2, Undo2, Redo2, Sparkles } from "lucide-react";
+import { Bug, Download, FileText, Palette, RotateCcw, Loader2, Undo2, Redo2, Sparkles, Settings2 } from "lucide-react";
 import {
   apiGraficosConfigExport,
   apiGraficosConfigImport,
@@ -12,6 +12,7 @@ import { usePlanStore } from "./store";
 import { PlanHealthBadge } from "./PlanHealthBadge";
 import { usePlanValidator } from "./usePlanValidator";
 import { TemplatesModal } from "./TemplatesModal";
+import { EstiloGlobalDialog } from "./v2/shell/EstiloGlobalDialog";
 
 // Header del módulo Gráficos. Patrón análogo a AnaliticaHeader:
 // - Badge "Autoguardado" con estado (guardando / guardado / sin conexión).
@@ -27,7 +28,6 @@ import { TemplatesModal } from "./TemplatesModal";
 export function GraficosHeader({
   onExportPpt,
   onExportWord,
-  onOpenPresets,
   pptFileId,
   docxFileId,
   exportBusy,
@@ -36,7 +36,6 @@ export function GraficosHeader({
 }: {
   onExportPpt: () => void;
   onExportWord: () => void;
-  onOpenPresets: (kind: "ppt" | "word") => void;
   pptFileId: string | null;
   docxFileId: string | null;
   exportBusy: boolean;
@@ -46,8 +45,13 @@ export function GraficosHeader({
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
   const nSlides = usePlanStore((s) => s.plan.slides.length);
+  const nPresets = usePlanStore((s) => Object.keys(s.presets).length);
+  const nPaletas = usePlanStore((s) => Object.keys(s.paletas).length);
+  const nIconos = usePlanStore((s) => s.iconos.length);
+  const nModos = usePlanStore((s) => s.overridesReusables.length);
   const resetPlan = usePlanStore((s) => s.reset);
   const loadPlan = usePlanStore((s) => s.loadPlan);
+  const [estiloOpen, setEstiloOpen] = useState(false);
 
   // El botón de export se desactiva si el padre lo bloquea (sesión sin
   // rp_data) O si el validador detecta errores (plan vacío, etc.).
@@ -142,24 +146,28 @@ export function GraficosHeader({
         </button>
       </ContextBar>
 
-      {/* Banda 2: presets + export de PPT/Word (acciones finales). */}
+      {/* Banda 2: estilo global (popup unificado) + export de PPT/Word. */}
       <ContextBar
-        ariaLabel="Presets y exportación de reportes"
+        ariaLabel="Estilo global y exportación de reportes"
         style={{ gap: 8 }}
       >
         <button
-          onClick={() => onOpenPresets("ppt")}
-          title="Estilos globales del PPT"
-          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}
+          type="button"
+          onClick={() => setEstiloOpen(true)}
+          className="pulso-gv2-estilo-trigger"
+          title="Configurar presets, paletas, íconos y modos para todos los slides"
         >
-          <Palette size={13} /> Presets PPT
-        </button>
-        <button
-          onClick={() => onOpenPresets("word")}
-          title="Estilos globales del Word"
-          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}
-        >
-          <Palette size={13} /> Presets Word
+          <Settings2 size={13} /> Estilo global
+          <span className="pulso-gv2-estilo-trigger-meta">
+            {nPaletas + nIconos + nPresets + nModos > 0
+              ? [
+                  nPresets > 0 && `${nPresets} preset${nPresets === 1 ? "" : "s"}`,
+                  nModos > 0 && `${nModos} modo${nModos === 1 ? "" : "s"}`,
+                  nPaletas > 0 && `${nPaletas} paleta${nPaletas === 1 ? "" : "s"}`,
+                  nIconos > 0 && `${nIconos} ícono${nIconos === 1 ? "" : "s"}`,
+                ].filter(Boolean).join(" · ")
+              : "configurar"}
+          </span>
         </button>
 
         <ContextBarDivider />
@@ -212,6 +220,7 @@ export function GraficosHeader({
       </ContextBar>
 
       {templatesOpen && <TemplatesModal onClose={() => setTemplatesOpen(false)} />}
+      <EstiloGlobalDialog open={estiloOpen} onClose={() => setEstiloOpen(false)} />
     </div>
   );
 }

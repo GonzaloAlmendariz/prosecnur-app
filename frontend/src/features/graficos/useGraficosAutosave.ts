@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { apiGraficosConfigGet, apiGraficosConfigPut } from "../../api/client";
-import { DEFAULT_DEBUG_PH, GraficosConfig, usePlanStore } from "./store";
+import { DEFAULT_CANVAS_VIEWPORT, DEFAULT_DEBUG_PH, GraficosConfig, usePlanStore } from "./store";
 
 // Autosave del plan de gráficos. Misma mecánica que useAnaliticaAutosave:
 //
@@ -15,7 +15,7 @@ import { DEFAULT_DEBUG_PH, GraficosConfig, usePlanStore } from "./store";
 const DEBOUNCE_MS = 2000;
 
 const DEFAULT_CONFIG: GraficosConfig = {
-  version: 2,
+  version: 3,
   plan: { slides: [] },
   presets: {},
   w_presets: {},
@@ -24,18 +24,31 @@ const DEFAULT_CONFIG: GraficosConfig = {
   iconos: [],
   overrides_reusables: [],
   debug_ph: DEFAULT_DEBUG_PH,
+  view_mode: "timeline",
+  inspector_tab: "content",
+  density: "comfortable",
+  canvas_viewport: DEFAULT_CANVAS_VIEWPORT,
 };
 
-// Migración v1 → v2: si el backend devuelve un config viejo (sin paletas/
-// iconos/overrides_reusables), los rellena con {}/[]. Version se normaliza
-// a 2 en el merge; el próximo autosave lo persiste así.
+// Migración v1 → v2 → v3: si el backend devuelve un config viejo (sin
+// paletas/iconos/overrides_reusables o sin UI-state v3), los rellena con
+// defaults tolerantes. Version se normaliza a 3 en el merge; el próximo
+// autosave lo persiste así.
 function mergeWithDefaults(remote: unknown): GraficosConfig {
   if (!remote || typeof remote !== "object") return DEFAULT_CONFIG;
   const r = remote as Partial<GraficosConfig>;
   const isObj = (x: unknown): x is Record<string, unknown> =>
     !!x && typeof x === "object" && !Array.isArray(x);
+  const validViewMode = (m: unknown): m is GraficosConfig["view_mode"] =>
+    m === "timeline" || m === "canvas";
+  const validTab = (t: unknown): t is GraficosConfig["inspector_tab"] =>
+    t === "content" || t === "data" || t === "style" || t === "filters";
+  const validDensity = (d: unknown): d is GraficosConfig["density"] =>
+    d === "comfortable" || d === "compact";
+  const validViewport = (v: unknown): v is GraficosConfig["canvas_viewport"] =>
+    isObj(v) && typeof v.x === "number" && typeof v.y === "number" && typeof v.zoom === "number";
   return {
-    version: 2,
+    version: 3,
     plan: r.plan && typeof r.plan === "object" && Array.isArray(r.plan.slides)
       ? (r.plan as GraficosConfig["plan"])
       : { slides: [] },
@@ -50,6 +63,10 @@ function mergeWithDefaults(remote: unknown): GraficosConfig {
     debug_ph: isObj(r.debug_ph)
       ? { ...DEFAULT_DEBUG_PH, ...(r.debug_ph as GraficosConfig["debug_ph"]) }
       : DEFAULT_DEBUG_PH,
+    view_mode: validViewMode(r.view_mode) ? r.view_mode : "timeline",
+    inspector_tab: validTab(r.inspector_tab) ? r.inspector_tab : "content",
+    density: validDensity(r.density) ? r.density : "comfortable",
+    canvas_viewport: validViewport(r.canvas_viewport) ? r.canvas_viewport : DEFAULT_CANVAS_VIEWPORT,
   };
 }
 
@@ -62,6 +79,10 @@ export function useGraficosAutosave() {
   const iconos = usePlanStore((s) => s.iconos);
   const overridesReusables = usePlanStore((s) => s.overridesReusables);
   const debugPh = usePlanStore((s) => s.debugPh);
+  const viewMode = usePlanStore((s) => s.viewMode);
+  const inspectorTab = usePlanStore((s) => s.inspectorTab);
+  const density = usePlanStore((s) => s.density);
+  const canvasViewport = usePlanStore((s) => s.canvasViewport);
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
   const hydrate = usePlanStore((s) => s.hydrate);
@@ -104,7 +125,7 @@ export function useGraficosAutosave() {
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(async () => {
       const config: GraficosConfig = {
-        version: 2,
+        version: 3,
         plan,
         presets,
         w_presets: wPresets,
@@ -113,6 +134,10 @@ export function useGraficosAutosave() {
         iconos,
         overrides_reusables: overridesReusables,
         debug_ph: debugPh,
+        view_mode: viewMode,
+        inspector_tab: inspectorTab,
+        density,
+        canvas_viewport: canvasViewport,
       };
       try {
         await apiGraficosConfigPut(config);
@@ -127,6 +152,7 @@ export function useGraficosAutosave() {
   }, [
     plan, presets, wPresets, selectedSlideId,
     paletas, iconos, overridesReusables, debugPh,
+    viewMode, inspectorTab, density, canvasViewport,
     dirty, hydrated, markClean,
   ]);
 }

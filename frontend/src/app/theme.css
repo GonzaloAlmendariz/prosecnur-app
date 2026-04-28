@@ -211,6 +211,56 @@
   .pulso-card-glow, .pulso-badge-fresh { animation: none !important; }
 }
 
+/* Wizard del tab Dimensiones — pulse del dot del paso activo. */
+@keyframes pulso-stepper-pulse-kf {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 36, 87, 0.45); }
+  50% { box-shadow: 0 0 0 8px rgba(0, 36, 87, 0); }
+}
+.pulso-stepper-pulse {
+  animation: pulso-stepper-pulse-kf 1800ms ease-out infinite;
+}
+
+/* Confetti suave para celebrar la generación de dimensiones. 12 partículas
+   con caída + rotación. Cada partícula recibe un --delay y --x via inline
+   style para distribuirse en abanico. */
+@keyframes pulso-confetti-fall-kf {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--x, 0px), 240px, 0) rotate(540deg);
+    opacity: 0;
+  }
+}
+.pulso-confetti-particle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 8px;
+  height: 12px;
+  border-radius: 2px;
+  animation: pulso-confetti-fall-kf 1500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: var(--delay, 0ms);
+  pointer-events: none;
+}
+
+/* Diagrama de árbol — animación de "dibujado" para los path SVG.
+   El consumidor pone stroke-dasharray + stroke-dashoffset iguales en el
+   estado inicial; la clase anima dashoffset a 0. */
+@keyframes pulso-tree-draw-kf {
+  to { stroke-dashoffset: 0; }
+}
+.pulso-tree-draw {
+  animation: pulso-tree-draw-kf var(--anim-dur-long) var(--anim-ease-smooth) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-stepper-pulse,
+  .pulso-confetti-particle,
+  .pulso-tree-draw { animation: none !important; }
+}
+
 * { box-sizing: border-box; }
 
 html, body, #root {

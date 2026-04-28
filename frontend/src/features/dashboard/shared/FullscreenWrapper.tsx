@@ -2,22 +2,26 @@ import { Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import "./fullscreen.css";
 
-// Render-prop API: el padre decide DÓNDE va el botón de "Ampliar"
-// (típicamente en el header de su card, no flotante). El wrapper solo
-// provee el state, el overlay y los atajos de teclado.
+// Patrón hook + scope. El padre obtiene `ctx` con `useFullscreen()` y
+// decide DÓNDE va el botón (típicamente en el header de su card,
+// FUERA del scope). El scope envuelve solo lo que debe pasar a fullscreen
+// (p. ej. el body del chart) — el header con título y selectores queda
+// fuera del overlay.
 //
-// Uso:
-//   <FullscreenWrapper title="Dimensiones">
-//     {(ctx) => (
-//       <>
-//         <Header>
-//           <h2>...</h2>
-//           <FullscreenButton ctx={ctx} />
-//         </Header>
-//         <Body />
-//       </>
-//     )}
-//   </FullscreenWrapper>
+// Uso típico (chart-only fullscreen):
+//   const fs = useFullscreen();
+//   return (
+//     <section>
+//       <header>
+//         <h2>Título</h2>
+//         <SegmentedControl />
+//         <FullscreenButton ctx={fs} />
+//       </header>
+//       <FullscreenScope ctx={fs} title="Título">
+//         <div className="chart-body">…</div>
+//       </FullscreenScope>
+//     </section>
+//   );
 
 export type FullscreenCtx = {
   maxed: boolean;
@@ -26,31 +30,9 @@ export type FullscreenCtx = {
   toggle: () => void;
 };
 
-export function FullscreenWrapper({
-  title,
-  children,
-  className,
-  shortcut = "f",
-}: {
-  title?: string;
-  children: (ctx: FullscreenCtx) => ReactNode;
-  className?: string;
-  /** Letra del atajo (con Alt). "f" por default. Pasa "" para deshabilitar. */
-  shortcut?: string;
-}) {
+export function useFullscreen(shortcut = "f"): FullscreenCtx {
   const [maxed, setMaxed] = useState(false);
-  const previousFocus = useRef<HTMLElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
 
-  const ctx: FullscreenCtx = {
-    maxed,
-    open: () => setMaxed(true),
-    close: () => setMaxed(false),
-    toggle: () => setMaxed((v) => !v),
-  };
-
-  // Esc cierra. Atajo Alt+F (configurable) toggle. No interferir con
-  // inputs activos.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
@@ -78,6 +60,29 @@ export function FullscreenWrapper({
     return () => window.removeEventListener("keydown", onKey);
   }, [maxed, shortcut]);
 
+  return {
+    maxed,
+    open: () => setMaxed(true),
+    close: () => setMaxed(false),
+    toggle: () => setMaxed((v) => !v),
+  };
+}
+
+export function FullscreenScope({
+  ctx,
+  title,
+  children,
+  className,
+}: {
+  ctx: FullscreenCtx;
+  title?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  const { maxed, close } = ctx;
+  const previousFocus = useRef<HTMLElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
   // Bloquea el scroll del body mientras está fullscreen.
   useEffect(() => {
     if (!maxed) return;
@@ -89,12 +94,10 @@ export function FullscreenWrapper({
   }, [maxed]);
 
   // Focus management: al abrir, guarda el foco previo y mueve foco al
-  // panel. Al cerrar, restaura el foco previo. Mejora la navegación por
-  // teclado y los lectores de pantalla.
+  // panel. Al cerrar, restaura el foco previo.
   useEffect(() => {
     if (maxed) {
       previousFocus.current = (document.activeElement as HTMLElement) ?? null;
-      // Foco al primer botón del panel (Minimize2) tras pintar.
       const t = window.setTimeout(() => {
         const firstBtn = panelRef.current?.querySelector<HTMLElement>(
           "button, [tabindex]:not([tabindex='-1'])",
@@ -131,46 +134,45 @@ export function FullscreenWrapper({
     return () => window.removeEventListener("keydown", onKey);
   }, [maxed]);
 
-  const content = children(ctx);
+  if (!maxed) {
+    return <div className={`dash-fs-wrap ${className ?? ""}`}>{children}</div>;
+  }
 
   return (
-    <div className={`dash-fs-wrap ${className ?? ""} ${maxed ? "is-maxed" : ""}`}>
-      {!maxed && content}
-      {maxed && (
-        <div
-          className="dash-fs-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label={title ?? "Vista expandida"}
-        >
-          <div className="dash-fs-panel" ref={panelRef}>
-            <div className="dash-fs-head">
-              {title ? <h2 className="dash-fs-title">{title}</h2> : <span />}
-              <div className="dash-fs-actions">
-                <span className="dash-fs-hint" aria-hidden="true">
-                  Esc para salir
-                </span>
-                <button
-                  type="button"
-                  className="dash-icon-btn"
-                  onClick={() => setMaxed(false)}
-                  title="Salir de pantalla completa (Esc)"
-                  aria-label="Salir de pantalla completa"
-                >
-                  <Minimize2 size={14} />
-                </button>
-              </div>
+    <div className={`dash-fs-wrap is-maxed ${className ?? ""}`}>
+      <div
+        className="dash-fs-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title ?? "Vista expandida"}
+      >
+        <div className="dash-fs-panel" ref={panelRef}>
+          <div className="dash-fs-head">
+            {title ? <h2 className="dash-fs-title">{title}</h2> : <span />}
+            <div className="dash-fs-actions">
+              <span className="dash-fs-hint" aria-hidden="true">
+                Esc para salir
+              </span>
+              <button
+                type="button"
+                className="dash-icon-btn"
+                onClick={close}
+                title="Salir de pantalla completa (Esc)"
+                aria-label="Salir de pantalla completa"
+              >
+                <Minimize2 size={14} />
+              </button>
             </div>
-            <div className="dash-fs-body">{content}</div>
           </div>
+          <div className="dash-fs-body">{children}</div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-// Botón de "Ampliar" reutilizable. Se renderiza dentro del header del
-// componente que envuelve el wrapper, con posición predecible.
+// Botón "Ampliar" reutilizable. Vive donde el padre lo coloque (típicamente
+// en el header del card, FUERA del scope).
 export function FullscreenButton({
   ctx,
   label = "Ampliar",

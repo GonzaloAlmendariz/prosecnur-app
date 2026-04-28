@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Filter, Grid3x3, Plus, Sigma, X } from "lucide-react";
+import { AlertTriangle, Filter, Grid3x3, Layers, Plus, Sigma, X } from "lucide-react";
 import {
   apiAnaliticaColumnValues,
   apiAnaliticaCruces,
@@ -12,16 +12,19 @@ import { CruceVarConfig, useAnaliticaStore } from "../store";
 import { VariableSelect } from "../VariableSelect";
 import { Section, GenerateFooter } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
+import { useSession } from "../../../lib/SessionContext";
 
 // CrucesPane — configuración mínima.
 // 1. Variables a cruzar (con posibilidad de excluir categorías específicas).
-// 2. Significancia estadística (único toggle).
-// 3. Generar.
+// 2. Modo: estándar (frecuencias) o dimensiones (índices 0-100). El modo
+//    "dimensiones" solo está disponible cuando el tab Dimensiones ya generó
+//    `rp_dim` en backend.
+// 3. Significancia estadística.
+// 4. Generar.
 //
 // Hardcodeado: `incluir_total` siempre en true (la fila Total es útil
-// siempre), `alpha` fijo en 0.05, `modo` siempre "estandar". Semáforo
-// y brechas se gestionan en el módulo de dimensiones (aún no integrado);
-// sus flags persisten en el store para reusarlos allí.
+// siempre), `alpha` fijo en 0.05. Semáforo y brechas se delegan al módulo
+// Dashboard cuando se publica; en Cruces solo se persisten al store.
 
 export function CrucesPane() {
   const cruces = useAnaliticaStore((s) => s.config.cruces);
@@ -30,6 +33,16 @@ export function CrucesPane() {
   const removeCruceVar = useAnaliticaStore((s) => s.removeCruceVar);
   const setCruceVarExcluidas = useAnaliticaStore((s) => s.setCruceVarExcluidas);
   const run = useReporteRun();
+  const { state } = useSession();
+  const dimOk = !!state?.analitica_dim_ok;
+
+  // Si el usuario tenía guardado modo="dimensiones" pero las dimensiones aún
+  // no están construidas, caemos a "estandar" silenciosamente para no fallar.
+  useEffect(() => {
+    if (cruces.modo === "dimensiones" && !dimOk) {
+      setCruces({ modo: "estandar" });
+    }
+  }, [cruces.modo, dimOk, setCruces]);
 
   const [variables, setVariables] = useState<VariableInstrumento[]>([]);
   useEffect(() => {
@@ -42,9 +55,9 @@ export function CrucesPane() {
   }, []);
 
   async function onGenerate() {
-    // Garantizar defaults fijos antes de lanzar.
+    // Defaults fijos: alpha 0.05 e incluir_total siempre. `modo` lo
+    // controla el usuario (estandar / dimensiones).
     const patch: Partial<typeof cruces> = {};
-    if (cruces.modo !== "estandar") patch.modo = "estandar";
     if (cruces.alpha !== 0.05) patch.alpha = 0.05;
     if (!cruces.incluir_total) patch.incluir_total = true;
     if (Object.keys(patch).length > 0) setCruces(patch);
@@ -82,9 +95,37 @@ export function CrucesPane() {
           )}
         </Section>
 
-        {/* 2. Significancia */}
+        {/* 2. Modo */}
         <Section
-          title="2. Significancia estadística"
+          title="2. Modo de cruces"
+          subtitle={<>
+            <strong>Estándar</strong> reporta frecuencias y porcentajes (modo clásico). <strong>Dimensiones</strong> reporta promedios 0-100 de los índices y bloques construidos en el tab Dimensiones — útil para informes de satisfacción / desempeño donde la unidad de análisis es el índice, no la categoría.
+          </>}
+        >
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <ModoOption
+              active={cruces.modo === "estandar"}
+              icon={<Grid3x3 size={13} />}
+              label="Estándar"
+              hint="Frecuencias % por categoría"
+              onClick={() => setCruces({ modo: "estandar" })}
+            />
+            <ModoOption
+              active={cruces.modo === "dimensiones"}
+              disabled={!dimOk}
+              icon={<Layers size={13} />}
+              label="Dimensiones"
+              hint={dimOk
+                ? "Promedios 0-100 de índices y bloques"
+                : "Genera dimensiones primero (tab Dimensiones)"}
+              onClick={() => dimOk && setCruces({ modo: "dimensiones" })}
+            />
+          </div>
+        </Section>
+
+        {/* 3. Significancia */}
+        <Section
+          title="3. Significancia estadística"
           subtitle={<>
             Marca con un asterisco las celdas cuya diferencia entre columnas es estadísticamente significativa (chi² al 5%). Útil para identificar rápidamente los patrones de interés.
           </>}
@@ -116,7 +157,7 @@ export function CrucesPane() {
           </label>
         </Section>
 
-        {/* 3. Generar */}
+        {/* 4. Generar */}
         <GenerateFooter
           label="Generar cruces"
           busy={run.busy}
@@ -390,5 +431,66 @@ function ExclusionEditor({
         </div>
       )}
     </div>
+  );
+}
+
+// -- Selector de modo de cruces (estandar / dimensiones) --------------------
+// Pill grande tipo radio button. Quedó fuera del PaneKit por ser específica
+// de Cruces — si Dashboard reutiliza el patrón en el futuro, se promueve.
+
+function ModoOption({
+  active,
+  disabled,
+  icon,
+  label,
+  hint,
+  onClick,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  icon: React.ReactNode;
+  label: string;
+  hint: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={disabled ? hint : undefined}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: 4,
+        padding: "10px 14px",
+        minWidth: 200,
+        borderRadius: 8,
+        textAlign: "left",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.55 : 1,
+        background: active ? "var(--pulso-primary-soft)" : "white",
+        border: `1px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+        transition: "background 120ms ease, border-color 120ms ease",
+      }}
+    >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 13,
+          fontWeight: 700,
+          color: active ? "var(--pulso-primary)" : "var(--pulso-text)",
+        }}
+      >
+        {icon}
+        {label}
+      </span>
+      <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+        {hint}
+      </span>
+    </button>
   );
 }
