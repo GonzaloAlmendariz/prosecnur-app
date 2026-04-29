@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>WebR PoC — Pulso Dashboard</title>
+  <style>
+    body { font: 14px -apple-system, system-ui, sans-serif; margin: 24px; max-width: 960px; line-height: 1.5; color: #1f2933; }
+    h1 { color: #002457; margin: 0 0 4px; }
+    .lead { color: #5f6b7a; margin: 0 0 18px; }
+    .card { background: #fafafc; border: 1px solid #e3e4e8; border-radius: 8px; padding: 14px 16px; margin: 10px 0; }
+    .ok { color: #1f7a4a; font-weight: 700; }
+    .err { color: #b91c1c; font-weight: 700; }
+    .pending { color: #b45309; font-weight: 700; }
+    .warn { background: #fff8e6; border-color: #f3c969; color: #7a5b00; }
+    button { background: #002457; color: white; border: 0; border-radius: 6px; padding: 8px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: wait; }
+    pre { background: #1f2933; color: #f5f5f7; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; white-space: pre-wrap; }
+    code { background: #efeff2; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+    .step { display: grid; grid-template-columns: 32px 130px 1fr; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px dashed #e3e4e8; }
+    .step:last-child { border-bottom: 0; }
+    .step .icon { font-size: 18px; text-align: center; }
+    .step .time { color: #5f6b7a; font-variant-numeric: tabular-nums; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <h1>WebR PoC — Pulso Dashboard</h1>
+  <p class="lead">
+    Valida que WebR pueda: cargar en el browser, instalar paquetes (<code>jsonlite</code>, <code>dplyr</code>),
+    recibir un dataset desde JS, ejecutar cómputo R y devolver un payload JSON listo para Plotly.
+  </p>
+
+  <div id="env-check" class="card warn" style="display: none;">
+    <strong>⚠ Entorno no apto para WebR.</strong>
+    <p style="margin: 6px 0 0;">
+      WebR requiere <code>SharedArrayBuffer</code>, que necesita los headers HTTP
+      <code>Cross-Origin-Opener-Policy: same-origin</code> +
+      <code>Cross-Origin-Embedder-Policy: require-corp</code>.
+      El servidor que sirve este archivo NO los está enviando, entonces el bootstrap
+      va a fallar silenciosamente.
+    </p>
+    <p style="margin: 6px 0 0;">
+      <strong>Solución</strong>: corre el servidor incluido desde la terminal, en este
+      directorio:
+    </p>
+    <pre style="background: #1f2933; color: #f5f5f7;">cd prototypes/webr-poc &amp;&amp; python3 serve.py</pre>
+    <p style="margin: 6px 0 0;">
+      y abre <code>http://localhost:8765</code> en tu browser.
+    </p>
+  </div>
+
+  <button id="run">Ejecutar prueba</button>
+
+  <div class="card">
+    <div id="steps">
+      <div class="step" data-step="boot">      <span class="icon">⏳</span><span class="time"></span><span>Bootstrap WebR (descarga del runtime ~25MB)</span></div>
+      <div class="step" data-step="pkgs">      <span class="icon">⏳</span><span class="time"></span><span>Instalar y cargar <code>jsonlite</code>, <code>dplyr</code></span></div>
+      <div class="step" data-step="data">      <span class="icon">⏳</span><span class="time"></span><span>Inyectar dataset desde JS → globalEnv de R</span></div>
+      <div class="step" data-step="compute">   <span class="icon">⏳</span><span class="time"></span><span>Calcular tabla de frecuencias con <code>dplyr::count</code></span></div>
+      <div class="step" data-step="roundtrip"> <span class="icon">⏳</span><span class="time"></span><span>Devolver resultado a JS como JSON</span></div>
+      <div class="step" data-step="bench">     <span class="icon">⏳</span><span class="time"></span><span>Benchmark: 100 ejecuciones del mismo cómputo</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <strong>Resultado del cómputo R:</strong>
+    <pre id="output">Pendiente…</pre>
+  </div>
+
+  <div class="card">
+    <strong>Console de R:</strong>
+    <pre id="rconsole" style="max-height: 200px;"></pre>
+  </div>
+
+  <script type="module">
+    const stepsEl = document.getElementById("steps");
+    const outputEl = document.getElementById("output");
+    const consoleEl = document.getElementById("rconsole");
+    const runBtn = document.getElementById("run");
+    const envCheck = document.getElementById("env-check");
+
+    // Diagnóstico previo: WebR necesita SharedArrayBuffer + crossOriginIsolated.
+    // Sin esto, init() falla silenciosamente o lanza errores raros.
+    const isolated = typeof crossOriginIsolated !== "undefined" && crossOriginIsolated;
+    const hasSAB = typeof SharedArrayBuffer !== "undefined";
+    if (!isolated || !hasSAB) {
+      envCheck.style.display = "block";
+      outputEl.textContent = "El entorno no es válido para WebR (ver banner arriba). Igual puedes intentar 'Ejecutar prueba' y ver el error completo en consola.";
+    }
+
+    function setStep(name, status, extra) {
+      const el = stepsEl.querySelector(`[data-step="${name}"]`);
+      if (!el) return;
+      const icon = { ok: "✅", err: "❌", run: "🔄" }[status] ?? "⏳";
+      el.querySelector(".icon").textContent = icon;
+      el.querySelector(".time").textContent = extra ?? "";
+    }
+
+    function makeDataset(n) {
+      const opts = {
+        edad: ["18-29", "30-44", "45-59", "60+"],
+        satisfaccion: ["1", "2", "3", "4", "5"],
+        distrito: ["Ate", "Rimac", "SJL", "VES"],
+        servicio: ["ULE", "CIAM", "DEMUNA", "OMAPED"],
+      };
+      const out = { edad: [], satisfaccion: [], distrito: [], servicio: [] };
+      for (let i = 0; i < n; i++) {
+        for (const k of Object.keys(opts)) {
+          out[k].push(opts[k][Math.floor(Math.random() * opts[k].length)]);
+        }
+      }
+      return out;
+    }
+
+    runBtn.addEventListener("click", async () => {
+      runBtn.disabled = true;
+      consoleEl.textContent = "";
+      outputEl.textContent = "Ejecutando…";
+      let currentStep = null;
+
+      try {
+        // ── 0. Cargar el módulo WebR (puede fallar si CDN bloqueado) ──
+        currentStep = "boot";
+        setStep("boot", "run", "cargando módulo…");
+        const webRModule = await import("https://webr.r-wasm.org/latest/webr.mjs");
+        const { WebR } = webRModule;
+
+        // ── 1. Bootstrap del runtime ──────────────────────────────────
+        const t0 = performance.now();
+        const webR = new WebR();
+        await webR.init();
+        // Hook a la consola de R
+        (async () => {
+          for (;;) {
+            try {
+              const out = await webR.read();
+              if (out.type === "stdout" || out.type === "stderr") {
+                consoleEl.textContent += out.data + "\n";
+                consoleEl.scrollTop = consoleEl.scrollHeight;
+              }
+            } catch { return; }
+          }
+        })();
+        setStep("boot", "ok", `${Math.round(performance.now() - t0)} ms`);
+
+        // ── 2. Instalar/cargar paquetes ───────────────────────────────
+        currentStep = "pkgs";
+        setStep("pkgs", "run");
+        const t1 = performance.now();
+        await webR.installPackages(["jsonlite", "dplyr"]);
+        await webR.evalRVoid(`suppressMessages({library(jsonlite); library(dplyr)})`);
+        setStep("pkgs", "ok", `${Math.round(performance.now() - t1)} ms`);
+
+        // ── 3. Inyectar dataset desde JS ──────────────────────────────
+        currentStep = "data";
+        setStep("data", "run");
+        const t2 = performance.now();
+        const data = makeDataset(1500);
+        await webR.objs.globalEnv.bind("rp_data", data);
+        await webR.evalRVoid(`rp_data <- as.data.frame(rp_data, stringsAsFactors = FALSE)`);
+        setStep("data", "ok", `${Math.round(performance.now() - t2)} ms`);
+
+        // ── 4. Cómputo R ──────────────────────────────────────────────
+        currentStep = "compute";
+        setStep("compute", "run");
+        const t3 = performance.now();
+        await webR.evalRVoid(`
+          resultado <- rp_data |>
+            dplyr::count(satisfaccion, distrito, name = "n") |>
+            dplyr::group_by(distrito) |>
+            dplyr::mutate(pct = round(n / sum(n) * 100, 1)) |>
+            dplyr::arrange(distrito, satisfaccion) |>
+            as.data.frame()
+        `);
+        setStep("compute", "ok", `${Math.round(performance.now() - t3)} ms`);
+
+        // ── 5. Devolver a JS ──────────────────────────────────────────
+        currentStep = "roundtrip";
+        setStep("roundtrip", "run");
+        const t4 = performance.now();
+        const result = await webR.evalRString(`jsonlite::toJSON(resultado, dataframe = "rows")`);
+        const parsed = JSON.parse(result);
+        outputEl.textContent = JSON.stringify(parsed.slice(0, 12), null, 2)
+          + `\n\n… (${parsed.length} filas totales)`;
+        setStep("roundtrip", "ok", `${Math.round(performance.now() - t4)} ms`);
+
+        // ── 6. Benchmark ─────────────────────────────────────────────
+        currentStep = "bench";
+        setStep("bench", "run");
+        const t5 = performance.now();
+        for (let i = 0; i < 100; i++) {
+          await webR.evalRVoid(`
+            resultado <- rp_data |>
+              dplyr::count(satisfaccion, distrito, name = "n") |>
+              dplyr::group_by(distrito) |>
+              dplyr::mutate(pct = round(n / sum(n) * 100, 1)) |>
+              as.data.frame()
+          `);
+        }
+        const benchTotal = Math.round(performance.now() - t5);
+        setStep("bench", "ok", `${benchTotal} ms · ${(benchTotal / 100).toFixed(1)} ms/iter`);
+      } catch (e) {
+        console.error(e);
+        if (currentStep) setStep(currentStep, "err");
+        outputEl.textContent =
+          `❌ Error en paso "${currentStep ?? "?"}":\n\n` +
+          (e?.stack ?? e?.message ?? String(e)) +
+          `\n\n— Diagnóstico:\n` +
+          `crossOriginIsolated: ${typeof crossOriginIsolated !== "undefined" ? crossOriginIsolated : "?"}\n` +
+          `SharedArrayBuffer:   ${typeof SharedArrayBuffer !== "undefined"}\n` +
+          `Origen:              ${location.origin}`;
+      } finally {
+        runBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

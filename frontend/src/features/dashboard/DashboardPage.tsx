@@ -17,6 +17,7 @@ import { DimensionesTab } from "./tabs/DimensionesTab";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { DEFAULT_TABS_ENABLED, useDashboardAutosave, useDashboardStore } from "./store";
 import { useDashboardManifest, useDashboardRecodVars } from "./useDashboardData";
+import { getStandalonePayload, initWebR, isStandaloneMode } from "../../lib/webrBridge";
 
 // Página principal del Dashboard.
 // Layout:
@@ -32,7 +33,32 @@ import { useDashboardManifest, useDashboardRecodVars } from "./useDashboardData"
 // Las tabs no disponibles aparecen deshabilitadas con tooltip.
 
 export default function DashboardPage() {
-  useDashboardAutosave();
+  // Modo standalone: el dashboard corre sin backend Plumber, todo el
+  // cómputo lo hace WebR client-side. No autosaveamos (no hay servidor),
+  // ocultamos toda la admin toolbar y arrancamos WebR al montar.
+  const standalone = isStandaloneMode();
+  useDashboardAutosave(!standalone);
+
+  // Bootstrap WebR una sola vez si estamos en standalone. Mientras carga
+  // (~10 seg primera vez), un overlay tapa la pantalla. También hidratamos
+  // el store de Zustand directo desde el payload (sin pasar por API).
+  const [webRReady, setWebRReady] = useState(!standalone);
+  const [webRError, setWebRError] = useState<string | null>(null);
+  const hydrate = useDashboardStore((s) => s.hydrate);
+  useEffect(() => {
+    if (!standalone) return;
+    const payload = getStandalonePayload();
+    if (!payload) {
+      setWebRError("Falta PULSO_STANDALONE_PAYLOAD en el HTML");
+      return;
+    }
+    hydrate(payload.dashboard_config as never);
+    initWebR(payload).then(
+      () => setWebRReady(true),
+      (e) => setWebRError((e as Error).message),
+    );
+  }, [standalone, hydrate]);
+
   const config = useDashboardStore((s) => s.config);
   const tabActiva = useDashboardStore((s) => s.tabActiva);
   const setTabActiva = useDashboardStore((s) => s.setTabActiva);
@@ -102,19 +128,32 @@ export default function DashboardPage() {
       colorPrimarioOverride={config.color_primario_override}
       themeDefault={themeDefault ?? undefined}
     >
-      {previewMode ? (
-        // En vista previa solo aparece un chip flotante para volver al
-        // modo edición. Todo lo demás es exactamente lo que vería un
-        // lector del dashboard exportado.
-        <button
-          type="button"
-          className="dash-preview-exit"
-          onClick={() => setPreviewMode(false)}
-          title="Salir de vista previa (Esc)"
-          aria-label="Salir de vista previa"
-        >
-          <EyeOff size={13} /> Salir de vista previa
-        </button>
+      {standalone && !webRReady && (
+        <div className="dash-standalone-loading">
+          <div className="dash-standalone-loading-card">
+            <div className="dash-standalone-loading-spinner" aria-hidden="true" />
+            <strong>Iniciando dashboard…</strong>
+            <span className="dash-standalone-loading-hint">
+              {webRError ?? "Cargando runtime R y datos. La primera vez tarda ~10 seg."}
+            </span>
+          </div>
+        </div>
+      )}
+      {standalone || previewMode ? (
+        previewMode && !standalone ? (
+          // En vista previa (editor) solo aparece un chip flotante para
+          // volver al modo edición. En standalone no hay nada — el
+          // dashboard exportado es siempre "preview" del lector.
+          <button
+            type="button"
+            className="dash-preview-exit"
+            onClick={() => setPreviewMode(false)}
+            title="Salir de vista previa (Esc)"
+            aria-label="Salir de vista previa"
+          >
+            <EyeOff size={13} /> Salir de vista previa
+          </button>
+        ) : null
       ) : (
         <div className="dash-admin-toolbar-wrap">
           <div className="dash-admin-toolbar" role="toolbar" aria-label="Edición del dashboard">

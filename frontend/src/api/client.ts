@@ -1,3 +1,5 @@
+import { callR, isStandaloneMode, lookupOfflineRoute } from "../lib/webrBridge";
+
 const SESSION_KEY = "pulso.sessionId";
 const APP_BASE = import.meta.env.BASE_URL || "/";
 
@@ -20,7 +22,71 @@ export function apiPath(path: string): string {
   return path;
 }
 
-function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+// Construye un Response sintético desde un payload JS, para que las
+// funciones `handle<T>(res)` aguas abajo funcionen igual que con fetch
+// real. Usado por el bridge offline (WebR) y por los mocks de
+// health/bootstrap/session.
+function syntheticResponse(payload: unknown, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+// Mocks mínimos para endpoints de infraestructura (health, bootstrap,
+// session) en modo standalone. La sesión es siempre la misma y no hace
+// nada — todo el cómputo vive client-side via WebR.
+const STANDALONE_SID = "standalone";
+function mockOfflineInfra(method: string, path: string): Response | null {
+  if (path === "/api/system/health" && method === "GET") {
+    return syntheticResponse({
+      ok: true,
+      version: "standalone",
+      prosecnur_version: "standalone",
+      time: new Date().toISOString(),
+    });
+  }
+  if (path === "/api/system/bootstrap" && method === "GET") {
+    return syntheticResponse({ sid: STANDALONE_SID });
+  }
+  if (path === "/api/session" && method === "POST") {
+    return syntheticResponse({ session_id: STANDALONE_SID, reused: true });
+  }
+  if (path === "/api/session/state" && method === "GET") {
+    return syntheticResponse({
+      session_id: STANDALONE_SID,
+      created_at: new Date().toISOString(),
+      xlsform: true,
+      data: true,
+    });
+  }
+  return null;
+}
+
+async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  // Modo standalone: interceptar y rutear al bridge WebR (cómputo R local)
+  // o devolver mocks de infraestructura. Si la ruta no está cubierta, se
+  // devuelve un error 503 claro en vez de hacer fetch a un servidor que
+  // no existe.
+  if (typeof input === "string" && isStandaloneMode()) {
+    const path = input.replace(/^(?:https?:\/\/[^/]+)?/, "").split("?")[0];
+    const method = (init?.method ?? "GET").toUpperCase();
+    const mock = mockOfflineInfra(method, path);
+    if (mock) return mock;
+    const slug = lookupOfflineRoute(method, input);
+    if (slug) {
+      let body: unknown = {};
+      if (init?.body && typeof init.body === "string") {
+        try { body = JSON.parse(init.body); } catch { /* deja {} */ }
+      }
+      const payload = await callR(slug, body);
+      return syntheticResponse(payload);
+    }
+    return syntheticResponse(
+      { error: { code: "E_OFFLINE_UNSUPPORTED", message: `Sin soporte offline: ${method} ${path}` } },
+      503,
+    );
+  }
   if (typeof input === "string") {
     return globalThis.fetch(apiPath(input), init);
   }

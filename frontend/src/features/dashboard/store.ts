@@ -990,7 +990,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
 
 // Hook de hidratación + autosave (debounced 2s). Se monta una vez en
 // DashboardPage. Mismo patrón que useAnaliticaAutosave.
-export function useDashboardAutosave() {
+export function useDashboardAutosave(enabled: boolean = true) {
   const config = useDashboardStore((s) => s.config);
   const dirty = useDashboardStore((s) => s.dirty);
   const hydrated = useDashboardStore((s) => s.hydrated);
@@ -998,6 +998,7 @@ export function useDashboardAutosave() {
   const markClean = useDashboardStore((s) => s.markClean);
 
   useEffect(() => {
+    if (!enabled) return undefined;
     let cancelled = false;
     apiDashboardConfigGet()
       .then((r) => {
@@ -1011,10 +1012,11 @@ export function useDashboardAutosave() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [enabled]);
 
   const timer = useRef<number | null>(null);
   useEffect(() => {
+    if (!enabled) return;
     if (!hydrated || !dirty) return;
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(async () => {
