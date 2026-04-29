@@ -44,16 +44,12 @@ export function ThemeProvider({
     themeDefault,
   });
 
+  // Solo el primario (y sus derivados sintéticos) rotan con la paleta de
+  // marca. Los grises del fondo y las superficies viven hardcodeados en
+  // tokens.css para que cambiar a "Paleta de rojos" o "Paleta de verdes"
+  // no manche el fondo entero del dashboard.
   const style: CSSProperties = {
-    // Cast indirecto para que TS acepte custom properties.
     ["--dash-primario" as string]: theme.color_primario,
-    ["--dash-fondo" as string]: theme.color_fondo_app,
-    ["--dash-borde" as string]: theme.color_borde,
-    ["--dash-texto" as string]: theme.color_texto,
-    ["--dash-texto-suave" as string]: theme.color_texto_suave,
-    ["--dash-superficie" as string]: theme.color_superficie,
-    ["--dash-superficie-2" as string]: theme.color_superficie_2,
-    ["--dash-header-tabla" as string]: theme.color_header_tabla,
     ["--dash-primario-soft" as string]: rgba(
       theme.color_primario,
       0.08,
@@ -63,11 +59,6 @@ export function ThemeProvider({
       theme.color_primario,
       0.18,
       "rgba(0, 36, 87, 0.18)",
-    ),
-    ["--dash-shadow-color" as string]: rgba(
-      theme.color_primario,
-      0.08,
-      "rgba(15, 23, 42, 0.08)",
     ),
   };
 

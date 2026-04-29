@@ -2091,6 +2091,54 @@ export type DashboardConfig = {
   // listadas se consideran habilitadas (default true). Permite que el
   // editor recorte el dashboard final sin tocar el manifest del backend.
   tabs_enabled?: Partial<Record<DashboardTabId, boolean>>;
+  // Modo de presentación para cada variable que tenga recodificación.
+  // Las variables ausentes del mapa NO tienen decisión y disparan el
+  // gate `RecodGate` antes de renderizar el dashboard.
+  dashboard_var_modes?: Record<string, DashboardVarMode>;
+  // Overrides de presentación por variable: incluir/excluir y label
+  // custom. Permite ocultar variables del dashboard sin tocar el XLSForm
+  // y diferenciar variables que comparten label (ej. p10_ule vs p10_ciam).
+  dashboard_var_overrides?: Record<string, DashboardVarOverride>;
+  // Cantidad de decimales para los porcentajes mostrados en las barras
+  // del Resumen (SO y SM). Rango 0–2. Default 0.
+  bar_decimals?: number;
+  // Orden de las opciones en barras de select_multiple (Resumen).
+  //   "questionnaire" — orden original del XLSForm (default)
+  //   "desc"          — de mayor a menor porcentaje
+  sm_order?: "questionnaire" | "desc";
+};
+
+export type DashboardVarMode = {
+  // Para variables que tienen tanto opciones del XLSForm original como
+  // recodificación: cuál mostrar. NO se permite mostrar ambas — siempre
+  // una sola versión por variable. Default "original" si no hay decisión.
+  modo: "original" | "recod";
+};
+
+export type DashboardVarOverride = {
+  // false = la variable se oculta de los resúmenes del dashboard.
+  enabled: boolean;
+  // Si no vacío, reemplaza el label del XLSForm en los resúmenes.
+  // Útil cuando varias variables comparten label (p10_ule, p10_ciam…).
+  label: string;
+};
+
+// Catálogo de variables disponibles del dataset, agrupadas por sección
+// del XLSForm. Devuelto por `apiDashboardAllVars` para que el panel
+// "Datos" liste qué se puede incluir/excluir/renombrar.
+export type DashboardSeccionVars = {
+  seccion: string;
+  vars: Array<{ name: string; label: string }>;
+};
+
+// Variable del estudio que tiene grupos de recodificación creados desde
+// el módulo Codificación. Devuelta por `apiDashboardRecodVars` para que
+// el frontend liste qué variables requieren decisión del usuario.
+export type DashboardRecodVar = {
+  name: string;
+  label: string;
+  n_grupos: number;
+  grupos: Array<{ codigo: string; etiqueta: string }>;
 };
 
 export type DashboardLogoConfig = {
@@ -2107,6 +2155,24 @@ export type DashboardFodaViewConfig = {
   aliases?: Record<string, string>;
   icons?: Record<string, string>;
 };
+
+// Lista de variables que tienen grupos de recodificación creados en el
+// módulo Codificación. El gate `RecodGate` la usa para saber qué
+// variables aún no tienen decisión en `dashboard_var_modes`.
+export async function apiDashboardRecodVars() {
+  return handle<{ ok: true; vars: DashboardRecodVar[] }>(
+    await apiFetch("/api/dashboard/recod-vars", { headers: headers() }),
+  );
+}
+
+// Catálogo completo de variables del dataset agrupadas por sección del
+// XLSForm. Lo usa el panel "Datos" para listar qué incluir/excluir y
+// para renombrar variables individualmente.
+export async function apiDashboardAllVars() {
+  return handle<{ ok: true; secciones: DashboardSeccionVars[] }>(
+    await apiFetch("/api/dashboard/all-vars", { headers: headers() }),
+  );
+}
 
 export async function apiDashboardConfigGet() {
   return handle<{ ok: true; config: DashboardConfig }>(

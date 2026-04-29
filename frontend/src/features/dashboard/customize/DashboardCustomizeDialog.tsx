@@ -2,6 +2,7 @@ import {
   BarChart3,
   Image,
   LayoutGrid,
+  Palette as PaletteIcon,
   Plus,
   Radar,
   SlidersHorizontal,
@@ -39,6 +40,24 @@ const TAB_LABELS: Record<DashboardTabId, string> = {
 
 const TAB_ORDER: DashboardTabId[] = ["resumen", "relaciones", "base_datos", "dimensiones"];
 
+// Presets del color principal del dashboard, nombrados por familia de
+// color (no por marca institucional). El "Pulso" devuelve al azul
+// default sin override.
+type ThemePreset = {
+  id: string;
+  label: string;
+  hint: string;
+  color: string | null; // null = sin override = azul Pulso default
+};
+const THEME_PRESETS: ThemePreset[] = [
+  { id: "pulso", label: "Azul Pulso", hint: "Por defecto", color: null },
+  { id: "rojos", label: "Paleta de rojos", hint: "Rojo institucional cálido", color: "#E2001A" },
+  { id: "rojos-vino", label: "Paleta de rojos profundos", hint: "Rojo vino", color: "#BB0A30" },
+  { id: "cyan", label: "Paleta de cyans", hint: "Azul claro y aireado", color: "#009EDB" },
+  { id: "azul-noche", label: "Paleta de azules noche", hint: "Azul oscuro institucional", color: "#002244" },
+  { id: "verdes", label: "Paleta de verdes", hint: "Verde sostenibilidad", color: "#1F7A4A" },
+];
+
 export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
   const config = useDashboardStore((s) => s.config);
   const setTitulo = useDashboardStore((s) => s.setTitulo);
@@ -47,6 +66,9 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
   const setLogoSlot = useDashboardStore((s) => s.setLogoSlot);
   const removeLogoSlot = useDashboardStore((s) => s.removeLogoSlot);
   const setTabEnabled = useDashboardStore((s) => s.setTabEnabled);
+  const setColorPrimarioOverride = useDashboardStore((s) => s.setColorPrimarioOverride);
+  const setBarDecimals = useDashboardStore((s) => s.setBarDecimals);
+  const setSmOrder = useDashboardStore((s) => s.setSmOrder);
   const setSemaforoModo = useDashboardStore((s) => s.setSemaforoModo);
   const setSemaforoRedColor = useDashboardStore((s) => s.setSemaforoRedColor);
   const setSemaforoAmberColor = useDashboardStore((s) => s.setSemaforoAmberColor);
@@ -285,6 +307,64 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
                     Hasta {MAX_DASHBOARD_LOGOS} logos, ordenados de izquierda a derecha. PNG / JPG / SVG / WEBP. Quedan embebidos en el .pulso (data URI).
                   </p>
                 </SettingBlock>
+
+                <SettingBlock title="Color principal" icon={<PaletteIcon size={16} />}>
+                  <div className="dash-customize-theme-grid">
+                    {THEME_PRESETS.map((p) => {
+                      const active = (config.color_primario_override ?? null) === p.color;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className={`dash-customize-theme-card ${active ? "is-active" : ""}`}
+                          onClick={() => setColorPrimarioOverride(p.color)}
+                        >
+                          <span
+                            className="dash-customize-theme-swatch"
+                            style={{
+                              background: p.color
+                                ? `linear-gradient(135deg, ${p.color} 0%, ${p.color} 60%, color-mix(in srgb, ${p.color} 70%, #000 30%) 100%)`
+                                : "linear-gradient(135deg, #002457 0%, #002457 60%, #001736 100%)",
+                            }}
+                            aria-hidden="true"
+                          />
+                          <span className="dash-customize-theme-text">
+                            <span className="dash-customize-theme-label">{p.label}</span>
+                            <span className="dash-customize-theme-hint">{p.hint}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <label className="dash-customize-theme-custom">
+                    <span className="dash-filtro-label">Personalizado (HEX)</span>
+                    <div className="dash-customize-theme-custom-row">
+                      <input
+                        type="color"
+                        value={config.color_primario_override ?? "#002457"}
+                        onChange={(e) => setColorPrimarioOverride(e.target.value)}
+                        aria-label="Color principal personalizado"
+                      />
+                      <input
+                        className="dash-input"
+                        value={config.color_primario_override ?? ""}
+                        placeholder="#002457"
+                        onChange={(e) => {
+                          const v = e.target.value.trim();
+                          if (!v) {
+                            setColorPrimarioOverride(null);
+                          } else if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                            setColorPrimarioOverride(v);
+                          }
+                        }}
+                      />
+                    </div>
+                  </label>
+                  <p className="dash-customize-help">
+                    Cambia el azul del header, los botones y los acentos. Las paletas de gráficos se editan aparte.
+                  </p>
+                </SettingBlock>
               </section>
             )}
 
@@ -511,8 +591,34 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
               <section className="dash-customize-panel">
                 <PanelTitle
                   title="Gráficos"
-                  text="Controla orientación de barras y comportamiento del radar sin tocar los datos."
+                  text="Controla decimales, orden de barras y comportamiento del radar sin tocar los datos."
                 />
+                <SettingBlock title="Resumen" icon={<BarChart3 size={16} />}>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 220 }}>
+                    <span className="dash-filtro-label">Decimales en porcentajes</span>
+                    <input
+                      className="dash-input"
+                      type="number"
+                      min={0}
+                      max={2}
+                      step={1}
+                      value={config.bar_decimals ?? 0}
+                      onChange={(e) => {
+                        const n = Number(e.target.value);
+                        if (Number.isFinite(n)) setBarDecimals(n);
+                      }}
+                    />
+                  </label>
+                  <Segmented
+                    label="Orden de las opciones (select_multiple)"
+                    value={config.sm_order ?? "questionnaire"}
+                    options={[
+                      ["questionnaire", "Cuestionario"],
+                      ["desc", "Mayor %"],
+                    ]}
+                    onChange={(v) => setSmOrder(v as "questionnaire" | "desc")}
+                  />
+                </SettingBlock>
                 <SettingBlock title="Barras" icon={<BarChart3 size={16} />}>
                   <Segmented
                     label="Orientación de barras"

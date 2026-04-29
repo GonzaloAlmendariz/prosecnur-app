@@ -8,7 +8,9 @@ import {
   apiDashboardDimFoda,
   apiDashboardDimPayload,
   apiDashboardDimSeccionesVars,
+  apiDashboardAllVars,
   apiDashboardManifest,
+  apiDashboardRecodVars,
   apiDashboardRelacionCross,
   apiDashboardResumenKpis,
   apiDashboardResumenSeccion,
@@ -24,6 +26,8 @@ import {
   DashboardFiltro,
   DashboardKpisPayload,
   DashboardManifest,
+  DashboardRecodVar,
+  DashboardSeccionVars,
   DashboardRelacionPayload,
   DashboardResumenPayload,
   DashboardSeccion,
@@ -254,6 +258,78 @@ export function useRelacionCross(
 // =============================================================================
 // Tab Base de datos — estructura, data paginada, diccionario.
 // =============================================================================
+
+// Variables que tienen recodificación creada en Codificación. El gate
+// `RecodGate` las consume para forzar al usuario a decidir cómo
+// presentar cada una antes de habilitar el dashboard.
+export function useDashboardRecodVars(): {
+  loading: boolean;
+  error: string | null;
+  vars: DashboardRecodVar[];
+  refresh: () => void;
+} {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [vars, setVars] = useState<DashboardRecodVar[]>([]);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    apiDashboardRecodVars()
+      .then((r) => {
+        if (cancelled) return;
+        setVars(r.vars ?? []);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tick]);
+
+  return { loading, error, vars, refresh: () => setTick((t) => t + 1) };
+}
+
+// Catálogo completo de variables del dataset agrupadas por sección.
+// Lo consume el panel "Datos" para que el usuario marque cuáles
+// incluir/excluir y opcionalmente renombre individualmente.
+export function useDashboardAllVars(): {
+  loading: boolean;
+  error: string | null;
+  secciones: DashboardSeccionVars[];
+} {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [secciones, setSecciones] = useState<DashboardSeccionVars[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    apiDashboardAllVars()
+      .then((r) => {
+        if (cancelled) return;
+        setSecciones(r.secciones ?? []);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { loading, error, secciones };
+}
 
 export function useBaseDatosEstructura() {
   const [loading, setLoading] = useState(true);

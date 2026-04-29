@@ -98,6 +98,110 @@ mount_dashboard <- function(pr) {
       s <- session_get(sid)
       list(ok = TRUE, config = .dashboard_config_with_defaults(s$dashboard_config))
     })) |>
+    # Lista de variables que tienen grupos de recodificación creados desde
+    # el módulo Codificación. El frontend usa esto para forzar al usuario
+    # a decidir cómo presentar cada una (original / recod / ambas) antes
+    # de renderizar el dashboard. Sin decisión, la variable no se muestra.
+    # Catálogo COMPLETO de variables del dataset agrupadas por sección del
+    # XLSForm. Sirve al panel "Datos" para que el usuario decida cuáles
+    # incluir/excluir y opcionalmente renombrar (config.dashboard_var_overrides).
+    plumber::pr_get("/api/dashboard/all-vars", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      payload <- .dashboard_all_vars_payload(s)
+      list(ok = TRUE, secciones = payload)
+    })) |>
+    plumber::pr_get("/api/dashboard/recod-vars", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      out <- list()
+      # 1) Variables con grupos creados desde el módulo Codificación.
+      if (is.list(s$codif_por_base)) {
+        for (src_name in names(s$codif_por_base)) {
+          gr <- s$codif_por_base[[src_name]]$grupos_recod
+          if (!is.list(gr)) next
+          for (parent in names(gr)) {
+            if (!is.null(out[[parent]])) next
+            grupos <- gr[[parent]]
+            if (!is.list(grupos) || !length(grupos)) next
+            label <- tryCatch(
+              .obtener_label_var(parent, s$rp_inst, s$rp_data),
+              error = function(e) parent
+            )
+            out[[parent]] <- list(
+              name = parent,
+              label = label,
+              n_grupos = length(grupos),
+              grupos = lapply(grupos, function(g) list(
+                codigo = as.character(g$codigo %||% ""),
+                etiqueta = as.character(g$etiqueta %||% "")
+              ))
+            )
+          }
+        }
+      }
+      # 2) Fallback por patrón: cualquier variable cuyas cols del data
+      # tengan dummies o columna recod aunque no haya entry en grupos_recod.
+      # Cubre data pre-codificada externa y data generada por el módulo
+      # Codificación cuando el state se desincronizó del .pulso.
+      #
+      # Patrones soportados sobre nombres de columna completos:
+      #   <var>_recod                                     parent_recod   (SO/integer)
+      #   <var>/<code>_recod                              parent/code_recod (SM dummy)
+      #   <var>.recod          <var>.recod.N              estilo dataset crudo
+      #   <var>/recod          <var>/recod.N              estilo KoBo
+      if (!is.null(s$rp_data)) {
+        cols_all <- names(s$rp_data)
+        for (col in cols_all) {
+          parent <- NA_character_
+          # 1) <var>_recod — single column SO/integer recodificada.
+          #    Greedy `(.+)` para que parent capture todo antes del último
+          #    `_recod`. Excluye las que contienen "/" (esas son SM dummies
+          #    y caen en el siguiente patrón).
+          if (!grepl("/", col, fixed = TRUE)) {
+            m <- regmatches(col, regexec("^(.+)_recod$", col))[[1]]
+            if (length(m) >= 2 && nzchar(m[2])) parent <- m[2]
+          }
+          # 2) <var>/<code>_recod — dummy SM recod del módulo Codif.
+          if (is.na(parent)) {
+            m <- regmatches(col, regexec("^(.+)/[^/]+_recod$", col))[[1]]
+            if (length(m) >= 2 && nzchar(m[2])) parent <- m[2]
+          }
+          # 3) <var>.recod o <var>.recod.N
+          if (is.na(parent)) {
+            m <- regmatches(col, regexec("^(.+)\\.recod(?:\\.[0-9]+)?$", col))[[1]]
+            if (length(m) >= 2 && nzchar(m[2])) parent <- m[2]
+          }
+          # 4) <var>/recod o <var>/recod.N
+          if (is.na(parent)) {
+            m <- regmatches(col, regexec("^(.+)/recod(?:\\.[0-9]+)?$", col))[[1]]
+            if (length(m) >= 2 && nzchar(m[2])) parent <- m[2]
+          }
+          if (is.na(parent) || !nzchar(parent)) next
+          if (!is.null(out[[parent]])) next
+          # Contar cuántas cols recod hay para este parent.
+          esc <- gsub("([\\W])", "\\\\\\1", parent)
+          rx_parent <- paste0(
+            "^", esc,
+            "(?:_recod$|/[^/]+_recod$|[./]recod(?:\\.[0-9]+)?$)"
+          )
+          parent_cols <- grep(rx_parent, cols_all, value = TRUE, perl = TRUE)
+          n <- length(parent_cols)
+          if (!n) next
+          label <- tryCatch(
+            .obtener_label_var(parent, s$rp_inst, s$rp_data),
+            error = function(e) parent
+          )
+          out[[parent]] <- list(
+            name = parent,
+            label = label,
+            n_grupos = n,
+            grupos = list()
+          )
+        }
+      }
+      list(ok = TRUE, vars = unname(out))
+    })) |>
     plumber::pr_post("/api/dashboard/config", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .dashboard_parse_body(req)

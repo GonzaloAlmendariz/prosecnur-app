@@ -17,24 +17,29 @@ export function PreguntaRow({ row }: { row: DashboardResumenRow }) {
   const palette = useDashboardStore((s) =>
     row.list_name ? s.config.paletas_listas[row.list_name] : undefined,
   );
+  const decimals = useDashboardStore((s) => s.config.bar_decimals ?? 0);
+  const smOrder = useDashboardStore((s) => s.config.sm_order ?? "questionnaire");
 
   if (row.type === "so") {
     return (
       <div className="dash-pregunta-row">
         <div className="dash-pregunta-label">{row.label}</div>
         <div>
-          <SoBar dist={row.dist} palette={palette} ariaLabel={row.label} />
+          <SoBar dist={row.dist} palette={palette} ariaLabel={row.label} decimals={decimals} />
           <SoLegend dist={row.dist} palette={palette} />
         </div>
       </div>
     );
   }
-  // SM
+  // SM — opcionalmente ordenadas por % desc en lugar del orden del XLSForm.
+  const orderedOptions = smOrder === "desc"
+    ? [...row.options].sort((a, b) => b.pct_yes - a.pct_yes)
+    : row.options;
   return (
     <div className="dash-pregunta-row">
       <div className="dash-pregunta-label">{row.label}</div>
       <div className="dash-sm-options">
-        {row.options.map((opt) => (
+        {orderedOptions.map((opt) => (
           <div key={opt.col_dummy}>
             <div className="dash-sm-option-label">{opt.label}</div>
             <SmBar
@@ -42,6 +47,7 @@ export function PreguntaRow({ row }: { row: DashboardResumenRow }) {
               nYes={opt.n_yes}
               nTotal={opt.n_total}
               color={palette?.[opt.label] || opt.color}
+              decimals={decimals}
             />
           </div>
         ))}
@@ -50,14 +56,21 @@ export function PreguntaRow({ row }: { row: DashboardResumenRow }) {
   );
 }
 
+// Formatea un porcentaje (0..1) con la cantidad de decimales configurada.
+function fmtPct(pct: number, decimals: number): string {
+  return `${(pct * 100).toFixed(decimals)}%`;
+}
+
 function SoBar({
   dist,
   palette,
   ariaLabel,
+  decimals,
 }: {
   dist: { code: string; label: string; n: number; pct: number; color?: string | null }[];
   palette?: Record<string, string>;
   ariaLabel: string;
+  decimals: number;
 }) {
   const traces = useMemo(
     () =>
@@ -71,7 +84,7 @@ function SoBar({
           name: d.label,
           orientation: "h" as const,
           marker: { color: segColor },
-          text: `${Math.round(d.pct * 100)}%`,
+          text: fmtPct(d.pct, decimals),
           // Si el segmento es chico, Plotly coloca el texto FUERA al lado
           // (a la derecha en orientación h). Si cabe, lo pone adentro.
           textposition: pequeno ? ("outside" as const) : ("inside" as const),
@@ -81,10 +94,10 @@ function SoBar({
             : { color: "white", size: 12 },
           cliponaxis: false,
           constraintext: "none" as const,
-          hovertemplate: `${d.label}: ${(d.pct * 100).toFixed(1)}%<br>n: ${d.n}<extra></extra>`,
+          hovertemplate: `${d.label}: ${fmtPct(d.pct, Math.max(decimals, 1))}<br>n: ${d.n}<extra></extra>`,
         };
       }),
-    [dist, palette],
+    [dist, palette, decimals],
   );
 
   if (!dist.length) return null;
@@ -167,11 +180,13 @@ function SmBar({
   nYes,
   nTotal,
   color,
+  decimals,
 }: {
   pctYes: number;
   nYes: number;
   nTotal: number;
   color?: string | null;
+  decimals: number;
 }) {
   const traces = useMemo(
     () => [
@@ -181,7 +196,7 @@ function SmBar({
         y: ["Total"],
         orientation: "h" as const,
         marker: { color: "var(--dash-primario)", line: { width: 0 } },
-        hovertemplate: `Sí: ${(pctYes * 100).toFixed(1)}%<br>n: ${nYes}<br>N: ${nTotal}<extra></extra>`,
+        hovertemplate: `Sí: ${fmtPct(pctYes, Math.max(decimals, 1))}<br>n: ${nYes}<br>N: ${nTotal}<extra></extra>`,
         showlegend: false,
       },
       {
@@ -194,7 +209,7 @@ function SmBar({
         showlegend: false,
       },
     ],
-    [pctYes, nYes, nTotal],
+    [pctYes, nYes, nTotal, decimals],
   );
 
   // Plotly no resuelve `var(--...)` directamente. Resolvemos a hex desde
@@ -226,28 +241,30 @@ function SmBar({
       ticks: "",
       fixedrange: true,
     },
-    margin: { l: 0, r: 28, t: 0, b: 0 },
+    margin: { l: 0, r: 44, t: 0, b: 0 },
     showlegend: false,
-    annotations:
-      pctYes >= 0.04
-        ? [
-            {
-              x: pctYes >= 0.05 ? pctYes / 2 : pctYes,
-              y: "Total",
-              xref: "x",
-              yref: "y",
-              text: pctYes >= 0.05 ? `<b>${Math.round(pctYes * 100)}%</b>` : `${Math.round(pctYes * 100)}%`,
-              showarrow: false,
-              xanchor: pctYes >= 0.05 ? "center" : "left",
-              yanchor: "middle",
-              xshift: pctYes >= 0.05 ? 0 : 6,
-              font: {
-                color: pctYes >= 0.05 ? "#ffffff" : primario,
-                size: 12,
-              },
-            },
-          ]
-        : [],
+    // % SIEMPRE visible — incluso para 0% o valores muy chicos. Si la
+    // barra es ancha (>=5%) el texto va dentro y blanco; si es chica,
+    // afuera a la derecha y en color primario.
+    annotations: [
+      {
+        x: pctYes >= 0.05 ? pctYes / 2 : pctYes,
+        y: "Total",
+        xref: "x",
+        yref: "y",
+        text: pctYes >= 0.05
+          ? `<b>${fmtPct(pctYes, decimals)}</b>`
+          : fmtPct(pctYes, decimals),
+        showarrow: false,
+        xanchor: pctYes >= 0.05 ? "center" : "left",
+        yanchor: "middle",
+        xshift: pctYes >= 0.05 ? 0 : 6,
+        font: {
+          color: pctYes >= 0.05 ? "#ffffff" : primario,
+          size: 12,
+        },
+      },
+    ],
   };
 
   return (

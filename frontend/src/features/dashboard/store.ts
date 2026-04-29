@@ -8,6 +8,8 @@ import {
   DashboardFiltro,
   DashboardLogoConfig,
   DashboardTabId,
+  DashboardVarMode,
+  DashboardVarOverride,
 } from "../../api/client";
 
 // Máximo de logos en el header. Tres es el número práctico que cabe sin
@@ -141,6 +143,36 @@ function sanitizeConfig(c: DashboardConfig): DashboardConfig {
   for (const k of Object.keys(DEFAULT_TABS_ENABLED) as DashboardTabId[]) {
     if (typeof tabsEnabledIn[k] === "boolean") tabsEnabled[k] = tabsEnabledIn[k] as boolean;
   }
+  // dashboard_var_modes — sanitiza modos válidos por variable.
+  const varModesIn =
+    c.dashboard_var_modes && typeof c.dashboard_var_modes === "object" && !Array.isArray(c.dashboard_var_modes)
+      ? c.dashboard_var_modes
+      : {};
+  const varModes: Record<string, DashboardVarMode> = {};
+  for (const [varName, raw] of Object.entries(varModesIn)) {
+    if (!raw || typeof raw !== "object") continue;
+    const m = (raw as DashboardVarMode).modo;
+    // Solo "original" o "recod". El antiguo "ambas" se mapea a "original"
+    // (el comportamiento más conservador: mostrar la versión del XLSForm).
+    const cleanModo: DashboardVarMode["modo"] = m === "recod" ? "recod" : "original";
+    varModes[varName] = { modo: cleanModo };
+  }
+  // dashboard_var_overrides — sanitiza enabled (bool) y label (string).
+  const overridesIn =
+    c.dashboard_var_overrides && typeof c.dashboard_var_overrides === "object" && !Array.isArray(c.dashboard_var_overrides)
+      ? c.dashboard_var_overrides
+      : {};
+  const varOverrides: Record<string, DashboardVarOverride> = {};
+  for (const [varName, raw] of Object.entries(overridesIn)) {
+    if (!raw || typeof raw !== "object") continue;
+    const enabled = typeof (raw as DashboardVarOverride).enabled === "boolean"
+      ? (raw as DashboardVarOverride).enabled
+      : true;
+    const label = typeof (raw as DashboardVarOverride).label === "string"
+      ? (raw as DashboardVarOverride).label
+      : "";
+    varOverrides[varName] = { enabled, label };
+  }
   return {
     ...c,
     titulo: typeof c.titulo === "string" ? c.titulo : "Dashboard",
@@ -150,6 +182,10 @@ function sanitizeConfig(c: DashboardConfig): DashboardConfig {
     logo_alt: logos[0]?.alt ?? "",
     logo_height_px: num(c.logo_height_px, 36),
     tabs_enabled: tabsEnabled,
+    dashboard_var_modes: varModes,
+    dashboard_var_overrides: varOverrides,
+    bar_decimals: Math.max(0, Math.min(2, Math.round(num(c.bar_decimals, 0)))),
+    sm_order: c.sm_order === "desc" ? "desc" : "questionnaire",
     paleta_id: str(c.paleta_id),
     paletas_listas: paletasListas,
     color_primario_override: str(c.color_primario_override),
@@ -317,6 +353,10 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   subtitulo: "",
   logos: [],
   tabs_enabled: { ...DEFAULT_TABS_ENABLED },
+  dashboard_var_modes: {},
+  dashboard_var_overrides: {},
+  bar_decimals: 0,
+  sm_order: "questionnaire",
   logo_data_uri: null,
   logo_alt: "",
   logo_height_px: 36,
@@ -452,6 +492,12 @@ type DashboardStore = {
   setLogoSlot: (index: number, logo: DashboardLogoConfig | null) => void;
   removeLogoSlot: (index: number) => void;
   setTabEnabled: (tab: DashboardTabId, enabled: boolean) => void;
+  setVarMode: (varName: string, mode: DashboardVarMode) => void;
+  setVarModes: (modes: Record<string, DashboardVarMode>) => void;
+  setVarOverride: (varName: string, override: DashboardVarOverride) => void;
+  removeVarOverride: (varName: string) => void;
+  setBarDecimals: (n: number) => void;
+  setSmOrder: (order: "questionnaire" | "desc") => void;
   setPaletaId: (id: string | null) => void;
   setPaletaLista: (listName: string, paleta: Record<string, string>) => void;
   setColorEnPaletaLista: (listName: string, label: string, color: string) => void;
@@ -602,6 +648,53 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
         },
       }),
     ),
+  setVarMode: (varName, mode) =>
+    set((st) =>
+      dirtyPatch({
+        config: {
+          ...st.config,
+          dashboard_var_modes: {
+            ...(st.config.dashboard_var_modes ?? {}),
+            [varName]: mode,
+          },
+        },
+      }),
+    ),
+  setVarModes: (modes) =>
+    set((st) =>
+      dirtyPatch({
+        config: {
+          ...st.config,
+          dashboard_var_modes: { ...(st.config.dashboard_var_modes ?? {}), ...modes },
+        },
+      }),
+    ),
+  setVarOverride: (varName, override) =>
+    set((st) =>
+      dirtyPatch({
+        config: {
+          ...st.config,
+          dashboard_var_overrides: {
+            ...(st.config.dashboard_var_overrides ?? {}),
+            [varName]: override,
+          },
+        },
+      }),
+    ),
+  removeVarOverride: (varName) =>
+    set((st) => {
+      const cur = { ...(st.config.dashboard_var_overrides ?? {}) };
+      delete cur[varName];
+      return dirtyPatch({ config: { ...st.config, dashboard_var_overrides: cur } });
+    }),
+  setBarDecimals: (n) =>
+    set((st) =>
+      dirtyPatch({
+        config: { ...st.config, bar_decimals: Math.max(0, Math.min(2, Math.round(n))) },
+      }),
+    ),
+  setSmOrder: (order) =>
+    set((st) => dirtyPatch({ config: { ...st.config, sm_order: order } })),
   setPaletaId: (id) => set((st) => dirtyPatch({ config: { ...st.config, paleta_id: id } })),
   setPaletaLista: (listName, paleta) =>
     set((st) =>

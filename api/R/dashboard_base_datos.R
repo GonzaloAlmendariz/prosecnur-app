@@ -73,7 +73,7 @@
         tipo = tipo
       )
       if (identical(tipo, "sm")) {
-        spec <- .dashboard_resolver_sm_spec(v, s$rp_inst, s$rp_data)
+        spec <- .dashboard_resolver_sm_spec(v, s$rp_inst, s$rp_data, s = s)
         base$dummies <- lapply(spec$cols, function(col) {
           code <- sub(paste0("^", gsub("([\\W])", "\\\\\\1", paste0(v, "."))),
                       "", col)
@@ -122,7 +122,7 @@
     tipo <- .dashboard_tipo_pregunta(v, s$rp_inst, s$rp_data)
     base_label <- .obtener_label_var(v, s$rp_inst, s$rp_data)
     if (identical(tipo, "sm")) {
-      spec <- .dashboard_resolver_sm_spec(v, s$rp_inst, s$rp_data)
+      spec <- .dashboard_resolver_sm_spec(v, s$rp_inst, s$rp_data, s = s)
       for (col in spec$cols) {
         code <- sub(paste0("^", gsub("([\\W])", "\\\\\\1", paste0(v, "."))),
                     "", col)

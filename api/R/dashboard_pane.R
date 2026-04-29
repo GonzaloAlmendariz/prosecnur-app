@@ -224,15 +224,42 @@
 # Helper utilitario — para SM, devuelve las columnas dummy presentes en
 # data y un mapeo code→label desde choices. Espejo de
 # `resolver_var_spec` mencionado en interactivo_resumen.R:1322.
-.dashboard_resolver_sm_spec <- function(var_madre, rp_inst, df) {
+# Catálogo de variables disponibles del dataset agrupadas por sección
+# del XLSForm. Usado por el endpoint `/api/dashboard/all-vars` y el
+# panel "Datos" del frontend (incluir/excluir + label override).
+.dashboard_all_vars_payload <- function(s) {
+  s <- .dashboard_ctx(s)
+  if (is.null(s$rp_inst) || is.null(s$rp_data)) return(list())
+  secs <- .dashboard_curated_secciones(s)
+  if (!length(secs)) return(list())
+  unname(lapply(names(secs), function(sec_name) {
+    vars <- secs[[sec_name]]
+    list(
+      seccion = as.character(sec_name),
+      vars = lapply(vars, function(v) {
+        list(
+          name = as.character(v),
+          label = tryCatch(
+            .obtener_label_var(v, s$rp_inst, s$rp_data),
+            error = function(e) v
+          )
+        )
+      })
+    )
+  }))
+}
+
+.dashboard_resolver_sm_spec <- function(var_madre, rp_inst, df, s = NULL) {
   cols <- character(0)
   prefix <- paste0(var_madre, ".")
   cols <- grep(paste0("^", gsub("([\\W])", "\\\\\\1", prefix)),
                names(df), value = TRUE)
+  separator <- "."
   if (!length(cols)) {
     prefix2 <- paste0(var_madre, "/")
     cols <- grep(paste0("^", gsub("([\\W])", "\\\\\\1", prefix2)),
                  names(df), value = TRUE)
+    if (length(cols)) separator <- "/"
   }
 
   map_code_to_label <- list()
@@ -260,5 +287,95 @@
     }
   }
 
-  list(cols = cols, map_code_to_label = map_code_to_label)
+  # Recolectar etiquetas y códigos del módulo Codificación. Cuando un
+  # usuario codifica respuestas de un select_multiple, el proceso crea
+  # columnas dummy adicionales `{var}.recod.N` cuyos labels humanos
+  # viven en `s$codif_por_base[[src]]$grupos_recod[[var_madre]]`.
+  recod_codes <- character(0)
+  recod_labels <- list()
+  if (!is.null(s) && is.list(s$codif_por_base)) {
+    for (src_name in names(s$codif_por_base)) {
+      gr <- s$codif_por_base[[src_name]]$grupos_recod[[var_madre]]
+      if (is.list(gr)) {
+        for (g in gr) {
+          codigo <- as.character(g$codigo %||% "")
+          etiqueta <- as.character(g$etiqueta %||% "")
+          if (!nzchar(codigo)) next
+          if (!(codigo %in% recod_codes)) recod_codes <- c(recod_codes, codigo)
+          if (nzchar(etiqueta)) recod_labels[[codigo]] <- etiqueta
+        }
+      }
+    }
+  }
+  # Fallback: detectar columnas recod por PATRÓN. Cubre datasets que vienen
+  # con dummies recodificadas creadas fuera del módulo Codificación de
+  # Pulso (KoBo, scripts externos), donde `grupos_recod` está vacío pero
+  # las dummies igual existen en data. Patrones soportados sobre el code
+  # (parte después de `<var>.` o `<var>/`):
+  #   - "recod"            — single dummy recod
+  #   - "recod.N"          — N-ésima dummy recod
+  #   - "<algo>_recod"     — convención del módulo Codif (parent/code_recod)
+  if (length(cols) > 0) {
+    code_of <- function(col) substring(col, nchar(var_madre) + nchar(separator) + 1L)
+    rx_recod <- "^recod(\\.[0-9]+)?$|_recod$"
+    for (col in cols) {
+      code <- code_of(col)
+      if (grepl(rx_recod, code) && !(code %in% recod_codes)) {
+        recod_codes <- c(recod_codes, code)
+      }
+    }
+  }
+  has_recod <- length(recod_codes) > 0
+
+  # Decidir qué columnas conservar según el modo configurado por el
+  # usuario para esta variable (vive en config$dashboard_var_modes):
+  # - "original" → ocultar las dummies recod (default si no hay decisión)
+  # - "recod"    → ocultar las dummies originales del XLSForm, usar solo recod
+  #
+  # Solo se permite UNA versión por variable — no mostramos ambas. La
+  # configuración vive en el panel "Datos" del frontend.
+  mode_cfg <- "original"
+  if (!is.null(s)) {
+    cfg <- s$dashboard_config
+    vm <- if (is.list(cfg)) cfg$dashboard_var_modes else NULL
+    if (is.list(vm) && is.list(vm[[var_madre]])) {
+      m <- as.character(vm[[var_madre]]$modo %||% "")
+      if (identical(m, "recod")) mode_cfg <- "recod"
+    }
+  }
+  if (has_recod && length(cols) > 0) {
+    is_recod_col <- vapply(cols, function(col) {
+      code <- substring(col, nchar(var_madre) + nchar(separator) + 1L)
+      code %in% recod_codes
+    }, logical(1))
+    if (identical(mode_cfg, "recod")) {
+      cols <- cols[is_recod_col]
+      # Mergear etiquetas de codificación al map (sin pisar XLSForm).
+      # Fallback "Grupo N" cuando no hay etiqueta humana — mejor que
+      # mostrar "recod.1" crudo en la barra.
+      for (codigo in recod_codes) {
+        if (!is.null(map_code_to_label[[codigo]])) next
+        lbl <- recod_labels[[codigo]]
+        if (is.null(lbl) || !nzchar(lbl)) {
+          m <- regmatches(codigo, regexpr("[0-9]+", codigo))
+          lbl <- if (length(m) > 0 && nzchar(m[1])) paste("Grupo", m[1]) else codigo
+        }
+        map_code_to_label[[codigo]] <- lbl
+      }
+    } else {
+      # "original" (default) → quitamos las dummies recod.
+      cols <- cols[!is_recod_col]
+    }
+  } else if (length(recod_labels) > 0) {
+    # Caso edge: hay etiquetas en el catálogo pero no detectamos cols
+    # recod (data sin las dummies). Mergeamos etiquetas igual por si
+    # algún col viejo aparece más adelante.
+    for (codigo in names(recod_labels)) {
+      if (is.null(map_code_to_label[[codigo]])) {
+        map_code_to_label[[codigo]] <- recod_labels[[codigo]]
+      }
+    }
+  }
+
+  list(cols = cols, map_code_to_label = map_code_to_label, separator = separator)
 }

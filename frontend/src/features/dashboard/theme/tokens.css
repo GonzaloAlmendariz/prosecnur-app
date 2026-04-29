@@ -10,14 +10,20 @@
  */
 
 .dashboard-scope {
+  /* Color principal — el ÚNICO valor del tema que rota con la paleta de
+   * marca elegida en Personalizar. Botones, chips, badges y barras del
+   * primario heredan de aquí. */
   --dash-primario: #002457;
-  --dash-fondo: #f5f6fa;
-  --dash-borde: #e6e9f2;
+  /* Grises del fondo y las superficies — NEUTROS, sin tinte de la paleta
+   * para evitar que cambiar a Rojos/Verdes pinte el fondo entero. Solo
+   * los elementos interactivos rotan con el primario. */
+  --dash-fondo: #f5f5f7;
+  --dash-borde: #e3e4e8;
   --dash-texto: #1f2933;
   --dash-texto-suave: #5f6b7a;
-  --dash-superficie: #ffffff;
-  --dash-superficie-2: #fafbff;
-  --dash-header-tabla: #f1f3f9;
+  --dash-superficie: #fafafc;
+  --dash-superficie-2: #efeff2;
+  --dash-header-tabla: #ededf1;
 
   /* Tokens derivados (no en el legacy, pero útiles para sombras/anillos
    * sin que el componente tenga que recalcular) */
@@ -55,10 +61,11 @@
   --dash-ease-press: cubic-bezier(0.2, 0.9, 0.2, 1);
   --dash-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 
-  background:
-    radial-gradient(1200px 600px at 12% -10%, rgba(0, 36, 87, 0.045) 0%, transparent 60%),
-    radial-gradient(900px 500px at 95% 0%, rgba(15, 75, 165, 0.035) 0%, transparent 55%),
-    var(--dash-fondo);
+  /* Fondo del dashboard SIEMPRE gris neutro — la paleta de marca solo
+   * afecta botones, chips, badges y demás elementos interactivos. Sin
+   * gradients de color que choquen al cambiar el primario a una paleta
+   * de rojos o verdes. */
+  background: var(--dash-fondo);
   color: var(--dash-texto);
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
@@ -346,11 +353,11 @@
 }
 .dashboard-scope .dash-resumen-layout > main { min-width: 0; }
 
-/* Cardbox base — espejo de .cardbox / .sidebar-module del legacy. */
+/* Cardbox base — fondo gris suave neutro. SIN tinte del primario para
+ * que cambiar la paleta de marca a Rojos / Verdes no manche el card. */
 .dashboard-scope .dash-cardbox {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--dash-superficie) 96%, var(--dash-primario) 4%) 0%, var(--dash-superficie) 42%);
-  border: 1px solid color-mix(in srgb, var(--dash-borde) 82%, var(--dash-primario) 18%);
+  background: var(--dash-superficie);
+  border: 1px solid var(--dash-borde);
   border-radius: 8px;
   box-shadow: var(--dash-shadow-sm);
   min-width: 0;
@@ -840,11 +847,8 @@
   gap: 7px;
 }
 .dashboard-scope .dash-source-segments {
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--dash-superficie-2) 90%, var(--dash-primario) 10%) 0%,
-      color-mix(in srgb, var(--dash-superficie-2) 98%, var(--dash-primario) 2%) 100%);
-  border: 1px solid color-mix(in srgb, var(--dash-borde) 80%, var(--dash-primario) 20%);
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
   border-radius: 8px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.6),
@@ -1605,5 +1609,341 @@
   .dashboard-scope .dash-palette-row input[type="color"],
   .dashboard-scope .dash-palette-row input[type="text"] {
     grid-column: 2;
+  }
+}
+
+/* ── Panel "Recodificación de variables" dentro de Datos ──────────────
+ * Lista las variables del dataset que tienen tanto opciones del XLSForm
+ * original como dummies recod. Por cada una el usuario marca cuál de las
+ * dos versiones quiere mostrar (NO ambas). */
+.dashboard-scope .dash-source-recod {
+  background: var(--dash-superficie);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 16px 18px;
+}
+.dashboard-scope .dash-source-recod-head {
+  align-items: flex-start;
+  color: var(--dash-texto);
+  display: flex;
+  gap: 12px;
+}
+.dashboard-scope .dash-source-recod-head > svg {
+  color: var(--dash-primario);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.dashboard-scope .dash-source-recod-head strong {
+  color: var(--dash-texto);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.dashboard-scope .dash-source-recod-help {
+  color: var(--dash-texto-suave);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+}
+.dashboard-scope .dash-source-recod-help strong {
+  color: var(--dash-primario);
+  font-weight: 700;
+}
+
+.dashboard-scope .dash-source-recod-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.dashboard-scope .dash-source-recod-row {
+  align-items: center;
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 14px;
+}
+.dashboard-scope .dash-source-recod-row-info {
+  align-items: center;
+  display: flex;
+  flex: 1 1 240px;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.dashboard-scope .dash-source-recod-row-label {
+  color: var(--dash-texto);
+  font-size: 13px;
+  font-weight: 700;
+}
+.dashboard-scope .dash-source-recod-row-name {
+  background: #ffffff;
+  border: 1px solid var(--dash-borde);
+  border-radius: 6px;
+  color: var(--dash-texto-suave);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  padding: 1px 6px;
+}
+.dashboard-scope .dash-source-recod-row-meta {
+  color: var(--dash-texto-suave);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* Toggle dual Original / Recodificada — radios estilo segmented compacto. */
+.dashboard-scope .dash-source-recod-row-toggle {
+  background: #ffffff;
+  border: 1px solid var(--dash-borde);
+  border-radius: 999px;
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 3px;
+}
+.dashboard-scope .dash-source-recod-opt {
+  border-radius: 999px;
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  transition:
+    background var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out);
+}
+.dashboard-scope .dash-source-recod-opt input[type="radio"] {
+  display: none;
+}
+.dashboard-scope .dash-source-recod-opt.is-active {
+  background: var(--dash-primario);
+  color: #ffffff;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-source-recod-opt:hover:not(.is-active) {
+    background: var(--dash-primario-soft);
+    color: var(--dash-primario);
+  }
+}
+
+/* ── Panel "Personalizar variables" dentro de Datos ───────────────────
+ * Lista las variables del XLSForm agrupadas por sección. Cada variable
+ * tiene un toggle (incluir/excluir del dashboard) y un input de label
+ * override. Solo el slot de label override se persiste si difere del
+ * default; lo demás vuelve al state natural al limpiar. */
+.dashboard-scope .dash-source-vars {
+  background: var(--dash-superficie);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 16px 18px;
+}
+.dashboard-scope .dash-source-vars-head {
+  align-items: flex-start;
+  color: var(--dash-texto);
+  display: flex;
+  gap: 12px;
+}
+.dashboard-scope .dash-source-vars-head > svg {
+  color: var(--dash-primario);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.dashboard-scope .dash-source-vars-head strong {
+  color: var(--dash-texto);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.dashboard-scope .dash-source-vars-help {
+  color: var(--dash-texto-suave);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+}
+.dashboard-scope .dash-source-vars-help code {
+  background: var(--dash-superficie-2);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  padding: 1px 4px;
+}
+.dashboard-scope .dash-source-vars-error {
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-md);
+  color: var(--dash-texto-suave);
+  font-size: 12px;
+  margin-top: 14px;
+  padding: 10px 14px;
+}
+
+.dashboard-scope .dash-source-vars-secciones {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.dashboard-scope .dash-source-vars-sec {
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  overflow: hidden;
+}
+.dashboard-scope .dash-source-vars-sec-head {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--dash-texto);
+  cursor: pointer;
+  display: flex;
+  font-size: 12.5px;
+  font-weight: 700;
+  gap: 8px;
+  padding: 10px 14px;
+  text-align: left;
+  width: 100%;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-source-vars-sec-head:hover {
+    background: var(--dash-primario-soft);
+  }
+}
+.dashboard-scope .dash-source-vars-sec-name {
+  flex: 1;
+}
+.dashboard-scope .dash-source-vars-sec-meta {
+  color: var(--dash-texto-suave);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dashboard-scope .dash-source-vars-list {
+  background: #ffffff;
+  border-top: 1px solid var(--dash-borde);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+}
+.dashboard-scope .dash-source-vars-row {
+  align-items: center;
+  border-radius: 6px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 32px minmax(120px, 220px) minmax(0, 1fr) auto;
+  padding: 6px 8px;
+}
+.dashboard-scope .dash-source-vars-row.is-off {
+  opacity: 0.55;
+}
+
+/* Toggle switch compacto para incluir/excluir. */
+.dashboard-scope .dash-source-vars-toggle {
+  cursor: pointer;
+  display: inline-block;
+  height: 18px;
+  position: relative;
+  width: 30px;
+}
+.dashboard-scope .dash-source-vars-toggle input {
+  opacity: 0;
+  position: absolute;
+}
+.dashboard-scope .dash-source-vars-toggle-slider {
+  background: var(--dash-borde);
+  border-radius: 999px;
+  display: block;
+  height: 18px;
+  position: relative;
+  transition: background var(--dash-dur-hover) var(--dash-ease-out);
+  width: 30px;
+}
+.dashboard-scope .dash-source-vars-toggle-slider::after {
+  background: #ffffff;
+  border-radius: 50%;
+  content: "";
+  height: 14px;
+  left: 2px;
+  position: absolute;
+  top: 2px;
+  transition: left var(--dash-dur-hover) var(--dash-ease-out);
+  width: 14px;
+}
+.dashboard-scope .dash-source-vars-toggle input:checked + .dash-source-vars-toggle-slider {
+  background: var(--dash-primario);
+}
+.dashboard-scope .dash-source-vars-toggle input:checked + .dash-source-vars-toggle-slider::after {
+  left: 14px;
+}
+
+.dashboard-scope .dash-source-vars-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dashboard-scope .dash-source-vars-row-name {
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: 4px;
+  color: var(--dash-primario);
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  padding: 1px 5px;
+  width: fit-content;
+}
+.dashboard-scope .dash-source-vars-row-orig {
+  color: var(--dash-texto-suave);
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-scope .dash-source-vars-row-input {
+  font-size: 12.5px;
+  min-width: 0;
+  padding: 5px 10px;
+}
+.dashboard-scope .dash-source-vars-reset {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--dash-borde);
+  border-radius: 999px;
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 24px;
+  justify-content: center;
+  padding: 0;
+  transition:
+    background var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out);
+  width: 24px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-source-vars-reset:hover {
+    background: var(--dash-primario-soft);
+    color: var(--dash-primario);
   }
 }

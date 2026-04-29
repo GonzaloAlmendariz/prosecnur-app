@@ -14,7 +14,7 @@
 # Distribución para una variable SO — counts y % por categoría con su
 # label resuelto. Espejo del map_code_to_label de
 # .preparar_tabla_kpi_safe (interactivo_resumen.R:279).
-.dashboard_dist_so <- function(df, var, rp_inst, palette = NULL) {
+.dashboard_dist_so <- function(df, var, rp_inst, palette = NULL, extra_labels = NULL) {
   if (!(var %in% names(df))) return(list())
   x <- as.character(df[[var]])
   x <- x[!is.na(x) & nzchar(x) & x != "NA"]
@@ -52,6 +52,21 @@
         as.character(unname(labs_attr)),
         as.character(names(labs_attr))
       )
+    }
+  }
+  # Si nos pasaron etiquetas extra (típicamente desde grupos_recod cuando
+  # estamos mostrando la versión recodificada), las mergeamos. Pisamos
+  # primero las del XLSForm; si XLSForm no tiene etiqueta para un código,
+  # se usa la extra.
+  if (is.list(extra_labels) && length(extra_labels)) {
+    if (is.null(map_code_to_label)) {
+      map_code_to_label <- character(0)
+    }
+    for (cd in names(extra_labels)) {
+      cur <- map_code_to_label[cd]
+      if (is.na(cur) || !nzchar(cur)) {
+        map_code_to_label[cd] <- as.character(extra_labels[[cd]])
+      }
     }
   }
 
@@ -98,8 +113,8 @@
 # Distribución para una variable SM (madre) — para cada opción/dummy
 # devuelve {code, label, n_yes, pct_yes, n_total}. Espejo de
 # .plot_sm_dummy_fill (interactivo_resumen.R:1144).
-.dashboard_dist_sm <- function(df, var_madre, rp_inst, palette = NULL) {
-  spec <- .dashboard_resolver_sm_spec(var_madre, rp_inst, df)
+.dashboard_dist_sm <- function(df, var_madre, rp_inst, palette = NULL, s = NULL) {
+  spec <- .dashboard_resolver_sm_spec(var_madre, rp_inst, df, s = s)
   if (!length(spec$cols)) return(list())
 
   lapply(spec$cols, function(col) {
@@ -159,32 +174,89 @@
     max_so_rows = 16L,
     label_var = function(v) .obtener_label_var(v, s$rp_inst, s$rp_data),
     resolver_var_spec_fn = function(var_madre) {
-      .dashboard_resolver_sm_spec(var_madre, s$rp_inst, data)
+      .dashboard_resolver_sm_spec(var_madre, s$rp_inst, data, s = s)
     }
   )
 
+  # Mapa de modos por variable (config.dashboard_var_modes). Se aplica
+  # ANTES de calcular dist/options: si modo="recod" y existe la columna
+  # `<var>_recod`, intercambiamos la fuente para que el resumen muestre
+  # la versión recodificada en lugar de la original. La pregunta sigue
+  # mostrándose con su label humano del XLSForm — solo cambia QUÉ datos
+  # se grafican.
+  cfg <- s$dashboard_config
+  var_modes <- if (is.list(cfg)) (cfg$dashboard_var_modes %||% list()) else list()
+  var_overrides <- if (is.list(cfg)) (cfg$dashboard_var_overrides %||% list()) else list()
+  # Catálogo de etiquetas humanas para los códigos recod, indexado por
+  # variable padre. Viene de `s$codif_por_base[[src]]$grupos_recod`.
+  recod_labels_for <- function(var_original) {
+    out <- list()
+    if (!is.list(s$codif_por_base)) return(out)
+    for (src_name in names(s$codif_por_base)) {
+      gr <- s$codif_por_base[[src_name]]$grupos_recod[[var_original]]
+      if (!is.list(gr)) next
+      for (g in gr) {
+        cd <- as.character(g$codigo %||% "")
+        et <- as.character(g$etiqueta %||% "")
+        if (nzchar(cd) && nzchar(et) && is.null(out[[cd]])) out[[cd]] <- et
+      }
+    }
+    out
+  }
+
   rows <- lapply(spec$rows, function(row) {
-    tipo <- .dashboard_tipo_pregunta(row$var, s$rp_inst, s$rp_data)
+    var_original <- row$var
+    # Override por variable (config.dashboard_var_overrides):
+    # - enabled=false → la variable se omite del resumen.
+    # - label="texto" → reemplaza el label del XLSForm (ej. para
+    #   diferenciar p10_ule de p10_ciam que comparten título).
+    ov <- var_overrides[[var_original]]
+    if (is.list(ov)) {
+      if (isFALSE(ov$enabled)) return(NULL)
+      if (is.character(ov$label) && nzchar(ov$label)) row$label <- as.character(ov$label)
+    }
+    modo <- as.character(var_modes[[var_original]]$modo %||% "original")
+    var_efectiva <- var_original
+    extra_labels <- NULL
+    forced_so <- FALSE
+    if (identical(modo, "recod")) {
+      candidata <- paste0(var_original, "_recod")
+      if (candidata %in% names(data)) {
+        var_efectiva <- candidata
+        extra_labels <- recod_labels_for(var_original)
+        # `<var>_recod` es siempre una sola columna SO con códigos
+        # recodificados. Aunque `<var>` original sea SM, al elegir "recod"
+        # la pregunta pasa a graficarse como SO sobre la columna recod.
+        forced_so <- TRUE
+      }
+    }
+
+    tipo <- if (forced_so) "so" else .dashboard_tipo_pregunta(var_original, s$rp_inst, s$rp_data)
     row$type <- tipo
-    row$list_name <- .dashboard_list_name_for_var(row$var, s$rp_inst)
+    row$list_name <- .dashboard_list_name_for_var(var_original, s$rp_inst)
     if (identical(tipo, "so")) {
       row$dist <- .dashboard_dist_so(
         data,
-        row$var,
+        var_efectiva,
         s$rp_inst,
-        .dashboard_palette_for_var(row$var, s$rp_inst, s)
+        .dashboard_palette_for_var(var_original, s$rp_inst, s),
+        extra_labels = extra_labels
       )
     } else if (identical(tipo, "sm")) {
       row$options <- .dashboard_dist_sm(
         data,
-        row$var,
+        var_efectiva,
         s$rp_inst,
-        .dashboard_palette_for_var(row$var, s$rp_inst, s)
+        .dashboard_palette_for_var(var_original, s$rp_inst, s),
+        s = s
       )
     }
     row$slot_id <- NULL  # campo Shiny, irrelevante para React
     row
   })
+
+  # Las vars con override.enabled=false vuelven NULL — los filtramos aquí.
+  rows <- Filter(Negate(is.null), rows)
 
   list(
     seccion = seccion,

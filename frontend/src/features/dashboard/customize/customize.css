@@ -696,3 +696,134 @@
   color: #ffffff;
   box-shadow: var(--dash-shadow-sm);
 }
+
+/* ── Separador entre los grupos de la admin toolbar (edición vs preview). */
+.dashboard-scope .dash-admin-toolbar-sep {
+  background: var(--dash-borde);
+  display: inline-block;
+  height: 16px;
+  margin: 0 2px;
+  width: 1px;
+}
+
+/* ── Chip flotante para salir de "Vista previa".
+ * Vive arriba a la derecha (no central como la admin toolbar) para
+ * que no compita visualmente con el header del dashboard final. */
+.dashboard-scope .dash-preview-exit {
+  align-items: center;
+  appearance: none;
+  background: var(--dash-primario);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--dash-shadow-md);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: -0.005em;
+  padding: 8px 16px;
+  position: fixed;
+  right: 18px;
+  top: 18px;
+  transition:
+    background var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-press);
+  z-index: 60;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-preview-exit:hover {
+    background: color-mix(in srgb, var(--dash-primario) 88%, #000 12%);
+  }
+}
+.dashboard-scope .dash-preview-exit:active {
+  transform: scale(0.97);
+}
+
+/* ── Marca → presets de color principal del dashboard. */
+.dashboard-scope .dash-customize-theme-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+.dashboard-scope .dash-customize-theme-card {
+  align-items: center;
+  appearance: none;
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-md);
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  transition:
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    background var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-press);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-customize-theme-card:hover {
+    border-color: color-mix(in srgb, var(--dash-borde) 40%, var(--dash-primario) 60%);
+  }
+}
+.dashboard-scope .dash-customize-theme-card.is-active {
+  background: var(--dash-primario-soft);
+  border-color: var(--dash-primario);
+}
+.dashboard-scope .dash-customize-theme-card:active {
+  transform: scale(0.98);
+}
+.dashboard-scope .dash-customize-theme-swatch {
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 2px 6px rgba(15, 23, 42, 0.12);
+  flex-shrink: 0;
+  height: 30px;
+  width: 30px;
+}
+.dashboard-scope .dash-customize-theme-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dashboard-scope .dash-customize-theme-label {
+  color: var(--dash-texto);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.dashboard-scope .dash-customize-theme-hint {
+  color: var(--dash-texto-suave);
+  font-size: 11px;
+}
+
+.dashboard-scope .dash-customize-theme-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  max-width: 320px;
+}
+.dashboard-scope .dash-customize-theme-custom-row {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+.dashboard-scope .dash-customize-theme-custom-row input[type="color"] {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--dash-borde);
+  border-radius: 6px;
+  cursor: pointer;
+  height: 32px;
+  padding: 2px;
+  width: 40px;
+}
+.dashboard-scope .dash-customize-theme-custom-row input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.dashboard-scope .dash-customize-theme-custom-row input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 4px;
+}

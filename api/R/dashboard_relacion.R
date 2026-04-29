@@ -10,9 +10,9 @@
 
 # Resuelve catálogo {code, label} ordenado para una variable SO o
 # para los dummies de una SM madre. Sirve como eje categórico.
-.dashboard_relacion_levels <- function(var, tipo, rp_inst, df) {
+.dashboard_relacion_levels <- function(var, tipo, rp_inst, df, s = NULL) {
   if (identical(tipo, "sm")) {
-    spec <- .dashboard_resolver_sm_spec(var, rp_inst, df)
+    spec <- .dashboard_resolver_sm_spec(var, rp_inst, df, s = s)
     if (!length(spec$cols)) return(list())
     lapply(spec$cols, function(col) {
       code <- sub(paste0("^", gsub("([\\W])", "\\\\\\1", paste0(var, "."))),
@@ -80,7 +80,7 @@
 # - columnas = niveles de var_segmento (+ "Total")
 # - celdas[i][j] = {n, pct_col, pct_row}
 .dashboard_relacion_one_cross <- function(df, var_principal, var_segmento,
-                                          rp_inst, palette = NULL) {
+                                          rp_inst, palette = NULL, s = NULL) {
   if (!nrow(df)) {
     return(list(
       n_total = 0L,
@@ -93,8 +93,8 @@
 
   tipo_p <- .dashboard_tipo_pregunta(var_principal, rp_inst, df)
   tipo_s <- .dashboard_tipo_pregunta(var_segmento, rp_inst, df)
-  niveles_p <- .dashboard_relacion_levels(var_principal, tipo_p, rp_inst, df)
-  niveles_s <- .dashboard_relacion_levels(var_segmento, tipo_s, rp_inst, df)
+  niveles_p <- .dashboard_relacion_levels(var_principal, tipo_p, rp_inst, df, s = s)
+  niveles_s <- .dashboard_relacion_levels(var_segmento, tipo_s, rp_inst, df, s = s)
   if (!length(niveles_p) || !length(niveles_s)) {
     return(list(
       n_total = nrow(df),
@@ -192,7 +192,7 @@
   iter_var <- if (is.list(iterar)) as.character(iterar$var %||% "")[1] else ""
   if (!nzchar(iter_var) || !(iter_var %in% names(data))) {
     cruce <- .dashboard_relacion_one_cross(
-      data, var_principal, var_segmento, s$rp_inst, paleta_p
+      data, var_principal, var_segmento, s$rp_inst, paleta_p, s = s
     )
     return(list(
       n_total = as.integer(nrow(data)),
@@ -203,7 +203,7 @@
 
   # Iteración: split por niveles de iter_var (SO/SM).
   tipo_iter <- .dashboard_tipo_pregunta(iter_var, s$rp_inst, data)
-  niveles_iter <- .dashboard_relacion_levels(iter_var, tipo_iter, s$rp_inst, data)
+  niveles_iter <- .dashboard_relacion_levels(iter_var, tipo_iter, s$rp_inst, data, s = s)
   if (!length(niveles_iter)) {
     return(list(cruces = list(), n_total = 0L))
   }
@@ -212,7 +212,7 @@
     keep <- .dashboard_pertenece_a_nivel(data, iter_var, tipo_iter, nv)
     sub <- data[keep, , drop = FALSE]
     cruce <- .dashboard_relacion_one_cross(
-      sub, var_principal, var_segmento, s$rp_inst, paleta_p
+      sub, var_principal, var_segmento, s$rp_inst, paleta_p, s = s
     )
     c(list(nivel = nv$label, nivel_code = nv$code), cruce)
   })

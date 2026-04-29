@@ -131,9 +131,17 @@
   files <- s$files %||% list()
   xls <- Filter(function(f) identical(f$kind, "xlsform"), files)
   dat <- Filter(function(f) f$kind %in% c("data", "sav"), files)
+  # IMPORTANTE: lapply(xls, .dashboard_candidate_item, ...) pasaría el item
+  # como PRIMER argumento posicional (= `path`), no como `meta`. Eso disparaba
+  # `file.info(path)` con una lista y devolvía "[E_INTERNAL] invalid filename
+  # argument" cuando el usuario abría "Datos" con archivos ya subidos.
   list(
-    xlsforms = lapply(xls, .dashboard_candidate_item, kind = "xlsform", origin = "session"),
-    data = lapply(dat, .dashboard_candidate_item, kind = "data", origin = "session")
+    xlsforms = lapply(xls, function(f) .dashboard_candidate_item(
+      meta = f, kind = "xlsform", origin = "session"
+    )),
+    data = lapply(dat, function(f) .dashboard_candidate_item(
+      meta = f, kind = "data", origin = "session"
+    ))
   )
 }
 
