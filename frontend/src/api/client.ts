@@ -2240,6 +2240,23 @@ export async function apiDashboardAllVars() {
   );
 }
 
+// Descarga el dashboard como un .html autosuficiente. Devuelve el blob
+// y el filename sugerido por el backend (Content-Disposition).
+export async function apiDashboardExport(): Promise<{ blob: Blob; filename: string }> {
+  const res = await apiFetch("/api/dashboard/export", { headers: headers() });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const code = body?.error?.code ?? "E_UNKNOWN";
+    const msg = body?.error?.message ?? res.statusText;
+    throw new Error(`[${code}] ${msg}`);
+  }
+  const blob = await res.blob();
+  const cd = res.headers.get("Content-Disposition") ?? "";
+  const m = /filename="([^"]+)"/.exec(cd);
+  const filename = m?.[1] ?? `dashboard-${new Date().toISOString().slice(0, 10)}.html`;
+  return { blob, filename };
+}
+
 export async function apiDashboardConfigGet() {
   return handle<{ ok: true; config: DashboardConfig }>(
     await apiFetch("/api/dashboard/config", { headers: headers() }),

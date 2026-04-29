@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:standalone": "tsc -b && vite build --config vite.standalone.config.ts",
     "preview": "vite preview",
     "test": "vitest run"
   },

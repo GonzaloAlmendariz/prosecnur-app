@@ -26,9 +26,12 @@ frontend/tsconfig.tsbuildinfo
 dist/
 dist.nosync/
 
-# Frontend build output is served from api/inst/www, but git-ignored (regenerated)
+# Frontend build outputs (regenerados en build):
+#   - api/inst/www/        : bundle del Electron (con code splitting)
+#   - api/inst/standalone/ : bundle único usado por /api/dashboard/export
 api/inst/www/*
 !api/inst/www/.gitkeep
+api/inst/standalone/
 
 # Editor
 .vscode/

@@ -111,6 +111,28 @@ mount_dashboard <- function(pr) {
       payload <- .dashboard_all_vars_payload(s)
       list(ok = TRUE, secciones = payload)
     })) |>
+    # Exporta el dashboard como un único HTML autosuficiente con WebR.
+    # El cliente recibe un blob text/html para descargar. Bypass del
+    # serializer global JSON: escribimos directo a `res$body` y devolvemos
+    # `res` para que plumber no re-serialice.
+    plumber::pr_get("/api/dashboard/export", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      html <- .dashboard_export_html(s)
+      cfg <- .dashboard_config_with_defaults(s$dashboard_config)
+      titulo <- as.character(cfg$titulo %||% "dashboard")
+      slug <- gsub("[^A-Za-z0-9_.-]+", "-", titulo)
+      slug <- sub("^-+|-+$", "", slug)
+      if (!nzchar(slug)) slug <- "dashboard"
+      fecha <- format(Sys.Date(), "%Y%m%d")
+      res$setHeader("Content-Type", "text/html; charset=utf-8")
+      res$setHeader(
+        "Content-Disposition",
+        sprintf('attachment; filename="%s-%s.html"', tolower(slug), fecha)
+      )
+      res$body <- charToRaw(enc2utf8(html))
+      res
+    })) |>
     plumber::pr_get("/api/dashboard/recod-vars", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)

@@ -1,8 +1,8 @@
 import "./theme/tokens.css";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Eye, EyeOff, Palette, Settings, UploadCloud } from "lucide-react";
-import type { DashboardTabId } from "../../api/client";
+import { Download, Eye, EyeOff, Loader2, Palette, Settings, UploadCloud } from "lucide-react";
+import { apiDashboardExport, type DashboardTabId } from "../../api/client";
 import { DashboardCurationGate } from "./curation/DashboardCurationGate";
 import { DashboardHeader } from "./header/DashboardHeader";
 import { DashboardCustomizeDialog } from "./customize/DashboardCustomizeDialog";
@@ -70,6 +70,30 @@ export default function DashboardPage() {
   // edición para que el editor pueda ver cómo se verá el dashboard
   // exportado antes de hacer deploy. Solo de sesión, no se persiste.
   const [previewMode, setPreviewMode] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  async function handleExport() {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const { blob, filename } = await apiDashboardExport();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Liberar el blob después de un tick — algunos browsers necesitan
+      // que la URL siga viva durante el download.
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (e) {
+      setExportError((e as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   // En vista previa cualquier diálogo abierto debe cerrarse — no son
   // parte del producto final que vería el lector.
@@ -191,7 +215,23 @@ export default function DashboardPage() {
             >
               <Eye size={13} /> Vista previa
             </button>
+            <button
+              type="button"
+              disabled={!hasDashboardSource || exporting}
+              onClick={handleExport}
+              title="Descargar el dashboard como un .html autosuficiente con WebR"
+            >
+              {exporting
+                ? <Loader2 size={13} className="dash-admin-spin" />
+                : <Download size={13} />}
+              Exportar HTML
+            </button>
           </div>
+          {exportError && (
+            <div className="dash-admin-toolbar-error" role="alert">
+              No se pudo exportar: {exportError}
+            </div>
+          )}
         </div>
       )}
 
