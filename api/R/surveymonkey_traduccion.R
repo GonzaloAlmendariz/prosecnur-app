@@ -501,6 +501,50 @@
   }
   spec$survey <- survey
 
+  # 1.5 Renombrar listas: lst_q<NNNN> → lst_p<N>. El remap de preguntas
+  #     ya tiene q<NNNN>→p<N>; lo extendemos al naming de las listas para
+  #     mantener convención consistente. Aplica a survey$type
+  #     (formato "select_one lst_q0007") y a choices$list_name.
+  list_remap <- character(0)
+  for (q_old in names(remap)) {
+    m <- regmatches(q_old, regexec("^[qQ]0*([0-9]+)$", q_old))[[1]]
+    if (length(m) >= 2L) {
+      list_remap[[paste0("lst_", q_old)]] <- paste0("lst_p", as.integer(m[2]))
+    }
+  }
+  if (length(list_remap)) {
+    for (oldn in names(list_remap)) {
+      pat <- paste0("\\b", oldn, "\\b")
+      spec$survey$type <- gsub(pat, list_remap[[oldn]], spec$survey$type, perl = TRUE)
+      if (length(spec$multi_specs)) {
+        for (grp in names(spec$multi_specs)) {
+          msp <- spec$multi_specs[[grp]]
+          if (!is.null(msp$mother) && "type" %in% names(msp$mother)) {
+            msp$mother$type <- gsub(pat, list_remap[[oldn]], msp$mother$type, perl = TRUE)
+          }
+          if (length(msp$questions)) {
+            for (k in seq_along(msp$questions)) {
+              q <- msp$questions[[k]]
+              if ("type" %in% names(q)) q$type <- gsub(pat, list_remap[[oldn]], q$type, perl = TRUE)
+              msp$questions[[k]] <- q
+            }
+          }
+          spec$multi_specs[[grp]] <- msp
+        }
+      }
+      if (!is.null(spec$question_specs) && "type" %in% names(spec$question_specs)) {
+        spec$question_specs$type <- gsub(pat, list_remap[[oldn]], spec$question_specs$type, perl = TRUE)
+      }
+    }
+    if (!is.null(spec$choices) && "list_name" %in% names(spec$choices)) {
+      hits <- which(spec$choices$list_name %in% names(list_remap))
+      if (length(hits)) {
+        spec$choices$list_name[hits] <- unname(list_remap[spec$choices$list_name[hits]])
+      }
+    }
+  }
+  spec$list_remap <- list_remap
+
   # 2. Question_specs y multi_specs/battery_specs: actualizar nombres para
   #    que `surveymonkey_data` produzca columnas con los nombres ya remapeados.
   if (!is.null(spec$question_specs) && nrow(spec$question_specs)) {
