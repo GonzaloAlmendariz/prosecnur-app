@@ -419,7 +419,7 @@
     if (identical(tp, "begin_group") && grepl("^section_pag_", nm %||% "")) {
       flush_label()
       page_seq <- page_seq + 1L
-      page_remap[[nm]] <<- sprintf("Pag%d", page_seq)
+      page_remap[[nm]] <- sprintf("Pag%d", page_seq)
       current_page <- nm
       current_first_q <- NA_character_
       current_last_q <- NA_character_
@@ -433,10 +433,12 @@
       }
       next
     }
-    if (!is.na(current_page) && !is.na(nm) && nzchar(nm) && !is.na(name_remap[[nm]])) {
+    if (!is.na(current_page) && !is.na(nm) && nzchar(nm) && (nm %in% names(name_remap))) {
       mapped <- name_remap[[nm]]
-      if (is.na(current_first_q)) current_first_q <- mapped
-      current_last_q <- mapped
+      if (!is.na(mapped)) {
+        if (is.na(current_first_q)) current_first_q <- mapped
+        current_last_q <- mapped
+      }
     }
   }
   flush_label()
