@@ -165,8 +165,13 @@ vd_heatmap_semaforo <- function(title, x, y, z,
                                  subtitle = NULL,
                                  actions = list(),
                                  meta = list()) {
-  x <- as.character(x)
-  x <- .vd_wrap_axis_label(.vd_humanize_axis_label(x), width = 14L)
+  # Etiquetas del eje X: humanizar (sustituir _ por espacio) sin envolver
+  # con `<br>`. Antes usábamos `.vd_wrap_axis_label(width = 14)` que en
+  # secciones tipo "section_pag_19" producía un colapso visual ilegible
+  # (todas las etiquetas se reducían a "g\nr\n..." en el render). Ahora
+  # confiamos en el `tickangle` para acomodar etiquetas largas sin
+  # sobrellenar el área de plot.
+  x <- .vd_humanize_axis_label(as.character(x))
   y <- .vd_humanize_axis_label(as.character(y))
   if (!is.matrix(z)) z <- as.matrix(z)
   # Escala semafórica simple 0 → verde, medio → ámbar, alto → rojo.
@@ -199,13 +204,24 @@ vd_heatmap_semaforo <- function(title, x, y, z,
     trace$texttemplate <- "%{text}"
     trace$textfont <- list(color = "white", size = 10)
   }
+  # Cuando hay muchas categorías en X (típicamente >6 secciones) las
+  # etiquetas chocan en horizontal. Rotamos a -45° y damos margen bottom
+  # generoso para acomodarlas. Reducimos el tamaño de fuente para que
+  # quepan más sin saltar a múltiples líneas.
+  n_x <- length(x)
+  tick_angle <- if (n_x > 6L) -45 else 0
+  font_size <- if (n_x > 12L) 9L else if (n_x > 6L) 10L else 11L
+  bottom_margin <- if (n_x > 6L) 160L else 96L
   layout <- utils::modifyList(
     pulso_plotly_layout_base(
-      height = max(360L, 48L * length(y) + 180L),
-      margin = list(l = 150, r = 32, t = 16, b = 108)
+      height = max(360L, 48L * length(y) + 180L) + (bottom_margin - 108L),
+      margin = list(l = 150, r = 32, t = 16, b = bottom_margin)
     ),
     list(
-      xaxis = pulso_plotly_axis(tickangle = 0, side = "bottom", automargin = TRUE),
+      xaxis = utils::modifyList(
+        pulso_plotly_axis(tickangle = tick_angle, side = "bottom", automargin = TRUE),
+        list(tickfont = list(size = font_size))
+      ),
       yaxis = pulso_plotly_axis(autorange = "reversed", automargin = TRUE)
     )
   )

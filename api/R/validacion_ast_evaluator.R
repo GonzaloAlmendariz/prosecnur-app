@@ -175,12 +175,26 @@ evaluate_rules <- function(rules,
   missing_info <- .rule_missing_columns(rule, names(data))
   missing_cols <- missing_info$all
   if (length(missing_cols)) {
-    resumen_base$estado <- "no_aplicable"
-    resumen_base$issue_code <- "missing_columns"
-    resumen_base$detalle <- .format_missing_columns_detail(missing_info)
-    resumen_base$n_inconsistencias <- 0L
-    resumen_base$porcentaje <- 0
-    return(list(flag_vec = NULL, resumen = resumen_base, logs = list()))
+    # Rescate para select_multiple exportado en columnas dummy:
+    # SurveyMonkey (y otros exports) descomponen la pregunta canónica
+    # `q0007` en columnas binarias `q0007_0001`, `q0007_0002`, ...
+    # Si la regla es `required` sobre el target ausente y encontramos
+    # esas dummies, reescribimos el predicate como "todas las dummies
+    # están vacías" en vez de marcar la regla como no_aplicable. Sin
+    # este rescate, todas las preguntas select_multiple required de
+    # encuestas SM se reportaban como "no aplica" — falsos negativos.
+    rescue <- .try_rescue_select_multiple(rule, missing_info, names(data))
+    if (!is.null(rescue)) {
+      rule <- rescue$rule
+      resumen_base$detalle <- rescue$note
+    } else {
+      resumen_base$estado <- "no_aplicable"
+      resumen_base$issue_code <- "missing_columns"
+      resumen_base$detalle <- .format_missing_columns_detail(missing_info)
+      resumen_base$n_inconsistencias <- 0L
+      resumen_base$porcentaje <- 0
+      return(list(flag_vec = NULL, resumen = resumen_base, logs = list()))
+    }
   }
 
   # 3b. Reglas que dependen de today() requieren fecha de captura usable.
@@ -412,6 +426,65 @@ evaluate_rules <- function(rules,
     gate = gate,
     drivers = drivers,
     all = all
+  )
+}
+
+# Detecta columnas dummy de un select_multiple exportado por SM/ODK.
+# Convenciones soportadas (cualquiera de estas, en orden):
+#   q0007_0001, q0007_0002, ...   (SAV de SurveyMonkey, padding 4)
+#   q0007_1, q0007_2, ...         (ODK clásico)
+#   q0007/1, q0007/2, ...         (ODK con slash)
+#   q0007.opt1, q0007.opt2, ...   (xlsx custom con punto)
+# Devuelve `character(0)` si no encuentra ninguna.
+.find_select_multiple_dummies <- function(target, data_names) {
+  if (!nzchar(target)) return(character(0))
+  pat <- sprintf("^%s[_/.][^_/.]+$", gsub("([.+*?^$()\\[\\]])", "\\\\\\1", target))
+  matches <- data_names[grepl(pat, data_names)]
+  # Filtrar columnas tipo "_other" o "_specify" que NO son opciones marcables
+  # sino texto libre asociado.
+  matches <- matches[!grepl("_(other|specify|otro|texto)$", matches, ignore.case = TRUE)]
+  matches
+}
+
+# Si el target del rule falta pero hay dummies de select_multiple, devuelve
+# una versión del rule con el predicate reescrito como "todas las dummies
+# están vacías" (= violación de required: el respondiente no marcó nada).
+# Devuelve NULL si no aplica el rescate.
+.try_rescue_select_multiple <- function(rule, missing_info, data_names) {
+  if (!identical(rule$tipo_regla, "required")) return(NULL)
+  # Solo aplica si lo único que falta es el target.
+  if (length(missing_info$compare) > 0L ||
+      length(missing_info$gate) > 0L ||
+      length(missing_info$drivers) > 0L) {
+    return(NULL)
+  }
+  if (length(missing_info$target) != 1L) return(NULL)
+  target <- missing_info$target[1]
+  dummies <- .find_select_multiple_dummies(target, data_names)
+  if (!length(dummies)) return(NULL)
+
+  # Fallback legacy: la carga nueva normaliza estas dummies antes de llegar al
+  # evaluador. Si aun asi entra data vieja no normalizada, required se viola
+  # solo cuando ninguna dummy esta marcada como 1. NA, vacio y 0 cuentan como
+  # "no seleccionada".
+  preds <- lapply(dummies, function(d) ast_not(ast_compare_const(d, "==", 1)))
+  pred <- if (length(preds) == 1L) preds[[1]] else do.call(ast_and, preds)
+  rule$predicate <- pred
+  # Actualizar variable_roles para que el resto del pipeline (drill, etc.)
+  # sepa que ahora estamos validando las dummies, no el canónico.
+  if (!is.null(rule$variable_roles)) {
+    rule$variable_roles$target <- dummies
+    rule$variable_roles$all <- unique(c(dummies,
+                                         rule$variable_roles$compare %||% character(0),
+                                         rule$variable_roles$gate %||% character(0),
+                                         rule$variable_roles$drivers %||% character(0)))
+  }
+  rule$variables <- unique(c(dummies, rule$variables %||% character(0)))
+  list(
+    rule = rule,
+    note = sprintf("Pregunta select_multiple validada contra %d columnas dummy: %s.",
+                   length(dummies),
+                   paste(utils::head(dummies, 6), collapse = ", "))
   )
 }
 

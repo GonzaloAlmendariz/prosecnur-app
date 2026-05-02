@@ -87,6 +87,73 @@
   )
 }
 
+# Re-normaliza la data restaurada de un .pulso viejo. Los .pulso guardados
+# antes de v0.14 cachean `rp_data` (single-base) y `rp_data_sources[[base]]`
+# (multi-base) sin pasar por `normalize_data_for_xlsform` — entonces sus
+# select_multiple siguen como dummies sueltas (`q0007_0001..0007`), las
+# preguntas SM aparecen como `q0001` en vez de `p1`, y el evaluador reporta
+# decenas de "no aplicable" + falsos positivos.
+#
+# Detección barata: `attr(rp_data, "xlsform_normalized")` es NULL. Si es así,
+# corremos el normalizador y reescribimos el cache en sesión. También
+# invalidamos `evaluacion` para forzar re-auditoría (los flags están escritos
+# contra los nombres viejos).
+.pulso_renormalize_after_load <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(invisible(NULL))
+  inst <- s$rp_inst %||% s$instrumento
+  changed <- FALSE
+
+  renorm_one <- function(data, instrumento) {
+    if (is.null(data) || is.null(instrumento)) return(NULL)
+    if (!is.null(attr(data, "xlsform_normalized"))) return(NULL)
+    out <- tryCatch(
+      normalize_data_for_xlsform(data, instrumento),
+      error = function(e) NULL
+    )
+    if (is.null(out) || is.null(attr(out, "xlsform_normalized"))) return(NULL)
+    out
+  }
+
+  if (!is.null(s$rp_data) && !is.null(inst)) {
+    new_rp <- renorm_one(s$rp_data, inst)
+    if (!is.null(new_rp)) {
+      s$rp_data <- new_rp
+      changed <- TRUE
+    }
+  }
+
+  # Multi-base: cada base del estudio tiene su propio rp_data + rp_inst.
+  if (length(s$rp_data_sources) && length(s$estudio$bases)) {
+    for (b in names(s$rp_data_sources)) {
+      base_inst <- s$rp_inst_sources[[b]] %||% inst
+      if (is.null(base_inst)) next
+      new_b <- renorm_one(s$rp_data_sources[[b]], base_inst)
+      if (!is.null(new_b)) {
+        s$rp_data_sources[[b]] <- new_b
+        changed <- TRUE
+      }
+    }
+  }
+
+  if (!changed) return(invisible(NULL))
+
+  # La auditoría cacheada está escrita contra los nombres viejos: invalidar
+  # para que la próxima visita a Validación corra una auditoría fresca con
+  # la data ya normalizada.
+  s$evaluacion <- NULL
+  if (length(s$estudio$bases)) {
+    for (b in names(s$estudio$bases)) {
+      if (!is.null(s$estudio$bases[[b]]$validacion)) {
+        s$estudio$bases[[b]]$validacion$evaluacion <- NULL
+      }
+    }
+  }
+
+  .session_env[[sid]] <- s
+  invisible(NULL)
+}
+
 # Recolecta los file_ids que son INPUTS del proyecto — los que el state
 # referencia explícitamente desde sus campos canónicos. Excluye outputs
 # generados por el pipeline (codebooks, reportes, planes exportados,
@@ -385,6 +452,7 @@ load_pulso <- function(src_path) {
   # 7) Rebuild de caches dashboard (rp_inst / rp_data) a partir de los
   #    file_ids persistidos en dashboard_source. No falla si no hay fuente.
   .dashboard_rebuild_after_load(new_sid)
+  .pulso_renormalize_after_load(new_sid)
 
   list(
     ok            = TRUE,

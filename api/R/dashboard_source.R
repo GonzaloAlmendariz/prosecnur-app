@@ -229,6 +229,7 @@
 
   rp_inst <- reporte_instrumento(path = xls_meta$path)
   data_df <- .read_data_any_path(dat_meta$path, dat_meta$ext)
+  data_df <- normalize_data_for_xlsform(data_df, rp_inst)
   rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
   source <- list(

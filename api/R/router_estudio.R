@@ -106,6 +106,7 @@ mount_estudio <- function(pr) {
       # Parsear instrumento + data igual que hace /api/system/demo.
       rp_inst <- reporte_instrumento(path = xls_meta$path)
       data_df <- .read_data_from_path(dat_meta$path, dat_meta$ext)
+      data_df <- normalize_data_for_xlsform(data_df, rp_inst)
       rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
       base_meta <- estudio_add_base(
@@ -191,6 +192,7 @@ mount_estudio <- function(pr) {
       # produce el objeto rp_inst que el estudio multi-base necesita).
       rp_inst <- reporte_instrumento(path = xls_meta$path)
       data_df <- .read_data_from_path(dat_meta$path, dat_meta$ext)
+      data_df <- normalize_data_for_xlsform(data_df, rp_inst)
       rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
       data_ext <- tolower(dat_meta$ext %||% tools::file_ext(dat_meta$original_name %||% dat_meta$path))
@@ -314,6 +316,7 @@ mount_estudio <- function(pr) {
         dat_meta <- get_file(sid, dat_fid)
         new_data_ext <- tolower(dat_meta$ext %||% tools::file_ext(dat_meta$original_name %||% dat_meta$path))
         data_df <- .read_data_from_path(dat_meta$path, dat_meta$ext)
+        data_df <- normalize_data_for_xlsform(data_df, rp_inst_efectivo)
         new_rp_data <- reporte_data(data_df, instrumento = rp_inst_efectivo)
         n_filas_new <- as.integer(nrow(data_df))
         n_cols_new  <- as.integer(ncol(data_df))
@@ -322,6 +325,7 @@ mount_estudio <- function(pr) {
         # nuevo instrumento para mantener consistencia.
         dat_meta <- get_file(sid, base_actual$data_file_id)
         data_df <- .read_data_from_path(dat_meta$path, dat_meta$ext)
+        data_df <- normalize_data_for_xlsform(data_df, new_rp_inst)
         new_rp_data <- reporte_data(data_df, instrumento = new_rp_inst)
         n_filas_new <- as.integer(nrow(data_df))
         n_cols_new  <- as.integer(ncol(data_df))

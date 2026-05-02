@@ -1,5 +1,16 @@
 estructura_instrumento <- function(inst) {
   sm <- inst$meta$section_map
+  has_value <- function(x) !is.na(x) & nzchar(trimws(as.character(x)))
+  field <- function(df, col, i, fallback = NA_character_) {
+    if (is.null(df) || !(col %in% names(df))) return(fallback)
+    val <- df[[col]][i]
+    if (length(val) == 0L || is.na(val)) fallback else as.character(val)
+  }
+  first_col <- function(df, candidates) {
+    hit <- candidates[candidates %in% names(df)][1]
+    hit %||% NA_character_
+  }
+
   secciones <- if (is.null(sm) || nrow(sm) == 0) list() else {
     out <- vector("list", nrow(sm))
     for (i in seq_len(nrow(sm))) {
@@ -16,9 +27,26 @@ estructura_instrumento <- function(inst) {
   }
 
   survey <- inst$survey
+  choices <- inst$choices %||% data.frame()
   skip_types <- c("begin_group", "end_group", "begin_repeat", "end_repeat",
                   "start", "end", "today", "deviceid", "note", "calculate")
-  has_value <- function(x) !is.na(x) & nzchar(trimws(as.character(x)))
+  choice_label_col <- first_col(choices, c("label", "label::es", "label::Spanish (ES)", "label_spanish_es"))
+  choice_items_for <- function(list_name) {
+    if (is.null(choices) || !nrow(choices) || is.na(list_name) || !nzchar(list_name) ||
+        !"list_name" %in% names(choices) || !"name" %in% names(choices)) {
+      return(list())
+    }
+    rows <- choices[as.character(choices$list_name) == as.character(list_name), , drop = FALSE]
+    if (!nrow(rows)) return(list())
+    lapply(seq_len(nrow(rows)), function(j) {
+      label <- if (!is.na(choice_label_col)) field(rows, choice_label_col, j, field(rows, "name", j, ""))
+               else field(rows, "name", j, "")
+      list(
+        name = field(rows, "name", j, ""),
+        label = label
+      )
+    })
+  }
 
   preguntas <- list()
   if (!is.null(survey) && nrow(survey) > 0) {
@@ -27,16 +55,37 @@ estructura_instrumento <- function(inst) {
       tt <- as.character(survey$type[i] %||% "")
       if (tb %in% skip_types || tt %in% skip_types) next
       if (!nzchar(as.character(survey$name[i] %||% ""))) next
+      list_name <- field(survey, "list_name", i, "")
+      if (!nzchar(list_name) && grepl("^select_(one|multiple)\\b", tt)) {
+        list_name <- sub("^select_(one|multiple)\\s+([^\\s]+).*$", "\\2", tt)
+        if (identical(list_name, tt)) list_name <- ""
+      }
+      relevant_expr <- field(survey, "relevant", i, "")
+      constraint_expr <- field(survey, "constraint", i, "")
+      calculation_expr <- field(survey, "calculation", i, "")
+      choice_filter_expr <- field(survey, "choice_filter", i, "")
+      required_expr <- field(survey, "required", i, "")
       preguntas[[length(preguntas) + 1]] <- list(
-        name = as.character(survey$name[i]),
-        label = as.character(survey$label[i] %||% survey$name[i]),
+        row_index = as.integer(i),
+        name = field(survey, "name", i, ""),
+        label = field(survey, "label", i, field(survey, "name", i, "")),
+        hint = field(survey, "hint", i, ""),
+        appearance = field(survey, "appearance", i, ""),
         tipo = tb,
+        type_raw = tt,
+        list_name = list_name,
         seccion = as.character(survey$group_name[i] %||% ""),
-        required = has_value(survey$required[i]) && tolower(trimws(as.character(survey$required[i]))) %in%
+        required = has_value(required_expr) && tolower(trimws(as.character(required_expr))) %in%
           c("true", "true()", "yes", "si", "s"),
-        relevant = has_value(survey$relevant[i]),
-        constraint = has_value(survey$constraint[i]),
-        calculate = has_value(survey$calculation[i])
+        relevant = has_value(relevant_expr),
+        constraint = has_value(constraint_expr),
+        calculate = has_value(calculation_expr),
+        choice_filter = has_value(choice_filter_expr),
+        relevant_expr = relevant_expr,
+        constraint_expr = constraint_expr,
+        calculation_expr = calculation_expr,
+        choice_filter_expr = choice_filter_expr,
+        choices = choice_items_for(list_name)
       )
     }
   }
@@ -141,6 +190,7 @@ estudio_init_default_base <- function(sid) {
   # Computar reportes (caros: parsea xlsform + lee data completa).
   rp_inst <- reporte_instrumento(path = xls_meta$path)
   data_df <- .read_data_any_path(dat_meta$path, dat_meta$ext)
+  data_df <- normalize_data_for_xlsform(data_df, rp_inst)
   rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
   estudio_ensure(sid)

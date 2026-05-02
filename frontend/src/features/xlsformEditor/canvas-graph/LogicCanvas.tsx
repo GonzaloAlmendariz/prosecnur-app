@@ -49,6 +49,9 @@ export type LogicCanvasProps = {
   onClose: () => void;
   structure: BuilderStructure | null;
   catalogs: CatalogSummary[];
+  readOnly?: boolean;
+  title?: string;
+  backLabel?: string;
   onSelectRow?: (rowIndex: number) => void;
   /** Escribe la expresión de visibilidad (`relevant`) cuando el usuario
    *  declara una nueva conexión via drag-arrow. */
@@ -60,6 +63,9 @@ export function LogicCanvas({
   onClose,
   structure,
   catalogs,
+  readOnly = false,
+  title = "Mapa de lógica",
+  backLabel = "Volver al editor",
   onSelectRow,
   onSetRelevant,
 }: LogicCanvasProps) {
@@ -628,13 +634,14 @@ export function LogicCanvas({
       <header className="pulso-graph-header">
         <div className="pulso-graph-header-left">
           <button type="button" className="pulso-graph-back" onClick={onClose}>
-            <ChevronLeft size={14} /> Volver al editor
+            <ChevronLeft size={14} /> {backLabel}
           </button>
           <div className="pulso-graph-header-title">
-            <strong>Mapa de lógica</strong>
+            <strong>{title}</strong>
             <span>
               {stats.visible} {stats.visible === 1 ? "nodo visible" : "nodos visibles"} ·{" "}
               {stats.edges} {stats.edges === 1 ? "conexión" : "conexiones"}
+              {readOnly ? " · solo lectura" : ""}
             </span>
           </div>
         </div>
@@ -719,6 +726,7 @@ export function LogicCanvas({
             top-center. Las acciones que rara vez se usan (expandir/
             colapsar todas) siguen en el header del overlay. */}
         <CanvasToolbar
+          readOnly={readOnly}
           hasOverrides={nodePositions.size > 0}
           onResetLayout={() => {
             setPositionHistory((h) => [...h, nodePositions]);
@@ -875,7 +883,7 @@ export function LogicCanvas({
                         : undefined
                     }
                     onAnchorMouseDown={
-                      onSetRelevant ? onAnchorMouseDown(id) : undefined
+                      !readOnly && onSetRelevant ? onAnchorMouseDown(id) : undefined
                     }
                     onCardMouseDown={
                       // Solo las cards top-level (depth === 0) son
@@ -883,7 +891,7 @@ export function LogicCanvas({
                       // expandida se posicionan automáticamente en
                       // función de la sección padre — moverlas
                       // individualmente rompería esa estructura.
-                      laid.depth === 0 ? onCardMouseDown(id) : undefined
+                      !readOnly && laid.depth === 0 ? onCardMouseDown(id) : undefined
                     }
                   />
                 );

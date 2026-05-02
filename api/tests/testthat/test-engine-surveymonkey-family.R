@@ -81,7 +81,7 @@ test_that("familia surveymonkey_ genera XLSForm de referencia y data compatible"
 
   haven::write_sav(df, path_sav)
 
-  sm <- prosecnur::surveymonkey_leer(path_sav)
+  sm <- surveymonkey_leer(path_sav)
 
   expect_s3_class(sm, "prosecnur_surveymonkey")
   expect_true(all(c(
@@ -98,7 +98,7 @@ test_that("familia surveymonkey_ genera XLSForm de referencia y data compatible"
   expect_identical(kinds[["P5_O"]], "other_text")
   expect_true(sm$vars_tbl$is_auxiliary[sm$vars_tbl$name_raw == "TOTAL"])
 
-  inst_ref <- prosecnur::surveymonkey_xlsform(sm, path = path_xlsx)
+  inst_ref <- surveymonkey_xlsform(sm, path = path_xlsx)
   idx_grp_p4 <- which(inst_ref$survey$name == "grp_p4")[1]
   idx_p5_other <- which(inst_ref$survey$name == "p5_other")[1]
   idx_p6_other <- which(inst_ref$survey$name == "p6_other")[1]
@@ -115,6 +115,8 @@ test_that("familia surveymonkey_ genera XLSForm de referencia y data compatible"
   expect_true(is.na(inst_ref$survey$`label::es`[idx_grp_p4]))
   expect_identical(inst_ref$survey$`label::es`[idx_p5_other], "Otro:")
   expect_identical(inst_ref$survey$`label::es`[idx_p6_other], "Otro:")
+  expect_identical(inst_ref$survey$relevant[idx_p5_other], "selected(${p5}, 'other')")
+  expect_identical(inst_ref$survey$relevant[idx_p6_other], "selected(${p6}, '3')")
   expect_true("lst_si_no" %in% inst_ref$choices$list_name)
   expect_true("lst_sexo" %in% inst_ref$choices$list_name)
   expect_true("lst_acuerdo_4" %in% inst_ref$choices$list_name)
@@ -122,8 +124,10 @@ test_that("familia surveymonkey_ genera XLSForm de referencia y data compatible"
   expect_true("lst_p5" %in% inst_ref$choices$list_name)
   expect_true(all(c("femenino", "masculino") %in% inst_ref$choices$name[inst_ref$choices$list_name == "lst_sexo"]))
   expect_true("99" %in% as.character(inst_ref$choices$name[inst_ref$choices$list_name == "lst_acuerdo_4"]))
+  expect_true("other" %in% as.character(inst_ref$choices$name[inst_ref$choices$list_name == "lst_p5"]))
+  expect_false("3" %in% as.character(inst_ref$choices$name[inst_ref$choices$list_name == "lst_p5"]))
 
-  rp_inst <- prosecnur::reporte_instrumento(path_xlsx, lang = "es")
+  rp_inst <- reporte_instrumento(path_xlsx, lang = "es")
   idx_rp_p1 <- which(rp_inst$survey$name == "p1")[1]
   idx_rp_sexo <- which(rp_inst$survey$name == "sexo")[1]
   idx_rp_p4_1 <- which(rp_inst$survey$name == "p4_1")[1]
@@ -154,25 +158,25 @@ test_that("familia surveymonkey_ genera XLSForm de referencia y data compatible"
     "lst_p6"
   )
 
-  dat_ref <- prosecnur::surveymonkey_data(sm)
+  dat_ref <- surveymonkey_data(sm)
   expect_equal(nrow(dat_ref), nrow(df))
   expect_true(all(c(
-    "p5", "p5/1", "p5/2", "p5/3", "p5/Other", "p5_other", "p6_other"
+    "p5", "p5/1", "p5/2", "p5/other", "p5_other", "p6_other"
   ) %in% names(dat_ref)))
   expect_equal(dat_ref$sexo, c("femenino", "masculino", "femenino"))
   expect_false(any(c("p5_1", "p5_2", "p5_3", "p5_o", "p6_o") %in% names(dat_ref)))
-  expect_equal(dat_ref$p5, c("1", "3", "1 2"))
+  expect_equal(dat_ref$p5, c("1", "other", "1 2"))
   expect_equal(as.numeric(dat_ref$p4_2), c(2, 3, 99))
   expect_identical(dat_ref$p6_other[2], "Mixta")
-  expect_identical(as.character(dat_ref[["p5/Other"]]), as.character(df$P5_3))
+  expect_identical(as.character(dat_ref[["p5/other"]]), as.character(df$P5_3))
   expect_identical(dat_ref$p5_other[2], "Club de alumnos")
 
   openxlsx::write.xlsx(list(data = dat_ref), file = path_codif, overwrite = TRUE)
-  inst_codif <- prosecnur::leer_instrumento_xlsform(path_xlsx)
-  dat_codif_obj <- prosecnur::leer_datos(path_codif)
-  prosecnur::escribir_plantilla_familias(inst_codif, dat_codif_obj, path = path_familias)
+  inst_codif <- leer_instrumento_xlsform(path_xlsx)
+  dat_codif_obj <- leer_datos(path_codif)
+  escribir_plantilla_familias(inst_codif, dat_codif_obj, path = path_familias)
   set_familias_modo_so(path_familias, c(p6 = "padre"))
-  familias <- prosecnur::leer_familias_clasificar(
+  familias <- leer_familias_clasificar(
     path = path_familias,
     inst = inst_codif,
     dat = dat_codif_obj,
@@ -182,20 +186,20 @@ test_that("familia surveymonkey_ genera XLSForm de referencia y data compatible"
   row_p6 <- familias$familias_filtradas[familias$familias_filtradas$parent == "p6", , drop = FALSE]
   expect_true(nrow(row_p5) == 1L)
   expect_identical(row_p5$tipo[1], "select_multiple")
-  expect_identical(row_p5$other_dummy_col[1], "p5/Other")
+  expect_identical(row_p5$other_dummy_col[1], "p5/other")
   expect_identical(row_p5$text_col[1], "p5_other")
   expect_true(nrow(row_p6) == 1L)
   expect_identical(row_p6$tipo[1], "select_one")
   expect_identical(row_p6$text_col[1], "p6_other")
 
-  rp_data <- prosecnur::reporte_data(dat_ref, rp_inst)
+  rp_data <- reporte_data(dat_ref, rp_inst)
   expect_s3_class(rp_data, "prosecnur_reporte_tbl")
-  expect_true(all(c("p5.1", "p5.2", "p5.3") %in% names(rp_data)))
+  expect_true(all(c("p5.1", "p5.2", "p5.other") %in% names(rp_data)))
   expect_false("p5" %in% names(rp_data))
   expect_false(is.null(attr(rp_data$p1, "labels")))
 
   expect_no_error(
-    prosecnur::reporte_frecuencias(
+    reporte_frecuencias(
       data = rp_data,
       instrumento = rp_inst,
       secciones = list(
@@ -207,7 +211,7 @@ test_that("familia surveymonkey_ genera XLSForm de referencia y data compatible"
   expect_true(file.exists(path_freq))
 
   expect_no_error(
-    prosecnur::reporte_cruces(
+    reporte_cruces(
       data = rp_data,
       instrumento = rp_inst,
       SECCIONES = list(
@@ -223,7 +227,7 @@ test_that("familia surveymonkey_ genera XLSForm de referencia y data compatible"
   orden_p4 <- as.character(rp_inst$choices$name[rp_inst$choices$list_name == list_name_p4])
 
   recod <- expect_no_error(
-    prosecnur::reporte_dimensiones(
+    reporte_dimensiones(
       data = rp_data,
       instrumento = rp_inst,
       vars = c("p4_1"),

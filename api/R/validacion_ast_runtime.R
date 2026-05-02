@@ -574,7 +574,7 @@ validation_bundle_from_plan_xlsx <- function(path,
 }
 
 .restore_instrument_case_aliases <- function(tables, instrumento = NULL) {
-  survey <- instrumento$survey %||% NULL
+  survey <- if (!is.null(instrumento)) instrumento$survey else NULL
   if (is.null(survey) || !is.data.frame(survey) || !"name" %in% names(survey) || !length(tables)) {
     return(tables)
   }
@@ -639,6 +639,9 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL) {
     if (!"principal" %in% names(tables) && !is.null(main_name) && main_name %in% names(tables)) {
       tables <- c(list(principal = tables[[main_name]]), tables)
     }
+    if (!is.null(tables$principal)) {
+      tables$principal <- normalize_data_for_xlsform(tables$principal, instrumento)
+    }
     return(list(
       principal = tables$principal %||% tables[[1]],
       tables = tables,
@@ -654,6 +657,7 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL) {
     sav = haven::read_sav(path),
     stop(sprintf("Unsupported data extension for AST runtime: %s", ext))
   )
+  df <- normalize_data_for_xlsform(df, instrumento)
   list(
     principal = df,
     tables = list(principal = df),
@@ -738,7 +742,8 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL) {
   rows <- list()
   for (rule in rules) {
     rep_name <- as.character(rule$repeat_context %||% rule$tabla %||% rule$primary_var %||% NA_character_)
-    by_parent <- data_ctx$rc_checks[[rep_name]]$by_parent %||% NULL
+    rc_check <- data_ctx$rc_checks[[rep_name]]
+    by_parent <- if (!is.null(rc_check)) rc_check$by_parent else NULL
     if (is.null(by_parent) || !is.data.frame(by_parent) || !"status" %in% names(by_parent)) {
       rows[[length(rows) + 1L]] <- tibble::tibble(
         id = rule$id,

@@ -1072,14 +1072,25 @@ export type Seccion = {
 };
 
 export type Pregunta = {
+  row_index?: number;
   name: string;
   label: string;
+  hint?: string;
+  appearance?: string;
   tipo: string;
+  type_raw?: string;
+  list_name?: string;
   seccion: string;
   required: boolean;
   relevant: boolean;
   constraint: boolean;
   calculate: boolean;
+  choice_filter?: boolean;
+  relevant_expr?: string | null;
+  constraint_expr?: string | null;
+  calculation_expr?: string | null;
+  choice_filter_expr?: string | null;
+  choices?: Array<{ name: string; label: string }>;
 };
 
 export async function apiInstrumentoEstructura() {

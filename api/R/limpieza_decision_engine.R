@@ -234,6 +234,9 @@
 
   res <- ev$resumen
   meta <- ev$reglas_meta %||% tibble::tibble(id_regla = character())
+  if (!"tabla" %in% names(res)) res$tabla <- "principal"
+  if (!"tabla" %in% names(meta)) meta$tabla <- "principal"
+  if (!"nombre_regla" %in% names(meta)) meta$nombre_regla <- NA_character_
   catalog <- dplyr::left_join(res, meta, by = c("id_regla", "nombre_regla", "tabla"))
 
   # Garantizar que las columnas que el resto de la función usa con
@@ -250,6 +253,7 @@
   for (.c in .expected_cols) {
     if (!(.c %in% names(catalog))) catalog[[.c]] <- NA_character_
   }
+  if (!"porcentaje" %in% names(catalog)) catalog$porcentaje <- NA_real_
 
   catalog$source_type <- vapply(catalog$id_regla, .limpieza_infer_source_type, character(1))
   catalog$origen <- ifelse(catalog$source_type == "custom_rule", "Personalizada", "Automática")

@@ -264,7 +264,7 @@
 .sm_infer_other_label <- function(other_row, choice_labels = character()) {
   choice_labels <- .sm_norm_ws(choice_labels)
   if (length(choice_labels)) {
-    idx_other <- grep("^(otro|otra|other)(\\b|:)", tolower(choice_labels))
+    idx_other <- which(.sm_is_other_label(choice_labels))
     if (length(idx_other)) {
       return(choice_labels[idx_other[1]])
     }
@@ -276,6 +276,299 @@
   }
 
   lab
+}
+
+.sm_is_other_label <- function(x) {
+  x_norm <- .sm_ascii_lower(x)
+  grepl("^(otro|otra|otros|otras|other)(\\b|:)", x_norm, perl = TRUE)
+}
+
+# ============================================================================
+# Renombrado a convención `pN` y `PagN` (postprocesador del XLSForm)
+# ============================================================================
+# Tras armar `survey`, asignamos nombres canónicos cortos: cada pregunta del
+# instrumento recibe `p1, p2, p3, ...` en orden de aparición, y cada sección
+# de página `Pag1, Pag2, ...`. Tres reglas:
+#   - Las preguntas hijas de un `select_multiple` con dummy + `_other` reciben
+#     el sufijo `_other` sobre el padre (ej. p7_other).
+#   - Battery/matriz: cada item es una pregunta independiente — recibe su
+#     propio número secuencial (es lo que ya emite el survey).
+#   - Las dummies de SM (`q0007_0001..0007`) NO viven en el survey final
+#     (solo la madre `q0007`); su mapping se construye desde `multi_specs`.
+# Ya con el mapping listo:
+#   - Reescribimos `${old}` → `${new}` en relevant/constraint/calculation/
+#     choice_filter (incluye selected(${old}, ...)).
+#   - Renombramos las columnas de `data` (incluidas las dummies con sufijo).
+
+# Convierte `q0007` → `p7` (sin padding). Si el nombre no matchea
+# `q<digits>(_<rest>)?` devuelve NA — preserva el nombre tal cual.
+.sm_q_to_p <- function(name) {
+  if (is.na(name) || !nzchar(name)) return(NA_character_)
+  m <- regmatches(name, regexec("^[qQ]0*([0-9]+)(.*)$", name))[[1]]
+  if (length(m) < 3L) return(NA_character_)
+  num <- as.integer(m[2])
+  rest <- m[3]
+  paste0("p", num, rest)
+}
+
+# Construye mapping `oldName → newName` aplicando `q<N> → p<N>` (sin padding,
+# preservando sufijos como `_other`, `_0001`, `_NN`). Las dummies SM que
+# están en data pero no en survey reciben mapping vía `multi_specs`.
+.sm_build_pname_remap <- function(survey, multi_specs = NULL, battery_specs = NULL) {
+  remap <- character(0)
+
+  emit <- function(old, new) {
+    if (is.na(old) || !nzchar(old)) return(invisible())
+    if (is.na(new) || !nzchar(new)) return(invisible())
+    if (identical(old, new)) return(invisible())
+    remap[[old]] <<- new
+  }
+
+  # Tipos que NO son preguntas (no se renombran).
+  non_question_types <- c("begin_repeat", "end_repeat",
+                           "start", "end", "today", "deviceid",
+                           "audit", "subscriberid", "phonenumber",
+                           "simserial", "username", "note")
+
+  # Metadata/auxiliary preservan nombres crudos (respondent_id, ip_address...).
+  excluded_groups <- c("survey_monkey_metadata", "survey_monkey_auxiliary")
+  group_stack <- character(0)
+  in_excluded_group <- function() any(group_stack %in% excluded_groups)
+
+  for (i in seq_len(nrow(survey))) {
+    nm <- as.character(survey$name[i] %||% NA_character_)
+    tp <- as.character(survey$type[i] %||% "")
+    if (identical(tp, "begin_group") || identical(tp, "begin_repeat")) {
+      group_stack <- c(group_stack, nm %||% "")
+      next
+    }
+    if (identical(tp, "end_group") || identical(tp, "end_repeat")) {
+      if (length(group_stack)) group_stack <- group_stack[-length(group_stack)]
+      next
+    }
+    # `end_group` ya retornó arriba; el resto se procesa.
+    if (is.na(nm) || !nzchar(nm)) next
+    if (tp %in% non_question_types) next
+    if (in_excluded_group()) next
+    new <- .sm_q_to_p(nm)
+    if (!is.na(new)) emit(nm, new)
+  }
+
+  # Dummies de select_multiple SM (q0007_0001..0007 → p7_0001..p7_0007)
+  # también necesitan mapping para que `surveymonkey_data` y consumidores
+  # con keep_raw_multi=TRUE generen los nombres remapeados. Conservamos el
+  # padding original del suffix.
+  if (length(multi_specs)) {
+    for (grp in names(multi_specs)) {
+      msp <- multi_specs[[grp]]
+      ch <- msp$children
+      if (is.null(ch) || !nrow(ch)) next
+      for (k in seq_len(nrow(ch))) {
+        raw <- as.character(ch$name_raw[k])
+        if (!nzchar(raw)) next
+        new <- .sm_q_to_p(raw)
+        if (!is.na(new)) emit(raw, new)
+      }
+    }
+  }
+
+  remap
+}
+
+# Reescribe `${old}` → `${new}` en una expresión XLSForm. Usamos un loop
+# por nombre con `fixed=TRUE` para evitar tratar nombres como regex (los
+# nombres pueden contener `.` o caracteres ambiguos).
+.sm_rewrite_expr <- function(expr, remap) {
+  if (is.na(expr) || !nzchar(expr) || !length(remap)) return(expr)
+  for (old in names(remap)) {
+    new <- remap[[old]]
+    expr <- gsub(paste0("${", old, "}"), paste0("${", new, "}"), expr, fixed = TRUE)
+  }
+  expr
+}
+
+# Construye el mapping `section_pag_<id>` → `Pag<N>` enumerando las
+# secciones de página en orden de aparición. Devuelve también un label
+# legible "Pag<N> (p<first>-p<last>)" calculado con el remap de preguntas
+# ya aplicado al survey.
+.sm_build_page_remap <- function(survey, name_remap) {
+  page_remap <- character(0)
+  page_label <- character(0)
+  page_seq <- 0L
+  current_page <- NA_character_
+  current_first_q <- NA_character_
+  current_last_q <- NA_character_
+
+  flush_label <- function() {
+    if (is.na(current_page) || !nzchar(current_page)) return(invisible())
+    new_name <- page_remap[[current_page]]
+    if (is.null(new_name)) return(invisible())
+    rng <- if (!is.na(current_first_q) && !is.na(current_last_q)) {
+      if (identical(current_first_q, current_last_q)) {
+        sprintf(" (%s)", current_first_q)
+      } else {
+        sprintf(" (%s-%s)", current_first_q, current_last_q)
+      }
+    } else ""
+    page_label[[current_page]] <<- paste0(new_name, rng)
+  }
+
+  for (i in seq_len(nrow(survey))) {
+    nm <- as.character(survey$name[i] %||% NA_character_)
+    tp <- as.character(survey$type[i] %||% "")
+    if (identical(tp, "begin_group") && grepl("^section_pag_", nm %||% "")) {
+      flush_label()
+      page_seq <- page_seq + 1L
+      page_remap[[nm]] <<- sprintf("Pag%d", page_seq)
+      current_page <- nm
+      current_first_q <- NA_character_
+      current_last_q <- NA_character_
+      next
+    }
+    if (identical(tp, "end_group") && !is.na(current_page)) {
+      sec_name <- as.character(survey$section[i] %||% NA_character_)
+      if (identical(sec_name, current_page)) {
+        flush_label()
+        current_page <- NA_character_
+      }
+      next
+    }
+    if (!is.na(current_page) && !is.na(nm) && nzchar(nm) && !is.na(name_remap[[nm]])) {
+      mapped <- name_remap[[nm]]
+      if (is.na(current_first_q)) current_first_q <- mapped
+      current_last_q <- mapped
+    }
+  }
+  flush_label()
+
+  list(name_map = page_remap, label_map = page_label)
+}
+
+.sm_apply_remap_to_spec <- function(spec) {
+  if (is.null(spec) || is.null(spec$survey) || !nrow(spec$survey)) return(spec)
+  survey <- spec$survey
+
+  remap <- .sm_build_pname_remap(survey,
+                                  multi_specs = spec$multi_specs,
+                                  battery_specs = spec$battery_specs)
+  if (!length(remap)) {
+    spec$name_remap <- character(0)
+    spec$page_remap <- character(0)
+    return(spec)
+  }
+
+  page_info <- .sm_build_page_remap(survey, remap)
+
+  rewrite_col <- function(x) vapply(x, .sm_rewrite_expr, character(1), remap = remap)
+  apply_remap <- function(x) {
+    out <- as.character(x)
+    keys <- names(remap)
+    hit <- which(out %in% keys)
+    out[hit] <- unname(remap[out[hit]])
+    out
+  }
+  apply_page_remap <- function(x) {
+    out <- as.character(x)
+    keys <- names(page_info$name_map)
+    hit <- which(out %in% keys)
+    out[hit] <- unname(page_info$name_map[out[hit]])
+    out
+  }
+
+  # 1. Survey: renombrar `name` (preguntas), `section` (asignación de página),
+  #    reescribir expresiones y reemplazar el name + label de los begin_group
+  #    de página.
+  survey$name <- apply_remap(survey$name)
+  survey$section <- apply_page_remap(survey$section)
+  if ("relevant" %in% names(survey))      survey$relevant      <- rewrite_col(survey$relevant)
+  if ("constraint" %in% names(survey))    survey$constraint    <- rewrite_col(survey$constraint)
+  if ("calculation" %in% names(survey))   survey$calculation   <- rewrite_col(survey$calculation)
+  if ("choice_filter" %in% names(survey)) survey$choice_filter <- rewrite_col(survey$choice_filter)
+
+  # Renombrar los begin_group/end_group de página + sustituir el label.
+  for (i in seq_len(nrow(survey))) {
+    nm <- as.character(survey$name[i] %||% NA_character_)
+    tp <- as.character(survey$type[i] %||% "")
+    if (identical(tp, "begin_group") && nm %in% names(page_info$name_map)) {
+      survey$name[i] <- page_info$name_map[[nm]]
+      if ("label::es" %in% names(survey)) {
+        new_label <- page_info$label_map[[nm]] %||% page_info$name_map[[nm]]
+        survey$`label::es`[i] <- new_label
+      }
+    }
+  }
+  spec$survey <- survey
+
+  # 2. Question_specs y multi_specs/battery_specs: actualizar nombres para
+  #    que `surveymonkey_data` produzca columnas con los nombres ya remapeados.
+  if (!is.null(spec$question_specs) && nrow(spec$question_specs)) {
+    qs <- spec$question_specs
+    qs$name <- apply_remap(qs$name)
+    qs$section <- apply_page_remap(qs$section)
+    if ("relevant" %in% names(qs)) qs$relevant <- rewrite_col(qs$relevant)
+    spec$question_specs <- qs
+  }
+  if (length(spec$multi_specs)) {
+    for (grp in names(spec$multi_specs)) {
+      msp <- spec$multi_specs[[grp]]
+      if (!is.null(msp$mother)) {
+        msp$mother$name <- apply_remap(msp$mother$name)
+        msp$mother$section <- apply_page_remap(msp$mother$section)
+        if ("relevant" %in% names(msp$mother)) msp$mother$relevant <- rewrite_col(msp$mother$relevant)
+      }
+      if (length(msp$questions)) {
+        for (k in seq_along(msp$questions)) {
+          q <- msp$questions[[k]]
+          q$name <- apply_remap(q$name)
+          q$section <- apply_page_remap(q$section)
+          if ("relevant" %in% names(q)) q$relevant <- rewrite_col(q$relevant)
+          msp$questions[[k]] <- q
+        }
+      }
+      # Children: actualizamos `name_final` (usado por keep_raw_multi=TRUE
+      # en surveymonkey_data) pero NO `name_raw` (que es la columna real
+      # del SAV y debe coincidir con el archivo).
+      if (!is.null(msp$children) && nrow(msp$children) && "name_final" %in% names(msp$children)) {
+        msp$children$name_final <- apply_remap(msp$children$name_final)
+      }
+      spec$multi_specs[[grp]] <- msp
+    }
+  }
+  if (length(spec$battery_specs)) {
+    for (grp in names(spec$battery_specs)) {
+      bsp <- spec$battery_specs[[grp]]
+      # group_name de battery NO está mapeado (no es pregunta); preservar.
+      spec$battery_specs[[grp]] <- bsp
+    }
+  }
+
+  # 3. Diagnóstico: actualizar `name_final` y `section_final` in place para
+  #    que reflejen los nombres canónicos. NO agregamos columnas nuevas para
+  #    no romper consumidores aguas abajo que asumen el shape original.
+  if (!is.null(spec$diagnostico) && nrow(spec$diagnostico)) {
+    spec$diagnostico$name_final <- apply_remap(spec$diagnostico$name_final)
+    spec$diagnostico$section_final <- apply_page_remap(spec$diagnostico$section_final)
+  }
+
+  # Persistimos los mappings en el spec — `surveymonkey_data` y consumidores
+  # externos los necesitan para renombrar columnas de la data SAV.
+  spec$name_remap <- remap
+  spec$page_remap <- page_info$name_map
+  spec
+}
+
+.sm_other_choice_value <- function(labs) {
+  if (is.null(labs) || !length(labs)) return(NA_character_)
+  idx <- which(.sm_is_other_label(names(labs)))
+  if (!length(idx)) return(NA_character_)
+  as.character(unname(labs)[idx[1]])
+}
+
+.sm_other_relevant <- function(parent_name, other_value) {
+  if (is.na(parent_name) || !nzchar(parent_name) || is.na(other_value) || !nzchar(other_value)) {
+    return(NA_character_)
+  }
+  sprintf("selected(${%s}, '%s')", parent_name, other_value)
 }
 
 .sm_infer_other_label_from_group <- function(row, vars_tbl, label_sets) {
@@ -823,11 +1116,14 @@
         .sm_as_question_label(rows[i, , drop = FALSE])
       }
     }, character(1))
+    choice_names <- as.character(rows$suffix)
+    choice_names[.sm_is_other_label(choice_labels)] <- "other"
+    rows$choice_name <- choice_names
     question_label <- .sm_or(
       .sm_prompt_from_labels(rows$label),
       .sm_mode_nonempty(rows$label, fallback = grp)
     )
-    labs_multi <- stats::setNames(as.character(rows$suffix), choice_labels)
+    labs_multi <- stats::setNames(choice_names, choice_labels)
     list_name <- alloc_choice_list_name(
       labs = labs_multi,
       fallback_base = grp
@@ -835,10 +1131,11 @@
     choice_rows <- lapply(seq_len(nrow(rows)), function(i) {
       tibble::tibble(
         list_name = list_name,
-        name = as.character(rows$suffix[i]),
+        name = choice_names[i],
         `label::es` = choice_labels[i]
       )
     })
+    other_value <- if (any(.sm_is_other_label(choice_labels))) "other" else NA_character_
 
     other_specs <- if (nrow(others)) {
       lapply(seq_len(nrow(others)), function(i) {
@@ -849,6 +1146,7 @@
           label = .sm_infer_other_label(others[i, , drop = FALSE], choice_labels = choice_labels),
           type = "text",
           list_name = NA_character_,
+          relevant = .sm_other_relevant(mother_name, other_value),
           section = others$section_final[i],
           order = others$order[i],
           group_guess = grp
@@ -866,6 +1164,7 @@
         label = question_label,
         type = paste("select_multiple", list_name),
         list_name = list_name,
+        relevant = NA_character_,
         section = rows$section_final[1],
         order = min(rows$order),
         group_guess = grp
@@ -902,6 +1201,28 @@
       "text"
     )
 
+    q_relevant <- NA_character_
+    if (row$kind_guess == "other_text") {
+      parent_rows <- vars_tbl[
+        vars_tbl$group_guess == row$group_guess &
+          vars_tbl$kind_guess == "select_one" &
+          vars_tbl$name_raw != row$name_raw,
+        ,
+        drop = FALSE
+      ]
+      if (nrow(parent_rows)) {
+        parent_rows <- parent_rows[order(parent_rows$order), , drop = FALSE]
+        for (j in seq_len(nrow(parent_rows))) {
+          parent_raw <- parent_rows$name_raw[j]
+          other_value <- .sm_other_choice_value(label_sets[[parent_raw]])
+          if (!is.na(other_value) && nzchar(other_value)) {
+            q_relevant <- .sm_other_relevant(parent_rows$name_final[j], other_value)
+            break
+          }
+        }
+      }
+    }
+
     question_specs[[length(question_specs) + 1L]] <- tibble::tibble(
       role = row$kind_guess,
       raw_name = row$name_raw,
@@ -913,6 +1234,7 @@
       },
       type = q_type,
       list_name = .sm_or(vars_tbl$list_name_final[i], NA_character_),
+      relevant = q_relevant,
       section = row$section_final,
       order = row$order,
       group_guess = row$group_guess
@@ -931,6 +1253,7 @@
         label = .sm_as_question_label(rows[i, , drop = FALSE]),
         type = paste("select_one", list_name),
         list_name = list_name,
+        relevant = NA_character_,
         section = rows$section_final[i],
         order = rows$order[i],
         group_guess = grp
@@ -950,6 +1273,7 @@
       label = character(0),
       type = character(0),
       list_name = character(0),
+      relevant = character(0),
       section = character(0),
       order = integer(0),
       group_guess = character(0)
@@ -1084,7 +1408,7 @@
           name = .data$name,
           `label::es` = .data$label,
           required = NA_character_,
-          relevant = NA_character_,
+          relevant = .data$relevant,
           constraint = NA_character_,
           calculation = NA_character_,
           choice_filter = NA_character_,
@@ -1131,7 +1455,7 @@
           name = .data$name,
           `label::es` = .data$label,
           required = NA_character_,
-          relevant = NA_character_,
+          relevant = .data$relevant,
           constraint = NA_character_,
           calculation = NA_character_,
           choice_filter = NA_character_,
@@ -1181,7 +1505,7 @@
           name = .data$name,
           `label::es` = .data$label,
           required = NA_character_,
-          relevant = NA_character_,
+          relevant = .data$relevant,
           constraint = NA_character_,
           calculation = NA_character_,
           choice_filter = NA_character_,
@@ -1215,7 +1539,7 @@
           name = .data$name,
           `label::es` = .data$label,
           required = NA_character_,
-          relevant = NA_character_,
+          relevant = .data$relevant,
           constraint = NA_character_,
           calculation = NA_character_,
           choice_filter = NA_character_,
@@ -1230,7 +1554,7 @@
             name = .data$name,
             `label::es` = .data$label,
             required = NA_character_,
-            relevant = NA_character_,
+            relevant = .data$relevant,
             constraint = NA_character_,
             calculation = NA_character_,
             choice_filter = NA_character_,
@@ -1250,7 +1574,7 @@
         name = .data$name,
         `label::es` = .data$label,
         required = NA_character_,
-        relevant = NA_character_,
+        relevant = .data$relevant,
         constraint = NA_character_,
         calculation = NA_character_,
         choice_filter = NA_character_,
@@ -1317,7 +1641,7 @@
       "aviso_mensaje"
     )
 
-  list(
+  spec_raw <- list(
     survey = survey,
     choices = choices,
     settings = settings,
@@ -1326,6 +1650,13 @@
     multi_specs = multi_specs,
     battery_specs = battery_specs
   )
+
+  # Postproceso: renombrar nombres SM (`q0001`, `section_pag_1`) a la
+  # convención canónica (`p1`, `Pag1`) y reescribir todas las referencias
+  # `${...}` en relevant/constraint/calculation/choice_filter. Persiste el
+  # mapping en `spec$name_remap` para que `surveymonkey_data` renombre las
+  # columnas de la data SAV correspondientemente.
+  .sm_apply_remap_to_spec(spec_raw)
 }
 
 #' Leer un export SPSS (.sav) de SurveyMonkey
@@ -1431,7 +1762,11 @@ surveymonkey_data <- function(x, keep_raw_multi = FALSE, keep_metadata = TRUE) {
       msp <- spec$multi_specs[[grp]]
       mother_name <- msp$mother$name[1]
       child_rows <- msp$children[order(msp$children$order), , drop = FALSE]
-      codes <- as.character(child_rows$suffix)
+      codes <- if ("choice_name" %in% names(child_rows)) {
+        as.character(child_rows$choice_name)
+      } else {
+        as.character(child_rows$suffix)
+      }
 
       tokens <- lapply(seq_len(nrow(child_rows)), function(i) {
         sel <- .sm_is_dummy_selected(df[[child_rows$name_raw[i]]])
@@ -1467,9 +1802,9 @@ surveymonkey_data <- function(x, keep_raw_multi = FALSE, keep_metadata = TRUE) {
         lbl_i <- .sm_or(choice_labels[i], .sm_as_question_label(child_rows[i, , drop = FALSE]))
         if (
           grepl("^(otro|otra|other)(\\b|:)", tolower(lbl_i)) &&
-            !paste0(mother_name, "/Other") %in% names(out)
+            !paste0(mother_name, "/other") %in% names(out)
         ) {
-          out[[paste0(mother_name, "/Other")]] <- df[[child_rows$name_raw[i]]]
+          out[[paste0(mother_name, "/other")]] <- df[[child_rows$name_raw[i]]]
         }
       }
 

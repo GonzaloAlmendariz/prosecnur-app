@@ -40,6 +40,7 @@ export type EdgeKindFilter = {
 };
 
 export type CanvasToolbarProps = {
+  readOnly?: boolean;
   hasOverrides: boolean;
   onResetLayout: () => void;
   snapToGrid: boolean;
@@ -55,6 +56,7 @@ export type CanvasToolbarProps = {
 };
 
 export function CanvasToolbar({
+  readOnly = false,
   hasOverrides,
   onResetLayout,
   snapToGrid,
@@ -74,57 +76,61 @@ export function CanvasToolbar({
       role="toolbar"
       aria-label="Herramientas del lienzo"
     >
-      <button
-        type="button"
-        className="pulso-graph-toolbar-btn"
-        onClick={onResetLayout}
-        disabled={!hasOverrides}
-        title={
-          hasOverrides
-            ? "Volver al layout automático"
-            : "El layout ya está en su orden automático"
-        }
-        aria-label="Auto-layout"
-      >
-        <RotateCcw size={13} />
-        <span>Auto-layout</span>
-      </button>
+      {!readOnly && (
+        <>
+          <button
+            type="button"
+            className="pulso-graph-toolbar-btn"
+            onClick={onResetLayout}
+            disabled={!hasOverrides}
+            title={
+              hasOverrides
+                ? "Volver al layout automático"
+                : "El layout ya está en su orden automático"
+            }
+            aria-label="Auto-layout"
+          >
+            <RotateCcw size={13} />
+            <span>Auto-layout</span>
+          </button>
 
-      <button
-        type="button"
-        className="pulso-graph-toolbar-btn"
-        onClick={onUndoDrag}
-        disabled={!canUndoDrag}
-        title={
-          canUndoDrag
-            ? "Deshacer último movimiento de card (Cmd/Ctrl+Z)"
-            : "Sin movimientos para deshacer"
-        }
-        aria-label="Deshacer movimiento"
-      >
-        <Undo2 size={13} />
-        <span>Deshacer</span>
-      </button>
+          <button
+            type="button"
+            className="pulso-graph-toolbar-btn"
+            onClick={onUndoDrag}
+            disabled={!canUndoDrag}
+            title={
+              canUndoDrag
+                ? "Deshacer último movimiento de card (Cmd/Ctrl+Z)"
+                : "Sin movimientos para deshacer"
+            }
+            aria-label="Deshacer movimiento"
+          >
+            <Undo2 size={13} />
+            <span>Deshacer</span>
+          </button>
 
-      <button
-        type="button"
-        className={`pulso-graph-toolbar-btn ${snapToGrid ? "is-on" : ""}`}
-        onClick={onToggleSnap}
-        title={
-          snapToGrid
-            ? "Desactivar snap a la grilla"
-            : "Activar snap a la grilla (16 px)"
-        }
-        aria-pressed={snapToGrid}
-        aria-label="Snap to grid"
-      >
-        <Magnet size={13} />
-        <span>Snap</span>
-      </button>
+          <button
+            type="button"
+            className={`pulso-graph-toolbar-btn ${snapToGrid ? "is-on" : ""}`}
+            onClick={onToggleSnap}
+            title={
+              snapToGrid
+                ? "Desactivar snap a la grilla"
+                : "Activar snap a la grilla (16 px)"
+            }
+            aria-pressed={snapToGrid}
+            aria-label="Snap to grid"
+          >
+            <Magnet size={13} />
+            <span>Snap</span>
+          </button>
+        </>
+      )}
 
       {edgeKindFilter && onChangeEdgeKindFilter && (
         <>
-          <span className="pulso-graph-toolbar-sep" aria-hidden="true" />
+          {!readOnly && <span className="pulso-graph-toolbar-sep" aria-hidden="true" />}
           <div
             className="pulso-graph-toolbar-segment"
             role="group"
