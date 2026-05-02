@@ -1,6 +1,61 @@
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Check, Copy, Download, Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import "./fullscreen.css";
+
+// Lazy: html-to-image solo se carga cuando el usuario hace click en Copiar.
+// Mantiene el bundle inicial ligero (la lib es ~9 KB gzip pero igual sumás
+// solo cuando se usa).
+async function captureBlob(panel: HTMLElement): Promise<Blob | null> {
+  const plotlyNode = panel.querySelector<HTMLElement>(".dash-plotly-chart");
+  if (plotlyNode) {
+    try {
+      const Plotly = await import("plotly.js-dist-min");
+      const rect = plotlyNode.getBoundingClientRect();
+      const dataUri = await Plotly.toImage(plotlyNode, {
+        format: "png",
+        width: Math.max(800, Math.round(rect.width * 2)),
+        height: Math.max(600, Math.round(rect.height * 2)),
+      });
+      const res = await fetch(dataUri);
+      return await res.blob();
+    } catch {
+      // cae al captador DOM
+    }
+  }
+  try {
+    const { toBlob } = await import("html-to-image");
+    return await toBlob(panel, {
+      backgroundColor: "#ffffff",
+      pixelRatio: 2,
+      cacheBust: true,
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function copyOrDownloadBlob(blob: Blob, filename: string): Promise<"copied" | "downloaded"> {
+  // Algunos navegadores (Safari, Firefox sin permiso) no soportan
+  // ClipboardItem con imágenes — caemos a descarga sin alarmar al usuario.
+  try {
+    const ClipboardItemCtor = (window as unknown as { ClipboardItem?: typeof ClipboardItem }).ClipboardItem;
+    if (ClipboardItemCtor && navigator.clipboard?.write) {
+      await navigator.clipboard.write([new ClipboardItemCtor({ "image/png": blob })]);
+      return "copied";
+    }
+  } catch {
+    // cae a descarga
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return "downloaded";
+}
 
 // Patrón hook + scope. El padre obtiene `ctx` con `useFullscreen()` y
 // decide DÓNDE va el botón (típicamente en el header de su card,
@@ -82,6 +137,10 @@ export function FullscreenScope({
   const { maxed, close } = ctx;
   const previousFocus = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  // Estado del botón Copiar — declarado SIEMPRE arriba (Rules of Hooks).
+  // Si lo movés debajo del early return, React lanza error #310 al
+  // alternar fullscreen on/off.
+  const [copyStatus, setCopyStatus] = useState<"idle" | "working" | "copied" | "downloaded" | "error">("idle");
 
   // Bloquea el scroll del body mientras está fullscreen.
   useEffect(() => {
@@ -138,6 +197,23 @@ export function FullscreenScope({
     return <div className={`dash-fs-wrap ${className ?? ""}`}>{children}</div>;
   }
 
+  const handleCopy = async () => {
+    if (copyStatus === "working" || !panelRef.current) return;
+    setCopyStatus("working");
+    const target = panelRef.current.querySelector<HTMLElement>(".dash-fs-body") ?? panelRef.current;
+    const blob = await captureBlob(target);
+    if (!blob) {
+      setCopyStatus("error");
+      window.setTimeout(() => setCopyStatus("idle"), 1800);
+      return;
+    }
+    const safeTitle = (title ?? "dashboard").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "dashboard";
+    const filename = `${safeTitle}.png`;
+    const result = await copyOrDownloadBlob(blob, filename);
+    setCopyStatus(result);
+    window.setTimeout(() => setCopyStatus("idle"), 1800);
+  };
+
   return (
     <div className={`dash-fs-wrap is-maxed ${className ?? ""}`}>
       <div
@@ -150,6 +226,41 @@ export function FullscreenScope({
           <div className="dash-fs-head">
             {title ? <h2 className="dash-fs-title">{title}</h2> : <span />}
             <div className="dash-fs-actions">
+              <button
+                type="button"
+                className={`dash-fs-copy-btn is-${copyStatus}`}
+                onClick={handleCopy}
+                disabled={copyStatus === "working"}
+                title={
+                  copyStatus === "copied"
+                    ? "Copiado al portapapeles"
+                    : copyStatus === "downloaded"
+                    ? "Descargado como PNG"
+                    : copyStatus === "error"
+                    ? "No se pudo copiar"
+                    : "Copiar como imagen"
+                }
+                aria-label="Copiar el gráfico como imagen"
+              >
+                {copyStatus === "copied" ? (
+                  <>
+                    <Check size={13} />
+                    <span>Copiado</span>
+                  </>
+                ) : copyStatus === "downloaded" ? (
+                  <>
+                    <Download size={13} />
+                    <span>Descargado</span>
+                  </>
+                ) : copyStatus === "error" ? (
+                  <span>Error</span>
+                ) : (
+                  <>
+                    <Copy size={13} />
+                    <span>{copyStatus === "working" ? "Copiando…" : "Copiar"}</span>
+                  </>
+                )}
+              </button>
               <span className="dash-fs-hint" aria-hidden="true">
                 Esc para salir
               </span>

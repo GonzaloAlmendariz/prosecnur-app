@@ -336,6 +336,47 @@ a { color: var(--pulso-primary); }
     var(--pulso-bg);
 }
 
+/* Modo público (deploy web): sin sidebar/Layout, el dashboard se monta
+ * directo en #root. Le damos un padding lateral para que no quede
+ * pegado al borde del viewport. Centrado con max-width para que en
+ * pantallas ultra-anchas no se estire el contenido sin control. */
+.pulso-public-shell {
+  min-height: 100vh;
+  padding: 16px 32px 32px;
+  max-width: 1600px;
+  margin: 0 auto;
+  background:
+    radial-gradient(1150px 520px at -8% -12%, rgba(0,36,87,0.06), transparent 58%),
+    radial-gradient(920px 420px at 104% -4%, rgba(0,36,87,0.04), transparent 62%),
+    var(--pulso-bg);
+}
+@media (max-width: 768px) {
+  .pulso-public-shell {
+    padding: 12px 16px 24px;
+  }
+}
+
+/* Footer del modo público — créditos sutiles separados por una línea
+ * divisora del contenido del dashboard. */
+.pulso-public-footer {
+  align-items: center;
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  display: flex;
+  font-size: 11px;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 32px;
+  padding: 14px 0 4px;
+}
+.pulso-public-footer-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-text-soft) 58%, transparent);
+  flex: 0 0 auto;
+}
+
 /* Tipografía */
 h1.pulso-page-title {
   font-size: 22px;
@@ -3344,6 +3385,9 @@ button.pulso-empty-home-card:focus-visible {
   flex: 1;
   overflow: hidden;
 }
+.pulso-graph-body.has-edge-panel .pulso-graph-minimap {
+  right: calc(clamp(380px, 32vw, 520px) + 28px);
+}
 .pulso-graph-svg {
   width: 100%;
   height: 100%;
@@ -3693,14 +3737,17 @@ button.pulso-empty-home-card:focus-visible {
   font-weight: 600;
 }
 
-/* ── Modules grid 2x2 ──────────────────────────────────────────────────── */
+/* ── Modules grid 3x2 (3 columnas × 2 filas) ───────────────────────────── */
 .home-modules {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   grid-auto-rows: 1fr;
   gap: 20px;
 }
-@media (max-width: 820px) {
+@media (max-width: 1080px) {
+  .home-modules { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
   .home-modules { grid-template-columns: 1fr; }
 }
 
@@ -3732,6 +3779,35 @@ button.pulso-empty-home-card:focus-visible {
   border: 1px dashed var(--pulso-border);
   opacity: 0.72;
   cursor: default;
+}
+.home-mod-card.is-reserved {
+  border: 1px dashed var(--pulso-border);
+  background: transparent;
+  opacity: 0.55;
+  cursor: default;
+  box-shadow: none;
+}
+.home-mod-reserved-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  flex: 1;
+}
+.home-mod-reserved-mark {
+  font-size: 36px;
+  line-height: 1;
+  font-weight: 300;
+  color: var(--pulso-text-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px dashed var(--pulso-border);
 }
 .home-mod-link:hover .home-mod-card.is-active {
   border-color: var(--pulso-primary);
@@ -4690,28 +4766,30 @@ button.pulso-empty-home-card:focus-visible {
 }
 
 /* ============================================================================
- * Logic canvas — panel de RELACIÓN (edge) anclado al viewport
- * Aparece al hacer click en una flecha. Permanece fijo en su posición
- * aunque el usuario haga pan/zoom del lienzo. Estilo paralelo al
- * `pulso-graph-detail` (panel de nodo) pero con flow visual src → tgt.
+ * Logic canvas — bandeja lateral de RELACIÓN (edge)
+ * Aparece al hacer click en una flecha y entra desde la derecha como sidebar.
+ * Vive debajo del header del canvas y ocupa todo el alto útil del lienzo.
  * ========================================================================= */
 .pulso-graph-edge-panel {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 360px;
-  max-height: calc(100vh - 140px);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: clamp(380px, 32vw, 520px);
   overflow: auto;
-  background: white;
-  border: 1px solid var(--pulso-border);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(255, 255, 255, 0.98) 36%),
+    white;
+  border: 0;
+  border-left: 1px solid var(--pulso-border);
+  border-radius: 16px 0 0 16px;
+  box-shadow: -18px 0 44px rgba(15, 23, 42, 0.16);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px;
-  z-index: 40;
-  animation: pulso-edge-panel-in 220ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+  gap: 18px;
+  padding: 22px 24px;
+  z-index: 44;
+  animation: pulso-edge-panel-sidebar-in 240ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
 }
 @keyframes pulso-edge-panel-in {
   from {
@@ -4723,18 +4801,47 @@ button.pulso-empty-home-card:focus-visible {
     transform: translateX(0) scale(1);
   }
 }
+@keyframes pulso-edge-panel-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes pulso-edge-panel-sidebar-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 .pulso-graph-edge-panel header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--pulso-border);
+  position: sticky;
+  top: -22px;
+  z-index: 2;
+  background: rgba(248, 250, 252, 0.98);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .pulso-graph-edge-panel-eyebrow {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
   text-transform: uppercase;
   color: var(--pulso-primary);
+  line-height: 1.35;
 }
 
 /* Visual flow: src → tgt cards conectadas por flecha (deprecado —
@@ -4754,19 +4861,19 @@ button.pulso-empty-home-card:focus-visible {
 .pulso-graph-edge-panel-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 9px;
 }
 .pulso-graph-edge-panel-block-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
 .pulso-graph-edge-panel-cards {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 .pulso-graph-edge-panel-card-clickable {
   cursor: pointer;
@@ -4779,9 +4886,9 @@ button.pulso-empty-home-card:focus-visible {
     transform 100ms ease;
 }
 .pulso-graph-edge-panel-card-clickable:hover {
-  background: rgba(36, 87, 214, 0.05);
+  background: rgba(36, 87, 214, 0.06);
   border-color: var(--pulso-primary);
-  transform: translateX(2px);
+  transform: translateX(-2px);
 }
 .pulso-graph-edge-panel-card-clickable.pulso-graph-edge-panel-card-section:hover {
   background: rgba(15, 118, 110, 0.06);
@@ -4798,21 +4905,21 @@ button.pulso-empty-home-card:focus-visible {
 .pulso-graph-edge-panel-card {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 9px;
-  background: white;
-  border-radius: 7px;
-  border: 1px solid var(--pulso-border);
+  gap: 12px;
+  padding: 13px 14px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
   min-width: 0;
 }
 .pulso-graph-edge-panel-card-section {
-  background: rgba(15, 118, 110, 0.04);
-  border-color: rgba(15, 118, 110, 0.30);
+  background: rgba(15, 118, 110, 0.055);
+  border-color: rgba(15, 118, 110, 0.34);
 }
 .pulso-graph-edge-panel-card-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   background: rgba(36, 87, 214, 0.10);
   color: var(--pulso-primary);
   display: inline-flex;
@@ -4827,25 +4934,26 @@ button.pulso-empty-home-card:focus-visible {
 .pulso-graph-edge-panel-card-text {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 4px;
   min-width: 0;
 }
 .pulso-graph-edge-panel-card-text strong {
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   color: var(--pulso-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.3;
 }
 .pulso-graph-edge-panel-card-text code {
-  font-size: 10px;
+  font-size: 12px;
   font-family: ui-monospace, monospace;
   color: var(--pulso-text-soft);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.25;
 }
 .pulso-graph-edge-panel-arrow {
   display: flex;
@@ -4859,24 +4967,238 @@ button.pulso-empty-home-card:focus-visible {
   50%      { transform: translateX(2px); opacity: 1; }
 }
 
-/* Narrativa */
-.pulso-graph-edge-panel-narrative {
-  font-size: 12.5px;
-  color: var(--pulso-text);
-  line-height: 1.55;
+/* Condición legible */
+.pulso-graph-edge-panel-condition {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(36, 87, 214, 0.18);
+  background: rgba(36, 87, 214, 0.045);
 }
-.pulso-graph-edge-panel-narrative p {
-  margin: 0;
-}
-.pulso-graph-edge-panel-cond {
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 12px;
-  background: var(--pulso-surface-2);
-  border: 1px solid var(--pulso-border);
-  padding: 1px 7px;
-  border-radius: 5px;
+.pulso-graph-edge-panel-condition-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
   color: var(--pulso-primary);
-  font-weight: 600;
+}
+.pulso-graph-edge-panel-condition-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pulso-graph-edge-panel-condition-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pulso-graph-edge-panel-condition-or {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0;
+  color: var(--pulso-primary);
+}
+.pulso-graph-edge-panel-condition-or span,
+.pulso-graph-edge-panel-condition-card-head strong {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(36, 87, 214, 0.12);
+  color: var(--pulso-primary);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+.pulso-graph-edge-panel-condition-or em {
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 750;
+  color: var(--pulso-text-soft);
+}
+.pulso-graph-edge-panel-condition-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(36, 87, 214, 0.14);
+}
+.pulso-graph-edge-panel-condition-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px 2px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+.pulso-graph-edge-panel-condition-card-head strong {
+  background: rgba(15, 118, 110, 0.12);
+  color: #0f766e;
+}
+.pulso-graph-edge-panel-condition-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.pulso-graph-edge-panel-condition-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: white;
+  border: 1px solid rgba(36, 87, 214, 0.12);
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.pulso-graph-edge-panel-condition-row.has-nested-or {
+  background: rgba(15, 23, 42, 0.025);
+}
+.pulso-graph-edge-panel-condition-join {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(36, 87, 214, 0.10);
+  color: var(--pulso-primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+.pulso-graph-edge-panel-condition-join.is-and {
+  background: rgba(15, 118, 110, 0.12);
+  color: #0f766e;
+}
+.pulso-graph-edge-panel-condition-join.is-or {
+  background: rgba(36, 87, 214, 0.12);
+  color: var(--pulso-primary);
+}
+.pulso-graph-edge-panel-nested-or {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.pulso-graph-edge-panel-nested-or-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+.pulso-graph-edge-panel-nested-or-head strong {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(36, 87, 214, 0.12);
+  color: var(--pulso-primary);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+.pulso-graph-edge-panel-nested-or-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.pulso-graph-edge-panel-nested-question {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 2px 2px 4px;
+}
+.pulso-graph-edge-panel-nested-question strong {
+  color: var(--pulso-text);
+  font-size: 12.8px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.pulso-graph-edge-panel-nested-question code {
+  color: var(--pulso-text-soft);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+.pulso-graph-edge-panel-nested-question span {
+  color: var(--pulso-primary);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+.pulso-graph-edge-panel-option-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.pulso-graph-edge-panel-option-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: white;
+  border: 1px solid rgba(36, 87, 214, 0.14);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.pulso-graph-edge-panel-option-chip em {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(36, 87, 214, 0.12);
+  color: var(--pulso-primary);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 900;
+}
+.pulso-graph-edge-panel-nested-or-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 9px;
+  border-radius: 9px;
+  background: white;
+  border: 1px solid rgba(36, 87, 214, 0.10);
+  font-size: 12.3px;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+.pulso-graph-edge-panel-narrative {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.55;
 }
 
 /* Acciones */
@@ -4884,18 +5206,25 @@ button.pulso-empty-home-card:focus-visible {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 16px;
+  position: sticky;
+  bottom: -22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), white 30%);
 }
 .pulso-graph-edge-panel-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 7px 12px;
-  font-size: 12px;
-  font-weight: 600;
+  width: 100%;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 800;
   background: var(--pulso-primary);
   color: white;
   border: none;
-  border-radius: 7px;
+  border-radius: 10px;
   cursor: pointer;
   transition: background 140ms ease, transform 100ms ease;
 }
@@ -5160,6 +5489,7 @@ button.pulso-empty-home-card:focus-visible {
 /* ─── Empty state pulido ────────────────────────────────────────── */
 .pulso-graph-empty {
   position: absolute;
+  inset: auto;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -5170,7 +5500,8 @@ button.pulso-empty-home-card:focus-visible {
   max-width: 420px;
   text-align: center;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.10);
-  animation: pulso-edge-panel-in 280ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+  animation: pulso-graph-empty-in 280ms cubic-bezier(0.18, 0.89, 0.32, 1.18) both;
+  pointer-events: none;
 }
 .pulso-graph-empty-icon {
   display: flex;
@@ -5200,13 +5531,39 @@ button.pulso-empty-home-card:focus-visible {
   color: var(--pulso-primary);
 }
 .pulso-graph-empty-no-edges {
-  top: 80px;
+  top: auto;
+  bottom: 24px;
   transform: translateX(-50%);
-  padding: 14px 22px;
-  max-width: 480px;
+  padding: 10px 14px;
+  max-width: 560px;
+  background: rgba(255, 255, 255, 0.92);
+  border-style: dashed;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(10px);
+  animation-name: pulso-graph-empty-bottom-in;
 }
 .pulso-graph-empty-no-edges p {
-  font-size: 12.5px;
+  font-size: 12px;
+}
+@keyframes pulso-graph-empty-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 8px)) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes pulso-graph-empty-bottom-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
 }
 
 /* ─── Loading spinner ───────────────────────────────────────────── */
@@ -5227,7 +5584,7 @@ button.pulso-empty-home-card:focus-visible {
   box-shadow: var(--pulso-shadow-soft);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  animation: pulso-edge-panel-in 200ms ease both;
+  animation: pulso-graph-empty-in 200ms ease both;
 }
 .pulso-graph-loading-spinner {
   display: flex;

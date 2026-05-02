@@ -94,7 +94,25 @@ export function rowToRecord(sheet: XlsformEditorSheet, rowIndex: number): Record
   sheet.columns.forEach((column, idx) => {
     out[column] = row[idx] ?? "";
   });
+  applyMultilingualFallback(out, "label");
+  applyMultilingualFallback(out, "hint");
+  applyMultilingualFallback(out, "constraint_message");
+  applyMultilingualFallback(out, "required_message");
   return out;
+}
+
+function applyMultilingualFallback(record: Record<string, string>, base: string) {
+  const candidates = Object.keys(record)
+    .filter((key) => key.toLowerCase().startsWith(`${base.toLowerCase()}::`))
+    .sort((a, b) => {
+      const aLang = a.split("::").slice(1).join("::").toLowerCase();
+      const bLang = b.split("::").slice(1).join("::").toLowerCase();
+      if (aLang === "es") return -1;
+      if (bLang === "es") return 1;
+      return a.localeCompare(b);
+    });
+  const first = candidates.map((key) => record[key]).find((value) => Boolean(value));
+  if (first) record[base] = first;
 }
 
 /**

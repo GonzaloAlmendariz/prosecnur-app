@@ -150,6 +150,15 @@
     return(list(stem = stem, suffix = sfx, is_other = FALSE))
   }
 
+  # Sufijo alfabético: P2_a, P5_b. Solo aceptamos si el stem termina en
+  # dígito (variable claramente numerada en SurveyMonkey) — para no agrupar
+  # falsos positivos como `respondent_id` (donde "id" se vería como sufijo).
+  if (grepl("^(.*[0-9])[_.]([a-z]+)$", low, perl = TRUE)) {
+    stem <- sub("^(.*[0-9])[_.]([a-z]+)$", "\\1", low, perl = TRUE)
+    sfx  <- sub("^(.*[0-9])[_.]([a-z]+)$", "\\2", low, perl = TRUE)
+    return(list(stem = stem, suffix = sfx, is_other = FALSE))
+  }
+
   list(stem = low, suffix = NA_character_, is_other = FALSE)
 }
 
@@ -158,6 +167,23 @@
   if (is.null(labs) || !length(labs)) return(NA_character_)
   paste0(names(labs), "=", unname(labs), collapse = " | ")
 }
+
+.sm_binary_string_set <- c(
+  # ASCII universal
+  "0", "1", "true", "false", "t", "f", "y", "n",
+  # Inglés
+  "yes", "no",
+  # Español
+  "si", "sí", "no",
+  # Portugués
+  "sim", "nao", "não",
+  # Francés
+  "oui", "non",
+  # Alemán
+  "ja", "nein",
+  # Italiano
+  "si", "no"
+)
 
 .sm_is_binary_like <- function(x) {
   labs <- attr(x, "labels", exact = TRUE)
@@ -173,7 +199,10 @@
     return(all(unique(x_num) %in% c(0, 1)))
   }
 
-  all(unique(tolower(x_chr)) %in% c("0", "1", "true", "false", "t", "f", "si", "sí", "no", "yes"))
+  # Translitera a ASCII para que tildes (sí/não) coincidan con la lista
+  # normalizada — evita falsos negativos por encoding del .sav.
+  x_ascii <- .sm_ascii_lower(x_chr)
+  all(unique(x_ascii) %in% .sm_ascii_lower(.sm_binary_string_set))
 }
 
 .sm_is_text_select_one_like <- function(x) {
@@ -226,7 +255,10 @@
 
 .sm_is_question_name <- function(nm) {
   low <- tolower(trimws(as.character(nm)[1]))
-  grepl("^p[0-9]+([_.](?:[0-9]+|o|other|otro))?$", low, perl = TRUE)
+  # Acepta P{n} (P1, P4_2, P5_O) y Q{n} (q1, q0007_0001) — SurveyMonkey usa
+  # ambas convenciones según cómo se descargue el SPSS. El sufijo opcional
+  # puede ser numérico (con o sin padding), alfabético, u "other".
+  grepl("^[pq][0-9]+([_.](?:[0-9]+|[a-z]+|o|other|otro))?$", low, perl = TRUE)
 }
 
 .sm_infer_other_label <- function(other_row, choice_labels = character()) {
@@ -353,6 +385,9 @@
   suffix_num <- suppressWarnings(as.numeric(as.character(df$suffix)))
   if (all(!is.na(suffix_num))) {
     df <- df[order(suffix_num, df$order), , drop = FALSE]
+  } else if (all(!is.na(df$suffix))) {
+    # Sufijo alfabético (P2_a, P2_b): orden alfabético consistente.
+    df <- df[order(as.character(df$suffix), df$order), , drop = FALSE]
   } else {
     df <- df[order(df$order), , drop = FALSE]
   }
@@ -412,28 +447,197 @@
   keep <- vapply(grps, function(df) {
     df2 <- df[!df$is_metadata & !df$is_other & df$is_question_like, , drop = FALSE]
     if (nrow(df2) < 2L) return(FALSE)
-    if (any(is.na(df2$suffix) | !grepl("^[0-9]+$", df2$suffix))) return(FALSE)
+    # Sufijo numérico (P5_1, P5_2) o alfabético (P5_a, P5_b) — ambos válidos.
+    if (any(is.na(df2$suffix))) return(FALSE)
+    valid_suffix <- grepl("^([0-9]+|[a-z]+)$", df2$suffix)
+    if (!all(valid_suffix)) return(FALSE)
+    # Sufijos del grupo deben ser homogéneos (todos numéricos o todos alfa).
+    suffix_kinds <- unique(grepl("^[0-9]+$", df2$suffix))
+    if (length(suffix_kinds) != 1L) return(FALSE)
     all(df2$n_value_labels == 1L | df2$binary_like)
   }, logical(1))
   names(grps)[keep]
 }
 
-.sm_battery_groups <- function(vars_tbl) {
+# Mapea cada name_raw del dataset a la sección-página a la que pertenece,
+# según el mapeo `paginas = list("16" = c("Q24"), "17" = c("Q25",...))`.
+# Devuelve named character vector (una entrada por name_raw); NA cuando la
+# pregunta no está mapeada (queda al nivel raíz del survey).
+.sm_build_section_map <- function(paginas, vars_tbl) {
+  out <- stats::setNames(rep(NA_character_, nrow(vars_tbl)), vars_tbl$name_raw)
+  if (is.null(paginas) || !length(paginas)) return(out)
+
+  style <- .sm_detect_naming_style(vars_tbl$name_raw)
+  raw_upper <- toupper(vars_tbl$name_raw)
+
+  for (page_id in names(paginas)) {
+    qs <- paginas[[page_id]]
+    if (!length(qs)) next
+    section_name <- paste0("section_pag_", page_id)
+    for (q in qs) {
+      variants <- toupper(.sm_qp_variants(q, style))
+      # Match exacto al name_raw
+      hit_idx <- which(raw_upper %in% variants)
+      # Match por prefijo (battery/multi children: Q24 → Q24_0001..0007)
+      if (TRUE) {
+        prefix_pat <- paste0("^(", paste(variants, collapse = "|"), ")_")
+        hit_idx <- unique(c(hit_idx, grep(prefix_pat, raw_upper, perl = TRUE)))
+      }
+      out[hit_idx] <- section_name
+    }
+  }
+  out
+}
+
+.sm_battery_groups <- function(vars_tbl, threshold = 0.8) {
   grps <- split(vars_tbl, vars_tbl$group_guess)
   keep <- vapply(grps, function(df) {
     df2 <- df[!df$is_metadata & !df$is_other & df$is_question_like, , drop = FALSE]
     if (nrow(df2) < 2L) return(FALSE)
     if (any(is.na(df2$suffix) | !grepl("^[0-9]+$", df2$suffix))) return(FALSE)
     if (any(df2$n_value_labels <= 1L)) return(FALSE)
-    sig <- unique(df2$label_signature[!is.na(df2$label_signature)])
-    length(sig) == 1L
+    sigs <- df2$label_signature[!is.na(df2$label_signature)]
+    if (!length(sigs)) return(FALSE)
+    # Battery se forma si la firma dominante cubre `threshold` (80% por
+    # defecto) de los items con sufijo numérico — los outliers se filtran
+    # en .sm_battery_outliers y caen como select_one con su propia lista.
+    counts <- table(sigs)
+    max(counts) / length(sigs) >= threshold && max(counts) >= 2L
   }, logical(1))
   names(grps)[keep]
 }
 
+# Devuelve un vector de `name_raw` que pertenecen a un grupo aceptado como
+# battery pero cuya firma de etiquetas difiere de la dominante. Estos items
+# NO se marcan como battery_item — caen al kind_guess default (select_one)
+# y reciben aviso en la hoja diagnostico.
+.sm_battery_outliers <- function(vars_tbl, battery_groups) {
+  if (!length(battery_groups)) return(character(0))
+  out <- character(0)
+  for (g in battery_groups) {
+    df <- vars_tbl[vars_tbl$group_guess == g, , drop = FALSE]
+    df2 <- df[!df$is_metadata & !df$is_other & df$is_question_like, , drop = FALSE]
+    sigs <- df2$label_signature
+    sigs_known <- sigs[!is.na(sigs)]
+    if (!length(sigs_known)) next
+    dominant <- names(sort(table(sigs_known), decreasing = TRUE))[1]
+    is_outlier <- !is.na(sigs) & sigs != dominant
+    if (any(is_outlier)) {
+      out <- c(out, df2$name_raw[is_outlier])
+    }
+  }
+  out
+}
+
+# Anexa avisos diagnósticos a vars_tbl para que la hoja `diagnostico` muestre
+# por qué un grupo de variables que "parecían" battery/multi quedó suelto.
+# Solo detectamos descartes muy claros para evitar falsos positivos.
+.sm_attach_avisos <- function(vars_tbl) {
+  vars_tbl$aviso_tipo <- NA_character_
+  vars_tbl$aviso_mensaje <- NA_character_
+
+  if (!nrow(vars_tbl)) return(vars_tbl)
+
+  # Outliers de battery: el grupo se aceptó como battery con tolerancia,
+  # pero estos items tienen firma de etiquetas distinta a la dominante y
+  # quedaron fuera del begin_group como select_one independientes.
+  if (!is.null(vars_tbl$is_battery_outlier)) {
+    where <- which(isTRUE(vars_tbl$is_battery_outlier) | vars_tbl$is_battery_outlier)
+    if (length(where)) {
+      vars_tbl$aviso_tipo[where] <- "battery_outlier"
+      vars_tbl$aviso_mensaje[where] <- paste(
+        "Item del grupo battery con etiquetas distintas al resto:",
+        "se mantuvo el grupo (la mayoría comparte la misma escala) pero este item",
+        "quedó fuera como select_one independiente."
+      )
+    }
+  }
+
+  is_kept_battery <- vars_tbl$kind_guess == "battery_item"
+  is_kept_multi <- vars_tbl$kind_guess == "select_multiple_dummy"
+
+  for (g in unique(vars_tbl$group_guess)) {
+    if (!nzchar(g)) next
+    idx <- which(vars_tbl$group_guess == g)
+    df <- vars_tbl[idx, , drop = FALSE]
+    df_q <- df[!df$is_metadata & !df$is_other & df$is_question_like, , drop = FALSE]
+    if (nrow(df_q) < 2L) next
+    if (any(is_kept_battery[idx]) || any(is_kept_multi[idx])) next
+
+    suffixes_numeric <- !any(is.na(df_q$suffix) | !grepl("^[0-9]+$", df_q$suffix))
+
+    # Battery candidata: 2+ vars con etiquetas (n_value_labels > 1) y sufijos
+    # numéricos, pero firmas de etiquetas distintas → fragmenta el grupo.
+    if (suffixes_numeric && all(df_q$n_value_labels > 1L)) {
+      sigs <- unique(df_q$label_signature[!is.na(df_q$label_signature)])
+      if (length(sigs) > 1L) {
+        vars_tbl$aviso_tipo[idx] <- "battery_descartada"
+        vars_tbl$aviso_mensaje[idx] <- paste(
+          "Battery candidata descartada: las opciones de respuesta difieren entre items del grupo",
+          sprintf("(%d firmas distintas).", length(sigs)),
+          "Para agruparlos como matriz Likert, asegúrate de que todos los items compartan exactamente las mismas opciones."
+        )
+        next
+      }
+    }
+
+  }
+
+  # Segunda pasada: detecta variables con sufijo alfabético (P2_a, P5_b)
+  # que NO terminaron como select_multiple_dummy ni battery_item — es decir,
+  # el detector las vio pero no se cumplían las condiciones (no eran dummy
+  # ni tenían etiquetas homogéneas). Avisamos para que el usuario revise.
+  alpha_suffix <- grepl("^[Pp][0-9]+_[A-Za-z]+$", vars_tbl$name_raw) &
+    !vars_tbl$is_metadata & !vars_tbl$is_other &
+    !vars_tbl$kind_guess %in% c("select_multiple_dummy", "battery_item") &
+    is.na(vars_tbl$aviso_tipo)
+  if (any(alpha_suffix)) {
+    where_all <- which(alpha_suffix)
+    prefixes <- sub("_[A-Za-z]+$", "", vars_tbl$name_raw[where_all])
+    for (px in unique(prefixes)) {
+      where <- where_all[prefixes == px]
+      if (length(where) < 2L) next
+      vars_tbl$aviso_tipo[where] <- "multi_descartada"
+      vars_tbl$aviso_mensaje[where] <- paste(
+        "Multi-select candidata descartada:",
+        "el sufijo de las variables no es numérico (esperado p1_1, p1_2, ...).",
+        "Revisa los nombres en SurveyMonkey si querías que se agrupen como select_multiple."
+      )
+    }
+  }
+
+  vars_tbl
+}
+
 .sm_build_read_object <- function(path, user_na = TRUE) {
-  data_raw <- haven::read_sav(path, user_na = user_na)
+  data_raw <- tryCatch(
+    haven::read_sav(path, user_na = user_na),
+    error = function(e) {
+      stop(
+        sprintf(
+          "No pude leer '%s' como SPSS .sav (%s). Verifica que sea un export SPSS de SurveyMonkey y no un .csv/.xlsx renombrado.",
+          basename(path), conditionMessage(e)
+        ),
+        call. = FALSE
+      )
+    }
+  )
   cols <- names(data_raw)
+  if (length(cols) == 0L) {
+    stop(
+      sprintf("El archivo '%s' no tiene columnas — no hay nada que traducir.", basename(path)),
+      call. = FALSE
+    )
+  }
+  if (nrow(data_raw) == 0L) {
+    stop(
+      sprintf(
+        "El archivo '%s' no tiene filas. La traducción necesita al menos una respuesta para inferir tipos de pregunta a partir de los valores observados.",
+        basename(path)
+      ),
+      call. = FALSE
+    )
+  }
   parsed <- lapply(cols, .sm_parse_var_name)
   name_clean <- janitor::make_clean_names(cols)
 
@@ -460,6 +664,10 @@
 
   multi_groups <- .sm_multi_groups(vars_tbl)
   battery_groups <- .sm_battery_groups(vars_tbl)
+  battery_outliers <- .sm_battery_outliers(vars_tbl, battery_groups)
+  vars_tbl$is_battery_outlier <- vars_tbl$name_raw %in% battery_outliers
+
+  in_battery <- vars_tbl$group_guess %in% battery_groups & !vars_tbl$is_battery_outlier
 
   vars_tbl$kind_guess <- ifelse(
     vars_tbl$is_metadata, "metadata",
@@ -468,7 +676,7 @@
       ifelse(
         vars_tbl$group_guess %in% multi_groups, "select_multiple_dummy",
         ifelse(
-          vars_tbl$group_guess %in% battery_groups, "battery_item",
+          in_battery, "battery_item",
           ifelse(vars_tbl$n_value_labels > 1L | vars_tbl$text_select_one_like, "select_one", vars_tbl$storage_type_guess)
         )
       )
@@ -503,7 +711,7 @@
   .sm_first_nonempty(row$label, fallback = row$name_raw)
 }
 
-.sm_build_spec <- function(x, lang = "es") {
+.sm_build_spec <- function(x, lang = "es", paginas = NULL, paginas_labels = NULL) {
   if (!inherits(x, "prosecnur_surveymonkey")) {
     stop("`x` debe ser el resultado de `surveymonkey_leer()`.", call. = FALSE)
   }
@@ -731,6 +939,22 @@
   }
 
   question_specs <- dplyr::bind_rows(question_specs)
+  # Si todas las variables del .sav son multi/battery (caso atípico, sin
+  # metadata ni standalone), bind_rows devuelve un tibble vacío sin columnas
+  # — el join posterior con vars_tbl falla. Aseguramos columnas mínimas.
+  if (!nrow(question_specs)) {
+    question_specs <- tibble::tibble(
+      role = character(0),
+      raw_name = character(0),
+      name = character(0),
+      label = character(0),
+      type = character(0),
+      list_name = character(0),
+      section = character(0),
+      order = integer(0),
+      group_guess = character(0)
+    )
+  }
 
   # -- choices for standalone select_one -----------------------------------
   choice_parts <- list()
@@ -775,12 +999,68 @@
   auxiliary_name <- auxiliary_section
   auxiliary_label <- "Variables auxiliares SurveyMonkey"
 
+  # Mapeo nombre_raw → "section_pag_N" según paginas (NA si la pregunta no
+  # está mapeada — queda al raíz del survey).
+  section_map <- .sm_build_section_map(paginas, vars_ordered)
+  current_page_section <- NA_character_
+
   add_question_by_raw <- function(raw_name) {
     question_specs[question_specs$raw_name == raw_name, , drop = FALSE]
   }
 
+  # Helper: emite begin/end de la sección-página actual cuando cambia.
+  # Devuelve filas a anexar a survey_rows (vacío si no hay transición).
+  page_section_transition <- function(target_section) {
+    out <- list()
+    if (identical(target_section, current_page_section)) return(out)
+    if (!is.na(current_page_section)) {
+      out[[length(out) + 1L]] <- tibble::tibble(
+        type = "end_group", name = NA_character_, `label::es` = NA_character_,
+        required = NA_character_, relevant = NA_character_,
+        constraint = NA_character_, calculation = NA_character_,
+        choice_filter = NA_character_, section = current_page_section
+      )
+    }
+    if (!is.na(target_section)) {
+      page_id <- sub("^section_pag_", "", target_section)
+      page_label <- if (!is.null(paginas_labels) && !is.null(paginas_labels[[page_id]])) {
+        .sm_first_nonempty(paginas_labels[[page_id]], fallback = paste("Sección", page_id))
+      } else {
+        paste("Sección", page_id)
+      }
+      out[[length(out) + 1L]] <- tibble::tibble(
+        type = "begin_group", name = target_section,
+        `label::es` = page_label,
+        required = NA_character_, relevant = NA_character_,
+        constraint = NA_character_, calculation = NA_character_,
+        choice_filter = NA_character_, section = target_section
+      )
+    }
+    current_page_section <<- target_section
+    out
+  }
+
   for (i in seq_len(nrow(vars_ordered))) {
     row <- vars_ordered[i, , drop = FALSE]
+
+    # Si la fila pertenece a una sección-página, gestionar la transición
+    # antes de emitir su contenido. Metadata/auxiliary tienen su propio
+    # agrupamiento y nunca van dentro de una página.
+    if (!row$is_metadata && !row$is_auxiliary) {
+      target_section <- section_map[[row$name_raw]]
+      # Para batteries/multi, la primera child determina la sección y todas
+      # las demás siguen en la misma; no necesitamos transiciones internas.
+      transitions <- page_section_transition(target_section)
+      for (tr in transitions) {
+        survey_rows[[length(survey_rows) + 1L]] <- tr
+      }
+    } else {
+      # Cerrar sección-página antes de entrar a metadata/auxiliary.
+      transitions <- page_section_transition(NA_character_)
+      for (tr in transitions) {
+        survey_rows[[length(survey_rows) + 1L]] <- tr
+      }
+    }
 
     if (row$is_metadata) {
       if (!metadata_open) {
@@ -978,6 +1258,10 @@
       )
   }
 
+  # Cerrar la última sección-página si quedó abierta.
+  closing <- page_section_transition(NA_character_)
+  for (tr in closing) survey_rows[[length(survey_rows) + 1L]] <- tr
+
   survey <- dplyr::bind_rows(survey_rows)
 
   settings <- tibble::tibble(
@@ -987,14 +1271,19 @@
     version = format(Sys.Date(), "%Y%m%d")
   )
 
+  # Avisos: detecta grupos que parecían candidatos a battery/multi pero
+  # fueron descartados por la heurística, para que el usuario vea por qué
+  # quedaron sueltos en el survey.
+  vars_tbl <- .sm_attach_avisos(vars_tbl)
+
   diagnostico <- vars_tbl |>
     dplyr::left_join(
       question_specs |>
         dplyr::select(
-          .data$raw_name,
-          name_final_ref = .data$name,
-          type_final_ref = .data$type,
-          list_name_final_ref = .data$list_name
+          "raw_name",
+          name_final_ref = "name",
+          type_final_ref = "type",
+          list_name_final_ref = "list_name"
         ),
       by = c("name_raw" = "raw_name")
     ) |>
@@ -1007,23 +1296,25 @@
       list_name_final = dplyr::coalesce(.data$list_name_final_ref, .data$list_name_final)
     ) |>
     dplyr::select(
-      .data$order,
-      .data$name_raw,
-      .data$name_clean,
-      .data$name_final,
-      .data$label,
-      .data$kind_guess,
-      .data$storage_type_guess,
-      .data$type_final,
-      .data$list_name_final,
-      .data$section_final,
-      .data$is_metadata,
-      .data$is_auxiliary,
-      .data$is_other,
-      .data$is_question_like,
-      .data$group_guess,
-      .data$n_value_labels,
-      .data$class
+      "order",
+      "name_raw",
+      "name_clean",
+      "name_final",
+      "label",
+      "kind_guess",
+      "storage_type_guess",
+      "type_final",
+      "list_name_final",
+      "section_final",
+      "is_metadata",
+      "is_auxiliary",
+      "is_other",
+      "is_question_like",
+      "group_guess",
+      "n_value_labels",
+      "class",
+      "aviso_tipo",
+      "aviso_mensaje"
     )
 
   list(
@@ -1059,8 +1350,8 @@ surveymonkey_leer <- function(path, user_na = TRUE) {
 #' @return Lista clase `prosecnur_surveymonkey_xlsform`.
 #' @family surveymonkey
 #' @export
-surveymonkey_xlsform <- function(x, path = NULL, lang = "es") {
-  spec <- .sm_build_spec(x = x, lang = lang)
+surveymonkey_xlsform <- function(x, path = NULL, lang = "es", paginas = NULL, paginas_labels = NULL) {
+  spec <- .sm_build_spec(x = x, lang = lang, paginas = paginas, paginas_labels = paginas_labels)
 
   out <- structure(
     list(

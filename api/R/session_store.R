@@ -338,6 +338,52 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
   invisible(value)
 }
 
+.validacion_empty_scope <- function() {
+  list(
+    plan_result      = NULL,
+    evaluacion       = NULL,
+    reglas_custom    = list(),
+    explorador_cache = list(),
+    limpieza_draft   = list(),
+    limpieza_preview = NULL,
+    limpieza_artifacts = list()
+  )
+}
+
+.invalidate_processing_state <- function(s, base_nombre = NULL) {
+  # Todo lo que depende del par XLSForm + data debe recomputarse cuando
+  # alguno de los dos cambia. Si no, Fase 2 puede mostrar plan/auditoría/
+  # limpieza del instrumento anterior aunque la carga ya sea nueva.
+  s$plan_result <- NULL
+  s$evaluacion <- NULL
+  s$reglas_custom <- list()
+  s$explorador_cache <- list()
+  s$limpieza_draft <- list()
+  s$limpieza_preview <- NULL
+  s$limpieza_artifacts <- list()
+  s$analitica_prep_ok <- FALSE
+  s$analitica_codebook_ok <- FALSE
+  s$analitica_frecuencias_ok <- FALSE
+  s$analitica_cruces_ok <- FALSE
+  s$analitica_spss_ok <- FALSE
+  s$analitica_enumeradores_ok <- FALSE
+  s$analitica_dim_ok <- FALSE
+  s$graficos_ppt_ok <- FALSE
+  s$graficos_word_ok <- FALSE
+
+  if (!is.null(s$estudio) && length(s$estudio$bases) > 0L) {
+    targets <- if (!is.null(base_nombre) && nzchar(base_nombre)) {
+      intersect(base_nombre, names(s$estudio$bases))
+    } else {
+      names(s$estudio$bases)
+    }
+    for (bn in targets) {
+      s$estudio$bases[[bn]]$validacion <- .validacion_empty_scope()
+    }
+  }
+  s
+}
+
 # Resuelve el nombre efectivo de la base. Reglas:
 # - Si viene base_nombre y existe en el estudio, usar ese.
 # - Si viene pero no existe, error.
@@ -400,6 +446,11 @@ estudio_replace_base_files <- function(sid, nombre,
     if (!is.na(n_columnas)) meta$n_columnas <- n_columnas
   }
   s$estudio$bases[[nombre]] <- meta
+
+  if ((!is.null(xlsform_file_id) && nzchar(xlsform_file_id)) ||
+      (!is.null(data_file_id) && nzchar(data_file_id))) {
+    s <- .invalidate_processing_state(s, nombre)
+  }
 
   # Refrescar mirror si es la primera base.
   first <- names(s$estudio$bases)[1]

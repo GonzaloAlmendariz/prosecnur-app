@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell, safeStorage } = require("electron");
 const { spawn } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
 const fs = require("node:fs");
@@ -108,6 +108,169 @@ function pushRecentProject(absPath) {
   writeRecentProjects(filtered.slice(0, RECENT_LIMIT));
 }
 
+// Quita un .pulso de la lista de recientes. NO toca el archivo en disco —
+// solo lo despublica del menú "Recientes" del StartModal.
+function removeRecentProject(absPath) {
+  if (!absPath || typeof absPath !== "string") return;
+  const list = readRecentProjects();
+  writeRecentProjects(list.filter((e) => e.path !== absPath));
+}
+
+// ===========================================================================
+// Publicacion web — settings de Hugging Face en safeStorage
+// ===========================================================================
+
+function hfSettingsPath() {
+  return path.join(app.getPath("userData"), "hf-settings.json");
+}
+
+function maskSecret(value) {
+  const text = String(value || "");
+  if (!text) return "";
+  if (text.length <= 10) return "••••";
+  return `${text.slice(0, 3)}••••${text.slice(-4)}`;
+}
+
+function encryptSecret(value) {
+  const text = String(value || "");
+  if (!text) return { encrypted: true, value: "" };
+  if (safeStorage.isEncryptionAvailable()) {
+    return {
+      encrypted: true,
+      value: safeStorage.encryptString(text).toString("base64")
+    };
+  }
+  return {
+    encrypted: false,
+    value: Buffer.from(text, "utf8").toString("base64")
+  };
+}
+
+function decryptSecret(record) {
+  if (!record || !record.value) return "";
+  try {
+    const buf = Buffer.from(record.value, "base64");
+    if (record.encrypted) return safeStorage.decryptString(buf);
+    return buf.toString("utf8");
+  } catch (_e) {
+    return "";
+  }
+}
+
+function hfTokenMeta(entry) {
+  const token = decryptSecret(entry && entry.hf_token);
+  return {
+    id: entry.id,
+    name: entry.name || entry.hf_username || "Token HF",
+    hf_username: entry.hf_username || "",
+    masked_token: maskSecret(token),
+    created_at: entry.created_at || null,
+    last_used_at: entry.last_used_at || null
+  };
+}
+
+function readHfSettingsRaw() {
+  const p = hfSettingsPath();
+  if (!fs.existsSync(p)) {
+    return {
+      hf_username: "",
+      tokens: []
+    };
+  }
+  try {
+    const raw = JSON.parse(fs.readFileSync(p, "utf8"));
+    const tokens = Array.isArray(raw.tokens) ? raw.tokens : [];
+    let migrated = false;
+    // Migracion del formato inicial: un unico token en hf_token.
+    if (raw.hf_token && !tokens.length) {
+      tokens.push({
+        id: randomUUID(),
+        name: raw.hf_username || "Token HF",
+        hf_username: raw.hf_username || "",
+        hf_token: raw.hf_token,
+        created_at: raw.updated_at || new Date().toISOString(),
+        last_used_at: raw.updated_at || null
+      });
+      migrated = true;
+    }
+    if (migrated) {
+      writeHfSettingsRaw({
+        hf_username: raw.hf_username || "",
+        tokens,
+        updated_at: raw.updated_at || new Date().toISOString()
+      });
+    }
+    return {
+      hf_username: typeof raw.hf_username === "string" ? raw.hf_username : "",
+      tokens
+    };
+  } catch (_e) {
+    return {
+      hf_username: "",
+      tokens: []
+    };
+  }
+}
+
+function writeHfSettingsRaw(raw) {
+  fs.mkdirSync(path.dirname(hfSettingsPath()), { recursive: true });
+  fs.writeFileSync(hfSettingsPath(), JSON.stringify(raw, null, 2), "utf8");
+}
+
+function readHfSettings() {
+  const raw = readHfSettingsRaw();
+  return {
+    hf_username: raw.hf_username || "",
+    token_configured: raw.tokens.length > 0,
+    encryption_available: safeStorage.isEncryptionAvailable(),
+    saved_tokens: raw.tokens.map(hfTokenMeta)
+  };
+}
+
+function getHfToken(id) {
+  const raw = readHfSettingsRaw();
+  const entry = raw.tokens.find((t) => t.id === id);
+  if (!entry) return null;
+  return {
+    ...hfTokenMeta(entry),
+    hf_token: decryptSecret(entry.hf_token)
+  };
+}
+
+function rememberSuccessfulHfToken(settings = {}) {
+  const username = String(settings.hf_username || "").trim();
+  const token = String(settings.hf_token || "").trim();
+  const name = String(settings.name || username || "Token HF").trim();
+  if (!username || !token) return readHfSettings();
+  const raw = readHfSettingsRaw();
+  const now = new Date().toISOString();
+  const existing = raw.tokens.find((entry) => (
+    entry.hf_username === username && decryptSecret(entry.hf_token) === token
+  ));
+  if (existing) {
+    existing.name = name;
+    existing.last_used_at = now;
+  } else {
+    raw.tokens.unshift({
+      id: randomUUID(),
+      name,
+      hf_username: username,
+      hf_token: encryptSecret(token),
+      created_at: now,
+      last_used_at: now
+    });
+  }
+  raw.tokens = raw.tokens.slice(0, 10);
+  raw.hf_username = username;
+  const payload = {
+    hf_username: raw.hf_username,
+    tokens: raw.tokens,
+    updated_at: new Date().toISOString()
+  };
+  writeHfSettingsRaw(payload);
+  return readHfSettings();
+}
+
 // ===========================================================================
 // IPC handlers — invocados desde preload.cjs
 // ===========================================================================
@@ -164,6 +327,17 @@ function registerIpcHandlers() {
     if (args.path) pushRecentProject(args.path);
     return readRecentProjects();
   });
+
+  ipcMain.handle("project:removeRecent", (_event, args = {}) => {
+    if (args.path) removeRecentProject(args.path);
+    return readRecentProjects();
+  });
+
+  ipcMain.handle("hf:getSettings", () => readHfSettings());
+
+  ipcMain.handle("hf:getToken", (_event, args = {}) => getHfToken(args.id));
+
+  ipcMain.handle("hf:rememberSuccessfulToken", (_event, args = {}) => rememberSuccessfulHfToken(args));
 }
 
 // Helper para enviar comandos del menú al renderer. Se usa desde

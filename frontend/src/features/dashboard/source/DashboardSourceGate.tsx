@@ -4,10 +4,10 @@ import {
   apiDashboardSourceGet,
   apiDashboardSourceImport,
   apiUpload,
+  uploadKindForDataFile,
   type DashboardRecodVar,
   type DashboardSourceFileCandidate,
   type DashboardSourcePayload,
-  type UploadKind,
 } from "../../../api/client";
 import { EmptyState } from "../shared/EmptyState";
 import { useDashboardStore } from "../store";
@@ -115,8 +115,7 @@ export function DashboardSourceGate({
     setError(null);
     try {
       const xls = await apiUpload(xlsFile, "xlsform");
-      const dataKind: UploadKind = dataFile.name.toLowerCase().endsWith(".sav") ? "sav" : "data";
-      const dat = await apiUpload(dataFile, dataKind);
+      const dat = await apiUpload(dataFile, uploadKindForDataFile(dataFile));
       await apiDashboardSourceImport({
         xlsform_file_id: xls.file_id,
         data_file_id: dat.file_id,
@@ -243,7 +242,7 @@ export function DashboardSourceGate({
             <span>Data</span>
             <input
               type="file"
-              accept=".xlsx,.xls,.csv,.sav"
+              accept=".xlsx,.xls,.csv,.sav,application/x-spss-sav,application/octet-stream"
               onChange={(e) => setDataFile(e.target.files?.[0] ?? null)}
             />
           </label>

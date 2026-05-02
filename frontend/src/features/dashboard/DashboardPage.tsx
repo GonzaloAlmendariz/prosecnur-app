@@ -1,13 +1,14 @@
 import "./theme/tokens.css";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Download, Eye, EyeOff, Loader2, Palette, Settings, UploadCloud } from "lucide-react";
-import { apiDashboardExport, type DashboardTabId } from "../../api/client";
+import { Eye, EyeOff, Palette, Rocket, Settings, UploadCloud } from "lucide-react";
+import { type DashboardTabId } from "../../api/client";
 import { DashboardCurationGate } from "./curation/DashboardCurationGate";
 import { DashboardHeader } from "./header/DashboardHeader";
 import { DashboardCustomizeDialog } from "./customize/DashboardCustomizeDialog";
 import "./customize/customize.css";
 import { DashboardPalettesDialog } from "./palettes/DashboardPalettesDialog";
+import { DashboardPublishDialog } from "./publish/DashboardPublishDialog";
 import { EmptyState } from "./shared/EmptyState";
 import { DashboardSourceGate } from "./source/DashboardSourceGate";
 import { ResumenTab } from "./tabs/ResumenTab";
@@ -17,7 +18,7 @@ import { DimensionesTab } from "./tabs/DimensionesTab";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { DEFAULT_TABS_ENABLED, useDashboardAutosave, useDashboardStore } from "./store";
 import { useDashboardManifest, useDashboardRecodVars } from "./useDashboardData";
-import { getStandalonePayload, initWebR, isStandaloneMode } from "../../lib/webrBridge";
+import { isPublicMode } from "../../lib/runtime";
 
 // Página principal del Dashboard.
 // Layout:
@@ -32,32 +33,14 @@ import { getStandalonePayload, initWebR, isStandaloneMode } from "../../lib/webr
 // La estructura de tabs viene del manifest del paquete (NO editable).
 // Las tabs no disponibles aparecen deshabilitadas con tooltip.
 
-export default function DashboardPage() {
-  // Modo standalone: el dashboard corre sin backend Plumber, todo el
-  // cómputo lo hace WebR client-side. No autosaveamos (no hay servidor),
-  // ocultamos toda la admin toolbar y arrancamos WebR al montar.
-  const standalone = isStandaloneMode();
-  useDashboardAutosave(!standalone);
-
-  // Bootstrap WebR una sola vez si estamos en standalone. Mientras carga
-  // (~10 seg primera vez), un overlay tapa la pantalla. También hidratamos
-  // el store de Zustand directo desde el payload (sin pasar por API).
-  const [webRReady, setWebRReady] = useState(!standalone);
-  const [webRError, setWebRError] = useState<string | null>(null);
-  const hydrate = useDashboardStore((s) => s.hydrate);
-  useEffect(() => {
-    if (!standalone) return;
-    const payload = getStandalonePayload();
-    if (!payload) {
-      setWebRError("Falta PULSO_STANDALONE_PAYLOAD en el HTML");
-      return;
-    }
-    hydrate(payload.dashboard_config as never);
-    initWebR(payload).then(
-      () => setWebRReady(true),
-      (e) => setWebRError((e as Error).message),
-    );
-  }, [standalone, hydrate]);
+export default function DashboardPage({ publicMode: publicModeProp }: { publicMode?: boolean } = {}) {
+  // Modo público (deploy a HF/Fly): backend real, pero UI sin shell admin.
+  // Misma desactivación de autosave (el .pulso del server es read-only;
+  // no hay para dónde guardar cambios y los endpoints de mutación están
+  // bloqueados). El prop tiene prioridad sobre la env var.
+  const publicMode = publicModeProp ?? isPublicMode();
+  const adminHidden = publicMode;
+  useDashboardAutosave(!adminHidden);
 
   const config = useDashboardStore((s) => s.config);
   const tabActiva = useDashboardStore((s) => s.tabActiva);
@@ -66,34 +49,11 @@ export default function DashboardPage() {
   const [sourceOpen, setSourceOpen] = useState(false);
   const [palettesOpen, setPalettesOpen] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
   // Modo "Vista previa": oculta el admin toolbar y los controles de
   // edición para que el editor pueda ver cómo se verá el dashboard
-  // exportado antes de hacer deploy. Solo de sesión, no se persiste.
+  // publicado. Solo de sesión, no se persiste.
   const [previewMode, setPreviewMode] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
-
-  async function handleExport() {
-    setExporting(true);
-    setExportError(null);
-    try {
-      const { blob, filename } = await apiDashboardExport();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      // Liberar el blob después de un tick — algunos browsers necesitan
-      // que la URL siga viva durante el download.
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-    } catch (e) {
-      setExportError((e as Error).message);
-    } finally {
-      setExporting(false);
-    }
-  }
 
   // En vista previa cualquier diálogo abierto debe cerrarse — no son
   // parte del producto final que vería el lector.
@@ -102,6 +62,7 @@ export default function DashboardPage() {
       setSourceOpen(false);
       setPalettesOpen(false);
       setCustomizeOpen(false);
+      setPublishOpen(false);
     }
   }, [previewMode]);
 
@@ -152,22 +113,11 @@ export default function DashboardPage() {
       colorPrimarioOverride={config.color_primario_override}
       themeDefault={themeDefault ?? undefined}
     >
-      {standalone && !webRReady && (
-        <div className="dash-standalone-loading">
-          <div className="dash-standalone-loading-card">
-            <div className="dash-standalone-loading-spinner" aria-hidden="true" />
-            <strong>Iniciando dashboard…</strong>
-            <span className="dash-standalone-loading-hint">
-              {webRError ?? "Cargando runtime R y datos. La primera vez tarda ~10 seg."}
-            </span>
-          </div>
-        </div>
-      )}
-      {standalone || previewMode ? (
-        previewMode && !standalone ? (
+      {adminHidden || previewMode ? (
+        previewMode && !adminHidden ? (
           // En vista previa (editor) solo aparece un chip flotante para
-          // volver al modo edición. En standalone no hay nada — el
-          // dashboard exportado es siempre "preview" del lector.
+          // volver al modo edición. El deploy público nunca muestra
+          // controles de edición.
           <button
             type="button"
             className="dash-preview-exit"
@@ -211,25 +161,36 @@ export default function DashboardPage() {
               type="button"
               disabled={!hasDashboardSource}
               onClick={() => setPreviewMode(true)}
-              title="Ver el dashboard como se verá al exportarlo"
+              title="Ver el dashboard como se verá publicado"
             >
               <Eye size={13} /> Vista previa
             </button>
             <button
               type="button"
-              disabled={!hasDashboardSource || exporting}
-              onClick={handleExport}
-              title="Descargar el dashboard como un .html autosuficiente con WebR"
+              disabled={!hasDashboardSource}
+              onClick={() => setPublishOpen(true)}
+              title={
+                config.last_deploy
+                  ? `Re-publicar a ${config.last_deploy.repo_id}`
+                  : "Publicar el dashboard como Hugging Face Space"
+              }
             >
-              {exporting
-                ? <Loader2 size={13} className="dash-admin-spin" />
-                : <Download size={13} />}
-              Exportar HTML
+              <Rocket size={13} /> {config.last_deploy ? "Re-publicar" : "Deploy"}
             </button>
           </div>
-          {exportError && (
-            <div className="dash-admin-toolbar-error" role="alert">
-              No se pudo exportar: {exportError}
+          {config.last_deploy && (
+            <div className="dash-admin-toolbar-deploy-info">
+              Última publicación{" "}
+              <a
+                href={config.last_deploy.app_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Abrir en una pestaña nueva"
+              >
+                {config.last_deploy.repo_id}
+              </a>
+              {" — "}
+              <RelativeTime iso={config.last_deploy.published_at} />
             </div>
           )}
         </div>
@@ -242,7 +203,17 @@ export default function DashboardPage() {
         <EmptyState title="No se pudo cargar el dashboard" subtitle={error} />
       )}
 
-      {manifest && (!manifest.estado.tiene_data || sourceOpen) && (
+      {manifest && !manifest.estado.tiene_data && adminHidden && (
+        // En modo público el server arranca con un .pulso
+        // bootstrap. Si llegamos acá sin data es un error de deploy,
+        // no del visitante — empty state simple, sin SourceGate.
+        <EmptyState
+          title="Dashboard no disponible"
+          subtitle="Este deploy no tiene datos cargados. Avisa al administrador."
+        />
+      )}
+
+      {manifest && (!manifest.estado.tiene_data || sourceOpen) && !adminHidden && (
         <DashboardSourceGate
           compact={manifest.estado.tiene_data}
           onCancel={manifest.estado.tiene_data ? () => setSourceOpen(false) : undefined}
@@ -256,7 +227,7 @@ export default function DashboardPage() {
         />
       )}
 
-      {manifest && manifest.estado.tiene_data && !sourceOpen && !manifest.estado.curacion_confirmed && (
+      {manifest && manifest.estado.tiene_data && !sourceOpen && !manifest.estado.curacion_confirmed && !adminHidden && (
         <DashboardCurationGate
           onDone={() => {
             setSeccionActiva(null);
@@ -265,7 +236,7 @@ export default function DashboardPage() {
         />
       )}
 
-      {manifest && manifest.estado.tiene_data && !sourceOpen && manifest.estado.curacion_confirmed && (
+      {manifest && manifest.estado.tiene_data && !sourceOpen && (manifest.estado.curacion_confirmed || adminHidden) && (
         <>
           <nav aria-label="Pestañas del dashboard" style={{ marginBottom: 16 }}>
             <TabNav
@@ -281,6 +252,13 @@ export default function DashboardPage() {
 
       {palettesOpen && <DashboardPalettesDialog onClose={() => setPalettesOpen(false)} />}
       {customizeOpen && <DashboardCustomizeDialog onClose={() => setCustomizeOpen(false)} />}
+      {publishOpen && (
+        <DashboardPublishDialog
+          defaultTitle={config.titulo || "pulso-dashboard"}
+          lastDeploy={config.last_deploy}
+          onClose={() => setPublishOpen(false)}
+        />
+      )}
     </ThemeProvider>
   );
 }
@@ -346,4 +324,27 @@ function TabContent({ tab }: { tab: DashboardTabId }) {
     case "dimensiones":
       return <DimensionesTab />;
   }
+}
+
+// Tiempo relativo en español ("hace 5 min", "hace 2 horas", "hace 3 días").
+// Para timestamps mayores a 30 días, fallback a fecha absoluta corta.
+function RelativeTime({ iso }: { iso: string }) {
+  const label = useMemo(() => {
+    const ts = Date.parse(iso);
+    if (!Number.isFinite(ts)) return iso;
+    const diffMs = Date.now() - ts;
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return "hace unos segundos";
+    if (diffMin < 60) return `hace ${diffMin} min`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `hace ${diffH} ${diffH === 1 ? "hora" : "horas"}`;
+    const diffD = Math.floor(diffH / 24);
+    if (diffD < 30) return `hace ${diffD} ${diffD === 1 ? "día" : "días"}`;
+    return new Date(ts).toLocaleDateString("es-PE", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }, [iso]);
+  return <time dateTime={iso} title={new Date(iso).toLocaleString("es-PE")}>{label}</time>;
 }

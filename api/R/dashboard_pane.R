@@ -88,7 +88,15 @@
         c("Ate", "Rimac", "San Juan de Lurigancho", "Villa El Salvador", "La Esperanza", "El Porvenir")
       ))
     ),
-    foda_service_icons      = list()
+    foda_service_icons      = list(),
+    # ---- Layout y matriz por unidad (Dimensiones) ----
+    dim_desglose_layout     = "paginado",  # "paginado" | "apilado"
+    matriz_var_color        = "",          # variable que da el color de fondo
+    matriz_var_nombre       = "",          # variable opcional de ícono + nombre secundario
+    # ---- Overrides de íconos por conductor (axis_label → data-uri) ----
+    # Persisten en el .pulso. Si está vacío, el helper R cae al ícono del
+    # paquete prosecnur (defaults por dimensión).
+    dim_axis_icons          = list()
   )
 }
 
@@ -106,6 +114,66 @@
     out$foda_views <- config$foda_views
   }
   out
+}
+
+# ------------------------------------------------------------
+# Visibilidad de variables en el dashboard publicado/local.
+# `dashboard_curated_secciones()` aplica la curación estructural inicial
+# (secciones/variables no aptas). Este segundo filtro aplica la decisión
+# del panel Datos: config$dashboard_var_overrides[[var]]$enabled = FALSE.
+#
+# Las columnas recodificadas suelen llegar como `<var>_recod`; si el
+# usuario apaga la variable madre (`p8`), ocultamos también `p8_recod`,
+# salvo que exista un override explícito para `p8_recod`.
+.dashboard_var_enabled <- function(s, var) {
+  if (!is.character(var) || !length(var) || !nzchar(var[1])) return(FALSE)
+  var <- as.character(var[1])
+  cfg <- .dashboard_config_with_defaults(s$dashboard_config)
+  overrides <- cfg$dashboard_var_overrides %||% list()
+
+  exact <- overrides[[var]]
+  if (is.list(exact) && !is.null(exact$enabled)) {
+    return(!isFALSE(exact$enabled))
+  }
+
+  parent <- sub("_recod$", "", var)
+  if (!identical(parent, var)) {
+    parent_ov <- overrides[[parent]]
+    if (is.list(parent_ov) && !is.null(parent_ov$enabled)) {
+      return(!isFALSE(parent_ov$enabled))
+    }
+  }
+
+  TRUE
+}
+
+.dashboard_var_label_override <- function(s, var) {
+  if (!is.character(var) || !length(var) || !nzchar(var[1])) return(NULL)
+  var <- as.character(var[1])
+  cfg <- .dashboard_config_with_defaults(s$dashboard_config)
+  overrides <- cfg$dashboard_var_overrides %||% list()
+  exact <- overrides[[var]]
+  if (is.list(exact) && is.character(exact$label) && nzchar(exact$label)) {
+    return(as.character(exact$label))
+  }
+  parent <- sub("_recod$", "", var)
+  if (!identical(parent, var)) {
+    parent_ov <- overrides[[parent]]
+    if (is.list(parent_ov) && is.character(parent_ov$label) && nzchar(parent_ov$label)) {
+      return(as.character(parent_ov$label))
+    }
+  }
+  NULL
+}
+
+.dashboard_visible_secciones <- function(s, secs = NULL) {
+  s <- .dashboard_ctx(s)
+  secs <- secs %||% .dashboard_curated_secciones(s)
+  if (!length(secs)) return(secs)
+  secs <- lapply(secs, function(vars) {
+    vars[vapply(vars, function(v) .dashboard_var_enabled(s, v), logical(1))]
+  })
+  secs[vapply(secs, length, integer(1)) > 0L]
 }
 
 # Defaults del tema visual — espejo 1:1 de

@@ -37,6 +37,54 @@
   letter-spacing: -0.005em;
 }
 
+/* Botón "Copiar" del overlay — mismo lenguaje visual que .dash-fs-trigger
+ * pero más compacto y con feedback de estado (copiado/descargado/error). */
+.dashboard-scope .dash-fs-copy-btn {
+  align-items: center;
+  appearance: none;
+  background: var(--dash-superficie);
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 5px;
+  letter-spacing: 0.005em;
+  padding: 5px 9px;
+  transition:
+    border-color var(--dash-dur-hover) var(--dash-ease-out),
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-fs-copy-btn:hover:not(:disabled) {
+    background: var(--dash-superficie-2);
+    border-color: var(--dash-primario-ring);
+    color: var(--dash-primario);
+  }
+}
+.dashboard-scope .dash-fs-copy-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.dashboard-scope .dash-fs-copy-btn:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+.dashboard-scope .dash-fs-copy-btn.is-copied,
+.dashboard-scope .dash-fs-copy-btn.is-downloaded {
+  background: color-mix(in srgb, #3A9A5B 14%, var(--dash-superficie));
+  border-color: color-mix(in srgb, #3A9A5B 50%, var(--dash-borde));
+  color: #2a7a47;
+}
+.dashboard-scope .dash-fs-copy-btn.is-error {
+  background: color-mix(in srgb, #D84B55 12%, var(--dash-superficie));
+  border-color: color-mix(in srgb, #D84B55 50%, var(--dash-borde));
+  color: #b03540;
+}
+
 /* Hint sutil del Esc dentro del header del panel. */
 .dashboard-scope .dash-fs-hint {
   color: var(--dash-texto-suave);

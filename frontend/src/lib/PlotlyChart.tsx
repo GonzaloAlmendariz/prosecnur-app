@@ -97,6 +97,33 @@ export function PlotlyChart({
     };
   }, []);
 
+  // ResizeObserver del contenedor — Plotly.react no recalcula tamaño cuando
+  // solo cambia el div padre (caso fullscreen / drawers / collapsibles).
+  // Coalescemos eventos en un solo rAF para no thrashear durante la animación
+  // de zoom-in del overlay.
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+    let raf = 0;
+    const observer = new ResizeObserver(() => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        getPlotly()
+          .then((Plotly) => {
+            if (!node.isConnected) return;
+            Plotly.Plots.resize(node);
+          })
+          .catch(() => {});
+      });
+    });
+    observer.observe(node);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      observer.disconnect();
+    };
+  }, []);
+
   return (
     <div
       ref={ref}

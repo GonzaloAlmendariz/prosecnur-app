@@ -44,6 +44,19 @@ contextBridge.exposeInMainWorld("prosecnurApi", {
   pushRecentProject: (path) =>
     ipcRenderer.invoke("project:pushRecent", { path }),
 
+  // Quita un path de la lista de recientes. NO toca el archivo en disco.
+  removeRecentProject: (path) =>
+    ipcRenderer.invoke("project:removeRecent", { path }),
+
+  // ----- Hugging Face ---------------------------------------------------------
+
+  getHfSettings: () => ipcRenderer.invoke("hf:getSettings"),
+
+  getHfToken: (id) => ipcRenderer.invoke("hf:getToken", { id }),
+
+  rememberSuccessfulHfToken: (settings) =>
+    ipcRenderer.invoke("hf:rememberSuccessfulToken", settings || {}),
+
   // ----- Eventos del menú nativo (main → renderer) ----------------------------
 
   // Suscribe a comandos del menú "Archivo" del main process. callback

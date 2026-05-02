@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Palette, Sparkles, Trash2, X } from "lucide-react";
+import { Palette, Search, Sparkles, Trash2, X } from "lucide-react";
 import {
   apiDashboardPaletasListas,
   type DashboardChoiceList,
@@ -95,6 +95,7 @@ export function DashboardPalettesDialog({ onClose }: { onClose: () => void }) {
 
   const [listas, setListas] = useState<DashboardChoiceList[]>([]);
   const [active, setActive] = useState("");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -124,6 +125,16 @@ export function DashboardPalettesDialog({ onClose }: { onClose: () => void }) {
     [listas, active],
   );
   const activePalette = active ? paletas[active] ?? {} : {};
+  const filteredListas = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return listas;
+    return listas.filter((lista) => {
+      if (lista.list_name.toLowerCase().includes(q)) return true;
+      return lista.choices.some((choice) =>
+        choice.label.toLowerCase().includes(q) || choice.name.toLowerCase().includes(q),
+      );
+    });
+  }, [listas, query]);
 
   function applyPreset(colors: string[]) {
     if (!activeList) return;
@@ -164,7 +175,16 @@ export function DashboardPalettesDialog({ onClose }: { onClose: () => void }) {
         {!loading && !error && listas.length > 0 && activeList && (
           <div className="dash-palette-layout">
             <aside className="dash-palette-list">
-              {listas.map((lista) => {
+              <label className="dash-palette-search">
+                <Search size={13} aria-hidden="true" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar lista..."
+                  aria-label="Buscar lista de opciones"
+                />
+              </label>
+              {filteredListas.map((lista) => {
                 const hasPalette = Object.keys(paletas[lista.list_name] ?? {}).length > 0;
                 return (
                   <button
@@ -178,6 +198,9 @@ export function DashboardPalettesDialog({ onClose }: { onClose: () => void }) {
                   </button>
                 );
               })}
+              {filteredListas.length === 0 && (
+                <div className="dash-palette-list-empty">Sin coincidencias.</div>
+              )}
             </aside>
 
             <main className="dash-palette-main">

@@ -10,8 +10,9 @@ import { useDashboardStore } from "../../store";
 
 // Alturas espejo del legacy (interactivo_resumen.R: BAR_HEIGHT=64 para SO,
 // chips SM con altura ~32px individuales).
-const BAR_HEIGHT = 56;
+const BAR_HEIGHT = 72;
 const SM_BAR_HEIGHT = 32;
+const MIN_VISIBLE_PCT_LABEL = 0.06;
 
 export function PreguntaRow({ row }: { row: DashboardResumenRow }) {
   const palette = useDashboardStore((s) =>
@@ -61,6 +62,22 @@ function fmtPct(pct: number, decimals: number): string {
   return `${(pct * 100).toFixed(decimals)}%`;
 }
 
+// Decide texto blanco vs oscuro según luminancia perceptual del fondo.
+// Coeficientes ITU-R BT.601 (compatibles con la luminancia que usa WCAG
+// como umbral de "color claro" — más simple y suficientemente bueno
+// para barras categóricas). Marrones medios (#A0522D, etc.) caen del
+// lado claro y antes recibían blanco → invisible.
+function contrastTextColor(bgHex: string): string {
+  const c = (bgHex || "").replace("#", "");
+  if (c.length < 6) return "#ffffff";
+  const r = parseInt(c.substring(0, 2), 16);
+  const g = parseInt(c.substring(2, 4), 16);
+  const b = parseInt(c.substring(4, 6), 16);
+  if ([r, g, b].some((v) => Number.isNaN(v))) return "#ffffff";
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.6 ? "#1f2933" : "#ffffff";
+}
+
 function SoBar({
   dist,
   palette,
@@ -72,11 +89,28 @@ function SoBar({
   ariaLabel: string;
   decimals: number;
 }) {
-  const traces = useMemo(
-    () =>
-      dist.map((d, i) => {
+  const { traces, annotations } = useMemo(
+    () => {
+      let acc = 0;
+      const annotations: unknown[] = [];
+      const traces = dist.map((d, i) => {
         const segColor = palette?.[d.label] || d.color || legendColor(i);
-        const pequeno = d.pct < 0.06;
+        const showLabel = d.pct >= MIN_VISIBLE_PCT_LABEL;
+        const xMid = Math.min(0.995, Math.max(0.005, acc + d.pct / 2));
+        acc += d.pct;
+        if (showLabel) {
+          annotations.push({
+            x: xMid,
+            y: "Total",
+            xref: "x",
+            yref: "y",
+            text: fmtPct(d.pct, decimals),
+            showarrow: false,
+            xanchor: "center",
+            yanchor: "middle",
+            font: { color: contrastTextColor(segColor), size: 12 },
+          });
+        }
         return {
           type: "bar" as const,
           x: [d.pct],
@@ -84,19 +118,14 @@ function SoBar({
           name: d.label,
           orientation: "h" as const,
           marker: { color: segColor },
-          text: fmtPct(d.pct, decimals),
-          // Si el segmento es chico, Plotly coloca el texto FUERA al lado
-          // (a la derecha en orientación h). Si cabe, lo pone adentro.
-          textposition: pequeno ? ("outside" as const) : ("inside" as const),
-          insidetextanchor: "middle" as const,
-          textfont: pequeno
-            ? { color: segColor, size: 11 }
-            : { color: "white", size: 12 },
+          text: "",
           cliponaxis: false,
           constraintext: "none" as const,
           hovertemplate: `${d.label}: ${fmtPct(d.pct, Math.max(decimals, 1))}<br>n: ${d.n}<extra></extra>`,
         };
-      }),
+      });
+      return { traces, annotations };
+    },
     [dist, palette, decimals],
   );
 
@@ -123,6 +152,7 @@ function SoBar({
     },
     margin: { l: 0, r: 0, t: 0, b: 0 },
     showlegend: false,
+    annotations,
   };
 
   return (
@@ -205,6 +235,11 @@ function SmBar({
         y: ["Total"],
         orientation: "h" as const,
         marker: { color: "var(--dash-superficie-2)", line: { width: 0 } },
+        // Hover desactivado en la parte "No": con `hovermode: "y"` Plotly
+        // renderiza el hovertemplate inline dentro de la barra (no como
+        // tooltip flotante), lo cual se ve mal con barras de 32 px de
+        // alto. El user prefirió no tener hover ahí antes que ver el
+        // texto torcido encima.
         hoverinfo: "skip" as const,
         showlegend: false,
       },
@@ -243,28 +278,30 @@ function SmBar({
     },
     margin: { l: 0, r: 44, t: 0, b: 0 },
     showlegend: false,
-    // % SIEMPRE visible — incluso para 0% o valores muy chicos. Si la
-    // barra es ancha (>=5%) el texto va dentro y blanco; si es chica,
-    // afuera a la derecha y en color primario.
-    annotations: [
-      {
-        x: pctYes >= 0.05 ? pctYes / 2 : pctYes,
-        y: "Total",
-        xref: "x",
-        yref: "y",
-        text: pctYes >= 0.05
-          ? `<b>${fmtPct(pctYes, decimals)}</b>`
-          : fmtPct(pctYes, decimals),
-        showarrow: false,
-        xanchor: pctYes >= 0.05 ? "center" : "left",
-        yanchor: "middle",
-        xshift: pctYes >= 0.05 ? 0 : 6,
-        font: {
-          color: pctYes >= 0.05 ? "#ffffff" : primario,
-          size: 12,
-        },
-      },
-    ],
+    // Barras agrupadas / SM: si el % cabe, va dentro; si es pequeño,
+    // va afuera a la derecha. La regla de ocultar pequeños solo aplica
+    // a barras apiladas, donde el texto invade segmentos vecinos.
+    annotations: pctYes > 0
+      ? [
+          {
+            x: pctYes >= MIN_VISIBLE_PCT_LABEL ? pctYes / 2 : pctYes,
+            y: "Total",
+            xref: "x",
+            yref: "y",
+            text: pctYes >= MIN_VISIBLE_PCT_LABEL
+              ? `<b>${fmtPct(pctYes, decimals)}</b>`
+              : fmtPct(pctYes, decimals),
+            showarrow: false,
+            xanchor: pctYes >= MIN_VISIBLE_PCT_LABEL ? "center" : "left",
+            yanchor: "middle",
+            xshift: pctYes >= MIN_VISIBLE_PCT_LABEL ? 0 : 6,
+            font: {
+              color: pctYes >= MIN_VISIBLE_PCT_LABEL ? "#ffffff" : primario,
+              size: 12,
+            },
+          },
+        ]
+      : [],
   };
 
   return (

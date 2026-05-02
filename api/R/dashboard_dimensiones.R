@@ -87,7 +87,7 @@
 # Filtra a SO/SM y a numéricas con baja cardinalidad (<=60 únicos).
 .dashboard_dim_secciones_vars <- function(s) {
   if (!.dashboard_dim_ready(s)) return(list(secciones = list()))
-  secs <- .dashboard_curated_secciones(s)
+  secs <- .dashboard_visible_secciones(s)
   if (!length(secs)) return(list(secciones = list()))
 
   var_filtrable <- function(v) {
@@ -112,7 +112,7 @@
       vars = lapply(elegibles, function(v) {
         list(
           name = v,
-          label = .obtener_label_var(v, s$rp_inst, s$rp_dim) %||% v
+          label = .dashboard_var_label_override(s, v) %||% .obtener_label_var(v, s$rp_inst, s$rp_dim) %||% v
         )
       })
     )
@@ -186,8 +186,10 @@
                 ctx$catalog_indicadores[[objetivo]]
   axis_icons_map <- list()
   if (is.list(obj_active)) {
+    cfg_dash_inner <- .dashboard_config_with_defaults(s$dashboard_config)
+    overrides_inner <- if (is.list(cfg_dash_inner$dim_axis_icons)) cfg_dash_inner$dim_axis_icons else NULL
     icon_map <- tryCatch(
-      .dashboard_dim_axis_icons(obj_active, tint_color = NULL),
+      .dashboard_dim_axis_icons(obj_active, tint_color = NULL, overrides = overrides_inner),
       error = function(e) list()
     )
     if (length(icon_map)) {
@@ -283,15 +285,35 @@
 
 # Resuelve el mapeo axis_var -> data-uri usando obj$axis_iconos.
 # obj$axis_iconos suele ser una lista nombrada por axis_label apuntando
-# a paths de PNG (definidos en config). Devuelve list nombrado por var.
-.dashboard_dim_axis_icons <- function(obj, tint_color = NULL) {
+# a paths de PNG (definidos en el paquete prosecnur). Devuelve list
+# nombrado por var.
+#
+# `overrides` es opcional: lista nombrada por axis_label apuntando a
+# data-uris guardados en `dashboard_config$dim_axis_icons` (subidos por
+# el usuario en Personalizar → Íconos). Si existe override válido para
+# un label, gana sobre el ícono del paquete. Sin override, fallback al
+# paquete (preservando los defaults bonitos de prosecnur).
+.dashboard_dim_axis_icons <- function(obj, tint_color = NULL, overrides = NULL) {
   iconos <- obj$axis_iconos
-  if (!is.list(iconos) || !length(iconos)) return(list())
   vars <- as.character(obj$axis_vars %||% character(0))
   labels <- as.character(obj$axis_labels %||% vars)
+  if (!length(vars)) return(list())
+  has_pkg <- is.list(iconos) && length(iconos)
+  has_overrides <- is.list(overrides) && length(overrides)
+  if (!has_pkg && !has_overrides) return(list())
   out <- list()
   for (i in seq_along(vars)) {
     label <- labels[i]
+    # Override del config gana — el data-uri ya viene listo, no se re-tinta
+    # (el usuario ya subió el ícono con el color que quiere).
+    if (has_overrides) {
+      ov <- overrides[[label]] %||% overrides[[vars[i]]]
+      if (is.character(ov) && length(ov) == 1L && nzchar(ov)) {
+        out[[vars[i]]] <- as.character(ov)
+        next
+      }
+    }
+    if (!has_pkg) next
     raw <- iconos[[label]] %||% iconos[[vars[i]]] %||% iconos[[i]]
     uri <- .dashboard_dim_icon_data_uri(raw, tint_color = tint_color)
     if (nzchar(uri)) out[[vars[i]]] <- uri
@@ -611,18 +633,47 @@
       amenaza     = sum(stats_df$cuadrante == "amenaza",    na.rm = TRUE)
     )
 
+    # Helpers locales: evitan llamar las closures ctx$label_idx /
+    # ctx$label_var, que pueden tener environments rotos cuando el ctx
+    # llega serializado de un proceso R distinto (caso deploy a HF Space
+    # con .pulso pre-cacheado). Lookup directo al catálogo / instrumento.
+    safe_label_idx <- function(v) {
+      v <- as.character(v %||% "")[1]
+      if (!nzchar(v)) return(NA_character_)
+      cat_general <- ctx$catalog_general %||% list()
+      cat_ind <- ctx$catalog_indicadores %||% list()
+      lab <- cat_general[[v]]$label %||% cat_ind[[v]]$label
+      if (!is.null(lab) && nzchar(as.character(lab))) return(as.character(lab))
+      lab <- tryCatch(
+        .obtener_label_var(v, ctx$instrumento, ctx$data),
+        error = function(e) NULL
+      )
+      if (!is.null(lab) && nzchar(as.character(lab))) return(as.character(lab))
+      v
+    }
+    safe_label_var <- function(v) {
+      v <- as.character(v %||% "")[1]
+      if (!nzchar(v)) return(NA_character_)
+      lab <- tryCatch(
+        .obtener_label_var(v, ctx$instrumento, ctx$data),
+        error = function(e) NULL
+      )
+      if (!is.null(lab) && nzchar(as.character(lab))) return(as.character(lab))
+      v
+    }
+
     return(list(
       ready = TRUE,
-      objetivo = ctx$label_idx(metric_var),
+      objetivo = safe_label_idx(metric_var),
       objetivo_id = metric_var,
       modo = modo,
       item_kind = foda_vista,
       item_label = view_label,
       card_mode = card_mode,
       item_var = item_var,
-      item_var_label = ctx$label_var(item_var),
+      item_var_label = safe_label_var(item_var),
       metric_var = metric_var,
-      metric_label = ctx$label_idx(metric_var),
+      metric_label = safe_label_idx(metric_var),
       items = items,
       cortes = list(
         score = round(as.numeric(corte_score), 2),
@@ -716,8 +767,12 @@
     stats::setNames(as.list(as.character(group_colors_vec)), names(group_colors_vec))
   } else list()
 
-  # Iconos opcionales por dimensión.
-  icon_map <- if (iconos_enabled) .dashboard_dim_axis_icons(obj, tint_color = icon_tint) else list()
+  # Iconos opcionales por dimensión — overrides del config ganan sobre el
+  # paquete (mismo helper centralizado).
+  icon_map <- if (iconos_enabled) {
+    overrides_dim <- if (is.list(cfg_dash$dim_axis_icons)) cfg_dash$dim_axis_icons else NULL
+    .dashboard_dim_axis_icons(obj, tint_color = icon_tint, overrides = overrides_dim)
+  } else list()
   icon_legend <- lapply(seq_along(vars), function(i) {
     uri <- icon_map[[vars[i]]] %||% ""
     if (!nzchar(uri)) return(NULL)
@@ -772,6 +827,318 @@
     group_colors = group_colors,
     icon_legend = icon_legend,
     semaforo = semaforo_payload()
+  )
+}
+
+# ============================================================
+# Matriz por unidad — filas = combinaciones (var_color, var_nombre),
+# columnas = conductores del objetivo + indicador general (promedio
+# simple de los conductores). Filtros respetados, filas con n=0 se
+# eliminan. Iconos y colores reutilizan el sistema de FODA (color por
+# valor de var_color y data-uri de cfg_dash$foda_service_icons +
+# foda_views[?].icons cuando la variable coincide).
+# ============================================================
+.dashboard_dim_matriz_unidades <- function(s, modo, objetivo,
+                                           var_color, var_nombre = NULL,
+                                           filtros = list()) {
+  if (!.dashboard_dim_ready(s)) return(list(ready = FALSE))
+  ctx <- .dashboard_dim_ctx(s$id, s)
+  if (is.null(ctx)) return(list(ready = FALSE))
+
+  modo <- match.arg(as.character(modo %||% "general")[1],
+                    c("general", "indicadores"))
+  obj_map <- if (identical(modo, "indicadores")) ctx$catalog_indicadores else ctx$catalog_general
+  if (!(objetivo %in% names(obj_map))) {
+    return(list(ready = TRUE, error = "Objetivo no existe en el catálogo."))
+  }
+  obj <- obj_map[[objetivo]]
+
+  vars <- as.character(obj$axis_vars %||% character(0))
+  labels <- as.character(obj$axis_labels %||% vars)
+  keep_vars <- vars %in% names(ctx$data)
+  vars <- vars[keep_vars]
+  labels <- labels[keep_vars]
+  if (!length(vars)) {
+    return(list(ready = TRUE, error = "El objetivo no tiene conductores en la base."))
+  }
+
+  var_color <- as.character(var_color %||% "")[1]
+  var_nombre <- as.character(var_nombre %||% "")[1]
+  if (!nzchar(var_color)) {
+    return(list(ready = TRUE, error = "Falta la variable de color (1ª columna)."))
+  }
+
+  df <- .dim_apply_filters(ctx$data, filters = filtros %||% list())
+  if (!nrow(df)) return(list(ready = TRUE, error = "Sin datos tras aplicar los filtros."))
+  if (!(var_color %in% names(df))) {
+    return(list(ready = TRUE, error = paste0("La variable '", var_color, "' no está en la base.")))
+  }
+  # Sem ́antica del 2do select:
+  #   - Si vac ́ıo: sin icono ni texto secundario.
+  #   - Si == var_color: NO cruza (no tiene sentido), pero el icono se busca
+  #     por valor de var_color (= var_nombre). Sin texto secundario.
+  #   - Si distinto: cruza var_color × var_nombre. Texto secundario = label
+  #     de var_nombre. Icono por valor de var_nombre.
+  has_icono <- nzchar(var_nombre) && (var_nombre %in% names(df))
+  has_cruce <- has_icono && !identical(var_nombre, var_color)
+  icono_var <- if (has_icono) var_nombre else ""
+  # has_nombre conservado por compat con downstream del payload (texto
+  # secundario en la card). Solo TRUE cuando hay cruce real.
+  has_nombre <- has_cruce
+
+  # Categorías ordenadas (orden del cuestionario / etiquetas oficiales).
+  color_cats <- .dim_categorias_var(
+    df, var_color, w = .dim_safe_weights(df, NULL),
+    data_ref = ctx$data, instrumento = ctx$instrumento,
+    max_levels = 60L
+  )
+  if (!nrow(color_cats$rows)) {
+    return(list(ready = TRUE, error = "La variable de color no tiene valores válidos."))
+  }
+  nombre_cats <- if (has_nombre) {
+    .dim_categorias_var(
+      df, var_nombre, w = .dim_safe_weights(df, NULL),
+      data_ref = ctx$data, instrumento = ctx$instrumento,
+      max_levels = 60L
+    )
+  } else NULL
+
+  x_color <- trimws(as.character(df[[var_color]]))
+  x_nombre <- if (has_nombre) trimws(as.character(df[[var_nombre]])) else rep("", nrow(df))
+
+  filas <- list()
+  for (i in seq_len(nrow(color_cats$rows))) {
+    color_key <- as.character(color_cats$rows$value[i] %||% "")
+    color_label <- as.character(color_cats$rows$label[i] %||% color_key)
+    if (!nzchar(color_key)) next
+
+    if (has_nombre) {
+      for (j in seq_len(nrow(nombre_cats$rows))) {
+        nombre_key <- as.character(nombre_cats$rows$value[j] %||% "")
+        nombre_label <- as.character(nombre_cats$rows$label[j] %||% nombre_key)
+        if (!nzchar(nombre_key)) next
+        mask <- !is.na(x_color) & x_color == color_key &
+                !is.na(x_nombre) & x_nombre == nombre_key
+        if (!any(mask)) next
+        sub <- df[mask, , drop = FALSE]
+        scores <- list()
+        score_means <- numeric(0)
+        for (k in seq_along(vars)) {
+          vals <- suppressWarnings(as.numeric(sub[[vars[k]]]))
+          vals <- vals[!is.na(vals) & is.finite(vals)]
+          if (length(vals)) {
+            m <- round(mean(vals), 2)
+            scores[[labels[k]]] <- m
+            score_means <- c(score_means, m)
+          } else {
+            scores[[labels[k]]] <- NULL
+          }
+        }
+        indicador_general <- if (length(score_means)) round(mean(score_means), 2) else NULL
+        filas[[length(filas) + 1L]] <- list(
+          key = paste0(color_key, "::", nombre_key),
+          color_key = color_key,
+          color_label = color_label,
+          nombre_key = nombre_key,
+          nombre_label = nombre_label,
+          icono_key = nombre_key,
+          icono_label = nombre_label,
+          n = sum(mask),
+          indicador_general = indicador_general,
+          scores = scores
+        )
+      }
+    } else {
+      mask <- !is.na(x_color) & x_color == color_key
+      if (!any(mask)) next
+      sub <- df[mask, , drop = FALSE]
+      scores <- list()
+      score_means <- numeric(0)
+      for (k in seq_along(vars)) {
+        vals <- suppressWarnings(as.numeric(sub[[vars[k]]]))
+        vals <- vals[!is.na(vals) & is.finite(vals)]
+        if (length(vals)) {
+          m <- round(mean(vals), 2)
+          scores[[labels[k]]] <- m
+          score_means <- c(score_means, m)
+        } else {
+          scores[[labels[k]]] <- NULL
+        }
+      }
+      indicador_general <- if (length(score_means)) round(mean(score_means), 2) else NULL
+      # En el caso no-cruce, el icono se busca por el valor del color
+      # (cualquier vista FODA con un ícono cuya clave coincida con este
+      # valor lo aporta). Sin texto secundario.
+      filas[[length(filas) + 1L]] <- list(
+        key = color_key,
+        color_key = color_key,
+        color_label = color_label,
+        nombre_key = "",
+        nombre_label = "",
+        icono_key = color_key,
+        icono_label = color_label,
+        n = sum(mask),
+        indicador_general = indicador_general,
+        scores = scores
+      )
+    }
+  }
+
+  if (!length(filas)) {
+    return(list(ready = TRUE, error = "Sin filas con datos tras aplicar los filtros."))
+  }
+
+  # Colores por valor de var_color — mismo helper que FODA.
+  cfg_dash <- .dashboard_config_with_defaults(s$dashboard_config)
+  color_ref <- unique(data.frame(
+    grupo_key = vapply(filas, function(f) as.character(f$color_key), character(1)),
+    grupo = vapply(filas, function(f) as.character(f$color_label), character(1)),
+    stringsAsFactors = FALSE
+  ))
+  palette_override <- .dashboard_palette_for_var(var_color, s$rp_inst, s)
+  color_vec <- .dim_group_colors(
+    groups = as.character(color_ref$grupo),
+    paleta_radar = ctx$paleta_radar,
+    total_color = ctx$theme_color,
+    palette_override = palette_override,
+    group_keys = as.character(color_ref$grupo_key)
+  )
+  group_colors <- if (length(color_vec)) {
+    stats::setNames(as.list(as.character(color_vec)), names(color_vec))
+  } else list()
+
+  # Íconos: cosechamos TODAS las fuentes del config (foda_service_icons
+  # legacy + icons de TODAS las vistas FODA) y luego matcheamos por
+  # value/label de cada fila. Esto replica el espíritu del FODA: si
+  # subiste íconos para "ULE", "CIAM"…, aparecen en cualquier vista que
+  # tenga esos valores — no nos atamos a `view$variable == X` que es
+  # propenso a desajustes (mayúsculas/labels/etc).
+  icon_tint <- as.character(cfg_dash$foda_icon_tint %||% "#FFFFFF")[1]
+  if (!nzchar(trimws(icon_tint)) ||
+      inherits(try(grDevices::col2rgb(icon_tint), silent = TRUE), "try-error")) {
+    icon_tint <- "#FFFFFF"
+  }
+  icon_sources <- list()
+  if (is.list(cfg_dash$foda_service_icons)) {
+    icon_sources <- utils::modifyList(icon_sources, cfg_dash$foda_service_icons, keep.null = TRUE)
+  }
+  if (is.list(cfg_dash$foda_views)) {
+    for (view in cfg_dash$foda_views) {
+      if (!is.list(view)) next
+      if (is.list(view$icons) && length(view$icons)) {
+        icon_sources <- utils::modifyList(icon_sources, view$icons, keep.null = TRUE)
+      }
+    }
+  }
+
+  # Construir mapa key → data-uri y leyenda (key, label, icono_url) sobre
+  # los valores realmente presentes en las filas. Si ninguna fila matchea
+  # un ícono, icon_map e icon_legend quedan vacíos y el frontend cae a
+  # "solo color".
+  icon_map <- list()
+  icon_legend <- list()
+  if (length(icon_sources)) {
+    icono_seen <- character(0)
+    for (f in filas) {
+      ikey <- as.character(f$icono_key %||% "")
+      ilabel <- as.character(f$icono_label %||% ikey)
+      if (!nzchar(ikey) || ikey %in% icono_seen) next
+      icono_seen <- c(icono_seen, ikey)
+      raw <- icon_sources[[ikey]] %||% icon_sources[[ilabel]]
+      uri <- .dashboard_dim_icon_data_uri(raw, tint_color = icon_tint)
+      if (nzchar(uri)) {
+        icon_map[[ikey]] <- uri
+        icon_legend[[length(icon_legend) + 1L]] <- list(
+          key = ikey,
+          label = ilabel,
+          icono_url = uri
+        )
+      }
+    }
+  }
+  # Si efectivamente hay íconos, exponer la variable que los rige para la
+  # leyenda del frontend (label de "qué representan los íconos"). Si solo
+  # hay var_color, ése es el contexto. Si hay var_nombre cruzado, ése.
+  icono_var_efectiva <- if (length(icon_map)) {
+    if (has_cruce) var_nombre else var_color
+  } else ""
+
+  semaforo_payload <- list(
+    red_max = as.numeric(ctx$semaforo$red_max %||% 60),
+    amber_max = as.numeric(ctx$semaforo$amber_max %||% 80),
+    red_color = as.character(ctx$semaforo$red_color %||% "#D84B55"),
+    amber_color = as.character(ctx$semaforo$amber_color %||% "#E0B44C"),
+    green_color = as.character(ctx$semaforo$green_color %||% "#3A9A5B"),
+    na_color = as.character(ctx$semaforo$na_color %||% "#CCCCCC")
+  )
+
+  # Helper: resuelve label de variable sin depender de ctx$label_var
+  # (closure que puede romper al deserializar entre procesos R distintos).
+  safe_var_label <- function(v) {
+    v <- as.character(v %||% "")[1]
+    if (!nzchar(v)) return("")
+    lab <- tryCatch(
+      .obtener_label_var(v, ctx$instrumento, ctx$data),
+      error = function(e) NULL
+    )
+    if (!is.null(lab) && nzchar(as.character(lab))) as.character(lab) else v
+  }
+
+  list(
+    ready = TRUE,
+    objetivo = as.character(obj$label %||% objetivo),
+    objetivo_id = as.character(objetivo),
+    modo = modo,
+    var_color = var_color,
+    var_color_label = safe_var_label(var_color),
+    var_nombre = if (has_nombre) var_nombre else "",
+    var_nombre_label = if (has_nombre) safe_var_label(var_nombre) else "",
+    var_icono = icono_var_efectiva,
+    var_icono_label = if (nzchar(icono_var_efectiva)) safe_var_label(icono_var_efectiva) else "",
+    conductores = lapply(seq_along(vars), function(i) {
+      list(var = as.character(vars[i]), label = as.character(labels[i]))
+    }),
+    filas = filas,
+    group_colors = group_colors,
+    icons = icon_map,
+    icon_legend = icon_legend,
+    semaforo = semaforo_payload
+  )
+}
+
+# Defaults de íconos (sin overrides del usuario) para un objetivo —
+# alimenta el panel "Personalizar → Íconos" para que el usuario VEA los
+# íconos del paquete antes de decidir si los reemplaza.
+.dashboard_dim_iconos_defaults <- function(s, modo, objetivo) {
+  if (!.dashboard_dim_ready(s)) return(list(ready = FALSE, conductores = list()))
+  ctx <- .dashboard_dim_ctx(s$id, s)
+  if (is.null(ctx)) return(list(ready = FALSE, conductores = list()))
+  modo <- match.arg(as.character(modo %||% "general")[1], c("general", "indicadores"))
+  obj_map <- if (identical(modo, "indicadores")) ctx$catalog_indicadores else ctx$catalog_general
+  if (!nzchar(objetivo) || !(objetivo %in% names(obj_map))) {
+    return(list(ready = TRUE, conductores = list(), error = "Objetivo no existe."))
+  }
+  obj <- obj_map[[objetivo]]
+  vars <- as.character(obj$axis_vars %||% character(0))
+  labels <- as.character(obj$axis_labels %||% vars)
+  # Sin overrides — solo defaults del paquete.
+  pkg_icons <- tryCatch(
+    .dashboard_dim_axis_icons(obj, tint_color = NULL, overrides = NULL),
+    error = function(e) list()
+  )
+  conductores <- lapply(seq_along(vars), function(i) {
+    list(
+      var = as.character(vars[i]),
+      label = as.character(labels[i]),
+      icono_url = as.character(pkg_icons[[vars[i]]] %||% "")
+    )
+  })
+  list(
+    ready = TRUE,
+    objetivo = as.character(obj$label %||% objetivo),
+    objetivo_id = as.character(objetivo),
+    modo = modo,
+    conductores = conductores
   )
 }
 

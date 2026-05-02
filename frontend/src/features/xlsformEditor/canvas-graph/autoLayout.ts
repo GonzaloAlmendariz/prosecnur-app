@@ -94,15 +94,15 @@ export type LayoutOptions = {
 };
 
 const DEFAULT_OPTIONS: LayoutOptions = {
-  columnWidth: 240,
-  rowHeight: 60,
+  columnWidth: 300,
+  rowHeight: 88,
   // columnGap 56 → 88 → 120: el usuario reportó que aún hay
   // condiciones no homogéneas compartiendo carril X y pidió mayor
   // separación entre secciones. 120 px da espacio para 5+ rails Mode C
   // distinguibles entre cada par de columnas.
   columnGap: 120,
   innerHeadGap: 14,
-  innerRowGap: 10,
+  innerRowGap: 14,
   childIndent: 14,
   marginX: 48,
   // marginY subió porque blockClearance creció — los lanes top/bottom

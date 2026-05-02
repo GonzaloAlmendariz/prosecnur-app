@@ -14,6 +14,7 @@ import {
   apiUpload,
   EstudioBase,
   EstudioPayload,
+  uploadKindForDataFile,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
 
@@ -664,8 +665,7 @@ function AddBaseForm({
     try {
       // Subir los dos archivos al file store.
       const upXls = await apiUpload(xlsformFile, "xlsform");
-      const dataKind = xlsformFile.name.endsWith(".sav") ? "sav" : "data";
-      const upData = await apiUpload(dataFile, dataFile.name.toLowerCase().endsWith(".sav") ? "sav" : dataKind);
+      const upData = await apiUpload(dataFile, uploadKindForDataFile(dataFile));
       // Nombre vacío = backend auto-genera.
       await onSubmit({
         nombre: nombre.trim(),
@@ -780,7 +780,7 @@ function AddBaseForm({
         <FilePicker
           icon={Database}
           title="Base de datos"
-          accept=".xlsx,.xls,.csv,.sav"
+          accept=".xlsx,.xls,.csv,.sav,application/x-spss-sav,application/octet-stream"
           acceptLabel=".xlsx · .csv · .sav"
           file={dataFile}
           onPick={setDataFile}
@@ -867,8 +867,7 @@ function ReplaceFilesForm({
         xlsformFileId = up.file_id;
       }
       if (dataFile) {
-        const kind = dataFile.name.toLowerCase().endsWith(".sav") ? "sav" : "data";
-        const up = await apiUpload(dataFile, kind);
+        const up = await apiUpload(dataFile, uploadKindForDataFile(dataFile));
         dataFileId = up.file_id;
       }
       await onSubmit({ xlsformFileId, dataFileId });
@@ -944,7 +943,7 @@ function ReplaceFilesForm({
         <FilePicker
           icon={Database}
           title="Nueva base de datos"
-          accept=".xlsx,.xls,.csv,.sav"
+          accept=".xlsx,.xls,.csv,.sav,application/x-spss-sav,application/octet-stream"
           acceptLabel=".xlsx · .csv · .sav · opcional"
           file={dataFile}
           onPick={setDataFile}

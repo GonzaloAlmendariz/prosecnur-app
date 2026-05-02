@@ -22,8 +22,8 @@
 #   POST /api/dashboard/base-datos/descargar     — CSV/XLSX de la vista actual
 #   GET  /api/dashboard/base-datos/diccionario   — opciones código→etiqueta de una variable
 #
-# Endpoints pendientes (fases siguientes):
-#   POST /api/dashboard/publish              — Fase 7
+# Publicacion web:
+#   POST /api/dashboard/publish              — crea/actualiza HF Space
 #
 # Helpers en `dashboard_pane.R`, `dashboard_curacion.R`,
 # `dashboard_secciones.R`, `dashboard_resumen.R`,
@@ -72,6 +72,9 @@ mount_dashboard <- function(pr) {
       if (is.null(s_ctx$rp_data) || is.null(s_ctx$rp_inst)) {
         return(list(ok = TRUE, valores = list()))
       }
+      if (!.dashboard_var_enabled(s_ctx, var)) {
+        return(list(ok = TRUE, valores = list()))
+      }
       vals <- .dashboard_categorias_var(var, s_ctx$rp_inst, s_ctx$rp_data)
       list(ok = TRUE, valores = vals)
     })) |>
@@ -110,28 +113,6 @@ mount_dashboard <- function(pr) {
       s <- session_get(sid)
       payload <- .dashboard_all_vars_payload(s)
       list(ok = TRUE, secciones = payload)
-    })) |>
-    # Exporta el dashboard como un único HTML autosuficiente con WebR.
-    # El cliente recibe un blob text/html para descargar. Bypass del
-    # serializer global JSON: escribimos directo a `res$body` y devolvemos
-    # `res` para que plumber no re-serialice.
-    plumber::pr_get("/api/dashboard/export", wrap_endpoint(function(req, res) {
-      sid <- session_header(req)
-      s <- session_get(sid)
-      html <- .dashboard_export_html(s)
-      cfg <- .dashboard_config_with_defaults(s$dashboard_config)
-      titulo <- as.character(cfg$titulo %||% "dashboard")
-      slug <- gsub("[^A-Za-z0-9_.-]+", "-", titulo)
-      slug <- sub("^-+|-+$", "", slug)
-      if (!nzchar(slug)) slug <- "dashboard"
-      fecha <- format(Sys.Date(), "%Y%m%d")
-      res$setHeader("Content-Type", "text/html; charset=utf-8")
-      res$setHeader(
-        "Content-Disposition",
-        sprintf('attachment; filename="%s-%s.html"', tolower(slug), fecha)
-      )
-      res$body <- charToRaw(enc2utf8(html))
-      res
     })) |>
     plumber::pr_get("/api/dashboard/recod-vars", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
@@ -365,7 +346,30 @@ mount_dashboard <- function(pr) {
       body <- .dashboard_parse_body(req)
       var <- as.character(body$var %||% "")[1]
       if (!nzchar(var)) stop_api(400, "E_BAD_REQUEST", "Falta 'var'.")
+      if (!.dashboard_var_enabled(.dashboard_ctx(s), var)) {
+        return(list(ok = TRUE, valores = list()))
+      }
       list(ok = TRUE, valores = .dashboard_dim_categorias_var(s, var))
+    })) |>
+    plumber::pr_get("/api/dashboard/dimensiones/iconos-defaults", wrap_endpoint(function(req, res, modo = "general", objetivo = "") {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      modo_v <- as.character(modo)[1]
+      obj_v <- as.character(objetivo)[1]
+      list(ok = TRUE, payload = .dashboard_dim_iconos_defaults(s, modo_v, obj_v))
+    })) |>
+    plumber::pr_post("/api/dashboard/dimensiones/matriz_unidades", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      body <- .dashboard_parse_body(req)
+      modo <- as.character(body$modo %||% "general")[1]
+      objetivo <- as.character(body$objetivo %||% "")[1]
+      if (!nzchar(objetivo)) stop_api(400, "E_BAD_REQUEST", "Falta 'objetivo'.")
+      var_color <- as.character(body$var_color %||% "")[1]
+      var_nombre <- as.character(body$var_nombre %||% "")[1]
+      filtros <- body$filtros %||% list()
+      payload <- .dashboard_dim_matriz_unidades(s, modo, objetivo, var_color, var_nombre, filtros)
+      list(ok = TRUE, payload = payload)
     })) |>
     plumber::pr_post("/api/dashboard/dimensiones/foda", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -381,6 +385,17 @@ mount_dashboard <- function(pr) {
       foda_config <- body$foda_config %||% NULL
       payload <- .dashboard_dim_foda(s, modo, objetivo, cruce, incluir_total, iter, filtros, foda_config)
       list(ok = TRUE, payload = payload)
+    })) |>
+    plumber::pr_post("/api/dashboard/publish", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .dashboard_parse_body(req)
+      dashboard_publish_space(
+        sid = sid,
+        hf_username = body$hf_username %||% "",
+        hf_token = body$hf_token %||% "",
+        space_name = body$space_name %||% "",
+        private = isTRUE(body$private)
+      )
     }))
 }
 

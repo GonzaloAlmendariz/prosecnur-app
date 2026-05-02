@@ -5,18 +5,19 @@
 // posibles para arrancar:
 //   1. "Empezar de cero" → workbook en blanco (createBlankWorkbook).
 //   2. "Importar XLSForm" → file picker .xlsx.
-//   3. "Importar SurveyMonkey" → file picker .sav.
+//   3. "Importar SurveyMonkey" → conexión API SurveyMonkey.
 //   4. "Plantillas" → CTA placeholder hasta el Sub-PR 8 (templates seeds).
 //
 // Estilo: tarjetas grandes con icono + título + descripción, hover sutil,
 // stagger animation al montar (cada tarjeta entra con +60ms de delay).
 //
-// El EmptyHome no se monta cuando hay un `RestoreOfferBanner` arriba — el
-// componente principal decide cuál renderizar.
+// El EmptyHome puede recibir un `resumeBanner` para mostrar trabajo en curso
+// persistido justo donde el usuario toma la decisión de continuar o empezar.
 // =============================================================================
 
 import type { ReactNode } from "react";
-import { FileSpreadsheet, Sparkles, Upload, Wand2 } from "lucide-react";
+import { FileSpreadsheet, Sparkles, Upload } from "lucide-react";
+import smMonkey from "../../../assets/sm-monkey.png";
 import { TemplateGallery } from "../templates/TemplateGallery";
 import type { TemplateSeed } from "../templates/seedHelper";
 
@@ -39,6 +40,8 @@ export type EmptyHomeProps = {
   /** Si la base ya tiene cosas y el usuario está en el modo "no hay workbook"
    *  (raro, pero pasa al montar tras refresh sin snapshot). */
   hint?: string;
+  /** Aviso persistente de "formulario en construcción" para continuar edición. */
+  resumeBanner?: ReactNode;
 };
 
 export default function EmptyHome({
@@ -47,6 +50,7 @@ export default function EmptyHome({
   onImportSurveyMonkey,
   onPickTemplate,
   hint,
+  resumeBanner,
 }: EmptyHomeProps) {
   const actions: EmptyHomeAction[] = [
     {
@@ -71,8 +75,8 @@ export default function EmptyHome({
       key: "surveymonkey",
       title: "Traducir SurveyMonkey",
       description:
-        "Sube un .sav de SurveyMonkey y lo convertimos automáticamente a XLSForm editable.",
-      icon: <Wand2 size={22} />,
+        "Conecta tu encuesta por API y la convertimos automáticamente a XLSForm editable.",
+      icon: <img src={smMonkey} alt="" width={28} height={28} style={{ objectFit: "contain" }} />,
       onClick: onImportSurveyMonkey,
       accent: "#7c3aed",
     },
@@ -143,6 +147,8 @@ export default function EmptyHome({
           )}
         </div>
       </div>
+
+      {resumeBanner ? <div>{resumeBanner}</div> : null}
 
       <div
         style={{

@@ -1,0 +1,23 @@
+# Reduce el contexto Docker — evita subir cosas que no entran al image.
+.git
+.github
+.claude
+.vscode
+.idea
+node_modules
+frontend/node_modules
+frontend/dist
+frontend/coverage
+api/inst/www
+prototypes
+docs
+launcher/launch.bat
+launcher/launch.command
+launcher/launch.sh
+**/.DS_Store
+**/*.pulso
+!data/proyecto.pulso
+**/Prueba_App
+**/MiProyecto.pulso
+*.log
+*.tmp

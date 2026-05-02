@@ -1,10 +1,14 @@
 import {
   BarChart3,
+  Grid3x3,
   Image,
+  Images,
+  Layers,
   LayoutGrid,
   Palette as PaletteIcon,
   Plus,
   Radar,
+  RotateCcw,
   SlidersHorizontal,
   Tag,
   Trash2,
@@ -12,7 +16,12 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { DashboardFodaViewConfig, DashboardTabId } from "../../../api/client";
+import {
+  apiDashboardDimIconosDefaults,
+  type DashboardDimIconosDefaultsConductor,
+  type DashboardFodaViewConfig,
+  type DashboardTabId,
+} from "../../../api/client";
 import {
   DEFAULT_FODA_SERVICE_CATEGORIES,
   DEFAULT_FODA_VIEWS,
@@ -20,15 +29,19 @@ import {
   MAX_DASHBOARD_LOGOS,
   useDashboardStore,
 } from "../store";
+import { useDimSeccionesVars } from "../useDashboardData";
 
-type CustomizePanel = "marca" | "pestanas" | "foda" | "graficos" | "semaforo";
+type CustomizePanel = "marca" | "pestanas" | "foda" | "graficos" | "semaforo" | "dimensiones" | "matriz" | "iconos";
 
 const PANELS: Array<{ id: CustomizePanel; label: string; icon: typeof SlidersHorizontal }> = [
   { id: "marca", label: "Marca", icon: Tag },
   { id: "pestanas", label: "Pestañas", icon: LayoutGrid },
   { id: "foda", label: "FODA", icon: Image },
+  { id: "matriz", label: "Matriz", icon: Grid3x3 },
+  { id: "iconos", label: "Íconos", icon: Images },
   { id: "graficos", label: "Gráficos", icon: BarChart3 },
   { id: "semaforo", label: "Semáforo", icon: SlidersHorizontal },
+  { id: "dimensiones", label: "Dimensiones", icon: Layers },
 ];
 
 const TAB_LABELS: Record<DashboardTabId, string> = {
@@ -101,6 +114,11 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
   const removeFodaView = useDashboardStore((s) => s.removeFodaView);
   const setFodaViewAlias = useDashboardStore((s) => s.setFodaViewAlias);
   const setFodaViewIcon = useDashboardStore((s) => s.setFodaViewIcon);
+  const setDimDesgloseLayout = useDashboardStore((s) => s.setDimDesgloseLayout);
+  const setMatrizVarColor = useDashboardStore((s) => s.setMatrizVarColor);
+  const setMatrizVarNombre = useDashboardStore((s) => s.setMatrizVarNombre);
+  const setDimAxisIcon = useDashboardStore((s) => s.setDimAxisIcon);
+  const dimensiones = useDashboardStore((s) => s.dimensiones);
 
   const [panel, setPanel] = useState<CustomizePanel>("marca");
   const logoInputRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -137,8 +155,8 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
   const fodaIconTint = config.foda_icon_tint ?? "#FFFFFF";
   const fodaIconSize = config.foda_icon_size ?? 1;
   const fodaIconLegend = config.foda_icon_legend ?? true;
-  const fodaScoreMin = config.foda_score_min ?? 0;
-  const fodaScoreMax = config.foda_score_max ?? 120;
+  const fodaScoreMin = config.foda_score_min ?? 60;
+  const fodaScoreMax = config.foda_score_max ?? 100;
   const fodaShowTotal = config.foda_show_total ?? true;
   const fodaSpacing = config.foda_spacing ?? 1.15;
   const fodaGridIntensity = config.foda_grid_intensity ?? 0.42;
@@ -149,6 +167,54 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
     [fodaViews, fodaVista],
   );
   const activeCategories = useMemo(() => fodaCategoriesForView(activeView), [activeView]);
+
+  // Catálogo de variables elegibles para "Matriz por unidad" — mismo
+  // backend que el sidebar de Dimensiones (SO/SM + numéricas con
+  // cardinalidad ≤60). Solo se carga cuando entras al panel.
+  const seccionesVars = useDimSeccionesVars();
+  const matrizVarColor = config.matriz_var_color ?? "";
+  const matrizVarNombre = config.matriz_var_nombre ?? "";
+  const dimAxisIcons = config.dim_axis_icons ?? {};
+
+  // Bootstrap del panel "Íconos" — pide al backend los íconos default del
+  // paquete prosecnur para el objetivo activo. La UI los muestra como
+  // preview editable; el override del usuario se persiste en
+  // `dim_axis_icons` y se ve aplicado en el dashboard sin tocar nada más.
+  const [iconosDefaults, setIconosDefaults] = useState<DashboardDimIconosDefaultsConductor[]>([]);
+  const [iconosLoading, setIconosLoading] = useState(false);
+  const [iconosError, setIconosError] = useState<string | null>(null);
+  useEffect(() => {
+    if (panel !== "iconos" || !dimensiones.objetivo) return;
+    let cancelled = false;
+    setIconosLoading(true);
+    setIconosError(null);
+    apiDashboardDimIconosDefaults({ modo: dimensiones.modo, objetivo: dimensiones.objetivo })
+      .then((r) => {
+        if (cancelled) return;
+        setIconosDefaults(r.payload.conductores ?? []);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setIconosError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setIconosLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [panel, dimensiones.modo, dimensiones.objetivo]);
+
+  // La vista FODA "servicios" suele ser donde el usuario sube los íconos
+  // por categoría (ULE, CIAM…). El panel Íconos la muestra como atajo —
+  // pero el usuario también puede tocar otras vistas desde el panel FODA.
+  const serviciosView = useMemo(
+    () => fodaViews.find((v) => v.id === "servicios") ?? fodaViews.find((v) => v.variable === "servicio") ?? null,
+    [fodaViews],
+  );
+  const serviciosCategories = useMemo(
+    () => (serviciosView ? fodaCategoriesForView(serviciosView) : []),
+    [serviciosView],
+  );
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -743,6 +809,139 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
                 </div>
               </section>
             )}
+
+            {panel === "matriz" && (
+              <section className="dash-customize-panel">
+                <PanelTitle
+                  title="Matriz por unidad"
+                  text="Dos roles independientes. La 1ª variable da el color de fondo de la fila. La 2ª (opcional) aporta el ícono y el texto adicional, y dispara la leyenda al pie."
+                />
+                <SettingBlock title="Variables" icon={<Grid3x3 size={16} />}>
+                  <div className="dash-customize-field-grid">
+                    <label>
+                      <span className="dash-filtro-label">Variable de color (fondo)</span>
+                      <VarPicker
+                        value={matrizVarColor}
+                        onChange={setMatrizVarColor}
+                        sections={seccionesVars.payload?.secciones ?? []}
+                        loading={seccionesVars.loading}
+                        emptyLabel="— sin variable —"
+                      />
+                    </label>
+                    <label>
+                      <span className="dash-filtro-label">Variable de ícono (opcional)</span>
+                      <VarPicker
+                        value={matrizVarNombre}
+                        onChange={setMatrizVarNombre}
+                        sections={seccionesVars.payload?.secciones ?? []}
+                        loading={seccionesVars.loading}
+                        emptyLabel="— sin ícono —"
+                      />
+                    </label>
+                  </div>
+                  <p className="dash-customize-help">
+                    Si solo eliges la de color, las filas son los valores de esa variable (ej.
+                    Lima, Rímac, Lurigancho) sin ícono. Si eliges una distinta como ícono, cada
+                    fila es una combinación observada (ej. “Lima · ULE Lurigancho”) y la 2ª
+                    variable aporta el ícono. Si eliges la misma variable en ambos selects, las
+                    filas son los valores de esa variable y el ícono aparece en cada fila. Los
+                    íconos se reutilizan de la configuración del FODA cuando la variable coincide
+                    con una vista FODA.
+                  </p>
+                </SettingBlock>
+              </section>
+            )}
+
+            {panel === "iconos" && (
+              <section className="dash-customize-panel">
+                <PanelTitle
+                  title="Íconos"
+                  text="Edita los íconos por conductor (Trato, Tiempo…) y por categoría (ULE, CIAM…). Los cambios se guardan en el .pulso. Si no editas, se usan los íconos del paquete."
+                />
+
+                <SettingBlock title="Conductores del indicador activo" icon={<Layers size={16} />}>
+                  {!dimensiones.objetivo ? (
+                    <p className="dash-customize-help">
+                      Selecciona primero un indicador en la pestaña Dimensiones.
+                    </p>
+                  ) : iconosLoading ? (
+                    <p className="dash-customize-help">Cargando íconos…</p>
+                  ) : iconosError ? (
+                    <p className="dash-customize-help">No se pudo cargar: {iconosError}</p>
+                  ) : !iconosDefaults.length ? (
+                    <p className="dash-customize-help">
+                      Este indicador no tiene íconos por dimensión.
+                    </p>
+                  ) : (
+                    <div className="dash-customize-icon-list">
+                      {iconosDefaults.map((it) => (
+                        <ConductorIconRow
+                          key={it.label}
+                          label={it.label}
+                          defaultIcon={it.icono_url}
+                          override={dimAxisIcons[it.label] ?? ""}
+                          onSet={(uri) => setDimAxisIcon(it.label, uri)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </SettingBlock>
+
+                <SettingBlock title="Por categoría (variable Servicios u otra)" icon={<Tag size={16} />}>
+                  {!serviciosView ? (
+                    <p className="dash-customize-help">
+                      Configura primero la vista FODA "Servicios" para asociar íconos por
+                      categoría.
+                    </p>
+                  ) : !serviciosCategories.length ? (
+                    <p className="dash-customize-help">
+                      No hay categorías cargadas para "{serviciosView.variable || "esta variable"}".
+                      Agrega categorías desde el panel FODA.
+                    </p>
+                  ) : (
+                    <div className="dash-customize-category-list">
+                      {serviciosCategories.map((category) => (
+                        <CategoryEditorRow
+                          key={category}
+                          view={serviciosView}
+                          category={category}
+                          onAlias={setFodaViewAlias}
+                          onIcon={setFodaViewIcon}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <p className="dash-customize-help">
+                    Los íconos por categoría también aparecen en la "Matriz por unidad" cuando
+                    eliges esta misma variable como ícono.
+                  </p>
+                </SettingBlock>
+              </section>
+            )}
+
+            {panel === "dimensiones" && (
+              <section className="dash-customize-panel">
+                <PanelTitle
+                  title="Dimensiones"
+                  text="Controla cómo se presentan los desgloses en la pestaña Dimensiones."
+                />
+                <SettingBlock title="Layout del desglose" icon={<Layers size={16} />}>
+                  <Segmented
+                    label="Cómo se muestran los niveles del desglose"
+                    value={config.dim_desglose_layout ?? "paginado"}
+                    options={[
+                      ["paginado", "Paginado (con flechas)"],
+                      ["apilado", "Apilado (uno debajo del otro)"],
+                    ]}
+                    onChange={(v) => setDimDesgloseLayout(v as "paginado" | "apilado")}
+                  />
+                  <p className="dash-customize-help">
+                    En modo apilado, cada valor del desglose se muestra como un bloque independiente.
+                    Solo aplica a Heatmap, Barras y Radar.
+                  </p>
+                </SettingBlock>
+              </section>
+            )}
           </div>
         </div>
       </div>
@@ -851,12 +1050,110 @@ function SliderField({
   );
 }
 
+function VarPicker({
+  value,
+  onChange,
+  sections,
+  loading,
+  emptyLabel,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  sections: Array<{ nombre: string; vars: Array<{ name: string; label: string }> }>;
+  loading: boolean;
+  emptyLabel: string;
+}) {
+  if (loading) {
+    return (
+      <select className="dash-select" disabled>
+        <option>Cargando variables…</option>
+      </select>
+    );
+  }
+  return (
+    <select
+      className="dash-select"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="">{emptyLabel}</option>
+      {sections.map((sec) => (
+        <optgroup key={sec.nombre} label={sec.nombre}>
+          {sec.vars.map((v) => (
+            <option key={v.name} value={v.name}>
+              {v.label || v.name}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
+
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <label className="dash-customize-color-field">
       <span className="dash-filtro-label">{label}</span>
       <input type="color" value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
+  );
+}
+
+function ConductorIconRow({
+  label,
+  defaultIcon,
+  override,
+  onSet,
+}: {
+  label: string;
+  defaultIcon: string;
+  override: string;
+  onSet: (uri: string | null) => void;
+}) {
+  const showing = override || defaultIcon;
+  const isOverridden = Boolean(override);
+
+  function readFile(file: File | null) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") onSet(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div className="dash-customize-category-row">
+      <div className="dash-customize-category-key">
+        <span>{label}</span>
+        <small>{isOverridden ? "personalizado" : "del paquete"}</small>
+      </div>
+      <div className="dash-customize-icon-field">
+        <span className="dash-customize-icon-preview">
+          {showing ? <img src={showing} alt="" /> : <Image size={16} />}
+        </span>
+        <label className="dash-customize-upload">
+          <Upload size={14} />
+          <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600 }}>
+            {isOverridden ? "Cambiar" : "Subir custom"}
+          </span>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => readFile(e.target.files?.[0] ?? null)}
+          />
+        </label>
+      </div>
+      <button
+        type="button"
+        className="dash-customize-danger"
+        disabled={!isOverridden}
+        onClick={() => onSet(null)}
+        title={isOverridden ? "Restaurar ícono del paquete" : "Sin override"}
+      >
+        <RotateCcw size={14} />
+      </button>
+    </div>
   );
 }
 

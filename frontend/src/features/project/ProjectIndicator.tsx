@@ -59,7 +59,7 @@ export default function ProjectIndicator({ project, onRequestStartModal }: Props
         }}
         title="Crear o abrir un proyecto .pulso"
       >
-        <Circle size={11} /> Sin proyecto (efímero)
+        <Circle size={11} /> Sin proyecto
       </button>
     );
   }

@@ -44,6 +44,23 @@
   validacion_scope_get(sid, base_nombre)
 }
 
+# Recorta el preview de `_limpieza_simulate` a sólo los campos serializables
+# que el frontend necesita. Los campos pesados / no-serializables
+# (`data_final`, `evaluacion_final`, `logs`) son utilizados internamente
+# por `limpieza_finalize` y los export helpers, pero no van al JSON: jsonlite
+# revienta con "C stack usage too close to the limit" porque
+# `evaluacion_final$bundle` contiene closures cíclicas.
+.limpieza_preview_public <- function(preview) {
+  if (is.null(preview)) return(NULL)
+  list(
+    before = preview$before,
+    after = preview$after,
+    impact = preview$impact,
+    residual_final = preview$residual_final,
+    decisions_ready = preview$decisions_ready
+  )
+}
+
 # -----------------------------------------------------------------------------
 # .resolve_explorar_data: devuelve la data para el explorador según fuente.
 #   - "raw" (default): data cargada originalmente (comportamiento histórico).
@@ -125,7 +142,7 @@
       base_nombre = b_resolved,
       xlsform = xls_meta,
       data = dat_meta,
-      data_ext = meta_b$data_ext %||% tolower(tools::file_ext(dat_meta$path))
+      data_ext = meta_b$data_ext %||% dat_meta$ext %||% tolower(tools::file_ext(dat_meta$path))
     ))
   }
   # Fallback legacy single-base.
@@ -239,7 +256,7 @@ mount_validacion <- function(pr) {
         decision_queue = limpieza$decision_queue,
         decision_draft = limpieza$decision_draft,
         module_stats = limpieza$module_stats,
-        before_after_preview = limpieza$before_after_preview,
+        before_after_preview = .limpieza_preview_public(limpieza$before_after_preview),
         artifacts = limpieza$artifacts,
         actions = list()
       )
@@ -274,7 +291,7 @@ mount_validacion <- function(pr) {
         ok = TRUE,
         decision = upsert$decision,
         decision_draft = limpieza$decision_draft,
-        before_after_preview = limpieza$before_after_preview,
+        before_after_preview = .limpieza_preview_public(limpieza$before_after_preview),
         summary = limpieza$summary
       )
     })) |>
@@ -297,7 +314,7 @@ mount_validacion <- function(pr) {
       scope <- .get_base_scope(sid, base)
       preview <- .limpieza_simulate(sid, base, scope, scope$limpieza_draft %||% list())
       validacion_scope_set(sid, base, "limpieza_preview", preview)
-      list(ok = TRUE, base_nombre = base %||% NA_character_, before_after_preview = preview)
+      list(ok = TRUE, base_nombre = base %||% NA_character_, before_after_preview = .limpieza_preview_public(preview))
     })) |>
 
     plumber::pr_post("/api/validacion/v2/limpieza/finalize", wrap_endpoint(function(req, res) {

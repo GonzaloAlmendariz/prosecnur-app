@@ -910,3 +910,45 @@
   overflow-x: auto;
   overflow-y: hidden;
 }
+
+/* =============================================================================
+ * Desglose apilado — un bloque por nivel del desglose, uno debajo del otro.
+ * Se activa desde Personalizar → Dimensiones (dim_desglose_layout = "apilado").
+ * Reemplaza el stepper paginado en heatmap/barras/radar.
+ * ============================================================================= */
+.dashboard-scope .dash-dim-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+.dashboard-scope .dash-dim-stacked-block {
+  border: 1px solid var(--dash-borde);
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: var(--dash-superficie);
+  box-shadow: var(--dash-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dashboard-scope .dash-dim-stacked-block-header {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+.dashboard-scope .dash-dim-stacked-block-title {
+  color: var(--dash-texto);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.dashboard-scope .dash-dim-stacked-block-meta {
+  color: var(--dash-texto-suave);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-scope .dash-dim-stacked-block-placeholder {
+  min-height: 280px;
+}

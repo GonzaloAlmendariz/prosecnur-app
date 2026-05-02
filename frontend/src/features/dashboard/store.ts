@@ -42,7 +42,7 @@ export const DEFAULT_TABS_ENABLED: Record<DashboardTabId, boolean> = {
 // hidratar desde backend, normalizamos los campos nullables: cualquier
 // valor que no sea string no-vacío → null. Evita que `[] || ...` truthy
 // rompa derivaciones aguas abajo (ej. theme).
-function sanitizeConfig(c: DashboardConfig): DashboardConfig {
+export function sanitizeConfig(c: DashboardConfig): DashboardConfig {
   const str = (v: unknown) =>
     typeof v === "string" && v.length > 0 ? v : null;
   const num = (v: unknown, fallback: number) =>
@@ -51,8 +51,11 @@ function sanitizeConfig(c: DashboardConfig): DashboardConfig {
     c.paletas_listas && typeof c.paletas_listas === "object" && !Array.isArray(c.paletas_listas)
       ? c.paletas_listas
       : {};
-  const fodaScoreMin = Math.max(0, Math.min(95, num(c.foda_score_min, 0)));
-  const fodaScoreMax = Math.max(fodaScoreMin + 5, Math.min(140, num(c.foda_score_max, 120)));
+  // Defaults 60-100: rango útil cuando los puntajes están en porcentaje
+  // (escala típica del FODA). Antes era 0-120 que dejaba mucho aire vacío
+  // arriba y abajo cuando todos los items caían en 60-100.
+  const fodaScoreMin = Math.max(0, Math.min(95, num(c.foda_score_min, 60)));
+  const fodaScoreMax = Math.max(fodaScoreMin + 5, Math.min(140, num(c.foda_score_max, 100)));
   const fodaSpacing = Math.max(0.7, Math.min(1.8, num(c.foda_spacing, 1.15)));
   const fodaGridIntensity = Math.max(0, Math.min(1, num(c.foda_grid_intensity, 0.42)));
   const recordOfRecords = (v: unknown): Record<string, Record<string, string>> => {
@@ -249,6 +252,10 @@ function sanitizeConfig(c: DashboardConfig): DashboardConfig {
     foda_views: mergedViews,
     foda_aliases: legacyAliases,
     foda_service_icons: legacyServiceIcons,
+    dim_desglose_layout: c.dim_desglose_layout === "apilado" ? "apilado" : "paginado",
+    matriz_var_color: typeof c.matriz_var_color === "string" ? c.matriz_var_color : "",
+    matriz_var_nombre: typeof c.matriz_var_nombre === "string" ? c.matriz_var_nombre : "",
+    dim_axis_icons: recordOfStrings(c.dim_axis_icons),
   };
 }
 
@@ -383,8 +390,8 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   foda_icon_tint: "#FFFFFF",
   foda_icon_size: 1,
   foda_icon_legend: true,
-  foda_score_min: 0,
-  foda_score_max: 120,
+  foda_score_min: 60,
+  foda_score_max: 100,
   foda_show_total: true,
   foda_spacing: 1.15,
   foda_grid_intensity: 0.42,
@@ -392,6 +399,10 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   foda_views: DEFAULT_FODA_VIEWS,
   foda_aliases: DEFAULT_FODA_ALIASES,
   foda_service_icons: {},
+  dim_desglose_layout: "paginado",
+  matriz_var_color: "",
+  matriz_var_nombre: "",
+  dim_axis_icons: {},
 };
 
 // Estado de exploración para Relaciones (no persistido).
@@ -412,7 +423,8 @@ const DEFAULT_RELACION_STATE: DashboardRelacionState = {
 };
 
 // Estado de exploración para Dimensiones (no persistido).
-export type DashboardDimVisualMode = "construccion" | "heatmap" | "barras" | "radar" | "foda";
+export type DashboardDimVisualMode = "construccion" | "heatmap" | "barras" | "radar" | "foda" | "matriz";
+export type DashboardDimMatrizOrden = "score" | "alfabetico";
 export type DashboardDimFodaSubmode = "matriz" | "dispersion";
 
 export type DashboardDimensionesState = {
@@ -430,6 +442,8 @@ export type DashboardDimensionesState = {
   visualMode: DashboardDimVisualMode;
   // Submodo dentro de FODA.
   fodaSubmode: DashboardDimFodaSubmode;
+  // Orden de filas en el modo "matriz" — toggle minimalista (sesión).
+  matrizOrden: DashboardDimMatrizOrden;
 };
 
 const DEFAULT_DIMENSIONES_STATE: DashboardDimensionesState = {
@@ -445,6 +459,7 @@ const DEFAULT_DIMENSIONES_STATE: DashboardDimensionesState = {
   enfoqueGrupo: "",
   visualMode: "construccion",
   fodaSubmode: "matriz",
+  matrizOrden: "score",
 };
 
 // Estado de exploración para Base de datos (no persistido).
@@ -483,6 +498,13 @@ type DashboardStore = {
 
   hydrate: (c: DashboardConfig) => void;
   markClean: () => void;
+  // Limpia store completo (config + estado exploración) a defaults. Llamado
+  // desde el listener global cuando cambia `pulso:session-changed`, antes
+  // de que `useDashboardAutosave` re-hidrate desde el backend del proyecto
+  // nuevo. Sin esto, al cambiar de proyecto el dashboard mostraba logo /
+  // paleta / filtros del proyecto anterior durante el fetch (y peor: el
+  // autosave podía sobrescribir la config nueva con la vieja).
+  resetForSession: () => void;
 
   // Config setters (estéticos) — todos marcan dirty.
   setTitulo: (s: string) => void;
@@ -537,6 +559,11 @@ type DashboardStore = {
   removeFodaView: (id: string) => void;
   setFodaViewAlias: (id: string, category: string, alias: string) => void;
   setFodaViewIcon: (id: string, category: string, icon: string) => void;
+  setDimDesgloseLayout: (v: "paginado" | "apilado") => void;
+  setMatrizVarColor: (v: string) => void;
+  setMatrizVarNombre: (v: string) => void;
+  setDimAxisIcon: (label: string, dataUri: string | null) => void;
+  clearDimAxisIcons: () => void;
 
   // Estado de exploración (local, no marca dirty)
   setTabActiva: (t: DashboardTabId) => void;
@@ -580,6 +607,18 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
 
   hydrate: (c) => set({ config: c, hydrated: true, dirty: false }),
   markClean: () => set({ dirty: false }),
+  resetForSession: () =>
+    set({
+      config: DEFAULT_DASHBOARD_CONFIG,
+      hydrated: false,
+      dirty: false,
+      tabActiva: "resumen",
+      seccionActiva: null,
+      filtros: [],
+      relacion: DEFAULT_RELACION_STATE,
+      baseDatos: DEFAULT_BASE_DATOS_STATE,
+      dimensiones: DEFAULT_DIMENSIONES_STATE,
+    }),
 
   setTitulo: (s) => set((st) => dirtyPatch({ config: { ...st.config, titulo: s } })),
   setSubtitulo: (s) => set((st) => dirtyPatch({ config: { ...st.config, subtitulo: s } })),
@@ -945,6 +984,27 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
       return dirtyPatch({ config: { ...st.config, foda_views: next, foda_service_icons: serviceIcons } });
     }),
 
+  setDimDesgloseLayout: (v) =>
+    set((st) => dirtyPatch({ config: { ...st.config, dim_desglose_layout: v } })),
+  setMatrizVarColor: (v) =>
+    set((st) => dirtyPatch({ config: { ...st.config, matriz_var_color: v } })),
+  setMatrizVarNombre: (v) =>
+    set((st) => dirtyPatch({ config: { ...st.config, matriz_var_nombre: v } })),
+  setDimAxisIcon: (label, dataUri) =>
+    set((st) => {
+      const next = { ...(st.config.dim_axis_icons ?? {}) };
+      const key = label.trim();
+      if (!key) return st;
+      if (dataUri && typeof dataUri === "string") {
+        next[key] = dataUri;
+      } else {
+        delete next[key];
+      }
+      return dirtyPatch({ config: { ...st.config, dim_axis_icons: next } });
+    }),
+  clearDimAxisIcons: () =>
+    set((st) => dirtyPatch({ config: { ...st.config, dim_axis_icons: {} } })),
+
   setTabActiva: (t) => set({ tabActiva: t }),
   setSeccionActiva: (s) => set({ seccionActiva: s }),
   setFiltros: (f) => set({ filtros: f }),
@@ -997,22 +1057,36 @@ export function useDashboardAutosave(enabled: boolean = true) {
   const hydrate = useDashboardStore((s) => s.hydrate);
   const markClean = useDashboardStore((s) => s.markClean);
 
+  // Hidratación inicial + re-hidratación al cambiar de sesión (ej. abrir
+  // otro .pulso). Sin el listener de `pulso:session-changed` el store
+  // quedaba con la config (logo, paleta, FODA views, var_modes, ...) del
+  // proyecto anterior, y el autosave debounced podía sobrescribir la
+  // config del proyecto recién abierto con la del anterior.
   useEffect(() => {
-    if (!enabled) return undefined;
     let cancelled = false;
-    apiDashboardConfigGet()
-      .then((r) => {
-        if (cancelled) return;
-        hydrate(sanitizeConfig({ ...DEFAULT_DASHBOARD_CONFIG, ...r.config }));
-      })
-      .catch(() => {
+
+    async function hydrateFromBackend() {
+      if (cancelled) return;
+      try {
+        const r = await apiDashboardConfigGet();
+        if (!cancelled) hydrate(sanitizeConfig({ ...DEFAULT_DASHBOARD_CONFIG, ...r.config }));
+      } catch {
         if (!cancelled) hydrate(DEFAULT_DASHBOARD_CONFIG);
-      });
+      }
+    }
+
+    void hydrateFromBackend();
+
+    function onSessionChanged() {
+      void hydrateFromBackend();
+    }
+    window.addEventListener("pulso:session-changed", onSessionChanged);
     return () => {
       cancelled = true;
+      window.removeEventListener("pulso:session-changed", onSessionChanged);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled]);
+  }, []);
 
   const timer = useRef<number | null>(null);
   useEffect(() => {
@@ -1022,6 +1096,7 @@ export function useDashboardAutosave(enabled: boolean = true) {
     timer.current = window.setTimeout(async () => {
       try {
         await apiDashboardConfigPut(config);
+        window.dispatchEvent(new CustomEvent("pulso:project-status-changed"));
         markClean();
       } catch {
         // Silencioso — el próximo cambio reintenta.

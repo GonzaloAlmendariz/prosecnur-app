@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:standalone": "tsc -b && vite build --config vite.standalone.config.ts",
     "preview": "vite preview",
     "test": "vitest run"
   },
@@ -15,9 +14,9 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@r-wasm/webr": "^0.2.0",
     "@tanstack/react-table": "^8.21.3",
     "@types/plotly.js-dist-min": "^2.3.4",
+    "html-to-image": "^1.11.13",
     "lucide-react": "^0.474.0",
     "plotly.js-dist-min": "^3.5.0",
     "react": "^18.3.1",

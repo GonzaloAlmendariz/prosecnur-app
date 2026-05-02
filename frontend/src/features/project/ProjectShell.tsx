@@ -5,8 +5,8 @@
 //   1. Instancia useProject + useAutosave una sola vez (raíz de la app).
 //   2. Provee el state via ProjectContext para que el Layout (header) y
 //      cualquier consumer profundo accedan sin prop-drilling.
-//   3. Monta el StartModal al primer load (forzar decisión: nuevo / abrir
-//      / reciente / efímero) y permite reabrirlo on-demand desde el
+//   3. Monta el StartModal cuando NO hay proyecto activo (forzar decisión:
+//      nuevo / abrir / reciente). Permite reabrirlo on-demand desde el
 //      ProjectIndicator (acción "Cambiar de proyecto").
 //   4. Conecta los comandos del menú nativo (Cmd+S/Cmd+O/Cmd+N/etc.) que
 //      el main process envía vía window.prosecnurApi.onMenuCommand.
@@ -23,6 +23,7 @@ import StartModal from "./StartModal";
 import { useAutosave } from "./useAutosave";
 import { useProject, type UseProjectReturn } from "./useProject";
 import { useSession } from "../../lib/SessionContext";
+import { useStoreResetOnSessionChange } from "../../lib/useStoreResetOnSessionChange";
 
 type ProjectShellCtx = {
   project: UseProjectReturn;
@@ -41,19 +42,23 @@ export default function ProjectShell({ children }: { children: React.ReactNode }
   const { sessionId } = useSession();
   const project = useProject(sessionId);
   useAutosave(project);
+  // Resetea stores Zustand globales al cambiar de proyecto (sid). Sin
+  // esto, configuración del proyecto anterior persistía en dashboard /
+  // analítica / gráficos / wizards mientras los autosaves re-hidrataban.
+  useStoreResetOnSessionChange();
 
-  // El modal aparece una vez al arranque cuando NO hay proyecto activo.
-  // El usuario puede descartarlo eligiendo "Trabajar sin proyecto" o
-  // creando/abriendo uno. Tras eso, queda cerrado hasta que el user
-  // pida "Cambiar de proyecto".
+  // El modal aparece cuando NO hay proyecto activo. Sin modo efímero: el
+  // usuario debe crear o abrir un .pulso para usar la app. Queda cerrado
+  // mientras hay proyecto; reabre con "Cambiar de proyecto".
   const [showStart, setShowStart] = useState(true);
 
   const openStartModal = useCallback(() => setShowStart(true), []);
 
-  // Si el backend dice que ya hay proyecto activo (ej. la app reinició
-  // pero el sid persistió en localStorage), cerrar el modal.
+  // Sincronizar visibilidad del modal con el estado del proyecto. Si el
+  // backend dice que hay proyecto, ocultar; si no, mostrar (ej. tras un
+  // close, o al arranque mientras se rehidrata).
   useEffect(() => {
-    if (project.status.has_project) setShowStart(false);
+    setShowStart(!project.status.has_project);
   }, [project.status.has_project]);
 
   // Suscribir a comandos del menú nativo (Cmd+S, Cmd+O, etc.)
@@ -93,7 +98,6 @@ export default function ProjectShell({ children }: { children: React.ReactNode }
       {showStart && (
         <StartModal
           project={project}
-          onSkip={() => setShowStart(false)}
           onDone={() => setShowStart(false)}
         />
       )}

@@ -210,7 +210,8 @@
     xls_path <- .dashboard_assert_project_path(s, xls_path)
     dat_path <- .dashboard_assert_project_path(s, dat_path)
     xls_meta <- .dashboard_upload_from_project_path(sid, xls_path, "xlsform")
-    data_ext <- tolower(tools::file_ext(dat_path))
+    data_ext <- ext_for_kind(if (grepl("\\.sav(?:\\s+\\d+)?$", dat_path, ignore.case = TRUE)) "sav" else "data",
+                             dat_path)
     dat_meta <- .dashboard_upload_from_project_path(
       sid,
       dat_path,

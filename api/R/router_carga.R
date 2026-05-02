@@ -78,6 +78,19 @@ read_data_preview <- function(path, ext, n_preview = 100L) {
   )
   n <- nrow(df)
   head_df <- utils::head(df, n_preview)
+  # Los .sav de SurveyMonkey llegan como haven_labelled. jsonlite puede
+  # recursar sobre esos atributos y fallar con "C stack usage". La preview
+  # solo necesita una muestra legible; los datos completos se guardan sin
+  # tocar para reporte_data/validación.
+  head_df <- as.data.frame(lapply(head_df, function(col) {
+    if (inherits(col, "haven_labelled") || inherits(col, "labelled")) {
+      return(as.character(haven::as_factor(col, levels = "default")))
+    }
+    if (inherits(col, c("POSIXct", "POSIXlt", "Date"))) {
+      return(as.character(col))
+    }
+    col
+  }), stringsAsFactors = FALSE, check.names = FALSE)
   list(
     n_filas = as.integer(n),
     n_columnas = ncol(df),
@@ -171,6 +184,7 @@ mount_carga <- function(pr) {
       }
       inst <- leer_instrumento_xlsform(meta$path)
       session_set(sid, "instrumento", inst)
+      session_set(sid, "inst_limpieza", NULL)
       # Si ya hay data subida, esto auto-crea/refresca la base "default"
       # del estudio para que las features v2 (Validación, Codificación)
       # encuentren el par xlsform+data sin requerir flujo multi-base

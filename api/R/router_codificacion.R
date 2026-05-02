@@ -1271,7 +1271,10 @@ mount_codificacion <- function(pr) {
           n_codificadas = as.integer(n_cod),
           status = status,
           habilitada = use_flag,
-          preview = stats$preview,
+          # I() preserva el vector aunque tenga longitud 1 — sin esto,
+          # jsonlite serializa un solo elemento como string en vez de
+          # array y el frontend crashea con `preview.slice(...).map`.
+          preview = I(as.character(stats$preview %||% character(0))),
           section = section,
           section_label = section_label,
           q_order = if (is.na(q_order_raw)) NA_integer_ else as.integer(q_order_raw),

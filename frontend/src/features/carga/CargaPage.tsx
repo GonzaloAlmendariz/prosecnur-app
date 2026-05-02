@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Lucide from "lucide-react";
 import {
   ArrowRight, CheckCircle2, Database, FileSpreadsheet,
@@ -21,6 +21,7 @@ import {
   EstudioPayload,
   Pregunta,
   Seccion,
+  uploadKindForDataFile,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Panel } from "../../components/Panel";
@@ -56,7 +57,7 @@ function resolveLucideIcon(name: string | undefined): IconCmp {
 }
 
 export default function CargaPage() {
-  const { state, refresh } = useSession();
+  const { sessionId, state, refresh } = useSession();
   const [instrumento, setInstrumento] = useState<InstrumentoResumen | null>(null);
   const [dataPreview, setDataPreview] = useState<DataPreview | null>(null);
   const [estructura, setEstructura] = useState<{ secciones: Seccion[]; preguntas: Pregunta[] } | null>(null);
@@ -149,7 +150,8 @@ export default function CargaPage() {
     setError("");
     setBusy(`Subiendo ${file.name}…`);
     try {
-      const up = await apiUpload(file, kind);
+      const uploadKind = kind === "data" ? uploadKindForDataFile(file) : kind;
+      const up = await apiUpload(file, uploadKind);
       setBusy(`Procesando ${file.name}…`);
       if (kind === "xlsform") {
         const r = await apiCargaInstrumento(up.file_id);
@@ -209,6 +211,20 @@ export default function CargaPage() {
   // botón "+ Agregar otra base" para que el usuario no tenga que
   // buscar el botón dentro del panel.
   const [autoOpenAddBase, setAutoOpenAddBase] = useState(false);
+  const lastSessionIdRef = useRef(sessionId);
+
+  useEffect(() => {
+    if (!sessionId || lastSessionIdRef.current === sessionId) return;
+    lastSessionIdRef.current = sessionId;
+    setInstrumento(null);
+    setDataPreview(null);
+    setEstructura(null);
+    setEstudio(null);
+    setAutoOpenAddBase(false);
+    setError("");
+    setBusy("");
+  }, [sessionId]);
+
   useEffect(() => {
     if (!isMultiBase) {
       setEstudio(null);
@@ -388,7 +404,7 @@ export default function CargaPage() {
                 coincidir con los <code>name</code> del XLSForm.
               </>
             }
-            accept=".xlsx,.xls,.csv,.sav"
+            accept=".xlsx,.xls,.csv,.sav,application/x-spss-sav,application/octet-stream"
             acceptLabel=".xlsx · .csv · .sav"
             done={hasData}
             busy={!!busy}
@@ -1023,4 +1039,3 @@ function MultiBaseToggle({
     </div>
   );
 }
-

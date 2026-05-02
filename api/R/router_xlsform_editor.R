@@ -665,8 +665,29 @@ mount_xlsform_editor <- function(pr) {
         message = "La importación SurveyMonkey espera un archivo .sav subido con kind='sav'."
       )
 
-      sm <- surveymonkey_leer(meta$path)
-      out <- surveymonkey_xlsform(sm, lang = lang)
+      sm <- tryCatch(
+        surveymonkey_leer(meta$path),
+        api_error = function(e) stop(e),
+        error = function(e) {
+          stop_api(
+            400, "E_SAV_READ_FAILED",
+            sprintf(
+              "No pude leer el archivo .sav de SurveyMonkey: %s. Verifica que sea un export SPSS válido (no .csv ni .xlsx) y que no esté corrupto.",
+              conditionMessage(e)
+            )
+          )
+        }
+      )
+      out <- tryCatch(
+        surveymonkey_xlsform(sm, lang = lang),
+        api_error = function(e) stop(e),
+        error = function(e) {
+          stop_api(
+            500, "E_SM_TRANSLATE_FAILED",
+            sprintf("La traducción a XLSForm falló: %s", conditionMessage(e))
+          )
+        }
+      )
 
       .xlsform_editor_workbook_payload(
         sheets = list(
@@ -678,6 +699,386 @@ mount_xlsform_editor <- function(pr) {
         source_kind = "surveymonkey",
         source_name = meta$original_name
       )
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/sav-meta", wrap_endpoint(function(req, res, ...) {
+      # Devuelve la lista de preguntas + choices del .sav para poblar los
+      # dropdowns del modal de aplicación de lógica condicional.
+      sid <- session_header(req)
+      parsed <- .xlsform_editor_parse_body(req)
+      file_id <- as.character(parsed$file_id %||% "")
+      if (!nzchar(file_id)) stop_api(400, "E_MISSING_FILE_ID", "Falta 'file_id'.")
+
+      meta <- get_file(sid, file_id)
+      .xlsform_editor_validate_meta(
+        meta,
+        expected_kind = "sav",
+        code = "E_BAD_SURVEYMONKEY_SOURCE",
+        message = "El endpoint sav-meta espera un archivo .sav."
+      )
+
+      sm <- tryCatch(
+        surveymonkey_leer(meta$path),
+        error = function(e) {
+          stop_api(400, "E_SAV_READ_FAILED",
+            sprintf("No pude leer el .sav: %s", conditionMessage(e)))
+        }
+      )
+
+      vars <- sm$vars_tbl
+      preguntas <- list()
+      for (i in seq_len(nrow(vars))) {
+        if (vars$is_metadata[i] || vars$is_other[i]) next
+        # Solo expongo el padre (no los _1, _2 internos de batteries/multi)
+        # Heurística: si el name_raw tiene sufijo numérico o alfabético,
+        # tomo solo el primer item del grupo (suffix mínimo).
+        name_raw <- vars$name_raw[i]
+        suffix <- vars$suffix[i]
+        group <- vars$group_guess[i]
+        if (!is.na(suffix) && nzchar(suffix)) {
+          # Solo exponer el primer item del grupo
+          group_rows <- vars[vars$group_guess == group & !is.na(vars$suffix) & nzchar(vars$suffix), ]
+          first_in_group <- group_rows$name_raw[1]
+          if (name_raw != first_in_group) next
+        }
+        labs <- sm$label_sets[[name_raw]]
+        choices <- if (length(labs)) {
+          lapply(seq_along(labs), function(j) list(
+            code = as.character(unname(labs)[j]),
+            label = as.character(names(labs)[j])
+          ))
+        } else list()
+
+        # Para batteries/multi, exporto el grupo entero como una "pregunta"
+        display_name <- if (!is.na(suffix) && nzchar(suffix)) toupper(group) else toupper(name_raw)
+        preguntas[[length(preguntas) + 1L]] <- list(
+          name = display_name,
+          name_raw = name_raw,
+          group = group,
+          label = .sm_or(vars$label[i], NA_character_),
+          kind = vars$kind_guess[i],
+          choices = choices
+        )
+      }
+
+      list(
+        ok = TRUE,
+        n_filas = as.integer(nrow(sm$data_raw)),
+        preguntas = preguntas
+      )
+    })) |>
+    plumber::pr_get("/api/xlsform-editor/sm-token", wrap_endpoint(function(req, res, ...) {
+      # Lee el token cifrado del disco (~/.prosecnurapp/secrets/sm_token.dat).
+      token <- prosecnur_secret_load("sm_token")
+      list(
+        ok = TRUE,
+        has_token = prosecnur_secret_exists("sm_token"),
+        token = if (is.na(token)) "" else token
+      )
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/sm-token", wrap_endpoint(function(req, res, ...) {
+      # Guarda el token cifrado en disco. Body: {token: "..."}.
+      parsed <- .xlsform_editor_parse_body(req)
+      token <- as.character(parsed$token %||% "")
+      prosecnur_secret_save("sm_token", token)
+      list(ok = TRUE, has_token = nzchar(token))
+    })) |>
+    plumber::pr_delete("/api/xlsform-editor/sm-token", wrap_endpoint(function(req, res, ...) {
+      prosecnur_secret_clear("sm_token")
+      list(ok = TRUE)
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/sm-check-token", wrap_endpoint(function(req, res, ...) {
+      # Verifica que el token sea válido contra GET /users/me. Útil para que
+      # el frontend confirme al cargar (con un token persistido en
+      # localStorage) que sigue funcionando, antes de hacer requests más
+      # caros como listar surveys.
+      parsed <- .xlsform_editor_parse_body(req)
+      token <- as.character(parsed$token %||% "")
+      if (!nzchar(token)) stop_api(400, "E_MISSING_TOKEN", "Falta 'token'.")
+
+      info <- tryCatch(
+        sm_api_check_token(token),
+        error = function(e) list(ok = FALSE, error = conditionMessage(e))
+      )
+      info
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/sm-list-surveys", wrap_endpoint(function(req, res, ...) {
+      # Lista los surveys del usuario autenticado por el token, para que
+      # pueda elegir el ID en lugar de extraerlo manualmente de URLs
+      # (las de SurveyMonkey suelen tener tokens encriptados que no
+      # exponen el ID numérico real).
+      parsed <- .xlsform_editor_parse_body(req)
+      token <- as.character(parsed$token %||% "")
+      if (!nzchar(token)) stop_api(400, "E_MISSING_TOKEN", "Falta 'token' de la API SurveyMonkey.")
+
+      surveys <- tryCatch(
+        sm_api_list_surveys(token),
+        error = function(e) stop_api(400, "E_SM_API_FAILED", conditionMessage(e))
+      )
+      list(ok = TRUE, surveys = surveys, count = length(surveys))
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/sm-fetch-survey-info", wrap_endpoint(function(req, res, ...) {
+      # Vía 3: trae estructura del cuestionario desde la API v3 de SurveyMonkey
+      # (mapeo de páginas + family/subtype + validation/required) que el .sav
+      # no preserva. Requiere token del usuario (Personal Access Token).
+      sid <- session_header(req)
+      parsed <- .xlsform_editor_parse_body(req)
+      file_id <- as.character(parsed$file_id %||% "")
+      survey_id <- as.character(parsed$survey_id %||% "")
+      token <- as.character(parsed$token %||% "")
+
+      if (!nzchar(survey_id)) stop_api(400, "E_MISSING_SURVEY_ID", "Falta 'survey_id' del survey en SurveyMonkey.")
+      if (!nzchar(token)) stop_api(400, "E_MISSING_TOKEN", "Falta 'token' de la API SurveyMonkey.")
+
+      # Si viene un .sav legacy, detectamos su convención. En el flujo nuevo
+      # API-only usamos nombres internos q0001, q0002... como convención estable.
+      style <- .sm_api_default_style()
+      if (nzchar(file_id)) {
+        meta <- get_file(sid, file_id)
+        .xlsform_editor_validate_meta(
+          meta, expected_kind = "sav",
+          code = "E_BAD_SURVEYMONKEY_SOURCE",
+          message = "Espera un archivo .sav."
+        )
+        sm <- tryCatch(
+          surveymonkey_leer(meta$path),
+          error = function(e) stop_api(400, "E_SAV_READ_FAILED",
+            sprintf("No pude leer el .sav: %s", conditionMessage(e)))
+        )
+        style <- .sm_detect_naming_style(sm$vars_tbl$name_raw)
+      }
+
+      details <- tryCatch(
+        sm_api_fetch_survey_details(survey_id, token),
+        error = function(e) stop_api(400, "E_SM_API_FAILED", conditionMessage(e))
+      )
+
+      paginas <- sm_api_extract_paginas(details, style = style)
+      pages <- sm_api_extract_pages(details, style = style)
+      summary <- sm_api_summary(details)
+
+      list(
+        ok = TRUE,
+        paginas = paginas,
+        pages = pages,
+        summary = summary,
+        style = list(prefix = style$prefix, pad = as.integer(style$pad))
+      )
+    })) |>
+    plumber::pr_get("/api/xlsform-editor/state", wrap_endpoint(function(req, res, ...) {
+      # Lee el state persistido del editor xlsform de la sesión activa.
+      # Si hay proyecto .pulso abierto y este state está guardado, viaja
+      # con el zip vía build_pulso → load_pulso.
+      sid <- session_header(req)
+      s <- session_get(sid, required = FALSE)
+      if (is.null(s)) return(list(ok = TRUE, has_state = FALSE))
+      st <- s$xlsform_state
+      if (is.null(st)) return(list(ok = TRUE, has_state = FALSE))
+      list(ok = TRUE, has_state = TRUE, state = st)
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/state", wrap_endpoint(function(req, res, ...) {
+      # Guarda/actualiza el state del editor xlsform en la sesión.
+      # Body: { workbook: {...}, source: {...}, hallazgos: [...], saved_at: <ts> }
+      # Marca el proyecto como dirty para que el autosave del .pulso lo recoja.
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        sid <- session_create()
+        res$setHeader("X-Pulso-Session", sid)
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      # Aceptamos arbitrary JSON en `state` — el frontend define su shape;
+      # el backend solo lo persiste opaco y lo devuelve igual al cargar.
+      s <- session_get(sid)
+      s$xlsform_state <- parsed
+      # Marcar dirty solo si hay proyecto activo.
+      if (!is.null(s$project_path) && nzchar(s$project_path)) {
+        s$project_dirty <- TRUE
+      }
+      .session_env[[sid]] <- s
+      list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+    })) |>
+    plumber::pr_delete("/api/xlsform-editor/state", wrap_endpoint(function(req, res, ...) {
+      # Limpia el state del editor xlsform (por ej. al "Cerrar formulario").
+      sid <- session_header(req)
+      if (is.null(sid)) return(list(ok = TRUE))
+      s <- session_get(sid, required = FALSE)
+      if (is.null(s)) return(list(ok = TRUE))
+      s$xlsform_state <- NULL
+      if (!is.null(s$project_path) && nzchar(s$project_path)) {
+        s$project_dirty <- TRUE
+      }
+      .session_env[[sid]] <- s
+      list(ok = TRUE)
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/sm-interpret-rule", wrap_endpoint(function(req, res, ...) {
+      # Wizard paso-a-paso: el usuario pega UNA regla, le devolvemos su
+      # interpretación humana + diagrama para que confirme antes de aplicarla.
+      # Reusa los details de la API si vinieron (resuelve labels reales);
+      # si no, devuelve interpretación literal.
+      parsed <- .xlsform_editor_parse_body(req)
+      regla <- as.character(parsed$regla %||% "")
+      survey_id <- as.character(parsed$survey_id %||% "")
+      token <- as.character(parsed$token %||% "")
+      paginas_in <- parsed$paginas
+      paginas_labels_in <- parsed$paginas_labels
+      overrides_in <- parsed$choice_order_overrides
+
+      paginas <- NULL
+      if (!is.null(paginas_in) && length(paginas_in)) {
+        paginas <- lapply(paginas_in, function(qs) as.character(unlist(qs)))
+        names(paginas) <- as.character(names(paginas_in))
+      }
+      paginas_labels <- NULL
+      if (!is.null(paginas_labels_in) && length(paginas_labels_in)) {
+        paginas_labels <- as.list(vapply(paginas_labels_in, as.character, character(1)))
+        names(paginas_labels) <- as.character(names(paginas_labels_in))
+      }
+      # `choice_order_overrides`: { "27": ["Emprendimiento", "Investigación", ...] }
+      # — keys son posición global de la pregunta (string), values son listas
+      # de labels en el orden que el usuario quiere asignar a C1, C2, ...
+      choice_order_overrides <- NULL
+      if (!is.null(overrides_in) && length(overrides_in)) {
+        choice_order_overrides <- lapply(overrides_in, function(lbls) as.character(unlist(lbls)))
+        names(choice_order_overrides) <- as.character(names(overrides_in))
+      }
+
+      details <- NULL
+      if (nzchar(survey_id) && nzchar(token)) {
+        details <- tryCatch(
+          sm_api_fetch_survey_details(survey_id, token),
+          error = function(e) NULL
+        )
+      }
+
+      tryCatch(
+        surveymonkey_interpretar_regla(regla, details = details,
+          paginas = paginas, paginas_labels = paginas_labels,
+          choice_order_overrides = choice_order_overrides),
+        error = function(e) list(ok = FALSE, error = conditionMessage(e))
+      )
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/import-surveymonkey-with-logic", wrap_endpoint(function(req, res, ...) {
+      # Versión extendida del import: acepta reglas textuales y mapeo de
+      # páginas, aplica la lógica al XLSForm y devuelve hallazgos del
+      # validador empírico junto con el workbook.
+      sid <- session_header(req)
+      parsed <- .xlsform_editor_parse_body(req)
+      file_id <- as.character(parsed$file_id %||% "")
+      lang <- as.character(parsed$lang %||% "es")
+      reglas_text <- as.character(parsed$reglas %||% "")
+      paginas_in <- parsed$paginas
+      paginas_labels_in <- parsed$paginas_labels
+      overrides_in <- parsed$choice_order_overrides
+      survey_id <- as.character(parsed$survey_id %||% "")
+      token <- as.character(parsed$token %||% "")
+
+      if (!nzchar(file_id) && (!nzchar(survey_id) || !nzchar(token))) {
+        stop_api(400, "E_MISSING_SURVEYMONKEY_API", "Falta conectar SurveyMonkey con survey_id y token.")
+      }
+
+      # paginas_in viene como JSON: { "16": ["Q24"], "17": ["Q25", ...] }
+      paginas <- NULL
+      if (!is.null(paginas_in) && length(paginas_in)) {
+        paginas <- lapply(paginas_in, function(qs) as.character(unlist(qs)))
+        names(paginas) <- as.character(names(paginas_in))
+      }
+      paginas_labels <- NULL
+      if (!is.null(paginas_labels_in) && length(paginas_labels_in)) {
+        paginas_labels <- vapply(paginas_labels_in, as.character, character(1))
+      }
+      # Mapeo opcional `{ "27": ["LabelA", "LabelB", ...] }` para reordenar
+      # las choices de una pregunta cuando el usuario detectó que la API
+      # no las trajo en el orden visual del constructor.
+      choice_order_overrides <- NULL
+      if (!is.null(overrides_in) && length(overrides_in)) {
+        choice_order_overrides <- lapply(overrides_in, function(lbls) as.character(unlist(lbls)))
+        names(choice_order_overrides) <- as.character(names(overrides_in))
+      }
+
+      meta <- NULL
+      sm <- NULL
+      source_name <- "SurveyMonkey API"
+
+      if (nzchar(file_id)) {
+        meta <- get_file(sid, file_id)
+        source_name <- meta$original_name
+        .xlsform_editor_validate_meta(
+          meta, expected_kind = "sav",
+          code = "E_BAD_SURVEYMONKEY_SOURCE",
+          message = "Espera un archivo .sav."
+        )
+
+        sm <- tryCatch(
+          surveymonkey_leer(meta$path),
+          error = function(e) stop_api(400, "E_SAV_READ_FAILED",
+            sprintf("No pude leer el .sav: %s", conditionMessage(e)))
+        )
+        out <- tryCatch(
+          surveymonkey_xlsform(sm, lang = lang, paginas = paginas, paginas_labels = paginas_labels),
+          error = function(e) stop_api(500, "E_SM_TRANSLATE_FAILED",
+            sprintf("Traducción falló: %s", conditionMessage(e)))
+        )
+      } else {
+        details <- tryCatch(
+          sm_api_fetch_survey_details(survey_id, token),
+          error = function(e) stop_api(400, "E_SM_API_FAILED", conditionMessage(e))
+        )
+        out <- tryCatch(
+          sm_api_xlsform(details, style = .sm_api_default_style(), lang = lang),
+          error = function(e) stop_api(500, "E_SM_API_TRANSLATE_FAILED",
+            sprintf("Traducción desde API SurveyMonkey falló: %s", conditionMessage(e)))
+        )
+        source_name <- .sm_first_nonempty(.sm_or(details$title, NA_character_), fallback = "SurveyMonkey API")
+        sm <- out$sm_logic
+      }
+
+      # En el flujo legacy con .sav, la API enriquece catálogos/tipos encima
+      # del traductor histórico. En el flujo nuevo API-only esto ya ocurrió
+      # dentro de sm_api_xlsform().
+      if (nzchar(file_id) && nzchar(survey_id) && nzchar(token)) {
+        details <- tryCatch(
+          sm_api_fetch_survey_details(survey_id, token),
+          error = function(e) stop_api(400, "E_SM_API_FAILED", conditionMessage(e))
+        )
+        style <- .sm_detect_naming_style(sm$vars_tbl$name_raw)
+        out <- tryCatch(
+          sm_api_enrich_xlsform_structure(out, details, sm, style = style),
+          error = function(e) stop_api(500, "E_SM_API_ENRICH_FAILED",
+            sprintf("Enriquecimiento con API SurveyMonkey falló: %s", conditionMessage(e)))
+        )
+      }
+
+      # Aplicar reglas si vinieron
+      hallazgos <- list()
+      if (nzchar(trimws(reglas_text))) {
+        out <- tryCatch(
+          surveymonkey_aplicar_logica(out, reglas_text, sm, paginas = paginas,
+            choice_order_overrides = choice_order_overrides),
+          error = function(e) stop_api(400, "E_LOGIC_APPLY_FAILED",
+            sprintf("Aplicación de lógica falló: %s", conditionMessage(e)))
+        )
+        if (nzchar(file_id)) {
+          validacion <- tryCatch(
+            surveymonkey_validar_logica(out, sm, threshold = 0.95),
+            error = function(e) NULL
+          )
+          if (!is.null(validacion) && nrow(validacion)) {
+            hallazgos <- surveymonkey_hallazgos(validacion)
+          }
+        }
+      }
+
+      payload <- .xlsform_editor_workbook_payload(
+        sheets = list(
+          survey = out$survey,
+          choices = out$choices,
+          settings = out$settings,
+          diagnostico = out$diagnostico
+        ),
+        source_kind = "surveymonkey",
+        source_name = source_name
+      )
+      payload$hallazgos <- hallazgos
+      payload
     })) |>
     plumber::pr_post("/api/xlsform-editor/export", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

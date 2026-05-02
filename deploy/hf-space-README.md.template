@@ -1,0 +1,23 @@
+---
+title: {{TITLE}}
+emoji: 📊
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+short_description: Dashboard interactivo generado con Prosecnur
+---
+
+# {{TITLE}}
+
+Dashboard interactivo del proyecto **{{PROJECT_NAME}}**, generado con
+[Prosecnur](https://github.com/GonzaloAlmendariz/prosecnur-app).
+
+- **Fecha de publicación**: {{PUBLISHED_AT}}
+- **Versión del paquete**: prosecnurapp v{{APP_VERSION}}
+
+> Este Space corre la API REST en R (Plumber) detrás del frontend React.
+> Solo expone los endpoints read-only del dashboard — la edición se hace
+> desde la app local de Prosecnur, que vuelve a publicar acá vía API.

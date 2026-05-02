@@ -66,7 +66,11 @@ export function useProject(sessionId?: string) {
     void refresh();
     void refreshRecents();
     const id = setInterval(() => { void refresh(); }, POLL_INTERVAL_MS);
-    return () => clearInterval(id);
+    window.addEventListener("pulso:project-status-changed", refresh);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("pulso:project-status-changed", refresh);
+    };
   }, [refresh, refreshRecents]);
 
   // ----- Acciones --------------------------------------------------------
@@ -97,20 +101,26 @@ export function useProject(sessionId?: string) {
     }
   }, [refresh, refreshRecents]);
 
-  const newProject = useCallback(async (defaultName = "MiProyecto") => {
+  // En modo Electron usa el save dialog nativo. En modo navegador (sin
+  // Electron) acepta `pathOpt` con el path absoluto directamente — útil
+  // para entornos como Vite preview o herramientas externas (incluido
+  // Claude) que necesitan crear un proyecto sin file picker.
+  const newProject = useCallback(async (defaultName = "MiProyecto", pathOpt?: string) => {
     const electronApi = window.prosecnurApi;
     setError("");
     setBusy(true);
     try {
-      if (!electronApi) {
-        throw new Error("File picker no disponible (necesitas la app de escritorio).");
+      let path: string | null = pathOpt ?? null;
+      if (!path) {
+        if (!electronApi) {
+          throw new Error("Pasa un path al .pulso o usa la app de escritorio.");
+        }
+        path = await electronApi.saveProjectDialog(defaultName);
       }
-      const path = await electronApi.saveProjectDialog(defaultName);
       if (!path) return null;
-      // Si el navegador conserva un sid viejo tras reiniciar el backend,
-      // /api/session crea uno fresco antes de que /api/project/save valide
-      // X-Pulso-Session.
-      await apiCreateSession();
+      // Proyecto nuevo = sesión nueva. Sin `fresh`, /api/session reutiliza
+      // la sesión vigente y termina guardando el avance del proyecto anterior.
+      await apiCreateSession({ fresh: true });
       const r = await apiProjectSave(path);
       if (electronApi) await electronApi.pushRecentProject(r.path);
       await refresh();
@@ -167,6 +177,20 @@ export function useProject(sessionId?: string) {
     }
   }, [status.name, refresh, refreshRecents]);
 
+  const removeRecent = useCallback(async (path: string) => {
+    const electronApi = window.prosecnurApi;
+    if (!electronApi) {
+      // En modo navegador no hay persistencia de recientes — no-op.
+      return;
+    }
+    try {
+      const list = await electronApi.removeRecentProject(path);
+      setRecents(list ?? []);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
   const close = useCallback(async () => {
     setError("");
     setBusy(true);
@@ -191,10 +215,11 @@ export function useProject(sessionId?: string) {
       save,
       saveAs,
       close,
+      removeRecent,
       refresh,
       refreshRecents,
     }),
-    [status, recents, busy, error, open, newProject, save, saveAs, close, refresh, refreshRecents],
+    [status, recents, busy, error, open, newProject, save, saveAs, close, removeRecent, refresh, refreshRecents],
   );
 }
 

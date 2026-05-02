@@ -58,7 +58,7 @@
   if (is.null(s$rp_inst) || is.null(s$rp_data)) {
     return(list(secciones = list()))
   }
-  secciones <- .dashboard_curated_secciones(s)
+  secciones <- .dashboard_visible_secciones(s)
   sm_madres <- .dashboard_sm_madres(s$rp_inst)
 
   out <- lapply(names(secciones), function(sec_id) {
@@ -66,7 +66,7 @@
     label_sec <- .dashboard_label_seccion(sec_id, s$rp_inst) %||% sec_id
     variables <- lapply(vars, function(v) {
       tipo <- .dashboard_tipo_pregunta(v, s$rp_inst, s$rp_data)
-      label <- .obtener_label_var(v, s$rp_inst, s$rp_data)
+      label <- .dashboard_var_label_override(s, v) %||% .obtener_label_var(v, s$rp_inst, s$rp_data)
       base <- list(
         name = v,
         label = label,
@@ -168,6 +168,7 @@
     return(list(rows = list(), columnas = list(), total = 0L))
   }
   variables <- as.character(unlist(variables))
+  variables <- variables[vapply(variables, function(v) .dashboard_var_enabled(s, v), logical(1))]
   if (!length(variables)) {
     return(list(rows = list(), columnas = list(), total = 0L))
   }

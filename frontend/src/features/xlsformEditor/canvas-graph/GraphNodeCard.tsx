@@ -52,7 +52,7 @@ export type GraphNodeCardProps = {
   beingDragged?: boolean;
 };
 
-const COLLAPSED_HEIGHT = 56;
+const COLLAPSED_HEIGHT = 88;
 
 export function GraphNodeCard({
   laid,
@@ -204,8 +204,8 @@ export function GraphNodeCard({
             height: "100%",
             display: "flex",
             alignItems: "center",
-            gap: 6,
-            padding: "6px 10px",
+            gap: 10,
+            padding: "10px 14px",
             boxSizing: "border-box",
           }}
         >
@@ -222,9 +222,9 @@ export function GraphNodeCard({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 24,
-                height: 24,
-                borderRadius: 6,
+                width: 32,
+                height: 32,
+                borderRadius: 8,
                 // Background tinted con el accent color para hacer
                 // el botón visible sobre el fondo de la sección.
                 // Antes era transparent → el chevron se perdía.
@@ -237,17 +237,17 @@ export function GraphNodeCard({
               }}
             >
               {expanded ? (
-                <ChevronDown size={16} strokeWidth={2.4} />
+                <ChevronDown size={18} strokeWidth={2.4} />
               ) : (
-                <ChevronRight size={16} strokeWidth={2.4} />
+                <ChevronRight size={18} strokeWidth={2.4} />
               )}
             </button>
           )}
           <span
             style={{
-              width: 26,
-              height: 26,
-              borderRadius: 7,
+              width: 36,
+              height: 36,
+              borderRadius: 9,
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
@@ -256,25 +256,27 @@ export function GraphNodeCard({
               flexShrink: 0,
             }}
           >
-            <Icon size={14} />
+            <Icon size={18} />
           </span>
           <span
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 1,
+              gap: 3,
               flex: 1,
               minWidth: 0,
             }}
           >
             <strong
+              title={node.title || node.subtitle}
               style={{
-                fontSize: 12.5,
+                fontSize: isSection ? 13 : 12.3,
                 color: "var(--pulso-text)",
-                whiteSpace: "nowrap",
                 overflow: "hidden",
-                textOverflow: "ellipsis",
-                lineHeight: 1.2,
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: isSection ? 2 : 3,
+                lineHeight: 1.18,
                 fontWeight: 700,
               }}
             >
@@ -293,6 +295,35 @@ export function GraphNodeCard({
             >
               {node.subtitle}
             </span>
+            {!isSection && isSelect && node.catalogContext && (
+              <span
+                title={`${node.catalogContext.listName} · ${node.catalogContext.itemCount} ${
+                  node.catalogContext.itemCount === 1 ? "opción" : "opciones"
+                }`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  minWidth: 0,
+                  fontSize: 10.5,
+                  color: "var(--pulso-text-soft)",
+                  lineHeight: 1.15,
+                }}
+              >
+                <ListChecks size={11} style={{ color: "#0f766e", flexShrink: 0 }} />
+                <span
+                  style={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    minWidth: 0,
+                  }}
+                >
+                  {node.catalogContext.listName} · {node.catalogContext.itemCount}{" "}
+                  {node.catalogContext.itemCount === 1 ? "opción" : "opciones"}
+                </span>
+              </span>
+            )}
           </span>
           {isConditional && (
             <span
@@ -355,41 +386,6 @@ export function GraphNodeCard({
           )}
         </div>
       </foreignObject>
-
-      {/* Catálogo inline para preguntas select (solo cuando NO es sección).
-          Chip pequeño debajo del header con nombre del catálogo y conteo. */}
-      {!isSection && isSelect && node.catalogContext && (
-        <foreignObject
-          x={0}
-          y={headerHeight - 14}
-          width={width}
-          height={20}
-          style={{ pointerEvents: "none" }}
-        >
-          <div
-            style={{
-              padding: "0 10px",
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 9.5,
-              color: "var(--pulso-text-soft)",
-            }}
-          >
-            <ListChecks size={10} style={{ color: "#0f766e" }} />
-            <span
-              style={{
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {node.catalogContext.listName} · {node.catalogContext.itemCount}{" "}
-              {node.catalogContext.itemCount === 1 ? "opción" : "opciones"}
-            </span>
-          </div>
-        </foreignObject>
-      )}
 
       {/* Anchor de "salida" — círculo a la derecha que el usuario arrastra
           para crear una conexión nueva. Solo visible si onAnchorMouseDown

@@ -1,5 +1,3 @@
-import { callR, isStandaloneMode, lookupOfflineRoute } from "../lib/webrBridge";
-
 const SESSION_KEY = "pulso.sessionId";
 const APP_BASE = import.meta.env.BASE_URL || "/";
 
@@ -22,71 +20,7 @@ export function apiPath(path: string): string {
   return path;
 }
 
-// Construye un Response sintético desde un payload JS, para que las
-// funciones `handle<T>(res)` aguas abajo funcionen igual que con fetch
-// real. Usado por el bridge offline (WebR) y por los mocks de
-// health/bootstrap/session.
-function syntheticResponse(payload: unknown, status = 200): Response {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-// Mocks mínimos para endpoints de infraestructura (health, bootstrap,
-// session) en modo standalone. La sesión es siempre la misma y no hace
-// nada — todo el cómputo vive client-side via WebR.
-const STANDALONE_SID = "standalone";
-function mockOfflineInfra(method: string, path: string): Response | null {
-  if (path === "/api/system/health" && method === "GET") {
-    return syntheticResponse({
-      ok: true,
-      version: "standalone",
-      prosecnur_version: "standalone",
-      time: new Date().toISOString(),
-    });
-  }
-  if (path === "/api/system/bootstrap" && method === "GET") {
-    return syntheticResponse({ sid: STANDALONE_SID });
-  }
-  if (path === "/api/session" && method === "POST") {
-    return syntheticResponse({ session_id: STANDALONE_SID, reused: true });
-  }
-  if (path === "/api/session/state" && method === "GET") {
-    return syntheticResponse({
-      session_id: STANDALONE_SID,
-      created_at: new Date().toISOString(),
-      xlsform: true,
-      data: true,
-    });
-  }
-  return null;
-}
-
 async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  // Modo standalone: interceptar y rutear al bridge WebR (cómputo R local)
-  // o devolver mocks de infraestructura. Si la ruta no está cubierta, se
-  // devuelve un error 503 claro en vez de hacer fetch a un servidor que
-  // no existe.
-  if (typeof input === "string" && isStandaloneMode()) {
-    const path = input.replace(/^(?:https?:\/\/[^/]+)?/, "").split("?")[0];
-    const method = (init?.method ?? "GET").toUpperCase();
-    const mock = mockOfflineInfra(method, path);
-    if (mock) return mock;
-    const slug = lookupOfflineRoute(method, input);
-    if (slug) {
-      let body: unknown = {};
-      if (init?.body && typeof init.body === "string") {
-        try { body = JSON.parse(init.body); } catch { /* deja {} */ }
-      }
-      const payload = await callR(slug, body);
-      return syntheticResponse(payload);
-    }
-    return syntheticResponse(
-      { error: { code: "E_OFFLINE_UNSUPPORTED", message: `Sin soporte offline: ${method} ${path}` } },
-      503,
-    );
-  }
   if (typeof input === "string") {
     return globalThis.fetch(apiPath(input), init);
   }
@@ -178,8 +112,9 @@ export async function apiSystemDiagnostic() {
   );
 }
 
-export async function apiCreateSession() {
-  const res = await apiFetch("/api/session", { method: "POST", headers: headers() });
+export async function apiCreateSession(options: { fresh?: boolean } = {}) {
+  const path = options.fresh ? "/api/session?fresh=1" : "/api/session";
+  const res = await apiFetch(path, { method: "POST", headers: headers() });
   const body = await handle<{ session_id: string; reused: boolean }>(res);
   setSession(body.session_id);
   return body;
@@ -394,6 +329,14 @@ export async function apiCodifSourceSet(source: string) {
 
 export type UploadKind = "xlsform" | "data" | "sav" | "plan_limpieza" | "plantilla_codif";
 
+export function isSavLikeFileName(name: string) {
+  return /\.sav(?:\s+\d+)?$/i.test(name.trim());
+}
+
+export function uploadKindForDataFile(file: File): UploadKind {
+  return isSavLikeFileName(file.name) ? "sav" : "data";
+}
+
 export async function apiUpload(file: File, kind: UploadKind) {
   const fd = new FormData();
   fd.append("file", file);
@@ -450,11 +393,62 @@ function asStringArray(value: unknown): string[] {
 function normalizeSheet(value: unknown, fallbackName?: string): XlsformEditorSheet {
   const raw = (value ?? {}) as Record<string, unknown>;
   const rowsRaw = Array.isArray(raw.rows) ? raw.rows : [];
-  return {
+  return collapseMultilingualColumns({
     name: typeof raw.name === "string" ? raw.name : (fallbackName ?? null),
     columns: asStringArray(raw.columns),
     rows: rowsRaw.map((row) => asStringArray(row)),
-  };
+  });
+}
+
+function collapseMultilingualColumns(sheet: XlsformEditorSheet): XlsformEditorSheet {
+  const multilingualBases = new Set(["label", "hint", "constraint_message", "required_message"]);
+  const aliasEntries = sheet.columns
+    .map((column) => {
+      const match = /^(label|hint|constraint_message|required_message)::(.+)$/i.exec(column);
+      if (!match) return null;
+      const base = match[1].toLowerCase();
+      if (!multilingualBases.has(base)) return null;
+      return { from: column, to: base, lang: match[2].toLowerCase() };
+    })
+    .filter((entry): entry is { from: string; to: string; lang: string } => Boolean(entry));
+  if (!aliasEntries.length) return sheet;
+
+  const columns = [...sheet.columns];
+  for (const { to } of aliasEntries) {
+    if (!columns.includes(to)) columns.push(to);
+  }
+  const drop = new Set(aliasEntries.map(({ from }) => from));
+  const keptColumns = columns.filter((column) => !drop.has(column));
+
+  const originalIndex = new Map(sheet.columns.map((column, index) => [column, index]));
+  const rows = sheet.rows.map((row) => {
+    const values = new Map<string, string>();
+    sheet.columns.forEach((column, index) => {
+      values.set(column, row[index] ?? "");
+    });
+    const grouped = new Map<string, Array<{ from: string; lang: string }>>();
+    for (const entry of aliasEntries) {
+      grouped.set(entry.to, [...(grouped.get(entry.to) ?? []), { from: entry.from, lang: entry.lang }]);
+    }
+    for (const [to, candidatesRaw] of grouped) {
+      const candidates = [...candidatesRaw].sort((a, b) => {
+        if (a.lang === "es") return -1;
+        if (b.lang === "es") return 1;
+        return a.from.localeCompare(b.from);
+      });
+      const firstValue = candidates
+        .map(({ from }) => row[originalIndex.get(from) ?? -1] ?? "")
+        .find((cell) => Boolean(cell));
+      if (firstValue) {
+        values.set(to, firstValue);
+      } else if (!values.get(to)) {
+        values.set(to, "");
+      }
+    }
+    return keptColumns.map((column) => values.get(column) ?? "");
+  });
+
+  return { ...sheet, columns: keptColumns, rows };
 }
 
 function normalizeEditorPayload(value: unknown): XlsformEditorPayload {
@@ -506,6 +500,499 @@ export async function apiXlsformEditorImportSurveyMonkey(file_id: string, lang =
     })
   );
   return normalizeEditorPayload(raw);
+}
+
+export type SurveyMonkeyChoice = { code: string; label: string };
+export type SurveyMonkeyQuestion = {
+  name: string;
+  name_raw: string;
+  group: string;
+  label: string | null;
+  kind: string;
+  choices: SurveyMonkeyChoice[];
+};
+
+export type SurveyMonkeyMeta = {
+  ok: true;
+  n_filas: number;
+  preguntas: SurveyMonkeyQuestion[];
+};
+
+export async function apiXlsformEditorSavMeta(file_id: string): Promise<SurveyMonkeyMeta> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/sav-meta", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id }),
+    })
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    n_filas: Number(r.n_filas ?? 0),
+    preguntas: Array.isArray(r.preguntas)
+      ? (r.preguntas as Record<string, unknown>[]).map((p) => ({
+          name: String(p.name ?? ""),
+          name_raw: String(p.name_raw ?? ""),
+          group: String(p.group ?? ""),
+          label: p.label == null ? null : String(p.label),
+          kind: String(p.kind ?? ""),
+          choices: Array.isArray(p.choices)
+            ? (p.choices as Record<string, unknown>[]).map((c) => ({
+                code: String(c.code ?? ""),
+                label: String(c.label ?? ""),
+              }))
+            : [],
+        }))
+      : [],
+  };
+}
+
+export type Hallazgo = {
+  target: string;
+  severity: "warn" | "info";
+  kind: "regla_violada" | "baja_completitud";
+  mensaje: string;
+  coverage_oculta: number | null;
+  tasa_respuesta: number | null;
+  inconsistencias: number[];
+};
+
+export type EditorPayloadWithHallazgos = XlsformEditorPayload & {
+  hallazgos: Hallazgo[];
+};
+
+// El token se persiste en disco en el backend, cifrado con AES-256-CBC,
+// bajo ~/.prosecnurapp/secrets/sm_token.dat. Frontend solo dispara las
+// operaciones — nunca toca el archivo ni guarda token en localStorage
+// (esto es app desktop, no web).
+export async function apiXlsformEditorSmTokenLoad(): Promise<{ ok: true; has_token: boolean; token: string }> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/sm-token", {
+      method: "GET",
+      headers: headers(),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    has_token: r.has_token === true,
+    token: String(r.token ?? ""),
+  };
+}
+
+export async function apiXlsformEditorSmTokenSave(token: string): Promise<{ ok: true; has_token: boolean }> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/sm-token", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ token }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return { ok: true, has_token: r.has_token === true };
+}
+
+export async function apiXlsformEditorSmTokenClear(): Promise<{ ok: true }> {
+  await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/sm-token", {
+      method: "DELETE",
+      headers: headers(),
+    }),
+  );
+  return { ok: true };
+}
+
+export type SurveyMonkeyTokenInfo =
+  | { ok: true; status_code: number; n_surveys_visible: number | null }
+  | { ok: false; status_code?: number; error: string };
+
+export async function apiXlsformEditorSmCheckToken(token: string): Promise<SurveyMonkeyTokenInfo> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/sm-check-token", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ token }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  if (r.ok === true) {
+    return {
+      ok: true,
+      status_code: Number(r.status_code ?? 200),
+      n_surveys_visible: r.n_surveys_visible == null || r.n_surveys_visible === "NA"
+        ? null
+        : Number(r.n_surveys_visible),
+    };
+  }
+  return {
+    ok: false,
+    status_code: r.status_code == null ? undefined : Number(r.status_code),
+    error: String(r.error ?? "Token inválido"),
+  };
+}
+
+export type SurveyMonkeyListItem = {
+  id: string;
+  title: string;
+  nickname: string | null;
+  date_modified: string | null;
+};
+
+export async function apiXlsformEditorSmListSurveys(token: string): Promise<{
+  ok: true;
+  count: number;
+  surveys: SurveyMonkeyListItem[];
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/sm-list-surveys", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ token }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const arr = Array.isArray(r.surveys) ? (r.surveys as Record<string, unknown>[]) : [];
+  return {
+    ok: true,
+    count: Number(r.count ?? arr.length),
+    surveys: arr.map((s) => ({
+      id: String(s.id ?? ""),
+      title: String(s.title ?? "(sin título)"),
+      nickname: s.nickname == null || s.nickname === "NA" ? null : String(s.nickname),
+      date_modified: s.date_modified == null || s.date_modified === "NA" ? null : String(s.date_modified),
+    })),
+  };
+}
+
+export type SurveyMonkeyApiInfo = {
+  ok: true;
+  paginas: Record<string, string[]>;
+  pages: Array<{
+    page_id: string;
+    title: string | null;
+    label: string;
+    range_label: string;
+    question_count: number;
+    notes: string[];
+    questions: string[];
+    question_details: Array<{
+      name: string;
+      heading: string | null;
+      family: string | null;
+      subtype: string | null;
+      choices: SurveyMonkeyChoice[];
+    }>;
+  }>;
+  summary: {
+    title: string | null;
+    language: string | null;
+    n_paginas: number;
+    n_preguntas: number;
+    n_required: number;
+    n_validation: number;
+  };
+  style: { prefix: string; pad: number };
+};
+
+export async function apiXlsformEditorSmFetchSurveyInfo(
+  file_id: string | null,
+  survey_id: string,
+  token: string,
+): Promise<SurveyMonkeyApiInfo> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/sm-fetch-survey-info", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id: file_id ?? "", survey_id, token }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const paginasRaw = (r.paginas ?? {}) as Record<string, unknown>;
+  const pagesRaw = Array.isArray(r.pages) ? (r.pages as Record<string, unknown>[]) : [];
+  const summaryRaw = (r.summary ?? {}) as Record<string, unknown>;
+  const styleRaw = (r.style ?? {}) as Record<string, unknown>;
+  const paginas: Record<string, string[]> = {};
+  for (const [k, v] of Object.entries(paginasRaw)) {
+    paginas[k] = normalizeStringArray(v);
+  }
+  return {
+    ok: true,
+    paginas,
+    pages: pagesRaw.map((p) => {
+      const details = normalizeRecordArray(p.question_details).map((q) => ({
+        name: String(q.name ?? ""),
+        heading: q.heading == null || q.heading === "NA" ? null : String(q.heading),
+        family: q.family == null || q.family === "NA" ? null : String(q.family),
+        subtype: q.subtype == null || q.subtype === "NA" ? null : String(q.subtype),
+        choices: normalizeRecordArray(q.choices).map((c) => ({
+          code: String(c.code ?? ""),
+          label: String(c.label ?? ""),
+        })),
+      }));
+      const questions = normalizeStringArray(p.questions);
+      const normalizedQuestions = questions.length > 0
+        ? questions
+        : details.map((q) => q.name).filter(Boolean);
+      return {
+        page_id: String(p.page_id ?? ""),
+        title: p.title == null || p.title === "NA" ? null : String(p.title),
+        label: String(p.label ?? ""),
+        range_label: String(p.range_label ?? ""),
+        question_count: Number(p.question_count ?? normalizedQuestions.length),
+        notes: normalizeStringArray(p.notes),
+        questions: normalizedQuestions,
+        question_details: details,
+      };
+    }),
+    summary: {
+      title: summaryRaw.title == null ? null : String(summaryRaw.title),
+      language: summaryRaw.language == null ? null : String(summaryRaw.language),
+      n_paginas: Number(summaryRaw.n_paginas ?? 0),
+      n_preguntas: Number(summaryRaw.n_preguntas ?? 0),
+      n_required: Number(summaryRaw.n_required ?? 0),
+      n_validation: Number(summaryRaw.n_validation ?? 0),
+    },
+    style: {
+      prefix: String(styleRaw.prefix ?? "p"),
+      pad: Number(styleRaw.pad ?? 0),
+    },
+  };
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((x) => String(x)).filter(Boolean);
+  if (value == null || value === "NA") return [];
+  const str = String(value);
+  return str ? [str] : [];
+}
+
+function normalizeRecordArray(value: unknown): Record<string, unknown>[] {
+  if (Array.isArray(value)) return value as Record<string, unknown>[];
+  if (value && typeof value === "object") return [value as Record<string, unknown>];
+  return [];
+}
+
+// Estado persistido del editor xlsform en el backend (viaja con el .pulso
+// cuando el usuario lo guarda). Es la fuente de verdad cuando hay proyecto
+// abierto; sessionStorage queda como cache local del lado del navegador.
+export type PersistedXlsformState = {
+  workbook: XlsformEditorWorkbook;
+  source: { kind: string | null; original_name: string | null } | null;
+  hallazgos: Hallazgo[];
+  saved_at: number;
+};
+
+export async function apiXlsformEditorStateLoad(): Promise<{
+  ok: true;
+  has_state: boolean;
+  state: PersistedXlsformState | null;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/state", { method: "GET", headers: headers() }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    has_state: r.has_state === true,
+    state: r.has_state === true ? (r.state as PersistedXlsformState) : null,
+  };
+}
+
+export async function apiXlsformEditorStateSave(state: PersistedXlsformState): Promise<{
+  ok: true;
+  saved_at: string;
+}> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/state", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(state),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return { ok: true, saved_at: String(r.saved_at ?? "") };
+}
+
+export async function apiXlsformEditorStateClear(): Promise<{ ok: true }> {
+  await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/state", { method: "DELETE", headers: headers() }),
+  );
+  return { ok: true };
+}
+
+export type RuleInterpretation =
+  | {
+      ok: true;
+      regla_parseada: {
+        when_var: string;
+        when_op: "eq" | "ne" | "in" | "not_in";
+        when_codes: string[];
+        n_actions: number;
+      };
+      resolucion: {
+        when_var_label: string;
+        when_var_xlsform: string;
+        when_codes_resueltos: { code: string; label: string }[];
+        targets_resueltos: Array<
+          | { kind: "hide_question"; target: string; label: string }
+          | { kind: "hide_page"; page_id: string; page_label: string; preguntas: string[] }
+          | { kind: "end_survey" }
+        >;
+        choices_disponibles: Array<{
+          code: string;
+          position: number;
+          label: string;
+          is_other: boolean;
+          is_none: boolean;
+        }>;
+      };
+      texto_humano: string;
+      diagrama: {
+        origen: { id: string; label: string; condicion: string };
+        edges: Array<{ target_id: string; target_label: string; action: string }>;
+      };
+      warnings: string[];
+    }
+  | { ok: false; error: string };
+
+// jsonlite (R) serializa vectores de 1 elemento como string suelto en lugar
+// de array. Esto rompe cualquier `.map()` en el frontend. El helper coerce
+// a array siempre.
+function ensureArray<T = unknown>(v: unknown): T[] {
+  if (Array.isArray(v)) return v as T[];
+  if (v == null) return [];
+  return [v as T];
+}
+
+export async function apiXlsformEditorSmInterpretRule(
+  regla: string,
+  opts: {
+    survey_id?: string;
+    token?: string;
+    paginas?: Record<string, string[]>;
+    paginas_labels?: Record<string, string>;
+    choice_order_overrides?: Record<string, string[]>;
+  } = {},
+): Promise<RuleInterpretation> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/sm-interpret-rule", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        regla,
+        survey_id: opts.survey_id ?? "",
+        token: opts.token ?? "",
+        paginas: opts.paginas ?? {},
+        paginas_labels: opts.paginas_labels ?? {},
+        choice_order_overrides: opts.choice_order_overrides ?? {},
+      }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  if (r.ok !== true) {
+    return { ok: false, error: String(r.error ?? "No pude interpretar la regla.") };
+  }
+  // Normalizar arrays que jsonlite puede haber colapsado a scalar (1 item).
+  const reglaP = (r.regla_parseada ?? {}) as Record<string, unknown>;
+  const reso = (r.resolucion ?? {}) as Record<string, unknown>;
+  const diag = (r.diagrama ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    regla_parseada: {
+      when_var: String(reglaP.when_var ?? ""),
+      when_op: (reglaP.when_op ?? "eq") as "eq" | "ne" | "in" | "not_in",
+      when_codes: ensureArray<string>(reglaP.when_codes).map((x) => String(x)),
+      n_actions: Number(reglaP.n_actions ?? 0),
+    },
+    resolucion: {
+      when_var_label: String(reso.when_var_label ?? ""),
+      when_var_xlsform: String(reso.when_var_xlsform ?? ""),
+      when_codes_resueltos: ensureArray<Record<string, unknown>>(reso.when_codes_resueltos).map((c) => ({
+        code: String(c.code ?? ""),
+        label: String(c.label ?? ""),
+      })),
+      targets_resueltos: ensureArray<Record<string, unknown>>(reso.targets_resueltos).map((t) => {
+        const kind = String(t.kind ?? "");
+        if (kind === "hide_question") {
+          return { kind: "hide_question" as const, target: String(t.target ?? ""), label: String(t.label ?? "") };
+        }
+        if (kind === "hide_page") {
+          return {
+            kind: "hide_page" as const,
+            page_id: String(t.page_id ?? ""),
+            page_label: String(t.page_label ?? ""),
+            preguntas: ensureArray<string>(t.preguntas).map((x) => String(x)),
+          };
+        }
+        return { kind: "end_survey" as const };
+      }),
+      choices_disponibles: ensureArray<Record<string, unknown>>(reso.choices_disponibles).map((c) => ({
+        code: String(c.code ?? ""),
+        position: Number(c.position ?? 0),
+        label: String(c.label ?? ""),
+        is_other: c.is_other === true || c.is_other === "TRUE",
+        is_none: c.is_none === true || c.is_none === "TRUE",
+      })),
+    },
+    texto_humano: String(r.texto_humano ?? ""),
+    diagrama: {
+      origen: {
+        id: String((diag.origen as Record<string, unknown> | undefined)?.id ?? ""),
+        label: String((diag.origen as Record<string, unknown> | undefined)?.label ?? ""),
+        condicion: String((diag.origen as Record<string, unknown> | undefined)?.condicion ?? ""),
+      },
+      edges: ensureArray<Record<string, unknown>>(diag.edges).map((e) => ({
+        target_id: String(e.target_id ?? ""),
+        target_label: String(e.target_label ?? ""),
+        action: String(e.action ?? ""),
+      })),
+    },
+    warnings: ensureArray<string>(r.warnings).map((w) => String(w)),
+  };
+}
+
+export async function apiXlsformEditorImportSurveyMonkeyWithLogic(
+  file_id: string | null,
+  reglas: string,
+  paginas: Record<string, string[]>,
+  paginas_labels: Record<string, string>,
+  lang = "es",
+  smApi?: { survey_id: string; token: string },
+  choice_order_overrides?: Record<string, string[]>,
+): Promise<EditorPayloadWithHallazgos> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/import-surveymonkey-with-logic", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        file_id: file_id ?? "",
+        reglas,
+        paginas,
+        paginas_labels,
+        lang,
+        survey_id: smApi?.survey_id ?? "",
+        token: smApi?.token ?? "",
+        choice_order_overrides: choice_order_overrides ?? {},
+      }),
+    })
+  );
+  const base = normalizeEditorPayload(raw);
+  const r = (raw ?? {}) as Record<string, unknown>;
+  // ensureArray cubre el caso de jsonlite-collapsed-to-scalar (1 hallazgo).
+  const hallazgosRaw = ensureArray<Record<string, unknown>>(r.hallazgos);
+  return {
+    ...base,
+    hallazgos: hallazgosRaw.map((h) => ({
+      target: String(h.target ?? ""),
+      severity: (h.severity === "info" ? "info" : "warn") as "warn" | "info",
+      kind: (h.kind === "baja_completitud" ? "baja_completitud" : "regla_violada") as Hallazgo["kind"],
+      mensaje: String(h.mensaje ?? ""),
+      coverage_oculta: h.coverage_oculta == null ? null : Number(h.coverage_oculta),
+      tasa_respuesta: h.tasa_respuesta == null ? null : Number(h.tasa_respuesta),
+      inconsistencias: ensureArray<number>(h.inconsistencias).map((n) => Number(n)),
+    })),
+  };
 }
 
 export async function apiXlsformEditorExport(workbook: XlsformEditorWorkbook, filename?: string) {
@@ -2150,6 +2637,19 @@ export type DashboardConfig = {
   foda_views?: DashboardFodaViewConfig[];
   foda_aliases?: Record<string, Record<string, string>>;
   foda_service_icons?: Record<string, string>;
+  // Layout del desglose en la pestaña Dimensiones.
+  //   "paginado" — un nivel a la vez con stepper prev/next (default)
+  //   "apilado"  — todos los niveles uno debajo del otro
+  dim_desglose_layout?: "paginado" | "apilado";
+  // Matriz por unidad — variables que definen las filas. La de color
+  // determina el color de fondo + ícono de la 1ª columna; la de nombre
+  // (opcional) concatena texto adicional ("Lima · ULE Lurigancho").
+  matriz_var_color?: string;
+  matriz_var_nombre?: string;
+  // Overrides de íconos por conductor (axis_label → data-uri base64).
+  // Persiste en .pulso. Si está vacío, el backend cae a los íconos del
+  // paquete prosecnur (defaults bonitos por dimensión).
+  dim_axis_icons?: Record<string, string>;
   // Logos del header — hasta 3 slots. Cada uno opcional (data URI base64).
   // Si está vacío, el header se hidrata desde el legacy `logo_data_uri`.
   logos?: DashboardLogoConfig[];
@@ -2172,6 +2672,10 @@ export type DashboardConfig = {
   //   "questionnaire" — orden original del XLSForm (default)
   //   "desc"          — de mayor a menor porcentaje
   sm_order?: "questionnaire" | "desc";
+  // Última publicación a HF Space (set por `dashboard_publish_space`).
+  // Permite mostrar "Última publicación: hace X" en el botón Deploy y
+  // pre-llenar el modal con el space_name actual al re-publicar.
+  last_deploy?: DashboardLastDeploy;
 };
 
 export type DashboardVarMode = {
@@ -2240,21 +2744,49 @@ export async function apiDashboardAllVars() {
   );
 }
 
-// Descarga el dashboard como un .html autosuficiente. Devuelve el blob
-// y el filename sugerido por el backend (Content-Disposition).
-export async function apiDashboardExport(): Promise<{ blob: Blob; filename: string }> {
-  const res = await apiFetch("/api/dashboard/export", { headers: headers() });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    const code = body?.error?.code ?? "E_UNKNOWN";
-    const msg = body?.error?.message ?? res.statusText;
-    throw new Error(`[${code}] ${msg}`);
-  }
-  const blob = await res.blob();
-  const cd = res.headers.get("Content-Disposition") ?? "";
-  const m = /filename="([^"]+)"/.exec(cd);
-  const filename = m?.[1] ?? `dashboard-${new Date().toISOString().slice(0, 10)}.html`;
-  return { blob, filename };
+export type DashboardPublishRequest = {
+  hf_username: string;
+  hf_token: string;
+  space_name: string;
+  private?: boolean;
+};
+
+export type DashboardPublishFile = {
+  path: string;
+  size: number;
+};
+
+export type DashboardLastDeploy = {
+  repo_id: string;
+  space_name: string;
+  hf_username?: string;
+  url: string;
+  app_url: string;
+  published_at: string;
+  private?: boolean;
+};
+
+export type DashboardPublishResponse = {
+  ok: true;
+  repo_id: string;
+  space_name: string;
+  url: string;
+  app_url: string;
+  published_at: string;
+  files_uploaded: number;
+  total_bytes: number;
+  project_size: number;
+  uploaded: DashboardPublishFile[];
+};
+
+export async function apiDashboardPublish(payload: DashboardPublishRequest) {
+  return handle<DashboardPublishResponse>(
+    await apiFetch("/api/dashboard/publish", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
 }
 
 export async function apiDashboardConfigGet() {
@@ -2679,6 +3211,102 @@ export type DashboardDimFodaPayload = {
   icon_legend?: DashboardDimFodaIconLegendItem[];
   semaforo?: DashboardDimPayload["semaforo"];
 };
+
+export type DashboardDimMatrizFila = {
+  key: string;
+  color_key: string;
+  color_label: string;
+  // nombre_* solo se llenan cuando la 2da variable es DISTINTA de la 1ª
+  // (cruce real). Si las dos son iguales, vienen vacíos — la card no
+  // concatena texto duplicado.
+  nombre_key: string;
+  nombre_label: string;
+  // icono_key se usa para buscar en `icons`. Cuando la 2da var es igual
+  // a la 1ª, icono_key == color_key. Cuando son distintas, icono_key
+  // == nombre_key. Vacío si no se eligió 2da variable.
+  icono_key: string;
+  icono_label: string;
+  n: number;
+  indicador_general: number | null;
+  // Mapa axis_label → score promedio para esta fila. Algunas claves
+  // pueden faltar si la combinación no tuvo casos válidos para ese
+  // conductor.
+  scores: Record<string, number | null>;
+};
+
+export type DashboardDimMatrizIconLegendItem = {
+  key: string;
+  label: string;
+  icono_url: string;
+};
+
+export type DashboardDimMatrizPayload = {
+  ready: boolean;
+  error?: string;
+  objetivo?: string;
+  objetivo_id?: string;
+  modo?: "general" | "indicadores";
+  var_color?: string;
+  var_color_label?: string;
+  var_nombre?: string;
+  var_nombre_label?: string;
+  // var_icono = la variable usada para mapear íconos (puede coincidir con
+  // var_color cuando el usuario eligió la misma en ambos selects).
+  var_icono?: string;
+  var_icono_label?: string;
+  conductores?: Array<{ var: string; label: string }>;
+  filas?: DashboardDimMatrizFila[];
+  group_colors?: Record<string, string>;
+  // Mapa icono_key → data-uri.
+  icons?: Record<string, string>;
+  // Solo entradas con ícono real — listo para renderizar la leyenda.
+  icon_legend?: DashboardDimMatrizIconLegendItem[];
+  semaforo?: DashboardDimPayload["semaforo"];
+};
+
+export type DashboardDimIconosDefaultsConductor = {
+  var: string;
+  label: string;
+  // data-uri base64 vacío "" si el paquete no expone icono para esta dim.
+  icono_url: string;
+};
+
+export type DashboardDimIconosDefaultsPayload = {
+  ready: boolean;
+  error?: string;
+  objetivo?: string;
+  objetivo_id?: string;
+  modo?: "general" | "indicadores";
+  conductores?: DashboardDimIconosDefaultsConductor[];
+};
+
+export async function apiDashboardDimIconosDefaults(opts: {
+  modo: "general" | "indicadores";
+  objetivo: string;
+}) {
+  const params = new URLSearchParams({ modo: opts.modo, objetivo: opts.objetivo });
+  return handle<{ ok: true; payload: DashboardDimIconosDefaultsPayload }>(
+    await apiFetch(`/api/dashboard/dimensiones/iconos-defaults?${params.toString()}`, {
+      headers: headers(),
+    }),
+  );
+}
+
+export async function apiDashboardDimMatriz(opts: {
+  modo: "general" | "indicadores";
+  objetivo: string;
+  var_color: string;
+  var_nombre?: string;
+  filtros?: DashboardFiltro[];
+}) {
+  return handle<{ ok: true; payload: DashboardDimMatrizPayload }>(
+    await apiFetch("/api/dashboard/dimensiones/matriz_unidades", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(opts),
+    }),
+  );
+}
 
 export async function apiDashboardDimFoda(opts: {
   modo: "general" | "indicadores";

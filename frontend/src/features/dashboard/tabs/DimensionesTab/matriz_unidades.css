@@ -1,0 +1,338 @@
+/* =============================================================================
+ * Matriz por unidad — tabla con la 1ª columna como "card" estilo FODA
+ * (color por valor de la variable de color + ícono opcional + texto), la
+ * 2ª como indicador general (semáforo) y el resto, una columna por
+ * conductor (también semáforo). Animación de entrada con stagger.
+ * ============================================================================= */
+
+.dashboard-scope .dash-matriz {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  animation: dash-dim-fade-in 280ms var(--dash-ease-out);
+}
+
+.dashboard-scope .dash-matriz-toolbar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.dashboard-scope .dash-matriz-meta {
+  color: var(--dash-texto-suave);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.dashboard-scope .dash-matriz-orden {
+  align-items: center;
+  background: var(--dash-superficie);
+  border: 1px solid var(--dash-borde);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 0;
+  padding: 2px;
+}
+
+.dashboard-scope .dash-matriz-orden-btn {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 4px;
+  letter-spacing: 0.01em;
+  padding: 5px 10px;
+  transition:
+    background-color var(--dash-dur-hover) var(--dash-ease-out),
+    color var(--dash-dur-hover) var(--dash-ease-out);
+}
+
+.dashboard-scope .dash-matriz-orden-btn.is-active {
+  background: var(--dash-primario);
+  color: #fff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-matriz-orden-btn:not(.is-active):hover {
+    color: var(--dash-primario);
+  }
+}
+
+/* Scroll horizontal cuando hay muchos conductores. La 1ª columna usa
+ * position:sticky para que la identidad de la fila no se pierda al
+ * desplazarse a la derecha. */
+.dashboard-scope .dash-matriz-scroll {
+  border: 1px solid var(--dash-borde);
+  border-radius: var(--dash-radius-sm);
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--dash-superficie);
+}
+
+.dashboard-scope .dash-matriz-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  width: 100%;
+}
+
+/* Thead — sticky vertical para que persista al hacer scroll de filas.
+ * Background OPACO garantizado (sin var ambiguo, sin color-mix con
+ * transparencia) para que el header NO se vuelva translúcido durante
+ * la animación de fade-in del padre o el scroll. */
+.dashboard-scope .dash-matriz-table thead th {
+  background: var(--dash-superficie);
+  background-color: var(--dash-superficie);
+  border-bottom: 1px solid var(--dash-borde);
+  color: var(--dash-texto-suave);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 10px 12px;
+  position: sticky;
+  text-align: center;
+  text-transform: uppercase;
+  top: 0;
+  white-space: nowrap;
+  z-index: 3;
+}
+
+/* La esquina superior izquierda (Unidad) tiene que estar arriba de TODO
+ * — sticky horizontal + vertical. z-index 5 > 4 (cell-unit sticky) > 3
+ * (otros header sticky). Background MISMO que thead general; sin var
+ * fallback ambiguo. */
+.dashboard-scope .dash-matriz-table .dash-matriz-th-unit {
+  background: var(--dash-superficie);
+  background-color: var(--dash-superficie);
+  left: 0;
+  min-width: 220px;
+  padding-left: 16px;
+  text-align: left;
+  z-index: 5;
+}
+
+.dashboard-scope .dash-matriz-table .dash-matriz-th-score {
+  min-width: 72px;
+}
+
+.dashboard-scope .dash-matriz-table .dash-matriz-th-score.is-general {
+  border-right: 1px solid var(--dash-borde);
+  color: var(--dash-primario);
+}
+
+.dashboard-scope .dash-matriz-row {
+  animation: dash-matriz-row-in 360ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+  animation-delay: var(--dash-matriz-row-delay, 0ms);
+}
+
+/* Zebra: usamos un sólido derivado del primario muy diluido en lugar
+ * de color-mix con transparencia, para que el sticky no muestre el
+ * fondo del scroll-host por debajo. */
+.dashboard-scope .dash-matriz-row:nth-child(even) td {
+  background-color: #f5f7fa;
+}
+
+.dashboard-scope .dash-matriz-table tbody td {
+  border-bottom: 1px solid color-mix(in srgb, var(--dash-borde) 60%, transparent);
+  padding: 8px 8px;
+  vertical-align: middle;
+}
+
+.dashboard-scope .dash-matriz-cell-unit {
+  background: var(--dash-superficie);
+  background-color: var(--dash-superficie);
+  left: 0;
+  min-width: 220px;
+  padding: 8px 12px 8px 16px;
+  position: sticky;
+  z-index: 4;
+}
+
+.dashboard-scope .dash-matriz-row:nth-child(even) .dash-matriz-cell-unit {
+  background-color: #f5f7fa;
+}
+
+/* Card de identidad — mismo lenguaje visual que .dash-foda-legacy-card:
+ * borde blanco translúcido inset, sombra suave, transition al hover. */
+.dashboard-scope .dash-matriz-card {
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 6px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 7px 14px rgba(15, 23, 42, 0.12);
+  color: #fff;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto 1fr auto;
+  min-height: 36px;
+  padding: 6px 10px 6px 8px;
+  transition:
+    box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.dashboard-scope .dash-matriz-card:not(.has-icon) {
+  grid-template-columns: 1fr auto;
+}
+
+.dashboard-scope .dash-matriz-card-icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.dashboard-scope .dash-matriz-card-icon img {
+  display: block;
+  height: 22px;
+  object-fit: contain;
+  width: 22px;
+  /* Tinte: el FODA aplica el color desde el backend (PNG procesado);
+   * aquí solo usamos lo que llega — el ícono ya viene tintado del R. */
+}
+
+.dashboard-scope .dash-matriz-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.dashboard-scope .dash-matriz-card-color-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-scope .dash-matriz-card-nombre-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  opacity: 0.86;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-scope .dash-matriz-card-n {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-scope .dash-matriz-row:hover .dash-matriz-card {
+    box-shadow: 0 13px 26px rgba(15, 23, 42, 0.2);
+    transform: translateY(-1px);
+  }
+}
+
+/* Celda de score — chip semáforo cuadradito. La columna de "indicador
+ * general" lleva borde derecho para separarla visualmente de los
+ * conductores. */
+.dashboard-scope .dash-matriz-cell-score {
+  text-align: center;
+}
+
+.dashboard-scope .dash-matriz-cell-score.is-general {
+  border-right: 1px solid var(--dash-borde);
+}
+
+.dashboard-scope .dash-matriz-score {
+  align-items: center;
+  border-radius: 6px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  height: 32px;
+  justify-content: center;
+  letter-spacing: -0.005em;
+  min-width: 44px;
+  padding: 0 8px;
+}
+
+.dashboard-scope .dash-matriz-score.is-empty {
+  background: transparent;
+  color: var(--dash-texto-suave);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Leyenda de íconos al pie — solo aparece cuando la 2da variable tiene
+ * íconos resueltos. Mismo lenguaje visual que .dash-foda-icon-legend
+ * (chips claros con label + ícono pequeño). */
+.dashboard-scope .dash-matriz-legend {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: center;
+  padding: 8px 4px 2px;
+}
+
+.dashboard-scope .dash-matriz-legend-item {
+  align-items: center;
+  background: var(--dash-superficie);
+  border: 1px solid var(--dash-borde);
+  border-radius: 999px;
+  color: var(--dash-texto);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: 0.005em;
+  padding: 4px 12px 4px 6px;
+}
+
+.dashboard-scope .dash-matriz-legend-item img {
+  background: color-mix(in srgb, var(--dash-primario) 14%, transparent);
+  border-radius: 4px;
+  display: block;
+  height: 18px;
+  object-fit: contain;
+  padding: 2px;
+  width: 18px;
+}
+
+@keyframes dash-matriz-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-scope .dash-matriz-row {
+    animation: none;
+  }
+}

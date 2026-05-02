@@ -207,9 +207,16 @@
   padding-top: 12px;
 }
 
-.dashboard-scope .dash-customize-category-list {
+.dashboard-scope .dash-customize-category-list,
+.dashboard-scope .dash-customize-icon-list {
   display: grid;
   gap: 8px;
+}
+
+/* Filas del panel "Íconos → Conductores": 3 columnas (label + upload +
+ * reset) en vez de las 4 del editor de categorías FODA. */
+.dashboard-scope .dash-customize-icon-list .dash-customize-category-row {
+  grid-template-columns: minmax(140px, 0.9fr) minmax(220px, 1.4fr) 32px;
 }
 
 .dashboard-scope .dash-customize-category-row {
@@ -658,10 +665,27 @@
   padding: 4px;
 }
 .dashboard-scope .dash-admin-toolbar-wrap {
+  align-items: center;
   display: flex;
+  flex-direction: column;
+  gap: 4px;
   justify-content: center;
   margin-bottom: 14px;
   margin-top: 4px;
+}
+/* Línea bajo el toolbar con info del último deploy: "Última publicación
+ * <repo_id> — hace X". Aparece solo si existe `last_deploy` en config. */
+.dashboard-scope .dash-admin-toolbar-deploy-info {
+  color: var(--dash-texto-suave);
+  font-size: 11px;
+}
+.dashboard-scope .dash-admin-toolbar-deploy-info a {
+  color: var(--dash-primario);
+  text-decoration: none;
+}
+.dashboard-scope .dash-admin-toolbar-deploy-info a:hover,
+.dashboard-scope .dash-admin-toolbar-deploy-info a:focus-visible {
+  text-decoration: underline;
 }
 .dashboard-scope .dash-admin-toolbar button {
   align-items: center;
@@ -828,7 +852,7 @@
   border-radius: 4px;
 }
 
-/* Spinner del botón "Exportar HTML" mientras genera el blob. */
+/* Spinner usado por acciones largas del dashboard. */
 .dashboard-scope .dash-admin-spin {
   animation: dash-admin-spin 0.8s linear infinite;
 }
@@ -845,4 +869,145 @@
   max-width: 480px;
   padding: 6px 10px;
   text-align: center;
+}
+
+/* ======= Publicacion web (HF Spaces) ======= */
+.dashboard-scope .dash-publish-dialog {
+  width: min(620px, 100%);
+}
+.dashboard-scope .dash-publish-close {
+  align-items: center;
+  appearance: none;
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: 8px;
+  color: var(--dash-texto-suave);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+.dashboard-scope .dash-publish-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 18px;
+}
+.dashboard-scope .dash-publish-grid label {
+  color: var(--dash-texto);
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+  min-width: 0;
+}
+.dashboard-scope .dash-publish-grid input[type="text"],
+.dashboard-scope .dash-publish-grid input[type="password"],
+.dashboard-scope .dash-publish-grid input:not([type]),
+.dashboard-scope .dash-publish-grid select {
+  background: #fff;
+  border: 1px solid var(--dash-borde);
+  border-radius: 8px;
+  color: var(--dash-texto);
+  font: inherit;
+  font-weight: 600;
+  height: 36px;
+  min-width: 0;
+  padding: 0 10px;
+}
+.dashboard-scope .dash-publish-grid select {
+  appearance: none;
+}
+.dashboard-scope .dash-publish-grid input:focus,
+.dashboard-scope .dash-publish-grid select:focus {
+  border-color: color-mix(in srgb, var(--dash-borde) 45%, var(--dash-primario) 55%);
+  outline: 2px solid var(--dash-primario-soft);
+}
+.dashboard-scope .dash-publish-wide {
+  grid-column: 1 / -1;
+}
+.dashboard-scope .dash-publish-check {
+  align-items: center;
+  flex-direction: row !important;
+  gap: 8px !important;
+}
+.dashboard-scope .dash-publish-status,
+.dashboard-scope .dash-publish-result {
+  align-items: center;
+  background: var(--dash-superficie-2);
+  border: 1px solid var(--dash-borde);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  margin: 0 18px 14px;
+  padding: 10px 12px;
+}
+.dashboard-scope .dash-publish-status {
+  color: var(--dash-texto-suave);
+  font-size: 12px;
+}
+.dashboard-scope .dash-publish-result {
+  color: var(--dash-texto);
+}
+.dashboard-scope .dash-publish-result > svg {
+  color: #15803d;
+  flex-shrink: 0;
+}
+.dashboard-scope .dash-publish-result > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dashboard-scope .dash-publish-result strong,
+.dashboard-scope .dash-publish-result span {
+  overflow-wrap: anywhere;
+}
+.dashboard-scope .dash-publish-result span {
+  color: var(--dash-texto-suave);
+  font-size: 12px;
+}
+.dashboard-scope .dash-publish-result button,
+.dashboard-scope .dash-publish-actions button {
+  align-items: center;
+  appearance: none;
+  border: 1px solid var(--dash-borde);
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 14px;
+}
+.dashboard-scope .dash-publish-result button,
+.dashboard-scope .dash-publish-actions button {
+  background: var(--dash-superficie-2);
+  color: var(--dash-texto);
+}
+.dashboard-scope .dash-publish-actions {
+  border-top: 1px solid var(--dash-borde);
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 14px 18px;
+}
+.dashboard-scope .dash-publish-actions .dash-publish-primary {
+  background: var(--dash-primario);
+  border-color: var(--dash-primario);
+  color: #fff;
+}
+.dashboard-scope .dash-publish-actions button:disabled,
+.dashboard-scope .dash-publish-close:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+@media (max-width: 720px) {
+  .dashboard-scope .dash-publish-grid {
+    grid-template-columns: 1fr;
+  }
 }

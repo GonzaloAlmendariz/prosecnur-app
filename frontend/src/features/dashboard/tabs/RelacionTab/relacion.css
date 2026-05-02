@@ -29,10 +29,13 @@
 }
 
 .dashboard-scope .dash-cross-table th,
-.dashboard-scope .dash-cross-table td {
+.dashboard-scope .dash-cross-table td,
+.dashboard-scope .dash-cross-table-multi tbody td,
+.dashboard-scope .dash-cross-table-multi tbody td.dash-cross-pct {
   border-bottom: 1px solid var(--dash-divider);
-  padding: 8px 10px;
-  text-align: right;
+  padding: 9px 12px;
+  text-align: center;
+  vertical-align: middle;
   white-space: nowrap;
 }
 
@@ -40,17 +43,23 @@
   background: var(--dash-superficie-2);
   color: var(--dash-primario);
   font-weight: 600;
-  text-align: right;
+  text-align: center;
 }
 
 .dashboard-scope .dash-cross-table thead th:first-child {
   text-align: left;
 }
 
+/* Cabeceras de fila siempre a la izquierda — el resto centrado. */
 .dashboard-scope .dash-cross-table tbody th {
   color: var(--dash-texto);
   font-weight: 500;
   text-align: left;
+}
+
+/* Hover de fila para mejorar legibilidad. */
+.dashboard-scope .dash-cross-table tbody tr:hover {
+  background: color-mix(in srgb, var(--dash-primario) 4%, transparent);
 }
 
 .dashboard-scope .dash-cross-table-total {
@@ -104,6 +113,15 @@
 .dashboard-scope .dash-cross-table-multi td.dash-cross-pct {
   color: var(--dash-texto-suave);
   font-size: 11px;
+  text-align: center;
+}
+/* Borde sutil entre grupos de columnas (n y % de un mismo estrato).
+ * Mejora la legibilidad de la tabla multi-encabezado. */
+.dashboard-scope .dash-cross-table-multi td:nth-child(odd):not(:first-child) {
+  border-left: 1px solid var(--dash-divider);
+}
+.dashboard-scope .dash-cross-table-multi tbody th + td {
+  border-left: 1px solid var(--dash-divider);
 }
 
 /* ── Card Iterar directa. ── */

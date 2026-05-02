@@ -100,12 +100,12 @@ mount_estudio <- function(pr) {
       # Resolver los archivos del file store de la sesión.
       xls_meta <- get_file(sid, xlsform_file_id)
       dat_meta <- get_file(sid, data_file_id)
-      data_ext <- tolower(tools::file_ext(dat_meta$original_name))
+      data_ext <- tolower(dat_meta$ext %||% tools::file_ext(dat_meta$original_name))
       if (!nzchar(data_ext)) data_ext <- tolower(tools::file_ext(dat_meta$path))
 
       # Parsear instrumento + data igual que hace /api/system/demo.
       rp_inst <- reporte_instrumento(path = xls_meta$path)
-      data_df <- .read_data_from_path(dat_meta$path)
+      data_df <- .read_data_from_path(dat_meta$path, dat_meta$ext)
       rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
       base_meta <- estudio_add_base(
@@ -190,10 +190,10 @@ mount_estudio <- function(pr) {
       # legacy usaba `leer_instrumento_xlsform` que es más ligero y no
       # produce el objeto rp_inst que el estudio multi-base necesita).
       rp_inst <- reporte_instrumento(path = xls_meta$path)
-      data_df <- .read_data_from_path(dat_meta$path)
+      data_df <- .read_data_from_path(dat_meta$path, dat_meta$ext)
       rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
-      data_ext <- tolower(tools::file_ext(dat_meta$original_name %||% dat_meta$path))
+      data_ext <- tolower(dat_meta$ext %||% tools::file_ext(dat_meta$original_name %||% dat_meta$path))
 
       base_meta <- estudio_add_base(
         sid,
@@ -312,8 +312,8 @@ mount_estudio <- function(pr) {
       n_cols_new  <- NA_integer_
       if (nzchar(dat_fid)) {
         dat_meta <- get_file(sid, dat_fid)
-        new_data_ext <- tolower(tools::file_ext(dat_meta$original_name %||% dat_meta$path))
-        data_df <- .read_data_from_path(dat_meta$path)
+        new_data_ext <- tolower(dat_meta$ext %||% tools::file_ext(dat_meta$original_name %||% dat_meta$path))
+        data_df <- .read_data_from_path(dat_meta$path, dat_meta$ext)
         new_rp_data <- reporte_data(data_df, instrumento = rp_inst_efectivo)
         n_filas_new <- as.integer(nrow(data_df))
         n_cols_new  <- as.integer(ncol(data_df))
@@ -321,7 +321,7 @@ mount_estudio <- function(pr) {
         # Reemplazo solo de XLSForm: re-parsear la data actual con el
         # nuevo instrumento para mantener consistencia.
         dat_meta <- get_file(sid, base_actual$data_file_id)
-        data_df <- .read_data_from_path(dat_meta$path)
+        data_df <- .read_data_from_path(dat_meta$path, dat_meta$ext)
         new_rp_data <- reporte_data(data_df, instrumento = new_rp_inst)
         n_filas_new <- as.integer(nrow(data_df))
         n_cols_new  <- as.integer(ncol(data_df))
@@ -400,7 +400,7 @@ mount_estudio <- function(pr) {
       session_set(sid, "data_raw_meta", list(
         file_id = base$data_file_id,
         path    = dat_meta$path,
-        ext     = base$data_ext %||% tolower(tools::file_ext(dat_meta$original_name %||% dat_meta$path))
+        ext     = base$data_ext %||% dat_meta$ext %||% tolower(tools::file_ext(dat_meta$original_name %||% dat_meta$path))
       ))
       # rp_data / rp_inst ya están en s (mirror de la primera base). Los
       # dejamos intactos: la analítica sigue operando como legacy single.

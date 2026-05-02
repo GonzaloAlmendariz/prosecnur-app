@@ -6,6 +6,7 @@ import {
   apiDashboardDimCatalogo,
   apiDashboardDimCategoriasVar,
   apiDashboardDimFoda,
+  apiDashboardDimMatriz,
   apiDashboardDimPayload,
   apiDashboardDimSeccionesVars,
   apiDashboardAllVars,
@@ -21,6 +22,7 @@ import {
   DashboardDimCatalogo,
   DashboardDimCategoria,
   DashboardDimFodaPayload,
+  DashboardDimMatrizPayload,
   DashboardDimPayload,
   DashboardDimSeccionesPayload,
   DashboardFiltro,
@@ -592,6 +594,57 @@ export function useDimFoda(opts: {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opts.enabled, opts.modo, opts.objetivo, opts.cruce, opts.incluirTotal, iterKey, filtrosKey, fodaConfigKey]);
+
+  return { loading, error, payload };
+}
+
+export function useDimMatriz(opts: {
+  enabled: boolean;
+  modo: "general" | "indicadores";
+  objetivo: string;
+  varColor: string;
+  varNombre: string;
+  filtros: DashboardFiltro[];
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [payload, setPayload] = useState<DashboardDimMatrizPayload | null>(null);
+
+  const filtrosKey = JSON.stringify(opts.filtros);
+
+  useEffect(() => {
+    if (!opts.enabled || !opts.objetivo || !opts.varColor) {
+      setPayload(null);
+      return;
+    }
+    let cancelled = false;
+    const handle = window.setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      apiDashboardDimMatriz({
+        modo: opts.modo,
+        objetivo: opts.objetivo,
+        var_color: opts.varColor,
+        var_nombre: opts.varNombre || undefined,
+        filtros: opts.filtros,
+      })
+        .then((r) => {
+          if (cancelled) return;
+          setPayload(r.payload);
+        })
+        .catch((e: unknown) => {
+          if (!cancelled) setError((e as Error).message);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opts.enabled, opts.modo, opts.objetivo, opts.varColor, opts.varNombre, filtrosKey]);
 
   return { loading, error, payload };
 }

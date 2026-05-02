@@ -65,10 +65,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         // adoptamos su sid en vez de crear una sesión efímera. El backend
         // lo "consume" una sola vez (recargas posteriores reciben null).
         const bs = await apiSystemBootstrap().catch(() => ({ sid: null }));
-        if (bs.sid) {
-          if (typeof bs.sid === "string") {
-            localStorage.setItem("pulso.sessionId", bs.sid);
-          }
+        // jsonlite (R) serializa `NULL` dentro de un objeto como `{}`, no
+        // como `null`. Sin la guarda de string, `if (bs.sid)` daba truthy
+        // para `{}` y `setSessionIdSafe` rechazaba el valor; se quedaba
+        // sin sid y la app no podía hablar con el backend.
+        if (typeof bs.sid === "string" && bs.sid.length > 0) {
+          localStorage.setItem("pulso.sessionId", bs.sid);
           setSessionIdSafe("bootstrap", bs.sid);
           setSessionLost(false);
           return;

@@ -13,6 +13,7 @@ import {
   ArrowUp,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
   Download,
   FileSpreadsheet,
   Filter,
@@ -27,20 +28,26 @@ import {
   Trash2,
   Type,
   Upload,
-  Wand2,
   Workflow,
+  X,
 } from "lucide-react";
 import {
+  apiSaveEntregable,
   apiUpload,
   apiXlsformEditorExport,
   apiXlsformEditorImport,
-  apiXlsformEditorImportSurveyMonkey,
   apiXlsformEditorValidate,
   downloadUrl,
+  type Hallazgo,
 } from "../../api/client";
+import { useProjectShell } from "../project/ProjectShell";
+import { ImportSurveyMonkeyDialog } from "./shell/ImportSurveyMonkeyDialog";
+import { HallazgosPanel } from "./shell/HallazgosPanel";
+import smMonkey from "../../assets/sm-monkey.png";
 import { Panel } from "../../components/Panel";
 import { PageHeader } from "../../components/PageHeader";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../components/States";
+import SaveEntregableButton from "../project/SaveEntregableButton";
 
 // -----------------------------------------------------------------------------
 // Tipos, parsing y helpers extraídos a submódulos durante el revamp Sub-PR 1.
@@ -98,8 +105,12 @@ import {
   clearSnapshot,
   createPersistenceScheduler,
   loadSnapshot,
+  loadSnapshotFromBackend,
+  saveSnapshot,
+  syncSnapshotToBackend,
 } from "./state/persistence";
 import EmptyHome from "./shell/EmptyHome";
+import { QuestionnaireProgressPanel } from "./shell/QuestionnaireProgressPanel";
 import { buildWorkbookFromSeed } from "./templates";
 import type { TemplateSeed } from "./templates";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
@@ -118,8 +129,6 @@ import type { RowMovePlan } from "./outline/outlineUtils";
 import { applyRowMove } from "./outline/outlineUtils";
 import { PreviewCanvas } from "./canvas/PreviewCanvas";
 import { Inspector } from "./inspector/Inspector";
-import { ForeignLanguageBadge } from "./inspector/ForeignLanguageBadge";
-import { scanForeignLanguages } from "./parsing/languageScan";
 import { iconForType } from "./helpers/icons";
 import { paletteForType } from "./helpers/paletteForType";
 import type {
@@ -178,6 +187,10 @@ function logicSummary(node: BuilderNode | null) {
 }
 
 export default function XlsformEditorPage() {
+  // Detecta si hay un .pulso abierto — al exportar, decide entre guardar
+  // al directorio del proyecto (vía /api/fs/save-to-project) o usar la
+  // descarga clásica del navegador.
+  const { project } = useProjectShell();
   // Estado del workbook + dirty + lastSavedAt + history (undo/redo) en un
   // solo reducer para mantener consistencia transaccional. Las acciones
   // disponibles son SET (mutación normal), LOAD (importar/restaurar),
@@ -210,15 +223,24 @@ export default function XlsformEditorPage() {
   /** Si está abierto el overlay del mapa de lógica (canvas Obsidian-style).
    *  Se accede desde el botón "Mapa de lógica" del header del constructor. */
   const [logicCanvasOpen, setLogicCanvasOpen] = useState(false);
+  const [questionnaireViewOpen, setQuestionnaireViewOpen] = useState(false);
+  /** Modal de importación SurveyMonkey vía API. El .sav queda solo como ruta
+   *  legacy opcional; el flujo principal ya no pide archivo. */
+  const [smImportDialog, setSmImportDialog] = useState<
+    | { fileId?: string | null; fileName: string }
+    | null
+  >(null);
+  /** Hallazgos del validador empírico (devueltos por import-with-logic).
+   *  Se renderizan en panel UI dedicado, NO se exportan al .xlsx. */
+  const [hallazgos, setHallazgos] = useState<Hallazgo[]>([]);
   /** Snapshot del autosave detectado al montar; muestra UI de "continuar". */
   const [restoreOffer, setRestoreOffer] = useState<ReturnType<typeof loadSnapshot>>(null);
   const xlsInputRef = useRef<HTMLInputElement | null>(null);
-  const smInputRef = useRef<HTMLInputElement | null>(null);
   // Notificaciones efímeras (importé X, exporté Y) — reemplazan al setStatus
   // sticky para mensajes de operaciones que cierran su ciclo en un evento.
   const toasts = useToastDeck();
 
-  // Scheduler de autosave a sessionStorage. Se crea una sola vez por
+  // Scheduler de autosave persistente. Se crea una sola vez por
   // montaje del componente; se reusa entre cambios.
   const persistenceRef = useRef<ReturnType<typeof createPersistenceScheduler> | null>(null);
   if (persistenceRef.current === null) {
@@ -228,12 +250,23 @@ export default function XlsformEditorPage() {
   }
   const persistence = persistenceRef.current;
 
-  // Detectar al montar si hay un snapshot persistido en sessionStorage
-  // (tras crash/reload). Lo ofrecemos como "Continuar editando" si el
-  // estado actual aún está vacío.
+  // Detectar al montar si hay un snapshot persistido. Primero local
+  // (localStorage tras salir/reabrir la app), después el backend (state del
+  // .pulso si hay proyecto abierto). El primero gana porque suele ser más fresco.
   useEffect(() => {
-    const snap = loadSnapshot();
-    if (snap) setRestoreOffer(snap);
+    const local = loadSnapshot();
+    if (local) {
+      setRestoreOffer(local);
+      return;
+    }
+    let cancelled = false;
+    void loadSnapshotFromBackend().then((remote) => {
+      if (cancelled) return;
+      if (remote) setRestoreOffer(remote);
+    });
+    return () => {
+      cancelled = true;
+    };
     // Solo en mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -284,9 +317,7 @@ export default function XlsformEditorPage() {
 
   const visibleTabs = useMemo<SheetKey[]>(() => {
     if (!workbook) return [];
-    return workbook.diagnostico
-      ? ["survey", "choices", "settings", "diagnostico"]
-      : ["survey", "choices", "settings"];
+    return ["survey", "choices", "settings"];
   }, [workbook]);
 
   const catalogs = xlsformIndex?.catalogs ?? [];
@@ -397,14 +428,6 @@ export default function XlsformEditorPage() {
     ? getSiblingRows(structure, selection.rowIndex)
     : { prevRow: null as number | null, nextRow: null as number | null };
 
-  // Idiomas extra detectados al importar (label::English, hint::Français, …).
-  // Si hay alguno, mostramos un banner persistente arriba del Inspector
-  // explicando que se preservan al exportar pero no se editan en F1.
-  const foreignLanguageNotice = useMemo(
-    () => scanForeignLanguages(workbook),
-    [workbook],
-  );
-
   // Mapa nombre-de-catálogo → cuántas preguntas lo usan. Se calcula una vez
   // y se pasa al CatalogLibrary para mostrar el badge "usado en N preguntas"
   // y al CatalogWorkspace para habilitar/deshabilitar el botón "Borrar".
@@ -472,8 +495,15 @@ export default function XlsformEditorPage() {
       setArtifact(null);
       setStatus(nextStatus);
       setRestoreOffer(null);
-      // El usuario confirmó qué workbook quiere → limpiamos snapshot viejo.
-      clearSnapshot();
+      const sourceMeta = {
+        sourceKind: nextSource.kind,
+        sourceName: nextSource.original_name,
+      };
+      const savedAt = saveSnapshot(next, sourceMeta);
+      void syncSnapshotToBackend(next, sourceMeta);
+      if (savedAt != null) {
+        dispatch({ type: "MARK_SAVED", savedAt });
+      }
     },
     [persistence],
   );
@@ -533,31 +563,35 @@ export default function XlsformEditorPage() {
     }
   }
 
-  async function onImportSurveyMonkey(file?: File) {
-    if (!file) return;
+  function onImportSurveyMonkey() {
     resetMessages();
-    setBusy(`Traduciendo ${file.name} desde SurveyMonkey…`);
-    try {
-      const up = await apiUpload(file, "sav");
-      const out = await apiXlsformEditorImportSurveyMonkey(up.file_id, "es");
-      loadWorkbook(
-        out.workbook,
-        out.source,
-        `Tradujimos ${file.name} a un constructor editable. Ahora ya puedes pulirlo sin pensar en la sintaxis ODK.`
-      );
-      toasts.push({
-        kind: "success",
-        title: "Traducción completada",
-        detail: `${file.name} ahora es un XLSForm editable.`,
-      });
-    } catch (e: unknown) {
-      const msg = (e as Error).message;
-      setError(msg);
-      toasts.push({ kind: "danger", title: "No se pudo traducir", detail: msg });
-    } finally {
-      setBusy("");
-      if (smInputRef.current) smInputRef.current.value = "";
-    }
+    setSmImportDialog({ fileId: null, fileName: "SurveyMonkey API" });
+  }
+
+  // Callback del modal cuando completa con éxito (ya con o sin reglas aplicadas)
+  function onSurveyMonkeyImportComplete(payload: {
+    workbook: XlsformEditorWorkbook;
+    source: { kind: string | null; original_name: string | null };
+    hallazgos: Hallazgo[];
+  }) {
+    const fileName = smImportDialog?.fileName ?? payload.source.original_name ?? "archivo";
+    setSmImportDialog(null);
+    setHallazgos(payload.hallazgos);
+    loadWorkbook(
+      payload.workbook,
+      payload.source,
+      payload.hallazgos.length > 0
+        ? `Tradujimos ${fileName} y aplicamos tu lógica. Hay ${payload.hallazgos.length} hallazgo(s) para revisar.`
+        : `Tradujimos ${fileName} a un constructor editable.`,
+    );
+    toasts.push({
+      kind: "success",
+      title: "Traducción completada",
+      detail:
+        payload.hallazgos.length > 0
+          ? `${fileName} traducido — revisa los hallazgos del validador.`
+          : `${fileName} ahora es un XLSForm editable.`,
+    });
   }
 
   async function onExport() {
@@ -565,7 +599,8 @@ export default function XlsformEditorPage() {
     resetMessages();
     setBusy("Exportando XLSForm…");
     try {
-      const out = await apiXlsformEditorExport(workbook, cleanFilename(source?.original_name));
+      const exportableWorkbook = { ...workbook, diagnostico: null };
+      const out = await apiXlsformEditorExport(exportableWorkbook, cleanFilename(source?.original_name));
       setArtifact({ file_id: out.file_id, original_name: out.original_name });
       // Tras un export exitoso el workbook está "guardado" (en disco).
       // Forzamos el flush del autosave también para sellar el snapshot
@@ -573,18 +608,52 @@ export default function XlsformEditorPage() {
       const savedAt = persistence.flush() ?? Date.now();
       dispatch({ type: "MARK_SAVED", savedAt });
       setStatus(`Listo: generamos ${out.original_name} para descargarlo o seguir iterándolo.`);
-      toasts.push({
-        kind: "success",
-        title: "Exportación lista",
-        detail: out.original_name,
-        durationMs: 6000,
-        action: {
-          label: "Descargar",
-          onClick: () => {
-            window.open(downloadUrl(out.file_id), "_blank");
+      // Si hay un proyecto .pulso abierto, el archivo va automáticamente a
+      // su carpeta (junto al .pulso). Si no, fallback a descarga browser.
+      if (project.status.has_project) {
+        // El backend rechaza nombres con espacios, acentos o caracteres
+        // especiales (E_INVALID_FILENAME). Normalizamos: quitamos
+        // diacríticos, sustituimos no-alfanuméricos por underscore, y
+        // colapsamos repetidos.
+        const baseName = out.original_name
+          .replace(/\.xlsx$/i, "")
+          .normalize("NFD")
+          .replace(/[̀-ͯ]/g, "")
+          .replace(/[^a-zA-Z0-9._-]+/g, "_")
+          .replace(/_{2,}/g, "_")
+          .replace(/^_+|_+$/g, "");
+        try {
+          const saved = await apiSaveEntregable(out.file_id, baseName);
+          toasts.push({
+            kind: "success",
+            title: "Exportación guardada en el proyecto",
+            detail: saved.path,
+            durationMs: 8000,
+          });
+        } catch (e) {
+          toasts.push({
+            kind: "warn",
+            title: "No se pudo guardar en la carpeta del proyecto",
+            detail: (e as Error).message,
+            durationMs: 8000,
+            action: {
+              label: "Descargar",
+              onClick: () => { window.open(downloadUrl(out.file_id), "_blank"); },
+            },
+          });
+        }
+      } else {
+        toasts.push({
+          kind: "success",
+          title: "Exportación lista",
+          detail: out.original_name,
+          durationMs: 6000,
+          action: {
+            label: "Descargar",
+            onClick: () => { window.open(downloadUrl(out.file_id), "_blank"); },
           },
-        },
-      });
+        });
+      }
     } catch (e: unknown) {
       const msg = (e as Error).message;
       setError(msg);
@@ -1268,14 +1337,6 @@ export default function XlsformEditorPage() {
         )}
       />
 
-      {restoreOffer && !workbook && (
-        <RestoreOfferBanner
-          snapshot={restoreOffer}
-          onAccept={acceptRestoreOffer}
-          onDismiss={dismissRestoreOffer}
-        />
-      )}
-
       {error && <ErrorBlock label="No pudimos abrir el constructor" detail={error} />}
 
       <Panel
@@ -1289,8 +1350,8 @@ export default function XlsformEditorPage() {
             <button type="button" onClick={() => xlsInputRef.current?.click()} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Upload size={14} /> Importar XLSForm
             </button>
-            <button type="button" onClick={() => smInputRef.current?.click()} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Wand2 size={14} /> Traducir SurveyMonkey
+            <button type="button" onClick={onImportSurveyMonkey} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <img src={smMonkey} alt="" width={16} height={16} style={{ objectFit: "contain" }} /> Traducir SurveyMonkey
             </button>
             <button type="button" className="pulso-primary" onClick={onExport} disabled={!workbook || !!busy} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Download size={14} /> Exportar .xlsx
@@ -1305,20 +1366,21 @@ export default function XlsformEditorPage() {
           style={{ display: "none" }}
           onChange={(e) => void onImportXls(e.target.files?.[0])}
         />
-        <input
-          ref={smInputRef}
-          type="file"
-          accept=".sav"
-          style={{ display: "none" }}
-          onChange={(e) => void onImportSurveyMonkey(e.target.files?.[0])}
-        />
-
         {!workbook ? (
           <EmptyHome
             onNewBlank={onNewWorkbook}
             onImportXls={() => xlsInputRef.current?.click()}
-            onImportSurveyMonkey={() => smInputRef.current?.click()}
+            onImportSurveyMonkey={onImportSurveyMonkey}
             onPickTemplate={onPickTemplate}
+            resumeBanner={
+              restoreOffer ? (
+                <RestoreOfferBanner
+                  snapshot={restoreOffer}
+                  onAccept={acceptRestoreOffer}
+                  onDismiss={dismissRestoreOffer}
+                />
+              ) : null
+            }
           />
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", color: "var(--pulso-text-soft)", fontSize: 13 }}>
@@ -1348,7 +1410,7 @@ export default function XlsformEditorPage() {
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
                 <button type="button" className="pulso-primary" onClick={onNewWorkbook}>Crear formulario</button>
                 <button type="button" onClick={() => xlsInputRef.current?.click()}>Importar .xlsx</button>
-                <button type="button" onClick={() => smInputRef.current?.click()}>Traducir .sav</button>
+                <button type="button" onClick={onImportSurveyMonkey}>Traducir SurveyMonkey</button>
               </div>
             )}
           />
@@ -1439,10 +1501,19 @@ export default function XlsformEditorPage() {
                   type="button"
                   onClick={() => setLogicCanvasOpen(true)}
                   style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-                  title="Ver el grafo de dependencias del formulario"
+                  title="Crear y revisar relaciones lógicas del formulario"
                 >
                   <Workflow size={14} />
                   Mapa de lógica
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuestionnaireViewOpen(true)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                  title="Ver el cuestionario completo por secciones"
+                >
+                  <Layers3 size={14} />
+                  Vista del cuestionario
                 </button>
                 <button
                   type="button"
@@ -1589,24 +1660,23 @@ export default function XlsformEditorPage() {
                       title="Último export"
                       hint="Tu versión descargable queda disponible dentro de la sesión."
                       actions={(
-                        <a
-                          href={downloadUrl(artifact.file_id)}
-                          download={artifact.original_name}
+                        <SaveEntregableButton
+                          fileId={artifact.file_id}
+                          defaultName={artifact.original_name.replace(/\.xlsx$/i, "")}
+                          extension="xlsx"
+                          label="Descargar export"
+                          icon={<Download size={14} />}
+                          className="pulso-primary"
                           style={{
-                            textDecoration: "none",
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 6,
                             padding: "6px 12px",
                             borderRadius: 6,
                             fontSize: 13,
-                            background: "var(--pulso-primary)",
                             border: "1px solid var(--pulso-primary)",
-                            color: "#fff",
                           }}
-                        >
-                          <Download size={14} /> Descargar export
-                        </a>
+                        />
                       )}
                     >
                       <span style={{ fontSize: 13, color: "var(--pulso-text-soft)" }}>
@@ -1617,11 +1687,6 @@ export default function XlsformEditorPage() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {/* Banner de idiomas extra: aparece encima del Inspector
-                      cuando el .xlsx importado trae label::English u otras
-                      traducciones. F1 las preserva pero no las edita. */}
-                  <ForeignLanguageBadge notice={foreignLanguageNotice} />
-
                   <Panel
                     title="Inspector"
                     hint="Aquí editas la pieza activa con lenguaje más cercano a la construcción del formulario que a la hoja de cálculo."
@@ -1769,11 +1834,86 @@ export default function XlsformEditorPage() {
         }}
       />
 
+      {questionnaireViewOpen ? (
+        <div
+          className="pulso-graph-overlay"
+          role="dialog"
+          aria-label="Vista del cuestionario"
+        >
+          <header className="pulso-graph-header">
+            <div className="pulso-graph-header-left">
+              <button
+                type="button"
+                className="pulso-graph-back"
+                onClick={() => setQuestionnaireViewOpen(false)}
+              >
+                <ChevronLeft size={14} /> Volver al editor
+              </button>
+              <div className="pulso-graph-header-title">
+                <strong>Vista del cuestionario</strong>
+                <span>Recorrido completo por secciones y preguntas</span>
+              </div>
+            </div>
+            <div className="pulso-graph-header-right">
+              <button
+                type="button"
+                className="pulso-icon"
+                onClick={() => setQuestionnaireViewOpen(false)}
+                aria-label="Cerrar vista del cuestionario"
+                title="Cerrar"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </header>
+          <main style={{ padding: 18, overflow: "auto", height: "calc(100vh - 64px)", background: "#f8fafc" }}>
+            <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+              <QuestionnaireProgressPanel
+                structure={structure}
+                selection={selection}
+                onSelect={(next) => {
+                  setSelection(next);
+                  setQuestionnaireViewOpen(false);
+                }}
+              />
+            </div>
+          </main>
+        </div>
+      ) : null}
+
       {/* Toasts deslizables: mensajes efímeros de operaciones (import/export).
           El deck se monta una sola vez y se mantiene a nivel del editor —
           fuera del flujo Panel para que los toasts queden anclados a la
           esquina inferior-derecha sin romper el layout. */}
       <ToastDeck items={toasts.items} onDismiss={toasts.dismiss} />
+
+      {/* Diálogo de importación SurveyMonkey vía API. */}
+      {smImportDialog ? (
+        <ImportSurveyMonkeyDialog
+          fileId={smImportDialog.fileId}
+          fileName={smImportDialog.fileName}
+          onCancel={() => setSmImportDialog(null)}
+          onComplete={onSurveyMonkeyImportComplete}
+        />
+      ) : null}
+
+      {/* Panel de hallazgos del validador empírico — drawer flotante a la
+          derecha. Aparece tras un import-with-logic con resultados. Click en
+          un hallazgo navega al inspector de la pregunta target. */}
+      {hallazgos.length > 0 && workbook ? (
+        <HallazgosPanel
+          hallazgos={hallazgos}
+          onSelectTarget={(target) => {
+            const surveyRows = workbook.survey?.rows ?? [];
+            const surveyColumns = workbook.survey?.columns ?? [];
+            const nameIdx = surveyColumns.findIndex((c) => c.toLowerCase() === "name");
+            if (nameIdx < 0) return;
+            const rowIndex = surveyRows.findIndex((row) => (row[nameIdx] ?? "") === target);
+            if (rowIndex >= 0) setSelection({ kind: "survey", rowIndex });
+          }}
+          onClose={() => setHallazgos([])}
+        />
+      ) : null}
     </div>
   );
 }
@@ -2201,7 +2341,7 @@ function undoButtonStyle(enabled: boolean): CSSProperties {
 
 /**
  * Banner que aparece cuando al montar detectamos un snapshot persistido en
- * sessionStorage (típicamente por crash + reload). Le ofrece al usuario
+ * localStorage o backend. Le ofrece al usuario
  * restaurar lo que estaba editando vs descartarlo.
  */
 function RestoreOfferBanner({

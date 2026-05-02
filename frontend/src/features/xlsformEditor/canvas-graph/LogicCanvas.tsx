@@ -1,12 +1,12 @@
 // =============================================================================
-// canvas-graph/LogicCanvas.tsx — overlay del mapa de visibilidad
+// canvas-graph/LogicCanvas.tsx — overlay del mapa de lógica
 // =============================================================================
 // Vista jerárquica del workbook (post-rediseño): cada sección es una card
 // colapsable; las preguntas internas solo se ven si la sección está
 // expandida. Las flechas conectan únicamente preguntas/secciones unidas
-// por `relevant` — el catálogo de opciones se muestra inline dentro de
-// las preguntas select y los demás campos lógicos viven solo en el
-// inspector.
+// por relevant/constraint/calculation/choice_filter — el catálogo de
+// opciones se muestra inline dentro de las preguntas select y los demás
+// campos lógicos viven también en el inspector.
 //
 // Interacciones:
 //
@@ -115,16 +115,14 @@ export function LogicCanvas({
   // ── Toolbar: snap + undo de drags + filtro por tipo de dependencia ──
   const [snapToGrid, setSnapToGrid] = useState(false);
   const SNAP_GRID = 16;
-  /** Filtro por tipo de edge. Por defecto solo `relevant` (visibilidad)
-   *  está visible — el más común y el que la mayoría del corpus usa.
-   *  Constraint, calculation y choice_filter son opt-in para no
-   *  saturar el lienzo cuando el usuario solo quiere ver "qué abre
-   *  qué". */
+  /** Filtro por tipo de edge. Por defecto mostramos toda la lógica que
+   *  exista en el formulario; el usuario puede apagar capas si necesita
+   *  concentrarse en un solo tipo de relación. */
   const [edgeKindFilter, setEdgeKindFilter] = useState({
     showRelevant: true,
-    showConstraint: false,
-    showCalculation: false,
-    showChoiceFilter: false,
+    showConstraint: true,
+    showCalculation: true,
+    showChoiceFilter: true,
   });
   /** Historia de cambios de `nodePositions` para Cmd/Ctrl+Z. Cada
    *  entrada es un snapshot inmutable del map de posiciones tomado
@@ -332,9 +330,32 @@ export function LogicCanvas({
     };
   }, [structure, catalogs]);
 
+  /** Lookup para resolver el `name` interno de una variable (`q0027`)
+   *  a su prompt humano (`¿Qué actividades laborales realiza?...`).
+   *  En la narrativa de relación lógica mostramos `prompt (name)` para
+   *  que el usuario reconozca la pregunta sin perder la referencia
+   *  técnica del XLSForm. */
+  const varTitleLookup = useMemo<VarTitleLookup>(() => {
+    if (!structure) return () => null;
+    const map = new Map<string, string>();
+    for (const node of structure.byRow.values()) {
+      if (!node.name) continue;
+      const title = node.label?.trim();
+      if (title) map.set(node.name, title);
+    }
+    return (varName: string) => map.get(varName) ?? null;
+  }, [structure]);
+
   /** Atajo para humanizar con labels resueltos. */
   const humanize = (expr: string): string =>
-    humanizeRelevantWithLabels(expr, labelLookup);
+    humanizeRelevantWithLabels(expr, labelLookup, varTitleLookup);
+  const nodeDisplayName = (node: GraphNode): string => {
+    const title = (node.title || "").trim();
+    if (!title || title === node.name) return node.name;
+    return `${title} (${node.name})`;
+  };
+  const nodeKindLabel = (node: GraphNode): string =>
+    node.kind === "section" ? "Sección" : "Pregunta";
 
   // Set de IDs relacionados con la selección (vecinos directos in/out).
   const relatedIds = useMemo(() => {
@@ -602,7 +623,7 @@ export function LogicCanvas({
     <div
       className="pulso-graph-overlay"
       role="dialog"
-      aria-label="Mapa de visibilidad del formulario"
+      aria-label="Mapa de lógica del formulario"
     >
       <header className="pulso-graph-header">
         <div className="pulso-graph-header-left">
@@ -610,7 +631,7 @@ export function LogicCanvas({
             <ChevronLeft size={14} /> Volver al editor
           </button>
           <div className="pulso-graph-header-title">
-            <strong>Mapa de visibilidad</strong>
+            <strong>Mapa de lógica</strong>
             <span>
               {stats.visible} {stats.visible === 1 ? "nodo visible" : "nodos visibles"} ·{" "}
               {stats.edges} {stats.edges === 1 ? "conexión" : "conexiones"}
@@ -692,7 +713,7 @@ export function LogicCanvas({
         </div>
       </header>
 
-      <div className="pulso-graph-body">
+      <div className={`pulso-graph-body ${selectedEdgeIdx !== null ? "has-edge-panel" : ""}`}>
         {/* Toolbar flotante estilo Obsidian Canvas: auto-layout, filtro
             de tipos de edge, snap, zoom. Vive sobre el lienzo, fija al
             top-center. Las acciones que rara vez se usan (expandir/
@@ -758,7 +779,7 @@ export function LogicCanvas({
                 selectedUnitKey !== null && !inSelectedBundle;
               // Filtro por TIPO de dependencia — usuario decide qué
               // tipos visualizar (relevant/constraint/calculation/
-              // choice_filter). Por defecto solo relevant.
+              // choice_filter). Por defecto todo queda visible.
               const k = edge.edge.kind;
               const passesFilter =
                 (k === "depends-on" && edgeKindFilter.showRelevant) ||
@@ -988,8 +1009,9 @@ export function LogicCanvas({
             </div>
             <strong>Todavía no hay nada que mapear.</strong>
             <p>
-              Agrega preguntas o secciones y, cuando alguna esté condicionada
-              a otra, la conexión aparecerá automáticamente acá. También puedes
+              Agrega preguntas o secciones y, cuando alguna use otra para
+              mostrarse, validar, calcular o filtrar opciones, la conexión
+              aparecerá automáticamente acá. También puedes
               <strong> arrastrar el círculo</strong> que aparece a la derecha
               de cada card para crear una conexión nueva.
             </p>
@@ -1002,9 +1024,9 @@ export function LogicCanvas({
           layout.edges.length === 0 && (
             <div className="pulso-graph-empty pulso-graph-empty-no-edges">
               <p>
-                Este formulario aún no tiene relaciones de visibilidad
-                (<code>relevant</code>). Arrastra desde el círculo a la derecha
-                de una card para crear la primera.
+                Este formulario aún no tiene relaciones lógicas dibujadas.
+                Arrastra desde el círculo a la derecha de una card para crear
+                la primera conexión.
               </p>
             </div>
           )}
@@ -1233,9 +1255,9 @@ export function LogicCanvas({
                 <div className="pulso-graph-legend-head">
                   <strong>Cómo se lee el mapa</strong>
                   <p>
-                    Las flechas conectan condiciones (<em>relevant</em>)
-                    con sus destinos. Mismo <strong>color</strong> = misma
-                    condición lógica.
+                    Las flechas conectan preguntas que gobiernan visibilidad,
+                    validaciones, cálculos o filtros de opciones. Mismo
+                    <strong> color</strong> = misma condición lógica.
                   </p>
                 </div>
 
@@ -1661,7 +1683,9 @@ export function LogicCanvas({
           // La expresión es la del target (todos los targets del
           // bundle comparten expresión por definición).
           const expr = targets[0]!.relevantExpression ?? "";
-          const human = humanize(expr);
+          const conditionGroups = splitLogicalGroups(expr);
+          const hasAlternatives = conditionGroups.length > 1;
+          const hasConjunctions = conditionGroups.some((group) => group.length > 1);
           // Verbo según los targets: si todos son secciones, "abre
           // la(s) sección(es)"; si todos son preguntas, "muestra
           // la(s) pregunta(s)"; si mixto, "habilita".
@@ -1718,21 +1742,128 @@ export function LogicCanvas({
                         )}
                       </span>
                       <div className="pulso-graph-edge-panel-card-text">
-                        <strong>{src.title || src.name}</strong>
-                        <code>{src.name}</code>
+                        <strong>{nodeDisplayName(src)}</strong>
+                        <code>{nodeKindLabel(src)}</code>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Narrativa que combina todo. */}
-              <div className="pulso-graph-edge-panel-narrative">
-                <p>
-                  Cuando se cumple{" "}
-                  <code className="pulso-graph-edge-panel-cond">{human}</code>
+              <div className="pulso-graph-edge-panel-condition">
+                <span className="pulso-graph-edge-panel-condition-title">
+                  Condición para mostrar
+                </span>
+                <div className="pulso-graph-edge-panel-condition-list">
+                  {conditionGroups.map((group, groupIdx) => (
+                    <div
+                      key={`condition-group-${groupIdx}`}
+                      className="pulso-graph-edge-panel-condition-group"
+                    >
+                      {groupIdx > 0 && (
+                        <div className="pulso-graph-edge-panel-condition-or">
+                          <span>
+                            O
+                          </span>
+                          <em>también se muestra si</em>
+                        </div>
+                      )}
+                      <div className="pulso-graph-edge-panel-condition-card">
+                        {group.length > 1 && (
+                          <div className="pulso-graph-edge-panel-condition-card-head">
+                            <span>Todas estas condiciones</span>
+                            <strong>Y</strong>
+                          </div>
+                        )}
+                        <div className="pulso-graph-edge-panel-condition-rows">
+                          {group.map((rawCondition, idx) => {
+                            const nestedOrParts = splitTopLevelLogical(
+                              stripOuterParens(rawCondition),
+                              "or",
+                            );
+                            const hasNestedOr = nestedOrParts.length > 1;
+                            const sameQuestionOptions = hasNestedOr
+                              ? summarizeSameVariableOptions(
+                                  nestedOrParts,
+                                  labelLookup,
+                                  varTitleLookup,
+                                )
+                              : null;
+                            return (
+                              <div
+                                key={`${rawCondition}-${idx}`}
+                                className={`pulso-graph-edge-panel-condition-row ${hasNestedOr ? "has-nested-or" : ""}`}
+                              >
+                                {idx > 0 && (
+                                  <span className="pulso-graph-edge-panel-condition-join is-and">
+                                    Y
+                                  </span>
+                                )}
+                                {hasNestedOr ? (
+                                  <div className="pulso-graph-edge-panel-nested-or">
+                                    {sameQuestionOptions ? (
+                                      <>
+                                        <div className="pulso-graph-edge-panel-nested-question">
+                                          <strong>{sameQuestionOptions.title}</strong>
+                                          <code>{sameQuestionOptions.varName}</code>
+                                          <span>{sameQuestionOptions.operatorLabel} cualquiera de estas opciones</span>
+                                        </div>
+                                        <div className="pulso-graph-edge-panel-option-grid">
+                                          {sameQuestionOptions.options.map((option, optionIdx) => (
+                                            <span
+                                              key={`${option}-${optionIdx}`}
+                                              className="pulso-graph-edge-panel-option-chip"
+                                            >
+                                              {optionIdx > 0 && <em>O</em>}
+                                              {option}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div className="pulso-graph-edge-panel-nested-or-head">
+                                          <span>Alguna de estas opciones</span>
+                                          <strong>O</strong>
+                                        </div>
+                                        <div className="pulso-graph-edge-panel-nested-or-list">
+                                          {nestedOrParts.map((part, partIdx) => (
+                                            <div
+                                              key={`${part}-${partIdx}`}
+                                              className="pulso-graph-edge-panel-nested-or-item"
+                                            >
+                                              {partIdx > 0 && (
+                                                <span className="pulso-graph-edge-panel-condition-join is-or">
+                                                  O
+                                                </span>
+                                              )}
+                                              <span>{humanize(part)}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span>{humanize(rawCondition)}</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="pulso-graph-edge-panel-narrative">
+                  Si se cumple{" "}
+                  {hasAlternatives
+                    ? "cualquiera de estos grupos"
+                    : hasConjunctions
+                      ? "todo este grupo"
+                      : "esta condición"}
                   {", "}
-                  <strong>{verb}</strong>{":"}
+                  <strong>{verb}</strong>.
                 </p>
               </div>
 
@@ -1760,8 +1891,8 @@ export function LogicCanvas({
                         )}
                       </span>
                       <div className="pulso-graph-edge-panel-card-text">
-                        <strong>{tgt.title || tgt.name}</strong>
-                        <code>{tgt.name}</code>
+                        <strong>{nodeDisplayName(tgt)}</strong>
+                        <code>{nodeKindLabel(tgt)}</code>
                       </div>
                     </button>
                   ))}
@@ -1814,6 +1945,149 @@ export function LogicCanvas({
 // ─────────────────────────────────────────────────────────────────────
 
 /**
+ * Agrupa condiciones en la forma que un usuario no técnico espera:
+ *   grupo 1: A Y B
+ *   O
+ *   grupo 2: C
+ *
+ * No intenta ser un parser ODK completo; sólo separa `or`/`and` de
+ * primer nivel respetando paréntesis y comillas. Si la expresión es
+ * rara, devuelve el texto entero como un solo grupo.
+ */
+function splitLogicalGroups(expr: string): string[][] {
+  const cleaned = stripOuterParens(expr.trim());
+  if (!cleaned) return [[]];
+  const orParts = splitTopLevelLogical(cleaned, "or");
+  return orParts.map((orPart) => {
+    const andParts = splitTopLevelLogical(stripOuterParens(orPart), "and");
+    return andParts.map(stripOuterParens).filter(Boolean);
+  }).filter((group) => group.length > 0);
+}
+
+function splitTopLevelLogical(expr: string, op: "and" | "or"): string[] {
+  const parts: string[] = [];
+  let start = 0;
+  let depth = 0;
+  let quote: "'" | '"' | null = null;
+  for (let i = 0; i < expr.length; i += 1) {
+    const ch = expr[i]!;
+    if (quote) {
+      if (ch === quote && expr[i - 1] !== "\\") quote = null;
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      continue;
+    }
+    if (ch === "(") {
+      depth += 1;
+      continue;
+    }
+    if (ch === ")") {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+    if (depth === 0 && matchesLogicalWord(expr, i, op)) {
+      parts.push(expr.slice(start, i).trim());
+      i += op.length - 1;
+      start = i + 1;
+    }
+  }
+  parts.push(expr.slice(start).trim());
+  return parts.filter(Boolean);
+}
+
+function matchesLogicalWord(expr: string, index: number, op: "and" | "or"): boolean {
+  if (expr.slice(index, index + op.length).toLowerCase() !== op) return false;
+  const before = index === 0 ? "" : expr[index - 1] ?? "";
+  const after = expr[index + op.length] ?? "";
+  return !/[A-Za-z0-9_]/.test(before) && !/[A-Za-z0-9_]/.test(after);
+}
+
+function stripOuterParens(value: string): string {
+  let s = value.trim();
+  let changed = true;
+  while (changed && s.startsWith("(") && s.endsWith(")")) {
+    changed = false;
+    let depth = 0;
+    let quote: "'" | '"' | null = null;
+    let enclosesWhole = true;
+    for (let i = 0; i < s.length; i += 1) {
+      const ch = s[i]!;
+      if (quote) {
+        if (ch === quote && s[i - 1] !== "\\") quote = null;
+        continue;
+      }
+      if (ch === "'" || ch === '"') {
+        quote = ch;
+        continue;
+      }
+      if (ch === "(") depth += 1;
+      if (ch === ")") depth -= 1;
+      if (depth === 0 && i < s.length - 1) {
+        enclosesWhole = false;
+        break;
+      }
+    }
+    if (enclosesWhole) {
+      s = s.slice(1, -1).trim();
+      changed = true;
+    }
+  }
+  return s;
+}
+
+type SameVariableOptionsSummary = {
+  varName: string;
+  title: string;
+  operatorLabel: string;
+  options: string[];
+};
+
+function summarizeSameVariableOptions(
+  parts: string[],
+  lookup: LabelLookup,
+  varTitle: VarTitleLookup,
+): SameVariableOptionsSummary | null {
+  const parsed = parts.map(parseOptionCondition);
+  if (parsed.some((item) => item == null)) return null;
+  const first = parsed[0]!;
+  if (!parsed.every((item) => item!.varName === first.varName && item!.operator === first.operator)) {
+    return null;
+  }
+  const title = varTitle(first.varName) ?? first.varName;
+  return {
+    varName: first.varName,
+    title,
+    operatorLabel: first.operator,
+    options: parsed.map((item) => lookup(item!.varName, item!.code) ?? item!.code),
+  };
+}
+
+function parseOptionCondition(
+  raw: string,
+): { varName: string; operator: string; code: string } | null {
+  const expr = stripOuterParens(raw);
+  let match = expr.match(/^selected\(\s*\$\{([^}]+)\}\s*,\s*['"]([^'"]+)['"]\s*\)$/);
+  if (match) {
+    return { varName: match[1]!, operator: "contiene", code: match[2]! };
+  }
+  match = expr.match(/^not\s*\(\s*selected\(\s*\$\{([^}]+)\}\s*,\s*['"]([^'"]+)['"]\s*\)\s*\)$/);
+  if (match) {
+    return { varName: match[1]!, operator: "no contiene", code: match[2]! };
+  }
+  match = expr.match(/^\$\{([^}]+)\}\s*=\s*['"]([^'"]+)['"]$/);
+  if (match) {
+    return { varName: match[1]!, operator: "es", code: match[2]! };
+  }
+  match = expr.match(/^\$\{([^}]+)\}\s*!=\s*['"]([^'"]+)['"]$/);
+  if (match) {
+    return { varName: match[1]!, operator: "no es", code: match[2]! };
+  }
+  return null;
+}
+
+/**
  * Convierte una expresión `relevant` cruda en texto legible en
  * español. Antes era una limpieza mínima (sólo sacaba `${...}`) y
  * dejaba la sintaxis ODK; el resultado era cosas tipo
@@ -1837,61 +2111,73 @@ export function LogicCanvas({
 function humanizeRelevant(expr: string): string {
   return humanizeRelevantWithLabels(expr, null);
 }
-
 /** Versión completa que resuelve códigos `'1'` a labels (`'Sí'`).
  *
  *  `lookup(varName, code)` debe devolver el label legible o null
  *  si no se encuentra. Lo construye `LogicCanvas` a partir de
  *  `structure` + `catalogs`. */
 type LabelLookup = (varName: string, code: string) => string | null;
+type VarTitleLookup = (varName: string) => string | null;
 
 function humanizeRelevantWithLabels(
   expr: string,
   lookup: LabelLookup | null,
+  varTitle: VarTitleLookup | null = null,
 ): string {
   let r = expr;
   const resolveCode = (varName: string, code: string): string => {
     if (!lookup) return code;
     const label = lookup(varName, code);
     if (label && label !== code) {
-      // Si el label es muy largo, lo recortamos.
-      const trimmed = label.length > 40 ? label.slice(0, 38) + "…" : label;
-      return `${trimmed}`;
+      return label;
     }
     return code;
+  };
+  // Resuelve `q0027` → `«¿Qué actividades laborales realiza?...» (q0027)`
+  // para que el usuario reconozca la pregunta sin perder la referencia
+  // al code interno del XLSForm. Usamos «» (guillemets) para que el
+  // título no se confunda con los literales 'value' que vienen entre
+  // comillas simples.
+  const resolveVar = (varName: string): string => {
+    if (!varTitle) return varName;
+    const title = varTitle(varName);
+    if (!title || title === varName) return varName;
+    return `«${title}» (${varName})`;
   };
   // selected(${X}, 'v') → X contiene 'v_label'
   r = r.replace(
     /selected\(\s*\$\{([^}]+)\}\s*,\s*'([^']*)'\s*\)/g,
     (_, varName: string, code: string) =>
-      `${varName} contiene '${resolveCode(varName, code)}'`,
+      `${resolveVar(varName)} contiene '${resolveCode(varName, code)}'`,
   );
   r = r.replace(
     /selected\(\s*\$\{([^}]+)\}\s*,\s*"([^"]*)"\s*\)/g,
     (_, varName: string, code: string) =>
-      `${varName} contiene "${resolveCode(varName, code)}"`,
+      `${resolveVar(varName)} contiene "${resolveCode(varName, code)}"`,
   );
   // not( ... contiene ... ) → ... no contiene ...
+  // El "varRef" capturado puede incluir `«…» (name)` además del nombre
+  // simple, así que aceptamos cualquier secuencia hasta `contiene`.
   r = r.replace(
-    /\bnot\s*\(\s*([a-zA-Z_][\w]*)\s+contiene\s+('[^']*'|"[^"]*")\s*\)/g,
+    /\bnot\s*\(\s*(.+?)\s+contiene\s+('[^']*'|"[^"]*")\s*\)/g,
     "$1 no contiene $2",
   );
   // ${X} != '' / = '' (PRIMERO, antes de los != / = generales).
-  r = r.replace(/\$\{([^}]+)\}\s*!=\s*''/g, "$1 tiene valor");
-  r = r.replace(/\$\{([^}]+)\}\s*=\s*''/g, "$1 está vacío");
+  r = r.replace(/\$\{([^}]+)\}\s*!=\s*''/g, (_, varName: string) => `${resolveVar(varName)} tiene valor`);
+  r = r.replace(/\$\{([^}]+)\}\s*=\s*''/g, (_, varName: string) => `${resolveVar(varName)} está vacío`);
   // ${X} = 'code' / != 'code' → resolver código a label.
   r = r.replace(
     /\$\{([^}]+)\}\s*=\s*'([^']*)'/g,
     (_, varName: string, code: string) =>
-      `${varName} = '${resolveCode(varName, code)}'`,
+      `${resolveVar(varName)} = '${resolveCode(varName, code)}'`,
   );
   r = r.replace(
     /\$\{([^}]+)\}\s*!=\s*'([^']*)'/g,
     (_, varName: string, code: string) =>
-      `${varName} ≠ '${resolveCode(varName, code)}'`,
+      `${resolveVar(varName)} ≠ '${resolveCode(varName, code)}'`,
   );
-  // ${X} → X (después de los casos anteriores).
-  r = r.replace(/\$\{([^}]+)\}/g, "$1");
+  // ${X} → X resuelto (después de los casos anteriores).
+  r = r.replace(/\$\{([^}]+)\}/g, (_, varName: string) => resolveVar(varName));
   // Operadores comunes con espacios alrededor (los que no fueron
   // capturados con valor).
   r = r.replace(/\s*!=\s*/g, " ≠ ");

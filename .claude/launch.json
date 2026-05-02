@@ -8,6 +8,13 @@
       "port": 5173
     },
     {
+      "name": "Frontend (modo público)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "frontend", "dev"],
+      "env": { "VITE_PULSO_PUBLIC_MODE": "true" },
+      "port": 5173
+    },
+    {
       "name": "Backend (Plumber API)",
       "runtimeExecutable": "Rscript",
       "runtimeArgs": ["launcher/launch.R"],

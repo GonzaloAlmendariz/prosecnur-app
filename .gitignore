@@ -47,3 +47,12 @@ api/outputs/
 # Backups puntuales (ej. fixes manuales de data con .bak_edad_fix)
 *.bak_edad_fix
 *.bak_*
+
+# Datos del analista (no van al repo)
+insumos/
+
+# Build artifacts del paquete R
+prosecnurapp_*.tar.gz
+
+# Backups puntuales del .pulso (limpieza manual)
+*.pulso.pre-cleanup.bak

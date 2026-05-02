@@ -283,12 +283,24 @@ export function IndicadorAssembly({
     const dp = dimPositions.find((d) => d.label === selected);
     if (!dp) return undefined;
     const subs = subPositions[selected] ?? [];
-    // Bbox de la rama (conductor + subs). El índice puede quedar fuera
-    // del encuadre — preferimos que la rama desplegada protagonice. Con
-    // ancho/alto reales de cada rect (cada uno tiene su `w`).
+    // Bbox = rama + índice central. Sin el índice, el translate empuja la
+    // raíz fuera del viewBox cuando la rama vive lejos del centro (caso
+    // fullscreen, viewBox alto).
     const halfH = SUB_H / 2;
-    const xs = [dp.x - R_DIM, dp.x + R_DIM, ...subs.flatMap((s) => [s.x - s.w / 2, s.x + s.w / 2])];
-    const ys = [dp.y - R_DIM, dp.y + R_DIM, ...subs.flatMap((s) => [s.y - halfH, s.y + halfH])];
+    const xs = [
+      cx - R_INDEX,
+      cx + R_INDEX,
+      dp.x - R_DIM,
+      dp.x + R_DIM,
+      ...subs.flatMap((s) => [s.x - s.w / 2, s.x + s.w / 2]),
+    ];
+    const ys = [
+      cy - R_INDEX,
+      cy + R_INDEX,
+      dp.y - R_DIM,
+      dp.y + R_DIM,
+      ...subs.flatMap((s) => [s.y - halfH, s.y + halfH]),
+    ];
     const padX = 80;
     const padY = 80;
     const minX = Math.min(...xs) - padX;

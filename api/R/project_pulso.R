@@ -52,6 +52,13 @@
   # re-importan vía .dashboard_rebuild_after_load.
   s$dashboard_rp_inst <- NULL
   s$dashboard_rp_data <- NULL
+  # Dashboard ctx: contiene CLOSURES (`label_var`, `label_idx`, `label_sub`,
+  # `label_ind`, `label_data`) que capturan `.dim_nm_get` en su environment.
+  # Al deserializar en otro proceso R (ej. deploy en HF Space), esas
+  # closures fallan con "could not find function .dim_nm_get". Lo
+  # invalidamos: la próxima llamada a .dashboard_dim_ctx() lo reconstruye
+  # con el namespace activo, donde sí existe.
+  s$dashboard_dim_ctx <- NULL
   s
 }
 
@@ -367,6 +374,12 @@ load_pulso <- function(src_path) {
   s_saved$project_last_saved_at <- as.character(
     manifest$saved_at %||% format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   )
+  # Invalidar ctx del dashboard: contiene closures (`label_var`, etc.)
+  # que capturan `.dim_nm_get` en su environment original. En otro
+  # proceso R esas closures fallan; reconstruir lazy en próxima llamada.
+  # Compat con .pulso viejos que persistían el ctx antes de que
+  # `_strip_caches` lo invalidara.
+  s_saved$dashboard_dim_ctx <- NULL
   .session_env[[new_sid]] <- s_saved
 
   # 7) Rebuild de caches dashboard (rp_inst / rp_data) a partir de los

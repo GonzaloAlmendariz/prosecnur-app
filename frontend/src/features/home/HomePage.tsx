@@ -27,8 +27,8 @@ import {
 //
 // Jerarquía del Home (críticamente importante):
 //   1. Hero grande — saludo + nombre app + contexto del estudio.
-//   2. Módulos — PROTAGONISTAS ABSOLUTOS. Grid 2x2, cards iguales,
-//      hover expresivo.
+//   2. Módulos — PROTAGONISTAS ABSOLUTOS. Grid 3×2 (3 columnas × 2 filas)
+//      con cards iguales y hover expresivo.
 //   3. Footer — atribución, botón de notas (abre drawer), cerrar.
 //   4. Drawer lateral derecho — historial completo de release notes.
 //
@@ -107,6 +107,62 @@ const MODULES: ModuleMeta[] = [
 
 // ---- Notas de la versión --------------------------------------------
 const RELEASE_NOTES: ReleaseNote[] = [
+  {
+    version: "0.13",
+    date: "2026-05-02",
+    highlights: [
+      "Independencia entre proyectos: fix de fuga de estado al cambiar de .pulso (Dashboard/Analítica/Gráficos/Wizard de Dimensiones se resetean al cambiar sid).",
+      "StartModal rediseñado: solo Nuevo proyecto + Abrir proyecto + lista de Recientes con papelera (no borra el archivo, solo lo quita de la lista).",
+      "Modo navegador desbloqueado: abrir/crear .pulso por path manual sin Electron.",
+      "Editor de XLSForms: el export se guarda automáticamente en la carpeta del proyecto en vez de ~/Downloads.",
+      "Home: grid de módulos 3×2 con sexto slot reservado.",
+      "Fix Limpieza y normalización: el endpoint ya no se cae con E_INTERNAL al serializar evaluacion_final.",
+      "Fix Codificación: preview de respuestas con un solo elemento ya no rompe la UI.",
+      "Fix bootstrap: la app adopta el .pulso preload aunque jsonlite serialice NULL como `{}`.",
+    ],
+  },
+  {
+    version: "0.12",
+    date: "2026-04-28",
+    highlights: [
+      "Dashboard exporta como HTML autosuficiente con WebR (R en el navegador, sin servidor).",
+      "Bridge WebR para modo standalone: cómputo R nativo dentro del .html exportado.",
+    ],
+  },
+  {
+    version: "0.11",
+    date: "2026-04-28",
+    highlights: [
+      "Dashboard: vista previa, paleta UI, recodificación por variable, override de vars.",
+      "Revamp UX: toolbar afuera del canvas, marca con múltiples logos, sidebar Dimensiones rediseñado.",
+      "Vista FODA Lectura como modo pedagógico.",
+      "Avances en analítica/dimensiones, gráficos v2 y router del proyecto en R API.",
+    ],
+  },
+  {
+    version: "0.10",
+    date: "2026-04-27",
+    highlights: [
+      "Dashboard fullscreen transversal, con skeleton de filtros y tests del semáforo.",
+      "Barras h/v/facet, radar polygonal con modos/animado, FODA polish.",
+      "Semáforo configurable, leyendas centradas, IterStepper, % fuera de barra.",
+      "Chip rectangular al final de cada barra, FODA legacy preservado.",
+      "Plotly como un solo chunk compartido (~4.6 MB) entre features.",
+      "SessionChip resiliente a sessionId no-string + setter defensivo.",
+    ],
+  },
+  {
+    version: "0.9",
+    date: "2026-04-26",
+    highlights: [
+      "Dashboard /tablero independiente, con paletas y reglas de diseño Emil aplicadas.",
+      "Pestañas Relaciones y Base de datos con persistencia en el .pulso.",
+      "Pestaña Dimensiones con heatmap semáforo, radar y barras.",
+      "FODA scatter flotante + barras ordenadas con chip semáforo.",
+      "Pasada de fidelidad al legacy reporte_interactivo.",
+      "Curaduría preservada al reabrir un .pulso.",
+    ],
+  },
   {
     version: "0.8",
     date: "2026-04-21",
@@ -283,7 +339,7 @@ function HeroLogo() {
 }
 
 // =====================================================================
-// ModulesGrid — 2x2 con cards de altura igual
+// ModulesGrid — 3×2 con cards de altura igual
 // =====================================================================
 function ModulesGrid({ proc }: { proc: ModulePhaseState }) {
   return (
@@ -295,7 +351,29 @@ function ModulesGrid({ proc }: { proc: ModulePhaseState }) {
           procState={m.slug === "procesamiento" ? proc : null}
         />
       ))}
+      {/* Sexto slot reservado: mantiene la grid 3×2 visualmente equilibrada
+          mientras decidimos qué módulo va aquí. Es un placeholder vacío
+          (no clickeable, sin ícono específico) — dimensiones idénticas
+          al resto vía `home-mod-card`. */}
+      <ReservedSlot />
     </section>
+  );
+}
+
+function ReservedSlot() {
+  return (
+    <div
+      className="home-mod-card is-reserved"
+      aria-hidden="true"
+    >
+      <span className="home-mod-soon-badge">Por definir</span>
+      <div className="home-mod-body home-mod-reserved-body">
+        <span className="home-mod-reserved-mark">+</span>
+        <p className="home-mod-blurb">
+          Módulo por definir — el próximo capítulo de la suite.
+        </p>
+      </div>
+    </div>
   );
 }
 

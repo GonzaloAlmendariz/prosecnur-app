@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Accessibility,
   BarChart3,
@@ -27,6 +27,7 @@ import type {
   DashboardDimFodaCuadrante,
   DashboardDimFodaItem,
   DashboardDimFodaPayload,
+  DashboardDimMatrizPayload,
   DashboardDimPayload,
   DashboardDimSeccionesPayload,
   DashboardFiltro,
@@ -41,6 +42,7 @@ import {
   useDimCatalogo,
   useDimCategoriasVar,
   useDimFoda,
+  useDimMatriz,
   useDimPayload,
   useDimSeccionesVars,
 } from "../../useDashboardData";
@@ -60,6 +62,7 @@ import {
 import "./dimensiones.css";
 import "./foda.css";
 import { IndicadorAssembly } from "./IndicadorAssembly";
+import { MatrizUnidadesView } from "./MatrizUnidadesView";
 
 // Tab Dimensiones — heatmap semáforo + barras / radar / FODA en un único
 // visualizador con segmented control. Sidebar consolidado a 2 cards
@@ -74,8 +77,8 @@ export function DimensionesTab() {
   const fodaIconTint = useDashboardStore((s) => s.config.foda_icon_tint ?? "#FFFFFF");
   const fodaIconSize = useDashboardStore((s) => s.config.foda_icon_size ?? 1);
   const fodaIconLegend = useDashboardStore((s) => s.config.foda_icon_legend ?? true);
-  const fodaScoreMin = useDashboardStore((s) => s.config.foda_score_min ?? 0);
-  const fodaScoreMax = useDashboardStore((s) => s.config.foda_score_max ?? 120);
+  const fodaScoreMin = useDashboardStore((s) => s.config.foda_score_min ?? 60);
+  const fodaScoreMax = useDashboardStore((s) => s.config.foda_score_max ?? 100);
   const fodaShowTotal = useDashboardStore((s) => s.config.foda_show_total ?? true);
   const fodaSpacing = useDashboardStore((s) => s.config.foda_spacing ?? 1.15);
   const fodaGridIntensity = useDashboardStore((s) => s.config.foda_grid_intensity ?? 0.42);
@@ -83,6 +86,9 @@ export function DimensionesTab() {
   const fodaViews = useDashboardStore((s) => s.config.foda_views ?? DEFAULT_FODA_VIEWS);
   const fodaAliases = useDashboardStore((s) => s.config.foda_aliases ?? {});
   const fodaServiceIcons = useDashboardStore((s) => s.config.foda_service_icons ?? {});
+  const desgloseLayout = useDashboardStore((s) => s.config.dim_desglose_layout ?? "paginado");
+  const matrizVarColor = useDashboardStore((s) => s.config.matriz_var_color ?? "");
+  const matrizVarNombre = useDashboardStore((s) => s.config.matriz_var_nombre ?? "");
   const setDim = useDashboardStore((s) => s.setDimensiones);
 
   const { loading: loadingCat, error: errCat, payload: catalogo } = useDimCatalogo();
@@ -156,6 +162,15 @@ export function DimensionesTab() {
     cruce: cruceEfectivo,
     incluirTotal: incluirTotalEfectivo,
     iter,
+    filtros: filtrosActivos,
+  });
+
+  const matrizQuery = useDimMatriz({
+    enabled: dim.visualMode === "matriz" && Boolean(dim.objetivo) && Boolean(matrizVarColor),
+    modo: dim.modo,
+    objetivo: dim.objetivo,
+    varColor: matrizVarColor,
+    varNombre: matrizVarNombre,
     filtros: filtrosActivos,
   });
 
@@ -234,6 +249,14 @@ export function DimensionesTab() {
             foda={fodaQuery.payload}
             fodaLoading={fodaQuery.loading}
             fodaError={fodaQuery.error}
+            matriz={matrizQuery.payload}
+            matrizLoading={matrizQuery.loading}
+            matrizError={matrizQuery.error}
+            matrizVarColor={matrizVarColor}
+            desgloseLayout={desgloseLayout}
+            filtrosActivos={filtrosActivos}
+            cruceEfectivo={cruceEfectivo}
+            incluirTotalEfectivo={incluirTotalEfectivo}
           />
         )}
         <div style={{ height: 48 }} aria-hidden="true" />
@@ -788,6 +811,14 @@ function VisualizadorCard({
   foda,
   fodaLoading,
   fodaError,
+  matriz,
+  matrizLoading,
+  matrizError,
+  matrizVarColor,
+  desgloseLayout,
+  filtrosActivos,
+  cruceEfectivo,
+  incluirTotalEfectivo,
 }: {
   dim: ReturnType<typeof useDashboardStore.getState>["dimensiones"];
   setDim: (p: Partial<typeof dim>) => void;
@@ -797,8 +828,23 @@ function VisualizadorCard({
   foda: DashboardDimFodaPayload | null;
   fodaLoading: boolean;
   fodaError: string | null;
+  matriz: DashboardDimMatrizPayload | null;
+  matrizLoading: boolean;
+  matrizError: string | null;
+  matrizVarColor: string;
+  desgloseLayout: "paginado" | "apilado";
+  filtrosActivos: DashboardFiltro[];
+  cruceEfectivo: string;
+  incluirTotalEfectivo: boolean;
 }) {
   const visualMode: DashboardDimVisualMode = dim.visualMode;
+  const isApilado =
+    desgloseLayout === "apilado" &&
+    dim.iterarOn &&
+    Boolean(dim.iterarVar) &&
+    visualMode !== "construccion" &&
+    visualMode !== "foda" &&
+    visualMode !== "matriz";
   const fodaVista = useDashboardStore((s) => s.config.foda_vista ?? "conductores");
   const fodaVistaIsLectura = fodaVista === "lectura";
   const fs = useFullscreen();
@@ -810,6 +856,10 @@ function VisualizadorCard({
       ? "Scores por dimensión"
       : visualMode === "radar"
       ? "Radar de dimensiones"
+      : visualMode === "construccion"
+      ? "Construcción del indicador"
+      : visualMode === "matriz"
+      ? "Matriz por unidad"
       : "Matriz FODA";
 
   return (
@@ -823,12 +873,14 @@ function VisualizadorCard({
               ? "Radar de dimensiones"
               : visualMode === "foda"
               ? "Matriz FODA"
+              : visualMode === "matriz"
+              ? "Matriz por unidad"
               : visualMode === "construccion"
               ? "Construcción del indicador"
               : "Scores por dimensión"}
           </h2>
-          {payload && payload.ready && <SubtituloDim payload={payload} />}
-          {dim.iterarOn && dim.iterarVar && (
+          {payload && payload.ready && !isApilado && <SubtituloDim payload={payload} />}
+          {!isApilado && dim.iterarOn && dim.iterarVar && (
             <IterStepper
               variable={dim.iterarVar}
               level={dim.iterarLevel}
@@ -869,6 +921,12 @@ function VisualizadorCard({
             icon={<ScatterChart size={13} />}
             label="FODA"
           />
+          <SegmentedItem
+            active={visualMode === "matriz"}
+            onClick={() => setDim({ visualMode: "matriz" })}
+            icon={<Grid3x3 size={13} />}
+            label="Matriz"
+          />
           <FullscreenButton ctx={fs} />
         </div>
       </div>
@@ -878,7 +936,38 @@ function VisualizadorCard({
           key={visualMode}
           className={`dash-dim-vis-body ${maxed ? "dash-dim-fullscreen-content" : ""}`}
         >
-          {visualMode === "foda" ? (
+          {isApilado ? (
+            <StackedDesglose
+              variable={dim.iterarVar}
+              visualMode={visualMode}
+              modo={dim.modo}
+              objetivo={dim.objetivo}
+              cruce={cruceEfectivo}
+              incluirTotal={incluirTotalEfectivo}
+              filtros={filtrosActivos}
+              maxed={maxed}
+            />
+          ) : visualMode === "matriz" ? (
+            // Matriz por unidad — fetch independiente, igual que FODA. Si
+            // el usuario no eligió aún variables en Personalizar, mostramos
+            // un empty state con CTA en vez de un error críptico.
+            !matrizVarColor ? (
+              <EmptyState
+                title="Configura la Matriz"
+                subtitle="Ve a Personalizar → Matriz para elegir la variable de color (ej. Servicio) y opcionalmente la de nombre (ej. Municipio)."
+              />
+            ) : matrizLoading && !matriz ? (
+              <DimSkeleton mode="heatmap" />
+            ) : matrizError ? (
+              <EmptyState title="No se pudo calcular la matriz" subtitle={matrizError} />
+            ) : !matriz || !matriz.ready ? (
+              <DimSkeleton mode="heatmap" />
+            ) : matriz.error ? (
+              <EmptyState title="Sin datos para la matriz" subtitle={matriz.error} />
+            ) : (
+              <MatrizUnidadesView payload={matriz} />
+            )
+          ) : visualMode === "foda" ? (
             // Lectura es una vista pedagógica que NO depende del payload
             // del backend — cortocircuitamos los gates de loading/error
             // para que se renderice instantáneamente al hacer click.
@@ -992,6 +1081,172 @@ function IterStepper({
       </button>
     </div>
   );
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Desglose apilado — todos los niveles uno debajo del otro, lazy.
+// Cada bloque solo dispara su fetch al backend cuando entra al viewport,
+// para no martillar al R API con N requests simultáneos en datasets con
+// muchas categorías (ej. 20+ distritos).
+// ──────────────────────────────────────────────────────────────────────────
+
+function StackedDesglose({
+  variable,
+  visualMode,
+  modo,
+  objetivo,
+  cruce,
+  incluirTotal,
+  filtros,
+  maxed,
+}: {
+  variable: string;
+  visualMode: DashboardDimVisualMode;
+  modo: "general" | "indicadores";
+  objetivo: string;
+  cruce: string;
+  incluirTotal: boolean;
+  filtros: DashboardFiltro[];
+  maxed: boolean;
+}) {
+  const { valores, loading } = useDimCategoriasVar(variable || null);
+  if (loading && !valores.length) {
+    return <DimSkeleton mode={visualMode} />;
+  }
+  if (!valores.length) {
+    return (
+      <EmptyState
+        title="Sin valores para desglosar"
+        subtitle="La variable seleccionada no tiene categorías para mostrar."
+      />
+    );
+  }
+  return (
+    <div className="dash-dim-stacked">
+      {valores.map((v) => (
+        <LazyDesgloseLevelBlock
+          key={v.value}
+          variable={variable}
+          level={v.value}
+          label={v.label}
+          base={v.base}
+          visualMode={visualMode}
+          modo={modo}
+          objetivo={objetivo}
+          cruce={cruce}
+          incluirTotal={incluirTotal}
+          filtros={filtros}
+          maxed={maxed}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Wrapper lazy: monta DesgloseLevelBlock (que sí hace el fetch) solo cuando
+// el placeholder entra al viewport. Una vez visible, se queda montado
+// (`once`) para no re-disparar requests al hacer scroll.
+function LazyDesgloseLevelBlock(props: {
+  variable: string;
+  level: string;
+  label: string;
+  base?: number;
+  visualMode: DashboardDimVisualMode;
+  modo: "general" | "indicadores";
+  objetivo: string;
+  cruce: string;
+  incluirTotal: boolean;
+  filtros: DashboardFiltro[];
+  maxed: boolean;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (visible) return;
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      // Fallback: si el browser no soporta IO, montamos directamente.
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setVisible(true);
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visible]);
+
+  return (
+    <section ref={ref} className="dash-dim-stacked-block">
+      <header className="dash-dim-stacked-block-header">
+        <h3 className="dash-dim-stacked-block-title">{props.label}</h3>
+        {typeof props.base === "number" && props.base > 0 && (
+          <span className="dash-dim-stacked-block-meta">n={Math.round(props.base)}</span>
+        )}
+      </header>
+      {visible ? (
+        <DesgloseLevelBlock {...props} />
+      ) : (
+        <div className="dash-dim-stacked-block-placeholder" aria-hidden="true">
+          <DimSkeleton mode={props.visualMode} />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function DesgloseLevelBlock({
+  variable,
+  level,
+  visualMode,
+  modo,
+  objetivo,
+  cruce,
+  incluirTotal,
+  filtros,
+  maxed,
+}: {
+  variable: string;
+  level: string;
+  label: string;
+  base?: number;
+  visualMode: DashboardDimVisualMode;
+  modo: "general" | "indicadores";
+  objetivo: string;
+  cruce: string;
+  incluirTotal: boolean;
+  filtros: DashboardFiltro[];
+  maxed: boolean;
+}) {
+  const { loading, error, payload } = useDimPayload({
+    modo,
+    objetivo,
+    cruce,
+    incluirTotal,
+    iter: { var: variable, level },
+    filtros,
+  });
+
+  if (loading && !payload) return <DimSkeleton mode={visualMode} />;
+  if (error) return <EmptyState title="No se pudo calcular este nivel" subtitle={error} />;
+  if (!payload || !payload.ready) return <DimSkeleton mode={visualMode} />;
+  if (payload.error) return <EmptyState title="Sin datos" subtitle={payload.error} />;
+  if (visualMode === "heatmap") return <HeatmapView payload={payload} />;
+  if (visualMode === "barras" || visualMode === "radar") {
+    return <MainPlotView payload={payload} visualMode={visualMode} maxed={maxed} />;
+  }
+  return null;
 }
 
 function SegmentedItem({
@@ -2029,10 +2284,23 @@ function FodaDispersion({
   const fodaIconTint = config.foda_icon_tint ?? "#FFFFFF";
   const fodaIconSize = config.foda_icon_size ?? 1;
   const fodaIconLegend = config.foda_icon_legend ?? true;
-  const fodaScoreMin = config.foda_score_min ?? 0;
-  const fodaScoreMax = config.foda_score_max ?? 120;
+  const fodaScoreMin = config.foda_score_min ?? 60;
+  const fodaScoreMax = config.foda_score_max ?? 100;
   const fodaSpacing = config.foda_spacing ?? 1.15;
   const fodaGridIntensity = config.foda_grid_intensity ?? 0.42;
+
+  // Card seleccionada por click — abre el popup persistente con detalle
+  // expandido (chips agregados + dispersión + n). Cierra con Esc o
+  // click fuera del popup.
+  const [clickedCard, setClickedCard] = useState<DashboardDimFodaItem | null>(null);
+  useEffect(() => {
+    if (!clickedCard) return undefined;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setClickedCard(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [clickedCard]);
   const sem = useMemo(
     () => semaforoFromConfig(config, {
       red_color: semaforo.red_color,
@@ -2105,6 +2373,7 @@ function FodaDispersion({
             const groupKey = p.grupo_key || p.grupo || "Total";
             const isFiltered = selectedGroup !== "__all__";
             const isActive = !isFiltered || groupKey === selectedGroup;
+            const isMuted = isFiltered && !isActive;
             const scoreText = formatFodaMetric(p.score_mean);
             const sdText = formatFodaMetric(p.score_sd);
             const pointKind = p.item_kind ?? payload.item_kind ?? "conductores";
@@ -2128,9 +2397,20 @@ function FodaDispersion({
                   ["--dash-foda-icon-scale" as string]: iconScale,
                   ["--dash-foda-card-scale" as string]: iconScale,
                 }}
-                tabIndex={0}
-                aria-label={`${p.axis_label}${showGroup ? `, ${p.grupo}` : ""}. Puntaje ${scoreText}. Desviación ${sdText}.`}
-                title={`${p.axis_label}${showGroup ? ` · ${p.grupo}` : ""}\nPuntaje: ${scoreText}\nDesviación: ${sdText}\nn: ${p.n_valid}`}
+                // En modo cruce, los boxes muted (de otros niveles) no son
+                // interactivos: ni hover ni click ni focus. Sin esto el
+                // tooltip aparecería sobre boxes que el lector explícitamente
+                // filtró, contradiciendo la selección visual.
+                tabIndex={isMuted ? -1 : 0}
+                aria-hidden={isMuted}
+                aria-label={isMuted ? undefined : `${p.axis_label}${showGroup ? `, ${p.grupo}` : ""}. Puntaje ${scoreText}. Desviación ${sdText}. n ${p.n_valid}.`}
+                onClick={isMuted ? undefined : () => setClickedCard(p)}
+                onKeyDown={isMuted ? undefined : (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setClickedCard(p);
+                  }
+                }}
               >
                 <span className="dash-foda-legacy-title">
                   {usePointIcon ? (
@@ -2163,6 +2443,11 @@ function FodaDispersion({
                     <span>Desviación</span>
                     <strong>{sdText}</strong>
                   </span>
+                  <span className="dash-foda-hover-row">
+                    <span>n</span>
+                    <strong>{p.n_valid}</strong>
+                  </span>
+                  <span className="dash-foda-hover-hint">Click para ver detalle</span>
                 </span>
               </div>
             );
@@ -2215,7 +2500,102 @@ function FodaDispersion({
           </div>
         );
       })()}
+      {clickedCard && (
+        <FodaCardDetailPopup
+          item={clickedCard}
+          showGroup={!!selectedGroup && !!clickedCard.grupo}
+          onClose={() => setClickedCard(null)}
+        />
+      )}
     </>
+  );
+}
+
+// Popup persistente que aparece al hacer click en una card del FODA.
+// Espejo del hover-card pero modal: vive sobre un backdrop semi-opaco,
+// se cierra con Esc, click fuera o el botón ✕. Muestra los chips/items
+// que componen el promedio para explicar el puntaje y la dispersión.
+function FodaCardDetailPopup({
+  item,
+  showGroup,
+  onClose,
+}: {
+  item: DashboardDimFodaItem;
+  showGroup: boolean;
+  onClose: () => void;
+}) {
+  const score = Number.isFinite(item.score_mean) ? item.score_mean.toFixed(1) : "—";
+  const sd = Number.isFinite(item.score_sd) ? item.score_sd.toFixed(1) : "—";
+  // Lista de chips agregados — viene del payload (`chips_detail`) si el
+  // backend lo expone. Fallback: lista vacía con mensaje pedagógico.
+  const chips = (item as { chips_detail?: { label: string; score: number }[] }).chips_detail ?? [];
+  return (
+    <div
+      className="dash-foda-detail-backdrop"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="dash-foda-detail-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="foda-detail-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="dash-foda-detail-head">
+          <div>
+            <h3 id="foda-detail-title">{item.axis_label}</h3>
+            {showGroup && (
+              <p className="dash-foda-detail-group">{item.grupo}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            className="dash-foda-detail-close"
+            onClick={onClose}
+            aria-label="Cerrar detalle"
+          >
+            ×
+          </button>
+        </header>
+        <div className="dash-foda-detail-metrics">
+          <div className="dash-foda-detail-metric">
+            <span>Puntaje promedio</span>
+            <strong>{score}</strong>
+          </div>
+          <div className="dash-foda-detail-metric">
+            <span>Desviación</span>
+            <strong>{sd}</strong>
+          </div>
+          <div className="dash-foda-detail-metric">
+            <span>Respuestas</span>
+            <strong>{item.n_valid}</strong>
+          </div>
+        </div>
+        {chips.length > 0 ? (
+          <>
+            <h4 className="dash-foda-detail-section-title">
+              Componentes del promedio ({chips.length})
+            </h4>
+            <ul className="dash-foda-detail-chips">
+              {chips.map((c, i) => (
+                <li key={`${c.label}-${i}`}>
+                  <span>{c.label}</span>
+                  <strong>{c.score.toFixed(1)}</strong>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="dash-foda-detail-help">
+            El puntaje es el promedio de las preguntas que componen este indicador
+            ({item.n_valid} respuestas válidas). La desviación mide qué tan dispersas
+            están esas puntuaciones: más alta significa menos consenso entre quienes
+            respondieron.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -2351,10 +2731,12 @@ function buildFodaLegacyPlot(
     return { label, color: groupColors[label] ?? item?.color ?? "#2F4A66" };
   });
   const rawPoints = items.map((it, i) => {
-    const jitterX = Math.sin((i + 1) * 2.399 + 0.7) * 2.6 * spacing;
-    const jitterY = Math.cos((i + 1) * 1.913 + 0.2) * 1.9 * spacing;
-    const left = clampPct((it.score_sd / xMax) * 100 + jitterX);
-    const top = clampPct(100 - ((it.score_mean - yMin) / (yMax - yMin)) * 100 + jitterY);
+    // Sin jitter — la coordenada Y refleja el puntaje exacto y la X la
+    // desviación exacta. Aceptamos que dos boxes con métricas casi idénticas
+    // se solapen (es mejor que ver un punto >80 dibujado debajo de la
+    // línea de corte por culpa del ruido pseudo-aleatorio).
+    const left = clampPct((it.score_sd / xMax) * 100);
+    const top = clampPct(100 - ((it.score_mean - yMin) / (yMax - yMin)) * 100);
     const group = it.grupo || "Total";
     return {
       ...it,
@@ -2364,7 +2746,10 @@ function buildFodaLegacyPlot(
       color: groupColors[group] ?? it.color ?? "#2F4A66",
     };
   });
-  const points = repelFodaPoints(rawPoints, spacing);
+  // Sin repulsión — el user pidió precisión sobre evitar overlap.
+  const points = rawPoints;
+  void spacing;
+  void repelFodaPoints;
   return {
     xMax,
     cutX: clampPct((corteSd / xMax) * 100),
@@ -2956,7 +3341,7 @@ function ConstruccionView({
             easing: "cubic-in-out",
           },
         }}
-        height={maxed ? 760 : 620}
+        height={620}
         ariaLabel={`Construcción del indicador ${payload.objective ?? ""}`}
         onReady={handlePlotReady}
       />

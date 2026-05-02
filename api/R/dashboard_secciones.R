@@ -90,7 +90,7 @@
   if (is.null(s$rp_data) || is.null(s$rp_inst)) {
     return(list(secciones = list(), kpi_vars = list()))
   }
-  secs <- .dashboard_curated_secciones(s)
+  secs <- .dashboard_visible_secciones(s)
   if (!length(secs)) return(list(secciones = list(), kpi_vars = list()))
 
   surv <- s$rp_inst$survey
@@ -104,7 +104,7 @@
       vars = lapply(vars, function(v) {
         list(
           name = v,
-          label = .obtener_label_var(v, s$rp_inst, s$rp_data),
+          label = .dashboard_var_label_override(s, v) %||% .obtener_label_var(v, s$rp_inst, s$rp_data),
           tipo = .dashboard_tipo_pregunta(v, s$rp_inst, s$rp_data)
         )
       })

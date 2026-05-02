@@ -28,6 +28,11 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
   pr <- mount_graficos(pr)
   pr <- mount_dashboard(pr)
 
+  # Modo público (deploy web): filtro de whitelist para que solo pasen
+  # endpoints read-only del dashboard. NO-OP cuando PULSO_PUBLIC_MODE
+  # no está activo (Electron local).
+  pr <- apply_public_mode_filter(pr)
+
   if (nzchar(static_dir) && dir.exists(static_dir)) {
     pr <- plumber::pr_static(pr, "/", static_dir)
     pr <- plumber::pr_get(pr, "/<path:path>", function(req, res, path) {

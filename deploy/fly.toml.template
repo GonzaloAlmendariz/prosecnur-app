@@ -1,0 +1,44 @@
+# Fly.io config — usa el MISMO Dockerfile que HF Spaces.
+#
+# Despliegue:
+#   1) Instala flyctl: brew install flyctl
+#   2) flyctl auth login
+#   3) cp deploy/fly.toml.template fly.toml
+#      (luego reemplaza {{APP_NAME}})
+#   4) flyctl launch --no-deploy --copy-config
+#   5) flyctl volumes create pulso_data --size 1 --region scl
+#   6) flyctl deploy
+#   7) Sube el .pulso al volume:
+#      flyctl ssh sftp shell
+#      put GIZ.pulso /data/proyecto.pulso
+#
+# Auth opcional: ver `[[services.http_checks]]` y considerar
+# Cloudflare Tunnel + Access para auth por email.
+
+app = "{{APP_NAME}}"
+primary_region = "scl"  # Santiago — más cerca de Lima
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PULSO_BOOTSTRAP_PROJECT = "/data/proyecto.pulso"
+  PORT = "7860"
+  # PULSO_PUBLIC_MODE lo activa launch_server.R automáticamente.
+
+[[mounts]]
+  source = "pulso_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 7860
+  force_https = true
+  auto_stop_machines = "stop"   # ahorra créditos cuando nadie ve el dashboard
+  auto_start_machines = true
+  min_machines_running = 0       # 0 = totalmente serverless (cold start ~30s)
+  processes = ["app"]
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"  # subir a 1024 si dataset grande / OOM

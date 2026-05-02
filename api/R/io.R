@@ -1,7 +1,14 @@
 allowed_upload_kinds <- c("xlsform", "data", "sav", "plan_limpieza", "plantilla_codif")
 
 ext_for_kind <- function(kind, original_name) {
-  ext <- tolower(tools::file_ext(original_name))
+  name <- trimws(as.character(original_name %||% ""))
+  # macOS/Finder and some download flows can leave duplicated files as
+  # "archivo.sav 2". It is still an SPSS file, but tools::file_ext()
+  # returns "2", which later makes the data reader reject it.
+  if (identical(kind, "sav") || grepl("\\.sav(?:\\s+\\d+)?$", name, ignore.case = TRUE)) {
+    return("sav")
+  }
+  ext <- tolower(tools::file_ext(name))
   if (!nzchar(ext)) {
     ext <- switch(kind,
       xlsform = "xlsx", data = "xlsx", sav = "sav",

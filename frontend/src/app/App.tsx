@@ -17,6 +17,7 @@ import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import LogsPanel from "../components/LogsPanel";
 import { LoadingBlock } from "../components/States";
 import { install as installLogSink, note as logNote } from "../lib/logSink";
+import { isPublicMode } from "../lib/runtime";
 
 // Dashboard — code-split para no arrastrar plotly al bundle principal.
 // Su payload solo se carga cuando el usuario entra a /tablero. La ruta
@@ -35,6 +36,31 @@ export default function App() {
   useEffect(() => {
     logNote("App montado", "info");
   }, []);
+
+  // Modo público (deploy web a HF Spaces / Fly): backend Plumber real
+  // pero UI sin shell admin. Sí necesita SessionProvider porque arma
+  // el sid vía /api/system/bootstrap (el server arranca con
+  // PULSO_BOOTSTRAP_PROJECT y todos los visitantes comparten el sid).
+  if (isPublicMode()) {
+    return (
+      <AppErrorBoundary>
+        <SessionProvider>
+          <SessionLostBanner />
+          <div className="pulso-public-shell">
+            <Suspense fallback={<LoadingBlock label="Cargando dashboard…" />}>
+              <DashboardPage publicMode />
+            </Suspense>
+            <footer className="pulso-public-footer">
+              <span>Elaborado con Prosecnur</span>
+              <span className="pulso-public-footer-dot" aria-hidden="true" />
+              <span>Pulso PUCP {new Date().getFullYear()}</span>
+            </footer>
+          </div>
+        </SessionProvider>
+        <LogsPanel />
+      </AppErrorBoundary>
+    );
+  }
 
   return (
     <AppErrorBoundary>

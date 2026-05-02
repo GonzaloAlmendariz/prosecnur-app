@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Compass, ListTree, PieChart } from "lucide-react";
 import {
   apiEstudioGet,
@@ -63,18 +63,33 @@ const TABS: TabMeta<ValidacionTabId>[] = [
 ];
 
 export default function ValidacionPage() {
-  const { state } = useSession();
+  const { sessionId, state } = useSession();
   const activeTab = useValidacionStore((s) => s.activeTab);
   const setActiveTab = useValidacionStore((s) => s.setActiveTab);
   const baseNombre = useValidacionStore((s) => s.baseNombre);
   const setBaseNombre = useValidacionStore((s) => s.setBaseNombre);
+  const resetForSession = useValidacionStore((s) => s.resetForSession);
 
   const [estudio, setEstudio] = useState<EstudioPayload | null>(null);
   const [loadError, setLoadError] = useState<string>("");
+  const lastSessionRef = useRef(sessionId);
+  const basesSignature = useMemo(
+    () => `${state?.session_id ?? sessionId}|${state?.n_bases ?? 0}|${(state?.bases_nombres ?? []).join("|")}`,
+    [sessionId, state?.session_id, state?.n_bases, state?.bases_nombres],
+  );
+
+  useEffect(() => {
+    if (!sessionId || lastSessionRef.current === sessionId) return;
+    lastSessionRef.current = sessionId;
+    setEstudio(null);
+    setLoadError("");
+    resetForSession();
+  }, [sessionId, resetForSession]);
 
   // Cargar el estudio para poblar el BaseSelector (si multi-base).
   useEffect(() => {
     let cancel = false;
+    setLoadError("");
     apiEstudioGet()
       .then((p) => {
         if (cancel) return;
@@ -99,7 +114,7 @@ export default function ValidacionPage() {
     return () => {
       cancel = true;
     };
-  }, [baseNombre, setBaseNombre]);
+  }, [baseNombre, setBaseNombre, basesSignature]);
 
   const prereqsOk = !!state?.xlsform && !!state?.data;
 

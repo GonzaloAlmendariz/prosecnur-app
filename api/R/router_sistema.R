@@ -153,8 +153,8 @@ shutdown_requested <- function() isTRUE(.shutdown_flag$value)
 # `.read_data_any(meta)` que acepta un file-meta — no nos pisamos con
 # este nombre distinto para evitar ambigüedad dentro del paquete cargado
 # por pkgload::load_all.
-.read_data_from_path <- function(path) {
-  ext <- tolower(tools::file_ext(path))
+.read_data_from_path <- function(path, ext = NULL) {
+  ext <- tolower(ext %||% tools::file_ext(path))
   if (ext %in% c("xlsx", "xls")) {
     return(readxl::read_excel(path))
   }
@@ -192,7 +192,14 @@ mount_sistema <- function(pr) {
     plumber::pr_get("/api/system/bootstrap", wrap_endpoint(function(req, res) {
       sid <- Sys.getenv("PULSO_BOOTSTRAP_SID", "")
       if (!nzchar(sid)) return(list(sid = NULL))
-      Sys.setenv(PULSO_BOOTSTRAP_SID = "")
+      # En Electron local "consumimos" el bootstrap (recargas posteriores
+      # crean sesión efímera). En modo público (deploy web) NO consumimos:
+      # el sid bootstrapeado es estable, todos los visitantes/recargas lo
+      # comparten. Sin esto, una recarga del browser deja al visitante sin
+      # sesión y E_NO_SESSION en cada llamada.
+      if (!is_public_mode()) {
+        Sys.setenv(PULSO_BOOTSTRAP_SID = "")
+      }
       list(sid = sid)
     })) |>
     # Reporta el estado de las dependencias opcionales del sistema (Quarto,
@@ -337,7 +344,8 @@ mount_sistema <- function(pr) {
       add_base_from_files <- function(sid, nombre, inst_path, data_path) {
         inst_basename <- basename(inst_path)
         data_basename <- basename(data_path)
-        data_ext <- tolower(tools::file_ext(data_basename))
+        data_ext <- ext_for_kind(if (grepl("\\.sav(?:\\s+\\d+)?$", data_basename, ignore.case = TRUE)) "sav" else "data",
+                                 data_basename)
         data_kind <- if (data_ext == "sav") "sav" else "data"
 
         xls_meta <- save_upload(sid, "xlsform", inst_basename,
@@ -345,7 +353,7 @@ mount_sistema <- function(pr) {
         dat_meta <- save_upload(sid, data_kind, data_basename,
                                 readBin(data_path, "raw", n = file.info(data_path)$size))
         rp_inst <- reporte_instrumento(path = xls_meta$path)
-        data_df <- .read_data_from_path(dat_meta$path)
+        data_df <- .read_data_from_path(dat_meta$path, dat_meta$ext)
         rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
         # Compatibilidad con el flujo single-base de Fase 1. Aunque el demo
@@ -424,8 +432,11 @@ mount_sistema <- function(pr) {
       )
     })) |>
     plumber::pr_post("/api/session", wrap_endpoint(function(req, res) {
+      q <- req$args %||% list()
+      fresh <- isTRUE(q$fresh) || identical(as.character(q$fresh %||% ""), "1") ||
+        tolower(as.character(q$fresh %||% "")) %in% c("true", "yes", "si", "sí")
       existing <- session_header(req)
-      if (!is.null(existing) && !is.null(session_get(existing, required = FALSE))) {
+      if (!fresh && !is.null(existing) && !is.null(session_get(existing, required = FALSE))) {
         return(list(session_id = existing, reused = TRUE))
       }
       sid <- session_create()

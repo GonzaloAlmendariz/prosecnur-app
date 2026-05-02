@@ -248,6 +248,11 @@
   }, character(1))
 }
 
+.explorar_is_missing_value <- function(x) {
+  xc <- as.character(x)
+  is.na(x) | is.na(xc) | !nzchar(xc) | xc == "NA"
+}
+
 # -----------------------------------------------------------------------------
 # .num_viz_range: devuelve el rango ideal para mostrar una variable numérica.
 #
@@ -396,7 +401,7 @@
   }
   col <- df[[var]]
   n_total <- length(col)
-  n_na <- sum(is.na(col) | (is.character(col) & (!nzchar(col) | col == "NA")))
+  n_na <- sum(.explorar_is_missing_value(col))
   n_validos <- n_total - n_na
   pct_na <- if (n_total > 0L) n_na / n_total else 0
   sev_na <- if (pct_na < 0.05) "success" else if (pct_na < 0.20) "warn" else "danger"
@@ -748,7 +753,7 @@
     if (is.null(col)) {
       n_validos <- 0L; n_nulos <- n_total
     } else {
-      n_na <- sum(is.na(col) | (is.character(col) & (!nzchar(col) | col == "NA")))
+      n_na <- sum(.explorar_is_missing_value(col))
       n_nulos <- as.integer(n_na)
       n_validos <- as.integer(n_total - n_na)
     }
