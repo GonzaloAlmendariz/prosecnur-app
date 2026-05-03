@@ -2,7 +2,7 @@
 #
 # Expone un MVP útil para:
 #   - importar un XLSForm existente al editor
-#   - traducir un export .sav de SurveyMonkey a un XLSForm editable
+#   - traducir un formulario SurveyMonkey vía API a un XLSForm editable
 #   - exportar nuevamente el workbook editado a .xlsx dentro de la sesión
 
 .xlsform_editor_default_columns <- function(sheet_name) {
@@ -618,6 +618,42 @@ xlsform_editor_validate <- function(survey, choices, settings) {
   xlsform_editor_validate(survey, choices, settings)
 }
 
+.xlsform_editor_sm_pages_from_survey <- function(survey) {
+  survey <- as.data.frame(survey, stringsAsFactors = FALSE)
+  if (!nrow(survey)) return(list())
+  for (col in c("type", "name", "section")) if (!col %in% names(survey)) survey[[col]] <- NA_character_
+  out <- list()
+  current <- NULL
+  page_from_name <- function(nm) {
+    m <- regmatches(nm, regexec("^(?:section_pag_|Pag)([0-9]+)$", nm, perl = TRUE))[[1]]
+    if (length(m) == 2L) m[2] else NULL
+  }
+  qref <- function(nm) {
+    m <- regmatches(nm, regexec("^[pPqQ]0*([0-9]+)", nm, perl = TRUE))[[1]]
+    if (length(m) == 2L) paste0("Q", as.integer(m[2])) else NA_character_
+  }
+  for (i in seq_len(nrow(survey))) {
+    tp <- as.character(survey$type[i] %||% "")
+    nm <- as.character(survey$name[i] %||% "")
+    if (identical(tp, "begin_group")) {
+      pg <- page_from_name(nm)
+      if (!is.null(pg)) {
+        current <- pg
+        if (is.null(out[[pg]])) out[[pg]] <- character(0)
+      }
+      next
+    }
+    if (identical(tp, "end_group")) {
+      current <- NULL
+      next
+    }
+    if (is.null(current) || !nzchar(nm) || identical(tp, "note")) next
+    q <- qref(nm)
+    if (!is.na(q)) out[[current]] <- unique(c(out[[current]], q))
+  }
+  out
+}
+
 mount_xlsform_editor <- function(pr) {
   pr |>
     plumber::pr_post("/api/xlsform-editor/import", wrap_endpoint(function(req, res, ...) {
@@ -916,6 +952,7 @@ mount_xlsform_editor <- function(pr) {
       # si no, devuelve interpretación literal.
       parsed <- .xlsform_editor_parse_body(req)
       regla <- as.character(parsed$regla %||% "")
+      workbook <- parsed$workbook
       survey_id <- as.character(parsed$survey_id %||% "")
       token <- as.character(parsed$token %||% "")
       paginas_in <- parsed$paginas
@@ -949,20 +986,77 @@ mount_xlsform_editor <- function(pr) {
         )
       }
 
+      xlsform <- NULL
+      sm <- NULL
+      if (!is.null(workbook) && length(workbook)) {
+        xlsform <- list(
+          survey = .xlsform_editor_payload_to_df(workbook$survey, "survey"),
+          choices = .xlsform_editor_payload_to_df(workbook$choices, "choices"),
+          settings = .xlsform_editor_payload_to_df(workbook$settings, "settings")
+        )
+        sm <- .sm_logic_context_from_xlsform(xlsform)
+        if (is.null(paginas) || !length(paginas)) {
+          paginas <- .xlsform_editor_sm_pages_from_survey(xlsform$survey)
+        }
+      }
+
       tryCatch(
         surveymonkey_interpretar_regla(regla, details = details,
+          xlsform = xlsform, sm = sm,
           paginas = paginas, paginas_labels = paginas_labels,
           choice_order_overrides = choice_order_overrides),
         error = function(e) list(ok = FALSE, error = conditionMessage(e))
       )
     })) |>
-    plumber::pr_post("/api/xlsform-editor/import-surveymonkey-with-logic", wrap_endpoint(function(req, res, ...) {
-      # Versión extendida del import: acepta reglas textuales y mapeo de
-      # páginas, aplica la lógica al XLSForm y devuelve hallazgos del
-      # validador empírico junto con el workbook.
-      sid <- session_header(req)
+    plumber::pr_post("/api/xlsform-editor/sm-apply-logic", wrap_endpoint(function(req, res, ...) {
       parsed <- .xlsform_editor_parse_body(req)
-      file_id <- as.character(parsed$file_id %||% "")
+      workbook <- parsed$workbook %||% list()
+      reglas_text <- as.character(parsed$reglas %||% "")
+      paginas_in <- parsed$paginas
+      overrides_in <- parsed$choice_order_overrides
+      source_name <- as.character(parsed$source_name %||% "XLSForm actual")
+
+      survey <- .xlsform_editor_payload_to_df(workbook$survey, "survey")
+      choices <- .xlsform_editor_payload_to_df(workbook$choices, "choices")
+      settings <- .xlsform_editor_payload_to_df(workbook$settings, "settings")
+      xlsform <- list(survey = survey, choices = choices, settings = settings)
+      sm <- .sm_logic_context_from_xlsform(xlsform)
+
+      paginas <- NULL
+      if (!is.null(paginas_in) && length(paginas_in)) {
+        paginas <- lapply(paginas_in, function(qs) as.character(unlist(qs)))
+        names(paginas) <- as.character(names(paginas_in))
+      }
+      if (is.null(paginas) || !length(paginas)) {
+        paginas <- .xlsform_editor_sm_pages_from_survey(survey)
+      }
+
+      choice_order_overrides <- NULL
+      if (!is.null(overrides_in) && length(overrides_in)) {
+        choice_order_overrides <- lapply(overrides_in, function(lbls) as.character(unlist(lbls)))
+        names(choice_order_overrides) <- as.character(names(overrides_in))
+      }
+
+      if (nzchar(trimws(reglas_text))) {
+        xlsform <- tryCatch(
+          surveymonkey_aplicar_logica(xlsform, reglas_text, sm, paginas = paginas,
+            choice_order_overrides = choice_order_overrides),
+          error = function(e) stop_api(400, "E_LOGIC_APPLY_FAILED",
+            sprintf("Aplicación de lógica falló: %s", conditionMessage(e)))
+        )
+      }
+
+      .xlsform_editor_workbook_payload(
+        sheets = list(survey = xlsform$survey, choices = xlsform$choices, settings = xlsform$settings),
+        source_kind = "surveymonkey",
+        source_name = source_name
+      )
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/import-surveymonkey-with-logic", wrap_endpoint(function(req, res, ...) {
+      # Import SurveyMonkey API-only: el .sav puede venir como contexto legacy
+      # del frontend, pero no define estructura del XLSForm. La API es fuente
+      # de verdad para tipos, etiquetas, secciones, opciones y lógica.
+      parsed <- .xlsform_editor_parse_body(req)
       lang <- as.character(parsed$lang %||% "es")
       reglas_text <- as.character(parsed$reglas %||% "")
       paginas_in <- parsed$paginas
@@ -971,7 +1065,7 @@ mount_xlsform_editor <- function(pr) {
       survey_id <- as.character(parsed$survey_id %||% "")
       token <- as.character(parsed$token %||% "")
 
-      if (!nzchar(file_id) && (!nzchar(survey_id) || !nzchar(token))) {
+      if (!nzchar(survey_id) || !nzchar(token)) {
         stop_api(400, "E_MISSING_SURVEYMONKEY_API", "Falta conectar SurveyMonkey con survey_id y token.")
       }
 
@@ -994,58 +1088,17 @@ mount_xlsform_editor <- function(pr) {
         names(choice_order_overrides) <- as.character(names(overrides_in))
       }
 
-      meta <- NULL
-      sm <- NULL
-      source_name <- "SurveyMonkey API"
-
-      if (nzchar(file_id)) {
-        meta <- get_file(sid, file_id)
-        source_name <- meta$original_name
-        .xlsform_editor_validate_meta(
-          meta, expected_kind = "sav",
-          code = "E_BAD_SURVEYMONKEY_SOURCE",
-          message = "Espera un archivo .sav."
-        )
-
-        sm <- tryCatch(
-          surveymonkey_leer(meta$path),
-          error = function(e) stop_api(400, "E_SAV_READ_FAILED",
-            sprintf("No pude leer el .sav: %s", conditionMessage(e)))
-        )
-        out <- tryCatch(
-          surveymonkey_xlsform(sm, lang = lang, paginas = paginas, paginas_labels = paginas_labels),
-          error = function(e) stop_api(500, "E_SM_TRANSLATE_FAILED",
-            sprintf("Traducción falló: %s", conditionMessage(e)))
-        )
-      } else {
-        details <- tryCatch(
-          sm_api_fetch_survey_details(survey_id, token),
-          error = function(e) stop_api(400, "E_SM_API_FAILED", conditionMessage(e))
-        )
-        out <- tryCatch(
-          sm_api_xlsform(details, style = .sm_api_default_style(), lang = lang),
-          error = function(e) stop_api(500, "E_SM_API_TRANSLATE_FAILED",
-            sprintf("Traducción desde API SurveyMonkey falló: %s", conditionMessage(e)))
-        )
-        source_name <- .sm_first_nonempty(.sm_or(details$title, NA_character_), fallback = "SurveyMonkey API")
-        sm <- out$sm_logic
-      }
-
-      # En el flujo legacy con .sav, la API enriquece catálogos/tipos encima
-      # del traductor histórico. En el flujo nuevo API-only esto ya ocurrió
-      # dentro de sm_api_xlsform().
-      if (nzchar(file_id) && nzchar(survey_id) && nzchar(token)) {
-        details <- tryCatch(
-          sm_api_fetch_survey_details(survey_id, token),
-          error = function(e) stop_api(400, "E_SM_API_FAILED", conditionMessage(e))
-        )
-        style <- .sm_detect_naming_style(sm$vars_tbl$name_raw)
-        out <- tryCatch(
-          sm_api_enrich_xlsform_structure(out, details, sm, style = style),
-          error = function(e) stop_api(500, "E_SM_API_ENRICH_FAILED",
-            sprintf("Enriquecimiento con API SurveyMonkey falló: %s", conditionMessage(e)))
-        )
-      }
+      details <- tryCatch(
+        sm_api_fetch_survey_details(survey_id, token),
+        error = function(e) stop_api(400, "E_SM_API_FAILED", conditionMessage(e))
+      )
+      out <- tryCatch(
+        sm_api_xlsform(details, style = .sm_api_default_style(), lang = lang),
+        error = function(e) stop_api(500, "E_SM_API_TRANSLATE_FAILED",
+          sprintf("Traducción desde API SurveyMonkey falló: %s", conditionMessage(e)))
+      )
+      source_name <- .sm_first_nonempty(.sm_or(details$title, NA_character_), fallback = "SurveyMonkey API")
+      sm <- out$sm_logic
 
       # Aplicar reglas si vinieron
       hallazgos <- list()
@@ -1056,15 +1109,6 @@ mount_xlsform_editor <- function(pr) {
           error = function(e) stop_api(400, "E_LOGIC_APPLY_FAILED",
             sprintf("Aplicación de lógica falló: %s", conditionMessage(e)))
         )
-        if (nzchar(file_id)) {
-          validacion <- tryCatch(
-            surveymonkey_validar_logica(out, sm, threshold = 0.95),
-            error = function(e) NULL
-          )
-          if (!is.null(validacion) && nrow(validacion)) {
-            hallazgos <- surveymonkey_hallazgos(validacion)
-          }
-        }
       }
 
       payload <- .xlsform_editor_workbook_payload(

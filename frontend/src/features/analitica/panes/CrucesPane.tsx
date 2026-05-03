@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { AlertTriangle, Filter, Grid3x3, Layers, Plus, Sigma, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, Filter, GitBranch, Grid3x3, Info, Layers, Plus, Sigma, X } from "lucide-react";
 import {
   apiAnaliticaColumnValues,
   apiAnaliticaCruces,
@@ -28,6 +28,8 @@ import { useSession } from "../../../lib/SessionContext";
 
 export function CrucesPane() {
   const cruces = useAnaliticaStore((s) => s.config.cruces);
+  const frec = useAnaliticaStore((s) => s.config.frecuencias);
+  const numericasGlobal = useAnaliticaStore((s) => s.config.numericas);
   const setCruces = useAnaliticaStore((s) => s.setCruces);
   const addCruceVar = useAnaliticaStore((s) => s.addCruceVar);
   const removeCruceVar = useAnaliticaStore((s) => s.removeCruceVar);
@@ -65,7 +67,16 @@ export function CrucesPane() {
   }
 
   const nVars = cruces.cruces_vars.length;
-  const nResto = Math.max(0, variables.length - nVars);
+  const numericas = frec.numericas_override ?? numericasGlobal;
+  const crucesVariables = useMemo(
+    () => variables.filter((v) => !!v.categorica),
+    [variables],
+  );
+  const nResto = Math.max(
+    0,
+    variables.filter((v) => !!v.categorica || numericas.includes(v.name)).length - nVars,
+  );
+  const modoLabel = cruces.modo === "dimensiones" ? "Dimensiones" : "Estándar";
 
   return (
     <Panel
@@ -73,17 +84,30 @@ export function CrucesPane() {
       title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Grid3x3 size={16} /> Cruces</span>}
       hint="Tablas cruzadas 2D. Cada variable elegida se cruza contra el resto del instrumento. Incluye fila y columna Total por defecto."
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-        {/* 1. Variables a cruzar */}
+      <div className="analitica-report-shell">
+        <div className="analitica-report-overview">
+          <Metric label="Cruces" value={nVars} suffix={nVars === 1 ? "variable" : "variables"} />
+          <Metric label="Contra" value={nResto} suffix="variables" />
+          <Metric label="Modo" value={modoLabel} compact />
+          <Metric label="Signif." value={cruces.show_sig ? "Sí" : "No"} compact />
+        </div>
+
+        <div className="analitica-report-note">
+          <Info size={14} style={{ marginTop: 1, flexShrink: 0 }} />
+          <div>
+            Elige pocas variables de columna, pero buenas: sexo, distrito, sede, grupo etario o servicio. Cada una abre un bloque y se cruza contra el resto del instrumento.
+          </div>
+        </div>
+
         <Section
-          title="1. Variables a cruzar"
+          title="Variables a cruzar"
           subtitle={<>
             Cada variable que elijas <strong>define las columnas</strong> de un bloque de tablas y se cruza contra todas las demás del instrumento. Típicamente: sexo, distrito, servicio, grupo etario. Puedes excluir categorías específicas de cada variable cuando tengan casi ninguna respuesta.
           </>}
         >
           <VariableChips
             selected={cruces.cruces_vars}
-            variables={variables}
+            variables={crucesVariables}
             onAdd={addCruceVar}
             onRemove={removeCruceVar}
             onSetExcluidas={setCruceVarExcluidas}
@@ -95,14 +119,13 @@ export function CrucesPane() {
           )}
         </Section>
 
-        {/* 2. Modo */}
         <Section
-          title="2. Modo de cruces"
+          title="Modo de cruces"
           subtitle={<>
             <strong>Estándar</strong> reporta frecuencias y porcentajes (modo clásico). <strong>Dimensiones</strong> reporta promedios 0-100 de los índices y bloques construidos en el tab Dimensiones — útil para informes de satisfacción / desempeño donde la unidad de análisis es el índice, no la categoría.
           </>}
         >
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div className="analitica-control-grid">
             <ModoOption
               active={cruces.modo === "estandar"}
               icon={<Grid3x3 size={13} />}
@@ -123,21 +146,59 @@ export function CrucesPane() {
           </div>
         </Section>
 
-        {/* 3. Significancia */}
         <Section
-          title="3. Significancia estadística"
+          title="Presentación del Excel"
+          subtitle="Controla si el archivo incluye celdas separadoras de sección y títulos encima de cada bloque."
+        >
+          <div className="analitica-control-grid">
+            <label className={`analitica-control-card ${cruces.incluir_secciones ? "is-active" : ""}`} style={{ cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={cruces.incluir_secciones}
+                onChange={(e) => setCruces({ incluir_secciones: e.target.checked })}
+                style={{ marginTop: 6, accentColor: "var(--pulso-primary)" }}
+              />
+              <span className="analitica-control-icon">
+                {cruces.incluir_secciones ? <CheckCircle2 size={15} /> : <Layers size={15} />}
+              </span>
+              <span>
+                <span className="analitica-control-title">Mostrar nombres de sección</span>
+                <span className="analitica-control-copy">
+                  Agrega una celda separadora antes de las tablas de cada sección.
+                </span>
+              </span>
+            </label>
+
+            <label className={`analitica-control-card ${cruces.incluir_titulos ? "is-active" : ""}`} style={{ cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={cruces.incluir_titulos}
+                onChange={(e) => setCruces({ incluir_titulos: e.target.checked })}
+                style={{ marginTop: 6, accentColor: "var(--pulso-primary)" }}
+              />
+              <span className="analitica-control-icon">
+                {cruces.incluir_titulos ? <CheckCircle2 size={15} /> : <Grid3x3 size={15} />}
+              </span>
+              <span>
+                <span className="analitica-control-title">Mostrar títulos de tabla</span>
+                <span className="analitica-control-copy">
+                  Incluye el título general y la pregunta encima de cada cruce.
+                </span>
+              </span>
+            </label>
+          </div>
+        </Section>
+
+        <Section
+          title="Significancia estadística"
           subtitle={<>
             Marca con un asterisco las celdas cuya diferencia entre columnas es estadísticamente significativa (chi² al 5%). Útil para identificar rápidamente los patrones de interés.
           </>}
         >
           <label
+            className={`analitica-control-card ${cruces.show_sig ? "is-active" : ""}`}
             style={{
-              display: "flex", alignItems: "flex-start", gap: 10,
-              padding: "10px 12px", borderRadius: 6,
-              border: `1px solid ${cruces.show_sig ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-              background: cruces.show_sig ? "var(--pulso-primary-soft)" : "white",
-              fontSize: 13, cursor: "pointer",
-              transition: "background 120ms ease, border-color 120ms ease",
+              cursor: "pointer",
             }}
           >
             <input
@@ -146,18 +207,20 @@ export function CrucesPane() {
               onChange={(e) => setCruces({ show_sig: e.target.checked })}
               style={{ marginTop: 3, accentColor: "var(--pulso-primary)" }}
             />
+            <span className="analitica-control-icon">
+              {cruces.show_sig ? <CheckCircle2 size={15} /> : <Sigma size={15} />}
+            </span>
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span style={{ fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <Sigma size={13} /> Mostrar diferencias significativas (chi² α = 0.05)
+              <span className="analitica-control-title">
+                Mostrar diferencias significativas
               </span>
-              <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+              <span className="analitica-control-copy">
                 Activa el test de independencia entre fila y columna. Las celdas con p-valor &lt; 0.05 se marcan con asterisco.
               </span>
             </div>
           </label>
         </Section>
 
-        {/* 4. Generar */}
         <GenerateFooter
           label="Generar cruces"
           busy={run.busy}
@@ -175,6 +238,28 @@ export function CrucesPane() {
         />
       </div>
     </Panel>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  suffix,
+  compact,
+}: {
+  label: string;
+  value: number | string;
+  suffix?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className="analitica-stat">
+      <span className="analitica-stat-label">{label}</span>
+      <span className="analitica-stat-value" style={compact ? { fontSize: 13, paddingTop: 2 } : undefined}>
+        {value}
+        {suffix && <small>{suffix}</small>}
+      </span>
+    </div>
   );
 }
 
@@ -204,8 +289,8 @@ function VariableChips({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {selected.length === 0 && !adding && (
-        <div style={{ padding: 14, border: "1px dashed var(--pulso-border)", borderRadius: 6, textAlign: "center", fontSize: 12, color: "var(--pulso-text-soft)" }}>
-          Aún no elegiste variables. Haz click en <strong>+ Añadir variable</strong>.
+        <div className="analitica-empty">
+          Aún no elegiste variables. Usa <strong>Añadir variable</strong> para crear el primer bloque de cruces.
         </div>
       )}
       {selected.length > 0 && (
@@ -216,19 +301,12 @@ function VariableChips({
             return (
               <div
                 key={cv.name}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "8px 10px",
-                  background: "var(--pulso-primary-soft)",
-                  border: "1px solid var(--pulso-primary)",
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
+                className="analitica-variable-row"
               >
-                <code style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--pulso-primary)" }}>{cv.name}</code>
+                <code>{cv.name}</code>
                 {meta?.label && (
-                  <span style={{ color: "var(--pulso-text-soft)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    · {meta.label}
+                  <span className="analitica-variable-label">
+                    {meta.label}
                   </span>
                 )}
                 <button
@@ -459,37 +537,20 @@ function ModoOption({
       onClick={onClick}
       disabled={disabled}
       title={disabled ? hint : undefined}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: 4,
-        padding: "10px 14px",
-        minWidth: 200,
-        borderRadius: 8,
-        textAlign: "left",
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.55 : 1,
-        background: active ? "var(--pulso-primary-soft)" : "white",
-        border: `1px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-        transition: "background 120ms ease, border-color 120ms ease",
-      }}
+      className={`analitica-control-card ${active ? "is-active" : ""}`}
+      style={{ textAlign: "left", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.55 : 1 }}
     >
+      <span className="analitica-control-icon">{icon}</span>
       <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          fontSize: 13,
-          fontWeight: 700,
-          color: active ? "var(--pulso-primary)" : "var(--pulso-text)",
-        }}
+        style={{ display: "flex", flexDirection: "column", gap: 3 }}
       >
-        {icon}
-        {label}
-      </span>
-      <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-        {hint}
+        <span className="analitica-control-title">
+          <GitBranch size={13} />
+          {label}
+        </span>
+        <span className="analitica-control-copy">
+          {hint}
+        </span>
       </span>
     </button>
   );

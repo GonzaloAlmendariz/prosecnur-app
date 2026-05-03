@@ -11,7 +11,7 @@ export type PlanNodeCardProps = {
   selected: boolean;
   dimmed: boolean;
   issues: ValidationIssue[];
-  onClick: () => void;
+  onClick: (e: React.MouseEvent) => void;
   onMouseDown: (e: React.MouseEvent) => void;
 };
 
@@ -37,7 +37,7 @@ export function PlanNodeCard({ node, selected, dimmed, issues, onClick, onMouseD
     <div
       data-cat={node.category}
       className={`pulso-gv2-node-card ${selected ? "is-selected" : ""} ${dimmed ? "is-dimmed" : ""}`}
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      onClick={(e) => { e.stopPropagation(); onClick(e); }}
       onMouseDown={onMouseDown}
     >
       <div className="pulso-gv2-node-head">

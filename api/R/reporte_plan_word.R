@@ -16,8 +16,11 @@ w_presets <- function(
     figure_numbering     = list(enabled = TRUE, prefix = "Gr\u00e1fico", sep = ". "),
     pagebreak_between    = FALSE,
     pagebreak_after_title = TRUE,
-    toc                  = list(enabled = FALSE, title = NULL)
+    toc                  = list(enabled = FALSE, title = NULL),
+    chart_options        = list(ocultar_etiqueta_si_titulo = TRUE),
+    chart_presets        = list()
 ) {
+  `%||%` <- function(x, y) if (!is.null(x)) x else y
   image$width_in  <- as.numeric(image$width_in  %||% 6.6)
   image$height_in <- as.numeric(image$height_in %||% 3.9)
   image$dpi       <- as.integer(image$dpi       %||% 300L)
@@ -34,10 +37,60 @@ w_presets <- function(
     figure_numbering      = figure_numbering,
     pagebreak_between     = isTRUE(pagebreak_between),
     pagebreak_after_title = isTRUE(pagebreak_after_title),
-    toc                   = toc
+    toc                   = toc,
+    chart_options         = chart_options %||% list(),
+    chart_presets         = chart_presets %||% list()
   )
   class(out) <- c("word_presets", "list")
   out
+}
+
+.apply_word_chart_presets <- function(presets_ppt, presets_word) {
+  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  presets_ppt <- presets_ppt %||% list()
+  if (!is.list(presets_ppt)) presets_ppt <- list()
+
+  ensure_block <- function(x) {
+    if (is.null(x)) return(list(args = list()))
+    if (!is.list(x)) return(list(args = list()))
+    if (!is.null(x$args)) {
+      if (!is.list(x$args)) x$args <- list()
+      return(x)
+    }
+    list(args = x)
+  }
+
+  for (nm in c("base", "barras_apiladas", "multi_apiladas", "barras_agrupadas",
+               "barras_numericas", "boxplot", "pie", "donut", "radar_tabla",
+               "dim_heatmap", "dim_heatmap_criterios", "dim_radar",
+               "dim_comparativo_radarbar", "dim_foda", "debug")) {
+    presets_ppt[[nm]] <- ensure_block(presets_ppt[[nm]])
+  }
+
+  chart_options <- presets_word$chart_options %||% list()
+  ocultar_dup <- chart_options$ocultar_etiqueta_si_titulo %||% TRUE
+  ocultar_dup <- isTRUE(ocultar_dup)
+  for (nm in c("barras_apiladas", "multi_apiladas")) {
+    presets_ppt[[nm]]$args$word_ocultar_etiqueta_categoria <-
+      presets_ppt[[nm]]$args$word_ocultar_etiqueta_categoria %||% ocultar_dup
+  }
+
+  chart_presets <- presets_word$chart_presets %||% list()
+  if (is.list(chart_presets) && length(chart_presets)) {
+    for (nm in names(chart_presets)) {
+      patch <- chart_presets[[nm]]
+      if (is.null(patch) || !is.list(patch)) next
+      if (!is.null(patch$args) && is.list(patch$args)) patch <- patch$args
+      presets_ppt[[nm]] <- ensure_block(presets_ppt[[nm]])
+      presets_ppt[[nm]]$args <- utils::modifyList(
+        presets_ppt[[nm]]$args %||% list(),
+        patch
+      )
+    }
+  }
+
+  class(presets_ppt) <- c("ppt_presets", "list")
+  presets_ppt
 }
 
 # =============================================================================
@@ -90,14 +143,23 @@ reporte_word_plan <- function(
   has_dplyr  <- requireNamespace("dplyr",  quietly = TRUE)
 
   # -------------------------------------------------------------------------
-  # 1) render_meta via reporte_ppt_plan (solo_lista + build_render_meta)
+  # 1) Presets Word + capa compacta sobre presets PPT
+  # -------------------------------------------------------------------------
+  presets_word <- presets_word %||% w_presets()
+  if (!inherits(presets_word, "word_presets"))
+    stop("`presets_word` debe venir de `w_presets()`.", call. = FALSE)
+
+  presets_ppt_word <- .apply_word_chart_presets(presets_ppt, presets_word)
+
+  # -------------------------------------------------------------------------
+  # 2) render_meta via reporte_ppt_plan (solo_lista + build_render_meta)
   # -------------------------------------------------------------------------
   if (isTRUE(mensajes_progreso)) message("Preparando render_meta desde plan PPT...")
 
   ppt_result <- reporte_ppt_plan(
     data               = data,
     instrumento        = instrumento,
-    presets            = presets_ppt,
+    presets            = presets_ppt_word,
     plan               = plan,
     env_diapos         = env_diapos,
     strict_diapos      = strict_diapos,
@@ -108,13 +170,6 @@ reporte_word_plan <- function(
 
   render_meta <- ppt_result$render_meta %||% list()
   if (!length(render_meta)) stop("El plan no produjo ningún elemento para Word.", call. = FALSE)
-
-  # -------------------------------------------------------------------------
-  # 2) Presets Word
-  # -------------------------------------------------------------------------
-  presets_word <- presets_word %||% w_presets()
-  if (!inherits(presets_word, "word_presets"))
-    stop("`presets_word` debe venir de `w_presets()`.", call. = FALSE)
 
   img_w   <- presets_word$image$width_in
   img_h   <- presets_word$image$height_in

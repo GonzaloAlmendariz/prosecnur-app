@@ -848,6 +848,19 @@ find_other_dummy_for_parent <- function(parent_original, name_map){
   gsub("([\\W])", "\\\\\\1", as.character(x), perl = TRUE)
 }
 
+.codif_dummy_col_available <- function(cols, parent_col, dummy_col){
+  parent_col <- as.character(parent_col %||% "")
+  dummy_col <- as.character(dummy_col %||% "")
+  if (!length(dummy_col) || is.na(dummy_col) || !nzchar(dummy_col)) return(FALSE)
+  if (dummy_col %in% cols) return(TRUE)
+  # Base ODK normalizada: la opción de un select_multiple puede no tener
+  # dummy física; se marca como token dentro de la columna madre.
+  length(parent_col) && !is.na(parent_col) && nzchar(parent_col) &&
+    parent_col %in% cols &&
+    startsWith(dummy_col, paste0(parent_col, "/")) &&
+    nzchar(sub("^.+/", "", dummy_col))
+}
+
 .codif_norm_list_name <- function(x){
   x <- tolower(trimws(as.character(x)))
   x <- gsub("\\s+", "_", x)
@@ -1577,11 +1590,15 @@ find_other_dummy_for_parent <- function(parent_original, name_map){
   }
 
   other_label <- NA_character_
-  if (nzchar(other_dummy_col) && other_dummy_col %in% names(dat_raw) && nrow(opts)) {
+  if (nzchar(other_dummy_col) && nrow(opts)) {
     other_code <- sub("^.+/", "", other_dummy_col)
     other_label <- opts$label[match(other_code, opts$code)]
     if (is.na(other_label) || !nzchar(other_label)) other_label <- other_dummy_col
-    dmm[[other_label]] <- .codif_norm01(dat_raw[[other_dummy_col]])
+    if (other_dummy_col %in% names(dat_raw)) {
+      dmm[[other_label]] <- .codif_norm01(dat_raw[[other_dummy_col]])
+    } else if (!other_label %in% names(dmm)) {
+      dmm[[other_label]] <- rep(NA_integer_, nrow(dat_raw))
+    }
 
     ord_labels <- unique(c(setdiff(opts$label, other_label), other_label))
     ord_labels <- ord_labels[ord_labels %in% names(dmm)]
@@ -2231,7 +2248,8 @@ escribir_plantilla_familias_repeat <- function(inst,
       dplyr::mutate(
         exists_parent_col = !is.na(parent_col) & parent_col %in% cols_exist,
         exists_text_col   = is.na(text_col) | text_col %in% cols_exist,
-        exists_dummy_col  = is.na(other_dummy_col) | other_dummy_col %in% cols_exist
+        exists_dummy_col  = is.na(other_dummy_col) |
+          mapply(.codif_dummy_col_available, list(cols_exist), parent_col, other_dummy_col, USE.NAMES = FALSE)
       ) %>%
       dplyr::select(section, hoja_datos,
                     use, q_order, tipo, modo_so, parent, parent_label, list_norm,
@@ -2460,7 +2478,8 @@ leer_familias_clasificar <- function(path, inst, dat, sheet = "familias", verbos
     dplyr::mutate(
       exists_parent_col = !is.na(.data$parent_col)      & .data$parent_col      %in% cols,
       exists_text_col   = !is.na(.data$text_col)        & .data$text_col        %in% cols,
-      exists_dummy_col  = !is.na(.data$other_dummy_col) & .data$other_dummy_col %in% cols
+      exists_dummy_col  = !is.na(.data$other_dummy_col) &
+        mapply(.codif_dummy_col_available, list(cols), .data$parent_col, .data$other_dummy_col, USE.NAMES = FALSE)
     )
 
   # reglas de aceptación por tipo (igual que antes)
@@ -2719,9 +2738,15 @@ leer_familias_clasificar_repeat <- function(path, inst, tabs, sheet = "familias"
     if (is.null(ent) || !"raw" %in% names(ent)) return(FALSE)
     col %in% names(ent$raw)
   }
+  exists_dummy_in_tab <- function(parent_col, dummy_col, hoja){
+    if (!nzchar(dummy_col)) return(FALSE)
+    ent <- tabs[[janitor::make_clean_names(hoja)]]
+    if (is.null(ent) || !"raw" %in% names(ent)) return(FALSE)
+    .codif_dummy_col_available(names(ent$raw), parent_col, dummy_col)
+  }
   fam$exists_parent_col <- mapply(exists_in_tab, fam$parent_col, fam$hoja_datos, USE.NAMES = FALSE)
   fam$exists_text_col   <- mapply(exists_in_tab, fam$text_col,   fam$hoja_datos, USE.NAMES = FALSE)
-  fam$exists_dummy_col  <- mapply(exists_in_tab, fam$other_dummy_col, fam$hoja_datos, USE.NAMES = FALSE)
+  fam$exists_dummy_col  <- mapply(exists_dummy_in_tab, fam$parent_col, fam$other_dummy_col, fam$hoja_datos, USE.NAMES = FALSE)
 
   # --- reglas de aceptación --------------------------------------------------
   acc_sm <- fam$use & fam$tipo == "select_multiple" & fam$exists_text_col & fam$exists_dummy_col
@@ -3460,8 +3485,17 @@ construir_plantilla_desde_familias <- function(inst, dat, split){
       hdr_lab[hdr_raw==txt_col]            <- s_lab_from_original(txt_col, inst)
       hdr_lab[grepl("_recod$", hdr_raw)]   <- "Recodificación"
 
+      attr(base, "header_raw") <- hdr_raw
+      attr(base, "label_row") <- hdr_lab
+      attr(base, "tipo") <- tipo
+      attr(base, "layout_version") <- "recod_v2"
+      attr(base, "aux_block") <- .codif_make_aux_block(
+        tipo = "text",
+        target_col = paste0(txt_col, "_recod"),
+        sheet_name = txt_col
+      )
       stitle <- txt_col
-      sheets_list[[stitle]] <- structure(base, header_raw = hdr_raw, label_row = hdr_lab, tipo = tipo)
+      sheets_list[[stitle]] <- base
       nav_rows[[length(nav_rows)+1]] <- tibble::tibble(hoja = stitle, tipo = tipo, n = nrow(base))
     }
   }
@@ -4468,7 +4502,10 @@ construir_plantilla_desde_familias_repeat <- function(inst, tabs, fam) {
   # -------- Construcción de hojas (respetando hoja_datos correcta) ----------
   sheets_list <- list(); nav_rows <- list()
   add_sheet_row <- function(title, tipo, base_df, hdr_raw, hdr_lab){
-    sheets_list[[title]] <<- structure(base_df, header_raw = hdr_raw, label_row = hdr_lab, tipo = tipo)
+    attr(base_df, "header_raw") <- hdr_raw
+    attr(base_df, "label_row") <- hdr_lab
+    attr(base_df, "tipo") <- tipo
+    sheets_list[[title]] <<- base_df
     nav_rows[[length(nav_rows)+1]] <<- tibble::tibble(hoja = title, tipo = tipo, n = nrow(base_df))
   }
   id_base_by_sheet <- lapply(tabs_norm, resolve_ids)
@@ -4711,6 +4748,12 @@ construir_plantilla_desde_familias_repeat <- function(inst, tabs, fam) {
       hdr_lab[hdr_raw==txt_col]            <- lbl_txt
       hdr_lab[grepl("_recod$", hdr_raw)]   <- "Recodificación"
 
+      attr(base, "layout_version") <- "recod_v2"
+      attr(base, "aux_block") <- .codif_make_aux_block(
+        tipo = "text",
+        target_col = paste0(txt_col, "_recod"),
+        sheet_name = txt_col
+      )
       add_sheet_row(txt_col, "text", base, hdr_raw, hdr_lab)
     }
   }

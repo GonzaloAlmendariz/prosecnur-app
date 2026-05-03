@@ -48,6 +48,8 @@ Imports:
     gridExtra,
     gtable,
     png,
+    jpeg,
+    qpdf,
     scales
 Suggests:
     testthat (>= 3.0.0),

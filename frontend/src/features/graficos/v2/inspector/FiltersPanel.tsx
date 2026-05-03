@@ -1,21 +1,15 @@
 import { useMemo, useState } from "react";
-import { Filter as FilterIcon, Plus, X, ChevronDown, Sliders, Sparkles } from "lucide-react";
-import { ArgMetadata, GraficadorRef, Slide, VarInfo } from "../../../../api/client";
+import { Filter as FilterIcon, Plus, X, ChevronDown } from "lucide-react";
+import { GraficadorRef, Slide, VarInfo } from "../../../../api/client";
 import { usePlanStore } from "../../store";
-import { ArgGroup } from "../../ArgGroup";
-import GraficadorSlot from "../../GraficadorSlot";
-import { groupArgs } from "./InspectorV2";
 
 // Tab de Filtros. Diseño:
 //
-//   1. Motor de filtros estilo "explorador de datos": chips con condiciones
-//      sobre variables del instrumento (ej. `sexo == "Mujer"` AND
-//      `edad > 30`). Cada filtro se aplica al subconjunto de respuestas
-//      que el slide consume. Esto se persiste como `args.filtros` en
-//      cada slot de graficador (formato canónico de prosecnur).
-//
-//   2. Args específicos del slide en grupos `filtro` (umbrales, top2box,
-//      decimales) + `semaforo` (rangos de color por valor).
+//   Motor de filtros estilo "explorador de datos": chips con condiciones
+//   sobre variables del instrumento (ej. `sexo == "Mujer"` AND
+//   `edad > 30`). Cada filtro se aplica al subconjunto de respuestas
+//   que el slide consume. Esto se persiste como `args.filtros` en
+//   cada slot de graficador (formato canónico de prosecnur).
 //
 // El motor de filtros aquí es una UI sobre el array
 // `graf.args.filtros: { var, op, value }[]` que el backend interpreta.
@@ -41,7 +35,6 @@ const OPERATORS: { key: FilterRule["op"]; label: string; hint: string }[] = [
 
 export type FiltersPanelProps = {
   slide: Slide;
-  args: ArgMetadata[];
   variables: VarInfo[];
   slotNames: string[];
 };
@@ -50,7 +43,7 @@ function newRule(): FilterRule {
   return { id: `f-${Math.random().toString(36).slice(2, 8)}`, variable: "", op: "eq", value: "" };
 }
 
-export function FiltersPanel({ slide, args, variables, slotNames }: FiltersPanelProps) {
+export function FiltersPanel({ slide, variables, slotNames }: FiltersPanelProps) {
   const updateSlotArgs = usePlanStore((s) => s.updateSlotArgs);
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
 
@@ -88,16 +81,17 @@ export function FiltersPanel({ slide, args, variables, slotNames }: FiltersPanel
 
   function commit(next: FilterRule[]) {
     setRules(next);
+    const payloadFilters = next.length > 0 ? next : null;
     // Persistir al payload de cada slot. Si el slide no tiene slots,
     // guardamos en payload.filtros directamente (slides estructurales).
     if (slotNames.length === 0) {
-      updatePayload(slide.id, { filtros: next });
+      updatePayload(slide.id, { filtros: payloadFilters });
       return;
     }
     for (const slot of slotNames) {
       const v = (slide.payload as Record<string, unknown>)[slot] as GraficadorRef | undefined;
       if (!v) continue;
-      updateSlotArgs(slide.id, slot, { filtros: next });
+      updateSlotArgs(slide.id, slot, { filtros: payloadFilters });
     }
   }
 
@@ -111,9 +105,6 @@ export function FiltersPanel({ slide, args, variables, slotNames }: FiltersPanel
     if (!window.confirm(`¿Eliminar los ${rules.length} filtro(s) activos de este slide?`)) return;
     commit([]);
   }
-
-  // Args agrupados por grupo (filtro, semaforo)
-  const grouped = groupArgs(args);
 
   return (
     <div style={{ maxWidth: 760 }}>
@@ -166,54 +157,7 @@ export function FiltersPanel({ slide, args, variables, slotNames }: FiltersPanel
         )}
       </section>
 
-      {/* Args de cálculo del SLIDE (top2box global, etc.) */}
-      {grouped.length > 0 && (
-        <section className="pulso-gv2-filters-section">
-          <div className="pulso-gv2-filters-head">
-            <span className="pulso-gv2-filters-title">
-              <Sliders size={14} /> Ajustes globales del slide
-            </span>
-          </div>
-          <div className="pulso-gv2-filters-hint">
-            Aplica a todos los gráficos del slide. Para ajustes individuales, usa cada sub-card de abajo.
-          </div>
-          {grouped.map(({ grupo, args: gargs }) => (
-            <ArgGroup
-              key={grupo}
-              grupo={grupo}
-              args={gargs}
-              values={slide.payload}
-              onChangeArg={(name, value) => updatePayload(slide.id, { [name]: value })}
-              variables={variables}
-            />
-          ))}
-        </section>
-      )}
-
-      {/* Sub-cards por slot — args de filtro/semáforo de cada graficador */}
-      {slotNames.length > 0 && (
-        <section className="pulso-gv2-filters-section">
-          <div className="pulso-gv2-filters-head">
-            <span className="pulso-gv2-filters-title">
-              <Sparkles size={14} /> Cálculo y semáforo por gráfico
-            </span>
-          </div>
-          <div className="pulso-gv2-filters-hint">
-            Umbrales, decimales, top-2-box, semáforo de colores. Cada gráfico se ajusta individualmente.
-          </div>
-          {slotNames.map((slotName) => (
-            <GraficadorSlot
-              key={slotName}
-              slideId={slide.id}
-              slotName={slotName}
-              value={(slide.payload as Record<string, unknown>)[slotName] as never}
-              mode="filters"
-            />
-          ))}
-        </section>
-      )}
-
-      {grouped.length === 0 && rules.length === 0 && slotNames.length === 0 && (
+      {rules.length === 0 && slotNames.length === 0 && (
         <div style={{ marginTop: 12, padding: 16, fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center", border: "1px dashed var(--pulso-border)", borderRadius: 8 }}>
           Este tipo de slide no consume datos — los filtros no aplican.
         </div>

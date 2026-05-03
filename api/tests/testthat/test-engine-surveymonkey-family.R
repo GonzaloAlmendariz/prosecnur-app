@@ -108,7 +108,7 @@ test_that("familia surveymonkey_ genera XLSForm de referencia y data compatible"
   expect_true(all(c("survey", "choices", "settings", "diagnostico") %in% names(inst_ref)))
   expect_true(any(inst_ref$survey$type == "begin_group"))
   expect_true(any(grepl("^select_multiple ", inst_ref$survey$type)))
-  expect_true(any(inst_ref$survey$section == "survey_monkey_auxiliary"))
+  expect_true(any(inst_ref$survey$section == "AuxSM"))
   expect_true(any(inst_ref$survey$name == "p6_other"))
   expect_true(any(inst_ref$survey$name == "sexo"))
   expect_true(any(inst_ref$survey$type == "select_one lst_sexo"))
@@ -405,18 +405,76 @@ test_that("recodificacion detecta other por semantica del XLSForm y usa la etiqu
   expect_no_warning(
     prosecnur::escribir_plantilla_familias(inst, dat, path = path_familias)
   )
-  fam <- prosecnur::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
+  fam <- leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
 
   row_need <- fam$familias_filtradas[fam$familias_filtradas$parent == "need", , drop = FALSE]
   expect_identical(row_need$other_dummy_col[1], "need/70")
   expect_identical(row_need$text_col[1], "need_detail")
 
-  plantilla <- prosecnur::construir_plantilla_desde_familias(inst, dat, fam)
+  plantilla <- construir_plantilla_desde_familias(inst, dat, fam)
   sheet_need <- plantilla$sheets[["need"]]
   expect_true("Servicio comunitario" %in% names(sheet_need))
   expect_false("Otro, por favor especificar" %in% names(sheet_need))
   expect_identical(sheet_need$Seleccionadas[[1]], "Trabajo; Servicio comunitario")
   expect_identical(sheet_need$Seleccionadas_cod[[1]], "1; 70")
+})
+
+test_that("recodificacion acepta other virtual desde columna madre normalizada", {
+  inst <- make_codif_inst(
+    survey = data.frame(
+      type = c("select_multiple lst_need", "text"),
+      name = c("need", "need_other"),
+      relevant = c(NA, "selected(${need}, '70')"),
+      `label::Spanish (ES)` = c("Necesidad principal", "Detalle de otra necesidad"),
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_need", "lst_need"),
+      name = c("1", "70"),
+      `label::Spanish (ES)` = c("Trabajo", "Other (especificar)"),
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+  )
+  dat <- make_codif_dat(data.frame(
+    `_uuid` = c("u1", "u2"),
+    need = c("1 70", "1"),
+    need_other = c("Red local", NA),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  ))
+  path_familias <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(path_familias), add = TRUE)
+
+  familias <- data.frame(
+    use = TRUE,
+    q_order = 1L,
+    tipo = "select_multiple",
+    modo_so = "",
+    parent = "need",
+    parent_label = "Necesidad principal",
+    list_norm = "lst_need",
+    parent_col = "need",
+    other_dummy_col = "need/70",
+    text_col = "need_other",
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "familias")
+  openxlsx::writeData(wb, "familias", familias)
+  openxlsx::saveWorkbook(wb, path_familias, overwrite = TRUE)
+
+  fam <- leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
+  row_need <- fam$familias_filtradas[fam$familias_filtradas$parent == "need", , drop = FALSE]
+  expect_identical(row_need$other_dummy_col[1], "need/70")
+  expect_true(row_need$exists_dummy_col[1])
+
+  plantilla <- construir_plantilla_desde_familias(inst, dat, fam)
+  sheet_need <- plantilla$sheets[["need"]]
+  expect_true("Other (especificar)" %in% names(sheet_need))
+  expect_identical(sheet_need$Seleccionadas[[1]], "Trabajo; Other (especificar)")
 })
 
 test_that("recodificacion no sugiere other si no hay vinculo semantico claro", {
@@ -1139,6 +1197,101 @@ test_that("ppra_adaptar_instrumento reutiliza listas iguales para integer", {
   expect_identical(type_age, "select_one lst_age_recod")
   expect_identical(type_score, "select_one lst_age_recod")
   expect_identical(unique(choices_out$list_name), "lst_age_recod")
+})
+
+test_that("codificacion adapta preguntas text independientes", {
+  td <- tempfile("text_recode_")
+  dir.create(td)
+  on.exit(unlink(td, recursive = TRUE, force = TRUE), add = TRUE)
+
+  path_inst <- file.path(td, "inst.xlsx")
+  wb_inst <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb_inst, "survey")
+  openxlsx::addWorksheet(wb_inst, "choices")
+  openxlsx::addWorksheet(wb_inst, "settings")
+  openxlsx::writeData(
+    wb_inst, "survey",
+    data.frame(type = "text", name = "p1", label = "Institucion", stringsAsFactors = FALSE)
+  )
+  openxlsx::writeData(
+    wb_inst, "choices",
+    data.frame(list_name = character(), name = character(), label = character(), stringsAsFactors = FALSE)
+  )
+  openxlsx::writeData(
+    wb_inst, "settings",
+    data.frame(form_title = "t", form_id = "t", stringsAsFactors = FALSE)
+  )
+  openxlsx::saveWorkbook(wb_inst, path_inst, overwrite = TRUE)
+
+  path_data <- file.path(td, "data.xlsx")
+  dat_raw <- data.frame(uuid = c("a", "b"), p1 = c("Uba", "Otra"), stringsAsFactors = FALSE)
+  names(dat_raw)[1] <- "_uuid"
+  openxlsx::write.xlsx(dat_raw, path_data)
+
+  inst <- leer_instrumento_xlsform(path_inst)
+  dat <- list(raw = readxl::read_excel(path_data))
+
+  path_fam <- file.path(td, "familias.xlsx")
+  fam <- data.frame(
+    use = TRUE,
+    tipo = "text",
+    modo_so = "",
+    parent = "p1",
+    parent_label = "Institucion",
+    q_order = 1,
+    list_norm = "",
+    parent_col = "p1",
+    other_dummy_col = "",
+    text_col = "",
+    stringsAsFactors = FALSE
+  )
+  wb_fam <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb_fam, "familias")
+  openxlsx::writeData(wb_fam, "familias", fam)
+  openxlsx::saveWorkbook(wb_fam, path_fam, overwrite = TRUE)
+
+  split <- leer_familias_clasificar(path_fam, inst = inst, dat = dat, verbose = FALSE)
+  expect_equal(nrow(split$text), 1L)
+
+  plantilla <- construir_plantilla_desde_familias(inst = inst, dat = dat, split = split)
+  path_tpl <- file.path(td, "plantilla.xlsx")
+  exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
+
+  wb_tpl <- openxlsx::loadWorkbook(path_tpl)
+  grupos <- list(list(
+    codigo = "1",
+    etiqueta = "Universidad de Buenos Aires",
+    origen = "nuevo",
+    respuestas = list("Uba")
+  ))
+  expect_true(.patch_text_sheet(wb_tpl, "p1", "p1_recod", "p1", grupos, dat$raw))
+  openxlsx::saveWorkbook(wb_tpl, path_tpl, overwrite = TRUE)
+
+  path_data_out <- file.path(td, "data_adaptada.xlsx")
+  ppra_adaptar_data(
+    path_instrumento = path_inst,
+    path_datos = path_data,
+    path_plantilla = path_tpl,
+    text_vars = "p1",
+    out_path = path_data_out,
+    path_familias = path_fam
+  )
+  data_out <- readxl::read_excel(path_data_out)
+  expect_true("p1_recod" %in% names(data_out))
+  expect_identical(as.character(data_out$p1_recod[1]), "1")
+
+  path_inst_out <- file.path(td, "inst_adaptado.xlsx")
+  ppra_adaptar_instrumento(
+    path_instrumento_in = path_inst,
+    path_data_adaptada = path_data_out,
+    path_instrumento_out = path_inst_out,
+    text_vars = "p1",
+    path_plantilla = path_tpl
+  )
+  survey_out <- readxl::read_excel(path_inst_out, sheet = "survey")
+  choices_out <- readxl::read_excel(path_inst_out, sheet = "choices")
+  expect_true("p1_recod" %in% as.character(survey_out$name))
+  expect_true("lst_p1_recod" %in% as.character(choices_out$list_name))
 })
 
 test_that("reporte_cruces excluye categorias tambien en la variable de cruce", {

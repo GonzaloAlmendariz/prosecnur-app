@@ -681,7 +681,11 @@
 
   files <- .resolve_base_files(sid, base_nombre)
   inst <- leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE)
-  data_raw <- .read_data_for_validation(files$data$path, files$data_ext)
+  data_raw <- read_validation_data_ast(
+    path = files$data$path,
+    ext = files$data_ext,
+    instrumento = inst
+  )$principal
   apply_out <- .limpieza_apply_decisions_to_data(data_raw, scope, ready)
   plan_final <- .limpieza_effective_plan(scope, inst = inst, decisions = ready)
 

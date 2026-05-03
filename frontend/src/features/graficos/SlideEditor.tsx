@@ -6,7 +6,7 @@ import { useSession } from "../../lib/SessionContext";
 import { usePlanStore, SLIDE_GRAF_SLOTS, SLIDE_LABELS } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useVariables } from "./useVariables";
-import { ArgGroup, GRUPO_META } from "./ArgGroup";
+import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import GraficadorSlot from "./GraficadorSlot";
 import { SlidePreview } from "./SlidePreview";
 import { LoadingBlock, EmptyState, SectionEyebrow } from "../../components/States";
@@ -47,17 +47,15 @@ export default function SlideEditor() {
     if (!slideMeta) return [];
     // Excluir args que son slots de graficador (ya los maneja GraficadorSlot).
     const nonSlotArgs = slideMeta.args.filter((a) => !grafSlotSet.has(a.name));
-    const byGrupo: Record<ArgGrupo, typeof nonSlotArgs> = {
-      datos: [], textos: [], estilo: [], filtro: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
-    };
+    const byGrupo: Partial<Record<ArgGrupo, typeof nonSlotArgs>> = {};
     for (const a of nonSlotArgs) {
-      const g: ArgGrupo = (a.grupo as ArgGrupo) ?? "avanzado";
-      (byGrupo[g] ?? byGrupo.avanzado).push(a);
+      const g = normalizeArgGroup(a.grupo as ArgGrupo);
+      (byGrupo[g] ??= []).push(a);
     }
-    return (Object.keys(byGrupo) as ArgGrupo[])
-      .filter((g) => byGrupo[g].length > 0)
+    return ARG_GROUP_ORDER
+      .filter((g) => byGrupo[g] && byGrupo[g]!.length > 0)
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
-      .map((g) => ({ grupo: g, args: byGrupo[g] }));
+      .map((g) => ({ grupo: g, args: byGrupo[g]! }));
   }, [slideMeta, grafSlotSet]);
 
   if (!slide) {

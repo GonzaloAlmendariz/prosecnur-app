@@ -105,8 +105,16 @@ ast_to_r <- function(x) {
 }
 
 .c_regex <- function(var, pattern) {
-  sprintf("(!is.na(%s) & grepl(%s, as.character(%s)))",
+  pattern <- .regex_pattern_for_r(pattern)
+  sprintf("(!is.na(%s) & grepl(%s, as.character(%s), perl = TRUE))",
           var, .lit_str(pattern), var)
+}
+
+.regex_pattern_for_r <- function(pattern) {
+  pattern <- as.character(pattern)
+  # Algunos XLSForms llegan desde XML/API con escapes duplicados en regex ODK
+  # (p.ej. "\\s" y "\\."). Para grepl(perl=TRUE) deben evaluarse como "\s" y "\.".
+  gsub("\\\\\\\\([sSdDwWbB.])", "\\\\\\1", pattern, perl = TRUE)
 }
 
 .c_cmp_const <- function(var, op, value) {

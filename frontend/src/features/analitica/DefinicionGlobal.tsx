@@ -107,9 +107,11 @@ export function DefinicionGlobal() {
 
 // ---- Secciones block ------------------------------------------------------
 
-function SeccionesBlock({ variables: _variables }: { variables: VariableInstrumento[] }) {
-  void _variables;
+function SeccionesBlock({ variables }: { variables: VariableInstrumento[] }) {
   const secciones = useAnaliticaStore((s) => s.config.secciones);
+  const excluidas = useAnaliticaStore((s) => s.config.variables_excluidas);
+  const numericasGlobal = useAnaliticaStore((s) => s.config.numericas);
+  const numericasFrecuencias = useAnaliticaStore((s) => s.config.frecuencias.numericas_override);
   const setSecciones = useAnaliticaStore((s) => s.setSecciones);
   const renameSeccion = useAnaliticaStore((s) => s.renameSeccion);
   const toggleSeccionOculto = useAnaliticaStore((s) => s.toggleSeccionOculto);
@@ -149,7 +151,16 @@ function SeccionesBlock({ variables: _variables }: { variables: VariableInstrume
     }
   }
 
-  const nVarsActivas = secciones.filter((s) => !s.oculto).reduce((sum, s) => sum + s.variables.length, 0);
+  const numericas = numericasFrecuencias ?? numericasGlobal;
+  const variablesByName = new Map(variables.map((v) => [v.name, v]));
+  const excluidasSet = new Set(excluidas);
+  const nVarsActivas = secciones.filter((s) => !s.oculto).reduce((sum, s) => {
+    return sum + s.variables.filter((name) => {
+      if (excluidasSet.has(name)) return false;
+      const meta = variablesByName.get(name);
+      return !!meta?.categorica || numericas.includes(name);
+    }).length;
+  }, 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
@@ -174,7 +185,7 @@ function SeccionesBlock({ variables: _variables }: { variables: VariableInstrume
           {busy ? "Detectando…" : "Detectar de nuevo"}
         </button>
         <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-          {secciones.length} {secciones.length === 1 ? "sección" : "secciones"} · {nVarsActivas} variables activas
+          {secciones.length} {secciones.length === 1 ? "sección" : "secciones"} · {nVarsActivas} variables analizables
         </span>
       </div>
 
@@ -320,7 +331,7 @@ function VariablesExcluidasBlock({ variables }: { variables: VariableInstrumento
           Variables excluidas del análisis
         </div>
         <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 3, lineHeight: 1.5 }}>
-          Variables que <strong>no aparecen</strong> en Libro de códigos, Bases ni Frecuencias. Usa esto para metadata (<code>_uuid</code>, <code>deviceid</code>), timestamps o campos técnicos que no aportan al análisis. Cruces no se ve afectado.
+          Variables que <strong>no aparecen</strong> en los entregables de análisis. Las bases exportadas conservan las respuestas abiertas y columnas originales necesarias.
         </div>
       </div>
       <VariablesExcluidas variables={variables} />

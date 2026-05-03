@@ -60,6 +60,33 @@
   NA_character_
 }
 
+.dn_q_to_p_name <- function(name) {
+  m <- regmatches(name, regexec("^[qQ]0*([0-9]+)(.*)$", name))[[1]]
+  if (length(m) < 3L) return(NA_character_)
+  rest <- m[3]
+  if (grepl("^_0*[0-9]+$", rest, perl = TRUE)) {
+    rest_num <- suppressWarnings(as.integer(sub("^_0*([0-9]+)$", "\\1", rest, perl = TRUE)))
+    if (!is.na(rest_num)) rest <- paste0("_", rest_num)
+  }
+  paste0("p", as.integer(m[2]), rest)
+}
+
+.dn_pad_numeric_suffix_name <- function(name) {
+  if (!grepl("^(.*_)([0-9]+)$", name, perl = TRUE)) return(NA_character_)
+  prefix <- sub("^(.*_)([0-9]+)$", "\\1", name, perl = TRUE)
+  suffix <- suppressWarnings(as.integer(sub("^(.*_)([0-9]+)$", "\\2", name, perl = TRUE)))
+  if (is.na(suffix)) return(NA_character_)
+  paste0(prefix, sprintf("%04d", suffix))
+}
+
+.dn_unpad_numeric_suffix_name <- function(name) {
+  if (!grepl("^(.*_)([0-9]+)$", name, perl = TRUE)) return(NA_character_)
+  prefix <- sub("^(.*_)([0-9]+)$", "\\1", name, perl = TRUE)
+  suffix <- suppressWarnings(as.integer(sub("^(.*_)([0-9]+)$", "\\2", name, perl = TRUE)))
+  if (is.na(suffix)) return(NA_character_)
+  paste0(prefix, suffix)
+}
+
 .dn_match_sm_dummy_columns <- function(data, parent, choices_sub) {
   data_names <- names(data)
   if (!length(data_names) || is.na(parent) || !nzchar(parent)) {
@@ -129,20 +156,25 @@
   dropped <- character(0)
   for (col in names(out)) {
     # Solo nombres con prefijo q<digits> calificarían como SM legacy.
-    m <- regmatches(col, regexec("^[qQ]0*([0-9]+)(.*)$", col))[[1]]
-    if (length(m) < 3L) next
-    p_equiv <- paste0("p", as.integer(m[2]), m[3])
+    p_equiv <- .dn_q_to_p_name(col)
+    if (is.na(p_equiv) || !nzchar(p_equiv)) next
     if (p_equiv == col) next
-    if (!(p_equiv %in% survey_names)) {
-      # También podría ser una dummy `p7_0001` cuyo padre `p7` está en survey.
+    target <- p_equiv
+    padded_equiv <- .dn_pad_numeric_suffix_name(p_equiv)
+    if (!(target %in% survey_names) && !is.na(padded_equiv) && padded_equiv %in% survey_names) {
+      target <- padded_equiv
+    }
+    if (!(target %in% survey_names)) {
+      # También podría ser una dummy `p7_1` cuyo padre `p7` está en survey.
       mp <- regmatches(p_equiv, regexec("^(p[0-9]+)(_.*)?$", p_equiv))[[1]]
       if (length(mp) < 2L) next
       parent_p <- mp[2]
       if (!(parent_p %in% survey_names)) next
+      target <- p_equiv
     }
-    if (p_equiv %in% names(out)) next
-    out[[p_equiv]] <- out[[col]]
-    aliased <- c(aliased, stats::setNames(col, p_equiv))
+    if (target %in% names(out)) next
+    out[[target]] <- out[[col]]
+    aliased <- c(aliased, stats::setNames(col, target))
     dropped <- c(dropped, col)
   }
   list(data = out, aliased = aliased, dropped = unique(dropped))
@@ -161,13 +193,16 @@
   for (nm in survey_names) {
     if (nm %in% names(out)) next
     if (!grepl("^(.*_)([0-9]+)$", nm, perl = TRUE)) next
-    prefix <- sub("^(.*_)([0-9]+)$", "\\1", nm, perl = TRUE)
-    suffix <- sub("^(.*_)([0-9]+)$", "\\2", nm, perl = TRUE)
-    padded <- paste0(prefix, sprintf("%04d", suppressWarnings(as.integer(suffix))))
-    if (!is.na(padded) && padded %in% names(out)) {
-      out[[nm]] <- out[[padded]]
-      aliased <- c(aliased, stats::setNames(padded, nm))
-      dropped <- c(dropped, padded)
+    candidates <- unique(c(
+      .dn_unpad_numeric_suffix_name(nm),
+      .dn_pad_numeric_suffix_name(nm)
+    ))
+    candidates <- candidates[!is.na(candidates) & nzchar(candidates) & candidates != nm]
+    hit <- candidates[candidates %in% names(out)][1]
+    if (!is.na(hit) && nzchar(hit)) {
+      out[[nm]] <- out[[hit]]
+      aliased <- c(aliased, stats::setNames(hit, nm))
+      dropped <- c(dropped, hit)
     }
   }
   list(data = out, aliased = aliased, dropped = unique(dropped))
@@ -177,7 +212,7 @@
 #'
 #' Convierte exports SurveyMonkey/SPSS de `select_multiple` desplegados como
 #' columnas dummy (`q0007_0001`, `q0007_0002`, ...) a la columna madre ODK
-#' (`q0007 = "1 3 5"`). Usa `instrumento` como fuente de verdad para saber qué
+#' normalizada (`p7 = "1 3 5"`). Usa `instrumento` como fuente de verdad para saber qué
 #' preguntas son `select_multiple` y cuáles son sus opciones.
 #'
 #' @export
@@ -190,21 +225,16 @@ normalize_data_for_xlsform <- function(data,
   }
   survey <- instrumento$survey
   choices <- instrumento$choices %||% data.frame()
-  if (!nrow(survey) || !nrow(choices) ||
-      !all(c("name", "type") %in% names(survey)) ||
-      !"list_name" %in% names(choices) || !"name" %in% names(choices)) {
+  if (!nrow(survey) || !all(c("name", "type") %in% names(survey))) {
     return(data)
   }
-
-  lab_col <- .dn_choice_label_col(choices)
-  if (is.na(lab_col)) choices$label <- as.character(choices$name) else choices$label <- as.character(choices[[lab_col]])
 
   out <- as.data.frame(data, stringsAsFactors = FALSE, check.names = FALSE)
   # 1. Si el XLSForm usa convención `p<N>` (post-importador SM) y la data
   #    aún viene con nombres `q<N>...`, aliasamos q* → p* primero.
   q2p_info <- .dn_alias_q_to_p_columns(out, survey)
   out <- q2p_info$data
-  # 2. Alias de padding (q0007_1 → q0007_0001 / p7_1 → p7_0001).
+  # 2. Alias de padding para datos que aún llegan como p7_0001 frente a un XLSForm p7_1.
   alias_info <- .dn_alias_padded_survey_columns(out, survey)
   out <- alias_info$data
   sm_rows <- survey[grepl("^select_multiple\\b", as.character(survey$type)), , drop = FALSE]
@@ -212,6 +242,14 @@ normalize_data_for_xlsform <- function(data,
   dropped <- unique(c(q2p_info$dropped, alias_info$dropped))
   aliased_combined <- c(q2p_info$aliased, alias_info$aliased)
   normalized <- list()
+
+  choices_ok <- nrow(choices) > 0L && all(c("list_name", "name") %in% names(choices))
+  if (choices_ok) {
+    lab_col <- .dn_choice_label_col(choices)
+    if (is.na(lab_col)) choices$label <- as.character(choices$name) else choices$label <- as.character(choices[[lab_col]])
+  } else {
+    sm_rows <- sm_rows[0, , drop = FALSE]
+  }
 
   for (i in seq_len(nrow(sm_rows))) {
     parent <- as.character(sm_rows$name[i])

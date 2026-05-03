@@ -1,10 +1,12 @@
 # =============================================================================
 # Cliente HTTP de la API v3 de SurveyMonkey
 #
-# La API expone la estructura del cuestionario que el .sav no preserva:
-#   - Mapeo de páginas → preguntas (resuelve Vía 3 del plan).
-#   - family/subtype exactos por pregunta (mejora detección de tipos).
+# La API es la fuente de verdad para construir el XLSForm SurveyMonkey:
+#   - Mapeo de páginas → preguntas.
+#   - family/subtype exactos por pregunta.
 #   - validation y required (llenan columnas del XLSForm).
+# El .sav queda fuera de este traductor; solo se usa después como data de
+# respuestas que debe adaptarse al contrato normalizado del XLSForm.
 #
 # La API NO expone display_logic / skip_logic en la documentación pública v3,
 # así que la lógica condicional sigue requiriendo input manual del usuario.
@@ -233,13 +235,46 @@ sm_api_extract_pages <- function(details, style = NULL) {
         sprintf("Q%s", formatC(global_pos, width = pad, flag = "0", format = "d"))
       }
       page_qs <- c(page_qs, q_name)
+      answers <- .sm_or(q$answers, list())
+      rows <- .sm_or(answers$rows, list())
+      choices <- .sm_api_question_choices(q)
+      child_rows <- list()
+      if (identical(fam, "matrix")) {
+        q_base <- .sm_q_to_p(tolower(q_name))
+        if (is.na(q_base) || !nzchar(q_base)) q_base <- tolower(q_name)
+        list_name <- if (length(choices)) paste0("lst_", q_base) else NA_character_
+        single_scale <- !length(rows) || (
+          length(rows) == 1L &&
+            !nzchar(.sm_api_clean_text(.sm_or(rows[[1]]$text, NA_character_)) %||% "")
+        )
+        if (single_scale) {
+          child_rows[[1L]] <- list(
+            name = q_base,
+            heading = .sm_api_question_heading(q),
+            type = if (length(choices)) paste("select_one", list_name) else "select_one",
+            list_name = list_name
+          )
+        } else {
+          for (r_idx in seq_along(rows)) {
+            row_label <- .sm_api_clean_text(.sm_or(rows[[r_idx]]$text, NA_character_))
+            if (is.na(row_label) || !nzchar(row_label)) row_label <- paste("Fila", r_idx)
+            child_rows[[length(child_rows) + 1L]] <- list(
+              name = paste0(q_base, "_", r_idx),
+              heading = row_label,
+              type = if (length(choices)) paste("select_one", list_name) else "select_one",
+              list_name = list_name
+            )
+          }
+        }
+      }
       question_info[[length(question_info) + 1L]] <- list(
         name = q_name,
         heading = .sm_api_question_heading(q),
         family = .sm_or(q$family, NA_character_),
         subtype = .sm_or(q$subtype, NA_character_),
         id = .sm_or(q$id, NA_character_),
-        choices = .sm_api_question_choices(q)
+        choices = choices,
+        children = child_rows
       )
     }
 
@@ -696,7 +731,7 @@ sm_api_enrich_xlsform_choices <- function(xlsform, details, sm, style = NULL) {
 #' validations. La data cruda ya no participa en la construcción.
 #'
 #' @param details Lista retornada por [sm_api_fetch_survey_details()].
-#' @param style Convención de nombres interna. Default: `q0001`.
+#' @param style Convención de nombres intermedia de la API. Se normaliza a `pN`.
 #' @param lang Idioma por defecto del XLSForm.
 #' @return Lista con `survey`, `choices`, `settings`, `diagnostico`.
 #' @export
@@ -817,26 +852,36 @@ sm_api_xlsform <- function(details, style = .sm_api_default_style(), lang = "es"
         type_final <- tc$type
         constraint <- tc$constraint
         if (length(rows)) {
-          group_name <- paste0("grp_", q_name)
-          add_survey("begin_group", group_name, heading, section = sec_name)
+          # SurveyMonkey muestra algunas preguntas abiertas como un bloque con
+          # varias filas (ej. "Función 1...5"). En XLSForm deben quedar como
+          # preguntas hermanas dentro de la página, no como secciones anidadas:
+          # el begin_group de la página ya contiene el contexto suficiente.
           for (r_idx in seq_along(rows)) {
             row_label <- .sm_api_clean_text(.sm_or(rows[[r_idx]]$text, NA_character_))
             if (is.na(row_label) || !nzchar(row_label)) row_label <- paste("Respuesta", r_idx)
-            add_survey(type_final, paste0(q_name, "_", r_idx), row_label, required, constraint = constraint, section = group_name)
+            add_survey(type_final, paste0(q_name, "_", r_idx), row_label, required, constraint = constraint, section = sec_name)
           }
-          add_survey("end_group", NA_character_, NA_character_, section = sec_name)
-          type_final <- "begin_group"
         } else {
           add_survey(type_final, q_name, heading, required, constraint = constraint, section = sec_name)
         }
       } else if (identical(fam, "single_choice")) {
         type_final <- paste("select_one", list_name)
         add_survey(type_final, q_name, heading, required, section = sec_name)
+        other <- .sm_or(answers$other, NULL)
+        if (!is.null(other) && isTRUE(.sm_or(other$is_answer_choice, .sm_or(other$visible, FALSE)))) {
+          other_label <- .sm_api_clean_text(.sm_or(other$text, NA_character_))
+          other_idx <- which(vapply(choices, function(ch) isTRUE(ch$is_other), logical(1)))[1]
+          if (!is.na(other_idx) && !is.na(other_label) && nzchar(other_label)) {
+            code <- choices[[other_idx]]$code
+            add_survey("text", paste0(q_name, "_other"), paste0(other_label, ":"), NA_character_,
+              relevant = sprintf("${%s} = '%s'", q_name, code), section = sec_name)
+          }
+        }
       } else if (identical(fam, "multiple_choice")) {
         type_final <- paste("select_multiple", list_name)
         add_survey(type_final, q_name, heading, required, section = sec_name)
         other <- .sm_or(answers$other, NULL)
-        if (!is.null(other) && isTRUE(.sm_or(other$is_answer_choice, FALSE))) {
+        if (!is.null(other) && isTRUE(.sm_or(other$is_answer_choice, .sm_or(other$visible, FALSE)))) {
           other_label <- .sm_api_clean_text(.sm_or(other$text, NA_character_))
           other_idx <- which(vapply(choices, function(ch) isTRUE(ch$is_other), logical(1)))[1]
           if (!is.na(other_idx) && !is.na(other_label) && nzchar(other_label)) {
@@ -847,17 +892,24 @@ sm_api_xlsform <- function(details, style = .sm_api_default_style(), lang = "es"
         }
       } else if (identical(fam, "matrix")) {
         type_final <- paste("select_one", list_name)
-        # SurveyMonkey muestra las matrices como un bloque visual dentro de
-        # la página, pero no como una sección navegable. En el constructor
-        # XLSForm se lee mejor como una nota con el enunciado + filas
-        # `select_one` hermanas dentro de la página, evitando sección dentro
-        # de sección.
-        add_survey("note", paste0("nota_", q_name), heading, section = sec_name)
-        if (!length(rows)) rows <- list(list(text = heading))
-        for (r_idx in seq_along(rows)) {
-          row_label <- .sm_api_clean_text(.sm_or(rows[[r_idx]]$text, NA_character_))
-          if (is.na(row_label) || !nzchar(row_label)) row_label <- paste("Ítem", r_idx)
-          add_survey(type_final, paste0(q_name, "_", r_idx), row_label, required, section = sec_name)
+        single_scale <- !length(rows) || (
+          length(rows) == 1L &&
+            !nzchar(.sm_api_clean_text(.sm_or(rows[[1]]$text, NA_character_)) %||% "")
+        )
+        if (single_scale) {
+          # SM representa algunas preguntas de escala como matriz de una fila.
+          # En XLSForm se entiende mejor como una pregunta select_one normal:
+          # p32 = "¿Cuán satisfecho...?", no p32_1 = "Ítem 1".
+          add_survey(type_final, q_name, heading, required, section = sec_name)
+        } else {
+          # Matriz real: enunciado como nota y cada afirmación como select_one
+          # hermana dentro de la misma página.
+          add_survey("note", paste0("nota_", q_name), heading, section = sec_name)
+          for (r_idx in seq_along(rows)) {
+            row_label <- .sm_api_clean_text(.sm_or(rows[[r_idx]]$text, NA_character_))
+            if (is.na(row_label) || !nzchar(row_label)) row_label <- paste("Fila", r_idx)
+            add_survey(type_final, paste0(q_name, "_", r_idx), row_label, required, section = sec_name)
+          }
         }
       } else {
         add_survey("text", q_name, heading, required, section = sec_name)
@@ -897,16 +949,61 @@ sm_api_xlsform <- function(details, style = .sm_api_default_style(), lang = "es"
     label_sets = label_sets
   )
 
+  spec_raw <- list(
+    survey = survey,
+    choices = choices,
+    settings = settings,
+    diagnostico = diagnostico
+  )
+  spec <- .sm_apply_remap_to_spec(spec_raw)
+  spec$survey <- .sm_api_normalize_generated_note_names(spec$survey)
+  spec$survey <- .sm_logic_normalize_final_expr_refs(spec$survey)
+
+  sm_logic$name_remap <- spec$name_remap %||% character(0)
+  sm_logic$page_remap <- spec$page_remap %||% character(0)
+
   structure(
     list(
-      survey = survey,
-      choices = choices,
+      survey = spec$survey,
+      choices = spec$choices,
       settings = settings,
-      diagnostico = diagnostico,
+      diagnostico = spec$diagnostico,
       sm_logic = sm_logic
     ),
     class = "prosecnur_surveymonkey_xlsform"
   )
+}
+
+.sm_api_normalize_generated_note_names <- function(survey) {
+  if (is.null(survey) || !nrow(survey) || !"name" %in% names(survey)) return(survey)
+
+  names_chr <- as.character(survey$name)
+  is_note <- !is.na(survey$type) & survey$type == "note"
+  is_generated <- is_note & !is.na(names_chr) & grepl("^nota_(pag|q)", names_chr, ignore.case = TRUE)
+  if (!any(is_generated)) return(survey)
+
+  used <- names_chr[!is.na(names_chr) & nzchar(names_chr)]
+  normalize_one <- function(nm, section, idx) {
+    out <- nm
+    if (grepl("^nota_pag_\\d+_", out, ignore.case = TRUE)) {
+      pag <- if (!is.na(section) && nzchar(section)) section else sub("^nota_pag_(\\d+)_.*$", "Pag\\1", out)
+      out <- sub("^nota_pag_\\d+_", paste0("nota_", pag, "_"), out, ignore.case = TRUE)
+    }
+    if (grepl("^nota_[Qq]0*[0-9]+", out, perl = TRUE)) {
+      n <- suppressWarnings(as.integer(sub("^nota_[Qq]0*([0-9]+).*$", "\\1", out, perl = TRUE)))
+      if (!is.na(n)) out <- sub("^nota_[Qq]0*[0-9]+", paste0("nota_p", n), out, perl = TRUE)
+    }
+    out <- janitor::make_clean_names(out)
+    out <- .sm_unique_name(out, used = setdiff(used, nm), suffix = "note")
+    used <<- c(setdiff(used, nm), out)
+    out
+  }
+
+  for (i in which(is_generated)) {
+    names_chr[i] <- normalize_one(names_chr[i], as.character(survey$section[i] %||% NA_character_), i)
+  }
+  survey$name <- names_chr
+  survey
 }
 
 #' Enriquecer estructura XLSForm con metadata real de SurveyMonkey API.
@@ -1135,7 +1232,7 @@ sm_api_enrich_xlsform_structure <- function(xlsform, details, sm, style = NULL) 
 #' (donde cada catálogo está mapeado a un `group_guess` que matchea el q_ref).
 #'
 #' @param details Lista del response /surveys/{id}/details.
-#' @param style Lista `list(prefix, pad)` del estilo del .sav (para padding).
+#' @param style Lista `list(prefix, pad)` de la convención intermedia para referencias `Q`.
 #' @return Lista con `q_ref` (chr) y `choice_label` (chr), del mismo largo.
 #' @export
 sm_api_extract_choice_labels <- function(details, style = NULL) {

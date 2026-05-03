@@ -26,6 +26,8 @@ export type FrecuenciasConfig = {
   secciones_activas: string[];
   orden: "desc" | "asc" | "original";
   mostrar_todo: boolean;
+  incluir_titulos: boolean;
+  incluir_secciones: boolean;
   numericas_override?: string[];
 };
 
@@ -49,6 +51,8 @@ export type CrucesConfig = {
   show_sig: boolean;
   alpha: number;
   incluir_total: boolean;
+  incluir_titulos: boolean;
+  incluir_secciones: boolean;
   brecha: {
     filas: boolean;
     cols: boolean;
@@ -256,6 +260,8 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
     // para revisar la base con alguien que conoce el XLSForm.
     orden: "original",
     mostrar_todo: false,
+    incluir_titulos: true,
+    incluir_secciones: true,
     numericas_override: undefined,
   },
   cruces: {
@@ -264,6 +270,8 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
     show_sig: true,
     alpha: 0.05,
     incluir_total: true,
+    incluir_titulos: true,
+    incluir_secciones: true,
     brecha: { filas: false, cols: false },
     semaforo: {
       activo: false,

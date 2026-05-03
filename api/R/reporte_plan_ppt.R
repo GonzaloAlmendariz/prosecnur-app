@@ -1462,6 +1462,7 @@ reporte_ppt_plan <- function(
       block_clean$overrides$subtitulo <- NULL
       # Flag para renderizado Word: omite columna de grupo en var_cruce
       block_clean$.word_sin_grupo <- TRUE
+      block_clean$.word_render <- TRUE
       # Compensar que sin columna de grupo las barras se perciben algo mas delgadas
       if (is.null(block_clean$overrides$grosor_barras_mult))
         block_clean$overrides$grosor_barras_mult <- 2.30
@@ -1545,6 +1546,7 @@ reporte_ppt_plan <- function(
     word_note <- .plot_note_from(plot, el$overrides$nota_pie %||% el$nota_pie %||% NULL)
 
     el_for_word <- el
+    el_for_word$.word_render <- TRUE
     el_for_word$overrides <- el_for_word$overrides %||% list()
     el_for_word$overrides$titulo    <- NULL
     el_for_word$overrides$subtitulo <- NULL
@@ -1777,8 +1779,13 @@ reporte_ppt_plan <- function(
     pct_int  <- .pct_enteros_100(tab$n)
     cols_pct <- paste0("pct_", seq_len(nrow(tab)))
 
+    ocultar_categoria_word <- isTRUE(el$.word_render) &&
+      isTRUE(overrides$word_ocultar_etiqueta_categoria %||%
+               preset_args$word_ocultar_etiqueta_categoria %||%
+               TRUE)
+
     df_wide <- tibble::tibble(
-      categoria = .title_of_var(var),
+      categoria = if (ocultar_categoria_word) "" else .title_of_var(var),
       N         = N_total
     )
     for (i in seq_along(cols_pct)) df_wide[[cols_pct[i]]] <- pct_int[i] / 100
@@ -1827,9 +1834,13 @@ reporte_ppt_plan <- function(
     preset_args_multi  <- preset_args_multi  %||% list()
     preset_args_single <- preset_args_single %||% list()
     overrides          <- el$overrides %||% list()
-    wrap_y_eff <- overrides$wrap_y %||%
+    wrap_y_eff <- overrides$ancho_max_eje_y %||%
+      overrides$wrap_y %||%
+      preset_args_multi$ancho_max_eje_y %||%
       preset_args_multi$wrap_y %||%
+      preset_args_single$ancho_max_eje_y %||%
       preset_args_single$wrap_y %||%
+      el$ancho_max_eje_y %||%
       el$wrap_y %||%
       50
     wrap_y_eff <- suppressWarnings(as.numeric(wrap_y_eff)[1])
@@ -1932,9 +1943,13 @@ reporte_ppt_plan <- function(
       }
 
       block_overrides <- block_el$overrides %||% list()
-      block_wrap <- block_overrides$wrap_y %||%
+      block_wrap <- block_overrides$ancho_max_eje_y %||%
+        block_overrides$wrap_y %||%
+        preset_args_multi$ancho_max_eje_y %||%
         preset_args_multi$wrap_y %||%
+        preset_args_single$ancho_max_eje_y %||%
         preset_args_single$wrap_y %||%
+        block_el$ancho_max_eje_y %||%
         block_el$wrap_y %||%
         50
       block_wrap <- suppressWarnings(as.numeric(block_wrap)[1])
@@ -2122,16 +2137,20 @@ reporte_ppt_plan <- function(
 
       duplicated_labels <- duplicated(labels_by_v) | duplicated(labels_by_v, fromLast = TRUE)
 
-      # En Word con una sola variable, el label es el titulo de arriba → suprimir
-      # y colapsar el placeholder de etiquetas para que las barras ocupen todo el ancho
+      # En Word con una sola variable, el label puede salir como titulo arriba.
       single_word_var <- isTRUE(el$.word_sin_grupo) && length(vars) == 1L
+      hide_single_word_label <- single_word_var &&
+        isTRUE(overrides$word_ocultar_etiqueta_categoria %||%
+                 preset_args_multi$word_ocultar_etiqueta_categoria %||%
+                 preset_args_single$word_ocultar_etiqueta_categoria %||%
+                 TRUE)
 
       for (v in vars) {
         tab <- tabs_by_v[[v]]
         if (is.null(tab)) next
 
         ctx_v <- .resolve_ref(v, arg_name = "vars")
-        if (single_word_var) {
+        if (hide_single_word_label) {
           label_v <- ""
         } else {
           label_v <- labels_by_v[[v]] %||% .title_of_var(v)

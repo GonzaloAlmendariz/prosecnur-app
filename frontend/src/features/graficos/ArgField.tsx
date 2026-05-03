@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Info, Sparkles, PencilLine, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw } from "lucide-react";
+import { Info, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw, Plus, Trash2 } from "lucide-react";
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
 import { downloadUrl } from "../../api/client";
@@ -22,8 +22,10 @@ import VarsListPicker from "./VarsListPicker";
 //   - bool                    → toggle
 //   - choice                  → radio pills
 //   - codigos_list            → chips list (split por coma/espacio)
+//   - series_colors           → editor visual serie → color
+//   - criteria_config         → criterios con selector de variables
 //   - icono                   → selector del catálogo de iconos subidos
-//   - overrides / filtros / base_config / meta → placeholder (Fase 2B)
+//   - overrides / filtros / base_config / meta → aviso de superficie dedicada
 
 type ArgValue = unknown;
 
@@ -210,17 +212,7 @@ function FieldControl({
       );
 
     case "number":
-      return (
-        <input
-          type="number"
-          value={typeof value === "number" ? value : (value === undefined || value === null ? "" : Number(value))}
-          onChange={(e) => {
-            const n = e.target.value === "" ? null : Number(e.target.value);
-            onChange(n);
-          }}
-          style={{ ...inputStyle, width: 120 }}
-        />
-      );
+      return <NumberControl meta={meta} value={value} onChange={onChange} />;
 
     case "bool":
       return <BoolToggle value={!!value} onChange={onChange} />;
@@ -255,6 +247,18 @@ function FieldControl({
         />
       );
 
+    case "series_colors":
+      return (
+        <SeriesColorsField
+          value={value}
+          defaultValue={meta.default}
+          onChange={onChange}
+        />
+      );
+
+    case "criteria_config":
+      return <CriteriaConfigField value={value} onChange={onChange} />;
+
     case "icono":
       return <IconoSelect value={value as string | null} onChange={onChange} />;
 
@@ -263,7 +267,7 @@ function FieldControl({
     case "base_config":
     case "meta":
     default:
-      return <AdvancedPlaceholder meta={meta} value={value} onChange={onChange} />;
+      return <DedicatedSurfaceNotice meta={meta} value={value} onChange={onChange} />;
   }
 }
 
@@ -276,6 +280,318 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 5,
   background: "white",
   outline: "none",
+};
+
+function NumberControl({
+  meta,
+  value,
+  onChange,
+}: {
+  meta: ArgMetadata;
+  value: ArgValue;
+  onChange: (v: ArgValue) => void;
+}) {
+  const n = coerceNumber(value);
+  const displayAsPercent = isProportionThreshold(meta);
+  const displayScale = displayAsPercent ? 100 : 1;
+  const step = inferNumberStep(meta, value);
+  const displayStep = step * displayScale;
+  const min = typeof meta.min === "number" ? meta.min : undefined;
+  const max = typeof meta.max === "number" ? meta.max : undefined;
+  const hasSlider = meta.control === "slider" && typeof min === "number" && typeof max === "number";
+  const displayMin = typeof min === "number" ? min * displayScale : undefined;
+  const displayMax = typeof max === "number" ? max * displayScale : undefined;
+  const displayUnit = displayAsPercent ? "%" : meta.unidad;
+  const [draft, setDraft] = useState(formatNumberInput(value, displayScale));
+  const presets = quickPresetsFor(meta.name);
+  const controlWidth = displayUnit && String(displayUnit).length > 3 ? 220 : hasSlider ? 260 : 180;
+  const unitPadding = displayUnit ? Math.max(46, String(displayUnit).length * 9 + 18) : 8;
+
+  useEffect(() => {
+    setDraft(formatNumberInput(value, displayScale));
+  }, [displayScale, value]);
+
+  function clamp(next: number | null): number | null {
+    if (next === null || !Number.isFinite(next)) return null;
+    let out = next;
+    if (typeof min === "number") out = Math.max(min, out);
+    if (typeof max === "number") out = Math.min(max, out);
+    return Number(out.toFixed(decimalsForStep(step)));
+  }
+
+  function update(next: number | null) {
+    const clamped = clamp(next);
+    onChange(clamped);
+    setDraft(formatNumberInput(clamped, displayScale));
+  }
+
+  function commitDraft(raw = draft) {
+    if (raw.trim() === "") {
+      update(null);
+      return;
+    }
+    const parsed = parseNumberInput(raw);
+    if (parsed === null) {
+      setDraft(formatNumberInput(value, displayScale));
+      return;
+    }
+    update(parsed / displayScale);
+  }
+
+  const relatedHint = getRelatedHint(meta.name);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: controlWidth }}>
+      <div style={{ display: "flex", alignItems: "stretch", gap: 4 }}>
+        <button
+          type="button"
+          className="pulso-arg-stepper-button"
+          onClick={(e) => { e.preventDefault(); update((Number.isFinite(n) ? n : (min ?? 0)) - step); }}
+          aria-label={`Disminuir ${meta.label}`}
+          style={stepButtonStyle}
+        >
+          −
+        </button>
+        <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={draft}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setDraft(raw);
+              if (isPartialNumberInput(raw)) return;
+              const parsed = parseNumberInput(raw);
+              if (parsed !== null) onChange(clamp(parsed / displayScale));
+            }}
+            onBlur={() => commitDraft()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                commitDraft();
+                (e.target as HTMLInputElement).blur();
+              }
+              if (e.key === "Escape") {
+                setDraft(formatNumberInput(value, displayScale));
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+            style={{
+              ...inputStyle,
+              width: "100%",
+              paddingRight: unitPadding,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          />
+          {displayUnit && (
+            <span
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+                fontSize: 10,
+                color: "var(--pulso-text-soft)",
+                pointerEvents: "none",
+              }}
+            >
+              {displayUnit}
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          className="pulso-arg-stepper-button"
+          onClick={(e) => { e.preventDefault(); update((Number.isFinite(n) ? n : (min ?? 0)) + step); }}
+          aria-label={`Aumentar ${meta.label}`}
+          style={stepButtonStyle}
+        >
+          +
+        </button>
+      </div>
+
+      {hasSlider && (
+        <input
+          className="pulso-arg-range"
+          type="range"
+          value={Number.isFinite(n) ? n * displayScale : displayMin}
+          min={displayMin}
+          max={displayMax}
+          step={displayStep}
+          onChange={(e) => update(Number(e.target.value) / displayScale)}
+          aria-label={`${meta.label} fino`}
+          style={{ width: "100%", accentColor: "var(--pulso-primary)" }}
+        />
+      )}
+
+      {presets.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+          {presets.map((preset) => (
+            <button
+              key={`${preset.label}-${preset.value}`}
+              type="button"
+              className="pulso-arg-preset-button"
+              onClick={(e) => { e.preventDefault(); update(preset.value); }}
+              style={{
+                padding: "3px 7px",
+                borderRadius: 999,
+                border: "1px solid var(--pulso-border)",
+                background: "white",
+                color: "var(--pulso-text-soft)",
+                fontSize: 10.5,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {(meta.efecto || relatedHint) && (
+        <span style={{ fontSize: 10.5, color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>
+          {meta.efecto}
+          {meta.efecto && relatedHint ? " " : ""}
+          {relatedHint}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function coerceNumber(value: ArgValue): number {
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : NaN;
+  }
+  return NaN;
+}
+
+function formatNumberInput(value: ArgValue, scale = 1): string {
+  if (value === null || value === undefined || value === "") return "";
+  if (typeof value === "number" && Number.isFinite(value)) return String(Number((value * scale).toFixed(6)));
+  if (typeof value === "string") {
+    const parsed = parseNumberInput(value);
+    if (parsed !== null) return String(Number((parsed * scale).toFixed(6)));
+    return value;
+  }
+  return "";
+}
+
+function parseNumberInput(value: string): number | null {
+  const clean = value.trim().replace(",", ".");
+  if (!clean) return null;
+  const parsed = Number(clean);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isPartialNumberInput(value: string): boolean {
+  const clean = value.trim();
+  return (
+    clean === "" ||
+    clean === "-" ||
+    clean === "+" ||
+    clean === "." ||
+    clean === "," ||
+    /^[-+]?\d+[.,]$/.test(clean)
+  );
+}
+
+function decimalsForStep(step: number): number {
+  const s = String(step);
+  const dot = s.indexOf(".");
+  return dot >= 0 ? Math.min(6, s.length - dot - 1) : 0;
+}
+
+function inferNumberStep(meta: ArgMetadata, value: ArgValue): number {
+  if (typeof meta.step === "number" && meta.step > 0) return meta.step;
+
+  const fromText = typeof value === "string" ? value.trim() : "";
+  const decimalMatch = fromText.match(/[.,](\d+)/);
+  if (decimalMatch) {
+    const decimals = Math.min(4, decimalMatch[1].length);
+    return Math.pow(10, -decimals);
+  }
+
+  const n = coerceNumber(value);
+  const min = typeof meta.min === "number" ? meta.min : undefined;
+  const max = typeof meta.max === "number" ? meta.max : undefined;
+  const span = typeof min === "number" && typeof max === "number" ? max - min : NaN;
+  const unit = String(meta.unidad ?? "").toLowerCase();
+  const name = String(meta.name ?? "").toLowerCase();
+
+  if (isProportionThreshold(meta)) return 0.0001;
+  if (unit.includes("propor") || name.startsWith("canvas_w_")) return 0.01;
+  if (unit.includes("pulgada") || name.endsWith("_in") || name.includes("_in_")) return 0.02;
+  if (Number.isFinite(span) && span > 0 && span <= 2) return 0.01;
+  if (Number.isFinite(n) && Math.abs(n) > 0 && Math.abs(n) < 1) return 0.01;
+  if (Number.isFinite(n) && !Number.isInteger(n)) return 0.1;
+
+  return 1;
+}
+
+function isProportionThreshold(meta: ArgMetadata): boolean {
+  const name = String(meta.name ?? "").toLowerCase();
+  return (name.startsWith("umbral_") || name.includes("_umbral_")) && !name.endsWith("_pct");
+}
+
+function getRelatedHint(name: string): string | null {
+  if (name === "canvas_w_etiquetas") {
+    return "Si el texto sigue partido, sube también el ancho de texto de etiquetas.";
+  }
+  if (name === "ancho_max_eje_y" || name === "wrap_y") {
+    return "Trabaja junto con el espacio para etiquetas.";
+  }
+  if ((name.startsWith("umbral_") || name.includes("_umbral_")) && !name.endsWith("_pct")) {
+    return "Está en porcentaje visible: escribe 0.05 para 0.05%.";
+  }
+  return null;
+}
+
+function quickPresetsFor(name: string): { label: string; value: number }[] {
+  if (name === "canvas_w_etiquetas") {
+    return [
+      { label: "Compacto", value: 0.12 },
+      { label: "Balance", value: 0.22 },
+      { label: "Amplio", value: 0.35 },
+    ];
+  }
+  if (name === "ancho_max_eje_y" || name === "wrap_y") {
+    return [
+      { label: "Corto", value: 18 },
+      { label: "Medio", value: 35 },
+      { label: "Largo", value: 60 },
+    ];
+  }
+  if (name === "alto_por_categoria") {
+    return [
+      { label: "Compacto", value: 0.36 },
+      { label: "Normal", value: 0.46 },
+      { label: "Alto", value: 0.65 },
+    ];
+  }
+  if ((name.startsWith("umbral_") || name.includes("_umbral_")) && !name.endsWith("_pct")) {
+    return [
+      { label: "0.05%", value: 0.0005 },
+      { label: "1%", value: 0.01 },
+      { label: "5%", value: 0.05 },
+    ];
+  }
+  return [];
+}
+
+const stepButtonStyle: React.CSSProperties = {
+  width: 28,
+  border: "1px solid var(--pulso-border)",
+  borderRadius: 5,
+  background: "white",
+  color: "var(--pulso-text)",
+  fontSize: 14,
+  fontWeight: 700,
+  cursor: "pointer",
+  lineHeight: 1,
 };
 
 function BoolToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
@@ -382,6 +698,356 @@ function CodigosList({
   );
 }
 
+function SeriesColorsField({
+  value,
+  defaultValue,
+  onChange,
+}: {
+  value: unknown;
+  defaultValue?: unknown;
+  onChange: (v: Record<string, string> | null) => void;
+}) {
+  const current = normalizeSeriesColors(value);
+  const inherited = normalizeSeriesColors(defaultValue);
+  const rows = Object.entries(current);
+  const visibleRows = rows.length > 0 ? rows : Object.entries(inherited);
+  const showingInherited = rows.length === 0 && visibleRows.length > 0;
+
+  function emit(entries: Array<[string, string]>) {
+    const next: Record<string, string> = {};
+    for (const [rawName, rawColor] of entries) {
+      const name = rawName.trim();
+      const color = rawColor.trim();
+      if (!name || !color) continue;
+      next[name] = color;
+    }
+    onChange(Object.keys(next).length > 0 ? next : null);
+  }
+
+  function updateName(index: number, name: string) {
+    const base = visibleRows.length > 0 ? visibleRows : [["Serie", "#39588B"] as [string, string]];
+    const next = base.map(([n, c], i) => [i === index ? name : n, c] as [string, string]);
+    emit(next);
+  }
+
+  function updateColor(index: number, color: string | null) {
+    const base = visibleRows.length > 0 ? visibleRows : [["Serie", "#39588B"] as [string, string]];
+    const next = base.map(([n, c], i) => [n, i === index ? (color ?? "") : c] as [string, string]);
+    emit(next);
+  }
+
+  function removeRow(index: number) {
+    emit(visibleRows.filter((_, i) => i !== index));
+  }
+
+  function addRow() {
+    const used = new Set(visibleRows.map(([name]) => name));
+    let i = visibleRows.length + 1;
+    let name = `Serie ${i}`;
+    while (used.has(name)) {
+      i += 1;
+      name = `Serie ${i}`;
+    }
+    emit([...visibleRows, [name, COLOR_PRESETS[(visibleRows.length + 6) % COLOR_PRESETS.length].value]]);
+  }
+
+  function applySuggested() {
+    const names = visibleRows.length > 0 ? visibleRows.map(([name]) => name) : ["Serie 1", "Serie 2", "Serie 3"];
+    const palette = ["#39588B", "#0B3A67", "#00BFC4", "#F8766D", "#7CAE00", "#C77CFF"];
+    emit(names.map((name, i) => [name, palette[i % palette.length]] as [string, string]));
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 460 }}>
+      {visibleRows.length === 0 ? (
+        <div
+          style={{
+            border: "1px dashed var(--pulso-border)",
+            borderRadius: 8,
+            background: "var(--pulso-surface)",
+            padding: 10,
+            fontSize: 11,
+            color: "var(--pulso-text-soft)",
+          }}
+        >
+          Sin colores personalizados. Se usará la paleta del gráfico.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {showingInherited && (
+            <span style={{ fontSize: 10.5, color: "var(--pulso-text-soft)" }}>
+              Valores heredados del preset. Edita una fila para personalizarlos.
+            </span>
+          )}
+          {visibleRows.map(([name, color], index) => (
+            <div
+              key={`${name}-${index}`}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(140px, 1fr) minmax(180px, 220px) 28px",
+                gap: 8,
+                alignItems: "start",
+              }}
+            >
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => updateName(index, e.target.value)}
+                placeholder="Nombre de serie"
+                style={inputStyle}
+              />
+              <ColorField
+                value={color}
+                defaultValue={typeof inherited[name] === "string" ? inherited[name] : undefined}
+                onChange={(v) => updateColor(index, v)}
+              />
+              <button
+                type="button"
+                className="pulso-icon"
+                onClick={(e) => { e.preventDefault(); removeRow(index); }}
+                aria-label={`Quitar color de ${name}`}
+                title="Quitar serie"
+                style={{ minWidth: 28, minHeight: 28 }}
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <button
+          type="button"
+          className="pulso-arg-preset-button"
+          onClick={(e) => { e.preventDefault(); addRow(); }}
+          style={seriesButtonStyle}
+        >
+          <Plus size={12} /> Agregar serie
+        </button>
+        <button
+          type="button"
+          className="pulso-arg-preset-button"
+          onClick={(e) => { e.preventDefault(); applySuggested(); }}
+          style={seriesButtonStyle}
+        >
+          <Palette size={12} /> Paleta sugerida
+        </button>
+        {(rows.length > 0 || showingInherited) && (
+          <button
+            type="button"
+            className="pulso-arg-preset-button"
+            onClick={(e) => { e.preventDefault(); onChange(null); }}
+            style={seriesButtonStyle}
+          >
+            <RotateCcw size={12} /> Usar preset
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const seriesButtonStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 5,
+  padding: "5px 9px",
+  borderRadius: 7,
+  border: "1px solid var(--pulso-border)",
+  background: "white",
+  color: "var(--pulso-text)",
+  fontSize: 11,
+  fontWeight: 600,
+  cursor: "pointer",
+};
+
+function normalizeSeriesColors(value: unknown): Record<string, string> {
+  if (!value) return {};
+  if (Array.isArray(value)) {
+    const out: Record<string, string> = {};
+    for (const item of value) {
+      if (!item || typeof item !== "object") continue;
+      const obj = item as Record<string, unknown>;
+      const name = String(obj.name ?? obj.serie ?? "").trim();
+      const color = String(obj.color ?? obj.value ?? "").trim();
+      if (name && color) out[name] = color;
+    }
+    return out;
+  }
+  if (typeof value === "object") {
+    const out: Record<string, string> = {};
+    for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+      const name = key.trim();
+      const color = String(raw ?? "").trim();
+      if (name && color) out[name] = color;
+    }
+    return out;
+  }
+  if (typeof value === "string") {
+    const out: Record<string, string> = {};
+    for (const line of value.split(/\n+/)) {
+      const match = line.match(/^\s*([^:=]+?)\s*[:=]\s*(\S+)\s*$/);
+      if (!match) continue;
+      out[match[1].trim()] = match[2].trim();
+    }
+    return out;
+  }
+  return {};
+}
+
+type CriteriaConfigItem = {
+  id?: string;
+  titulo: string;
+  vars: string[];
+};
+
+function CriteriaConfigField({
+  value,
+  onChange,
+}: {
+  value: unknown;
+  onChange: (v: CriteriaConfigItem[] | null) => void;
+}) {
+  const items = normalizeCriteriaConfig(value);
+
+  function emit(nextItems: CriteriaConfigItem[]) {
+    const clean = nextItems
+      .map((item, index) => {
+        const titulo = item.titulo.trim();
+        const vars = Array.from(new Set((item.vars ?? []).filter(Boolean)));
+        return {
+          id: item.id?.trim() || slugify(titulo || `criterio_${index + 1}`),
+          titulo,
+          vars,
+        };
+      })
+      .filter((item) => item.titulo || item.vars.length > 0);
+    onChange(clean.length > 0 ? clean : null);
+  }
+
+  function update(index: number, patch: Partial<CriteriaConfigItem>) {
+    emit(items.map((item, i) => i === index ? { ...item, ...patch } : item));
+  }
+
+  function addCriterion() {
+    emit([...items, { titulo: `Criterio ${items.length + 1}`, vars: [] }]);
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 560 }}>
+      {items.length === 0 ? (
+        <div
+          style={{
+            border: "1px dashed var(--pulso-border)",
+            borderRadius: 8,
+            background: "var(--pulso-surface)",
+            padding: 10,
+            fontSize: 11,
+            color: "var(--pulso-text-soft)",
+          }}
+        >
+          Agrega criterios y asigna variables a cada uno.
+        </div>
+      ) : (
+        items.map((item, index) => (
+          <div
+            key={`${item.id ?? item.titulo}-${index}`}
+            style={{
+              border: "1px solid var(--pulso-border)",
+              borderRadius: 8,
+              background: "white",
+              padding: 10,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 28px", gap: 8, alignItems: "center" }}>
+              <input
+                type="text"
+                value={item.titulo}
+                onChange={(e) => update(index, { titulo: e.target.value })}
+                placeholder="Nombre del criterio"
+                style={inputStyle}
+              />
+              <button
+                type="button"
+                className="pulso-icon"
+                onClick={(e) => {
+                  e.preventDefault();
+                  emit(items.filter((_, i) => i !== index));
+                }}
+                aria-label={`Quitar criterio ${item.titulo || index + 1}`}
+                title="Quitar criterio"
+                style={{ minWidth: 28, minHeight: 28 }}
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+            <VarsListPicker
+              value={item.vars ?? []}
+              onChange={(vars) => update(index, { vars })}
+            />
+          </div>
+        ))
+      )}
+
+      <button
+        type="button"
+        className="pulso-arg-preset-button"
+        onClick={(e) => { e.preventDefault(); addCriterion(); }}
+        style={{ ...seriesButtonStyle, alignSelf: "flex-start" }}
+      >
+        <Plus size={12} /> Agregar criterio
+      </button>
+    </div>
+  );
+}
+
+function normalizeCriteriaConfig(value: unknown): CriteriaConfigItem[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((raw, index) => normalizeCriteriaItem(raw, `Criterio ${index + 1}`))
+      .filter((item): item is CriteriaConfigItem => !!item);
+  }
+  if (typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, raw]) => normalizeCriteriaItem(raw, key))
+      .filter((item): item is CriteriaConfigItem => !!item);
+  }
+  return [];
+}
+
+function normalizeCriteriaItem(raw: unknown, fallbackTitle: string): CriteriaConfigItem | null {
+  if (!raw) return null;
+  if (Array.isArray(raw)) {
+    return { id: slugify(fallbackTitle), titulo: fallbackTitle, vars: raw.map(String).filter(Boolean) };
+  }
+  if (typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    const titulo = String(obj.titulo ?? obj.title ?? obj.label ?? fallbackTitle).trim();
+    const varsRaw = obj.vars ?? obj.variables ?? [];
+    const vars = Array.isArray(varsRaw) ? varsRaw.map(String).filter(Boolean) : [];
+    return {
+      id: typeof obj.id === "string" ? obj.id : slugify(titulo || fallbackTitle),
+      titulo,
+      vars,
+    };
+  }
+  return null;
+}
+
+function slugify(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "") || "criterio";
+}
+
 function IconoSelect({
   value,
   onChange,
@@ -444,10 +1110,10 @@ function IconoSelect({
   );
 }
 
-// Fallback para tipos avanzados (overrides, filtros, base_config, meta).
-// Por ahora permite editar el JSON crudo para power-users; la UI
-// dedicada vive en Fase 2B.
-function AdvancedPlaceholder({
+// Fallback para tipos con superficie dedicada. No ofrece edición cruda:
+// si un arg llega aquí por error, la UI lo oculta detrás de una indicación
+// segura y permite limpiar el valor.
+function DedicatedSurfaceNotice({
   meta,
   value,
   onChange,
@@ -456,85 +1122,50 @@ function AdvancedPlaceholder({
   value: unknown;
   onChange: (v: unknown) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const jsonText = JSON.stringify(value ?? (meta.tipo_input === "overrides" || meta.tipo_input === "filtros" || meta.tipo_input === "base_config" ? {} : null), null, 2);
-  const [draft, setDraft] = useState(jsonText);
-
   const hasValue =
     value !== null && value !== undefined &&
     !(typeof value === "object" && !Array.isArray(value) && Object.keys(value as object).length === 0) &&
     !(Array.isArray(value) && value.length === 0);
 
-  if (!editing) {
-    return (
-      <div
-        style={{
-          padding: "7px 10px", borderRadius: 6,
-          border: "1px dashed var(--pulso-border)",
-          background: "var(--pulso-surface)",
-          fontSize: 11, color: "var(--pulso-text-soft)",
-          display: "flex", alignItems: "center", gap: 8,
-        }}
-      >
-        {hasValue ? <PencilLine size={12} color="var(--pulso-primary)" /> : <Sparkles size={12} />}
-        <span style={{ flex: 1 }}>
-          {hasValue ? `${meta.label} personalizado` : "Defaults del preset global"}
-        </span>
-        <button
-          type="button"
-          onClick={() => { setDraft(jsonText); setEditing(true); }}
-          style={{ fontSize: 10, padding: "3px 7px" }}
-        >
-          Editar JSON
-        </button>
-        {hasValue && (
-          <button
-            type="button"
-            onClick={() => onChange(meta.tipo_input === "overrides" || meta.tipo_input === "filtros" || meta.tipo_input === "base_config" ? {} : null)}
-            style={{ fontSize: 10, padding: "3px 7px", color: "#991b1b" }}
-          >
-            Limpiar
-          </button>
-        )}
-      </div>
-    );
-  }
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <textarea
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        rows={5}
-        style={{ ...inputStyle, fontFamily: "ui-monospace, monospace", fontSize: 11, resize: "vertical" }}
-      />
-      <div style={{ display: "flex", gap: 4 }}>
+    <div
+      style={{
+        padding: "8px 10px",
+        borderRadius: 6,
+        border: "1px dashed var(--pulso-border)",
+        background: "var(--pulso-surface)",
+        fontSize: 11,
+        color: "var(--pulso-text-soft)",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+      }}
+    >
+      <Info size={12} />
+      <span style={{ flex: 1 }}>
+        {surfaceLabel(meta.tipo_input)}
+      </span>
+      {hasValue && (
         <button
           type="button"
-          className="pulso-primary"
-          onClick={() => {
-            try {
-              const parsed = draft.trim() === "" ? null : JSON.parse(draft);
-              onChange(parsed);
-              setEditing(false);
-            } catch (e) {
-              alert(`JSON inválido: ${(e as Error).message}`);
-            }
+          onClick={(e) => {
+            e.preventDefault();
+            onChange(meta.tipo_input === "overrides" || meta.tipo_input === "filtros" || meta.tipo_input === "base_config" ? {} : null);
           }}
-          style={{ fontSize: 11, padding: "4px 10px" }}
+          style={{ fontSize: 10, padding: "3px 7px", color: "#991b1b" }}
         >
-          Aplicar
+          Limpiar
         </button>
-        <button
-          type="button"
-          onClick={() => setEditing(false)}
-          style={{ fontSize: 11, padding: "4px 10px" }}
-        >
-          Cancelar
-        </button>
-      </div>
+      )}
     </div>
   );
+}
+
+function surfaceLabel(tipo: string): string {
+  if (tipo === "filtros") return "Se configura desde la pestaña Filtros.";
+  if (tipo === "overrides") return "Se configura desde Modo o Estilo del gráfico.";
+  if (tipo === "base_config") return "La base se calcula automáticamente o se edita como texto del gráfico.";
+  return "Este ajuste usa una interfaz dedicada.";
 }
 
 // Multi-select cerrado de tokens — usado por `textos_negrita` y
@@ -700,63 +1331,66 @@ function ColorField({
     .filter((p) => p.colores.length > 0);
 
   return (
-    <div ref={ref} style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 6 }}>
-      {/* Swatch clickeable */}
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        title="Elegir color"
-        style={{
-          width: 28, height: 28, borderRadius: 6,
-          border: "1px solid var(--pulso-border)",
-          background:
-            effective && effective !== "transparent"
-              ? effective
-              : "repeating-linear-gradient(45deg, #eee 0 4px, #fff 4px 8px)",
-          cursor: "pointer", padding: 0, flexShrink: 0,
-          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.4)",
-        }}
-        aria-label="Abrir selector de color"
-      />
-      {/* Input hex con validación visual */}
-      <input
-        type="text"
-        value={draft}
-        placeholder={defaultValue || "#RRGGBB o 'white'"}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => commit(draft)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") { commit(draft); (e.target as HTMLInputElement).blur(); }
-          if (e.key === "Escape") { setDraft(value); (e.target as HTMLInputElement).blur(); }
-        }}
-        style={{
-          ...inputStyle,
-          width: 130,
-          fontFamily: "ui-monospace, monospace",
-          fontSize: 11,
-          borderColor: valid ? "var(--pulso-border)" : "#f59f9f",
-          background: valid ? "white" : "#fef7f7",
-        }}
-      />
-      {draft && (
+    <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: 8, width: "min(100%, 360px)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+        {/* Swatch clickeable */}
         <button
           type="button"
-          onClick={() => commit(null)}
-          className="pulso-icon"
-          aria-label="Borrar color (heredar)"
-          title="Borrar (hereda del preset padre)"
-          style={{ padding: 3, minWidth: 22, minHeight: 22 }}
-        >
-          <XIcon size={11} />
-        </button>
-      )}
+          onClick={() => setOpen((v) => !v)}
+          title="Elegir color"
+          style={{
+            width: 28, height: 28, borderRadius: 6,
+            border: "1px solid var(--pulso-border)",
+            background:
+              effective && effective !== "transparent"
+                ? effective
+                : "repeating-linear-gradient(45deg, #eee 0 4px, #fff 4px 8px)",
+            cursor: "pointer", padding: 0, flexShrink: 0,
+            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.4)",
+          }}
+          aria-label="Abrir selector de color"
+        />
+        {/* Input hex con validación visual */}
+        <input
+          type="text"
+          value={draft}
+          placeholder={defaultValue || "#RRGGBB o 'white'"}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => commit(draft)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { commit(draft); (e.target as HTMLInputElement).blur(); }
+            if (e.key === "Escape") { setDraft(value); (e.target as HTMLInputElement).blur(); }
+          }}
+          style={{
+            ...inputStyle,
+            width: 150,
+            minWidth: 0,
+            fontFamily: "ui-monospace, monospace",
+            fontSize: 11,
+            borderColor: valid ? "var(--pulso-border)" : "#f59f9f",
+            background: valid ? "white" : "#fef7f7",
+          }}
+        />
+        {draft && (
+          <button
+            type="button"
+            onClick={() => commit(null)}
+            className="pulso-icon"
+            aria-label="Borrar color (heredar)"
+            title="Borrar (hereda del preset padre)"
+            style={{ padding: 3, minWidth: 22, minHeight: 22 }}
+          >
+            <XIcon size={11} />
+          </button>
+        )}
+      </div>
 
       {open && (
         <div
           style={{
-            position: "absolute", top: "calc(100% + 6px)", left: 0,
-            zIndex: 30,
-            minWidth: 280,
+            width: "100%",
+            maxHeight: 260,
+            overflowY: "auto",
             background: "white",
             border: "1px solid var(--pulso-border)",
             borderRadius: 8,

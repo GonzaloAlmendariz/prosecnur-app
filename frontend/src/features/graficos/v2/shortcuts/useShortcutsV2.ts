@@ -3,17 +3,12 @@ import { usePlanStore } from "../../store";
 
 // Atajos extendidos del editor V2. Se monta junto a (no en lugar de)
 // useGraficosShortcuts: este hook agrega navegación entre slides (J/K),
-// foco a búsqueda (/), cambio de modo (V/T/S), tabs del inspector (1-4),
-// y fit canvas (F).
+// foco a búsqueda (/), cambio de modo (V/T), y tabs del inspector (1-4).
 //
 // Filtra eventos cuando el foco está dentro de input/textarea/select/
 // contenteditable para no pisar la escritura.
 
-export function useShortcutsV2({
-  onFitCanvas,
-}: {
-  onFitCanvas?: () => void;
-} = {}) {
+export function useShortcutsV2() {
   const slides = usePlanStore((s) => s.plan.slides);
   const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
   const select = usePlanStore((s) => s.select);
@@ -81,17 +76,10 @@ export function useShortcutsV2({
         if (e.key === "3") { e.preventDefault(); setInspectorTab("style"); return; }
         if (e.key === "4") { e.preventDefault(); setInspectorTab("filters"); return; }
       }
-
-      // F → fit canvas
-      if ((e.key === "f" || e.key === "F") && viewMode === "canvas") {
-        e.preventDefault();
-        onFitCanvas?.();
-        return;
-      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [slides, selectedSlideId, viewMode, select, moveSlide, setViewMode, setInspectorTab, onFitCanvas]);
+  }, [slides, selectedSlideId, viewMode, select, moveSlide, setViewMode, setInspectorTab]);
 }
 
 function isEditable(el: HTMLElement): boolean {

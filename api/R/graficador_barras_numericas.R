@@ -178,6 +178,7 @@ graficar_barras_numericas <- function(
     extra_derecha_rel    = 0.10,
     ancho_max_eje_cat    = NULL,
     mostrar_leyenda      = TRUE,
+    leyenda_posicion     = c("abajo", "arriba", "derecha", "izquierda", "ninguna"),
     invertir_leyenda     = FALSE,
     invertir_barras      = FALSE,
     invertir_series      = FALSE,
@@ -234,6 +235,19 @@ graficar_barras_numericas <- function(
   exportar      <- match.arg(exportar)
   pos_titulo    <- match.arg(pos_titulo)
   pos_nota_pie  <- match.arg(pos_nota_pie)
+  leyenda_posicion <- match.arg(leyenda_posicion)
+  if (identical(leyenda_posicion, "ninguna")) mostrar_leyenda <- FALSE
+  legend_pos_gg <- switch(
+    leyenda_posicion,
+    abajo = "bottom",
+    arriba = "top",
+    derecha = "right",
+    izquierda = "left",
+    ninguna = "none",
+    "bottom"
+  )
+  legend_is_top  <- identical(leyenda_posicion, "arriba")
+  legend_is_side <- leyenda_posicion %in% c("derecha", "izquierda")
   if (is.null(color_texto_barras_interno)) color_texto_barras_interno <- color_texto_barras
   if (is.null(color_texto_barras_externo)) color_texto_barras_externo <- color_texto_barras
 
@@ -533,7 +547,7 @@ graficar_barras_numericas <- function(
       axis.title.x       = ggplot2::element_blank(),
       axis.title.y       = ggplot2::element_blank(),
       legend.title       = ggplot2::element_blank(),
-      legend.position    = if (mostrar_leyenda) "bottom" else "none",
+      legend.position    = if (mostrar_leyenda) legend_pos_gg else "none",
       legend.text        = ggplot2::element_text(
         color = color_leyenda,
         size  = size_leyenda,
@@ -594,7 +608,7 @@ graficar_barras_numericas <- function(
     p <- p +
       ggplot2::guides(
         fill = ggplot2::guide_legend(
-          nrow      = n_filas_leyenda,
+          nrow      = if (legend_is_side) n_items_leyenda else n_filas_leyenda,
           reverse   = invertir_leyenda,
           keywidth  = grid::unit(legend_key_cm, "cm"),
           keyheight = grid::unit(legend_key_cm, "cm")
@@ -633,7 +647,8 @@ graficar_barras_numericas <- function(
     if (mostrar_leyenda && n_items_leyenda > 0) {
       leg <- cowplot::get_legend(
         p + ggplot2::theme(
-          legend.position  = "bottom",
+          legend.position  = if (legend_is_side) "right" else "bottom",
+          legend.direction = if (legend_is_side) "vertical" else "horizontal",
           legend.text      = ggplot2::element_text(
             color  = color_leyenda,
             size   = size_leyenda,
@@ -699,21 +714,41 @@ graficar_barras_numericas <- function(
       )
 
     legend_block <- if (!is.null(leg)) cowplot::ggdraw(leg) else cowplot::ggdraw() + cowplot::theme_nothing()
+    panel_block <- if (!is.null(leg) && legend_is_side) {
+      if (identical(leyenda_posicion, "izquierda")) {
+        cowplot::plot_grid(.wrap_debug(legend_block), .wrap_debug(p_panel), ncol = 2, rel_widths = c(0.22, 0.78))
+      } else {
+        cowplot::plot_grid(.wrap_debug(p_panel), .wrap_debug(legend_block), ncol = 2, rel_widths = c(0.78, 0.22))
+      }
+    } else {
+      .wrap_debug(p_panel)
+    }
 
     # Alturas (panel absorbe el resto)
     h_title   <- canvas_h_title
-    h_legend  <- if (!is.null(leg)) canvas_h_legend else 0.01
+    h_legend  <- if (!is.null(leg) && !legend_is_side) canvas_h_legend else 0.01
     h_caption <- if (!is.null(nota_pie) && nzchar(nota_pie)) canvas_h_caption else 0.01
     h_panel   <- max(0.01, 1 - (h_title + h_legend + h_caption) - canvas_pad_top)
 
-    p_final <- cowplot::plot_grid(
-      .wrap_debug(title_block),
-      .wrap_debug(p_panel),
-      .wrap_debug(legend_block),
-      .wrap_debug(caption_block),
-      ncol = 1,
-      rel_heights = c(h_title, h_panel, h_legend, h_caption)
-    )
+    if (!is.null(leg) && legend_is_top && !legend_is_side) {
+      p_final <- cowplot::plot_grid(
+        .wrap_debug(title_block),
+        .wrap_debug(legend_block),
+        panel_block,
+        .wrap_debug(caption_block),
+        ncol = 1,
+        rel_heights = c(h_title, h_legend, h_panel, h_caption)
+      )
+    } else {
+      p_final <- cowplot::plot_grid(
+        .wrap_debug(title_block),
+        panel_block,
+        if (!legend_is_side) .wrap_debug(legend_block) else cowplot::ggdraw() + cowplot::theme_nothing(),
+        .wrap_debug(caption_block),
+        ncol = 1,
+        rel_heights = c(h_title, h_panel, h_legend, h_caption)
+      )
+    }
   }
 
   # ---------------------------------------------------------------------------

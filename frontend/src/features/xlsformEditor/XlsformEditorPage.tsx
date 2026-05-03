@@ -34,14 +34,18 @@ import {
 import {
   apiSaveEntregable,
   apiUpload,
-  apiXlsformEditorExport,
-  apiXlsformEditorImport,
-  apiXlsformEditorValidate,
+	  apiXlsformEditorExport,
+	  apiXlsformEditorImport,
+	  apiXlsformEditorSmApplyLogic,
+	  apiXlsformEditorSmInterpretRule,
+	  apiXlsformEditorValidate,
   downloadUrl,
   type Hallazgo,
+  type SurveyMonkeyVisualLogicRule,
 } from "../../api/client";
 import { useProjectShell } from "../project/ProjectShell";
 import { ImportSurveyMonkeyDialog } from "./shell/ImportSurveyMonkeyDialog";
+import { compileVisualLogicRules, RuleWizard, type ConfirmedRule } from "./shell/RuleWizard";
 import { HallazgosPanel } from "./shell/HallazgosPanel";
 import smMonkey from "../../assets/sm-monkey.png";
 import { Panel } from "../../components/Panel";
@@ -186,6 +190,74 @@ function logicSummary(node: BuilderNode | null) {
   return blocks;
 }
 
+function workbookWithSurveyMonkeyLogic(
+  workbook: XlsformEditorWorkbook,
+  advancedRules: ConfirmedRule[],
+  visualRules: SurveyMonkeyVisualLogicRule[],
+  choiceOrderOverrides: Record<string, string[]>,
+): XlsformEditorWorkbook {
+  const next = cloneWorkbook(workbook);
+  const overrides = Object.fromEntries(
+    Object.entries(choiceOrderOverrides).map(([key, labels]) => [key, [...labels]]),
+  );
+  next.surveyMonkeyLogic = advancedRules.length || visualRules.length || Object.keys(overrides).length
+    ? {
+        rules: advancedRules.map((rule) => ({ ...rule })),
+        advanced_rules: advancedRules.map((rule) => ({ ...rule })),
+        visual_rules: visualRules.map((rule) => ({
+          ...rule,
+          choices: rule.choices.map((choice) => ({ ...choice, action: { ...choice.action } })),
+        })),
+        choice_order_overrides: overrides,
+      }
+    : null;
+  return next;
+}
+
+async function refreshSurveyMonkeyAdvancedRules(
+  rules: ConfirmedRule[],
+  workbook: XlsformEditorWorkbook,
+  choiceOrderOverrides: Record<string, string[]>,
+): Promise<ConfirmedRule[]> {
+  if (!rules.length) return rules;
+  return Promise.all(rules.map(async (rule) => {
+    try {
+      const interp = await apiXlsformEditorSmInterpretRule(rule.texto, {
+        workbook,
+        choice_order_overrides: choiceOrderOverrides,
+      });
+      if (!interp.ok) return rule;
+      return {
+        ...rule,
+        texto_humano: interp.texto_humano,
+        kobo_expr: interp.resolucion.kobo_expr,
+      };
+    } catch {
+      return rule;
+    }
+  }));
+}
+
+function extractExistingKoboLogic(workbook: XlsformEditorWorkbook | null) {
+  if (!workbook) return [];
+  const nameIdx = workbook.survey.columns.indexOf("name");
+  const labelIdx = workbook.survey.columns.indexOf("label");
+  const relIdx = workbook.survey.columns.indexOf("relevant");
+  if (nameIdx < 0 || relIdx < 0) return [];
+  return workbook.survey.rows
+    .map((row) => ({
+      name: row[nameIdx] ?? "",
+      label: labelIdx >= 0 ? row[labelIdx] ?? "" : "",
+      relevant: row[relIdx] ?? "",
+    }))
+    .filter((item) => item.name && item.relevant.trim())
+    .slice(0, 80);
+}
+
+function visualActionCountForFooter(rules: SurveyMonkeyVisualLogicRule[]) {
+  return rules.reduce((sum, rule) => sum + rule.choices.filter((choice) => choice.action.kind !== "none").length, 0);
+}
+
 export default function XlsformEditorPage() {
   // Detecta si hay un .pulso abierto — al exportar, decide entre guardar
   // al directorio del proyecto (vía /api/fs/save-to-project) o usar la
@@ -222,8 +294,12 @@ export default function XlsformEditorPage() {
   const [editorMode, setEditorMode] = useState<"builder" | "sheets">("builder");
   /** Si está abierto el overlay del mapa de lógica (canvas Obsidian-style).
    *  Se accede desde el botón "Mapa de lógica" del header del constructor. */
-  const [logicCanvasOpen, setLogicCanvasOpen] = useState(false);
-  const [questionnaireViewOpen, setQuestionnaireViewOpen] = useState(false);
+	  const [logicCanvasOpen, setLogicCanvasOpen] = useState(false);
+	  const [smLogicDialogOpen, setSmLogicDialogOpen] = useState(false);
+	  const [smLogicRules, setSmLogicRules] = useState<ConfirmedRule[]>([]);
+	  const [smVisualLogicRules, setSmVisualLogicRules] = useState<SurveyMonkeyVisualLogicRule[]>([]);
+	  const [smLogicChoiceOverrides, setSmLogicChoiceOverrides] = useState<Record<string, string[]>>({});
+	  const [questionnaireViewOpen, setQuestionnaireViewOpen] = useState(false);
   /** Modal de importación SurveyMonkey vía API. El .sav queda solo como ruta
    *  legacy opcional; el flujo principal ya no pide archivo. */
   const [smImportDialog, setSmImportDialog] = useState<
@@ -490,17 +566,21 @@ export default function XlsformEditorPage() {
       // LOAD resetea historia y dirty=false. Cancelamos cualquier autosave
       // pendiente del workbook anterior para no pisar el snapshot nuevo.
       persistence.cancel();
-      dispatch({ type: "LOAD", workbook: cloneWorkbook(next) });
+      const loadedWorkbook = cloneWorkbook(next);
+      dispatch({ type: "LOAD", workbook: loadedWorkbook });
       setSource(nextSource);
       setArtifact(null);
       setStatus(nextStatus);
       setRestoreOffer(null);
+      setSmLogicRules(loadedWorkbook.surveyMonkeyLogic?.advanced_rules ?? loadedWorkbook.surveyMonkeyLogic?.rules ?? []);
+      setSmVisualLogicRules(loadedWorkbook.surveyMonkeyLogic?.visual_rules ?? []);
+      setSmLogicChoiceOverrides(loadedWorkbook.surveyMonkeyLogic?.choice_order_overrides ?? {});
       const sourceMeta = {
         sourceKind: nextSource.kind,
         sourceName: nextSource.original_name,
       };
-      const savedAt = saveSnapshot(next, sourceMeta);
-      void syncSnapshotToBackend(next, sourceMeta);
+      const savedAt = saveSnapshot(loadedWorkbook, sourceMeta);
+      void syncSnapshotToBackend(loadedWorkbook, sourceMeta);
       if (savedAt != null) {
         dispatch({ type: "MARK_SAVED", savedAt });
       }
@@ -548,6 +628,9 @@ export default function XlsformEditorPage() {
         out.source,
         `Abrimos ${file.name} para trabajarlo como constructor de formulario dentro de Prosecnur.`
       );
+      setSmLogicRules([]);
+      setSmVisualLogicRules([]);
+      setSmLogicChoiceOverrides({});
       toasts.push({
         kind: "success",
         title: "Formulario importado",
@@ -569,16 +652,30 @@ export default function XlsformEditorPage() {
   }
 
   // Callback del modal cuando completa con éxito (ya con o sin reglas aplicadas)
-  function onSurveyMonkeyImportComplete(payload: {
-    workbook: XlsformEditorWorkbook;
-    source: { kind: string | null; original_name: string | null };
-    hallazgos: Hallazgo[];
-  }) {
+	  async function onSurveyMonkeyImportComplete(payload: {
+	    workbook: XlsformEditorWorkbook;
+	    source: { kind: string | null; original_name: string | null };
+	    hallazgos: Hallazgo[];
+	    surveyMonkeyRules?: ConfirmedRule[];
+	    surveyMonkeyVisualRules?: SurveyMonkeyVisualLogicRule[];
+	    surveyMonkeyChoiceOverrides?: Record<string, string[]>;
+	  }) {
     const fileName = smImportDialog?.fileName ?? payload.source.original_name ?? "archivo";
+    const refreshedRules = await refreshSurveyMonkeyAdvancedRules(
+      payload.surveyMonkeyRules ?? [],
+      payload.workbook,
+      payload.surveyMonkeyChoiceOverrides ?? {},
+    );
+    const workbookWithLogic = workbookWithSurveyMonkeyLogic(
+      payload.workbook,
+      refreshedRules,
+      payload.surveyMonkeyVisualRules ?? [],
+      payload.surveyMonkeyChoiceOverrides ?? {},
+    );
     setSmImportDialog(null);
     setHallazgos(payload.hallazgos);
     loadWorkbook(
-      payload.workbook,
+      workbookWithLogic,
       payload.source,
       payload.hallazgos.length > 0
         ? `Tradujimos ${fileName} y aplicamos tu lógica. Hay ${payload.hallazgos.length} hallazgo(s) para revisar.`
@@ -592,6 +689,68 @@ export default function XlsformEditorPage() {
           ? `${fileName} traducido — revisa los hallazgos del validador.`
           : `${fileName} ahora es un XLSForm editable.`,
     });
+	  }
+
+	  async function applySurveyMonkeyLogicFromEditor() {
+	    if (!workbook) return;
+	    const visualText = compileVisualLogicRules(smVisualLogicRules);
+	    const advancedText = smLogicRules.map((r) => r.texto).join("\n");
+	    const reglasText = [visualText, advancedText].filter((part) => part.trim()).join("\n");
+	    if (!reglasText.trim()) {
+	      toasts.push({
+	        kind: "warn",
+	        title: "Sin lógica configurada",
+	        detail: "Configura al menos un salto visual o una regla avanzada antes de aplicar.",
+	      });
+	      return;
+	    }
+	    setBusy("Aplicando lógica SurveyMonkey…");
+	    try {
+	      const result = await apiXlsformEditorSmApplyLogic(
+	        workbook,
+	        reglasText,
+	        {},
+	        smLogicChoiceOverrides,
+	        source?.original_name ?? "XLSForm actual",
+	      );
+	      const refreshedRules = await refreshSurveyMonkeyAdvancedRules(smLogicRules, result.workbook, smLogicChoiceOverrides);
+	      const nextWorkbook = workbookWithSurveyMonkeyLogic(result.workbook, refreshedRules, smVisualLogicRules, smLogicChoiceOverrides);
+	      setSmLogicRules(refreshedRules);
+	      dispatch({ type: "SET", workbook: nextWorkbook });
+	      setArtifact(null);
+	      setSmLogicDialogOpen(false);
+	      toasts.push({
+	        kind: "success",
+	        title: "Lógica SurveyMonkey aplicada",
+	        detail: "Los saltos quedaron aplicados al XLSForm.",
+	      });
+	    } catch (e) {
+	      const msg = (e as Error).message;
+	      toasts.push({ kind: "danger", title: "No se pudo aplicar la lógica", detail: msg });
+	    } finally {
+	      setBusy("");
+	    }
+	  }
+
+  function updateSurveyMonkeyLogicDraft(
+    nextRules: ConfirmedRule[],
+    nextVisualRules = smVisualLogicRules,
+    nextOverrides = smLogicChoiceOverrides,
+  ) {
+    setSmLogicRules(nextRules);
+    setSmVisualLogicRules(nextVisualRules);
+    setSmLogicChoiceOverrides(nextOverrides);
+    if (!workbook) return;
+    dispatch({ type: "SET", workbook: workbookWithSurveyMonkeyLogic(workbook, nextRules, nextVisualRules, nextOverrides) });
+    setArtifact(null);
+  }
+
+  function updateSurveyMonkeyOverridesDraft(nextOverrides: Record<string, string[]>) {
+    updateSurveyMonkeyLogicDraft(smLogicRules, smVisualLogicRules, nextOverrides);
+  }
+
+  function updateSurveyMonkeyVisualRulesDraft(nextVisualRules: SurveyMonkeyVisualLogicRule[]) {
+    updateSurveyMonkeyLogicDraft(smLogicRules, nextVisualRules, smLogicChoiceOverrides);
   }
 
   async function onExport() {
@@ -623,7 +782,7 @@ export default function XlsformEditorPage() {
           .replace(/_{2,}/g, "_")
           .replace(/^_+|_+$/g, "");
         try {
-          const saved = await apiSaveEntregable(out.file_id, baseName);
+          const saved = await apiSaveEntregable(out.file_id, baseName, { overwrite: true });
           toasts.push({
             kind: "success",
             title: "Exportación guardada en el proyecto",
@@ -1497,16 +1656,25 @@ export default function XlsformEditorPage() {
                     Hojas
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setLogicCanvasOpen(true)}
+	                <button
+	                  type="button"
+	                  onClick={() => setLogicCanvasOpen(true)}
                   style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
                   title="Crear y revisar relaciones lógicas del formulario"
                 >
-                  <Workflow size={14} />
-                  Mapa de lógica
-                </button>
-                <button
+	                  <Workflow size={14} />
+	                  Mapa de lógica
+	                </button>
+	                <button
+	                  type="button"
+	                  onClick={() => setSmLogicDialogOpen(true)}
+	                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+	                  title="Configurar saltos de SurveyMonkey y aplicarlos al XLSForm"
+	                >
+	                  <Sparkles size={14} />
+	                  Lógica SurveyMonkey
+	                </button>
+	                <button
                   type="button"
                   onClick={() => setQuestionnaireViewOpen(true)}
                   style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
@@ -1814,8 +1982,8 @@ export default function XlsformEditorPage() {
       {/* Mapa de lógica — overlay full-screen estilo Obsidian. Se monta
           siempre (no se desmonta al cerrar) para preservar zoom/pan entre
           aperturas. La condición open={logicCanvasOpen} lo oculta. */}
-      <LogicCanvas
-        open={logicCanvasOpen}
+	      <LogicCanvas
+	        open={logicCanvasOpen}
         onClose={() => setLogicCanvasOpen(false)}
         structure={structure}
         catalogs={catalogs}
@@ -1831,10 +1999,26 @@ export default function XlsformEditorPage() {
             detail:
               "Se condicionó la visibilidad. Refínala en el inspector si quieres precisar el valor.",
           });
-        }}
-      />
+	        }}
+	      />
 
-      {questionnaireViewOpen ? (
+	      {smLogicDialogOpen && workbook ? (
+	        <SurveyMonkeyLogicPopup
+	          workbook={workbook}
+	          rules={smLogicRules}
+	          visualRules={smVisualLogicRules}
+	          existingKoboLogic={extractExistingKoboLogic(workbook)}
+	          overrides={smLogicChoiceOverrides}
+	          busy={Boolean(busy)}
+	          onRulesChange={(nextRules) => updateSurveyMonkeyLogicDraft(nextRules)}
+	          onVisualRulesChange={updateSurveyMonkeyVisualRulesDraft}
+	          onOverridesChange={updateSurveyMonkeyOverridesDraft}
+	          onClose={() => setSmLogicDialogOpen(false)}
+	          onApply={applySurveyMonkeyLogicFromEditor}
+	        />
+	      ) : null}
+
+	      {questionnaireViewOpen ? (
         <div
           className="pulso-graph-overlay"
           role="dialog"
@@ -2337,6 +2521,137 @@ function undoButtonStyle(enabled: boolean): CSSProperties {
     cursor: enabled ? "pointer" : "not-allowed",
     opacity: enabled ? 1 : 0.5,
   };
+}
+
+function SurveyMonkeyLogicPopup({
+  workbook,
+  rules,
+  visualRules,
+  existingKoboLogic,
+  overrides,
+  busy,
+  onRulesChange,
+  onVisualRulesChange,
+  onOverridesChange,
+  onClose,
+  onApply,
+}: {
+  workbook: XlsformEditorWorkbook;
+  rules: ConfirmedRule[];
+  visualRules: SurveyMonkeyVisualLogicRule[];
+  existingKoboLogic: Array<{ name: string; label: string; relevant: string }>;
+  overrides: Record<string, string[]>;
+  busy: boolean;
+  onRulesChange: (rules: ConfirmedRule[]) => void;
+  onVisualRulesChange: (rules: SurveyMonkeyVisualLogicRule[]) => void;
+  onOverridesChange: (next: Record<string, string[]>) => void;
+  onClose: () => void;
+  onApply: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Lógica SurveyMonkey"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 260,
+        background: "rgba(15, 23, 42, 0.45)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+      }}
+    >
+      <div
+        style={{
+          width: "min(980px, 100%)",
+          maxHeight: "min(860px, calc(100vh - 48px))",
+          overflow: "hidden",
+          borderRadius: 12,
+          background: "white",
+          boxShadow: "0 24px 80px rgba(15, 23, 42, 0.28)",
+          display: "grid",
+          gridTemplateRows: "auto minmax(0, 1fr) auto",
+        }}
+      >
+        <header
+          style={{
+            padding: "16px 20px",
+            borderBottom: "1px solid var(--pulso-border, #e5e7eb)",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 16,
+          }}
+        >
+          <div>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Lógica SurveyMonkey</h2>
+            <p style={{ margin: "4px 0 0", color: "var(--pulso-muted, #6b7280)", fontSize: 13, lineHeight: 1.45 }}>
+              Configura saltos por opción sin ver código. Si necesitas condiciones complejas, usa ramificación avanzada.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar lógica SurveyMonkey"
+            style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
+          >
+            <X size={20} />
+          </button>
+        </header>
+        <div style={{ padding: 20, overflowY: "auto" }}>
+          <RuleWizard
+            surveyId=""
+            token=""
+            workbook={workbook}
+            paginas={{}}
+            paginasLabels={{}}
+            confirmed={rules}
+            visualRules={visualRules}
+            existingKoboLogic={existingKoboLogic}
+            onAdd={(rule) => onRulesChange([...rules, rule])}
+            onUpdate={(id, rule) => onRulesChange(rules.map((current) => current.id === id ? rule : current))}
+            onRemove={(id) => onRulesChange(rules.filter((rule) => rule.id !== id))}
+            onClearAll={() => onRulesChange([])}
+            onVisualRulesChange={onVisualRulesChange}
+            overrides={overrides}
+            onOverridesChange={onOverridesChange}
+          />
+        </div>
+        <footer
+          style={{
+            padding: "12px 20px",
+            borderTop: "1px solid var(--pulso-border, #e5e7eb)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            background: "#f8fafc",
+          }}
+        >
+          <span style={{ color: "var(--pulso-muted, #6b7280)", fontSize: 12 }}>
+            {visualActionCountForFooter(visualRules) + rules.length} salto{visualActionCountForFooter(visualRules) + rules.length === 1 ? "" : "s"} configurado{visualActionCountForFooter(visualRules) + rules.length === 1 ? "" : "s"}
+          </span>
+          <div style={{ display: "inline-flex", gap: 8 }}>
+            <button type="button" onClick={onClose} disabled={busy}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="pulso-primary"
+              onClick={onApply}
+              disabled={busy || (rules.length === 0 && visualActionCountForFooter(visualRules) === 0)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              <CheckCircle2 size={14} /> Aplicar al XLSForm
+            </button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
 }
 
 /**

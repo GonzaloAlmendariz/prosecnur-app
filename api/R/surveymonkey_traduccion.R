@@ -300,19 +300,23 @@
 #     choice_filter (incluye selected(${old}, ...)).
 #   - Renombramos las columnas de `data` (incluidas las dummies con sufijo).
 
-# Convierte `q0007` → `p7` (sin padding). Si el nombre no matchea
-# `q<digits>(_<rest>)?` devuelve NA — preserva el nombre tal cual.
+# Convierte `q0007` → `p7` y `q0007_0001` → `p7_1`.
+# Si el nombre no matchea `q<digits>(_<rest>)?` devuelve NA.
 .sm_q_to_p <- function(name) {
   if (is.na(name) || !nzchar(name)) return(NA_character_)
   m <- regmatches(name, regexec("^[qQ]0*([0-9]+)(.*)$", name))[[1]]
   if (length(m) < 3L) return(NA_character_)
   num <- as.integer(m[2])
   rest <- m[3]
+  if (grepl("^_0*[0-9]+$", rest, perl = TRUE)) {
+    rest_num <- suppressWarnings(as.integer(sub("^_0*([0-9]+)$", "\\1", rest, perl = TRUE)))
+    if (!is.na(rest_num)) rest <- paste0("_", rest_num)
+  }
   paste0("p", num, rest)
 }
 
 # Construye mapping `oldName → newName` aplicando `q<N> → p<N>` (sin padding,
-# preservando sufijos como `_other`, `_0001`, `_NN`). Las dummies SM que
+# normalizando sufijos numéricos y preservando sufijos como `_other`). Las dummies SM que
 # están en data pero no en survey reciben mapping vía `multi_specs`.
 .sm_build_pname_remap <- function(survey, multi_specs = NULL, battery_specs = NULL) {
   remap <- character(0)
@@ -331,7 +335,7 @@
                            "simserial", "username", "note")
 
   # Metadata/auxiliary preservan nombres crudos (respondent_id, ip_address...).
-  excluded_groups <- c("survey_monkey_metadata", "survey_monkey_auxiliary")
+  excluded_groups <- c("survey_monkey_metadata", "survey_monkey_auxiliary", "MetaSM", "AuxSM")
   group_stack <- character(0)
   in_excluded_group <- function() any(group_stack %in% excluded_groups)
 
@@ -354,10 +358,9 @@
     if (!is.na(new)) emit(nm, new)
   }
 
-  # Dummies de select_multiple SM (q0007_0001..0007 → p7_0001..p7_0007)
+  # Dummies de select_multiple SM (q0007_0001..0007 → p7_1..p7_7)
   # también necesitan mapping para que `surveymonkey_data` y consumidores
-  # con keep_raw_multi=TRUE generen los nombres remapeados. Conservamos el
-  # padding original del suffix.
+  # con keep_raw_multi=TRUE generen los nombres remapeados.
   if (length(multi_specs)) {
     for (grp in names(multi_specs)) {
       msp <- multi_specs[[grp]]
@@ -510,6 +513,11 @@
     m <- regmatches(q_old, regexec("^[qQ]0*([0-9]+)$", q_old))[[1]]
     if (length(m) >= 2L) {
       list_remap[[paste0("lst_", q_old)]] <- paste0("lst_p", as.integer(m[2]))
+      next
+    }
+    m <- regmatches(q_old, regexec("^([qQ]0*([0-9]+))_", q_old))[[1]]
+    if (length(m) >= 3L) {
+      list_remap[[paste0("lst_", m[2])]] <- paste0("lst_p", as.integer(m[3]))
     }
   }
   if (length(list_remap)) {
@@ -594,6 +602,18 @@
   if (!is.null(spec$diagnostico) && nrow(spec$diagnostico)) {
     spec$diagnostico$name_final <- apply_remap(spec$diagnostico$name_final)
     spec$diagnostico$section_final <- apply_page_remap(spec$diagnostico$section_final)
+    if (length(list_remap) && "list_name_final" %in% names(spec$diagnostico)) {
+      hits <- which(spec$diagnostico$list_name_final %in% names(list_remap))
+      if (length(hits)) {
+        spec$diagnostico$list_name_final[hits] <- unname(list_remap[spec$diagnostico$list_name_final[hits]])
+      }
+    }
+    if (length(list_remap) && "type_final" %in% names(spec$diagnostico)) {
+      for (oldn in names(list_remap)) {
+        pat <- paste0("\\b", oldn, "\\b")
+        spec$diagnostico$type_final <- gsub(pat, list_remap[[oldn]], spec$diagnostico$type_final, perl = TRUE)
+      }
+    }
   }
 
   # Persistimos los mappings en el spec — `surveymonkey_data` y consumidores
@@ -1063,8 +1083,8 @@
   multi_specs <- list()
   battery_specs <- list()
 
-  metadata_section <- "survey_monkey_metadata"
-  auxiliary_section <- "survey_monkey_auxiliary"
+  metadata_section <- "MetaSM"
+  auxiliary_section <- "AuxSM"
   list_registry_sig <- character(0)
   list_registry_name <- character(0)
 

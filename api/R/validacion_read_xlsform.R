@@ -129,6 +129,68 @@
   gsub("[^a-z0-9_]", "_", x)
 }
 
+.xls_sm_q_to_p_name <- function(name) {
+  name <- as.character(name %||% "")
+  if (!nzchar(name)) return(NA_character_)
+  m <- regmatches(name, regexec("^[qQ]0*([0-9]+)(.*)$", name, perl = TRUE))[[1]]
+  if (length(m) < 3L) return(NA_character_)
+  num <- suppressWarnings(as.integer(m[2]))
+  if (is.na(num)) return(NA_character_)
+  suffix <- m[3]
+  if (grepl("^[_/.]0*[0-9]+$", suffix, perl = TRUE)) {
+    sep <- substr(suffix, 1, 1)
+    suffix_num <- suppressWarnings(as.integer(sub("^[_/.]0*([0-9]+)$", "\\1", suffix, perl = TRUE)))
+    if (!is.na(suffix_num)) suffix <- paste0(sep, suffix_num)
+  }
+  paste0("p", num, suffix)
+}
+
+.xls_normalize_sm_expr_refs <- function(expr, valid_names) {
+  expr <- as.character(expr)
+  if (!length(expr)) return(expr)
+  valid_names <- unique(as.character(valid_names %||% character()))
+  rewrite_one <- function(x) {
+    if (is.na(x) || !nzchar(x)) return(x)
+    refs <- unique(regmatches(x, gregexpr("\\$\\{[qQ]0*[0-9]+(?:[_/.][A-Za-z0-9]+)?\\}", x, perl = TRUE))[[1]])
+    if (!length(refs) || identical(refs, "-1")) return(x)
+    for (ref in refs) {
+      old <- sub("^\\$\\{([^}]+)\\}$", "\\1", ref, perl = TRUE)
+      new <- .xls_sm_q_to_p_name(old)
+      if (!is.na(new) && new %in% valid_names) {
+        x <- gsub(ref, paste0("${", new, "}"), x, fixed = TRUE)
+      }
+    }
+    x
+  }
+  vapply(expr, rewrite_one, character(1))
+}
+
+.xls_escape_regex <- function(x) {
+  gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", as.character(x), perl = TRUE)
+}
+
+.xls_normalize_select_multiple_exprs <- function(expr, multi_names) {
+  expr <- as.character(expr)
+  if (!length(expr)) return(expr)
+  multi_names <- unique(as.character(multi_names %||% character()))
+  multi_names <- multi_names[!is.na(multi_names) & nzchar(multi_names)]
+  if (!length(multi_names)) return(expr)
+
+  rewrite_one <- function(x) {
+    if (is.na(x) || !nzchar(x)) return(x)
+    for (nm in multi_names) {
+      ref <- paste0("\\$\\{", .xls_escape_regex(nm), "\\}")
+      pat_ne <- paste0(ref, "\\s*!=\\s*(['\"])([^'\"]+)\\1")
+      pat_eq <- paste0(ref, "\\s*=\\s*(['\"])([^'\"]+)\\1")
+      x <- gsub(pat_ne, paste0("not(selected(${", nm, "}, '\\2'))"), x, perl = TRUE)
+      x <- gsub(pat_eq, paste0("selected(${", nm, "}, '\\2')"), x, perl = TRUE)
+    }
+    x
+  }
+
+  vapply(expr, rewrite_one, character(1))
+}
+
 .lists_with_other <- function(choices_df) {
   if (is.null(choices_df) || !nrow(choices_df)) {
     return(tibble::tibble(list_name = character(), has_other = logical()))
@@ -500,6 +562,13 @@ leer_xlsform_limpieza <- function(path,
   for (cc in expr_cols) {
     survey_raw[[cc]] <- .normalize_quotes(survey_raw[[cc]])
     survey_raw[[cc]] <- .trim(survey_raw[[cc]])   # opcional: limpia espacios y saltos de línea
+  }
+  valid_survey_names <- unique(as.character(survey_raw$name %||% character()))
+  valid_survey_names <- valid_survey_names[!is.na(valid_survey_names) & nzchar(valid_survey_names)]
+  multi_names <- survey_raw$name[grepl("^select_multiple\\b", survey_raw$type %||% "", perl = TRUE)]
+  for (cc in expr_cols) {
+    survey_raw[[cc]] <- .xls_normalize_sm_expr_refs(survey_raw[[cc]], valid_survey_names)
+    survey_raw[[cc]] <- .xls_normalize_select_multiple_exprs(survey_raw[[cc]], multi_names)
   }
 
   # label columns
@@ -1517,8 +1586,4 @@ GraficarPreguntas <- function(inst,
       fill = ggplot2::guide_legend(nrow = 1, byrow = TRUE, title.position = "top")
     )
 }
-
-
-
-
 

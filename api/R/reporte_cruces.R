@@ -228,7 +228,7 @@ sm_compact_to_long <- function(x, id, w) {
     valor = as.character(x),
     w     = as.numeric(w)
   ) |>
-    tidyr::separate_rows(valor, sep = "\\s*;\\s*", convert = FALSE) |>
+    tidyr::separate_rows(valor, sep = "[;[:space:]]+", convert = FALSE) |>
     dplyr::mutate(valor = trimws(valor)) |>
     dplyr::filter(!is.na(valor) & nzchar(valor) & valor != "NA")
 }
@@ -361,6 +361,71 @@ get_list_name <- function(var, survey = NULL) {
   ln[1]
 }
 
+.augment_orders_list_from_choices <- function(orders_list = NULL,
+                                             survey = NULL,
+                                             choices = NULL) {
+  out <- orders_list %||% list()
+  if (is.null(survey) || is.null(choices)) return(out)
+  if (!all(c("name", "list_name") %in% names(survey))) return(out)
+  if (!all(c("list_name", "name", "label") %in% names(choices))) return(out)
+
+  survey_lns <- survey |>
+    dplyr::filter(
+      !is.na(.data$name), nzchar(as.character(.data$name)),
+      !is.na(.data$list_name), nzchar(as.character(.data$list_name))
+    ) |>
+    dplyr::select(name, list_name, dplyr::any_of("label")) |>
+    dplyr::distinct()
+
+  if (!nrow(survey_lns)) return(out)
+
+  for (i in seq_len(nrow(survey_lns))) {
+    var <- as.character(survey_lns$name[i])
+    if (var %in% names(out)) next
+
+    ln <- as.character(survey_lns$list_name[i])
+    ch <- choices |>
+      dplyr::filter(
+        as.character(.data$list_name) == ln,
+        !is.na(.data$name), nzchar(as.character(.data$name))
+      )
+    if (!nrow(ch)) next
+
+    labels <- as.character(ch$label)
+    labels[is.na(labels) | !nzchar(labels)] <- as.character(ch$name[is.na(labels) | !nzchar(labels)])
+
+    out[[var]] <- list(
+      names = as.character(ch$name),
+      labels = labels,
+      label = as.character(survey_lns$label[i] %||% var)
+    )
+  }
+
+  out
+}
+
+.labels_attr_to_codes_labels <- function(lab_attr, observed = NULL) {
+  if (is.null(lab_attr) || !length(lab_attr)) {
+    return(list(codes = character(0), labels = character(0)))
+  }
+
+  nm <- as.character(names(lab_attr))
+  val <- as.character(unname(lab_attr))
+  obs <- as.character(observed %||% character(0))
+  obs <- obs[!is.na(obs) & nzchar(obs)]
+
+  # reporte_data() guarda labels como code -> label; haven/read_sav suele
+  # guardarlos como label -> code. Elegimos la dirección que calza con la data.
+  names_match_values <- length(obs) > 0 && any(obs %in% nm)
+  values_match_values <- length(obs) > 0 && any(obs %in% val)
+
+  if (values_match_values && !names_match_values) {
+    list(codes = val, labels = nm)
+  } else {
+    list(codes = nm, labels = val)
+  }
+}
+
 get_categorias <- function(var,
                            data,
                            survey          = NULL,
@@ -384,13 +449,14 @@ get_categorias <- function(var,
   }
 
   if (!is.null(obj)) {
-    codes  <- as.character(obj$names)
-    labels <- as.character(obj$labels)
+    codes  <- as.character(obj[["names"]])
+    labels <- as.character(obj[["labels"]])
 
   } else if (!is.null(lab_attr) && length(lab_attr) > 0) {
     # 2) attr(labels) de la data (reporte_data)
-    codes  <- names(lab_attr)
-    labels <- as.character(unname(lab_attr))
+    mapped <- .labels_attr_to_codes_labels(lab_attr, observed = x)
+    codes  <- mapped$codes
+    labels <- mapped$labels
 
   } else if (!is.null(x)) {
     # 3) fallback: categorias en los datos (solo si existe la columna)
@@ -399,11 +465,15 @@ get_categorias <- function(var,
   }
 
   ok <- !is.na(codes) & nzchar(codes)
+  if (length(labels) != length(codes)) {
+    labels <- rep_len(labels, length(codes))
+  }
   codes  <- codes[ok]
   labels <- labels[ok]
 
   if (!is.null(opciones_excluir) && length(opciones_excluir) > 0) {
-    ok <- !(labels %in% opciones_excluir)
+    excl <- as.character(opciones_excluir)
+    ok <- !(labels %in% excl | codes %in% excl)
     codes  <- codes[ok]
     labels <- labels[ok]
   }
@@ -574,21 +644,21 @@ write_one_numeric_cross <- function(wb, sheet, data, var, dic_vars,
                                     orders_list = NULL,
                                     weight_col = "peso",
                                     opciones_excluir = NULL,
-                                    digits = 1) {
+                                    digits = 1,
+                                    incluir_titulo = TRUE) {
 
   st   <- mk_styles_cruces()
   fila <- start_row
 
   qlab <- label_variable(var, dic_vars, labels_override, data)
 
-  # ---------------------------
-  # Titulo (merge luego cuando se conozca ncols)
-  # ---------------------------
-  openxlsx::writeData(wb, sheet, qlab, startRow = fila, startCol = start_col, colNames = FALSE)
-  openxlsx::addStyle(wb, sheet, st$q_title, rows = fila, cols = start_col, gridExpand = TRUE)
-  openxlsx::setRowHeights(wb, sheet, rows = fila,
-                          heights = .calc_row_height(qlab, col_width = 60, font_size = 11))
-  fila <- fila + 1
+  if (isTRUE(incluir_titulo)) {
+    openxlsx::writeData(wb, sheet, qlab, startRow = fila, startCol = start_col, colNames = FALSE)
+    openxlsx::addStyle(wb, sheet, st$q_title, rows = fila, cols = start_col, gridExpand = TRUE)
+    openxlsx::setRowHeights(wb, sheet, rows = fila,
+                            heights = .calc_row_height(qlab, col_width = 60, font_size = 11))
+    fila <- fila + 1
+  }
 
   w <- get_pesos(data, weight_col)
 
@@ -675,16 +745,15 @@ write_one_numeric_cross <- function(wb, sheet, data, var, dic_vars,
 
   ncols_tbl <- ncol(out)
 
-  # ---------------------------
-  # Merge del titulo y linea superior
-  # ---------------------------
-  openxlsx::mergeCells(wb, sheet,
+  if (isTRUE(incluir_titulo)) {
+    openxlsx::mergeCells(wb, sheet,
+                         rows = start_row,
+                         cols = start_col:(start_col + ncols_tbl - 1))
+    openxlsx::addStyle(wb, sheet, st$table_end,
                        rows = start_row,
-                       cols = start_col:(start_col + ncols_tbl - 1))
-  openxlsx::addStyle(wb, sheet, st$table_end,
-                     rows = start_row,
-                     cols = start_col:(start_col + ncols_tbl - 1),
-                     gridExpand = TRUE, stack = TRUE)
+                       cols = start_col:(start_col + ncols_tbl - 1),
+                       gridExpand = TRUE, stack = TRUE)
+  }
 
   # =========================================================
   # 3) Escribir headers (2 niveles) con merges por estrato
@@ -972,7 +1041,9 @@ exportar_cruces_multi <- function(data,
                                   alpha            = 0.05,
                                   codigos_solo_si_presentes = NULL,
                                   numericas        = NULL,
-                                  digits           = 1) {
+                                  digits           = 1,
+                                  incluir_titulos  = TRUE,
+                                  incluir_secciones = TRUE) {
 
   numericas <- if (is.null(numericas)) character(0) else as.character(numericas)
 
@@ -990,11 +1061,12 @@ exportar_cruces_multi <- function(data,
 
   fila <- 1L
 
-  # titulo general
-  openxlsx::writeData(wb, hoja, "CRUCES", startRow = fila, startCol = 1)
-  openxlsx::addStyle(wb, hoja, st$sec_title, rows = fila, cols = 1, gridExpand = TRUE)
-  openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:6)
-  fila <- fila + 2
+  if (isTRUE(incluir_titulos)) {
+    openxlsx::writeData(wb, hoja, "CRUCES", startRow = fila, startCol = 1)
+    openxlsx::addStyle(wb, hoja, st$sec_title, rows = fila, cols = 1, gridExpand = TRUE)
+    openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:6)
+    fila <- fila + 2
+  }
 
   # helper para merges de encabezado (categoricos)
   escribir_encabezado <- function(h1, h2, h3, row0, col0 = 1) {
@@ -1072,10 +1144,12 @@ exportar_cruces_multi <- function(data,
     vars_sec <- SECCIONES[[sec]]
     if (!length(vars_sec)) next
 
-    openxlsx::writeData(wb, hoja, toupper(sec), startRow = fila, startCol = 1)
-    openxlsx::addStyle(wb, hoja, st$sec_title, rows = fila, cols = 1, gridExpand = TRUE)
-    openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:3)
-    fila <- fila + 2
+    if (isTRUE(incluir_secciones)) {
+      openxlsx::writeData(wb, hoja, toupper(sec), startRow = fila, startCol = 1)
+      openxlsx::addStyle(wb, hoja, st$sec_title, rows = fila, cols = 1, gridExpand = TRUE)
+      openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:3)
+      fila <- fila + 2
+    }
 
     # ---------- loop por variable de la seccion ----------
     for (var in vars_sec) {
@@ -1099,7 +1173,8 @@ exportar_cruces_multi <- function(data,
           orders_list   = orders_list,
           weight_col    = weight_col,
           opciones_excluir = opciones_excluir,
-          digits        = digits
+          digits        = digits,
+          incluir_titulo = incluir_titulos
         )
         fila <- fila + 1
         next
@@ -1163,12 +1238,14 @@ exportar_cruces_multi <- function(data,
       }
 
       if (!length(opciones)) {
-        openxlsx::writeData(wb, hoja, qlab, startRow = fila, startCol = 1)
-        openxlsx::addStyle(wb, hoja, st$q_title, rows = fila, cols = 1, gridExpand = TRUE)
-        openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:6)
-        openxlsx::setRowHeights(wb, hoja, rows = fila,
-                                heights = .calc_row_height(qlab, col_width = 60, font_size = 11))
-        fila <- fila + 1
+        if (isTRUE(incluir_titulos)) {
+          openxlsx::writeData(wb, hoja, qlab, startRow = fila, startCol = 1)
+          openxlsx::addStyle(wb, hoja, st$q_title, rows = fila, cols = 1, gridExpand = TRUE)
+          openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:6)
+          openxlsx::setRowHeights(wb, hoja, rows = fila,
+                                  heights = .calc_row_height(qlab, col_width = 60, font_size = 11))
+          fila <- fila + 1
+        }
         openxlsx::writeData(wb, hoja, "Sin datos validos para cruzar.", startRow = fila, startCol = 1)
         openxlsx::addStyle(wb, hoja, st$body_txt, rows = fila, cols = 1, gridExpand = TRUE)
         fila <- fila + 2
@@ -1310,15 +1387,17 @@ exportar_cruces_multi <- function(data,
 
       # ---------- titulo de la pregunta ----------
       ncols_tbl <- ncol(cuerpo)
-      openxlsx::writeData(wb, hoja, qlab, startRow = fila, startCol = 1)
-      openxlsx::addStyle(wb, hoja, st$q_title, rows = fila, cols = 1, gridExpand = TRUE)
-      openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:ncols_tbl)
-      openxlsx::setRowHeights(wb, hoja, rows = fila,
-                              heights = .calc_row_height(qlab, col_width = 60, font_size = 11))
-      openxlsx::addStyle(wb, hoja, st$table_end,
-                         rows = fila, cols = 1:ncols_tbl,
-                         gridExpand = TRUE, stack = TRUE)
-      fila <- fila + 1
+      if (isTRUE(incluir_titulos)) {
+        openxlsx::writeData(wb, hoja, qlab, startRow = fila, startCol = 1)
+        openxlsx::addStyle(wb, hoja, st$q_title, rows = fila, cols = 1, gridExpand = TRUE)
+        openxlsx::mergeCells(wb, hoja, rows = fila, cols = 1:ncols_tbl)
+        openxlsx::setRowHeights(wb, hoja, rows = fila,
+                                heights = .calc_row_height(qlab, col_width = 60, font_size = 11))
+        openxlsx::addStyle(wb, hoja, st$table_end,
+                           rows = fila, cols = 1:ncols_tbl,
+                           gridExpand = TRUE, stack = TRUE)
+        fila <- fila + 1
+      }
 
       # ---------- encabezados (3 niveles) ----------
       ncols_total <- ncol(cuerpo)
@@ -3753,6 +3832,8 @@ reporte_cruces <- function(
     codigos_solo_si_presentes = NULL,
     numericas        = NULL,
     digits           = 1,
+    incluir_titulos  = TRUE,
+    incluir_secciones = TRUE,
     cruzar_dim       = NULL,
     filas_dimensiones = NULL,
     incluir_total    = TRUE,
@@ -3811,6 +3892,15 @@ reporte_cruces <- function(
   if (!is.null(instrumento) && "orders_list" %in% names(instrumento)) {
     orders_list <- instrumento$orders_list
   }
+  choices <- NULL
+  if (!is.null(instrumento) && "choices" %in% names(instrumento)) {
+    choices <- instrumento$choices
+  }
+  orders_list <- .augment_orders_list_from_choices(
+    orders_list = orders_list,
+    survey = survey,
+    choices = choices
+  )
 
   dic_vars <- NULL
   if (!is.null(survey) && all(c("name", "label") %in% names(survey))) {
@@ -3898,6 +3988,8 @@ reporte_cruces <- function(
     alpha                     = alpha,
     codigos_solo_si_presentes = codigos_solo_si_presentes,
     numericas                 = numericas,
-    digits                    = digits
+    digits                    = digits,
+    incluir_titulos           = incluir_titulos,
+    incluir_secciones         = incluir_secciones
   )
 }

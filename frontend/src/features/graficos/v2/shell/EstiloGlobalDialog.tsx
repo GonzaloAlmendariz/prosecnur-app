@@ -4,17 +4,15 @@ import { PaletasEditor } from "../../PaletasEditor";
 import { IconosEditor } from "../../IconosEditor";
 import { PresetsEditor } from "../../PresetsEditor";
 import { OverridesEditor } from "../../OverridesEditor";
-import PresetsModal from "../../PresetsModal";
+import { WordPresetsEditor } from "../../WordPresetsEditor";
 
 // Popup unificado de "Estilo global". Reemplaza los 3 botones del header
 // (Presets PPT, Presets Word, Configuración global de estilo) por un
 // solo CTA. Adentro: tabs PPT (presets curados) / Word (overrides Word) /
 // Paletas / Íconos / Modos.
 //
-// Cada tab simplemente monta el componente curado existente. Para Word,
-// no existía UI curada — temporalmente reusamos el modal JSON crudo
-// dentro del tab; en una iteración posterior se reemplazaría por UI
-// curada equivalente al PresetsEditor.
+// Cada tab monta una superficie visual. Los ajustes que todavía no tienen
+// catálogo curado no se editan desde acá para evitar campos crudos.
 
 type Tab = "ppt" | "word" | "paletas" | "iconos" | "modos";
 
@@ -106,34 +104,6 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
   );
 }
 
-// Word: por ahora un placeholder con CTA al editor JSON viejo. La UI
-// curada de Word (equivalente al PresetsEditor) es trabajo futuro —
-// w_presets tiene menos args y son menos comunes.
-function WordTabContent({ onClose }: { onClose: () => void }) {
-  const [openJson, setOpenJson] = useState(false);
-  return (
-    <>
-      <div style={{ padding: 24 }}>
-        <div style={{ fontSize: 12, color: "var(--pulso-text)", marginBottom: 8, lineHeight: 1.5, fontWeight: 600 }}>
-          Word usa los mismos valores que PPT por defecto.
-        </div>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginBottom: 16, lineHeight: 1.5, maxWidth: 520 }}>
-          Solo necesitas overrides Word si quieres títulos/bases con estilo distinto al PPT, dimensiones de imagen
-          custom, o numeración de figuras. Estos campos viven en <code>w_presets</code>.
-        </div>
-        <button
-          type="button"
-          className="pulso-primary"
-          onClick={() => setOpenJson(true)}
-          style={{
-            fontSize: 12, padding: "7px 14px",
-            display: "inline-flex", alignItems: "center", gap: 6,
-          }}
-        >
-          <FileText size={13} /> Editar overrides Word (JSON)
-        </button>
-      </div>
-      {openJson && <PresetsModal kind="word" onClose={() => { setOpenJson(false); void onClose; }} />}
-    </>
-  );
+function WordTabContent({ onClose: _onClose }: { onClose: () => void }) {
+  return <WordPresetsEditor />;
 }

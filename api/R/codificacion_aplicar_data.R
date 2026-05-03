@@ -979,6 +979,7 @@ ppra_export_preserving_sheets <- function(path_datos, out_path,
 #' - **SM**: `<parent>_recod` con overrides y nuevas hijas (verde).
 #' - **SO-padre**: `<parent>_recod` con override por `text_col` de familias (azul).
 #' - **SO-hijo**: `<parent>_<alias>_recod` (azul).
+#' - **TEXT**: `<var>_recod` desde grupos de texto abierto independiente.
 #' - **INTEGER**: `<var>_recod` desde plantilla (morado).
 #' Escribe en la **hoja correcta** (main o repeat) e **inserta al lado del parent**.
 #' Exporta un XLSX preservando **todas las hojas** del archivo de datos.
@@ -990,6 +991,7 @@ ppra_adaptar_data <- function(path_instrumento,
                               sm_vars        = character(0),
                               so_parent_vars = character(0),
                               so_child_vars  = character(0),
+                              text_vars      = character(0),
                               int_vars       = character(0),
                               out_path       = NULL,
                               path_familias  = NULL){
@@ -1002,6 +1004,7 @@ ppra_adaptar_data <- function(path_instrumento,
   sm_cols_to_color  <- character(0)
   sop_cols_to_color <- character(0)
   soh_cols_to_color <- character(0)
+  text_cols_to_color <- character(0)
   int_cols_to_color <- character(0)
 
   # registro de hojas repeat modificadas
@@ -1071,6 +1074,22 @@ ppra_adaptar_data <- function(path_instrumento,
     }
   }
 
+  # ---- TEXT independiente
+  if (length(text_vars)) {
+    for (tv in text_vars) {
+      res <- ppra_so_child(df, tv, path_plantilla,
+                           path_familias = path_familias, path_datos = path_datos)
+      df <- res$df
+      if (length(res$new_col)) {
+        df <- insert_right_of(df, tv, res$new_col)
+        text_cols_to_color <- c(text_cols_to_color, res$new_col)
+      }
+      if (!is.null(res$repeat_sheet)) {
+        add_rep_update(res$repeat_sheet, res$repeat_df, res$repeat_cols_to_color, kind = "so")
+      }
+    }
+  }
+
   # ---- INTEGER
   if (length(int_vars)) {
     for (iv in int_vars) {
@@ -1096,7 +1115,7 @@ ppra_adaptar_data <- function(path_instrumento,
       main_cols_color = list(
         sm  = unique(sm_cols_to_color),
         sop = unique(sop_cols_to_color),
-        soh = unique(soh_cols_to_color),
+        soh = unique(c(soh_cols_to_color, text_cols_to_color)),
         int = unique(int_cols_to_color)
       ),
       repeat_updates = rep_updates

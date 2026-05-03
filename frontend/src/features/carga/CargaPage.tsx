@@ -412,6 +412,17 @@ export default function CargaPage() {
               <>
                 <ResumenStat label="Filas" value={dataPreview.n_filas} />
                 <ResumenStat label="Columnas" value={dataPreview.n_columnas} />
+                {dataPreview.normalizacion?.applied && (
+                  <div style={{ marginTop: 6, fontSize: 11, color: "var(--pulso-primary)", fontWeight: 600 }}>
+                    Nombres adaptados al XLSForm · {dataPreview.normalizacion.aliases} alias
+                    {dataPreview.normalizacion.select_multiple > 0
+                      ? ` · ${dataPreview.normalizacion.select_multiple} select_multiple reconstruido(s)`
+                      : ""}
+                    {typeof dataPreview.normalizacion.extra_columns === "number" && dataPreview.normalizacion.extra_columns > 0
+                      ? ` · ${dataPreview.normalizacion.extra_columns} columna(s) técnica(s) al final`
+                      : ""}
+                  </div>
+                )}
                 {dataPreview.columnas.length > 0 && (
                   <details style={{ marginTop: 6, fontSize: 11 }}>
                     <summary style={{ cursor: "pointer", color: "var(--pulso-primary)", fontWeight: 600 }}>
@@ -428,6 +439,9 @@ export default function CargaPage() {
                         <li key={i}>
                           <code style={{ fontFamily: "ui-monospace, monospace" }}>{c.nombre}</code>{" "}
                           <em style={{ color: "var(--pulso-text-soft)" }}>({c.tipo})</em>
+                          {c.origen === "extra" && (
+                            <span style={{ color: "var(--pulso-text-soft)", marginLeft: 4 }}>extra</span>
+                          )}
                         </li>
                       ))}
                     </ul>

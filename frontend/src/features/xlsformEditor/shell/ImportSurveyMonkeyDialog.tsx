@@ -1,20 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Plus,
   X,
   Trash2,
-  ClipboardPaste,
   Cloud,
   Check,
   KeyRound,
-  ListChecks,
   Search,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import {
-  apiXlsformEditorSavMeta,
   apiXlsformEditorImportSurveyMonkeyWithLogic,
   apiXlsformEditorSmFetchSurveyInfo,
   apiXlsformEditorSmListSurveys,
@@ -22,31 +19,18 @@ import {
   apiXlsformEditorSmTokenLoad,
   apiXlsformEditorSmTokenSave,
   apiXlsformEditorSmTokenClear,
-  type SurveyMonkeyMeta,
   type SurveyMonkeyQuestion,
   type SurveyMonkeyListItem,
   type SurveyMonkeyTokenInfo,
+  type SurveyMonkeyVisualLogicRule,
   type EditorPayloadWithHallazgos,
 } from "../../../api/client";
-import { RuleWizard } from "./RuleWizard";
+import { compileVisualLogicRules, RuleWizard, type VisualLogicPage, type VisualLogicQuestion } from "./RuleWizard";
 
 // Modal de importación SurveyMonkey. El flujo principal usa solo la API:
 //   1. Conecta token + encuesta.
-//   2. Pulso trae páginas, preguntas, opciones, required y validations.
-//   3. Opcionalmente el usuario pega/arma reglas de salto manuales.
-
-type RuleAction =
-  | { kind: "hide_question"; target: string }
-  | { kind: "hide_page"; pageId: string }
-  | { kind: "end_survey" };
-
-type Rule = {
-  id: string;
-  whenVar: string; // "Q4" — referencia natural del usuario
-  whenOp: "eq" | "ne" | "in" | "not_in";
-  whenCodes: string[]; // códigos resueltos (e.g. ["C6"], ["1","2"]) o literales
-  actions: RuleAction[];
-};
+//   2. Prosecnur trae páginas, preguntas, opciones, required y validations.
+//   3. Si hay saltos, el usuario pega UNA regla, revisa la interpretación y confirma.
 
 type PageEntry = {
   id: string;
@@ -61,48 +45,24 @@ type PageEntry = {
     family: string | null;
     subtype: string | null;
     choices?: Array<{ code: string; label: string }>;
+    children?: Array<{
+      name: string;
+      heading: string | null;
+      type: string | null;
+      list_name: string | null;
+    }>;
   }>;
   questions: string[];
 };
 
-const OP_LABELS: Record<Rule["whenOp"], string> = {
-  eq: "es igual a",
-  ne: "no es",
-  in: "está en",
-  not_in: "no está en",
-};
-
 const newId = () => Math.random().toString(36).slice(2, 9);
-
-// Convierte la estructura interna a sintaxis textual del parser.
-function ruleToText(r: Rule): string {
-  if (!r.whenVar || r.whenCodes.length === 0 || r.actions.length === 0) return "";
-  const codesPart =
-    r.whenOp === "eq" || r.whenOp === "ne"
-      ? r.whenCodes[0]
-      : `[${r.whenCodes.join(", ")}]`;
-  const opSym = { eq: "=", ne: "!=", in: "IN", not_in: "NOT IN" }[r.whenOp];
-  const cond = `${r.whenVar} ${opSym} ${codesPart}`;
-  const actions = r.actions
-    .map((a) =>
-      a.kind === "end_survey"
-        ? "Fin de la encuesta"
-        : a.kind === "hide_page"
-          ? `Ocultar Pág. ${a.pageId}`
-          : `Ocultar ${a.target}`,
-    )
-    .join(", ");
-  return `${cond} => ${actions}.`;
-}
 
 // Expande rangos tipo "Q25-Q31" a la lista completa ["Q25","Q26","Q27","Q28","Q29","Q30","Q31"].
 // Reconoce el prefijo (Q/P/q/p) + parte numérica con o sin padding y mantiene
 // el padding del lado izquierdo para construir cada elemento.
 function expandRange(token: string): string[] | null {
-  const m = token.match(/^([QPqp])(\d+)\s*[-–]\s*\2?(\d+)$/);
-  // Acepta "Q25-Q31" y también "Q25-31"
-  const m2 = token.match(/^([QPqp])(\d+)\s*[-–]\s*(\d+)$/);
-  const match = m ?? m2;
+  // Acepta "Q25-Q31", "p25-p31" y también "Q25-31".
+  const match = token.match(/^([QPqp])(\d+)\s*[-–]\s*(?:[QPqp])?(\d+)$/);
   if (!match) return null;
   const prefix = match[1];
   const startStr = match[2];
@@ -142,19 +102,21 @@ function pagesToRecord(entries: PageEntry[]): Record<string, string[]> {
 
 function pageLabelsToRecord(entries: PageEntry[]): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const e of entries) {
+  entries.forEach((e, idx) => {
     const pageId = e.pageId.trim();
-    if (!pageId) continue;
-    const label = (e.label || buildPageLabel(e)).trim();
+    if (!pageId) return;
+    const label = (e.label || buildPageLabel(e, idx)).trim();
     if (label) out[pageId] = label;
-  }
+  });
   return out;
 }
 
-function buildPageLabel(entry: PageEntry): string {
+function buildPageLabel(entry: PageEntry, index?: number): string {
+  const canonical = typeof index === "number" ? `Pag${index + 1}` : "";
   const title = entry.title?.trim() || `Página ${entry.pageId}`;
   const range = entry.rangeLabel || questionRangeLabel(pageQuestionNames(entry));
-  return range ? `${title} (${range})` : title;
+  const detail = range ? `${title} (${range})` : title;
+  return canonical ? `${canonical} - ${detail}` : detail;
 }
 
 function pageQuestionNames(entry: PageEntry): string[] {
@@ -165,6 +127,12 @@ function pageQuestionNames(entry: PageEntry): string[] {
     .filter(Boolean);
 }
 
+function pageXlsformVariableCount(entry: PageEntry): number {
+  const details = entry.questionDetails ?? [];
+  if (!details.length) return pageQuestionNames(entry).length;
+  return details.reduce((sum, q) => sum + (q.children?.length ? q.children.length : 1), 0);
+}
+
 function questionRangeLabel(questions: string[]): string {
   const clean = questions.map((q) => q.trim()).filter(Boolean);
   if (clean.length === 0) return "";
@@ -173,7 +141,13 @@ function questionRangeLabel(questions: string[]): string {
 }
 
 function displayQuestionRef(q: string): string {
-  return q.replace(/^([QP])0+(\d+)$/i, (_, p: string, n: string) => `${p.toUpperCase()}${Number(n)}`);
+  const match = q.match(/^[qp]0*(\d+)(.*)$/i);
+  if (!match) return q;
+  return `p${Number(match[1])}${match[2] ?? ""}`;
+}
+
+function displayOriginalQuestionRef(q: string): string {
+  return q.replace(/^([QP])0+(\d+)(.*)$/i, (_, p: string, n: string, rest: string) => `${p.toUpperCase()}${Number(n)}${rest ?? ""}`);
 }
 
 function apiInfoToQuestions(pages: PageEntry[]): SurveyMonkeyQuestion[] {
@@ -189,6 +163,37 @@ function apiInfoToQuestions(pages: PageEntry[]): SurveyMonkeyQuestion[] {
   );
 }
 
+function visualQuestionsFromPages(pages: PageEntry[]): VisualLogicQuestion[] {
+  return pages.flatMap((page) =>
+    (page.questionDetails ?? [])
+      .filter((q) => (q.family ?? "").toLowerCase() === "single_choice" && (q.choices?.length ?? 0) > 0)
+      .map((q) => ({
+        ref: q.name,
+        label: `${displayQuestionRef(q.name)}: ${q.heading ?? q.name}`,
+        choices: (q.choices ?? []).map((choice, idx) => ({
+          name: choice.code,
+          label: choice.label,
+          index: idx + 1,
+        })),
+      })),
+  );
+}
+
+function visualPagesFromEntries(pages: PageEntry[]): VisualLogicPage[] {
+  return pages.map((page, idx) => ({
+    pageId: page.pageId,
+    label: `Pag${idx + 1}${page.title ? `: ${page.title}` : ""}`,
+    questions: (page.questionDetails ?? []).flatMap((q) => {
+      const base = [{ ref: q.name, label: `${displayQuestionRef(q.name)}: ${q.heading ?? q.name}` }];
+      const children = (q.children ?? []).map((child) => ({
+        ref: child.name,
+        label: `${displayQuestionRef(child.name)}: ${child.heading ?? child.name}`,
+      }));
+      return children.length ? children : base;
+    }),
+  }));
+}
+
 export function ImportSurveyMonkeyDialog({
   fileId,
   fileName,
@@ -198,26 +203,23 @@ export function ImportSurveyMonkeyDialog({
   fileId?: string | null;
   fileName: string;
   onCancel: () => void;
-  onComplete: (payload: EditorPayloadWithHallazgos) => void;
+  onComplete: (payload: EditorPayloadWithHallazgos & {
+    surveyMonkeyRules?: import("./RuleWizard").ConfirmedRule[];
+    surveyMonkeyVisualRules?: SurveyMonkeyVisualLogicRule[];
+    surveyMonkeyChoiceOverrides?: Record<string, string[]>;
+  }) => void;
 }) {
-  const [meta, setMeta] = useState<SurveyMonkeyMeta | null>(null);
   const [apiQuestions, setApiQuestions] = useState<SurveyMonkeyQuestion[]>([]);
-  const [loading, setLoading] = useState(Boolean(fileId));
+  const [loading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pages, setPages] = useState<PageEntry[]>([]);
-  const [rules, setRules] = useState<Rule[]>([]);
-  // 3 modos para definir reglas:
-  //  - "wizard" (default): pegar UNA regla, ver interpretación + diagrama, confirmar.
-  //  - "guided": builder visual con dropdowns y cards.
-  //  - "bulk": textarea con múltiples reglas (avanzado).
-  const [ruleMode, setRuleMode] = useState<"wizard" | "guided" | "bulk">("wizard");
   const [wizardRules, setWizardRules] = useState<import("./RuleWizard").ConfirmedRule[]>([]);
+  const [visualRules, setVisualRules] = useState<SurveyMonkeyVisualLogicRule[]>([]);
   // Override del orden de choices por pregunta. Key = posición global de la
   // pregunta como string ("27" para Q27); value = labels en el orden que el
   // usuario quiere. Persiste mientras el dialog está abierto y viaja al
   // endpoint de import junto con las reglas.
   const [choiceOrderOverrides, setChoiceOrderOverrides] = useState<Record<string, string[]>>({});
-  const [pastedText, setPastedText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   // Vía 3: auto-completar mapeo de páginas desde la API SurveyMonkey
   const [smSurveyId, setSmSurveyId] = useState("");
@@ -375,6 +377,7 @@ export function ImportSurveyMonkeyDialog({
       newPages.sort((a, b) => Number(a.pageId) - Number(b.pageId));
       setPages(newPages);
       setApiQuestions(apiInfoToQuestions(newPages));
+      setVisualRules([]);
       setSmFetchedSurveyId(cleanedId);
       setSmApiSuccess(
         `${info.summary.title ?? "Survey"} · ${info.summary.n_paginas} secciones · ${info.summary.n_preguntas} preguntas mapeadas` +
@@ -389,31 +392,6 @@ export function ImportSurveyMonkeyDialog({
     }
   }
 
-  // Cargar metadata del .sav solo en el flujo legacy. En el flujo principal
-  // API-only, las preguntas se cargan desde SurveyMonkey.
-  useEffect(() => {
-    if (!fileId) {
-      setLoading(false);
-      setMeta(null);
-      return;
-    }
-    let cancelled = false;
-    apiXlsformEditorSavMeta(fileId)
-      .then((m) => {
-        if (cancelled) return;
-        setMeta(m);
-        setLoading(false);
-      })
-      .catch((e) => {
-        if (cancelled) return;
-        setError(String(e?.message ?? e));
-        setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [fileId]);
-
   // Escape para cancelar — pero solo si no hay progreso. Si el usuario ya
   // armó páginas o reglas, confirma antes de cerrar para no tirar trabajo.
   useEffect(() => {
@@ -421,54 +399,49 @@ export function ImportSurveyMonkeyDialog({
       if (e.key !== "Escape") return;
       const hasProgress =
         pages.length > 0 ||
-        rules.length > 0 ||
         wizardRules.length > 0 ||
-        pastedText.trim().length > 0;
+        visualRules.length > 0;
       if (!hasProgress || window.confirm("¿Cerrar y descartar lo configurado?")) {
         onCancel();
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onCancel, pages, rules, wizardRules, pastedText]);
+  }, [onCancel, pages, wizardRules, visualRules]);
 
-  const questionByName = useMemo(() => {
-    const m = new Map<string, SurveyMonkeyQuestion>();
-    if (meta) for (const q of meta.preguntas) m.set(q.name, q);
-    for (const q of apiQuestions) m.set(q.name, q);
-    return m;
-  }, [apiQuestions, meta]);
+  const reglasText = [
+    compileVisualLogicRules(visualRules),
+    wizardRules.map((r) => r.texto).join("\n"),
+  ].filter((part) => part.trim()).join("\n");
+  const visualActionCount = visualRules.reduce(
+    (sum, rule) => sum + rule.choices.filter((choice) => choice.action.kind !== "none").length,
+    0,
+  );
+  const totalLogicCount = visualActionCount + wizardRules.length;
 
-  const importQuestions = meta?.preguntas ?? apiQuestions;
-
-  const reglasText = useMemo(() => {
-    if (ruleMode === "bulk") return pastedText;
-    if (ruleMode === "wizard") return wizardRules.map((r) => r.texto).join("\n");
-    return rules
-      .map(ruleToText)
-      .filter((s) => s)
-      .join("\n");
-  }, [ruleMode, pastedText, rules, wizardRules]);
-
-  async function handleApply(applyRules: boolean, includeApiEnhancements = true) {
+  async function handleApply() {
+    if (!smFetchedSurveyId || !smToken.trim()) {
+      setError("Conecta SurveyMonkey antes de importar. El XLSForm se crea solo desde la API.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
-      const reglas = applyRules ? reglasText : "";
-      const paginas = includeApiEnhancements ? pagesToRecord(pages) : {};
-      const paginasLabels = includeApiEnhancements ? pageLabelsToRecord(pages) : {};
       const result = await apiXlsformEditorImportSurveyMonkeyWithLogic(
         fileId ?? null,
-        reglas,
-        paginas,
-        paginasLabels,
+        reglasText,
+        pagesToRecord(pages),
+        pageLabelsToRecord(pages),
         "es",
-        includeApiEnhancements && smFetchedSurveyId && smToken.trim()
-          ? { survey_id: smFetchedSurveyId, token: smToken.trim() }
-          : undefined,
-        applyRules ? choiceOrderOverrides : {},
+        { survey_id: smFetchedSurveyId, token: smToken.trim() },
+        choiceOrderOverrides,
       );
-      onComplete(result);
+      onComplete({
+        ...result,
+        surveyMonkeyRules: wizardRules,
+        surveyMonkeyVisualRules: visualRules,
+        surveyMonkeyChoiceOverrides: choiceOrderOverrides,
+      });
     } catch (e) {
       setError(String((e as Error)?.message ?? e));
       setSubmitting(false);
@@ -483,19 +456,6 @@ export function ImportSurveyMonkeyDialog({
   }
   function updatePage(id: string, patch: Partial<PageEntry>) {
     setPages((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
-  }
-
-  function addRule() {
-    setRules((r) => [
-      ...r,
-      { id: newId(), whenVar: "", whenOp: "eq", whenCodes: [], actions: [] },
-    ]);
-  }
-  function removeRule(id: string) {
-    setRules((r) => r.filter((x) => x.id !== id));
-  }
-  function updateRule(id: string, patch: Partial<Rule>) {
-    setRules((r) => r.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
 
   return (
@@ -518,7 +478,7 @@ export function ImportSurveyMonkeyDialog({
           tirar el progreso del usuario. Solo se cierra con la X o Escape. */}
       <div
         style={{
-          width: "min(900px, 100%)",
+          width: "min(980px, 100%)",
           maxHeight: "90vh",
           background: "white",
           borderRadius: 12,
@@ -543,8 +503,7 @@ export function ImportSurveyMonkeyDialog({
             </h2>
             <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--pulso-muted, #6b7280)" }}>
               {fileName}
-              {meta ? ` · ${meta.n_filas} respuestas · ${meta.preguntas.length} preguntas` : null}
-              {!meta && apiQuestions.length ? ` · ${apiQuestions.length} preguntas` : null}
+              {apiQuestions.length ? ` · ${apiQuestions.length} preguntas desde API` : null}
             </p>
           </div>
           <button
@@ -580,22 +539,12 @@ export function ImportSurveyMonkeyDialog({
             </div>
           ) : (
             <>
-              <div
-                style={{
-                  margin: "0 0 16px",
-                  padding: "12px 14px",
-                  border: "1px solid #dbeafe",
-                  borderRadius: 8,
-                  background: "#eff6ff",
-                  fontSize: 13,
-                  color: "#1e3a8a",
-                  lineHeight: 1.5,
-                }}
-              >
-                <strong>Conecta SurveyMonkey:</strong> Pulso generará el XLSForm desde la API,
-                usando la estructura real del cuestionario: secciones, textos, tipos de pregunta,
-                opciones, obligatoriedad y validaciones.
-              </div>
+              <ImportFlowSummary
+                connected={Boolean(smFetchedSurveyId)}
+                sectionCount={pages.length}
+                questionCount={apiQuestions.length}
+                ruleCount={totalLogicCount}
+              />
 
               <SmApiSection
                 surveyId={smSurveyId}
@@ -623,113 +572,73 @@ export function ImportSurveyMonkeyDialog({
 
               {!smFetchedSurveyId ? (
                 <div style={{ marginBottom: 16, padding: 12, border: "1px solid #fde68a", borderRadius: 8, background: "#fffbeb", color: "#92400e", fontSize: 12, lineHeight: 1.45 }}>
-                  Conecta una encuesta arriba para generar un XLSForm fiel al formulario original. Sin API, Pulso tendría que adivinar tipos desde las respuestas del .sav y el resultado puede ser pobre.
+                  Conecta una encuesta para importar estructura, secciones, opciones, etiquetas y lógica desde la API. Las respuestas `.sav` se adaptan después al XLSForm normalizado.
                 </div>
               ) : null}
 
               <PageMapEditor pages={pages} onAdd={addPage} onRemove={removePage} onUpdate={updatePage} />
 
-              <div style={{ marginTop: 24, marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 10 }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Saltos de la encuesta</h3>
-                    <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--pulso-muted, #6b7280)" }}>
-                      Solo completa esta parte si SurveyMonkey ocultaba preguntas o terminaba la encuesta según una respuesta.
-                    </p>
+              <section
+                style={{
+                  marginTop: 24,
+                  border: "1px solid var(--pulso-border, #e5e7eb)",
+                  borderRadius: 10,
+                  background: "#ffffff",
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--pulso-border, #e5e7eb)", background: "#f8fafc" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Lógica SurveyMonkey</h3>
+                      <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--pulso-muted, #6b7280)", lineHeight: 1.45 }}>
+                        Revisa la lógica como en la pestaña Lógica. Si tienes lógica de ramificación avanzada, pégala abajo para traducirla.
+                      </p>
+                    </div>
+                    <span
+                      style={{
+                        flex: "0 0 auto",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        padding: "4px 9px",
+                        borderRadius: 999,
+                        border: "1px solid #dbeafe",
+                        background: "#eff6ff",
+                        color: "#1d4ed8",
+                        fontSize: 11,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Sparkles size={12} /> {totalLogicCount} salto{totalLogicCount === 1 ? "" : "s"}
+                    </span>
                   </div>
                 </div>
-                <div
-                  role="tablist"
-                  aria-label="Modo de definir reglas"
-                  style={{
-                    display: "inline-flex",
-                    border: "1px solid var(--pulso-border)",
-                    borderRadius: 6,
-                    overflow: "hidden",
-                    fontSize: 12,
-                    background: "white",
-                  }}
-                >
-                  {([
-                    { key: "wizard" as const, label: "Asistente paso a paso", icon: <Sparkles size={13} /> },
-                    { key: "guided" as const, label: "Formulario guiado", icon: <ListChecks size={13} /> },
-                    { key: "bulk" as const, label: "Pegar todas (texto)", icon: <ClipboardPaste size={13} /> },
-                  ]).map((opt) => {
-                    const active = ruleMode === opt.key;
-                    return (
-                      <button
-                        key={opt.key}
-                        type="button"
-                        role="tab"
-                        aria-selected={active}
-                        onClick={() => setRuleMode(opt.key)}
-                        style={{
-                          background: active ? "var(--pulso-primary)" : "transparent",
-                          color: active ? "white" : "var(--pulso-text)",
-                          border: "none",
-                          padding: "6px 12px",
-                          cursor: "pointer",
-                          fontWeight: active ? 500 : 400,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <span aria-hidden="true" style={{ display: "inline-flex", color: active ? "white" : "var(--pulso-primary)" }}>
-                          {opt.icon}
-                        </span>
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {ruleMode === "wizard" ? (
+                <div style={{ padding: 16 }}>
+                  {!smFetchedSurveyId ? (
+                    <div style={{ marginBottom: 12, padding: 10, border: "1px solid #fde68a", borderRadius: 8, background: "#fffbeb", color: "#92400e", fontSize: 12, lineHeight: 1.45 }}>
+                      Conecta SurveyMonkey primero para que el intérprete resuelva etiquetas, páginas y opciones con precisión.
+                    </div>
+                  ) : null}
                 <RuleWizard
                   surveyId={smFetchedSurveyId ?? ""}
                   token={smToken.trim()}
                   paginas={pagesToRecord(pages)}
                   paginasLabels={pageLabelsToRecord(pages)}
                   confirmed={wizardRules}
+                  visualRules={visualRules}
+                  visualQuestions={visualQuestionsFromPages(pages)}
+                  visualPages={visualPagesFromEntries(pages)}
                   onAdd={(r) => setWizardRules((prev) => [...prev, r])}
+                  onUpdate={(id, rule) => setWizardRules((prev) => prev.map((x) => x.id === id ? rule : x))}
                   onRemove={(id) => setWizardRules((prev) => prev.filter((x) => x.id !== id))}
+                  onClearAll={() => setWizardRules([])}
+                  onVisualRulesChange={setVisualRules}
                   overrides={choiceOrderOverrides}
                   onOverridesChange={setChoiceOrderOverrides}
                 />
-              ) : ruleMode === "bulk" ? (
-                <div>
-                  <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--pulso-muted, #6b7280)" }}>
-                    Pega una regla por línea. Ejemplo: <code>Q4 = C6 =&gt; Ocultar Pág. 16.</code>{" "}
-                    Útil cuando ya tienes varias reglas copiadas del constructor.
-                  </p>
-                  <textarea
-                    value={pastedText}
-                    onChange={(e) => setPastedText(e.target.value)}
-                    placeholder={`Q4 = C6 => Ocultar Pág. 16, Ocultar Pág. 17.\nQ24 IN ["Consultará", "No"] => Fin de la encuesta.`}
-                    rows={8}
-                    style={{
-                      width: "100%",
-                      fontFamily: "ui-monospace, monospace",
-                      fontSize: 13,
-                      padding: 10,
-                      border: "1px solid var(--pulso-border, #e5e7eb)",
-                      borderRadius: 6,
-                      resize: "vertical",
-                    }}
-                  />
                 </div>
-              ) : (
-                <RuleListEditor
-                  rules={rules}
-                  questions={importQuestions}
-                  questionByName={questionByName}
-                  pages={pages}
-                  onAdd={addRule}
-                  onRemove={removeRule}
-                  onUpdate={updateRule}
-                />
-              )}
+              </section>
             </>
           )}
         </div>
@@ -761,27 +670,9 @@ export function ImportSurveyMonkeyDialog({
             Cancelar
           </button>
           <div style={{ display: "flex", gap: 10 }}>
-            {fileId ? (
-              <button
-                type="button"
-                onClick={() => handleApply(false, false)}
-                disabled={submitting || loading}
-                style={{
-                  background: "transparent",
-                  border: "1px solid var(--pulso-border, #e5e7eb)",
-                  borderRadius: 6,
-                  padding: "8px 16px",
-                  cursor: submitting || loading ? "not-allowed" : "pointer",
-                  fontSize: 13,
-                  color: "var(--pulso-muted, #6b7280)",
-                }}
-              >
-                Importar solo con .sav
-              </button>
-            ) : null}
             <button
               type="button"
-              onClick={() => handleApply(Boolean(reglasText.trim()), true)}
+              onClick={handleApply}
               disabled={submitting || loading || !smFetchedSurveyId}
               style={{
                 background: smFetchedSurveyId ? "var(--pulso-accent, #2563eb)" : "#cbd5e1",
@@ -799,6 +690,88 @@ export function ImportSurveyMonkeyDialog({
             </button>
           </div>
         </footer>
+      </div>
+    </div>
+  );
+}
+
+function ImportFlowSummary({
+  connected,
+  sectionCount,
+  questionCount,
+  ruleCount,
+}: {
+  connected: boolean;
+  sectionCount: number;
+  questionCount: number;
+  ruleCount: number;
+}) {
+  const items = [
+    {
+      label: "Conexión",
+      value: connected ? "Lista" : "Pendiente",
+      done: connected,
+      icon: <Cloud size={13} />,
+    },
+    {
+      label: "Secciones",
+      value: sectionCount > 0 ? `${sectionCount}` : "Sin cargar",
+      done: sectionCount > 0,
+      icon: <Search size={13} />,
+    },
+    {
+      label: "Preguntas",
+      value: questionCount > 0 ? `${questionCount}` : "Sin cargar",
+      done: questionCount > 0,
+      icon: <ShieldCheck size={13} />,
+    },
+    {
+      label: "Saltos",
+      value: ruleCount > 0 ? `${ruleCount}` : "Opcional",
+      done: true,
+      icon: <Sparkles size={13} />,
+    },
+  ];
+
+  return (
+    <div
+      style={{
+        margin: "0 0 16px",
+        padding: 12,
+        border: "1px solid #dbeafe",
+        borderRadius: 10,
+        background: "#f8fbff",
+      }}
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
+        {items.map((item) => (
+          <div
+            key={item.label}
+            style={{
+              minWidth: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "8px 10px",
+              borderRadius: 8,
+              border: `1px solid ${item.done ? "#bfdbfe" : "#e5e7eb"}`,
+              background: item.done ? "#eff6ff" : "#ffffff",
+              color: item.done ? "#1e3a8a" : "var(--pulso-muted, #6b7280)",
+            }}
+          >
+            <span style={{ display: "inline-flex", flex: "0 0 auto", color: item.done ? "#2563eb" : "#94a3b8" }}>
+              {item.done && item.label !== "Saltos" ? <Check size={13} /> : item.icon}
+            </span>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 10, lineHeight: 1.1, color: "var(--pulso-muted, #6b7280)" }}>
+                {item.label}
+              </span>
+              <span style={{ display: "block", marginTop: 2, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {item.value}
+              </span>
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -892,7 +865,7 @@ function SmApiSection({
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: 14 }}>
           <StepHint icon={<KeyRound size={14} />} title="1. Conecta" text="Pega tu token una vez. Puede quedar guardado en este equipo." />
           <StepHint icon={<Search size={14} />} title="2. Elige" text="Lista tus encuestas o pega el enlace del cuestionario." />
-          <StepHint icon={<Sparkles size={14} />} title="3. Completa" text="Pulso rellena secciones y catálogos automáticamente." />
+          <StepHint icon={<Sparkles size={14} />} title="3. Completa" text="Prosecnur rellena secciones y catálogos automáticamente." />
         </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
@@ -916,7 +889,7 @@ function SmApiSection({
             type="button"
             onClick={onVerifyToken}
             disabled={!token.trim() || fetching || listing}
-            title="Comprueba que Pulso puede leer tus encuestas"
+            title="Comprueba que Prosecnur puede leer tus encuestas"
             style={{
               background: "transparent",
               border: "1px solid var(--pulso-border, #e5e7eb)",
@@ -1163,13 +1136,28 @@ function PageMapEditor({
   onRemove: (id: string) => void;
   onUpdate: (id: string, patch: Partial<PageEntry>) => void;
 }) {
+  const totalQuestions = pages.reduce((sum, p) => sum + pageQuestionNames(p).length, 0);
+  const totalVariables = pages.reduce((sum, p) => sum + pageXlsformVariableCount(p), 0);
   return (
     <div>
       <h3 style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 600 }}>Secciones de la encuesta</h3>
       <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--pulso-muted, #6b7280)" }}>
-        Si conectaste SurveyMonkey, esto se completa solo. Sirve para mantener juntas las preguntas
-        de cada página y para aplicar reglas tipo "ocultar página".
+        Prosecnur importará estas páginas como secciones del XLSForm. A la izquierda queda la página original
+        de SurveyMonkey; en el encabezado ya ves el nombre final que aparecerá en el editor.
       </p>
+      {pages.length > 0 ? (
+        <div style={{ margin: "0 0 10px", display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11, color: "#374151" }}>
+          <span style={{ padding: "3px 8px", border: "1px solid #dbeafe", borderRadius: 999, background: "#eff6ff" }}>
+            {pages.length} seccion{pages.length === 1 ? "" : "es"} a importar
+          </span>
+          <span style={{ padding: "3px 8px", border: "1px solid #dbeafe", borderRadius: 999, background: "#eff6ff" }}>
+            {totalQuestions} pregunta{totalQuestions === 1 ? "" : "s"} mapeadas
+          </span>
+          <span style={{ padding: "3px 8px", border: "1px solid #dbeafe", borderRadius: 999, background: "#eff6ff" }}>
+            {totalVariables} variable{totalVariables === 1 ? "" : "s"} XLSForm
+          </span>
+        </div>
+      ) : null}
 
       {pages.length === 0 ? (
         <p style={{ margin: "8px 0", fontSize: 12, color: "var(--pulso-muted, #6b7280)", fontStyle: "italic" }}>
@@ -1177,10 +1165,11 @@ function PageMapEditor({
         </p>
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
-          {pages.map((p) => {
-            const label = buildPageLabel(p);
-            const firstQuestions = (p.questionDetails ?? []).slice(0, 3);
+          {pages.map((p, idx) => {
+            const label = buildPageLabel(p, idx);
+            const sectionQuestions = p.questionDetails ?? [];
             const questionCount = pageQuestionNames(p).length;
+            const variableCount = pageXlsformVariableCount(p);
             return (
               <div
                 key={p.id}
@@ -1194,7 +1183,7 @@ function PageMapEditor({
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                   <div style={{ width: 84, flex: "0 0 auto" }}>
                     <label style={{ display: "block", marginBottom: 3, fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
-                      Página
+                      Página SM
                     </label>
                     <input
                       type="text"
@@ -1211,7 +1200,7 @@ function PageMapEditor({
                           {label}
                         </div>
                         <div style={{ marginTop: 3, fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
-                          {questionCount} pregunta{questionCount === 1 ? "" : "s"} incluidas
+                          Se creará como <strong>Pag{idx + 1}</strong> con {questionCount} pregunta{questionCount === 1 ? "" : "s"} SM y {variableCount} variable{variableCount === 1 ? "" : "s"} XLSForm
                         </div>
                       </div>
                       <button
@@ -1223,18 +1212,62 @@ function PageMapEditor({
                         <Trash2 size={14} color="#9ca3af" />
                       </button>
                     </div>
-                    {firstQuestions.length > 0 ? (
-                      <div style={{ marginTop: 8, display: "grid", gap: 4 }}>
-                        {firstQuestions.map((q) => (
-                          <div key={q.name} style={{ fontSize: 11, color: "#4b5563", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            <strong>{displayQuestionRef(q.name)}</strong>{q.heading ? ` · ${q.heading}` : ""}
-                          </div>
-                        ))}
-                        {(p.questionDetails?.length ?? 0) > firstQuestions.length ? (
-                          <div style={{ fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
-                            + {(p.questionDetails?.length ?? 0) - firstQuestions.length} más
-                          </div>
-                        ) : null}
+                    {sectionQuestions.length > 0 ? (
+                      <div style={{ marginTop: 8, display: "grid", gap: 4, maxHeight: 160, overflowY: "auto", paddingRight: 4 }}>
+                        {sectionQuestions.map((q) => {
+                          const children = q.children ?? [];
+                          const isMatrix = children.length > 0;
+                          return (
+                            <div key={q.name} style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 11, color: "#4b5563", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                <strong>{displayQuestionRef(q.name)}</strong>
+                                <span style={{ color: "var(--pulso-muted, #6b7280)" }}> ({displayOriginalQuestionRef(q.name)})</span>
+                                {isMatrix ? (
+                                  <span style={{ marginLeft: 6, color: "#1d4ed8", fontWeight: 600 }}>
+                                    matriz: nota + {children.length} select_one hermanas
+                                  </span>
+                                ) : null}
+                                {q.heading ? ` · ${q.heading}` : ""}
+                              </div>
+                              {isMatrix ? (
+                                <div style={{ margin: "3px 0 2px 14px", display: "grid", gap: 2 }}>
+                                  {children.map((child) => (
+                                    <div
+                                      key={child.name}
+                                      style={{
+                                        minWidth: 0,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 6,
+                                        fontSize: 11,
+                                        color: "#4b5563",
+                                      }}
+                                    >
+                                      <strong style={{ color: "#111827", fontFamily: "ui-monospace, monospace" }}>{child.name}</strong>
+                                      <span
+                                        style={{
+                                          flex: "0 0 auto",
+                                          padding: "1px 5px",
+                                          border: "1px solid #bfdbfe",
+                                          borderRadius: 999,
+                                          background: "#eff6ff",
+                                          color: "#1d4ed8",
+                                          fontSize: 10,
+                                          fontWeight: 600,
+                                        }}
+                                      >
+                                        {child.type ?? "select_one"}
+                                      </span>
+                                      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                        {child.heading}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <div style={{ marginTop: 8, fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
@@ -1247,6 +1280,9 @@ function PageMapEditor({
                       </div>
                     ) : null}
                     <div style={{ marginTop: 8 }}>
+                      <label style={{ display: "block", marginBottom: 3, fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
+                        Preguntas SM usadas para lógica de página
+                      </label>
                       <PageQuestionsInput
                         value={p.questions}
                         onCommit={(qs) => onUpdate(p.id, {
@@ -1283,315 +1319,6 @@ function PageMapEditor({
       >
         <Plus size={14} />
         Agregar sección manualmente
-      </button>
-    </div>
-  );
-}
-
-function RuleListEditor({
-  rules,
-  questions,
-  questionByName,
-  pages,
-  onAdd,
-  onRemove,
-  onUpdate,
-}: {
-  rules: Rule[];
-  questions: SurveyMonkeyQuestion[];
-  questionByName: Map<string, SurveyMonkeyQuestion>;
-  pages: PageEntry[];
-  onAdd: () => void;
-  onRemove: (id: string) => void;
-  onUpdate: (id: string, patch: Partial<Rule>) => void;
-}) {
-  return (
-    <div>
-      {rules.length === 0 ? (
-        <p style={{ margin: "8px 0", fontSize: 12, color: "var(--pulso-muted, #6b7280)", fontStyle: "italic" }}>
-          Sin reglas por ahora. Puedes importar así, o agregar una regla si la encuesta ocultaba preguntas según una respuesta.
-        </p>
-      ) : (
-        rules.map((r) => (
-          <RuleCard
-            key={r.id}
-            rule={r}
-            questions={questions}
-            questionByName={questionByName}
-            pages={pages}
-            onChange={(patch) => onUpdate(r.id, patch)}
-            onRemove={() => onRemove(r.id)}
-          />
-        ))
-      )}
-      <button
-        type="button"
-        onClick={onAdd}
-        style={{
-          marginTop: 8,
-          background: "transparent",
-          border: "1px dashed var(--pulso-border, #cbd5e1)",
-          borderRadius: 6,
-          padding: "8px 14px",
-          cursor: "pointer",
-          fontSize: 13,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          color: "var(--pulso-muted, #6b7280)",
-        }}
-      >
-        <Plus size={14} />
-        Agregar salto
-      </button>
-    </div>
-  );
-}
-
-function RuleCard({
-  rule,
-  questions,
-  questionByName,
-  pages,
-  onChange,
-  onRemove,
-}: {
-  rule: Rule;
-  questions: SurveyMonkeyQuestion[];
-  questionByName: Map<string, SurveyMonkeyQuestion>;
-  pages: PageEntry[];
-  onChange: (patch: Partial<Rule>) => void;
-  onRemove: () => void;
-}) {
-  const selected = rule.whenVar ? questionByName.get(rule.whenVar) : null;
-  const isMulti = (rule.whenOp === "in" || rule.whenOp === "not_in");
-
-  function toggleCode(code: string) {
-    const has = rule.whenCodes.includes(code);
-    if (has) onChange({ whenCodes: rule.whenCodes.filter((c) => c !== code) });
-    else onChange({ whenCodes: isMulti ? [...rule.whenCodes, code] : [code] });
-  }
-
-  function setAction(idx: number, action: RuleAction) {
-    const next = [...rule.actions];
-    next[idx] = action;
-    onChange({ actions: next });
-  }
-  function addAction() {
-    onChange({ actions: [...rule.actions, { kind: "hide_question", target: "" }] });
-  }
-  function removeAction(idx: number) {
-    onChange({ actions: rule.actions.filter((_, i) => i !== idx) });
-  }
-
-  return (
-    <div
-      style={{
-        border: "1px solid var(--pulso-border, #e5e7eb)",
-        borderRadius: 8,
-        padding: 14,
-        marginBottom: 12,
-        background: "#fafafa",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-        <strong style={{ fontSize: 13 }}>SI</strong>
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label="Eliminar regla"
-          style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-        >
-          <Trash2 size={14} color="#9ca3af" />
-        </button>
-      </div>
-
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
-        <select
-          value={rule.whenVar}
-          onChange={(e) => onChange({ whenVar: e.target.value, whenCodes: [] })}
-          style={{ padding: 6, border: "1px solid var(--pulso-border, #e5e7eb)", borderRadius: 4, minWidth: 120 }}
-        >
-          <option value="">Pregunta…</option>
-          {questions.map((q) => (
-            <option key={q.name} value={q.name}>
-              {q.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={rule.whenOp}
-          onChange={(e) => onChange({ whenOp: e.target.value as Rule["whenOp"], whenCodes: [] })}
-          style={{ padding: 6, border: "1px solid var(--pulso-border, #e5e7eb)", borderRadius: 4 }}
-        >
-          {(Object.keys(OP_LABELS) as Rule["whenOp"][]).map((op) => (
-            <option key={op} value={op}>
-              {OP_LABELS[op]}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {selected ? (
-        <div style={{ marginBottom: 12, padding: 8, background: "white", borderRadius: 4, fontSize: 12, color: "var(--pulso-muted, #6b7280)" }}>
-          <em>{selected.label || "(sin etiqueta)"}</em>
-        </div>
-      ) : null}
-
-      {selected && selected.choices.length > 0 ? (
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: "var(--pulso-muted, #6b7280)", marginBottom: 6 }}>Valor(es):</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {selected.choices.map((c, i) => {
-              const ref = `C${i + 1}`;
-              const checked = rule.whenCodes.includes(ref) || rule.whenCodes.includes(`"${c.label}"`);
-              return (
-                <label
-                  key={c.code}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "4px 8px",
-                    background: checked ? "var(--pulso-accent-soft, #dbeafe)" : "white",
-                    border: `1px solid ${checked ? "var(--pulso-accent, #2563eb)" : "var(--pulso-border, #e5e7eb)"}`,
-                    borderRadius: 14,
-                    fontSize: 12,
-                    cursor: "pointer",
-                    userSelect: "none",
-                  }}
-                >
-                  <input
-                    type={isMulti ? "checkbox" : "radio"}
-                    name={`rule-${rule.id}-codes`}
-                    checked={checked}
-                    onChange={() => toggleCode(ref)}
-                    style={{ margin: 0 }}
-                  />
-                  {c.label}
-                </label>
-              );
-            })}
-          </div>
-        </div>
-      ) : selected ? (
-        <input
-          type="text"
-          placeholder="Valor (literal o C1, C2…)"
-          value={rule.whenCodes.join(", ")}
-          onChange={(e) => onChange({ whenCodes: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
-          style={{
-            width: "100%",
-            padding: 6,
-            border: "1px solid var(--pulso-border, #e5e7eb)",
-            borderRadius: 4,
-            marginBottom: 14,
-            fontFamily: "ui-monospace, monospace",
-          }}
-        />
-      ) : null}
-
-      <div style={{ marginBottom: 6, fontSize: 13 }}>
-        <strong>ENTONCES</strong>
-      </div>
-      {rule.actions.map((a, idx) => (
-        <ActionRow
-          key={idx}
-          action={a}
-          questions={questions}
-          pages={pages}
-          onChange={(next) => setAction(idx, next)}
-          onRemove={() => removeAction(idx)}
-        />
-      ))}
-      <button
-        type="button"
-        onClick={addAction}
-        style={{
-          background: "transparent",
-          border: "1px dashed var(--pulso-border, #cbd5e1)",
-          borderRadius: 4,
-          padding: "4px 10px",
-          cursor: "pointer",
-          fontSize: 12,
-          color: "var(--pulso-muted, #6b7280)",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-        }}
-      >
-        <Plus size={12} />
-        Agregar acción
-      </button>
-    </div>
-  );
-}
-
-function ActionRow({
-  action,
-  questions,
-  pages,
-  onChange,
-  onRemove,
-}: {
-  action: RuleAction;
-  questions: SurveyMonkeyQuestion[];
-  pages: PageEntry[];
-  onChange: (a: RuleAction) => void;
-  onRemove: () => void;
-}) {
-  return (
-    <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
-      <select
-        value={action.kind}
-        onChange={(e) => {
-          const k = e.target.value as RuleAction["kind"];
-          if (k === "end_survey") onChange({ kind: "end_survey" });
-          else if (k === "hide_page") onChange({ kind: "hide_page", pageId: pages[0]?.pageId ?? "" });
-          else onChange({ kind: "hide_question", target: questions[0]?.name ?? "" });
-        }}
-        style={{ padding: 6, border: "1px solid var(--pulso-border, #e5e7eb)", borderRadius: 4 }}
-      >
-        <option value="hide_question">Ocultar pregunta</option>
-        <option value="hide_page">Ocultar sección (página)</option>
-        <option value="end_survey">Ocultar todas las secciones siguientes (Fin)</option>
-      </select>
-
-      {action.kind === "hide_question" ? (
-        <select
-          value={action.target}
-          onChange={(e) => onChange({ kind: "hide_question", target: e.target.value })}
-          style={{ padding: 6, border: "1px solid var(--pulso-border, #e5e7eb)", borderRadius: 4 }}
-        >
-          <option value="">Pregunta…</option>
-          {questions.map((q) => (
-            <option key={q.name} value={q.name}>
-              {q.name}
-            </option>
-          ))}
-        </select>
-      ) : action.kind === "hide_page" ? (
-        <select
-          value={action.pageId}
-          onChange={(e) => onChange({ kind: "hide_page", pageId: e.target.value })}
-          style={{ padding: 6, border: "1px solid var(--pulso-border, #e5e7eb)", borderRadius: 4 }}
-        >
-          <option value="">Página…</option>
-          {pages.filter((p) => p.pageId.trim()).map((p) => (
-            <option key={p.id} value={p.pageId}>
-              {p.pageId}
-            </option>
-          ))}
-        </select>
-      ) : null}
-
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label="Eliminar acción"
-        style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
-      >
-        <Trash2 size={12} color="#9ca3af" />
       </button>
     </div>
   );

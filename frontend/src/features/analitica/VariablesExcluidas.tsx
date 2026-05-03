@@ -4,14 +4,16 @@ import { VariableInstrumento } from "../../api/client";
 import { useAnaliticaStore } from "./store";
 import { VariableSelect } from "./VariableSelect";
 
-// Bucket global de variables que se excluyen de Codebook, Bases y
-// Frecuencias. El contenedor padre (DefinicionGlobal) provee el
+// Bucket global de variables que se excluyen de los entregables de
+// análisis. Las bases exportadas conservan todas sus columnas. El contenedor padre (DefinicionGlobal) provee el
 // colapsable; acá mostramos directamente chips + botones. Eso evita
 // que el dropdown del VariableSelect quede clippeado por un ancestro
 // con overflow:hidden.
 
 export function VariablesExcluidas({ variables }: { variables: VariableInstrumento[] }) {
   const excluidas = useAnaliticaStore((s) => s.config.variables_excluidas);
+  const numericasGlobal = useAnaliticaStore((s) => s.config.numericas);
+  const numericasFrecuencias = useAnaliticaStore((s) => s.config.frecuencias.numericas_override);
   const toggleVariableExcluida = useAnaliticaStore((s) => s.toggleVariableExcluida);
   const setExcluidas = useAnaliticaStore((s) => s.setVariablesExcluidas);
 
@@ -23,6 +25,12 @@ export function VariablesExcluidas({ variables }: { variables: VariableInstrumen
     setPending("");
     setAdding(false);
   }
+
+  const numericas = numericasFrecuencias ?? numericasGlobal;
+  const disponibles = variables.filter((v) => {
+    if (excluidas.includes(v.name)) return false;
+    return !!v.categorica || numericas.includes(v.name);
+  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -64,7 +72,7 @@ export function VariablesExcluidas({ variables }: { variables: VariableInstrumen
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 240 }}>
             <VariableSelect
-              variables={variables.filter((v) => !excluidas.includes(v.name))}
+              variables={disponibles}
               value={pending}
               onChange={setPending}
               placeholder="Seleccionar variable a excluir…"

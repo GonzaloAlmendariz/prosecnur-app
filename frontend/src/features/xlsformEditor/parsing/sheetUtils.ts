@@ -58,6 +58,19 @@ export function cloneWorkbook(book: XlsformEditorWorkbook): XlsformEditorWorkboo
     choices: cloneSheet(book.choices),
     settings: cloneSheet(book.settings),
     diagnostico: book.diagnostico ? cloneSheet(book.diagnostico) : null,
+    surveyMonkeyLogic: book.surveyMonkeyLogic
+      ? {
+          rules: (book.surveyMonkeyLogic.rules ?? book.surveyMonkeyLogic.advanced_rules ?? []).map((rule) => ({ ...rule })),
+          advanced_rules: (book.surveyMonkeyLogic.advanced_rules ?? book.surveyMonkeyLogic.rules ?? []).map((rule) => ({ ...rule })),
+          visual_rules: (book.surveyMonkeyLogic.visual_rules ?? []).map((rule) => ({
+            ...rule,
+            choices: rule.choices.map((choice) => ({ ...choice, action: { ...choice.action } })),
+          })),
+          choice_order_overrides: Object.fromEntries(
+            Object.entries(book.surveyMonkeyLogic.choice_order_overrides).map(([key, labels]) => [key, [...labels]]),
+          ),
+        }
+      : null,
   };
 }
 

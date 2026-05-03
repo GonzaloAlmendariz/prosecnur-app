@@ -35,6 +35,129 @@ test_that("normalize_data_for_xlsform reconstruye select_multiple SurveyMonkey p
   expect_false(any(c("q0027_0001", "q0027_0002", "q0027_0003", "q0013_0001") %in% names(out)))
 })
 
+test_that("normalize_data_for_xlsform adapta columnas q con padding a contrato p normalizado", {
+  inst <- list(
+    survey = data.frame(
+      type = c("select_one lst_p1", "select_multiple lst_p7", "select_one lst_p7"),
+      name = c("p1", "p7", "p7_1"),
+      list_name = c("lst_p1", "lst_p7", "lst_p7"),
+      label = c("P1", "P7", "Fila 1"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_p1", "lst_p1", "lst_p7", "lst_p7"),
+      name = c("1", "2", "1", "2"),
+      label = c("Sí", "No", "A", "B"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  )
+
+  raw <- data.frame(
+    q0001 = c(1, 2),
+    q0007_0001 = haven::labelled(c(1, NA), c("A" = 1)),
+    q0007_0002 = haven::labelled(c(NA, 1), c("B" = 1)),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  out <- normalize_data_for_xlsform(raw, inst)
+
+  expect_equal(out$p1, raw$q0001)
+  expect_equal(unname(as.character(out$p7)), c("1", "2"))
+  expect_false(any(c("q0001", "q0007_0001", "q0007_0002", "p7_0001", "p7_0002") %in% names(out)))
+  aliases <- attr(out, "xlsform_normalized")$aliases
+  expect_identical(unname(aliases["p7_1"]), "q0007_0001")
+})
+
+test_that("normalize_data_for_xlsform adapta columnas p con padding a contrato p sin padding", {
+  inst <- list(
+    survey = data.frame(
+      type = c("select_one lst_p13", "select_one lst_p13", "text"),
+      name = c("p13_1", "p13_2", "p24_1"),
+      list_name = c("lst_p13", "lst_p13", NA),
+      label = c("Item 1", "Item 2", "Funcion 1"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_p13", "lst_p13"),
+      name = c("1", "2"),
+      label = c("Bajo", "Alto"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  )
+  raw <- data.frame(
+    p13_0001 = c(1, NA),
+    p13_0002 = c(NA, 2),
+    p24_0001 = c("Diseño", ""),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  out <- normalize_data_for_xlsform(raw, inst)
+
+  expect_equal(out$p13_1, raw$p13_0001)
+  expect_equal(out$p13_2, raw$p13_0002)
+  expect_equal(out$p24_1, raw$p24_0001)
+  expect_false(any(c("p13_0001", "p13_0002", "p24_0001") %in% names(out)))
+  aliases <- attr(out, "xlsform_normalized")$aliases
+  expect_identical(unname(aliases["p13_1"]), "p13_0001")
+  expect_identical(unname(aliases["p24_1"]), "p24_0001")
+})
+
+test_that("normalize_data_for_xlsform aliasa q a p aunque no haya choices", {
+  inst <- list(
+    survey = data.frame(
+      type = c("text", "integer"),
+      name = c("p1", "p2"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    choices = data.frame()
+  )
+  raw <- data.frame(q0001 = c("a", "b"), q0002 = c(1, 2), check.names = FALSE)
+
+  out <- normalize_data_for_xlsform(raw, inst)
+
+  expect_equal(out$p1, raw$q0001)
+  expect_equal(out$p2, raw$q0002)
+  expect_false(any(c("q0001", "q0002") %in% names(out)))
+})
+
+test_that("normalize_data_for_xlsform soporta XLSForm legacy con sufijo padded", {
+  inst <- list(
+    survey = data.frame(
+      type = c("select_one lst_p13", "select_one lst_p13"),
+      name = c("p13_0001", "p13_0002"),
+      list_name = c("lst_p13", "lst_p13"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_p13", "lst_p13"),
+      name = c("1", "2"),
+      label = c("Bajo", "Alto"),
+      stringsAsFactors = FALSE
+    )
+  )
+  raw <- data.frame(
+    q0013_0001 = c(1, NA),
+    q0013_0002 = c(NA, 2),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  out <- normalize_data_for_xlsform(raw, inst)
+
+  expect_true(all(c("p13_0001", "p13_0002") %in% names(out)))
+  expect_equal(out$p13_0001, raw$q0013_0001)
+  expect_equal(out$p13_0002, raw$q0013_0002)
+  expect_false(any(c("q0013_0001", "q0013_0002", "p13_1", "p13_2") %in% names(out)))
+})
+
 test_that("normalize_data_for_xlsform no toca data ya canonica", {
   inst <- list(
     survey = data.frame(

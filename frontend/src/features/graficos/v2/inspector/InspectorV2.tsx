@@ -1,47 +1,36 @@
 import { useMemo } from "react";
 import * as Lucide from "lucide-react";
-import { LayoutPanelTop, FileText, Database, Palette, Filter as FilterIcon, Eye } from "lucide-react";
+import { LayoutPanelTop, FileText, Database, Palette, Filter as FilterIcon } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../../../api/client";
-import { useSession } from "../../../../lib/SessionContext";
 import { usePlanStore, SLIDE_LABELS, InspectorTab } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { useVariables } from "../../useVariables";
-import { ArgGroup } from "../../ArgGroup";
+import { ArgGroup, ARG_GROUP_ORDER, normalizeArgGroup } from "../../ArgGroup";
 import GraficadorSlot from "../../GraficadorSlot";
-import { SlidePreview } from "../../SlidePreview";
 import { LoadingBlock, EmptyState } from "../../../../components/States";
 import { usePlanValidator } from "../../usePlanValidator";
 import { StylePanel } from "./StylePanel";
 import { FiltersPanel } from "./FiltersPanel";
 
 // Inspector V3: tabs Contenido | Datos | Estilo | Filtros (sin Avanzado,
-// sin editor JSON crudo). Preview de este slide se mueve al header del
-// inspector para que esté visible siempre, no enterrado al fondo.
+// sin editor JSON crudo).
 //
 // Distribución de args por tab:
-//   * Contenido = grupo `textos`
+//   * Contenido = grupo `lectura` / `textos`
 //   * Datos     = grupo `datos` + slots de graficador
-//   * Estilo    = grupo `estilo` + grupo `canvas` — UI con info del preset
-//                 + lista de overrides + edición individual (StylePanel)
-//   * Filtros   = grupo `filtro` + grupo `semaforo` — motor de filtros
-//                 estilo "explorador de datos" (FiltersPanel)
+//   * Estilo    = lectura, leyenda, espacio y diagnóstico visual.
+//   * Filtros   = motor de filtros sobre la base del slide.
 //
-// El grupo `tabla` y `avanzado` se reparten silenciosamente en datos/estilo
-// según el caso (tabla → datos, avanzado se descarta para reducir ruido —
-// el analista que lo necesite usa Cmd+E del inspector legacy o el JSON
-// global del header).
+// Los grupos legacy se normalizan para que planes antiguos sigan abriendo.
 
 const TABS: { key: InspectorTab; label: string; Icon: typeof FileText; grupos: ArgGrupo[] }[] = [
-  { key: "content", label: "Contenido", Icon: FileText,   grupos: ["textos"] },
-  { key: "data",    label: "Datos",     Icon: Database,   grupos: ["datos", "tabla"] },
-  { key: "style",   label: "Estilo",    Icon: Palette,    grupos: ["estilo", "canvas"] },
-  { key: "filters", label: "Filtros",   Icon: FilterIcon, grupos: ["filtro", "semaforo"] },
+  { key: "content", label: "Contenido", Icon: FileText,   grupos: ["lectura", "textos"] },
+  { key: "data",    label: "Datos",     Icon: Database,   grupos: ["datos"] },
+  { key: "style",   label: "Estilo",    Icon: Palette,    grupos: ["lectura", "leyenda", "espacio", "diagnostico", "textos", "estilo", "canvas", "avanzado"] },
+  { key: "filters", label: "Filtros",   Icon: FilterIcon, grupos: [] },
 ];
 
 export function InspectorV2() {
-  const { state } = useSession();
-  const prepOk = !!state?.analitica_prep_ok;
-
   const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
   const slide = usePlanStore((s) => s.plan.slides.find((x) => x.id === selectedSlideId));
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
@@ -65,8 +54,8 @@ export function InspectorV2() {
     const slotSet = new Set(slotNames);
     for (const arg of slideMeta.args) {
       if (slotSet.has(arg.name)) continue;
-      const grupo = (arg.grupo as ArgGrupo) ?? "estilo";
-      const tab = TABS.find((t) => t.grupos.includes(grupo));
+      const grupo = normalizeArgGroup((arg.grupo as ArgGrupo) ?? "estilo");
+      const tab = TABS.find((t) => t.grupos.map(normalizeArgGroup).includes(grupo));
       if (tab) result[tab.key].push(arg);
       else result.style.push(arg); // fallback razonable
     }
@@ -136,10 +125,6 @@ export function InspectorV2() {
             </div>
           </div>
 
-          {/* Preview compacto en el header — siempre visible */}
-          <div className="pulso-gv2-inspector-preview-trigger">
-            <SlidePreview slide={slide} prepOk={prepOk} compact />
-          </div>
         </div>
 
         {slideMeta?.descripcion && (
@@ -233,7 +218,6 @@ export function InspectorV2() {
         {activeTab.key === "filters" && (
           <FiltersPanel
             slide={slide}
-            args={argsInActiveTab}
             variables={variables}
             slotNames={slotNames}
           />
@@ -252,11 +236,10 @@ function resolveLucide(name: string): LucideIcon {
 function groupArgs(args: ArgMetadata[]): { grupo: ArgGrupo; args: ArgMetadata[] }[] {
   const map: Partial<Record<ArgGrupo, ArgMetadata[]>> = {};
   for (const a of args) {
-    const g = (a.grupo as ArgGrupo) ?? "avanzado";
+    const g = normalizeArgGroup((a.grupo as ArgGrupo) ?? "avanzado");
     (map[g] ??= []).push(a);
   }
-  const order: ArgGrupo[] = ["textos", "datos", "filtro", "semaforo", "estilo", "canvas", "tabla", "avanzado"];
-  return order
+  return ARG_GROUP_ORDER
     .filter((g) => map[g] && map[g]!.length > 0)
     .map((g) => ({ grupo: g, args: map[g]! }));
 }

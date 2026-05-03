@@ -503,6 +503,7 @@ graficar_barras_apiladas <- function(
     ancho_max_eje_y       = NULL,
 
     mostrar_leyenda       = TRUE,
+    leyenda_posicion      = c("abajo", "arriba", "derecha", "izquierda", "ninguna"),
     invertir_leyenda      = FALSE,
     invertir_barras       = FALSE,
     invertir_segmentos    = FALSE,
@@ -608,6 +609,19 @@ graficar_barras_apiladas <- function(
   pos_titulo         <- match.arg(pos_titulo)
   pos_nota_pie       <- match.arg(pos_nota_pie)
   grosor_modo        <- match.arg(grosor_modo)
+  leyenda_posicion   <- match.arg(leyenda_posicion)
+  if (identical(leyenda_posicion, "ninguna")) mostrar_leyenda <- FALSE
+  legend_pos_gg <- switch(
+    leyenda_posicion,
+    abajo = "bottom",
+    arriba = "top",
+    derecha = "right",
+    izquierda = "left",
+    ninguna = "none",
+    "bottom"
+  )
+  legend_is_top  <- identical(leyenda_posicion, "arriba")
+  legend_is_side <- leyenda_posicion %in% c("derecha", "izquierda")
 
 
   # normalizaciones
@@ -1120,7 +1134,7 @@ graficar_barras_apiladas <- function(
 
   p_for_legend <- p_bars +
     ggplot2::theme(
-      legend.position = "bottom",
+      legend.position = if (legend_is_side) "right" else "bottom",
       legend.title    = ggplot2::element_blank(),
       legend.text = ggplot2::element_text(
         color = color_leyenda,
@@ -1139,7 +1153,7 @@ graficar_barras_apiladas <- function(
     ggplot2::guides(
       fill = ggplot2::guide_legend(
         byrow = TRUE,
-        ncol  = n_por_fila,
+        ncol  = if (legend_is_side) 1L else n_por_fila,
         keywidth  = grid::unit(legend_key_cm, "cm"),
         keyheight = grid::unit(legend_key_cm, "cm")
       )
@@ -1267,7 +1281,7 @@ graficar_barras_apiladas <- function(
   # ---------------------------------------------------------------------------
   if (!isTRUE(usar_canvas)) {
     out <- p_bars +
-      ggplot2::theme(legend.position = if (mostrar_leyenda) "bottom" else "none") +
+      ggplot2::theme(legend.position = if (mostrar_leyenda) legend_pos_gg else "none") +
       ggplot2::labs(title = titulo, subtitle = subtitulo, caption = caption_text)
 
     if (exportar == "rplot") return(out)
@@ -1360,7 +1374,7 @@ graficar_barras_apiladas <- function(
   has_caption <- !is.null(caption_text) && nzchar(caption_text)
 
   h_header_in  <- if (has_header)  canvas_h_header_in  else 0
-  h_legend_in  <- if (has_legend)  canvas_h_legend_in  else 0
+  h_legend_in  <- if (has_legend && !legend_is_side)  canvas_h_legend_in  else 0
   h_caption_in <- if (has_caption) canvas_h_caption_in else 0
 
   h_total_in <- h_header_in + h_panel_in + h_legend_in + h_caption_in
@@ -1371,10 +1385,16 @@ graficar_barras_apiladas <- function(
   legend_h  <- h_legend_in  / h_total_in
   caption_h <- h_caption_in / h_total_in
 
-  y_header0  <- 1 - header_h
-  y_panel0   <- y_header0 - panel_h
-  y_legend0  <- y_panel0  - legend_h
-  y_caption0 <- y_legend0 - caption_h
+  y_header0 <- 1 - header_h
+  if (has_legend && legend_is_top && !legend_is_side) {
+    y_legend0  <- y_header0 - legend_h
+    y_panel0   <- y_legend0 - panel_h
+    y_caption0 <- y_panel0 - caption_h
+  } else {
+    y_panel0   <- y_header0 - panel_h
+    y_legend0  <- y_panel0  - legend_h
+    y_caption0 <- y_legend0 - caption_h
+  }
 
   # widths (6 columnas efectivas) — grupo + etiquetas + buffers + barras + extra
   w_group <- if (usar_grupos_canvas) canvas_w_grupo else 0
@@ -1384,10 +1404,12 @@ graficar_barras_apiladas <- function(
   w_bars  <- canvas_w_bars
   w_buf2  <- canvas_w_buf_bars_extra
   w_extra <- canvas_w_extra
+  w_legend_side <- if (has_legend && legend_is_side) 0.18 else 0
 
-  w_sum <- w_group + w_buf0 + w_etq + w_buf1 + w_bars + w_buf2 + w_extra
+  w_sum <- w_legend_side + w_group + w_buf0 + w_etq + w_buf1 + w_bars + w_buf2 + w_extra
   if (!is.finite(w_sum) || w_sum <= 0) w_sum <- 1
 
+  w_legend_side <- w_legend_side / w_sum
   w_group <- w_group / w_sum
   w_buf0  <- w_buf0  / w_sum
   w_etq   <- w_etq   / w_sum
@@ -1396,13 +1418,15 @@ graficar_barras_apiladas <- function(
   w_buf2  <- w_buf2  / w_sum
   w_extra <- w_extra / w_sum
 
-  x_group0 <- 0
+  x_legend_side0 <- if (identical(leyenda_posicion, "izquierda")) 0 else NA_real_
+  x_group0 <- if (identical(leyenda_posicion, "izquierda")) w_legend_side else 0
   x_buf00  <- x_group0 + w_group
   x_etq0   <- x_buf00 + w_buf0
   x_buf10  <- x_etq0 + w_etq
   x_bars0  <- x_buf10 + w_buf1
   x_buf20  <- x_bars0 + w_bars
   x_extra0 <- x_buf20 + w_buf2
+  if (identical(leyenda_posicion, "derecha")) x_legend_side0 <- x_extra0 + w_extra
 
   # top row (título del extra)
   top_in <- canvas_h_toprow_in %||% 0
@@ -1423,9 +1447,9 @@ graficar_barras_apiladas <- function(
   if (has_legend) {
     leg_grob <- cowplot::get_legend(
       p_for_legend + ggplot2::theme(
-        legend.position  = "bottom",
-        legend.direction = "horizontal",
-        legend.box       = "horizontal"
+        legend.position  = if (legend_is_side) "right" else "bottom",
+        legend.direction = if (legend_is_side) "vertical" else "horizontal",
+        legend.box       = if (legend_is_side) "vertical" else "horizontal"
       )
     )
   }
@@ -1654,27 +1678,40 @@ graficar_barras_apiladas <- function(
   # ============================================================
   if (has_legend && !is.null(leg_grob)) {
 
-    # centro del placeholder de barras
-    pos_leyenda_x <- x_bars0 + (w_bars * 0.5)
-    if (!is.na(centro_cowplot) && is.finite(centro_cowplot)) pos_leyenda_x <- centro_cowplot
-
-    y_legend_center <- y_legend0 + (legend_h * 0.5)
     dy_leg <- leyenda_desplazamiento_in / h_total_in
+    if (legend_is_side) {
+      canvas <- canvas + cowplot::draw_grob(
+        leg_grob,
+        x = x_legend_side0 + (w_legend_side * 0.5),
+        y = y_main0 + (main_h * 0.5) + dy_leg,
+        width  = w_legend_side,
+        height = main_h,
+        hjust  = 0.5,
+        vjust  = 0.5
+      )
+      if (debug_ph_bordes) canvas <- canvas + .ph_border(x_legend_side0, y_main0, w_legend_side, main_h)
+    } else {
+      # centro del placeholder de barras
+      pos_leyenda_x <- x_bars0 + (w_bars * 0.5)
+      if (!is.na(centro_cowplot) && is.finite(centro_cowplot)) pos_leyenda_x <- centro_cowplot
 
-    leg_w_npc <- grid::convertWidth(sum(leg_grob$widths), "npc", valueOnly = TRUE)
-    if (!is.finite(leg_w_npc) || leg_w_npc <= 0) leg_w_npc <- 1
+      y_legend_center <- y_legend0 + (legend_h * 0.5)
 
-    canvas <- canvas + cowplot::draw_grob(
-      leg_grob,
-      x = pos_leyenda_x,
-      y = y_legend_center + dy_leg,
-      width  = leg_w_npc,
-      height = legend_h,
-      hjust  = 0.5,
-      vjust  = 0.5
-    )
+      leg_w_npc <- grid::convertWidth(sum(leg_grob$widths), "npc", valueOnly = TRUE)
+      if (!is.finite(leg_w_npc) || leg_w_npc <= 0) leg_w_npc <- 1
 
-    if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_legend0, 1, legend_h)
+      canvas <- canvas + cowplot::draw_grob(
+        leg_grob,
+        x = pos_leyenda_x,
+        y = y_legend_center + dy_leg,
+        width  = leg_w_npc,
+        height = legend_h,
+        hjust  = 0.5,
+        vjust  = 0.5
+      )
+
+      if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_legend0, 1, legend_h)
+    }
   }
 
   # CAPTION

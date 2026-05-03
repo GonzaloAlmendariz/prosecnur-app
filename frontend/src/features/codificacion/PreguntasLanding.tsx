@@ -1092,8 +1092,8 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
       </div>
       <div style={{ fontSize: 11, color: eyebrowColor, opacity: 0.85, marginBottom: 8, lineHeight: 1.4 }}>
         {hasSelection
-          ? <>Los textos de <code style={{ fontFamily: "monospace" }}>{padre.pareja && "child_col" in padre.pareja ? padre.pareja.child_col : ""}</code> se codifican cuando esta opción fue marcada. Haz click en la opción para quitar la selección.</>
-          : <>La columna que marca "Otros" es la que indica cuándo el respondente escribió texto libre en <code style={{ fontFamily: "monospace" }}>{padre.pareja && "child_col" in padre.pareja ? padre.pareja.child_col : ""}</code>. Haz click en la opción que corresponde.</>}
+          ? <>Los textos asociados se codifican cuando esta opción fue marcada. Haz click en la opción para quitar la selección.</>
+          : <>Elige la opción que habilita el texto libre asociado.</>}
       </div>
       <div
         style={{
@@ -1111,16 +1111,16 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
       >
         {opciones.map((o) => {
           const isSelected = selectedCol === o.col_dummy && o.col_dummy !== "";
-          const disabled = busy || !o.existe_en_data;
+          const disabled = busy || !o.col_dummy;
           const sugerida = o.es_otros_sugerido && !hasSelection;
           // Priorización de estilos: seleccionada > sugerida > normal.
           const borderCol = isSelected ? "var(--pulso-primary)" : sugerida ? "var(--pulso-warn-accent)" : "var(--pulso-border)";
           const bgCol = isSelected ? "var(--pulso-primary-soft)" : sugerida ? "var(--pulso-warn-bg)" : "white";
-          const title = disabled && !o.existe_en_data
-            ? `La columna ${o.col_dummy} no existe en tu dataset`
+          const title = disabled && !o.col_dummy
+            ? "Esta opción no puede marcarse con la base actual"
             : isSelected
             ? `Click para deseleccionar (actualmente marcada como "Otros")`
-            : `Usar ${o.col_dummy} como columna "Otros"`;
+            : `Usar esta opción como "Otros"`;
           return (
             <button
               key={o.codigo}
@@ -1140,7 +1140,7 @@ function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
                 border: `1px solid ${borderCol}`,
                 borderRadius: 5,
                 cursor: disabled ? "not-allowed" : "pointer",
-                opacity: disabled && !o.existe_en_data ? 0.5 : 1,
+                opacity: disabled && !o.col_dummy ? 0.5 : 1,
                 fontSize: 11,
               }}
             >

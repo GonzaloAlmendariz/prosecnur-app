@@ -62,7 +62,7 @@ export function AppearanceTab({ node, onFieldChange }: AppearanceTabProps) {
           <div className="pulso-inspector-placeholder">
             La carga de archivos llega en una próxima iteración. Por ahora puedes
             seguir editando los campos `media::image`, `media::audio` y
-            `media::video` directamente en el .xlsx — Pulso los conserva al
+            `media::video` directamente en el .xlsx — Prosecnur los conserva al
             exportar.
           </div>
         </InspectorField>

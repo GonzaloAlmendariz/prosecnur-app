@@ -199,13 +199,40 @@
   for (i in seq_len(nrow(df))) {
     row <- as.list(df[i, , drop = FALSE])
     row <- lapply(row, function(v) {
-      if (length(v) == 0) NA
-      else if (length(v) == 1) unname(v)
-      else unname(v)
+      .json_safe_preview_value(v)
     })
     rows[[i]] <- row
   }
   rows
+}
+
+.json_safe_preview_value <- function(v) {
+  if (length(v) == 0) return(NA)
+
+  if (is.list(v) && length(v) == 1L && !is.data.frame(v)) {
+    v <- v[[1]]
+  }
+
+  if (inherits(v, "haven_labelled") || inherits(v, "vctrs_vctr")) {
+    v <- as.vector(v)
+  }
+  if (inherits(v, "factor")) {
+    v <- as.character(v)
+  }
+  if (inherits(v, "POSIXt")) {
+    v <- as.character(v)
+  }
+  if (inherits(v, "Date")) {
+    v <- as.character(v)
+  }
+
+  v <- unname(v)
+  if (length(v) == 1L) {
+    if (is.numeric(v) && (is.nan(v) || is.infinite(v))) return(NA_real_)
+    return(v)
+  }
+  if (is.atomic(v)) return(as.list(v))
+  v
 }
 
 .ggplot_to_png <- function(gg, width = 14, height = 10, dpi = 120) {

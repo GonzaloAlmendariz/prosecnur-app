@@ -150,13 +150,82 @@
           !base_tipos %in% c("begin_group","end_group","begin_repeat","end_repeat","note","calculate","start","end","deviceid","today")
   idx <- which(keep)
   lapply(idx, function(i) {
+    es_categorica <- base_tipos[i] %in% c("select_one", "select_multiple")
+    es_numerica <- base_tipos[i] %in% c("integer", "decimal")
     list(
       name = as.character(sv$name[i]),
       label = label_raw[i],
       tipo = base_tipos[i],
-      list_name = list_names[i]
+      list_name = list_names[i],
+      categorica = es_categorica,
+      numerica = es_numerica,
+      analisis = es_categorica || es_numerica
     )
   })
+}
+
+.analitica_catalogo <- function(rp_inst) {
+  vars <- .variables_desde_instrumento(rp_inst)
+  if (length(vars) == 0L) {
+    return(data.frame(
+      name = character(0), tipo = character(0),
+      categorica = logical(0), numerica = logical(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+  data.frame(
+    name = vapply(vars, function(v) as.character(v$name %||% ""), character(1)),
+    tipo = vapply(vars, function(v) as.character(v$tipo %||% ""), character(1)),
+    categorica = vapply(vars, function(v) isTRUE(v$categorica), logical(1)),
+    numerica = vapply(vars, function(v) isTRUE(v$numerica), logical(1)),
+    stringsAsFactors = FALSE
+  )
+}
+
+.analitica_declared_numericas <- function(cfg, override_frecuencias = TRUE) {
+  fc <- cfg$frecuencias %||% list()
+  global <- .as_chr_vec(cfg$numericas)
+  if (isTRUE(override_frecuencias) && "numericas_override" %in% names(fc)) {
+    return(unique(.as_chr_vec(fc$numericas_override)))
+  }
+  unique(c(global, .as_chr_vec(fc$numericas_override)))
+}
+
+.analitica_allowed_vars <- function(rp_inst, numericas = character(0)) {
+  cat <- .analitica_catalogo(rp_inst)
+  if (nrow(cat) == 0L) return(character(0))
+  numericas_ok <- intersect(.as_chr_vec(numericas), cat$name[cat$numerica])
+  unique(c(cat$name[cat$categorica], numericas_ok))
+}
+
+.analitica_filter_sections <- function(secs, rp_inst, numericas = character(0), excluidas = character(0)) {
+  allowed <- .analitica_allowed_vars(rp_inst, numericas)
+  allowed <- setdiff(allowed, .as_chr_vec(excluidas))
+  if (length(allowed) == 0L) return(NULL)
+  if (is.null(secs) || !is.list(secs) || length(secs) == 0L) {
+    secs <- .secciones_desde_instrumento(rp_inst)
+  }
+  if (is.null(secs) || !is.list(secs) || length(secs) == 0L) return(NULL)
+  secs <- lapply(secs, function(v) intersect(as.character(v), allowed))
+  secs <- secs[vapply(secs, length, integer(1)) > 0L]
+  if (length(secs) == 0L) return(NULL)
+  secs
+}
+
+.analitica_filter_data <- function(data, rp_inst, numericas = character(0), excluidas = character(0)) {
+  allowed <- .analitica_allowed_vars(rp_inst, numericas)
+  keep <- setdiff(intersect(names(data), allowed), .as_chr_vec(excluidas))
+  out <- data[, keep, drop = FALSE]
+  for (nm in setdiff(names(attributes(data)), c("names","row.names","class"))) {
+    attr(out, nm) <- attr(data, nm)
+  }
+  out
+}
+
+.analitica_categoricas <- function(rp_inst) {
+  cat <- .analitica_catalogo(rp_inst)
+  if (nrow(cat) == 0L) return(character(0))
+  cat$name[cat$categorica]
 }
 
 .load_rp_data <- function(sid) {
@@ -311,7 +380,9 @@
     frecuencias = list(
       secciones_activas = list(),
       orden = "original",
-      mostrar_todo = FALSE
+      mostrar_todo = FALSE,
+      incluir_titulos = TRUE,
+      incluir_secciones = TRUE
     ),
     cruces = list(
       cruces_vars = list(),
@@ -319,6 +390,8 @@
       show_sig = TRUE,
       alpha = 0.05,
       incluir_total = TRUE,
+      incluir_titulos = TRUE,
+      incluir_secciones = TRUE,
       brecha = list(filas = FALSE, cols = FALSE),
       semaforo = list(
         activo = FALSE,
@@ -400,6 +473,13 @@ mount_analitica <- function(pr) {
       sid <- session_header(req)
       ctx <- .load_rp_data(sid)
       variables <- .variables_desde_instrumento(ctx$rp_inst)
+      cfg <- .analitica_get_config(sid)
+      numericas_decl <- .analitica_declared_numericas(cfg, override_frecuencias = FALSE)
+      variables <- lapply(variables, function(v) {
+        v$declarada_numerica <- isTRUE(v$numerica) && as.character(v$name %||% "") %in% numericas_decl
+        v$analisis <- isTRUE(v$categorica) || isTRUE(v$declarada_numerica)
+        v
+      })
       list(ok = TRUE, variables = variables)
     })) |>
     plumber::pr_get("/api/analitica/column-values", wrap_endpoint(function(req, res, name = NULL) {
@@ -474,6 +554,7 @@ mount_analitica <- function(pr) {
         sav  = haven::read_sav(src$data_meta$path),
         stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Ext no soportada: %s", src$data_meta$ext))
       )
+      dat_raw <- normalize_data_for_xlsform(dat_raw, rp_inst)
       rp_data <- reporte_data(dat_raw, instrumento = rp_inst)
       session_set(sid, "rp_inst", rp_inst)
       session_set(sid, "rp_data", rp_data)
@@ -500,6 +581,7 @@ mount_analitica <- function(pr) {
       cb_cfg <- cfg$codebook %||% list()
       codes <- .as_int_vec(cb_cfg$codigos_solo_si_presentes)
       excluidas <- .as_chr_vec(cfg$variables_excluidas)
+      numericas_arg <- .analitica_declared_numericas(cfg, override_frecuencias = FALSE)
 
       result <- run_report_multibase(
         sid           = sid,
@@ -508,7 +590,7 @@ mount_analitica <- function(pr) {
         kind_single   = "codebook",
         kind_multi    = "codebook_zip",
         fn = function(rp_data, rp_inst, out_path) {
-          data_out <- .excluir_cols(rp_data, excluidas)
+          data_out <- .analitica_filter_data(rp_data, rp_inst, numericas_arg, excluidas)
           reporte_codebook(
             data = data_out,
             path_xlsx = out_path,
@@ -535,10 +617,10 @@ mount_analitica <- function(pr) {
       orden <- as.character(fc$orden %||% "desc")
       if (!orden %in% c("desc","asc","original")) orden <- "desc"
       mostrar_todo <- isTRUE(fc$mostrar_todo)
+      incluir_titulos <- isTRUE(fc$incluir_titulos %||% TRUE)
+      incluir_secciones <- isTRUE(fc$incluir_secciones %||% TRUE)
 
-      num_override <- .as_chr_vec(fc$numericas_override)
-      num_global <- .as_chr_vec(cfg$numericas)
-      numericas_arg <- if (length(num_override) > 0L) num_override else num_global
+      numericas_arg <- .analitica_declared_numericas(cfg, override_frecuencias = TRUE)
 
       codes_codebook <- .as_int_vec((cfg$codebook %||% list())$codigos_solo_si_presentes)
       excluidas <- .as_chr_vec(cfg$variables_excluidas)
@@ -555,19 +637,15 @@ mount_analitica <- function(pr) {
           # automáticamente las del instrumento de ESTA base.
           secs <- secs_cfg
           if (is.null(secs)) secs <- .secciones_desde_instrumento(rp_inst)
-          # Filtrar variables excluidas dentro de cada sección y dropar
-          # secciones vacías.
-          if (length(excluidas) > 0L && is.list(secs) && length(secs) > 0L) {
-            secs <- lapply(secs, function(v) setdiff(v, excluidas))
-            secs <- secs[vapply(secs, length, integer(1)) > 0L]
-            if (length(secs) == 0L) secs <- NULL
-          }
+          secs <- .analitica_filter_sections(secs, rp_inst, numericas_arg, excluidas)
           reporte_frecuencias(
             data = data_out, instrumento = rp_inst,
             secciones = secs,
             path_xlsx = out_path,
             orden = orden,
             mostrar_todo = mostrar_todo,
+            incluir_titulos = incluir_titulos,
+            incluir_secciones = incluir_secciones,
             codigos_solo_si_presentes = if (length(codes_codebook) > 0L) codes_codebook else NULL,
             numericas = if (length(numericas_arg) > 0L) numericas_arg else NULL
           )
@@ -605,11 +683,24 @@ mount_analitica <- function(pr) {
       if (!modo_val %in% c("estandar","dimensiones")) modo_val <- "estandar"
 
       secs <- .secciones_from_config(cfg)
+      excluidas <- .as_chr_vec(cfg$variables_excluidas)
+      numericas_arg <- .analitica_declared_numericas(cfg, override_frecuencias = FALSE)
+      secs <- .analitica_filter_sections(secs, ctx$rp_inst, numericas_arg, excluidas)
+
+      categoricas <- .analitica_categoricas(ctx$rp_inst)
+      cruces_val <- intersect(cruces_val, categoricas)
+      cruces_map <- cruces_map[names(cruces_map) %in% cruces_val]
+      if (length(cruces_val) == 0L) {
+        stop_api(400, "E_NO_CRUCES_ANALITICAS",
+          "Agrega al menos una variable de selección única o múltiple para generar Cruces.")
+      }
 
       show_sig <- isTRUE(cc$show_sig %||% TRUE)
       alpha <- suppressWarnings(as.numeric(cc$alpha %||% 0.05))
       if (!is.finite(alpha)) alpha <- 0.05
       incluir_total <- isTRUE(cc$incluir_total %||% TRUE)
+      incluir_titulos <- isTRUE(cc$incluir_titulos %||% TRUE)
+      incluir_secciones <- isTRUE(cc$incluir_secciones %||% TRUE)
 
       brecha <- cc$brecha %||% list()
       brecha_filas <- isTRUE(brecha$filas)
@@ -639,8 +730,9 @@ mount_analitica <- function(pr) {
       job_id <- job_submit(
         sid = sid,
         kind = "analitica.cruces",
-        func = function(rp_data_path, rp_inst_path, cruces_val, modo, secs,
+        func = function(rp_data_path, rp_inst_path, cruces_val, modo, secs, numericas_arg,
                         show_sig, alpha, incluir_total,
+                        incluir_titulos, incluir_secciones,
                         brecha_filas, brecha_cols,
                         aplicar_sem, sem_modo, sem_cortes, sem_colores,
                         api_path, result_path) {
@@ -664,9 +756,12 @@ mount_analitica <- function(pr) {
               cruces = cruces_val,
               modo = modo,
               path_xlsx = out_path,
+              numericas = if (length(numericas_arg) > 0L) numericas_arg else NULL,
               show_sig = show_sig,
               alpha = alpha,
               incluir_total = incluir_total,
+              incluir_titulos = incluir_titulos,
+              incluir_secciones = incluir_secciones,
               brecha_filas = brecha_filas,
               brecha_cols = brecha_cols,
               aplicar_semaforo = aplicar_sem,
@@ -712,9 +807,12 @@ mount_analitica <- function(pr) {
           cruces_val = cruces_val,
           modo = modo_val,
           secs = secs,
+          numericas_arg = numericas_arg,
           show_sig = show_sig,
           alpha = alpha,
           incluir_total = incluir_total,
+          incluir_titulos = incluir_titulos,
+          incluir_secciones = incluir_secciones,
           brecha_filas = brecha_filas,
           brecha_cols = brecha_cols,
           aplicar_sem = aplicar_sem,

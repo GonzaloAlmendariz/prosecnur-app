@@ -185,6 +185,13 @@ test_that("compiler: is_missing detecta NA, empty string y 'NA' string", {
   expect_equal(res, c(TRUE, TRUE, TRUE, FALSE, FALSE))
 })
 
+test_that("compiler: regex ODK sobre-escapado se evalúa como patrón Perl", {
+  rhs <- ast_to_r(ast_matches_regex("email", "^[^@\\\\s]+@[^@\\\\s]+\\\\.[^@\\\\s]+$"))
+  email <- c("alnilam2306@gmail.com", "gabriela.palacios@pucp.pe", "sin-arroba", NA)
+  res <- eval(parse(text = rhs))
+  expect_equal(res, c(TRUE, TRUE, FALSE, FALSE))
+})
+
 test_that("compiler: collection_date_cmp usa __today__ inyectado", {
   rhs <- ast_to_r(ast_collection_date_cmp("fecha", "<="))
   fecha <- as.Date(c("2025-10-01", "2025-10-05", "2026-01-15", NA))
@@ -280,6 +287,39 @@ test_that("parser: regex(., 'pat') con self_var → matches_regex", {
   expect_false(res$degraded_to_raw)
   expect_equal(ast_op(res$ast), "matches_regex")
   expect_equal(res$ast$var, "codigo")
+})
+
+test_that("lector XLSForm normaliza referencias SM qNNNN dentro de expresiones", {
+  skip_if_not_installed("openxlsx")
+
+  path <- tempfile(fileext = ".xlsx")
+  openxlsx::write.xlsx(
+    list(
+      survey = data.frame(
+        type = c("select_multiple lst_p7", "text"),
+        name = c("p7", "p10"),
+        label = c("Estudios", "Institución"),
+        required = c("yes", "yes"),
+        relevant = c("", "${q0007} = '4' or ${q0007_0001} = '1'"),
+        constraint = c("", ""),
+        stringsAsFactors = FALSE
+      ),
+      choices = data.frame(
+        list_name = c("lst_p7", "lst_p7"),
+        name = c("1", "4"),
+        label = c("Bachiller", "Maestría"),
+        stringsAsFactors = FALSE
+      )
+    ),
+    path,
+    overwrite = TRUE
+  )
+
+  inst <- leer_xlsform_limpieza(path, verbose = FALSE)
+  rel <- inst$survey$relevant[inst$survey$name == "p10"]
+  expect_match(rel, "\\$\\{p7\\}", fixed = FALSE)
+  expect_false(grepl("\\$\\{q0007\\}", rel))
+  expect_match(rel, "selected\\(\\$\\{p7\\}, '4'\\)")
 })
 
 test_that("parser: smart quotes en expresión ODK se normalizan y parsean", {

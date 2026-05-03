@@ -22,9 +22,6 @@ export const SECTION_VGAP = 24;
 export const CELL_W = NODE_W + COL_GAP;
 export const CELL_H = NODE_H + ROW_GAP;
 
-// Ancho total del contenedor de una sección con N columnas
-export const SECTION_W = COLS_PER_ROW * NODE_W + (COLS_PER_ROW - 1) * COL_GAP + SECTION_PAD * 2;
-
 export type SectionGroup = {
   /** id estable derivado del slide separador (o "intro" si los slides
    *  vienen antes del primer separador). */
@@ -50,6 +47,17 @@ export type CanvasLayout = {
   width: number;
   height: number;
 };
+
+function columnsForWidth(maxWidth?: number): number {
+  if (!Number.isFinite(maxWidth) || !maxWidth || maxWidth <= 0) return COLS_PER_ROW;
+  const usable = Math.max(NODE_W, maxWidth - SECTION_PAD * 2);
+  const cols = Math.floor((usable + COL_GAP) / (NODE_W + COL_GAP));
+  return Math.max(1, Math.min(COLS_PER_ROW, cols));
+}
+
+function sectionWidth(cols: number): number {
+  return cols * NODE_W + (cols - 1) * COL_GAP + SECTION_PAD * 2;
+}
 
 // Agrupa los nodos del plan en secciones. Una nueva sección comienza con
 // cualquier slide tipo `p_slide_seccion`. Los slides al inicio del plan
@@ -88,17 +96,19 @@ export function groupBySection(nodes: PlanGraphNode[]): SectionGroup[] {
 }
 
 // Calcula posiciones de cada slide y bboxes de cada sección.
-export function planAutoLayout(nodes: PlanGraphNode[]): CanvasLayout {
+export function planAutoLayout(nodes: PlanGraphNode[], maxWidth?: number): CanvasLayout {
   const groups = groupBySection(nodes);
   const positions = new Map<string, { x: number; y: number; col: number; row: number; sectionId: string }>();
   const sectionBoxes = new Map<string, { x: number; y: number; w: number; h: number; rows: number }>();
+  const cols = columnsForWidth(maxWidth);
+  const sectionW = sectionWidth(cols);
 
   let cursorY = 0;
   let maxX = 0;
 
   for (const group of groups) {
     const nodesInGroup = group.nodes;
-    const rows = Math.max(1, Math.ceil(nodesInGroup.length / COLS_PER_ROW));
+    const rows = Math.max(1, Math.ceil(nodesInGroup.length / cols));
     const sectionH =
       SECTION_HEADER_H + SECTION_PAD * 2 + rows * NODE_H + (rows - 1) * ROW_GAP;
     const sectionX = 0;
@@ -107,15 +117,15 @@ export function planAutoLayout(nodes: PlanGraphNode[]): CanvasLayout {
     sectionBoxes.set(group.id, {
       x: sectionX,
       y: sectionY,
-      w: SECTION_W,
+      w: sectionW,
       h: sectionH,
       rows,
     });
 
     // Posicionar cada slide dentro de la sección
     nodesInGroup.forEach((node, i) => {
-      const col = i % COLS_PER_ROW;
-      const row = Math.floor(i / COLS_PER_ROW);
+      const col = i % cols;
+      const row = Math.floor(i / cols);
       const x = sectionX + SECTION_PAD + col * (NODE_W + COL_GAP);
       const y =
         sectionY + SECTION_HEADER_H + SECTION_PAD + row * (NODE_H + ROW_GAP);
@@ -123,7 +133,7 @@ export function planAutoLayout(nodes: PlanGraphNode[]): CanvasLayout {
     });
 
     cursorY += sectionH + SECTION_VGAP;
-    if (SECTION_W > maxX) maxX = SECTION_W;
+    if (sectionW > maxX) maxX = sectionW;
   }
 
   return {
@@ -161,6 +171,13 @@ export function findDropTarget(
 
   const group = layout.groups.find((g) => g.id === chosen!.id);
   if (!group) return null;
+  const cols = Math.max(
+    1,
+    Math.min(
+      COLS_PER_ROW,
+      Math.floor((chosen.box.w - SECTION_PAD * 2 + COL_GAP) / (NODE_W + COL_GAP)),
+    ),
+  );
 
   // Convierte (x, y) a (col, row) dentro de la sección.
   const localX = Math.max(0, point.x - chosen.box.x - SECTION_PAD);
@@ -171,10 +188,10 @@ export function findDropTarget(
 
   let col = Math.round(localX / (NODE_W + COL_GAP));
   let row = Math.round(localY / (NODE_H + ROW_GAP));
-  col = Math.max(0, Math.min(COLS_PER_ROW - 1, col));
+  col = Math.max(0, Math.min(cols - 1, col));
   row = Math.max(0, Math.min(chosen.box.rows - 1, row));
 
-  let localIndex = row * COLS_PER_ROW + col;
+  let localIndex = row * cols + col;
   localIndex = Math.max(0, Math.min(group.nodes.length, localIndex));
 
   // global index = primer global index de esta sección + localIndex

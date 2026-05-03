@@ -1,29 +1,67 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Database, Type, Palette, Filter, Gauge, Sparkles, LayoutPanelTop, Table2 } from "lucide-react";
+import { ChevronDown, Database, Type, Palette, Filter, Gauge, Sparkles, LayoutPanelTop, Table2, BarChart3, Tags, SlidersHorizontal } from "lucide-react";
 import { ArgGrupo, ArgMetadata, VarInfo } from "../../api/client";
 import { ArgField, ArgState } from "./ArgField";
 
-// Agrupa los args de un graficador o preset por su `grupo` semántico.
-// Los grupos son colapsables; "datos" y "textos" arrancan expandidos
-// porque son lo primero que el usuario necesita tocar. Los demás se
-// abren on-demand.
-//
-// Los grupos coinciden con lo declarado en graficos_metadata.R:
-//   datos / textos / estilo / filtro / semaforo / canvas / tabla / avanzado
+// Agrupa los args por intención. El backend ya manda los nombres nuevos
+// (lectura, valores, leyenda, espacio...), pero mantenemos compatibilidad
+// con metadatos legacy del proyecto.
 
 export const GRUPO_META: Record<
   ArgGrupo,
   { label: string; icon: typeof Database; descripcion: string; defaultOpen: boolean; order: number }
 > = {
-  datos:    { label: "Datos",    icon: Database,        descripcion: "Qué variable se muestra y cómo se segmenta.",                  defaultOpen: true,  order: 0 },
-  textos:   { label: "Textos",   icon: Type,            descripcion: "Títulos, subtítulos, pie, etiquetas, formato de la base.",    defaultOpen: true,  order: 1 },
-  filtro:   { label: "Filtro",   icon: Filter,          descripcion: "Umbrales, decimales, top2box, filtros numéricos.",            defaultOpen: false, order: 2 },
-  semaforo: { label: "Semáforo", icon: Gauge,           descripcion: "Colores por rangos de valores.",                              defaultOpen: false, order: 3 },
-  estilo:   { label: "Estilo",   icon: Palette,         descripcion: "Tipografía, tamaños, colores, leyenda, negritas.",            defaultOpen: false, order: 4 },
-  canvas:   { label: "Canvas",   icon: LayoutPanelTop,  descripcion: "Dimensiones del canvas interno (anchos, altos, márgenes).",   defaultOpen: false, order: 5 },
-  tabla:    { label: "Tabla",    icon: Table2,          descripcion: "Configuración de la tabla derecha (solo en radar_tabla).",    defaultOpen: false, order: 6 },
-  avanzado: { label: "Avanzado", icon: Sparkles,        descripcion: "Opciones poco comunes.",                                      defaultOpen: false, order: 7 },
+  datos:       { label: "Datos",                     icon: Database,          descripcion: "Qué variable se muestra y cómo se segmenta.",                         defaultOpen: true,  order: 0 },
+  lectura:     { label: "Texto y lectura",           icon: Type,              descripcion: "Títulos, etiquetas, tamaños y reglas que mejoran la lectura.",         defaultOpen: false, order: 1 },
+  valores:     { label: "Valores y barras",          icon: BarChart3,         descripcion: "Porcentajes, N, top boxes, cortes y comportamiento de barras.",        defaultOpen: false, order: 2 },
+  leyenda:     { label: "Leyenda",                   icon: Tags,              descripcion: "Ubicación y tamaño de la leyenda dentro del canvas.",                  defaultOpen: false, order: 3 },
+  espacio:     { label: "Distribución del espacio",  icon: LayoutPanelTop,    descripcion: "Cómo se reparte el canvas entre etiquetas, barras y columnas de apoyo.", defaultOpen: false, order: 4 },
+  tabla:       { label: "Tabla",                     icon: Table2,            descripcion: "Configuración de tablas asociadas al gráfico.",                       defaultOpen: false, order: 5 },
+  diagnostico: { label: "Diagnóstico",               icon: SlidersHorizontal, descripcion: "Guías y controles técnicos para verificar layout.",                    defaultOpen: false, order: 6 },
+  textos:      { label: "Texto y lectura",           icon: Type,              descripcion: "Títulos, etiquetas, tamaños y reglas que mejoran la lectura.",         defaultOpen: false, order: 1 },
+  filtro:      { label: "Valores y barras",          icon: Filter,            descripcion: "Umbrales, decimales, top2box y filtros numéricos.",                   defaultOpen: false, order: 2 },
+  semaforo:    { label: "Valores y barras",          icon: Gauge,             descripcion: "Colores por rangos de valores.",                                     defaultOpen: false, order: 2 },
+  estilo:      { label: "Valores y barras",          icon: Palette,           descripcion: "Tipografía, tamaños, colores, leyenda y negritas.",                   defaultOpen: false, order: 2 },
+  canvas:      { label: "Distribución del espacio",  icon: LayoutPanelTop,    descripcion: "Dimensiones del canvas interno.",                                    defaultOpen: false, order: 4 },
+  avanzado:    { label: "Diagnóstico",               icon: Sparkles,          descripcion: "Opciones poco comunes.",                                             defaultOpen: false, order: 6 },
 };
+
+export const ARG_GROUP_ORDER: ArgGrupo[] = [
+  "datos",
+  "lectura",
+  "valores",
+  "leyenda",
+  "espacio",
+  "tabla",
+  "diagnostico",
+  "textos",
+  "filtro",
+  "semaforo",
+  "estilo",
+  "canvas",
+  "avanzado",
+];
+
+export function normalizeArgGroup(grupo: ArgGrupo | string | null | undefined): ArgGrupo {
+  switch (grupo) {
+    case "textos": return "lectura";
+    case "estilo":
+    case "filtro":
+    case "semaforo": return "valores";
+    case "canvas": return "espacio";
+    case "avanzado": return "diagnostico";
+    case "datos":
+    case "lectura":
+    case "valores":
+    case "leyenda":
+    case "espacio":
+    case "tabla":
+    case "diagnostico":
+      return grupo;
+    default:
+      return "diagnostico";
+  }
+}
 
 export function ArgGroup({
   grupo,
@@ -52,7 +90,8 @@ export function ArgGroup({
   /** Handler para resetear un arg al valor del preset. */
   onResetArg?: (name: string) => void;
 }) {
-  const meta = GRUPO_META[grupo];
+  const normalizedGrupo = normalizeArgGroup(grupo);
+  const meta = GRUPO_META[normalizedGrupo];
   const [open, setOpen] = useState(meta.defaultOpen);
   const [hover, setHover] = useState(false);
 
@@ -105,20 +144,35 @@ export function ArgGroup({
         aria-expanded={open}
         style={{
           width: "100%", textAlign: "left",
-          padding: "8px 10px",
-          display: "flex", alignItems: "center", gap: 7,
+          padding: "9px 10px",
+          display: "flex", alignItems: "flex-start", gap: 7,
           background: hover || open ? "var(--pulso-surface-2)" : "transparent",
           border: "none", cursor: "pointer",
           borderRadius: open ? "5px 5px 0 0" : 5,
           transition: "background 120ms ease",
         }}
       >
-        <span style={{ display: "inline-flex", transition: "transform 150ms ease", transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}>
-          <ChevronDown size={12} color="var(--pulso-text-soft)" />
-        </span>
-        <Icon size={12} color="var(--pulso-text-soft)" />
-        <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "var(--pulso-text-soft)" }}>
-          {meta.label}
+        <span style={{ display: "flex", alignItems: "flex-start", gap: 7, minWidth: 0, flex: 1 }}>
+          <span
+            style={{
+              display: "inline-flex",
+              marginTop: 2,
+              transition: "transform 150ms ease",
+              transform: open ? "rotate(0deg)" : "rotate(-90deg)",
+              flexShrink: 0,
+            }}
+          >
+            <ChevronDown size={12} color="var(--pulso-text-soft)" />
+          </span>
+          <Icon size={12} color="var(--pulso-text-soft)" style={{ marginTop: 2, flexShrink: 0 }} />
+          <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "var(--pulso-text-soft)" }}>
+              {meta.label}
+            </span>
+            <span style={{ fontSize: 10.5, fontWeight: 500, lineHeight: 1.35, color: "var(--pulso-text-soft)" }}>
+              {meta.descripcion}
+            </span>
+          </span>
         </span>
         <span
           title={nValuados > 0 ? `${nValuados} con valor · ${args.length - nValuados} vacíos` : `${args.length} args sin valor`}

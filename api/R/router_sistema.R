@@ -492,6 +492,7 @@ mount_sistema <- function(pr) {
         analitica_enumeradores_ok = isTRUE(s$analitica_enumeradores_ok),
         analitica_dim_ok = isTRUE(s$analitica_dim_ok),
         analitica_fuente = s$analitica_fuente %||% NA_character_,
+        hojas_ruta_ok = isTRUE(s$hojas_ruta_ok),
         graficos_ppt_ok = isTRUE(s$graficos_ppt_ok),
         graficos_word_ok = isTRUE(s$graficos_word_ok),
         # --- Estudio (multi-base, v0.2+) ---

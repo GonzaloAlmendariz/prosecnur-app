@@ -6,6 +6,7 @@ import { usePlanStore } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import GraficadorPicker from "./GraficadorPicker";
 import GraficadorForm from "./GraficadorForm";
+import MultiApiladasBuilder from "./MultiApiladasBuilder";
 import { graficadorToPresetType } from "./graficadorPresetMap";
 
 // Card que representa un slot de graficador dentro de un slide. Dos
@@ -32,9 +33,9 @@ type Props = {
 };
 
 const MODE_GROUPS: Record<GraficadorSlotMode, ArgGrupo[]> = {
-  data:    ["datos", "tabla"],
-  style:   ["estilo", "canvas"],
-  filters: ["filtro", "semaforo"],
+  data:    ["datos"],
+  style:   ["lectura", "leyenda", "espacio", "textos", "estilo", "canvas"],
+  filters: ["valores", "tabla", "filtro", "semaforo"],
 };
 
 // Slot names → label humano. Si no mapea, mostramos el name crudo.
@@ -248,11 +249,18 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
 
       {/* Body: args agrupados, filtrados por modo */}
       <div style={{ padding: 12 }}>
-        <GraficadorForm
-          graf={value}
-          onArgs={(patch) => updateArgs(slideId, slotName, patch)}
-          groupFilter={allowedGroups}
-        />
+        {mode === "data" && value.graficador === "p_barras_multiapiladas" ? (
+          <MultiApiladasBuilder
+            graf={value}
+            onArgs={(patch) => updateArgs(slideId, slotName, patch)}
+          />
+        ) : (
+          <GraficadorForm
+            graf={value}
+            onArgs={(patch) => updateArgs(slideId, slotName, patch)}
+            groupFilter={allowedGroups}
+          />
+        )}
       </div>
 
       {pickerOpen && <GraficadorPicker onPick={onPick} onCancel={() => setPickerOpen(false)} />}

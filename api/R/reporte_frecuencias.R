@@ -249,11 +249,45 @@ split_sm_tokens <- function(x) {
       return(character(0))
     }
 
-    # SIEMPRE explotar en espacios y/o ';'
-    toks <- unlist(strsplit(xx, "\\s*[;\\s]+\\s*"))
+    # SIEMPRE explotar en espacios y/o ';'. Usamos POSIX [:space:]
+    # porque strsplit() no interpreta \s con el motor regex base de R.
+    toks <- unlist(strsplit(xx, "[;[:space:]]+"))
     toks <- toks[nzchar(toks)]
     toks
   })
+}
+
+#' Detectar una madre select_multiple cuando el tipo no llegó explícito
+#'
+#' Algunas bases entran con la variable madre intacta (`"1 2"`, `"3;5"`) pero
+#' sin que el `survey` permita reconocerla como `select_multiple` (por ejemplo,
+#' variables recodificadas o metadatos incompletos). Para evitar partir textos
+#' abiertos, solo inferimos múltiple si existe `orders_list[[var]]$names` y los
+#' tokens observados calzan con códigos del instrumento.
+#'
+#' @noRd
+.looks_like_select_multiple_main <- function(data, var, orders_list = NULL) {
+  if (is.null(orders_list) || !(var %in% names(orders_list))) return(FALSE)
+  if (!is.data.frame(data) || !(var %in% names(data))) return(FALSE)
+  if (!(is.character(data[[var]]) || is.factor(data[[var]]))) return(FALSE)
+
+  valid_codes <- tryCatch(as.character(orders_list[[var]][["names"]]), error = function(e) NULL)
+  valid_codes <- valid_codes[!is.na(valid_codes) & nzchar(valid_codes)]
+  if (is.null(valid_codes) || !length(valid_codes)) return(FALSE)
+
+  vals <- as.character(data[[var]])
+  vals <- vals[!is.na(vals) & nzchar(vals) & vals != "NA"]
+  if (!length(vals)) return(FALSE)
+
+  token_list <- split_sm_tokens(vals)
+  token_lengths <- lengths(token_list)
+  if (!any(token_lengths > 1L)) return(FALSE)
+
+  observed_tokens <- unique(unlist(token_list, use.names = FALSE))
+  observed_tokens <- observed_tokens[!is.na(observed_tokens) & nzchar(observed_tokens)]
+  if (!length(observed_tokens)) return(FALSE)
+
+  mean(observed_tokens %in% valid_codes) >= 0.8
 }
 
 #' Verificar si existe la variable o alguna dummy asociada
@@ -721,7 +755,8 @@ mk_styles_spss <- function() {
       halign   = "right",
       valign   = "center",
       fgFill   = "#FFFFFF",
-      fontName = "Arial"
+      fontName = "Arial",
+      wrapText = FALSE
     ),
 
     # >>> CLAVE: numérico mostrado como TEXTO con punto fijo (12.0, 3.4)
@@ -844,6 +879,9 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
 
   tipo <- tipo_pregunta_spss(var, survey, sm_vars_force)
   if (tipo != "sm" && has_dummies) tipo <- "sm"
+  if (tipo != "sm" && .looks_like_select_multiple_main(data, var, orders_list)) {
+    tipo <- "sm"
+  }
 
   w <- .peso_vec(data)
 
@@ -1044,7 +1082,8 @@ mk_styles_spss <- function() {
       halign   = "right",
       valign   = "center",
       fgFill   = "#FFFFFF",
-      fontName = "Arial"
+      fontName = "Arial",
+      wrapText = FALSE
     ),
     body_pct = openxlsx::createStyle(
       fontSize = 10,
@@ -1054,7 +1093,8 @@ mk_styles_spss <- function() {
       halign = "right",
       valign = "center",
       fgFill = "#FFFFFF",
-      fontName = "Arial"
+      fontName = "Arial",
+      wrapText = FALSE
     ),
     total_row = openxlsx::createStyle(
       fontSize = 10,
@@ -1063,7 +1103,48 @@ mk_styles_spss <- function() {
       halign = "right",
       valign = "center",
       fgFill = "#FFFFFF",
-      fontName = "Arial"
+      fontName = "Arial",
+      wrapText = FALSE
+    ),
+    freq_body_int = openxlsx::createStyle(
+      fontSize = 10,
+      numFmt   = "#,##0",
+      halign   = "center",
+      valign   = "center",
+      fgFill   = "#FFFFFF",
+      fontName = "Arial",
+      wrapText = FALSE
+    ),
+    freq_body_pct = openxlsx::createStyle(
+      fontSize = 10,
+      textDecoration = NULL,
+      numFmt = "0.0%",
+      border = c(),
+      halign = "center",
+      valign = "center",
+      fgFill = "#FFFFFF",
+      fontName = "Arial",
+      wrapText = FALSE
+    ),
+    freq_total_num = openxlsx::createStyle(
+      fontSize = 10,
+      textDecoration = NULL,
+      numFmt = "#,##0",
+      halign = "center",
+      valign = "center",
+      fgFill = "#FFFFFF",
+      fontName = "Arial",
+      wrapText = FALSE
+    ),
+    freq_total_pct = openxlsx::createStyle(
+      fontSize = 10,
+      textDecoration = NULL,
+      numFmt = "0.0%",
+      halign = "center",
+      valign = "center",
+      fgFill = "#FFFFFF",
+      fontName = "Arial",
+      wrapText = FALSE
     ),
     total_label = openxlsx::createStyle(
       fontSize = 10,
@@ -1082,6 +1163,24 @@ mk_styles_spss <- function() {
 }
 
 #' @noRd
+.prepare_frecuencias_sheet <- function(wb, sheet, rows = 5000L, cols = 30L) {
+  if ("showGridLines" %in% getNamespaceExports("openxlsx")) {
+    openxlsx::showGridLines(wb, sheet, showGridLines = FALSE)
+  }
+
+  white_canvas <- openxlsx::createStyle(fgFill = "#FFFFFF", fontName = "Arial")
+  openxlsx::addStyle(
+    wb, sheet, white_canvas,
+    rows = seq_len(rows),
+    cols = seq_len(cols),
+    gridExpand = TRUE,
+    stack = TRUE
+  )
+
+  invisible(wb)
+}
+
+#' @noRd
 write_one_freq <- function(wb, sheet, data, var, dic_vars,
                            survey = NULL, sm_vars_force = NULL,
                            labels_override = NULL,
@@ -1089,7 +1188,8 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
                            fuente = "Pulso PUCP",
                            orders_list = NULL,
                            mostrar_todo = FALSE,
-                           codigos_solo_si_presentes = NULL) {
+                           codigos_solo_si_presentes = NULL,
+                           incluir_titulo = TRUE) {
 
   st <- mk_styles_spss()
   fila <- start_row
@@ -1102,14 +1202,16 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     df = data
   )
 
-  openxlsx::writeData(wb, sheet, label_q, startRow = fila, startCol = start_col, colNames = FALSE)
-  openxlsx::mergeCells(wb, sheet, cols = start_col:(start_col + 2), rows = fila:fila)
-  openxlsx::addStyle(wb, sheet, st$q_title, rows = fila, cols = start_col, gridExpand = TRUE, stack = TRUE)
-  openxlsx::setRowHeights(
-    wb, sheet, rows = fila,
-    heights = .auto_row_height(label_q, chars_per_line = 70, base = 24, per_line = 16)
-  )
-  fila <- fila + 1
+  if (isTRUE(incluir_titulo)) {
+    openxlsx::writeData(wb, sheet, label_q, startRow = fila, startCol = start_col, colNames = FALSE)
+    openxlsx::mergeCells(wb, sheet, cols = start_col:(start_col + 2), rows = fila:fila)
+    openxlsx::addStyle(wb, sheet, st$q_title, rows = fila, cols = start_col, gridExpand = TRUE, stack = TRUE)
+    openxlsx::setRowHeights(
+      wb, sheet, rows = fila,
+      heights = .auto_row_height(label_q, chars_per_line = 70, base = 24, per_line = 16)
+    )
+    fila <- fila + 1
+  }
 
   header_vec <- c("", "n", "%")
   openxlsx::writeData(wb, sheet, t(header_vec), startRow = fila, startCol = start_col, colNames = FALSE)
@@ -1141,8 +1243,8 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     r_fin <- fila + nrow(body_rows) - 1
 
     openxlsx::addStyle(wb, sheet, st$body_txt, rows = r_ini:r_fin, cols = start_col,     gridExpand = TRUE)
-    openxlsx::addStyle(wb, sheet, st$body_int, rows = r_ini:r_fin, cols = start_col + 1, gridExpand = TRUE)
-    openxlsx::addStyle(wb, sheet, st$body_pct, rows = r_ini:r_fin, cols = start_col + 2, gridExpand = TRUE)
+    openxlsx::addStyle(wb, sheet, st$freq_body_int, rows = r_ini:r_fin, cols = start_col + 1, gridExpand = TRUE)
+    openxlsx::addStyle(wb, sheet, st$freq_body_pct, rows = r_ini:r_fin, cols = start_col + 2, gridExpand = TRUE)
 
     fila <- r_fin + 1
   }
@@ -1151,8 +1253,8 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     openxlsx::writeData(wb, sheet, total_row, startRow = fila, startCol = start_col, colNames = FALSE)
 
     openxlsx::addStyle(wb, sheet, st$total_label, rows = fila, cols = start_col,     gridExpand = TRUE)
-    openxlsx::addStyle(wb, sheet, st$total_row,   rows = fila, cols = start_col + 1, gridExpand = TRUE)
-    openxlsx::addStyle(wb, sheet, st$total_row,   rows = fila, cols = start_col + 2, gridExpand = TRUE)
+    openxlsx::addStyle(wb, sheet, st$freq_total_num, rows = fila, cols = start_col + 1, gridExpand = TRUE)
+    openxlsx::addStyle(wb, sheet, st$freq_total_pct, rows = fila, cols = start_col + 2, gridExpand = TRUE)
 
     openxlsx::addStyle(wb, sheet, st$table_end, rows = fila, cols = start_col:(start_col + 2), gridExpand = TRUE, stack = TRUE)
     fila <- fila + 1
@@ -1184,7 +1286,8 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
                               labels_override = NULL,
                               start_row = 1, start_col = 1,
                               fuente = "Pulso PUCP",
-                              orders_list = NULL) {
+                              orders_list = NULL,
+                              incluir_titulo = TRUE) {
 
   st <- mk_styles_spss()
   fila <- start_row
@@ -1197,14 +1300,16 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
     df = data
   )
 
-  openxlsx::writeData(wb, sheet, label_q, startRow = fila, startCol = start_col, colNames = FALSE)
-  openxlsx::mergeCells(wb, sheet, cols = start_col:(start_col + 1), rows = fila:fila)
-  openxlsx::addStyle(wb, sheet, st$q_title, rows = fila, cols = start_col, gridExpand = TRUE, stack = TRUE)
-  openxlsx::setRowHeights(
-    wb, sheet, rows = fila,
-    heights = .auto_row_height(label_q, chars_per_line = 70, base = 24, per_line = 16)
-  )
-  fila <- fila + 1
+  if (isTRUE(incluir_titulo)) {
+    openxlsx::writeData(wb, sheet, label_q, startRow = fila, startCol = start_col, colNames = FALSE)
+    openxlsx::mergeCells(wb, sheet, cols = start_col:(start_col + 1), rows = fila:fila)
+    openxlsx::addStyle(wb, sheet, st$q_title, rows = fila, cols = start_col, gridExpand = TRUE, stack = TRUE)
+    openxlsx::setRowHeights(
+      wb, sheet, rows = fila,
+      heights = .auto_row_height(label_q, chars_per_line = 70, base = 24, per_line = 16)
+    )
+    fila <- fila + 1
+  }
 
   header_vec <- c("Estadístico", "Valor")
   openxlsx::writeData(wb, sheet, t(header_vec), startRow = fila, startCol = start_col, colNames = FALSE)
@@ -1294,7 +1399,9 @@ exportar_frecuencias_spss <- function(
     survey = NULL,
     mostrar_todo = FALSE,
     codigos_solo_si_presentes = NULL,
-    numericas = NULL
+    numericas = NULL,
+    incluir_titulos = TRUE,
+    incluir_secciones = TRUE
 ){
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para `exportar_frecuencias_spss()`. ",
@@ -1307,6 +1414,7 @@ exportar_frecuencias_spss <- function(
   wb <- openxlsx::createWorkbook()
   sheet <- "Frecuencias"
   openxlsx::addWorksheet(wb, sheet)
+  .prepare_frecuencias_sheet(wb, sheet)
   st <- mk_styles_spss()
 
   fila <- 1L
@@ -1317,18 +1425,20 @@ exportar_frecuencias_spss <- function(
     vars_sec <- vars_sec[vapply(vars_sec, function(v) .has_var_or_dummies(data, v), logical(1))]
     if (!length(vars_sec)) next
 
-    openxlsx::writeData(wb, sheet, toupper(sec), startRow = fila, startCol = 1)
+    if (isTRUE(incluir_secciones)) {
+      openxlsx::writeData(wb, sheet, toupper(sec), startRow = fila, startCol = 1)
 
-    # Merge depende de si habrá tablas numéricas en la sección
-    ncols_sec <- if (any(vars_sec %in% numericas)) 2 else 3
-    openxlsx::mergeCells(wb, sheet, cols = 1:ncols_sec, rows = fila:fila)
+      # Merge depende de si habrá tablas numéricas en la sección
+      ncols_sec <- if (any(vars_sec %in% numericas)) 2 else 3
+      openxlsx::mergeCells(wb, sheet, cols = 1:ncols_sec, rows = fila:fila)
 
-    openxlsx::addStyle(wb, sheet, st$sec_title, rows = fila, cols = 1, gridExpand = TRUE, stack = TRUE)
-    openxlsx::setRowHeights(
-      wb, sheet, rows = fila,
-      heights = .auto_row_height(toupper(sec), chars_per_line = 70, base = 28, per_line = 18)
-    )
-    fila <- fila + 2
+      openxlsx::addStyle(wb, sheet, st$sec_title, rows = fila, cols = 1, gridExpand = TRUE, stack = TRUE)
+      openxlsx::setRowHeights(
+        wb, sheet, rows = fila,
+        heights = .auto_row_height(toupper(sec), chars_per_line = 70, base = 28, per_line = 18)
+      )
+      fila <- fila + 2
+    }
 
     for (v in vars_sec) {
 
@@ -1343,7 +1453,8 @@ exportar_frecuencias_spss <- function(
           start_row = fila,
           start_col = 1,
           fuente = fuente,
-          orders_list = orders_list
+          orders_list = orders_list,
+          incluir_titulo = incluir_titulos
         )
         next
       }
@@ -1383,7 +1494,8 @@ exportar_frecuencias_spss <- function(
         fuente = fuente,
         orders_list  = orders_list,
         mostrar_todo = mostrar_todo,
-        codigos_solo_si_presentes = codigos_solo_si_presentes
+        codigos_solo_si_presentes = codigos_solo_si_presentes,
+        incluir_titulo = incluir_titulos
       )
     }
 
@@ -1416,7 +1528,9 @@ reporte_frecuencias <- function(data,
                                 fuente      = "Pulso PUCP",
                                 mostrar_todo = FALSE,
                                 codigos_solo_si_presentes = NULL,
-                                numericas = NULL) {
+                                numericas = NULL,
+                                incluir_titulos = TRUE,
+                                incluir_secciones = TRUE) {
 
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para `reporte_frecuencias()`. ",
@@ -1503,7 +1617,9 @@ reporte_frecuencias <- function(data,
     survey          = survey,
     mostrar_todo    = mostrar_todo,
     codigos_solo_si_presentes = codigos_solo_si_presentes,
-    numericas       = numericas
+    numericas       = numericas,
+    incluir_titulos = incluir_titulos,
+    incluir_secciones = incluir_secciones
   )
 
   invisible(normalizePath(path_xlsx, winslash = "/"))

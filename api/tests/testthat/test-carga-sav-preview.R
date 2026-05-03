@@ -22,6 +22,141 @@ test_that("uploads SPSS con sufijo Finder .sav 2 se leen como .sav", {
   expect_equal(length(preview$preview_filas), 2L)
 })
 
+test_that("preview de .sav se alinea al contrato pN del XLSForm", {
+  skip_if_not_installed("haven")
+
+  tmp <- tempfile(fileext = ".sav")
+  on.exit(unlink(tmp), add = TRUE)
+  haven::write_sav(
+    data.frame(
+      respondent_id = c("r1", "r2"),
+      p0001 = c(10, 11),
+      q0001 = haven::labelled(c(1, 2), labels = c(Si = 1, No = 2)),
+      q0007_0001 = haven::labelled(c(1, NA), labels = c(A = 1)),
+      q0007_0002 = haven::labelled(c(NA, 1), labels = c(B = 1)),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    tmp
+  )
+  instrumento <- list(
+    survey = tibble::tibble(
+      type = c("select_one lst_p1", "select_multiple lst_p7"),
+      name = c("p1", "p7"),
+      list_name = c("lst_p1", "lst_p7"),
+      label = c("P1", "P7")
+    ),
+    choices = tibble::tibble(
+      list_name = c("lst_p1", "lst_p1", "lst_p7", "lst_p7"),
+      name = c("1", "2", "1", "2"),
+      label = c("Si", "No", "A", "B")
+    )
+  )
+
+  preview <- read_data_preview(tmp, "sav", n_preview = 2, instrumento = instrumento)
+
+  expect_true(preview$normalizacion$applied)
+  col_names <- vapply(preview$columnas, `[[`, character(1), "nombre")
+  expect_equal(col_names[1:2], c("p1", "p7"))
+  expect_equal(col_names[3:4], c("respondent_id", "p0001"))
+  expect_equal(vapply(preview$columnas[1:2], `[[`, character(1), "origen"), c("xlsform", "xlsform"))
+  expect_equal(vapply(preview$columnas[3:4], `[[`, character(1), "origen"), c("extra", "extra"))
+  expect_equal(preview$n_columnas, 4L)
+  expect_equal(preview$normalizacion$extra_columns, 2L)
+  expect_false(any(grepl("^q0007_", vapply(preview$columnas, `[[`, character(1), "nombre"))))
+})
+
+test_that("cache de codificacion lee .sav adaptado al XLSForm normalizado", {
+  skip_if_not_installed("haven")
+  skip_if_not_installed("openxlsx")
+
+  xlsx <- tempfile(fileext = ".xlsx")
+  sav <- tempfile(fileext = ".sav")
+  on.exit(unlink(c(xlsx, sav)), add = TRUE)
+
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "survey")
+  openxlsx::addWorksheet(wb, "choices")
+  openxlsx::writeData(wb, "survey", data.frame(
+    type = c("select_one lst_p1", "select_multiple lst_p7"),
+    name = c("p1", "p7"),
+    label = c("P1", "P7"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  ))
+  openxlsx::writeData(wb, "choices", data.frame(
+    list_name = c("lst_p1", "lst_p1", "lst_p7", "lst_p7"),
+    name = c("1", "2", "1", "2"),
+    label = c("Si", "No", "A", "B"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  ))
+  openxlsx::saveWorkbook(wb, xlsx, overwrite = TRUE)
+
+  haven::write_sav(
+    data.frame(
+      q0001 = c(1, 2),
+      q0007_0001 = haven::labelled(c(1, NA), labels = c(A = 1)),
+      q0007_0002 = haven::labelled(c(NA, 1), labels = c(B = 1)),
+      check.names = FALSE
+    ),
+    sav
+  )
+
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  xmeta <- save_upload(sid, "xlsform", "form.xlsx", readBin(xlsx, "raw", n = file.info(xlsx)$size))
+  dmeta <- save_upload(sid, "sav", "data.sav", readBin(sav, "raw", n = file.info(sav)$size))
+  inst <- reporte_instrumento(xmeta$path)
+  raw <- normalize_data_for_xlsform(haven::read_sav(dmeta$path), inst)
+  rp_data <- reporte_data(raw, inst)
+  estudio_add_base(
+    sid,
+    nombre = "default",
+    xlsform_file_id = xmeta$file_id,
+    data_file_id = dmeta$file_id,
+    data_ext = "sav",
+    rp_data = rp_data,
+    rp_inst = inst,
+    n_filas = nrow(rp_data),
+    n_columnas = ncol(rp_data)
+  )
+
+  data_cached <- codif_data_cached(sid, "default")
+
+  expect_true(all(c("p1", "p7") %in% names(data_cached)))
+  expect_false(any(grepl("^q[0-9]", names(data_cached))))
+  expect_equal(as.character(data_cached$p7), c("1", "2"))
+})
+
+test_that("explorador grafica select_multiple en columna madre y dummies", {
+  inst <- list(
+    survey = tibble::tibble(
+      type = "select_multiple lst_p19",
+      name = "p19",
+      list_name = "lst_p19",
+      label = "IA usada"
+    ),
+    choices = tibble::tibble(
+      list_name = c("lst_p19", "lst_p19"),
+      name = c("3", "4"),
+      label = c("Analítica avanzada", "Automatización")
+    )
+  )
+  data_madre <- data.frame(p19 = c("3 4", "3", NA, ""), check.names = FALSE)
+  data_dummies <- data.frame(`p19.3` = c(1, 1, NA, NA), `p19.4` = c(1, NA, NA, NA), check.names = FALSE)
+
+  tab_madre <- .explorar_tab_frec_sm(data_madre, "p19", inst)
+  tab_dummies <- .explorar_tab_frec_sm(data_dummies, "p19", inst)
+  view_madre <- build_view_univariado(data_madre, "p19", inst)
+
+  expect_equal(tab_madre$n[match(c("3", "4"), tab_madre$code)], c(2L, 1L))
+  expect_equal(tab_dummies$n[match(c("3", "4"), tab_dummies$code)], c(2L, 1L))
+  expect_true(isTRUE(view_madre$ok))
+  expect_null(view_madre$chart$meta$empty_hint)
+  expect_equal(view_madre$kpis[[2]]$meta$value, 2L)
+})
+
 test_that("explorador inventaria columnas haven_labelled sin choque de tipos", {
   data <- data.frame(
     q0001 = haven::labelled(c(1, 2, NA), labels = c(Si = 1, No = 2)),

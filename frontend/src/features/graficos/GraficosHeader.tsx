@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bug, Download, FileText, Palette, RotateCcw, Loader2, Undo2, Redo2, Sparkles, Settings2 } from "lucide-react";
+import { Download, FileText, RotateCcw, Loader2, Undo2, Redo2, Sparkles, Settings2, PanelTopDashed } from "lucide-react";
 import {
   apiGraficosConfigExport,
   apiGraficosConfigImport,
@@ -225,9 +225,9 @@ export function GraficosHeader({
   );
 }
 
-// Toggle global del debug de placeholders. Cuando está activo, todos
+// Toggle global de bordes de referencia. Cuando está activo, todos
 // los graficadores renderizan bordes de color sobre los placeholders
-// internos del layout — útil para diseñar y ajustar canvas en Pulso.
+// internos del layout — útil para diseñar y ajustar canvas en Prosecnur.
 // El backend inyecta `debug_ph_bordes / debug_ph_col / debug_ph_lwd`
 // al preset `base` automáticamente. Popover con color y grosor.
 function DebugPhToggle() {
@@ -252,7 +252,7 @@ function DebugPhToggle() {
       <button
         type="button"
         onClick={() => setDebugPh({ activo: !active })}
-        title={active ? "Desactivar bordes de debug" : "Activar bordes de debug"}
+        title={active ? "Ocultar bordes" : "Mostrar bordes"}
         style={{
           fontSize: 11, padding: "5px 10px",
           display: "inline-flex", alignItems: "center", gap: 5,
@@ -265,8 +265,8 @@ function DebugPhToggle() {
           transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
         }}
       >
-        <Bug size={12} />
-        Debug bordes
+        <PanelTopDashed size={12} />
+        Mostrar bordes
         {active && (
           <span
             style={{
@@ -281,8 +281,8 @@ function DebugPhToggle() {
         type="button"
         onClick={() => setPopoverOpen((v) => !v)}
         className="pulso-icon"
-        aria-label="Opciones de debug"
-        title="Color / grosor del debug"
+        aria-label="Opciones de bordes"
+        title="Color y grosor de los bordes"
         style={{ minWidth: 22, minHeight: 22 }}
       >
         <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden="true">
@@ -304,8 +304,8 @@ function DebugPhToggle() {
           }}
         >
           <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
-            Marca los bordes de los placeholders internos del layout para
-            diseñar y ajustar canvas. Se aplica a <strong>todos los gráficos</strong>.
+            Muestra bordes de referencia en los bloques internos del gráfico.
+            Se aplica a <strong>todos los gráficos</strong>.
           </div>
 
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
@@ -333,7 +333,7 @@ function DebugPhToggle() {
           </label>
 
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-            <span style={{ flex: 1, fontWeight: 600 }}>Grosor (lwd)</span>
+            <span style={{ flex: 1, fontWeight: 600 }}>Grosor</span>
             <input
               type="number"
               min={0.1} max={3} step={0.1}

@@ -12,7 +12,7 @@ import {
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { usePresetsDefaults, presetArgsEqual } from "./usePresetsDefaults";
 import { useOverridesDefaults } from "./useOverridesDefaults";
-import { ArgGroup, GRUPO_META } from "./ArgGroup";
+import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { LoadingBlock, EmptyState } from "../../components/States";
 
 // Modal "Gestionar defaults". Dos modos según cómo se abrió:
@@ -298,17 +298,15 @@ function PresetArgsEditor({
   onChangeArg: (name: string, value: unknown) => void;
 }) {
   const grupos = useMemo(() => {
-    const byGrupo: Record<ArgGrupo, ArgMetadata[]> = {
-      datos: [], textos: [], estilo: [], filtro: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
-    };
+    const byGrupo: Partial<Record<ArgGrupo, ArgMetadata[]>> = {};
     for (const a of meta.args) {
-      const g: ArgGrupo = (a.grupo as ArgGrupo) ?? "avanzado";
-      (byGrupo[g] ?? byGrupo.avanzado).push(a);
+      const g = normalizeArgGroup(a.grupo as ArgGrupo);
+      (byGrupo[g] ??= []).push(a);
     }
-    return (Object.keys(byGrupo) as ArgGrupo[])
-      .filter((g) => byGrupo[g].length > 0)
+    return ARG_GROUP_ORDER
+      .filter((g) => byGrupo[g] && byGrupo[g]!.length > 0)
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
-      .map((g) => ({ grupo: g, args: byGrupo[g] }));
+      .map((g) => ({ grupo: g, args: byGrupo[g]! }));
   }, [meta]);
 
   return (
@@ -649,4 +647,3 @@ function OverrideEditForm({
     </div>
   );
 }
-

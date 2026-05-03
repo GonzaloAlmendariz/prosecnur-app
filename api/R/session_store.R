@@ -521,7 +521,7 @@ estudio_inst_sources <- function(sid) {
 # La fuente "activa" se usa por default cuando un endpoint no especifica
 # source. Si el estudio cambia (reset, nuevo demo), se limpia.
 #
-# Los dataframes crudos (`codif_data`) y el instrumento (`codif_inst`) NO se
+# Los dataframes adaptados al XLSForm (`codif_data`) y el instrumento (`codif_inst`) NO se
 # guardan bajo codif_por_base — se leen on-demand de estudio_data_sources()
 # y estudio_inst_sources(). Así evitamos duplicar memoria y siempre leemos
 # los datos frescos de la base activa.
@@ -577,7 +577,7 @@ codif_set <- function(sid, key, value, source = NULL) {
   if (is.null(s$codif_por_base)) s$codif_por_base <- list()
   if (is.null(s$codif_por_base[[src]])) s$codif_por_base[[src]] <- list()
   s$codif_por_base[[src]][[key]] <- value
-  # "inst" y "data" son caches del XLSForm parseado y del dataframe crudo
+  # "inst" y "data" son caches del XLSForm parseado y del dataframe adaptado
   # — se rederivan al abrir un .pulso desde el file_id, así que no son
   # cambios "user-visibles" que ameriten marcar dirty.
   if (!(key %in% c("inst", "data"))) {
@@ -589,9 +589,10 @@ codif_set <- function(sid, key, value, source = NULL) {
 
 # IMPORTANTE: codificación NO usa `rp_data` / `rp_inst` (que son el
 # output de reporte_data / reporte_instrumento, pensados para graficadores
-# y reportes estadísticos). Usa la data CRUDA y el XLSForm parseado con
-# leer_instrumento_xlsform(). Los siguientes helpers exponen esos datos
-# por base, cacheando on-demand en `codif_por_base[[src]]$inst` / $data`.
+# y reportes estadísticos). Usa la data de respuestas adaptada al XLSForm
+# y el XLSForm parseado con leer_instrumento_xlsform(). Los siguientes
+# helpers exponen esos datos por base, cacheando on-demand en
+# `codif_por_base[[src]]$inst` / $data`.
 
 codif_xlsform_path <- function(sid, source = NULL) {
   s <- session_get(sid)
@@ -627,8 +628,7 @@ codif_inst_cached <- function(sid, source = NULL) {
   inst
 }
 
-# Dataframe crudo de la base activa (leído con .read_data_any del
-# router_codificacion.R, que recibe un file-meta list).
+# Dataframe de la base activa, adaptado al contrato del XLSForm.
 codif_data_cached <- function(sid, source = NULL) {
   src <- if (is.null(source)) codif_source_active(sid) else source
   cached <- codif_get(sid, "data", source = src)
@@ -639,6 +639,8 @@ codif_data_cached <- function(sid, source = NULL) {
              sprintf("La base '%s' no tiene data cargada.", src))
   }
   df <- .read_data_any(meta)
+  inst <- codif_inst_cached(sid, src)
+  df <- normalize_data_for_xlsform(df, inst)
   codif_set(sid, "data", df, source = src)
   df
 }

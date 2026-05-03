@@ -1257,7 +1257,9 @@ compile_rule <- function(rule) {
 
 .human_label_for_var <- function(var, label_map = NULL) {
   if (is.null(var) || is.na(var) || !nzchar(var)) return("esta variable")
-  lab <- if (!is.null(label_map) && length(label_map)) as.character(label_map[[var]] %||% "") else ""
+  lab <- if (!is.null(label_map) && length(label_map) && var %in% names(label_map)) {
+    as.character(label_map[[var]] %||% "")
+  } else ""
   if (length(lab) && !is.na(lab[1]) && nzchar(lab[1])) {
     return(sprintf("«%s»", lab[1]))
   }

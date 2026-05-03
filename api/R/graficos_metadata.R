@@ -26,6 +26,8 @@
 # "bool"             → switch
 # "choice"           → radio pills / select con enum
 # "codigos_list"     → lista editable de códigos (ej. sm_omit_codes)
+# "series_colors"    → pares serie → color con filas editables
+# "criteria_config"  → criterios/conductores con selector de variables
 # "icono"            → dropdown del catálogo de iconos subidos en sesión
 # "overrides"        → editor especial de overrides (delta vs preset tipo)
 # "filtros"          → editor de filtros por variable (avanzado)
@@ -34,12 +36,17 @@
 
 # ---- Grupos semánticos ----------------------------------------------------
 #
-# "datos"      → qué variable, qué cruce, qué modo
-# "textos"     → titulo, subtitulo, texto, pie, etiqueta, base
-# "estilo"     → overrides del preset tipo (colores, tamaños, canvas)
-# "filtro"     → filtros, top2box, decimales, métrica, umbrales
-# "semaforo"   → cortes_chip, modo_semaforo, chip_colores
-# "avanzado"   → todo lo demás
+# "datos"        → qué variable, qué cruce, qué modo
+# "lectura"      → títulos, etiquetas, textos y legibilidad
+# "valores"      → porcentajes, decimales, top/bottom box, valores en barras
+# "leyenda"      → posición, tamaño y distribución de la leyenda
+# "espacio"      → distribución interna del gráfico y canvas
+# "tabla"        → tabla derecha / tabla de apoyo
+# "diagnostico"  → debug visual y controles de inspección
+#
+# Los grupos legacy ("textos", "estilo", "filtro", "semaforo", "canvas",
+# "avanzado") siguen aceptándose para compatibilidad, pero el payload que
+# consume el frontend los normaliza a los grupos de intención anteriores.
 
 # ===========================================================================
 # Helpers para args compartidos (deben definirse antes de .SLIDES_META porque
@@ -395,8 +402,8 @@
   ),
 
   p_barras_multiapiladas = list(
-    titulo_humano = "Multi-apiladas (batería)",
-    descripcion   = "Varias barras apiladas en un solo gráfico. Perfecto para baterías de preguntas con la misma escala de respuesta.",
+    titulo_humano = "Multi-apiladas",
+    descripcion   = "Varias barras apiladas en un solo gráfico. Perfecto para comparar preguntas con la misma escala de respuesta.",
     icono_ui      = "Rows3",
     args = c(list(
       list(name = "modo", label = "Modo", tipo_input = "choice", grupo = "datos",
@@ -664,8 +671,8 @@
     icono_ui      = "LayoutGrid",
     requisito     = "dimensiones",
     args = c(list(
-      list(name = "config_criterios", label = "Criterios", tipo_input = "textarea", grupo = "datos",
-           descripcion = "JSON o lista con la definición de criterios a usar. Avanzado.")
+      list(name = "config_criterios", label = "Criterios", tipo_input = "criteria_config", grupo = "datos",
+           descripcion = "Agrupa variables en criterios para construir el heatmap.")
     ), .args_graf_comunes())
   )
 )
@@ -683,8 +690,7 @@
 #
 # Este catálogo cura los args MÁS útiles para estilo global: tipografía,
 # tamaños, canvas heights, leyendas. Args técnicos muy específicos de un
-# gráfico puntual quedan fuera (se editan vía override por slot o, como
-# último recurso, JSON avanzado). El objetivo es que el analista tenga un
+# gráfico puntual quedan fuera de la UI principal. El objetivo es que el analista tenga un
 # control real de estilo global en <10 campos por tipo, no 40.
 #
 # `grupo_hereda` indica si el arg viene también por herencia desde `base`
@@ -754,13 +760,13 @@
       )),
 
       # --- Debug de placeholders -----------------------------------------
-      list(name = "debug_ph_bordes",   label = "Mostrar bordes de debug", tipo_input = "bool",   grupo = "avanzado",
+      list(name = "debug_ph_bordes",   label = "Mostrar bordes", tipo_input = "bool",   grupo = "avanzado",
            default = FALSE,
-           descripcion = "Dibuja bordes de colores alrededor de cada placeholder interno del canvas. Sirve para diagnosticar el layout. Controlable con el toggle global del header."),
-      list(name = "debug_ph_col",      label = "Color de los bordes debug", tipo_input = "string", grupo = "avanzado",
+           descripcion = "Muestra bordes de referencia alrededor de cada bloque interno del gráfico. Controlable con el botón global del encabezado."),
+      list(name = "debug_ph_col",      label = "Color de los bordes", tipo_input = "string", grupo = "avanzado",
            default = "#FF00FF",
-           descripcion = "Hex del color de los bordes de debug. Magenta (#FF00FF) es el default porque no suele aparecer en gráficos reales."),
-      list(name = "debug_ph_lwd",      label = "Grosor de los bordes debug", tipo_input = "number", grupo = "avanzado",
+           descripcion = "Hex del color de los bordes de referencia. Magenta (#FF00FF) es el default porque no suele aparecer en gráficos reales."),
+      list(name = "debug_ph_lwd",      label = "Grosor de los bordes", tipo_input = "number", grupo = "avanzado",
            default = 0.6)
     )
   ),
@@ -893,11 +899,11 @@
   ),
 
   # =========================================================================
-  # MULTI-APILADAS (batería de preguntas con misma escala)
+  # MULTI-APILADAS (conjunto de preguntas con misma escala)
   # =========================================================================
   multi_apiladas = list(
-    titulo_humano = "Multi-apiladas (batería)",
-    descripcion   = "Varias barras apiladas en un solo gráfico (baterías de preguntas con misma escala). Hereda muchos args de 'Barras apiladas' por similitud visual.",
+    titulo_humano = "Multi-apiladas",
+    descripcion   = "Varias barras apiladas en un solo gráfico (preguntas con misma escala). Hereda muchos args de 'Barras apiladas' por similitud visual.",
     icono_ui      = "Rows3",
     args = list(
 
@@ -932,6 +938,7 @@
              list(value = "abajo",  label = "Abajo"),
              list(value = "arriba", label = "Arriba"),
              list(value = "derecha",label = "Derecha"),
+             list(value = "izquierda",label = "Izquierda"),
              list(value = "ninguna",label = "Ocultar")
            )),
       list(name = "legend_key_cm",        label = "Tamaño icono leyenda",  tipo_input = "number", grupo = "estilo"),
@@ -969,10 +976,11 @@
              list(value = "abajo",  label = "Abajo"),
              list(value = "arriba", label = "Arriba"),
              list(value = "derecha",label = "Derecha"),
+             list(value = "izquierda",label = "Izquierda"),
              list(value = "ninguna",label = "Ocultar")
            )),
-      list(name = "colores_series",       label = "Colores por serie",     tipo_input = "textarea", grupo = "estilo",
-           descripcion = "Mapeo serie → color hex, una línea por serie. Ej:\n  Porcentaje = #39588B\n  Media = #0B3A67\n  (O como JSON: {\"Porcentaje\":\"#39588B\"}.)"),
+      list(name = "colores_series",       label = "Colores por serie",     tipo_input = "series_colors", grupo = "estilo",
+           descripcion = "Asigna un color a cada serie que aparece en la leyenda."),
       list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo"),
       list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo"),
 
@@ -1052,13 +1060,15 @@
            descripcion = "Si los valores están dentro de las barras, normalmente el eje Y sobra."),
 
       # --- Serie ---------------------------------------------------------
-      list(name = "colores_series",       label = "Colores por serie",     tipo_input = "textarea", grupo = "estilo",
-           descripcion = "Mapeo serie → color. Ej:\n  Media = #0B3A67\n  Mediana = #39588B"),
+      list(name = "colores_series",       label = "Colores por serie",     tipo_input = "series_colors", grupo = "estilo",
+           descripcion = "Asigna un color a cada serie que aparece en la leyenda."),
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo"),
       list(name = "leyenda_posicion",     label = "Posición leyenda",      tipo_input = "choice", grupo = "estilo",
            choices = list(
              list(value = "abajo",   label = "Abajo"),
              list(value = "arriba",  label = "Arriba"),
+             list(value = "derecha", label = "Derecha"),
+             list(value = "izquierda", label = "Izquierda"),
              list(value = "ninguna", label = "Ocultar")
            )),
 
@@ -1818,6 +1828,235 @@
   )
 )
 
+# ---- Normalización UI de args de graficadores -----------------------------
+#
+# La metadata histórica expone muchos nombres cercanos al motor R
+# (canvas_w_*, wrap_y, etc.). Antes de enviarla al frontend, compactamos esa
+# superficie en grupos y ayudas pensadas para quien está armando el PPT.
+
+.graf_arg_ui_group <- function(arg_name, grupo = NULL) {
+  nm <- as.character(arg_name %||% "")
+  gp <- as.character(grupo %||% "")
+
+  if (nm %in% c("debug_ph_bordes", "debug_ph_col", "debug_ph_lwd", "debug_lw", "exportar")) {
+    return("diagnostico")
+  }
+  if (grepl("^(canvas_|tabla_ph_|alto_por_categoria$|ancho_max_eje_y$|wrap_y$|wrap_ejes$|eje_label_mult$)", nm)) {
+    return("espacio")
+  }
+  if (grepl("^(tabla_|mostrar_tabla_derecha$|titulo_tabla$|umbral_rojo_pct$)", nm)) {
+    return("tabla")
+  }
+  if (grepl("^(leyenda_|legend_|mostrar_leyenda$|invertir_leyenda$|size_leyenda$|color_leyenda$|tamano_key_cm$|espaciado_vertical_cm$|ncol_leyenda_bajo$)", nm)) {
+    return("leyenda")
+  }
+  if (grepl("^(mostrar_valores$|mostrar_etiquetas_pct$|size_etiquetas_pct$|color_etiquetas_pct$|etiquetas_negrita$|decimales|umbral_|repeler_|desplazamiento_|top[23]box|bottom2box|barra_extra|mostrar_barra_extra|color_texto_barras|size_texto_barras|mostrar_n_sobre_barras|prefijo_n_sobre_barras|size_n_sobre_barras|color_n_sobre_barras|cortes_|modo_semaforo|mostrar_eje_y$)", nm)) {
+    return("valores")
+  }
+  if (grepl("^(titulo$|subtitulo$|nota_pie$|prefijo_|pos_|size_titulo$|size_subtitulo$|size_nota_pie$|color_titulo$|color_subtitulo$|color_nota_pie$|font_family|formato$|sufijo_auto$|textos_negrita$|angle_x$)", nm)) {
+    return("lectura")
+  }
+
+  switch(
+    gp,
+    textos = "lectura",
+    estilo = "valores",
+    filtro = "valores",
+    semaforo = "valores",
+    canvas = "espacio",
+    avanzado = "diagnostico",
+    if (nzchar(gp)) gp else "diagnostico"
+  )
+}
+
+.graf_arg_ui_patch <- function(arg) {
+  nm <- as.character(arg$name %||% "")
+
+  patch <- switch(
+    nm,
+    ancho_max_eje_y = list(
+      label = "Ancho de texto de etiquetas",
+      descripcion = "Cuántos caracteres se permiten por línea en las etiquetas. Sube este valor si el texto queda demasiado partido.",
+      unidad = "caracteres",
+      min = 10,
+      max = 80,
+      step = 1,
+      control = "stepper",
+      relacionados = c("canvas_w_etiquetas"),
+      efecto = "Cambia los saltos de línea de las etiquetas."
+    ),
+    wrap_y = list(
+      label = "Ancho de texto de etiquetas",
+      descripcion = "Cuántos caracteres se permiten por línea en las etiquetas. Es el mismo ajuste que usa el eje Y.",
+      unidad = "caracteres",
+      min = 10,
+      max = 80,
+      step = 1,
+      control = "stepper",
+      relacionados = c("canvas_w_etiquetas"),
+      efecto = "Cambia los saltos de línea de las etiquetas."
+    ),
+    canvas_w_etiquetas = list(
+      label = "Espacio para etiquetas",
+      descripcion = "Reserva más ancho a la izquierda para que las etiquetas respiren. Para que el texto use ese espacio, ajusta también el ancho de texto.",
+      unidad = "proporción",
+      min = 0,
+      max = 0.55,
+      step = 0.01,
+      control = "slider",
+      relacionados = c("ancho_max_eje_y", "wrap_y"),
+      efecto = "Mueve el inicio de las barras hacia la derecha o izquierda."
+    ),
+    canvas_w_bars = list(
+      label = "Espacio para barras",
+      descripcion = "Ancho relativo reservado al área principal de barras.",
+      unidad = "proporción",
+      min = 0.2,
+      max = 0.9,
+      step = 0.01,
+      control = "slider"
+    ),
+    canvas_w_extra = list(
+      label = "Espacio para columna derecha",
+      descripcion = "Reserva ancho para N, Top Two Box u otra columna de apoyo a la derecha.",
+      unidad = "proporción",
+      min = 0,
+      max = 0.35,
+      step = 0.01,
+      control = "slider"
+    ),
+    canvas_w_buf_etq_bars = list(
+      label = "Separación etiquetas-barras",
+      unidad = "proporción",
+      min = 0,
+      max = 0.12,
+      step = 0.005,
+      control = "slider"
+    ),
+    canvas_w_buf_bars_extra = list(
+      label = "Separación barras-columna derecha",
+      unidad = "proporción",
+      min = 0,
+      max = 0.12,
+      step = 0.005,
+      control = "slider"
+    ),
+    alto_por_categoria = list(
+      label = "Alto por fila",
+      descripcion = "Aumenta el alto disponible para cada categoría. Útil cuando hay etiquetas largas o muchas barras.",
+      unidad = "pulgadas",
+      min = 0.2,
+      max = 1.2,
+      step = 0.02,
+      control = "stepper"
+    ),
+    leyenda_posicion = list(
+      label = "Ubicación de la leyenda",
+      descripcion = "Dónde se coloca la leyenda en el gráfico exportado.",
+      efecto = "Cambia la posición real de la leyenda en el PPT."
+    ),
+    legend_n_por_fila = list(
+      label = "Elementos por fila",
+      descripcion = "Cuántas categorías se muestran por fila en la leyenda.",
+      min = 1,
+      max = 10,
+      step = 1,
+      control = "stepper"
+    ),
+    legend_key_cm = list(
+      label = "Tamaño del marcador",
+      unidad = "cm",
+      min = 0.15,
+      max = 1,
+      step = 0.05,
+      control = "stepper"
+    ),
+    legend_espaciado = list(
+      label = "Separación en leyenda",
+      descripcion = "Espacio entre los elementos de la leyenda.",
+      min = 0,
+      max = 40,
+      step = 1,
+      control = "stepper"
+    ),
+    canvas_h_header_in = list(
+      label = "Alto del encabezado",
+      unidad = "pulgadas",
+      min = 0,
+      max = 1.5,
+      step = 0.02,
+      control = "stepper"
+    ),
+    canvas_h_legend_in = list(
+      label = "Alto de leyenda",
+      unidad = "pulgadas",
+      min = 0,
+      max = 1.2,
+      step = 0.02,
+      control = "stepper"
+    ),
+    canvas_h_caption_in = list(
+      label = "Alto del pie",
+      unidad = "pulgadas",
+      min = 0,
+      max = 1,
+      step = 0.02,
+      control = "stepper"
+    ),
+    canvas_h_toprow_in = list(
+      label = "Alto de fila superior",
+      unidad = "pulgadas",
+      min = 0,
+      max = 0.8,
+      step = 0.02,
+      control = "stepper"
+    ),
+    debug_ph_bordes = list(
+      label = "Mostrar bordes",
+      descripcion = "Muestra bordes de referencia para revisar cómo se reparte el espacio interno."
+    ),
+    list()
+  )
+
+  if (grepl("^umbral_", nm) && !grepl("_pct$", nm)) {
+    patch <- utils::modifyList(list(
+      unidad = "%",
+      min = 0,
+      max = 1,
+      step = 0.0001,
+      control = "stepper",
+      descripcion = "Porcentaje minimo de la barra para mostrar o mover la etiqueta. Puedes escribir 0.05 para 0.05%.",
+      efecto = "Define desde que tamano se muestra o cambia de posicion la etiqueta."
+    ), patch)
+  }
+
+  utils::modifyList(arg, patch)
+}
+
+.normalize_args_for_ui <- function(args) {
+  if (is.null(args) || !length(args)) return(list())
+  arg_names <- vapply(args, function(a) as.character(a$name %||% ""), character(1))
+  has_label_width <- "ancho_max_eje_y" %in% arg_names
+
+  out <- list()
+  for (arg in args) {
+    nm <- as.character(arg$name %||% "")
+    if (!nzchar(nm)) next
+    # El export lo fuerza el backend; exponerlo en la UI principal confunde.
+    if (identical(nm, "exportar")) next
+    # Overrides, filtros y base tecnica ya tienen superficies dedicadas
+    # (modos, panel de filtros, base automatica); como edición cruda ensucian
+    # la UI principal del graficador.
+    if (as.character(arg$tipo_input %||% "") %in% c("overrides", "filtros", "base_config", "meta")) next
+    # Evita duplicar el mismo concepto cuando existe el nombre canónico.
+    if (identical(nm, "wrap_y") && isTRUE(has_label_width)) next
+
+    arg$grupo <- .graf_arg_ui_group(nm, arg$grupo %||% NULL)
+    out[[length(out) + 1L]] <- .graf_arg_ui_patch(arg)
+  }
+  out
+}
+
 # Serializa el catálogo de presets para el endpoint /presets-metadata.
 .presets_metadata_payload <- function() {
   presets <- lapply(names(.PRESETS_META), function(nm) {
@@ -1827,7 +2066,7 @@
       titulo_humano = as.character(meta$titulo_humano %||% nm),
       descripcion   = as.character(meta$descripcion %||% ""),
       icono_ui      = as.character(meta$icono_ui %||% "Sliders"),
-      args          = meta$args %||% list()
+      args          = .normalize_args_for_ui(meta$args %||% list())
     )
   })
   list(presets = presets)
@@ -2088,7 +2327,7 @@
       icono_ui      = as.character(meta$icono_ui %||% "FileText"),
       categoria     = as.character(meta$categoria %||% "otro"),
       slots         = as.list(meta$slots %||% character(0)),
-      args          = meta$args %||% list(),
+      args          = .normalize_args_for_ui(meta$args %||% list()),
       args_extra    = as.list(args_extra)
     )
   })
@@ -2104,7 +2343,7 @@
       descripcion   = as.character(meta$descripcion %||% ""),
       icono_ui      = as.character(meta$icono_ui %||% "BarChart"),
       requisito     = as.character(meta$requisito %||% ""),
-      args          = meta$args %||% list(),
+      args          = .normalize_args_for_ui(meta$args %||% list()),
       args_extra    = as.list(args_extra)
     )
   })

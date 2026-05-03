@@ -545,21 +545,73 @@ mount_graficos <- function(pr) {
       inst_sources <- estudio_inst_sources(sid)
       skip <- c("begin_group","end_group","begin_repeat","end_repeat",
                 "start","end","today","deviceid","note","calculate")
+      .choices_label_col <- function(choices_tbl) {
+        if (is.null(choices_tbl) || !is.data.frame(choices_tbl)) return(NA_character_)
+        candidates <- c("label", "label::es")
+        hit <- candidates[candidates %in% names(choices_tbl)][1]
+        if (!length(hit) || is.na(hit)) {
+          extras <- setdiff(names(choices_tbl), c("list_name", "name", "value"))
+          hit <- extras[1]
+        }
+        if (!length(hit) || is.na(hit)) NA_character_ else hit
+      }
+      .list_name_for_row <- function(survey, i) {
+        for (col in c("list_name", "list_norm")) {
+          if (col %in% names(survey)) {
+            x <- as.character(survey[[col]][i] %||% "")
+            if (nzchar(x)) return(x)
+          }
+        }
+        tp <- as.character(survey$type[i] %||% "")
+        parts <- strsplit(tp, "\\s+")[[1]]
+        if (length(parts) >= 2L && parts[1] %in% c("select_one", "select_multiple")) {
+          return(parts[2])
+        }
+        ""
+      }
+      .choices_for_list <- function(choices, list_name) {
+        if (is.null(choices) || !is.data.frame(choices) || !nzchar(list_name) ||
+            !"list_name" %in% names(choices) || !"name" %in% names(choices)) {
+          return(list(items = list(), signature = ""))
+        }
+        rows <- choices[as.character(choices$list_name) == list_name, , drop = FALSE]
+        if (!nrow(rows)) return(list(items = list(), signature = ""))
+        lab_col <- .choices_label_col(rows)
+        items <- lapply(seq_len(nrow(rows)), function(j) {
+          nm <- as.character(rows$name[j] %||% "")
+          lab <- if (!is.na(lab_col) && lab_col %in% names(rows)) {
+            as.character(rows[[lab_col]][j] %||% nm)
+          } else {
+            nm
+          }
+          list(name = nm, label = lab)
+        })
+        signature <- paste(vapply(items, function(it) {
+          paste0(as.character(it$name %||% ""), "=", as.character(it$label %||% ""))
+        }, character(1)), collapse = "|")
+        list(items = items, signature = signature)
+      }
       extract_vars <- function(rp_inst) {
         if (is.null(rp_inst)) return(list())
         survey <- rp_inst$survey
         if (is.null(survey)) return(list())
+        choices <- rp_inst$choices %||% rp_inst$choices_raw %||% NULL
         vs <- list()
         for (i in seq_len(nrow(survey))) {
           tb <- as.character(survey$type_base[i] %||% survey$type[i] %||% "")
           if (tb %in% skip) next
           nm <- as.character(survey$name[i] %||% "")
           if (!nzchar(nm)) next
+          list_name <- .list_name_for_row(survey, i)
+          choice_meta <- .choices_for_list(choices, list_name)
           vs[[length(vs) + 1]] <- list(
             name = nm,
             label = as.character(survey$label[i] %||% nm),
             tipo = tb,
-            seccion = as.character(survey$group_name[i] %||% "")
+            seccion = as.character(survey$group_name[i] %||% ""),
+            list_name = list_name,
+            choices = choice_meta$items,
+            scale_signature = choice_meta$signature
           )
         }
         vs

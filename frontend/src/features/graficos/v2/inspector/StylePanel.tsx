@@ -70,7 +70,7 @@ export function StylePanel({ slide, args }: StylePanelProps) {
   const hasSlots = slotNames.length > 0;
 
   return (
-    <div style={{ maxWidth: 760 }}>
+    <div className="pulso-gv2-style-panel">
       {/* Banner: leyenda visual de estados (más concisa). */}
       {presetInfo.presetTypes.length > 0 ? (
         <div className="pulso-gv2-style-banner">
@@ -80,11 +80,18 @@ export function StylePanel({ slide, args }: StylePanelProps) {
               Estilo del gráfico
             </div>
             <div className="pulso-gv2-style-banner-hint">
-              <span className="pulso-gv2-state-chip is-inherited">●</span> valor por defecto ·
-              {" "}<span className="pulso-gv2-state-chip is-mode">●</span> viene de un modo guardado ·
-              {" "}<span className="pulso-gv2-state-chip is-custom">●</span> tu cambio.
-              <br />
-              Modifica cualquier valor, o usa el botón <strong>"Modo"</strong> arriba de cada gráfico para aplicar un estilo guardado o guardar tus cambios como uno nuevo.
+              Ajusta cómo Prosecnur dibuja cada gráfico en el PPT. Los cambios se guardan sobre el modo aplicado.
+              <span className="pulso-gv2-style-legend" aria-label="Estados de los valores">
+                <span className="pulso-gv2-style-legend-item">
+                  <span className="pulso-gv2-state-chip is-inherited">●</span> valor por defecto
+                </span>
+                <span className="pulso-gv2-style-legend-item">
+                  <span className="pulso-gv2-state-chip is-mode">●</span> modo guardado
+                </span>
+                <span className="pulso-gv2-style-legend-item">
+                  <span className="pulso-gv2-state-chip is-custom">●</span> tu cambio
+                </span>
+              </span>
             </div>
           </div>
         </div>
@@ -156,7 +163,7 @@ export function StylePanel({ slide, args }: StylePanelProps) {
             </span>
           </div>
           <div className="pulso-gv2-style-section-hint" style={{ marginBottom: 12 }}>
-            Ajusta colores, fuentes y dimensiones. Usa la varita ▿ para cambiar a otro modo o crear uno nuevo.
+            Ajusta lectura, espacio, leyenda y valores del gráfico. Usa <strong>Modo</strong> para aplicar o guardar un estilo reutilizable.
           </div>
           {slotNames.map((slotName) => (
             <GraficadorSlot

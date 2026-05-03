@@ -142,6 +142,7 @@ export type SessionState = {
   analitica_enumeradores_ok: boolean;
   analitica_dim_ok: boolean;
   analitica_fuente: string | null;
+  hojas_ruta_ok: boolean;
   graficos_ppt_ok: boolean;
   graficos_word_ok: boolean;
   // --- Estudio (multi-base, v0.2+) ---
@@ -361,11 +362,47 @@ export type XlsformEditorSheet = {
   rows: string[][];
 };
 
+export type SurveyMonkeyVisualLogicAction =
+  | { kind: "none" }
+  | { kind: "page_top"; pageId: string; pageLabel: string }
+  | { kind: "question"; pageId: string; pageLabel: string; targetRef: string; targetLabel: string }
+  | { kind: "end" };
+
+export type SurveyMonkeyVisualLogicRule = {
+  id: string;
+  variableRef: string;
+  variableLabel: string;
+  choices: Array<{
+    choiceName: string;
+    choiceLabel: string;
+    choiceIndex: number;
+    action: SurveyMonkeyVisualLogicAction;
+  }>;
+};
+
+export type SurveyMonkeyLogicState = {
+  rules?: Array<{
+    id: string;
+    texto: string;
+    texto_humano: string;
+    kobo_expr?: string;
+  }>;
+  advanced_rules: Array<{
+    id: string;
+    texto: string;
+    texto_humano: string;
+    kobo_expr?: string;
+  }>;
+  visual_rules: SurveyMonkeyVisualLogicRule[];
+  choice_order_overrides: Record<string, string[]>;
+};
+
 export type XlsformEditorWorkbook = {
   survey: XlsformEditorSheet;
   choices: XlsformEditorSheet;
   settings: XlsformEditorSheet;
   diagnostico?: XlsformEditorSheet | null;
+  surveyMonkeyLogic?: SurveyMonkeyLogicState | null;
 };
 
 export type XlsformEditorPayload = {
@@ -463,6 +500,7 @@ function normalizeEditorPayload(value: unknown): XlsformEditorPayload {
       choices: normalizeSheet(workbookRaw.choices, "choices"),
       settings: normalizeSheet(workbookRaw.settings, "settings"),
       diagnostico: workbookRaw.diagnostico ? normalizeSheet(workbookRaw.diagnostico, "diagnostico") : null,
+      surveyMonkeyLogic: normalizeSurveyMonkeyLogicState(workbookRaw.surveyMonkeyLogic ?? workbookRaw.survey_monkey_logic),
     },
     summary: {
       survey_rows: Number(summaryRaw.survey_rows ?? 0),
@@ -682,6 +720,12 @@ export type SurveyMonkeyApiInfo = {
       family: string | null;
       subtype: string | null;
       choices: SurveyMonkeyChoice[];
+      children: Array<{
+        name: string;
+        heading: string | null;
+        type: string | null;
+        list_name: string | null;
+      }>;
     }>;
   }>;
   summary: {
@@ -728,6 +772,12 @@ export async function apiXlsformEditorSmFetchSurveyInfo(
         choices: normalizeRecordArray(q.choices).map((c) => ({
           code: String(c.code ?? ""),
           label: String(c.label ?? ""),
+        })),
+        children: normalizeRecordArray(q.children).map((c) => ({
+          name: String(c.name ?? ""),
+          heading: c.heading == null || c.heading === "NA" ? null : String(c.heading),
+          type: c.type == null || c.type === "NA" ? null : String(c.type),
+          list_name: c.list_name == null || c.list_name === "NA" ? null : String(c.list_name),
         })),
       }));
       const questions = normalizeStringArray(p.questions);
@@ -825,20 +875,23 @@ export type RuleInterpretation =
   | {
       ok: true;
       regla_parseada: {
-        when_var: string;
-        when_op: "eq" | "ne" | "in" | "not_in";
-        when_codes: string[];
-        n_actions: number;
-      };
-      resolucion: {
-        when_var_label: string;
-        when_var_xlsform: string;
-        when_codes_resueltos: { code: string; label: string }[];
-        targets_resueltos: Array<
-          | { kind: "hide_question"; target: string; label: string }
-          | { kind: "hide_page"; page_id: string; page_label: string; preguntas: string[] }
-          | { kind: "end_survey" }
-        >;
+	        when_var: string;
+	        when_op: "eq" | "ne" | "in" | "not_in";
+	        when_codes: string[];
+	        actions: string[];
+	        n_actions: number;
+	      };
+	      resolucion: {
+	        when_var_label: string;
+	        when_var_xlsform: string;
+	        kobo_expr: string;
+	        when_codes_resueltos: { code: string; label: string }[];
+	        targets_resueltos: Array<
+	          | { kind: "hide_question"; target: string; label: string }
+	          | { kind: "hide_page"; page_id: string; page_label: string; preguntas: string[] }
+	          | { kind: "jump_hidden_question"; target: string; label: string; jump_target: string; jump_target_label: string }
+	          | { kind: "end_survey" }
+	        >;
         choices_disponibles: Array<{
           code: string;
           position: number;
@@ -867,12 +920,13 @@ function ensureArray<T = unknown>(v: unknown): T[] {
 
 export async function apiXlsformEditorSmInterpretRule(
   regla: string,
-  opts: {
-    survey_id?: string;
-    token?: string;
-    paginas?: Record<string, string[]>;
-    paginas_labels?: Record<string, string>;
-    choice_order_overrides?: Record<string, string[]>;
+	  opts: {
+	    survey_id?: string;
+	    token?: string;
+	    workbook?: XlsformEditorWorkbook | null;
+	    paginas?: Record<string, string[]>;
+	    paginas_labels?: Record<string, string>;
+	    choice_order_overrides?: Record<string, string[]>;
   } = {},
 ): Promise<RuleInterpretation> {
   const raw = await handle<unknown>(
@@ -880,9 +934,10 @@ export async function apiXlsformEditorSmInterpretRule(
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({
-        regla,
-        survey_id: opts.survey_id ?? "",
-        token: opts.token ?? "",
+	        regla,
+	        workbook: opts.workbook ?? undefined,
+	        survey_id: opts.survey_id ?? "",
+	        token: opts.token ?? "",
         paginas: opts.paginas ?? {},
         paginas_labels: opts.paginas_labels ?? {},
         choice_order_overrides: opts.choice_order_overrides ?? {},
@@ -900,33 +955,44 @@ export async function apiXlsformEditorSmInterpretRule(
   return {
     ok: true,
     regla_parseada: {
-      when_var: String(reglaP.when_var ?? ""),
-      when_op: (reglaP.when_op ?? "eq") as "eq" | "ne" | "in" | "not_in",
-      when_codes: ensureArray<string>(reglaP.when_codes).map((x) => String(x)),
-      n_actions: Number(reglaP.n_actions ?? 0),
-    },
-    resolucion: {
-      when_var_label: String(reso.when_var_label ?? ""),
-      when_var_xlsform: String(reso.when_var_xlsform ?? ""),
-      when_codes_resueltos: ensureArray<Record<string, unknown>>(reso.when_codes_resueltos).map((c) => ({
-        code: String(c.code ?? ""),
-        label: String(c.label ?? ""),
+	      when_var: String(reglaP.when_var ?? ""),
+	      when_op: (reglaP.when_op ?? "eq") as "eq" | "ne" | "in" | "not_in",
+	      when_codes: ensureArray<string>(reglaP.when_codes).map((x) => String(x)),
+	      actions: ensureArray<string>(reglaP.actions).map((x) => String(x)),
+	      n_actions: Number(reglaP.n_actions ?? 0),
+	    },
+	    resolucion: {
+	      when_var_label: String(reso.when_var_label ?? ""),
+	      when_var_xlsform: String(reso.when_var_xlsform ?? ""),
+	      kobo_expr: String(reso.kobo_expr ?? ""),
+	      when_codes_resueltos: ensureArray<Record<string, unknown>>(reso.when_codes_resueltos).map((c) => ({
+	        code: String(c.code ?? ""),
+	        label: String(c.label ?? ""),
       })),
       targets_resueltos: ensureArray<Record<string, unknown>>(reso.targets_resueltos).map((t) => {
         const kind = String(t.kind ?? "");
         if (kind === "hide_question") {
           return { kind: "hide_question" as const, target: String(t.target ?? ""), label: String(t.label ?? "") };
         }
-        if (kind === "hide_page") {
-          return {
-            kind: "hide_page" as const,
+	        if (kind === "hide_page") {
+	          return {
+	            kind: "hide_page" as const,
             page_id: String(t.page_id ?? ""),
             page_label: String(t.page_label ?? ""),
-            preguntas: ensureArray<string>(t.preguntas).map((x) => String(x)),
-          };
-        }
-        return { kind: "end_survey" as const };
-      }),
+	            preguntas: ensureArray<string>(t.preguntas).map((x) => String(x)),
+	          };
+	        }
+	        if (kind === "jump_hidden_question") {
+	          return {
+	            kind: "jump_hidden_question" as const,
+	            target: String(t.target ?? ""),
+	            label: String(t.label ?? ""),
+	            jump_target: String(t.jump_target ?? ""),
+	            jump_target_label: String(t.jump_target_label ?? ""),
+	          };
+	        }
+	        return { kind: "end_survey" as const };
+	      }),
       choices_disponibles: ensureArray<Record<string, unknown>>(reso.choices_disponibles).map((c) => ({
         code: String(c.code ?? ""),
         position: Number(c.position ?? 0),
@@ -950,6 +1016,29 @@ export async function apiXlsformEditorSmInterpretRule(
     },
     warnings: ensureArray<string>(r.warnings).map((w) => String(w)),
   };
+}
+
+export async function apiXlsformEditorSmApplyLogic(
+  workbook: XlsformEditorWorkbook,
+  reglas: string,
+  paginas: Record<string, string[]> = {},
+  choice_order_overrides: Record<string, string[]> = {},
+  sourceName = "XLSForm actual",
+): Promise<XlsformEditorPayload> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/xlsform-editor/sm-apply-logic", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        workbook,
+        reglas,
+        paginas,
+        choice_order_overrides,
+        source_name: sourceName,
+      }),
+    }),
+  );
+  return normalizeEditorPayload(raw);
 }
 
 export async function apiXlsformEditorImportSurveyMonkeyWithLogic(
@@ -993,6 +1082,81 @@ export async function apiXlsformEditorImportSurveyMonkeyWithLogic(
       inconsistencias: ensureArray<number>(h.inconsistencias).map((n) => Number(n)),
     })),
   };
+}
+
+function normalizeSurveyMonkeyLogicState(value: unknown): SurveyMonkeyLogicState | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const rulesRaw = Array.isArray(raw.advanced_rules)
+    ? raw.advanced_rules
+    : Array.isArray(raw.rules)
+      ? raw.rules
+      : [];
+  const visualRaw = Array.isArray(raw.visual_rules) ? raw.visual_rules : [];
+  const overridesRaw = raw.choice_order_overrides;
+  const choice_order_overrides: Record<string, string[]> = {};
+  if (overridesRaw && typeof overridesRaw === "object" && !Array.isArray(overridesRaw)) {
+    for (const [key, val] of Object.entries(overridesRaw as Record<string, unknown>)) {
+      choice_order_overrides[key] = Array.isArray(val) ? val.map((item) => String(item)) : [];
+    }
+  }
+  const rules = rulesRaw
+    .map((item) => {
+      const r = (item ?? {}) as Record<string, unknown>;
+      return {
+        id: String(r.id ?? ""),
+        texto: String(r.texto ?? ""),
+        texto_humano: String(r.texto_humano ?? ""),
+        kobo_expr: r.kobo_expr == null ? undefined : String(r.kobo_expr),
+      };
+    })
+    .filter((rule) => rule.texto.trim());
+  const visual_rules: SurveyMonkeyVisualLogicRule[] = visualRaw
+    .map((item) => {
+      const r = (item ?? {}) as Record<string, unknown>;
+      const choicesRaw = Array.isArray(r.choices) ? r.choices : [];
+      return {
+        id: String(r.id ?? ""),
+        variableRef: String(r.variableRef ?? r.variable_ref ?? ""),
+        variableLabel: String(r.variableLabel ?? r.variable_label ?? ""),
+        choices: choicesRaw.map((choice) => {
+          const c = (choice ?? {}) as Record<string, unknown>;
+          return {
+            choiceName: String(c.choiceName ?? c.choice_name ?? ""),
+            choiceLabel: String(c.choiceLabel ?? c.choice_label ?? ""),
+            choiceIndex: Number(c.choiceIndex ?? c.choice_index ?? 0),
+            action: normalizeSurveyMonkeyVisualAction(c.action),
+          };
+        }),
+      };
+    })
+    .filter((rule) => rule.variableRef.trim());
+  if (!rules.length && !visual_rules.length && Object.keys(choice_order_overrides).length === 0) return null;
+  return { rules, advanced_rules: rules, visual_rules, choice_order_overrides };
+}
+
+function normalizeSurveyMonkeyVisualAction(value: unknown): SurveyMonkeyVisualLogicAction {
+  if (!value || typeof value !== "object") return { kind: "none" };
+  const raw = value as Record<string, unknown>;
+  const kind = String(raw.kind ?? "none");
+  if (kind === "page_top") {
+    return {
+      kind: "page_top",
+      pageId: String(raw.pageId ?? raw.page_id ?? ""),
+      pageLabel: String(raw.pageLabel ?? raw.page_label ?? ""),
+    };
+  }
+  if (kind === "question") {
+    return {
+      kind: "question",
+      pageId: String(raw.pageId ?? raw.page_id ?? ""),
+      pageLabel: String(raw.pageLabel ?? raw.page_label ?? ""),
+      targetRef: String(raw.targetRef ?? raw.target_ref ?? ""),
+      targetLabel: String(raw.targetLabel ?? raw.target_label ?? ""),
+    };
+  }
+  if (kind === "end") return { kind: "end" };
+  return { kind: "none" };
 }
 
 export async function apiXlsformEditorExport(workbook: XlsformEditorWorkbook, filename?: string) {
@@ -1105,7 +1269,15 @@ export async function apiCargaData(file_id: string) {
     preview: {
       n_filas: number;
       n_columnas: number;
-      columnas: { nombre: string; tipo: string }[];
+      columnas: { nombre: string; tipo: string; origen?: "xlsform" | "extra" }[];
+      normalizacion?: {
+        applied: boolean;
+        aliases: number;
+        select_multiple: number;
+        dropped_columns: number;
+        xlsform_columns?: number;
+        extra_columns?: number;
+      };
       preview_filas: Record<string, unknown>[];
     };
   }>(
@@ -1214,6 +1386,120 @@ export async function apiJobCancel(id: string) {
 
 export function jobResultUrl(id: string) {
   return apiPath(`/api/jobs/${encodeURIComponent(id)}/result`);
+}
+
+// ---------- Hojas de ruta para campo ----------
+
+export type HojasRutaFieldStatus = {
+  nombre: string;
+  estado: "listo" | "faltante";
+  tipo: string | null;
+};
+
+export type HojasRutaIssue = {
+  campo: string;
+  mensaje: string;
+};
+
+export type HojasRutaVariable = {
+  nombre: string;
+  tipo: string;
+};
+
+export type HojasRutaConfig = {
+  row_var: string;
+  col_var: string;
+  value_var: string;
+  count_mode: "frecuencia" | "suma";
+  cartografia_dir: string;
+  project_code: string;
+  max_umps: number | null;
+};
+
+export type HojasRutaCampos = {
+  ok: boolean;
+  required: string[];
+  present: string[];
+  missing: string[];
+  columns: HojasRutaFieldStatus[];
+  invalid: HojasRutaIssue[];
+  n_filas: number;
+  n_columnas: number;
+};
+
+export type HojasRutaPreviewRow = {
+  index: number;
+  ump: string;
+  idmanzana: string;
+  ubigeo: string | null;
+  cod_zona: string | null;
+  cod_manzana: string | null;
+  mapa: string | null;
+  mapa_encontrado: boolean;
+  mapa_path: string | null;
+  filename: string;
+  cuota: Record<string, string | number | null>[];
+};
+
+export type HojasRutaState = {
+  ok: boolean;
+  has_data: boolean;
+  cache_dir: string;
+  config: HojasRutaConfig;
+  campos: HojasRutaCampos | null;
+  variables: HojasRutaVariable[];
+};
+
+export type HojasRutaPreview = HojasRutaState & {
+  config_issues: HojasRutaIssue[];
+  n_umps: number;
+  mapas_faltantes: number;
+  rows: HojasRutaPreviewRow[];
+};
+
+export type HojasRutaJobResult = {
+  ok: true;
+  file_id: string;
+  filename: string;
+  size: number;
+  n_pdfs: number;
+  mapas_faltantes: number;
+};
+
+export async function apiHojasRutaState() {
+  return handle<HojasRutaState>(
+    await apiFetch("/api/hojas-ruta/state", { headers: headers() }),
+  );
+}
+
+export async function apiHojasRutaSaveConfig(config: Partial<HojasRutaConfig>) {
+  return handle<{ ok: true; config: HojasRutaConfig }>(
+    await apiFetch("/api/hojas-ruta/config", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiHojasRutaPreview(config: Partial<HojasRutaConfig>) {
+  return handle<HojasRutaPreview>(
+    await apiFetch("/api/hojas-ruta/preview", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiHojasRutaGenerate(config: Partial<HojasRutaConfig>) {
+  return handle<JobStart>(
+    await apiFetch("/api/hojas-ruta/generate", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
 }
 
 // ---------- Validación ----------
@@ -1408,10 +1694,11 @@ export function arquetipoOf(p: PreguntaAbierta, adoptedBy?: Map<string, Pregunta
 }
 
 // Infer dummy_col for an SM from its opciones: prefer the option flagged
-// es_otros_sugerido whose col_dummy exists in data.
+// es_otros_sugerido. In normalized ODK data this can be a virtual pN/code
+// marker backed by the parent column instead of a physical dummy column.
 export function guessDummyColFromOpciones(opciones: OpcionSM[] | undefined): string {
   if (!opciones || opciones.length === 0) return "";
-  const sugerida = opciones.find((o) => o.es_otros_sugerido && o.existe_en_data);
+  const sugerida = opciones.find((o) => o.es_otros_sugerido && o.col_dummy);
   return sugerida?.col_dummy ?? "";
 }
 
@@ -1655,6 +1942,10 @@ export type VariableInstrumento = {
   label: string;
   tipo: string;
   list_name: string;
+  categorica?: boolean;
+  numerica?: boolean;
+  declarada_numerica?: boolean;
+  analisis?: boolean;
 };
 
 export async function apiAnaliticaVariables() {
@@ -1895,6 +2186,12 @@ export type ArgTipoInput =
   // keywords CSS (white, black, transparent). Se renderiza con
   // <input type="color"> nativo como fallback al popover custom.
   | "color"
+  // series_colors: editor visual de pares serie → color. El valor viaja
+  // como objeto nombrado { "Serie": "#RRGGBB" }, sin edición JSON.
+  | "series_colors"
+  // criteria_config: editor visual de criterios/conductores, cada uno
+  // con titulo y variables asociadas.
+  | "criteria_config"
   | "icono"
   | "overrides"
   | "filtros"
@@ -1903,6 +2200,11 @@ export type ArgTipoInput =
 
 export type ArgGrupo =
   | "datos"
+  | "lectura"
+  | "valores"
+  | "leyenda"
+  | "espacio"
+  | "diagnostico"
   | "textos"
   | "estilo"
   | "filtro"
@@ -1926,6 +2228,13 @@ export type ArgMetadata = {
   tipo_input: ArgTipoInput;
   grupo: ArgGrupo;
   descripcion?: string;
+  unidad?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  control?: "stepper" | "slider" | string;
+  relacionados?: string[];
+  efecto?: string;
   choices?: ArgChoice[];
   // Opciones para `multiflag` (multi-select cerrado). Cada entry define
   // un token aceptable. Si el arg es `multiflag` y `opciones` no viene,
@@ -1970,6 +2279,9 @@ export type VarInfo = {
   label: string;
   tipo: string;
   seccion: string;
+  list_name?: string;
+  choices?: { name: string; label: string }[];
+  scale_signature?: string;
 };
 
 export async function apiGraficosRegistry() {

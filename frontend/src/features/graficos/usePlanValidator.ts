@@ -66,7 +66,7 @@ export function usePlanValidator(): ValidationSummary {
     // el prefijo "docentes$sexo"; si es single-base, solo "sexo". El check
     // en `checkVarRefs` normaliza la ref del graficador contra este set.
     const varNames = new Set(
-      variables.map((v) => (multi ? `${v.source}$${v.name}` : v.name)),
+      variables.flatMap((v) => multi ? [`${v.source}$${v.name}`] : [v.name, `${v.source}$${v.name}`]),
     );
     const iconIds = new Set(iconos.map((i) => i.id));
 
@@ -163,26 +163,42 @@ function humanizeSlot(slot: string): string {
 // Inspecciona los args del graficador y devuelve nombres de variables
 // que el graficador referencia pero no existen en el instrumento.
 function checkVarRefs(graf: GraficadorRef, varNames: Set<string>): string[] {
+  const refs = collectVarRefs(graf.args ?? {});
+  return Array.from(new Set(refs.filter((v) => v.length > 0 && !varNames.has(v))));
+}
+
+function collectVarRefs(args: Record<string, unknown>): string[] {
   const refs: string[] = [];
-  const args = graf.args ?? {};
-  // Nombres de args que típicamente son variables (según el registry).
-  const VAR_ARGS = ["var", "cruces", "cruce"];
-  for (const argName of VAR_ARGS) {
+  for (const argName of ["var", "cruces", "cruce"]) {
     const v = args[argName];
-    if (typeof v === "string" && v.length > 0 && !varNames.has(v)) {
-      refs.push(v);
-    }
+    if (typeof v === "string" && v.length > 0) refs.push(v);
   }
-  // `vars` es un array de variables (multi).
+
   const vars = args["vars"];
-  if (Array.isArray(vars)) {
-    for (const v of vars) {
-      if (typeof v === "string" && v.length > 0 && !varNames.has(v)) {
-        refs.push(v);
+  if (typeof vars === "string" && vars.length > 0) {
+    refs.push(vars);
+  } else if (Array.isArray(vars)) {
+    for (const v of vars) if (typeof v === "string" && v.length > 0) refs.push(v);
+  } else if (vars && typeof vars === "object") {
+    for (const value of Object.values(vars as Record<string, unknown>)) {
+      if (Array.isArray(value)) {
+        for (const v of value) if (typeof v === "string" && v.length > 0) refs.push(v);
+      } else if (typeof value === "string" && value.length > 0) {
+        refs.push(value);
       }
     }
   }
-  return Array.from(new Set(refs));
+
+  const blocks = args["bloques"];
+  if (Array.isArray(blocks)) {
+    for (const block of blocks) {
+      if (block && typeof block === "object" && !Array.isArray(block)) {
+        refs.push(...collectVarRefs(block as Record<string, unknown>));
+      }
+    }
+  }
+
+  return refs;
 }
 
 // Heurística: una paleta es "monocromática" si tiene >= 3 colores y

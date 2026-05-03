@@ -141,7 +141,7 @@ type PlanStore = {
   setPresetArg: (tipo: string, arg: string, value: unknown) => void;
   // Reemplaza el OBJETO COMPLETO de un preset (bypass de `setPresetArg`).
   // Si args queda vacío (`{}`), elimina el preset del map. Usado por el
-  // AdvancedJsonEditor cuando el analista edita el JSON raw.
+  // Superficies visuales de presets y overrides reutilizables.
   replacePreset: (tipo: string, args: Record<string, unknown>) => void;
   // Reset completo de un preset tipo (vuelve a defaults de prosecnur).
   resetPreset: (tipo: string) => void;

@@ -267,22 +267,164 @@ test_that("sm_api_xlsform deja matrices como select_one sueltos dentro de la pá
 
   out <- sm_api_xlsform(details, style = list(prefix = "q", pad = 4L), lang = "es")
   survey <- out$survey
+  pages <- sm_api_extract_pages(details, style = list(prefix = "q", pad = 4L))
 
   expect_equal(
     survey$type,
     c(
       "begin_group",
       "note",
-      "select_one lst_q0001",
-      "select_one lst_q0001",
+      "select_one lst_p1",
+      "select_one lst_p1",
       "end_group"
     )
   )
   expect_false(any(survey$name == "grp_q0001", na.rm = TRUE))
-  expect_equal(survey$name[2:4], c("nota_q0001", "q0001_1", "q0001_2"))
-  expect_equal(survey$section[2:4], rep("section_pag_8", 3))
+  expect_equal(survey$name[2:4], c("nota_p1", "p1_1", "p1_2"))
+  expect_equal(survey$section[2:4], rep("Pag1", 3))
   expect_equal(survey$`label::es`[2], "¿Cuán útil considera los siguientes OE?")
   expect_equal(survey$`label::es`[3:4], c("Diseña y construye infraestructura", "Analiza el impacto ambiental"))
+  expect_equal(length(pages[[1]]$question_details[[1]]$children), 2L)
+  expect_equal(
+    vapply(pages[[1]]$question_details[[1]]$children, `[[`, character(1), "name"),
+    c("p1_1", "p1_2")
+  )
+  expect_true(all(grepl("^select_one lst_p1", vapply(pages[[1]]$question_details[[1]]$children, `[[`, character(1), "type"))))
+})
+
+test_that("sm_api_xlsform trata matriz de una sola fila sin texto como pregunta de escala", {
+  details <- list(
+    title = "Encuesta escala",
+    pages = list(
+      list(position = 6L, title = "Satisfacción", questions = list(
+        list(
+          family = "matrix",
+          subtype = "rating",
+          headings = list(list(heading = "¿Cuán satisfecho se encuentra con la formación recibida?")),
+          answers = list(
+            rows = list(list(text = "")),
+            choices = list(
+              list(position = 1L, text = "Totalmente insatisfecho"),
+              list(position = 2L, text = "Insatisfecho"),
+              list(position = 3L, text = "Satisfecho"),
+              list(position = 4L, text = "Totalmente satisfecho")
+            )
+          )
+        )
+      ))
+    )
+  )
+
+  out <- sm_api_xlsform(details, style = list(prefix = "q", pad = 4L), lang = "es")
+  survey <- out$survey
+  pages <- sm_api_extract_pages(details, style = list(prefix = "q", pad = 4L))
+
+  expect_equal(survey$type, c("begin_group", "select_one lst_p1", "end_group"))
+  expect_equal(survey$name[2], "p1")
+  expect_equal(survey$`label::es`[2], "¿Cuán satisfecho se encuentra con la formación recibida?")
+  expect_false(any(grepl("Ítem|Fila", survey$`label::es`, ignore.case = TRUE), na.rm = TRUE))
+  expect_equal(length(pages[[1]]$question_details[[1]]$children), 1L)
+  expect_equal(pages[[1]]$question_details[[1]]$children[[1]]$name, "p1")
+})
+
+test_that("sm_api_xlsform deja preguntas abiertas por fila como hermanas de la pagina", {
+  details <- list(
+    title = "Encuesta abierta",
+    pages = list(
+      list(position = 13L, title = "Experiencia", questions = list(
+        list(
+          family = "open_ended",
+          subtype = "multi",
+          headings = list(list(heading = "¿Cuál es su función principal?")),
+          answers = list(rows = list(
+            list(text = "Función 1:"),
+            list(text = "Función 2:")
+          ))
+        )
+      ))
+    )
+  )
+
+  out <- sm_api_xlsform(details, style = list(prefix = "q", pad = 4L), lang = "es")
+  survey <- out$survey
+
+  expect_equal(
+    survey$type,
+    c("begin_group", "text", "text", "end_group")
+  )
+  expect_false(any(grepl("^grp_", survey$name %||% ""), na.rm = TRUE))
+  expect_equal(survey$name[2:3], c("p1_1", "p1_2"))
+  expect_equal(survey$section[2:3], rep("Pag1", 2))
+  expect_equal(survey$`label::es`[2:3], c("Función 1:", "Función 2:"))
+})
+
+test_that("sm_api_xlsform crea campo other para select_one", {
+  details <- list(
+    title = "Encuesta other",
+    pages = list(
+      list(position = 1L, questions = list(
+        list(
+          family = "single_choice",
+          subtype = "vertical",
+          headings = list(list(heading = "¿En qué institución?")),
+          answers = list(
+            choices = list(
+              list(position = 1L, text = "PUCP"),
+              list(position = 2L, text = "UNI")
+            ),
+            other = list(is_answer_choice = TRUE, text = "Otra institución")
+          )
+        )
+      ))
+    )
+  )
+
+  out <- sm_api_xlsform(details, style = list(prefix = "q", pad = 4L), lang = "es")
+  survey <- out$survey
+  choices <- out$choices
+
+  expect_true(all(c("p1", "p1_other") %in% survey$name))
+  p1_idx <- which(survey$name == "p1")[1]
+  other_idx <- which(survey$name == "p1_other")[1]
+  expect_equal(survey$type[p1_idx], "select_one lst_p1")
+  expect_equal(survey$type[other_idx], "text")
+  expect_equal(unname(survey$relevant[other_idx]), "${p1} = '3'")
+  expect_true(any(choices$list_name == "lst_p1" & choices$name == "3" & choices$`label::es` == "Otra institución"))
+})
+
+test_that("sm_api_xlsform aplica reglas con nombres p normalizados", {
+  question <- function(n, choices = NULL) {
+    q <- list(
+      family = "single_choice",
+      subtype = "vertical",
+      headings = list(list(heading = paste0("Pregunta ", n)))
+    )
+    if (!is.null(choices)) q$answers <- list(choices = choices)
+    q
+  }
+  choices7 <- lapply(seq_len(5), function(i) list(position = i, text = paste0("Opción ", i)))
+  details <- list(
+    title = "Encuesta lógica",
+    pages = list(
+      list(position = 1L, questions = c(
+        lapply(seq_len(6), question),
+        list(question(7, choices7), question(8))
+      ))
+    )
+  )
+
+  out <- sm_api_xlsform(details, style = list(prefix = "q", pad = 4L), lang = "es")
+  out <- surveymonkey_aplicar_logica(
+    out,
+    "Q7 NOT IN [C4, C5] => Ocultar P8",
+    out$sm_logic
+  )
+
+  expect_true(all(c("p7", "p8") %in% out$survey$name))
+  rel_p8 <- out$survey$relevant[out$survey$name == "p8"][1]
+  expect_match(rel_p8, "\\$\\{p7\\}")
+  expect_false(any(grepl("\\$\\{q0007\\}|\\$\\{Q7\\}|\\$\\{P7\\}", rel_p8)))
+  expect_false(any(grepl("\\$\\{[qQ]0*[0-9]+", out$survey$relevant %||% character(0), perl = TRUE)))
 })
 
 test_that("sm_api_fetch_survey_details valida los inputs antes de llamar HTTP", {

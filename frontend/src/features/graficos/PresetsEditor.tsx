@@ -5,13 +5,10 @@ import { RotateCcw, Circle } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
-import { ArgGroup, GRUPO_META } from "./ArgGroup";
+import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { usePresetsDefaults, presetArgsEqual } from "./usePresetsDefaults";
-// AdvancedJsonEditor quedó desactivado: el catálogo .PRESETS_META ya
-// cubre todos los args que usamos en los QMDs de referencia, así que
-// escapar a JSON raw hoy es innecesario y abre la puerta a inconsistencias.
-// Lo dejamos importable desde otros componentes por si se reactiva en
-// un "modo power user" futuro.
+// La edición de presets usa solo controles catalogados. Si un argumento
+// no tiene metadata visual, no se expone como campo editable.
 
 // Editor de presets globales tipo-de-graficador.
 //
@@ -310,17 +307,15 @@ function PresetBody({
 
   // Agrupar args por grupo semántico, manteniendo el orden de GRUPO_META.
   const gruposDeArgs = useMemo(() => {
-    const byGrupo: Record<ArgGrupo, ArgMetadata[]> = {
-      datos: [], textos: [], estilo: [], filtro: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
-    };
+    const byGrupo: Partial<Record<ArgGrupo, ArgMetadata[]>> = {};
     for (const a of meta.args) {
-      const g: ArgGrupo = (a.grupo as ArgGrupo) ?? "avanzado";
-      (byGrupo[g] ?? byGrupo.avanzado).push(a);
+      const g = normalizeArgGroup(a.grupo as ArgGrupo);
+      (byGrupo[g] ??= []).push(a);
     }
-    return (Object.keys(byGrupo) as ArgGrupo[])
-      .filter((g) => byGrupo[g].length > 0)
+    return ARG_GROUP_ORDER
+      .filter((g) => byGrupo[g] && byGrupo[g]!.length > 0)
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
-      .map((g) => ({ grupo: g, args: byGrupo[g] }));
+      .map((g) => ({ grupo: g, args: byGrupo[g]! }));
   }, [meta]);
 
   return (
@@ -334,8 +329,8 @@ function PresetBody({
             border: "1px solid var(--pulso-border)",
           }}
         >
-          Este preset no tiene args catalogados. Usa la edición JSON avanzada
-          abajo para setear args específicos.
+          Este preset no tiene ajustes visuales catalogados todavía.
+          No se puede editar desde esta pantalla.
         </div>
       ) : (
         gruposDeArgs.map(({ grupo, args }) => (

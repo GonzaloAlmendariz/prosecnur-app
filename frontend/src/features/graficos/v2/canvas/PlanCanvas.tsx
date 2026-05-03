@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LayoutGrid, Bookmark, Copy, Trash2 } from "lucide-react";
 import { Slide } from "../../../../api/client";
 import { usePlanStore } from "../../store";
@@ -29,13 +29,11 @@ import { PlanCanvasToolbar } from "./PlanCanvasToolbar";
 //                            nuevo orden global vía moveSlideTo.
 //   * Drag slide no-sel.   → arrastra solo ese (la selección anterior
 //                            se descarta).
-//   * Wheel                → zoom. F → fit. +/- zoom. 0 → reset.
+//   * Scroll/trackpad      → movimiento vertical nativo. Sin zoom ni
+//                            movimiento horizontal en este modo.
 //
-// Snap to grid: siempre activo. Cada slide siempre cae en una celda de
-// la grilla 6-cols (NODE_W + COL_GAP).
-
-const ZOOM_MIN = 0.3;
-const ZOOM_MAX = 2.5;
+// Snap to grid: siempre activo. Cada slide cae en una celda; el número
+// de columnas se ajusta al ancho disponible hasta un máximo de 6.
 
 export function PlanCanvas() {
   const slides = usePlanStore((s) => s.plan.slides);
@@ -49,9 +47,10 @@ export function PlanCanvas() {
   const addSlide = usePlanStore((s) => s.addSlide);
   const duplicateSlide = usePlanStore((s) => s.duplicateSlide);
   const removeSlide = usePlanStore((s) => s.removeSlide);
-  const canvasViewport = usePlanStore((s) => s.canvasViewport);
-  const setCanvasViewport = usePlanStore((s) => s.setCanvasViewport);
   const density = usePlanStore((s) => s.density);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [canvasWidth, setCanvasWidth] = useState(0);
 
   // IDs que se acaban de mover (para animación highlight breve)
   const [recentlyMoved, setRecentlyMoved] = useState<Set<string>>(new Set());
@@ -77,7 +76,20 @@ export function PlanCanvas() {
     () => buildPlanGraph({ slides }, paletas, iconos, overridesReusables),
     [slides, paletas, iconos, overridesReusables],
   );
-  const layout = useMemo(() => planAutoLayout(graph.nodes), [graph.nodes]);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = () => setCanvasWidth(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const layout = useMemo(
+    () => planAutoLayout(graph.nodes, Math.max(0, canvasWidth - 48)),
+    [graph.nodes, canvasWidth],
+  );
 
   // ── Multi-select ───────────────────────────────────────────────────────
   // Inicialmente refleja `selectedSlideId` del store (siempre 0 ó 1 ítem).
@@ -116,61 +128,9 @@ export function PlanCanvas() {
     select(null);
   }
 
-  // ── Viewport (zoom + pan) ──────────────────────────────────────────────
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const stageRef = useRef<HTMLDivElement | null>(null);
-  const [zoom, setZoom] = useState(canvasViewport.zoom);
-  const [pan, setPan] = useState({ x: canvasViewport.x, y: canvasViewport.y });
-  const [isPanning, setIsPanning] = useState(false);
-  const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
-  const [smoothCamera, setSmoothCamera] = useState(false);
-
-  useEffect(() => {
-    setCanvasViewport({ x: pan.x, y: pan.y, zoom });
-  }, [pan.x, pan.y, zoom, setCanvasViewport]);
-
-  function triggerSmooth() {
-    setSmoothCamera(true);
-    window.setTimeout(() => setSmoothCamera(false), 360);
-  }
-
-  const fitToScreen = useCallback(() => {
-    const el = containerRef.current;
-    if (!el || layout.height === 0) return;
-    const padding = 60;
-    const rect = el.getBoundingClientRect();
-    const availW = rect.width - padding * 2;
-    const availH = rect.height - padding * 2;
-    const scaleX = availW / Math.max(layout.width, 1);
-    const scaleY = availH / Math.max(layout.height, 1);
-    const next = Math.max(ZOOM_MIN, Math.min(1.0, Math.min(scaleX, scaleY)));
-    triggerSmooth();
-    setZoom(next);
-    const cx = layout.width / 2;
-    const cy = layout.height / 2;
-    setPan({
-      x: rect.width / 2 - cx * next,
-      y: rect.height / 2 - cy * next,
-    });
-  }, [layout.height, layout.width]);
-
-  function resetZoom() { triggerSmooth(); setZoom(1); setPan({ x: 24, y: 24 }); }
-  function zoomIn() { triggerSmooth(); setZoom((z) => Math.min(ZOOM_MAX, z * 1.2)); }
-  function zoomOut() { triggerSmooth(); setZoom((z) => Math.max(ZOOM_MIN, z / 1.2)); }
-
-  function onWheel(e: React.WheelEvent<HTMLDivElement>) {
-    if (!e.ctrlKey && !e.metaKey) return; // zoom solo con Cmd/Ctrl+wheel para no chocar con scroll
-    e.preventDefault();
-    const delta = -e.deltaY * 0.0015;
-    const factor = Math.exp(delta);
-    setZoom((z) => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z * factor)));
-  }
-
   function onMouseDownStage(e: React.MouseEvent<HTMLDivElement>) {
     if (e.button !== 0) return;
     if (e.target !== e.currentTarget) return;
-    setIsPanning(true);
-    panStartRef.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
     if (!e.shiftKey) clearSelection();
   }
 
@@ -186,6 +146,7 @@ export function PlanCanvas() {
     movingIds: Set<string>;
     moved: boolean;
   } | null>(null);
+  const suppressClickRef = useRef(false);
   const [dragVisualOffset, setDragVisualOffset] = useState<{ x: number; y: number } | null>(null);
   const [dropTargetIdx, setDropTargetIdx] = useState<number | null>(null);
 
@@ -198,9 +159,11 @@ export function PlanCanvas() {
     if (isInSel && selectedIds.size > 1) {
       effectiveSelection = new Set(selectedIds);
     } else if (e.shiftKey) {
-      // shift+click sin drag → toggle (manejado en click). Aún así
-      // permitimos drag desde shift+click iniciando con sólo este id.
-      effectiveSelection = new Set([id]);
+      // Si inicia un drag con Shift desde un slide no seleccionado,
+      // movemos la selección existente más ese slide. Si sólo fue click,
+      // el toggle se procesa en onSlideClick.
+      effectiveSelection = new Set(selectedIds);
+      effectiveSelection.add(id);
     } else {
       // click normal: si no era el seleccionado, selecciónalo.
       if (!isInSel) {
@@ -223,7 +186,10 @@ export function PlanCanvas() {
 
   // shift+click puro (sin drag) toggle selection
   function onSlideClick(id: string, e: React.MouseEvent) {
-    if (dragRef.current?.moved) return; // si hubo drag, no procesar click
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
     clickSlide(id, e.shiftKey);
   }
 
@@ -231,8 +197,8 @@ export function PlanCanvas() {
     function onMove(e: MouseEvent) {
       if (dragRef.current) {
         const drag = dragRef.current;
-        const dx = (e.clientX - drag.pointerStart.x) / zoom;
-        const dy = (e.clientY - drag.pointerStart.y) / zoom;
+        const dx = e.clientX - drag.pointerStart.x;
+        const dy = e.clientY - drag.pointerStart.y;
         if (!drag.moved && Math.hypot(dx, dy) > 4) drag.moved = true;
         if (drag.moved) {
           setDragVisualOffset({ x: dx, y: dy });
@@ -240,18 +206,13 @@ export function PlanCanvas() {
           const stage = stageRef.current;
           if (stage) {
             const stageRect = stage.getBoundingClientRect();
-            const px = (e.clientX - stageRect.left) / zoom;
-            const py = (e.clientY - stageRect.top) / zoom;
+            const px = e.clientX - stageRect.left;
+            const py = e.clientY - stageRect.top;
             const target = findDropTarget(layout, { x: px, y: py });
             setDropTargetIdx(target ? target.globalIndex : null);
           }
         }
         return;
-      }
-      if (isPanning) {
-        const dx = e.clientX - panStartRef.current.x;
-        const dy = e.clientY - panStartRef.current.y;
-        setPan({ x: panStartRef.current.panX + dx, y: panStartRef.current.panY + dy });
       }
     }
     function onUp(e: MouseEvent) {
@@ -263,14 +224,12 @@ export function PlanCanvas() {
           // manteniendo el orden interno.
           commitReorder(drag.movingIds, dropTargetIdx);
         }
+        suppressClickRef.current = drag.moved;
         // Reset visual
         setDragVisualOffset(null);
         setDropTargetIdx(null);
         dragRef.current = null;
         return;
-      }
-      if (isPanning) {
-        setIsPanning(false);
       }
       void e;
     }
@@ -281,7 +240,7 @@ export function PlanCanvas() {
       window.removeEventListener("mouseup", onUp);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPanning, zoom, layout, dropTargetIdx]);
+  }, [layout, dropTargetIdx]);
 
   function commitReorder(movingIds: Set<string>, targetIdx: number) {
     // Construir nueva lista: separar moving de stationary, luego insertar
@@ -340,15 +299,11 @@ export function PlanCanvas() {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       if (e.key === "Escape") { e.preventDefault(); clearSelection(); }
-      else if (e.key === "f" || e.key === "F") { e.preventDefault(); fitToScreen(); }
-      else if (e.key === "+" || e.key === "=") { e.preventDefault(); zoomIn(); }
-      else if (e.key === "-" || e.key === "_") { e.preventDefault(); zoomOut(); }
-      else if (e.key === "0") { e.preventDefault(); resetZoom(); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitToScreen]);
+  }, []);
 
   if (graph.nodes.length === 0) {
     return (
@@ -365,22 +320,15 @@ export function PlanCanvas() {
   return (
     <div ref={containerRef} className={`pulso-gv2-canvas ${density === "compact" ? "is-compact" : ""}`}>
       <PlanCanvasToolbar
-        zoom={zoom}
-        onZoomIn={zoomIn}
-        onZoomOut={zoomOut}
-        onResetZoom={resetZoom}
-        onFit={fitToScreen}
         selectedCount={selectedIds.size}
         onClearSelection={clearSelection}
       />
 
       <div
         ref={stageRef}
-        className={`pulso-gv2-canvas-stage ${isPanning ? "is-panning" : ""} ${smoothCamera ? "is-smooth" : ""}`}
+        className="pulso-gv2-canvas-stage"
         onMouseDown={onMouseDownStage}
-        onWheel={onWheel}
         style={{
-          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           width: layout.width,
           height: layout.height,
         }}
@@ -486,8 +434,8 @@ export function PlanCanvas() {
                 selected={isSelected}
                 dimmed={false}
                 issues={issuesBySlide[node.id] ?? []}
-                onClick={() => { /* manejado por onSlideClick del wrapper */ }}
-                onMouseDown={() => { /* manejado por wrapper */ }}
+                onClick={(e) => onSlideClick(node.id, e)}
+                onMouseDown={(e) => onSlideMouseDown(node.id, e)}
               />
             </div>
           );
@@ -530,7 +478,7 @@ export function PlanCanvas() {
 
       {/* Hint flotante */}
       <div className="pulso-gv2-canvas-hint" aria-hidden>
-        <strong>Click</strong> selecciona · <strong>Shift+Click</strong> añade · <strong>Drag</strong> mueve · <strong>Esc</strong> limpia · <strong>F</strong> fit
+        <strong>Click</strong> selecciona · <strong>Shift+Click</strong> añade · <strong>Drag</strong> mueve · <strong>Esc</strong> limpia
       </div>
     </div>
   );

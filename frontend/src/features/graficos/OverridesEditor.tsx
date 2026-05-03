@@ -4,9 +4,9 @@ import { Plus, Copy, Trash2, Circle, Layers3 } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore, OverrideReusable } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
-import { ArgGroup, GRUPO_META } from "./ArgGroup";
+import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
-// AdvancedJsonEditor deshabilitado — ver nota en PresetsEditor.
+// Los overrides reutilizables usan solo controles catalogados.
 
 // Overrides reutilizables = mini-presets nombrados (ej. "compacto", "grande")
 // que se aplican a slots específicos dentro de un slide.
@@ -231,17 +231,15 @@ function OverrideEditPanel({
 
   const gruposDeArgs = useMemo(() => {
     if (!tipoMeta) return [];
-    const byGrupo: Record<ArgGrupo, ArgMetadata[]> = {
-      datos: [], textos: [], estilo: [], filtro: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
-    };
+    const byGrupo: Partial<Record<ArgGrupo, ArgMetadata[]>> = {};
     for (const a of tipoMeta.args) {
-      const g: ArgGrupo = (a.grupo as ArgGrupo) ?? "avanzado";
-      (byGrupo[g] ?? byGrupo.avanzado).push(a);
+      const g = normalizeArgGroup(a.grupo as ArgGrupo);
+      (byGrupo[g] ??= []).push(a);
     }
-    return (Object.keys(byGrupo) as ArgGrupo[])
-      .filter((g) => byGrupo[g].length > 0)
+    return ARG_GROUP_ORDER
+      .filter((g) => byGrupo[g] && byGrupo[g]!.length > 0)
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
-      .map((g) => ({ grupo: g, args: byGrupo[g] }));
+      .map((g) => ({ grupo: g, args: byGrupo[g]! }));
   }, [tipoMeta]);
 
   function handleChangeArg(arg: string, value: unknown) {
@@ -356,8 +354,8 @@ function OverrideEditPanel({
               border: "1px solid var(--pulso-border)",
             }}
           >
-            Este tipo de preset no tiene args catalogados. Usa la edición JSON avanzada
-            abajo para setear args específicos.
+            Este tipo de preset no tiene ajustes visuales catalogados todavía.
+            No se puede editar desde esta pantalla.
           </div>
         ) : (
           gruposDeArgs.map(({ grupo, args }) => (

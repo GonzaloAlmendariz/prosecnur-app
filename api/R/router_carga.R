@@ -110,7 +110,32 @@ summarize_instrumento <- function(inst) {
   )
 }
 
-read_data_preview <- function(path, ext, n_preview = 100L) {
+.carga_data_survey_names <- function(instrumento) {
+  survey <- instrumento$survey
+  if (is.null(survey) || !nrow(survey) || !all(c("type", "name") %in% names(survey))) {
+    return(character(0))
+  }
+  skip_types <- c("begin_group", "end_group", "begin_repeat", "end_repeat",
+                  "note", "calculate")
+  type_raw <- trimws(as.character(survey$type %||% ""))
+  type_base <- if ("type_base" %in% names(survey)) {
+    trimws(as.character(survey$type_base %||% type_raw))
+  } else {
+    sub("\\s+.*$", "", type_raw)
+  }
+  names_raw <- as.character(survey$name %||% character())
+  keep <- nzchar(names_raw) & !(type_base %in% skip_types) & !(type_raw %in% skip_types)
+  unique(names_raw[keep])
+}
+
+.carga_reorder_data_columns <- function(df, instrumento) {
+  survey_names <- .carga_data_survey_names(instrumento)
+  first <- intersect(survey_names, names(df))
+  if (!length(first)) return(df)
+  df[, c(first, setdiff(names(df), first)), drop = FALSE]
+}
+
+read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL) {
   # Envolvemos el read_excel en suppressWarnings porque readxl infiere
   # tipo por las primeras 1000 filas; cuando una columna tiene muchos
   # NA al comienzo y texto más abajo (caso típico en encuestas con
@@ -125,6 +150,33 @@ read_data_preview <- function(path, ext, n_preview = 100L) {
     sav  = haven::read_sav(path),
     stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Unsupported data extension: %s", ext))
   )
+  normalized_info <- NULL
+  if (!is.null(instrumento)) {
+    df <- normalize_data_for_xlsform(df, instrumento)
+    norm_attr <- attr(df, "xlsform_normalized")
+    df <- .carga_reorder_data_columns(df, instrumento)
+    if (!is.null(norm_attr)) {
+      survey_cols <- intersect(.carga_data_survey_names(instrumento), names(df))
+      normalized_info <- list(
+        applied = TRUE,
+        aliases = as.integer(length(norm_attr$aliases %||% character(0))),
+        select_multiple = as.integer(length(norm_attr$select_multiple %||% list())),
+        dropped_columns = as.integer(length(norm_attr$dropped_columns %||% character(0))),
+        xlsform_columns = as.integer(length(survey_cols)),
+        extra_columns = as.integer(ncol(df) - length(survey_cols))
+      )
+    }
+  }
+  if (is.null(normalized_info)) {
+    normalized_info <- list(
+      applied = FALSE,
+      aliases = 0L,
+      select_multiple = 0L,
+      dropped_columns = 0L,
+      xlsform_columns = 0L,
+      extra_columns = 0L
+    )
+  }
   n <- nrow(df)
   head_df <- utils::head(df, n_preview)
   # Los .sav de SurveyMonkey llegan como haven_labelled. jsonlite puede
@@ -140,15 +192,33 @@ read_data_preview <- function(path, ext, n_preview = 100L) {
     }
     col
   }), stringsAsFactors = FALSE, check.names = FALSE)
+  survey_names <- .carga_data_survey_names(instrumento)
   list(
     n_filas = as.integer(n),
     n_columnas = ncol(df),
     columnas = lapply(names(df), function(col) {
-      list(nombre = col, tipo = paste(class(df[[col]]), collapse = "/"))
+      list(
+        nombre = col,
+        tipo = paste(class(df[[col]]), collapse = "/"),
+        origen = if (col %in% survey_names) "xlsform" else "extra"
+      )
     }),
+    normalizacion = normalized_info,
     preview_filas = jsonlite::toJSON(head_df, na = "null", dataframe = "rows", auto_unbox = TRUE) |>
       jsonlite::fromJSON(simplifyVector = FALSE)
   )
+}
+
+.carga_current_instrumento_for_data <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(NULL)
+  inst <- s$instrumento
+  if (!is.null(inst) && !is.null(inst$survey)) return(inst)
+  files <- s$files %||% list()
+  xls_metas <- Filter(function(f) identical(f$kind, "xlsform"), files)
+  if (!length(xls_metas)) return(NULL)
+  meta <- xls_metas[[length(xls_metas)]]
+  tryCatch(reporte_instrumento(path = meta$path), error = function(e) NULL)
 }
 
 # Auto-init de la base "default" del estudio cuando el flujo single-base
@@ -265,7 +335,8 @@ mount_carga <- function(pr) {
       if (!(meta$kind %in% c("data", "sav"))) {
         stop_api(400, "E_WRONG_KIND", "file must have kind in {'data','sav'}")
       }
-      preview <- read_data_preview(meta$path, meta$ext)
+      preview_inst <- .carga_current_instrumento_for_data(sid)
+      preview <- read_data_preview(meta$path, meta$ext, instrumento = preview_inst)
       session_set(sid, "data_raw_meta", list(file_id = file_id, path = meta$path, ext = meta$ext))
       # Si ya hay xlsform subido, este punto cierra el par y auto-crea la
       # base "default" — el caso típico cuando el user va Carga →

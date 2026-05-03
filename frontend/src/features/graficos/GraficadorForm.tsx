@@ -4,7 +4,7 @@ import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useVariables } from "./useVariables";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { usePresetsDefaults } from "./usePresetsDefaults";
-import { ArgGroup, GRUPO_META } from "./ArgGroup";
+import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { graficadorToPresetType } from "./graficadorPresetMap";
 import { usePlanStore } from "./store";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
@@ -79,18 +79,24 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
     return null;
   }, [presetType, overridesReusables, currentOverrides]);
 
-  // Expansión: el arg `overrides` del graficador se reemplaza por todos
-  // los args del preset compatible.
+  // Expansión: los args propios del graficador se combinan con los args
+  // del preset compatible. Antes esto dependía de un placeholder técnico
+  // `overrides`; ahora el backend ya no lo expone a la UI, así que el
+  // merge debe ocurrir explícitamente aquí.
   const expandedArgs: ArgMetadata[] = useMemo(() => {
     if (!meta) return [];
     const result: ArgMetadata[] = [];
+    const seen = new Set<string>();
     for (const a of meta.args) {
-      if (a.tipo_input === "overrides" && presetMeta) {
-        for (const presetArg of presetMeta.args) {
-          result.push({ ...presetArg, grupo: presetArg.grupo ?? "estilo" } as ArgMetadata);
-        }
-      } else {
-        result.push(a);
+      if (a.tipo_input === "overrides") continue;
+      result.push(a);
+      seen.add(a.name);
+    }
+    if (presetMeta) {
+      for (const presetArg of presetMeta.args) {
+        if (seen.has(presetArg.name)) continue;
+        result.push({ ...presetArg, grupo: presetArg.grupo ?? "estilo" } as ArgMetadata);
+        seen.add(presetArg.name);
       }
     }
     return result;
@@ -154,19 +160,17 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
   // Agrupar args expandidos
   const grupos = useMemo(() => {
     if (expandedArgs.length === 0) return [];
-    const byGrupo: Record<ArgGrupo, ArgMetadata[]> = {
-      datos: [], textos: [], estilo: [], filtro: [], semaforo: [], canvas: [], tabla: [], avanzado: [],
-    };
+    const byGrupo: Partial<Record<ArgGrupo, ArgMetadata[]>> = {};
     for (const a of expandedArgs) {
-      const g: ArgGrupo = (a.grupo as ArgGrupo) ?? "avanzado";
-      (byGrupo[g] ?? byGrupo.avanzado).push(a);
+      const g = normalizeArgGroup(a.grupo as ArgGrupo);
+      (byGrupo[g] ??= []).push(a);
     }
-    const allow = groupFilter ? new Set(groupFilter) : null;
-    return (Object.keys(byGrupo) as ArgGrupo[])
-      .filter((g) => byGrupo[g].length > 0)
+    const allow = groupFilter ? new Set(groupFilter.map((g) => normalizeArgGroup(g))) : null;
+    return ARG_GROUP_ORDER
+      .filter((g) => byGrupo[g] && byGrupo[g]!.length > 0)
       .filter((g) => !allow || allow.has(g))
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
-      .map((g) => ({ grupo: g, args: byGrupo[g] }));
+      .map((g) => ({ grupo: g, args: byGrupo[g]! }));
   }, [expandedArgs, groupFilter]);
 
   function handleChange(name: string, value: unknown) {

@@ -742,6 +742,7 @@ ppra_adaptar_instrumento <- function(path_instrumento_in,
                                      sm_vars        = character(0),
                                      so_parent_vars = character(0),
                                      so_child_vars  = character(0),
+                                     text_vars      = character(0),
                                      integer_vars   = character(0),
                                      choices_order  = c("original_first","by_first_seen","alphabetical"),
                                      paint = TRUE,
@@ -954,7 +955,55 @@ ppra_adaptar_instrumento <- function(path_instrumento_in,
   }
 
   # =======================
-  # 4) INTEGER
+  # 4) TEXT independiente
+  # =======================
+  if (length(text_vars)) {
+    for (pv in text_vars) {
+      col_rec <- paste0(pv, "_recod")
+      if (!col_rec %in% all_cols_data) next
+      toks <- .collect_tokens_from_col(path_data_adaptada, col_rec)
+      toks <- toks[nzchar(toks)]
+      lab_map <- .collect_aux_code_label_map_from_template(
+        path_plantilla = path_plantilla,
+        parent = pv,
+        target_col = col_rec,
+        known_codes = character(0),
+        required_codes = unique(toks),
+        context = col_rec
+      )
+      if (!length(lab_map)) {
+        lab_map <- .collect_code_label_map_from_col(
+          path_data_adaptada,
+          code_col = col_rec,
+          label_col = paste0(col_rec, "_label"),
+          known_codes = character(0),
+          context = col_rec
+        )
+      }
+
+      res <- .add_recoded_q(survey, choices,
+                            base_name      = pv,
+                            kind           = "one",
+                            list_name_hint = paste0("lst_", col_rec),
+                            tokens_from_data = toks,
+                            labels_from_data = lab_map,
+                            lab_col_s      = lab_col_s,
+                            lab_col_c      = lab_col_c,
+                            choices_order  = choices_order,
+                            insert_below_original = TRUE,
+                            copy_from_original    = FALSE,
+                            new_name_override     = col_rec)
+
+      survey  <- res$survey
+      choices <- res$choices
+
+      new_names_so <- c(new_names_so, res$new_name)
+      new_lists_so <- c(new_lists_so, res$list_name)
+    }
+  }
+
+  # =======================
+  # 5) INTEGER
   # =======================
   if (length(integer_vars)) {
     for (pv in integer_vars) {

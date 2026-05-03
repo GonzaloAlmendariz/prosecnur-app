@@ -65,12 +65,19 @@
       var_esc <- gsub("([\\W])", "\\\\\\1", var)
       mask_any <- rep(FALSE, nrow(data))
       for (v in vals) {
+        matched_dummy <- FALSE
         for (sep in c(".", "/")) {
           cname <- paste0(var, sep, v)
           if (cname %in% names(data)) {
             mk <- as.character(data[[cname]]) %in% c("1", "TRUE", "true")
             mask_any <- mask_any | mk
+            matched_dummy <- TRUE
           }
+        }
+        if (!matched_dummy && var %in% names(data)) {
+          tokens <- strsplit(as.character(data[[var]]), "\\s+")
+          mk <- vapply(tokens, function(z) v %in% z, logical(1))
+          mask_any <- mask_any | mk
         }
       }
       keep <- keep & mask_any
@@ -222,9 +229,30 @@
 .explorar_tab_frec_sm <- function(df, var, instrumento) {
   var_esc <- gsub("([\\W])", "\\\\\\1", as.character(var)[1])
   dummy_cols <- grep(paste0("^", var_esc, "[/\\.]"), names(df), value = TRUE)
-  if (!length(dummy_cols)) return(NULL)
   n_total <- nrow(df)
   map_lab <- .explorar_map_choices(var, instrumento) %||% list()
+  if (!length(dummy_cols) && var %in% names(df)) {
+    tokens_by_row <- strsplit(as.character(df[[var]]), "\\s+")
+    tokens <- unique(unlist(tokens_by_row, use.names = FALSE))
+    tokens <- tokens[!is.na(tokens) & nzchar(tokens) & tokens != "NA"]
+    if (!length(tokens)) return(NULL)
+    if (length(map_lab)) {
+      order_idx <- match(tokens, names(map_lab))
+      order_idx[is.na(order_idx)] <- 1e9
+      tokens <- tokens[order(order_idx, tokens)]
+    }
+    rows <- lapply(tokens, function(opt) {
+      n1 <- sum(vapply(tokens_by_row, function(z) opt %in% z, logical(1)), na.rm = TRUE)
+      lab <- if (opt %in% names(map_lab)) map_lab[[opt]] else opt
+      data.frame(code = opt, label = lab, n = as.integer(n1),
+                 pct = n1 / max(1L, n_total), stringsAsFactors = FALSE)
+    })
+    tb <- do.call(rbind, rows)
+    tb <- tb[order(-tb$n), , drop = FALSE]
+    rownames(tb) <- NULL
+    return(tb)
+  }
+  if (!length(dummy_cols)) return(NULL)
   rows <- lapply(dummy_cols, function(col) {
     v <- df[[col]]
     # tratar 1/"1"/TRUE como marcado.
@@ -350,15 +378,17 @@
     var_esc <- gsub("([\\W])", "\\\\\\1", as.character(var)[1])
     dummy_cols <- grep(paste0("^", var_esc, "[/\\.]"), names(df), value = TRUE)
     n_total <- nrow(df)
-    if (!length(dummy_cols)) {
-      n_validos <- 0L
-      n_na <- n_total
-    } else {
+    if (length(dummy_cols)) {
       raw_rows <- lapply(dummy_cols, function(col) as.character(df[[col]]))
       available <- Reduce(`|`, lapply(raw_rows, function(x) !is.na(x) & nzchar(x) & x != "NA"))
-      n_validos <- sum(available, na.rm = TRUE)
-      n_na <- n_total - n_validos
+    } else if (var %in% names(df)) {
+      x <- as.character(df[[var]])
+      available <- !is.na(x) & nzchar(x) & x != "NA"
+    } else {
+      available <- rep(FALSE, n_total)
     }
+    n_validos <- sum(available, na.rm = TRUE)
+    n_na <- n_total - n_validos
     pct_na <- if (n_total > 0L) n_na / n_total else 0
     sev_na <- if (pct_na < 0.05) "success" else if (pct_na < 0.20) "warn" else "danger"
 
@@ -966,6 +996,10 @@ build_view_bivariado <- function(data, var_x, var_y, instrumento, filtros = NULL
         for (sep in c(".", "/")) {
           cn <- paste0(var_y, sep, opt_code)
           if (cn %in% names(df_ok)) { cname <- cn; break }
+        }
+        if (is.null(cname) && var_y %in% names(df_ok)) {
+          toks <- strsplit(as.character(df_ok[[var_y]]), "\\s+")
+          return(sum(vapply(toks[xv_lab == xl], function(z) opt_code %in% z, logical(1)), na.rm = TRUE) / n_cat)
         }
         if (is.null(cname)) return(0)
         col <- df_ok[[cname]]

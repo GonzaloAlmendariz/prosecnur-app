@@ -1087,6 +1087,19 @@ p_barras_multiapiladas <- function(
     base = list(),
     filtros = list()
 ) {
+  .ppt_as_chr_vec <- function(x, keep_names = FALSE) {
+    if (is.null(x)) return(NULL)
+    if (is.character(x)) return(x)
+    if (is.list(x)) {
+      out <- unlist(x, recursive = FALSE, use.names = keep_names)
+      if (is.null(out)) return(character(0))
+      out <- as.character(out)
+      if (keep_names && !is.null(names(x)) && is.null(names(out))) names(out) <- names(x)
+      return(out)
+    }
+    as.character(x)
+  }
+
   modo <- match.arg(modo)
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
 
@@ -1105,6 +1118,7 @@ p_barras_multiapiladas <- function(
   if (!is.logical(top2box) || length(top2box) != 1L || is.na(top2box)) {
     stop("`top2box` debe ser logical(1).", call. = FALSE)
   }
+  top2box_labels <- .ppt_as_chr_vec(top2box_labels)
   if (!is.null(top2box_labels)) {
     if (!is.character(top2box_labels) || !length(top2box_labels)) {
       stop("`top2box_labels` debe ser NULL o character() no vacio.", call. = FALSE)
@@ -1113,6 +1127,7 @@ p_barras_multiapiladas <- function(
     top2box_labels <- top2box_labels[nzchar(top2box_labels)]
     if (!length(top2box_labels)) top2box_labels <- NULL
   }
+  titulos_grupo <- .ppt_as_chr_vec(titulos_grupo, keep_names = TRUE)
   if (!is.null(titulos_grupo)) {
     if (!is.character(titulos_grupo) || !length(titulos_grupo)) {
       stop("`titulos_grupo` debe ser NULL o character() no vacio.", call. = FALSE)
@@ -1213,6 +1228,7 @@ p_barras_multiapiladas <- function(
 
   if (identical(modo, "var")) {
     if (is.null(vars)) stop("modo='var': `vars` no puede ser NULL.", call. = FALSE)
+    vars <- .ppt_as_chr_vec(vars)
     if (!is.character(vars) || length(vars) < 1L) stop("modo='var': `vars` debe ser character() con >= 1 variable.", call. = FALSE)
     vars <- trimws(vars)
     vars <- vars[nzchar(vars)]
@@ -1240,6 +1256,10 @@ p_barras_multiapiladas <- function(
 
   if (identical(modo, "var_cruce")) {
     if (is.null(vars)) stop("modo='var_cruce': `vars` no puede ser NULL.", call. = FALSE)
+    if (is.list(vars) && !is.data.frame(vars) &&
+        (is.null(names(vars)) || !all(nzchar(trimws(as.character(names(vars))))))) {
+      vars <- .ppt_as_chr_vec(vars)
+    }
     if (is.character(vars)) {
       if (length(vars) < 1L) stop("modo='var_cruce': `vars` debe ser character() con >= 1 variable.", call. = FALSE)
       vars <- trimws(vars)
@@ -1257,6 +1277,7 @@ p_barras_multiapiladas <- function(
       if (!length(vars)) stop("modo='var_cruce': `vars` quedo vacio luego de limpiar.", call. = FALSE)
 
       vars <- lapply(vars, function(x) {
+        x <- .ppt_as_chr_vec(x)
         if (!is.character(x) || !length(x)) {
           stop("modo='var_cruce': cada bloque de `vars` debe ser character() no vacio.", call. = FALSE)
         }

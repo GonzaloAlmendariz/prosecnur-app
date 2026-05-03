@@ -31,7 +31,7 @@ export default function GraficosPage() {
   // Atajos: Cmd/Ctrl+Z (undo), +Shift+Z (redo), +D (duplicar), ? (ayuda).
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   useGraficosShortcuts({ onOpenHelp: () => setShortcutsOpen(true) });
-  // Atajos V2: J/K (nav), / (búsqueda), V/T/S (modo), 1-4 (tabs), F (fit canvas)
+  // Atajos V2: J/K (nav), / (búsqueda), V/T (modo), 1-4 (tabs)
   useShortcutsV2();
 
   const [busyValidating, setBusyValidating] = useState("");

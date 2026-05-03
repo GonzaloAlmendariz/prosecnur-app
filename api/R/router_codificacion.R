@@ -171,18 +171,23 @@
     code <- codes[i]
     label <- lbls[i]
     candidates <- build_cols(code)
-    col_dummy <- candidates[candidates %in% cols_data][1] %||% ""
+    col_dummy_real <- candidates[candidates %in% cols_data][1] %||% ""
+    if (is.na(col_dummy_real)) col_dummy_real <- ""
+    # En bases normalizadas ODK no siempre existe una dummy física pN/code:
+    # la selección vive como token dentro de la columna madre pN. Igual
+    # exponemos pN/code como referencia seleccionable para el codificador.
+    col_dummy <- if (nzchar(col_dummy_real)) col_dummy_real else if (parent %in% cols_data) sprintf("%s/%s", parent, code) else ""
     if (is.na(col_dummy)) col_dummy <- ""
     # Heuristic: is this the "Otros" option? label contains "otro"/"otra"
     # (case-insensitive after strip accents), or it's the last code >= 70.
     label_norm <- tolower(iconv(label, from = "UTF-8", to = "ASCII//TRANSLIT", sub = ""))
-    es_otros <- grepl("\\b(otro|otra|otros|otras|especifi[qc]ue)", label_norm) ||
+    es_otros <- grepl("\\b(other|otro|otra|otros|otras)\\b|especific", label_norm) ||
                 suppressWarnings(as.integer(code)) %in% c(70L, 95L, 98L, 99L)
     list(
       codigo = code,
       label = label,
       col_dummy = col_dummy,
-      existe_en_data = nzchar(col_dummy),
+      existe_en_data = nzchar(col_dummy_real) || parent %in% cols_data,
       es_otros_sugerido = isTRUE(es_otros)
     )
   })
@@ -1078,7 +1083,7 @@ isTRUE_vec <- function(x) {
                          (tipo == "select_one" && modo_so == "padre") ||
                          (tipo == "integer") ||
                          (tipo == "select_multiple" && nzchar(text_col)) ||
-                         (tipo == "text" && nzchar(text_col))
+                         (tipo == "text")
     )
   }
 
@@ -1102,6 +1107,7 @@ mount_codificacion <- function(pr) {
       dat <- .require_data_path(sid)
       inst <- leer_instrumento_xlsform(xls$path)
       data_df <- .read_data_any(dat)
+      data_df <- normalize_data_for_xlsform(data_df, inst)
       s <- session_get(sid)
       out_path <- file.path(s$dir, "downloads", sprintf("familias_%s.xlsx", uuid::UUIDgenerate()))
       escribir_plantilla_familias(inst = inst, dat = list(raw = data_df), path = out_path)
@@ -1410,6 +1416,7 @@ mount_codificacion <- function(pr) {
       otros_stats <- NULL
       if (tipo == "select_multiple") {
         dummy_col <- as.character(row$other_dummy_col %||% "")
+        parent_col_stats <- as.character(row$parent_col %||% "")
         if (nzchar(dummy_col) && dummy_col %in% names(data_df)) {
           dv <- data_df[[dummy_col]]
           v01 <- suppressWarnings(as.integer(as.character(dv)))
@@ -1418,6 +1425,14 @@ mount_codificacion <- function(pr) {
                   ifelse(tolower(as.character(dv)) %in% c("false","f","0"), 0L, NA_integer_))
           }
           n_otros <- as.integer(sum(!is.na(v01) & v01 == 1L))
+          otros_stats <- list(
+            dummy_col = dummy_col,
+            n_otros_marcados = n_otros
+          )
+        } else if (nzchar(dummy_col) && nzchar(parent_col_stats) && parent_col_stats %in% names(data_df)) {
+          other_code <- sub("^.+/", "", dummy_col)
+          toks <- strsplit(ifelse(is.na(data_df[[parent_col_stats]]), "", as.character(data_df[[parent_col_stats]])), "\\s+")
+          n_otros <- as.integer(sum(vapply(toks, function(tt) other_code %in% tt, logical(1))))
           otros_stats <- list(
             dummy_col = dummy_col,
             n_otros_marcados = n_otros
@@ -1809,7 +1824,7 @@ mount_codificacion <- function(pr) {
         parent <- as.character(r$parent %||% "")
         pcol <- as.character(r$parent_col %||% "")
         if (!nzchar(pcol) &&
-            tipo %in% c("select_one","select_multiple","integer") &&
+            tipo %in% c("select_one","select_multiple","integer","text") &&
             nzchar(parent) && parent %in% data_cols) {
           draft$rows[[i]]$parent_col <- parent
         }
@@ -1871,6 +1886,7 @@ mount_codificacion <- function(pr) {
       so_child_vars  <- .vars_from_split(split$select_one, modo = "hijo")
       sm_vars        <- .vars_from_split(split$select_multiple)
       int_vars       <- .vars_from_split(split$integer)
+      text_vars      <- .vars_from_split(split$text)
 
       data_out <- file.path(s$dir, "downloads",
         sprintf("data_adaptada_%s.xlsx", uuid::UUIDgenerate()))
@@ -1881,7 +1897,7 @@ mount_codificacion <- function(pr) {
         sid = sid,
         kind = "codificacion.aplicar",
         func = function(xls_path, data_path, codes_path, fam_path, data_out, inst_out,
-                        sm_vars, so_parent_vars, so_child_vars, int_vars) {
+                        sm_vars, so_parent_vars, so_child_vars, int_vars, text_vars) {
           ppra_adaptar_data(
             path_instrumento = xls_path,
             path_datos       = data_path,
@@ -1889,6 +1905,7 @@ mount_codificacion <- function(pr) {
             sm_vars          = sm_vars,
             so_parent_vars   = so_parent_vars,
             so_child_vars    = so_child_vars,
+            text_vars        = text_vars,
             int_vars         = int_vars,
             out_path         = data_out,
             path_familias    = fam_path
@@ -1906,6 +1923,7 @@ mount_codificacion <- function(pr) {
             sm_vars              = sm_vars,
             so_parent_vars       = so_parent_vars,
             so_child_vars        = so_child_vars,
+            text_vars            = text_vars,
             integer_vars         = int_vars
           )
           list(data_out = data_out, inst_out = inst_out)
@@ -1920,12 +1938,40 @@ mount_codificacion <- function(pr) {
           sm_vars = sm_vars,
           so_parent_vars = so_parent_vars,
           so_child_vars = so_child_vars,
+          text_vars = text_vars,
           int_vars = int_vars
         ),
         on_complete = function(j) {
           paths <- j$result_data
           data_meta <- .register_output_file(j$sid, "data_adaptada", paths$data_out)
           inst_meta <- .register_output_file(j$sid, "instrumento_adaptado", paths$inst_out)
+          inst_adaptado <- reporte_instrumento(path = inst_meta$path)
+          data_adaptada <- .read_data_any(data_meta)
+          data_adaptada <- normalize_data_for_xlsform(data_adaptada, inst_adaptado)
+          rp_data_adaptada <- reporte_data(data_adaptada, instrumento = inst_adaptado)
+
+          # Desde este punto Analítica debe conversar con la base recodificada:
+          # las variables disponibles, frecuencias y cruces leen del par
+          # instrumento/data adaptado en vez del par crudo original.
+          s_now <- session_get(j$sid)
+          base_activa <- codif_source_active(j$sid)
+          if (!is.null(base_activa) && nzchar(base_activa) &&
+              !is.null(s_now$estudio) && !is.null(s_now$estudio$bases[[base_activa]])) {
+            estudio_replace_base_files(
+              sid = j$sid,
+              nombre = base_activa,
+              xlsform_file_id = inst_meta$file_id,
+              data_file_id = data_meta$file_id,
+              data_ext = data_meta$ext,
+              rp_data = rp_data_adaptada,
+              rp_inst = inst_adaptado,
+              n_filas = nrow(rp_data_adaptada),
+              n_columnas = ncol(rp_data_adaptada)
+            )
+          } else {
+            session_set(j$sid, "rp_inst", inst_adaptado)
+            session_set(j$sid, "rp_data", rp_data_adaptada)
+          }
           session_set(j$sid, "codif_data_adaptada_fid", data_meta$file_id)
           session_set(j$sid, "codif_inst_adaptado_fid", inst_meta$file_id)
           session_set(j$sid, "codif_aplicado", TRUE)
