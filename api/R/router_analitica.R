@@ -617,7 +617,9 @@ mount_analitica <- function(pr) {
       orden <- as.character(fc$orden %||% "desc")
       if (!orden %in% c("desc","asc","original")) orden <- "desc"
       mostrar_todo <- isTRUE(fc$mostrar_todo)
-      incluir_titulos <- isTRUE(fc$incluir_titulos %||% TRUE)
+      # Los títulos de variable/pregunta se conservan siempre. La opción UI
+      # solo controla los separadores de sección.
+      incluir_titulos <- TRUE
       incluir_secciones <- isTRUE(fc$incluir_secciones %||% TRUE)
 
       numericas_arg <- .analitica_declared_numericas(cfg, override_frecuencias = TRUE)
@@ -699,7 +701,9 @@ mount_analitica <- function(pr) {
       alpha <- suppressWarnings(as.numeric(cc$alpha %||% 0.05))
       if (!is.finite(alpha)) alpha <- 0.05
       incluir_total <- isTRUE(cc$incluir_total %||% TRUE)
-      incluir_titulos <- isTRUE(cc$incluir_titulos %||% TRUE)
+      # Los títulos de variable/pregunta se conservan siempre. La opción UI
+      # solo controla los separadores de sección.
+      incluir_titulos <- TRUE
       incluir_secciones <- isTRUE(cc$incluir_secciones %||% TRUE)
 
       brecha <- cc$brecha %||% list()

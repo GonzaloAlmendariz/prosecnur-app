@@ -148,7 +148,7 @@ export function CrucesPane() {
 
         <Section
           title="Presentación del Excel"
-          subtitle="Controla si el archivo incluye celdas separadoras de sección y títulos encima de cada bloque."
+          subtitle="Controla si el archivo incluye celdas separadoras de sección. El título de cada variable se conserva siempre al inicio de su tabla."
         >
           <div className="analitica-control-grid">
             <label className={`analitica-control-card ${cruces.incluir_secciones ? "is-active" : ""}`} style={{ cursor: "pointer" }}>
@@ -169,23 +169,15 @@ export function CrucesPane() {
               </span>
             </label>
 
-            <label className={`analitica-control-card ${cruces.incluir_titulos ? "is-active" : ""}`} style={{ cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={cruces.incluir_titulos}
-                onChange={(e) => setCruces({ incluir_titulos: e.target.checked })}
-                style={{ marginTop: 6, accentColor: "var(--pulso-primary)" }}
-              />
-              <span className="analitica-control-icon">
-                {cruces.incluir_titulos ? <CheckCircle2 size={15} /> : <Grid3x3 size={15} />}
-              </span>
+            <div className="analitica-control-card">
+              <span className="analitica-control-icon"><Grid3x3 size={15} /></span>
               <span>
-                <span className="analitica-control-title">Mostrar títulos de tabla</span>
+                <span className="analitica-control-title">Títulos de variables fijos</span>
                 <span className="analitica-control-copy">
-                  Incluye el título general y la pregunta encima de cada cruce.
+                  La pregunta o etiqueta de la variable permanece encima de cada tabla de cruce.
                 </span>
               </span>
-            </label>
+            </div>
           </div>
         </Section>
 

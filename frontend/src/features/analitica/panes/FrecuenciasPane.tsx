@@ -182,30 +182,12 @@ export function FrecuenciasPane() {
                 </span>
               </label>
 
-              <label className={`analitica-control-card ${frec.incluir_titulos ? "is-active" : ""}`} style={{ cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={frec.incluir_titulos}
-                  onChange={(e) => setFrec({ incluir_titulos: e.target.checked })}
-                  style={{ marginTop: 6, accentColor: "var(--pulso-primary)" }}
-                />
-                <span className="analitica-control-icon">
-                  {frec.incluir_titulos ? <CheckCircle2 size={15} /> : <Table2 size={15} />}
-                </span>
-                <span>
-                  <span className="analitica-control-title">Mostrar títulos de tabla</span>
-                  <span className="analitica-control-copy">
-                    Incluye la pregunta o etiqueta encima de cada tabla simple.
-                  </span>
-                </span>
-              </label>
-
               <div className="analitica-control-card">
                 <span className="analitica-control-icon"><Table2 size={15} /></span>
                 <div>
                   <div className="analitica-control-title">Salida Excel pulida</div>
                   <div className="analitica-control-copy">
-                    Las tablas simples se exportan con hoja blanca, gridlines ocultas y columnas numéricas centradas.
+                    Las tablas simples mantienen siempre el título de la variable y salen con hoja blanca, gridlines ocultas y columnas numéricas centradas.
                   </div>
                 </div>
               </div>

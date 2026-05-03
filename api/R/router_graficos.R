@@ -48,6 +48,17 @@
   as.list(x)
 }
 
+.clean_rebuild_args <- function(args, fn) {
+  args <- as.list(args %||% list())
+  args <- args[names(args) %in% names(formals(fn))]
+  args[!vapply(args, function(v) {
+    is.null(v) ||
+      length(v) == 0L ||
+      (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
+      (length(v) == 1L && is.atomic(v) && is.na(v))
+  }, logical(1))]
+}
+
 .require_rp_data <- function(sid) {
   s <- session_get(sid)
   ds <- estudio_data_sources(sid)
@@ -66,7 +77,7 @@
     stop_api(400, "E_UNKNOWN_GRAF", sprintf("Graficador no registrado: %s", g$graficador))
   }
   fn <- getExportedValue("prosecnurapp", g$graficador)
-  do.call(fn, as.list(g$args %||% list()))
+  do.call(fn, .clean_rebuild_args(g$args, fn))
 }
 
 .rebuild_slide <- function(s) {
@@ -756,7 +767,15 @@ mount_graficos <- function(pr) {
         if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
         if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
         fn <- getExportedValue("prosecnurapp", g$graficador)
-        do.call(fn, as.list(g$args %||% list()))
+        args <- as.list(g$args %||% list())
+        args <- args[names(args) %in% names(formals(fn))]
+        args <- args[!vapply(args, function(v) {
+          is.null(v) ||
+            length(v) == 0L ||
+            (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
+            (length(v) == 1L && is.atomic(v) && is.na(v))
+        }, logical(1))]
+        do.call(fn, args)
       }
       as_list_shallow <- function(x) {
         if (is.null(x)) return(NULL)
@@ -880,7 +899,15 @@ mount_graficos <- function(pr) {
             if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
             if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
             fn <- getExportedValue("prosecnurapp", g$graficador)
-            do.call(fn, as.list(g$args %||% list()))
+            args <- as.list(g$args %||% list())
+            args <- args[names(args) %in% names(formals(fn))]
+            args <- args[!vapply(args, function(v) {
+              is.null(v) ||
+                length(v) == 0L ||
+                (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
+                (length(v) == 1L && is.atomic(v) && is.na(v))
+            }, logical(1))]
+            do.call(fn, args)
           }
           rebuild_slide <- function(s) {
             s <- as.list(s)
@@ -983,7 +1010,15 @@ mount_graficos <- function(pr) {
             if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
             if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
             fn <- getExportedValue("prosecnurapp", g$graficador)
-            do.call(fn, as.list(g$args %||% list()))
+            args <- as.list(g$args %||% list())
+            args <- args[names(args) %in% names(formals(fn))]
+            args <- args[!vapply(args, function(v) {
+              is.null(v) ||
+                length(v) == 0L ||
+                (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
+                (length(v) == 1L && is.atomic(v) && is.na(v))
+            }, logical(1))]
+            do.call(fn, args)
           }
           rebuild_slide <- function(s) {
             s <- as.list(s)

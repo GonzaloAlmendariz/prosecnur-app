@@ -94,6 +94,7 @@ export function ArgGroup({
   const meta = GRUPO_META[normalizedGrupo];
   const [open, setOpen] = useState(meta.defaultOpen);
   const [hover, setHover] = useState(false);
+  const toggleOpen = () => setOpen((v) => !v);
 
   if (args.length === 0) return null;
 
@@ -138,7 +139,22 @@ export function ArgGroup({
     >
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onMouseDown={(e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          e.stopPropagation();
+          toggleOpen();
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          e.stopPropagation();
+          toggleOpen();
+        }}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         aria-expanded={open}
