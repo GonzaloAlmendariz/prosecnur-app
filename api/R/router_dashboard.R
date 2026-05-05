@@ -252,10 +252,11 @@ mount_dashboard <- function(pr) {
       path <- .dashboard_relacion_descargar(s, var_p, var_s, filtros, iterar)
       n <- file.info(path)$size
       bytes <- readBin(path, what = "raw", n = n)
-      filename <- sprintf("relacion_%s_x_%s_%s.xlsx",
-                          gsub("[^A-Za-z0-9_-]", "_", var_p),
-                          gsub("[^A-Za-z0-9_-]", "_", var_s),
-                          format(Sys.time(), "%Y%m%d_%H%M%S"))
+      filename <- .export_filename(
+        sid,
+        paste0("relacion_", .export_slug(var_p), "_x_", .export_slug(var_s)),
+        "xlsx"
+      )
       res$setHeader("Content-Type",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
       res$setHeader("Content-Length", as.character(n))
@@ -292,12 +293,11 @@ mount_dashboard <- function(pr) {
       result <- .dashboard_base_datos_descargar(s, modo, variables, formato)
       n <- file.info(result$path)$size
       bytes <- readBin(result$path, what = "raw", n = n)
-      ts <- format(Sys.time(), "%Y%m%d_%H%M%S")
       if (identical(result$formato, "csv")) {
-        filename <- sprintf("base_datos_%s.csv", ts)
+        filename <- .export_filename(sid, "base_datos", "csv")
         res$setHeader("Content-Type", "text/csv; charset=utf-8")
       } else {
-        filename <- sprintf("base_datos_%s.xlsx", ts)
+        filename <- .export_filename(sid, "base_datos", "xlsx")
         res$setHeader("Content-Type",
                       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
       }

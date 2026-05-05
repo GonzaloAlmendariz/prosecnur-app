@@ -1,0 +1,27 @@
+{
+  "id": "callao-pcc2019-manzanas",
+  "version": "callao-pcc2019-v1",
+  "coverage": "Callao",
+  "year": 2019,
+  "provider": "Plan de Desarrollo Metropolitano del Callao",
+  "source": "B_070101_Manzanas - Plan de Desarrollo Metropolitano del Callao; fuente declarada en atributos: META 6 - PCC 2019",
+  "catalog_url": "https://portal.imp.gob.pe/sim/catalogo-de-datos-planmet-2040/",
+  "layer_url": "https://services5.arcgis.com/bHvzrGGxW8wP6Utm/ArcGIS/rest/services/B_070101_Manzanas/FeatureServer/0",
+  "geometry": "polygon",
+  "spatial_reference_api": "EPSG:4326",
+  "native_id_field": "ID_MANZANA",
+  "district_field": "NOMBDIST",
+  "source_field": "FTE_MZNA",
+  "area_field": "AREA_M2",
+  "packaging_mode": "local_first_optional_online_cache",
+  "compression": "gzip_por_distrito",
+  "packaged_scope": "Todos los 7 distritos de la Provincia Constitucional del Callao",
+  "packaged_districts": 7,
+  "packaged_blocks": 10949,
+  "packaged_at": "2026-05-03",
+  "exclusions": [
+    "No se presenta como INEI 2017: la fuente cartografica declara META 6 - PCC 2019",
+    "La seleccion final solo debe resaltarse cuando el marco muestral y la cartografia compartan ID_MANZANA",
+    "La app no debe depender de internet en uso operativo; la fuente online es solo para preparar el paquete local"
+  ]
+}

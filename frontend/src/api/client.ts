@@ -1356,10 +1356,19 @@ export async function apiShutdown() {
 
 export type JobStatus = "running" | "done" | "error" | "cancelled";
 export type JobStart = { ok: true; job_id: string; kind: string };
-export type FileJobResult = { ok: true; file_id: string; size: number };
+export type FileJobResult = { ok: true; file_id: string; filename?: string; size: number };
 
 // The API unboxed-JSON serializer turns R's NULL into {}.
 // result_data / error are therefore either the real payload or an empty object.
+export type JobProgress = {
+  phase?: string;
+  current?: number;
+  total?: number;
+  percent?: number;
+  message?: string;
+  ts?: string;
+};
+
 export type JobSnapshot<T = unknown> = {
   id: string;
   kind: string;
@@ -1369,6 +1378,7 @@ export type JobSnapshot<T = unknown> = {
   has_file_result: boolean;
   result_filename: string | null;
   result_data: T | Record<string, never>;
+  progress?: JobProgress | Record<string, never> | null;
   error: string | Record<string, never>;
 };
 
@@ -1416,6 +1426,494 @@ export type HojasRutaConfig = {
   max_umps: number | null;
 };
 
+export type HojasRutaAgeRange = {
+  id: string;
+  label: string;
+  min: number;
+  max: number | null;
+};
+
+export type SamplingMethod = "pps" | "sistematico" | "conglomerado_fijo";
+export type SampleSizeMode = "calculator" | "external_total" | "external_district";
+export type HojasRutaAgeRangeMode = "manual" | "terciles" | "cuartiles" | "quintiles";
+export type HojasRutaZoneAllocation = "proportional";
+
+export type AllocationMode = "proportional" | "uniform" | "compromise";
+
+export type HojasRutaSampleSizeConfig = {
+  confidence_level: number;
+  margin_total: number;
+  margin_district: number;
+  margin_district_overrides?: Record<string, number>;
+  expected_proportion: number;
+  design_effect: number;
+  design_effect_overrides?: Record<string, number>;
+  allocation_mode?: AllocationMode;
+  enforce_district_floor?: boolean;
+  response_rate: number;
+  apply_fpc: boolean;
+};
+
+export type HojasRutaIntegratedConfig = {
+  n_objetivo: number;
+  n_mode: "total" | "por_distrito";
+  n_por_distrito: Record<string, number>;
+  territorios: string[];
+  row_var: "departamento" | "provincia" | "distrito" | "ubigeo" | "zona";
+  col_var: "rango_edad";
+  subquota_var: "sexo" | "ninguna";
+  measure_var: "viviendas" | "poblacion";
+  sampling_method: SamplingMethod;
+  seed: number;
+  max_per_manzana: number;
+  entrevistas_por_manzana: number;
+  age_range_mode: HojasRutaAgeRangeMode;
+  zone_allocation: HojasRutaZoneAllocation;
+  age_ranges: HojasRutaAgeRange[];
+  sample_size_mode: SampleSizeMode;
+  sample_size: HojasRutaSampleSizeConfig;
+};
+
+export type HojasRutaUiStage = "territorio" | "poblacion" | "muestra" | "manzanas" | "entrega";
+
+export type HojasRutaUiState = {
+  active_stage: HojasRutaUiStage;
+  draft_territories: string[];
+  map_ubigeo: string;
+  map_zona: string;
+  map_level: "distritos" | "zonas" | "manzanas";
+  map_selection_mode: boolean;
+};
+
+export type TerritorialFrameMeta = {
+  ok: boolean;
+  source: string;
+  year: number;
+  version: string;
+  packaged_at: string;
+  checksum: string | null;
+  coverage: string;
+  pilot: boolean;
+  granularity?: string;
+  path: string;
+  n_departamentos: number;
+  n_provincias: number;
+  n_distritos: number;
+  n_manzanas: number;
+  viviendas: number;
+  poblacion: number;
+  age_data?: TerritorialAgeSimpleMeta;
+  block_cartography?: TerritorialBlockCartographyMeta;
+  street_cartography?: StreetCartographyMeta;
+  context_cartography?: ContextCartographyMeta;
+  nse_data?: {
+    ok: boolean;
+    available: boolean;
+    source?: string;
+    message?: string;
+  };
+  note: string;
+  methods: { id: SamplingMethod; label: string; description: string }[];
+};
+
+export type StreetCartographyMeta = {
+  ok: boolean;
+  source: string;
+  source_url: string;
+  provider: string;
+  provider_url: string;
+  license: string;
+  license_url: string;
+  attribution: string;
+  extraction_date: string | null;
+  packaged_at: string | null;
+  coverage: string;
+  format: string;
+  mode: string;
+  packaged_districts: number;
+  packaged_streets: number;
+  checksum: string | null;
+  manifest_path: string;
+  note: string;
+};
+
+export type ContextCartographyMeta = {
+  ok: boolean;
+  source: string;
+  source_url: string;
+  provider: string;
+  license: string;
+  license_url: string;
+  attribution: string;
+  packaged_at: string | null;
+  coverage: string;
+  format: string;
+  geometry: string;
+  mode: string;
+  packaged_districts: number;
+  packaged_features: number;
+  counts_by_class?: Record<string, number>;
+  included_classes?: string[];
+  checksum: string | null;
+  manifest_path: string;
+  curated_path?: string;
+  note: string;
+};
+
+export type TerritorialBlockCartographyMeta = {
+  ok: boolean;
+  source: string;
+  source_url: string;
+  layer_url: string;
+  query_url: string;
+  year: number;
+  years?: number[];
+  provider: string;
+  version: string;
+  packaged_at: string | null;
+  coverage: string;
+  geometry: string;
+  id_field: string;
+  district_field: string;
+  source_field: string;
+  area_field: string;
+  mode: string;
+  manifest_path: string;
+  checksum: string | null;
+  packaged_districts?: number;
+  packaged_blocks?: number;
+  sources?: Record<string, TerritorialBlockCartographyMeta>;
+  note: string;
+};
+
+export type HojasRutaStreetMapFeature = {
+  type: "Feature";
+  id?: string | number;
+  geometry: {
+    type: "LineString" | "MultiLineString";
+    coordinates: number[][] | number[][][];
+  } | null;
+  properties: {
+    id?: string;
+    osm_id?: string | number;
+    name?: string;
+    display_name?: string;
+    highway?: string;
+    class_group?: "major" | "detail" | string;
+    rank?: number;
+    avenue_like?: boolean;
+    ubigeo?: string;
+  };
+};
+
+export type HojasRutaStreetMap = {
+  ok: boolean;
+  source: StreetCartographyMeta;
+  ubigeo: string;
+  count: number;
+  returned: number;
+  cache: boolean;
+  geojson: {
+    type: "FeatureCollection";
+    properties?: Record<string, unknown>;
+    features: HojasRutaStreetMapFeature[];
+  };
+  alerts: HojasRutaAlert[];
+};
+
+export type HojasRutaContextMapFeature = {
+  type: "Feature";
+  id?: string | number;
+  geometry: {
+    type: "Point" | "MultiPoint" | "LineString" | "MultiLineString" | "Polygon" | "MultiPolygon";
+    coordinates: unknown;
+  } | null;
+  properties: {
+    id?: string;
+    osm_id?: string | number;
+    name?: string;
+    display_name?: string;
+    feature_class?: "water" | "coast" | "waterway" | "green" | "square" | "public" | "transit" | "landmark" | string;
+    kind?: string;
+    rank?: number;
+    area_m2?: number;
+    length_m?: number;
+    source_kind?: "osm" | "curated" | string;
+    source?: string;
+    source_url?: string;
+    confidence?: string;
+    aliases?: string[];
+  };
+};
+
+export type HojasRutaContextMap = {
+  ok: boolean;
+  source: ContextCartographyMeta;
+  ubigeo: string;
+  count: number;
+  returned: number;
+  geojson: {
+    type: "FeatureCollection";
+    properties?: Record<string, unknown>;
+    features: HojasRutaContextMapFeature[];
+  };
+  alerts: HojasRutaAlert[];
+};
+
+export type TerritorialAgeSimpleMeta = {
+  ok: boolean;
+  source: string;
+  source_url: string;
+  query_url: string;
+  year: number;
+  version: string;
+  packaged_at: string | null;
+  checksum: string | null;
+  granularity: string;
+  variable_edad: string;
+  variable_sexo: string;
+  min_age: number | null;
+  max_age: number | null;
+  n_ubigeos: number;
+  rows: number;
+  poblacion: number;
+  poblacion_18_plus: number;
+  path: string;
+};
+
+export type HojasRutaAgeSource = {
+  type: string;
+  label?: string;
+  granularity?: string;
+  variable_edad?: string;
+  variable_sexo?: string;
+  version?: string;
+  reason?: string;
+};
+
+export type HojasRutaTerritory = {
+  ubigeo: string;
+  departamento: string;
+  provincia: string;
+  distrito: string;
+  viviendas: number;
+  poblacion: number;
+  manzanas: number;
+};
+
+export type HojasRutaAlert = {
+  level: "info" | "warn" | "error";
+  code: string;
+  message: string;
+};
+
+export type QuotaPlan = {
+  ok: boolean;
+  frame_meta: TerritorialFrameMeta;
+  config: HojasRutaIntegratedConfig;
+  n_objetivo: number;
+  total_asignado: number;
+  route_size?: number;
+  route_multiple_ok?: boolean;
+  age_source?: HojasRutaAgeSource;
+  territories: HojasRutaTerritory[];
+  cells: Record<string, string | number | null>[];
+  table: Record<string, string | number | null>[];
+  alerts: HojasRutaAlert[];
+};
+
+export type PopulationPlan = {
+  ok: boolean;
+  frame_meta: TerritorialFrameMeta;
+  config: HojasRutaIntegratedConfig;
+  total_poblacion: number;
+  age_source?: HojasRutaAgeSource;
+  territories: HojasRutaTerritory[];
+  cells: Record<string, string | number | null>[];
+  table: Record<string, string | number | null>[];
+  alerts: HojasRutaAlert[];
+};
+
+export type HojasRutaSampleSizeDistrictRow = {
+  ubigeo: string;
+  distrito: string;
+  poblacion: number;
+  viviendas: number;
+  n_recommended: number;
+  n_min_district: number;
+  n_used: number;
+  margin_estimated: number | null;
+  target_margin: number;
+  sampling_fraction: number | null;
+  design_effect: number;
+  status: "ok" | "alerta" | "faltante";
+  message: string;
+};
+
+export type HojasRutaSampleSizePreview = {
+  ok: boolean;
+  frame_meta: TerritorialFrameMeta;
+  config: HojasRutaIntegratedConfig;
+  sample_size: HojasRutaSampleSizeConfig;
+  mode: SampleSizeMode;
+  total_population: number;
+  n_recommended: number;
+  n_recommended_route?: number;
+  n_total_min: number;
+  n_district_floor: number;
+  route_size?: number;
+  route_multiple_ok?: boolean;
+  n_route_previous?: number;
+  n_route_next?: number;
+  allocation_mode: AllocationMode;
+  enforce_district_floor: boolean;
+  n_used: number;
+  contacts_suggested: number;
+  margin_total_estimated: number | null;
+  margin_total_target: number;
+  district_rows: HojasRutaSampleSizeDistrictRow[];
+  alerts: HojasRutaAlert[];
+};
+
+export type HojasRutaPopulationExportResult = {
+  ok: true;
+  file_id: string;
+  filename: string;
+  size: number;
+  total_poblacion: number;
+  n_territorios: number;
+  n_cells: number;
+};
+
+export type SelectedBlock = {
+  id_manzana: string;
+  departamento: string;
+  provincia: string;
+  distrito: string;
+  ubigeo: string;
+  zona: string;
+  manzana: string;
+  viviendas: number;
+  poblacion: number;
+  territorio_muestral: string;
+  metodo: SamplingMethod;
+  orden_seleccion: number;
+  entrevistas: number;
+  medida_tamano: number;
+  lat: number | null;
+  lon: number | null;
+};
+
+export type HojasRutaSamplePreview = {
+  ok: boolean;
+  frame_meta: TerritorialFrameMeta;
+  config: HojasRutaIntegratedConfig;
+  quota: QuotaPlan;
+  method: SamplingMethod;
+  seed: number;
+  blocks: SelectedBlock[];
+  n_blocks: number;
+  total_entrevistas: number;
+  unassigned: number;
+  alerts: HojasRutaAlert[];
+};
+
+export type HojasRutaBlockMapFeature = {
+  type: "Feature";
+  id?: string | number;
+  geometry: {
+    type: "Polygon" | "MultiPolygon";
+    coordinates: number[][][] | number[][][][];
+  } | null;
+  properties: {
+    OBJECTID?: number;
+    ID_MANZANA?: string;
+    NOMBDIST?: string;
+    NOMBPROV?: string;
+    NOMBDEP?: string;
+    FTE_MZNA?: string;
+    AREA_M2?: number;
+    ubigeo?: string;
+    cartografia_id?: string;
+    manzana_label?: string;
+    fuente_anio?: number;
+    inei_zona?: string;
+    inei_manzana?: string;
+    inei_id_manzana?: string;
+    inei_viviendas?: number;
+    inei_poblacion?: number;
+    inei_pob_hombres?: number;
+    inei_pob_mujeres?: number;
+    inei_pob_18_plus?: number;
+    inei_age_breakdown?: Record<string, number>;
+  };
+};
+
+export type HojasRutaZoneMapFeature = {
+  type: "Feature";
+  id?: string | number;
+  geometry: {
+    type: "Polygon" | "MultiPolygon";
+    coordinates: number[][][] | number[][][][] | number[][][][][];
+  } | null;
+  properties: {
+    id?: string;
+    ubigeo?: string;
+    departamento?: string;
+    provincia?: string;
+    distrito?: string;
+    zona?: string;
+    zona_label?: string;
+    n_manzanas?: number;
+    viviendas?: number;
+    poblacion?: number;
+  };
+};
+
+export type HojasRutaZoneMap = {
+  ok: boolean;
+  source: TerritorialBlockCartographyMeta;
+  ubigeo: string;
+  territory: {
+    ubigeo: string;
+    departamento: string | null;
+    provincia: string | null;
+    distrito: string | null;
+  };
+  count: number;
+  returned: number;
+  cache: boolean;
+  geojson: {
+    type: "FeatureCollection";
+    properties?: Record<string, unknown>;
+    features: HojasRutaZoneMapFeature[];
+  };
+  alerts: HojasRutaAlert[];
+};
+
+export type HojasRutaBlockMap = {
+  ok: boolean;
+  source: TerritorialBlockCartographyMeta;
+  ubigeo: string;
+  territory: {
+    ubigeo: string;
+    departamento: string | null;
+    provincia: string | null;
+    distrito: string | null;
+  };
+  count: number;
+  returned: number;
+  truncated: boolean;
+  feature_limit: number;
+  cache: boolean;
+  geojson: {
+    type: "FeatureCollection";
+    properties?: Record<string, unknown>;
+    features: HojasRutaBlockMapFeature[];
+  };
+  alerts: HojasRutaAlert[];
+};
+
 export type HojasRutaCampos = {
   ok: boolean;
   required: string[];
@@ -1446,6 +1944,10 @@ export type HojasRutaState = {
   has_data: boolean;
   cache_dir: string;
   config: HojasRutaConfig;
+  integrated_config: HojasRutaIntegratedConfig;
+  ui_state: HojasRutaUiState;
+  frame_meta: TerritorialFrameMeta;
+  territories: HojasRutaTerritory[];
   campos: HojasRutaCampos | null;
   variables: HojasRutaVariable[];
 };
@@ -1463,12 +1965,31 @@ export type HojasRutaJobResult = {
   filename: string;
   size: number;
   n_pdfs: number;
+  n_zone_pdfs?: number;
+  n_blocks: number;
+  n_zones?: number;
+  total_entrevistas: number;
+  frame_version: string;
+  alerts: HojasRutaAlert[];
   mapas_faltantes: number;
 };
 
 export async function apiHojasRutaState() {
   return handle<HojasRutaState>(
     await apiFetch("/api/hojas-ruta/state", { headers: headers() }),
+  );
+}
+
+export async function apiHojasRutaPersistWorkspace(
+  config: Partial<HojasRutaIntegratedConfig>,
+  uiState: Partial<HojasRutaUiState>,
+) {
+  return handle<{ ok: true; integrated_config: HojasRutaIntegratedConfig; ui_state: HojasRutaUiState }>(
+    await apiFetch("/api/hojas-ruta/workspace", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config, ui_state: uiState }),
+    }),
   );
 }
 
@@ -1492,7 +2013,87 @@ export async function apiHojasRutaPreview(config: Partial<HojasRutaConfig>) {
   );
 }
 
-export async function apiHojasRutaGenerate(config: Partial<HojasRutaConfig>) {
+export async function apiHojasRutaQuotaPreview(config: Partial<HojasRutaIntegratedConfig>) {
+  return handle<QuotaPlan>(
+    await apiFetch("/api/hojas-ruta/quota-preview", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiHojasRutaPopulationPreview(config: Partial<HojasRutaIntegratedConfig>) {
+  return handle<PopulationPlan>(
+    await apiFetch("/api/hojas-ruta/population-preview", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiHojasRutaPopulationExport(config: Partial<HojasRutaIntegratedConfig>) {
+  return handle<HojasRutaPopulationExportResult>(
+    await apiFetch("/api/hojas-ruta/population-export", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiHojasRutaSampleSizePreview(config: Partial<HojasRutaIntegratedConfig>) {
+  return handle<HojasRutaSampleSizePreview>(
+    await apiFetch("/api/hojas-ruta/sample-size-preview", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiHojasRutaSamplePreview(config: Partial<HojasRutaIntegratedConfig>) {
+  return handle<HojasRutaSamplePreview>(
+    await apiFetch("/api/hojas-ruta/sample-preview", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiHojasRutaBlockMap(ubigeo: string, limit = 0, refresh = false, allowOnline = false) {
+  const params = new URLSearchParams({ ubigeo, limit: String(limit) });
+  if (refresh) params.set("refresh", "1");
+  if (allowOnline) params.set("allow_online", "1");
+  return handle<HojasRutaBlockMap>(
+    await apiFetch(`/api/hojas-ruta/block-map?${params.toString()}`),
+  );
+}
+
+export async function apiHojasRutaZoneMap(ubigeo: string) {
+  const params = new URLSearchParams({ ubigeo });
+  return handle<HojasRutaZoneMap>(
+    await apiFetch(`/api/hojas-ruta/zone-map?${params.toString()}`),
+  );
+}
+
+export async function apiHojasRutaStreetMap(ubigeo: string) {
+  const params = new URLSearchParams({ ubigeo });
+  return handle<HojasRutaStreetMap>(
+    await apiFetch(`/api/hojas-ruta/street-map?${params.toString()}`),
+  );
+}
+
+export async function apiHojasRutaContextMap(ubigeo: string) {
+  const params = new URLSearchParams({ ubigeo });
+  return handle<HojasRutaContextMap>(
+    await apiFetch(`/api/hojas-ruta/context-map?${params.toString()}`),
+  );
+}
+
+export async function apiHojasRutaGenerate(config: Partial<HojasRutaIntegratedConfig>) {
   return handle<JobStart>(
     await apiFetch("/api/hojas-ruta/generate", {
       method: "POST",
@@ -4278,6 +4879,24 @@ export async function apiSaveEntregable(
         filename,
         subdir: options.subdir ?? null,
         overwrite: options.overwrite ?? false,
+      }),
+    })
+  );
+}
+
+export async function apiSaveFileAs(
+  fileId: string,
+  path: string,
+  options: { overwrite?: boolean } = {}
+) {
+  return handle<{ ok: true; path: string; filename: string; size: number }>(
+    await apiFetch("/api/fs/save-file-as", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        file_id: fileId,
+        path,
+        overwrite: options.overwrite ?? true,
       }),
     })
   );

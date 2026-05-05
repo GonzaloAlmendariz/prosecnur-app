@@ -22,6 +22,8 @@ export type TabMeta<K extends string = string> = {
   label: string;
   icon: typeof Layers;
   desc?: string;
+  disabled?: boolean;
+  disabledReason?: string;
 };
 
 type Props<K extends string = string> = {
@@ -55,7 +57,9 @@ export function TabStrip<K extends string = string>({
           meta={t}
           active={active === t.key}
           last={i === tabs.length - 1}
-          onClick={() => onChange(t.key)}
+          onClick={() => {
+            if (!t.disabled) onChange(t.key);
+          }}
         />
       ))}
     </div>
@@ -86,6 +90,9 @@ function TabChip<K extends string = string>({
       type="button"
       role="tab"
       aria-selected={active}
+      aria-disabled={meta.disabled || undefined}
+      disabled={meta.disabled}
+      title={meta.disabled ? meta.disabledReason : undefined}
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
@@ -98,7 +105,8 @@ function TabChip<K extends string = string>({
         color,
         border: "none",
         borderRight: last ? "none" : "1px solid var(--pulso-border)",
-        cursor: "pointer",
+        cursor: meta.disabled ? "not-allowed" : "pointer",
+        opacity: meta.disabled ? 0.5 : 1,
         textAlign: "left",
         transition: "background 140ms ease, color 140ms ease",
       }}

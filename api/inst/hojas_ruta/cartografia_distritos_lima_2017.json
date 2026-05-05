@@ -1,0 +1,16 @@
+{
+  "id": "planmet-imp-b1501-distrito-lima",
+  "version": "planmet-imp-b1501-distrito-lima-v1",
+  "coverage": "Lima Metropolitana y Callao",
+  "year": 2017,
+  "provider": "Instituto Metropolitano de Planificacion - PlanMet 2040",
+  "source": "IMP PlanMet 2040 - capas B_1501_Distrito_IMP y B_070101_Distrito",
+  "layer_url": "https://services5.arcgis.com/bHvzrGGxW8wP6Utm/ArcGIS/rest/services/B_1501_Distrito_IMP/FeatureServer/0",
+  "callao_layer_url": "https://services5.arcgis.com/bHvzrGGxW8wP6Utm/ArcGIS/rest/services/B_070101_Distrito/FeatureServer/693",
+  "geometry": "polygon",
+  "spatial_reference_api": "EPSG:4326",
+  "native_id_field": "UBIGEO",
+  "district_field": "NOMBDIST",
+  "packaged_as": "frontend/src/features/hojasRuta/limaDistrictCoverage.json",
+  "feature_count": 50
+}

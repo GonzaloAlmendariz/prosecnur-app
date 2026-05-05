@@ -276,10 +276,18 @@ function rememberSuccessfulHfToken(settings = {}) {
 // ===========================================================================
 
 function registerIpcHandlers() {
-  ipcMain.handle("project:openDialog", async () => {
+  function dialogDefaultPath(args = {}, fallbackDir = app.getPath("documents"), filename = "") {
+    const raw = args.defaultPath && typeof args.defaultPath === "string"
+      ? args.defaultPath
+      : fallbackDir;
+    const base = raw && path.extname(raw) ? path.dirname(raw) : raw;
+    return filename ? path.join(base || fallbackDir, filename) : (base || fallbackDir);
+  }
+
+  ipcMain.handle("project:openDialog", async (_event, args = {}) => {
     const result = await dialog.showOpenDialog(mainWindow || undefined, {
       title: "Abrir proyecto Prosecnur",
-      defaultPath: app.getPath("documents"),
+      defaultPath: dialogDefaultPath(args),
       filters: [
         { name: "Proyecto Prosecnur", extensions: ["pulso"] },
         { name: "Todos", extensions: ["*"] }
@@ -292,10 +300,8 @@ function registerIpcHandlers() {
 
   ipcMain.handle("project:saveDialog", async (_event, args) => {
     const defaultName = (args && args.defaultName) || "MiProyecto";
-    const defaultPath = path.join(
-      app.getPath("documents"),
-      defaultName.endsWith(".pulso") ? defaultName : `${defaultName}.pulso`
-    );
+    const filename = defaultName.endsWith(".pulso") ? defaultName : `${defaultName}.pulso`;
+    const defaultPath = dialogDefaultPath(args || {}, app.getPath("documents"), filename);
     const result = await dialog.showSaveDialog(mainWindow || undefined, {
       title: "Guardar proyecto Prosecnur",
       defaultPath,
@@ -308,10 +314,7 @@ function registerIpcHandlers() {
   ipcMain.handle("project:saveEntregableDialog", async (_event, args = {}) => {
     const defaultName = args.defaultName || "entregable";
     const filters = args.filters || [{ name: "Todos", extensions: ["*"] }];
-    const defaultPath = args.defaultPath || path.join(
-      app.getPath("documents"),
-      defaultName
-    );
+    const defaultPath = args.defaultPath || dialogDefaultPath(args, app.getPath("documents"), defaultName);
     const result = await dialog.showSaveDialog(mainWindow || undefined, {
       title: "Guardar entregable",
       defaultPath,

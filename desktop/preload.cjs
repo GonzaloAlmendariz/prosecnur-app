@@ -23,12 +23,12 @@ contextBridge.exposeInMainWorld("prosecnurApi", {
 
   // Abre el dialog "Open" filtrado a *.pulso. Devuelve un path absoluto o
   // null si el user cancela.
-  openProjectDialog: () => ipcRenderer.invoke("project:openDialog"),
+  openProjectDialog: (opts) => ipcRenderer.invoke("project:openDialog", opts || {}),
 
   // Abre el dialog "Save" para un nuevo .pulso. defaultName se usa como
   // sugerencia (sin extensión — el filter agrega .pulso).
-  saveProjectDialog: (defaultName) =>
-    ipcRenderer.invoke("project:saveDialog", { defaultName }),
+  saveProjectDialog: (defaultName, opts) =>
+    ipcRenderer.invoke("project:saveDialog", { defaultName, ...(opts || {}) }),
 
   // Dialog "Save" para un entregable cualquiera (codebook, reporte, etc.).
   // opts: { defaultName, defaultPath, filters: [{name, extensions[]}] }

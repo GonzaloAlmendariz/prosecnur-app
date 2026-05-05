@@ -856,13 +856,23 @@
 
 #' @keywords internal
 .merge_args <- function(...) {
+  .arg_empty <- function(v) {
+    is.null(v) ||
+      length(v) == 0L ||
+      (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
+      (length(v) == 1L && is.atomic(v) && is.na(v))
+  }
   out <- list()
   for (lst in list(...)) {
     if (is.null(lst) || !length(lst)) next
     if (is.null(names(lst)) || any(names(lst) == "")) {
       stop("Todos los args deben venir nombrados (sin nombres vacíos).", call. = FALSE)
     }
-    out[names(lst)] <- lst
+    for (nm in names(lst)) {
+      val <- lst[[nm]]
+      if (.arg_empty(val)) next
+      out[[nm]] <- val
+    }
   }
   out
 }

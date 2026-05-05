@@ -21,8 +21,8 @@ export type HfSavedToken = {
 // corre en navegador puro (sin Electron), `window.prosecnurApi` es
 // `undefined` y la UI debe ofrecer fallbacks (input de texto para path).
 export type ProsecnurApi = {
-  openProjectDialog: () => Promise<string | null>;
-  saveProjectDialog: (defaultName: string) => Promise<string | null>;
+  openProjectDialog: (opts?: { defaultPath?: string }) => Promise<string | null>;
+  saveProjectDialog: (defaultName: string, opts?: { defaultPath?: string }) => Promise<string | null>;
   saveEntregableDialog: (opts: {
     defaultName?: string;
     defaultPath?: string;

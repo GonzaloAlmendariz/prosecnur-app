@@ -27,7 +27,10 @@ export function useJob<T = unknown>(jobId: string | null): UseJobResult<T> {
         if (cancelled) return;
         setSnapshot(snap);
         if (snap.status === "running") {
-          const delay = Date.now() - startedAt > 15000 ? 1500 : 500;
+          // Poll rápido al inicio (≤10s) para que la barra reaccione,
+          // luego cadencia normal. Si el job tiene `progress`, mantenemos el ritmo.
+          const elapsed = Date.now() - startedAt;
+          const delay = elapsed < 10000 ? 400 : elapsed < 60000 ? 800 : 1500;
           timeoutRef.current = window.setTimeout(poll, delay);
         }
       } catch (e) {

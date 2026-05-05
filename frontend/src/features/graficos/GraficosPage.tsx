@@ -17,7 +17,7 @@ import { GraficosHeader } from "./GraficosHeader";
 import { EditorShell } from "./v2/shell/EditorShell";
 import { useShortcutsV2 } from "./v2/shortcuts/useShortcutsV2";
 
-type ExportResult = { ok: true; file_id: string; size: number; n_slides: number };
+type ExportResult = { ok: true; file_id: string; filename?: string; size: number; n_slides: number };
 
 export default function GraficosPage() {
   const { state, refresh } = useSession();
@@ -40,6 +40,8 @@ export default function GraficosPage() {
   const select = usePlanStore((s) => s.select);
   const [pptFileId, setPptFileId] = useState<string | null>(null);
   const [docxFileId, setDocxFileId] = useState<string | null>(null);
+  const [pptFilename, setPptFilename] = useState<string | null>(null);
+  const [docxFilename, setDocxFilename] = useState<string | null>(null);
   const [exportJob, setExportJob] = useState<{ kind: "ppt" | "word"; id: string } | null>(null);
 
   const prepOk = !!state?.analitica_prep_ok;
@@ -66,8 +68,13 @@ export default function GraficosPage() {
 
   function onExportDone(data: ExportResult) {
     if (!exportJob) return;
-    if (exportJob.kind === "ppt") setPptFileId(data.file_id);
-    else setDocxFileId(data.file_id);
+    if (exportJob.kind === "ppt") {
+      setPptFileId(data.file_id);
+      setPptFilename(data.filename ?? null);
+    } else {
+      setDocxFileId(data.file_id);
+      setDocxFilename(data.filename ?? null);
+    }
     setExportJob(null);
     void refresh();
   }
@@ -101,6 +108,8 @@ export default function GraficosPage() {
         onExportWord={() => onExport("word")}
         pptFileId={pptFileId}
         docxFileId={docxFileId}
+        pptFilename={pptFilename}
+        docxFilename={docxFilename}
         exportBusy={!!busyValidating || !!exportJob}
         exportJobKind={exportJob?.kind ?? null}
         canExport={canExport}

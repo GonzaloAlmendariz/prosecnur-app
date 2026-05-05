@@ -199,7 +199,7 @@ export function FrecuenciasPane() {
           label="Generar frecuencias"
           busy={run.busy}
           fileId={run.fileId}
-          downloadName="frecuencias.xlsx"
+          downloadName={run.filename ?? "frecuencias.xlsx"}
           error={run.error}
           onGenerate={onGenerate}
           disabled={nVariablesAfectadas === 0}

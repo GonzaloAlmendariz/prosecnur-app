@@ -1,0 +1,27 @@
+{
+  "id": "planmet-imp-inei2017-manzanas-lima",
+  "version": "planmet-imp-inei2017-manzanas-lima-v1",
+  "coverage": "Lima Metropolitana",
+  "year": 2017,
+  "provider": "Instituto Metropolitano de Planificacion - PlanMet 2040",
+  "source": "IMP PlanMet 2040 - capa Manzanas Urbanas; fuente declarada: INEI 2017, Equipo Tecnico Plan Met 40, IMP 2020",
+  "catalog_url": "https://portal.imp.gob.pe/sim/catalogo-de-datos-planmet-2040/",
+  "layer_url": "https://services5.arcgis.com/bHvzrGGxW8wP6Utm/ArcGIS/rest/services/Manzanas_Urbanas/FeatureServer/0",
+  "geometry": "polygon",
+  "spatial_reference_api": "EPSG:4326",
+  "native_id_field": "ID_MANZANA",
+  "district_field": "NOMBDIST",
+  "source_field": "FTE_MZNA",
+  "area_field": "AREA_M2",
+  "packaging_mode": "local_first_optional_online_cache",
+  "compression": "gzip_por_distrito",
+  "packaged_scope": "Todos los 43 distritos de Lima Metropolitana",
+  "packaged_districts": 43,
+  "packaged_blocks": 106989,
+  "packaged_at": "2026-05-03",
+  "exclusions": [
+    "Callao usa una fuente separada porque esta capa cubre Lima Metropolitana",
+    "La seleccion final solo debe resaltarse cuando el marco muestral y la cartografia compartan ID_MANZANA",
+    "La app no debe depender de internet en uso operativo; la fuente online es solo para preparar el paquete local"
+  ]
+}

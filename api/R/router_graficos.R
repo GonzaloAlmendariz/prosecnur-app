@@ -880,7 +880,7 @@ mount_graficos <- function(pr) {
         kind = "graficos.ppt",
         func = function(rp_data_path, rp_inst_path, plan, presets,
                         slide_registry, graficador_registry,
-                        api_path, result_path) {
+                        api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
           } else if (requireNamespace("devtools", quietly = TRUE)) {
@@ -889,6 +889,12 @@ mount_graficos <- function(pr) {
             stop("Worker requiere 'pkgload' o 'devtools' instalados.")
           }
           `%||%` <- function(a, b) if (is.null(a)) b else a
+          report <- if (exists("job_progress_writer", mode = "function")) {
+            job_progress_writer(progress_path)
+          } else {
+            function(...) invisible(NULL)
+          }
+          report("loading", percent = 2, message = "Cargando datos y plantilla...")
           as_json_list <- function(x) {
             if (is.null(x)) return(NULL)
             if (is.data.frame(x)) return(as.list(x))
@@ -930,7 +936,19 @@ mount_graficos <- function(pr) {
             if (is.null(presets_json) || length(presets_json) == 0) return(NULL)
             do.call(p_presets, lapply(presets_json, as.list))
           }
-          slides_r <- lapply(plan$slides, rebuild_slide)
+          total_slides <- length(plan$slides)
+          slides_r <- vector("list", total_slides)
+          for (i in seq_len(total_slides)) {
+            report(
+              "rebuild",
+              current = i,
+              total = total_slides,
+              percent = 5 + round(45 * (i - 1) / max(1, total_slides)),
+              message = sprintf("Armando slide %s de %s...", i, total_slides)
+            )
+            slides_r[[i]] <- rebuild_slide(plan$slides[[i]])
+          }
+          report("render", percent = 60, message = "Renderizando presentación...")
           reporte_ppt_plan(
             data = readRDS(rp_data_path),
             instrumento = readRDS(rp_inst_path),
@@ -939,6 +957,7 @@ mount_graficos <- function(pr) {
             plan = do.call(p_plan, list(slides = slides_r)),
             mensajes_progreso = FALSE
           )
+          report("export", percent = 96, message = "Guardando PPTX...")
           list(path = result_path, n_slides = length(slides_r))
         },
         args = list(
@@ -950,11 +969,11 @@ mount_graficos <- function(pr) {
           graficador_registry = graficador_registry_arg,
           api_path = api_path
         ),
-        result_filename = sprintf("reporte_%s.pptx", uuid::UUIDgenerate()),
+        result_filename = .export_filename(sid, "reporte_ppt", "pptx"),
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "reporte_ppt", j$result_path)
           session_set(j$sid, "graficos_ppt_ok", TRUE)
-          list(ok = TRUE, file_id = meta$file_id, size = meta$size, n_slides = j$result_data$n_slides)
+          list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size, n_slides = j$result_data$n_slides)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "graficos.ppt")
@@ -989,7 +1008,7 @@ mount_graficos <- function(pr) {
         kind = "graficos.word",
         func = function(rp_data_path, rp_inst_path, plan, presets, w_presets,
                         slide_registry, graficador_registry,
-                        api_path, result_path) {
+                        api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
           } else if (requireNamespace("devtools", quietly = TRUE)) {
@@ -998,6 +1017,12 @@ mount_graficos <- function(pr) {
             stop("Worker requiere 'pkgload' o 'devtools' instalados.")
           }
           `%||%` <- function(a, b) if (is.null(a)) b else a
+          report <- if (exists("job_progress_writer", mode = "function")) {
+            job_progress_writer(progress_path)
+          } else {
+            function(...) invisible(NULL)
+          }
+          report("loading", percent = 2, message = "Cargando datos y plantilla...")
           # slide_registry / graficador_registry vienen del main process
           # (fuente única de verdad en graficos_metadata.R).
           as_json_list <- function(x) {
@@ -1045,7 +1070,19 @@ mount_graficos <- function(pr) {
             if (is.null(w_json) || length(w_json) == 0) return(NULL)
             do.call(w_presets, lapply(w_json, as.list))
           }
-          slides_r <- lapply(plan$slides, rebuild_slide)
+          total_slides <- length(plan$slides)
+          slides_r <- vector("list", total_slides)
+          for (i in seq_len(total_slides)) {
+            report(
+              "rebuild",
+              current = i,
+              total = total_slides,
+              percent = 5 + round(45 * (i - 1) / max(1, total_slides)),
+              message = sprintf("Armando seccion %s de %s...", i, total_slides)
+            )
+            slides_r[[i]] <- rebuild_slide(plan$slides[[i]])
+          }
+          report("render", percent = 60, message = "Renderizando documento...")
           reporte_word_plan(
             data = readRDS(rp_data_path),
             instrumento = readRDS(rp_inst_path),
@@ -1055,6 +1092,7 @@ mount_graficos <- function(pr) {
             plan = do.call(p_plan, list(slides = slides_r)),
             mensajes_progreso = FALSE
           )
+          report("export", percent = 96, message = "Guardando DOCX...")
           list(path = result_path, n_slides = length(slides_r))
         },
         args = list(
@@ -1067,11 +1105,11 @@ mount_graficos <- function(pr) {
           graficador_registry = graficador_registry_arg,
           api_path = api_path
         ),
-        result_filename = sprintf("reporte_%s.docx", uuid::UUIDgenerate()),
+        result_filename = .export_filename(sid, "reporte_word", "docx"),
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "reporte_word", j$result_path)
           session_set(j$sid, "graficos_word_ok", TRUE)
-          list(ok = TRUE, file_id = meta$file_id, size = meta$size, n_slides = j$result_data$n_slides)
+          list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size, n_slides = j$result_data$n_slides)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "graficos.word")

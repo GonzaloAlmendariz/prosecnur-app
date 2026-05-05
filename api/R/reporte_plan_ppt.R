@@ -1646,6 +1646,14 @@ reporte_ppt_plan <- function(
     args
   }
 
+  .collapse_y_label_space_word <- function(overrides) {
+    overrides <- overrides %||% list()
+    overrides$usar_canvas <- TRUE
+    overrides$canvas_w_etiquetas <- 0
+    overrides$canvas_w_buf_etq_bars <- 0
+    overrides
+  }
+
   # Dispatcher generico: renderiza cualquier ppt_element
   .render_element <- function(el) {
 
@@ -1816,6 +1824,9 @@ reporte_ppt_plan <- function(
 
     # merge: base_args <- preset_args <- overrides (overrides manda)
     preset_args <- preset_args %||% list()
+    if (ocultar_categoria_word) {
+      overrides <- .collapse_y_label_space_word(overrides)
+    }
 
     args <- .merge_args(base_args, preset_args, overrides)
     fun  <- graficar_barras_apiladas
@@ -2194,26 +2205,10 @@ reporte_ppt_plan <- function(
 
       base_args <- .apply_top2box_alias(base_args)
 
-      # Word, una sola variable: activar canvas para que el layout de columnas
-      # sea identico al resto (misma posicion inicial de barras, sin expand ggplot).
-      # NO se colapsa canvas_w_etiquetas para que las barras arranquen al mismo nivel.
-      if (single_word_var) {
-        overrides$usar_canvas <- TRUE
-
-        # En split Word, no heredamos anchos "ad hoc" del bloque original (pensados
-        # para etiquetas largas en PPT), para que 1 barra y 2+ barras compartan
-        # el mismo punto de inicio y placeholders.
-        width_keys <- c(
-          "canvas_w_etiquetas",
-          "canvas_w_buf_etq_bars",
-          "canvas_w_bars",
-          "canvas_w_buf_bars_extra",
-          "canvas_w_extra"
-        )
-        for (k in width_keys) {
-          val <- preset_args_single[[k]] %||% preset_args_multi[[k]] %||% NULL
-          if (!is.null(val)) overrides[[k]] <- val
-        }
+      # Word, una sola variable: el titulo ya sale como encabezado del bloque,
+      # por lo que no debe reservarse columna izquierda para una etiqueta vacia.
+      if (hide_single_word_label) {
+        overrides <- .collapse_y_label_space_word(overrides)
       }
 
       args <- .merge_args(base_args, preset_args_single, preset_args_multi, overrides)

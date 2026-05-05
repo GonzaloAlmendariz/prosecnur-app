@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { ChevronDown, ChevronRight, Download, Loader2, Play } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CheckCircle2, ChevronDown, ChevronRight, Download, Loader2, Play } from "lucide-react";
 import { JobProgress } from "../../components/JobProgress";
 import { ErrorBlock } from "../../components/States";
-import { downloadUrl, FileJobResult } from "../../api/client";
+import { apiSaveFileAs, downloadUrl, FileJobResult } from "../../api/client";
+import { useProjectShell } from "../project/ProjectShell";
 
 // Toolkit compartido por los 5 panes de analítica (Codebook, Bases,
 // Frecuencias, Cruces, Enumeradores). Mantiene consistencia visual —
@@ -133,6 +134,43 @@ export function GenerateFooter({
 }) {
   const running = busy || !!jobId;
   const multi = (perBase?.length ?? 0) > 1;
+  const { project } = useProjectShell();
+  const autoSavedRef = useRef<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState("");
+
+  useEffect(() => {
+    if (!fileId || running || autoSavedRef.current === fileId || !window.prosecnurApi) return;
+    const generatedFileId = fileId;
+    autoSavedRef.current = generatedFileId;
+    const ext = downloadName.includes(".") ? downloadName.split(".").pop() || "*" : "*";
+    const defaultPath = project.status.path
+      ? (() => {
+          const sep = project.status.path!.includes("\\") ? "\\" : "/";
+          return `${project.status.path!.replace(/[/\\][^/\\]+$/, "")}${sep}${downloadName}`;
+        })()
+      : undefined;
+    let cancelled = false;
+    async function saveGeneratedFile() {
+      try {
+        const target = await window.prosecnurApi!.saveEntregableDialog({
+          defaultName: downloadName,
+          defaultPath,
+          filters: [{ name: ext.toUpperCase(), extensions: [ext] }, { name: "Todos", extensions: ["*"] }],
+        });
+        if (!target || cancelled) return;
+        const saved = await apiSaveFileAs(generatedFileId, target, { overwrite: true });
+        if (!cancelled) setSaveStatus(`Guardado como ${saved.filename}`);
+      } catch (e) {
+        if (!cancelled) {
+          autoSavedRef.current = null;
+          setSaveStatus((e as Error).message);
+        }
+      }
+    }
+    void saveGeneratedFile();
+    return () => { cancelled = true; };
+  }, [fileId, running, downloadName, project.status.path]);
+
   return (
     <>
       <div
@@ -163,12 +201,6 @@ export function GenerateFooter({
         {fileId && (
           <a
             href={downloadUrl(fileId)}
-            // El download attr fuerza al browser a usar este nombre con
-            // extensión, ignorando el Content-Disposition del server (que
-            // viene con UUID interno). Sin esto, el codebook llegaba como
-            // "<uuid>" sin extensión y el user tenía que renombrar a
-            // mano para abrirlo en Excel.
-            download={multi ? `${downloadName.replace(/\.\w+$/, "")}.zip` : downloadName}
             style={{
               fontSize: 12,
               display: "inline-flex", alignItems: "center", gap: 4,
@@ -182,6 +214,18 @@ export function GenerateFooter({
             <Download size={12} />
             {multi ? `${downloadName} (zip · ${perBase!.length} bases)` : downloadName}
           </a>
+        )}
+        {saveStatus && (
+          <span style={{
+            fontSize: 11,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            color: saveStatus.startsWith("[") ? "var(--pulso-danger-fg)" : "var(--pulso-success-fg)",
+          }}>
+            {!saveStatus.startsWith("[") && <CheckCircle2 size={12} />}
+            {saveStatus}
+          </span>
         )}
       </div>
 
@@ -217,10 +261,6 @@ export function GenerateFooter({
                 <a
                   key={b.nombre}
                   href={downloadUrl(b.file_id)}
-                  // Inserta el nombre de la base entre el prefijo y la
-                  // extensión (ej. "frecuencias_docentes.xlsx") para que
-                  // los exports por base se distingan al guardarse.
-                  download={downloadName.replace(/(\.\w+)?$/, `_${b.nombre}$1`)}
                   style={{
                     fontSize: 11,
                     display: "inline-flex", alignItems: "center", gap: 4,

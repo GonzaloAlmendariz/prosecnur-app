@@ -739,12 +739,18 @@ mount_analitica <- function(pr) {
                         incluir_titulos, incluir_secciones,
                         brecha_filas, brecha_cols,
                         aplicar_sem, sem_modo, sem_cortes, sem_colores,
-                        api_path, result_path) {
+                        api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
           } else if (requireNamespace("devtools", quietly = TRUE)) {
             devtools::load_all(api_path, quiet = TRUE)
           }
+          report <- if (exists("job_progress_writer", mode = "function")) {
+            job_progress_writer(progress_path)
+          } else {
+            function(...) invisible(NULL)
+          }
+          report("loading", percent = 2, message = "Cargando bases para cruces...")
           sem_colores_vec <- if (is.list(sem_colores) && length(sem_colores) > 0L) {
             unlist(lapply(c("rojo","amarillo","verde"), function(k) sem_colores[[k]]))
           } else NULL
@@ -782,7 +788,9 @@ mount_analitica <- function(pr) {
 
           if (length(base_names) == 1L) {
             # Single-base: escribe directo al result_path (xlsx).
+            report("workbook", current = 1, total = 1, percent = 25, message = "Generando tabla de cruces...")
             run_one(base_names[1], result_path)
+            report("export", percent = 95, message = "Guardando Excel...")
             return(list(mode = "single", path = result_path))
           }
 
@@ -792,7 +800,15 @@ mount_analitica <- function(pr) {
                              paste0("cruces_stage_", basename(tempfile(""))))
           dir.create(stage, recursive = TRUE, showWarnings = FALSE)
           on.exit(unlink(stage, recursive = TRUE, force = TRUE), add = TRUE)
-          per_base <- lapply(base_names, function(nombre) {
+          per_base <- lapply(seq_along(base_names), function(idx) {
+            nombre <- base_names[[idx]]
+            report(
+              "workbook",
+              current = idx,
+              total = length(base_names),
+              percent = 10 + round(75 * (idx - 1) / max(1, length(base_names))),
+              message = sprintf("Generando cruces de %s...", nombre)
+            )
             fname <- sprintf("%s__cruces.xlsx", nombre)
             p <- file.path(stage, fname)
             run_one(nombre, p)
@@ -801,6 +817,7 @@ mount_analitica <- function(pr) {
           })
           old_wd <- setwd(stage)
           on.exit(setwd(old_wd), add = TRUE)
+          report("zip", percent = 92, message = "Empaquetando archivos...")
           zip::zip(result_path, files = vapply(per_base, function(o) o$filename, character(1)))
           setwd(old_wd)
           list(mode = "multi", path = result_path, bases = per_base)
@@ -826,9 +843,9 @@ mount_analitica <- function(pr) {
           api_path = api_path
         ),
         result_filename = if (length(data_sources) > 1L) {
-          sprintf("cruces_%s.zip", uuid::UUIDgenerate())
+          .export_filename(sid, "cruces", "zip")
         } else {
-          sprintf("cruces_%s.xlsx", uuid::UUIDgenerate())
+          .export_filename(sid, "cruces", "xlsx")
         },
         on_complete = function(j) {
           session_set(j$sid, "analitica_cruces_ok", TRUE)
@@ -837,7 +854,7 @@ mount_analitica <- function(pr) {
             return(list(
               ok = TRUE,
               n_bases = length(j$result_data$bases),
-              zip = list(file_id = zip_meta$file_id, filename = basename(j$result_path),
+              zip = list(file_id = zip_meta$file_id, filename = zip_meta$original_name,
                          size = zip_meta$size),
               bases = lapply(j$result_data$bases, function(o) list(
                 nombre = o$nombre, filename = o$filename, size = o$size
@@ -846,7 +863,7 @@ mount_analitica <- function(pr) {
           }
           meta <- .register_output_file(j$sid, "cruces", j$result_path)
           list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
-               filename = basename(j$result_path), size = meta$size)
+               filename = meta$original_name, size = meta$size)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "analitica.cruces")
@@ -888,12 +905,13 @@ mount_analitica <- function(pr) {
 
       # Para single-base + sin sps: devuelve el .sav directo (legacy).
       if (length(ds) == 1L && !incluir_sps) {
-        sav_path <- file.path(s$dir, "downloads", sprintf("datos_%s.sav", uuid::UUIDgenerate()))
+        sav_name <- .export_filename(sid, "bases_sav", "sav")
+        sav_path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), sav_name))
         .bases_export_sav(ds[[1]], is_[[1]], sav_path, NULL, overrides = overrides)
-        meta <- .register_output_file(sid, "bases_sav", sav_path)
+        meta <- .register_output_file(sid, "bases_sav", sav_path, original_name = sav_name)
         session_set(sid, "analitica_bases_sav_ok", TRUE)
         return(list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
-                    filename = basename(sav_path), size = meta$size))
+                    filename = meta$original_name, size = meta$size))
       }
 
       # Multi-base o con sps: zip.
@@ -916,14 +934,15 @@ mount_analitica <- function(pr) {
           sps = if (!is.null(sps_path)) basename(sps_path) else NULL
         )
       }
-      zip_path <- file.path(s$dir, "downloads", sprintf("bases_sav_%s.zip", uuid::UUIDgenerate()))
+      zip_name <- .export_filename(sid, "bases_sav_bundle", "zip")
+      zip_path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), zip_name))
       old_wd <- setwd(stage); on.exit(setwd(old_wd), add = TRUE)
       zip::zip(zip_path, files = files_in_zip)
       setwd(old_wd)
-      meta <- .register_output_file(sid, "bases_sav_bundle", zip_path)
+      meta <- .register_output_file(sid, "bases_sav_bundle", zip_path, original_name = zip_name)
       session_set(sid, "analitica_bases_sav_ok", TRUE)
       list(ok = TRUE, n_bases = length(ds),
-           zip = list(file_id = meta$file_id, filename = basename(zip_path),
+           zip = list(file_id = meta$file_id, filename = meta$original_name,
                       size = meta$size),
            bases = per_base)
     })) |>
@@ -1008,11 +1027,12 @@ mount_analitica <- function(pr) {
       sps_path <- file.path(td, "niveles_medida.sps")
       .bases_export_sav(ctx$rp_data, ctx$rp_inst, sav_path, sps_path, overrides = overrides)
       dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
-      zip_path <- file.path(s$dir, "downloads", sprintf("spss_%s.zip", uuid::UUIDgenerate()))
+      zip_name <- .export_filename(sid, "spss_bundle", "zip")
+      zip_path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), zip_name))
       old <- getwd(); on.exit({ setwd(old) }, add = TRUE)
       setwd(td)
       zip::zip(zip_path, files = c("datos.sav", "niveles_medida.sps"))
-      meta <- .register_output_file(sid, "spss_bundle", zip_path)
+      meta <- .register_output_file(sid, "spss_bundle", zip_path, original_name = zip_name)
       session_set(sid, "analitica_spss_ok", TRUE)
       list(ok = TRUE, file_id = meta$file_id, size = meta$size)
     })) |>
@@ -1138,12 +1158,18 @@ mount_analitica <- function(pr) {
         func = function(rp_data_path, col_en, cols_corte, col_modalidad,
                         modalidades_esp, mostrar_vacias, titulo, min_enc,
                         ordenar_por, modalidad_default, modalidad_fn,
-                        api_path, result_path) {
+                        api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
           } else if (requireNamespace("devtools", quietly = TRUE)) {
             devtools::load_all(api_path, quiet = TRUE)
           }
+          report <- if (exists("job_progress_writer", mode = "function")) {
+            job_progress_writer(progress_path)
+          } else {
+            function(...) invisible(NULL)
+          }
+          report("loading", percent = 2, message = "Cargando bases de enumeradores...")
           data_sources <- readRDS(rp_data_path)
           base_names <- names(data_sources)
 
@@ -1167,7 +1193,9 @@ mount_analitica <- function(pr) {
           }
 
           if (length(base_names) == 1L) {
+            report("pdf", current = 1, total = 1, percent = 30, message = "Generando PDF de enumeradores...")
             run_one(data_sources[[1]], result_path)
+            report("export", percent = 95, message = "Guardando PDF...")
             return(list(mode = "single", path = result_path))
           }
 
@@ -1176,7 +1204,15 @@ mount_analitica <- function(pr) {
           dir.create(stage, recursive = TRUE, showWarnings = FALSE)
           on.exit(unlink(stage, recursive = TRUE, force = TRUE), add = TRUE)
           per_base <- list()
-          for (nombre in base_names) {
+          for (idx in seq_along(base_names)) {
+            nombre <- base_names[[idx]]
+            report(
+              "pdf",
+              current = idx,
+              total = length(base_names),
+              percent = 10 + round(75 * (idx - 1) / max(1, length(base_names))),
+              message = sprintf("Generando enumeradores de %s...", nombre)
+            )
             rp_data <- data_sources[[nombre]]
             # Skip si la columna de enumerador no existe en esta base.
             if (!col_en %in% names(rp_data)) {
@@ -1200,6 +1236,7 @@ mount_analitica <- function(pr) {
           }
           old_wd <- setwd(stage)
           on.exit(setwd(old_wd), add = TRUE)
+          report("zip", percent = 92, message = "Empaquetando PDFs...")
           zip::zip(result_path, files = vapply(ok_pdfs, function(o) o$filename, character(1)))
           setwd(old_wd)
           list(mode = "multi", path = result_path, bases = per_base)
@@ -1219,9 +1256,9 @@ mount_analitica <- function(pr) {
           api_path = api_path
         ),
         result_filename = if (multi) {
-          sprintf("enumeradores_%s.zip", uuid::UUIDgenerate())
+          .export_filename(sid, "enumeradores", "zip")
         } else {
-          sprintf("enumeradores_%s.pdf", uuid::UUIDgenerate())
+          .export_filename(sid, "enumeradores", "pdf")
         },
         on_complete = function(j) {
           session_set(j$sid, "analitica_enumeradores_ok", TRUE)
@@ -1230,14 +1267,14 @@ mount_analitica <- function(pr) {
             return(list(
               ok = TRUE,
               n_bases = length(Filter(function(o) !isTRUE(o$skipped), j$result_data$bases)),
-              zip = list(file_id = zip_meta$file_id, filename = basename(j$result_path),
+              zip = list(file_id = zip_meta$file_id, filename = zip_meta$original_name,
                          size = zip_meta$size),
               bases = j$result_data$bases
             ))
           }
           meta <- .register_output_file(j$sid, "enumeradores", j$result_path)
           list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
-               filename = basename(j$result_path), size = meta$size)
+               filename = meta$original_name, size = meta$size)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "analitica.enumeradores")

@@ -325,14 +325,19 @@ function NumberControl({
     setDraft(formatNumberInput(clamped, displayScale));
   }
 
+  function revertDraft() {
+    setDraft(formatNumberInput(value, displayScale));
+  }
+
   function commitDraft(raw = draft) {
-    if (raw.trim() === "") {
-      update(null);
+    const trimmed = raw.trim();
+    if (trimmed === "" || isPartialNumberInput(trimmed)) {
+      revertDraft();
       return;
     }
     const parsed = parseNumberInput(raw);
     if (parsed === null) {
-      setDraft(formatNumberInput(value, displayScale));
+      revertDraft();
       return;
     }
     update(parsed / displayScale);
@@ -371,7 +376,7 @@ function NumberControl({
                 (e.target as HTMLInputElement).blur();
               }
               if (e.key === "Escape") {
-                setDraft(formatNumberInput(value, displayScale));
+                revertDraft();
                 (e.target as HTMLInputElement).blur();
               }
             }}

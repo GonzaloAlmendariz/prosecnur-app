@@ -22,10 +22,91 @@
   )
 }
 
-.register_output_file <- function(sid, kind, path) {
+.export_slug <- function(x, fallback = "Prosecnur") {
+  x <- as.character(x %||% fallback)[1]
+  if (is.na(x) || !nzchar(trimws(x))) x <- fallback
+  x <- stringi::stri_trans_general(trimws(x), "Latin-ASCII")
+  x <- gsub("[^A-Za-z0-9]+", "_", x)
+  x <- gsub("_+", "_", x)
+  x <- gsub("^_|_$", "", x)
+  if (!nzchar(x)) x <- fallback
+  substr(x, 1L, 80L)
+}
+
+.export_project_slug <- function(sid) {
+  s <- session_get(sid)
+  if (!is.null(s$project_path) && nzchar(s$project_path)) {
+    return(.export_slug(tools::file_path_sans_ext(basename(s$project_path))))
+  }
+  if (!is.null(s$estudio$nombre) && nzchar(s$estudio$nombre)) {
+    return(.export_slug(s$estudio$nombre))
+  }
+  "Prosecnur"
+}
+
+.export_date_slug <- function() {
+  format(Sys.Date(), "%d_%m_%y")
+}
+
+.export_label_for_kind <- function(kind, fallback = NULL) {
+  fallback <- fallback %||% kind
+  switch(as.character(kind %||% fallback),
+    codebook = "libro_de_codigos",
+    codebook_zip = "libro_de_codigos",
+    frecuencias = "frecuencias",
+    frecuencias_zip = "frecuencias",
+    cruces = "cruces",
+    cruces_zip = "cruces",
+    bases_csv = "datos",
+    bases_csv_zip = "datos",
+    bases_xlsx = "datos",
+    bases_xlsx_zip = "datos",
+    bases_sav = "datos_spss",
+    bases_sav_bundle = "datos_spss",
+    spss_bundle = "datos_spss",
+    enumeradores = "enumeradores",
+    enumeradores_zip = "enumeradores",
+    reporte_ppt = "reporte",
+    reporte_word = "reporte",
+    hojas_ruta_zip = "hojas_de_ruta",
+    hojas_ruta_population_matrix = "matriz_poblacional",
+    familias_template = "familias",
+    plantilla_codif_template = "plantilla_codificacion",
+    data_adaptada = "data_adaptada",
+    instrumento_adaptado = "instrumento_adaptado",
+    plan_limpieza_export = "plan_limpieza",
+    validacion_report_html = "reporte_validacion",
+    reporte_validacion = "reporte_validacion",
+    .export_slug(fallback)
+  )
+}
+
+.export_filename <- function(sid, label, ext, base = NULL) {
+  parts <- c(.export_project_slug(sid))
+  base_chr <- as.character(base %||% "")[1]
+  if (!is.na(base_chr) && nzchar(base_chr)) {
+    parts <- c(parts, .export_slug(base_chr))
+  }
+  parts <- c(parts, .export_label_for_kind(label, fallback = label), .export_date_slug())
+  paste0(paste(parts, collapse = "_"), ".", .export_slug(ext, fallback = "bin"))
+}
+
+.strip_internal_prefix <- function(filename) {
+  # Jobs use `<job-id>__<result_filename>` and many temp paths use
+  # `<uuid>_<friendly-name>`. Keep UUIDs internal, never user-facing.
+  filename <- sub("^[0-9a-fA-F-]{36}__", "", filename)
+  sub("^[0-9a-fA-F-]{36}_", "", filename)
+}
+
+.register_output_file <- function(sid, kind, path, original_name = NULL) {
   s <- session_get(sid)
   file_id <- uuid::UUIDgenerate()
-  original_name <- sub("^[0-9a-fA-F-]{36}__", "", basename(path))
+  if (is.null(original_name) || !nzchar(as.character(original_name)[1])) {
+    original_name <- .strip_internal_prefix(basename(path))
+  }
+  if (grepl("[0-9a-fA-F-]{36}", original_name)) {
+    original_name <- .export_filename(sid, kind, tools::file_ext(path))
+  }
   meta <- list(
     file_id = file_id, kind = kind,
     original_name = original_name, path = path,
@@ -1897,7 +1978,14 @@ mount_codificacion <- function(pr) {
         sid = sid,
         kind = "codificacion.aplicar",
         func = function(xls_path, data_path, codes_path, fam_path, data_out, inst_out,
-                        sm_vars, so_parent_vars, so_child_vars, int_vars, text_vars) {
+                        sm_vars, so_parent_vars, so_child_vars, int_vars, text_vars,
+                        progress_path = NULL) {
+          report <- if (exists("job_progress_writer", mode = "function")) {
+            job_progress_writer(progress_path)
+          } else {
+            function(...) invisible(NULL)
+          }
+          report("adapt", percent = 12, message = "Adaptando base de datos...")
           ppra_adaptar_data(
             path_instrumento = xls_path,
             path_datos       = data_path,
@@ -1910,6 +1998,7 @@ mount_codificacion <- function(pr) {
             out_path         = data_out,
             path_familias    = fam_path
           )
+          report("adapt", percent = 62, message = "Adaptando instrumento...")
           ppra_adaptar_instrumento(
             path_instrumento_in  = xls_path,
             path_data_adaptada   = data_out,
@@ -1926,6 +2015,7 @@ mount_codificacion <- function(pr) {
             text_vars            = text_vars,
             integer_vars         = int_vars
           )
+          report("export", percent = 94, message = "Guardando archivos adaptados...")
           list(data_out = data_out, inst_out = inst_out)
         },
         args = list(

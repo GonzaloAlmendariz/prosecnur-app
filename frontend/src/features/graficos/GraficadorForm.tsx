@@ -30,6 +30,22 @@ type Props = {
   flatten?: boolean;
 };
 
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function hasArgValue(value: unknown): boolean {
+  return value !== undefined &&
+    value !== null &&
+    value !== "" &&
+    !(Array.isArray(value) && value.length === 0);
+}
+
+function sameValue(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = false }: Props) {
   const { graficadoresById, loading, error } = useGraficosRegistry();
   const { presetsByName } = usePresetsMetadata();
@@ -57,28 +73,6 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
     };
   }, [presetMeta, presetType, presetsDefaults, userPresets]);
 
-  // Detectar el modo aplicado actualmente (subset match)
-  const currentOverrides = useMemo<Record<string, unknown>>(() => {
-    return ((graf.args?.overrides as Record<string, unknown>) ?? {});
-  }, [graf.args]);
-
-  const appliedMode = useMemo(() => {
-    if (!presetType) return null;
-    const aplicables = overridesReusables.filter((o) => o.tipo_preset === presetType);
-    // Buscamos un modo cuyas keys/values sean subset del overrides actual
-    for (const o of aplicables) {
-      const okeys = Object.keys(o.args);
-      if (okeys.length === 0) continue;
-      let isSubset = true;
-      for (const k of okeys) {
-        if (!(k in currentOverrides)) { isSubset = false; break; }
-        if (JSON.stringify(currentOverrides[k]) !== JSON.stringify(o.args[k])) { isSubset = false; break; }
-      }
-      if (isSubset) return o;
-    }
-    return null;
-  }, [presetType, overridesReusables, currentOverrides]);
-
   // Expansión: los args propios del graficador se combinan con los args
   // del preset compatible. Antes esto dependía de un placeholder técnico
   // `overrides`; ahora el backend ya no lo expone a la UI, así que el
@@ -87,8 +81,12 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
     if (!meta) return [];
     const result: ArgMetadata[] = [];
     const seen = new Set<string>();
+    const hideLegacyWrapY =
+      graf.graficador === "p_barras_multiapiladas" &&
+      !!presetMeta?.args.some((a) => a.name === "ancho_max_eje_y");
     for (const a of meta.args) {
       if (a.tipo_input === "overrides") continue;
+      if (hideLegacyWrapY && a.name === "wrap_y") continue;
       result.push(a);
       seen.add(a.name);
     }
@@ -100,15 +98,57 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
       }
     }
     return result;
-  }, [meta, presetMeta]);
+  }, [graf.graficador, meta, presetMeta]);
 
   const presetArgNames = useMemo(() => {
     return new Set(presetMeta?.args.map((a) => a.name) ?? []);
   }, [presetMeta]);
 
+  const slotArgs = useMemo<Record<string, unknown>>(() => asRecord(graf.args), [graf.args]);
+
   // argState por arg: para args del preset, calculamos según overrides
   // y appliedMode. Para args propios del graficador (no overrides), los
   // marcamos custom si tienen valor (comportamiento legacy).
+  const currentOverrides = useMemo<Record<string, unknown>>(() => {
+    const merged: Record<string, unknown> = {};
+    for (const [name, value] of Object.entries(asRecord(slotArgs.overrides))) {
+      if (!hasArgValue(value)) continue;
+      if (presetArgNames.has(name) && sameValue(value, presetValues[name])) continue;
+      merged[name] = value;
+    }
+
+    // Compatibilidad: algunos proyectos o UIs antiguas pudieron guardar
+    // args de preset directamente en el slot. Los tratamos como overrides
+    // efectivos para no perderlos al reabrir, y el siguiente cambio los
+    // vuelve a escribir en `args.overrides` (forma canónica del motor).
+    for (const name of presetArgNames) {
+      if (name in merged) continue;
+      const topLevelValue = slotArgs[name];
+      if (!hasArgValue(topLevelValue)) continue;
+      if (sameValue(topLevelValue, presetValues[name])) continue;
+      merged[name] = topLevelValue;
+    }
+
+    return merged;
+  }, [presetArgNames, presetValues, slotArgs]);
+
+  const appliedMode = useMemo(() => {
+    if (!presetType) return null;
+    const aplicables = overridesReusables.filter((o) => o.tipo_preset === presetType);
+    // Buscamos un modo cuyas keys/values sean subset del overrides actual
+    for (const o of aplicables) {
+      const okeys = Object.keys(o.args);
+      if (okeys.length === 0) continue;
+      let isSubset = true;
+      for (const k of okeys) {
+        if (!(k in currentOverrides)) { isSubset = false; break; }
+        if (!sameValue(currentOverrides[k], o.args[k])) { isSubset = false; break; }
+      }
+      if (isSubset) return o;
+    }
+    return null;
+  }, [presetType, overridesReusables, currentOverrides]);
+
   const argStates = useMemo<Record<string, ArgState>>(() => {
     const map: Record<string, ArgState> = {};
     const modeKeys = appliedMode ? new Set(Object.keys(appliedMode.args)) : new Set<string>();
@@ -126,13 +166,11 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
         }
       } else {
         // Arg propio del graficador (var, cruces, etc.) — comportamiento normal
-        const v = (graf.args as Record<string, unknown>)?.[a.name];
-        const has = v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
-        map[a.name] = has ? "custom" : "inherited";
+        map[a.name] = hasArgValue(slotArgs[a.name]) ? "custom" : "inherited";
       }
     }
     return map;
-  }, [expandedArgs, presetArgNames, currentOverrides, appliedMode, graf.args]);
+  }, [expandedArgs, presetArgNames, currentOverrides, appliedMode, slotArgs]);
 
   // inheritedValues: para args del preset, el valor del preset (gris).
   // Para args propios del graficador, undefined (no hay heredado).
@@ -151,11 +189,11 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
   // es "inherited" sin valor propio (ya manejado en ArgField).
   const valuesForArgs = useMemo<Record<string, unknown>>(() => {
     return {
-      ...graf.args,
+      ...slotArgs,
       // Cada arg del preset que tenga override aparece en top-level
       ...currentOverrides,
     };
-  }, [graf.args, currentOverrides]);
+  }, [slotArgs, currentOverrides]);
 
   // Agrupar args expandidos
   const grupos = useMemo(() => {
@@ -179,13 +217,19 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
       const next = { ...prev };
       // Si el valor coincide con el del preset, lo borramos (vuelve a heredado)
       const presetVal = presetValues[name];
-      const isSameAsPreset = JSON.stringify(value) === JSON.stringify(presetVal);
+      const isSameAsPreset = sameValue(value, presetVal);
       if (value === null || value === undefined || value === "" || isSameAsPreset) {
         delete next[name];
       } else {
         next[name] = value;
       }
-      onArgs({ overrides: next });
+      const patch: Record<string, unknown> = { overrides: next };
+      // Si existía una copia legacy en top-level, limpiarla evita que
+      // vuelva a pisar el preset al rehidratar el proyecto.
+      if (Object.prototype.hasOwnProperty.call(slotArgs, name)) {
+        patch[name] = null;
+      }
+      onArgs(patch);
     } else {
       onArgs({ [name]: value });
     }

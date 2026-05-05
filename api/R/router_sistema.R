@@ -432,7 +432,7 @@ mount_sistema <- function(pr) {
         n_columnas = primera$n_columnas
       )
     })) |>
-    plumber::pr_post("/api/session", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/session", wrap_endpoint(function(req, res, ...) {
       q <- req$args %||% list()
       fresh <- isTRUE(q$fresh) || identical(as.character(q$fresh %||% ""), "1") ||
         tolower(as.character(q$fresh %||% "")) %in% c("true", "yes", "si", "sí")

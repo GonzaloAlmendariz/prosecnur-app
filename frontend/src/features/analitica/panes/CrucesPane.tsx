@@ -218,7 +218,7 @@ export function CrucesPane() {
           busy={run.busy}
           jobId={run.jobId}
           fileId={run.fileId}
-          downloadName="cruces.xlsx"
+          downloadName={run.filename ?? "cruces.xlsx"}
           error={run.error}
           onGenerate={onGenerate}
           disabled={nVars === 0}

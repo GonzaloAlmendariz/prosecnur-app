@@ -125,6 +125,62 @@ test_that("session_set en keys internas de project NO entra en bucle de dirty", 
   expect_equal(s$project_path, "/tmp/foo.pulso")
 })
 
+test_that("build_pulso preserva configuracion ligera de hojas de ruta", {
+  setup <- .fake_session_with_state()
+  on.exit(session_delete(setup$sid))
+  frame <- hojas_ruta_inei_frame()
+  ubigeos <- head(unique(frame$ubigeo), 2)
+  first_zone <- frame$zona[frame$ubigeo == ubigeos[[1]]][[1]]
+  cfg <- hojas_ruta_integrada_normalize_config(list(
+    territorios = as.list(ubigeos),
+    n_objetivo = 240L,
+    subquota_var = "ninguna",
+    sampling_method = "sistematico",
+    seed = 777L,
+    entrevistas_por_manzana = 8L,
+    age_range_mode = "manual",
+    zone_allocation = "proportional",
+    age_ranges = list(
+      list(id = "18_39", label = "18-39", min = 18L, max = 39L),
+      list(id = "40_plus", label = "40+", min = 40L, max = NA)
+    )
+  ))
+  ui_state <- .hojas_ruta_ui_state_normalize(list(
+    active_stage = "poblacion",
+    draft_territories = as.list(rev(ubigeos)),
+    map_ubigeo = ubigeos[[1]],
+    map_zona = first_zone,
+    map_level = "manzanas",
+    map_selection_mode = TRUE
+  ), cfg)
+  session_set(setup$sid, "hojas_ruta_config", cfg)
+  session_set(setup$sid, "hojas_ruta_ui_state", ui_state)
+  session_set(setup$sid, "hojas_ruta_ok", TRUE)
+
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit(unlink(tmp, force = TRUE), add = TRUE)
+  build_pulso(setup$sid, tmp)
+
+  res_load <- load_pulso(tmp)
+  on.exit(session_delete(res_load$session_id), add = TRUE)
+  loaded <- session_get(res_load$session_id)
+
+  expect_equal(unlist(loaded$hojas_ruta_config$territorios, use.names = FALSE), ubigeos)
+  expect_equal(loaded$hojas_ruta_config$n_objetivo, 240L)
+  expect_equal(loaded$hojas_ruta_config$sampling_method, "sistematico")
+  expect_equal(loaded$hojas_ruta_config$entrevistas_por_manzana, 8L)
+  expect_equal(loaded$hojas_ruta_config$age_range_mode, "manual")
+  expect_equal(loaded$hojas_ruta_config$zone_allocation, "proportional")
+  expect_equal(loaded$hojas_ruta_config$age_ranges[[2]]$label, "40+")
+  expect_equal(loaded$hojas_ruta_ui_state$active_stage, "poblacion")
+  expect_equal(unlist(loaded$hojas_ruta_ui_state$draft_territories, use.names = FALSE), rev(ubigeos))
+  expect_equal(loaded$hojas_ruta_ui_state$map_ubigeo, ubigeos[[1]])
+  expect_equal(loaded$hojas_ruta_ui_state$map_zona, first_zone)
+  expect_equal(loaded$hojas_ruta_ui_state$map_level, "manzanas")
+  expect_true(isTRUE(loaded$hojas_ruta_ui_state$map_selection_mode))
+  expect_null(loaded$hojas_ruta_ok)
+})
+
 # ----- project_status --------------------------------------------------------
 
 test_that("project_status refleja correctamente los estados", {

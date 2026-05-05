@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, FileText, RotateCcw, Loader2, Undo2, Redo2, Sparkles, Settings2, PanelTopDashed } from "lucide-react";
+import { CheckCircle2, Download, FileText, RotateCcw, Loader2, Undo2, Redo2, Sparkles, Settings2, PanelTopDashed } from "lucide-react";
 import {
   apiGraficosConfigExport,
   apiGraficosConfigImport,
+  apiSaveFileAs,
   downloadUrl,
 } from "../../api/client";
 import { ConfigIoButtons } from "../../components/ConfigIoButtons";
@@ -13,6 +14,7 @@ import { PlanHealthBadge } from "./PlanHealthBadge";
 import { usePlanValidator } from "./usePlanValidator";
 import { TemplatesModal } from "./TemplatesModal";
 import { EstiloGlobalDialog } from "./v2/shell/EstiloGlobalDialog";
+import { useProjectShell } from "../project/ProjectShell";
 
 // Header del módulo Gráficos. Patrón análogo a AnaliticaHeader:
 // - Badge "Autoguardado" con estado (guardando / guardado / sin conexión).
@@ -30,6 +32,8 @@ export function GraficosHeader({
   onExportWord,
   pptFileId,
   docxFileId,
+  pptFilename,
+  docxFilename,
   exportBusy,
   exportJobKind,
   canExport,
@@ -38,6 +42,8 @@ export function GraficosHeader({
   onExportWord: () => void;
   pptFileId: string | null;
   docxFileId: string | null;
+  pptFilename: string | null;
+  docxFilename: string | null;
   exportBusy: boolean;
   exportJobKind: "ppt" | "word" | null;
   canExport: boolean;
@@ -52,6 +58,9 @@ export function GraficosHeader({
   const resetPlan = usePlanStore((s) => s.reset);
   const loadPlan = usePlanStore((s) => s.loadPlan);
   const [estiloOpen, setEstiloOpen] = useState(false);
+  const { project } = useProjectShell();
+  const savedRef = useRef<Record<string, true>>({});
+  const [saveStatus, setSaveStatus] = useState("");
 
   // El botón de export se desactiva si el padre lo bloquea (sesión sin
   // rp_data) O si el validador detecta errores (plan vacío, etc.).
@@ -88,6 +97,44 @@ export function GraficosHeader({
   // Estado del badge de autosave (3 variantes visuales).
   const savingNow = hydrated && dirty;
   const savedAll = hydrated && !dirty;
+
+  useEffect(() => {
+    const candidate = [
+      { fileId: pptFileId, filename: pptFilename ?? "reporte.pptx" },
+      { fileId: docxFileId, filename: docxFilename ?? "reporte.docx" },
+    ].find((item) => item.fileId && !savedRef.current[item.fileId]);
+    if (!candidate?.fileId || exportBusy || !window.prosecnurApi) return;
+    const fileId = candidate.fileId;
+    const filename = candidate.filename;
+    savedRef.current[fileId] = true;
+    const ext = filename.split(".").pop() || "*";
+    const defaultPath = project.status.path
+      ? (() => {
+          const sep = project.status.path!.includes("\\") ? "\\" : "/";
+          return `${project.status.path!.replace(/[/\\][^/\\]+$/, "")}${sep}${filename}`;
+        })()
+      : undefined;
+    let cancelled = false;
+    async function saveGeneratedReport() {
+      try {
+        const target = await window.prosecnurApi!.saveEntregableDialog({
+          defaultName: filename,
+          defaultPath,
+          filters: [{ name: ext.toUpperCase(), extensions: [ext] }, { name: "Todos", extensions: ["*"] }],
+        });
+        if (!target || cancelled) return;
+        const saved = await apiSaveFileAs(fileId, target, { overwrite: true });
+        if (!cancelled) setSaveStatus(`Guardado como ${saved.filename}`);
+      } catch (e) {
+        if (!cancelled) {
+          delete savedRef.current[fileId];
+          setSaveStatus((e as Error).message);
+        }
+      }
+    }
+    void saveGeneratedReport();
+    return () => { cancelled = true; };
+  }, [pptFileId, docxFileId, pptFilename, docxFilename, exportBusy, project.status.path]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
@@ -191,7 +238,7 @@ export function GraficosHeader({
               color: "var(--pulso-primary)", background: "var(--pulso-primary-soft)",
             }}
           >
-            <Download size={12} /> reporte.pptx
+            <Download size={12} /> {pptFilename ?? "reporte.pptx"}
           </a>
         )}
 
@@ -214,8 +261,20 @@ export function GraficosHeader({
               color: "var(--pulso-primary)", background: "var(--pulso-primary-soft)",
             }}
           >
-            <Download size={12} /> reporte.docx
+            <Download size={12} /> {docxFilename ?? "reporte.docx"}
           </a>
+        )}
+        {saveStatus && (
+          <span style={{
+            fontSize: 11,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            color: saveStatus.startsWith("[") ? "var(--pulso-danger-fg)" : "var(--pulso-success-fg)",
+          }}>
+            {!saveStatus.startsWith("[") && <CheckCircle2 size={12} />}
+            {saveStatus}
+          </span>
         )}
       </ContextBar>
 

@@ -4,6 +4,7 @@ import { useValidacionStore } from "../features/validacion/store";
 import { useAnaliticaStore } from "../features/analitica/store";
 import { useDimensionesWizardStore } from "../features/analitica/dimensiones/store";
 import { usePlanStore } from "../features/graficos/store";
+import { clearHojasRutaWorkspaceSnapshot } from "../features/hojasRuta/configSnapshot";
 
 // Listener global que se dispara cuando `client.ts` emite
 // `pulso:session-changed` (ocurre al abrir un .pulso distinto, o cuando
@@ -31,6 +32,7 @@ export function useStoreResetOnSessionChange() {
       // a defaults. Sus autosaves harán re-hydrate del backend nuevo.
       useAnaliticaStore.setState({ hydrated: false, dirty: false });
       usePlanStore.setState({ hydrated: false, dirty: false });
+      clearHojasRutaWorkspaceSnapshot();
     }
     window.addEventListener("pulso:session-changed", onSessionChanged);
     return () => {

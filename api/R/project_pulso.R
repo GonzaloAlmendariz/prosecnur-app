@@ -52,6 +52,9 @@
   # re-importan vía .dashboard_rebuild_after_load.
   s$dashboard_rp_inst <- NULL
   s$dashboard_rp_data <- NULL
+  # Hojas de ruta: los PDFs/ZIP son entregables regenerables desde
+  # hojas_ruta_config + marco INEI local; no forman parte del .pulso.
+  s$hojas_ruta_ok <- NULL
   # Dashboard ctx: contiene CLOSURES (`label_var`, `label_idx`, `label_sub`,
   # `label_ind`, `label_data`) que capturan `.dim_nm_get` en su environment.
   # Al deserializar en otro proceso R (ej. deploy en HF Space), esas

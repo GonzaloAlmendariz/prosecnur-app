@@ -178,7 +178,7 @@ function SavCard({
           label="Exportar .sav"
           busy={run.busy}
           fileId={run.fileId}
-          downloadName={downloadName}
+          downloadName={run.filename ?? downloadName}
           error={run.error}
           onGenerate={onGenerate}
           perBase={run.perBase}
@@ -263,7 +263,7 @@ function CsvCard({
           label="Exportar CSV"
           busy={run.busy}
           fileId={run.fileId}
-          downloadName="datos.csv"
+          downloadName={run.filename ?? "datos.csv"}
           error={run.error}
           onGenerate={onGenerate}
           perBase={run.perBase}
@@ -336,7 +336,7 @@ function XlsxCard({
           label="Exportar Excel"
           busy={run.busy}
           fileId={run.fileId}
-          downloadName="datos.xlsx"
+          downloadName={run.filename ?? "datos.xlsx"}
           error={run.error}
           onGenerate={onGenerate}
           perBase={run.perBase}

@@ -18,9 +18,19 @@ import {
   apiProjectStatus,
   ProjectStatus,
 } from "../../api/client";
+import { flushGraficosConfigIfHydrated } from "../graficos/configSnapshot";
+import { flushHojasRutaWorkspaceIfHydrated } from "../hojasRuta/configSnapshot";
 import type { RecentProject } from "./types";
 
 const POLL_INTERVAL_MS = 30_000;
+
+function dirname(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  const normalized = path.replace(/\\/g, "/");
+  const idx = normalized.lastIndexOf("/");
+  if (idx <= 0) return undefined;
+  return path.slice(0, idx);
+}
 
 const EMPTY_STATUS: ProjectStatus = {
   has_project: false,
@@ -71,7 +81,7 @@ export function useProject(sessionId?: string) {
       clearInterval(id);
       window.removeEventListener("pulso:project-status-changed", refresh);
     };
-  }, [refresh, refreshRecents]);
+  }, [status.path, refresh, refreshRecents]);
 
   // ----- Acciones --------------------------------------------------------
 
@@ -85,7 +95,7 @@ export function useProject(sessionId?: string) {
         if (!electronApi) {
           throw new Error("File picker no disponible (necesitas la app de escritorio).");
         }
-        chosenPath = await electronApi.openProjectDialog();
+        chosenPath = await electronApi.openProjectDialog({ defaultPath: dirname(status.path) });
       }
       if (!chosenPath) return null;
       const r = await apiProjectOpen(chosenPath);
@@ -99,7 +109,7 @@ export function useProject(sessionId?: string) {
     } finally {
       setBusy(false);
     }
-  }, [refresh, refreshRecents]);
+  }, [status.path, refresh, refreshRecents]);
 
   // En modo Electron usa el save dialog nativo. En modo navegador (sin
   // Electron) acepta `pathOpt` con el path absoluto directamente — útil
@@ -115,7 +125,7 @@ export function useProject(sessionId?: string) {
         if (!electronApi) {
           throw new Error("Pasa un path al .pulso o usa la app de escritorio.");
         }
-        path = await electronApi.saveProjectDialog(defaultName);
+        path = await electronApi.saveProjectDialog(defaultName, { defaultPath: dirname(status.path) });
       }
       if (!path) return null;
       // Proyecto nuevo = sesión nueva. Sin `fresh`, /api/session reutiliza
@@ -142,6 +152,8 @@ export function useProject(sessionId?: string) {
     }
     setBusy(true);
     try {
+      await flushGraficosConfigIfHydrated();
+      await flushHojasRutaWorkspaceIfHydrated();
       const r = await apiProjectSave(null);
       await refresh();
       return r;
@@ -162,8 +174,10 @@ export function useProject(sessionId?: string) {
         throw new Error("File picker no disponible (necesitas la app de escritorio).");
       }
       const defaultName = status.name ?? "MiProyecto";
-      const path = await electronApi.saveProjectDialog(defaultName);
+      const path = await electronApi.saveProjectDialog(defaultName, { defaultPath: dirname(status.path) });
       if (!path) return null;
+      await flushGraficosConfigIfHydrated();
+      await flushHojasRutaWorkspaceIfHydrated();
       const r = await apiProjectSave(path);
       if (electronApi) await electronApi.pushRecentProject(r.path);
       await refresh();
@@ -175,7 +189,7 @@ export function useProject(sessionId?: string) {
     } finally {
       setBusy(false);
     }
-  }, [status.name, refresh, refreshRecents]);
+  }, [status.name, status.path, refresh, refreshRecents]);
 
   const removeRecent = useCallback(async (path: string) => {
     const electronApi = window.prosecnurApi;

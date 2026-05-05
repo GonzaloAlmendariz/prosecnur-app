@@ -713,6 +713,7 @@ function TitlesEditor({
 
 function SettingsPanel({ args, onArgs }: { args: Record<string, unknown>; onArgs: (patch: Record<string, unknown>) => void }) {
   const labels = asStringArray(args.top2box_labels);
+  const overrides = asRecord(args.overrides);
   return (
     <details style={detailsStyle}>
       <summary style={summaryStyle}>Ajustes del bloque</summary>
@@ -730,7 +731,10 @@ function SettingsPanel({ args, onArgs }: { args: Record<string, unknown>; onArgs
             type="number"
             min={10}
             value={args.wrap_y === undefined || args.wrap_y === null ? 50 : Number(args.wrap_y)}
-            onChange={(e) => onArgs({ wrap_y: Number(e.target.value) })}
+            onChange={(e) => {
+              const wrap = Number(e.target.value);
+              onArgs({ wrap_y: wrap, overrides: { ...overrides, ancho_max_eje_y: wrap } });
+            }}
             style={inputStyle}
           />
         </FieldLabel>
@@ -963,6 +967,11 @@ function asStringArray(value: unknown): string[] {
 function asBlocks(value: unknown): MultiBlock[] {
   if (!Array.isArray(value)) return [];
   return value.filter((v): v is MultiBlock => !!v && typeof v === "object" && !Array.isArray(v));
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
 }
 
 function isNamedVars(value: unknown): value is Record<string, string[]> {

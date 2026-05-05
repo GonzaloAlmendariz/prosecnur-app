@@ -373,30 +373,16 @@ mount_validacion <- function(pr) {
         limpieza_payload = limpieza_payload
       )
 
-      file_id <- uuid::UUIDgenerate()
       downloads_dir <- file.path(s$dir, "downloads")
       dir.create(downloads_dir, showWarnings = FALSE, recursive = TRUE)
+      out_name <- .export_filename(sid, "validacion_report_html", "html", base = base)
       out_path <- file.path(downloads_dir,
-                             sprintf("reporte_validacion_%s.html", file_id))
+                             sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
       writeLines(html, out_path, useBytes = TRUE)
-      size <- file.info(out_path)$size
+      meta <- .register_output_file(sid, "validacion_report_html", out_path,
+                                    original_name = out_name)
 
-      # Registrar en file store con nombre limpio (sin UUID) para que la
-      # descarga salga como "reporte_validacion.html" y no el path interno.
-      meta <- list(
-        file_id = file_id,
-        kind = "validacion_report_html",
-        original_name = "reporte_validacion.html",
-        path = out_path,
-        size = as.integer(size),
-        ext = "html",
-        uploaded_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-      )
-      files <- s$files
-      files[[file_id]] <- meta
-      session_set(sid, "files", files)
-
-      list(ok = TRUE, file_id = file_id, size = meta$size,
+      list(ok = TRUE, file_id = meta$file_id, size = meta$size,
            original_name = meta$original_name)
     })) |>
 
@@ -482,26 +468,19 @@ mount_validacion <- function(pr) {
       inst <- leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE)
 
       s <- session_get(sid)
-      file_id <- uuid::UUIDgenerate()
+      out_name <- .export_filename(sid, "plan_limpieza_export", "xlsx", base = base)
       out_path <- file.path(s$dir, "downloads",
-                             sprintf("plan_limpieza_%s.xlsx", file_id))
+                             sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
       exportar_plan_limpieza(
         plan = scope$plan_result$plan,
         x = inst,
         path = out_path,
         overwrite = TRUE
       )
-      size <- file.info(out_path)$size
-      meta <- list(
-        file_id = file_id, kind = "plan_limpieza_export",
-        original_name = basename(out_path), path = out_path,
-        size = as.integer(size), ext = "xlsx",
-        uploaded_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-      )
-      files_map <- s$files
-      files_map[[file_id]] <- meta
-      session_set(sid, "files", files_map)
-      list(ok = TRUE, file_id = file_id, size = meta$size)
+      meta <- .register_output_file(sid, "plan_limpieza_export", out_path,
+                                    original_name = out_name)
+      list(ok = TRUE, file_id = meta$file_id, size = meta$size,
+           original_name = meta$original_name)
     })) |>
 
     # --- Instrumento: importar plan editado en Excel (scoped) ----------------
@@ -572,7 +551,7 @@ mount_validacion <- function(pr) {
       job_id <- job_submit(
         sid = sid,
         kind = "validacion.v2.auditoria",
-        func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path) {
+        func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, progress_path = NULL) {
           # Locale UTF-8 para que `pkgload::load_all()` pueda parsear
           # archivos .R con caracteres acentuados (el subprocess callr
           # no hereda las opciones locale del main process).
@@ -589,18 +568,26 @@ mount_validacion <- function(pr) {
           } else if (requireNamespace("devtools", quietly = TRUE)) {
             devtools::load_all(api_path, quiet = TRUE)
           }
+          report <- if (exists("job_progress_writer", mode = "function")) {
+            job_progress_writer(progress_path)
+          } else {
+            function(...) invisible(NULL)
+          }
+          report("loading", percent = 8, message = "Leyendo instrumento y base...")
           inst <- leer_xlsform_limpieza(xlsform_path, verbose = FALSE)
           datos <- read_validation_data_ast(
             path = data_path,
             ext = data_ext,
             instrumento = inst
           )
+          report("evaluate", percent = 45, message = "Evaluando reglas de consistencia...")
           ev <- evaluate_validation_bundle(
             bundle = bundle,
             data_input = datos,
             compatibility = validation_profile_for_base(base_name),
             strict = FALSE
           )
+          report("export", percent = 92, message = "Preparando resumen de auditoria...")
           total_raw <- tryCatch(total_inconsistencias(ev), error = function(e) NULL)
           total_scalar <- if (is.numeric(total_raw) && length(total_raw) == 1) {
             as.integer(total_raw)
@@ -1289,7 +1276,7 @@ mount_validacion <- function(pr) {
         job_id <- job_submit(
           sid = sid,
           kind = "validacion.v2.reglas_custom.ejecutar",
-          func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path) {
+          func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, progress_path = NULL) {
             tryCatch(Sys.setlocale("LC_ALL", "en_US.UTF-8"),
                      warning = function(w) NULL, error = function(e) NULL)
             options(encoding = "UTF-8")
@@ -1298,18 +1285,26 @@ mount_validacion <- function(pr) {
             } else if (requireNamespace("devtools", quietly = TRUE)) {
               devtools::load_all(api_path, quiet = TRUE)
             }
+            report <- if (exists("job_progress_writer", mode = "function")) {
+              job_progress_writer(progress_path)
+            } else {
+              function(...) invisible(NULL)
+            }
+            report("loading", percent = 8, message = "Leyendo instrumento y base...")
             inst <- leer_xlsform_limpieza(xlsform_path, verbose = FALSE)
             datos <- read_validation_data_ast(
               path = data_path,
               ext = data_ext,
               instrumento = inst
             )
+            report("evaluate", percent = 45, message = "Ejecutando reglas activas...")
             ev <- evaluate_validation_bundle(
               bundle = bundle,
               data_input = datos,
               compatibility = validation_profile_for_base(base_name),
               strict = FALSE
             )
+            report("export", percent = 92, message = "Preparando resultados...")
             total_raw <- tryCatch(total_inconsistencias(ev), error = function(e) NULL)
             total <- if (is.numeric(total_raw) && length(total_raw) == 1) {
               as.integer(total_raw)

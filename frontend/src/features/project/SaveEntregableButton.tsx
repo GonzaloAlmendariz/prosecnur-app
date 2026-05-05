@@ -75,7 +75,6 @@ export default function SaveEntregableButton({
     return (
       <a
         href={downloadUrl(fileId)}
-        download={`${defaultName}.${extension}`}
         className={className}
         style={style}
         aria-disabled={disabled}

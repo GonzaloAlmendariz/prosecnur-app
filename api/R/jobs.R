@@ -31,6 +31,13 @@ job_submit <- function(sid,
     args$result_path <- result_path
   }
 
+  progress_path <- file.path(jobs_dir, paste0(job_id, ".progress"))
+  tryCatch(
+    writeLines('{"phase":"queued"}', progress_path),
+    error = function(e) NULL
+  )
+  args$progress_path <- progress_path
+
   # callr::r_bg arranca un subproceso R limpio sin el namespace de
   # `prosecnurapp` cargado. Los `func` que recibimos típicamente llaman
   # funciones del paquete sin prefijo (ppra_adaptar_data, evaluar_*,
@@ -55,6 +62,15 @@ job_submit <- function(sid,
                error = function(e) NULL, warning = function(w) NULL)
     }
     options(encoding = "UTF-8")
+
+    if ("progress_path" %in% names(.__job_args__) &&
+        !is.null(.__job_args__$progress_path) &&
+        nzchar(.__job_args__$progress_path)) {
+      tryCatch(
+        writeLines('{"phase":"running","message":"Trabajando..."}', .__job_args__$progress_path),
+        error = function(e) NULL
+      )
+    }
 
     if (nzchar(.__job_api_dir__) && dir.exists(.__job_api_dir__)) {
       if (requireNamespace("pkgload", quietly = TRUE)) {
@@ -85,6 +101,13 @@ job_submit <- function(sid,
         library(prosecnurapp, quietly = TRUE, warn.conflicts = FALSE)
       ))
     }
+    inner_formals <- tryCatch(names(formals(.__job_inner_func__)), error = function(e) NULL)
+    if (!is.null(inner_formals) &&
+        !("..." %in% inner_formals) &&
+        "progress_path" %in% names(.__job_args__) &&
+        !("progress_path" %in% inner_formals)) {
+      .__job_args__$progress_path <- NULL
+    }
     do.call(.__job_inner_func__, .__job_args__)
   }
 
@@ -111,12 +134,61 @@ job_submit <- function(sid,
     finished_at = NULL,
     status = "running",
     result_path = result_path,
+    progress_path = progress_path,
     result_data = NULL,
     result_public = NULL,
     on_complete = on_complete,
     error = NULL
   )
   job_id
+}
+
+job_read_progress <- function(progress_path) {
+  if (is.null(progress_path) || !nzchar(progress_path) || !file.exists(progress_path)) {
+    return(NULL)
+  }
+  tryCatch({
+    raw <- paste(readLines(progress_path, warn = FALSE), collapse = "\n")
+    if (!nzchar(raw)) return(NULL)
+    jsonlite::fromJSON(raw, simplifyVector = FALSE)
+  }, error = function(e) NULL)
+}
+
+#' Helper para reportar progreso desde un job en subproceso
+#'
+#' Devuelve una función que escribe a `progress_path` un JSON con
+#' phase, current/total, percent y mensaje opcional. Es seguro pasarle
+#' `NULL` o un path inválido (no falla, simplemente no escribe).
+#'
+#' @param progress_path Ruta absoluta del archivo .progress.
+#' @return Función reportadora.
+#' @export
+job_progress_writer <- function(progress_path) {
+  function(phase = "running", current = NULL, total = NULL,
+           percent = NULL, message = NULL) {
+    if (is.null(progress_path) || !nzchar(progress_path)) return(invisible(NULL))
+    pct <- if (!is.null(percent)) {
+      percent
+    } else if (!is.null(current) && !is.null(total) && total > 0) {
+      min(100, round(100 * current / total))
+    } else {
+      NA_real_
+    }
+    payload <- list(
+      phase = as.character(phase),
+      current = if (!is.null(current)) as.integer(current) else NULL,
+      total = if (!is.null(total)) as.integer(total) else NULL,
+      percent = if (!is.na(pct)) as.numeric(pct) else NULL,
+      message = if (!is.null(message)) as.character(message) else NULL,
+      ts = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    )
+    payload <- payload[!vapply(payload, is.null, logical(1))]
+    tryCatch({
+      json <- jsonlite::toJSON(payload, auto_unbox = TRUE, null = "null", na = "null")
+      writeLines(json, progress_path)
+    }, error = function(e) NULL)
+    invisible(NULL)
+  }
 }
 
 job_get <- function(job_id) {
@@ -197,6 +269,11 @@ jobs_kill_all <- function() {
 }
 
 job_snapshot <- function(j) {
+  progress <- if (identical(j$status, "done")) {
+    list(phase = "done", percent = 100)
+  } else {
+    job_read_progress(j$progress_path)
+  }
   list(
     id = j$id,
     kind = j$kind,
@@ -214,6 +291,7 @@ job_snapshot <- function(j) {
       NA_character_
     },
     result_data = j$result_public,
+    progress = progress,
     error = j$error
   )
 }

@@ -56,9 +56,9 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
     # "giz" es el nombre actual del demo default; "generic" se mantiene
     # como alias por compat con sesiones persistidas antes del rename.
     fname <- if (solo_una && nombre %in% c("default", "giz", "generic")) {
-      sprintf("%s.%s", base_filename, ext)
+      .export_filename(sid, base_filename, ext)
     } else {
-      sprintf("%s__%s.%s", nombre, base_filename, ext)
+      .export_filename(sid, base_filename, ext, base = nombre)
     }
     # Uuid al path real para no colisionar si el analista genera varias
     # veces el mismo reporte dentro de la sesión.
@@ -71,7 +71,7 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
                sprintf("La generación del reporte para la base '%s' no produjo archivo.", nombre))
     }
 
-    meta <- .register_output_file(sid, kind_single, path)
+    meta <- .register_output_file(sid, kind_single, path, original_name = fname)
     list(
       nombre   = nombre,
       file_id  = meta$file_id,
@@ -87,7 +87,8 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
   if (length(outputs) == 0L) {
     stop_api(500, "E_NO_OUTPUTS", "Sin archivos para empaquetar.")
   }
-  zip_path <- .session_tmp(sid, sprintf("%s_%s.zip", uuid::UUIDgenerate(), zip_basename))
+  zip_name <- .export_filename(sid, zip_basename, "zip")
+  zip_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), zip_name))
   # `zip::zip` requiere rutas relativas; usamos el basename para que el
   # zip no contenga la jerarquía temp completa.
   files <- vapply(outputs, function(o) o$path, character(1))
@@ -104,7 +105,7 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
   zip::zip(zipfile = zip_path, files = names_inside)
   setwd(old_wd)
 
-  meta <- .register_output_file(sid, kind_multi, zip_path)
+  meta <- .register_output_file(sid, kind_multi, zip_path, original_name = zip_name)
   list(
     file_id  = meta$file_id,
     filename = basename(zip_path),

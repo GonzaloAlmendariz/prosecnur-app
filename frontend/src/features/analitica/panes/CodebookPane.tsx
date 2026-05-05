@@ -95,7 +95,7 @@ export function CodebookPane() {
           label="Generar libro de códigos"
           busy={run.busy}
           fileId={run.fileId}
-          downloadName="libro_de_codigos.xlsx"
+          downloadName={run.filename ?? "libro_de_codigos.xlsx"}
           error={run.error}
           onGenerate={onGenerate}
           perBase={run.perBase}

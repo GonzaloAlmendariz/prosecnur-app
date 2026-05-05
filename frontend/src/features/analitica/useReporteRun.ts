@@ -19,6 +19,7 @@ type ReporteRunState = {
   busy: boolean;
   jobId: string | null;
   fileId: string | null;       // archivo principal (single) o zip (multi)
+  filename: string | null;     // nombre sugerido por backend para el archivo principal
   lastResult: MultiBaseResult | null;
   perBase: BasePerOutput[];    // vacío en single-base
   error: string;
@@ -36,11 +37,17 @@ function primaryFileId(r: MultiBaseResult): string | null {
   return r.file_id ?? null;
 }
 
+function primaryFilename(r: MultiBaseResult): string | null {
+  if (r.zip) return r.zip.filename;
+  return r.filename ?? null;
+}
+
 export function useReporteRun(): ReporteRunState {
   const { refresh } = useSession();
   const [busy, setBusy] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [fileId, setFileId] = useState<string | null>(null);
+  const [filename, setFilename] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<MultiBaseResult | null>(null);
   const [error, setError] = useState("");
 
@@ -51,6 +58,7 @@ export function useReporteRun(): ReporteRunState {
       const out = await fn();
       setLastResult(out);
       setFileId(primaryFileId(out));
+      setFilename(primaryFilename(out));
       await refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -79,10 +87,12 @@ export function useReporteRun(): ReporteRunState {
     if (multi && (multi.zip || multi.bases)) {
       setLastResult(multi);
       setFileId(primaryFileId(multi));
+      setFilename(primaryFilename(multi));
     } else {
       // Legacy FileJobResult { file_id, size, ...}
       const legacy = d as FileJobResult;
       setFileId(legacy.file_id);
+      setFilename(legacy.filename ?? null);
       setLastResult(null);
     }
     setJobId(null);
@@ -100,7 +110,7 @@ export function useReporteRun(): ReporteRunState {
   const perBase = lastResult?.bases ?? [];
 
   return {
-    busy, jobId, fileId, lastResult, perBase, error,
+    busy, jobId, fileId, filename, lastResult, perBase, error,
     runSync, runAsync, onJobDone, onJobError, onJobCancelled, clearError,
   };
 }

@@ -1,0 +1,35 @@
+{
+  "type": "FeatureCollection",
+  "properties": {
+    "id": "prosecnur-contexto-curado-lima-callao-v1",
+    "coverage": "Lima Metropolitana y Callao",
+    "source": "Curaduria local Prosecnur con referencias publicas",
+    "packaged_at": "2026-05-05",
+    "note": "Capa complementaria de orientacion de campo. No reemplaza cartografia oficial ni OSM."
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "curated-park-la-pera",
+      "properties": {
+        "id": "curated-park-la-pera",
+        "osm_id": "",
+        "name": "Parque La Pera del Amor",
+        "display_name": "Parque La Pera",
+        "aliases": ["Parque de la Pera", "Parque Benemerita Guardia Civil"],
+        "feature_class": "green",
+        "kind": "park",
+        "rank": 2,
+        "source_kind": "curated",
+        "source": "Municipalidad de San Isidro / Wikimapia / curaduria local",
+        "source_url": "https://www.gob.pe/institucion/munisanisidro-lima/campa%C3%B1as/139856-biblio-parque-en-san-isidro",
+        "confidence": "approximate_point",
+        "related_ubigeos": ["150120", "150131"]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-77.058889, -12.104167]
+      }
+    }
+  ]
+}

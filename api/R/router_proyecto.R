@@ -160,6 +160,59 @@ mount_proyecto <- function(pr) {
         size        = size
       )
     })) |>
+    plumber::pr_post("/api/fs/save-file-as", wrap_endpoint(function(req, res, file_id = NULL, path = NULL, overwrite = TRUE, ...) {
+      # Copia un archivo del file store a un path absoluto elegido por el
+      # dialog nativo de Electron. Es el flujo "Generar -> Guardar..." para
+      # evitar que el usuario tenga que cazar un link de descarga inline.
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      body <- if (nzchar(body_raw)) {
+        tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = TRUE),
+                 error = function(e) list())
+      } else list()
+
+      file_id <- as.character(file_id %||% body$file_id %||% NA_character_)
+      target_path <- as.character(path %||% body$path %||% NA_character_)
+      overwrite <- isTRUE(overwrite %||% body$overwrite %||% TRUE)
+
+      if (is.na(file_id) || !nzchar(file_id)) {
+        stop_api(400, "E_NO_FILE_ID", "Falta 'file_id' en el body.")
+      }
+      if (is.na(target_path) || !nzchar(target_path)) {
+        stop_api(400, "E_NO_PATH", "Falta 'path' en el body.")
+      }
+      if (!grepl("^(/|[A-Za-z]:[\\\\/])", target_path)) {
+        stop_api(400, "E_INVALID_PATH", "El path debe ser absoluto.")
+      }
+
+      s <- session_get(sid)
+      meta <- s$files[[file_id]]
+      if (is.null(meta) || is.null(meta$path) || !file.exists(meta$path)) {
+        stop_api(404, "E_FILE_NOT_FOUND",
+                 sprintf("El file_id %s no está disponible en disco.", file_id))
+      }
+      if (!nzchar(tools::file_ext(target_path)) && !is.null(meta$ext) && nzchar(meta$ext)) {
+        target_path <- paste0(target_path, ".", meta$ext)
+      }
+      if (!dir.exists(dirname(target_path))) {
+        dir.create(dirname(target_path), recursive = TRUE, showWarnings = FALSE)
+      }
+      if (file.exists(target_path) && !overwrite) {
+        stop_api(409, "E_FILE_EXISTS",
+                 sprintf("Ya existe '%s'.", basename(target_path)))
+      }
+      ok <- file.copy(meta$path, target_path, overwrite = overwrite)
+      if (!isTRUE(ok)) {
+        stop_api(500, "E_COPY_FAILED",
+                 sprintf("No se pudo copiar a %s.", target_path))
+      }
+      list(
+        ok = TRUE,
+        path = target_path,
+        filename = basename(target_path),
+        size = as.integer(file.info(target_path)$size)
+      )
+    })) |>
     plumber::pr_get("/api/fs/list-project-dir", wrap_endpoint(function(req, res) {
       # Lista archivos en el directorio del .pulso activo (para que el
       # FilenameInput pueda detectar colisiones antes de permitir guardar).
