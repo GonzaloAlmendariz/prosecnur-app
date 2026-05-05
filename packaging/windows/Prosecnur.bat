@@ -74,7 +74,7 @@ REM necesiten. El resto de Prosecnur queda completamente offline.
 set "PULSO_APP_ROOT=%INTERNALS%"
 cd /d "%INTERNALS%\desktop"
 echo [%date% %time%] Lanzando Electron offline >> "%APP_LOG%"
-start "" /B "%ELECTRON_EXE%" "%INTERNALS%\desktop" >> "%APP_LOG%" 2>&1
+start "" /B "%ELECTRON_EXE%" "%INTERNALS%\desktop" %* >> "%APP_LOG%" 2>&1
 
 endlocal
 exit /b 0

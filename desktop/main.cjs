@@ -33,6 +33,23 @@ let logStream = null;
 // Path a la carpeta de logs. Expuesto al menú y al dialog de errores
 // para que el usuario pueda abrirla rápido cuando algo falla.
 let logsDir = null;
+let pendingLaunchProject = null;
+
+function pulsoArgFromArgv(argv = []) {
+  const hit = argv.find((arg) => (
+    arg && typeof arg === "string" && arg.toLowerCase().endsWith(".pulso")
+  ));
+  return hit ? path.resolve(hit) : null;
+}
+
+function queueProjectOpen(filePath) {
+  if (!filePath || !filePath.toLowerCase().endsWith(".pulso")) return;
+  pendingLaunchProject = path.resolve(filePath);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("menu:command", `project:openRecent:${pendingLaunchProject}`);
+    pendingLaunchProject = null;
+  }
+}
 
 function initLogs() {
   try {
@@ -325,6 +342,12 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("project:getRecent", () => readRecentProjects());
+
+  ipcMain.handle("project:getLaunchProject", () => {
+    const p = pendingLaunchProject;
+    pendingLaunchProject = null;
+    return p;
+  });
 
   ipcMain.handle("project:pushRecent", (_event, args = {}) => {
     if (args.path) pushRecentProject(args.path);
@@ -990,11 +1013,15 @@ const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
-  app.on("second-instance", () => {
+  pendingLaunchProject = pulsoArgFromArgv(process.argv);
+
+  app.on("second-instance", (_event, argv) => {
+    const filePath = pulsoArgFromArgv(argv);
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
     }
+    if (filePath) queueProjectOpen(filePath);
   });
 
   app.whenReady().then(() => {

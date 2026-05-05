@@ -64,6 +64,16 @@ export default function ProjectShell({ children }: { children: React.ReactNode }
   // Suscribir a comandos del menú nativo (Cmd+S, Cmd+O, etc.)
   useEffect(() => {
     if (!window.prosecnurApi) return undefined;
+    let disposed = false;
+
+    window.prosecnurApi.getLaunchProject?.().then(async (path) => {
+      if (disposed || !path) return;
+      const r = await project.open(path);
+      if (!disposed && r) setShowStart(false);
+    }).catch(() => {
+      // Compatibilidad con builds antiguos del bridge Electron.
+    });
+
     const cleanup = window.prosecnurApi.onMenuCommand(async (command) => {
       if (command === "project:new") {
         const r = await project.newProject();
@@ -84,7 +94,10 @@ export default function ProjectShell({ children }: { children: React.ReactNode }
         if (r) setShowStart(false);
       }
     });
-    return cleanup;
+    return () => {
+      disposed = true;
+      cleanup();
+    };
   }, [project]);
 
   const ctxValue = useMemo<ProjectShellCtx>(

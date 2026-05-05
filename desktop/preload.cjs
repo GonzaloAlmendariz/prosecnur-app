@@ -40,6 +40,10 @@ contextBridge.exposeInMainWorld("prosecnurApi", {
   // Devuelve un array de hasta 5 paths absolutos a .pulso recientes.
   getRecentProjects: () => ipcRenderer.invoke("project:getRecent"),
 
+  // Path .pulso recibido al abrir la app desde asociación de archivo
+  // (doble click en Explorer). Se consume una vez por arranque.
+  getLaunchProject: () => ipcRenderer.invoke("project:getLaunchProject"),
+
   // Agrega/promueve un path en la lista de recientes (lo mueve al top).
   pushRecentProject: (path) =>
     ipcRenderer.invoke("project:pushRecent", { path }),

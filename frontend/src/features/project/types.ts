@@ -29,6 +29,7 @@ export type ProsecnurApi = {
     filters?: Array<{ name: string; extensions: string[] }>;
   }) => Promise<string | null>;
   getRecentProjects: () => Promise<RecentProject[]>;
+  getLaunchProject: () => Promise<string | null>;
   pushRecentProject: (path: string) => Promise<RecentProject[]>;
   removeRecentProject: (path: string) => Promise<RecentProject[]>;
   getHfSettings: () => Promise<{
