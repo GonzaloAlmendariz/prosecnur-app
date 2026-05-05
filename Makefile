@@ -13,7 +13,7 @@ DIST_ROOT := $(REPO_ROOT)/dist.nosync
 PACKAGE_DIR := $(DIST_ROOT)/$(PACKAGE_NAME)
 PACKAGE_STAGING := $(DIST_ROOT)/.package-staging/$(PACKAGE_NAME)
 
-.PHONY: help dev-api dev-frontend dev-pulso build clean install-r install-frontend install-desktop desktop package-local
+.PHONY: help dev-api dev-frontend dev-pulso build clean install-r install-frontend install-desktop desktop package-local package-windows-self-contained
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -29,6 +29,7 @@ help:
 	@echo "  dev-frontend     Run Vite dev server (proxies /api to :8787)"
 	@echo "  build            Build the frontend into api/inst/www"
 	@echo "  package-local    Generate distributable in dist.nosync/Prosecnur/"
+	@echo "  package-windows-self-contained Generate offline Windows bundle ZIP"
 	@echo "  clean            Remove build output"
 
 install-r:
@@ -109,6 +110,9 @@ package-local: build
 	@echo ""
 	@echo "macOS:   open \"$(PACKAGE_DIR)/Prosecnur.app\""
 	@echo "Windows: doble click en $(PACKAGE_DIR)/Prosecnur.bat"
+
+package-windows-self-contained:
+	bash packaging/windows/build-self-contained.sh
 
 clean:
 	rm -rf api/inst/www/*
