@@ -108,7 +108,7 @@ rm -rf "$DESKTOP_PROD"
 mkdir -p "$DESKTOP_PROD"
 cp desktop/package.json "$DESKTOP_PROD/"
 cp desktop/pnpm-lock.yaml "$DESKTOP_PROD/"
-(cd "$DESKTOP_PROD" && pnpm install --prod --silent --ignore-scripts)
+(cd "$DESKTOP_PROD" && pnpm install --prod --silent --ignore-scripts --node-linker=hoisted)
 mkdir -p "$STAGING/Internals/desktop/node_modules"
 rsync -a "$DESKTOP_PROD/node_modules/" "$STAGING/Internals/desktop/node_modules/"
 rm -rf "$DESKTOP_PROD"
