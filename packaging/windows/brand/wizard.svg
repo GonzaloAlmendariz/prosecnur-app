@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sidebar del NSIS MUI Welcome page (164x314).
+     Fondo navy + logo grande + wordmark "Prosecnur" en blanco abajo. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 164 314" width="164" height="314">
+  <defs>
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#012558"/>
+      <stop offset="100%" stop-color="#001a40"/>
+    </linearGradient>
+    <linearGradient id="circle-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#002457"/>
+      <stop offset="100%" stop-color="#013371"/>
+    </linearGradient>
+  </defs>
+  <!-- Fondo del sidebar -->
+  <rect width="164" height="314" fill="url(#bg-grad)"/>
+
+  <!-- Logo: viewBox 64x64, escalado a 100x100, centrado horizontal arriba.
+       cx interno=32 → centramos el grupo en x=82, y=88. -->
+  <g transform="translate(32 38)">
+    <circle cx="50" cy="50" r="46" fill="url(#circle-grad)" stroke="#ffffff" stroke-opacity="0.10" stroke-width="1"/>
+    <g transform="translate(50 50) scale(1.45) translate(-32 -32)">
+      <rect x="16" y="34" width="6" height="14" rx="1.5" fill="#ffffff" fill-opacity="0.95"/>
+      <rect x="26" y="26" width="6" height="22" rx="1.5" fill="#ffffff" fill-opacity="0.85"/>
+      <rect x="36" y="18" width="6" height="30" rx="1.5" fill="#ffffff" fill-opacity="0.75"/>
+      <rect x="46" y="22" width="6" height="26" rx="1.5" fill="#ffffff" fill-opacity="0.65"/>
+    </g>
+  </g>
+
+  <!-- Wordmark "Prosecnur" debajo del logo. Mismo estilo que .home-hero-wordmark
+       (font-weight 800, letter-spacing apretado), color blanco para contraste
+       sobre el fondo navy. -->
+  <text x="82" y="180"
+        text-anchor="middle"
+        font-family="Segoe UI, system-ui, sans-serif"
+        font-weight="800"
+        font-size="22"
+        letter-spacing="-0.6"
+        fill="#ffffff">Prosecnur</text>
+
+  <!-- Tagline pequenia, opcional, en gris claro -->
+  <text x="82" y="200"
+        text-anchor="middle"
+        font-family="Segoe UI, system-ui, sans-serif"
+        font-weight="400"
+        font-size="9"
+        letter-spacing="0.6"
+        fill="#94a3b8">SUITE ANALITICA</text>
+
+  <!-- Pulso PUCP attribution chiquita al pie -->
+  <text x="82" y="298"
+        text-anchor="middle"
+        font-family="Segoe UI, system-ui, sans-serif"
+        font-weight="500"
+        font-size="9"
+        letter-spacing="0.5"
+        fill="#cbd5e1"
+        fill-opacity="0.75">PULSO PUCP</text>
+</svg>

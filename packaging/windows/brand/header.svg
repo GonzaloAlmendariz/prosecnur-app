@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Header del NSIS MUI (150x57).
+     Lockup horizontal: logo a la izq + "Prosecnur" a la der.
+     Fondo blanco para fundirse con el header de las paginas internas. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 57" width="150" height="57">
+  <defs>
+    <linearGradient id="circle-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#002457"/>
+      <stop offset="100%" stop-color="#013371"/>
+    </linearGradient>
+  </defs>
+  <rect width="150" height="57" fill="#ffffff"/>
+
+  <!-- Logo a la izquierda, 40x40 -->
+  <g transform="translate(8 8)">
+    <circle cx="20" cy="20" r="20" fill="url(#circle-grad)"/>
+    <g transform="translate(20 20) scale(0.55) translate(-32 -32)">
+      <rect x="16" y="34" width="6" height="14" rx="1.5" fill="#ffffff" fill-opacity="0.95"/>
+      <rect x="26" y="26" width="6" height="22" rx="1.5" fill="#ffffff" fill-opacity="0.85"/>
+      <rect x="36" y="18" width="6" height="30" rx="1.5" fill="#ffffff" fill-opacity="0.75"/>
+      <rect x="46" y="22" width="6" height="26" rx="1.5" fill="#ffffff" fill-opacity="0.65"/>
+    </g>
+  </g>
+
+  <!-- Wordmark "Prosecnur" a la derecha del logo -->
+  <text x="55" y="35"
+        font-family="Segoe UI, system-ui, sans-serif"
+        font-weight="800"
+        font-size="16"
+        letter-spacing="-0.4"
+        fill="#002457">Prosecnur</text>
+</svg>

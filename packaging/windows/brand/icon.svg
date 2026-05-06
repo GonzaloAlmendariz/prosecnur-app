@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Logo de Prosecnur replicado exacto del HeroLogo en HomePage.tsx.
+     Circulo navy con gradiente + 4 barras blancas con opacidades decrecientes. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#002457"/>
+      <stop offset="100%" stop-color="#013371"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#grad)"/>
+  <g>
+    <rect x="16" y="34" width="6" height="14" rx="1.5" fill="#ffffff" fill-opacity="0.95"/>
+    <rect x="26" y="26" width="6" height="22" rx="1.5" fill="#ffffff" fill-opacity="0.85"/>
+    <rect x="36" y="18" width="6" height="30" rx="1.5" fill="#ffffff" fill-opacity="0.75"/>
+    <rect x="46" y="22" width="6" height="26" rx="1.5" fill="#ffffff" fill-opacity="0.65"/>
+  </g>
+</svg>

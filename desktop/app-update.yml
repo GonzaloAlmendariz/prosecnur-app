@@ -1,0 +1,9 @@
+# Configuracion del auto-updater. electron-updater lee este archivo en runtime
+# para saber donde buscar los release files (latest.yml, latest-mac.yml).
+#
+# Updates publicas en GitHub Releases:
+#   https://github.com/GonzaloAlmendariz/prosecnur-app/releases
+provider: github
+owner: GonzaloAlmendariz
+repo: prosecnur-app
+updaterCacheDirName: prosecnur-updater

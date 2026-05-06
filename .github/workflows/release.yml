@@ -1,0 +1,219 @@
+# =============================================================================
+# Prosecnur — Release pipeline
+#
+# Trigger:
+#   - push de un tag v*  (ej. git tag v0.2.1 && git push --tags)
+#   - workflow_dispatch  (boton "Run workflow" en GitHub UI con version manual)
+#
+# Genera:
+#   - Prosecnur-Setup.exe + latest.yml          (Windows, NSIS desde Linux)
+#   - Prosecnur-<ver>-arm64.dmg + Prosecnur-<ver>-x64.dmg + latest-mac.yml
+#
+# Sube todo a una GitHub Release. Las apps instaladas detectan la nueva
+# version y se actualizan via electron-updater.
+# =============================================================================
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version a buildear (sin v, ej. 0.2.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write   # softprops/action-gh-release necesita esto para crear releases
+
+env:
+  R_VERSION: '4.5.1'
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Windows installer: lo buildeamos en ubuntu-latest porque NSIS via apt es
+  # mas estable que en runners Windows + el bundle es 100% archivos copiados,
+  # NSIS solo arma el .exe. No hay codigo nativo Windows que requiera Win runner.
+  # ---------------------------------------------------------------------------
+  build-windows:
+    name: Build Windows (.exe + latest.yml)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ env.R_VERSION }}
+          use-public-rspm: true
+
+      - name: Install build deps (NSIS, ImageMagick, librsvg)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nsis imagemagick librsvg2-bin rsync
+
+      - name: Cache R Windows binaries
+        uses: actions/cache@v4
+        with:
+          path: dist.nosync/windows-cache
+          key: r-win-cache-${{ env.R_VERSION }}-${{ hashFiles('api/DESCRIPTION') }}
+          restore-keys: |
+            r-win-cache-${{ env.R_VERSION }}-
+
+      - name: Install pnpm deps (frontend + desktop)
+        run: |
+          cd frontend && pnpm install --frozen-lockfile
+          cd ../desktop && pnpm install --frozen-lockfile
+
+      - name: Build Windows installer
+        run: bash packaging/windows/build-self-contained.sh
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          retention-days: 7
+          path: |
+            dist.nosync/Prosecnur-Setup.exe
+            dist.nosync/latest.yml
+            dist.nosync/Prosecnur-Windows-self-contained.zip
+
+  # ---------------------------------------------------------------------------
+  # Mac dmg: arm64 nativo + x64 cross-compiled en un solo job. Asi
+  # electron-builder genera UN latest-mac.yml combinado con ambos archs.
+  # ---------------------------------------------------------------------------
+  build-mac:
+    name: Build macOS (.dmg arm64 + x64)
+    runs-on: macos-latest   # arm64 nativo
+    # Mac es best-effort: si falla, el .exe Windows igual se publica. El owner
+    # puede generar los .dmg localmente con `make package-mac-dmg` y agregarlos
+    # al Release a mano via `gh release upload`.
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ env.R_VERSION }}
+          use-public-rspm: true
+
+      - name: Install librsvg + ImageMagick
+        run: brew install librsvg imagemagick
+
+      - name: Cache R Mac binaries (both archs)
+        uses: actions/cache@v4
+        with:
+          path: dist.nosync/mac-cache
+          key: r-mac-cache-${{ env.R_VERSION }}-${{ hashFiles('api/DESCRIPTION') }}
+          restore-keys: |
+            r-mac-cache-${{ env.R_VERSION }}-
+
+      - name: Install pnpm deps (frontend + desktop)
+        run: |
+          cd frontend && pnpm install --frozen-lockfile
+          cd ../desktop && pnpm install --frozen-lockfile
+
+      - name: Build macOS dmgs (arm64 + x64)
+        env:
+          PROSECNUR_DMG_ARCHS: 'arm64 x64'
+          # Sin firma Apple Developer todavia: Gatekeeper pedira "Open Anyway"
+          # la primera vez que el usuario abra el .dmg. Cuando tengas un cert
+          # quita esto y agrega CSC_LINK + CSC_KEY_PASSWORD via secrets.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: bash packaging/macos/build-dmg.sh
+
+      - name: Upload Mac artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-installers
+          retention-days: 7
+          path: |
+            dist.nosync/mac-builder-output/*.dmg
+            dist.nosync/mac-builder-output/*.yml
+            dist.nosync/mac-builder-output/*.blockmap
+
+  # ---------------------------------------------------------------------------
+  # Crea el GitHub Release con todos los assets. Solo corre si los dos builds
+  # anteriores pasaron OK.
+  # ---------------------------------------------------------------------------
+  release:
+    name: Publish GitHub Release
+    # Solo Windows es bloqueante. Si mac falla, el release se publica con el
+    # .exe igual (los .dmg se pueden agregar despues con `gh release upload`).
+    needs: [build-windows]
+    if: always() && needs.build-windows.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (para release notes desde commits)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: artifacts/windows
+
+      - name: Download Mac artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-installers
+          path: artifacts/mac
+        continue-on-error: true
+
+      - name: Determine release tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "name=v${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: List release assets
+        run: |
+          echo "=== Windows ===" && ls -la artifacts/windows/
+          echo "=== Mac ===" && ls -la artifacts/mac/
+
+      - name: Create / update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: Prosecnur ${{ steps.tag.outputs.name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          files: |
+            artifacts/windows/Prosecnur-Setup.exe
+            artifacts/windows/latest.yml
+            artifacts/windows/Prosecnur-Windows-self-contained.zip
+            artifacts/mac/*.dmg
+            artifacts/mac/*.yml
+            artifacts/mac/*.blockmap

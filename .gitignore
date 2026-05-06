@@ -54,5 +54,13 @@ insumos/
 # Build artifacts del paquete R
 prosecnurapp_*.tar.gz
 
+# Staging de runtime mac generado por packaging/macos/build-dmg.sh
+# (se regenera por arch en cada build, pesa ~300MB con paquetes R + R.pkg).
+packaging/macos/r-mac-runtime/
+
+# .icns generado a partir de packaging/windows/brand/icon.svg.
+packaging/macos/build-resources/icon.icns
+packaging/macos/build-resources/icon.iconset/
+
 # Backups puntuales del .pulso (limpieza manual)
 *.pulso.pre-cleanup.bak

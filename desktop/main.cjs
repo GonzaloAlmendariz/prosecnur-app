@@ -6,6 +6,8 @@ const http = require("node:http");
 const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
+const { setupAutoUpdater } = require("./auto-updater.cjs");
+const { bootstrapMacRuntime } = require("./mac-bootstrap.cjs");
 
 const APP_NAME = "Prosecnur";
 const HOST = "127.0.0.1";
@@ -393,7 +395,14 @@ function buildRecentSubmenu() {
 }
 
 function appRoot() {
-  return process.env.PULSO_APP_ROOT || path.resolve(__dirname, "..");
+  if (process.env.PULSO_APP_ROOT) return process.env.PULSO_APP_ROOT;
+  // En .app empaquetado por electron-builder los Internals viven junto al
+  // app/ dentro de Contents/Resources/. process.resourcesPath apunta ahi.
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, "Internals");
+  }
+  // Dev: __dirname = <repo>/desktop, queremos <repo>.
+  return path.resolve(__dirname, "..");
 }
 
 function htmlPage(title, body) {
@@ -1024,9 +1033,25 @@ if (!gotLock) {
     if (filePath) queueProjectOpen(filePath);
   });
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     app.setName(APP_NAME);
     initLogs();
+    // En .dmg empaquetado para mac, instalar R framework y paquetes la primera
+    // vez antes de levantar el backend. En Windows el Setup.exe ya hizo todo
+    // esto durante la instalacion, asi que no hay nada que hacer en runtime.
+    try {
+      const macSetup = await bootstrapMacRuntime({ logger: writeLog, appRoot: appRoot() });
+      if (macSetup.rscriptPath) {
+        process.env.PULSO_RSCRIPT = macSetup.rscriptPath;
+      }
+      if (macSetup.libraryDir) {
+        process.env.R_LIBS_USER = macSetup.libraryDir;
+      }
+    } catch (err) {
+      writeLog(`[bootstrap] fallo: ${err && err.message ? err.message : err}\n`);
+      app.quit();
+      return;
+    }
     // IPC handlers (project:openDialog, saveDialog, getRecent, etc.) deben
     // registrarse antes de que el renderer cargue el preload, sino los
     // primeros invokes fallan con "No handler registered". whenReady es
@@ -1036,6 +1061,7 @@ if (!gotLock) {
     installCsp();
     createMenu();
     createWindow();
+    setupAutoUpdater({ logger: writeLog });
   });
 
   app.on("window-all-closed", () => {

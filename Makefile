@@ -13,7 +13,7 @@ DIST_ROOT := $(REPO_ROOT)/dist.nosync
 PACKAGE_DIR := $(DIST_ROOT)/$(PACKAGE_NAME)
 PACKAGE_STAGING := $(DIST_ROOT)/.package-staging/$(PACKAGE_NAME)
 
-.PHONY: help dev-api dev-frontend dev-pulso build clean install-r install-frontend install-desktop desktop package-local package-windows-self-contained
+.PHONY: help dev-api dev-frontend dev-pulso build clean install-r install-frontend install-desktop desktop package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -29,8 +29,20 @@ help:
 	@echo "  dev-frontend     Run Vite dev server (proxies /api to :8787)"
 	@echo "  build            Build the frontend into api/inst/www"
 	@echo "  package-local    Generate distributable in dist.nosync/Prosecnur/"
-	@echo "  package-windows-self-contained Generate offline Windows bundle ZIP"
+	@echo "  package-windows-self-contained Generate offline Windows bundle ZIP + Setup.exe + latest.yml"
+	@echo "  package-mac-dmg  Generate macOS .dmg (arm64 + x64) + latest-mac.yml"
 	@echo "  clean            Remove build output"
+	@echo ""
+	@echo "Release flow:"
+	@echo "  1. Bumpear Version: en api/DESCRIPTION (fuente unica de verdad)"
+	@echo "  2. make package-windows-self-contained   # genera Setup.exe + latest.yml"
+	@echo "  3. make package-mac-dmg                  # genera .dmg + latest-mac.yml"
+	@echo "  4. gh release create v<version> dist.nosync/Prosecnur-Setup.exe \\"
+	@echo "       dist.nosync/latest.yml \\"
+	@echo "       dist.nosync/mac-builder-output/*.dmg \\"
+	@echo "       dist.nosync/mac-builder-output/latest-mac.yml \\"
+	@echo "       --title \"Prosecnur <version>\" --notes \"...\""
+	@echo "  Las apps instaladas detectan el release nuevo automaticamente."
 
 install-r:
 	Rscript launcher/install-r-deps.R
@@ -65,6 +77,9 @@ desktop: build
 	cd desktop && pnpm start
 
 package-local: build
+	@APP_VERSION=$$(awk -F': *' '/^Version:/ {print $$2; exit}' api/DESCRIPTION); \
+	  test -n "$$APP_VERSION" || (echo "ERROR: no pude leer Version: de api/DESCRIPTION"; exit 1); \
+	  echo "[Prosecnur] Empaquetando version: $$APP_VERSION"
 	rm -rf "$(PACKAGE_STAGING)"
 	# Layout del paquete distribuible:
 	#   dist.nosync/Prosecnur/
@@ -96,6 +111,15 @@ package-local: build
 	chmod +x "$(PACKAGE_STAGING)/Prosecnur.app/Contents/MacOS/Prosecnur"
 	chmod +x "$(PACKAGE_STAGING)/Internals/launcher/launch.R" "$(PACKAGE_STAGING)/Internals/launcher/install-r-deps.R"
 	chmod +x "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/launcher/launch.R" "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/launcher/install-r-deps.R"
+	# Sincroniza la version a Info.plist y desktop/package.json en el staging
+	# (no toca los archivos originales del repo).
+	@APP_VERSION=$$(awk -F': *' '/^Version:/ {print $$2; exit}' api/DESCRIPTION); \
+	  PLIST="$(PACKAGE_STAGING)/Prosecnur.app/Contents/Info.plist"; \
+	  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $$APP_VERSION" "$$PLIST"; \
+	  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $$APP_VERSION" "$$PLIST"; \
+	  for PKG in "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/desktop/package.json" "$(PACKAGE_STAGING)/Internals/desktop/package.json"; do \
+	    node -e "const fs=require('fs'); const p='$$PKG'; const j=JSON.parse(fs.readFileSync(p)); j.version='$$APP_VERSION'; fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');"; \
+	  done
 	rm -rf "$(PACKAGE_DIR)"
 	# Limpia copias fantasma creadas por iCloud en sync-conflict ("Prosecnur 2",
 	# "Prosecnur 3", etc.) tanto en dist.nosync como en el legado dist/.
@@ -113,6 +137,9 @@ package-local: build
 
 package-windows-self-contained:
 	bash packaging/windows/build-self-contained.sh
+
+package-mac-dmg:
+	bash packaging/macos/build-dmg.sh
 
 clean:
 	rm -rf api/inst/www/*

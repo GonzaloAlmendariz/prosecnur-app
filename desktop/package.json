@@ -5,7 +5,9 @@
   "description": "Desktop shell for Prosecnur",
   "main": "main.cjs",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist:mac": "electron-builder --mac",
+    "dist:mac:publish": "electron-builder --mac --publish=always"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -13,6 +15,92 @@
     ]
   },
   "devDependencies": {
-    "electron": "^37.0.0"
+    "electron": "^37.0.0",
+    "electron-builder": "^26.8.1"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3"
+  },
+  "build": {
+    "appId": "pe.pucp.prosecnur",
+    "productName": "Prosecnur",
+    "directories": {
+      "output": "../dist.nosync/mac-builder-output",
+      "buildResources": "../packaging/macos/build-resources"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "auto-updater.cjs",
+      "mac-bootstrap.cjs",
+      "app-update.yml",
+      "package.json",
+      "!node_modules/**/{CHANGELOG.md,README.md,readme.md}",
+      "!node_modules/**/{test,tests,__tests__,powered-test,example,examples,docs}",
+      "!node_modules/**/*.{md,d.ts,map}"
+    ],
+    "extraResources": [
+      {
+        "from": "../api",
+        "to": "Internals/api",
+        "filter": ["**/*", "!tests", "!.DS_Store", "!outputs"]
+      },
+      {
+        "from": "../launcher",
+        "to": "Internals/launcher"
+      },
+      {
+        "from": "../packaging/macos/r-mac-runtime",
+        "to": "Internals/r-mac-runtime",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../packaging/LEEME_PRIMERO.md",
+        "to": "LEEME_PRIMERO.md"
+      },
+      {
+        "from": "../LICENSE",
+        "to": "LICENSE"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.education",
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] }
+      ],
+      "icon": "../packaging/macos/build-resources/icon.icns",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "darkModeSupport": false,
+      "extendInfo": {
+        "LSMinimumSystemVersion": "11.0",
+        "NSHighResolutionCapable": true
+      }
+    },
+    "dmg": {
+      "title": "Prosecnur ${version}",
+      "icon": "../packaging/macos/build-resources/icon.icns",
+      "iconSize": 96,
+      "contents": [
+        { "x": 130, "y": 200, "type": "file" },
+        { "x": 410, "y": 200, "type": "link", "path": "/Applications" }
+      ],
+      "window": { "width": 540, "height": 380 }
+    },
+    "fileAssociations": [
+      {
+        "ext": "pulso",
+        "name": "Proyecto Prosecnur",
+        "role": "Editor",
+        "icon": "../packaging/macos/build-resources/icon.icns"
+      }
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "GonzaloAlmendariz",
+        "repo": "prosecnur-app"
+      }
+    ]
   }
 }
