@@ -165,9 +165,10 @@ jobs:
   # ---------------------------------------------------------------------------
   release:
     name: Publish GitHub Release
-    # Solo Windows es bloqueante. Si mac falla, el release se publica con el
-    # .exe igual (los .dmg se pueden agregar despues con `gh release upload`).
-    needs: [build-windows]
+    # Esperamos a ambos builds para que los artifacts esten disponibles cuando
+    # download-artifact corra. always() ignora el estado de mac — solo Windows
+    # es bloqueante (si mac falla, el release se publica solo con el .exe).
+    needs: [build-windows, build-mac]
     if: always() && needs.build-windows.result == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -200,8 +201,8 @@ jobs:
 
       - name: List release assets
         run: |
-          echo "=== Windows ===" && ls -la artifacts/windows/
-          echo "=== Mac ===" && ls -la artifacts/mac/
+          echo "=== Windows ===" && ls -la artifacts/windows/ || true
+          echo "=== Mac ===" && ls -la artifacts/mac/ || echo "(mac artifacts no disponibles — release sin .dmg)"
 
       - name: Create / update GitHub Release
         uses: softprops/action-gh-release@v2
