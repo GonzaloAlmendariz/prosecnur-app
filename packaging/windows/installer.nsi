@@ -95,6 +95,37 @@ Function un.RefreshShell
 FunctionEnd
 
 ; -----------------------------------------------------------------------------
+; KillRunningProcesses — mata procesos Prosecnur/Electron que esten corriendo
+; antes de tocar archivos del bundle. Sin esto, los .dll y .exe quedan
+; lockeados por Windows y la instalacion falla con "no se puede escribir".
+;
+; /F = force (no preguntar), /T = matar arbol entero (procesos hijos).
+; nsExec::Exec (no ExecToLog) evita que la salida moleste el detail log.
+; >nul oculta el "ERROR: not found" cuando el proceso no esta corriendo
+; (que es lo normal en el caso happy path).
+; -----------------------------------------------------------------------------
+Function KillRunningProcesses
+  DetailPrint "Cerrando instancias previas de Prosecnur..."
+  nsExec::Exec 'cmd /C taskkill /F /IM electron.exe /T 2>nul'
+  Pop $R0
+  nsExec::Exec 'cmd /C taskkill /F /IM Prosecnur.exe /T 2>nul'
+  Pop $R0
+  ; Pausa breve para que Windows libere los file handles que el proceso
+  ; matado pueda haber tenido abiertos. Sin esto, RMDir /r y File /r del
+  ; runtime/electron pueden fallar con "archivo en uso".
+  Sleep 1500
+FunctionEnd
+
+Function un.KillRunningProcesses
+  DetailPrint "Cerrando instancias previas de Prosecnur..."
+  nsExec::Exec 'cmd /C taskkill /F /IM electron.exe /T 2>nul'
+  Pop $R0
+  nsExec::Exec 'cmd /C taskkill /F /IM Prosecnur.exe /T 2>nul'
+  Pop $R0
+  Sleep 1500
+FunctionEnd
+
+; -----------------------------------------------------------------------------
 ; .onInit: chequeos previos a instalar.
 ;   1) Arquitectura x64 (el bundle trae R y Electron x64).
 ;   2) Si hay una instalacion previa, correr su uninstaller silenciosamente
@@ -105,6 +136,11 @@ Function .onInit
     MessageBox MB_ICONSTOP "Prosecnur requiere Windows de 64 bits (x64). Esta computadora reporta una arquitectura distinta y la instalacion no puede continuar."
     Abort
   ${EndIf}
+
+  ; Matar procesos Prosecnur que puedan estar corriendo. Cubre el caso de
+  ; instalar mientras la app esta abierta y tambien el caso de un install
+  ; previo que crasheo dejando un electron.exe huerfano.
+  Call KillRunningProcesses
 
   ReadRegStr $0 HKCU "${APP_REGKEY}" "UninstallString"
   ${If} $0 != ""
@@ -126,6 +162,11 @@ Function .onInit
       ${EndIf}
       ; Tras /S _?=$2, el uninstaller no se borra a si mismo: lo limpiamos.
       Delete "$2\Uninstall.exe"
+      ; Sleep extra: aunque ExecWait espera a que el proceso del uninstaller
+      ; termine, Windows puede tardar 1-2s mas en soltar handles a los .dll
+      ; del bundle viejo. Sin este Sleep, el File /r de la nueva version
+      ; encuentra archivos lockeados y aborta con "no se puede escribir".
+      Sleep 2000
   ${EndIf}
 FunctionEnd
 
@@ -256,6 +297,9 @@ Function un.onInit
   ${IfNot} ${Errors}
     StrCpy $IS_UPGRADE "1"
   ${EndIf}
+  ; Cerrar instancias antes de borrar archivos. Importante en upgrade in-place
+  ; (el instalador nuevo nos invoca con /UPGRADE) y en uninstall manual.
+  Call un.KillRunningProcesses
 FunctionEnd
 
 Section "Uninstall"
