@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell, safeStorage, clipboard } = require("electron");
 const { spawn } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
 const fs = require("node:fs");
@@ -6,6 +6,52 @@ const http = require("node:http");
 const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
+
+// Handler global de excepciones — DEBE registrarse antes que cualquier otro
+// require que pueda fallar (auto-updater.cjs, mac-bootstrap.cjs). Asi si algo
+// crashea durante el bootstrap, el usuario ve un dialogo con el detalle del
+// error y un boton "Copiar detalles" en lugar del dialogo default de Electron
+// (que no permite seleccionar el texto). Ese texto lo puede pegar en un
+// reporte de bug, mail al admin, etc.
+function showFatalErrorDialog(err, source) {
+  const stack = (err && err.stack) || (err && err.message) || String(err);
+  const versionLine = (() => { try { return app.getVersion(); } catch (_) { return "unknown"; } })();
+  const detail = [
+    `Prosecnur ${versionLine}`,
+    `Plataforma: ${process.platform} ${process.arch}`,
+    `Origen: ${source}`,
+    "",
+    stack,
+  ].join("\n");
+  try {
+    const choice = dialog.showMessageBoxSync({
+      type: "error",
+      title: "Prosecnur tuvo un problema",
+      message: "Algo fallo al iniciar Prosecnur.",
+      detail,
+      buttons: ["Copiar detalles", "Cerrar"],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true,
+    });
+    if (choice === 0) {
+      clipboard.writeText(detail);
+    }
+  } catch (dialogErr) {
+    // Si dialog mismo fallo (muy temprano), al menos mandamos al stderr.
+    process.stderr.write(`[prosecnur-fatal] ${detail}\n`);
+  }
+}
+
+process.on("uncaughtException", (err) => {
+  showFatalErrorDialog(err, "uncaughtException");
+  app.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  showFatalErrorDialog(reason instanceof Error ? reason : new Error(String(reason)), "unhandledRejection");
+  app.exit(1);
+});
+
 const { setupAutoUpdater } = require("./auto-updater.cjs");
 const { bootstrapMacRuntime } = require("./mac-bootstrap.cjs");
 

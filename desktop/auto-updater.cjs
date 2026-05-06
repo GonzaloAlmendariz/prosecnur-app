@@ -11,10 +11,24 @@
 //      instalador (Prosecnur-Setup.exe /S en Windows, monta el .dmg en mac).
 // =============================================================================
 
-const { autoUpdater } = require("electron-updater");
+// require('electron-updater') puede fallar si el bundle no incluye sus deps
+// transitivas (paso pasado en v0.2.1: pnpm symlinks rotos no traian fs-extra).
+// Lo cargamos defensivamente: si no se puede, la app sigue funcionando sin
+// auto-update en lugar de crashear con "Cannot find module".
+let autoUpdater = null;
+let loadError = null;
+try {
+  autoUpdater = require("electron-updater").autoUpdater;
+} catch (err) {
+  loadError = err;
+}
 const { dialog } = require("electron");
 
 function setupAutoUpdater({ logger, onUpdateAvailable } = {}) {
+  if (loadError) {
+    if (logger) logger(`[updater] no se pudo cargar electron-updater: ${loadError.message}`);
+    return null;
+  }
   if (!require("electron").app.isPackaged) {
     if (logger) logger("[updater] App en modo dev, updater deshabilitado.");
     return null;
