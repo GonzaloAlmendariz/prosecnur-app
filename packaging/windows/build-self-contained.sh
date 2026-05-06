@@ -30,9 +30,22 @@ mkdir -p "$ASSETS_DIR"
 echo "[Prosecnur] Preparando assets del instalador..."
 # Renderizamos los SVGs de packaging/windows/brand/ — replica fiel del HeroLogo
 # del home (frontend/src/features/home/HomePage.tsx) + wordmark "Prosecnur".
-# Requiere rsvg-convert (brew install librsvg).
+# Requiere rsvg-convert (brew install librsvg) y ImageMagick.
 if ! command -v rsvg-convert >/dev/null 2>&1; then
   echo "[Prosecnur] ERROR: falta rsvg-convert. Instala con: brew install librsvg" >&2
+  exit 1
+fi
+
+# ImageMagick 7 expone el binario `magick`; ImageMagick 6 (apt en Ubuntu) usa
+# `convert`. Detectamos cual esta disponible para que el script corra en
+# ambas plataformas (mac brew = v7, GH Actions ubuntu = v6).
+if command -v magick >/dev/null 2>&1; then
+  IM_CMD="magick"
+elif command -v convert >/dev/null 2>&1; then
+  IM_CMD="convert"
+else
+  echo "[Prosecnur] ERROR: no encontre ImageMagick (ni 'magick' ni 'convert')." >&2
+  echo "  → mac: brew install imagemagick   linux: apt install imagemagick" >&2
   exit 1
 fi
 
@@ -42,7 +55,7 @@ mkdir -p "$ICON_TMP"
 for size in 16 32 48 64 128 256; do
   rsvg-convert -w "$size" -h "$size" "$BRAND_DIR/icon.svg" -o "$ICON_TMP/icon-$size.png"
 done
-magick "$ICON_TMP/icon-16.png" "$ICON_TMP/icon-32.png" "$ICON_TMP/icon-48.png" \
+$IM_CMD "$ICON_TMP/icon-16.png" "$ICON_TMP/icon-32.png" "$ICON_TMP/icon-48.png" \
        "$ICON_TMP/icon-64.png" "$ICON_TMP/icon-128.png" "$ICON_TMP/icon-256.png" \
        "$ASSETS_DIR/prosecnur.ico"
 rm -rf "$ICON_TMP"
@@ -50,8 +63,8 @@ rm -rf "$ICON_TMP"
 # wizard.bmp (164x314) y header.bmp (150x57): NSIS exige BMP3 (sin canal alpha).
 rsvg-convert -w 164 -h 314 "$BRAND_DIR/wizard.svg" -o "$ASSETS_DIR/wizard.png"
 rsvg-convert -w 150 -h 57 "$BRAND_DIR/header.svg" -o "$ASSETS_DIR/header.png"
-magick "$ASSETS_DIR/wizard.png" -background white -alpha remove -alpha off BMP3:"$ASSETS_DIR/wizard.bmp"
-magick "$ASSETS_DIR/header.png" -background white -alpha remove -alpha off BMP3:"$ASSETS_DIR/header.bmp"
+$IM_CMD "$ASSETS_DIR/wizard.png" -background white -alpha remove -alpha off BMP3:"$ASSETS_DIR/wizard.bmp"
+$IM_CMD "$ASSETS_DIR/header.png" -background white -alpha remove -alpha off BMP3:"$ASSETS_DIR/header.bmp"
 
 echo "[Prosecnur] Build frontend..."
 make build
