@@ -65,6 +65,33 @@
     }
   }
 
+  # Formato del dashboard (UI de Pulso): [{var, valores: [...]}, ...].
+  # Se normaliza a la forma legacy `list(var = c(vals))` y se delega al
+  # loop final. Comportamiento permisivo (matching .dashboard_apply_filtros
+  # en dashboard_pane.R): vars inexistentes y filtros incompletos se
+  # ignoran silenciosamente — un endpoint del dashboard no debe romper
+  # porque el usuario tenga un filtro sobre una var que ya no está en
+  # data tras un cambio de curación.
+  if (length(filters) > 0L) {
+    is_dashboard_list <- all(vapply(filters, function(x) {
+      is.list(x) && all(c("var", "valores") %in% names(x))
+    }, logical(1)))
+    if (isTRUE(is_dashboard_list)) {
+      df_cols <- names(df)
+      named <- list()
+      for (f in filters) {
+        var <- as.character(f$var %||% "")[1]
+        vals <- as.character(unlist(f$valores %||% list()))
+        vals <- trimws(vals[!is.na(vals)])
+        vals <- vals[nzchar(vals)]
+        if (!nzchar(var) || !length(vals) || !(var %in% df_cols)) next
+        named[[var]] <- vals
+      }
+      if (!length(named)) return(df)
+      filters <- named
+    }
+  }
+
   out <- df
   f_names <- names(filters)
   is_rule_list <- length(filters) > 0L &&

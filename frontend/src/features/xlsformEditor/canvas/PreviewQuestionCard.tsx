@@ -33,6 +33,7 @@ import {
 import type { BuilderNode, ChoiceItem } from "../types";
 import { ConditionalIcon, iconForType } from "../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
+import { renderMarkdownInline } from "../helpers/markdown";
 import { typeLabel } from "../parsing/parseType";
 
 export type PreviewQuestionCardProps = {
@@ -82,14 +83,30 @@ export function PreviewQuestionCard({ node, choices, position }: PreviewQuestion
 
       {/* Label + hint */}
       <div className="pulso-canvas-card-prompt">
-        <h3 className="pulso-canvas-card-label">
-          {node.label || (
+        {node.label ? (
+          <h3
+            className="pulso-canvas-card-label"
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{
+              __html: renderMarkdownInline(node.label),
+            }}
+          />
+        ) : (
+          <h3 className="pulso-canvas-card-label">
             <em style={{ color: "var(--pulso-warn-fg)" }}>
               (sin texto · agrégalo en el inspector)
             </em>
-          )}
-        </h3>
-        {node.hint && <p className="pulso-canvas-card-hint">{node.hint}</p>}
+          </h3>
+        )}
+        {node.hint && (
+          <p
+            className="pulso-canvas-card-hint"
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{
+              __html: renderMarkdownInline(node.hint),
+            }}
+          />
+        )}
       </div>
 
       {/* Input fiel al tipo */}

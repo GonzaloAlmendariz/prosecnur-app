@@ -275,20 +275,6 @@
   invisible(TRUE)
 }
 
-.hf_write_askpass <- function(stage, token) {
-  askpass <- file.path(stage, ".hf-askpass.sh")
-  lines <- c(
-    "#!/bin/sh",
-    "case \"$1\" in",
-    "  *Username*) printf '%s\\n' 'hf_user' ;;",
-    sprintf("  *) printf '%%s\\n' '%s' ;;", gsub("'", "'\"'\"'", token, fixed = TRUE)),
-    "esac"
-  )
-  writeLines(lines, askpass, useBytes = TRUE)
-  Sys.chmod(askpass, mode = "0700")
-  askpass
-}
-
 .hf_check_lfs <- function() {
   # HF Spaces rechaza CUALQUIER binario sin LFS/Xet, sin importar el
   # tamaño. `git lfs` debe estar instalado en el sistema.
@@ -309,15 +295,21 @@
 
 .hf_push_space_git <- function(prepared, repo_id, token) {
   .hf_check_lfs()
-  askpass <- .hf_write_askpass(prepared$stage, token)
-  on.exit(unlink(askpass, force = TRUE), add = TRUE)
-  env <- c(
-    sprintf("GIT_ASKPASS=%s", askpass),
-    "GIT_TERMINAL_PROMPT=0"
-  )
   remote <- sprintf("https://huggingface.co/spaces/%s", repo_id)
   .git_run(c("init", "-b", "main"), prepared$stage)
-  writeLines(".hf-askpass.sh", file.path(prepared$stage, ".gitignore"), useBytes = TRUE)
+  # Authorization header en .git/config local: aplica a TODAS las
+  # requests HTTP del repo, incluyendo las que git-lfs dispara para el
+  # batch endpoint y los uploads a storage. Es la forma que HF documenta
+  # oficialmente y la que huggingface_hub usa internamente. El
+  # GIT_ASKPASS solo (approach previo) no se propagaba consistentemente
+  # a git-lfs, lo que producía "Authorization error" en el batch aunque
+  # el push regular funcionara. El stage se borra al final del flujo
+  # (on.exit en dashboard_publish_space), así el token no persiste.
+  .git_run(
+    c("config", "--local", "http.extraHeader",
+      sprintf("Authorization: Bearer %s", token)),
+    prepared$stage
+  )
   # LFS: trackeamos los binarios que sí necesitamos subir (data/*.pulso)
   # y por las dudas otros binarios que pudieran colarse (pptx/xlsx/sav).
   # `git lfs install --local` instala los hooks en este repo solo.
@@ -331,7 +323,7 @@
   .git_run(c("-c", "user.name=Prosecnur", "-c", "user.email=deploy@prosecnur.local",
              "commit", "-m", "Deploy dashboard"), prepared$stage)
   .git_run(c("remote", "add", "origin", remote), prepared$stage)
-  .git_run(c("push", "--force", "origin", "main"), prepared$stage, env = env, code = "E_HF_PUSH_FAILED")
+  .git_run(c("push", "--force", "origin", "main"), prepared$stage, code = "E_HF_PUSH_FAILED")
   invisible(TRUE)
 }
 

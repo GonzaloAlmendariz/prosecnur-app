@@ -18,6 +18,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 import type { BuilderNode } from "../types";
 import { ConditionalIcon, iconForType } from "../helpers/icons";
+import { stripMarkdown } from "../helpers/markdown";
 import { paletteForType } from "../helpers/paletteForType";
 import { typeLabel } from "../parsing/parseType";
 import { previewKindLabel } from "../parsing/buildIndex";
@@ -74,17 +75,21 @@ export function OutlineRow({
       style={style}
       className={`pulso-outline-row${isDragging ? " is-dragging" : ""}${active ? " is-active" : ""}`}
       data-depth={node.depth}
+      // Listeners de drag en TODA la fila (no solo el grip) — el usuario
+      // puede agarrar la fila desde cualquier lugar para arrastrarla,
+      // como en Notion. El threshold de PointerSensor (distance: 4)
+      // distingue click de drag, así el `onClick` interno sigue
+      // funcionando para seleccionar.
+      {...attributes}
+      {...listeners}
     >
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        title="Arrastrar para reordenar"
-        aria-label="Arrastrar para reordenar"
+      <span
         className="pulso-outline-grip"
+        aria-hidden="true"
+        title="Arrastra para reordenar"
       >
         <GripVertical size={14} />
-      </button>
+      </span>
 
       <div
         role="button"
@@ -102,12 +107,21 @@ export function OutlineRow({
           <Icon size={14} />
         </span>
         <span className="pulso-outline-text">
+          {/* Jerarquía invertida: el LABEL humano va como título principal,
+              el name técnico en el subtítulo. Antes era al revés y los
+              usuarios no expertos veían `informante_nombre` en lugar del
+              texto que escribieron. */}
           <strong className="pulso-outline-title">
-            {node.name || node.label || `fila_${node.rowIndex + 1}`}
+            {stripMarkdown(node.label) || node.name || `fila_${node.rowIndex + 1}`}
           </strong>
           <span className="pulso-outline-subtitle">
             {node.kind === "question" ? typeLabel(node.typeInfo.base) : previewKindLabel(node)}
-            {node.label && node.label !== node.name ? ` · ${node.label}` : ""}
+            {node.name && node.name !== stripMarkdown(node.label) ? (
+              <>
+                {" · "}
+                <code className="pulso-outline-code">{node.name}</code>
+              </>
+            ) : null}
           </span>
         </span>
         {node.relevant && (

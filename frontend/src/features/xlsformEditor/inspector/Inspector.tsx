@@ -24,6 +24,7 @@ import { Layers, Paintbrush, Sliders, Workflow } from "lucide-react";
 import type { BuilderNode, CatalogSummary } from "../types";
 import type { LogicScope } from "../logic";
 import { iconForType } from "../helpers/icons";
+import { renderMarkdownInline, stripMarkdown } from "../helpers/markdown";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
 import { typeLabel } from "../parsing/parseType";
 import { BasicTab } from "./BasicTab";
@@ -48,6 +49,10 @@ export type InspectorProps = {
   logicScope: LogicScope;
   /** Posición de la pregunta dentro del outline (1-indexed), si aplica. */
   position?: number;
+  /** Cuántas preguntas usan el catálogo asignado (incluyendo esta). >1
+   *  habilita la action "Crear copia solo para esta pregunta" en
+   *  Avanzado. */
+  catalogUsageCount?: number;
   onFieldChange: (field: string, value: string) => void;
   onTypeChange: (next: string) => void;
   onRequiredChange: (checked: boolean) => void;
@@ -55,6 +60,10 @@ export type InspectorProps = {
   onCatalogCreate: () => void;
   /** Abre el ContextLens de catálogos preposicionado en `focusListName`. */
   onOpenCatalogLens: (focusListName: string) => void;
+  /** Clona el catálogo a un listName nuevo y reasigna esta pregunta —
+   *  útil cuando varias preguntas comparten lista pero esta pregunta
+   *  necesita opciones distintas. */
+  onCloneCatalog?: () => void;
 };
 
 export function Inspector({
@@ -62,12 +71,14 @@ export function Inspector({
   catalogs,
   logicScope,
   position,
+  catalogUsageCount,
   onFieldChange,
   onTypeChange,
   onRequiredChange,
   onCatalogAssign,
   onCatalogCreate,
   onOpenCatalogLens,
+  onCloneCatalog,
 }: InspectorProps) {
   const [activeTab, setActiveTab] = useState<InspectorTabId>("basic");
 
@@ -98,9 +109,15 @@ export function Inspector({
             <Icon size={14} />
           </span>
           <div className="pulso-inspector-header-meta">
-            <strong title={node.label || node.name}>
-              {node.label || node.name || "Sin texto"}
-            </strong>
+            {node.label ? (
+              <strong
+                title={stripMarkdown(node.label)}
+                // eslint-disable-next-line react/no-danger
+                dangerouslySetInnerHTML={{ __html: renderMarkdownInline(node.label) }}
+              />
+            ) : (
+              <strong title={node.name}>{node.name || "Sin texto"}</strong>
+            )}
             <span className="pulso-inspector-header-sub">
               {typeLabel(node.typeInfo.base)}
               {position ? <> · #{position}</> : null}
@@ -136,12 +153,14 @@ export function Inspector({
             node={node}
             catalogs={catalogs}
             logicScope={logicScope}
+            catalogUsageCount={catalogUsageCount}
             onFieldChange={onFieldChange}
             onTypeChange={onTypeChange}
             onRequiredChange={onRequiredChange}
             onCatalogAssign={onCatalogAssign}
             onCatalogCreate={onCatalogCreate}
             onOpenCatalogLens={onOpenCatalogLens}
+            onCloneCatalog={onCloneCatalog}
           />
         )}
         {activeTab === "appearance" && !isSection && (

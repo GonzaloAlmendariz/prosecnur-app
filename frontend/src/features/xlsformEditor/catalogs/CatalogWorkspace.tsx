@@ -93,22 +93,29 @@ export function CatalogWorkspace({
   return (
     <div className="pulso-catalogworkspace">
       <header className="pulso-catalogworkspace-header">
-        <div className="pulso-catalogworkspace-headertop">
-          <input
-            type="text"
-            value={catalog.listName}
-            onChange={(event) => onRename(catalog.listName, event.target.value)}
-            className="pulso-catalogworkspace-name"
-            spellCheck={false}
-            aria-label="Nombre del catálogo"
-          />
-          <button
-            type="button"
-            onClick={() => onAddChoice(catalog.listName)}
-            className="pulso-catalogworkspace-add"
-          >
-            <Plus size={13} /> Opción
-          </button>
+        <div className="pulso-catalogworkspace-listname">
+          <label className="pulso-catalogworkspace-listname-label" htmlFor="catalog-listname-input">
+            Código de la lista
+          </label>
+          <div className="pulso-catalogworkspace-headertop">
+            <input
+              id="catalog-listname-input"
+              type="text"
+              value={catalog.listName}
+              onChange={(event) => onRename(catalog.listName, event.target.value)}
+              className="pulso-catalogworkspace-name"
+              spellCheck={false}
+              aria-label="Código de la lista"
+              title="Identificador de la lista (sin tildes ni espacios). Aparece en la columna list_name del XLSForm."
+            />
+            <button
+              type="button"
+              onClick={() => onAddChoice(catalog.listName)}
+              className="pulso-catalogworkspace-add"
+            >
+              <Plus size={13} /> Opción
+            </button>
+          </div>
         </div>
         <div className="pulso-catalogworkspace-meta">
           <span>
@@ -174,6 +181,20 @@ export function CatalogWorkspace({
             strategy={verticalListSortingStrategy}
           >
             <div className="pulso-catalogworkspace-list">
+              {/* Encabezado de columnas para que el usuario entienda
+                  qué campo es cuál antes de empezar a escribir. */}
+              <div
+                className="pulso-choice-row pulso-choice-row-header"
+                aria-hidden="true"
+              >
+                <span className="pulso-choice-row-handle-spacer" />
+                <span className="pulso-choice-row-position-label">#</span>
+                <div className="pulso-choice-row-fields-header">
+                  <span>Texto visible</span>
+                  <span>Código</span>
+                </div>
+                <span className="pulso-choice-row-delete-spacer" />
+              </div>
               {filteredItems.map((choice, index) => {
                 // Si no hay filtro, position es el índice + 1 dentro del
                 // catálogo. Si hay filtro, mostramos el índice original.

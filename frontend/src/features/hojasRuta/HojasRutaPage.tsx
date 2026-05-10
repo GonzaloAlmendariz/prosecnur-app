@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { BarChart3, CheckCircle2, Download, FileSpreadsheet, FileText, Layers, Loader2, MapPinned, Plus, Play, Search, Shuffle, Target, Trash2 } from "lucide-react";
+import { BarChart3, CheckCircle2, CircleHelp, Download, FileSpreadsheet, FileText, Layers, Loader2, MapPinned, Plus, Play, Search, Shuffle, Target, Trash2 } from "lucide-react";
 import {
   apiHojasRutaBlockMap,
   apiHojasRutaContextMap,
@@ -9,6 +9,7 @@ import {
   apiHojasRutaPopulationExport,
   apiHojasRutaPopulationPreview,
   apiHojasRutaQuotaPreview,
+  apiHojasRutaRandomPdf,
   apiHojasRutaSampleSizePreview,
   apiHojasRutaSamplePreview,
   apiHojasRutaState,
@@ -18,6 +19,7 @@ import {
   AllocationMode,
   HojasRutaAlert,
   HojasRutaAgeRangeMode,
+  HojasRutaAgeRangeScope,
   HojasRutaAgeRange,
   HojasRutaBlockMap,
   HojasRutaBlockMapFeature,
@@ -26,6 +28,9 @@ import {
   HojasRutaIntegratedConfig,
   HojasRutaJobResult,
   HojasRutaPopulationExportResult,
+  HojasRutaRandomPdfResult,
+  HojasRutaRandomPreference,
+  HojasRutaRouteSnapshot,
   HojasRutaSampleSizeConfig,
   HojasRutaSampleSizePreview,
   HojasRutaSamplePreview,
@@ -100,6 +105,8 @@ const MAP_GEOMETRY_STYLE = {
   focusStroke: "#0f766e",
   selectedFill: "#0f766e",
   selectedStroke: "#064e3b",
+  replacementFill: "#bfdbfe",
+  replacementStroke: "#1d4ed8",
   hoverStroke: "#022c22",
   inspectedFill: "rgba(15,118,110,0.2)",
 } as const;
@@ -114,11 +121,13 @@ function contextMapCacheKey(ubigeo: string) {
 
 function geometryVisualState({
   selected = false,
+  replacement = false,
   focused = false,
   hovered = false,
   muted = false,
 }: {
   selected?: boolean;
+  replacement?: boolean;
   focused?: boolean;
   hovered?: boolean;
   muted?: boolean;
@@ -127,6 +136,14 @@ function geometryVisualState({
     return {
       fill: MAP_GEOMETRY_STYLE.selectedFill,
       stroke: hovered ? MAP_GEOMETRY_STYLE.hoverStroke : MAP_GEOMETRY_STYLE.selectedStroke,
+      strokeWidth: hovered ? 1.35 : 1.05,
+      opacity: 1,
+    };
+  }
+  if (replacement) {
+    return {
+      fill: MAP_GEOMETRY_STYLE.replacementFill,
+      stroke: hovered ? MAP_GEOMETRY_STYLE.hoverStroke : MAP_GEOMETRY_STYLE.replacementStroke,
       strokeWidth: hovered ? 1.35 : 1.05,
       opacity: 1,
     };
@@ -169,7 +186,22 @@ function normalizeHojasRutaUiState(
     map_zona: mapZona,
     map_level: mapUbigeo ? mapLevel : "distritos",
     map_selection_mode: Boolean(uiState?.map_selection_mode),
+    route_history: normalizeRouteHistory(uiState?.route_history),
   };
+}
+
+function normalizeRouteHistory(value: unknown): HojasRutaRouteSnapshot[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is HojasRutaRouteSnapshot => {
+      if (!item || typeof item !== "object") return false;
+      const route = item as Partial<HojasRutaRouteSnapshot>;
+      return typeof route.id === "string"
+        && !!route.config
+        && !!route.sample
+        && Array.isArray(route.sample.blocks);
+    })
+    .slice(0, 12);
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -196,6 +228,12 @@ const btnSecondary: React.CSSProperties = {
   color: "var(--pulso-text)",
 };
 
+const randomPreferenceOptions: Array<{ key: HojasRutaRandomPreference; label: string; title: string }> = [
+  { key: "balanced", label: "Balanceado", title: "Aleatorio ponderado por el marco actual" },
+  { key: "population", label: "Alta población", title: "Favorece manzanas con más población o viviendas" },
+  { key: "urban", label: "Urbana compacta", title: "Favorece zonas densas y menos aisladas" },
+];
+
 const fieldStyle: React.CSSProperties = {
   width: "100%",
   border: "1px solid var(--pulso-border)",
@@ -208,6 +246,14 @@ const fieldStyle: React.CSSProperties = {
 
 function formatNumber(value: number | null | undefined) {
   return new Intl.NumberFormat("es-PE").format(Number(value ?? 0));
+}
+
+function formatDecimal(value: number | null | undefined, digits = 2) {
+  if (value == null || !Number.isFinite(Number(value))) return "0";
+  return new Intl.NumberFormat("es-PE", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(Number(value));
 }
 
 function formatPercent(part: number | null | undefined, total: number | null | undefined) {
@@ -229,13 +275,27 @@ function formatRate(value: number | null | undefined, digits = 1) {
   }).format(Number(value));
 }
 
+function ageRangesSignature(config: HojasRutaIntegratedConfig | null | undefined) {
+  if (!config) return "";
+  const ranges = (config.age_ranges ?? [])
+    .map((range) => `${range.min}-${range.max ?? "plus"}`)
+    .join("|");
+  const territorios = (config.territorios ?? []).join(",");
+  return [
+    territorios,
+    config.age_range_mode ?? "manual",
+    config.age_range_scope ?? "selected",
+    ranges,
+  ].join("::");
+}
+
 const DEFAULT_SAMPLE_SIZE: HojasRutaSampleSizeConfig = {
   confidence_level: 0.95,
   margin_total: 0.05,
   margin_district: 0.10,
   margin_district_overrides: {},
   expected_proportion: 0.50,
-  design_effect: 1.5,
+  design_effect: 1.0,
   design_effect_overrides: {},
   allocation_mode: "proportional",
   enforce_district_floor: true,
@@ -317,11 +377,88 @@ function routeMultipleStatus(
   return { ok: true, routeSize, message: `${formatNumber(n)} encuestas en rutas de ${routeSize}.`, invalidDistricts: [], previous, next };
 }
 
+function routeSnapshotDistribution(sample: HojasRutaSamplePreview) {
+  const byDistrict = new Map<string, { ubigeo: string; distrito: string; n: number; manzanas: number; reemplazos: number }>();
+  for (const block of sample.blocks ?? []) {
+    const current = byDistrict.get(block.ubigeo) ?? {
+      ubigeo: block.ubigeo,
+      distrito: block.distrito,
+      n: 0,
+      manzanas: 0,
+      reemplazos: 0,
+    };
+    current.n += Number(block.entrevistas || 0);
+    current.manzanas += 1;
+    byDistrict.set(block.ubigeo, current);
+  }
+  for (const block of sample.replacement_blocks ?? []) {
+    const current = byDistrict.get(block.ubigeo) ?? {
+      ubigeo: block.ubigeo,
+      distrito: block.distrito,
+      n: 0,
+      manzanas: 0,
+      reemplazos: 0,
+    };
+    current.reemplazos += 1;
+    byDistrict.set(block.ubigeo, current);
+  }
+  return Array.from(byDistrict.values()).sort((a, b) => a.distrito.localeCompare(b.distrito, "es"));
+}
+
+function buildRouteSnapshot(sample: HojasRutaSamplePreview, config: HojasRutaIntegratedConfig): HojasRutaRouteSnapshot {
+  const createdAt = new Date().toISOString();
+  const labelDate = new Intl.DateTimeFormat("es-PE", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(createdAt));
+  return {
+    id: `ruta-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    label: `${labelDate} · N ${formatNumber(sample.total_entrevistas)} · ${formatNumber(sample.n_blocks)} manzanas`,
+    created_at: createdAt,
+    seed: Number(sample.seed ?? config.seed ?? 0),
+    method: sample.method,
+    route_size: Math.max(1, Number(config.entrevistas_por_manzana || 1)),
+    n_final: Number(sample.total_entrevistas || config.n_objetivo || 0),
+    n_blocks: Number(sample.n_blocks || 0),
+    n_replacement_blocks: Number(sample.n_replacement_blocks || 0),
+    total_entrevistas: Number(sample.total_entrevistas || 0),
+    total_replacement_interviews: Number(sample.total_replacement_interviews || 0),
+    territories: [...(config.territorios ?? [])],
+    distribution: routeSnapshotDistribution(sample),
+    config,
+    sample,
+  };
+}
+
 const AGE_RANGE_MODE_LABELS: Record<HojasRutaAgeRangeMode, string> = {
   manual: "Manual",
-  terciles: "Terciles poblacionales",
-  cuartiles: "Cuartiles poblacionales",
-  quintiles: "Quintiles poblacionales",
+  terciles: "Terciles",
+  cuartiles: "Cuartiles",
+  quintiles: "Quintiles",
+  deciles: "Deciles",
+};
+
+const AGE_RANGE_CUT_MODES = ["terciles", "cuartiles", "quintiles", "deciles"] as const;
+
+function ageRangeCutCount(mode: HojasRutaAgeRangeMode) {
+  if (mode === "terciles") return 3;
+  if (mode === "cuartiles") return 4;
+  if (mode === "quintiles") return 5;
+  if (mode === "deciles") return 10;
+  return 0;
+}
+
+const AGE_RANGE_SCOPE_LABELS: Record<HojasRutaAgeRangeScope, { title: string; hint: string }> = {
+  selected: {
+    title: "Distritos confirmados",
+    hint: "Corta solo la población 18+ de los distritos que usarás en este estudio.",
+  },
+  frame: {
+    title: "Todo el marco INEI 2017",
+    hint: "Usa la población 18+ disponible en el marco de Lima Metropolitana y Callao.",
+  },
 };
 
 const ALLOCATION_LABELS: Record<AllocationMode, { title: string; hint: string }> = {
@@ -358,6 +495,20 @@ function allocateInteger(weights: number[], n: number) {
     rem -= 1;
   }
   return out;
+}
+
+function allocateByMode(
+  weights: number[],
+  n: number,
+  mode: HojasRutaSampleSizeConfig["allocation_mode"] = "proportional",
+) {
+  const safeWeights = weights.map((value) => Math.max(0, Number(value) || 0));
+  const useWeights = mode === "uniform"
+    ? safeWeights.map((value) => (value > 0 ? 1 : 0))
+    : mode === "compromise"
+      ? safeWeights.map((value) => Math.sqrt(value))
+      : safeWeights;
+  return allocateInteger(useWeights, n);
 }
 
 function methodLabel(method: SamplingMethod) {
@@ -398,6 +549,97 @@ function StatusPill({ ok, text }: { ok: boolean; text: string }) {
   );
 }
 
+function HeaderSummaryPill({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="hojas-ruta-header-pill">
+      <small>{label}</small>
+      <strong>{value}</strong>
+    </span>
+  );
+}
+
+function InlineHelp({ label, text }: { label: string; text: string }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLSpanElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutside = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && rootRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+  return (
+    <span
+      ref={rootRef}
+      className="hojas-ruta-inline-help"
+      onBlur={(event) => {
+        const nextTarget = event.relatedTarget;
+        if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <span>{label}</span>
+      <button
+        type="button"
+        aria-label={`Ayuda: ${label}`}
+        aria-expanded={open}
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen((value) => !value);
+        }}
+      >
+        <CircleHelp size={13} />
+      </button>
+      {open ? (
+        <span className="hojas-ruta-inline-help-popover" role="tooltip">
+          {text}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function TechnicalDetailItem({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function FrameTechnicalDetails({ frame }: { frame: NonNullable<HojasRutaState["frame_meta"]> }) {
+  return (
+    <details className="hojas-ruta-technical-details">
+      <summary>
+        <strong>Detalle técnico</strong>
+        <span>Fuentes, versiones y cobertura del marco.</span>
+      </summary>
+      <div className="hojas-ruta-technical-grid">
+        <TechnicalDetailItem label="Base poblacional" value={`${frame.age_data?.source ?? "INEI"} ${frame.age_data?.year ?? frame.year}`} />
+        <TechnicalDetailItem label="Versión del marco" value={frame.version} />
+        <TechnicalDetailItem label="Cobertura" value={frame.coverage} />
+        <TechnicalDetailItem label="NSE" value={frame.nse_data?.available ? "Disponible" : frame.nse_data?.message ?? "No disponible"} />
+        <TechnicalDetailItem label="Cartografía de manzanas" value={frame.block_cartography?.ok ? cartographyModeLabel(frame.block_cartography.mode) : "Pendiente"} />
+        <TechnicalDetailItem label="Calles" value={frame.street_cartography?.ok ? "OSM local" : "Pendiente"} />
+        <TechnicalDetailItem label="Contexto" value={frame.context_cartography?.ok ? "Local + curado" : "Pendiente"} />
+        <TechnicalDetailItem label="Checksum" value={frame.checksum ?? "Sin checksum"} />
+      </div>
+    </details>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
@@ -413,7 +655,7 @@ function SampleControl({
   suffix,
   children,
 }: {
-  label: string;
+  label: React.ReactNode;
   hint: string;
   suffix?: string;
   children: React.ReactNode;
@@ -469,10 +711,6 @@ function ReadinessItem({ ok, label, value }: { ok: boolean; label: string; value
       <strong>{value}</strong>
     </div>
   );
-}
-
-function numberValue(value: number | null | undefined) {
-  return Number.isFinite(Number(value)) ? Number(value) : "";
 }
 
 function geometryPolygons(geometry: DistrictGeometry): GeoPolygon[] {
@@ -1561,6 +1799,7 @@ function BlockCanvasMap({
   projectedStreets,
   boundaries,
   selectedSet,
+  replacementSet,
   activeZone,
   hoveredId,
   inspectedId,
@@ -1574,6 +1813,7 @@ function BlockCanvasMap({
   projectedStreets: ReturnType<typeof buildProjectedStreetFeatures>;
   boundaries: ReturnType<typeof buildProjectedDistrictBoundariesForBlocks>;
   selectedSet: Set<string>;
+  replacementSet: Set<string>;
   activeZone?: string;
   hoveredId: string | null;
   inspectedId: string | null;
@@ -1726,7 +1966,7 @@ function BlockCanvasMap({
     }
     ctx.lineWidth = 0.68 / Math.max(1, zoom);
     for (const feature of projected) {
-      if (selectedSet.has(feature.id)) continue;
+      if (selectedSet.has(feature.id) || replacementSet.has(feature.id)) continue;
       const isFocus = Boolean(activeZone && feature.zona === activeZone);
       const visual = geometryVisualState({ focused: isFocus });
       const path = new Path2D(feature.d);
@@ -1750,12 +1990,20 @@ function BlockCanvasMap({
       ctx.fill(path);
       ctx.stroke(path);
     }
+    for (const feature of projected) {
+      if (!replacementSet.has(feature.id)) continue;
+      const path = new Path2D(feature.d);
+      ctx.strokeStyle = MAP_GEOMETRY_STYLE.replacementStroke;
+      ctx.fillStyle = MAP_GEOMETRY_STYLE.replacementFill;
+      ctx.fill(path);
+      ctx.stroke(path);
+    }
     const focusedId = inspectedId ?? hoveredId;
     if (focusedId) {
       const focused = projected.find((feature) => feature.id === focusedId);
       if (focused) {
         const path = new Path2D(focused.d);
-        if (!selectedSet.has(focused.id)) {
+        if (!selectedSet.has(focused.id) && !replacementSet.has(focused.id)) {
           ctx.fillStyle = MAP_GEOMETRY_STYLE.inspectedFill;
           ctx.fill(path);
         }
@@ -1778,7 +2026,7 @@ function BlockCanvasMap({
       ctx.fillText(boundary.label, boundary.labelX, boundary.labelY);
     }
     ctx.restore();
-  }, [activeZone, boundaries, hoveredId, inspectedId, pan, projected, projectedContext, projectedStreets, selectedSet, zoom]);
+  }, [activeZone, boundaries, hoveredId, inspectedId, pan, projected, projectedContext, projectedStreets, replacementSet, selectedSet, zoom]);
 
   return (
     <div style={{ position: "relative", height: "100%" }}>
@@ -1812,12 +2060,14 @@ function BlockCanvasMap({
 function ZoneGeometryMap({
   zoneMap,
   selectedBlocks,
+  replacementBlocks = [],
   activeZona,
   compact = false,
   onOpenZone,
 }: {
   zoneMap: HojasRutaZoneMap;
   selectedBlocks: HojasRutaSamplePreview["blocks"];
+  replacementBlocks?: HojasRutaSamplePreview["replacement_blocks"];
   activeZona?: string;
   compact?: boolean;
   onOpenZone?: (zona: string) => void;
@@ -1828,16 +2078,22 @@ function ZoneGeometryMap({
   const projected = useMemo(() => buildProjectedZoneFeatures(zoneMap.geojson.features ?? [], projection), [zoneMap.geojson.features, projection]);
   const navigation = useMapNavigation(BLOCK_MAP_WIDTH, BLOCK_MAP_HEIGHT, 1, compact ? 1 : BLOCK_MAP_MAX_ZOOM);
   const zoneStats = useMemo(() => {
-    const map = new Map<string, { manzanas: number; entrevistas: number }>();
+    const map = new Map<string, { manzanas: number; entrevistas: number; reemplazos: number }>();
     for (const block of selectedBlocks) {
       if (block.ubigeo !== zoneMap.ubigeo) continue;
-      const current = map.get(block.zona) ?? { manzanas: 0, entrevistas: 0 };
+      const current = map.get(block.zona) ?? { manzanas: 0, entrevistas: 0, reemplazos: 0 };
       current.manzanas += 1;
       current.entrevistas += Number(block.entrevistas || 0);
       map.set(block.zona, current);
     }
+    for (const block of replacementBlocks) {
+      if (block.ubigeo !== zoneMap.ubigeo) continue;
+      const current = map.get(block.zona) ?? { manzanas: 0, entrevistas: 0, reemplazos: 0 };
+      current.reemplazos += 1;
+      map.set(block.zona, current);
+    }
     return map;
-  }, [selectedBlocks, zoneMap.ubigeo]);
+  }, [replacementBlocks, selectedBlocks, zoneMap.ubigeo]);
   const hoveredFeature = hovered ? projected.find((zone) => zone.id === hovered || zone.zona === hovered) : null;
   const activeFeature = activeZona ? projected.find((zone) => zone.zona === activeZona) : null;
   const detailFeature = hoveredFeature ?? activeFeature;
@@ -1918,9 +2174,10 @@ function ZoneGeometryMap({
           {projected.map((zone) => {
             const stats = zoneStats.get(zone.zona);
             const selected = Boolean(stats?.manzanas);
+            const replacement = Boolean(stats?.reemplazos) && !selected;
             const active = activeZona === zone.zona;
             const focused = hovered === zone.id || hovered === zone.zona || active;
-            const visual = geometryVisualState({ selected, focused, hovered: hovered === zone.id || hovered === zone.zona });
+            const visual = geometryVisualState({ selected, replacement, focused, hovered: hovered === zone.id || hovered === zone.zona });
             return (
               <path
                 key={zone.key}
@@ -1936,16 +2193,17 @@ function ZoneGeometryMap({
           })}
           {!compact && projected.map((zone) => {
             const stats = zoneStats.get(zone.zona);
-            const show = navigation.zoom >= 1.4 || Boolean(stats?.manzanas) || activeZona === zone.zona || hovered === zone.id;
+            const hasFieldBlocks = Boolean(stats?.manzanas || stats?.reemplazos);
+            const show = navigation.zoom >= 1.4 || hasFieldBlocks || activeZona === zone.zona || hovered === zone.id;
             if (!show) return null;
-            const fontSize = (stats?.manzanas ? 14 : 11) / navigation.zoom;
+            const fontSize = (hasFieldBlocks ? 14 : 11) / navigation.zoom;
             return (
               <text
                 key={`${zone.key}:label`}
                 x={zone.labelX}
                 y={zone.labelY}
-                fill={stats?.manzanas ? "white" : "#334155"}
-                stroke={stats?.manzanas ? "rgba(6,78,59,0.34)" : "rgba(255,255,255,0.88)"}
+                fill={hasFieldBlocks ? "white" : "#334155"}
+                stroke={stats?.manzanas ? "rgba(6,78,59,0.34)" : stats?.reemplazos ? "rgba(29,78,216,0.34)" : "rgba(255,255,255,0.88)"}
                 strokeWidth={3 / navigation.zoom}
                 paintOrder="stroke"
                 fontSize={fontSize}
@@ -1966,7 +2224,8 @@ function ZoneGeometryMap({
           <span><i /> Manzanas</span>
           <span><i className="is-green-context" /> Areas verdes</span>
           <span><i className="is-water-context" /> Agua</span>
-          <span><i className="is-selected" /> Seleccionadas</span>
+          <span><i className="is-selected" /> Titulares</span>
+          <span><i className="is-replacement" /> Reemplazos</span>
         </div>
       ) : null}
       {detailFeature && !compact ? (
@@ -1980,7 +2239,7 @@ function ZoneGeometryMap({
           </div>
           {zoneStats.has(detailFeature.zona) ? (
             <div className="hojas-ruta-zone-info-selected">
-              <strong>{formatNumber(zoneStats.get(detailFeature.zona)?.manzanas)} seleccionadas</strong>
+              <strong>{formatNumber(zoneStats.get(detailFeature.zona)?.manzanas)} titulares · {formatNumber(zoneStats.get(detailFeature.zona)?.reemplazos)} reemplazos</strong>
               <span>{formatNumber(zoneStats.get(detailFeature.zona)?.entrevistas)} encuestas</span>
             </div>
           ) : null}
@@ -2000,12 +2259,14 @@ function BlockGeometryMap({
   contextMap,
   streetMap,
   selectedBlocks,
+  replacementBlocks = [],
   activeZone,
 }: {
   blockMap: HojasRutaBlockMap;
   contextMap?: HojasRutaContextMap | null;
   streetMap?: HojasRutaStreetMap | null;
   selectedBlocks: HojasRutaSamplePreview["blocks"];
+  replacementBlocks?: HojasRutaSamplePreview["replacement_blocks"];
   activeZone?: string;
 }) {
   const [hovered, setHovered] = useState<string | null>(null);
@@ -2024,11 +2285,14 @@ function BlockGeometryMap({
   const projectedStreets = useMemo(() => buildProjectedStreetFeatures(streetFeatures, projection), [streetFeatures, projection]);
   const boundaries = useMemo(() => buildProjectedDistrictBoundariesForBlocks(focusBlockFeatures, blockMap.ubigeo, projection), [focusBlockFeatures, blockMap.ubigeo, projection]);
   const selectedBlockById = useMemo(() => new Map(selectedBlocks.map((block) => [block.id_manzana, block])), [selectedBlocks]);
+  const replacementBlockById = useMemo(() => new Map(replacementBlocks.map((block) => [block.id_manzana, block])), [replacementBlocks]);
   const selectedSet = useMemo(() => new Set(selectedBlocks.map((block) => block.id_manzana)), [selectedBlocks]);
+  const replacementSet = useMemo(() => new Set(replacementBlocks.map((block) => block.id_manzana)), [replacementBlocks]);
   const hoveredFeature = hovered ? projected.find((f) => f.id === hovered) : null;
   const inspectedFeature = inspected ? projected.find((f) => f.id === inspected) : null;
   const detailFeature = inspectedFeature ?? hoveredFeature;
   const detailBlock = detailFeature ? selectedBlockById.get(detailFeature.id) : null;
+  const detailReplacementBlock = detailFeature ? replacementBlockById.get(detailFeature.id) : null;
   const useCanvas = projected.length > 4000;
   const visibleStreets = useMemo(
     () => projectedStreets.filter((street) => shouldShowStreet(street, navigation.zoom)),
@@ -2076,6 +2340,7 @@ function BlockGeometryMap({
           projectedStreets={projectedStreets}
           boundaries={boundaries}
           selectedSet={selectedSet}
+          replacementSet={replacementSet}
           activeZone={activeZone}
           hoveredId={hovered}
           inspectedId={inspected}
@@ -2145,11 +2410,12 @@ function BlockGeometryMap({
                 vectorEffect="non-scaling-stroke"
               />
             ))}
-            {projected.filter((feature) => !selectedSet.has(feature.id)).map((feature) => {
+            {projected.filter((feature) => !selectedSet.has(feature.id) && !replacementSet.has(feature.id)).map((feature) => {
               const selected = selectedSet.has(feature.id);
+              const replacement = replacementSet.has(feature.id);
               const hoveredFeaturePath = hovered === feature.id;
               const focused = Boolean(activeZone && feature.zona === activeZone);
-              const visual = geometryVisualState({ selected, focused, hovered: hoveredFeaturePath });
+              const visual = geometryVisualState({ selected, replacement, focused, hovered: hoveredFeaturePath });
               return (
                 <path
                   key={feature.key}
@@ -2314,7 +2580,24 @@ function BlockGeometryMap({
                 />
               );
             })}
-            {detailFeature && !selectedSet.has(detailFeature.id) ? (
+            {projected.filter((feature) => replacementSet.has(feature.id)).map((feature) => {
+              const hoveredFeaturePath = hovered === feature.id;
+              return (
+                <path
+                  key={`${feature.key}:replacement`}
+                  d={feature.d}
+                  fill={MAP_GEOMETRY_STYLE.replacementFill}
+                  stroke={hoveredFeaturePath ? MAP_GEOMETRY_STYLE.hoverStroke : MAP_GEOMETRY_STYLE.replacementStroke}
+                  strokeWidth={hoveredFeaturePath ? 1.35 : 1.05}
+                  vectorEffect="non-scaling-stroke"
+                  onMouseEnter={() => setHovered(feature.id)}
+                  onMouseLeave={() => setHovered(null)}
+                  onClick={() => setInspected(feature.id)}
+                  style={{ transition: "fill 140ms ease, stroke 140ms ease", cursor: "pointer" }}
+                />
+              );
+            })}
+            {detailFeature && !selectedSet.has(detailFeature.id) && !replacementSet.has(detailFeature.id) ? (
               <path
                 key={`${detailFeature.key}:focused`}
                 d={detailFeature.d}
@@ -2361,7 +2644,8 @@ function BlockGeometryMap({
               <strong>Manzana {detailFeature.label}</strong>
               {detailFeature.zona ? <span>Zona {detailFeature.zona}</span> : null}
             </div>
-            {selectedSet.has(detailFeature.id) ? <StatusPill ok text="Seleccionada" /> : null}
+            {selectedSet.has(detailFeature.id) ? <StatusPill ok text="Titular" /> : null}
+            {replacementSet.has(detailFeature.id) ? <StatusPill ok text="Reemplazo" /> : null}
           </div>
           {(detailFeature.viviendas != null || detailFeature.poblacion != null) ? (
             <div className="hojas-ruta-block-popup-stats">
@@ -2392,10 +2676,10 @@ function BlockGeometryMap({
               ) : null}
             </div>
           ) : null}
-          {detailBlock ? (
+          {detailBlock || detailReplacementBlock ? (
             <div className="hojas-ruta-block-popup-assignment">
-              <strong>{formatNumber(detailBlock.entrevistas)} encuestas asignadas</strong>
-              <span>orden de visita #{formatNumber(detailBlock.orden_seleccion)}</span>
+              <strong>{formatNumber((detailBlock ?? detailReplacementBlock)?.entrevistas)} encuestas asignadas</strong>
+              <span>{detailReplacementBlock ? "ruta de reemplazo" : "orden de visita"} #{formatNumber((detailBlock ?? detailReplacementBlock)?.orden_seleccion)}</span>
             </div>
           ) : null}
           <div className="hojas-ruta-block-popup-meta">
@@ -2736,6 +3020,7 @@ function TerritoryMapExplorer({
   zoneMapLoading,
   blockMapLoading,
   selectedBlocks,
+  replacementBlocks,
   enableMapSelection = true,
   mapSelectionMode,
   onFocus,
@@ -2758,6 +3043,7 @@ function TerritoryMapExplorer({
   zoneMapLoading: boolean;
   blockMapLoading: boolean;
   selectedBlocks: HojasRutaSamplePreview["blocks"];
+  replacementBlocks?: HojasRutaSamplePreview["replacement_blocks"];
   enableMapSelection?: boolean;
   mapSelectionMode: boolean;
   onFocus: (ubigeo: string) => void;
@@ -2832,12 +3118,20 @@ function TerritoryMapExplorer({
             {blockMap.alerts.map((a) => (
               <Alert key={`${a.code}:${a.message}`} kind={alertKind(a.level)}>{a.message}</Alert>
             ))}
-            <BlockGeometryMap blockMap={blockMap} contextMap={contextMap} streetMap={streetMap} selectedBlocks={selectedBlocks} activeZone={activeZona} />
+            <BlockGeometryMap
+              blockMap={blockMap}
+              contextMap={contextMap}
+              streetMap={streetMap}
+              selectedBlocks={selectedBlocks}
+              replacementBlocks={replacementBlocks ?? []}
+              activeZone={activeZona}
+            />
             <div className="hojas-ruta-mini-map">
               {zoneMap?.ubigeo === activeUbigeo ? (
                 <ZoneGeometryMap
                   zoneMap={zoneMap}
                   selectedBlocks={selectedBlocks}
+                  replacementBlocks={replacementBlocks ?? []}
                   activeZona={activeZona}
                   compact
                 />
@@ -2861,6 +3155,7 @@ function TerritoryMapExplorer({
             <ZoneGeometryMap
               zoneMap={zoneMap}
               selectedBlocks={selectedBlocks}
+              replacementBlocks={replacementBlocks ?? []}
               activeZona={activeZona}
               onOpenZone={onOpenZone}
             />
@@ -2887,14 +3182,53 @@ function AgeRangesEditor({
   ranges: HojasRutaAgeRange[];
   onChange: (ranges: HojasRutaAgeRange[]) => void;
 }) {
-  function updateRange(index: number, patch: Partial<HojasRutaAgeRange>) {
-    onChange(ranges.map((r, i) => {
-      if (i !== index) return r;
-      const next = { ...r, ...patch };
-      const max = next.max == null ? null : Number(next.max);
-      const label = max == null ? `${next.min}+` : `${next.min}-${max}`;
-      return { ...next, max, label, id: label.replace(/[^0-9A-Za-z]+/g, "_").replace(/^_|_$/g, "") };
-    }));
+  type DraftRange = { minText: string; maxText: string };
+  const rangesSignature = ranges.map((r) => `${r.id}:${r.min}:${r.max ?? "plus"}`).join("|");
+  const [drafts, setDrafts] = useState<DraftRange[]>(() => ranges.map((r) => ({
+    minText: String(r.min),
+    maxText: r.max == null ? "" : String(r.max),
+  })));
+
+  useEffect(() => {
+    setDrafts(ranges.map((r) => ({
+      minText: String(r.min),
+      maxText: r.max == null ? "" : String(r.max),
+    })));
+  }, [rangesSignature]);
+
+  function parseAge(value: string) {
+    if (value.trim() === "") return null;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return null;
+    return Math.max(0, Math.round(parsed));
+  }
+
+  function buildRange(base: HojasRutaAgeRange, draft: DraftRange, allowOpenEnded: boolean) {
+    const min = parseAge(draft.minText);
+    if (min == null) return null;
+    const rawMax = draft.maxText.trim();
+    const parsedMax = rawMax === "" ? null : parseAge(rawMax);
+    if (rawMax !== "" && parsedMax == null) return null;
+    if (rawMax === "" && !allowOpenEnded) return null;
+    const max = parsedMax == null ? null : Math.max(min, parsedMax);
+    const label = max == null ? `${min}+` : `${min}-${max}`;
+    return { ...base, min, max, label, id: label.replace(/[^0-9A-Za-z]+/g, "_").replace(/^_|_$/g, "") };
+  }
+
+  function commitDrafts(nextDrafts: DraftRange[]) {
+    const nextRanges = ranges.map((range, index) => buildRange(
+      range,
+      nextDrafts[index] ?? drafts[index],
+      index === ranges.length - 1,
+    ));
+    if (nextRanges.some((range) => range == null)) return;
+    onChange(nextRanges as HojasRutaAgeRange[]);
+  }
+
+  function updateDraft(index: number, patch: Partial<DraftRange>, commit = true) {
+    const nextDrafts = drafts.map((draft, i) => (i === index ? { ...draft, ...patch } : draft));
+    setDrafts(nextDrafts);
+    if (commit) commitDrafts(nextDrafts);
   }
 
   function removeRange(index: number) {
@@ -2909,33 +3243,52 @@ function AgeRangesEditor({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div className="hojas-ruta-age-editor">
       {ranges.map((r, index) => (
-        <div key={`${r.id}:${index}`} style={{ display: "grid", gridTemplateColumns: "minmax(70px, 1fr) 86px 86px 32px", gap: 8, alignItems: "center" }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: "var(--pulso-text)" }}>{r.label}</div>
+        <div key={`${r.id}:${index}`} className="hojas-ruta-age-row">
+          <div>
+            <strong>{r.label}</strong>
+            <span>Rango {index + 1}</span>
+          </div>
           <input
             style={fieldStyle}
             type="number"
             min={0}
-            value={numberValue(r.min)}
-            onChange={(e) => updateRange(index, { min: Math.max(0, Number(e.target.value || 0)) })}
+            inputMode="numeric"
+            placeholder="Desde"
+            value={drafts[index]?.minText ?? String(r.min)}
+            onChange={(e) => updateDraft(index, { minText: e.target.value }, e.target.value.trim() !== "")}
+            onBlur={() => commitDrafts(drafts)}
             aria-label={`Edad minima ${r.label}`}
           />
           <input
             style={fieldStyle}
             type="number"
             min={r.min}
-            placeholder="+"
-            value={numberValue(r.max)}
-            onChange={(e) => updateRange(index, { max: e.target.value ? Math.max(r.min, Number(e.target.value)) : null })}
+            inputMode="numeric"
+            placeholder={index === ranges.length - 1 ? "A más" : "Hasta"}
+            value={drafts[index]?.maxText ?? (r.max == null ? "" : String(r.max))}
+            onChange={(e) => updateDraft(index, { maxText: e.target.value }, e.target.value.trim() !== "")}
+            onBlur={() => commitDrafts(drafts)}
             aria-label={`Edad maxima ${r.label}`}
           />
+          {index === ranges.length - 1 ? (
+            <button
+              type="button"
+              className={(drafts[index]?.maxText ?? "") === "" ? "is-active" : ""}
+              onClick={() => updateDraft(index, { maxText: "" })}
+            >
+              A más
+            </button>
+          ) : (
+            <span className="hojas-ruta-age-row-placeholder" aria-hidden="true" />
+          )}
           <button
             type="button"
             onClick={() => removeRange(index)}
             disabled={ranges.length <= 1}
             title="Eliminar rango"
-            style={{ border: "1px solid var(--pulso-border)", background: "white", borderRadius: 6, height: 34, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: ranges.length <= 1 ? "not-allowed" : "pointer" }}
+            className="is-trash"
           >
             <Trash2 size={14} />
           </button>
@@ -2944,6 +3297,22 @@ function AgeRangesEditor({
       <button type="button" onClick={addRange} style={{ ...btnSecondary, alignSelf: "flex-start", padding: "6px 10px", fontSize: 12 }}>
         <Plus size={13} /> Agregar rango
       </button>
+    </div>
+  );
+}
+
+function AgeRangesReadOnly({ ranges }: { ranges: HojasRutaAgeRange[] }) {
+  return (
+    <div className="hojas-ruta-age-generated-list" aria-label="Rangos de edad calculados">
+      {ranges.map((range, index) => (
+        <div key={`${range.id}:${index}`} className="hojas-ruta-age-generated-row">
+          <div>
+            <strong>{range.label}</strong>
+            <span>Rango {index + 1}</span>
+          </div>
+          <small>{range.max == null ? `${range.min} años a más` : `${range.min} a ${range.max} años`}</small>
+        </div>
+      ))}
     </div>
   );
 }
@@ -3341,7 +3710,7 @@ function QuotaMatrixPreview({
       <div className="hojas-ruta-pop-toolbar">
         <div>
           <div className="hojas-ruta-pop-title">Poblacion y cuotas</div>
-          <div className="hojas-ruta-pop-caption">Cada fila conserva poblacion base, N asignado y precisión estimada.</div>
+          <div className="hojas-ruta-pop-caption">Cada fila conserva poblacion base, N asignado y margen de error estimado.</div>
         </div>
         <StatusPill ok={quota.ok} text={`${formatNumber(quota.total_asignado)} / ${formatNumber(quota.n_objetivo)} encuestas`} />
       </div>
@@ -3355,7 +3724,7 @@ function QuotaMatrixPreview({
           <strong>{formatNumber(quota.total_asignado)}</strong>
         </div>
         <div>
-          <span>Precisión total</span>
+          <span>Margen total</span>
           <strong>{totalMarginEstimated != null ? formatRate(totalMarginEstimated) : "—"}</strong>
         </div>
         <div>
@@ -3378,7 +3747,7 @@ function QuotaMatrixPreview({
                 rowSpan={2}
                 title={targetMargin != null ? `Objetivo: ±${(targetMargin * 100).toFixed(1)}%` : undefined}
               >
-                Precisión
+                Margen
               </th>
             </tr>
             <tr>
@@ -3440,7 +3809,7 @@ function QuotaMatrixPreview({
         </table>
       </div>
       <div className="hojas-ruta-pop-footnote">
-        Precisión = margen de error estimado al nivel de confianza configurado, con DEFF y FPC aplicados.
+        Margen = margen de error estimado al nivel de confianza configurado, con DEFF y FPC aplicados.
         {targetMargin != null ? ` Objetivo distrital: ±${(targetMargin * 100).toFixed(1)}%.` : ""}
         {sampleSizePreview ? "" : " Calcula la muestra (paso anterior) para ver el detalle."}
       </div>
@@ -3462,7 +3831,7 @@ function SampleSizeWorkbench({
   onDistrictNChange,
   onDistrictNPaste,
   onSuggestDistrictN,
-  onUseRecommendedN,
+  onUseTotalN,
   onUseSuggestedDistrictN,
   onPreviewSampleSize,
   onPreviewQuota,
@@ -3482,7 +3851,7 @@ function SampleSizeWorkbench({
   onDistrictNChange: (ubigeo: string, value: number) => void;
   onDistrictNPaste: (startUbigeo: string, text: string) => void;
   onSuggestDistrictN: () => void;
-  onUseRecommendedN: () => void;
+  onUseTotalN: (value: number, mode?: SampleSizeMode) => void;
   onUseSuggestedDistrictN: () => void;
   onPreviewSampleSize: () => void;
   onPreviewQuota: () => void;
@@ -3494,10 +3863,14 @@ function SampleSizeWorkbench({
   const districtRowsByUbigeo = new Map((preview?.district_rows ?? []).map((row) => [row.ubigeo, row]));
   const nDistrictTotal = Object.values(config.n_por_distrito ?? {}).reduce((sum, value) => sum + Number(value || 0), 0);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [customNText, setCustomNText] = useState(String(config.n_objetivo ?? ""));
+  useEffect(() => {
+    setCustomNText(String(config.n_objetivo ?? ""));
+  }, [config.n_objetivo, mode]);
   const modeCopy = {
-    calculator: {
-      title: "Prosecnur calcula el N",
-      detail: "Usa precisión, confianza y respuesta esperada para decidir el tamaño.",
+	    calculator: {
+	      title: "Prosecnur calcula el N",
+	      detail: "Usa margen de error, confianza y respuesta esperada para decidir el tamaño.",
     },
     external_total: {
       title: "Tengo un N total",
@@ -3508,11 +3881,12 @@ function SampleSizeWorkbench({
       detail: "Cada distrito ya tiene meta propia. Prosecnur la respeta y diagnostica.",
     },
   } satisfies Record<SampleSizeMode, { title: string; detail: string }>;
-  const designPresets = [
-    { label: "PPS", value: 1.5, hint: "recomendado" },
-    { label: "Sistemático", value: 1.1, hint: "más parejo" },
-    { label: "Conglomerado", value: 2.0, hint: "más conservador" },
-  ];
+	  const designPresets = [
+	    { label: "Sin ajuste", value: 1.0, hint: "muestra simple o sin evidencia" },
+	    { label: "Ligero", value: 1.2, hint: "poca concentración territorial" },
+	    { label: "Territorial", value: 1.5, hint: "rutas por manzana / PPS" },
+	    { label: "Conservador", value: 2.0, hint: "alta homogeneidad por zona" },
+	  ];
   const precisionTotalPct = percentInput(settings.margin_total);
   const districtAlertPct = percentInput(settings.margin_district);
   const confidencePct = percentInput(settings.confidence_level);
@@ -3521,30 +3895,169 @@ function SampleSizeWorkbench({
   const designTone = settings.design_effect >= 1 ? "ok" : "warn";
   const responseTone = settings.response_rate >= 0.75 ? "ok" : settings.response_rate >= 0.55 ? "info" : "warn";
   const proportionTone = settings.expected_proportion >= 0.35 && settings.expected_proportion <= 0.65 ? "ok" : "info";
-  const allocationMode = settings.allocation_mode ?? "proportional";
-  const enforceFloor = settings.enforce_district_floor ?? true;
-  const overrides = settings.design_effect_overrides ?? {};
+	  const allocationMode = settings.allocation_mode ?? "proportional";
+	  const enforceFloor = settings.enforce_district_floor ?? true;
+  const isCalculatorMode = mode === "calculator";
+  const isExternalMode = mode !== "calculator";
+	  const overrides = settings.design_effect_overrides ?? {};
   const marginOverrides = settings.margin_district_overrides ?? {};
   const overrideCount = Object.keys(overrides).length + Object.keys(marginOverrides).length;
   const nUsed = preview?.n_used ?? 0;
   const nRecommended = preview?.n_recommended ?? 0;
   const nRecommendedRoute = preview?.n_recommended_route ?? Math.ceil(Math.max(1, nRecommended) / routeStatus.routeSize) * routeStatus.routeSize;
-  const nTotalMin = preview?.n_total_min ?? 0;
-  const nDistrictFloor = preview?.n_district_floor ?? 0;
+	  const nTotalMin = preview?.n_total_min ?? 0;
+  const nTotalMinRaw = preview?.n_total_min_raw ?? nTotalMin;
+	  const nDistrictFloor = preview?.n_district_floor ?? 0;
+  const nDistrictFloorRaw = preview?.n_district_floor_raw ?? nDistrictFloor;
   const districtFloorBinds = nDistrictFloor > nTotalMin && enforceFloor;
   const contactsSuggested = preview?.contacts_suggested ?? 0;
   // Valores de la fórmula para mostrar en vivo
   const zScore = inverseStandardNormal((1 + settings.confidence_level) / 2);
   const pq = settings.expected_proportion * (1 - settings.expected_proportion);
-  const nSrs = (zScore * zScore * pq) / (settings.margin_total * settings.margin_total);
-  const nDesign = nSrs * settings.design_effect;
+	  const nSrs = (zScore * zScore * pq) / (settings.margin_total * settings.margin_total);
+	  const nDesign = nSrs * settings.design_effect;
+  const nSrsRounded = Math.ceil(nSrs);
+  const nDesignRounded = Math.ceil(nDesign);
+  const totalPopulationForFormula = Math.max(0, Number(preview?.total_population ?? 0));
+  const nFpc = settings.apply_fpc && totalPopulationForFormula > 0
+    ? Math.min(totalPopulationForFormula, (totalPopulationForFormula * nDesign) / (totalPopulationForFormula + nDesign - 1))
+    : nDesign;
+  const nFpcRounded = Math.ceil(nFpc);
+  const nTotalBeforeRoute = settings.apply_fpc ? nFpcRounded : nDesignRounded;
+  const fpcChangesN = settings.apply_fpc && nFpcRounded !== nDesignRounded;
+  const routeAdjustsTotalN = nTotalBeforeRoute !== nTotalMin;
+  const nTotalBaseForDisplay = nTotalBeforeRoute > 0 ? nTotalBeforeRoute : nTotalMinRaw;
+  const nUsedLabel = isCalculatorMode
+    ? "N final para cuotas"
+    : mode === "external_total"
+      ? "N aprobado para cuotas"
+      : "Suma distrital para cuotas";
+  const currentNTitle = isCalculatorMode
+    ? "N recomendado en uso"
+    : mode === "external_total"
+      ? "N aprobado en uso"
+      : "Suma de N distritales en uso";
+  const routeMultipleHelp = `Todos los N calculados se redondean hacia arriba al múltiplo de ${formatNumber(routeStatus.routeSize)} encuesta(s) por manzana. Es un ajuste operativo: permite que todas las rutas tengan la misma carga de encuestas.`;
+  const totalMarginHelp = `Es el N mínimo para cumplir el margen de error total configurado para el estudio completo. Este valor mira el agregado de la población y luego se ajusta a rutas completas.`;
+  const districtMinimumHelp = `Es un total: suma los mínimos requeridos en cada distrito para llegar al margen de error distrital configurado. Si activas la garantía distrital y esta suma supera el mínimo total, Prosecnur usa este requisito.`;
+  const recommendedHelp = isCalculatorMode
+    ? `Es el N que Prosecnur recomienda usar después de comparar el mínimo por margen total, la suma mínima distrital y el ajuste a rutas completas.`
+    : `Es la referencia que Prosecnur habría calculado con estos supuestos. No reemplaza el N aprobado que ingresaste; sirve para diagnosticarlo.`;
+  const usedMarginHelp = `Es el margen de error total estimado con el N final que se usará para cuotas. Baja cuando sube el N y se calcula con confianza, resultado esperado, DEFF y población del marco.`;
+  const confidenceHelp = "Nivel de confianza usado para el margen de error. 95% es el estándar habitual: si sube, el N necesario crece; si baja, el N baja pero la inferencia queda menos exigente.";
+  const marginTotalInputHelp = isCalculatorMode
+    ? "Margen de error objetivo para leer el estudio completo. Cuanto menor sea el margen, mayor será el N recomendado."
+    : "Umbral para diagnosticar el N aprobado. No cambia el N ingresado; sirve para decir si el margen total observado queda aceptable o alto.";
+  const marginDistrictInputHelp = isCalculatorMode
+    ? "Margen de error esperado para leer cada distrito por separado. Si lo usas como requisito, puede subir mucho el N porque suma mínimos distritales."
+    : "Umbral para alertas distritales. No cambia el N aprobado; solo marca distritos cuyo margen de error queda por encima de este límite.";
+  const expectedProportionHelp = "Valor esperado de una proporción binaria. 50% es conservador porque maximiza la varianza y evita subestimar el N cuando no hay evidencia previa.";
+  const deffHelp = "Ajuste por diseño de campo. DEFF 1.0 equivale a muestra simple; valores mayores protegen cuando entrevistas cercanas se parecen, hay conglomerados, pesos desiguales o reemplazos no aleatorios. Prosecnur sugiere, no fuerza.";
+  const responseHelp = "Porcentaje esperado de contactos que terminan en encuesta completa. No cambia las cuotas efectivas; aumenta o reduce los intentos de contacto sugeridos para campo.";
+  const fpcHelp = "Corrección por población finita. Puede reducir el N cuando la muestra representa una fracción relevante de la población del marco; si la población es grande frente al N, el efecto suele ser pequeño.";
+	  const rawNChoiceCandidates = preview ? [
+	    {
+	      key: "current",
+      title: currentNTitle,
+      value: nUsed,
+      mode,
+      detail: isCalculatorMode
+        ? "Es el N recomendado que está usando la configuración en este momento."
+        : "Es el N aprobado que Prosecnur está diagnosticando y usando para cuotas.",
+      help: isCalculatorMode
+        ? "N seleccionado actualmente para calcular cuotas. Coincide con la recomendación final después de aplicar criterios estadísticos y rutas completas."
+        : "N aprobado por el equipo o cliente. Prosecnur lo respeta y solo estima margen de error, contactos, rutas y alertas.",
+    },
+    {
+      key: "total-min",
+      title: "Mínimo por margen total",
+      value: nTotalMin,
+      mode: "external_total" as SampleSizeMode,
+	      detail: `Ajustado a rutas de ${formatNumber(routeStatus.routeSize)} encuesta(s). Base estadística: ${formatNumber(nTotalBaseForDisplay)}.`,
+      help: totalMarginHelp,
+    },
+    {
+      key: "district-floor",
+      title: enforceFloor ? "Suma mínima distrital" : "Mínimo distrital sugerido",
+      value: nDistrictFloor,
+      mode: "external_total" as SampleSizeMode,
+      detail: enforceFloor
+        ? `Ajustado por distrito a rutas de ${formatNumber(routeStatus.routeSize)}. Base estadística: ${formatNumber(nDistrictFloorRaw)}.`
+        : "No se aplica como requisito, pero muestra lo que exigiría la lectura distrital.",
+      help: districtMinimumHelp,
+    },
+    {
+      key: "route",
+      title: "N compatible con rutas",
+      value: nRecommendedRoute,
+      mode: "calculator" as SampleSizeMode,
+      detail: `Cierra con rutas completas de ${formatNumber(routeStatus.routeSize)} encuesta(s).`,
+      help: routeMultipleHelp,
+	    },
+	  ].filter((candidate) => Number.isFinite(candidate.value) && candidate.value > 0) : [];
+  const seenCandidateValues = new Set<number>();
+  const nChoiceCandidates = rawNChoiceCandidates.filter((candidate) => {
+    if (isCalculatorMode && candidate.key !== "current" && candidate.value === nUsed) return false;
+    const signature = candidate.key === "current" ? `current:${candidate.value}` : `value:${candidate.value}`;
+    if (seenCandidateValues.has(candidate.value) && candidate.key !== "current") return false;
+    if (candidate.key !== "current") seenCandidateValues.add(candidate.value);
+    return signature.length > 0;
+  });
+	  const customN = Number(customNText);
+	  const customNValid = Number.isFinite(customN) && customN > 0;
+  const sampleStepTitle = mode === "calculator"
+    ? "1. Define cómo calcular el N"
+    : mode === "external_total"
+      ? "1. Ingresa el N total aprobado"
+      : "1. Ingresa el N aprobado por distrito";
+	  const sampleStepCopy = mode === "calculator"
+	    ? "El margen total calcula el N. El margen distrital puede ser requisito de cálculo o solo alerta."
+	    : "No necesitas recalcular el N: Prosecnur diagnostica margen de error, contactos, rutas y alertas sin reemplazar el N aprobado.";
+  const diagnosisHeadingTitle = isCalculatorMode ? "2. Revisa el N recomendado" : "2. Revisa el diagnóstico del N aprobado";
+  const diagnosisEmptyCopy = isCalculatorMode
+    ? "Pulsa “Calcular muestra” para ver el N recomendado, el margen de error, los contactos sugeridos y el reparto por distrito. No se mostrarán alertas hasta ese cálculo."
+    : "Pulsa “Diagnosticar N aprobado” para revisar margen de error, contactos sugeridos, rutas y alertas. Prosecnur respetará el N que ingresaste.";
+	  const diagnosticDetailsClass = `hojas-ruta-sample-setting-group hojas-ruta-diagnostics-details${isCalculatorMode ? " is-open" : ""}`;
+  const routeCount = routeStatus.routeSize > 0 ? Math.ceil(nUsed / routeStatus.routeSize) : 0;
+  const nDecisionCopy = districtFloorBinds
+    ? "Manda la garantía distrital: la suma mínima por distrito supera el mínimo total."
+    : "Manda el margen total: la suma mínima distrital queda por debajo del mínimo total.";
+  const clusterLoad = Math.max(1, Math.round(config.entrevistas_por_manzana || 1));
+  const deffFromIcc = (icc: number) => 1 + (clusterLoad - 1) * icc;
+  const deffIccScenarios = [0, 0.02, 0.05, 0.10].map((icc) => ({
+    icc,
+    deff: deffFromIcc(icc),
+  }));
+  const deffRecommendation = clusterLoad <= 1
+    ? {
+      title: "Ajuste no necesario por concentración",
+      body: "Con 1 entrevista por manzana, la fórmula de conglomerados vuelve a DEFF 1 si no hay pesos desiguales relevantes.",
+      target: 1.0,
+    }
+    : clusterLoad <= 3
+      ? {
+        title: "Ajuste ligero si esperas parecido territorial",
+        body: "Hay poca concentración por manzana. Usa 1.0 si el indicador no es territorial; considera 1.2 si esperas homogeneidad por zona/NSE.",
+        target: 1.2,
+      }
+      : clusterLoad <= 8
+        ? {
+          title: "Conviene evaluar ajuste territorial",
+          body: "Varias entrevistas salen de la misma manzana. Si el indicador depende de acceso, NSE, seguridad, servicios o preferencias barriales, 1.2-1.5 es defendible.",
+          target: 1.5,
+        }
+        : {
+          title: "Usa un escenario conservador salvo evidencia contraria",
+          body: "La muestra concentra bastante carga por manzana. Sin ICC previo, conviene planificar con 1.5-2.0 y documentar el supuesto.",
+          target: 2.0,
+        };
 
   function setPercent(key: keyof HojasRutaSampleSizeConfig, value: string) {
     onSampleSizeChange({ [key]: Math.max(0, Number(value || 0)) / 100 } as Partial<HojasRutaSampleSizeConfig>);
   }
 
   return (
-    <Panel title="Define la muestra" eyebrow="N, precisión y campo">
+	    <Panel title="Define la muestra" eyebrow="N, margen y campo">
       <div className="hojas-ruta-sample-size-shell">
         <div className="hojas-ruta-sample-mode-cards" role="tablist" aria-label="Modo de muestra">
           {(["calculator", "external_total", "external_district"] as SampleSizeMode[]).map((item) => (
@@ -3560,12 +4073,22 @@ function SampleSizeWorkbench({
           ))}
         </div>
 
-        <div className="hojas-ruta-sample-size-grid">
-          <section className="hojas-ruta-sample-size-config" aria-label="Parametros de muestra">
-            <div className="hojas-ruta-sample-size-heading">
-              <strong>{mode === "calculator" ? "Calculadora guiada" : "Diagnóstico del N ingresado"}</strong>
-              <span>{modeCopy[mode].detail}</span>
-            </div>
+        <div className="hojas-ruta-sample-size-flow">
+	          <section className="hojas-ruta-sample-size-config" aria-label="Parametros de muestra">
+	            <div className="hojas-ruta-sample-size-heading">
+	              <strong>{sampleStepTitle}</strong>
+	              <span>{sampleStepCopy}</span>
+	            </div>
+
+            {isExternalMode ? (
+              <div className="hojas-ruta-method-note is-diagnostic">
+                <strong>N aprobado: diagnóstico, no recálculo</strong>
+                <span>
+                  Puedes ir directo a diagnosticar. Los supuestos de confianza, resultado esperado, DEFF y márgenes quedan con valores estándar
+                  y solo sirven para interpretar el margen de error y levantar alertas.
+                </span>
+              </div>
+            ) : null}
 
             {mode === "external_total" && (
               <div className="hojas-ruta-form-grid is-compact">
@@ -3609,7 +4132,7 @@ function SampleSizeWorkbench({
                         <th>Distrito</th>
                         <th>Población</th>
                         <th>N externo</th>
-                        <th>Precisión esperada</th>
+	                        <th>Margen de error</th>
                         <th>Estado</th>
                       </tr>
                     </thead>
@@ -3651,10 +4174,13 @@ function SampleSizeWorkbench({
             )}
 
             <div className="hojas-ruta-sample-setting-group">
-              <div className="hojas-ruta-sample-setting-title">
-                <strong>Rutas completas</strong>
-                <span>Cada manzana seleccionada recibirá exactamente esta carga de encuestas.</span>
-              </div>
+	              <div className="hojas-ruta-sample-setting-title">
+	                <strong><InlineHelp label="Rutas completas" text={routeMultipleHelp} /></strong>
+	                <span>
+                    Ajuste operativo: los N calculados se redondean hacia arriba al múltiplo de encuestas por manzana
+                    para que todas las rutas tengan la misma carga.
+                  </span>
+	              </div>
               <div className="hojas-ruta-form-grid is-compact">
                 <SampleControl
                   label="Encuestas por ruta"
@@ -3673,20 +4199,28 @@ function SampleSizeWorkbench({
                     aria-label="Encuestas por ruta"
                   />
                 </SampleControl>
-                <div className={`hojas-ruta-route-check${routeStatus.ok ? " is-ok" : " is-error"}`}>
-                  <strong>{routeStatus.ok ? "N compatible" : "N no calza"}</strong>
-                  <span>{routeStatus.message}</span>
+                <div className={`hojas-ruta-route-check${preview ? (routeStatus.ok ? " is-ok" : " is-error") : " is-neutral"}`}>
+                  <strong>{preview ? (routeStatus.ok ? "N compatible" : "N necesita ajuste") : "Se revisará al calcular"}</strong>
+                  <span>
+                    {preview
+                      ? routeStatus.message
+                      : `Luego de calcular, Prosecnur verificará que el N cierre en rutas de ${formatNumber(routeStatus.routeSize)} encuestas.`}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div className="hojas-ruta-sample-setting-group">
-              <div className="hojas-ruta-sample-setting-title">
-                <strong>1. Precisión que quieres lograr</strong>
-                <span>Mientras más exigente seas, mayor será el N recomendado.</span>
-              </div>
-              <div className="hojas-ruta-form-grid">
-                <SampleControl label="Confianza" suffix="%" hint="95% es el estándar para estudios serios.">
+	            <details className={diagnosticDetailsClass} open={isCalculatorMode}>
+		              <summary className="hojas-ruta-sample-setting-title">
+		                <strong>{isCalculatorMode ? "2. Margen de error que quieres lograr" : "Ajustar umbrales del diagnóstico"}</strong>
+		                <span>
+                    {isCalculatorMode
+                      ? "Mientras más exigente seas, mayor será el N recomendado."
+                      : "Opcional: estos márgenes no cambian el N aprobado; solo definen cuándo marcar alertas."}
+                  </span>
+		              </summary>
+	              <div className="hojas-ruta-form-grid">
+	                <SampleControl label={<InlineHelp label="Confianza" text={confidenceHelp} />} suffix="%" hint="95% es el estándar para estudios serios.">
                   <input
                     style={fieldStyle}
                     type="number"
@@ -3697,7 +4231,13 @@ function SampleSizeWorkbench({
                     onChange={(e) => setPercent("confidence_level", e.target.value)}
                   />
                 </SampleControl>
-                <SampleControl label="Precisión total" suffix="± %" hint={`Ahora: ±${precisionTotalPct} pts para el estudio completo.`}>
+		                <SampleControl
+                      label={<InlineHelp label={isCalculatorMode ? "Margen de error total" : "Margen total para alerta"} text={marginTotalInputHelp} />}
+                      suffix="± %"
+                      hint={isCalculatorMode
+                        ? `Ahora: ±${precisionTotalPct} pts para el estudio completo.`
+                        : `Referencia: alerta si el total supera ±${precisionTotalPct} pts.`}
+                    >
                   <input
                     style={fieldStyle}
                     type="number"
@@ -3708,7 +4248,20 @@ function SampleSizeWorkbench({
                     onChange={(e) => setPercent("margin_total", e.target.value)}
                   />
                 </SampleControl>
-                <SampleControl label="Precisión por distrito" suffix="± %" hint={enforceFloor ? `Garantizada: ±${districtAlertPct} pts en cada distrito.` : `Solo aviso: ±${districtAlertPct} pts.`}>
+		                <SampleControl
+                      label={<InlineHelp
+                        label={isCalculatorMode
+                          ? enforceFloor ? "Margen por distrito requerido" : "Margen por distrito para alerta"
+                          : "Margen por distrito para alerta"}
+                        text={marginDistrictInputHelp}
+                      />}
+                      suffix="± %"
+                      hint={isCalculatorMode
+                        ? enforceFloor
+                          ? `También sube el N para garantizar ±${districtAlertPct} pts por distrito.`
+                          : `No sube el N; solo alerta si un distrito supera ±${districtAlertPct} pts.`
+                        : `No cambia el N aprobado; alerta si un distrito supera ±${districtAlertPct} pts.`}
+                    >
                   <input
                     style={fieldStyle}
                     type="number"
@@ -3718,17 +4271,21 @@ function SampleSizeWorkbench({
                     value={percentInput(settings.margin_district)}
                     onChange={(e) => setPercent("margin_district", e.target.value)}
                   />
-                </SampleControl>
-              </div>
-            </div>
+	                </SampleControl>
+	              </div>
+	            </details>
 
-            <div className="hojas-ruta-sample-setting-group">
-              <div className="hojas-ruta-sample-setting-title">
-                <strong>2. Supuestos de campo</strong>
-                <span>Estos controles vuelven el cálculo más realista para encuestas en territorio.</span>
-              </div>
-              <div className="hojas-ruta-form-grid">
-                <SampleControl label="Resultado esperado" suffix="%" hint="50% si no sabes; es el escenario más conservador.">
+	            <details className={diagnosticDetailsClass} open={isCalculatorMode}>
+	              <summary className="hojas-ruta-sample-setting-title">
+	                <strong>{isCalculatorMode ? "3. Supuestos de campo" : "Ajustar supuestos estadísticos"}</strong>
+	                <span>
+                    {isCalculatorMode
+                      ? "Estos controles vuelven el cálculo más realista para encuestas en territorio."
+                      : "Opcional: estos supuestos se usan para estimar el margen de error del N aprobado."}
+                  </span>
+	              </summary>
+	              <div className="hojas-ruta-form-grid">
+                <SampleControl label={<InlineHelp label="Resultado esperado (p)" text={expectedProportionHelp} />} suffix="%" hint="50% si no sabes; es el escenario más conservador.">
                   <input
                     style={fieldStyle}
                     type="number"
@@ -3739,7 +4296,10 @@ function SampleSizeWorkbench({
                     onChange={(e) => setPercent("expected_proportion", e.target.value)}
                   />
                 </SampleControl>
-                <SampleControl label="Diseño de campo (DEFF)" hint="1.0 es muestra simple; más alto exige más entrevistas.">
+                <SampleControl
+                  label={<InlineHelp label="Ajuste por diseño de campo (DEFF)" text={deffHelp} />}
+                  hint="Empieza en 1.0. Sube solo si el diseño concentra entrevistas o esperas respuestas parecidas dentro de la misma manzana/zona."
+                >
                   <input
                     style={fieldStyle}
                     type="number"
@@ -3749,7 +4309,7 @@ function SampleSizeWorkbench({
                     onChange={(e) => onSampleSizeChange({ design_effect: Math.max(0.1, Number(e.target.value || 0.1)) })}
                   />
                 </SampleControl>
-                <SampleControl label="Respuesta esperada" suffix="%" hint="Sirve para estimar contactos, no para cambiar cuotas.">
+                <SampleControl label={<InlineHelp label="Respuesta esperada" text={responseHelp} />} suffix="%" hint="Sirve para estimar contactos, no para cambiar cuotas.">
                   <input
                     style={fieldStyle}
                     type="number"
@@ -3761,8 +4321,8 @@ function SampleSizeWorkbench({
                   />
                 </SampleControl>
               </div>
-              <div className="hojas-ruta-design-presets" aria-label="Presets de diseño de campo">
-                {designPresets.map((preset) => (
+	              <div className="hojas-ruta-design-presets" aria-label="Presets de diseño de campo">
+	                {designPresets.map((preset) => (
                   <button
                     key={preset.label}
                     type="button"
@@ -3771,16 +4331,60 @@ function SampleSizeWorkbench({
                   >
                     <strong>{preset.label}</strong>
                     <span>Deff {preset.value.toFixed(1)} · {preset.hint}</span>
+	                  </button>
+	                ))}
+		              </div>
+              <details className="hojas-ruta-deff-guide">
+                <summary>Guía para decidir si usar ajuste por diseño</summary>
+                <div className="hojas-ruta-deff-recommendation">
+                  <div>
+                    <span>Lectura de Prosecnur</span>
+                    <strong>{deffRecommendation.title}</strong>
+                    <p>{deffRecommendation.body}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onSampleSizeChange({ design_effect: deffRecommendation.target })}
+                    disabled={Math.abs(settings.design_effect - deffRecommendation.target) < 0.001}
+                  >
+                    Usar {deffRecommendation.target.toFixed(1)}
                   </button>
-                ))}
-              </div>
-            </div>
+                </div>
+                <div className="hojas-ruta-deff-rule">
+                  <strong>Regla estadística</strong>
+                  <span>
+                    Para conglomerados: DEFF ≈ 1 + (m - 1) × ICC. Aquí m = {formatNumber(clusterLoad)} entrevista(s) por manzana/ruta.
+                  </span>
+                </div>
+                <div className="hojas-ruta-deff-scenarios">
+                  {deffIccScenarios.map((row) => (
+                    <div key={row.icc}>
+                      <span>ICC {row.icc.toFixed(2)}</span>
+                      <strong>{row.deff.toFixed(2)}</strong>
+                    </div>
+                  ))}
+                </div>
+                <ul>
+                  <li>Usa 1.0 cuando la muestra esté muy dispersa, haya una entrevista por manzana o no tengas razón sustantiva para esperar respuestas parecidas dentro del cluster.</li>
+                  <li>Usa 1.2-1.5 cuando el trabajo agrupe entrevistas por manzana/zona y el indicador pueda variar territorialmente: servicios, seguridad, acceso, NSE, preferencias o exposición local.</li>
+                  <li>Usa 2.0 o más solo con alta concentración, pesos muy desiguales, reemplazos no aleatorios o evidencia de encuestas previas con DEFF/ICC alto.</li>
+                </ul>
+                <p className="hojas-ruta-deff-source">
+                  Base: Kish, Naciones Unidas y manuales WHO/DHS para encuestas por conglomerados.
+                </p>
+              </details>
+		            </details>
 
-            <div className="hojas-ruta-sample-setting-group">
-              <div className="hojas-ruta-sample-setting-title">
-                <strong>3. Asignación entre distritos</strong>
-                <span>Cómo se reparten las entrevistas entre los distritos del marco.</span>
-              </div>
+	            {mode !== "external_district" ? (
+              <div className="hojas-ruta-sample-setting-group">
+	              <div className="hojas-ruta-sample-setting-title">
+	                <strong>{isCalculatorMode ? "4. Asignación entre distritos" : "2. Cómo repartir el N total aprobado"}</strong>
+	                <span>
+                    {isCalculatorMode
+                      ? "Cómo se reparten las entrevistas entre los distritos del marco."
+                      : "El N total ya está fijado; aquí solo decides cómo repartirlo entre distritos."}
+                  </span>
+	              </div>
               <div className="hojas-ruta-allocation-cards" role="radiogroup" aria-label="Modo de asignación">
                 {(Object.keys(ALLOCATION_LABELS) as AllocationMode[]).map((m) => (
                   <button
@@ -3796,18 +4400,21 @@ function SampleSizeWorkbench({
                   </button>
                 ))}
               </div>
-              <label className="hojas-ruta-checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={enforceFloor}
-                  onChange={(e) => onSampleSizeChange({ enforce_district_floor: e.target.checked })}
-                />
-                <span>
-                  Garantizar precisión por distrito (recomendado).{" "}
-                  <em>El N recomendado considerará el mínimo necesario en cada distrito.</em>
-                </span>
-              </label>
-            </div>
+	              {isCalculatorMode ? (
+                  <label className="hojas-ruta-checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={enforceFloor}
+                      onChange={(e) => onSampleSizeChange({ enforce_district_floor: e.target.checked })}
+                    />
+                    <span>
+                      Usar margen por distrito como requisito de cálculo.{" "}
+                      <em>Si lo apagas, Prosecnur calcula por margen total y solo diagnostica el margen distrital.</em>
+                    </span>
+                  </label>
+                ) : null}
+	            </div>
+            ) : null}
 
             <button
               type="button"
@@ -3830,14 +4437,14 @@ function SampleSizeWorkbench({
                     checked={settings.apply_fpc}
                     onChange={(e) => onSampleSizeChange({ apply_fpc: e.target.checked })}
                   />
-                  <span>Aplicar corrección por población finita (FPC).</span>
+                  <span><InlineHelp label="Aplicar corrección por población finita (FPC)" text={fpcHelp} /></span>
                 </label>
                 {territories.length > 0 ? (
                   <div className="hojas-ruta-sample-deff-overrides">
                     <div className="hojas-ruta-sample-setting-title">
                       <strong>Ajustes por distrito (opcional)</strong>
                       <span>
-                        Si un distrito específico necesita más precisión o tiene un diseño de campo distinto,
+	                        Si un distrito específico necesita menor margen de error o tiene un diseño de campo distinto,
                         ajústalo aquí. Deja en blanco para usar los valores generales.
                       </span>
                     </div>
@@ -3846,8 +4453,8 @@ function SampleSizeWorkbench({
                         <thead>
                           <tr>
                             <th>Distrito</th>
-                            <th>Precisión general</th>
-                            <th>Precisión ajustada (±%)</th>
+	                        <th>Margen general</th>
+	                        <th>Margen ajustado (±%)</th>
                             <th>Diseño general</th>
                             <th>Diseño ajustado</th>
                           </tr>
@@ -3907,19 +4514,46 @@ function SampleSizeWorkbench({
             <div className="hojas-ruta-method-note">
               <strong>Base técnica</strong>
               <span>
-                Proporción binaria con confianza {confidencePct}%, varianza p(1-p), DEFF aplicado a la varianza
-                {settings.apply_fpc ? ", FPC activo" : ""}. {enforceFloor
-                  ? "Bi-objetivo: el N recomendado garantiza precisión total y precisión por distrito (lo que sea mayor)."
-                  : "Sólo precisión total; la distrital se calcula como diagnóstico."}
-              </span>
+	                Proporción binaria con confianza {confidencePct}%, varianza p(1-p), DEFF aplicado a la varianza
+	                {settings.apply_fpc ? ", FPC activo" : ""}. {isCalculatorMode
+                    ? enforceFloor
+                      ? "Bi-objetivo: el N recomendado garantiza margen total y margen por distrito (lo que sea mayor)."
+                      : "Sólo margen total; el distrital se calcula como diagnóstico."
+                    : "Con N aprobado, estos supuestos no cambian el N; solo calculan el margen de error observado."}
+	              </span>
             </div>
+
+            <details className="hojas-ruta-stat-criteria">
+              <summary className="hojas-ruta-sample-setting-title">
+                <strong>Criterios estadísticos usados</strong>
+                <span>Resumen metodológico breve para entender cuándo cambia el N y cuándo solo cambia el diagnóstico.</span>
+              </summary>
+              <div className="hojas-ruta-stat-criteria-grid">
+                <div>
+                  <strong>Margen de error</strong>
+                  <span>El margen total sirve para leer el estudio completo. El margen distrital sirve para leer cada distrito por separado; si lo vuelves requisito, puede elevar el N mediante la suma mínima distrital.</span>
+                </div>
+                <div>
+                  <strong>DEFF sugerido, no forzado</strong>
+                  <span>Usa 1.0 para muestra simple o muy dispersa; 1.1-1.3 para concentración ligera; 1.5 para rutas/manzanas con concentración moderada; 2.0+ solo con alta concentración, pesos desiguales o evidencia previa.</span>
+                </div>
+                <div>
+                  <strong>FPC</strong>
+                  <span>La corrección por población finita puede bajar el N cuando el marco es pequeño respecto a la muestra. Si el marco es grande, normalmente casi no mueve el resultado.</span>
+                </div>
+                <div>
+                  <strong>Rutas completas</strong>
+                  <span>Después del cálculo estadístico, Prosecnur redondea hacia arriba al múltiplo de encuestas por manzana para que todas las rutas tengan la misma carga.</span>
+                </div>
+              </div>
+            </details>
 
             <details className="hojas-ruta-sample-tips">
               <summary>
                 <strong>Guía rápida de decisión</strong>
               </summary>
               <div className="hojas-ruta-sample-advice">
-                <SampleAdviceItem tone={precisionTone} label="Precisión total" value={`± ${precisionTotalPct}%`}>
+	                <SampleAdviceItem tone={precisionTone} label="Margen total" value={`± ${precisionTotalPct}%`}>
                   {settings.margin_total <= 0.05
                     ? "Buen estándar para reportar el estudio completo."
                     : settings.margin_total <= 0.08
@@ -3951,51 +4585,150 @@ function SampleSizeWorkbench({
             </details>
           </section>
 
+          <div className="hojas-ruta-action-row hojas-ruta-sample-primary-action">
+	            <button type="button" style={btnPrimary} onClick={onPreviewSampleSize} disabled={busy === "sample-size"}>
+	              {busy === "sample-size" ? <Loader2 size={14} className="pulso-spin" /> : <BarChart3 size={14} />}
+	              {isCalculatorMode ? "Calcular muestra" : "Diagnosticar N aprobado"}
+	            </button>
+	            <span className="hojas-ruta-soft-text">
+	              {isCalculatorMode
+                  ? "Este paso calcula el N recomendado, contactos sugeridos y alertas antes de calcular cuotas."
+                  : "Este paso respeta el N aprobado y calcula margen de error, contactos sugeridos y alertas antes de cuotas."}
+	            </span>
+          </div>
+
           <section className="hojas-ruta-sample-size-results" aria-label="Resultado de muestra">
+            <div className="hojas-ruta-sample-size-heading">
+              <strong>{diagnosisHeadingTitle}</strong>
+              <span>El resultado aparece después de calcular muestra y queda invalidado si cambias los supuestos.</span>
+            </div>
             {preview ? (
               <>
-                <div className="hojas-ruta-sample-result-hero">
-                  <div className="hojas-ruta-sample-result-headline">
-                    <span className="eyebrow">N usado para cuotas</span>
-                    <strong>{formatNumber(nUsed)}</strong>
-                    <small>encuestas efectivas a planificar</small>
-                  </div>
-                  {mode === "calculator" ? (
-                    <button
-                      type="button"
-                      className="hojas-ruta-sample-result-cta"
-                      onClick={onUseRecommendedN}
-                      disabled={nUsed === nRecommendedRoute}
-                    >
-                      Usar N válido ({formatNumber(nRecommendedRoute)})
-                    </button>
-                  ) : null}
-                </div>
+		                <div className="hojas-ruta-sample-result-hero">
+		                  <div className="hojas-ruta-sample-result-headline">
+		                    <InlineHelp
+		                      label={nUsedLabel}
+		                      text="Es el tamaño de muestra efectivo que se usará para calcular cuotas por distrito, edad y sexo. Ya incluye la decisión estadística y el ajuste operativo para rutas completas."
+		                    />
+		                    <strong>{formatNumber(nUsed)}</strong>
+		                    <small>{formatNumber(routeCount)} rutas de {formatNumber(routeStatus.routeSize)} encuesta(s)</small>
+		                  </div>
+                      <div className="hojas-ruta-sample-result-rationale">
+                        <strong>{isCalculatorMode ? "Decisión de la calculadora" : "Diagnóstico del N aprobado"}</strong>
+                        <span>
+                          {isCalculatorMode
+                            ? `${nDecisionCopy} Todo se ajusta hacia arriba para rutas con carga uniforme.`
+                            : "Prosecnur respeta este N y solo revisa margen de error, rutas, contactos y alertas."}
+                        </span>
+                      </div>
+		                </div>
 
-                <div className="hojas-ruta-sample-result-breakdown">
-                  <div className={districtFloorBinds ? "is-bind" : ""}>
-                    <span>Mínimo para precisión total</span>
-                    <strong>{formatNumber(nTotalMin)}</strong>
-                    <small>para lograr ±{precisionTotalPct}% en el agregado</small>
-                  </div>
-                  <div className={districtFloorBinds ? "is-bind is-active" : ""}>
-                    <span>Mínimo para precisión distrital</span>
-                    <strong>{formatNumber(nDistrictFloor)}</strong>
-                    <small>{enforceFloor ? `suma de mínimos por distrito (±${districtAlertPct}% c/u)` : "solo diagnóstico (no se aplica como piso)"}</small>
-                  </div>
-                  <div className="is-recommended">
-                    <span>N recomendado por la calculadora</span>
-                    <strong>{formatNumber(nRecommended)}</strong>
-                    <small>{nRecommendedRoute !== nRecommended ? `siguiente N compatible con rutas: ${formatNumber(nRecommendedRoute)}` : districtFloorBinds ? "manda el piso distrital" : "manda la precisión total"}</small>
-                  </div>
-                  <div>
-                    <span>Precisión total con el N usado</span>
-                    <strong>{formatRate(preview.margin_total_estimated)}</strong>
-                    <small>{nUsed >= nTotalMin ? "cumple el objetivo" : "queda por encima del objetivo"}</small>
-                  </div>
-                </div>
+		                <div className="hojas-ruta-sample-result-breakdown">
+		                  <div className={districtFloorBinds ? "is-bind" : ""}>
+		                    <InlineHelp label="Base por margen total" text={totalMarginHelp} />
+		                    <strong>{formatNumber(nTotalMin)}</strong>
+			            <small>
+                    ajustado a rutas de {formatNumber(routeStatus.routeSize)}
+                    {nTotalBaseForDisplay !== nTotalMin ? `; base estadística ${formatNumber(nTotalBaseForDisplay)}` : ""}
+                  </small>
+		                  </div>
+		                  <div className={districtFloorBinds ? "is-bind is-active" : ""}>
+		                    <InlineHelp label="Suma mínima distrital" text={districtMinimumHelp} />
+		                    <strong>{formatNumber(nDistrictFloor)}</strong>
+		                    <small>
+                          {enforceFloor
+                            ? `suma de mínimos distritales ajustados a rutas (±${districtAlertPct}% c/u)`
+                            : "solo diagnóstico (no se aplica como requisito)"}
+                          {nDistrictFloorRaw !== nDistrictFloor ? `; base ${formatNumber(nDistrictFloorRaw)}` : ""}
+                        </small>
+	                  </div>
+		                  <div className="is-recommended">
+		                    <InlineHelp label={isCalculatorMode ? "N recomendado final" : "Referencia según supuestos"} text={recommendedHelp} />
+		                    <strong>{formatNumber(nRecommended)}</strong>
+		                    <small>
+	                          {isCalculatorMode
+	                            ? `${districtFloorBinds ? "manda la garantía distrital" : "manda el margen total"}; múltiplo de ${formatNumber(routeStatus.routeSize)} por ruta`
+	                            : "referencia estadística; no reemplaza el N aprobado"}
+                        </small>
+		                  </div>
+	                  <div>
+	                    <InlineHelp label="Margen de error con N final" text={usedMarginHelp} />
+	                    <strong>{formatRate(preview.margin_total_estimated)}</strong>
+	                    <small>{nUsed >= nTotalMin ? "cumple el objetivo" : "queda por encima del objetivo"}</small>
+	                  </div>
+	                </div>
 
-                <details className="hojas-ruta-sample-formula">
+			                <details className="hojas-ruta-sample-setting-group hojas-ruta-n-alternatives" open={!isCalculatorMode}>
+			                  <summary className="hojas-ruta-sample-setting-title">
+			                    <strong>{isCalculatorMode ? "Cambiar N o ver alternativas" : "3. Diagnóstico y alternativas"}</strong>
+			                    <span>
+			                      {isCalculatorMode
+		                            ? "Opcional. El N final ya está seleccionado; abre esto solo si quieres comparar o usar un N propio."
+		                            : "El N aprobado queda marcado como en uso. Las otras tarjetas son referencias secundarias si decides renegociar o ajustar el tamaño."}
+			                    </span>
+			                  </summary>
+		                  <div className="hojas-ruta-n-choice-grid">
+	                    {nChoiceCandidates.map((candidate) => {
+	                      const candidateMargin = computeMarginError(preview.total_population, candidate.value, settings);
+	                      const routeOk = candidate.value % routeStatus.routeSize === 0;
+	                      const inUse = candidate.value === nUsed && (mode === candidate.mode || candidate.key === "current");
+	                      return (
+	                        <div
+	                          key={`${candidate.key}:${candidate.value}`}
+	                          className={`hojas-ruta-n-choice-card${inUse ? " is-active" : ""}${routeOk ? "" : " is-warn"}`}
+	                        >
+	                          <InlineHelp label={candidate.title} text={candidate.help} />
+	                          <strong>{formatNumber(candidate.value)}</strong>
+	                          <small>Margen de error: {formatRate(candidateMargin)}</small>
+	                          <em>{routeOk ? candidate.detail : `No calza con rutas de ${formatNumber(routeStatus.routeSize)}; ajusta hacia el siguiente múltiplo.`}</em>
+	                          <button
+	                            type="button"
+	                            className="hojas-ruta-n-choice-action"
+	                            onClick={() => onUseTotalN(candidate.value, candidate.mode)}
+	                            disabled={busy === "sample-size" || inUse}
+	                          >
+	                            {inUse ? "N en uso" : "Usar este N"}
+	                          </button>
+	                        </div>
+	                      );
+	                    })}
+	                    <div className="hojas-ruta-n-choice-card is-custom">
+	                      <InlineHelp
+	                        label="N propio"
+	                        text="N que escribes manualmente. Prosecnur recalcula el margen de error estimado y te avisa si no calza con rutas completas."
+	                      />
+	                      <input
+	                        style={fieldStyle}
+	                        type="number"
+	                        min={1}
+	                        value={customNText}
+	                        onChange={(e) => setCustomNText(e.target.value)}
+	                        placeholder="Escribe un N"
+	                        aria-label="N propio"
+	                      />
+	                      <small>
+	                        {customNValid
+	                          ? `Margen de error: ${formatRate(computeMarginError(preview.total_population, customN, settings))}`
+	                          : "Escribe un N para ver el margen de error."}
+	                      </small>
+	                      <em>
+		                        {customNValid && customN % routeStatus.routeSize !== 0
+		                          ? `No calza con rutas de ${formatNumber(routeStatus.routeSize)}; el siguiente múltiplo es ${formatNumber(Math.ceil(customN / routeStatus.routeSize) * routeStatus.routeSize)}.`
+		                          : `Se usará como N externo total y calza con rutas de ${formatNumber(routeStatus.routeSize)}.`}
+	                      </em>
+	                      <button
+	                        type="button"
+	                        style={btnSecondary}
+	                        onClick={() => onUseTotalN(customN, "external_total")}
+	                        disabled={!customNValid || busy === "sample-size"}
+		                      >
+		                        Usar N propio
+		                      </button>
+		                    </div>
+		                  </div>
+		                </details>
+
+	                <details className="hojas-ruta-sample-formula">
                   <summary>
                     <strong>¿De dónde sale este N?</strong>
                     <span>Ver el cálculo paso a paso con tus supuestos.</span>
@@ -4007,40 +4740,51 @@ function SampleSizeWorkbench({
                         <code>n = z² · p · q ÷ e²</code>
                         <em>
                           ({zScore.toFixed(3)})² × {settings.expected_proportion.toFixed(2)} × {(1 - settings.expected_proportion).toFixed(2)}
-                          {" ÷ ("}{settings.margin_total.toFixed(3)}{")² = "}<strong>{Math.ceil(nSrs)}</strong>
+                          {" ÷ ("}{settings.margin_total.toFixed(3)}{")² = "}{formatDecimal(nSrs)}{" → "}<strong>{formatNumber(nSrsRounded)}</strong>
                         </em>
                       </li>
                       <li>
                         <span className="step">2. Ajuste por diseño de campo (DEFF)</span>
                         <code>n × DEFF</code>
                         <em>
-                          {Math.ceil(nSrs)} × {settings.design_effect.toFixed(2)} = <strong>{Math.ceil(nDesign)}</strong>
+                          {formatDecimal(nSrs)} × {settings.design_effect.toFixed(2)} = {formatDecimal(nDesign)}{" → "}<strong>{formatNumber(nDesignRounded)}</strong>
                         </em>
                       </li>
-                      {settings.apply_fpc && nTotalMin !== Math.ceil(nDesign) ? (
+	                      {fpcChangesN ? (
+	                        <li>
+	                          <span className="step">3. Corrección por población finita (FPC)</span>
+	                          <code>N · n_design ÷ (N + n_design − 1)</code>
+	                          <em>
+	                            La población del marco deja la base estadística en {formatDecimal(nFpc)}{" → "}<strong>{formatNumber(nFpcRounded)}</strong>.
+	                          </em>
+	                        </li>
+	                      ) : null}
+                      {routeStatus.routeSize > 1 ? (
                         <li>
-                          <span className="step">3. Corrección por población finita (FPC)</span>
-                          <code>N · n_design ÷ (N + n_design − 1)</code>
+                          <span className="step">{fpcChangesN ? "4" : "3"}. Ajuste operativo de rutas completas</span>
+                          <code>ceil(n ÷ encuestas_por_manzana) × encuestas_por_manzana</code>
                           <em>
-                            La población del marco reduce el N a <strong>{formatNumber(nTotalMin)}</strong>.
+                            {routeAdjustsTotalN
+                              ? <>Para que cada ruta tenga {formatNumber(routeStatus.routeSize)} encuesta(s), {formatNumber(nTotalBeforeRoute)} se ajusta a <strong>{formatNumber(nTotalMin)}</strong>.</>
+                              : <>{formatNumber(nTotalBeforeRoute)} ya calza con rutas de {formatNumber(routeStatus.routeSize)} encuesta(s); se mantiene <strong>{formatNumber(nTotalMin)}</strong>.</>}
                           </em>
                         </li>
                       ) : null}
-                      {enforceFloor && nDistrictFloor > nTotalMin ? (
-                        <li className="is-bind">
-                          <span className="step">{settings.apply_fpc ? "4" : "3"}. Piso por precisión distrital</span>
-                          <code>max(n_total, Σ n_distrito_mínimo)</code>
-                          <em>
-                            Para garantizar la precisión por distrito (±{districtAlertPct}%),
-                            la suma de los mínimos distritales ({formatNumber(nDistrictFloor)}) supera el N total ({formatNumber(nTotalMin)}).
-                            Manda el piso distrital → <strong>{formatNumber(nRecommended)}</strong>.
-                          </em>
+	                      {enforceFloor && nDistrictFloor > nTotalMin ? (
+	                        <li className="is-bind">
+		                          <span className="step">Garantía por margen distrital</span>
+	                          <code>max(n_total_ajustado, Σ n_distrito_ajustado)</code>
+	                          <em>
+		                            Para garantizar el margen de error por distrito (±{districtAlertPct}%),
+	                            la suma de mínimos distritales ajustados a rutas ({formatNumber(nDistrictFloor)}) supera el N total ({formatNumber(nTotalMin)}).
+	                            Manda la garantía distrital → <strong>{formatNumber(nRecommended)}</strong>.
+	                          </em>
                         </li>
                       ) : null}
                     </ol>
                     <p className="hojas-ruta-sample-formula-foot">
-                      Cambiar la <strong>precisión</strong>, el <strong>resultado esperado (p)</strong>, el <strong>DEFF</strong> o
-                      las <strong>precisiones por distrito</strong> recalcula este N.
+	                      Cambiar el <strong>margen de error</strong>, el <strong>resultado esperado (p)</strong>, el <strong>DEFF</strong> o
+	                      los <strong>márgenes por distrito</strong> recalcula este N.
                     </p>
                   </div>
                 </details>
@@ -4067,54 +4811,57 @@ function SampleSizeWorkbench({
                   </div>
                 ) : null}
 
-                <div className="hojas-ruta-review-table-wrap is-compact">
-                  <table className="hojas-ruta-review-table">
-                    <thead>
-                      <tr>
-                        <th>Distrito</th>
-                        <th>N usado</th>
-                        <th>N mínimo</th>
-                        <th>Precisión</th>
-                        <th>DEFF</th>
-                        <th>Fracción</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {preview.district_rows.map((row) => {
-                        const belowFloor = row.n_used > 0 && row.n_used < row.n_min_district;
-                        return (
-                          <tr key={row.ubigeo} className={belowFloor ? "is-warn" : undefined}>
-                            <td className="is-strong">{row.distrito}</td>
-                            <td className="is-number">{formatNumber(row.n_used)}</td>
-                            <td className="is-number">{formatNumber(row.n_min_district)}</td>
-                            <td className="is-number">{formatRate(row.margin_estimated)}</td>
-                            <td className="is-number">{row.design_effect?.toFixed(2) ?? settings.design_effect.toFixed(2)}</td>
-                            <td className="is-number">{formatRate(row.sampling_fraction, 2)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="hojas-ruta-sample-setting-group">
+                  <div className="hojas-ruta-sample-setting-title">
+	                    <strong>5. Reparto por distrito</strong>
+                    <span>Así se usará el N para calcular cuotas por edad y sexo.</span>
+                  </div>
+                  <div className="hojas-ruta-review-table-wrap is-compact">
+                    <table className="hojas-ruta-review-table">
+                      <thead>
+                        <tr>
+                          <th>Distrito</th>
+                          <th>N usado</th>
+                          <th>N mínimo</th>
+	                          <th>Margen de error</th>
+                          <th>DEFF</th>
+                          <th>Fracción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {preview.district_rows.map((row) => {
+                          const belowFloor = row.n_used > 0 && row.n_used < row.n_min_district;
+                          return (
+                            <tr key={row.ubigeo} className={belowFloor ? "is-warn" : undefined}>
+                              <td className="is-strong">{row.distrito}</td>
+                              <td className="is-number">{formatNumber(row.n_used)}</td>
+                              <td className="is-number">{formatNumber(row.n_min_district)}</td>
+                              <td className="is-number">{formatRate(row.margin_estimated)}</td>
+                              <td className="is-number">{row.design_effect?.toFixed(2) ?? settings.design_effect.toFixed(2)}</td>
+                              <td className="is-number">{formatRate(row.sampling_fraction, 2)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="hojas-ruta-action-row hojas-ruta-sample-final-action">
+                  <button type="button" style={btnPrimary} onClick={onPreviewQuota} disabled={!canQuota || busy === "quota"}>
+                    {busy === "quota" ? <Loader2 size={14} className="pulso-spin" /> : <Target size={14} />}
+                    Calcular cuotas
+                  </button>
+                  <span className="hojas-ruta-soft-text">Las cuotas usarán el N confirmado en esta pantalla.</span>
                 </div>
               </>
             ) : (
-              <div className="hojas-ruta-pop-preview is-empty">
-                Calcula el diagnóstico para ver el N recomendado, la precisión esperada, contactos sugeridos y alertas por distrito.
+              <div className="hojas-ruta-sample-empty-state">
+                <strong>Aún no hay diagnóstico</strong>
+                <span>{diagnosisEmptyCopy}</span>
               </div>
             )}
           </section>
-        </div>
-
-        <div className="hojas-ruta-action-row">
-          <button type="button" style={btnSecondary} onClick={onPreviewSampleSize} disabled={busy === "sample-size"}>
-            {busy === "sample-size" ? <Loader2 size={14} className="pulso-spin" /> : <BarChart3 size={14} />}
-            Revisar muestra
-          </button>
-          <button type="button" style={btnPrimary} onClick={onPreviewQuota} disabled={!canQuota || busy === "quota"}>
-            {busy === "quota" ? <Loader2 size={14} className="pulso-spin" /> : <Target size={14} />}
-            Calcular cuotas
-          </button>
-          <span className="hojas-ruta-soft-text">Las cuotas usan el N confirmado en esta pantalla.</span>
         </div>
       </div>
     </Panel>
@@ -4131,11 +4878,16 @@ export default function HojasRutaPage() {
   const [sampleSizePreview, setSampleSizePreview] = useState<HojasRutaSampleSizePreview | null>(null);
   const [quota, setQuota] = useState<QuotaPlan | null>(null);
   const [sample, setSample] = useState<HojasRutaSamplePreview | null>(null);
+  const [confirmedAgeSignature, setConfirmedAgeSignature] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [jobId, setJobId] = useState<string | null>(null);
   const [result, setResult] = useState<HojasRutaJobResult | null>(null);
+  const [randomPdf, setRandomPdf] = useState<HojasRutaRandomPdfResult | null>(null);
+  const [randomPreference, setRandomPreference] = useState<HojasRutaRandomPreference>("balanced");
+  const [ageDraftMode, setAgeDraftMode] = useState<HojasRutaAgeRangeMode>("manual");
+  const [ageDraftScope, setAgeDraftScope] = useState<HojasRutaAgeRangeScope>("selected");
   const [mapUbigeo, setMapUbigeo] = useState<string>("");
   const [mapZona, setMapZona] = useState<string>("");
   const [mapLevel, setMapLevel] = useState<HojasRutaMapLevel>("distritos");
@@ -4146,6 +4898,7 @@ export default function HojasRutaPage() {
   const [zoneMapLoading, setZoneMapLoading] = useState(false);
   const [blockMapLoading, setBlockMapLoading] = useState(false);
   const [draftTerritories, setDraftTerritories] = useState<string[]>([]);
+  const [routeHistory, setRouteHistory] = useState<HojasRutaRouteSnapshot[]>([]);
   const [mapSelectionMode, setMapSelectionMode] = useState(false);
   const blockMapCacheRef = useRef<Map<string, HojasRutaBlockMap>>(new Map());
   const zoneMapCacheRef = useRef<Map<string, HojasRutaZoneMap>>(new Map());
@@ -4166,7 +4919,9 @@ export default function HojasRutaPage() {
         ...s.integrated_config,
         n_mode: s.integrated_config.n_mode ?? "total",
         n_por_distrito: s.integrated_config.n_por_distrito ?? {},
+        replacement_routes_per_district: s.integrated_config.replacement_routes_per_district ?? {},
         age_range_mode: s.integrated_config.age_range_mode ?? "manual",
+        age_range_scope: s.integrated_config.age_range_scope ?? "selected",
         zone_allocation: s.integrated_config.zone_allocation ?? "proportional",
         sample_size_mode: s.integrated_config.sample_size_mode ?? "calculator",
         sample_size: normalizeSampleSizeSettings(s.integrated_config.sample_size),
@@ -4174,6 +4929,7 @@ export default function HojasRutaPage() {
       const uiState = normalizeHojasRutaUiState(s.ui_state, restoredConfig.territorios ?? []);
       setState(s);
       setConfig(restoredConfig);
+      setConfirmedAgeSignature(ageRangesSignature(restoredConfig));
       setActiveStage(uiState.active_stage);
       setPopulation(null);
       setPopulationExport(null);
@@ -4181,6 +4937,10 @@ export default function HojasRutaPage() {
       setQuota(null);
       setSample(null);
       setResult(null);
+      setRandomPdf(null);
+      setRandomPreference(restoredConfig.random_preference ?? "balanced");
+      setAgeDraftMode(restoredConfig.age_range_mode ?? "manual");
+      setAgeDraftScope(restoredConfig.age_range_scope ?? "selected");
       setZoneMap(null);
       setBlockMap(null);
       setContextMap(null);
@@ -4190,6 +4950,7 @@ export default function HojasRutaPage() {
       contextMapCacheRef.current.clear();
       streetMapCacheRef.current.clear();
       setDraftTerritories(uiState.draft_territories);
+      setRouteHistory(uiState.route_history);
       setMapSelectionMode(uiState.map_selection_mode);
       setMapUbigeo(uiState.map_ubigeo);
       setMapZona(uiState.map_zona);
@@ -4253,23 +5014,41 @@ export default function HojasRutaPage() {
     map_zona: mapZona,
     map_level: mapLevel,
     map_selection_mode: mapSelectionMode,
-  }), [activeStage, draftTerritories, mapLevel, mapUbigeo, mapZona, mapSelectionMode]);
+    route_history: routeHistory,
+  }), [activeStage, draftTerritories, mapLevel, mapUbigeo, mapZona, mapSelectionMode, routeHistory]);
   const quotaColumns = useMemo(() => Object.keys(quota?.table?.[0] ?? {}), [quota]);
   const effectiveQuotaN = config?.sample_size_mode === "external_district"
     ? Object.values(config.n_por_distrito ?? {}).reduce((sum, n) => sum + Number(n || 0), 0)
     : Number(config?.n_objetivo ?? 0);
   const routeStatus = useMemo(() => routeMultipleStatus(config, state?.territories ?? []), [config, state?.territories]);
-  const canPopulation = !!config && selectedTerritories.length > 0;
-  const canQuota = !!config && effectiveQuotaN > 0 && selectedTerritories.length > 0 && !!population?.ok && routeStatus.ok;
+  const currentAgeSignature = ageRangesSignature(config);
+  const ageDraftUsesCuts = ageDraftMode !== "manual";
+  const ageDraftMatchesConfig = !!config
+    && config.age_range_mode === ageDraftMode
+    && (!ageDraftUsesCuts || (config.age_range_scope ?? "selected") === ageDraftScope);
+  const ageRangesConfirmed = !!config && currentAgeSignature === confirmedAgeSignature && ageDraftMatchesConfig;
+  const canConfigureAgeRanges = !!config && selectedTerritories.length > 0;
+  const canPopulation = !!config && selectedTerritories.length > 0 && ageRangesConfirmed;
+  const canQuota = !!config && effectiveQuotaN > 0 && selectedTerritories.length > 0 && !!population?.ok && !!sampleSizePreview && routeStatus.ok;
   const canSample = !!quota?.ok && !!config;
   const canGenerate = !!sample?.ok && !jobId;
   const selectedBlocks = useMemo(() => sample?.blocks ?? [], [sample]);
+  const replacementBlocks = useMemo(() => sample?.replacement_blocks ?? [], [sample]);
   const selectedBlockDistricts = useMemo(() => new Set(selectedBlocks.map((block) => block.ubigeo)).size, [selectedBlocks]);
   const selectedBlockViviendas = selectedBlocks.reduce((sum, block) => sum + Number(block.viviendas || 0), 0);
   const selectedBlockMaxLoad = selectedBlocks.reduce((max, block) => Math.max(max, Number(block.entrevistas || 0)), 0);
   const selectedBlockAvgLoad = selectedBlocks.length
     ? (selectedBlocks.reduce((sum, block) => sum + Number(block.entrevistas || 0), 0) / selectedBlocks.length).toFixed(1)
     : "0.0";
+  const replacementRouteTotal = selectedTerritories.reduce(
+    (sum, ubigeo) => sum + Number(config?.replacement_routes_per_district?.[ubigeo] ?? 0),
+    0,
+  );
+  const uniformReplacementValue = selectedTerritories.length
+    ? selectedTerritories.every((ubigeo) => Number(config?.replacement_routes_per_district?.[ubigeo] ?? 0) === Number(config?.replacement_routes_per_district?.[selectedTerritories[0]] ?? 0))
+      ? Number(config?.replacement_routes_per_district?.[selectedTerritories[0]] ?? 0)
+      : ""
+    : 0;
 
   useEffect(() => {
     if (!config || hydratingRef.current) return undefined;
@@ -4303,10 +5082,10 @@ export default function HojasRutaPage() {
 
   function patchConfig(patch: Partial<HojasRutaIntegratedConfig>) {
     setConfig((prev) => prev ? { ...prev, ...patch } : prev);
-    const invalidatesPopulation = ["territorios", "row_var", "subquota_var", "age_ranges", "age_range_mode"].some((key) => key in patch);
+    const invalidatesPopulation = ["territorios", "row_var", "subquota_var", "age_ranges", "age_range_mode", "age_range_scope"].some((key) => key in patch);
     const invalidatesSampleSize = invalidatesPopulation || ["n_objetivo", "n_mode", "n_por_distrito", "sample_size", "sample_size_mode", "entrevistas_por_manzana"].some((key) => key in patch);
     const invalidatesQuota = invalidatesPopulation || ["n_objetivo", "n_mode", "n_por_distrito", "sample_size_mode", "entrevistas_por_manzana"].some((key) => key in patch);
-    const invalidatesSample = invalidatesQuota || ["sampling_method", "measure_var", "seed", "max_per_manzana", "entrevistas_por_manzana", "zone_allocation"].some((key) => key in patch);
+    const invalidatesSample = invalidatesQuota || ["sampling_method", "measure_var", "seed", "max_per_manzana", "entrevistas_por_manzana", "zone_allocation", "replacement_routes_per_district"].some((key) => key in patch);
     if (invalidatesPopulation) {
       setPopulation(null);
       setPopulationExport(null);
@@ -4315,6 +5094,7 @@ export default function HojasRutaPage() {
     if (invalidatesQuota) setQuota(null);
     if (invalidatesSample) setSample(null);
     setResult(null);
+    setRandomPdf(null);
     if (patch.territorios) {
       setZoneMap(null);
       setBlockMap(null);
@@ -4382,6 +5162,10 @@ export default function HojasRutaPage() {
 
   async function previewPopulation() {
     if (!config) return;
+    if (!ageRangesConfirmed) {
+      setError("Confirma los rangos de edad antes de calcular la matriz poblacional.");
+      return;
+    }
     setBusy("population");
     setError("");
     setPopulationExport(null);
@@ -4399,25 +5183,79 @@ export default function HojasRutaPage() {
     }
   }
 
-  async function applyAgeRangePreset(ageRangeMode: HojasRutaAgeRangeMode) {
-    if (!config || ageRangeMode === "manual") return;
-    const nextConfig = { ...config, age_range_mode: ageRangeMode };
-    setBusy("age-preset");
+  async function confirmAgeRanges() {
+    if (!config) return;
     setError("");
-    setPopulationExport(null);
-    setResult(null);
-    try {
-      const p = await apiHojasRutaPopulationPreview(nextConfig);
-      setConfig(p.config);
-      setPopulation(p);
-      setQuota(null);
-      setSample(null);
-      setSampleSizePreview(null);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy("");
+    if (ageDraftMode !== "manual") {
+      const scope = ageDraftScope ?? "selected";
+      const nextConfig = { ...config, age_range_mode: ageDraftMode, age_range_scope: scope };
+      setBusy("age-preset");
+      setPopulationExport(null);
+      setResult(null);
+      setRandomPdf(null);
+      try {
+        const saved = await apiHojasRutaPersistWorkspace(nextConfig, hojasRutaUiState);
+        const confirmedConfig = { ...saved.integrated_config, age_range_scope: saved.integrated_config.age_range_scope ?? scope };
+        setConfig(confirmedConfig);
+        setAgeDraftMode(confirmedConfig.age_range_mode ?? ageDraftMode);
+        setAgeDraftScope(confirmedConfig.age_range_scope ?? scope);
+        setConfirmedAgeSignature(ageRangesSignature(confirmedConfig));
+        setPopulation(null);
+        setQuota(null);
+        setSample(null);
+        setSampleSizePreview(null);
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setBusy("");
+      }
+      return;
     }
+    const nextConfig = { ...config, age_range_mode: "manual" as HojasRutaAgeRangeMode };
+    setConfig(nextConfig);
+    setAgeDraftMode("manual");
+    setConfirmedAgeSignature(ageRangesSignature(nextConfig));
+    setPopulation(null);
+    setPopulationExport(null);
+    setQuota(null);
+    setSample(null);
+    setSampleSizePreview(null);
+    setResult(null);
+    setRandomPdf(null);
+  }
+
+  function setAgeRangeScope(scope: HojasRutaAgeRangeScope) {
+    setAgeDraftScope(scope);
+  }
+
+  function setAgeRangeModeDraft(mode: HojasRutaAgeRangeMode) {
+    setAgeDraftMode(mode);
+    if (mode === "manual") {
+      setError("");
+      return;
+    }
+    if (!AGE_RANGE_CUT_MODES.includes(mode as (typeof AGE_RANGE_CUT_MODES)[number])) return;
+    setError("");
+  }
+
+  function editManualAgeRanges(age_ranges: HojasRutaAgeRange[]) {
+    setAgeDraftMode("manual");
+    patchConfig({ age_ranges, age_range_mode: "manual" });
+  }
+
+  function acceptCurrentRangesAsManual() {
+    if (!config) return;
+    const nextConfig = { ...config, age_range_mode: "manual" as HojasRutaAgeRangeMode };
+    setAgeDraftMode("manual");
+    setConfig(nextConfig);
+    setConfirmedAgeSignature("");
+    setPopulation(null);
+    setPopulationExport(null);
+    setQuota(null);
+    setSample(null);
+    setSampleSizePreview(null);
+    setResult(null);
+    setRandomPdf(null);
   }
 
   async function exportPopulation() {
@@ -4437,11 +5275,12 @@ export default function HojasRutaPage() {
   async function previewSampleSize() {
     if (!config) return;
     setBusy("sample-size");
-    setError("");
-    try {
-      const result = await apiHojasRutaSampleSizePreview(config);
-      setSampleSizePreview(result);
-    } catch (e) {
+      setError("");
+      try {
+        const result = await apiHojasRutaSampleSizePreview(config);
+        setConfig(result.config);
+        setSampleSizePreview(result);
+      } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy("");
@@ -4501,6 +5340,11 @@ export default function HojasRutaPage() {
         });
       }
       setSample(s);
+      const snapshot = buildRouteSnapshot(s, s.config);
+      setRouteHistory((prev) => [
+        snapshot,
+        ...prev.filter((item) => item.id !== snapshot.id),
+      ].slice(0, 8));
       const firstBlock = s.blocks[0];
       if (firstBlock?.ubigeo) {
         setMapUbigeo(firstBlock.ubigeo);
@@ -4608,8 +5452,57 @@ export default function HojasRutaPage() {
     setError("");
     setResult(null);
     try {
-      const started = await apiHojasRutaGenerate(config);
+      const started = await apiHojasRutaGenerate(config, sample);
       setJobId(started.job_id);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  function restoreRouteSnapshot(snapshot: HojasRutaRouteSnapshot) {
+    const restoredConfig = {
+      ...snapshot.config,
+      n_por_distrito: snapshot.config.n_por_distrito ?? {},
+      replacement_routes_per_district: snapshot.config.replacement_routes_per_district ?? {},
+      sample_size: normalizeSampleSizeSettings(snapshot.config.sample_size),
+    };
+    setConfig(restoredConfig);
+    setQuota(snapshot.sample.quota);
+    setSample(snapshot.sample);
+    setPopulation(null);
+    setPopulationExport(null);
+    setSampleSizePreview(null);
+    setResult(null);
+    setRandomPdf(null);
+    setDraftTerritories(restoredConfig.territorios ?? []);
+    setConfirmedAgeSignature(ageRangesSignature(restoredConfig));
+    setAgeDraftMode(restoredConfig.age_range_mode ?? "manual");
+    setAgeDraftScope(restoredConfig.age_range_scope ?? "selected");
+    setActiveStage("manzanas");
+    const firstBlock = snapshot.sample.blocks[0] ?? snapshot.sample.replacement_blocks?.[0];
+    if (firstBlock?.ubigeo) {
+      setMapUbigeo(firstBlock.ubigeo);
+      setMapZona(firstBlock.zona ?? "");
+      setMapLevel(firstBlock.zona ? "manzanas" : "zonas");
+      void loadZoneMap(firstBlock.ubigeo);
+      void loadBlockMap(firstBlock.ubigeo);
+    }
+  }
+
+  function removeRouteSnapshot(id: string) {
+    setRouteHistory((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  async function generateRandomPdf() {
+    if (!config) return;
+    setBusy("random-pdf");
+    setError("");
+    try {
+      const pdf = await apiHojasRutaRandomPdf(config, randomPreference);
+      setRandomPdf(pdf);
+      window.open(downloadUrl(pdf.file_id), "_blank", "noopener,noreferrer");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -4659,6 +5552,33 @@ export default function HojasRutaPage() {
     patchConfig({ sample_size_mode: "external_total", n_mode: "total", n_objetivo: Math.max(1, Math.round(value || 1)) });
   }
 
+  async function useTotalSampleSize(value: number, mode: SampleSizeMode = "calculator") {
+    if (!config) return;
+    const n_objetivo = Math.max(1, Math.round(value || 1));
+    const nextConfig: HojasRutaIntegratedConfig = {
+      ...config,
+      sample_size_mode: mode === "external_district" ? "external_total" : mode,
+      n_mode: "total",
+      n_objetivo,
+    };
+    setConfig(nextConfig);
+    setQuota(null);
+    setSample(null);
+    setResult(null);
+    setRandomPdf(null);
+    setBusy("sample-size");
+    setError("");
+    try {
+      const result = await apiHojasRutaSampleSizePreview(nextConfig);
+      setConfig(result.config);
+      setSampleSizePreview(result);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   function setRouteSize(value: number) {
     if (!config) return;
     const routeSize = Math.max(1, Math.round(value || 1));
@@ -4676,19 +5596,11 @@ export default function HojasRutaPage() {
     if (!config || !state) return;
     const selected = state.territories.filter((t) => selectedTerritories.includes(t.ubigeo));
     const routes = Math.max(1, Math.floor(config.n_objetivo / routeStatus.routeSize));
-    const suggestedRoutes = allocateInteger(selected.map((t) => t.poblacion), routes);
+    const settings = normalizeSampleSizeSettings(config.sample_size);
+    const suggestedRoutes = allocateByMode(selected.map((t) => t.poblacion), routes, settings.allocation_mode);
     const suggested = suggestedRoutes.map((value) => value * routeStatus.routeSize);
     const next = Object.fromEntries(selected.map((t, index) => [t.ubigeo, suggested[index] ?? 0]));
     patchConfig({ sample_size_mode: "external_district", n_mode: "por_distrito", n_por_distrito: next, n_objetivo: suggested.reduce((sum, n) => sum + n, 0) || config.n_objetivo });
-  }
-
-  function useRecommendedSampleSize() {
-    if (!sampleSizePreview) return;
-    patchConfig({
-      sample_size_mode: "calculator",
-      n_mode: "total",
-      n_objetivo: Math.max(1, sampleSizePreview.n_recommended_route ?? sampleSizePreview.n_recommended),
-    });
   }
 
   function useSuggestedDistrictSampleSize() {
@@ -4727,12 +5639,32 @@ export default function HojasRutaPage() {
     patchConfig({ sample_size_mode: "external_district", n_mode: "por_distrito", n_por_distrito: next, n_objetivo: Math.max(1, total || config.n_objetivo) });
   }
 
+  function setReplacementRoutesForDistrict(ubigeo: string, value: number) {
+    if (!config) return;
+    const safe = Math.max(0, Math.round(Number.isFinite(value) ? value : 0));
+    const next = { ...(config.replacement_routes_per_district ?? {}) };
+    if (safe > 0) next[ubigeo] = safe;
+    else delete next[ubigeo];
+    patchConfig({ replacement_routes_per_district: next });
+  }
+
+  function setReplacementRoutesForAll(value: number) {
+    if (!config) return;
+    const safe = Math.max(0, Math.round(Number.isFinite(value) ? value : 0));
+    const next = safe > 0
+      ? Object.fromEntries(selectedTerritories.map((ubigeo) => [ubigeo, safe]))
+      : {};
+    patchConfig({ replacement_routes_per_district: next });
+  }
+
   if (loading || !config) return <LoadingBlock label="Cargando marco INEI 2017" />;
 
   const frame = state?.frame_meta;
   const territories = state?.territories ?? [];
   const activeMapUbigeo = mapUbigeo || selectedTerritories[0] || "";
   const selectedTerritoryRows = territories.filter((t) => selectedTerritories.includes(t.ubigeo));
+  const selectedPopulation = selectedTerritoryRows.reduce((sum, t) => sum + Number(t.poblacion || 0), 0);
+  const selectedManzanas = selectedTerritoryRows.reduce((sum, t) => sum + Number(t.manzanas || 0), 0);
   const stageTabs: TabMeta<HojasRutaStage>[] = [
     { key: "territorio", label: "Territorio", icon: MapPinned, desc: "Distritos y manzanas" },
     {
@@ -4783,7 +5715,7 @@ export default function HojasRutaPage() {
       next: population?.ok ? "Siguiente: definir muestra" : "Genera la matriz para continuar",
     },
     muestra: {
-      title: "Convierte precision en cuotas",
+      title: "Convierte margen de error en cuotas",
       copy: "Define el N como decision estadistica y confirma que el resultado sea defendible por distrito.",
       next: quota?.ok ? "Siguiente: seleccionar manzanas" : "Calcula cuotas para continuar",
     },
@@ -4804,7 +5736,14 @@ export default function HojasRutaPage() {
       <PageHeader
         title="Hojas de ruta"
         lead="Cuotas, seleccion de manzanas y fichas de campo desde un marco territorial local y trazable."
-        meta={frame ? <StatusPill ok={frame.ok} text={`${frame.coverage} · ${frame.version}`} /> : null}
+        meta={(
+          <div className="hojas-ruta-header-summary" aria-label="Resumen del marco">
+            <HeaderSummaryPill label="Base" value={frame?.ok ? "Cargada" : "Pendiente"} />
+            <HeaderSummaryPill label="Distritos" value={formatNumber(selectedTerritories.length)} />
+            <HeaderSummaryPill label="Población" value={selectedPopulation > 0 ? formatNumber(selectedPopulation) : formatNumber(frame?.poblacion ?? 0)} />
+            <HeaderSummaryPill label="Manzanas" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame?.n_manzanas ?? 0)} />
+          </div>
+        )}
       />
 
       {error && <Alert kind="error">{error}</Alert>}
@@ -4863,6 +5802,7 @@ export default function HojasRutaPage() {
                     zoneMapLoading={zoneMapLoading}
                     blockMapLoading={blockMapLoading}
                     selectedBlocks={selectedBlocks}
+                    replacementBlocks={replacementBlocks}
                     mapSelectionMode={mapSelectionMode}
                     onFocus={focusDistrict}
                     onOpenZone={openZone}
@@ -4887,19 +5827,13 @@ export default function HojasRutaPage() {
                   <div className="hojas-ruta-cartography-row is-compact">
                     <Layers size={16} color="var(--pulso-primary)" />
                     <div>
-                      <div className="hojas-ruta-side-title is-small">Cartografia de manzanas</div>
+                      <div className="hojas-ruta-side-title is-small">Cartografía de manzanas</div>
                       <div className="hojas-ruta-side-copy">
                         {frame.block_cartography?.coverage ?? "Lima Metropolitana y Callao"} · Lima 2017 / Callao 2019
                       </div>
                     </div>
                   </div>
-                  <div className="hojas-ruta-status-row">
-                    <StatusPill ok={frame.age_data?.ok ?? false} text={frame.age_data?.ok ? "Edad simple INEI 2017" : "Edad pendiente"} />
-                    <StatusPill ok={!!frame.nse_data?.available} text={frame.nse_data?.available ? "NSE disponible" : "NSE no disponible"} />
-                    <StatusPill ok={!!frame.block_cartography?.ok} text={cartographyModeLabel(frame.block_cartography?.mode)} />
-                    <StatusPill ok={!!frame.street_cartography?.ok} text={frame.street_cartography?.ok ? "Calles OSM local" : "Calles pendiente"} />
-                    <StatusPill ok={!!frame.context_cartography?.ok} text={frame.context_cartography?.ok ? "Contexto local + curado" : "Contexto pendiente"} />
-                  </div>
+                  <FrameTechnicalDetails frame={frame} />
                 </section>
 
                 <section className="hojas-ruta-side-section is-flex">
@@ -4937,9 +5871,13 @@ export default function HojasRutaPage() {
           {currentStage === "poblacion" && (
             <div className="hojas-ruta-stage-shell">
               <div className="hojas-ruta-stage-grid">
-                <Panel title="Cortes de poblacion" eyebrow="INEI 2017">
+                <Panel
+                  title="Configura la población base"
+                  eyebrow="Paso 1"
+                  hint="Primero define cómo quieres leer la población INEI 2017. Luego calcula la matriz antes de pasar a muestra."
+                >
                   <div className="hojas-ruta-form-grid">
-                    <Field label="Filas">
+                    <Field label="Agrupar filas por">
                       <select style={fieldStyle} value={config.row_var} onChange={(e) => patchConfig({ row_var: e.target.value as HojasRutaIntegratedConfig["row_var"] })}>
                         <option value="distrito">Distrito</option>
                         <option value="provincia">Provincia</option>
@@ -4947,12 +5885,12 @@ export default function HojasRutaPage() {
                         <option value="zona">Zona censal</option>
                       </select>
                     </Field>
-                    <Field label="Columnas">
+                    <Field label="Columnas de la matriz">
                       <select style={fieldStyle} value={config.col_var} disabled>
                         <option value="rango_edad">Rangos de edad</option>
                       </select>
                     </Field>
-                    <Field label="Sexo">
+                    <Field label="Detalle por sexo">
                       <select style={fieldStyle} value={config.subquota_var} onChange={(e) => patchConfig({ subquota_var: e.target.value as HojasRutaIntegratedConfig["subquota_var"] })}>
                         <option value="sexo">Mostrar hombres y mujeres</option>
                         <option value="ninguna">No dividir por sexo</option>
@@ -4961,36 +5899,132 @@ export default function HojasRutaPage() {
                   </div>
                   <div style={{ marginTop: 12 }}>
                     <Field label="Rangos de edad">
-                      <div className="hojas-ruta-age-preset-row" aria-label="Presets de rangos de edad">
-                        {(["terciles", "cuartiles", "quintiles"] as HojasRutaAgeRangeMode[]).map((mode) => (
-                          <button
-                            key={mode}
-                            type="button"
-                            className={config.age_range_mode === mode ? "is-active" : ""}
-                            onClick={() => void applyAgeRangePreset(mode)}
-                            disabled={!canPopulation || busy === "age-preset"}
-                          >
-                            {AGE_RANGE_MODE_LABELS[mode]}
-                          </button>
-                        ))}
-                        <StatusPill ok text={AGE_RANGE_MODE_LABELS[config.age_range_mode ?? "manual"] ?? "Manual"} />
+                      <div className="hojas-ruta-age-help">
+                        <InlineHelp
+                          label="Manual o cortes"
+                          text="Primero decide si quieres escribir rangos manualmente o calcular cortes poblacionales. Los cortes no se calculan hasta que confirmas la configuración."
+                        />
+                        <span>
+                          Primero elige si definirás los rangos a mano o si Prosecnur calculará cortes con población 18+.
+                        </span>
                       </div>
-                      <AgeRangesEditor
-                        ranges={config.age_ranges}
-                        onChange={(age_ranges) => patchConfig({ age_ranges, age_range_mode: "manual" })}
-                      />
+                      <div className="hojas-ruta-age-method-row" role="radiogroup" aria-label="Forma de definir rangos de edad">
+                        {(["manual", "terciles"] as HojasRutaAgeRangeMode[]).map((mode) => {
+                          const isManual = mode === "manual";
+                          const selected = isManual ? ageDraftMode === "manual" : ageDraftMode !== "manual";
+                          return (
+                            <button
+                              key={mode}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              className={selected ? "is-active" : ""}
+                              onClick={() => setAgeRangeModeDraft(isManual ? "manual" : (ageDraftMode === "manual" ? "terciles" : ageDraftMode))}
+                              disabled={!canConfigureAgeRanges || busy !== ""}
+                            >
+                              <strong>{isManual ? "Manual" : "Cortes poblacionales"}</strong>
+                              <span>{isManual ? "Escribes y confirmas tus propios rangos." : "Prosecnur calcula grupos con peso poblacional parecido."}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {ageDraftMode === "manual" ? (
+                        <AgeRangesEditor
+                          ranges={config.age_ranges}
+                          onChange={editManualAgeRanges}
+                        />
+                      ) : (
+                        <div className="hojas-ruta-age-cut-flow">
+                          <div className="hojas-ruta-age-help is-compact">
+                            <InlineHelp
+                              label="Base para calcular cortes"
+                              text="Puedes calcular los cortes solo con los distritos confirmados del estudio o con todo el marco INEI 2017 disponible. Esto cambia los límites de edad cuando la estructura etaria de tus distritos difiere del marco completo."
+                            />
+                          </div>
+                          <div className="hojas-ruta-age-scope-row" role="radiogroup" aria-label="Base para cortes automaticos">
+                            {(["selected", "frame"] as HojasRutaAgeRangeScope[]).map((scope) => (
+                              <button
+                                key={scope}
+                                type="button"
+                                role="radio"
+                                aria-checked={ageDraftScope === scope}
+                                className={ageDraftScope === scope ? "is-active" : ""}
+                                onClick={() => setAgeRangeScope(scope)}
+                                disabled={!canConfigureAgeRanges || busy !== ""}
+                              >
+                                <strong>{AGE_RANGE_SCOPE_LABELS[scope].title}</strong>
+                                <span>{AGE_RANGE_SCOPE_LABELS[scope].hint}</span>
+                              </button>
+                            ))}
+                          </div>
+                          <div className="hojas-ruta-age-preset-row" aria-label="Presets de rangos de edad">
+                            {AGE_RANGE_CUT_MODES.map((mode) => (
+                              <button
+                                key={mode}
+                                type="button"
+                                className={ageDraftMode === mode ? "is-active" : ""}
+                                onClick={() => setAgeRangeModeDraft(mode)}
+                                disabled={!canConfigureAgeRanges || busy !== ""}
+                                title={`${AGE_RANGE_MODE_LABELS[mode]}: ${ageRangeCutCount(mode)} grupos de población 18+`}
+                              >
+                                {AGE_RANGE_MODE_LABELS[mode]}
+                              </button>
+                            ))}
+                          </div>
+                          {ageRangesConfirmed ? (
+                            <>
+                              <AgeRangesReadOnly ranges={config.age_ranges} />
+                              <button
+                                type="button"
+                                style={{ ...btnSecondary, alignSelf: "flex-start", padding: "6px 10px", fontSize: 12 }}
+                                onClick={acceptCurrentRangesAsManual}
+                              >
+                                Editar estos rangos manualmente
+                              </button>
+                            </>
+                          ) : (
+                            <div className="hojas-ruta-age-pending">
+                              <strong>Configuración pendiente</strong>
+                              <span>
+                                Confirma para calcular {AGE_RANGE_MODE_LABELS[ageDraftMode].toLowerCase()} con base en{" "}
+                                {AGE_RANGE_SCOPE_LABELS[ageDraftScope].title.toLowerCase()}. Después verás los rangos resultantes.
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <div className="hojas-ruta-age-preset-row" aria-label="Estado de rangos de edad">
+                        <StatusPill
+                          ok={ageRangesConfirmed}
+                          text={ageRangesConfirmed
+                            ? "Rangos confirmados"
+                            : "Confirma configuración"}
+                        />
+                      </div>
                     </Field>
                   </div>
                   <div className="hojas-ruta-action-row">
+                    <button
+                      type="button"
+                      style={ageRangesConfirmed ? btnSecondary : btnPrimary}
+                      onClick={() => void confirmAgeRanges()}
+                      disabled={!canConfigureAgeRanges || ageRangesConfirmed || busy !== ""}
+                    >
+                      {busy === "age-preset" ? <Loader2 size={14} className="pulso-spin" /> : <CheckCircle2 size={14} />}
+                      {ageDraftMode === "manual" ? "Confirmar rangos" : "Confirmar configuración y calcular rangos"}
+                    </button>
                     <button type="button" style={btnPrimary} onClick={() => void previewPopulation()} disabled={!canPopulation || busy === "population"}>
                       {busy === "population" ? <Loader2 size={14} className="pulso-spin" /> : <BarChart3 size={14} />}
-                      Ver matriz poblacional
+                      Calcular matriz poblacional
                     </button>
-                    <StatusPill ok={selectedTerritories.length > 0} text={`${selectedTerritories.length} distrito(s)`} />
+                    <span className="hojas-ruta-soft-text">
+                      Se usarán {formatNumber(selectedTerritories.length)} distrito(s) confirmados. La matriz se desbloquea después de confirmar la configuración de edad.
+                    </span>
                   </div>
                 </Panel>
 
-                <Panel title="Distritos incluidos" eyebrow="Marco confirmado">
+                <Panel title="Distritos incluidos" eyebrow="Paso 2">
                   <div className="hojas-ruta-selected-list">
                     {selectedTerritoryRows.map((t) => (
                       <div key={t.ubigeo} className="hojas-ruta-selected-row">
@@ -5043,7 +6077,7 @@ export default function HojasRutaPage() {
                 onDistrictNChange={setDistrictN}
                 onDistrictNPaste={pasteDistrictN}
                 onSuggestDistrictN={suggestDistrictN}
-                onUseRecommendedN={useRecommendedSampleSize}
+                onUseTotalN={(value, mode) => void useTotalSampleSize(value, mode)}
                 onUseSuggestedDistrictN={useSuggestedDistrictSampleSize}
                 onPreviewSampleSize={() => void previewSampleSize()}
                 onPreviewQuota={() => void previewQuota()}
@@ -5076,6 +6110,7 @@ export default function HojasRutaPage() {
                     zoneMapLoading={zoneMapLoading}
                     blockMapLoading={blockMapLoading}
                     selectedBlocks={selectedBlocks}
+                    replacementBlocks={replacementBlocks}
                     mapSelectionMode={false}
                     enableMapSelection={false}
                     onFocus={focusDistrict}
@@ -5133,6 +6168,38 @@ export default function HojasRutaPage() {
                         ? `las rutas se dispersan por zona y las manzanas se ponderan por viviendas; cada ruta tendrá ${formatNumber(config.entrevistas_por_manzana)} encuestas.`
                         : `las rutas se dispersan por zona y las manzanas se ponderan por población; cada ruta tendrá ${formatNumber(config.entrevistas_por_manzana)} encuestas.`}
                     </p>
+                    <div className="hojas-ruta-replacement-panel">
+                      <div className="hojas-ruta-section-title">
+                        <strong>Manzanas de reemplazo</strong>
+                        <span>No cambian el N titular; se generan como rutas de respaldo separadas por distrito.</span>
+                      </div>
+                      <div className="hojas-ruta-replacement-toolbar">
+                        <label>
+                          <span>Aplicar a todos los distritos</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={uniformReplacementValue}
+                            placeholder="Mixto"
+                            onChange={(e) => setReplacementRoutesForAll(Number(e.target.value || 0))}
+                          />
+                        </label>
+                        <StatusPill ok={replacementRouteTotal > 0} text={`${formatNumber(replacementRouteTotal)} reemplazo(s)`} />
+                      </div>
+                      <div className="hojas-ruta-replacement-grid">
+                        {selectedTerritoryRows.map((t) => (
+                          <label key={t.ubigeo}>
+                            <span>{t.distrito}</span>
+                            <input
+                              type="number"
+                              min={0}
+                              value={config.replacement_routes_per_district?.[t.ubigeo] ?? 0}
+                              onChange={(e) => setReplacementRoutesForDistrict(t.ubigeo, Number(e.target.value || 0))}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                     <details className="hojas-ruta-method-details">
                       <summary><strong>Cómo funciona el método elegido</strong></summary>
                       <SamplingMethodExplainer value={config.sampling_method} onChange={(sampling_method) => patchConfig({ sampling_method })} />
@@ -5160,7 +6227,7 @@ export default function HojasRutaPage() {
                       <MiniMetric label="Entrevistas" value={formatNumber(sample.total_entrevistas)} />
                       <MiniMetric label="Distritos" value={formatNumber(selectedBlockDistricts)} />
                       <MiniMetric label="Carga media" value={selectedBlockAvgLoad} />
-                      <MiniMetric label="Carga máx." value={formatNumber(selectedBlockMaxLoad)} />
+                      <MiniMetric label="Reemplazos" value={formatNumber(sample.n_replacement_blocks ?? 0)} />
                     </div>
                     <div className="hojas-ruta-block-list">
                       {sample.blocks.slice(0, 8).map((b) => (
@@ -5181,8 +6248,57 @@ export default function HojasRutaPage() {
                         </div>
                       ) : null}
                     </div>
+                    {replacementBlocks.length ? (
+                      <div className="hojas-ruta-block-list is-replacement">
+                        <div className="hojas-ruta-section-title">
+                          <strong>Reemplazos</strong>
+                          <span>Se guardan y saldrán en carpeta separada dentro del ZIP.</span>
+                        </div>
+                        {replacementBlocks.slice(0, 6).map((b) => (
+                          <div key={`r:${b.id_manzana}`} className="hojas-ruta-block-list-row">
+                            <div className="hojas-ruta-block-list-info">
+                              <strong>{b.distrito}</strong>
+                              <span>Zona {b.zona} · ID {b.id_manzana}</span>
+                            </div>
+                            <div className="hojas-ruta-block-list-meta">
+                              <em>{formatNumber(b.entrevistas)}</em>
+                              <small>respaldo</small>
+                            </div>
+                          </div>
+                        ))}
+                        {replacementBlocks.length > 6 ? (
+                          <div className="hojas-ruta-block-list-more">
+                            <span>+ {formatNumber(replacementBlocks.length - 6)} reemplazos más</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </Panel>
                 )}
+                {routeHistory.length ? (
+                  <Panel title="Ruteos guardados en este proyecto" eyebrow="Historial .pulso">
+                    <div className="hojas-ruta-route-history">
+                      {routeHistory.map((route) => (
+                        <div key={route.id} className="hojas-ruta-route-history-row">
+                          <div>
+                            <strong>{route.label}</strong>
+                            <span>
+                              {methodLabel(route.method)} · semilla {formatNumber(route.seed)} · {formatNumber(route.n_replacement_blocks)} reemplazo(s)
+                            </span>
+                          </div>
+                          <div className="hojas-ruta-route-history-actions">
+                            <button type="button" onClick={() => restoreRouteSnapshot(route)}>
+                              Usar ruteo
+                            </button>
+                            <button type="button" onClick={() => removeRouteSnapshot(route.id)} aria-label={`Quitar ${route.label}`}>
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Panel>
+                ) : null}
               </div>
             </section>
           )}
@@ -5199,7 +6315,7 @@ export default function HojasRutaPage() {
                         <MiniMetric label="Cuotas asignadas" value={`${formatNumber(quota.total_asignado)} / ${formatNumber(quota.n_objetivo)}`} />
                         <MiniMetric label="Manzanas" value={sample ? formatNumber(sample.n_blocks) : "0"} />
                         <MiniMetric label="Entrevistas" value={sample ? formatNumber(sample.total_entrevistas) : "0"} />
-                        <MiniMetric label="Distritos" value={formatNumber(selectedTerritories.length)} />
+                        <MiniMetric label="Reemplazos" value={sample ? formatNumber(sample.n_replacement_blocks ?? 0) : "0"} />
                       </div>
 
                       {quotaAlerts.length ? (
@@ -5278,6 +6394,37 @@ export default function HojasRutaPage() {
                           </div>
                         </section>
                       )}
+                      {sample && replacementBlocks.length ? (
+                        <section className="hojas-ruta-delivery-section">
+                          <div className="hojas-ruta-section-title">
+                            <strong>Manzanas de reemplazo</strong>
+                            <span>No alteran cuotas; se empaquetan por distrito en carpetas de reemplazo.</span>
+                          </div>
+                          <div className="hojas-ruta-review-table-wrap is-delivery">
+                            <table className="hojas-ruta-review-table">
+                              <thead>
+                                <tr>
+                                  {["Distrito", "ID manzana", "Zona", "Viviendas", "Entrevistas", "Método"].map((h) => (
+                                    <th key={h}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {replacementBlocks.slice(0, 40).map((b) => (
+                                  <tr key={`replacement:${b.id_manzana}`}>
+                                    <td className="is-strong">{b.distrito}</td>
+                                    <td className="is-code">{b.id_manzana}</td>
+                                    <td className="is-code">{b.zona}</td>
+                                    <td className="is-number">{formatNumber(b.viviendas)}</td>
+                                    <td className="is-number is-strong">{formatNumber(b.entrevistas)}</td>
+                                    <td>{methodLabel(b.metodo)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </section>
+                      ) : null}
                     </div>
                   )}
                 </Panel>
@@ -5294,7 +6441,7 @@ export default function HojasRutaPage() {
                       type="button"
                       style={{ ...btnPrimary, width: "100%", justifyContent: "center" }}
                       onClick={() => void generate()}
-                      disabled={!canGenerate || busy === "generate"}
+                      disabled={!canGenerate || busy !== ""}
                     >
                       {busy === "generate" ? <Loader2 size={14} className="pulso-spin" /> : <Play size={14} />}
                       Generar ZIP
@@ -5302,7 +6449,11 @@ export default function HojasRutaPage() {
                     <div className="hojas-ruta-output-list">
                       <div>
                         <FileText size={17} />
-                        <span>PDF individual por manzana</span>
+                        <span>PDF titular por manzana, separado por distrito</span>
+                      </div>
+                      <div>
+                        <FileText size={17} />
+                        <span>PDF de reemplazos por distrito</span>
                       </div>
                       <div>
                         <Layers size={17} />
@@ -5320,6 +6471,40 @@ export default function HojasRutaPage() {
                     <p className="hojas-ruta-sample-note">
                       Si cambias cuotas, muestra o selección de manzanas, Prosecnur invalidará este resultado para evitar entregar archivos desactualizados.
                     </p>
+                  </Panel>
+
+                  <Panel title="PDF de prueba" eyebrow="Validacion rapida">
+                    <div className="hojas-ruta-random-pdf-card">
+                      <span>Abre una hoja aleatoria para revisar el formato antes de generar o entregar el ZIP.</span>
+                      <div className="hojas-ruta-random-options" role="radiogroup" aria-label="Preferencia de PDF aleatorio">
+                        {randomPreferenceOptions.map((option) => (
+                          <button
+                            key={option.key}
+                            type="button"
+                            title={option.title}
+                            className={option.key === randomPreference ? "is-active" : ""}
+                            onClick={() => setRandomPreference(option.key)}
+                            disabled={!frame?.ok || !!jobId || busy !== ""}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        style={{ ...btnSecondary, width: "100%", justifyContent: "center" }}
+                        onClick={() => void generateRandomPdf()}
+                        disabled={!frame?.ok || !!jobId || busy !== ""}
+                      >
+                        {busy === "random-pdf" ? <Loader2 size={14} className="pulso-spin" /> : <Shuffle size={14} />}
+                        PDF aleatorio de prueba
+                      </button>
+                      {randomPdf && (
+                        <a href={downloadUrl(randomPdf.file_id)} style={{ ...btnPrimary, width: "100%", justifyContent: "center", textDecoration: "none" }}>
+                          <Download size={14} /> Abrir ultimo PDF
+                        </a>
+                      )}
+                    </div>
                   </Panel>
                 </aside>
               </div>
@@ -5343,6 +6528,7 @@ export default function HojasRutaPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <StatusPill ok text={`${formatNumber(result.n_pdfs)} PDFs`} />
                     {result.n_zone_pdfs ? <StatusPill ok text={`${formatNumber(result.n_zone_pdfs)} hojas de zona`} /> : null}
+                    {result.n_replacement_blocks ? <StatusPill ok text={`${formatNumber(result.n_replacement_blocks)} reemplazos`} /> : null}
                     <StatusPill ok text={`${formatNumber(result.total_entrevistas)} entrevistas`} />
                     <StatusPill ok text={result.frame_version} />
                     <a href={downloadUrl(result.file_id)} style={{ ...btnPrimary, textDecoration: "none" }}>

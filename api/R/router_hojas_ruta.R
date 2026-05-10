@@ -61,6 +61,13 @@
   }
   if (!nzchar(map_ubigeo)) map_level <- "distritos"
   if (identical(map_level, "manzanas") && !nzchar(map_zona)) map_level <- "zonas"
+  route_history <- ui$route_history %||% ui$routeHistory %||% list()
+  if (is.null(route_history) || !is.list(route_history)) route_history <- list()
+  if (is.data.frame(route_history)) {
+    route_history <- lapply(seq_len(nrow(route_history)), function(i) as.list(route_history[i, , drop = FALSE]))
+  }
+  route_history <- Filter(is.list, route_history)
+  if (length(route_history) > 12L) route_history <- route_history[seq_len(12L)]
 
   list(
     active_stage = active_stage,
@@ -71,7 +78,8 @@
     map_selection_mode = .hojas_ruta_bool(
       ui$map_selection_mode %||% ui$mapSelectionMode,
       FALSE
-    )
+    ),
+    route_history = route_history
   )
 }
 
@@ -194,6 +202,49 @@ mount_hojas_ruta <- function(pr) {
       session_set(sid, "hojas_ruta_config", cfg)
       hojas_ruta_sample_preview_integrado(cfg)
     })) |>
+    plumber::pr_post("/api/hojas-ruta/random-pdf", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .hojas_ruta_parse_body(req)
+      payload_config <- parsed$config
+      if (!is.list(payload_config)) payload_config <- list()
+      random_preference <- .hojas_ruta_scalar(
+        parsed$random_preference %||%
+          parsed$randomPreference %||%
+          payload_config$random_preference %||%
+          payload_config$randomPreference,
+        "balanced"
+      )
+      cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
+      cfg$random_preference <- random_preference
+      session_set(sid, "hojas_ruta_config", cfg)
+      out_path <- tempfile(fileext = ".pdf")
+      summary <- hojas_ruta_generar_pdf_aleatorio_integrado(cfg, out_path)
+      out_name <- sprintf(
+        "HojaRuta_Prueba_%s_Zona_%s_Mz_%s.pdf",
+        hojas_ruta_sanitize_filename(summary$distrito),
+        hojas_ruta_sanitize_filename(summary$zona),
+        hojas_ruta_sanitize_filename(summary$manzana %||% summary$id_manzana)
+      )
+      meta <- .register_output_file(sid, "hojas_ruta_random_pdf", out_path, original_name = out_name)
+      list(
+        ok = TRUE,
+        file_id = meta$file_id,
+        filename = meta$original_name,
+        size = meta$size,
+        distrito = summary$distrito,
+        ubigeo = summary$ubigeo,
+        zona = summary$zona,
+        manzana = summary$manzana,
+        id_manzana = summary$id_manzana,
+        entrevistas = as.integer(summary$entrevistas %||% 0L),
+        hoja_num = as.integer(summary$hoja_num %||% 0L),
+        rango_inicio = as.integer(summary$rango_inicio %||% 0L),
+        rango_fin = as.integer(summary$rango_fin %||% 0L),
+        frame_version = summary$frame_version %||% NA_character_,
+        random_preference = summary$random_preference %||% "balanced",
+        alerts = summary$alerts %||% list()
+      )
+    })) |>
     plumber::pr_get("/api/hojas-ruta/block-map", wrap_endpoint(function(req, res, ubigeo = NULL, limit = "1200", refresh = "0", allow_online = "0") {
       session_header(req)
       if (is.null(ubigeo) || !nzchar(as.character(ubigeo))) {
@@ -248,23 +299,35 @@ mount_hojas_ruta <- function(pr) {
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
       session_set(sid, "hojas_ruta_config", cfg)
+      sample_override <- parsed$sample %||% parsed$sample_snapshot %||% parsed$sampleSnapshot %||% NULL
 
       cfg_path <- job_save_rds(sid, "hojas_ruta_config", cfg)
+      sample_path <- if (is.null(sample_override) || !is.list(sample_override)) {
+        NULL
+      } else {
+        job_save_rds(sid, "hojas_ruta_sample_snapshot", sample_override)
+      }
       api_path <- .app_api_dir()
 
       job_id <- job_submit(
         sid = sid,
         kind = "hojas_ruta.generate",
-        func = function(cfg_path, api_path, result_path, progress_path = NULL) {
+        func = function(cfg_path, api_path, sample_path = NULL, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
           } else if (requireNamespace("devtools", quietly = TRUE)) {
             devtools::load_all(api_path, quiet = TRUE)
           }
           cfg <- readRDS(cfg_path)
-          hojas_ruta_generar_zip_integrado(cfg, result_path, progress_path = progress_path)
+          sample_override <- if (!is.null(sample_path) && file.exists(sample_path)) readRDS(sample_path) else NULL
+          hojas_ruta_generar_zip_integrado(
+            cfg,
+            result_path,
+            progress_path = progress_path,
+            sample_override = sample_override
+          )
         },
-        args = list(cfg_path = cfg_path, api_path = api_path),
+        args = list(cfg_path = cfg_path, api_path = api_path, sample_path = sample_path),
         result_filename = .export_filename(sid, "hojas_ruta_zip", "zip"),
         on_complete = function(j) {
           session_set(j$sid, "hojas_ruta_ok", TRUE)
@@ -277,8 +340,10 @@ mount_hojas_ruta <- function(pr) {
             n_pdfs = as.integer(j$result_data$n_pdfs %||% 0L),
             n_zone_pdfs = as.integer(j$result_data$n_zone_pdfs %||% 0L),
             n_blocks = as.integer(j$result_data$n_blocks %||% 0L),
+            n_replacement_blocks = as.integer(j$result_data$n_replacement_blocks %||% 0L),
             n_zones = as.integer(j$result_data$n_zones %||% 0L),
             total_entrevistas = as.integer(j$result_data$total_entrevistas %||% 0L),
+            total_replacement_interviews = as.integer(j$result_data$total_replacement_interviews %||% 0L),
             frame_version = j$result_data$frame_version %||% NA_character_,
             alerts = j$result_data$alerts %||% list(),
             mapas_faltantes = 0L

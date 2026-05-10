@@ -19,6 +19,12 @@
       "runtimeExecutable": "Rscript",
       "runtimeArgs": ["launcher/launch.R"],
       "port": 8787
+    },
+    {
+      "name": "Installer preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4848", "--directory", "/tmp/installer-preview"],
+      "port": 4848
     }
   ]
 }

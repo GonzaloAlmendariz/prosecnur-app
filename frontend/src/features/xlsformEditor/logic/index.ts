@@ -43,10 +43,14 @@ export {
   predicateKey,
   predicatesForType,
 } from "./operators";
-export type { FlatCondition, FlatConstraint } from "./conditionAdapter";
+export type { FlatCondition, FlatConstraint, LogicTree } from "./conditionAdapter";
 export {
+  detectMultiSelected,
   expandCondition,
   expandConstraint,
+  expandMultiSelected,
+  treeToExpr,
+  tryBuildLogicTree,
   tryFlattenCondition,
   tryFlattenConstraint,
 } from "./conditionAdapter";

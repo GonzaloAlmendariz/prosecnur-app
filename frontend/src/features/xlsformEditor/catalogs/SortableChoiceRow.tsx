@@ -67,15 +67,17 @@ export function SortableChoiceRow({
           type="text"
           value={choice.label}
           onChange={(event) => onLabelChange(event.target.value)}
-          placeholder="Texto visible"
+          placeholder="Lo que ve el encuestado (ej. Sí)"
           aria-label={`Texto visible de la opción ${position}`}
+          title="Texto visible — lo que va a leer el encuestado en el formulario"
         />
         <input
           type="text"
           value={choice.name}
           onChange={(event) => onNameChange(event.target.value)}
-          placeholder="codigo_interno"
-          aria-label={`Código interno de la opción ${position}`}
+          placeholder="codigo (ej. si)"
+          aria-label={`Código de la opción ${position}`}
+          title="Código de la opción — identificador interno (sin tildes ni espacios). Aparece en la lógica y en los datos exportados."
           spellCheck={false}
           style={{ fontFamily: "ui-monospace, monospace", fontSize: 12 }}
         />

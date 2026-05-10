@@ -73,9 +73,10 @@ export function SurveyOutline({
   const [activeRow, setActiveRow] = useState<number | null>(null);
 
   const sensors = useSensors(
-    // Distancia mínima de 6px antes de iniciar el drag — evita capturar
-    // clicks normales (selección).
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    // Distancia mínima de 4px antes de iniciar el drag — distingue click
+    // de drag pero responde rápido. Antes era 6px, lo que requería un
+    // gesto más amplio del que el usuario esperaba.
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),

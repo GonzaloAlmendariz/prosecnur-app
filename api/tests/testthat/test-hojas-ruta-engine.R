@@ -220,7 +220,10 @@ test_that("hojas_ruta_sample_size_preview calcula N por precision sin FPC", {
     )
   ))
   expect_true(out$ok)
-  expect_equal(out$n_recommended, 385L)
+  expect_equal(out$n_recommended, 390L)
+  expect_equal(out$n_recommended %% out$route_size, 0L)
+  expect_equal(out$n_used, out$n_recommended_route)
+  expect_equal(out$config$n_objetivo, out$n_recommended_route)
   expect_equal(out$contacts_suggested, ceiling(out$n_used / 0.9))
 })
 
@@ -275,7 +278,7 @@ test_that("hojas_ruta_sample_size_preview respeta N externo total y por distrito
   expect_equal(rows$n_used[rows$ubigeo == "070106"], 24)
 })
 
-test_that("hojas_ruta_sample_size_preview aplica bi-objetivo cuando el piso distrital manda", {
+test_that("hojas_ruta_sample_size_preview aplica bi-objetivo cuando la garantia distrital manda", {
   # Escenario: muchos distritos con margin_district exigente fuerza n_district_floor > n_total_min
   out <- hojas_ruta_sample_size_preview(list(
     territorios = c("150110", "070106"),
@@ -290,14 +293,15 @@ test_that("hojas_ruta_sample_size_preview aplica bi-objetivo cuando el piso dist
     )
   ))
   expect_true(out$ok)
-  expect_equal(out$n_total_min, 97L)
+  expect_equal(out$n_total_min, 102L)
+  expect_equal(out$n_total_min %% out$route_size, 0L)
   expect_gte(out$n_district_floor, 2L * out$n_total_min - 5L)
   expect_equal(out$n_recommended, max(out$n_total_min, out$n_district_floor))
   rows <- .hojas_ruta_rows_df(out$district_rows)
   expect_true(all(rows$n_min_district > 0))
 })
 
-test_that("hojas_ruta_sample_size_preview puede desactivar piso distrital", {
+test_that("hojas_ruta_sample_size_preview puede desactivar garantia distrital", {
   with_floor <- hojas_ruta_sample_size_preview(list(
     territorios = c("150110", "070106"),
     sample_size = list(
@@ -361,6 +365,31 @@ test_that("allocation_mode uniforme reparte n por igual entre distritos", {
   expect_equal(sum(rows$n_used), 102L)
   expect_true(all(rows$n_used %% 6L == 0L))
   expect_lte(max(rows$n_used) - min(rows$n_used), 6L)
+})
+
+test_that("cuotas respetan allocation_mode uniforme entre distritos", {
+  distritos <- c("150110", "150115", "150133", "150135", "150136", "150142")
+  out <- hojas_ruta_quota_preview_integrado(list(
+    territorios = distritos,
+    n_objetivo = 30,
+    entrevistas_por_manzana = 5,
+    max_per_manzana = 5,
+    sample_size_mode = "external_total",
+    sample_size = list(
+      allocation_mode = "uniform",
+      enforce_district_floor = FALSE
+    )
+  ))
+  expect_true(out$ok)
+  expect_equal(out$total_asignado, 30L)
+  cells <- .hojas_ruta_rows_df(out$cells)
+  by_district <- stats::aggregate(
+    cells$cuota,
+    by = list(ubigeo = cells$ubigeo),
+    FUN = sum
+  )
+  got <- stats::setNames(as.integer(by_district$x), by_district$ubigeo)
+  expect_equal(unname(got[distritos]), rep(5L, length(distritos)))
 })
 
 test_that("allocation_mode compromise da más a chicos que proporcional", {
@@ -441,10 +470,26 @@ test_that("hojas_ruta_integrada_normalize_config genera terciles poblacionales e
     age_range_mode = "terciles"
   ))
   expect_equal(cfg$age_range_mode, "terciles")
+  expect_equal(cfg$age_range_scope, "selected")
   expect_equal(length(cfg$age_ranges), 3L)
   expect_equal(cfg$age_ranges[[1]]$min, 18L)
   expect_true(is.na(cfg$age_ranges[[3]]$max))
   expect_true(all(vapply(cfg$age_ranges, function(x) grepl("^[0-9]+(-[0-9]+|[+])$", x$label), logical(1))))
+  frame_cfg <- hojas_ruta_integrada_normalize_config(list(
+    territorios = c("150110", "070106"),
+    age_range_mode = "terciles",
+    age_range_scope = "frame"
+  ))
+  expect_equal(frame_cfg$age_range_scope, "frame")
+  expect_equal(length(frame_cfg$age_ranges), 3L)
+  decile_cfg <- hojas_ruta_integrada_normalize_config(list(
+    territorios = c("150110", "070106"),
+    age_range_mode = "deciles"
+  ))
+  expect_equal(decile_cfg$age_range_mode, "deciles")
+  expect_equal(length(decile_cfg$age_ranges), 10L)
+  expect_equal(decile_cfg$age_ranges[[1]]$min, 18L)
+  expect_true(is.na(decile_cfg$age_ranges[[10]]$max))
 })
 
 test_that("hojas_ruta_quota_preview_integrado permite cuotas sin subcuota de sexo", {
@@ -546,6 +591,31 @@ test_that("cartografia vial OSM esta empaquetada y se sirve localmente", {
   expect_true(any(vapply(missing$alerts, function(x) identical(x$code, "W_STREET_MAP_NOT_PACKAGED_LOCAL"), logical(1))))
 })
 
+test_that("schema vial v3 expone atributos enriquecidos (name_es, lanes, surface, source)", {
+  miraflores <- hojas_ruta_street_map_preview("150122")
+  skip_if(!miraflores$ok, "Capa vial Miraflores no disponible")
+  feats <- miraflores$geojson$features
+  skip_if(length(feats) == 0L, "Miraflores sin features")
+  expected_keys <- c(
+    "osm_id", "name", "highway", "class_group", "rank", "avenue_like",
+    "display_name", "length_m",
+    "name_es", "name_official", "name_alt", "name_ref",
+    "lanes", "oneway", "surface", "maxspeed_kmh", "lit",
+    "source", "overture_id"
+  )
+  props_first <- feats[[1]]$properties
+  expect_true(all(expected_keys %in% names(props_first)),
+              info = paste("Faltan keys:", paste(setdiff(expected_keys, names(props_first)), collapse = ", ")))
+  # Defaults sanos: lanes es int, oneway es chr o NA, source viene siempre poblado
+  expect_type(props_first$lanes, "integer")
+  expect_true(is.character(props_first$source) && nzchar(props_first$source))
+  # Cobertura mínima esperada: si el manifest reporta name_coverage_pct, debe ser > 0.5
+  meta <- hojas_ruta_cartografia_calles_meta()
+  if (!is.null(meta$schema_version)) {
+    expect_gte(as.integer(meta$schema_version), 3L)
+  }
+})
+
 test_that("contexto urbano OSM esta empaquetado y se sirve localmente", {
   meta <- hojas_ruta_cartografia_contexto_meta()
   expect_true(meta$ok)
@@ -642,6 +712,141 @@ test_that("hojas_ruta_sample_preview_integrado selecciona rutas completas dentro
   expect_true(length(unique(paste(blocks$ubigeo, blocks$zona))) > length(unique(blocks$ubigeo)))
 })
 
+test_that("hojas_ruta_sample_preview_integrado selecciona reemplazos por distrito fuera de titulares", {
+  out <- hojas_ruta_sample_preview_integrado(list(
+    n_objetivo = 24,
+    territorios = c("150110", "070106"),
+    sampling_method = "pps",
+    entrevistas_por_manzana = 6,
+    seed = 99,
+    replacement_routes_per_district = list("150110" = 2, "070106" = 1)
+  ))
+  expect_true(out$ok)
+  expect_equal(out$n_replacement_blocks, 3L)
+  expect_equal(out$total_entrevistas, 24L)
+  expect_equal(out$total_replacement_interviews, 18L)
+  blocks <- .hojas_ruta_rows_df(out$blocks)
+  replacements <- .hojas_ruta_rows_df(out$replacement_blocks)
+  expect_true(all(replacements$tipo_manzana == "reemplazo"))
+  expect_length(intersect(blocks$id_manzana, replacements$id_manzana), 0L)
+})
+
+test_that("hojas_ruta_generar_pdf_aleatorio_integrado funciona sin seleccion previa", {
+  out_pdf <- tempfile(fileext = ".pdf")
+  res <- hojas_ruta_generar_pdf_aleatorio_integrado(list(), out_pdf)
+  expect_true(res$ok)
+  expect_true(file.exists(out_pdf))
+  expect_gt(file.info(out_pdf)$size, 0)
+  expect_equal(res$entrevistas, 6L)
+  expect_true(nzchar(res$ubigeo))
+  expect_true(nzchar(res$id_manzana))
+  expect_equal(res$random_preference, "balanced")
+})
+
+test_that("hojas_ruta_generar_pdf_aleatorio_integrado respeta territorios si existen", {
+  out_pdf <- tempfile(fileext = ".pdf")
+  res <- hojas_ruta_generar_pdf_aleatorio_integrado(
+    list(
+      n_objetivo = 30,
+      territorios = "070106",
+      entrevistas_por_manzana = 6,
+      sampling_method = "pps",
+      seed = 99
+    ),
+    out_pdf
+  )
+  expect_true(res$ok)
+  expect_equal(res$ubigeo, "070106")
+  expect_true(file.exists(out_pdf))
+  expect_gt(file.info(out_pdf)$size, 0)
+})
+
+test_that("preferencias del PDF aleatorio ponderan poblacion y urbanidad", {
+  frame <- data.frame(
+    ubigeo = c("150101", "150101", "150101"),
+    zona = c("00100", "00100", "00200"),
+    viviendas = c(4, 25, 90),
+    poblacion = c(8, 85, 410),
+    area_m2 = c(50000, 5500, 1200),
+    stringsAsFactors = FALSE
+  )
+  cfg <- hojas_ruta_integrada_normalize_config(list(measure_var = "viviendas"))
+
+  balanced <- .hojas_ruta_random_block_weights(frame, cfg, "balanced")
+  population <- .hojas_ruta_random_block_weights(frame, cfg, "alta_poblacion")
+  urban <- .hojas_ruta_random_block_weights(frame, cfg, "urbana")
+
+  expect_equal(length(balanced), 3L)
+  expect_gt(population[[3]], population[[1]])
+  expect_gt(urban[[3]], urban[[1]])
+  expect_equal(.hojas_ruta_random_preference(list(random_preference = "alta poblacion")), "population")
+  expect_equal(.hojas_ruta_random_preference(list(randomPreference = "urbana compacta")), "urban")
+})
+
+test_that("contexto distrital incluye distritos vecinos y nombres", {
+  skip_if_not(file.exists(.hojas_ruta_district_coverage_path()))
+  districts <- .hojas_ruta_pdf_district_context_features("150135")
+  expect_gt(length(districts), 1L)
+  active <- districts[vapply(districts, function(feature) identical(feature$ubigeo, "150135"), logical(1))][[1]]
+  bbox <- .hojas_ruta_bbox_fit_aspect(.hojas_ruta_bbox_expand(active$bbox, pad = 0.20), width = 1, height = 1)
+  visible <- .hojas_ruta_pdf_district_context_features("150135", bbox)
+  expect_true(any(vapply(visible, function(feature) identical(feature$ubigeo, "150135"), logical(1))))
+  expect_true(any(vapply(visible, function(feature) !identical(feature$ubigeo, "150135"), logical(1))))
+  expect_true(all(vapply(visible, function(feature) nzchar(feature$distrito), logical(1))))
+})
+
+test_that("mapa de zona puede incluir manzanas de distritos vecinos", {
+  skip_if_not(file.exists(.hojas_ruta_district_coverage_path()))
+  districts <- .hojas_ruta_pdf_district_context_features("150115")
+  active <- districts[vapply(districts, function(feature) identical(feature$ubigeo, "150115"), logical(1))][[1]]
+  bbox <- .hojas_ruta_bbox_fit_aspect(.hojas_ruta_bbox_expand(active$bbox, pad = 0.12), width = 1, height = 1)
+  neighbors <- .hojas_ruta_pdf_neighbor_block_features("150115", bbox)
+  expect_gt(length(neighbors), 0L)
+  expect_true(all(vapply(neighbors, function(feature) isTRUE(feature$out_district), logical(1))))
+  expect_true(any(vapply(neighbors, function(feature) !identical(feature$district_ubigeo, "150115"), logical(1))))
+})
+
+test_that("manzanas sin poblacion se marcan sin asumir parque", {
+  expect_true(.hojas_ruta_pdf_feature_without_population(list(poblacion = 0, viviendas = 0)))
+  expect_true(.hojas_ruta_pdf_feature_without_population(list(poblacion = 0, viviendas = NA)))
+  expect_false(.hojas_ruta_pdf_feature_without_population(list(poblacion = 12, viviendas = 0)))
+})
+
+test_that("tabla B llena solo marginales por edad y sexo", {
+  frame <- hojas_ruta_inei_frame()
+  row <- frame[as.character(frame$ubigeo) == "150110", , drop = FALSE][1, , drop = FALSE]
+  block <- as.list(row)
+  block[] <- lapply(block, function(x) x[[1]])
+  cfg <- hojas_ruta_integrada_normalize_config(list(
+    territorios = "150110",
+    entrevistas_por_manzana = 6
+  ))
+
+  block$entrevistas <- 6L
+  quota <- .hojas_ruta_reference_quota_data(block, NULL, cfg)
+  age_cols <- 2:(ncol(quota) - 1L)
+  expect_true(all(quota[2, age_cols] == ""))
+  expect_true(all(quota[3, age_cols] == ""))
+  expect_equal(as.integer(quota[2, ncol(quota)]), 3L)
+  expect_equal(as.integer(quota[3, ncol(quota)]), 3L)
+  expect_equal(sum(as.integer(quota[4, age_cols])), 6L)
+  expect_equal(as.integer(quota[4, ncol(quota)]), 6L)
+
+  block$entrevistas <- 5L
+  quota_odd <- .hojas_ruta_reference_quota_data(block, NULL, cfg)
+  age <- hojas_ruta_inei_age_simple()
+  age <- age[as.character(age$ubigeo) == "150110", , drop = FALSE]
+  in_scope <- .hojas_ruta_age_in_defs(as.integer(age$edad), cfg$age_ranges)
+  h_pop <- sum(age$poblacion[in_scope & age$sexo == "Hombre"], na.rm = TRUE)
+  m_pop <- sum(age$poblacion[in_scope & age$sexo == "Mujer"], na.rm = TRUE)
+  winner_row <- if (m_pop > h_pop) 3L else 2L
+  other_row <- if (winner_row == 2L) 3L else 2L
+  expect_equal(as.integer(quota_odd[winner_row, ncol(quota_odd)]), 3L)
+  expect_equal(as.integer(quota_odd[other_row, ncol(quota_odd)]), 2L)
+  expect_equal(sum(as.integer(quota_odd[4, age_cols])), 5L)
+  expect_equal(as.integer(quota_odd[4, ncol(quota_odd)]), 5L)
+})
+
 test_that("hojas_ruta_generar_zip_integrado produce PDFs e informe tecnico", {
   out_zip <- tempfile(fileext = ".zip")
   res <- hojas_ruta_generar_zip_integrado(
@@ -650,17 +855,20 @@ test_that("hojas_ruta_generar_zip_integrado produce PDFs e informe tecnico", {
       territorios = c("150110", "070106"),
       sampling_method = "pps",
       seed = 99,
-      max_per_manzana = 8
+      max_per_manzana = 8,
+      replacement_routes_per_district = list("150110" = 1, "070106" = 1)
     ),
     out_zip
   )
   expect_true(file.exists(out_zip))
   expect_equal(res$total_entrevistas, 24L)
   entries <- zip::zip_list(out_zip)$filename
-  expect_true("resumen_operativo.xlsx" %in% entries)
-  expect_true("informe_tecnico.xlsx" %in% entries)
-  expect_true(any(grepl("^HojaRuta_INEI2017_.*[.]pdf$", entries)))
-  expect_true(any(grepl("^HojaZona_INEI2017_.*[.]pdf$", entries)))
+  expect_true("Resumen/resumen_operativo.xlsx" %in% entries)
+  expect_true("Resumen/informe_tecnico.xlsx" %in% entries)
+  expect_true(any(grepl("^Distritos/.*/Titulares/HojaRuta_INEI2017_.*[.]pdf$", entries)))
+  expect_true(any(grepl("^Distritos/.*/Reemplazos/HojaRuta_REEMPLAZO_INEI2017_.*[.]pdf$", entries)))
+  expect_true(any(grepl("^Distritos/.*/Zonas/HojaZona_INEI2017_.*[.]pdf$", entries)))
   expect_true(res$n_zone_pdfs > 0L)
+  expect_equal(res$n_replacement_blocks, 2L)
   expect_true(res$n_zones > 0L)
 })

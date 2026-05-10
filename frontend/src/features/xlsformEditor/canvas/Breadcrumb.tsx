@@ -12,6 +12,7 @@
 
 import { ChevronRight, FileText } from "lucide-react";
 import type { BuilderStructure } from "../types";
+import { stripMarkdown } from "../helpers/markdown";
 
 export type BreadcrumbProps = {
   /** rowIndex de la pregunta o sección actualmente seleccionada. */
@@ -31,14 +32,18 @@ export function Breadcrumb({ rowIndex, structure, onSelect }: BreadcrumbProps) {
   while (cur && cur !== "root") {
     const sec = structure.sections.get(cur);
     if (!sec) break;
-    trail.unshift({ id: cur, label: sec.label || sec.name || "Sección", rowIndex: sec.rowIndex });
+    trail.unshift({
+      id: cur,
+      label: stripMarkdown(sec.label) || sec.name || "Sección",
+      rowIndex: sec.rowIndex,
+    });
     cur = sec.parentId ?? null;
   }
 
   const itemLabel =
     node.kind === "section" || node.kind === "repeat"
       ? null // si la propia selección es la sección, no la duplicamos al final
-      : node.name || node.label || `fila_${node.rowIndex + 1}`;
+      : node.name || stripMarkdown(node.label) || `fila_${node.rowIndex + 1}`;
 
   return (
     <nav aria-label="Ruta jerárquica" className="pulso-canvas-breadcrumb">

@@ -1,39 +1,28 @@
 // =============================================================================
-// inspector/MarkdownField.tsx — editor + preview de campos con markdown
+// inspector/MarkdownField.tsx — editor de texto con formato (estilo Word)
 // =============================================================================
-// XLSForm soporta markdown en `label`, `hint`, `constraint_message` y
-// `required_message`. Las herramientas de campo (Kobo Collect, ODK
-// Collect, Enketo) renderizan **bold**, *italic*, ~~strike~~,
-// [text](url), y saltos de línea.
+// Para el usuario, este editor se comporta como Word: si pone una palabra
+// en negrita, se ve negrita. Nunca ve markdown crudo (`**negrita**`). El
+// markdown vive bajo el capó: se serializa al guardar para que el
+// archivo XLSForm exportado lo entienda KoBo / Enketo / Collect.
 //
-// Este componente reemplaza al `<textarea>` plano cuando el campo
-// admite markdown. Provee:
-//
-//   · Toolbar con botones para insertar formato (B, I, S, link).
-//   · Toggle "Editar / Vista previa" para ver cómo se renderizará.
-//   · Renderizado de subset de markdown sin dependencias externas
-//     (no bajamos `marked` o `react-markdown` — bundle).
-//
-// Funciones soportadas (subset XLSForm):
-//   **bold**       → <strong>bold</strong>
-//   __bold__       → <strong>bold</strong>
-//   *italic*       → <em>italic</em>
-//   _italic_       → <em>italic</em>
-//   ~~strike~~     → <s>strike</s>
-//   [text](url)    → <a href="url">text</a>
-//   \n             → <br>
-//   \n\n           → párrafo nuevo (visualmente)
+// Implementación: contenteditable con toolbar (B / I / S / link). Los
+// botones aplican `document.execCommand` sobre la selección activa del
+// contenteditable, igual que un editor rich-text clásico. El parser
+// markdown ↔ HTML vive en `helpers/markdown.ts`.
 // =============================================================================
 
-import { useRef, useState } from "react";
-import { Bold, Italic, Strikethrough, Link as LinkIcon, Eye, Pencil } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { Bold, Italic, Strikethrough, Link as LinkIcon } from "lucide-react";
+import { renderMarkdownInline } from "../helpers/markdown";
 
 export type MarkdownFieldProps = {
   value: string;
   onChange: (next: string) => void;
   placeholder?: string;
+  /** Ignorado — se mantiene la prop por compatibilidad con call sites. */
   rows?: number;
-  /** Si true, el toolbar muestra menos botones (espacio reducido). */
+  /** Si true, la toolbar muestra menos botones (omite tachado). */
   compact?: boolean;
 };
 
@@ -41,202 +30,204 @@ export function MarkdownField({
   value,
   onChange,
   placeholder,
-  rows = 3,
   compact = false,
 }: MarkdownFieldProps) {
-  const [tab, setTab] = useState<"edit" | "preview">("edit");
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  // Último valor pintado en el DOM — usado para evitar repintar mientras
+  // el usuario tipea (lo que destruye el cursor).
+  const lastPaintedRef = useRef<string>(value);
 
-  /** Aplica un wrap (`prefix...suffix`) al texto seleccionado. Si no
-   *  hay selección, inserta los dos tokens y deja el cursor entre
-   *  ellos para que el usuario tipee. */
-  const wrapSelection = (prefix: string, suffix: string = prefix) => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const before = value.slice(0, start);
-    const sel = value.slice(start, end);
-    const after = value.slice(end);
-    const next = `${before}${prefix}${sel}${suffix}${after}`;
-    onChange(next);
-    // Reposicionar cursor: si había selección, dejarla envuelta;
-    // si no, posicionar entre prefix y suffix.
-    requestAnimationFrame(() => {
-      const pos = sel
-        ? start + prefix.length + sel.length + suffix.length
-        : start + prefix.length;
-      ta.focus();
-      ta.setSelectionRange(pos, pos);
-    });
+  // Pintar el contenido inicial al montar.
+  useEffect(() => {
+    if (!editorRef.current) return;
+    editorRef.current.innerHTML = renderMarkdownInline(value);
+    lastPaintedRef.current = value;
+    // Solo en mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sincronizar cuando `value` cambia desde fuera (undo/redo, edición de
+  // otra fila que comparte choice). NO repintar si el contenido del DOM
+  // ya equivale al nuevo valor — eso pisaría el cursor del usuario.
+  useEffect(() => {
+    if (!editorRef.current) return;
+    if (lastPaintedRef.current === value) return;
+    const currentMarkdown = htmlToMarkdown(editorRef.current.innerHTML);
+    if (normalizeMd(currentMarkdown) === normalizeMd(value)) return;
+    editorRef.current.innerHTML = renderMarkdownInline(value);
+    lastPaintedRef.current = value;
+  }, [value]);
+
+  const flush = () => {
+    if (!editorRef.current) return;
+    const next = htmlToMarkdown(editorRef.current.innerHTML);
+    lastPaintedRef.current = next;
+    if (next !== value) onChange(next);
+  };
+
+  /** Aplica un comando del execCommand sin perder el foco del editor.
+   *  El handler debe usarse en `onMouseDown` (no `onClick`) y prevenir
+   *  default — así no roba el foco al contenteditable. */
+  const exec = (command: string, val?: string) => {
+    document.execCommand(command, false, val);
+    // Disparar flush diferido — execCommand muta el DOM síncronamente
+    // pero el navegador puede ajustar selección después.
+    requestAnimationFrame(flush);
   };
 
   const insertLink = () => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const sel = value.slice(start, end) || "texto";
     const url = window.prompt("URL del enlace:", "https://");
     if (!url) return;
-    const before = value.slice(0, start);
-    const after = value.slice(end);
-    const next = `${before}[${sel}](${url})${after}`;
-    onChange(next);
+    // execCommand("createLink") usa la selección actual; si no hay,
+    // inserta el href como texto. Esto está bien para el caso simple.
+    exec("createLink", url);
   };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+      e.preventDefault();
+      exec("bold");
+    } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "i") {
+      e.preventDefault();
+      exec("italic");
+    }
+  };
+
+  const onPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    document.execCommand("insertText", false, text);
+  };
+
+  // Botones del toolbar usan onMouseDown + preventDefault para conservar
+  // la selección del contenteditable. Si usaran onClick, el blur ya
+  // habría colapsado la selección al momento de ejecutar el comando.
+  const ToolbarButton = ({
+    onPress,
+    title,
+    ariaLabel,
+    children,
+  }: {
+    onPress: () => void;
+    title: string;
+    ariaLabel: string;
+    children: React.ReactNode;
+  }) => (
+    <button
+      type="button"
+      className="pulso-md-toolbar-btn"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onPress();
+      }}
+      title={title}
+      aria-label={ariaLabel}
+    >
+      {children}
+    </button>
+  );
 
   return (
     <div className="pulso-md-field">
       <div className="pulso-md-toolbar">
         <div className="pulso-md-toolbar-actions">
-          <button
-            type="button"
-            className="pulso-md-toolbar-btn"
-            onClick={() => wrapSelection("**")}
+          <ToolbarButton
+            onPress={() => exec("bold")}
             title="Negrita (Cmd+B)"
-            aria-label="Negrita"
-            disabled={tab === "preview"}
+            ariaLabel="Negrita"
           >
             <Bold size={13} strokeWidth={2.5} />
-          </button>
-          <button
-            type="button"
-            className="pulso-md-toolbar-btn"
-            onClick={() => wrapSelection("*")}
+          </ToolbarButton>
+          <ToolbarButton
+            onPress={() => exec("italic")}
             title="Itálica (Cmd+I)"
-            aria-label="Itálica"
-            disabled={tab === "preview"}
+            ariaLabel="Itálica"
           >
             <Italic size={13} />
-          </button>
+          </ToolbarButton>
           {!compact && (
-            <button
-              type="button"
-              className="pulso-md-toolbar-btn"
-              onClick={() => wrapSelection("~~")}
+            <ToolbarButton
+              onPress={() => exec("strikeThrough")}
               title="Tachado"
-              aria-label="Tachado"
-              disabled={tab === "preview"}
+              ariaLabel="Tachado"
             >
               <Strikethrough size={13} />
-            </button>
+            </ToolbarButton>
           )}
-          <button
-            type="button"
-            className="pulso-md-toolbar-btn"
-            onClick={insertLink}
+          <ToolbarButton
+            onPress={insertLink}
             title="Insertar enlace"
-            aria-label="Insertar enlace"
-            disabled={tab === "preview"}
+            ariaLabel="Insertar enlace"
           >
             <LinkIcon size={13} />
-          </button>
-        </div>
-        <div className="pulso-md-toolbar-tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "edit"}
-            className={tab === "edit" ? "is-on" : ""}
-            onClick={() => setTab("edit")}
-            title="Editar"
-          >
-            <Pencil size={11} /> Editar
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "preview"}
-            className={tab === "preview" ? "is-on" : ""}
-            onClick={() => setTab("preview")}
-            title="Vista previa"
-          >
-            <Eye size={11} /> Vista previa
-          </button>
+          </ToolbarButton>
         </div>
       </div>
 
-      {tab === "edit" ? (
-        <textarea
-          ref={textareaRef}
-          rows={rows}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "b") {
-              e.preventDefault();
-              wrapSelection("**");
-            } else if ((e.metaKey || e.ctrlKey) && e.key === "i") {
-              e.preventDefault();
-              wrapSelection("*");
-            }
-          }}
-        />
-      ) : (
-        <div
-          className="pulso-md-preview"
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{
-            __html: renderMarkdown(value || ""),
-          }}
-        />
-      )}
+      <div
+        ref={editorRef}
+        className="pulso-md-editor"
+        contentEditable
+        suppressContentEditableWarning
+        role="textbox"
+        aria-multiline="true"
+        aria-label={placeholder}
+        data-placeholder={placeholder || ""}
+        data-empty={!value || value.length === 0 ? "true" : "false"}
+        onKeyDown={onKeyDown}
+        onPaste={onPaste}
+        onBlur={flush}
+      />
     </div>
   );
 }
 
 // -----------------------------------------------------------------------------
-// renderMarkdown — parser propio del subset XLSForm. Sin deps.
+// htmlToMarkdown — serializa el HTML del contenteditable a markdown.
+// Idéntico al de RichInline pero exportado localmente para no acoplar
+// los dos componentes innecesariamente.
 // -----------------------------------------------------------------------------
 
-/** Escapa HTML para inyección segura — UNA pasada antes de aplicar
- *  reemplazos de markdown. */
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+function normalizeMd(s: string): string {
+  return s.replace(/ /g, " ").trim();
 }
 
-/** Renderiza el subset XLSForm de markdown a HTML. Orden importa: los
- *  reemplazos más específicos primero para que no se pisen entre sí. */
-export function renderMarkdown(input: string): string {
-  if (!input) {
-    return '<p class="pulso-md-empty">Vista previa vacía.</p>';
+function htmlToMarkdown(html: string): string {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return serializeNode(tmp).replace(/ /g, " ");
+}
+
+function serializeNode(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent || "";
   }
-  let out = escapeHtml(input);
+  if (node.nodeType !== Node.ELEMENT_NODE) return "";
+  const el = node as HTMLElement;
+  const tag = el.tagName.toLowerCase();
+  const inner = Array.from(el.childNodes).map(serializeNode).join("");
 
-  // Links: [text](url). Hacemos esto ANTES de otros para no comer
-  // los corchetes con énfasis.
-  out = out.replace(
-    /\[([^\]]+)\]\(([^)]+)\)/g,
-    (_m, text: string, url: string) => {
-      // Whitelist simple: http(s), mailto, tel, # interna.
-      const safe = /^(https?:|mailto:|tel:|#)/.test(url) ? url : "#";
-      return `<a href="${safe}" target="_blank" rel="noopener noreferrer">${text}</a>`;
-    },
-  );
-
-  // Bold (** o __). Match no-greedy para que pares múltiples no se
-  // mezclen: `**a** **b**` → dos bolds, no un mega bold.
-  out = out.replace(/\*\*([^*\n]+?)\*\*/g, "<strong>$1</strong>");
-  out = out.replace(/__([^_\n]+?)__/g, "<strong>$1</strong>");
-
-  // Italic (* o _). Cuidado: no hacer match con ** (ya lo procesamos)
-  // ni con __ . Usamos lookbehind/lookahead manuales con grupo
-  // negativo. En JS regex moderno: (?<!\*)\*([^*\n]+?)\*(?!\*).
-  out = out.replace(/(?<![*])\*([^*\n]+?)\*(?![*])/g, "<em>$1</em>");
-  out = out.replace(/(?<![_])_([^_\n]+?)_(?![_])/g, "<em>$1</em>");
-
-  // Strikethrough.
-  out = out.replace(/~~([^~\n]+?)~~/g, "<s>$1</s>");
-
-  // Saltos de línea. \n\n → cierra párrafo y abre nuevo. \n → <br>.
-  // Wrapeamos todo en un párrafo inicial.
-  out = "<p>" + out.replace(/\n\n+/g, "</p><p>").replace(/\n/g, "<br>") + "</p>";
-
-  return out;
+  switch (tag) {
+    case "strong":
+    case "b":
+      return inner ? `**${inner}**` : "";
+    case "em":
+    case "i":
+      return inner ? `*${inner}*` : "";
+    case "s":
+    case "strike":
+    case "del":
+      return inner ? `~~${inner}~~` : "";
+    case "a": {
+      const href = el.getAttribute("href") || "";
+      return inner && href ? `[${inner}](${href})` : inner;
+    }
+    case "br":
+      return "\n";
+    case "p":
+    case "div":
+      return inner.endsWith("\n") ? inner : `${inner}\n`;
+    default:
+      return inner;
+  }
 }

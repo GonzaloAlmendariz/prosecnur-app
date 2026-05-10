@@ -132,8 +132,13 @@ import { SurveyOutline } from "./outline/SurveyOutline";
 import type { RowMovePlan } from "./outline/outlineUtils";
 import { applyRowMove } from "./outline/outlineUtils";
 import { PreviewCanvas } from "./canvas/PreviewCanvas";
+import { FormCanvas } from "./canvas/FormCanvas";
 import { Inspector } from "./inspector/Inspector";
+import { ContextPanel } from "./inspector/ContextPanel";
+import { MoreViewsMenu } from "./shell/MoreViewsMenu";
+import { Coachmarks } from "./shell/Coachmarks";
 import { iconForType } from "./helpers/icons";
+import { renderMarkdownInline, stripMarkdown } from "./helpers/markdown";
 import { paletteForType } from "./helpers/paletteForType";
 import type {
   LogicCatalog,
@@ -326,11 +331,30 @@ export default function XlsformEditorPage() {
   }
   const persistence = persistenceRef.current;
 
-  // Detectar al montar si hay un snapshot persistido. Primero local
-  // (localStorage tras salir/reabrir la app), después el backend (state del
-  // .pulso si hay proyecto abierto). El primero gana porque suele ser más fresco.
+  // Scope de persistencia: el path del .pulso activo (o null si no
+  // hay proyecto). Determina el bucket de localStorage para que el
+  // banner "Tenías un formulario abierto" sea independiente por proyecto.
+  const projectScope = project.status.path ?? null;
+
+  // Detectar al montar — y al cambiar de proyecto — si hay un snapshot
+  // persistido para el scope actual. Primero local (localStorage), después
+  // el backend (state del .pulso). El primero gana porque suele ser más
+  // fresco. Si cambiamos de proyecto: descartamos el workbook abierto
+  // (pertenecía al proyecto anterior) y recargamos contra el nuevo scope.
+  // Usamos un ref para detectar el primer mount y NO limpiar entonces.
+  const lastScopeRef = useRef<typeof projectScope>(projectScope);
   useEffect(() => {
-    const local = loadSnapshot();
+    const isProjectSwitch = lastScopeRef.current !== projectScope;
+    lastScopeRef.current = projectScope;
+
+    // Si fue un switch de proyecto y había un workbook cargado, lo
+    // limpiamos — su snapshot está a salvo en su propio bucket.
+    if (isProjectSwitch && workbookRef.current) {
+      dispatch({ type: "CLEAR" });
+    }
+
+    setRestoreOffer(null);
+    const local = loadSnapshot(projectScope);
     if (local) {
       setRestoreOffer(local);
       return;
@@ -343,23 +367,44 @@ export default function XlsformEditorPage() {
     return () => {
       cancelled = true;
     };
-    // Solo en mount.
+    // workbookRef intencionalmente no en deps — solo lo consultamos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [projectScope]);
+
+  // Ref que sigue al workbook actual sin disparar el efecto de scope
+  // cuando muta. Lo consultamos al detectar switch de proyecto.
+  const workbookRef = useRef(workbook);
+  useEffect(() => {
+    workbookRef.current = workbook;
+  }, [workbook]);
 
   // Programar autosave después de cada edición. El scheduler debouncea 2s
   // — si el usuario sigue editando, se posterga; si se queda quieto, escribe.
+  // Pasamos el `projectScope` para que el snapshot se guarde en el bucket
+  // del proyecto actual.
   useEffect(() => {
     if (!workbook) return;
     if (!dirty) return;
-    persistence.schedule(workbook, {
-      sourceKind: source?.kind ?? null,
-      sourceName: source?.original_name ?? null,
-    });
-  }, [workbook, dirty, source, persistence]);
+    persistence.schedule(
+      workbook,
+      {
+        sourceKind: source?.kind ?? null,
+        sourceName: source?.original_name ?? null,
+      },
+      projectScope,
+    );
+  }, [workbook, dirty, source, persistence, projectScope]);
 
-  // Atajos de teclado para undo/redo (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Ctrl+Y).
-  // Se ignora si el foco está en un input/textarea/contentEditable.
+  // Atajos de teclado del editor:
+  //   Cmd/Ctrl+Z         → deshacer
+  //   Cmd/Ctrl+Shift+Z   → rehacer
+  //   Ctrl+Y             → rehacer (Windows)
+  //   Cmd/Ctrl+N         → nueva pregunta (texto, después de la selección)
+  //
+  // Undo/redo se ignoran si el foco está en un input/textarea/contentEditable
+  // (el usuario espera que Cmd+Z deshaga su tipeo, no la última edición del
+  // workbook). "Nueva pregunta" funciona siempre — incluso tipeando — porque
+  // es una acción global del editor.
   useEffect(() => {
     function isTypingTarget(el: EventTarget | null): boolean {
       if (!(el instanceof HTMLElement)) return false;
@@ -371,8 +416,23 @@ export default function XlsformEditorPage() {
     function onKey(event: KeyboardEvent) {
       const isMod = event.metaKey || event.ctrlKey;
       if (!isMod) return;
-      if (isTypingTarget(event.target)) return;
       const key = event.key.toLowerCase();
+
+      // Cmd/Ctrl+N — nueva pregunta. Siempre funciona, sin importar el
+      // foco. PreventDefault es crítico porque el navegador captura
+      // este shortcut para "nueva ventana" — en Electron sí lo
+      // bloqueamos, en navegadores normales puede que no.
+      if (key === "n" && !event.shiftKey) {
+        if (!workbookRef.current) return;
+        event.preventDefault();
+        const afterRow =
+          selectionRef.current?.kind === "survey" ? selectionRef.current.rowIndex : null;
+        addQuestionRef.current?.("text", afterRow);
+        return;
+      }
+
+      // Undo/redo — respetan typing targets.
+      if (isTypingTarget(event.target)) return;
       if (key === "z" && !event.shiftKey) {
         event.preventDefault();
         dispatch({ type: "UNDO" });
@@ -384,6 +444,17 @@ export default function XlsformEditorPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // Refs estables para que el handler de teclado (registrado una sola
+  // vez en mount) acceda al estado actual sin re-suscribirse.
+  const selectionRef = useRef<BuilderSelection | null>(null);
+  const addQuestionRef = useRef<typeof addQuestion | null>(null);
+  useEffect(() => {
+    selectionRef.current = selection;
+  });
+  useEffect(() => {
+    addQuestionRef.current = addQuestion;
+  });
 
   const xlsformIndex = useMemo(
     () => (workbook ? buildXlsformIndex(workbook) : null),
@@ -432,8 +503,114 @@ export default function XlsformEditorPage() {
   const selectedChoices = workbook && selectedTypeInfo?.listName
     ? extractChoiceItems(workbook.choices, selectedTypeInfo.listName)
     : [];
-  const activeCatalogName = selectedTypeInfo?.listName || catalogFocus || catalogs[0]?.listName || null;
+  // Cuando el editor de catálogos (`lens`) está abierto, `catalogFocus`
+  // gana — el usuario lo está usando explícitamente para navegar entre
+  // listas. Cuando el lens está cerrado, la lista de la pregunta
+  // seleccionada en el lienzo da contexto.
+  const activeCatalogName = catalogsLensOpen
+    ? (catalogFocus || selectedTypeInfo?.listName || catalogs[0]?.listName || null)
+    : (selectedTypeInfo?.listName || catalogFocus || catalogs[0]?.listName || null);
   const activeCatalog = catalogs.find((catalog) => catalog.listName === activeCatalogName) ?? null;
+  // Cuántas preguntas usan cada catálogo. Lo usa el FormCanvas para
+  // marcar listas compartidas (badge "Lista compartida con N preguntas").
+  const catalogUsage = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!xlsformIndex) return map;
+    xlsformIndex.questionsByCatalog.forEach((nodes, listName) => {
+      map.set(listName, nodes.length);
+    });
+    return map;
+  }, [xlsformIndex]);
+  // Para cada catálogo, lista de preguntas que lo usan (rowIndex + label
+  // + name). El FormCanvas pasa esto al EditableChoiceList para mostrar
+  // los chips de "lista compartida".
+  const questionsByCatalog = useMemo(() => {
+    const map = new Map<string, Array<{ rowIndex: number; label: string; name: string }>>();
+    if (!xlsformIndex) return map;
+    xlsformIndex.questionsByCatalog.forEach((nodes, listName) => {
+      map.set(
+        listName,
+        nodes.map((n) => ({ rowIndex: n.rowIndex, label: n.label, name: n.name })),
+      );
+    });
+    return map;
+  }, [xlsformIndex]);
+  // Listas existentes que el AddBetween del lienzo ofrece reusar al
+  // crear una pregunta de selección. Mantenemos el shape liviano
+  // (listName + counts) — el menú es flotante y debe leerse en un
+  // vistazo.
+  const existingListsForAdd = useMemo(() => {
+    if (!xlsformIndex) return [];
+    return catalogs.map((catalog) => ({
+      listName: catalog.listName,
+      choicesCount: catalog.items.length,
+      usageCount: xlsformIndex.questionsByCatalog.get(catalog.listName)?.length ?? 0,
+    }));
+  }, [catalogs, xlsformIndex]);
+  // Cuando la pregunta seleccionada es obligatoria + tiene relevant
+  // (propio o heredado de alguna sección padre), el toggle "Pregunta
+  // obligatoria" muestra un aviso "obligatorio condicionado". Esto
+  // explica al usuario que la pregunta NO es obligatoria para todos:
+  // solo para quienes cumplan la condición de apertura.
+  const conditionalContext = useMemo(() => {
+    if (!selectedNode || !structure) return null;
+    const selfRelevant = selectedNode.relevant?.trim() || "";
+    const ancestors: Array<{ sectionLabel: string; relevant: string }> = [];
+    let sectionId: string | null = selectedNode.sectionId;
+    // Subir por la cadena de secciones padre. Tope en "root" para no
+    // bucle infinito si el grafo viene corrupto.
+    let safety = 32;
+    while (sectionId && sectionId !== "root" && safety-- > 0) {
+      const section = structure.sections.get(sectionId);
+      if (!section || section.rowIndex == null) break;
+      const sectionNode = structure.byRow.get(section.rowIndex);
+      const relevant = sectionNode?.relevant?.trim() || "";
+      if (relevant) {
+        ancestors.push({
+          sectionLabel: section.label || section.name || "Sección",
+          relevant,
+        });
+      }
+      sectionId = section.parentId ?? null;
+    }
+    return { selfRelevant, ancestorRelevants: ancestors };
+  }, [selectedNode, structure]);
+
+  // Info dinámica del catálogo asignado a la pregunta actualmente
+  // seleccionada — la usa el ContextPanel para mostrar la sección
+  // "Lista de opciones" con conteo + lista de preguntas que la
+  // comparten.
+  const selectedCatalogInfo = useMemo(() => {
+    if (!selectedNode || !selectedTypeInfo?.listName) return undefined;
+    const isSelect =
+      selectedTypeInfo.base === "select_one" ||
+      selectedTypeInfo.base === "select_multiple";
+    if (!isSelect) return undefined;
+    const listName = selectedTypeInfo.listName;
+    const usedBy = xlsformIndex?.questionsByCatalog.get(listName) ?? [];
+    const sharedWith = usedBy
+      .filter((n) => n.rowIndex !== selectedNode.rowIndex)
+      .map((n) => ({ rowIndex: n.rowIndex, label: n.label, name: n.name }));
+    return {
+      listName,
+      choicesCount: selectedChoices.length,
+      sharedWith,
+    };
+  }, [selectedNode, selectedTypeInfo, selectedChoices, xlsformIndex]);
+
+  // Si el workbook tiene contenido editable (secciones o preguntas
+  // reales, no solo auto-meta como _start/_end). Decide si mostramos el
+  // empty state grande del lienzo o el contenido normal.
+  const hasEditableContent = useMemo(() => {
+    if (!structure) return false;
+    return structure.outline.some(
+      (n) =>
+        n.kind === "section" ||
+        n.kind === "repeat" ||
+        ((n.kind === "question" || n.kind === "note" || n.kind === "calculate") &&
+          !["start", "end", "today", "deviceid", "username"].includes(n.typeInfo.base)),
+    );
+  }, [structure]);
   // Diagnostics locales (cliente): integridad estructural calculada al vuelo
   // a partir del index. Se complementan con los diagnostics remotos (R) que
   // viajan via /api/xlsform-editor/validate.
@@ -579,13 +756,13 @@ export default function XlsformEditorPage() {
         sourceKind: nextSource.kind,
         sourceName: nextSource.original_name,
       };
-      const savedAt = saveSnapshot(loadedWorkbook, sourceMeta);
+      const savedAt = saveSnapshot(loadedWorkbook, sourceMeta, projectScope);
       void syncSnapshotToBackend(loadedWorkbook, sourceMeta);
       if (savedAt != null) {
         dispatch({ type: "MARK_SAVED", savedAt });
       }
     },
-    [persistence],
+    [persistence, projectScope],
   );
 
   const updateWorkbook = useCallback(
@@ -599,11 +776,13 @@ export default function XlsformEditorPage() {
     [workbook],
   );
 
-  // Descartar el snapshot ofrecido al montar y empezar de cero.
+  // Descartar el snapshot ofrecido al montar y empezar de cero. Limpia
+  // el bucket del proyecto actual — los snapshots de otros proyectos
+  // quedan intactos.
   const dismissRestoreOffer = useCallback(() => {
     setRestoreOffer(null);
-    clearSnapshot();
-  }, []);
+    clearSnapshot(projectScope);
+  }, [projectScope]);
 
   // Aceptar el snapshot ofrecido y restaurarlo como workbook actual.
   const acceptRestoreOffer = useCallback(() => {
@@ -1093,14 +1272,44 @@ export default function XlsformEditorPage() {
     });
   }
 
-  function addQuestion(nextBaseType = "text") {
+  function addQuestion(
+    nextBaseType = "text",
+    afterRowIndex?: number | null,
+    reuseListName?: string,
+  ) {
     if (!workbook) return;
-    const insertionIndex = resolveInsertionIndex(structure, selection, workbook.survey);
+    // Si nos pasan un override (ej. desde el AddBetween del lienzo único),
+    // calculamos el índice como si la selección fuera ese row — eso lleva
+    // la inserción justo después, respetando límites de sección.
+    const overrideSelection: BuilderSelection | null =
+      afterRowIndex != null ? { kind: "survey", rowIndex: afterRowIndex } : selection;
+    const insertionIndex = resolveInsertionIndex(structure, overrideSelection, workbook.survey);
     const nextName = `pregunta_${workbook.survey.rows.length + 1}`;
     const isSelect = nextBaseType === "select_one" || nextBaseType === "select_multiple";
-    const listName = isSelect ? (activeCatalogName || `cat_${nextName}`) : "";
+    // Para selects: si el usuario eligió "reusar lista existente" desde
+    // el AddBetween, vinculamos la pregunta a ese listName y NO creamos
+    // filas nuevas en `choices`. Si no, generamos una lista nueva con
+    // nombre único basado en el nombre de la pregunta.
+    let listName = "";
+    let createNewList = false;
+    if (isSelect) {
+      const existing = new Set(catalogs.map((c) => c.listName));
+      if (reuseListName && existing.has(reuseListName)) {
+        listName = reuseListName;
+        createNewList = false;
+      } else {
+        let candidate = `lista_${nextName}`;
+        let i = 2;
+        while (existing.has(candidate)) {
+          candidate = `lista_${nextName}_${i}`;
+          i += 1;
+        }
+        listName = candidate;
+        createNewList = true;
+      }
+    }
     updateWorkbook((draft) => {
-      if (isSelect && !catalogs.some((catalog) => catalog.listName === listName)) {
+      if (isSelect && createNewList) {
         insertRecord(draft.choices, draft.choices.rows.length, {
           list_name: listName,
           name: "opcion_1",
@@ -1124,9 +1333,65 @@ export default function XlsformEditorPage() {
     setSelection({ kind: "survey", rowIndex: insertionIndex });
   }
 
-  function addSection() {
+  /**
+   * Inserta una pregunta o sección desde el botón "+" del lienzo único
+   * (`AddBetween`). `afterRowIndex` es el rowIndex de la pieza justo
+   * arriba del botón — el nuevo elemento queda inmediatamente debajo.
+   * Si `afterRowIndex` es null, inserta al final del survey.
+   * `reuseListName` solo aplica a select_one/select_multiple — la
+   * pregunta nueva queda vinculada a esa lista existente en lugar de
+   * crear una nueva.
+   */
+  function handleAddAfter(
+    afterRowIndex: number | null,
+    kind: "section" | "text" | "select_one" | "select_multiple" | "integer" | "date" | "note" | "calculate",
+    reuseListName?: string,
+  ) {
+    if (kind === "section") addSection(afterRowIndex);
+    else addQuestion(kind, afterRowIndex, reuseListName);
+  }
+
+  /**
+   * Clona el catálogo asignado a una pregunta a un listName nuevo y
+   * reasigna el `type` de la pregunta. Se invoca desde
+   * `EditableChoiceList` cuando el catálogo está compartido y el usuario
+   * quiere divergir solo para esta pregunta. El listName nuevo intenta
+   * `{old}_copy`, `{old}_copy_2`, ... hasta no chocar.
+   */
+  function cloneCatalogForQuestion(questionRowIndex: number) {
+    if (!workbook || !structure) return;
+    const node = structure.byRow.get(questionRowIndex);
+    if (!node || !node.typeInfo.listName) return;
+    const oldListName = node.typeInfo.listName;
+    const existingNames = new Set(catalogs.map((c) => c.listName));
+    let suffix = "_copy";
+    let attempt = 1;
+    let newListName = `${oldListName}${suffix}`;
+    while (existingNames.has(newListName)) {
+      attempt += 1;
+      newListName = `${oldListName}${suffix}_${attempt}`;
+    }
+    const oldChoices = extractChoiceItems(workbook.choices, oldListName);
+    updateWorkbook((draft) => {
+      // Insertar todas las filas del catálogo viejo con el nuevo list_name.
+      oldChoices.forEach((choice) => {
+        insertRecord(draft.choices, draft.choices.rows.length, {
+          list_name: newListName,
+          name: choice.name,
+          label: choice.label,
+        });
+      });
+      // Reasignar el tipo de la pregunta.
+      setCell(draft.survey, questionRowIndex, "type", buildType(node.typeInfo.base, newListName));
+    });
+    setCatalogFocus(newListName);
+  }
+
+  function addSection(afterRowIndex?: number | null) {
     if (!workbook) return;
-    const insertionIndex = resolveInsertionIndex(structure, selection, workbook.survey);
+    const overrideSelection: BuilderSelection | null =
+      afterRowIndex != null ? { kind: "survey", rowIndex: afterRowIndex } : selection;
+    const insertionIndex = resolveInsertionIndex(structure, overrideSelection, workbook.survey);
     const nextName = `seccion_${workbook.survey.rows.length + 1}`;
     updateWorkbook((draft) => {
       insertRecord(draft.survey, insertionIndex, {
@@ -1449,8 +1714,8 @@ export default function XlsformEditorPage() {
   return (
     <div style={{ maxWidth: 1440, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
       <PageHeader
-        title="Constructor de XLSForms"
-        lead="Diseña formularios con una interfaz guiada y deja la sintaxis XLSForm/ODK como capa técnica. La vista por hojas sigue disponible, pero ya no manda la experiencia."
+        title="Editor de formularios"
+        lead="Arma formularios con una interfaz guiada. Los exporta como XLSForm (.xlsx) o PDF. La vista por hojas sigue disponible para edición técnica."
         meta={(
           <div style={{ display: "inline-flex", flexWrap: "wrap", gap: 8 }}>
             <StatusChip label={workbook ? formatSource(source?.kind ?? null) : "Sin archivo"} tone={workbook ? "info" : "neutral"} />
@@ -1496,62 +1761,76 @@ export default function XlsformEditorPage() {
         )}
       />
 
-      {error && <ErrorBlock label="No pudimos abrir el constructor" detail={error} />}
+      {error && <ErrorBlock label="No pudimos abrir el editor" detail={error} />}
 
-      <Panel
-        title="Entradas y salidas"
-        hint="La idea es trabajar desde un constructor visual. XLSForm y ODK siguen siendo el motor, pero ya no son la interfaz principal."
-        actions={(
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" onClick={onNewWorkbook} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Sparkles size={14} /> Nuevo formulario
-            </button>
-            <button type="button" onClick={() => xlsInputRef.current?.click()} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Upload size={14} /> Importar XLSForm
-            </button>
-            <button type="button" onClick={onImportSurveyMonkey} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <img src={smMonkey} alt="" width={16} height={16} style={{ objectFit: "contain" }} /> Traducir SurveyMonkey
-            </button>
-            <button type="button" className="pulso-primary" onClick={onExport} disabled={!workbook || !!busy} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Download size={14} /> Exportar .xlsx
-            </button>
-          </div>
-        )}
-      >
-        <input
-          ref={xlsInputRef}
-          type="file"
-          accept=".xlsx,.xls"
-          style={{ display: "none" }}
-          onChange={(e) => void onImportXls(e.target.files?.[0])}
+      {/* Input file oculto para "Importar XLSForm" — disponible siempre,
+          tanto desde el EmptyHome como desde la barra de acciones del
+          editor con workbook. */}
+      <input
+        ref={xlsInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        style={{ display: "none" }}
+        onChange={(e) => void onImportXls(e.target.files?.[0])}
+      />
+
+      {/* Sin workbook → solo EmptyHome con sus 3 cards (Empezar de cero
+          / Importar XLSForm / Traducir SurveyMonkey) y resumeBanner.
+          Antes había un Panel "Entradas y salidas" arriba con los mismos
+          4 botones — duplicaba acciones y confundía al usuario. */}
+      {!workbook && (
+        <EmptyHome
+          onNewBlank={onNewWorkbook}
+          onImportXls={() => xlsInputRef.current?.click()}
+          onImportSurveyMonkey={onImportSurveyMonkey}
+          onPickTemplate={onPickTemplate}
+          resumeBanner={
+            restoreOffer ? (
+              <RestoreOfferBanner
+                snapshot={restoreOffer}
+                onAccept={acceptRestoreOffer}
+                onDismiss={dismissRestoreOffer}
+              />
+            ) : null
+          }
         />
-        {!workbook ? (
-          <EmptyHome
-            onNewBlank={onNewWorkbook}
-            onImportXls={() => xlsInputRef.current?.click()}
-            onImportSurveyMonkey={onImportSurveyMonkey}
-            onPickTemplate={onPickTemplate}
-            resumeBanner={
-              restoreOffer ? (
-                <RestoreOfferBanner
-                  snapshot={restoreOffer}
-                  onAccept={acceptRestoreOffer}
-                  onDismiss={dismissRestoreOffer}
-                />
-              ) : null
-            }
-          />
-        ) : (
+      )}
+
+      {/* Con workbook → barra de acciones rápidas + métricas. Los
+          botones de la barra solo tienen sentido cuando hay un
+          formulario abierto: Nuevo abre uno nuevo, Importar reemplaza
+          el actual, Traducir SurveyMonkey importa de otra fuente,
+          Exportar genera el .xlsx. */}
+      {workbook && (
+        <Panel
+          title="Acciones del formulario"
+          hint="Cambia, importa o exporta el formulario activo."
+          actions={(
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button type="button" onClick={onNewWorkbook} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Sparkles size={14} /> Nuevo formulario
+              </button>
+              <button type="button" onClick={() => xlsInputRef.current?.click()} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Upload size={14} /> Importar XLSForm
+              </button>
+              <button type="button" onClick={onImportSurveyMonkey} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <img src={smMonkey} alt="" width={16} height={16} style={{ objectFit: "contain" }} /> Traducir SurveyMonkey
+              </button>
+              <button type="button" className="pulso-primary" onClick={onExport} disabled={!!busy} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Download size={14} /> Exportar .xlsx
+              </button>
+            </div>
+          )}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", color: "var(--pulso-text-soft)", fontSize: 13 }}>
             <Pill tone="info">{structure?.outline.length ?? 0} piezas</Pill>
             <Pill tone="info">{catalogs.length} catálogos</Pill>
             <Pill tone={diagnostics.some((item) => item.level === "warn") ? "warn" : "success"}>
               {diagnostics.filter((item) => item.level === "warn").length} advertencias
             </Pill>
-            <span>Las herramientas principales del constructor están justo debajo, junto al formulario activo.</span>
           </div>
-        )}
-      </Panel>
+        </Panel>
+      )}
 
       {busy && (
         <Panel title="Procesando" hint={busy}>
@@ -1559,22 +1838,10 @@ export default function XlsformEditorPage() {
         </Panel>
       )}
 
-      {!workbook && !busy && (
-        <Panel noPadding>
-          <EmptyState
-            icon={<Layers3 size={20} />}
-            title="Todavía no hay un constructor abierto"
-            hint="Empieza con una base limpia, trae un XLSForm ya existente o usa el botón del traductor de SurveyMonkey para aterrizarlo aquí."
-            cta={(
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                <button type="button" className="pulso-primary" onClick={onNewWorkbook}>Crear formulario</button>
-                <button type="button" onClick={() => xlsInputRef.current?.click()}>Importar .xlsx</button>
-                <button type="button" onClick={onImportSurveyMonkey}>Traducir SurveyMonkey</button>
-              </div>
-            )}
-          />
-        </Panel>
-      )}
+      {/* `EmptyHome` arriba ya cubre el caso "sin workbook" con CTAs grandes
+          y el resumeBanner. Antes había un `EmptyState` duplicado aquí
+          que repetía las mismas 3 acciones — eliminado para no doblar el
+          mensaje. */}
 
       {workbook && (
         <>
@@ -1656,61 +1923,13 @@ export default function XlsformEditorPage() {
                     Hojas
                   </button>
                 </div>
-	                <button
-	                  type="button"
-	                  onClick={() => setLogicCanvasOpen(true)}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-                  title="Crear y revisar relaciones lógicas del formulario"
-                >
-	                  <Workflow size={14} />
-	                  Mapa de lógica
-	                </button>
-	                <button
-	                  type="button"
-	                  onClick={() => setSmLogicDialogOpen(true)}
-	                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-	                  title="Configurar saltos de SurveyMonkey y aplicarlos al XLSForm"
-	                >
-	                  <Sparkles size={14} />
-	                  Lógica SurveyMonkey
-	                </button>
-	                <button
-                  type="button"
-                  onClick={() => setQuestionnaireViewOpen(true)}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-                  title="Ver el cuestionario completo por secciones"
-                >
-                  <Layers3 size={14} />
-                  Vista del cuestionario
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCatalogsLensOpen(true)}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-                  title="Editar listas de opciones"
-                >
-                  <ListChecks size={14} />
-                  Catálogos
-                  {catalogs.length > 0 && (
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        minWidth: 18,
-                        height: 16,
-                        padding: "0 5px",
-                        fontSize: 10,
-                        fontWeight: 800,
-                        background: "var(--pulso-primary-soft)",
-                        color: "var(--pulso-primary)",
-                        borderRadius: 999,
-                      }}
-                    >
-                      {catalogs.length}
-                    </span>
-                  )}
-                </button>
+                <MoreViewsMenu
+                  catalogsCount={catalogs.length}
+                  onOpenLogicCanvas={() => setLogicCanvasOpen(true)}
+                  onOpenSurveyMonkeyLogic={() => setSmLogicDialogOpen(true)}
+                  onOpenQuestionnaireView={() => setQuestionnaireViewOpen(true)}
+                  onOpenCatalogsLens={() => setCatalogsLensOpen(true)}
+                />
                 <DiagnosticsBadge
                   diagnostics={diagnostics}
                   selection={selection}
@@ -1735,9 +1954,15 @@ export default function XlsformEditorPage() {
             )}
             {editorMode === "builder" && (
             <div
+              className="pulso-builder-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "280px minmax(0, 1fr) 340px",
+                /* Outline 290px (cabe `informante_nombre` en una línea)
+                   + centro flex + inspector 340px (cabe el panel sin
+                   apretar el toggle de "Avanzado"). Gap 14px. El centro
+                   tiene min-width 0 para que sus tarjetas se redimensionen
+                   en viewports angostos sin desbordar. */
+                gridTemplateColumns: "290px minmax(0, 1fr) 340px",
                 gap: 14,
                 alignItems: "start",
               }}
@@ -1779,39 +2004,61 @@ export default function XlsformEditorPage() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <BuilderHero
-                    selection={selection}
-                    node={selectedNode}
-                    section={selectedSection}
-                    settingsRecord={settingsRecord}
-                  />
+                  {/* BuilderHero solo cuando estamos en Settings y hay
+                      contenido editable. Si el form recién se creó (vacío),
+                      el hero es ruido — el lienzo ya muestra el empty state
+                      grande con su CTA. */}
+                  {selection?.kind === "settings" && hasEditableContent && (
+                    <BuilderHero
+                      selection={selection}
+                      node={selectedNode}
+                      section={selectedSection}
+                      settingsRecord={settingsRecord}
+                    />
+                  )}
 
                   <Panel
-                    title={selection?.kind === "settings" ? "Vista del formulario" : "Vista de construcción"}
+                    title={
+                      selection?.kind === "settings"
+                        ? "Vista del formulario"
+                        : "Tu formulario"
+                    }
                     hint={
                       selection?.kind === "settings"
                         ? "Aquí se resume la identidad del formulario antes de entrar al detalle."
-                        : "La idea es que entiendas el comportamiento de esta pieza sin leer sintaxis ODK."
+                        : "Haz clic en una pregunta para editarla. Los botones + entre tarjetas agregan preguntas o secciones nuevas."
                     }
                   >
-                    {selection?.kind === "settings" ? (
+                    {/* Si la selección es settings PERO el workbook está
+                        completamente vacío (recién creado, sin secciones),
+                        priorizamos el lienzo con su empty state — el
+                        usuario quiere armar preguntas, no configurar la
+                        identidad del archivo. */}
+                    {selection?.kind === "settings" && hasEditableContent ? (
                       <SettingsCanvas settingsRecord={settingsRecord} />
-                    ) : selectedNode && structure ? (
-                      <PreviewCanvas
-                        node={selectedNode}
+                    ) : workbook && structure ? (
+                      <FormCanvas
+                        workbook={workbook}
                         structure={structure}
-                        choices={selectedChoices}
-                        logicBlocks={selectedLogic}
-                        onSelectByRow={(target) =>
-                          target === "settings"
-                            ? setSelection({ kind: "settings" })
-                            : setSelection({ kind: "survey", rowIndex: target })
-                        }
-                        onMoveUp={() => moveSelection("up")}
-                        onMoveDown={() => moveSelection("down")}
-                        onDelete={deleteCurrentSelection}
-                        canMoveUp={!!movement.prevRow}
-                        canMoveDown={!!movement.nextRow}
+                        selectedRow={selection?.kind === "survey" ? selection.rowIndex : null}
+                        catalogUsage={catalogUsage}
+                        questionsByCatalog={questionsByCatalog}
+                        onSelect={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
+                        onLabelChange={(rowIndex, value) => updateSurveyField(rowIndex, "label", value)}
+                        onHintChange={(rowIndex, value) => updateSurveyField(rowIndex, "hint", value)}
+                        onSectionLabelChange={(rowIndex, value) => updateSurveyField(rowIndex, "label", value)}
+                        onChoiceLabelChange={(_listName, choiceRow, value) => updateChoice(choiceRow, "label", value)}
+                        onChoiceNameChange={(_listName, choiceRow, value) => updateChoice(choiceRow, "name", value)}
+                        onAddChoice={(listName) => addCatalogChoice(listName)}
+                        onRemoveChoice={(_listName, choiceRow) => removeChoice(choiceRow)}
+                        onRenameList={(oldListName, nextListName) => renameCatalog(oldListName, nextListName)}
+                        onCloneCatalog={(questionRowIndex) => cloneCatalogForQuestion(questionRowIndex)}
+                        onAddAfter={handleAddAfter}
+                        existingLists={existingListsForAdd}
+                        onOpenCatalogLens={(listName) => {
+                          if (listName) setCatalogFocus(listName);
+                          setCatalogsLensOpen(true);
+                        }}
                       />
                     ) : (
                       <EmptyState
@@ -1856,8 +2103,20 @@ export default function XlsformEditorPage() {
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <Panel
-                    title="Inspector"
-                    hint="Aquí editas la pieza activa con lenguaje más cercano a la construcción del formulario que a la hoja de cálculo."
+                    title={
+                      selection?.kind === "settings"
+                        ? "Ajustes del formulario"
+                        : selection?.kind === "survey"
+                          ? "Detalles de la pregunta"
+                          : "Inspector"
+                    }
+                    hint={
+                      selection?.kind === "settings"
+                        ? "Título visible, identificador, versión y otros datos del archivo."
+                        : selection?.kind === "survey"
+                          ? "Configura el tipo, validación, lógica y catálogo. El texto de la pregunta y las opciones se editan directamente en el lienzo."
+                          : "Selecciona una pregunta o sección en el lienzo para ver sus detalles aquí."
+                    }
                     actions={
                       selection?.kind === "survey"
                         ? (
@@ -1893,7 +2152,7 @@ export default function XlsformEditorPage() {
                         onChange={updateSettingsField}
                       />
                     ) : selectedNode ? (
-                      <Inspector
+                      <ContextPanel
                         node={selectedNode}
                         catalogs={catalogs}
                         logicScope={logicScope}
@@ -1902,6 +2161,14 @@ export default function XlsformEditorPage() {
                             ? computeQuestionPosition(structure, selectedNode.rowIndex)
                             : undefined
                         }
+                        catalogUsageCount={
+                          selectedTypeInfo?.listName
+                            ? catalogUsage.get(selectedTypeInfo.listName) ?? 1
+                            : 1
+                        }
+                        catalogInfo={selectedCatalogInfo}
+                        conditionalContext={conditionalContext}
+                        onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
                         onFieldChange={(field, value) =>
                           updateSurveyField(selectedNode.rowIndex, field, value)
                         }
@@ -1917,6 +2184,7 @@ export default function XlsformEditorPage() {
                           if (focusListName) setCatalogFocus(focusListName);
                           setCatalogsLensOpen(true);
                         }}
+                        onCloneCatalog={() => cloneCatalogForQuestion(selectedNode.rowIndex)}
                       />
                     ) : (
                       <EmptyState
@@ -1932,22 +2200,15 @@ export default function XlsformEditorPage() {
             )}
           </Panel>
 
-          {/* Índice del instrumento — sección colapsable secundaria que NO
-              compite por ancho con el constructor. Se abre on-demand cuando
-              el usuario quiere ver dependencias entre preguntas y catálogos. */}
-          {xlsformIndex && (
-            <CollapsibleSection
-              title="Índice del instrumento"
-              hint={`${xlsformIndex.stats.nQuestions} preguntas · ${xlsformIndex.stats.nDependencies} dependencias detectadas`}
-              icon={<Layers3 size={14} />}
-              count={xlsformIndex.stats.nMissingReferences || undefined}
-              defaultOpen={false}
-            >
-              <IndexPanel index={xlsformIndex} />
-            </CollapsibleSection>
-          )}
+          {/* "Índice del instrumento" eliminado — la información que ofrece
+              (variables, dependencias, referencias faltantes) ya está
+              disponible en el Mapa de lógica y los avisos. */}
         </>
       )}
+
+      {/* Coachmarks de primer uso — solo aparecen cuando hay workbook con
+          contenido editable y el flag `firstUseDone` no está seteado. */}
+      {workbook && hasEditableContent && <Coachmarks />}
 
       {/* ContextLens del editor de catálogos — se abre desde el header del
           constructor o cuando un diagnostic apunta a un catálogo. */}
@@ -2257,13 +2518,16 @@ function BuilderHero({
   section: SectionMeta | null;
   settingsRecord: Record<string, string> | null;
 }) {
-  const title = selection?.kind === "settings"
+  const titleRaw = selection?.kind === "settings"
     ? (settingsRecord?.form_title || "Configuración del formulario")
     : (node?.label || "Selecciona un elemento");
+  // El título se muestra renderizado (negritas/itálicas se ven), no
+  // el markdown crudo. La capa técnica (asteriscos) vive en "Hojas".
+  const titleHtml = renderMarkdownInline(titleRaw);
   const subtitle = selection?.kind === "settings"
     ? `ID ${settingsRecord?.form_id || "sin definir"} · versión ${settingsRecord?.version || "1"}`
     : node
-      ? `${previewKindLabel(node)}${node.name ? ` · ${node.name}` : ""}${section && section.kind !== "root" ? ` · dentro de ${section.label}` : ""}`
+      ? `${previewKindLabel(node)}${node.name ? ` · ${node.name}` : ""}${section && section.kind !== "root" ? ` · dentro de ${stripMarkdown(section.label)}` : ""}`
       : "Elige una pieza desde la estructura para editarla.";
 
   return (
@@ -2298,9 +2562,11 @@ function BuilderHero({
           <span className="pulso-section-eyebrow">
             {selection?.kind === "settings" ? "Identidad del formulario" : "Pieza activa"}
           </span>
-          <h2 style={{ margin: 0, fontSize: 28, lineHeight: 1.1, letterSpacing: -0.3, color: "var(--pulso-primary)" }}>
-            {title}
-          </h2>
+          <h2
+            style={{ margin: 0, fontSize: 28, lineHeight: 1.1, letterSpacing: -0.3, color: "var(--pulso-primary)" }}
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{ __html: titleHtml }}
+          />
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--pulso-text-soft)", maxWidth: 860 }}>
             {subtitle}
           </p>
@@ -2690,7 +2956,12 @@ function RestoreOfferBanner({
           Tenías un formulario abierto antes
         </div>
         <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
-          {snapshot.sourceName ? `Archivo: ${snapshot.sourceName} · ` : ""}
+          {/* Defensivo: en localStorage viejo `sourceName` puede haber
+              quedado como objeto en algún caso edge. Solo lo mostramos
+              si es string no vacío. */}
+          {typeof snapshot.sourceName === "string" && snapshot.sourceName
+            ? `Archivo: ${snapshot.sourceName} · `
+            : ""}
           Guardado automáticamente {formatRelativeTime(snapshot.savedAt)}.
         </div>
       </div>

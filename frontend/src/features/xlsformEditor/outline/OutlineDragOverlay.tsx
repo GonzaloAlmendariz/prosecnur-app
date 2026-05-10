@@ -9,6 +9,7 @@
 
 import type { BuilderNode } from "../types";
 import { iconForType } from "../helpers/icons";
+import { stripMarkdown } from "../helpers/markdown";
 import { paletteForType } from "../helpers/paletteForType";
 import { typeLabel } from "../parsing/parseType";
 import { previewKindLabel } from "../parsing/buildIndex";
@@ -21,11 +22,13 @@ export function OutlineDragOverlay({ node }: { node: BuilderNode }) {
       className="pulso-outline-row is-overlay"
       style={{
         cursor: "grabbing",
-        boxShadow: "0 14px 32px rgba(15, 23, 42, 0.18)",
-        transform: "rotate(-1.2deg)",
+        boxShadow: "0 18px 38px rgba(15, 23, 42, 0.28)",
+        transform: "rotate(-1.5deg)",
+        background: "white",
+        borderColor: "var(--pulso-primary)",
       }}
     >
-      <span className="pulso-outline-grip" aria-hidden="true">
+      <span className="pulso-outline-grip" aria-hidden="true" style={{ opacity: 1 }}>
         ⠿
       </span>
       <div className="pulso-outline-body" style={{ paddingLeft: 2 }}>
@@ -38,10 +41,11 @@ export function OutlineDragOverlay({ node }: { node: BuilderNode }) {
         </span>
         <span className="pulso-outline-text">
           <strong className="pulso-outline-title">
-            {node.name || node.label || `fila_${node.rowIndex + 1}`}
+            {stripMarkdown(node.label) || node.name || `fila_${node.rowIndex + 1}`}
           </strong>
           <span className="pulso-outline-subtitle">
             {node.kind === "question" ? typeLabel(node.typeInfo.base) : previewKindLabel(node)}
+            {node.name && node.name !== stripMarkdown(node.label) ? ` · ${node.name}` : ""}
           </span>
         </span>
       </div>

@@ -150,7 +150,7 @@ export default function Layout() {
       <header
         style={{
           display: "flex", alignItems: "center", gap: 18,
-          padding: "12px 24px",
+          padding: "12px 18px",
           background: "var(--pulso-surface)",
           borderBottom: "1px solid var(--pulso-border)",
           boxShadow: "var(--pulso-shadow-low)",
@@ -185,7 +185,19 @@ export default function Layout() {
         <ProjectIndicator project={project} onRequestStartModal={openStartModal} />
         <SessionChip />
       </header>
-      <main style={{ padding: "1.75rem 2rem", maxWidth: 1440, margin: "0 auto", width: "100%" }}>
+      <main
+        style={{
+          /* Padding lateral reducido (32px → 20px) para que el contenido
+             respire menos a los lados y los lienzos densos (editor de
+             XLSForm, dashboard, etc) tengan más ancho útil. maxWidth
+             subido de 1440 a 1760 para aprovechar pantallas grandes
+             sin estirar el contenido infinitamente. */
+          padding: "1.5rem 1.25rem",
+          maxWidth: 1760,
+          margin: "0 auto",
+          width: "100%",
+        }}
+      >
         <Outlet />
       </main>
     </div>

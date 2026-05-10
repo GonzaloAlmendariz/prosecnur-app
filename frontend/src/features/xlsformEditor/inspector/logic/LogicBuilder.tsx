@@ -25,12 +25,15 @@ import {
   expandCondition,
   parseExpression,
   serializeExpression,
+  treeToExpr,
+  tryBuildLogicTree,
   tryFlattenCondition,
 } from "../../logic";
-import type { Expr, FlatCondition, LogicScope } from "../../logic";
+import type { Expr, FlatCondition, LogicScope, LogicTree } from "../../logic";
 import { defaultPredicate } from "../../logic";
 import { ConditionRow } from "./ConditionRow";
 import { LogicGroupBlock } from "./LogicGroupBlock";
+import { LogicTreeBuilder } from "./LogicTreeBuilder";
 
 export type LogicBuilderProps = {
   /** Expresión ODK actual. */
@@ -82,44 +85,36 @@ export function LogicBuilder({
     );
   }
 
-  // Caso 4 helper: caja read-only para AST que no se puede aplanar.
-  const renderRaw = (raw: string) => (
+  // Caso 4 helper: el AST no encaja en flat ni en AND/OR plano. Se
+  // construye un LogicTree y se renderiza con `LogicTreeBuilder` que
+  // soporta mezclas AND/OR + grupos anidados. Si el árbol es enteramente
+  // raw (cosas como regex, count-selected, etc), `LogicTreeBuilder`
+  // muestra la caja honesta sin badge "Avanzada" agresivo.
+  const renderTree = (treeRoot: LogicTree) => (
     <div className="pulso-logic-builder">
       <header className="pulso-logic-builder-header">
         <span className="pulso-section-eyebrow">{fieldLabel}</span>
-        <span className="pulso-logic-builder-status">Avanzada</span>
+        <button
+          type="button"
+          className="pulso-logic-builder-clear"
+          onClick={() => onChange("")}
+          title="Quitar la condición — la pregunta se mostrará siempre."
+        >
+          <X size={12} /> Quitar
+        </button>
       </header>
-      <div className="pulso-logic-builder-raw">
-        <pre>{raw}</pre>
-        <p className="pulso-logic-builder-rawhint">
-          Esta condición tiene una forma que el editor visual aún no
-          maneja al 100%. Se preserva tal cual al exportar; la siguiente
-          iteración del builder cubre <code>not()</code>, anidados y
-          mezclas <em>y/o</em>.
-        </p>
-        <div className="pulso-logic-builder-rawactions">
-          <button
-            type="button"
-            className="pulso-logic-builder-replace"
-            onClick={() => {
-              const cond = buildEmpty();
-              if (!cond.variableName) return;
-              onChange(serializeExpression(expandCondition(cond)));
-            }}
-            disabled={!scope.variables.length}
-          >
-            Reemplazar con builder visual
-          </button>
-          <button
-            type="button"
-            className="pulso-logic-builder-clear"
-            onClick={() => onChange("")}
-            title="Quitar la condición — la pregunta se mostrará siempre."
-          >
-            <X size={12} /> Quitar
-          </button>
-        </div>
-      </div>
+      <LogicTreeBuilder
+        tree={treeRoot}
+        scope={scope}
+        onChange={(next) => {
+          if (next.kind === "group" && next.children.length === 0) {
+            onChange("");
+            return;
+          }
+          onChange(serializeExpression(treeToExpr(next)));
+        }}
+        isRoot
+      />
       {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
     </div>
   );
@@ -220,8 +215,12 @@ export function LogicBuilder({
     }
   }
 
-  // Caso 4: caemos al raw read-only.
-  return renderRaw(serializeExpression(ast));
+  // Caso 4: AND/OR mezclado, anidamientos, not() arbitrarios — usamos el
+  // LogicTreeBuilder que sí maneja árboles. Si la fórmula es 100% raw
+  // (regex, etc), el builder lo muestra como caja honesta sin botón
+  // "reemplazar todo".
+  const tree = tryBuildLogicTree(ast);
+  return renderTree(tree);
 }
 
 /**

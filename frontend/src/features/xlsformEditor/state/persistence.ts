@@ -1,5 +1,5 @@
 // =============================================================================
-// state/persistence.ts — autosave del workbook a localStorage
+// state/persistence.ts — autosave del workbook a localStorage (por proyecto)
 // =============================================================================
 // El editor del XLSForm puede tener docenas de cambios sin exportar. Si el
 // usuario cierra la pestaña accidentalmente o la app crashea, perdemos todo.
@@ -8,6 +8,12 @@
 // (default 2s) después de la última edición. Al volver a montar el módulo,
 // el componente principal puede leer el snapshot y ofrecer al usuario
 // "Continuar editando" vs "Empezar de cero".
+//
+// Persistencia POR PROYECTO: las claves incluyen un hash del path del
+// `.pulso` activo, así cada proyecto tiene su propio snapshot y abrir
+// otro proyecto no muestra el formulario en curso del anterior. Cuando
+// no hay proyecto activo se usa la clave `no-project` (un solo bucket
+// para el flujo "modo navegador" sin .pulso).
 //
 // Por qué localStorage:
 //   - El constructor es trabajo en curso, no un estado efímero.
@@ -22,10 +28,33 @@ import {
   type Hallazgo,
 } from "../../../api/client";
 
-const STORAGE_KEY = "pulso.xlsformEditor.workbook.v1";
-const META_KEY = "pulso.xlsformEditor.meta.v1";
-const LEGACY_SESSION_STORAGE_KEY = STORAGE_KEY;
-const LEGACY_SESSION_META_KEY = META_KEY;
+const STORAGE_PREFIX = "pulso.xlsformEditor.workbook.v2";
+const META_PREFIX = "pulso.xlsformEditor.meta.v2";
+
+/** v1 keys (sin scope de proyecto) — solo se leen como migración. */
+const LEGACY_V1_STORAGE = "pulso.xlsformEditor.workbook.v1";
+const LEGACY_V1_META = "pulso.xlsformEditor.meta.v1";
+
+/** Identifica el bucket de persistencia. Pasar el path del `.pulso` activo
+ *  o null si no hay proyecto. */
+export type ProjectScope = string | null;
+
+/** Sanitiza el path del proyecto a un sufijo seguro para localStorage. No
+ *  necesitamos reversibilidad — solo discriminar entre proyectos
+ *  distintos. Reemplazamos cualquier no-alfanumérico por `_`. */
+function scopeKey(scope: ProjectScope): string {
+  if (!scope || scope.trim() === "") return "no-project";
+  // Limitamos a 80 chars para no inflar la clave indefinidamente.
+  return scope.replace(/[^a-zA-Z0-9]+/g, "_").slice(0, 80) || "no-project";
+}
+
+function workbookKey(scope: ProjectScope): string {
+  return `${STORAGE_PREFIX}.${scopeKey(scope)}`;
+}
+
+function metaKey(scope: ProjectScope): string {
+  return `${META_PREFIX}.${scopeKey(scope)}`;
+}
 
 export type PersistedSnapshot = {
   workbook: XlsformEditorWorkbook;
@@ -43,21 +72,21 @@ export type PersistedSnapshot = {
 // -----------------------------------------------------------------------------
 
 /**
- * Guarda un workbook en localStorage junto con metadata. NO debounceado —
- * el caller es responsable de invocar este método con la frecuencia que
- * desee (ver `createPersistenceScheduler`).
+ * Guarda un workbook en localStorage junto con metadata, scopeado al
+ * proyecto activo (o `no-project` si no hay).
  *
  * Devuelve el timestamp de guardado, o null si falla (quota exceeded, etc.).
  */
 export function saveSnapshot(
   workbook: XlsformEditorWorkbook,
   meta: { sourceName: string | null; sourceKind: string | null },
+  scope: ProjectScope = null,
 ): number | null {
   try {
     const savedAt = Date.now();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(workbook));
+    localStorage.setItem(workbookKey(scope), JSON.stringify(workbook));
     localStorage.setItem(
-      META_KEY,
+      metaKey(scope),
       JSON.stringify({
         savedAt,
         sourceName: meta.sourceName,
@@ -71,16 +100,40 @@ export function saveSnapshot(
   }
 }
 
-/** Lee el snapshot persistido. Devuelve null si no hay o si está corrupto. */
-export function loadSnapshot(): PersistedSnapshot | null {
+/** Lee el snapshot persistido para el proyecto dado. Devuelve null si no
+ *  hay o si está corrupto. Como migración suave: si no encuentra v2 en
+ *  el bucket `no-project` y existe v1 (legacy global), lo migra ahí.
+ *  Para proyectos con scope nunca migramos v1 — esos snapshots eran
+ *  pre-feature y no podemos saber a qué proyecto correspondían. */
+export function loadSnapshot(scope: ProjectScope = null): PersistedSnapshot | null {
   try {
-    let wbRaw = localStorage.getItem(STORAGE_KEY);
-    let metaRaw = localStorage.getItem(META_KEY);
-    // Migración suave de snapshots viejos guardados en sessionStorage.
-    if (!wbRaw) {
-      wbRaw = sessionStorage.getItem(LEGACY_SESSION_STORAGE_KEY);
-      metaRaw = sessionStorage.getItem(LEGACY_SESSION_META_KEY);
+    let wbRaw = localStorage.getItem(workbookKey(scope));
+    let metaRaw = localStorage.getItem(metaKey(scope));
+
+    // Migración v1 → v2 SOLO para el bucket no-project: el snapshot
+    // legacy era global y conviene preservarlo cuando el usuario está
+    // sin proyecto, pero no asumirlo como propio de un proyecto X.
+    if (!wbRaw && scopeKey(scope) === "no-project") {
+      wbRaw = localStorage.getItem(LEGACY_V1_STORAGE);
+      metaRaw = localStorage.getItem(LEGACY_V1_META);
+      if (!wbRaw) {
+        wbRaw = sessionStorage.getItem(LEGACY_V1_STORAGE);
+        metaRaw = sessionStorage.getItem(LEGACY_V1_META);
+      }
+      // Si vino de v1, lo persistimos en v2 para que la próxima carga
+      // ya use el path moderno y dejemos de tocar el legacy.
+      if (wbRaw) {
+        try {
+          localStorage.setItem(workbookKey(scope), wbRaw);
+          if (metaRaw) localStorage.setItem(metaKey(scope), metaRaw);
+          localStorage.removeItem(LEGACY_V1_STORAGE);
+          localStorage.removeItem(LEGACY_V1_META);
+        } catch {
+          // ignore
+        }
+      }
     }
+
     if (!wbRaw) return null;
     const workbook = JSON.parse(wbRaw) as XlsformEditorWorkbook;
     const meta = metaRaw
@@ -98,13 +151,20 @@ export function loadSnapshot(): PersistedSnapshot | null {
   }
 }
 
-/** Borra cualquier snapshot persistido. Útil al exportar o al "empezar de cero". */
-export function clearSnapshot(): void {
+/** Borra el snapshot del proyecto indicado (útil al exportar o al
+ *  "empezar de cero"). */
+export function clearSnapshot(scope: ProjectScope = null): void {
   try {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(META_KEY);
-    sessionStorage.removeItem(LEGACY_SESSION_STORAGE_KEY);
-    sessionStorage.removeItem(LEGACY_SESSION_META_KEY);
+    localStorage.removeItem(workbookKey(scope));
+    localStorage.removeItem(metaKey(scope));
+    // Si estamos limpiando no-project, también borramos el legacy v1
+    // para no resucitarlo en una recarga.
+    if (scopeKey(scope) === "no-project") {
+      localStorage.removeItem(LEGACY_V1_STORAGE);
+      localStorage.removeItem(LEGACY_V1_META);
+      sessionStorage.removeItem(LEGACY_V1_STORAGE);
+      sessionStorage.removeItem(LEGACY_V1_META);
+    }
   } catch {
     // ignore
   }
@@ -162,7 +222,11 @@ export async function loadSnapshotFromBackend(): Promise<PersistedSnapshot | nul
 
 export type PersistenceScheduler = {
   /** Solicita un guardado. Si ya hay uno pendiente, lo reinicia. */
-  schedule: (workbook: XlsformEditorWorkbook, meta: { sourceName: string | null; sourceKind: string | null }) => void;
+  schedule: (
+    workbook: XlsformEditorWorkbook,
+    meta: { sourceName: string | null; sourceKind: string | null },
+    scope?: ProjectScope,
+  ) => void;
   /** Fuerza un guardado inmediato (cancela debounce). */
   flush: () => number | null;
   /** Cancela el guardado pendiente sin escribir. */
@@ -181,7 +245,11 @@ export function createPersistenceScheduler(
   delayMs = 2000,
 ): PersistenceScheduler {
   let timer: ReturnType<typeof setTimeout> | null = null;
-  let pending: { workbook: XlsformEditorWorkbook; meta: { sourceName: string | null; sourceKind: string | null } } | null = null;
+  let pending: {
+    workbook: XlsformEditorWorkbook;
+    meta: { sourceName: string | null; sourceKind: string | null };
+    scope: ProjectScope;
+  } | null = null;
 
   const flush = (): number | null => {
     if (timer) {
@@ -189,7 +257,7 @@ export function createPersistenceScheduler(
       timer = null;
     }
     if (!pending) return null;
-    const ts = saveSnapshot(pending.workbook, pending.meta);
+    const ts = saveSnapshot(pending.workbook, pending.meta, pending.scope);
     // Fire-and-forget al backend para que el state viaje con el .pulso.
     // Si no hay proyecto activo o no hay backend, falla silenciosamente.
     void syncSnapshotToBackend(pending.workbook, pending.meta);
@@ -198,8 +266,8 @@ export function createPersistenceScheduler(
     return ts;
   };
 
-  const schedule: PersistenceScheduler["schedule"] = (workbook, meta) => {
-    pending = { workbook, meta };
+  const schedule: PersistenceScheduler["schedule"] = (workbook, meta, scope = null) => {
+    pending = { workbook, meta, scope };
     if (timer) clearTimeout(timer);
     timer = setTimeout(flush, delayMs);
   };

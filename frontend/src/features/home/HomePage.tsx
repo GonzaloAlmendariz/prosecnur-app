@@ -10,6 +10,7 @@ import {
   FilePen,
   QrCode,
   LayoutDashboard,
+  Activity,
 } from "lucide-react";
 import { apiShutdown } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
@@ -49,8 +50,19 @@ type ModuleMeta = {
 
 const MODULES: ModuleMeta[] = [
   {
+    slug: "editor-xlsform",
+    title: "Editor de formularios",
+    blurb:
+      "Arma un formulario desde cero, importa uno existente para editarlo, o traduce automáticamente un cuestionario de SurveyMonkey.",
+    icon: FilePen,
+    iconBg: "#f5f3ff",
+    iconFg: "#7c3aed",
+    iconBorder: "#ddd6fe",
+    to: "/editor-xlsform",
+  },
+  {
     slug: "procesamiento",
-    title: "Procesamiento de XLSForm",
+    title: "Procesamiento y reportes",
     blurb:
       "Flujo completo: carga de data, validación, codificación de respuestas abiertas, preparación analítica y generación de reportes PPT/Word.",
     icon: Workflow,
@@ -60,26 +72,26 @@ const MODULES: ModuleMeta[] = [
     to: "/procesamiento",
   },
   {
-    slug: "editor-xlsform",
-    title: "Editor de XLSForms",
-    blurb:
-      "Arma un XLSForm desde cero, importa uno existente para editarlo, o traduce automáticamente un cuestionario de SurveyMonkey al formato ODK/KoBo.",
-    icon: FilePen,
-    iconBg: "#f5f3ff",
-    iconFg: "#7c3aed",
-    iconBorder: "#ddd6fe",
-    to: "/editor-xlsform",
-  },
-  {
     slug: "dashboard",
     title: "Dashboard interactivo",
     blurb:
-      "Explorador interactivo del cuestionario: Resumen por sección, Relaciones (cruces) y Base de datos. Personaliza logo, paleta y título — la estructura sigue el estándar del paquete prosecnur.",
+      "Explorador interactivo del cuestionario: Resumen por sección, Relaciones (cruces) y Base de datos. Personaliza logo, paleta y título.",
     icon: LayoutDashboard,
     iconBg: "#eff6ff",
     iconFg: "#1d4ed8",
     iconBorder: "#bfdbfe",
     to: "/tablero",
+  },
+  {
+    slug: "hojas-ruta",
+    title: "Hojas de ruta para campo",
+    blurb:
+      "Hojas de ruta imprimibles para enumeradores: cuotas por conglomerado, rutas de visita y puntos de muestra georeferenciados.",
+    icon: MapIcon,
+    iconBg: "#ecfdf5",
+    iconFg: "#059669",
+    iconBorder: "#a7f3d0",
+    to: "/hojas-ruta",
   },
   {
     slug: "recopiladores",
@@ -93,15 +105,15 @@ const MODULES: ModuleMeta[] = [
     // to: undefined — placeholder "Próximamente"
   },
   {
-    slug: "hojas-ruta",
-    title: "Hojas de ruta para campo",
+    slug: "monitoreo",
+    title: "Monitoreo de campo",
     blurb:
-      "Hojas de ruta imprimibles para enumeradores: cuotas por conglomerado, rutas de visita y puntos de muestra georeferenciados.",
-    icon: MapIcon,
-    iconBg: "#ecfdf5",
-    iconFg: "#059669",
-    iconBorder: "#a7f3d0",
-    to: "/hojas-ruta",
+      "Tablero en vivo del avance de campo: cobertura por enumerador, cuotas restantes y alertas de calidad mientras la encuesta corre.",
+    icon: Activity,
+    iconBg: "#fef2f2",
+    iconFg: "#b91c1c",
+    iconBorder: "#fecaca",
+    // to: undefined — "Próximamente"
   },
 ];
 
@@ -363,29 +375,7 @@ function ModulesGrid({ proc }: { proc: ModulePhaseState }) {
           procState={m.slug === "procesamiento" ? proc : null}
         />
       ))}
-      {/* Sexto slot reservado: mantiene la grid 3×2 visualmente equilibrada
-          mientras decidimos qué módulo va aquí. Es un placeholder vacío
-          (no clickeable, sin ícono específico) — dimensiones idénticas
-          al resto vía `home-mod-card`. */}
-      <ReservedSlot />
     </section>
-  );
-}
-
-function ReservedSlot() {
-  return (
-    <div
-      className="home-mod-card is-reserved"
-      aria-hidden="true"
-    >
-      <span className="home-mod-soon-badge">Por definir</span>
-      <div className="home-mod-body home-mod-reserved-body">
-        <span className="home-mod-reserved-mark">+</span>
-        <p className="home-mod-blurb">
-          Módulo por definir — el próximo capítulo de la suite.
-        </p>
-      </div>
-    </div>
   );
 }
 

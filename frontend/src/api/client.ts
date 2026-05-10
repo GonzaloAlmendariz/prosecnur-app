@@ -1435,8 +1435,10 @@ export type HojasRutaAgeRange = {
 
 export type SamplingMethod = "pps" | "sistematico" | "conglomerado_fijo";
 export type SampleSizeMode = "calculator" | "external_total" | "external_district";
-export type HojasRutaAgeRangeMode = "manual" | "terciles" | "cuartiles" | "quintiles";
+export type HojasRutaAgeRangeMode = "manual" | "terciles" | "cuartiles" | "quintiles" | "deciles";
+export type HojasRutaAgeRangeScope = "selected" | "frame";
 export type HojasRutaZoneAllocation = "proportional";
+export type HojasRutaRandomPreference = "balanced" | "population" | "urban";
 
 export type AllocationMode = "proportional" | "uniform" | "compromise";
 
@@ -1458,6 +1460,7 @@ export type HojasRutaIntegratedConfig = {
   n_objetivo: number;
   n_mode: "total" | "por_distrito";
   n_por_distrito: Record<string, number>;
+  replacement_routes_per_district: Record<string, number>;
   territorios: string[];
   row_var: "departamento" | "provincia" | "distrito" | "ubigeo" | "zona";
   col_var: "rango_edad";
@@ -1468,10 +1471,12 @@ export type HojasRutaIntegratedConfig = {
   max_per_manzana: number;
   entrevistas_por_manzana: number;
   age_range_mode: HojasRutaAgeRangeMode;
+  age_range_scope: HojasRutaAgeRangeScope;
   zone_allocation: HojasRutaZoneAllocation;
   age_ranges: HojasRutaAgeRange[];
   sample_size_mode: SampleSizeMode;
   sample_size: HojasRutaSampleSizeConfig;
+  random_preference?: HojasRutaRandomPreference;
 };
 
 export type HojasRutaUiStage = "territorio" | "poblacion" | "muestra" | "manzanas" | "entrega";
@@ -1483,6 +1488,7 @@ export type HojasRutaUiState = {
   map_zona: string;
   map_level: "distritos" | "zonas" | "manzanas";
   map_selection_mode: boolean;
+  route_history: HojasRutaRouteSnapshot[];
 };
 
 export type TerritorialFrameMeta = {
@@ -1760,7 +1766,9 @@ export type HojasRutaSampleSizePreview = {
   n_recommended: number;
   n_recommended_route?: number;
   n_total_min: number;
+  n_total_min_raw?: number;
   n_district_floor: number;
+  n_district_floor_raw?: number;
   route_size?: number;
   route_multiple_ok?: boolean;
   n_route_previous?: number;
@@ -1802,6 +1810,7 @@ export type SelectedBlock = {
   medida_tamano: number;
   lat: number | null;
   lon: number | null;
+  tipo_manzana?: "titular" | "reemplazo" | string;
 };
 
 export type HojasRutaSamplePreview = {
@@ -1812,10 +1821,39 @@ export type HojasRutaSamplePreview = {
   method: SamplingMethod;
   seed: number;
   blocks: SelectedBlock[];
+  replacement_blocks: SelectedBlock[];
   n_blocks: number;
+  n_replacement_blocks: number;
   total_entrevistas: number;
+  total_replacement_interviews: number;
   unassigned: number;
   alerts: HojasRutaAlert[];
+};
+
+export type HojasRutaRouteDistrictSummary = {
+  ubigeo: string;
+  distrito: string;
+  n: number;
+  manzanas: number;
+  reemplazos: number;
+};
+
+export type HojasRutaRouteSnapshot = {
+  id: string;
+  label: string;
+  created_at: string;
+  seed: number;
+  method: SamplingMethod;
+  route_size: number;
+  n_final: number;
+  n_blocks: number;
+  n_replacement_blocks: number;
+  total_entrevistas: number;
+  total_replacement_interviews: number;
+  territories: string[];
+  distribution: HojasRutaRouteDistrictSummary[];
+  config: HojasRutaIntegratedConfig;
+  sample: HojasRutaSamplePreview;
 };
 
 export type HojasRutaBlockMapFeature = {
@@ -1967,11 +2005,32 @@ export type HojasRutaJobResult = {
   n_pdfs: number;
   n_zone_pdfs?: number;
   n_blocks: number;
+  n_replacement_blocks?: number;
   n_zones?: number;
   total_entrevistas: number;
+  total_replacement_interviews?: number;
   frame_version: string;
   alerts: HojasRutaAlert[];
   mapas_faltantes: number;
+};
+
+export type HojasRutaRandomPdfResult = {
+  ok: true;
+  file_id: string;
+  filename: string;
+  size: number;
+  distrito: string;
+  ubigeo: string;
+  zona: string;
+  manzana: string;
+  id_manzana: string;
+  entrevistas: number;
+  hoja_num: number;
+  rango_inicio: number;
+  rango_fin: number;
+  frame_version: string;
+  random_preference: HojasRutaRandomPreference;
+  alerts: HojasRutaAlert[];
 };
 
 export async function apiHojasRutaState() {
@@ -2063,6 +2122,19 @@ export async function apiHojasRutaSamplePreview(config: Partial<HojasRutaIntegra
   );
 }
 
+export async function apiHojasRutaRandomPdf(
+  config: Partial<HojasRutaIntegratedConfig>,
+  randomPreference: HojasRutaRandomPreference = "balanced",
+) {
+  return handle<HojasRutaRandomPdfResult>(
+    await apiFetch("/api/hojas-ruta/random-pdf", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config, random_preference: randomPreference }),
+    }),
+  );
+}
+
 export async function apiHojasRutaBlockMap(ubigeo: string, limit = 0, refresh = false, allowOnline = false) {
   const params = new URLSearchParams({ ubigeo, limit: String(limit) });
   if (refresh) params.set("refresh", "1");
@@ -2093,12 +2165,15 @@ export async function apiHojasRutaContextMap(ubigeo: string) {
   );
 }
 
-export async function apiHojasRutaGenerate(config: Partial<HojasRutaIntegratedConfig>) {
+export async function apiHojasRutaGenerate(
+  config: Partial<HojasRutaIntegratedConfig>,
+  sample?: HojasRutaSamplePreview | null,
+) {
   return handle<JobStart>(
     await apiFetch("/api/hojas-ruta/generate", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ config }),
+      body: JSON.stringify({ config, sample }),
     }),
   );
 }

@@ -1,25 +1,18 @@
 // =============================================================================
 // shell/EmptyHome.tsx — landing del editor cuando no hay workbook abierto
 // =============================================================================
-// Reemplaza al `ActionBand` aislado del monolito previo. Muestra 4 entradas
-// posibles para arrancar:
-//   1. "Empezar de cero" → workbook en blanco (createBlankWorkbook).
-//   2. "Importar XLSForm" → file picker .xlsx.
-//   3. "Importar SurveyMonkey" → conexión API SurveyMonkey.
-//   4. "Plantillas" → CTA placeholder hasta el Sub-PR 8 (templates seeds).
-//
-// Estilo: tarjetas grandes con icono + título + descripción, hover sutil,
-// stagger animation al montar (cada tarjeta entra con +60ms de delay).
-//
-// El EmptyHome puede recibir un `resumeBanner` para mostrar trabajo en curso
-// persistido justo donde el usuario toma la decisión de continuar o empezar.
+// Hub minimalista con 3 puntos de entrada y, opcionalmente, un banner de
+// "continuar editando" cuando hay un snapshot guardado. Antes tenía una
+// galería de plantillas (Encuesta de hogar / Calidad de servicio / Censo)
+// pero el usuario reportó que no aportaban — la mayoría empezaba "de cero"
+// o importando un XLSForm real. Eliminada para no abrumar.
 // =============================================================================
 
 import type { ReactNode } from "react";
-import { FileSpreadsheet, Sparkles, Upload } from "lucide-react";
+import { Sparkles, Upload } from "lucide-react";
 import smMonkey from "../../../assets/sm-monkey.png";
-import { TemplateGallery } from "../templates/TemplateGallery";
 import type { TemplateSeed } from "../templates/seedHelper";
+import { HubFlowDiagram } from "./HubFlowDiagram";
 
 export type EmptyHomeAction = {
   key: string;
@@ -35,11 +28,9 @@ export type EmptyHomeProps = {
   onNewBlank: () => void;
   onImportXls: () => void;
   onImportSurveyMonkey: () => void;
-  /** Carga un template seed concreto. */
-  onPickTemplate: (template: TemplateSeed) => void;
-  /** Si la base ya tiene cosas y el usuario está en el modo "no hay workbook"
-   *  (raro, pero pasa al montar tras refresh sin snapshot). */
-  hint?: string;
+  /** Carga un template seed concreto. Mantenido para compatibilidad de la
+   *  prop, pero ya no se usa desde aquí — el hub no expone plantillas. */
+  onPickTemplate?: (template: TemplateSeed) => void;
   /** Aviso persistente de "formulario en construcción" para continuar edición. */
   resumeBanner?: ReactNode;
 };
@@ -48,8 +39,6 @@ export default function EmptyHome({
   onNewBlank,
   onImportXls,
   onImportSurveyMonkey,
-  onPickTemplate,
-  hint,
   resumeBanner,
 }: EmptyHomeProps) {
   const actions: EmptyHomeAction[] = [
@@ -57,7 +46,7 @@ export default function EmptyHome({
       key: "blank",
       title: "Empezar de cero",
       description:
-        "Un formulario nuevo en blanco con la estructura mínima. Ideal cuando ya tienes claro qué preguntas vas a hacer.",
+        "Un formulario en blanco para construir pregunta por pregunta.",
       icon: <Sparkles size={22} />,
       onClick: onNewBlank,
       accent: "#2457d6",
@@ -66,7 +55,7 @@ export default function EmptyHome({
       key: "xlsform",
       title: "Importar XLSForm",
       description:
-        "Abre un archivo .xlsx existente (formato ODK / KoBo). Se preserva todo: hojas, idiomas extra, columnas avanzadas.",
+        "Abre un archivo .xlsx existente y mantiene su estructura.",
       icon: <Upload size={22} />,
       onClick: onImportXls,
       accent: "#0f766e",
@@ -75,7 +64,7 @@ export default function EmptyHome({
       key: "surveymonkey",
       title: "Traducir SurveyMonkey",
       description:
-        "Conecta tu encuesta por API y la convertimos automáticamente a XLSForm editable.",
+        "Conecta una encuesta de SurveyMonkey por API y la convierte a XLSForm.",
       icon: <img src={smMonkey} alt="" width={28} height={28} style={{ objectFit: "contain" }} />,
       onClick: onImportSurveyMonkey,
       accent: "#7c3aed",
@@ -88,74 +77,38 @@ export default function EmptyHome({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 14,
-        padding: "32px 28px",
+        gap: 18,
+        padding: "26px 24px",
         borderRadius: 16,
         background:
-          "linear-gradient(180deg, var(--pulso-primary-soft) 0%, var(--pulso-surface) 60%)",
+          "linear-gradient(180deg, var(--pulso-primary-soft) 0%, var(--pulso-surface) 70%)",
         border: "1px solid var(--pulso-primary-border)",
         boxShadow: "var(--pulso-shadow-low)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
-        <div
-          aria-hidden="true"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 48,
-            height: 48,
-            borderRadius: 12,
-            background: "white",
-            border: "1px solid var(--pulso-primary-border)",
-            color: "var(--pulso-primary)",
-            flexShrink: 0,
-          }}
-        >
-          <FileSpreadsheet size={24} />
-        </div>
-        <div style={{ flex: 1, minWidth: 240 }}>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 20,
-              fontWeight: 800,
-              color: "var(--pulso-text)",
-              letterSpacing: "-0.2px",
-            }}
-          >
-            Constructor de XLSForms
-          </h2>
-          <p
-            style={{
-              margin: "6px 0 0",
-              fontSize: 13,
-              color: "var(--pulso-text-soft)",
-              lineHeight: 1.55,
-              maxWidth: 720,
-            }}
-          >
-            Diseña encuestas con una interfaz guiada — sin tocar Excel — y exporta
-            a XLSForm cuando esté listo. Si ya tienes un instrumento, impórtalo
-            y el editor lo abre con todo el contexto preservado.
-          </p>
-          {hint && (
-            <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--pulso-text-soft)" }}>
-              {hint}
-            </p>
-          )}
-        </div>
-      </div>
+      {/* 1. Pregunta directa — sin lead que distraiga. La acción primaria
+             es elegir un punto de partida; las cards de abajo se explican
+             solas. */}
+      <h2
+        style={{
+          margin: 0,
+          fontSize: 22,
+          fontWeight: 800,
+          color: "var(--pulso-text)",
+          letterSpacing: "-0.3px",
+          lineHeight: 1.2,
+          maxWidth: 720,
+        }}
+      >
+        ¿Cómo quieres armar tu formulario?
+      </h2>
 
-      {resumeBanner ? <div>{resumeBanner}</div> : null}
-
+      {/* 2. Las 3 acciones — el camino que el usuario va a tomar. */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
           gap: 14,
-          marginTop: 6,
         }}
       >
         {actions.map((action, idx) => (
@@ -163,11 +116,50 @@ export default function EmptyHome({
         ))}
       </div>
 
-      {/* Galería de plantillas: 3 esqueletos probados que el usuario puede
-          adaptar (la card "Empezar de cero" del seed `blank` ya está arriba
-          como acción principal, así que aquí la ocultamos). */}
-      <div style={{ marginTop: 12 }}>
-        <TemplateGallery onPick={onPickTemplate} hideBlank />
+      {/* 3. Banner "continuar editando" — atajo para usuarios recurrentes,
+             debajo de las acciones porque suele cubrirse con el snapshot
+             persistido del workbook anterior. */}
+      {resumeBanner ? <div>{resumeBanner}</div> : null}
+
+      {/* 4. Guía: qué pasa después de elegir uno de los caminos. Esto es
+             contexto educativo, no parte del flujo de decisión — por eso
+             va al final, después de las acciones. */}
+      <div
+        style={{
+          marginTop: 4,
+          paddingTop: 18,
+          borderTop: "1px dashed var(--pulso-primary-border)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
+        <span
+          style={{
+            display: "inline-block",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 0.6,
+            textTransform: "uppercase",
+            color: "var(--pulso-primary)",
+          }}
+        >
+          Cómo funciona
+        </span>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 13,
+            color: "var(--pulso-text-soft)",
+            lineHeight: 1.55,
+            maxWidth: 720,
+          }}
+        >
+          Cada formulario sigue estos cuatro pasos. El editor guarda los
+          cambios automáticamente y exporta como XLSForm o PDF cuando
+          esté listo.
+        </p>
+        <HubFlowDiagram />
       </div>
     </section>
   );
