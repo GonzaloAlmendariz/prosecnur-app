@@ -26,6 +26,9 @@ export type StepMeta<K extends string = string> = {
   label: string;
   icon: typeof Check;
   hint?: string;
+  done?: boolean;
+  disabled?: boolean;
+  disabledReason?: string;
 };
 
 type Props<K extends string = string> = {
@@ -44,25 +47,20 @@ export function Stepper<K extends string = string>({
     <div
       role="tablist"
       aria-label={ariaLabel ?? "Stepper"}
-      style={{
-        display: "inline-flex", alignItems: "stretch", gap: 0,
-        padding: 8,
-        borderRadius: 14,
-        background: "var(--pulso-surface)",
-        border: "1px solid var(--pulso-border)",
-        boxShadow: "var(--pulso-shadow-low)",
-      }}
+      className="pulso-stepper"
     >
       {steps.map((s, i) => {
         const isActive = s.key === current;
-        const isDone = currentIdx > i;
+        const isDone = typeof s.done === "boolean" ? s.done : currentIdx > i;
         return (
-          <div key={s.key} style={{ display: "flex", alignItems: "center" }}>
+          <div key={s.key} className="pulso-stepper-node">
             <StepChip
               meta={s}
               active={isActive}
               done={isDone}
-              onClick={() => onChange(s.key)}
+              onClick={() => {
+                if (!s.disabled) onChange(s.key);
+              }}
             />
             {i < steps.length - 1 && <StepConnector done={isDone} />}
           </div>
@@ -76,26 +74,9 @@ function StepConnector({ done }: { done: boolean }) {
   return (
     <div
       aria-hidden="true"
-      style={{
-        flex: "0 0 36px", height: 2,
-        margin: "0 4px",
-        borderRadius: 1,
-        background: done ? "var(--pulso-primary)" : "var(--pulso-border)",
-        position: "relative",
-        transition: "background 200ms ease",
-      }}
+      className={`pulso-step-connector ${done ? "is-done" : ""}`}
     >
-      {done && (
-        <span
-          style={{
-            position: "absolute", top: "50%", left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 6, height: 6, borderRadius: "50%",
-            background: "var(--pulso-primary)",
-            boxShadow: "0 0 0 3px var(--pulso-surface)",
-          }}
-        />
-      )}
+      {done && <span />}
     </div>
   );
 }
@@ -115,67 +96,27 @@ function StepChip({
       role="tab"
       aria-selected={active}
       aria-current={active ? "step" : undefined}
+      aria-disabled={meta.disabled || undefined}
+      disabled={meta.disabled}
       onClick={onClick}
-      title={done ? "Completado" : active ? "Paso actual" : "Pendiente"}
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 10,
-        padding: "8px 14px",
-        borderRadius: 10,
-        border: active
-          ? "1px solid var(--pulso-primary)"
-          : done
-            ? "1px solid var(--pulso-primary-border)"
-            : "1px solid transparent",
-        background: active
-          ? "var(--pulso-primary)"
-          : done
-            ? "var(--pulso-primary-soft)"
-            : "transparent",
-        color: active ? "white" : done ? "var(--pulso-primary)" : "var(--pulso-text)",
-        cursor: "pointer",
-        transition: "background 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease",
-        boxShadow: active ? "0 4px 12px rgba(0, 36, 87, 0.18)" : "none",
-      }}
+      title={meta.disabled ? meta.disabledReason : active ? "Paso actual" : done ? "Completado" : "Pendiente"}
+      className={[
+        "pulso-step-chip",
+        active ? "is-active" : "",
+        done ? "is-done" : "",
+        meta.disabled ? "is-disabled" : "",
+      ].filter(Boolean).join(" ")}
     >
-      <span
-        aria-hidden="true"
-        style={{
-          width: 26, height: 26, borderRadius: 8,
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          background: active
-            ? "rgba(255,255,255,0.18)"
-            : done
-              ? "var(--pulso-primary)"
-              : "var(--pulso-surface-2)",
-          color: active ? "white" : done ? "white" : "var(--pulso-text-soft)",
-          border: active ? "1px solid rgba(255,255,255,0.25)" : "none",
-          flexShrink: 0,
-          fontSize: 12, fontWeight: 700,
-        }}
-      >
+      <span aria-hidden="true" className="pulso-step-icon">
         {done && !active ? <Check size={13} /> : <Icon size={13} />}
       </span>
-      <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.15 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700 }}>
-          <span
-            style={{
-              fontSize: 10, fontWeight: 700,
-              opacity: 0.7,
-              fontFamily: "ui-monospace, monospace",
-            }}
-          >
-            {meta.n}
-          </span>
+      <span className="pulso-step-copy">
+        <span className="pulso-step-label">
+          <span className="pulso-step-number">{meta.n}</span>
           {meta.label}
         </span>
         {meta.hint && (
-          <span
-            style={{
-              fontSize: 10,
-              color: active ? "rgba(255,255,255,0.8)" : "var(--pulso-text-soft)",
-              fontWeight: 500,
-            }}
-          >
+          <span className="pulso-step-hint">
             {meta.hint}
           </span>
         )}

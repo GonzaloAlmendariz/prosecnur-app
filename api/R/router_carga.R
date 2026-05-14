@@ -29,7 +29,7 @@ estructura_instrumento <- function(inst) {
   survey <- inst$survey
   choices <- inst$choices %||% data.frame()
   skip_types <- c("begin_group", "end_group", "begin_repeat", "end_repeat",
-                  "start", "end", "today", "deviceid", "note", "calculate")
+                  "start", "end", "today", "deviceid", "note")
   choice_label_col <- first_col(choices, c("label", "label::es", "label::Spanish (ES)", "label_spanish_es"))
   choice_items_for <- function(list_name) {
     if (is.null(choices) || !nrow(choices) || is.na(list_name) || !nzchar(list_name) ||
@@ -79,7 +79,7 @@ estructura_instrumento <- function(inst) {
           c("true", "true()", "yes", "si", "s"),
         relevant = has_value(relevant_expr),
         constraint = has_value(constraint_expr),
-        calculate = has_value(calculation_expr),
+        calculate = identical(tb, "calculate") || identical(tt, "calculate") || has_value(calculation_expr),
         choice_filter = has_value(choice_filter_expr),
         relevant_expr = relevant_expr,
         constraint_expr = constraint_expr,
@@ -96,13 +96,33 @@ estructura_instrumento <- function(inst) {
 summarize_instrumento <- function(inst) {
   survey <- inst$survey
   choices <- inst$choices
+  type_raw <- if (!is.null(survey) && "type" %in% names(survey)) {
+    trimws(as.character(survey$type %||% ""))
+  } else character(0)
+  type_base <- if (!is.null(survey) && "type_base" %in% names(survey)) {
+    trimws(as.character(survey$type_base %||% type_raw))
+  } else {
+    sub("\\s+.*$", "", type_raw)
+  }
+  names_raw <- if (!is.null(survey) && "name" %in% names(survey)) {
+    as.character(survey$name %||% character())
+  } else character(0)
+  has_name <- nzchar(names_raw)
+  section_types <- c("begin_group", "begin_repeat")
+  structural_types <- c("begin_group", "end_group", "begin_repeat", "end_repeat")
+  non_question_types <- c(structural_types, "start", "end", "today", "deviceid", "note", "calculate")
+  is_calculate <- has_name & (type_base == "calculate" | type_raw == "calculate")
+  is_note <- has_name & (type_base == "note" | type_raw == "note")
+  is_question <- has_name & !(type_base %in% non_question_types) & !(type_raw %in% non_question_types)
   secciones <- if (!is.null(survey) && "name" %in% names(survey)) {
-    begins <- survey[grepl("^begin[_ ]group$", survey$type %||% "") |
-                     grepl("^begin[_ ]repeat$", survey$type %||% ""), , drop = FALSE]
+    begins <- survey[type_base %in% section_types, , drop = FALSE]
     if (nrow(begins) > 0) as.character(begins$name) else character()
   } else character()
   list(
-    n_preguntas = if (!is.null(survey)) nrow(survey) else 0L,
+    n_preguntas = as.integer(sum(is_question, na.rm = TRUE)),
+    n_calculos = as.integer(sum(is_calculate, na.rm = TRUE)),
+    n_notas = as.integer(sum(is_note, na.rm = TRUE)),
+    n_filas_survey = if (!is.null(survey)) as.integer(nrow(survey)) else 0L,
     n_secciones = length(secciones),
     secciones = secciones,
     n_listas_opciones = if (!is.null(choices)) length(unique(choices$list_name %||% character())) else 0L,
@@ -115,8 +135,7 @@ summarize_instrumento <- function(inst) {
   if (is.null(survey) || !nrow(survey) || !all(c("type", "name") %in% names(survey))) {
     return(character(0))
   }
-  skip_types <- c("begin_group", "end_group", "begin_repeat", "end_repeat",
-                  "note", "calculate")
+  skip_types <- c("begin_group", "end_group", "begin_repeat", "end_repeat", "note")
   type_raw <- trimws(as.character(survey$type %||% ""))
   type_base <- if ("type_base" %in% names(survey)) {
     trimws(as.character(survey$type_base %||% type_raw))

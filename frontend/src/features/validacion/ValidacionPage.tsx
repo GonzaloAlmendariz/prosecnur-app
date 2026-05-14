@@ -5,9 +5,10 @@ import {
   EstudioPayload,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
-import { PageHeader } from "../../components/PageHeader";
+import { Alert } from "../../components/Alert";
+import { PageFrame } from "../../components/PageFrame";
 import { TabStrip, TabMeta } from "../../components/TabStrip";
-import { ErrorBlock } from "../../components/States";
+import { EmptyState, ErrorBlock } from "../../components/States";
 import BaseSelector from "./BaseSelector";
 import LimpiezaTab from "./tabs/LimpiezaTab";
 import InstrumentoTab from "./tabs/InstrumentoTab";
@@ -24,7 +25,7 @@ import type { ValidacionTabId } from "./types";
 // más finas y se explora cómo viene distribuida cada variable.
 //
 // Estructura:
-//   - Header + PageHeader.
+//   - PageFrame compacto con toolbar y scroll interno.
 //   - BaseSelector (solo visible cuando el estudio tiene ≥2 bases).
 //   - TabStrip con 4 pestañas; el contenido de cada una vive en un
 //     componente aparte (ver ./tabs/*).
@@ -119,53 +120,54 @@ export default function ValidacionPage() {
   const prereqsOk = !!state?.xlsform && !!state?.data;
 
   return (
-    <section>
-      <PageHeader
-        title="Fase 2 — Validación"
-        lead="Explora la base, valida contra el XLSForm, afina reglas personalizadas y cierra con limpieza y normalización antes de avanzar."
-      />
+    <PageFrame
+      title="Fase 2 - Validación"
+      lead="Explora la base, valida contra el XLSForm, afina reglas y cierra la limpieza."
+      resetScrollKey={`${activeTab}:${baseNombre ?? ""}`}
+      toolbar={
+        <>
+          {!prereqsOk && (
+            <Alert kind="warn">
+              <strong>Faltan insumos.</strong>{" "}
+              Para revisar consistencias necesitas un XLSForm y una base de datos cargados en la Fase 1.
+            </Alert>
+          )}
 
-      {!prereqsOk && (
-        <div
-          style={{
-            marginBottom: 16,
-            padding: "14px 18px",
-            borderRadius: 10,
-            background: "var(--pulso-warn-bg)",
-            border: "1px solid var(--pulso-warn-border)",
-            color: "var(--pulso-warn-fg)",
-            fontSize: 13,
-            lineHeight: 1.5,
-          }}
-        >
-          <strong>Faltan insumos.</strong> Para validar necesitas un
-          XLSForm y una base de datos cargados en la Fase 1.
+          {loadError && <ErrorBlock label="No se pudo cargar el estudio" detail={loadError} />}
+
+          {prereqsOk && (
+            <BaseSelector
+              estudio={estudio}
+              selected={baseNombre}
+              onChange={setBaseNombre}
+            />
+          )}
+
+          {prereqsOk && (
+            <TabStrip<ValidacionTabId>
+              tabs={TABS}
+              active={activeTab}
+              onChange={setActiveTab}
+              ariaLabel="Secciones de validación"
+            />
+          )}
+        </>
+      }
+    >
+      {!prereqsOk ? (
+        <EmptyState
+          icon={<Compass size={18} />}
+          title="Carga insumos para validar"
+          hint="La validación se habilita cuando la sesión tiene un XLSForm y una base cargados."
+        />
+      ) : (
+        <div role="tabpanel" aria-labelledby={activeTab}>
+          {activeTab === "limpieza" && <LimpiezaTab />}
+          {activeTab === "instrumento" && <InstrumentoTab />}
+          {activeTab === "explorar" && <ExplorarTab />}
+          {activeTab === "reglas_custom" && <ReglasCustomTab />}
         </div>
       )}
-
-      {loadError && <ErrorBlock label="No se pudo cargar el estudio" detail={loadError} />}
-
-      <BaseSelector
-        estudio={estudio}
-        selected={baseNombre}
-        onChange={setBaseNombre}
-      />
-
-      <div style={{ marginBottom: 18 }}>
-        <TabStrip<ValidacionTabId>
-          tabs={TABS}
-          active={activeTab}
-          onChange={setActiveTab}
-          ariaLabel="Secciones de validación"
-        />
-      </div>
-
-      <div role="tabpanel" aria-labelledby={activeTab}>
-        {activeTab === "limpieza" && <LimpiezaTab />}
-        {activeTab === "instrumento" && <InstrumentoTab />}
-        {activeTab === "explorar" && <ExplorarTab />}
-        {activeTab === "reglas_custom" && <ReglasCustomTab />}
-      </div>
-    </section>
+    </PageFrame>
   );
 }

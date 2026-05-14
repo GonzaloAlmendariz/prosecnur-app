@@ -5,13 +5,18 @@
 // botones — son descripciones del entregable.
 // =============================================================================
 
-import { FileSpreadsheet, Lock } from "lucide-react";
+import { FileSpreadsheet, FileText, Lock } from "lucide-react";
 
 const OUTPUTS = [
   {
     icon: FileSpreadsheet,
     text: "Genera un .xlsx en formato XLSForm estándar",
     accent: "#0f766e",
+  },
+  {
+    icon: FileText,
+    text: "Genera un PDF A4 para uso en papel",
+    accent: "#7c2d12",
   },
   {
     icon: Lock,

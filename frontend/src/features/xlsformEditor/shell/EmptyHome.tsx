@@ -9,7 +9,8 @@
 // =============================================================================
 
 import type { ReactNode } from "react";
-import { Sparkles, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
+import { IconNew } from "../../../lib/icons";
 import smMonkey from "../../../assets/sm-monkey.png";
 import type { TemplateSeed } from "../templates/seedHelper";
 import { HubFlowDiagram } from "./HubFlowDiagram";
@@ -47,7 +48,7 @@ export default function EmptyHome({
       title: "Empezar de cero",
       description:
         "Un formulario en blanco para construir pregunta por pregunta.",
-      icon: <Sparkles size={22} />,
+      icon: <IconNew size={22} />,
       onClick: onNewBlank,
       accent: "#2457d6",
     },
@@ -73,6 +74,7 @@ export default function EmptyHome({
 
   return (
     <section
+      className="pulso-empty-home"
       aria-label="Empezar a editar un formulario"
       style={{
         display: "flex",
@@ -90,6 +92,7 @@ export default function EmptyHome({
              es elegir un punto de partida; las cards de abajo se explican
              solas. */}
       <h2
+        className="pulso-empty-home-title"
         style={{
           margin: 0,
           fontSize: 22,
@@ -105,26 +108,28 @@ export default function EmptyHome({
 
       {/* 2. Las 3 acciones — el camino que el usuario va a tomar. */}
       <div
+        className="pulso-empty-home-actions"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
           gap: 14,
         }}
       >
-        {actions.map((action, idx) => (
-          <ActionCard key={action.key} action={action} delayMs={idx * 60} />
+        {actions.map((action) => (
+          <ActionCard key={action.key} action={action} />
         ))}
       </div>
 
       {/* 3. Banner "continuar editando" — atajo para usuarios recurrentes,
              debajo de las acciones porque suele cubrirse con el snapshot
              persistido del workbook anterior. */}
-      {resumeBanner ? <div>{resumeBanner}</div> : null}
+      {resumeBanner ? <div className="pulso-empty-home-resume">{resumeBanner}</div> : null}
 
       {/* 4. Guía: qué pasa después de elegir uno de los caminos. Esto es
              contexto educativo, no parte del flujo de decisión — por eso
              va al final, después de las acciones. */}
       <div
+        className="pulso-empty-home-guide"
         style={{
           marginTop: 4,
           paddingTop: 18,
@@ -134,38 +139,40 @@ export default function EmptyHome({
           gap: 10,
         }}
       >
-        <span
-          style={{
-            display: "inline-block",
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 0.6,
-            textTransform: "uppercase",
-            color: "var(--pulso-primary)",
-          }}
-        >
-          Cómo funciona
-        </span>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 13,
-            color: "var(--pulso-text-soft)",
-            lineHeight: 1.55,
-            maxWidth: 720,
-          }}
-        >
-          Cada formulario sigue estos cuatro pasos. El editor guarda los
-          cambios automáticamente y exporta como XLSForm o PDF cuando
-          esté listo.
-        </p>
+        <div className="pulso-empty-home-guide-copy">
+          <span
+            style={{
+              display: "inline-block",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: 0.6,
+              textTransform: "uppercase",
+              color: "var(--pulso-primary)",
+            }}
+          >
+            Cómo funciona
+          </span>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 13,
+              color: "var(--pulso-text-soft)",
+              lineHeight: 1.55,
+              maxWidth: 720,
+            }}
+          >
+            Cada formulario sigue estos cuatro pasos. El editor guarda los
+            cambios automáticamente y exporta como XLSForm o PDF cuando
+            esté listo.
+          </p>
+        </div>
         <HubFlowDiagram />
       </div>
     </section>
   );
 }
 
-function ActionCard({ action, delayMs }: { action: EmptyHomeAction; delayMs: number }) {
+function ActionCard({ action }: { action: EmptyHomeAction }) {
   return (
     <button
       type="button"
@@ -184,8 +191,8 @@ function ActionCard({ action, delayMs }: { action: EmptyHomeAction; delayMs: num
         border: "1px solid var(--pulso-border)",
         borderTop: `3px solid ${action.accent}`,
         cursor: "pointer",
-        animation: `pulso-empty-home-in 360ms cubic-bezier(0.2, 0, 0, 1) ${delayMs}ms both`,
-        transition: "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
+        transition:
+          "transform 160ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1), border-color 160ms cubic-bezier(0.23, 1, 0.32, 1)",
       }}
     >
       <div

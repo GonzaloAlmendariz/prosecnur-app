@@ -138,6 +138,9 @@ test_that("build_pulso preserva configuracion ligera de hojas de ruta", {
     sampling_method = "sistematico",
     seed = 777L,
     entrevistas_por_manzana = 8L,
+    route_start_corner = "2",
+    route_jump_mode = "manual",
+    route_jump_manual = 5L,
     age_range_mode = "manual",
     zone_allocation = "proportional",
     age_ranges = list(
@@ -169,6 +172,9 @@ test_that("build_pulso preserva configuracion ligera de hojas de ruta", {
   expect_equal(loaded$hojas_ruta_config$n_objetivo, 240L)
   expect_equal(loaded$hojas_ruta_config$sampling_method, "sistematico")
   expect_equal(loaded$hojas_ruta_config$entrevistas_por_manzana, 8L)
+  expect_equal(loaded$hojas_ruta_config$route_start_corner, "2")
+  expect_equal(loaded$hojas_ruta_config$route_jump_mode, "manual")
+  expect_equal(loaded$hojas_ruta_config$route_jump_manual, 5L)
   expect_equal(loaded$hojas_ruta_config$age_range_mode, "manual")
   expect_equal(loaded$hojas_ruta_config$zone_allocation, "proportional")
   expect_equal(loaded$hojas_ruta_config$age_ranges[[2]]$label, "40+")

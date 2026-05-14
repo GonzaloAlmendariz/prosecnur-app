@@ -9,8 +9,8 @@ import {
   KeyRound,
   Search,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
+import { IconBranching, IconChecklist } from "../../../lib/icons";
 import {
   apiXlsformEditorImportSurveyMonkeyWithLogic,
   apiXlsformEditorSmFetchSurveyInfo,
@@ -610,7 +610,7 @@ export function ImportSurveyMonkeyDialog({
                         fontWeight: 600,
                       }}
                     >
-                      <Sparkles size={12} /> {totalLogicCount} salto{totalLogicCount === 1 ? "" : "s"}
+                      <IconBranching size={12} /> {totalLogicCount} salto{totalLogicCount === 1 ? "" : "s"}
                     </span>
                   </div>
                 </div>
@@ -729,7 +729,7 @@ function ImportFlowSummary({
       label: "Saltos",
       value: ruleCount > 0 ? `${ruleCount}` : "Opcional",
       done: true,
-      icon: <Sparkles size={13} />,
+      icon: <IconBranching size={13} />,
     },
   ];
 
@@ -865,7 +865,7 @@ function SmApiSection({
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: 14 }}>
           <StepHint icon={<KeyRound size={14} />} title="1. Conecta" text="Pega tu token una vez. Puede quedar guardado en este equipo." />
           <StepHint icon={<Search size={14} />} title="2. Elige" text="Lista tus encuestas o pega el enlace del cuestionario." />
-          <StepHint icon={<Sparkles size={14} />} title="3. Completa" text="Prosecnur rellena secciones y catálogos automáticamente." />
+          <StepHint icon={<IconChecklist size={14} />} title="3. Completa" text="Prosecnur rellena secciones y catálogos automáticamente." />
         </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>

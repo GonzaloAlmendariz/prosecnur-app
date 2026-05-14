@@ -30,14 +30,7 @@ export function KpiCard({ kpi }: { kpi: DashboardKpi }) {
     return (
       <div className="dash-kpi-cell">
         <div className="dash-kpi-title">{wrapTitle(kpi.label)}</div>
-        <div
-          style={{
-            fontSize: 11,
-            color: "var(--dash-texto-suave)",
-            textAlign: "center",
-            padding: "20px 0",
-          }}
-        >
+        <div className="dash-kpi-empty dash-kpi-empty--roomy">
           Sin datos
         </div>
       </div>
@@ -81,7 +74,7 @@ export function KpiCard({ kpi }: { kpi: DashboardKpi }) {
       <PlotlyChart
         data={trace}
         layout={layout}
-        height={170}
+        height={146}
         ariaLabel={`Distribución de ${kpi.label}`}
       />
       <div className="dash-kpi-legend">

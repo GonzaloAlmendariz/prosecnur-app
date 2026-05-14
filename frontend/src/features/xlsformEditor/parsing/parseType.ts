@@ -188,6 +188,8 @@ export function sheetTitle(key: SheetKey): string {
       return "Choices";
     case "settings":
       return "Settings";
+    case "paper":
+      return "Papel";
     case "diagnostico":
       return "Diagnóstico";
   }
@@ -201,6 +203,8 @@ export function sheetDescription(key: SheetKey): string {
       return "Vista cruda de listas de opciones.";
     case "settings":
       return "Vista cruda de metadatos del formulario.";
+    case "paper":
+      return "Bloques y metadatos opcionales para el PDF impreso.";
     case "diagnostico":
       return "Resumen técnico generado por el traductor de SurveyMonkey.";
   }

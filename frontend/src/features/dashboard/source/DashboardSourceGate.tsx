@@ -43,14 +43,15 @@ export function DashboardSourceGate({
     apiDashboardSourceGet()
       .then((r) => {
         if (cancelled) return;
-        setPayload(r.payload);
+        const nextPayload = normalizeSourcePayload(r.payload);
+        setPayload(nextPayload);
         const projectReady =
-          r.payload.candidates.project.xlsforms.length > 0 &&
-          r.payload.candidates.project.data.length > 0;
+          nextPayload.candidates.project.xlsforms.length > 0 &&
+          nextPayload.candidates.project.data.length > 0;
         const nextGroup: SourceGroup = projectReady ? "project" : "session";
         setGroup(nextGroup);
-        const xls = pickCandidate(r.payload.candidates[nextGroup].xlsforms);
-        const dat = pickCandidate(r.payload.candidates[nextGroup].data);
+        const xls = pickCandidate(nextPayload.candidates[nextGroup].xlsforms);
+        const dat = pickCandidate(nextPayload.candidates[nextGroup].data);
         setXlsId(xls?.id ?? "");
         setDataId(dat?.id ?? "");
       })
@@ -139,12 +140,12 @@ export function DashboardSourceGate({
 
   return (
     <section className={`dash-source dash-cardbox ${compact ? "is-compact" : ""}`}>
-      <div className="dash-cardbox-header" style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h2 className="dash-cardbox-title" style={{ margin: 0 }}>
+      <div className="dash-cardbox-header dash-cardbox-header--top">
+        <div className="dash-cardbox-copy">
+          <h2 className="dash-cardbox-title">
             Fuente del dashboard
           </h2>
-          <p className="dash-cardbox-help" style={{ margin: "4px 0 0" }}>
+          <p className="dash-cardbox-help dash-cardbox-help--attached">
             Carga un XLSForm y una base para construir este tablero de forma independiente.
           </p>
         </div>
@@ -351,6 +352,39 @@ function VariableRow({
 
 function pickCandidate(items: DashboardSourceFileCandidate[]) {
   return items.find((x) => x.suggested) ?? items[0] ?? null;
+}
+
+function normalizeSourcePayload(payload: DashboardSourcePayload): DashboardSourcePayload {
+  const rawCandidates = payload.candidates as unknown as {
+    project?: { xlsforms?: unknown; data?: unknown };
+    session?: { xlsforms?: unknown; data?: unknown };
+  };
+
+  return {
+    ...payload,
+    candidates: {
+      project: {
+        xlsforms: normalizeCandidateList(rawCandidates.project?.xlsforms),
+        data: normalizeCandidateList(rawCandidates.project?.data),
+      },
+      session: {
+        xlsforms: normalizeCandidateList(rawCandidates.session?.xlsforms),
+        data: normalizeCandidateList(rawCandidates.session?.data),
+      },
+    },
+  };
+}
+
+function normalizeCandidateList(value: unknown): DashboardSourceFileCandidate[] {
+  if (Array.isArray(value)) return value.filter(isDashboardSourceFileCandidate);
+  if (!value || typeof value !== "object") return [];
+  return Object.values(value as Record<string, unknown>).filter(isDashboardSourceFileCandidate);
+}
+
+function isDashboardSourceFileCandidate(value: unknown): value is DashboardSourceFileCandidate {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<DashboardSourceFileCandidate>;
+  return typeof candidate.id === "string" && typeof candidate.name === "string";
 }
 
 function SourceSelect({

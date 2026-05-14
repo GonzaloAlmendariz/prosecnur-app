@@ -7,6 +7,24 @@
   min-height: 0;
 }
 
+.hojas-ruta-frame .pulso-page-frame-body {
+  min-height: 0;
+}
+
+.hojas-ruta-frame .pulso-page-frame-body--fill > .hojas-ruta-workbench {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+}
+
+.hojas-ruta-frame .pulso-page-frame-body--fill > .hojas-ruta-stage-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
 .hojas-ruta-map-column,
 .hojas-ruta-side {
   border: 1px solid var(--pulso-border);
@@ -578,9 +596,18 @@
   transform: scale(0.97);
 }
 
+.hojas-ruta-confirm-bar button:hover:not(:disabled) {
+  border-color: #013371;
+  background: #013371;
+  color: white;
+}
+
 .hojas-ruta-confirm-bar button:disabled {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 1;
 }
 
 .hojas-ruta-status-row {
@@ -897,13 +924,48 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-height: 0;
 }
 
 .hojas-ruta-stage-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.hojas-ruta-stage-grid > .pulso-panel {
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+.hojas-ruta-stage-grid > .pulso-panel:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.hojas-ruta-stage-grid > .pulso-panel:nth-child(2) .hojas-ruta-selected-list {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+}
+
+.hojas-ruta-stage-grid.is-population {
+  align-items: stretch;
+}
+
+.hojas-ruta-stage-grid.is-population > .pulso-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.hojas-ruta-stage-grid.is-population > .pulso-panel:nth-child(2) .hojas-ruta-selected-list {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
 }
 
 .hojas-ruta-form-grid {
@@ -3056,6 +3118,82 @@
   gap: 12px;
 }
 
+.hojas-ruta-route-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #d9e6e2;
+  border-radius: 8px;
+  background: #fbfefd;
+}
+
+.hojas-ruta-route-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(260px, 1.3fr) minmax(120px, 0.55fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.hojas-ruta-route-jump-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hojas-ruta-route-jump-group > span {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.hojas-ruta-route-jump-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.hojas-ruta-route-jump-options button {
+  display: flex;
+  min-width: 0;
+  min-height: 40px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  padding: 6px 8px;
+  border: 1px solid #d5e0e8;
+  border-radius: 7px;
+  background: white;
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.hojas-ruta-route-jump-options button.is-active {
+  border-color: #0f766e;
+  background: #ecfdf5;
+  color: #064e3b;
+}
+
+.hojas-ruta-route-jump-options strong,
+.hojas-ruta-route-jump-options small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hojas-ruta-route-jump-options strong {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.hojas-ruta-route-jump-options small {
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 650;
+}
+
 .hojas-ruta-replacement-panel {
   display: flex;
   flex-direction: column;
@@ -3071,6 +3209,14 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hojas-ruta-replacement-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
@@ -3103,6 +3249,20 @@
   color: var(--pulso-text);
   font-size: 13px;
   font-weight: 750;
+  padding: 0 9px;
+}
+
+.hojas-ruta-replacement-grid strong {
+  width: 100%;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(13, 148, 136, 0.28);
+  border-radius: 7px;
+  background: rgba(240, 253, 250, 0.88);
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 850;
   padding: 0 9px;
 }
 
@@ -3326,6 +3486,10 @@
     grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 1fr));
   }
 
+  .hojas-ruta-route-controls {
+    grid-template-columns: 1fr;
+  }
+
   .hojas-ruta-delivery-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3369,6 +3533,10 @@
   }
 
   .hojas-ruta-random-options {
+    grid-template-columns: 1fr;
+  }
+
+  .hojas-ruta-route-jump-options {
     grid-template-columns: 1fr;
   }
 }

@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import * as Lucide from "lucide-react";
 import {
   ArrowRight, CheckCircle2, Database, FileSpreadsheet,
-  RotateCcw, Sparkles, Trash2, Upload,
+  RotateCcw, Trash2, Upload,
 } from "lucide-react";
+import { IconHint } from "../../lib/icons";
 import {
   apiCargaData,
   apiCargaInstrumento,
@@ -25,7 +26,7 @@ import {
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Panel } from "../../components/Panel";
-import { PageHeader } from "../../components/PageHeader";
+import { PageFrame } from "../../components/PageFrame";
 import { LoadingBlock, ErrorBlock, EmptyState, SectionEyebrow } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import SeccionesPanel from "./SeccionesPanel";
@@ -261,72 +262,64 @@ export default function CargaPage() {
   }
 
   return (
-    <section>
-      <PageHeader
-        title="Fase 1 — Carga de insumos"
-        lead="Sube un XLSForm + la base de datos, o arranca con uno de nuestros datasets de ejemplo. Cuando ambos estén cargados, podrás pasar a Validación."
-        meta={
-          allReady ? (
-            <SaveStatusIndicator state="saved" variant="badge" savedLabel="Insumos listos" />
-          ) : hasXlsform || hasData ? (
-            <SaveStatusIndicator state="dirty" variant="badge" />
-          ) : undefined
-        }
-      />
-
-      {/* Toggle del modo de estudio — reemplaza el botón "+ Agregar
-          otra base" con un switch explícito. Visible siempre que el
-          usuario tenga algo cargado (single o multi). Cuando lo activa
-          por primera vez, el backend convierte los archivos a multi-
-          base con auto-nombre; al apagarlo, degrada a single-base si
-          queda 1 sola base. */}
-      <MultiBaseToggle
-        on={isMultiBase}
-        canTurnOff={isMultiBase && (state?.n_bases ?? 0) <= 1}
-        bases={state?.n_bases ?? 0}
-        disabled={!!busy}
-        onTurnOn={async () => {
-          setError("");
-          setBusy("Activando modo de varias bases…");
-          try {
-            if (hasXlsform && hasData) {
-              // Hay archivos single-base — los promovemos a base_1.
-              await apiEstudioFromSession();
-              const p = await apiEstudioGet();
-              setEstudio(p);
-              setAutoOpenAddBase(true);
-            } else {
-              // Todavía no hay archivos — creamos un estudio vacío.
-              // El BasesPanel renderiza con su form "Agregar base"
-              // listo para que el usuario suba su primera base.
-              const p = await apiEstudioInit();
-              setEstudio(p);
-              setAutoOpenAddBase(true);
+    <PageFrame
+      title="Fase 1 - Carga de insumos"
+      lead="Sube un XLSForm y la base de datos, o arranca con un dataset de ejemplo."
+      meta={
+        allReady ? (
+          <SaveStatusIndicator state="saved" variant="badge" savedLabel="Insumos listos" />
+        ) : hasXlsform || hasData ? (
+          <SaveStatusIndicator state="dirty" variant="badge" />
+        ) : undefined
+      }
+      toolbar={
+        <MultiBaseToggle
+          on={isMultiBase}
+          canTurnOff={isMultiBase && (state?.n_bases ?? 0) <= 1}
+          bases={state?.n_bases ?? 0}
+          disabled={!!busy}
+          onTurnOn={async () => {
+            setError("");
+            setBusy("Activando modo de varias bases…");
+            try {
+              if (hasXlsform && hasData) {
+                // Hay archivos single-base — los promovemos a base_1.
+                await apiEstudioFromSession();
+                const p = await apiEstudioGet();
+                setEstudio(p);
+                setAutoOpenAddBase(true);
+              } else {
+                // Todavía no hay archivos — creamos un estudio vacío.
+                // El BasesPanel renderiza con su form "Agregar base"
+                // listo para que el usuario suba su primera base.
+                const p = await apiEstudioInit();
+                setEstudio(p);
+                setAutoOpenAddBase(true);
+              }
+              await refresh();
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy("");
             }
-            await refresh();
-          } catch (e) {
-            setError((e as Error).message);
-          } finally {
-            setBusy("");
-          }
-        }}
-        onTurnOff={async () => {
-          setError("");
-          setBusy("Volviendo a una sola base…");
-          try {
-            await apiEstudioDowngradeToSingle();
-            setEstudio(null);
-            setAutoOpenAddBase(false);
-            await refresh();
-          } catch (e) {
-            setError((e as Error).message);
-          } finally {
-            setBusy("");
-          }
-        }}
-      />
-
-
+          }}
+          onTurnOff={async () => {
+            setError("");
+            setBusy("Volviendo a una sola base…");
+            try {
+              await apiEstudioDowngradeToSingle();
+              setEstudio(null);
+              setAutoOpenAddBase(false);
+              await refresh();
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy("");
+            }
+          }}
+        />
+      }
+    >
       {/* Modo multi-base: BasesPanel reemplaza los UploadCards.
           Cada base es un par (XLSForm + data) con nombre único. El
           usuario puede agregar, quitar, renombrar y volver a la carga
@@ -350,21 +343,15 @@ export default function CargaPage() {
           BasesPanel ya cubre la carga de insumos. */}
       {!isMultiBase && (
       <>
-      <section style={{ marginBottom: 28 }}>
-        <div style={{ marginBottom: 14 }}>
+      <section className="pulso-upload-section">
+        <div className="pulso-upload-section-head">
           <SectionEyebrow
             label="Tus dos insumos"
             hint="Para generar el reporte, Prosecnur necesita estas dos piezas. Cada una explica una parte del estudio — el XLSForm el 'qué se preguntó' y la base de datos el 'qué respondieron'."
           />
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
-            gap: 16,
-          }}
-        >
+        <div className="pulso-upload-grid">
           <UploadCard
             kind="xlsform"
             icon={FileSpreadsheet}
@@ -384,6 +371,9 @@ export default function CargaPage() {
             resumen={instrumento && (
               <>
                 <ResumenStat label="Preguntas" value={instrumento.n_preguntas} />
+                {(instrumento.n_calculos ?? 0) > 0 && (
+                  <ResumenStat label="Cálculos" value={instrumento.n_calculos ?? 0} />
+                )}
                 <ResumenStat label="Secciones" value={instrumento.n_secciones} />
                 <ResumenStat label="Listas de opciones" value={instrumento.n_listas_opciones} />
               </>
@@ -413,7 +403,7 @@ export default function CargaPage() {
                 <ResumenStat label="Filas" value={dataPreview.n_filas} />
                 <ResumenStat label="Columnas" value={dataPreview.n_columnas} />
                 {dataPreview.normalizacion?.applied && (
-                  <div style={{ marginTop: 6, fontSize: 11, color: "var(--pulso-primary)", fontWeight: 600 }}>
+                  <div className="pulso-upload-normalizacion">
                     Nombres adaptados al XLSForm · {dataPreview.normalizacion.aliases} alias
                     {dataPreview.normalizacion.select_multiple > 0
                       ? ` · ${dataPreview.normalizacion.select_multiple} select_multiple reconstruido(s)`
@@ -424,23 +414,17 @@ export default function CargaPage() {
                   </div>
                 )}
                 {dataPreview.columnas.length > 0 && (
-                  <details style={{ marginTop: 6, fontSize: 11 }}>
-                    <summary style={{ cursor: "pointer", color: "var(--pulso-primary)", fontWeight: 600 }}>
+                  <details className="pulso-column-details">
+                    <summary>
                       Ver columnas ({dataPreview.columnas.length})
                     </summary>
-                    <ul
-                      style={{
-                        maxHeight: 180, overflow: "auto",
-                        margin: "6px 0 0", padding: "0 0 0 18px",
-                        fontSize: 11, lineHeight: 1.5,
-                      }}
-                    >
+                    <ul>
                       {dataPreview.columnas.map((c, i) => (
                         <li key={i}>
-                          <code style={{ fontFamily: "ui-monospace, monospace" }}>{c.nombre}</code>{" "}
-                          <em style={{ color: "var(--pulso-text-soft)" }}>({c.tipo})</em>
+                          <code>{c.nombre}</code>{" "}
+                          <em>({c.tipo})</em>
                           {c.origen === "extra" && (
-                            <span style={{ color: "var(--pulso-text-soft)", marginLeft: 4 }}>extra</span>
+                            <span className="pulso-column-extra">extra</span>
                           )}
                         </li>
                       ))}
@@ -467,28 +451,13 @@ export default function CargaPage() {
           deshabilitado para señalar que cambiar de demo requiere
           descargar primero el actual. */}
       {(demosLoading || demos.length > 0) && (
-        <section
-          style={{
-            marginBottom: 20,
-            padding: "12px 14px",
-            background: "var(--pulso-surface-2)",
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 10,
-          }}
-        >
-          <div style={{
-            display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-            marginBottom: demosLoading ? 0 : 10,
-          }}>
-            <Sparkles size={13} color="var(--pulso-text-soft)" aria-hidden="true" />
-            <span style={{
-              fontSize: 10, fontWeight: 700,
-              textTransform: "uppercase", letterSpacing: 0.5,
-              color: "var(--pulso-text-soft)",
-            }}>
+        <section className={`pulso-demo-section${demosLoading ? " is-loading" : ""}`}>
+          <div className="pulso-demo-header">
+            <IconHint size={13} className="pulso-demo-header-icon" aria-hidden="true" />
+            <span className="pulso-demo-eyebrow">
               {activeDemo ? "Datos de ejemplo cargados" : "¿Sin datos propios? Explora con un ejemplo"}
             </span>
-            <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+            <span className="pulso-demo-copy">
               {activeDemo
                 ? <>Estás trabajando con <strong>{activeDemo.titulo_humano}</strong>. Si quieres cambiar, primero quítalo.</>
                 : "Cargamos XLSForm + base de datos de un estudio real para que veas el flujo completo."}
@@ -496,13 +465,7 @@ export default function CargaPage() {
           </div>
 
           {demosLoading ? null : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 8,
-              }}
-            >
+            <div className="pulso-demo-grid">
               {demos.map((d) => {
                 const isActive = activeDemo?.name === d.name;
                 const isOtherActive = !!activeDemo && !isActive;
@@ -535,8 +498,8 @@ export default function CargaPage() {
           </Panel>
           <Panel
             eyebrow="Instrumento"
-            title="Mapa de preguntas"
-            hint="Cada celda es una pregunta. Los chips indican las reglas declaradas en el XLSForm."
+            title="Mapa del instrumento"
+            hint="Distingue preguntas respondidas, variables calculadas y reglas declaradas en el XLSForm."
           >
             <PreguntasPanel preguntas={estructura.preguntas} secciones={estructura.secciones} />
           </Panel>
@@ -545,12 +508,12 @@ export default function CargaPage() {
 
       {/* Feedback inferior — loading + errores */}
       {busy && (
-        <div style={{ marginTop: 16 }}>
+        <div className="pulso-feedback-stack">
           <LoadingBlock variant="inline" label={busy} />
         </div>
       )}
       {error && (
-        <div style={{ marginTop: 16 }}>
+        <div className="pulso-feedback-stack">
           <ErrorBlock label="No se pudo completar la carga" detail={error} />
         </div>
       )}
@@ -559,7 +522,7 @@ export default function CargaPage() {
       {allReady && !busy && !error && (
         <ContinuarCTA />
       )}
-    </section>
+    </PageFrame>
   );
 }
 
@@ -584,36 +547,16 @@ function DemoChip({
 }) {
   const Icon = resolveLucideIcon(demo.icono_ui);
   const multiBase = demo.n_bases > 1;
-
-  // Estilos del container según estado: activo > hoverable > deshabilitado.
-  const baseBg = isActive ? "var(--pulso-primary-soft)" : "white";
-  const baseBorder = isActive ? "var(--pulso-primary)" : "var(--pulso-border)";
+  const className = [
+    "pulso-demo-chip",
+    isActive ? "is-active" : "",
+    !isActive && isDisabled ? "is-disabled" : "",
+  ].filter(Boolean).join(" ");
 
   return (
-    <div
-      style={{
-        display: "flex", alignItems: "center", gap: 8,
-        padding: "8px 10px", borderRadius: 8,
-        border: `1px solid ${baseBorder}`,
-        background: baseBg,
-        boxShadow: isActive ? "0 0 0 3px var(--pulso-primary-ring)" : "none",
-        opacity: !isActive && isDisabled ? 0.45 : 1,
-        transition: "border-color 120ms ease, background 120ms ease, box-shadow 120ms ease",
-        minWidth: 0,
-      }}
-    >
+    <div className={className}>
       {/* Icon — pasa a check cuando está activo */}
-      <span
-        aria-hidden="true"
-        style={{
-          width: 26, height: 26, borderRadius: 6,
-          background: isActive ? "white" : "var(--pulso-surface-2)",
-          color: isActive ? "var(--pulso-primary)" : "var(--pulso-primary)",
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          border: isActive ? "1px solid var(--pulso-primary-border)" : "none",
-          flexShrink: 0,
-        }}
-      >
+      <span aria-hidden="true" className="pulso-demo-chip-icon">
         {isLoading ? (
           <Lucide.Loader2 size={13} className="pulso-spin" />
         ) : isActive ? (
@@ -631,30 +574,12 @@ function DemoChip({
         onClick={isActive ? undefined : onLoad}
         disabled={isActive || isDisabled || isLoading}
         title={demo.descripcion}
-        style={{
-          flex: 1, minWidth: 0,
-          display: "flex", flexDirection: "column", gap: 1,
-          padding: 0, border: "none", background: "transparent",
-          textAlign: "left",
-          cursor: isActive ? "default" : isDisabled ? "not-allowed" : "pointer",
-          color: "inherit",
-        }}
+        className="pulso-demo-chip-body"
       >
-        <span
-          style={{
-            fontSize: 12, fontWeight: 600,
-            color: isActive ? "var(--pulso-primary)" : "var(--pulso-text)",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          }}
-        >
+        <span className="pulso-demo-chip-title">
           {demo.titulo_humano}
         </span>
-        <span
-          style={{
-            fontSize: 10, color: "var(--pulso-text-soft)",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          }}
-        >
+        <span className="pulso-demo-chip-meta">
           {isActive ? "Cargado" : demo.etiqueta_estudio}
           {multiBase && ` · ${demo.n_bases} bases`}
         </span>
@@ -667,35 +592,14 @@ function DemoChip({
           onClick={onRemove}
           title="Quitar este demo"
           aria-label={`Quitar ${demo.titulo_humano}`}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            fontSize: 10, fontWeight: 600,
-            padding: "3px 8px", borderRadius: 5,
-            border: "1px solid var(--pulso-primary-border)",
-            background: "white",
-            color: "var(--pulso-primary)",
-            cursor: "pointer",
-            flexShrink: 0,
-            transition: "border-color 120ms ease, background 120ms ease, color 120ms ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--pulso-danger-border)";
-            e.currentTarget.style.background = "var(--pulso-danger-bg)";
-            e.currentTarget.style.color = "var(--pulso-danger-fg)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "var(--pulso-primary-border)";
-            e.currentTarget.style.background = "white";
-            e.currentTarget.style.color = "var(--pulso-primary)";
-          }}
+          className="pulso-demo-chip-remove"
         >
           <RotateCcw size={10} /> Quitar
         </button>
       ) : (
         <ArrowRight
           size={12}
-          color="var(--pulso-text-soft)"
-          style={{ flexShrink: 0, opacity: isDisabled ? 0.3 : 1 }}
+          className="pulso-demo-chip-arrow"
         />
       )}
     </div>
@@ -726,43 +630,17 @@ function UploadCard({
 }) {
   const [dragOver, setDragOver] = useState(false);
   return (
-    <div
-      style={{
-        display: "flex", flexDirection: "column", gap: 16,
-        padding: "22px 24px", borderRadius: 12,
-        border: done ? "1px solid var(--pulso-success-border)" : "1px solid var(--pulso-border)",
-        background: done ? "var(--pulso-success-bg)" : "white",
-        boxShadow: done ? "none" : "var(--pulso-shadow-low)",
-        transition: "border-color 120ms ease, background 120ms ease",
-      }}
-    >
+    <div className={`pulso-upload-card${done ? " is-done" : ""}`}>
       {/* Header del insumo */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <span
-          aria-hidden="true"
-          style={{
-            width: 44, height: 44, borderRadius: 10,
-            background: done ? "white" : "var(--pulso-primary-soft)",
-            color: done ? "var(--pulso-success-fg)" : "var(--pulso-primary)",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            border: done
-              ? "1px solid var(--pulso-success-border)"
-              : "1px solid var(--pulso-primary-border)",
-            flexShrink: 0,
-          }}
-        >
+      <div className="pulso-upload-card-head">
+        <span aria-hidden="true" className="pulso-upload-card-icon">
           {done ? <CheckCircle2 size={22} /> : <Icon size={22} />}
         </span>
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, gap: 3 }}>
-          <h3
-            style={{
-              margin: 0, fontSize: 16, fontWeight: 700,
-              color: "var(--pulso-text)", letterSpacing: -0.2, lineHeight: 1.25,
-            }}
-          >
+        <div className="pulso-upload-card-copy">
+          <h3 className="pulso-upload-card-title">
             {title}
           </h3>
-          <span style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+          <span className="pulso-upload-card-hint">
             {hint}
           </span>
         </div>
@@ -774,27 +652,7 @@ function UploadCard({
             disabled={busy}
             title={`Quitar ${kind === "xlsform" ? "XLSForm" : "base de datos"}`}
             aria-label={`Quitar ${kind === "xlsform" ? "XLSForm" : "base de datos"}`}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              fontSize: 11, padding: "5px 9px",
-              border: "1px solid var(--pulso-border)",
-              borderRadius: 6, background: "white",
-              color: "var(--pulso-text-soft)",
-              cursor: busy ? "wait" : "pointer",
-              flexShrink: 0,
-              transition: "border-color 120ms ease, color 120ms ease, background 120ms ease",
-            }}
-            onMouseEnter={(e) => {
-              if (busy) return;
-              e.currentTarget.style.borderColor = "var(--pulso-danger-border)";
-              e.currentTarget.style.color = "var(--pulso-danger-fg)";
-              e.currentTarget.style.background = "var(--pulso-danger-bg)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--pulso-border)";
-              e.currentTarget.style.color = "var(--pulso-text-soft)";
-              e.currentTarget.style.background = "white";
-            }}
+            className="pulso-upload-remove"
           >
             <Trash2 size={11} /> Quitar
           </button>
@@ -802,16 +660,7 @@ function UploadCard({
       </div>
 
       {/* Qué es este archivo — explicación clara del concepto */}
-      <div
-        style={{
-          fontSize: 11, lineHeight: 1.6,
-          color: "var(--pulso-text-soft)",
-          padding: "10px 12px",
-          background: "var(--pulso-surface-2)",
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 7,
-        }}
-      >
+      <div className="pulso-upload-note">
         {whatIs}
       </div>
 
@@ -824,29 +673,15 @@ function UploadCard({
           setDragOver(false);
           onPick(e.dataTransfer.files?.[0]);
         }}
-        style={{
-          padding: "20px 14px", borderRadius: 9,
-          border: `2px dashed ${dragOver ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-          background: dragOver ? "var(--pulso-primary-soft)" : "var(--pulso-surface)",
-          cursor: "pointer",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-          textAlign: "center",
-          transition: "background 120ms ease, border-color 120ms ease",
-        }}
+        className={`pulso-upload-dropzone${dragOver ? " is-drag-over" : ""}`}
       >
-        <Upload size={22} color={dragOver ? "var(--pulso-primary)" : "var(--pulso-text-soft)"} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--pulso-text)" }}>
+        <Upload size={22} className="pulso-upload-dropzone-icon" />
+        <span className="pulso-upload-dropzone-title">
           {done
             ? `Reemplazar ${kind === "xlsform" ? "XLSForm" : "base de datos"}`
             : "Arrastra o haz click para subir"}
         </span>
-        <span
-          style={{
-            fontSize: 11, fontWeight: 500,
-            color: "var(--pulso-text-soft)",
-            fontFamily: "ui-monospace, monospace",
-          }}
-        >
+        <span className="pulso-upload-dropzone-formats">
           {acceptLabel}
         </span>
         <input
@@ -858,7 +693,7 @@ function UploadCard({
       </label>
 
       {resumen && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div className="pulso-upload-summary">
           {resumen}
         </div>
       )}
@@ -868,20 +703,9 @@ function UploadCard({
 
 function ResumenStat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div
-      style={{
-        display: "flex", alignItems: "baseline", gap: 8,
-        fontSize: 12, color: "var(--pulso-text-soft)",
-      }}
-    >
-      <span style={{ minWidth: 110 }}>{label}</span>
-      <strong
-        style={{
-          color: "var(--pulso-text)",
-          fontFamily: "ui-monospace, monospace",
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
+    <div className="pulso-resumen-stat">
+      <span>{label}</span>
+      <strong>
         {value}
       </strong>
     </div>
@@ -893,46 +717,21 @@ function ResumenStat({ label, value }: { label: string; value: number | string }
 // =====================================================================
 function ContinuarCTA() {
   return (
-    <div
-      style={{
-        marginTop: 20,
-        padding: "14px 18px",
-        borderRadius: 10,
-        background: "var(--pulso-success-bg)",
-        border: "1px solid var(--pulso-success-border)",
-        display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap",
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          width: 32, height: 32, borderRadius: 8,
-          background: "white",
-          color: "var(--pulso-success-fg)",
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          border: "1px solid var(--pulso-success-border)",
-          flexShrink: 0,
-        }}
-      >
+    <div className="pulso-continue-cta">
+      <span aria-hidden="true" className="pulso-continue-cta-icon">
         <CheckCircle2 size={17} />
       </span>
-      <div style={{ flex: 1, minWidth: 200 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-success-fg)" }}>
+      <div className="pulso-continue-cta-copy">
+        <div className="pulso-continue-cta-title">
           Insumos cargados
         </div>
-        <div style={{ fontSize: 11, color: "var(--pulso-success-fg)", opacity: 0.85, marginTop: 2, lineHeight: 1.4 }}>
+        <div className="pulso-continue-cta-note">
           Ya puedes auditar la data en Validación o pasar directo a Codificación si no necesitas chequear reglas.
         </div>
       </div>
       <a
         href="/validacion"
-        className="pulso-primary"
-        style={{
-          textDecoration: "none",
-          fontSize: 12, fontWeight: 600,
-          padding: "7px 14px",
-          display: "inline-flex", alignItems: "center", gap: 5,
-        }}
+        className="pulso-continue-cta-link"
       >
         Ir a Validación <ArrowRight size={13} />
       </a>
@@ -982,32 +781,16 @@ function MultiBaseToggle({
     <div
       role="group"
       aria-labelledby="multibase-toggle-label"
-      style={{
-        marginBottom: 18,
-        display: "flex", alignItems: "center", gap: 14,
-        padding: "12px 16px", borderRadius: 10,
-        border: "1px solid var(--pulso-border)",
-        background: on ? "var(--pulso-primary-soft)" : "var(--pulso-surface-2)",
-        transition: "background 160ms ease, border-color 160ms ease",
-        flexWrap: "wrap",
-      }}
+      className={`pulso-multibase-toggle${on ? " is-on" : ""}${locked ? " is-locked" : ""}`}
     >
-      <div style={{ flex: 1, minWidth: 220 }}>
+      <div className="pulso-multibase-toggle-copy">
         <div
           id="multibase-toggle-label"
-          style={{
-            fontSize: 13, fontWeight: 700,
-            color: on ? "var(--pulso-primary)" : "var(--pulso-text)",
-          }}
+          className="pulso-multibase-toggle-title"
         >
           El estudio tiene más de una base
         </div>
-        <div
-          style={{
-            fontSize: 11, color: "var(--pulso-text-soft)",
-            lineHeight: 1.4, marginTop: 2,
-          }}
-        >
+        <div className="pulso-multibase-toggle-hint">
           {hint}
         </div>
       </div>
@@ -1020,35 +803,9 @@ function MultiBaseToggle({
         onClick={handleClick}
         disabled={effectiveDisabled}
         title={locked ? "Quita las bases extra primero para apagarlo" : undefined}
-        style={{
-          position: "relative",
-          width: 44, height: 24,
-          borderRadius: 999,
-          border: "1px solid",
-          // OFF: fondo gris medio (var(--pulso-text-soft) atenuado vía
-          // token --pulso-neutral), contraste claro contra el bg del
-          // contenedor (surface-2 o primary-soft).
-          borderColor: on ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-          background: on ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-          cursor: effectiveDisabled ? "not-allowed" : "pointer",
-          opacity: disabled ? 0.55 : locked ? 0.75 : 1,
-          transition: "background 160ms ease, border-color 160ms ease",
-          flexShrink: 0,
-          padding: 0,
-        }}
+        className="pulso-switch"
       >
-        <span
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            top: 2, left: on ? 22 : 2,
-            width: 18, height: 18,
-            borderRadius: "50%",
-            background: "white",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
-            transition: "left 160ms ease",
-          }}
-        />
+        <span aria-hidden="true" className="pulso-switch-thumb" />
       </button>
     </div>
   );

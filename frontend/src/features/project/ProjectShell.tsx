@@ -47,19 +47,19 @@ export default function ProjectShell({ children }: { children: React.ReactNode }
   // analítica / gráficos / wizards mientras los autosaves re-hidrataban.
   useStoreResetOnSessionChange();
 
-  // El modal aparece cuando NO hay proyecto activo. Sin modo efímero: el
-  // usuario debe crear o abrir un .pulso para usar la app. Queda cerrado
-  // mientras hay proyecto; reabre con "Cambiar de proyecto".
-  const [showStart, setShowStart] = useState(true);
+  // El StartModal ya NO se muestra automáticamente al inicio sin proyecto —
+  // el HomePage tiene paneles inline para crear/abrir y listar recientes.
+  // El modal sigue disponible vía `openStartModal()` (por ej. desde el
+  // ProjectIndicator o comandos del menú nativo).
+  const [showStart, setShowStart] = useState(false);
 
   const openStartModal = useCallback(() => setShowStart(true), []);
 
-  // Sincronizar visibilidad del modal con el estado del proyecto. Si el
-  // backend dice que hay proyecto, ocultar; si no, mostrar (ej. tras un
-  // close, o al arranque mientras se rehidrata).
+  // Si el proyecto se abre exitosamente desde otro flujo (ej. menú nativo,
+  // bootstrap del .pulso preload), aseguramos que el modal quede cerrado.
   useEffect(() => {
-    setShowStart(!project.status.has_project);
-  }, [project.status.has_project]);
+    if (project.status.has_project && showStart) setShowStart(false);
+  }, [project.status.has_project, showStart]);
 
   // Suscribir a comandos del menú nativo (Cmd+S, Cmd+O, etc.)
   useEffect(() => {

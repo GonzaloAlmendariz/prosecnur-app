@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, RotateCcw, PencilLine, Sparkles, X } from "lucide-react";
+import { Search, RotateCcw, PencilLine, X } from "lucide-react";
+import { IconAI } from "../../lib/icons";
 import {
   apiAnaliticaBasesMetadata,
   BasesMetadataVariable,
@@ -361,7 +362,7 @@ function MeasureSelector({
           </>
         ) : (
           <>
-            <Sparkles size={9} />
+            <IconAI size={9} />
             <span>inferido</span>
           </>
         )}

@@ -29,11 +29,11 @@ import {
   QrCode,
   Repeat,
   Sigma,
-  Sparkles,
   Type,
   Video,
   HelpCircle,
 } from "lucide-react";
+import { IconAI } from "../../../lib/icons";
 
 /**
  * Icono "conditional rules" — pieza con dos ramas que sale de un nodo común.
@@ -128,7 +128,7 @@ export function iconForType(baseType: string): LucideIcon {
     case "today":
     case "deviceid":
     case "username":
-      return Sparkles;
+      return IconAI;
 
     case "begin_group":
     case "end_group":

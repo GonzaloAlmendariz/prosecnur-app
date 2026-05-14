@@ -16,7 +16,8 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { useMemo } from "react";
-import { ChevronRight, Star, AlertCircle, AlertTriangle, Info } from "lucide-react";
+import { ChevronRight, AlertCircle, AlertTriangle, Info } from "lucide-react";
+import { IconCustom } from "../../../lib/icons";
 import type { ReglaLike, RoleKey } from "../narrative";
 import {
   ROLE_META,
@@ -450,7 +451,7 @@ function SourceBadge({ fuente }: { fuente: string }) {
         textTransform: "uppercase",
       }}
     >
-      {isCustom && <Star size={10} />}
+      {isCustom && <IconCustom size={10} />}
       {isCustom ? "Personalizada" : "Instrumento"}
     </span>
   );

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { PointerEvent as ReactPointerEvent, SetStateAction } from "react";
 import { BarChart3, CheckCircle2, CircleHelp, Download, FileSpreadsheet, FileText, Layers, Loader2, MapPinned, Plus, Play, Search, Shuffle, Target, Trash2 } from "lucide-react";
 import {
   apiHojasRutaBlockMap,
@@ -30,7 +30,9 @@ import {
   HojasRutaPopulationExportResult,
   HojasRutaRandomPdfResult,
   HojasRutaRandomPreference,
+  HojasRutaRouteJumpMode,
   HojasRutaRouteSnapshot,
+  HojasRutaRouteStartCorner,
   HojasRutaSampleSizeConfig,
   HojasRutaSampleSizePreview,
   HojasRutaSamplePreview,
@@ -47,10 +49,10 @@ import {
 } from "../../api/client";
 import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
-import { PageHeader } from "../../components/PageHeader";
+import { PageFrame } from "../../components/PageFrame";
 import { Panel } from "../../components/Panel";
 import { EmptyState, LoadingBlock } from "../../components/States";
-import { TabMeta, TabStrip } from "../../components/TabStrip";
+import { StepMeta, Stepper } from "../../components/Stepper";
 import { useSession } from "../../lib/SessionContext";
 import districtCoverage from "./limaDistrictCoverage.json";
 import {
@@ -234,6 +236,20 @@ const randomPreferenceOptions: Array<{ key: HojasRutaRandomPreference; label: st
   { key: "urban", label: "Urbana compacta", title: "Favorece zonas densas y menos aisladas" },
 ];
 
+const routeStartCornerOptions: Array<{ key: HojasRutaRouteStartCorner; label: string }> = [
+  { key: "auto", label: "Automática" },
+  { key: "1", label: "1" },
+  { key: "2", label: "2" },
+  { key: "3", label: "3" },
+  { key: "4", label: "4" },
+];
+
+const routeJumpModeOptions: Array<{ key: HojasRutaRouteJumpMode; label: string; hint: string }> = [
+  { key: "auto", label: "Automática", hint: "Calculada por manzana" },
+  { key: "off", label: "Sin salto", hint: "Barrido desde 1" },
+  { key: "manual", label: "Manual", hint: "Mismo salto para todas" },
+];
+
 const fieldStyle: React.CSSProperties = {
   width: "100%",
   border: "1px solid var(--pulso-border)",
@@ -275,10 +291,82 @@ function formatRate(value: number | null | undefined, digits = 1) {
   }).format(Number(value));
 }
 
+function normalizeAgeMax(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.toUpperCase() === "NA" || trimmed.toLowerCase() === "null" || trimmed.toLowerCase() === "nan") {
+      return null;
+    }
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return Math.max(0, Math.round(parsed));
+}
+
+function normalizeAgeMin(value: unknown, fallback = 18) {
+  return normalizeAgeMax(value) ?? fallback;
+}
+
+function normalizeAgeRange(range: HojasRutaAgeRange): HojasRutaAgeRange {
+  const min = normalizeAgeMin(range.min);
+  const parsedMax = normalizeAgeMax(range.max);
+  const max = parsedMax == null ? null : Math.max(min, parsedMax);
+  const label = range.label || (max == null ? `${min}+` : `${min}-${max}`);
+  return {
+    ...range,
+    id: range.id || label.replace(/[^0-9A-Za-z]+/g, "_").replace(/^_|_$/g, ""),
+    label,
+    min,
+    max,
+  };
+}
+
+function normalizeRouteStartCorner(value: unknown): HojasRutaRouteStartCorner {
+  const raw = String(value ?? "auto").toLowerCase();
+  const normalized = {
+    noreste: "1",
+    sureste: "2",
+    suroeste: "3",
+    noroeste: "4",
+  }[raw] ?? raw;
+  return routeStartCornerOptions.some((option) => option.key === normalized)
+    ? normalized as HojasRutaRouteStartCorner
+    : "auto";
+}
+
+function normalizeRouteJumpMode(value: unknown): HojasRutaRouteJumpMode {
+  const normalized = String(value ?? "auto").toLowerCase();
+  if (normalized === "automatico" || normalized === "habilitado" || normalized === "enabled") return "auto";
+  if (normalized === "deshabilitado" || normalized === "disabled" || normalized === "sin_salto") return "off";
+  return routeJumpModeOptions.some((option) => option.key === normalized)
+    ? normalized as HojasRutaRouteJumpMode
+    : "auto";
+}
+
+function normalizeRouteJumpManual(value: unknown) {
+  const parsed = Math.round(Number(value ?? 1));
+  return Number.isFinite(parsed) ? Math.max(1, parsed) : 1;
+}
+
+function normalizeHojasRutaConfig(config: HojasRutaIntegratedConfig): HojasRutaIntegratedConfig {
+  return {
+    ...config,
+    age_ranges: (config.age_ranges ?? []).map(normalizeAgeRange),
+    route_start_corner: normalizeRouteStartCorner(config.route_start_corner),
+    route_jump_mode: normalizeRouteJumpMode(config.route_jump_mode),
+    route_jump_manual: normalizeRouteJumpManual(config.route_jump_manual),
+  };
+}
+
 function ageRangesSignature(config: HojasRutaIntegratedConfig | null | undefined) {
   if (!config) return "";
   const ranges = (config.age_ranges ?? [])
-    .map((range) => `${range.min}-${range.max ?? "plus"}`)
+    .map((range) => {
+      const min = normalizeAgeMin(range.min);
+      const max = normalizeAgeMax(range.max);
+      return `${min}-${max ?? "plus"}`;
+    })
     .join("|");
   const territorios = (config.territorios ?? []).join(",");
   return [
@@ -632,7 +720,7 @@ function FrameTechnicalDetails({ frame }: { frame: NonNullable<HojasRutaState["f
         <TechnicalDetailItem label="Cobertura" value={frame.coverage} />
         <TechnicalDetailItem label="NSE" value={frame.nse_data?.available ? "Disponible" : frame.nse_data?.message ?? "No disponible"} />
         <TechnicalDetailItem label="Cartografía de manzanas" value={frame.block_cartography?.ok ? cartographyModeLabel(frame.block_cartography.mode) : "Pendiente"} />
-        <TechnicalDetailItem label="Calles" value={frame.street_cartography?.ok ? "OSM local" : "Pendiente"} />
+        <TechnicalDetailItem label="Calles" value={frame.street_cartography?.ok ? "INEI 2017 + respaldo OSM" : "Pendiente"} />
         <TechnicalDetailItem label="Contexto" value={frame.context_cartography?.ok ? "Local + curado" : "Pendiente"} />
         <TechnicalDetailItem label="Checksum" value={frame.checksum ?? "Sin checksum"} />
       </div>
@@ -3184,16 +3272,22 @@ function AgeRangesEditor({
 }) {
   type DraftRange = { minText: string; maxText: string };
   const rangesSignature = ranges.map((r) => `${r.id}:${r.min}:${r.max ?? "plus"}`).join("|");
-  const [drafts, setDrafts] = useState<DraftRange[]>(() => ranges.map((r) => ({
-    minText: String(r.min),
-    maxText: r.max == null ? "" : String(r.max),
-  })));
+  const [drafts, setDrafts] = useState<DraftRange[]>(() => ranges.map((r) => {
+    const range = normalizeAgeRange(r);
+    return {
+      minText: String(range.min),
+      maxText: range.max == null ? "" : String(range.max),
+    };
+  }));
 
   useEffect(() => {
-    setDrafts(ranges.map((r) => ({
-      minText: String(r.min),
-      maxText: r.max == null ? "" : String(r.max),
-    })));
+    setDrafts(ranges.map((r) => {
+      const range = normalizeAgeRange(r);
+      return {
+        minText: String(range.min),
+        maxText: range.max == null ? "" : String(range.max),
+      };
+    }));
   }, [rangesSignature]);
 
   function parseAge(value: string) {
@@ -3238,7 +3332,8 @@ function AgeRangesEditor({
 
   function addRange() {
     const last = ranges[ranges.length - 1];
-    const min = last?.max != null ? Number(last.max) + 1 : Number(last?.min ?? 65) + 10;
+    const lastMax = normalizeAgeMax(last?.max);
+    const min = lastMax != null ? lastMax + 1 : normalizeAgeMin(last?.min, 65) + 10;
     onChange([...ranges, { id: `${min}_plus`, label: `${min}+`, min, max: null }]);
   }
 
@@ -3304,15 +3399,18 @@ function AgeRangesEditor({
 function AgeRangesReadOnly({ ranges }: { ranges: HojasRutaAgeRange[] }) {
   return (
     <div className="hojas-ruta-age-generated-list" aria-label="Rangos de edad calculados">
-      {ranges.map((range, index) => (
-        <div key={`${range.id}:${index}`} className="hojas-ruta-age-generated-row">
-          <div>
-            <strong>{range.label}</strong>
-            <span>Rango {index + 1}</span>
+      {ranges.map((rawRange, index) => {
+        const range = normalizeAgeRange(rawRange);
+        return (
+          <div key={`${range.id}:${index}`} className="hojas-ruta-age-generated-row">
+            <div>
+              <strong>{range.label}</strong>
+              <span>Rango {index + 1}</span>
+            </div>
+            <small>{range.max == null ? `${range.min} años a más` : `${range.min} a ${range.max} años`}</small>
           </div>
-          <small>{range.max == null ? `${range.min} años a más` : `${range.min} a ${range.max} años`}</small>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -4055,6 +4153,18 @@ function SampleSizeWorkbench({
   function setPercent(key: keyof HojasRutaSampleSizeConfig, value: string) {
     onSampleSizeChange({ [key]: Math.max(0, Number(value || 0)) / 100 } as Partial<HojasRutaSampleSizeConfig>);
   }
+  const districtMarginModeHelp = enforceFloor
+    ? "El margen distrital sube el N si hace falta; Prosecnur usa el mayor entre mínimo total y suma mínima distrital."
+    : "El margen distrital no sube el N; funciona como máximo permitido para marcar alertas por distrito.";
+  const districtMarginModeButtonStyle = (active: boolean): React.CSSProperties => ({
+    ...(active ? btnPrimary : btnSecondary),
+    alignItems: "flex-start",
+    flexDirection: "column",
+    gap: 3,
+    flex: "1 1 180px",
+    padding: "9px 10px",
+    textAlign: "left",
+  });
 
   return (
 	    <Panel title="Define la muestra" eyebrow="N, margen y campo">
@@ -4251,7 +4361,7 @@ function SampleSizeWorkbench({
 		                <SampleControl
                       label={<InlineHelp
                         label={isCalculatorMode
-                          ? enforceFloor ? "Margen por distrito requerido" : "Margen por distrito para alerta"
+                          ? enforceFloor ? "Margen distrital máximo requerido" : "Máximo permitido por distrito"
                           : "Margen por distrito para alerta"}
                         text={marginDistrictInputHelp}
                       />}
@@ -4273,6 +4383,38 @@ function SampleSizeWorkbench({
                   />
 	                </SampleControl>
 	              </div>
+                {isCalculatorMode ? (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <div
+                      className="hojas-ruta-action-row is-tight"
+                      role="radiogroup"
+                      aria-label="Uso del margen distrital"
+                      style={{ alignItems: "stretch" }}
+                    >
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={enforceFloor}
+                        style={districtMarginModeButtonStyle(enforceFloor)}
+                        onClick={() => onSampleSizeChange({ enforce_district_floor: true })}
+                      >
+                        <strong>Requisito de cálculo</strong>
+                        <span>Garantizar el margen por distrito.</span>
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={!enforceFloor}
+                        style={districtMarginModeButtonStyle(!enforceFloor)}
+                        onClick={() => onSampleSizeChange({ enforce_district_floor: false })}
+                      >
+                        <strong>Solo máximo permitido</strong>
+                        <span>No sube el N; solo alerta si se excede.</span>
+                      </button>
+                    </div>
+                    <p className="hojas-ruta-sample-note">{districtMarginModeHelp}</p>
+                  </div>
+                ) : null}
 	            </details>
 
 	            <details className={diagnosticDetailsClass} open={isCalculatorMode}>
@@ -4401,17 +4543,9 @@ function SampleSizeWorkbench({
                 ))}
               </div>
 	              {isCalculatorMode ? (
-                  <label className="hojas-ruta-checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={enforceFloor}
-                      onChange={(e) => onSampleSizeChange({ enforce_district_floor: e.target.checked })}
-                    />
-                    <span>
-                      Usar margen por distrito como requisito de cálculo.{" "}
-                      <em>Si lo apagas, Prosecnur calcula por margen total y solo diagnostica el margen distrital.</em>
-                    </span>
-                  </label>
+                  <p className="hojas-ruta-sample-note">
+                    El uso del margen distrital se define arriba, junto al umbral: puede ser requisito de cálculo o solo máximo permitido para alertas.
+                  </p>
                 ) : null}
 	            </div>
             ) : null}
@@ -4871,7 +5005,15 @@ function SampleSizeWorkbench({
 export default function HojasRutaPage() {
   const { sessionId } = useSession();
   const [state, setState] = useState<HojasRutaState | null>(null);
-  const [config, setConfig] = useState<HojasRutaIntegratedConfig | null>(null);
+  const [config, setConfigState] = useState<HojasRutaIntegratedConfig | null>(null);
+  const setConfig = useCallback((next: SetStateAction<HojasRutaIntegratedConfig | null>) => {
+    setConfigState((prev) => {
+      const resolved = typeof next === "function"
+        ? (next as (value: HojasRutaIntegratedConfig | null) => HojasRutaIntegratedConfig | null)(prev)
+        : next;
+      return resolved ? normalizeHojasRutaConfig(resolved) : resolved;
+    });
+  }, []);
   const [activeStage, setActiveStage] = useState<HojasRutaStage>("territorio");
   const [population, setPopulation] = useState<PopulationPlan | null>(null);
   const [populationExport, setPopulationExport] = useState<HojasRutaPopulationExportResult | null>(null);
@@ -4920,6 +5062,8 @@ export default function HojasRutaPage() {
         n_mode: s.integrated_config.n_mode ?? "total",
         n_por_distrito: s.integrated_config.n_por_distrito ?? {},
         replacement_routes_per_district: s.integrated_config.replacement_routes_per_district ?? {},
+        replacement_policy: s.integrated_config.replacement_policy ?? "paired_by_titular_zone",
+        replacements_per_titular: s.integrated_config.replacements_per_titular ?? 1,
         age_range_mode: s.integrated_config.age_range_mode ?? "manual",
         age_range_scope: s.integrated_config.age_range_scope ?? "selected",
         zone_allocation: s.integrated_config.zone_allocation ?? "proportional",
@@ -5031,7 +5175,8 @@ export default function HojasRutaPage() {
   const canPopulation = !!config && selectedTerritories.length > 0 && ageRangesConfirmed;
   const canQuota = !!config && effectiveQuotaN > 0 && selectedTerritories.length > 0 && !!population?.ok && !!sampleSizePreview && routeStatus.ok;
   const canSample = !!quota?.ok && !!config;
-  const canGenerate = !!sample?.ok && !jobId;
+  const hasBlockingSampleAlerts = Boolean(sample?.alerts?.some((alert) => alert.level === "error"));
+  const canGenerate = !!sample?.ok && !hasBlockingSampleAlerts && !jobId;
   const selectedBlocks = useMemo(() => sample?.blocks ?? [], [sample]);
   const replacementBlocks = useMemo(() => sample?.replacement_blocks ?? [], [sample]);
   const selectedBlockDistricts = useMemo(() => new Set(selectedBlocks.map((block) => block.ubigeo)).size, [selectedBlocks]);
@@ -5040,15 +5185,13 @@ export default function HojasRutaPage() {
   const selectedBlockAvgLoad = selectedBlocks.length
     ? (selectedBlocks.reduce((sum, block) => sum + Number(block.entrevistas || 0), 0) / selectedBlocks.length).toFixed(1)
     : "0.0";
-  const replacementRouteTotal = selectedTerritories.reduce(
-    (sum, ubigeo) => sum + Number(config?.replacement_routes_per_district?.[ubigeo] ?? 0),
-    0,
-  );
-  const uniformReplacementValue = selectedTerritories.length
-    ? selectedTerritories.every((ubigeo) => Number(config?.replacement_routes_per_district?.[ubigeo] ?? 0) === Number(config?.replacement_routes_per_district?.[selectedTerritories[0]] ?? 0))
-      ? Number(config?.replacement_routes_per_district?.[selectedTerritories[0]] ?? 0)
-      : ""
-    : 0;
+  const replacementsPerTitular = Number(config?.replacements_per_titular ?? 1);
+  const routeStartCorner = normalizeRouteStartCorner(config?.route_start_corner);
+  const routeJumpMode = normalizeRouteJumpMode(config?.route_jump_mode);
+  const routeJumpManual = normalizeRouteJumpManual(config?.route_jump_manual);
+  const replacementRouteTotal = sample
+    ? Number(sample.n_replacement_blocks ?? 0)
+    : selectedBlocks.length * replacementsPerTitular;
 
   useEffect(() => {
     if (!config || hydratingRef.current) return undefined;
@@ -5085,7 +5228,20 @@ export default function HojasRutaPage() {
     const invalidatesPopulation = ["territorios", "row_var", "subquota_var", "age_ranges", "age_range_mode", "age_range_scope"].some((key) => key in patch);
     const invalidatesSampleSize = invalidatesPopulation || ["n_objetivo", "n_mode", "n_por_distrito", "sample_size", "sample_size_mode", "entrevistas_por_manzana"].some((key) => key in patch);
     const invalidatesQuota = invalidatesPopulation || ["n_objetivo", "n_mode", "n_por_distrito", "sample_size_mode", "entrevistas_por_manzana"].some((key) => key in patch);
-    const invalidatesSample = invalidatesQuota || ["sampling_method", "measure_var", "seed", "max_per_manzana", "entrevistas_por_manzana", "zone_allocation", "replacement_routes_per_district"].some((key) => key in patch);
+    const invalidatesSample = invalidatesQuota || [
+      "sampling_method",
+      "measure_var",
+      "seed",
+      "max_per_manzana",
+      "entrevistas_por_manzana",
+      "zone_allocation",
+      "replacement_routes_per_district",
+      "replacement_policy",
+      "replacements_per_titular",
+      "route_start_corner",
+      "route_jump_mode",
+      "route_jump_manual",
+    ].some((key) => key in patch);
     if (invalidatesPopulation) {
       setPopulation(null);
       setPopulationExport(null);
@@ -5195,7 +5351,12 @@ export default function HojasRutaPage() {
       setRandomPdf(null);
       try {
         const saved = await apiHojasRutaPersistWorkspace(nextConfig, hojasRutaUiState);
-        const confirmedConfig = { ...saved.integrated_config, age_range_scope: saved.integrated_config.age_range_scope ?? scope };
+        const confirmedConfig = {
+          ...saved.integrated_config,
+          age_range_scope: saved.integrated_config.age_range_scope ?? scope,
+          replacement_policy: saved.integrated_config.replacement_policy ?? "paired_by_titular_zone",
+          replacements_per_titular: saved.integrated_config.replacements_per_titular ?? 1,
+        };
         setConfig(confirmedConfig);
         setAgeDraftMode(confirmedConfig.age_range_mode ?? ageDraftMode);
         setAgeDraftScope(confirmedConfig.age_range_scope ?? scope);
@@ -5466,6 +5627,8 @@ export default function HojasRutaPage() {
       ...snapshot.config,
       n_por_distrito: snapshot.config.n_por_distrito ?? {},
       replacement_routes_per_district: snapshot.config.replacement_routes_per_district ?? {},
+      replacement_policy: snapshot.config.replacement_policy ?? "paired_by_titular_zone",
+      replacements_per_titular: snapshot.config.replacements_per_titular ?? 1,
       sample_size: normalizeSampleSizeSettings(snapshot.config.sample_size),
     };
     setConfig(restoredConfig);
@@ -5639,24 +5802,6 @@ export default function HojasRutaPage() {
     patchConfig({ sample_size_mode: "external_district", n_mode: "por_distrito", n_por_distrito: next, n_objetivo: Math.max(1, total || config.n_objetivo) });
   }
 
-  function setReplacementRoutesForDistrict(ubigeo: string, value: number) {
-    if (!config) return;
-    const safe = Math.max(0, Math.round(Number.isFinite(value) ? value : 0));
-    const next = { ...(config.replacement_routes_per_district ?? {}) };
-    if (safe > 0) next[ubigeo] = safe;
-    else delete next[ubigeo];
-    patchConfig({ replacement_routes_per_district: next });
-  }
-
-  function setReplacementRoutesForAll(value: number) {
-    if (!config) return;
-    const safe = Math.max(0, Math.round(Number.isFinite(value) ? value : 0));
-    const next = safe > 0
-      ? Object.fromEntries(selectedTerritories.map((ubigeo) => [ubigeo, safe]))
-      : {};
-    patchConfig({ replacement_routes_per_district: next });
-  }
-
   if (loading || !config) return <LoadingBlock label="Cargando marco INEI 2017" />;
 
   const frame = state?.frame_meta;
@@ -5665,42 +5810,57 @@ export default function HojasRutaPage() {
   const selectedTerritoryRows = territories.filter((t) => selectedTerritories.includes(t.ubigeo));
   const selectedPopulation = selectedTerritoryRows.reduce((sum, t) => sum + Number(t.poblacion || 0), 0);
   const selectedManzanas = selectedTerritoryRows.reduce((sum, t) => sum + Number(t.manzanas || 0), 0);
-  const stageTabs: TabMeta<HojasRutaStage>[] = [
-    { key: "territorio", label: "Territorio", icon: MapPinned, desc: "Distritos y manzanas" },
+  const stageSteps: StepMeta<HojasRutaStage>[] = [
+    {
+      key: "territorio",
+      n: 1,
+      label: "Territorio",
+      icon: MapPinned,
+      hint: "Distritos y manzanas",
+      done: selectedTerritories.length > 0,
+    },
     {
       key: "poblacion",
+      n: 2,
       label: "Poblacion",
       icon: BarChart3,
-      desc: "Matriz INEI 2017",
+      hint: "Matriz INEI 2017",
+      done: !!population?.ok,
       disabled: selectedTerritories.length === 0,
       disabledReason: "Confirma al menos un distrito.",
     },
     {
       key: "muestra",
+      n: 3,
       label: "Muestra",
       icon: Target,
-      desc: "N y cuotas",
+      hint: "N y cuotas",
+      done: !!quota?.ok,
       disabled: !population?.ok,
       disabledReason: "Calcula primero la matriz poblacional.",
     },
     {
       key: "manzanas",
+      n: 4,
       label: "Manzanas",
       icon: Shuffle,
-      desc: "Seleccion de campo",
+      hint: "Seleccion de campo",
+      done: !!sample?.ok,
       disabled: !quota?.ok,
       disabledReason: "Calcula primero las cuotas.",
     },
     {
       key: "entrega",
+      n: 5,
       label: "Entrega",
       icon: FileText,
-      desc: "Revision y ZIP",
+      hint: "Revision y ZIP",
+      done: !!result,
       disabled: !sample?.ok,
       disabledReason: "Selecciona primero las manzanas.",
     },
   ];
-  const currentStage = stageTabs.some((tab) => tab.key === activeStage && !tab.disabled) ? activeStage : "territorio";
+  const currentStage = stageSteps.some((step) => step.key === activeStage && !step.disabled) ? activeStage : "territorio";
   const quotaAlerts = [...(quota?.alerts ?? []), ...(sample?.alerts ?? [])]
     .filter((a, i, arr) => arr.findIndex((x) => x.code === a.code && x.message === a.message) === i);
   const stageGuide = {
@@ -5732,27 +5892,57 @@ export default function HojasRutaPage() {
   } satisfies Record<HojasRutaStage, { title: string; copy: string; next: string }>;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <PageHeader
-        title="Hojas de ruta"
-        lead="Cuotas, seleccion de manzanas y fichas de campo desde un marco territorial local y trazable."
-        meta={(
-          <div className="hojas-ruta-header-summary" aria-label="Resumen del marco">
-            <HeaderSummaryPill label="Base" value={frame?.ok ? "Cargada" : "Pendiente"} />
-            <HeaderSummaryPill label="Distritos" value={formatNumber(selectedTerritories.length)} />
-            <HeaderSummaryPill label="Población" value={selectedPopulation > 0 ? formatNumber(selectedPopulation) : formatNumber(frame?.poblacion ?? 0)} />
-            <HeaderSummaryPill label="Manzanas" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame?.n_manzanas ?? 0)} />
-          </div>
-        )}
-      />
-
-      {error && <Alert kind="error">{error}</Alert>}
-      {frame?.pilot && (
-        <Alert kind="warn">
-          {frame.note}
-        </Alert>
+    <PageFrame
+      className="hojas-ruta-frame"
+      bodyMode={currentStage === "territorio" ? "fill" : "scroll"}
+      title="Hojas de ruta"
+      lead="Cuotas, manzanas y fichas de campo desde un marco territorial trazable."
+      resetScrollKey={currentStage}
+      meta={(
+        <div className="hojas-ruta-header-summary" aria-label="Resumen del marco">
+          <HeaderSummaryPill label="Base" value={frame?.ok ? "Cargada" : "Pendiente"} />
+          <HeaderSummaryPill label="Distritos" value={formatNumber(selectedTerritories.length)} />
+          <HeaderSummaryPill label="Población" value={selectedPopulation > 0 ? formatNumber(selectedPopulation) : formatNumber(frame?.poblacion ?? 0)} />
+          <HeaderSummaryPill label="Manzanas" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame?.n_manzanas ?? 0)} />
+        </div>
       )}
+      toolbar={
+        error || frame?.pilot || frame?.ok ? (
+          <>
+            {error && <Alert kind="error">{error}</Alert>}
+            {frame?.pilot && (
+              <Alert kind="warn">
+                {frame.note}
+              </Alert>
+            )}
+            {frame?.ok && (
+              <>
+                <Stepper<HojasRutaStage>
+                  steps={stageSteps}
+                  current={currentStage}
+                  onChange={setActiveStage}
+                  ariaLabel="Etapas de hojas de ruta"
+                />
 
+                <div className="hojas-ruta-stage-coach">
+                  <div>
+                    <span>{stageGuide[currentStage].next}</span>
+                    <strong>{stageGuide[currentStage].title}</strong>
+                    <p>{stageGuide[currentStage].copy}</p>
+                  </div>
+                  <div className="hojas-ruta-readiness-strip" aria-label="Estado del generador">
+                    <ReadinessItem ok={selectedTerritories.length > 0} label="Territorio" value={`${selectedTerritories.length} dist.`} />
+                    <ReadinessItem ok={!!population?.ok} label="Poblacion" value={population?.ok ? "lista" : "pendiente"} />
+                    <ReadinessItem ok={!!quota?.ok} label="Cuotas" value={quota?.ok ? formatNumber(quota.total_asignado) : "pendiente"} />
+                    <ReadinessItem ok={!!sample?.ok} label="Campo" value={sample?.ok ? `${formatNumber(sample.n_blocks)} mz.` : "pendiente"} />
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        ) : undefined
+      }
+    >
       {!frame?.ok ? (
         <Panel>
           <EmptyState
@@ -5763,27 +5953,6 @@ export default function HojasRutaPage() {
         </Panel>
       ) : (
         <>
-          <TabStrip<HojasRutaStage>
-            tabs={stageTabs}
-            active={currentStage}
-            onChange={setActiveStage}
-            ariaLabel="Etapas de hojas de ruta"
-          />
-
-          <div className="hojas-ruta-stage-coach">
-            <div>
-              <span>{stageGuide[currentStage].next}</span>
-              <strong>{stageGuide[currentStage].title}</strong>
-              <p>{stageGuide[currentStage].copy}</p>
-            </div>
-            <div className="hojas-ruta-readiness-strip" aria-label="Estado del generador">
-              <ReadinessItem ok={selectedTerritories.length > 0} label="Territorio" value={`${selectedTerritories.length} dist.`} />
-              <ReadinessItem ok={!!population?.ok} label="Poblacion" value={population?.ok ? "lista" : "pendiente"} />
-              <ReadinessItem ok={!!quota?.ok} label="Cuotas" value={quota?.ok ? formatNumber(quota.total_asignado) : "pendiente"} />
-              <ReadinessItem ok={!!sample?.ok} label="Campo" value={sample?.ok ? `${formatNumber(sample.n_blocks)} mz.` : "pendiente"} />
-            </div>
-          </div>
-
           {currentStage === "territorio" && (
             <section className="hojas-ruta-workbench" aria-label="Explorador territorial">
               <div className="hojas-ruta-map-column">
@@ -5870,7 +6039,7 @@ export default function HojasRutaPage() {
 
           {currentStage === "poblacion" && (
             <div className="hojas-ruta-stage-shell">
-              <div className="hojas-ruta-stage-grid">
+              <div className="hojas-ruta-stage-grid is-population">
                 <Panel
                   title="Configura la población base"
                   eyebrow="Paso 1"
@@ -6168,34 +6337,86 @@ export default function HojasRutaPage() {
                         ? `las rutas se dispersan por zona y las manzanas se ponderan por viviendas; cada ruta tendrá ${formatNumber(config.entrevistas_por_manzana)} encuestas.`
                         : `las rutas se dispersan por zona y las manzanas se ponderan por población; cada ruta tendrá ${formatNumber(config.entrevistas_por_manzana)} encuestas.`}
                     </p>
+                    <div className="hojas-ruta-route-panel">
+                      <div className="hojas-ruta-section-title">
+                        <strong>Ficha PDF de campo</strong>
+                        <span>Define la esquina/coordenada inicial y la constante de salto por casa o domicilio.</span>
+                      </div>
+                      <div className="hojas-ruta-route-controls">
+                        <Field label="Esquina / coordenada de inicio">
+                          <select
+                            style={fieldStyle}
+                            value={routeStartCorner}
+                            onChange={(e) => patchConfig({ route_start_corner: e.target.value as HojasRutaRouteStartCorner })}
+                          >
+                            {routeStartCornerOptions.map((option) => (
+                              <option key={option.key} value={option.key}>{option.label}</option>
+                            ))}
+                          </select>
+                        </Field>
+                        <div className="hojas-ruta-route-jump-group">
+                          <span>Constante de salto</span>
+                          <div className="hojas-ruta-route-jump-options" role="radiogroup" aria-label="Constante de salto">
+                            {routeJumpModeOptions.map((option) => (
+                              <button
+                                key={option.key}
+                                type="button"
+                                role="radio"
+                                aria-checked={routeJumpMode === option.key}
+                                className={routeJumpMode === option.key ? "is-active" : ""}
+                                onClick={() => patchConfig({ route_jump_mode: option.key })}
+                              >
+                                <strong>{option.label}</strong>
+                                <small>{option.hint}</small>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <Field label="Salto manual">
+                          <input
+                            style={fieldStyle}
+                            type="number"
+                            min={1}
+                            step={1}
+                            value={routeJumpManual}
+                            disabled={routeJumpMode !== "manual"}
+                            onChange={(e) => {
+                              const value = normalizeRouteJumpManual(e.target.value);
+                              patchConfig({ route_jump_manual: value, route_jump_mode: "manual" });
+                            }}
+                          />
+                        </Field>
+                      </div>
+                    </div>
                     <div className="hojas-ruta-replacement-panel">
                       <div className="hojas-ruta-section-title">
                         <strong>Manzanas de reemplazo</strong>
-                        <span>No cambian el N titular; se generan como rutas de respaldo separadas por distrito.</span>
+                        <span>Se generan pareadas por titular, dentro de la misma zona seleccionada.</span>
                       </div>
                       <div className="hojas-ruta-replacement-toolbar">
                         <label>
-                          <span>Aplicar a todos los distritos</span>
+                          <span>Reemplazos por titular</span>
                           <input
                             type="number"
-                            min={0}
-                            value={uniformReplacementValue}
-                            placeholder="Mixto"
-                            onChange={(e) => setReplacementRoutesForAll(Number(e.target.value || 0))}
+                            min={1}
+                            step={1}
+                            value={replacementsPerTitular}
+                            onChange={(e) => {
+                              const value = Math.max(1, Math.round(Number(e.target.value || 1)));
+                              patchConfig({ replacements_per_titular: value });
+                            }}
                           />
                         </label>
-                        <StatusPill ok={replacementRouteTotal > 0} text={`${formatNumber(replacementRouteTotal)} reemplazo(s)`} />
+                        <div className="hojas-ruta-replacement-status">
+                          <StatusPill ok text="Misma zona obligatoria" />
+                          <StatusPill ok={replacementRouteTotal > 0} text={`${formatNumber(replacementRouteTotal)} reemplazo(s) previstos`} />
+                        </div>
                       </div>
                       <div className="hojas-ruta-replacement-grid">
                         {selectedTerritoryRows.map((t) => (
                           <label key={t.ubigeo}>
                             <span>{t.distrito}</span>
-                            <input
-                              type="number"
-                              min={0}
-                              value={config.replacement_routes_per_district?.[t.ubigeo] ?? 0}
-                              onChange={(e) => setReplacementRoutesForDistrict(t.ubigeo, Number(e.target.value || 0))}
-                            />
+                            <strong>{formatNumber(replacementsPerTitular)} por titular</strong>
                           </label>
                         ))}
                       </div>
@@ -6398,13 +6619,13 @@ export default function HojasRutaPage() {
                         <section className="hojas-ruta-delivery-section">
                           <div className="hojas-ruta-section-title">
                             <strong>Manzanas de reemplazo</strong>
-                            <span>No alteran cuotas; se empaquetan por distrito en carpetas de reemplazo.</span>
+                            <span>No alteran cuotas; cada una queda trazada a su titular y a la misma zona.</span>
                           </div>
                           <div className="hojas-ruta-review-table-wrap is-delivery">
                             <table className="hojas-ruta-review-table">
                               <thead>
                                 <tr>
-                                  {["Distrito", "ID manzana", "Zona", "Viviendas", "Entrevistas", "Método"].map((h) => (
+                                  {["Distrito", "ID manzana", "Zona", "Reemplaza a", "Viviendas", "Entrevistas", "Método"].map((h) => (
                                     <th key={h}>{h}</th>
                                   ))}
                                 </tr>
@@ -6415,6 +6636,7 @@ export default function HojasRutaPage() {
                                     <td className="is-strong">{b.distrito}</td>
                                     <td className="is-code">{b.id_manzana}</td>
                                     <td className="is-code">{b.zona}</td>
+                                    <td className="is-code">{b.titular_id_manzana ?? "—"}</td>
                                     <td className="is-number">{formatNumber(b.viviendas)}</td>
                                     <td className="is-number is-strong">{formatNumber(b.entrevistas)}</td>
                                     <td>{methodLabel(b.metodo)}</td>
@@ -6453,7 +6675,7 @@ export default function HojasRutaPage() {
                       </div>
                       <div>
                         <FileText size={17} />
-                        <span>PDF de reemplazos por distrito</span>
+                        <span>PDF de reemplazos pareados por zona</span>
                       </div>
                       <div>
                         <Layers size={17} />
@@ -6541,6 +6763,6 @@ export default function HojasRutaPage() {
           )}
         </>
       )}
-    </div>
+    </PageFrame>
   );
 }

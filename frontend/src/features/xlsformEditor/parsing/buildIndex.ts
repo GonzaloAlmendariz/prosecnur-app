@@ -189,6 +189,16 @@ export function parseBuilderStructure(survey: XlsformEditorSheet): BuilderStruct
         choiceFilter: (record.choice_filter ?? "").trim(),
         hint: (record.hint ?? "").trim(),
         appearance: (record.appearance ?? "").trim(),
+        paperNumber: (record.paper_number ?? "").trim(),
+        paperLabel: (record.paper_label ?? "").trim(),
+        paperLayout: (record.paper_layout ?? "").trim(),
+        paperGroup: (record.paper_group ?? "").trim(),
+        paperOnly: (record.paper_only ?? "").trim(),
+        paperSkip: (record.paper_skip ?? "").trim(),
+        repeat_count: (record.repeat_count ?? "").trim(),
+        read_only: (record.read_only ?? "").trim(),
+        required_message: (record.required_message ?? "").trim(),
+        parameters: (record.parameters ?? "").trim(),
       };
       outline.push(node);
       byRow.set(rowIndex, node);
@@ -235,6 +245,16 @@ export function parseBuilderStructure(survey: XlsformEditorSheet): BuilderStruct
       choiceFilter: (record.choice_filter ?? "").trim(),
       hint: (record.hint ?? "").trim(),
       appearance: (record.appearance ?? "").trim(),
+      paperNumber: (record.paper_number ?? "").trim(),
+      paperLabel: (record.paper_label ?? "").trim(),
+      paperLayout: (record.paper_layout ?? "").trim(),
+      paperGroup: (record.paper_group ?? "").trim(),
+      paperOnly: (record.paper_only ?? "").trim(),
+      paperSkip: (record.paper_skip ?? "").trim(),
+      repeat_count: (record.repeat_count ?? "").trim(),
+      read_only: (record.read_only ?? "").trim(),
+      required_message: (record.required_message ?? "").trim(),
+      parameters: (record.parameters ?? "").trim(),
     };
     outline.push(node);
     byRow.set(rowIndex, node);

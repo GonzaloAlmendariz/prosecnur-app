@@ -28,9 +28,9 @@ import {
   MessageSquare,
   Mic,
   QrCode,
-  Sparkles,
   Type as TypeIcon,
 } from "lucide-react";
+import { IconAI, IconChecklist } from "../../../lib/icons";
 import type { BuilderNode, ChoiceItem } from "../types";
 import { ConditionalIcon, iconForType } from "../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
@@ -283,7 +283,7 @@ function PreviewInput({
       );
 
     case "acknowledge":
-      return <FakeCheckLine icon={<Sparkles size={14} />} text="Confirmar que se leyó" accent={accent} />;
+      return <FakeCheckLine icon={<IconChecklist size={14} />} text="Confirmar que se leyó" accent={accent} />;
 
     case "hidden":
       return (
@@ -302,7 +302,7 @@ function PreviewInput({
     case "username":
       return (
         <PreviewBox
-          icon={<Sparkles size={14} />}
+          icon={<IconAI size={14} />}
           tone="var(--pulso-text-soft)"
           title="Auto-meta"
           detail={`El sistema captura este valor automáticamente (${base}).`}

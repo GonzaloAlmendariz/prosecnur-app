@@ -11,8 +11,8 @@ export function Alert({ kind = "info", children, icon = true }: Props) {
   const Icon = kind === "error" ? CircleAlert : kind === "warn" ? AlertTriangle : Info;
   return (
     <div className={`pulso-alert pulso-alert-${kind}`}>
-      {icon && <Icon size={16} style={{ marginTop: 1, flexShrink: 0 }} />}
-      <div style={{ flex: 1 }}>{children}</div>
+      {icon && <Icon size={16} className="pulso-alert-icon" />}
+      <div className="pulso-alert-content">{children}</div>
     </div>
   );
 }

@@ -401,6 +401,7 @@ export type XlsformEditorWorkbook = {
   survey: XlsformEditorSheet;
   choices: XlsformEditorSheet;
   settings: XlsformEditorSheet;
+  paper?: XlsformEditorSheet | null;
   diagnostico?: XlsformEditorSheet | null;
   surveyMonkeyLogic?: SurveyMonkeyLogicState | null;
 };
@@ -412,6 +413,7 @@ export type XlsformEditorPayload = {
     survey_rows: number;
     choices_rows: number;
     settings_rows: number;
+    paper_rows?: number;
     diagnostico_rows: number;
   };
   source: {
@@ -499,6 +501,7 @@ function normalizeEditorPayload(value: unknown): XlsformEditorPayload {
       survey: normalizeSheet(workbookRaw.survey, "survey"),
       choices: normalizeSheet(workbookRaw.choices, "choices"),
       settings: normalizeSheet(workbookRaw.settings, "settings"),
+      paper: workbookRaw.paper ? normalizeSheet(workbookRaw.paper, "paper") : null,
       diagnostico: workbookRaw.diagnostico ? normalizeSheet(workbookRaw.diagnostico, "diagnostico") : null,
       surveyMonkeyLogic: normalizeSurveyMonkeyLogicState(workbookRaw.surveyMonkeyLogic ?? workbookRaw.survey_monkey_logic),
     },
@@ -506,6 +509,7 @@ function normalizeEditorPayload(value: unknown): XlsformEditorPayload {
       survey_rows: Number(summaryRaw.survey_rows ?? 0),
       choices_rows: Number(summaryRaw.choices_rows ?? 0),
       settings_rows: Number(summaryRaw.settings_rows ?? 0),
+      paper_rows: Number(summaryRaw.paper_rows ?? 0),
       diagnostico_rows: Number(summaryRaw.diagnostico_rows ?? 0),
     },
     source: {
@@ -1174,6 +1178,32 @@ export async function apiXlsformEditorExport(workbook: XlsformEditorWorkbook, fi
   );
 }
 
+export async function apiXlsformEditorExportPdf(
+  workbook: XlsformEditorWorkbook,
+  filename?: string,
+  options: { title?: string; footer_title?: string } = {},
+) {
+  return handle<{
+    ok: true;
+    file_id: string;
+    original_name: string;
+    size: number;
+    summary: {
+      n_blocks: number;
+      n_questions: number;
+      n_sections: number;
+      n_matrices: number;
+    };
+    warnings: string[];
+  }>(
+    await apiFetch("/api/xlsform-editor/export-pdf", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ workbook, filename, options }),
+    })
+  );
+}
+
 /**
  * Diagnostic estructural devuelto por el validador de R. La forma coincide
  * con `BuilderDiagnostic` del frontend para que el badge pueda renderizarlos
@@ -1213,6 +1243,9 @@ export async function apiCargaInstrumento(file_id: string) {
     ok: true;
     resumen: {
       n_preguntas: number;
+      n_calculos?: number;
+      n_notas?: number;
+      n_filas_survey?: number;
       n_secciones: number;
       secciones: string[];
       n_listas_opciones: number;
@@ -1340,7 +1373,15 @@ export async function apiLoadDemo(name?: string) {
     n_bases: number;  // v0.2+: cuántas bases cargó (1 para single-base demos)
     bases: { nombre: string; n_filas: number; n_columnas: number }[];
     // Legacy (primera base, para back-compat con UI v0.1):
-    resumen_instrumento: { n_preguntas: number; n_secciones: number; secciones: string[]; n_listas_opciones: number };
+    resumen_instrumento: {
+      n_preguntas: number;
+      n_calculos?: number;
+      n_notas?: number;
+      n_filas_survey?: number;
+      n_secciones: number;
+      secciones: string[];
+      n_listas_opciones: number;
+    };
     n_filas: number;
     n_columnas: number;
   }>(await apiFetch(url, { method: "POST", headers: headers() }));
@@ -1439,6 +1480,8 @@ export type HojasRutaAgeRangeMode = "manual" | "terciles" | "cuartiles" | "quint
 export type HojasRutaAgeRangeScope = "selected" | "frame";
 export type HojasRutaZoneAllocation = "proportional";
 export type HojasRutaRandomPreference = "balanced" | "population" | "urban";
+export type HojasRutaRouteStartCorner = "auto" | "1" | "2" | "3" | "4";
+export type HojasRutaRouteJumpMode = "auto" | "off" | "manual";
 
 export type AllocationMode = "proportional" | "uniform" | "compromise";
 
@@ -1461,6 +1504,8 @@ export type HojasRutaIntegratedConfig = {
   n_mode: "total" | "por_distrito";
   n_por_distrito: Record<string, number>;
   replacement_routes_per_district: Record<string, number>;
+  replacement_policy: "paired_by_titular_zone";
+  replacements_per_titular: number;
   territorios: string[];
   row_var: "departamento" | "provincia" | "distrito" | "ubigeo" | "zona";
   col_var: "rango_edad";
@@ -1470,6 +1515,9 @@ export type HojasRutaIntegratedConfig = {
   seed: number;
   max_per_manzana: number;
   entrevistas_por_manzana: number;
+  route_start_corner: HojasRutaRouteStartCorner;
+  route_jump_mode: HojasRutaRouteJumpMode;
+  route_jump_manual: number;
   age_range_mode: HojasRutaAgeRangeMode;
   age_range_scope: HojasRutaAgeRangeScope;
   zone_allocation: HojasRutaZoneAllocation;
@@ -1811,6 +1859,22 @@ export type SelectedBlock = {
   lat: number | null;
   lon: number | null;
   tipo_manzana?: "titular" | "reemplazo" | string;
+  replacement_policy?: string;
+  replacement_order?: number;
+  titular_id_manzana?: string;
+  titular_orden_seleccion?: number;
+  titular_ubigeo?: string;
+  titular_zona?: string;
+  esquina_codigo?: number;
+  esquina_inicio?: string;
+  esquina_coordenada?: string;
+  sentido_recorrido?: string;
+  vivienda_inicio?: number;
+  domicilio_inicio?: number;
+  constante_salto?: number;
+  constante_salto_unidad?: string;
+  constante_salto_modo?: HojasRutaRouteJumpMode | string;
+  modo_seleccion_vivienda?: string;
 };
 
 export type HojasRutaSamplePreview = {

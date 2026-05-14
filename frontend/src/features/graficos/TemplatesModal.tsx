@@ -1,6 +1,7 @@
 import { useState } from "react";
 import * as Lucide from "lucide-react";
-import { X, Sparkles } from "lucide-react";
+import { X } from "lucide-react";
+import { IconTemplate } from "../../lib/icons";
 import { PlanJson, Slide } from "../../api/client";
 import { usePlanStore } from "./store";
 import { useTemplates } from "./useTemplates";
@@ -83,7 +84,7 @@ export function TemplatesModal({ onClose }: { onClose: () => void }) {
             display: "flex", alignItems: "center", gap: 10,
           }}
         >
-          <Sparkles size={18} color="var(--pulso-primary)" />
+          <IconTemplate size={18} color="var(--pulso-primary)" />
           <div style={{ flex: 1 }}>
             <h2 style={{ margin: 0, fontSize: 15 }}>Elegir plantilla</h2>
             <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>

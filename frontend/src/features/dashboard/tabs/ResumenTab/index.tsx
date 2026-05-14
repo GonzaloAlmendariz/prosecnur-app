@@ -15,12 +15,12 @@ import { FiltrosMultiRow } from "./FiltrosMultiRow";
 //   ┌────────────────────────────────────────────────────────────┐
 //   │ ┌─ Sidebar ─────────┐  ┌─ Main ───────────────────────────┐ │
 //   │ │ Resumen           │  │ Resumen de sección: [select]    │ │
+//   │ │  Filtros [switch] │  │                                 │ │
+//   │ │   Filtro 1: ...   │  │                                 │ │
 //   │ │  Perfil muestra   │  │ ─────────────────────────────── │ │
 //   │ │   N: 1,234        │  │  Pregunta 1   ▆▆▆▆▆▆▆▆▆▆▆      │ │
 //   │ │   Donut KPI 1     │  │  Pregunta 2   ▆▆▆▆▆▆▆▆▆▆▆      │ │
 //   │ │   Donut KPI 2     │  │  ...                            │ │
-//   │ │  Filtros [switch] │  │                                 │ │
-//   │ │   Filtro 1: ...   │  │                                 │ │
 //   │ └───────────────────┘  └─────────────────────────────────┘ │
 //   └────────────────────────────────────────────────────────────┘
 
@@ -57,7 +57,7 @@ export function ResumenTab() {
       <aside className="dash-sidebar">
         <section className="dash-cardbox">
           <div className="dash-cardbox-header">
-            <h2 className="dash-cardbox-title" style={{ margin: 0 }}>
+            <h2 className="dash-cardbox-title">
               Resumen
             </h2>
           </div>
@@ -65,48 +65,40 @@ export function ResumenTab() {
             Selecciona una sección y aplica filtros para analizar resultados.
           </p>
 
-          {/* Perfil de la muestra: N + KPIs medio-donut */}
-          <div className="dash-kpi-panel">
-            <div className="dash-cardbox-header" style={{ paddingBottom: 6 }}>
-              <h3 className="dash-cardbox-title" style={{ fontSize: 12, margin: 0 }}>
-                Perfil de la muestra
-              </h3>
-            </div>
-            <div className="dash-kpi-stack">
-              <div className="dash-kpi-n">
-                N:{" "}
-                {(kpisPayload?.n_total ?? payload?.n_total ?? 0).toLocaleString("es-PE")}
-              </div>
-              {kpisPayload?.kpis?.length === 0 && (
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--dash-texto-suave)",
-                    textAlign: "center",
-                    padding: "8px 0",
-                  }}
-                >
-                  Sin indicadores configurados.
-                </div>
-              )}
-              {kpisPayload?.kpis?.map((kpi) => (
-                <KpiCard key={kpi.var} kpi={kpi} />
-              ))}
-            </div>
+          <div className="dash-resumen-filter-panel">
+            <FiltrosMultiRow
+              secciones={secciones}
+              enabled={filtrosEnabled}
+              onToggleEnabled={(v) => {
+                setFiltrosEnabled(v);
+                if (!v) setFiltros([]);
+              }}
+              onChange={setFiltros}
+            />
           </div>
         </section>
 
-        {/* Filtros multi-row */}
+        {/* Perfil de la muestra: N + KPIs medio-donut */}
         <section className="dash-cardbox">
-          <FiltrosMultiRow
-            secciones={secciones}
-            enabled={filtrosEnabled}
-            onToggleEnabled={(v) => {
-              setFiltrosEnabled(v);
-              if (!v) setFiltros([]);
-            }}
-            onChange={setFiltros}
-          />
+          <div className="dash-cardbox-header dash-cardbox-header--compact">
+            <h3 className="dash-cardbox-title dash-cardbox-title--small">
+              Perfil de la muestra
+            </h3>
+          </div>
+          <div className="dash-kpi-stack">
+            <div className="dash-kpi-n">
+              N:{" "}
+              {(kpisPayload?.n_total ?? payload?.n_total ?? 0).toLocaleString("es-PE")}
+            </div>
+            {kpisPayload?.kpis?.length === 0 && (
+              <div className="dash-kpi-empty">
+                Sin indicadores configurados.
+              </div>
+            )}
+            {kpisPayload?.kpis?.map((kpi) => (
+              <KpiCard key={kpi.var} kpi={kpi} />
+            ))}
+          </div>
         </section>
       </aside>
 

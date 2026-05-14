@@ -1,9 +1,8 @@
-import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Layers, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
-import { PageHeader } from "../../components/PageHeader";
+import { PageFrame } from "../../components/PageFrame";
 import { Stepper, StepMeta } from "../../components/Stepper";
 import { PreguntasLanding } from "./PreguntasLanding";
 import { CodificarWizard } from "./CodificarWizard";
@@ -37,42 +36,38 @@ export default function CodificacionPage() {
     navigate({ pathname: "/codificacion", search: sp.toString() ? `?${sp}` : "" });
   }
 
-  useEffect(() => { window.scrollTo({ top: 0 }); }, [step]);
-
   return (
-    <section>
-      <PageHeader
-        title="Fase 3 — Codificación de preguntas abiertas"
-        lead={
-          step === "organizar"
-            ? "Organiza todas las preguntas: empareja SO/SM con sus 'Otros, especifique' y marca las que quieres codificar."
-            : step === "codificar"
-            ? "Codifica una por una las preguntas marcadas. Agrupa respuestas similares y asigna un código a cada grupo."
-            : "Revisa lo que se va a adaptar. Cuando estés listo, lanza la adaptación y descarga los archivos."
-        }
-      />
+    <PageFrame
+      title="Fase 3 - Codificación"
+      resetScrollKey={step}
+      lead={
+        step === "organizar"
+          ? "Organiza las preguntas abiertas y marca las que quieres codificar."
+          : step === "codificar"
+          ? "Agrupa respuestas similares y asigna códigos pregunta por pregunta."
+          : "Revisa la adaptación y descarga los archivos finales."
+      }
+      toolbar={
+        <>
+          {prereqOk && codifSource.options.length > 1 && (
+            <BaseSelector source={codifSource} />
+          )}
 
-      {prereqOk && codifSource.options.length > 1 && (
-        <BaseSelector source={codifSource} />
-      )}
+          {prereqOk && (
+            <Stepper<Step>
+              steps={CODIFICACION_STEPS}
+              current={step}
+              onChange={goStep}
+              ariaLabel="Fases de la codificación"
+            />
+          )}
 
-      {prereqOk && (
-        <div style={{ marginBottom: 20 }}>
-          <Stepper<Step>
-            steps={CODIFICACION_STEPS}
-            current={step}
-            onChange={goStep}
-            ariaLabel="Fases de la codificación"
-          />
-        </div>
-      )}
-
-      {!prereqOk && (
-        <div style={{ marginBottom: 12 }}>
-          <Alert kind="warn">Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de codificar.</Alert>
-        </div>
-      )}
-
+          {!prereqOk && (
+            <Alert kind="warn">Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de codificar.</Alert>
+          )}
+        </>
+      }
+    >
       {/* `key={codifActive}` fuerza el remount de los hijos cuando
           el analista cambia la base activa. Cada hijo tiene sus propios
           useEffect([]) que refetchean familias/preguntas/columnas del
@@ -89,7 +84,7 @@ export default function CodificacionPage() {
       {prereqOk && step === "adaptar" && (
         <AdaptarPane key={codifActive} onBackToCodificar={() => goStep("codificar")} />
       )}
-    </section>
+    </PageFrame>
   );
 }
 

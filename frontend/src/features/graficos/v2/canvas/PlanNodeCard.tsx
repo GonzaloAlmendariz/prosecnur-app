@@ -1,5 +1,6 @@
 import * as Lucide from "lucide-react";
-import { Sparkles, Image as ImageIcon, Palette, AlertCircle, AlertTriangle } from "lucide-react";
+import { Image as ImageIcon, Palette, AlertCircle, AlertTriangle } from "lucide-react";
+import { IconModes } from "../../../../lib/icons";
 import { PlanGraphNode } from "./buildPlanGraph";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { SLIDE_LABELS } from "../../store";
@@ -73,7 +74,7 @@ export function PlanNodeCard({ node, selected, dimmed, issues, onClick, onMouseD
         <div className="pulso-gv2-node-badges">
           {node.hasOverride && (
             <span className="pulso-gv2-node-badge is-override" title="Aplica un modo de estilo">
-              <Sparkles size={9} /> Modo
+              <IconModes size={9} /> Modo
             </span>
           )}
           {node.hasIcon && (

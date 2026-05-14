@@ -11,6 +11,7 @@
     survey = c("type", "name", "label", "required", "relevant", "constraint", "calculation", "choice_filter", "appearance"),
     choices = c("list_name", "name", "label"),
     settings = c("form_title", "form_id", "version", "default_language"),
+    paper = c("id", "kind", "position", "title", "body", "layout"),
     diagnostico = character(0),
     character(0)
   )
@@ -126,6 +127,7 @@
   survey <- sheets$survey %||% .xlsform_editor_empty_df(.xlsform_editor_default_columns("survey"))
   choices <- sheets$choices %||% .xlsform_editor_empty_df(.xlsform_editor_default_columns("choices"))
   settings <- sheets$settings %||% .xlsform_editor_empty_df(.xlsform_editor_default_columns("settings"))
+  paper <- sheets$paper
   diagnostico <- sheets$diagnostico
 
   workbook <- list(
@@ -133,6 +135,9 @@
     choices = .xlsform_editor_sheet_payload(choices, "choices"),
     settings = .xlsform_editor_sheet_payload(settings, "settings")
   )
+  if (!is.null(paper)) {
+    workbook$paper <- .xlsform_editor_sheet_payload(paper, "paper")
+  }
   if (!is.null(diagnostico)) {
     workbook$diagnostico <- .xlsform_editor_sheet_payload(diagnostico, "diagnostico")
   }
@@ -144,6 +149,7 @@
       survey_rows = as.integer(nrow(survey)),
       choices_rows = as.integer(nrow(choices)),
       settings_rows = as.integer(nrow(settings)),
+      paper_rows = as.integer(if (is.null(paper)) 0L else nrow(paper)),
       diagnostico_rows = as.integer(if (is.null(diagnostico)) 0L else nrow(diagnostico))
     ),
     source = list(
@@ -679,9 +685,10 @@ mount_xlsform_editor <- function(pr) {
       survey <- .xlsform_editor_read_sheet(meta$path, "survey", .xlsform_editor_default_columns("survey"))
       choices <- .xlsform_editor_read_sheet(meta$path, "choices", .xlsform_editor_default_columns("choices"))
       settings <- .xlsform_editor_read_sheet(meta$path, "settings", .xlsform_editor_default_columns("settings"))
+      paper <- .xlsform_editor_read_sheet(meta$path, "paper", .xlsform_editor_default_columns("paper"))
 
       .xlsform_editor_workbook_payload(
-        sheets = list(survey = survey, choices = choices, settings = settings),
+        sheets = list(survey = survey, choices = choices, settings = settings, paper = paper),
         source_kind = "xlsform",
         source_name = meta$original_name
       )
@@ -730,6 +737,7 @@ mount_xlsform_editor <- function(pr) {
           survey = out$survey,
           choices = out$choices,
           settings = out$settings,
+          paper = .xlsform_editor_empty_df(.xlsform_editor_default_columns("paper")),
           diagnostico = out$diagnostico
         ),
         source_kind = "surveymonkey",
@@ -1047,7 +1055,12 @@ mount_xlsform_editor <- function(pr) {
       }
 
       .xlsform_editor_workbook_payload(
-        sheets = list(survey = xlsform$survey, choices = xlsform$choices, settings = xlsform$settings),
+        sheets = list(
+          survey = xlsform$survey,
+          choices = xlsform$choices,
+          settings = xlsform$settings,
+          paper = .xlsform_editor_empty_df(.xlsform_editor_default_columns("paper"))
+        ),
         source_kind = "surveymonkey",
         source_name = source_name
       )
@@ -1116,6 +1129,7 @@ mount_xlsform_editor <- function(pr) {
           survey = out$survey,
           choices = out$choices,
           settings = out$settings,
+          paper = .xlsform_editor_empty_df(.xlsform_editor_default_columns("paper")),
           diagnostico = out$diagnostico
         ),
         source_kind = "surveymonkey",
@@ -1141,6 +1155,9 @@ mount_xlsform_editor <- function(pr) {
       survey <- .xlsform_editor_payload_to_df(workbook$survey, "survey")
       choices <- .xlsform_editor_payload_to_df(workbook$choices, "choices")
       settings <- .xlsform_editor_payload_to_df(workbook$settings, "settings")
+      paper <- if (!is.null(workbook$paper)) {
+        .xlsform_editor_payload_to_df(workbook$paper, "paper")
+      } else NULL
       diagnostico <- if (!is.null(workbook$diagnostico)) {
         .xlsform_editor_payload_to_df(workbook$diagnostico, "diagnostico")
       } else NULL
@@ -1161,6 +1178,13 @@ mount_xlsform_editor <- function(pr) {
       openxlsx::freezePane(wb, "settings", firstActiveRow = 2)
       if (ncol(settings)) openxlsx::setColWidths(wb, "settings", cols = seq_len(ncol(settings)), widths = "auto")
 
+      if (!is.null(paper) && (ncol(paper) > 0L || nrow(paper) > 0L)) {
+        openxlsx::addWorksheet(wb, "paper")
+        openxlsx::writeData(wb, "paper", paper)
+        openxlsx::freezePane(wb, "paper", firstActiveRow = 2)
+        if (ncol(paper)) openxlsx::setColWidths(wb, "paper", cols = seq_len(ncol(paper)), widths = "auto")
+      }
+
       if (!is.null(diagnostico) && (ncol(diagnostico) > 0L || nrow(diagnostico) > 0L)) {
         openxlsx::addWorksheet(wb, "diagnostico")
         openxlsx::writeData(wb, "diagnostico", diagnostico)
@@ -1179,6 +1203,66 @@ mount_xlsform_editor <- function(pr) {
         file_id = meta$file_id,
         original_name = meta$original_name,
         size = meta$size
+      )
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/export-pdf", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        sid <- session_create()
+        res$setHeader("X-Pulso-Session", sid)
+      }
+
+      parsed <- .xlsform_editor_parse_body(req)
+      workbook <- parsed$workbook %||% list()
+      filename <- as.character(parsed$filename %||% "formulario_impreso.pdf")
+      if (!grepl("\\.pdf$", filename, ignore.case = TRUE)) {
+        filename <- paste0(filename, ".pdf")
+      }
+
+      survey <- .xlsform_editor_payload_to_df(workbook$survey, "survey")
+      choices <- .xlsform_editor_payload_to_df(workbook$choices, "choices")
+      settings <- .xlsform_editor_payload_to_df(workbook$settings, "settings")
+      paper <- if (!is.null(workbook$paper)) {
+        .xlsform_editor_payload_to_df(workbook$paper, "paper")
+      } else {
+        .xlsform_editor_empty_df(.xlsform_editor_default_columns("paper"))
+      }
+      options <- parsed$options %||% list()
+      if (!nzchar(as.character(options$title %||% ""))) {
+        fallback_title <- tools::file_path_sans_ext(basename(filename))
+        fallback_title <- gsub("(_papel|_editado)$", "", fallback_title, ignore.case = TRUE)
+        fallback_title <- gsub("[_-]+", " ", fallback_title)
+        options$title <- fallback_title
+      }
+      if (!nzchar(as.character(options$footer_title %||% ""))) {
+        options$footer_title <- options$title
+      }
+
+      s <- session_get(sid)
+      out_path <- file.path(s$dir, "downloads", paste0(uuid::UUIDgenerate(), ".pdf"))
+      result <- tryCatch(
+        reporte_formulario_pdf(
+          survey = survey,
+          choices = choices,
+          settings = settings,
+          paper = paper,
+          output_file = out_path,
+          options = options
+        ),
+        error = function(e) {
+          stop_api(500, "E_PDF_EXPORT_FAILED",
+                   sprintf("No pude generar el PDF del formulario: %s", conditionMessage(e)))
+        }
+      )
+      meta <- .register_output_file(sid, "formulario_pdf", out_path, original_name = filename)
+
+      list(
+        ok = TRUE,
+        file_id = meta$file_id,
+        original_name = meta$original_name,
+        size = meta$size,
+        summary = result$summary,
+        warnings = result$warnings %||% character(0)
       )
     })) |>
     plumber::pr_post("/api/xlsform-editor/validate", wrap_endpoint(function(req, res, ...) {

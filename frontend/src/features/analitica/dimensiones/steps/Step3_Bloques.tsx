@@ -5,7 +5,8 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus } from "lucide-react";
+import { IconAI } from "../../../../lib/icons";
 import { useEffect, useMemo, useState } from "react";
 import {
   apiAnaliticaDimensionesSugerir,
@@ -234,7 +235,7 @@ export function Step3_Bloques() {
             className="pulso-secondary"
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
           >
-            <Sparkles size={13} />
+            <IconAI size={13} />
             {busySugerir ? "Sugiriendo…" : "Sugerir desde el instrumento"}
           </button>
         </header>

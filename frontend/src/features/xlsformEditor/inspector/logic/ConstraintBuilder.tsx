@@ -17,7 +17,8 @@
 //     corpus auditado).
 // =============================================================================
 
-import { Sparkles, X } from "lucide-react";
+import { X } from "lucide-react";
+import { IconHint } from "../../../../lib/icons";
 import {
   expandConstraint,
   parseExpression,
@@ -65,7 +66,7 @@ export function ConstraintBuilder({
           <span className="pulso-section-eyebrow">{fieldLabel}</span>
         </header>
         <div className="pulso-logic-builder-empty">
-          <Sparkles size={14} />
+          <IconHint size={14} />
           <span>Sin validación — la respuesta se acepta tal cual.</span>
           <button
             type="button"

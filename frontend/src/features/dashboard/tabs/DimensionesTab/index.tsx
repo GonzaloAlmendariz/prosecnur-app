@@ -12,11 +12,11 @@ import {
   Compass,
   HandHeart,
   Info,
+  Award,
   MessageCircle,
   PanelLeftClose,
   PanelLeftOpen,
   ShieldCheck,
-  Sparkles,
   Target,
   Grid3x3,
   ScatterChart,
@@ -2618,7 +2618,7 @@ const FODA_FALLBACK_ICONS: Record<string, LucideIcon> = {
   upsep: BriefcaseBusiness,
   confianza: ShieldCheck,
   comunicacion: MessageCircle,
-  calidad: Sparkles,
+  calidad: Award,
   default: Target,
 };
 

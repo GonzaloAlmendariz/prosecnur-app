@@ -1,4 +1,5 @@
-import { ChevronDown, Layers, Loader2, Save, Sigma, Sparkles } from "lucide-react";
+import { ChevronDown, Layers, Loader2, Save, Sigma } from "lucide-react";
+import { IconAI } from "../../../../lib/icons";
 import { useEffect, useState } from "react";
 import {
   apiAnaliticaConfigPut,
@@ -198,7 +199,7 @@ export function Step5_Confirmar({ onSuccess }: { onSuccess: () => void }) {
             fontWeight: 700,
           }}
         >
-          {busy ? <Loader2 size={16} className="pulso-spin" /> : <Sparkles size={16} />}
+          {busy ? <Loader2 size={16} className="pulso-spin" /> : <IconAI size={16} />}
           {busy ? "Generando…" : "Generar dimensiones"}
         </button>
         <div style={{ flex: 1, fontSize: 12, color: "var(--pulso-text)" }}>

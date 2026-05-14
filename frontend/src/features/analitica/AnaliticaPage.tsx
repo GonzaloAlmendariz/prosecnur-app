@@ -5,7 +5,7 @@ import { apiAnaliticaPreparar } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
-import { PageHeader } from "../../components/PageHeader";
+import { PageFrame } from "../../components/PageFrame";
 import { TabStrip, TabMeta } from "../../components/TabStrip";
 import { useAnaliticaAutosave } from "./useAnaliticaAutosave";
 import { AnaliticaHeader } from "./AnaliticaHeader";
@@ -78,38 +78,36 @@ export default function AnaliticaPage() {
     navigate({ pathname: "/analitica", search: sp.toString() ? `?${sp}` : "" });
   }
 
-  useEffect(() => { window.scrollTo({ top: 0 }); }, [active]);
-
   return (
-    <section>
-      <PageHeader
-        title="Fase 4 — Análisis y reportes"
-        lead="Genera los cinco reportes estándar de Prosecnur. Cada uno tiene su configuración y su descarga independiente."
-      />
+    <PageFrame
+      title="Fase 4 - Análisis y reportes"
+      lead="Configura y genera los reportes estándar desde una sola mesa de trabajo."
+      resetScrollKey={active}
+      toolbar={
+        <>
+          {!prereqOk && (
+            <Alert kind="warn">
+              Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de analizar.
+            </Alert>
+          )}
 
-      {!prereqOk && (
-        <div style={{ marginBottom: 12 }}>
-          <Alert kind="warn">
-            Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de analizar.
-          </Alert>
-        </div>
-      )}
-
+          {prereqOk && (
+            <>
+              <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} />
+              {prepOk && <DefinicionGlobal />}
+              <TabStrip<Reporte>
+                tabs={REPORTES}
+                active={active}
+                onChange={goReporte}
+                ariaLabel="Reportes disponibles"
+              />
+            </>
+          )}
+        </>
+      }
+    >
       {prereqOk && (
         <>
-          <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} />
-
-          {prepOk && <DefinicionGlobal />}
-
-          <div style={{ marginBottom: 18 }}>
-            <TabStrip<Reporte>
-              tabs={REPORTES}
-              active={active}
-              onChange={goReporte}
-              ariaLabel="Reportes disponibles"
-            />
-          </div>
-
           {prepBusy ? (
             <LoadingBlock label="Preparando datos…" />
           ) : prepOk ? (
@@ -128,7 +126,7 @@ export default function AnaliticaPage() {
           )}
         </>
       )}
-    </section>
+    </PageFrame>
   );
 }
 

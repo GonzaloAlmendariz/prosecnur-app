@@ -569,19 +569,25 @@ test_that("cartografia de zonas se deriva de manzanas locales", {
   expect_equal(stats_pop, frame_pop)
 })
 
-test_that("cartografia vial OSM esta empaquetada y se sirve localmente", {
+test_that("cartografia vial INEI 2017 se sirve localmente con respaldo OSM", {
   meta <- hojas_ruta_cartografia_calles_meta()
   expect_true(meta$ok)
-  expect_match(meta$source, "OpenStreetMap")
-  expect_match(meta$license, "ODbL|Open Database License")
-  expect_match(meta$attribution, "OpenStreetMap")
-  expect_equal(meta$mode, "local_only")
+  expect_match(meta$source, "INEI|Informacion Digital")
+  expect_match(meta$attribution, "INEI")
+  expect_equal(meta$mode, "local_only_inei_primary_osm_fallback")
+  expect_equal(meta$primary, "inei2017")
   expect_equal(meta$packaged_districts, 50L)
-  expect_true(meta$packaged_streets > 10000L)
+  expect_true(meta$packaged_streets > 200000L)
+  expect_true(meta$fallback_packaged_streets > 10000L)
+  expect_true(isTRUE(meta$sources$osm_overture$ok))
 
   miraflores <- hojas_ruta_street_map_preview("150122")
   expect_true(miraflores$ok)
-  expect_true(miraflores$count > 100L)
+  expect_true(miraflores$count > 700L)
+  expect_equal(miraflores$geojson$properties$street_source, "inei")
+  expect_true(any(vapply(miraflores$geojson$features, function(x) {
+    identical(x$properties$source, "inei2017")
+  }, logical(1))))
   expect_true(any(vapply(miraflores$geojson$features, function(x) {
     identical(x$properties$class_group, "major")
   }, logical(1))))
@@ -591,7 +597,7 @@ test_that("cartografia vial OSM esta empaquetada y se sirve localmente", {
   expect_true(any(vapply(missing$alerts, function(x) identical(x$code, "W_STREET_MAP_NOT_PACKAGED_LOCAL"), logical(1))))
 })
 
-test_that("schema vial v3 expone atributos enriquecidos (name_es, lanes, surface, source)", {
+test_that("schema vial expone atributos enriquecidos (name_es, lanes, surface, source)", {
   miraflores <- hojas_ruta_street_map_preview("150122")
   skip_if(!miraflores$ok, "Capa vial Miraflores no disponible")
   feats <- miraflores$geojson$features
@@ -609,10 +615,61 @@ test_that("schema vial v3 expone atributos enriquecidos (name_es, lanes, surface
   # Defaults sanos: lanes es int, oneway es chr o NA, source viene siempre poblado
   expect_type(props_first$lanes, "integer")
   expect_true(is.character(props_first$source) && nzchar(props_first$source))
-  # Cobertura mínima esperada: si el manifest reporta name_coverage_pct, debe ser > 0.5
+  expect_equal(props_first$source, "inei2017")
+  # El respaldo OSM conserva su schema enriquecido v3.
   meta <- hojas_ruta_cartografia_calles_meta()
-  if (!is.null(meta$schema_version)) {
-    expect_gte(as.integer(meta$schema_version), 3L)
+  if (!is.null(meta$sources$osm_overture$schema_version)) {
+    expect_gte(as.integer(meta$sources$osm_overture$schema_version), 3L)
+  }
+})
+
+test_that("rotulos viales densos se desduplican y evitan solapes", {
+  make_street <- function(name, y, rank = 7L, major = FALSE, x0 = 0.05, x1 = 0.95) {
+    list(
+      name = name,
+      rank = as.integer(rank),
+      avenue_like = major,
+      class_group = if (major) "major" else "detail",
+      lines = list(matrix(c(x0, y, x1, y), ncol = 2, byrow = TRUE))
+    )
+  }
+  streets <- c(
+    lapply(seq(0.18, 0.82, length.out = 12), function(y) {
+      make_street("AV. CENTRAL", y, rank = 4L, major = TRUE)
+    }),
+    lapply(seq(0.22, 0.78, length.out = 10), function(y) {
+      make_street("CAL. LOS FRESNOS", y, rank = 7L, major = FALSE, x0 = 0.18, x1 = 0.82)
+    }),
+    lapply(seq_len(24), function(i) {
+      x <- 0.08 + (i %% 8) * 0.105
+      list(
+        name = sprintf("CAL. %02d", i),
+        rank = 7L,
+        avenue_like = FALSE,
+        class_group = "detail",
+        lines = list(matrix(c(x, 0.12, x, 0.88), ncol = 2, byrow = TRUE))
+      )
+    })
+  )
+  project <- function(line) data.frame(x = line[, 1], y = line[, 2])
+  pdf <- tempfile(fileext = ".pdf")
+  grDevices::pdf(pdf, paper = "special", width = 8, height = 6)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  grid::grid.newpage()
+  grid::pushViewport(grid::viewport(width = 0.80, height = 0.80))
+  on.exit(grid::popViewport(), add = TRUE)
+
+  labels <- .hojas_ruta_pdf_street_label_candidates_map(streets, project, max_labels = 20L)
+  expect_lte(length(labels), 20L)
+  counts <- table(vapply(labels, `[[`, character(1), "name"))
+  expect_lte(unname(counts[["AV. CENTRAL"]] %||% 0L), 3L)
+  expect_lte(unname(counts[["CAL. LOS FRESNOS"]] %||% 0L), 2L)
+  boxes <- lapply(labels, `[[`, "box")
+  if (length(boxes) > 1L) {
+    overlaps <- combn(seq_along(boxes), 2L, function(idx) {
+      .hojas_ruta_pdf_label_boxes_overlap(boxes[[idx[[1]]]], boxes[[idx[[2]]]], margin = 0)
+    })
+    expect_false(any(overlaps))
   }
 })
 
@@ -712,7 +769,7 @@ test_that("hojas_ruta_sample_preview_integrado selecciona rutas completas dentro
   expect_true(length(unique(paste(blocks$ubigeo, blocks$zona))) > length(unique(blocks$ubigeo)))
 })
 
-test_that("hojas_ruta_sample_preview_integrado selecciona reemplazos por distrito fuera de titulares", {
+test_that("hojas_ruta_sample_preview_integrado selecciona reemplazos pareados por zona", {
   out <- hojas_ruta_sample_preview_integrado(list(
     n_objetivo = 24,
     territorios = c("150110", "070106"),
@@ -722,13 +779,126 @@ test_that("hojas_ruta_sample_preview_integrado selecciona reemplazos por distrit
     replacement_routes_per_district = list("150110" = 2, "070106" = 1)
   ))
   expect_true(out$ok)
-  expect_equal(out$n_replacement_blocks, 3L)
+  expect_equal(out$config$replacement_policy, "paired_by_titular_zone")
+  expect_equal(out$config$replacements_per_titular, 1L)
+  expect_equal(out$n_replacement_blocks, out$n_blocks)
   expect_equal(out$total_entrevistas, 24L)
-  expect_equal(out$total_replacement_interviews, 18L)
+  expect_equal(out$total_replacement_interviews, out$total_entrevistas)
   blocks <- .hojas_ruta_rows_df(out$blocks)
   replacements <- .hojas_ruta_rows_df(out$replacement_blocks)
   expect_true(all(replacements$tipo_manzana == "reemplazo"))
   expect_length(intersect(blocks$id_manzana, replacements$id_manzana), 0L)
+  expect_true(all(c("titular_id_manzana", "titular_ubigeo", "titular_zona") %in% names(replacements)))
+  paired <- merge(
+    replacements,
+    blocks[, c("id_manzana", "ubigeo", "zona"), drop = FALSE],
+    by.x = "titular_id_manzana",
+    by.y = "id_manzana",
+    suffixes = c("_replacement", "_titular")
+  )
+  expect_equal(nrow(paired), nrow(replacements))
+  expect_true(all(paired$ubigeo_replacement == paired$ubigeo_titular))
+  expect_true(all(paired$zona_replacement == paired$zona_titular))
+  expect_true(all(paired$titular_ubigeo == paired$ubigeo_titular))
+  expect_true(all(paired$titular_zona == paired$zona_titular))
+  expect_true(all(c(
+    "esquina_inicio", "esquina_coordenada", "domicilio_inicio",
+    "constante_salto", "constante_salto_modo"
+  ) %in% names(blocks)))
+})
+
+test_that("validacion integral rechaza reemplazos ausentes o fuera de zona", {
+  cfg <- hojas_ruta_integrada_normalize_config(list(
+    n_objetivo = 12,
+    territorios = "150110",
+    seed = 99
+  ))
+  blocks <- data.frame(
+    id_manzana = c("A", "B"),
+    ubigeo = c("150110", "150110"),
+    zona = c("00100", "00200"),
+    distrito = c("COMAS", "COMAS"),
+    viviendas = c(30L, 40L),
+    entrevistas = c(6L, 6L),
+    stringsAsFactors = FALSE
+  )
+  blocks <- .hojas_ruta_add_operational_values(blocks, cfg)
+  sample <- list(
+    ok = TRUE,
+    config = cfg,
+    frame_meta = list(),
+    quota = list(cells = list(), table = list()),
+    blocks = .hojas_ruta_df_rows(blocks),
+    replacement_blocks = list(),
+    alerts = list()
+  )
+  missing <- .hojas_ruta_validate_delivery_sample(sample)
+  expect_false(missing$ok)
+  expect_true(any(vapply(missing$alerts, function(x) identical(x$code, "E_REPLACEMENT_PAIR_COUNT"), logical(1))))
+
+  replacements <- blocks
+  replacements$id_manzana <- c("R1", "R2")
+  replacements$tipo_manzana <- "reemplazo"
+  replacements$titular_id_manzana <- c("A", "B")
+  replacements$titular_ubigeo <- c("150110", "150110")
+  replacements$titular_zona <- c("00100", "00100")
+  replacements$zona <- c("00100", "00100")
+  sample$replacement_blocks <- .hojas_ruta_df_rows(replacements)
+  mismatch <- .hojas_ruta_validate_delivery_sample(sample)
+  expect_false(mismatch$ok)
+  expect_true(any(vapply(mismatch$alerts, function(x) identical(x$code, "E_REPLACEMENT_ZONE_MISMATCH"), logical(1))))
+})
+
+test_that("proyeccion de mapas conserva oeste izquierda, este derecha y norte arriba", {
+  expect_true(.hojas_ruta_projection_orientation_ok())
+  ring <- matrix(c(
+    -77.2, -12.2,
+    -77.0, -12.2,
+    -77.0, -12.0,
+    -77.2, -12.0,
+    -77.2, -12.2
+  ), ncol = 2L, byrow = TRUE)
+  project <- .hojas_ruta_project_rings_paper(list(ring), 0, 0, 1, 1, paper_w = 11.69, paper_h = 8.27, pad = 0)
+  p <- project(ring)
+  expect_lt(max(p$x[ring[, 1] == min(ring[, 1])]), min(p$x[ring[, 1] == max(ring[, 1])]))
+  expect_lt(max(p$y[ring[, 2] == min(ring[, 2])]), min(p$y[ring[, 2] == max(ring[, 2])]))
+})
+
+test_that("valores operativos son estables por id_manzana y no por orden", {
+  cfg <- hojas_ruta_integrada_normalize_config(list(seed = 123, entrevistas_por_manzana = 6))
+  block <- list(id_manzana = "150110001000010", viviendas = 48L, entrevistas = 6L, hoja_num = 1L)
+  a <- .hojas_ruta_route_operational_values(block, cfg)
+  b <- .hojas_ruta_route_operational_values({ block$hoja_num <- 99L; block }, cfg)
+  expect_equal(a, b)
+  expect_match(a$esquina_inicio, "^[1-4]$")
+  expect_true(a$esquina_coordenada %in% as.character(1:4))
+  expect_true(a$sentido_recorrido %in% c("Horario", "Antihorario"))
+  expect_gte(a$vivienda_inicio, 1L)
+  expect_equal(a$domicilio_inicio, a$vivienda_inicio)
+  expect_lte(a$vivienda_inicio, a$constante_salto)
+  expect_equal(a$constante_salto_unidad, "casa/domicilio")
+  sweep <- .hojas_ruta_route_operational_values(list(id_manzana = "150110001000011", viviendas = 4L, entrevistas = 6L), cfg)
+  expect_equal(sweep$constante_salto, 1L)
+  expect_equal(sweep$vivienda_inicio, 1L)
+  expect_equal(sweep$modo_seleccion_vivienda, "Barrido completo")
+
+  manual_cfg <- hojas_ruta_integrada_normalize_config(list(
+    seed = 123,
+    route_start_corner = "2",
+    route_jump_mode = "manual",
+    route_jump_manual = 4
+  ))
+  manual <- .hojas_ruta_route_operational_values(block, manual_cfg)
+  expect_equal(manual$esquina_coordenada, "2")
+  expect_equal(manual$constante_salto, 4L)
+  expect_equal(manual$constante_salto_modo, "manual")
+  expect_match(manual$modo_seleccion_vivienda, "manual")
+
+  off_cfg <- hojas_ruta_integrada_normalize_config(list(route_jump_mode = "off"))
+  off <- .hojas_ruta_route_operational_values(block, off_cfg)
+  expect_equal(off$constante_salto, 1L)
+  expect_equal(off$domicilio_inicio, 1L)
+  expect_equal(off$modo_seleccion_vivienda, "Sin constante de salto")
 })
 
 test_that("hojas_ruta_generar_pdf_aleatorio_integrado funciona sin seleccion previa", {
@@ -847,7 +1017,7 @@ test_that("tabla B llena solo marginales por edad y sexo", {
   expect_equal(as.integer(quota_odd[4, ncol(quota_odd)]), 5L)
 })
 
-test_that("hojas_ruta_generar_zip_integrado produce PDFs e informe tecnico", {
+test_that("hojas_ruta_generar_zip_integrado produce entrega operativa plana", {
   out_zip <- tempfile(fileext = ".zip")
   res <- hojas_ruta_generar_zip_integrado(
     list(
@@ -863,12 +1033,68 @@ test_that("hojas_ruta_generar_zip_integrado produce PDFs e informe tecnico", {
   expect_true(file.exists(out_zip))
   expect_equal(res$total_entrevistas, 24L)
   entries <- zip::zip_list(out_zip)$filename
-  expect_true("Resumen/resumen_operativo.xlsx" %in% entries)
-  expect_true("Resumen/informe_tecnico.xlsx" %in% entries)
-  expect_true(any(grepl("^Distritos/.*/Titulares/HojaRuta_INEI2017_.*[.]pdf$", entries)))
-  expect_true(any(grepl("^Distritos/.*/Reemplazos/HojaRuta_REEMPLAZO_INEI2017_.*[.]pdf$", entries)))
-  expect_true(any(grepl("^Distritos/.*/Zonas/HojaZona_INEI2017_.*[.]pdf$", entries)))
+  expect_true("hojas_ruta_seleccionadas.xlsx" %in% entries)
+  expect_true("PDF_unificados/hojas_ruta_titulares_unificado.pdf" %in% entries)
+  expect_true("PDF_unificados/hojas_ruta_reemplazos_unificado.pdf" %in% entries)
+  expect_true(any(grepl("^Titulares/HojaRuta_INEI2017_.*[.]pdf$", entries)))
+  expect_true(any(grepl("^Reemplazos/HojaRuta_REEMPLAZO_INEI2017_.*[.]pdf$", entries)))
+  expect_true(any(grepl("^Zonas/HojaZona_INEI2017_.*[.]pdf$", entries)))
   expect_true(res$n_zone_pdfs > 0L)
-  expect_equal(res$n_replacement_blocks, 2L)
+  expect_equal(res$n_unified_pdfs, 2L)
+  expect_equal(res$n_zone_pdfs, res$n_zones)
+  expect_equal(res$n_replacement_blocks, res$n_blocks)
   expect_true(res$n_zones > 0L)
+
+  exdir <- tempfile("hojas_ruta_zip_")
+  utils::unzip(out_zip, files = "hojas_ruta_seleccionadas.xlsx", exdir = exdir)
+  report_path <- file.path(exdir, "hojas_ruta_seleccionadas.xlsx")
+  expect_true(file.exists(report_path))
+  expect_true("Hojas_de_ruta" %in% openxlsx::getSheetNames(report_path))
+  report <- openxlsx::read.xlsx(report_path, sheet = "Hojas_de_ruta")
+  expect_equal(nrow(report), res$n_blocks + res$n_replacement_blocks)
+  expect_setequal(unique(report$Tipo.de.ruta), c("TITULAR", "REEMPLAZO"))
+})
+
+test_that("hojas_ruta_rows_df tolera NULL serializados desde frontend", {
+  rows <- list(
+    list(
+      id_manzana = "070101008000470",
+      distrito = "CALLAO",
+      ubigeo = "070101",
+      zona = "00800",
+      entrevistas = 6L,
+      lat = NULL,
+      lon = NULL,
+      tipo_manzana = "titular"
+    )
+  )
+  out <- .hojas_ruta_rows_df(rows)
+  expect_equal(nrow(out), 1L)
+  expect_true(all(c("lat", "lon") %in% names(out)))
+  expect_true(is.na(out$lat[[1]]))
+  expect_true(is.na(out$lon[[1]]))
+})
+
+test_that("hojas_ruta_write_integrated_workbook tolera metadata opcional vacia", {
+  skip_if_not_installed("openxlsx")
+  sample <- hojas_ruta_sample_preview_integrado(list(
+    n_objetivo = 6,
+    territorios = "150110",
+    seed = 101
+  ))
+  expect_true(sample$ok)
+  sample$frame_meta$empty_optional <- character(0)
+  sample$frame_meta$empty_nested <- list()
+  sample$config$sample_size$margin_district <- NULL
+
+  out_xlsx <- tempfile(fileext = ".xlsx")
+  expect_error(
+    .hojas_ruta_write_integrated_workbook(sample, out_xlsx, technical = TRUE),
+    NA
+  )
+  expect_true(file.exists(out_xlsx))
+  fuente <- openxlsx::read.xlsx(out_xlsx, sheet = "Fuente")
+  params <- openxlsx::read.xlsx(out_xlsx, sheet = "Parametros")
+  expect_true(all(c("campo", "valor") %in% names(fuente)))
+  expect_true(all(c("parametro", "valor") %in% names(params)))
 })

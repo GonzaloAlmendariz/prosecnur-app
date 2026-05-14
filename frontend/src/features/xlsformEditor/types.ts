@@ -21,7 +21,7 @@ export type { XlsformEditorSheet, XlsformEditorWorkbook };
 // -----------------------------------------------------------------------------
 
 /** Identifica qué hoja del workbook se está mirando. */
-export type SheetKey = "survey" | "choices" | "settings" | "diagnostico";
+export type SheetKey = "survey" | "choices" | "settings" | "paper" | "diagnostico";
 
 /**
  * Modo del editor. `builder` es el constructor visual guiado; `advanced` era
@@ -74,6 +74,16 @@ export type BuilderNode = {
   choiceFilter: string;
   hint: string;
   appearance: string;
+  paperNumber?: string;
+  paperLabel?: string;
+  paperLayout?: string;
+  paperGroup?: string;
+  paperOnly?: string;
+  paperSkip?: string;
+  repeat_count?: string;
+  read_only?: string;
+  required_message?: string;
+  parameters?: string;
 };
 
 /** Metadatos de una sección (group o repeat). */
@@ -197,13 +207,28 @@ export const SURVEY_COLUMNS: readonly string[] = [
   "calculation",
   "choice_filter",
   "appearance",
+  "paper_number",
+  "paper_label",
+  "paper_layout",
+  "paper_group",
+  "paper_only",
+  "paper_skip",
 ];
 
-export const CHOICES_COLUMNS: readonly string[] = ["list_name", "name", "label"];
+export const CHOICES_COLUMNS: readonly string[] = ["list_name", "name", "label", "paper_skip"];
 
 export const SETTINGS_COLUMNS: readonly string[] = [
   "form_title",
   "form_id",
   "version",
   "default_language",
+];
+
+export const PAPER_COLUMNS: readonly string[] = [
+  "id",
+  "kind",
+  "position",
+  "title",
+  "body",
+  "layout",
 ];

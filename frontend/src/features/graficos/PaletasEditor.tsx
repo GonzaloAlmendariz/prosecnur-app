@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Sparkles, Trash2, X, Palette, ListChecks } from "lucide-react";
+import { Search, Trash2, X, Palette, ListChecks } from "lucide-react";
+import { IconAI } from "../../lib/icons";
 import {
   apiGraficosPaletasSugeridas,
   PaletaSugeridaEntry,
@@ -286,7 +287,7 @@ export function PaletasEditor() {
                 color: "var(--pulso-text-soft)",
                 display: "inline-flex", alignItems: "center", gap: 5,
               }}>
-                <Sparkles size={11} /> Aplicar paleta sugerida
+                <IconAI size={11} /> Aplicar paleta sugerida
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 <SugeridoButton label="Semáforo" colores={PALETA_SEMAFORO} onClick={() => aplicarPaletaSugerida(PALETA_SEMAFORO)} />

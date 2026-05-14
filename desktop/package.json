@@ -6,6 +6,7 @@
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
+    "smoke:electron": "node smoke-electron.mjs",
     "dist:mac": "electron-builder --mac",
     "dist:mac:publish": "electron-builder --mac --publish=always"
   },

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ChevronDown, Database, Type, Palette, Filter, Gauge, Sparkles, LayoutPanelTop, Table2, BarChart3, Tags, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, Database, Type, Palette, Filter, Gauge, LayoutPanelTop, Table2, BarChart3, Tags, SlidersHorizontal } from "lucide-react";
+import { IconDiagnostic } from "../../lib/icons";
 import { ArgGrupo, ArgMetadata, VarInfo } from "../../api/client";
 import { ArgField, ArgState } from "./ArgField";
 
@@ -23,7 +24,7 @@ export const GRUPO_META: Record<
   semaforo:    { label: "Valores y barras",          icon: Gauge,             descripcion: "Colores por rangos de valores.",                                     defaultOpen: false, order: 2 },
   estilo:      { label: "Valores y barras",          icon: Palette,           descripcion: "Tipografía, tamaños, colores, leyenda y negritas.",                   defaultOpen: false, order: 2 },
   canvas:      { label: "Distribución del espacio",  icon: LayoutPanelTop,    descripcion: "Dimensiones del canvas interno.",                                    defaultOpen: false, order: 4 },
-  avanzado:    { label: "Diagnóstico",               icon: Sparkles,          descripcion: "Opciones poco comunes.",                                             defaultOpen: false, order: 6 },
+  avanzado:    { label: "Diagnóstico",               icon: IconDiagnostic,    descripcion: "Opciones poco comunes.",                                             defaultOpen: false, order: 6 },
 };
 
 export const ARG_GROUP_ORDER: ArgGrupo[] = [

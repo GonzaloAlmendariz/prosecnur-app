@@ -16,6 +16,7 @@ import type {
 } from "../types";
 import {
   CHOICES_COLUMNS,
+  PAPER_COLUMNS,
   SETTINGS_COLUMNS,
   SURVEY_COLUMNS,
 } from "../types";
@@ -37,6 +38,7 @@ export function createBlankWorkbook(): XlsformEditorWorkbook {
       columns: [...SETTINGS_COLUMNS],
       rows: [["Nuevo formulario", "nuevo_formulario", "1", "es"]],
     },
+    paper: makeSheet("paper", PAPER_COLUMNS),
   };
 }
 
@@ -57,6 +59,7 @@ export function cloneWorkbook(book: XlsformEditorWorkbook): XlsformEditorWorkboo
     survey: cloneSheet(book.survey),
     choices: cloneSheet(book.choices),
     settings: cloneSheet(book.settings),
+    paper: book.paper ? cloneSheet(book.paper) : makeSheet("paper", PAPER_COLUMNS),
     diagnostico: book.diagnostico ? cloneSheet(book.diagnostico) : null,
     surveyMonkeyLogic: book.surveyMonkeyLogic
       ? {
@@ -80,6 +83,7 @@ export function cloneWorkbook(book: XlsformEditorWorkbook): XlsformEditorWorkboo
 
 export function getSheet(workbook: XlsformEditorWorkbook, key: SheetKey): XlsformEditorSheet | null {
   if (key === "diagnostico") return workbook.diagnostico ?? null;
+  if (key === "paper") return workbook.paper ?? null;
   return workbook[key];
 }
 
@@ -202,6 +206,8 @@ export const SURVEY_COLUMNS_WITH_VAR_REFS: readonly string[] = [
   "constraint_message",
   "required_message",
   "trigger",
+  "paper_label",
+  "paper_skip",
 ];
 
 /**

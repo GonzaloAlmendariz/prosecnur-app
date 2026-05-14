@@ -238,7 +238,7 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
 
       {manifest && manifest.estado.tiene_data && !sourceOpen && (manifest.estado.curacion_confirmed || adminHidden) && (
         <>
-          <nav aria-label="Pestañas del dashboard" style={{ marginBottom: 16 }}>
+          <nav aria-label="Pestañas del dashboard" className="dash-tab-nav-wrap">
             <TabNav
               tabs={visibleTabs}
               activeId={tabActiva}

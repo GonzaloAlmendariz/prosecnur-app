@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Palette, Sparkles, Sliders, RotateCcw, Info, LayoutPanelTop } from "lucide-react";
+import { Palette, Sliders, RotateCcw, Info, LayoutPanelTop } from "lucide-react";
 import { ArgMetadata, GraficadorRef, Slide, VarInfo } from "../../../../api/client";
 import { usePlanStore, SLIDE_GRAF_SLOTS } from "../../store";
 import { graficadorToPresetType } from "../../graficadorPresetMap";
@@ -156,7 +156,7 @@ export function StylePanel({ slide, args }: StylePanelProps) {
       {hasSlots && (
         <section className="pulso-gv2-style-slots-section">
           <div className="pulso-gv2-style-section-head" style={{ padding: "0 0 8px" }}>
-            <Sparkles size={13} />
+            <LayoutPanelTop size={13} />
             <span>Cada gráfico</span>
             <span className="pulso-gv2-style-section-meta">
               {presetInfo.populatedSlots.length} de {slotNames.length} configurado{presetInfo.populatedSlots.length === 1 ? "" : "s"}

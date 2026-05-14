@@ -140,10 +140,10 @@ export function FiltrosMultiRow({
   }, [filas]);
 
   return (
-    <div>
+    <div className="dash-filtros">
       {!headless && (
         <div className="dash-filtros-head">
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--dash-primario)" }}>
+          <div className="dash-filtros-title">
             Filtros
           </div>
           <label className="dash-switch">
@@ -286,13 +286,7 @@ export function FiltrosMultiRow({
             </button>
           </div>
           {filas.length >= MAX_FILTROS && (
-            <p
-              style={{
-                fontSize: 11,
-                color: "var(--dash-texto-suave)",
-                margin: "6px 0 0 0",
-              }}
-            >
+            <p className="dash-filtros-limit">
               Máximo {MAX_FILTROS} filtros.
             </p>
           )}

@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   Download,
   FileSpreadsheet,
+  FileText,
   Filter,
   GitBranch,
   Hash,
@@ -23,7 +24,6 @@ import {
   ListChecks,
   Plus,
   Settings2,
-  Sparkles,
   Table2,
   Trash2,
   Type,
@@ -31,14 +31,16 @@ import {
   Workflow,
   X,
 } from "lucide-react";
+import { IconHint, IconNew, IconForward, IconEditor } from "../../lib/icons";
 import {
   apiSaveEntregable,
   apiUpload,
-	  apiXlsformEditorExport,
-	  apiXlsformEditorImport,
-	  apiXlsformEditorSmApplyLogic,
-	  apiXlsformEditorSmInterpretRule,
-	  apiXlsformEditorValidate,
+  apiXlsformEditorExport,
+  apiXlsformEditorExportPdf,
+  apiXlsformEditorImport,
+  apiXlsformEditorSmApplyLogic,
+  apiXlsformEditorSmInterpretRule,
+  apiXlsformEditorValidate,
   downloadUrl,
   type Hallazgo,
   type SurveyMonkeyVisualLogicRule,
@@ -49,7 +51,7 @@ import { compileVisualLogicRules, RuleWizard, type ConfirmedRule } from "./shell
 import { HallazgosPanel } from "./shell/HallazgosPanel";
 import smMonkey from "../../assets/sm-monkey.png";
 import { Panel } from "../../components/Panel";
-import { PageHeader } from "../../components/PageHeader";
+import { PageFrame } from "../../components/PageFrame";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../components/States";
 import SaveEntregableButton from "../project/SaveEntregableButton";
 
@@ -68,6 +70,7 @@ import type {
   XlsformEditorWorkbook,
   XlsformIndex,
 } from "./types";
+import { PAPER_COLUMNS } from "./types";
 import {
   cloneWorkbook,
   createBlankWorkbook,
@@ -76,6 +79,7 @@ import {
   findVarReferences,
   getCell,
   insertRecord,
+  makeSheet,
   makeColumnName,
   replaceVarReferences,
   rowToRecord,
@@ -285,7 +289,7 @@ export default function XlsformEditorPage() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [status, setStatus] = useState("Todavía no hay un formulario abierto.");
-  const [artifact, setArtifact] = useState<{ file_id: string; original_name: string } | null>(null);
+  const [artifact, setArtifact] = useState<{ file_id: string; original_name: string; extension: "xlsx" | "pdf" } | null>(null);
   const [source, setSource] = useState<{ kind: string | null; original_name: string | null } | null>(null);
   const [catalogFocus, setCatalogFocus] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -464,7 +468,7 @@ export default function XlsformEditorPage() {
 
   const visibleTabs = useMemo<SheetKey[]>(() => {
     if (!workbook) return [];
-    return ["survey", "choices", "settings"];
+    return ["survey", "choices", "settings", "paper"];
   }, [workbook]);
 
   const catalogs = xlsformIndex?.catalogs ?? [];
@@ -932,14 +936,31 @@ export default function XlsformEditorPage() {
     updateSurveyMonkeyLogicDraft(smLogicRules, nextVisualRules, smLogicChoiceOverrides);
   }
 
+  function entregableStem(originalName: string): string {
+    return originalName
+      .replace(/\.(xlsx|pdf)$/i, "")
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-zA-Z0-9._-]+/g, "_")
+      .replace(/_{2,}/g, "_")
+      .replace(/^_+|_+$/g, "");
+  }
+
+  function pdfFilenameFromSource(name: string | null | undefined): string {
+    return cleanFilename(name)
+      .replace(/_editado\.xlsx$/i, "_papel.pdf")
+      .replace(/\.xlsx$/i, ".pdf");
+  }
+
   async function onExport() {
     if (!workbook) return;
     resetMessages();
+    setArtifact(null);
     setBusy("Exportando XLSForm…");
     try {
       const exportableWorkbook = { ...workbook, diagnostico: null };
       const out = await apiXlsformEditorExport(exportableWorkbook, cleanFilename(source?.original_name));
-      setArtifact({ file_id: out.file_id, original_name: out.original_name });
+      setArtifact({ file_id: out.file_id, original_name: out.original_name, extension: "xlsx" });
       // Tras un export exitoso el workbook está "guardado" (en disco).
       // Forzamos el flush del autosave también para sellar el snapshot
       // local con el mismo timestamp.
@@ -953,13 +974,7 @@ export default function XlsformEditorPage() {
         // especiales (E_INVALID_FILENAME). Normalizamos: quitamos
         // diacríticos, sustituimos no-alfanuméricos por underscore, y
         // colapsamos repetidos.
-        const baseName = out.original_name
-          .replace(/\.xlsx$/i, "")
-          .normalize("NFD")
-          .replace(/[̀-ͯ]/g, "")
-          .replace(/[^a-zA-Z0-9._-]+/g, "_")
-          .replace(/_{2,}/g, "_")
-          .replace(/^_+|_+$/g, "");
+        const baseName = entregableStem(out.original_name);
         try {
           const saved = await apiSaveEntregable(out.file_id, baseName, { overwrite: true });
           toasts.push({
@@ -996,6 +1011,65 @@ export default function XlsformEditorPage() {
       const msg = (e as Error).message;
       setError(msg);
       toasts.push({ kind: "danger", title: "No se pudo exportar", detail: msg });
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function onExportPdf() {
+    if (!workbook) return;
+    resetMessages();
+    setArtifact(null);
+    setBusy("Exportando PDF para papel…");
+    try {
+      const exportableWorkbook = { ...workbook, diagnostico: null };
+      const out = await apiXlsformEditorExportPdf(
+        exportableWorkbook,
+        pdfFilenameFromSource(source?.original_name),
+      );
+      setArtifact({ file_id: out.file_id, original_name: out.original_name, extension: "pdf" });
+      setStatus(`Listo: generamos ${out.original_name} con plantilla impresa Pulso.`);
+      const warnDetail = out.warnings?.length
+        ? ` ${out.warnings.length} salto(s) o regla(s) necesitan revisión manual.`
+        : "";
+
+      if (project.status.has_project) {
+        try {
+          const saved = await apiSaveEntregable(out.file_id, entregableStem(out.original_name), { overwrite: true });
+          toasts.push({
+            kind: out.warnings?.length ? "warn" : "success",
+            title: "PDF guardado en el proyecto",
+            detail: `${saved.path}${warnDetail}`,
+            durationMs: 9000,
+          });
+        } catch (e) {
+          toasts.push({
+            kind: "warn",
+            title: "PDF listo, pero no se pudo guardar en el proyecto",
+            detail: (e as Error).message,
+            durationMs: 8000,
+            action: {
+              label: "Descargar",
+              onClick: () => { window.open(downloadUrl(out.file_id), "_blank"); },
+            },
+          });
+        }
+      } else {
+        toasts.push({
+          kind: out.warnings?.length ? "warn" : "success",
+          title: "PDF listo",
+          detail: `${out.original_name}${warnDetail}`,
+          durationMs: 7000,
+          action: {
+            label: "Descargar",
+            onClick: () => { window.open(downloadUrl(out.file_id), "_blank"); },
+          },
+        });
+      }
+    } catch (e: unknown) {
+      const msg = (e as Error).message;
+      setError(msg);
+      toasts.push({ kind: "danger", title: "No se pudo exportar el PDF", detail: msg });
     } finally {
       setBusy("");
     }
@@ -1096,9 +1170,16 @@ export default function XlsformEditorPage() {
     });
   }
 
+  type EditableSheetKey = "survey" | "choices" | "settings" | "paper";
+
+  function editableSheet(draft: XlsformEditorWorkbook, sheetName: EditableSheetKey) {
+    if (sheetName === "paper" && !draft.paper) draft.paper = makeSheet("paper", PAPER_COLUMNS);
+    return draft[sheetName]!;
+  }
+
   // ── Handlers del modo Hojas (sheets) — operan a nivel de celda raw ──
   function sheetsUpdateCell(
-    sheetName: "survey" | "choices" | "settings",
+    sheetName: EditableSheetKey,
     rowIndex: number,
     columnName: string,
     value: string,
@@ -1135,30 +1216,30 @@ export default function XlsformEditorPage() {
           }
         }
       }
-      setCell(draft[sheetName], rowIndex, columnName, value);
+      setCell(editableSheet(draft, sheetName), rowIndex, columnName, value);
     });
   }
-  function sheetsAddRow(sheetName: "survey" | "choices" | "settings") {
+  function sheetsAddRow(sheetName: EditableSheetKey) {
     updateWorkbook((draft) => {
-      const sheet = draft[sheetName];
+      const sheet = editableSheet(draft, sheetName);
       sheet.rows.push(new Array(sheet.columns.length).fill(""));
     });
   }
   function sheetsDeleteRow(
-    sheetName: "survey" | "choices" | "settings",
+    sheetName: EditableSheetKey,
     rowIndex: number,
   ) {
     updateWorkbook((draft) => {
-      deleteRow(draft[sheetName], rowIndex);
+      deleteRow(editableSheet(draft, sheetName), rowIndex);
     });
   }
   function sheetsMoveRow(
-    sheetName: "survey" | "choices" | "settings",
+    sheetName: EditableSheetKey,
     rowIndex: number,
     direction: "up" | "down",
   ) {
     updateWorkbook((draft) => {
-      const sheet = draft[sheetName];
+      const sheet = editableSheet(draft, sheetName);
       const target = direction === "up" ? rowIndex - 1 : rowIndex + 1;
       if (target < 0 || target >= sheet.rows.length) return;
       const next = [...sheet.rows];
@@ -1167,11 +1248,11 @@ export default function XlsformEditorPage() {
     });
   }
   function sheetsAddColumn(
-    sheetName: "survey" | "choices" | "settings",
+    sheetName: EditableSheetKey,
     columnName: string,
   ) {
     updateWorkbook((draft) => {
-      ensureColumn(draft[sheetName], columnName);
+      ensureColumn(editableSheet(draft, sheetName), columnName);
     });
   }
 
@@ -1712,55 +1793,60 @@ export default function XlsformEditorPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 1440, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
-      <PageHeader
-        title="Editor de formularios"
-        lead="Arma formularios con una interfaz guiada. Los exporta como XLSForm (.xlsx) o PDF. La vista por hojas sigue disponible para edición técnica."
-        meta={(
-          <div style={{ display: "inline-flex", flexWrap: "wrap", gap: 8 }}>
-            <StatusChip label={workbook ? formatSource(source?.kind ?? null) : "Sin archivo"} tone={workbook ? "info" : "neutral"} />
-            <StatusChip
-              label={
-                workbook
-                  ? formatSaveStatus(dirty, lastSavedAt)
-                  : "Sin cambios pendientes"
-              }
-              tone={
-                workbook && dirty
-                  ? "warn"
-                  : workbook && lastSavedAt != null
-                    ? "info"
-                    : "success"
-              }
-            />
-            {workbook && (canUndo || canRedo) && (
-              <div style={{ display: "inline-flex", gap: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => dispatch({ type: "UNDO" })}
-                  disabled={!canUndo}
-                  title="Deshacer (⌘Z)"
-                  style={undoButtonStyle(canUndo)}
-                  aria-label="Deshacer último cambio"
-                >
-                  ↶ Deshacer
-                </button>
-                <button
-                  type="button"
-                  onClick={() => dispatch({ type: "REDO" })}
-                  disabled={!canRedo}
-                  title="Rehacer (⇧⌘Z)"
-                  style={undoButtonStyle(canRedo)}
-                  aria-label="Rehacer cambio deshecho"
-                >
-                  ↷ Rehacer
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      />
-
+    <PageFrame
+      title="Editor de formularios"
+      lead="Constructor visual, hojas técnicas y exportación XLSForm en un mismo workbench."
+      className="pulso-xlsform-frame"
+      resetScrollKey={`${workbook ? "workbook" : "empty"}:${editorMode}`}
+      meta={(
+        <div style={{ display: "inline-flex", flexWrap: "wrap", gap: 8 }}>
+          <StatusChip label={workbook ? formatSource(source?.kind ?? null) : "Sin archivo"} tone={workbook ? "info" : "neutral"} />
+          <StatusChip
+            label={
+              workbook
+                ? formatSaveStatus(dirty, lastSavedAt)
+                : "Sin cambios pendientes"
+            }
+            tone={
+              workbook && dirty
+                ? "warn"
+                : workbook && lastSavedAt != null
+                  ? "info"
+                  : "success"
+            }
+          />
+          {workbook && (canUndo || canRedo) && (
+            <div style={{ display: "inline-flex", gap: 4 }}>
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "UNDO" })}
+                disabled={!canUndo}
+                title="Deshacer (⌘Z)"
+                style={undoButtonStyle(canUndo)}
+                aria-label="Deshacer último cambio"
+              >
+                ↶ Deshacer
+              </button>
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "REDO" })}
+                disabled={!canRedo}
+                title="Rehacer (⇧⌘Z)"
+                style={undoButtonStyle(canRedo)}
+                aria-label="Rehacer cambio deshecho"
+              >
+                ↷ Rehacer
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    >
+      {/*
+        El frame mantiene el header del editor fijo dentro del viewport.
+        Las zonas pesadas (outline, canvas, inspector, hojas y overlays)
+        siguen controlando su propio scroll interno.
+      */}
       {error && <ErrorBlock label="No pudimos abrir el editor" detail={error} />}
 
       {/* Input file oculto para "Importar XLSForm" — disponible siempre,
@@ -1808,7 +1894,7 @@ export default function XlsformEditorPage() {
           actions={(
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button type="button" onClick={onNewWorkbook} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <Sparkles size={14} /> Nuevo formulario
+                <IconNew size={14} /> Nuevo formulario
               </button>
               <button type="button" onClick={() => xlsInputRef.current?.click()} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <Upload size={14} /> Importar XLSForm
@@ -1818,6 +1904,9 @@ export default function XlsformEditorPage() {
               </button>
               <button type="button" className="pulso-primary" onClick={onExport} disabled={!!busy} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <Download size={14} /> Exportar .xlsx
+              </button>
+              <button type="button" onClick={onExportPdf} disabled={!!busy} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <FileText size={14} /> Exportar PDF
               </button>
             </div>
           )}
@@ -1835,6 +1924,39 @@ export default function XlsformEditorPage() {
       {busy && (
         <Panel title="Procesando" hint={busy}>
           <LoadingBlock label={busy} variant="inline" minHeight={88} />
+        </Panel>
+      )}
+
+      {workbook && artifact && (
+        <Panel
+          title="Export listo"
+          hint={project.status.has_project
+            ? "El archivo quedó en sesión y puedes guardarlo en el proyecto."
+            : "El archivo quedó listo para descargar en esta sesión."}
+          actions={(
+            <SaveEntregableButton
+              fileId={artifact.file_id}
+              defaultName={artifact.original_name.replace(/\.(xlsx|pdf)$/i, "")}
+              extension={artifact.extension}
+              label={`Descargar .${artifact.extension}`}
+              icon={artifact.extension === "pdf" ? <FileText size={14} /> : <Download size={14} />}
+              className="pulso-primary"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 12px",
+                borderRadius: 6,
+                fontSize: 13,
+                border: "1px solid var(--pulso-primary)",
+              }}
+            />
+          )}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--pulso-text-soft)", fontSize: 13 }}>
+            <FileSpreadsheet size={16} />
+            <span>{artifact.original_name}</span>
+          </div>
         </Panel>
       )}
 
@@ -2062,7 +2184,7 @@ export default function XlsformEditorPage() {
                       />
                     ) : (
                       <EmptyState
-                        icon={<Sparkles size={18} />}
+                        icon={<IconHint size={18} />}
                         title="Selecciona un elemento"
                         hint="Elige una sección o una pregunta para empezar a construirla."
                         variant="inline"
@@ -2077,10 +2199,10 @@ export default function XlsformEditorPage() {
                       actions={(
                         <SaveEntregableButton
                           fileId={artifact.file_id}
-                          defaultName={artifact.original_name.replace(/\.xlsx$/i, "")}
-                          extension="xlsx"
+                          defaultName={artifact.original_name.replace(/\.(xlsx|pdf)$/i, "")}
+                          extension={artifact.extension}
                           label="Descargar export"
-                          icon={<Download size={14} />}
+                          icon={artifact.extension === "pdf" ? <FileText size={14} /> : <Download size={14} />}
                           className="pulso-primary"
                           style={{
                             display: "inline-flex",
@@ -2359,7 +2481,7 @@ export default function XlsformEditorPage() {
           onClose={() => setHallazgos([])}
         />
       ) : null}
-    </div>
+    </PageFrame>
   );
 }
 
@@ -2555,7 +2677,7 @@ function BuilderHero({
             flexShrink: 0,
           }}
         >
-          {selection?.kind === "settings" ? <Settings2 size={20} /> : <Sparkles size={20} />}
+          {selection?.kind === "settings" ? <Settings2 size={20} /> : <IconEditor size={20} />}
         </span>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 280, flex: 1 }}>
@@ -2950,7 +3072,7 @@ function RestoreOfferBanner({
         flexWrap: "wrap",
       }}
     >
-      <Sparkles size={16} color="var(--pulso-info-fg)" />
+      <IconHint size={16} color="var(--pulso-info-fg)" />
       <div style={{ flex: 1, minWidth: 240 }}>
         <div style={{ fontSize: 13, fontWeight: 700 }}>
           Tenías un formulario abierto antes
@@ -2971,7 +3093,7 @@ function RestoreOfferBanner({
         onClick={onAccept}
         style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
       >
-        <Sparkles size={14} /> Continuar editando
+        <IconForward size={14} /> Continuar editando
       </button>
       <button
         type="button"

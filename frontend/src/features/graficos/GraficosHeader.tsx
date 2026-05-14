@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Download, FileText, RotateCcw, Loader2, Undo2, Redo2, Sparkles, Settings2, PanelTopDashed } from "lucide-react";
+import { CheckCircle2, Download, FileText, RotateCcw, Loader2, Undo2, Redo2, Settings2, PanelTopDashed } from "lucide-react";
+import { IconTemplate } from "../../lib/icons";
 import {
   apiGraficosConfigExport,
   apiGraficosConfigImport,
@@ -170,7 +171,7 @@ export function GraficosHeader({
             borderRadius: 6, cursor: "pointer",
           }}
         >
-          <Sparkles size={12} /> Plantillas
+          <IconTemplate size={12} /> Plantillas
         </button>
 
         <ConfigIoButtons

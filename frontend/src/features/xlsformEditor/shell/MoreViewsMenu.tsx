@@ -12,7 +12,8 @@
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
-import { Layers3, ListChecks, MoreHorizontal, Sparkles, Workflow } from "lucide-react";
+import { Layers3, ListChecks, MoreHorizontal, Workflow } from "lucide-react";
+import { IconBranching } from "../../../lib/icons";
 
 export type MoreViewsMenuProps = {
   catalogsCount: number;
@@ -94,7 +95,7 @@ export function MoreViewsMenu({
       key: "survey-monkey-logic",
       label: "Lógica de SurveyMonkey",
       description: "Importar reglas de salto desde un cuestionario de SurveyMonkey.",
-      icon: Sparkles,
+      icon: IconBranching,
       onClick: () => {
         onOpenSurveyMonkeyLogic();
         setOpen(false);

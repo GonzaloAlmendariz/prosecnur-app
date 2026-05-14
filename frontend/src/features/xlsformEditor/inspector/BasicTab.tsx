@@ -15,7 +15,8 @@
 // =============================================================================
 
 import { useState } from "react";
-import { Info, Star } from "lucide-react";
+import { Info } from "lucide-react";
+import { IconRequired } from "../../../lib/icons";
 import type { BuilderNode, CatalogSummary } from "../types";
 import type { LogicScope } from "../logic";
 import type { ConditionalContext } from "./ContextPanel";
@@ -156,10 +157,10 @@ export function BasicTab({
               onChange={(event) => onRequiredChange(event.target.checked)}
             />
             <span className="pulso-inspector-required-icon" aria-hidden="true">
-              <Star
+              <IconRequired
                 size={14}
-                fill={node.required ? "currentColor" : "none"}
-                strokeWidth={1.6}
+                strokeWidth={2.4}
+                style={{ opacity: node.required ? 1 : 0.35 }}
               />
             </span>
             <span>

@@ -1,4 +1,5 @@
-import { Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { IconAI } from "../../../../lib/icons";
 import { useEffect, useRef, useState } from "react";
 import { useDimensionesWizardStore } from "../store";
 
@@ -104,7 +105,7 @@ export function Step4_Indices() {
           className="pulso-secondary"
           style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
         >
-          <Sparkles size={13} /> Sugerir Índice General
+          <IconAI size={13} /> Sugerir Índice General
         </button>
       </header>
 

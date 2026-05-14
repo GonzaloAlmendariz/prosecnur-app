@@ -27,9 +27,9 @@ import {
   MessageSquare,
   Mic,
   QrCode,
-  Sparkles,
   Type as TypeIcon,
 } from "lucide-react";
+import { IconAI, IconChecklist } from "../../../lib/icons";
 import type { BuilderNode, ChoiceItem } from "../types";
 import { ConditionalIcon, iconForType } from "../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
@@ -178,8 +178,8 @@ function PreviewInput({
         <PreviewBox
           icon={<Calculator size={14} />}
           tone={accent}
-          title="Campo automático"
-          detail="Esta variable se completa con una fórmula. La lógica avanzada llega en la Fase 2."
+          title="Variable calculada"
+          detail={node.calculation || "Sin fórmula declarada."}
         />
       );
 
@@ -195,7 +195,7 @@ function PreviewInput({
 
     case "acknowledge":
       return (
-        <FakeCheckLine icon={<Sparkles size={14} />} text="Confirmar que se leyó" accent={accent} />
+        <FakeCheckLine icon={<IconChecklist size={14} />} text="Confirmar que se leyó" accent={accent} />
       );
 
     case "hidden":
@@ -215,7 +215,7 @@ function PreviewInput({
     case "username":
       return (
         <PreviewBox
-          icon={<Sparkles size={14} />}
+          icon={<IconAI size={14} />}
           tone="var(--pulso-text-soft)"
           title="Auto-meta"
           detail={`El sistema captura este valor automáticamente (${base}).`}

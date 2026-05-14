@@ -25,7 +25,8 @@
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Code2, Variable, X, Sparkles } from "lucide-react";
+import { ChevronDown, Code2, Variable, X } from "lucide-react";
+import { IconTemplate } from "../../../../lib/icons";
 import {
   parseExpression,
   serializeExpression,
@@ -60,7 +61,7 @@ export function CalculationBuilder({
         </header>
         <div className="pulso-logic-calc-templates">
           <p>
-            <Sparkles size={12} /> Empieza con una plantilla o escribe la
+            <IconTemplate size={12} /> Empieza con una plantilla o escribe la
             fórmula a mano.
           </p>
           <div className="pulso-logic-calc-templates-grid">

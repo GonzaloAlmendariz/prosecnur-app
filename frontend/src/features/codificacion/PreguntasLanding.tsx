@@ -26,9 +26,9 @@ import {
   Link2Off,
   PencilLine,
   Search,
-  Sparkles,
   X as XIcon,
 } from "lucide-react";
+import { IconAI } from "../../lib/icons";
 import {
   apiCodifColumnas,
   apiCodifDesemparejar,
@@ -865,7 +865,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         {stats}
         <div style={{ flex: 1 }} />
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <Sparkles size={12} color="var(--tipo-int-fg)" />
+          <IconAI size={12} color="var(--tipo-int-fg)" />
           <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
             Autocodifica con su diccionario
           </span>
@@ -1207,7 +1207,7 @@ function badgeConfig(arq: Arquetipo, paired: boolean, _tipoStyle: { bg: string; 
   // El "no-emparejamiento" NO es un status — las SO/SM pueden codificarse
   // solas. Por lo tanto una pareja sin pareja no lleva badge; el contenido
   // de la card (candidatos sugeridos, toggle "Incluir") indica la acción.
-  if (arq === "auto") return { label: "Auto", bg: "#e6d9f2", fg: "#4a2d66", icon: Sparkles };
+  if (arq === "auto") return { label: "Auto", bg: "#e6d9f2", fg: "#4a2d66", icon: IconAI };
   if (arq === "solitaria") return { label: "Solitaria", bg: "#f3f4f6", fg: "#4b5563", icon: Check };
   if (arq === "huerfana") return { label: "Texto libre", bg: "#fef3c7", fg: "#78350f", icon: CircleAlert };
   if (arq === "adoptada") return { label: "Adoptada", bg: "#f0f4fa", fg: "#5f6b7a", icon: Link2 };

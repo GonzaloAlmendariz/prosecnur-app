@@ -1,5 +1,5 @@
+import { useEffect, useRef } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
 import { useSession } from "../lib/SessionContext";
 import ProjectIndicator from "../features/project/ProjectIndicator";
 import { useProjectShell } from "../features/project/ProjectShell";
@@ -29,6 +29,31 @@ function isProcesamientoRoute(pathname: string): boolean {
   );
 }
 
+function procesamientoIndex(pathname: string): number | null {
+  const index = PROCESAMIENTO_PATHS.findIndex(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+  return index === -1 ? null : index;
+}
+
+const VIEWPORT_PATHS = new Set([
+  "/",
+  "/carga",
+  "/validacion",
+  "/codificacion",
+  "/analitica",
+  "/graficos",
+  "/editor-xlsform",
+  "/tablero",
+  "/hojas-ruta",
+]);
+
+function routePolicy(pathname: string): "viewport" | "legacy-scroll" {
+  if (isProcesamientoRoute(pathname)) return "viewport";
+  if (VIEWPORT_PATHS.has(pathname)) return "viewport";
+  return "legacy-scroll";
+}
+
 type NavItem = { to: string; n: number; label: string; done?: boolean; disabled?: boolean };
 
 function useNavItems(): NavItem[] {
@@ -47,19 +72,11 @@ function Brand() {
   return (
     <NavLink
       to="/"
+      className="pulso-brand-link"
       title="Ir al menú principal"
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 10,
-        textDecoration: "none",
-        padding: "4px 8px",
-        borderRadius: 6,
-        transition: "background 120ms ease",
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--pulso-primary-soft)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
     >
       <BrandMark />
-      <span style={{ fontWeight: 700, fontSize: 17, color: "var(--pulso-primary)", letterSpacing: -0.3 }}>
+      <span className="pulso-brand-wordmark">
         Prosecnur
       </span>
     </NavLink>
@@ -81,46 +98,34 @@ function BrandMark() {
 
 function NavItem({ it }: { it: NavItem }) {
   return (
-    <NavLink
-      to={it.to}
-      style={({ isActive }) => {
-        const active = isActive;
-        const base: React.CSSProperties = {
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 14px",
-          borderRadius: 999,
-          textDecoration: "none",
-          fontSize: 13,
-          fontWeight: 600,
-          border: "1px solid transparent",
-          transition: "all 120ms",
-          pointerEvents: it.disabled ? "none" : "auto",
-        };
-        if (it.disabled) {
-          return { ...base, color: "#c2c8d4", background: "transparent" };
-        }
-        if (active) {
-          return { ...base, background: "var(--pulso-primary)", color: "#fff", boxShadow: "0 4px 10px rgba(0,36,87,0.18)" };
-        }
-        return { ...base, color: "var(--pulso-text)", background: "var(--pulso-surface)", border: "1px solid var(--pulso-border)" };
-      }}
-    >
-      <span
-        style={{
-          minWidth: 20, height: 20, borderRadius: 999,
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          fontSize: 11, fontWeight: 700,
-          background: it.disabled ? "#edf0f6" : "rgba(255,255,255,0.18)",
-          color: "inherit",
-          border: "1px solid rgba(255,255,255,0.22)",
+    <li className="pulso-phase-pill-item">
+      <NavLink
+        to={it.to}
+        aria-disabled={it.disabled || undefined}
+        tabIndex={it.disabled ? -1 : undefined}
+        onClick={(event) => {
+          if (it.disabled) event.preventDefault();
         }}
+        className={({ isActive }) => [
+          "pulso-phase-pill",
+          isActive ? "is-active" : "",
+          it.done ? "is-done" : "",
+          it.disabled ? "is-disabled" : "",
+        ].filter(Boolean).join(" ")}
       >
-        {it.n}
-      </span>
-      <span>{it.label}</span>
-    </NavLink>
+        <span className="pulso-phase-pill-circle" aria-hidden="true" />
+        <span className="pulso-phase-pill-stack">
+          <span className="pulso-phase-pill-label">
+            <span className="pulso-phase-pill-number">{it.n}</span>
+            <span>{it.label}</span>
+          </span>
+          <span className="pulso-phase-pill-label-hover" aria-hidden="true">
+            <span className="pulso-phase-pill-number">{it.n}</span>
+            <span>{it.label}</span>
+          </span>
+        </span>
+      </NavLink>
+    </li>
   );
 }
 
@@ -143,62 +148,59 @@ export default function Layout() {
   const items = useNavItems();
   const location = useLocation();
   const showFases = isProcesamientoRoute(location.pathname);
+  const policy = routePolicy(location.pathname);
+  const routeMotionKey = location.pathname;
+  const previousPathRef = useRef(location.pathname);
+  const previousPhaseIndex = procesamientoIndex(previousPathRef.current);
+  const currentPhaseIndex = procesamientoIndex(location.pathname);
+  const routeMotion =
+    previousPhaseIndex != null && currentPhaseIndex != null && previousPhaseIndex !== currentPhaseIndex
+      ? currentPhaseIndex > previousPhaseIndex
+        ? "forward"
+        : "back"
+      : "default";
   const { project, openStartModal } = useProjectShell();
+
+  useEffect(() => {
+    previousPathRef.current = location.pathname;
+  }, [location.pathname]);
 
   return (
     <div className="pulso-shell">
-      <header
-        style={{
-          display: "flex", alignItems: "center", gap: 18,
-          padding: "12px 18px",
-          background: "var(--pulso-surface)",
-          borderBottom: "1px solid var(--pulso-border)",
-          boxShadow: "var(--pulso-shadow-low)",
-          position: "sticky", top: 0, zIndex: 50,
-          flexWrap: "wrap",
-        }}
-      >
+      <header className="pulso-app-header">
         <Brand />
         {showFases && (
-          <>
-            <span
-              aria-hidden="true"
-              style={{
-                width: 1, height: 20,
-                background: "var(--pulso-border)",
-              }}
-            />
+          <div className="pulso-phase-rail" aria-label="Contexto de procesamiento">
+            <span className="pulso-phase-separator" aria-hidden="true" />
             <nav
               aria-label="Fases de procesamiento"
-              style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+              className="pulso-phase-pillbar"
             >
-              {items.map((it, i) => (
-                <div key={it.to} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <NavItem it={it} />
-                  {i < items.length - 1 && <ChevronRight size={14} color="#c2c8d4" />}
-                </div>
-              ))}
+              <ul className="pulso-phase-pill-list">
+                {items.map((it) => (
+                  <NavItem key={it.to} it={it} />
+                ))}
+              </ul>
             </nav>
-          </>
+          </div>
         )}
-        <div style={{ flex: 1 }} />
+        <div className="pulso-app-header-spacer" />
         <ProjectIndicator project={project} onRequestStartModal={openStartModal} />
         <SessionChip />
       </header>
       <main
-        style={{
-          /* Padding lateral reducido (32px → 20px) para que el contenido
-             respire menos a los lados y los lienzos densos (editor de
-             XLSForm, dashboard, etc) tengan más ancho útil. maxWidth
-             subido de 1440 a 1760 para aprovechar pantallas grandes
-             sin estirar el contenido infinitamente. */
-          padding: "1.5rem 1.25rem",
-          maxWidth: 1760,
-          margin: "0 auto",
-          width: "100%",
-        }}
+        className={`pulso-main pulso-main--${policy}`}
+        data-route-policy={policy}
       >
-        <Outlet />
+        <div className="pulso-main-inner">
+          <div
+            key={routeMotionKey}
+            className="pulso-route-surface"
+            data-route-motion={routeMotion}
+          >
+            <Outlet />
+          </div>
+        </div>
       </main>
     </div>
   );

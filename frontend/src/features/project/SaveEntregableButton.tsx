@@ -74,10 +74,14 @@ export default function SaveEntregableButton({
   if (!project.status.has_project) {
     return (
       <a
-        href={downloadUrl(fileId)}
+        href={disabled ? undefined : downloadUrl(fileId)}
+        download={`${defaultName}.${extension}`}
         className={className}
         style={style}
         aria-disabled={disabled}
+        onClick={(event) => {
+          if (disabled) event.preventDefault();
+        }}
       >
         {icon ?? <Download size={14} />}
         {label ?? `${defaultName}.${extension}`}

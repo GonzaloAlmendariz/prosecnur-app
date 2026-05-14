@@ -12,20 +12,21 @@
 // =============================================================================
 
 import {
+  Award,
   Building2,
   CalendarDays,
   Layers3,
-  Sparkles,
-  Star,
+  LayoutTemplate,
+  Plus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { TemplateId, TemplateSeed } from "./seedHelper";
 import { TEMPLATES } from "./index";
 
 const ICON_BY_ID: Record<TemplateId, LucideIcon> = {
-  blank: Sparkles,
+  blank: Plus,
   household: Building2,
-  "service-quality": Star,
+  "service-quality": Award,
   census: CalendarDays,
 };
 
@@ -51,7 +52,7 @@ export function TemplateGallery({ onPick, hideBlank }: TemplateGalleryProps) {
 
       <div className="pulso-template-gallery-grid">
         {visible.map((seed, idx) => {
-          const Icon = ICON_BY_ID[seed.id] ?? Sparkles;
+          const Icon = ICON_BY_ID[seed.id] ?? LayoutTemplate;
           return (
             <button
               key={seed.id}

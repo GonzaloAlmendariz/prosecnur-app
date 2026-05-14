@@ -1,7 +1,7 @@
 // =============================================================================
 // sheets/SheetsView.tsx — vista alternativa por hojas (Excel-like)
 // =============================================================================
-// Vista de "modo experto" que expone las 3 hojas del XLSForm como tablas
+// Vista de "modo experto" que expone las hojas del XLSForm como tablas
 // editables: `survey`, `choices`, `settings`. El usuario puede:
 //   · Editar cualquier celda directamente.
 //   · Agregar/eliminar filas.
@@ -29,28 +29,28 @@ import type { XlsformEditorWorkbook, XlsformEditorSheet } from "../types";
 export type SheetsViewProps = {
   workbook: XlsformEditorWorkbook;
   onUpdateCell: (
-    sheetName: "survey" | "choices" | "settings",
+    sheetName: TabKey,
     rowIndex: number,
     columnName: string,
     value: string,
   ) => void;
-  onAddRow: (sheetName: "survey" | "choices" | "settings") => void;
+  onAddRow: (sheetName: TabKey) => void;
   onDeleteRow: (
-    sheetName: "survey" | "choices" | "settings",
+    sheetName: TabKey,
     rowIndex: number,
   ) => void;
   onMoveRow: (
-    sheetName: "survey" | "choices" | "settings",
+    sheetName: TabKey,
     rowIndex: number,
     direction: "up" | "down",
   ) => void;
   onAddColumn: (
-    sheetName: "survey" | "choices" | "settings",
+    sheetName: TabKey,
     columnName: string,
   ) => void;
 };
 
-type TabKey = "survey" | "choices" | "settings";
+type TabKey = "survey" | "choices" | "settings" | "paper";
 
 export function SheetsView({
   workbook,
@@ -63,7 +63,7 @@ export function SheetsView({
   const [activeTab, setActiveTab] = useState<TabKey>("survey");
   const [newColInput, setNewColInput] = useState("");
 
-  const sheet = workbook[activeTab];
+  const sheet = workbook[activeTab] ?? { name: activeTab, columns: [], rows: [] };
 
   const handleAddCol = () => {
     const trimmed = newColInput.trim();
@@ -80,7 +80,7 @@ export function SheetsView({
   return (
     <div className="pulso-sheets-view">
       <div className="pulso-sheets-tabs" role="tablist">
-        {(["survey", "choices", "settings"] as TabKey[]).map((tab) => (
+        {(["survey", "choices", "settings", "paper"] as TabKey[]).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -91,7 +91,7 @@ export function SheetsView({
           >
             <span className="pulso-sheets-tab-name">{tab}</span>
             <span className="pulso-sheets-tab-count">
-              {workbook[tab].rows.length}
+              {(workbook[tab]?.rows.length ?? 0)}
             </span>
           </button>
         ))}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Palette, Search, Sparkles, Trash2, X } from "lucide-react";
+import { Palette, Search, Trash2, X } from "lucide-react";
+import { IconAI } from "../../../lib/icons";
 import {
   apiDashboardPaletasListas,
   type DashboardChoiceList,
@@ -222,7 +223,7 @@ export function DashboardPalettesDialog({ onClose }: { onClose: () => void }) {
               </div>
 
               <div className="dash-palette-presets">
-                <span><Sparkles size={12} /> Predeterminadas</span>
+                <span><IconAI size={12} /> Predeterminadas</span>
                 {PRESETS.map((preset) => (
                   <button
                     key={preset.id}

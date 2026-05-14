@@ -19,7 +19,6 @@ import {
   Calculator,
   FolderPlus,
   ChevronLeft,
-  Sparkles,
 } from "lucide-react";
 
 export type AddBetweenKind =
@@ -185,7 +184,7 @@ export function AddBetween({
               setOpen(false);
             }}
           >
-            <Sparkles size={14} />
+            <Plus size={14} />
             <span>
               <strong>Crear lista nueva</strong>
               <em>Empieza de cero con una lista vacía</em>

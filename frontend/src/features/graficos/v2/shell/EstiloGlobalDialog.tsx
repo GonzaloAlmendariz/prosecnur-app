@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Sliders, FileText, Palette, Image as ImageIcon, Sparkles } from "lucide-react";
+import { X, Sliders, FileText, Palette, Image as ImageIcon } from "lucide-react";
+import { IconModes } from "../../../../lib/icons";
 import { PaletasEditor } from "../../PaletasEditor";
 import { IconosEditor } from "../../IconosEditor";
 import { PresetsEditor } from "../../PresetsEditor";
@@ -21,7 +22,7 @@ const TABS: { key: Tab; label: string; Icon: typeof Sliders; hint: string }[] = 
   { key: "word",    label: "Word",         Icon: FileText,   hint: "Overrides solo para el reporte Word" },
   { key: "paletas", label: "Paletas",      Icon: Palette,    hint: "Colores por value-label de cada lista" },
   { key: "iconos",  label: "Íconos",       Icon: ImageIcon,  hint: "PNGs subidos para slides de población" },
-  { key: "modos",   label: "Modos",        Icon: Sparkles,   hint: "Overrides reusables nombrados (compacto, narrativo, etc.)" },
+  { key: "modos",   label: "Modos",        Icon: IconModes,  hint: "Overrides reusables nombrados (compacto, narrativo, etc.)" },
 ];
 
 export type EstiloGlobalDialogProps = {

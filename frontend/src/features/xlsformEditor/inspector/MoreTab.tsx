@@ -45,6 +45,65 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
       {isQuestionLike && (
         <>
           <InspectorBlock>
+            <InspectorField
+              label="Número visible en papel"
+              hint="Opcional. Si queda vacío, el PDF deriva el número desde el código de la pregunta o su orden."
+            >
+              <input
+                type="text"
+                value={node.paperNumber ?? ""}
+                onChange={(event) => onFieldChange("paper_number", event.target.value)}
+                placeholder="Ej. 108"
+              />
+            </InspectorField>
+            <InspectorField
+              label="Texto alternativo para papel"
+              hint="Opcional. Reemplaza el texto del XLSForm solo en el PDF impreso."
+            >
+              <input
+                type="text"
+                value={node.paperLabel ?? ""}
+                onChange={(event) => onFieldChange("paper_label", event.target.value)}
+                placeholder="Etiqueta para el PDF"
+              />
+            </InspectorField>
+            <InspectorField
+              label="Salto impreso"
+              hint="Instrucción manual tipo IR A LA PREGUNTA 117. Tiene prioridad sobre la inferencia automática."
+            >
+              <input
+                type="text"
+                value={node.paperSkip ?? ""}
+                onChange={(event) => onFieldChange("paper_skip", event.target.value)}
+                placeholder="Ej. IR A LA PREGUNTA 117"
+              />
+            </InspectorField>
+            <InspectorField
+              label="Grupo / matriz en papel"
+              hint="Usa el mismo valor en varias filas para imprimirlas como matriz."
+            >
+              <input
+                type="text"
+                value={node.paperGroup ?? ""}
+                onChange={(event) => onFieldChange("paper_group", event.target.value)}
+                placeholder="Ej. p104_servicios"
+              />
+            </InspectorField>
+            <InspectorField
+              label="Layout de papel"
+              hint="Valores útiles: full, wide, matrix, compact. Vacío = automático."
+            >
+              <input
+                type="text"
+                value={node.paperLayout ?? ""}
+                onChange={(event) => onFieldChange("paper_layout", event.target.value)}
+                placeholder="full"
+                spellCheck={false}
+              />
+            </InspectorField>
+          </InspectorBlock>
+
+          <InspectorBlock>
             <label className="pulso-inspector-toggle">
               <input
                 type="checkbox"

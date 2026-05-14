@@ -142,10 +142,10 @@ export function DashboardCurationGate({ onDone }: { onDone: () => void }) {
     <section className="dash-curation dash-cardbox">
       <div className="dash-cardbox-header">
         <div>
-          <h2 className="dash-cardbox-title" style={{ margin: 0 }}>
+          <h2 className="dash-cardbox-title">
             Fase inicial: curar contenido
           </h2>
-          <p className="dash-cardbox-help" style={{ margin: "4px 0 0" }}>
+          <p className="dash-cardbox-help dash-cardbox-help--attached">
             Confirma qué secciones o variables deben incluirse en el dashboard.
           </p>
         </div>

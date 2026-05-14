@@ -20,7 +20,8 @@
 // bien en UI plana. F2-3+ aumentan la cobertura.
 // =============================================================================
 
-import { Sparkles, X } from "lucide-react";
+import { X } from "lucide-react";
+import { IconHint } from "../../../../lib/icons";
 import {
   expandCondition,
   parseExpression,
@@ -65,7 +66,7 @@ export function LogicBuilder({
           <span className="pulso-section-eyebrow">{fieldLabel}</span>
         </header>
         <div className="pulso-logic-builder-empty">
-          <Sparkles size={14} />
+          <IconHint size={14} />
           <span>Sin condición — la pregunta siempre se muestra.</span>
           <button
             type="button"

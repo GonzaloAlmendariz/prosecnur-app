@@ -12,8 +12,8 @@ import {
   AlertCircle,
   X,
   Wand2,
-  Sparkles,
 } from "lucide-react";
+import { IconAI } from "../../lib/icons";
 
 // Classic Levenshtein edit distance (iterative, O(n*m) space O(n)).
 function levenshtein(a: string, b: string): number {
@@ -704,7 +704,7 @@ function GrupoCard({ grupo, respuestas, asignacion, active, onActivate, onUpdate
           }}
         >
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", marginBottom: 6, display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <Sparkles size={11} /> Sugerencias similares
+            <IconAI size={11} /> Sugerencias similares
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             {sugerencias.map(({ t, sim }) => {

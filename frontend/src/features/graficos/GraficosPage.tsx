@@ -7,7 +7,7 @@ import {
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
-import { PageHeader } from "../../components/PageHeader";
+import { PageFrame } from "../../components/PageFrame";
 import { usePlanStore } from "./store";
 import { useGraficosAutosave } from "./useGraficosAutosave";
 import { useGraficosShortcuts } from "./useGraficosShortcuts";
@@ -89,83 +89,81 @@ export default function GraficosPage() {
   }
 
   return (
-    <section style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 96px)" }}>
-      <PageHeader
-        title="Fase 5 — Reportes gráficos"
-        lead="Editor bloque por bloque. Tu plan se guarda automáticamente — sigue editando sin preocuparte."
-      />
+    <>
+    <PageFrame
+      title="Fase 5 - Reportes gráficos"
+      lead="Editor bloque por bloque con autoguardado y exportación PPT/Word."
+      bodyMode="fill"
+      toolbar={
+        <>
+          {!prepOk && (
+            <Alert kind="warn">
+              Primero prepara los datos en <strong>4. Analítica</strong>. La exportación requiere <code>rp_data</code> + <code>rp_inst</code> en sesión.
+            </Alert>
+          )}
 
-      {!prepOk && (
-        <div style={{ marginBottom: 10 }}>
-          <Alert kind="warn">
-            Primero prepara los datos en <strong>4. Analítica</strong>. La exportación requiere <code>rp_data</code> + <code>rp_inst</code> en sesión.
-          </Alert>
-        </div>
-      )}
-
-      <GraficosHeader
-        onExportPpt={() => onExport("ppt")}
-        onExportWord={() => onExport("word")}
-        pptFileId={pptFileId}
-        docxFileId={docxFileId}
-        pptFilename={pptFilename}
-        docxFilename={docxFilename}
-        exportBusy={!!busyValidating || !!exportJob}
-        exportJobKind={exportJob?.kind ?? null}
-        canExport={canExport}
-      />
-
-      {exportJob && (
-        <div style={{ marginBottom: 10 }}>
-          <JobProgress<ExportResult>
-            label={exportJob.kind === "ppt" ? "Exportando PPT" : "Exportando Word"}
-            jobId={exportJob.id}
-            onDone={onExportDone}
-            onError={onExportError}
-            onCancelled={onExportCancelled}
+          <GraficosHeader
+            onExportPpt={() => onExport("ppt")}
+            onExportWord={() => onExport("word")}
+            pptFileId={pptFileId}
+            docxFileId={docxFileId}
+            pptFilename={pptFilename}
+            docxFilename={docxFilename}
+            exportBusy={!!busyValidating || !!exportJob}
+            exportJobKind={exportJob?.kind ?? null}
+            canExport={canExport}
           />
-        </div>
-      )}
 
+          {exportJob && (
+            <JobProgress<ExportResult>
+              label={exportJob.kind === "ppt" ? "Exportando PPT" : "Exportando Word"}
+              jobId={exportJob.id}
+              onDone={onExportDone}
+              onError={onExportError}
+              onCancelled={onExportCancelled}
+            />
+          )}
+
+          {busyValidating && <Alert kind="info">{busyValidating}</Alert>}
+          {warns.length > 0 && <Alert kind="warn">{warns.join(" · ")}</Alert>}
+          {error && (
+            <Alert kind="error">
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <strong>{error.message}</strong>
+                {error.hint && (
+                  <div style={{ fontSize: 12, fontWeight: 400, lineHeight: 1.5 }}>
+                    {error.hint}
+                  </div>
+                )}
+                {error.slideRef && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (error.slideRef) select(error.slideRef.id);
+                      setError(null);
+                    }}
+                    style={{
+                      alignSelf: "flex-start",
+                      fontSize: 11, padding: "4px 10px",
+                      border: "1px solid var(--pulso-danger-fg)",
+                      borderRadius: 5,
+                      background: "white", color: "var(--pulso-danger-fg)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Ir al slide "{error.slideRef.label}"
+                  </button>
+                )}
+              </div>
+            </Alert>
+          )}
+        </>
+      }
+    >
       <EditorShell />
-
-      {busyValidating && <div style={{ marginTop: 10 }}><Alert kind="info">{busyValidating}</Alert></div>}
-      {warns.length > 0 && <div style={{ marginTop: 10 }}><Alert kind="warn">{warns.join(" · ")}</Alert></div>}
-      {error && (
-        <div style={{ marginTop: 10 }}>
-          <Alert kind="error">
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <strong>{error.message}</strong>
-              {error.hint && (
-                <div style={{ fontSize: 12, fontWeight: 400, lineHeight: 1.5 }}>
-                  {error.hint}
-                </div>
-              )}
-              {error.slideRef && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (error.slideRef) select(error.slideRef.id);
-                    setError(null);
-                  }}
-                  style={{
-                    alignSelf: "flex-start",
-                    fontSize: 11, padding: "4px 10px",
-                    border: "1px solid var(--pulso-danger-fg)",
-                    borderRadius: 5,
-                    background: "white", color: "var(--pulso-danger-fg)",
-                    cursor: "pointer",
-                  }}
-                >
-                  Ir al slide "{error.slideRef.label}"
-                </button>
-              )}
-            </div>
-          </Alert>
-        </div>
-      )}
+    </PageFrame>
 
       {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
-    </section>
+    </>
   );
 }

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Layers } from "lucide-react";
 
 // TabStrip — selector horizontal de tab entre pares.
@@ -41,15 +40,7 @@ export function TabStrip<K extends string = string>({
     <div
       role="tablist"
       aria-label={ariaLabel ?? "Tabs"}
-      style={{
-        display: "flex", alignItems: "stretch", gap: 0,
-        flexWrap: "wrap",
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 10,
-        overflow: "hidden",
-        background: "white",
-        boxShadow: "var(--pulso-shadow-low)",
-      }}
+      className="pulso-tab-strip"
     >
       {tabs.map((t, i) => (
         <TabChip
@@ -74,17 +65,7 @@ function TabChip<K extends string = string>({
   last: boolean;
   onClick: () => void;
 }) {
-  const [hover, setHover] = useState(false);
   const Icon = meta.icon;
-  const bg = active
-    ? "var(--pulso-primary)"
-    : hover
-      ? "var(--pulso-primary-soft)"
-      : "white";
-  const color = active ? "white" : "var(--pulso-text)";
-  const descColor = active
-    ? "rgba(255,255,255,0.85)"
-    : "var(--pulso-text-soft)";
   return (
     <button
       type="button"
@@ -94,34 +75,19 @@ function TabChip<K extends string = string>({
       disabled={meta.disabled}
       title={meta.disabled ? meta.disabledReason : undefined}
       onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        flex: "1 1 0",
-        minWidth: 140,
-        display: "flex", flexDirection: "column", alignItems: "flex-start",
-        gap: 3, padding: "12px 16px",
-        background: bg,
-        color,
-        border: "none",
-        borderRight: last ? "none" : "1px solid var(--pulso-border)",
-        cursor: meta.disabled ? "not-allowed" : "pointer",
-        opacity: meta.disabled ? 0.5 : 1,
-        textAlign: "left",
-        transition: "background 140ms ease, color 140ms ease",
-      }}
+      className={[
+        "pulso-tab-chip",
+        active ? "is-active" : "",
+        last ? "is-last" : "",
+        meta.disabled ? "is-disabled" : "",
+      ].filter(Boolean).join(" ")}
     >
-      <span
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          fontSize: 13, fontWeight: 700, letterSpacing: -0.1,
-        }}
-      >
+      <span className="pulso-tab-chip-label">
         <Icon size={14} />
         {meta.label}
       </span>
       {meta.desc && (
-        <span style={{ fontSize: 10, color: descColor, letterSpacing: 0.2, lineHeight: 1.3 }}>
+        <span className="pulso-tab-chip-desc">
           {meta.desc}
         </span>
       )}
