@@ -63,7 +63,55 @@ test_that("preview de .sav se alinea al contrato pN del XLSForm", {
   expect_equal(vapply(preview$columnas[3:4], `[[`, character(1), "origen"), c("extra", "extra"))
   expect_equal(preview$n_columnas, 4L)
   expect_equal(preview$normalizacion$extra_columns, 2L)
+  expect_true(isTRUE(preview$compatibilidad$ok))
+  expect_equal(preview$compatibilidad$n_missing, 0L)
   expect_false(any(grepl("^q0007_", vapply(preview$columnas, `[[`, character(1), "nombre"))))
+})
+
+test_that("caso local ACRD ING colapsa p17/p32 y queda compatible", {
+  skip_if_not_installed("haven")
+  pulso <- "/Users/gonzaloalmendariz/Documents/Pulso/ACRD ING/Ingenieria.pulso"
+  skip_if_not(file.exists(pulso))
+
+  td <- tempfile("pulso-acrd-ing-")
+  dir.create(td)
+  on.exit(unlink(td, recursive = TRUE, force = TRUE), add = TRUE)
+  utils::unzip(pulso, exdir = td)
+
+  files <- list.files(td, recursive = TRUE, full.names = TRUE)
+  xlsx <- files[grepl("\\.xlsx$", files, ignore.case = TRUE) &
+                  !grepl("__MACOSX", files, fixed = TRUE)][1]
+  sav <- files[grepl("\\.sav$", files, ignore.case = TRUE) &
+                 !grepl("__MACOSX", files, fixed = TRUE)][1]
+  skip_if(is.na(xlsx) || is.na(sav), "El .pulso local no trae XLSForm y .sav extraibles")
+
+  inst <- reporte_instrumento(path = xlsx)
+  out <- normalize_data_for_xlsform(haven::read_sav(sav), inst)
+  compat <- validate_data_xlsform_compatibility(out, inst)
+
+  expect_true(isTRUE(compat$ok))
+  expect_equal(compat$n_missing, 0L)
+  expect_true(all(c("p17", "p32") %in% names(out)))
+  expect_false(any(c("p17_1", "p32_1") %in% names(out)))
+})
+
+test_that("gate de carga bloquea bases incompatibles con codigo explicito", {
+  inst <- list(
+    survey = tibble::tibble(
+      type = c("text", "integer"),
+      name = c("p1", "p2")
+    ),
+    choices = tibble::tibble()
+  )
+  data <- data.frame(p1 = "ok", check.names = FALSE)
+
+  err <- tryCatch(
+    .carga_assert_data_xlsform_compatible(data, inst),
+    error = function(e) e
+  )
+
+  expect_s3_class(err, "api_error")
+  expect_equal(err$code, "E_DATA_XLSFORM_INCOMPATIBLE")
 })
 
 test_that("cache de codificacion lee .sav adaptado al XLSForm normalizado", {

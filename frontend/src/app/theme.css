@@ -1668,6 +1668,33 @@ h1.pulso-page-title {
   color: var(--pulso-primary);
   font-weight: 650;
 }
+.pulso-normalization-details {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+.pulso-normalization-details summary {
+  cursor: pointer;
+  color: var(--pulso-primary);
+  font-weight: 650;
+}
+.pulso-normalization-details ul {
+  max-height: 120px;
+  overflow: auto;
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.pulso-upload-compat {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 650;
+}
+.pulso-upload-compat.is-ok {
+  color: var(--pulso-success-fg);
+}
+.pulso-upload-compat.is-bad {
+  color: var(--pulso-danger-fg);
+}
 .pulso-column-details {
   margin-top: 6px;
   font-size: 11px;

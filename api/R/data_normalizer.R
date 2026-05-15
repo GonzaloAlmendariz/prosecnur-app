@@ -208,6 +208,97 @@
   list(data = out, aliased = aliased, dropped = unique(dropped))
 }
 
+.dn_survey_type_raw <- function(survey) {
+  n <- if (is.null(survey)) 0L else nrow(survey)
+  if (!n) return(character(0))
+  out <- if ("type" %in% names(survey)) as.character(survey$type) else rep("", n)
+  out[is.na(out)] <- ""
+  trimws(out)
+}
+
+.dn_survey_type_base <- function(survey) {
+  type_raw <- .dn_survey_type_raw(survey)
+  n <- length(type_raw)
+  if (!n) return(character(0))
+  if ("type_base" %in% names(survey)) {
+    out <- as.character(survey$type_base)
+    out[is.na(out)] <- ""
+    out <- trimws(out)
+    missing <- !nzchar(out)
+    out[missing] <- sub("\\s+.*$", "", type_raw[missing])
+    return(out)
+  }
+  sub("\\s+.*$", "", type_raw)
+}
+
+.dn_survey_names <- function(survey) {
+  if (is.null(survey) || !"name" %in% names(survey) || !nrow(survey)) {
+    return(character(0))
+  }
+  out <- as.character(survey$name)
+  out[is.na(out)] <- ""
+  trimws(out)
+}
+
+.dn_expected_data_names <- function(instrumento) {
+  survey <- instrumento$survey
+  if (is.null(survey) || !nrow(survey) || !"name" %in% names(survey)) {
+    return(character(0))
+  }
+  type_raw <- .dn_survey_type_raw(survey)
+  type_base <- .dn_survey_type_base(survey)
+  names_raw <- .dn_survey_names(survey)
+  skip_types <- c(
+    "begin_group", "end_group", "begin_repeat", "end_repeat",
+    "note", "calculate", "start", "end", "today", "deviceid",
+    "subscriberid", "phonenumber", "simserial", "username", "audit"
+  )
+  keep <- nzchar(names_raw) &
+    !(type_base %in% skip_types) &
+    !(type_raw %in% skip_types)
+  unique(names_raw[keep])
+}
+
+.dn_collapse_single_child_columns <- function(data, survey) {
+  out <- data
+  collapsed <- character(0)
+  dropped <- character(0)
+  if (is.null(survey) || !nrow(survey) || !"name" %in% names(survey)) {
+    return(list(data = out, collapsed = collapsed, dropped = dropped))
+  }
+
+  survey_names <- .dn_survey_names(survey)
+  type_raw <- .dn_survey_type_raw(survey)
+  type_base <- .dn_survey_type_base(survey)
+
+  for (i in seq_len(nrow(survey))) {
+    parent <- survey_names[i]
+    if (is.na(parent) || !nzchar(parent)) next
+    if (!grepl("^p[0-9]+$", parent, perl = TRUE)) next
+    if (parent %in% names(out)) next
+    if (identical(type_base[i], "select_multiple") ||
+        grepl("^select_multiple\\b", type_raw[i], perl = TRUE)) {
+      next
+    }
+
+    child_pat <- paste0("^", .dn_escape_regex(parent), "_[0-9]+$")
+    candidates <- names(out)[grepl(child_pat, names(out), perl = TRUE)]
+    if (length(candidates) != 1L) next
+
+    child <- candidates[[1]]
+    if (child %in% survey_names) next
+
+    out[[parent]] <- out[[child]]
+    if ("label" %in% names(survey)) {
+      attr(out[[parent]], "label") <- as.character(survey$label[i] %||% parent)
+    }
+    collapsed <- c(collapsed, stats::setNames(child, parent))
+    dropped <- c(dropped, child)
+  }
+
+  list(data = out, collapsed = collapsed, dropped = unique(dropped))
+}
+
 #' Normalizar data cruda al contrato canónico del XLSForm.
 #'
 #' Convierte exports SurveyMonkey/SPSS de `select_multiple` desplegados como
@@ -237,10 +328,15 @@ normalize_data_for_xlsform <- function(data,
   # 2. Alias de padding para datos que aún llegan como p7_0001 frente a un XLSForm p7_1.
   alias_info <- .dn_alias_padded_survey_columns(out, survey)
   out <- alias_info$data
+  # 3. SurveyMonkey exporta algunas matrices/escalas de una sola fila como
+  #    q0017_0001 -> p17_1 aunque el XLSForm canonico espera p17.
+  collapse_info <- .dn_collapse_single_child_columns(out, survey)
+  out <- collapse_info$data
   sm_rows <- survey[grepl("^select_multiple\\b", as.character(survey$type)), , drop = FALSE]
 
-  dropped <- unique(c(q2p_info$dropped, alias_info$dropped))
+  dropped <- unique(c(q2p_info$dropped, alias_info$dropped, collapse_info$dropped))
   aliased_combined <- c(q2p_info$aliased, alias_info$aliased)
+  single_child_collapses <- collapse_info$collapsed
   normalized <- list()
 
   choices_ok <- nrow(choices) > 0L && all(c("list_name", "name") %in% names(choices))
@@ -285,14 +381,58 @@ normalize_data_for_xlsform <- function(data,
     out <- out[, setdiff(names(out), dropped), drop = FALSE]
   }
 
-  if (isTRUE(add_metadata) && (length(normalized) || length(aliased_combined))) {
+  if (isTRUE(add_metadata) &&
+      (length(normalized) || length(aliased_combined) || length(single_child_collapses))) {
     attr(out, "xlsform_normalized") <- list(
       normalized_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
       select_multiple = normalized,
       aliases = aliased_combined,
+      single_child_collapses = single_child_collapses,
       dropped_columns = if (isTRUE(drop_source_dummies)) dropped else character(0)
     )
   }
 
   out
+}
+
+#' Validar compatibilidad estricta entre data normalizada y XLSForm.
+#'
+#' El XLSForm es la fuente de verdad: todas las variables analizables del
+#' `survey` deben existir como columnas en la data ya normalizada. Columnas
+#' extra (metadata SurveyMonkey u otros campos auxiliares) se permiten y se
+#' reportan para que la normalizacion no sea silenciosa.
+#'
+#' @export
+validate_data_xlsform_compatibility <- function(data, instrumento) {
+  expected <- .dn_expected_data_names(instrumento)
+  data_names <- if (is.data.frame(data)) names(data) else character(0)
+  matched <- intersect(expected, data_names)
+  missing <- setdiff(expected, data_names)
+  extra <- setdiff(data_names, expected)
+  ok <- length(missing) == 0L
+  msg <- if (ok) {
+    sprintf(
+      "La data normalizada calza con el XLSForm: %d/%d variables esperadas presentes; %d columna(s) extra permitida(s).",
+      length(matched), length(expected), length(extra)
+    )
+  } else {
+    sprintf(
+      "La data normalizada no calza con el XLSForm: faltan %d de %d variable(s) esperada(s).",
+      length(missing), length(expected)
+    )
+  }
+  structure(
+    list(
+      ok = ok,
+      status = if (ok) "compatible" else "incompatible",
+      expected_columns = as.integer(length(expected)),
+      matched_columns = as.integer(length(matched)),
+      missing_columns = missing,
+      extra_columns = extra,
+      n_missing = as.integer(length(missing)),
+      n_extra = as.integer(length(extra)),
+      message = msg
+    ),
+    class = "pulso_data_xlsform_compatibility"
+  )
 }

@@ -109,12 +109,33 @@
 
   renorm_one <- function(data, instrumento) {
     if (is.null(data) || is.null(instrumento)) return(NULL)
-    if (!is.null(attr(data, "xlsform_normalized"))) return(NULL)
-    out <- tryCatch(
-      normalize_data_for_xlsform(data, instrumento),
+    if (!is.null(attr(data, "xlsform_normalized")) &&
+        !is.null(attr(data, "xlsform_compatibility"))) {
+      return(NULL)
+    }
+    already_normalized <- !is.null(attr(data, "xlsform_normalized"))
+    out <- if (already_normalized) {
+      data
+    } else {
+      tryCatch(
+        normalize_data_for_xlsform(data, instrumento),
+        error = function(e) NULL
+      )
+    }
+    if (is.null(out)) return(NULL)
+    compat <- tryCatch(
+      validate_data_xlsform_compatibility(out, instrumento),
       error = function(e) NULL
     )
-    if (is.null(out) || is.null(attr(out, "xlsform_normalized"))) return(NULL)
+    if (!is.null(compat)) {
+      attr(out, "xlsform_compatibility") <- compat
+      if (!isTRUE(compat$ok)) {
+        message("[pulso] data/XLSForm incompatibles tras normalizar .pulso: ", compat$message)
+      }
+    }
+    if (!already_normalized && is.null(attr(out, "xlsform_normalized")) && is.null(compat)) {
+      return(NULL)
+    }
     out
   }
 
@@ -122,6 +143,7 @@
     new_rp <- renorm_one(s$rp_data, inst)
     if (!is.null(new_rp)) {
       s$rp_data <- new_rp
+      s$data_xlsform_compatibility <- attr(new_rp, "xlsform_compatibility", exact = TRUE)
       changed <- TRUE
     }
   }
@@ -134,6 +156,9 @@
       new_b <- renorm_one(s$rp_data_sources[[b]], base_inst)
       if (!is.null(new_b)) {
         s$rp_data_sources[[b]] <- new_b
+        if (!is.null(s$estudio$bases[[b]])) {
+          s$estudio$bases[[b]]$compatibilidad <- attr(new_b, "xlsform_compatibility", exact = TRUE)
+        }
         changed <- TRUE
       }
     }

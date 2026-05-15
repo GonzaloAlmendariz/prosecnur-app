@@ -135,7 +135,11 @@ summarize_instrumento <- function(inst) {
   if (is.null(survey) || !nrow(survey) || !all(c("type", "name") %in% names(survey))) {
     return(character(0))
   }
-  skip_types <- c("begin_group", "end_group", "begin_repeat", "end_repeat", "note")
+  skip_types <- c(
+    "begin_group", "end_group", "begin_repeat", "end_repeat",
+    "note", "calculate", "start", "end", "today", "deviceid",
+    "subscriberid", "phonenumber", "simserial", "username", "audit"
+  )
   type_raw <- trimws(as.character(survey$type %||% ""))
   type_base <- if ("type_base" %in% names(survey)) {
     trimws(as.character(survey$type_base %||% type_raw))
@@ -154,6 +158,42 @@ summarize_instrumento <- function(inst) {
   df[, c(first, setdiff(names(df), first)), drop = FALSE]
 }
 
+.carga_compatibility_payload <- function(df, instrumento) {
+  if (is.null(instrumento) || is.null(instrumento$survey)) {
+    return(list(
+      applied = FALSE,
+      ok = NA,
+      status = "sin_instrumento",
+      missing_columns = character(0),
+      extra_columns = character(0),
+      matched_columns = 0L,
+      message = "Carga una data y un XLSForm para validar compatibilidad."
+    ))
+  }
+  compat <- validate_data_xlsform_compatibility(df, instrumento)
+  compat$applied <- TRUE
+  compat
+}
+
+.carga_assert_data_xlsform_compatible <- function(df, instrumento) {
+  compat <- validate_data_xlsform_compatibility(df, instrumento)
+  if (!isTRUE(compat$ok)) {
+    sample_missing <- utils::head(compat$missing_columns, 20L)
+    suffix <- if (length(sample_missing)) {
+      paste0(" Faltantes: ", paste(sample_missing, collapse = ", "),
+             if (length(compat$missing_columns) > length(sample_missing)) ", ..." else "")
+    } else {
+      ""
+    }
+    stop_api(
+      400,
+      "E_DATA_XLSFORM_INCOMPATIBLE",
+      paste0(compat$message, suffix)
+    )
+  }
+  compat
+}
+
 read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL) {
   # Envolvemos el read_excel en suppressWarnings porque readxl infiere
   # tipo por las primeras 1000 filas; cuando una columna tiene muchos
@@ -170,19 +210,25 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL) {
     stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Unsupported data extension: %s", ext))
   )
   normalized_info <- NULL
+  compatibility_info <- .carga_compatibility_payload(df, NULL)
   if (!is.null(instrumento)) {
     df <- normalize_data_for_xlsform(df, instrumento)
     norm_attr <- attr(df, "xlsform_normalized")
     df <- .carga_reorder_data_columns(df, instrumento)
+    compatibility_info <- .carga_compatibility_payload(df, instrumento)
     if (!is.null(norm_attr)) {
       survey_cols <- intersect(.carga_data_survey_names(instrumento), names(df))
       normalized_info <- list(
         applied = TRUE,
         aliases = as.integer(length(norm_attr$aliases %||% character(0))),
         select_multiple = as.integer(length(norm_attr$select_multiple %||% list())),
+        single_child_collapses = as.integer(length(norm_attr$single_child_collapses %||% character(0))),
         dropped_columns = as.integer(length(norm_attr$dropped_columns %||% character(0))),
         xlsform_columns = as.integer(length(survey_cols)),
-        extra_columns = as.integer(ncol(df) - length(survey_cols))
+        extra_columns = as.integer(ncol(df) - length(survey_cols)),
+        alias_columns = norm_attr$aliases %||% character(0),
+        select_multiple_columns = norm_attr$select_multiple %||% list(),
+        single_child_collapse_columns = norm_attr$single_child_collapses %||% character(0)
       )
     }
   }
@@ -191,6 +237,7 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL) {
       applied = FALSE,
       aliases = 0L,
       select_multiple = 0L,
+      single_child_collapses = 0L,
       dropped_columns = 0L,
       xlsform_columns = 0L,
       extra_columns = 0L
@@ -223,6 +270,7 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL) {
       )
     }),
     normalizacion = normalized_info,
+    compatibilidad = compatibility_info,
     preview_filas = jsonlite::toJSON(head_df, na = "null", dataframe = "rows", auto_unbox = TRUE) |>
       jsonlite::fromJSON(simplifyVector = FALSE)
   )
@@ -280,6 +328,7 @@ estudio_init_default_base <- function(sid) {
   rp_inst <- reporte_instrumento(path = xls_meta$path)
   data_df <- .read_data_any_path(dat_meta$path, dat_meta$ext)
   data_df <- normalize_data_for_xlsform(data_df, rp_inst)
+  .carga_assert_data_xlsform_compatible(data_df, rp_inst)
   rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
   estudio_ensure(sid)

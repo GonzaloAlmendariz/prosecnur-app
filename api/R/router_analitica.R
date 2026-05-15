@@ -38,7 +38,13 @@
 .secciones_desde_instrumento <- function(rp_inst) {
   survey <- rp_inst$survey
   if (is.null(survey) || !"name" %in% names(survey)) return(NULL)
-  grupo <- survey$group_name %||% rep("general", nrow(survey))
+  grupo <- if ("group_name" %in% names(survey)) {
+    as.character(survey$group_name)
+  } else if ("section" %in% names(survey)) {
+    as.character(survey$section)
+  } else {
+    rep("general", nrow(survey))
+  }
   grupo[is.na(grupo) | !nzchar(grupo)] <- "general"
   ok <- !is.na(survey$name) & nzchar(survey$name)
   tapply(survey$name[ok], grupo[ok], function(v) unique(v), simplify = FALSE) |>
@@ -555,6 +561,7 @@ mount_analitica <- function(pr) {
         stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Ext no soportada: %s", src$data_meta$ext))
       )
       dat_raw <- normalize_data_for_xlsform(dat_raw, rp_inst)
+      .carga_assert_data_xlsform_compatible(dat_raw, rp_inst)
       rp_data <- reporte_data(dat_raw, instrumento = rp_inst)
       session_set(sid, "rp_inst", rp_inst)
       session_set(sid, "rp_data", rp_data)

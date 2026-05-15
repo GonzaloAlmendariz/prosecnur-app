@@ -52,6 +52,23 @@ type DataPreview = Awaited<ReturnType<typeof apiCargaData>>["preview"];
 
 type IconCmp = typeof Database;
 
+function dataPreviewNormalizationDetails(preview: DataPreview | null): string[] {
+  const normalizacion = preview?.normalizacion;
+  if (!normalizacion) return [];
+  const rows: string[] = [];
+  Object.entries(normalizacion.alias_columns ?? {}).forEach(([target, source]) => {
+    rows.push(`alias ${source} -> ${target}`);
+  });
+  Object.entries(normalizacion.single_child_collapse_columns ?? {}).forEach(([target, source]) => {
+    rows.push(`colapso ${source} -> ${target}`);
+  });
+  Object.entries(normalizacion.select_multiple_columns ?? {}).forEach(([target, sources]) => {
+    const sourceList = Array.isArray(sources) ? sources : [String(sources)];
+    rows.push(`select_multiple ${target}: ${sourceList.join(", ")}`);
+  });
+  return rows;
+}
+
 function resolveLucideIcon(name: string | undefined): IconCmp {
   const registry = Lucide as unknown as Record<string, IconCmp>;
   return (name && registry[name]) || registry["FileText"] || registry["Square"];
@@ -67,6 +84,7 @@ export default function CargaPage() {
   const [demos, setDemos] = useState<DemoMeta[]>([]);
   const [demosLoading, setDemosLoading] = useState<boolean>(true);
   const [loadingDemo, setLoadingDemo] = useState<string | null>(null);
+  const normalizationDetails = dataPreviewNormalizationDetails(dataPreview);
 
   // Cargar catálogo de demos disponibles al montar.
   useEffect(() => {
@@ -408,8 +426,35 @@ export default function CargaPage() {
                     {dataPreview.normalizacion.select_multiple > 0
                       ? ` · ${dataPreview.normalizacion.select_multiple} select_multiple reconstruido(s)`
                       : ""}
+                    {(dataPreview.normalizacion.single_child_collapses ?? 0) > 0
+                      ? ` · ${dataPreview.normalizacion.single_child_collapses} escala(s) colapsada(s)`
+                      : ""}
                     {typeof dataPreview.normalizacion.extra_columns === "number" && dataPreview.normalizacion.extra_columns > 0
                       ? ` · ${dataPreview.normalizacion.extra_columns} columna(s) técnica(s) al final`
+                      : ""}
+                  </div>
+                )}
+                {normalizationDetails.length > 0 && (
+                  <details className="pulso-normalization-details">
+                    <summary>Ver normalización</summary>
+                    <ul>
+                      {normalizationDetails.map((row, i) => (
+                        <li key={i}>{row}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {dataPreview.compatibilidad?.applied && (
+                  <div className={`pulso-upload-compat ${dataPreview.compatibilidad.ok ? "is-ok" : "is-bad"}`}>
+                    {dataPreview.compatibilidad.ok ? "Compatible con XLSForm" : "Incompatible con XLSForm"}
+                    {typeof dataPreview.compatibilidad.expected_columns === "number"
+                      ? ` · ${dataPreview.compatibilidad.matched_columns}/${dataPreview.compatibilidad.expected_columns} variables`
+                      : ""}
+                    {(dataPreview.compatibilidad.n_missing ?? dataPreview.compatibilidad.missing_columns.length) > 0
+                      ? ` · faltan ${dataPreview.compatibilidad.missing_columns.slice(0, 6).join(", ")}`
+                      : ""}
+                    {(dataPreview.compatibilidad.n_extra ?? dataPreview.compatibilidad.extra_columns.length) > 0
+                      ? ` · ${dataPreview.compatibilidad.n_extra ?? dataPreview.compatibilidad.extra_columns.length} extra permitida(s)`
                       : ""}
                   </div>
                 )}

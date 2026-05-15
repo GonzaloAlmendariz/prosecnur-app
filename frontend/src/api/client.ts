@@ -1307,9 +1307,25 @@ export async function apiCargaData(file_id: string) {
         applied: boolean;
         aliases: number;
         select_multiple: number;
+        single_child_collapses?: number;
         dropped_columns: number;
         xlsform_columns?: number;
         extra_columns?: number;
+        alias_columns?: Record<string, string>;
+        select_multiple_columns?: Record<string, string[]>;
+        single_child_collapse_columns?: Record<string, string>;
+      };
+      compatibilidad?: {
+        applied: boolean;
+        ok: boolean | null;
+        status: string;
+        expected_columns?: number;
+        matched_columns: number;
+        missing_columns: string[];
+        extra_columns: string[];
+        n_missing?: number;
+        n_extra?: number;
+        message: string;
       };
       preview_filas: Record<string, unknown>[];
     };
