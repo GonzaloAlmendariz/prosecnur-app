@@ -36,6 +36,17 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
   pr <- apply_public_mode_filter(pr)
 
   if (nzchar(static_dir) && dir.exists(static_dir)) {
+    pr <- plumber::pr_filter(pr, "frontend_no_cache", function(req, res) {
+      path <- req$PATH_INFO
+      if (is.null(path)) path <- req$path
+      if (is.null(path)) path <- ""
+      if (!startsWith(path, "/api/")) {
+        res$setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        res$setHeader("Pragma", "no-cache")
+        res$setHeader("Expires", "0")
+      }
+      plumber::forward()
+    })
     pr <- plumber::pr_static(pr, "/", static_dir)
     pr <- plumber::pr_get(pr, "/<path:path>", function(req, res, path) {
       if (startsWith(path, "api/")) {

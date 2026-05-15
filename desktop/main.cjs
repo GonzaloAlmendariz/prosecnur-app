@@ -591,6 +591,7 @@ async function showBackendError(message) {
     showLoading();
     try {
       const port = await startBackend();
+      await clearRendererCaches();
       await mainWindow.loadURL(appUrl(port));
     } catch (error) {
       showBackendError(error.message || String(error));
@@ -642,7 +643,21 @@ function healthUrl(port) {
 }
 
 function appUrl(port) {
-  return `http://${HOST}:${port}/`;
+  const version = encodeURIComponent(app.getVersion());
+  return `http://${HOST}:${port}/?appVersion=${version}`;
+}
+
+async function clearRendererCaches() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const { session } = mainWindow.webContents;
+  try {
+    await session.clearCache();
+    await session.clearStorageData({
+      storages: ["cachestorage", "serviceworkers"]
+    });
+  } catch (error) {
+    writeLog(`[prosecnur-desktop] No pude limpiar cache del renderer: ${error.message}\n`);
+  }
 }
 
 function requestJson(url, options = {}) {
@@ -1055,6 +1070,7 @@ async function createWindow() {
     // corriendo, el setInterval sobrescribiría la app real con la
     // pantalla de loading 5s después.
     stopLoadingUpdates();
+    await clearRendererCaches();
     await mainWindow.loadURL(appUrl(port));
   } catch (error) {
     stopLoadingUpdates();
