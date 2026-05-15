@@ -37,6 +37,9 @@ api/inst/standalone/
 .vscode/
 .idea/
 
+# Local Claude/Codex worktrees
+.claude/worktrees/
+
 # Tests
 /tests/e2e/results/
 /tests/e2e/playwright-report/
