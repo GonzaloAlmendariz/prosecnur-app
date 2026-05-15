@@ -156,18 +156,18 @@ const MODULES: ModuleMeta[] = [
     title: "Monitoreo de campo",
     tagline: "Tablero en vivo del avance de campo",
     blurb:
-      "Tablero en vivo del avance de campo: cobertura por enumerador, cuotas restantes y alertas de calidad mientras la encuesta corre.",
+      "Tablero operativo del avance de campo desde Kobo y SurveyMonkey: metas, calidad, produccion y supervision durante la encuesta.",
     features: [
-      "Cobertura por enumerador en tiempo real",
-      "Cuotas restantes vs. objetivo",
-      "Alertas de calidad y outliers",
-      "Vista web responsiva (desktop + mobile)",
+      "Sincronizacion con Kobo y SurveyMonkey",
+      "Metas por variables de control",
+      "Inconsistencias y tiempos atipicos",
+      "Muestra para llamadas de supervision",
     ],
     icon: Activity,
     iconBg: "#fef2f2",
     iconFg: "#b91c1c",
     iconBorder: "#fecaca",
-    // to: undefined — "Próximamente"
+    to: "/monitoreo",
   },
 ];
 
@@ -326,8 +326,9 @@ function computeMeta(
     case "hojas-ruta":
       return state?.hojas_ruta_ok ? "Lista generada" : null;
     case "recopiladores":
-    case "monitoreo":
       return "Próximamente";
+    case "monitoreo":
+      return null;
     default:
       return null;
   }

@@ -46,6 +46,7 @@ const VIEWPORT_PATHS = new Set([
   "/editor-xlsform",
   "/tablero",
   "/hojas-ruta",
+  "/monitoreo",
 ]);
 
 function routePolicy(pathname: string): "viewport" | "legacy-scroll" {

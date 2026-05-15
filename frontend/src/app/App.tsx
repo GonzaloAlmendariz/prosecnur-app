@@ -12,6 +12,7 @@ import PreguntaDetalle from "../features/codificacion/PreguntaDetalle";
 import AnaliticaPage from "../features/analitica/AnaliticaPage";
 import GraficosPage from "../features/graficos/GraficosPage";
 import HojasRutaPage from "../features/hojasRuta/HojasRutaPage";
+import MonitoreoPage from "../features/monitoreo/MonitoreoPage";
 import ProjectShell from "../features/project/ProjectShell";
 import XlsformEditorPage from "../features/xlsformEditor/XlsformEditorPage";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
@@ -82,6 +83,7 @@ export default function App() {
               <Route path="/analitica" element={<AnaliticaPage />} />
               <Route path="/graficos" element={<GraficosPage />} />
               <Route path="/hojas-ruta" element={<HojasRutaPage />} />
+              <Route path="/monitoreo" element={<MonitoreoPage />} />
               <Route path="/editor-xlsform" element={<XlsformEditorPage />} />
               <Route
                 path="/tablero"

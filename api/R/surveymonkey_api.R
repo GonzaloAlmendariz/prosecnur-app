@@ -171,6 +171,287 @@ sm_api_list_surveys <- function(token, base_url = "https://api.surveymonkey.com/
   ))
 }
 
+#' Descargar respuestas bulk de SurveyMonkey API v3
+#'
+#' Requiere scope `responses_read_detail`. El filtro `since` se aplica
+#' localmente sobre `date_modified` porque la API documentada no ofrece un
+#' parametro estable para fecha minima en este endpoint.
+#'
+#' @param survey_id ID numerico de SurveyMonkey.
+#' @param token Personal Access Token.
+#' @param page Pagina.
+#' @param per_page Tamano de pagina.
+#' @param since Fecha/hora minima opcional para `date_modified`.
+#' @param base_url URL base API.
+#' @return Lista JSON de `/surveys/{id}/responses/bulk`.
+#' @export
+sm_api_fetch_responses_bulk <- function(survey_id,
+                                        token,
+                                        page = 1L,
+                                        per_page = 100L,
+                                        since = NULL,
+                                        base_url = "https://api.surveymonkey.com/v3") {
+  survey_id <- trimws(as.character(survey_id %||% "")[1])
+  token <- as.character(token %||% "")[1]
+  if (!nzchar(survey_id)) stop("Falta 'survey_id'.", call. = FALSE)
+  if (!nzchar(token)) stop("Falta el token de la API.", call. = FALSE)
+  if (!requireNamespace("curl", quietly = TRUE)) stop("Paquete 'curl' no instalado.", call. = FALSE)
+  if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Paquete 'jsonlite' no instalado.", call. = FALSE)
+
+  page <- suppressWarnings(as.integer(page %||% 1L))
+  per_page <- suppressWarnings(as.integer(per_page %||% 100L))
+  if (!is.finite(page) || page < 1L) page <- 1L
+  if (!is.finite(per_page) || per_page < 1L) per_page <- 100L
+  per_page <- min(per_page, 100L)
+
+  url <- sprintf(
+    "%s/surveys/%s/responses/bulk?page=%d&per_page=%d&sort_by=date_modified&sort_order=ASC",
+    sub("/$", "", base_url),
+    utils::URLencode(survey_id, reserved = TRUE),
+    page,
+    per_page
+  )
+  h <- curl::new_handle()
+  curl::handle_setheaders(h,
+    "Authorization" = paste("Bearer", token),
+    "Accept" = "application/json"
+  )
+  res <- curl::curl_fetch_memory(url, handle = h)
+  body <- rawToChar(res$content)
+  Encoding(body) <- "UTF-8"
+
+  if (res$status_code == 401L) {
+    stop("Token rechazado por SurveyMonkey (HTTP 401).", call. = FALSE)
+  }
+  if (res$status_code == 403L) {
+    stop("El token no tiene scope 'responses_read_detail' para leer respuestas.", call. = FALSE)
+  }
+  if (res$status_code == 402L) {
+    stop("SurveyMonkey rechazo el acceso a respuestas por limite del plan.", call. = FALSE)
+  }
+  if (res$status_code >= 400L) {
+    stop(sprintf("API SurveyMonkey devolvio HTTP %d: %s", res$status_code, body), call. = FALSE)
+  }
+
+  parsed <- jsonlite::fromJSON(body, simplifyVector = FALSE)
+  if (!is.null(since) && length(parsed$data %||% list())) {
+    since_ts <- .sm_api_parse_time(since)
+    if (!is.na(since_ts)) {
+      parsed$data <- Filter(function(r) {
+        mod <- .sm_api_parse_time(r$date_modified %||% r$date_created %||% NA_character_)
+        is.na(mod) || mod >= since_ts
+      }, parsed$data)
+    }
+  }
+  parsed
+}
+
+sm_api_fetch_all_responses_bulk <- function(survey_id,
+                                            token,
+                                            per_page = 100L,
+                                            since = NULL,
+                                            max_pages = 500L,
+                                            progress = NULL,
+                                            base_url = "https://api.surveymonkey.com/v3") {
+  page <- 1L
+  out <- list()
+  total <- NA_integer_
+  repeat {
+    payload <- sm_api_fetch_responses_bulk(
+      survey_id = survey_id,
+      token = token,
+      page = page,
+      per_page = per_page,
+      since = NULL,
+      base_url = base_url
+    )
+    rows <- payload$data %||% list()
+    if (length(rows)) out <- c(out, rows)
+    total <- suppressWarnings(as.integer(payload$total %||% total))
+    if (!is.null(progress)) {
+      progress(length(out), if (is.finite(total)) total else NA_integer_,
+               sprintf("SurveyMonkey: %d respuestas", length(out)))
+    }
+    if (length(rows) < min(per_page, 100L)) break
+    page <- page + 1L
+    if (page > max_pages) {
+      stop("Se alcanzo el limite de paginas configurado para SurveyMonkey.", call. = FALSE)
+    }
+  }
+  if (!is.null(since) && length(out)) {
+    since_ts <- .sm_api_parse_time(since)
+    if (!is.na(since_ts)) {
+      out <- Filter(function(r) {
+        mod <- .sm_api_parse_time(r$date_modified %||% r$date_created %||% NA_character_)
+        is.na(mod) || mod >= since_ts
+      }, out)
+    }
+  }
+  list(ok = TRUE, count = length(out), total = if (is.finite(total)) total else length(out), data = out)
+}
+
+sm_api_check_responses_scope <- function(survey_id, token, base_url = "https://api.surveymonkey.com/v3") {
+  tryCatch({
+    sm_api_fetch_responses_bulk(survey_id, token, page = 1L, per_page = 1L, base_url = base_url)
+    list(ok = TRUE)
+  }, error = function(e) {
+    list(ok = FALSE, error = conditionMessage(e))
+  })
+}
+
+sm_api_flatten_responses <- function(details, responses, style = .sm_api_default_style()) {
+  if (is.null(responses) || !length(responses)) return(data.frame())
+  if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Paquete 'jsonlite' no instalado.", call. = FALSE)
+  qmap <- .sm_api_response_question_map(details, style = style)
+
+  rows <- lapply(responses, function(resp) {
+    out <- list(
+      response_id = .sm_api_scalar(resp$id %||% resp$response_id %||% NA_character_),
+      collector_id = .sm_api_scalar(resp$collector_id %||% NA_character_),
+      recipient_id = .sm_api_scalar(resp$recipient_id %||% NA_character_),
+      response_status = .sm_api_scalar(resp$response_status %||% NA_character_),
+      collection_mode = .sm_api_scalar(resp$collection_mode %||% NA_character_),
+      date_created = .sm_api_scalar(resp$date_created %||% NA_character_),
+      date_modified = .sm_api_scalar(resp$date_modified %||% NA_character_),
+      total_time = suppressWarnings(as.numeric(resp$total_time %||% NA_real_)),
+      ip_address = .sm_api_scalar(resp$ip_address %||% NA_character_),
+      custom_value = .sm_api_scalar(resp$custom_value %||% NA_character_)
+    )
+
+    custom <- resp$custom_variables %||% list()
+    if (length(custom)) {
+      for (nm in names(custom)) {
+        out[[paste0("cv_", .sm_api_safe_name(nm))]] <- .sm_api_scalar(custom[[nm]])
+      }
+    }
+
+    pages <- resp$pages %||% list()
+    for (page in pages) {
+      questions <- page$questions %||% list()
+      for (question in questions) {
+        qid <- as.character(question$id %||% question$question_id %||% "")
+        spec <- qmap$questions[[qid]] %||% list(name = paste0("q_", qid))
+        answers <- question$answers %||% list()
+        for (ans in answers) {
+          var <- spec$name %||% paste0("q_", qid)
+          if (!is.null(ans$row_id) && nzchar(as.character(ans$row_id))) {
+            row_label <- qmap$rows[[as.character(ans$row_id)]] %||% as.character(ans$row_id)
+            var <- paste(var, .sm_api_safe_name(row_label), sep = "__")
+          }
+          value <- .sm_api_answer_value(ans, qmap)
+          if (!nzchar(as.character(value %||% ""))) next
+          old <- out[[var]]
+          out[[var]] <- if (is.null(old) || is.na(old) || !nzchar(as.character(old))) {
+            value
+          } else {
+            paste(unique(c(strsplit(as.character(old), " \\| ", fixed = FALSE)[[1]], value)), collapse = " | ")
+          }
+        }
+      }
+    }
+    out
+  })
+
+  cols <- unique(unlist(lapply(rows, names), use.names = FALSE))
+  df <- do.call(rbind, lapply(rows, function(row) {
+    vals <- lapply(cols, function(nm) {
+      v <- row[[nm]]
+      if (is.null(v) || length(v) == 0L) return(NA_character_)
+      if (is.list(v)) return(jsonlite::toJSON(v, auto_unbox = TRUE, null = "null"))
+      as.character(v)[1]
+    })
+    names(vals) <- cols
+    as.data.frame(vals, stringsAsFactors = FALSE, optional = TRUE)
+  }))
+  names(df) <- cols
+  rownames(df) <- NULL
+  df
+}
+
+.sm_api_parse_time <- function(x) {
+  if (inherits(x, "POSIXt")) return(x[1])
+  x <- as.character(x %||% "")[1]
+  if (!nzchar(x) || is.na(x)) return(as.POSIXct(NA))
+  fmts <- c(
+    "%Y-%m-%dT%H:%M:%OSZ", "%Y-%m-%dT%H:%M:%S%z",
+    "%Y-%m-%d %H:%M:%OS", "%Y-%m-%d"
+  )
+  for (fmt in fmts) {
+    out <- suppressWarnings(as.POSIXct(x, format = fmt, tz = "UTC"))
+    if (!is.na(out)) return(out)
+  }
+  suppressWarnings(as.POSIXct(x, tz = "UTC"))
+}
+
+.sm_api_scalar <- function(x) {
+  if (is.null(x) || length(x) == 0L) return(NA_character_)
+  if (is.list(x)) return(jsonlite::toJSON(x, auto_unbox = TRUE, null = "null"))
+  as.character(x)[1]
+}
+
+.sm_api_safe_name <- function(x) {
+  x <- tolower(trimws(as.character(x %||% "")))
+  x <- iconv(x, to = "ASCII//TRANSLIT", sub = "")
+  x <- gsub("[^a-z0-9]+", "_", x)
+  x <- gsub("^_+|_+$", "", x)
+  if (!nzchar(x)) "valor" else x
+}
+
+.sm_api_response_question_map <- function(details, style = .sm_api_default_style()) {
+  pages <- details$pages %||% list()
+  questions <- list()
+  choices <- list()
+  rows <- list()
+  cols <- list()
+  global_pos <- 0L
+  for (page in pages) {
+    for (q in page$questions %||% list()) {
+      fam <- .sm_or(q$family, "")
+      if (identical(fam, "presentation")) next
+      global_pos <- global_pos + 1L
+      qid <- as.character(q$id %||% "")
+      q_name <- .sm_api_q_name(global_pos, style = style, upper = FALSE)
+      questions[[qid]] <- list(
+        id = qid,
+        name = q_name,
+        heading = .sm_api_question_heading(q),
+        family = fam
+      )
+      ans <- q$answers %||% list()
+      for (ch in ans$choices %||% list()) {
+        cid <- as.character(ch$id %||% "")
+        if (nzchar(cid)) choices[[cid]] <- .sm_api_clean_text(.sm_or(ch$text, cid))
+      }
+      for (r in ans$rows %||% list()) {
+        rid <- as.character(r$id %||% "")
+        if (nzchar(rid)) rows[[rid]] <- .sm_api_clean_text(.sm_or(r$text, rid))
+      }
+      for (c in ans$cols %||% ans$columns %||% list()) {
+        cid <- as.character(c$id %||% "")
+        if (nzchar(cid)) cols[[cid]] <- .sm_api_clean_text(.sm_or(c$text, cid))
+      }
+    }
+  }
+  list(questions = questions, choices = choices, rows = rows, cols = cols)
+}
+
+.sm_api_answer_value <- function(ans, qmap) {
+  if (!is.null(ans$text) && nzchar(as.character(ans$text))) return(as.character(ans$text)[1])
+  if (!is.null(ans$choice_id)) {
+    cid <- as.character(ans$choice_id)
+    return(qmap$choices[[cid]] %||% cid)
+  }
+  if (!is.null(ans$col_id)) {
+    cid <- as.character(ans$col_id)
+    return(qmap$cols[[cid]] %||% cid)
+  }
+  if (!is.null(ans$row_id)) {
+    rid <- as.character(ans$row_id)
+    return(qmap$rows[[rid]] %||% rid)
+  }
+  .sm_api_scalar(ans)
+}
+
 #' Extrae el mapeo página → preguntas a partir del response de la API.
 #'
 #' La heurística usa la posición global lineal de cada pregunta (excluyendo

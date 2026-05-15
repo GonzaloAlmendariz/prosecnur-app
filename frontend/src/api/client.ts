@@ -1455,6 +1455,178 @@ export function jobResultUrl(id: string) {
   return apiPath(`/api/jobs/${encodeURIComponent(id)}/result`);
 }
 
+// ---------- Monitoreo digital ----------
+
+export type MonitoreoSourceKind = "kobo" | "surveymonkey";
+
+export type MonitoreoSource = {
+  id: string;
+  kind: MonitoreoSourceKind;
+  label: string;
+  enabled: boolean;
+  asset_uid?: string;
+  survey_id?: string;
+  base_url?: string;
+  created_at?: string;
+  last_sync_at?: string;
+};
+
+export type MonitoreoGoal = {
+  filters: Record<string, string>;
+  meta: number;
+};
+
+export type MonitoreoConfig = {
+  enumerator_var: string;
+  date_var: string;
+  start_var: string;
+  end_var: string;
+  duration_var: string;
+  status_var: string;
+  valid_statuses: string[];
+  id_var: string;
+  contact_var: string;
+  control_vars: string[];
+  critical_vars: string[];
+  goals: MonitoreoGoal[];
+  objetivo_total: number | null;
+  min_duration_seconds: number;
+  max_duration_seconds: number;
+  supervision_n: number;
+  supervision_seed: number;
+};
+
+export type MonitoreoVariable = {
+  name: string;
+  tipo: string;
+  n_missing: number;
+  n_unique: number;
+};
+
+export type MonitoreoKpis = {
+  total: number;
+  valid: number;
+  invalid: number;
+  target: number | null;
+  avance_pct: number | null;
+  ritmo_diario: number | null;
+  duration_median: number | null;
+  duration_p95: number | null;
+  inconsistencies: number;
+};
+
+export type MonitoreoRow = Record<string, string | number | boolean | null>;
+
+export type MonitoreoDashboard = {
+  ok: boolean;
+  kpis: MonitoreoKpis;
+  progress: MonitoreoRow[];
+  production: MonitoreoRow[];
+  inconsistencies: MonitoreoRow[];
+};
+
+export type MonitoreoState = {
+  ok: true;
+  sources: MonitoreoSource[];
+  config: MonitoreoConfig;
+  has_snapshot: boolean;
+  synced_at: string;
+  n_rows: number;
+  variables: MonitoreoVariable[];
+  dashboard: MonitoreoDashboard | null;
+  errors: { source_id?: string; source_label?: string; message: string }[];
+};
+
+export type MonitoreoSyncResult = {
+  ok: true;
+  synced_at: string;
+  n_rows: number;
+  n_sources: number;
+  dashboard: MonitoreoDashboard;
+  errors: { source_id?: string; source_label?: string; message: string }[];
+};
+
+export type MonitoreoSourcePayload = {
+  kind: MonitoreoSourceKind;
+  label?: string;
+  enabled?: boolean;
+  token?: string;
+  asset_uid?: string;
+  survey_id?: string;
+  base_url?: string;
+};
+
+export async function apiMonitoreoState() {
+  return handle<MonitoreoState>(
+    await apiFetch("/api/monitoreo/state", { headers: headers() }),
+  );
+}
+
+export async function apiMonitoreoDemo(options: { seed?: number; n?: number } = {}) {
+  return handle<{ ok: true; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/demo", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(options),
+    }),
+  );
+}
+
+export async function apiMonitoreoSource(payload: MonitoreoSourcePayload) {
+  return handle<{ ok: true; source: MonitoreoSource; validation: unknown; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/source", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoConfig(config: Partial<MonitoreoConfig>) {
+  return handle<{ ok: true; config: MonitoreoConfig; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/config", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiMonitoreoSync(config?: Partial<MonitoreoConfig>) {
+  return handle<JobStart>(
+    await apiFetch("/api/monitoreo/sync", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(config ? { config } : {}),
+    }),
+  );
+}
+
+export async function apiMonitoreoSupervisionSample(options: {
+  config?: Partial<MonitoreoConfig>;
+  n?: number;
+  seed?: number;
+  only_risk?: boolean;
+} = {}) {
+  return handle<{ ok: true; sample: MonitoreoRow[]; n: number }>(
+    await apiFetch("/api/monitoreo/supervision/sample", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(options),
+    }),
+  );
+}
+
+export async function apiMonitoreoExport(config?: Partial<MonitoreoConfig>) {
+  return handle<FileJobResult>(
+    await apiFetch("/api/monitoreo/export", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(config ? { config } : {}),
+    }),
+  );
+}
+
 // ---------- Hojas de ruta para campo ----------
 
 export type HojasRutaFieldStatus = {
