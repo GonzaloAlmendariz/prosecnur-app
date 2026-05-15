@@ -86,7 +86,31 @@ export function humanizeGraficosExportError(raw: string, plan: PlanJson): Humani
     };
   }
 
-  // 6) cannot open file / file not found (casi siempre iconos) ----------
+  // 6) Iconos de slides de población ------------------------------------
+  const iconMissingMatch = /Icono no encontrado:\s*['"`]?([^'"`.]+)['"`]?/i.exec(msg);
+  if (iconMissingMatch) {
+    return {
+      message: `El ícono "${iconMissingMatch[1].trim()}" ya no está disponible en el catálogo.`,
+      hint: "Vuelve a elegir un ícono en Configuración global → Iconos, o deja el campo en (ninguno) para exportar sin ícono.",
+    };
+  }
+
+  const iconRequiredMatch = /La slide ['"`]([^'"`]+)['"`] requiere un icono/i.exec(msg);
+  if (iconRequiredMatch) {
+    return {
+      message: `La slide "${labelForSlideType(iconRequiredMatch[1])}" necesita un ícono.`,
+      hint: "Selecciona un PNG en Configuración global → Iconos. En slides de población puedes dejarlo en (ninguno), pero esta plantilla lo requiere.",
+    };
+  }
+
+  if (/icono['"`]?\s+debe ser.*ppt_element|['"`]icono['"`]\s+debe ser.*ppt_element/i.test(msg)) {
+    return {
+      message: "El slide tiene un ícono vacío o inválido.",
+      hint: "Deja el campo en (ninguno) para exportar sin ícono, o selecciona un PNG subido en Configuración global → Iconos.",
+    };
+  }
+
+  // 7) cannot open file / file not found (casi siempre iconos) ----------
   if (/cannot open file|No such file or directory/.test(msg)) {
     return {
       message: "Un archivo referenciado por el plan no se pudo abrir.",
@@ -158,4 +182,8 @@ function labelForSlide(slide: Slide): string {
   const tipo = SLIDE_LABELS[slide.tipo] ?? slide.tipo;
   if (title) return `${tipo} — ${title}`;
   return tipo;
+}
+
+function labelForSlideType(tipo: string): string {
+  return SLIDE_LABELS[tipo as keyof typeof SLIDE_LABELS] ?? tipo;
 }

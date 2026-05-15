@@ -59,6 +59,163 @@
   }, logical(1))]
 }
 
+.graficos_is_blank_json_value <- function(x) {
+  is.null(x) ||
+    length(x) == 0L ||
+    (length(x) == 1L && is.list(x) && is.null(x[[1]])) ||
+    (length(x) == 1L && is.atomic(x) && is.na(x)) ||
+    (length(x) == 1L && is.character(x) && !nzchar(trimws(x)))
+}
+
+.graficos_icon_ref <- function(x) {
+  if (.graficos_is_blank_json_value(x)) return("")
+  if (is.list(x) && !inherits(x, "ppt_element")) {
+    if (!is.null(x$id)) return(.graficos_icon_ref(x$id))
+    if (!is.null(x$file_id)) return(.graficos_icon_ref(x$file_id))
+    if (!is.null(x$path)) return(.graficos_icon_ref(x$path))
+    if (length(x) == 1L && is.null(names(x))) return(.graficos_icon_ref(x[[1]]))
+  }
+  if (!is.atomic(x) || length(x) < 1L) return("")
+  trimws(as.character(x[[1]]))
+}
+
+.graficos_icon_plot <- function(path) {
+  if (!requireNamespace("png", quietly = TRUE)) {
+    stop("Se requiere el paquete 'png' para renderizar iconos PNG.", call. = FALSE)
+  }
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop("Se requiere el paquete 'ggplot2' para renderizar iconos PNG.", call. = FALSE)
+  }
+  if (!requireNamespace("grid", quietly = TRUE)) {
+    stop("Se requiere el paquete 'grid' para renderizar iconos PNG.", call. = FALSE)
+  }
+  if (!file.exists(path)) {
+    stop(sprintf("Icono no encontrado en disco: %s", path), call. = FALSE)
+  }
+  img <- tryCatch(
+    png::readPNG(path),
+    error = function(e) stop(sprintf("No se pudo leer el PNG del icono: %s", conditionMessage(e)), call. = FALSE)
+  )
+  grob <- grid::rasterGrob(img, interpolate = TRUE)
+  ggplot2::ggplot() +
+    ggplot2::annotation_custom(grob, xmin = 0, xmax = 1, ymin = 0, ymax = 1) +
+    ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE) +
+    ggplot2::theme_void() +
+    ggplot2::theme(
+      plot.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+      panel.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+      plot.margin = ggplot2::margin(0, 0, 0, 0)
+    )
+}
+
+.graficos_rebuild_icon <- function(x, icon_registry = list()) {
+  if (.graficos_is_blank_json_value(x)) return(NULL)
+  if (inherits(x, "ppt_element")) return(x)
+
+  ref <- .graficos_icon_ref(x)
+  if (!nzchar(ref)) return(NULL)
+
+  path <- icon_registry[[ref]] %||% ref
+  if (!file.exists(path)) {
+    stop(
+      sprintf("Icono no encontrado: '%s'. Revisa que exista en Configuracion global > Iconos.", ref),
+      call. = FALSE
+    )
+  }
+
+  p_ggplot_raw(.graficos_icon_plot(path))
+}
+
+.graficos_fn_requires_icon <- function(fn) {
+  fml <- formals(fn)
+  "icono" %in% names(fml) && identical(fml$icono, quote(expr = ))
+}
+
+.graficos_normalize_payload_icon <- function(payload, fn, tipo, icon_registry = list()) {
+  if (!("icono" %in% names(formals(fn)))) return(payload)
+
+  if ("icono" %in% names(payload)) {
+    payload$icono <- .graficos_rebuild_icon(payload$icono, icon_registry = icon_registry)
+  }
+
+  if (.graficos_fn_requires_icon(fn) && is.null(payload$icono)) {
+    stop(
+      sprintf(
+        "La slide '%s' requiere un icono. Selecciona un PNG en Configuracion global > Iconos.",
+        tipo
+      ),
+      call. = FALSE
+    )
+  }
+
+  payload
+}
+
+.graficos_icon_registry <- function(sid, cfg = NULL) {
+  cfg <- cfg %||% session_get(sid, required = FALSE)$graficos_config %||% list()
+  iconos <- cfg$iconos %||% list()
+  out <- list()
+  if (!is.list(iconos) || length(iconos) == 0L) return(out)
+
+  for (ico in iconos) {
+    ico <- as.list(ico)
+    id <- .graficos_icon_ref(ico$id %||% "")
+    file_id <- .graficos_icon_ref(ico$file_id %||% "")
+    path <- .graficos_icon_ref(ico$path %||% "")
+    if (!nzchar(path) && nzchar(file_id)) {
+      meta <- tryCatch(get_file(sid, file_id), error = function(e) NULL)
+      path <- .graficos_icon_ref(meta$path %||% "")
+    }
+    if (!nzchar(path) || !file.exists(path)) next
+    if (nzchar(id)) out[[id]] <- path
+    if (nzchar(file_id)) out[[file_id]] <- path
+  }
+
+  out
+}
+
+.graficos_rebuild_graf_json <- function(g, graficador_registry = .GRAFICADOR_REGISTRY) {
+  g <- .as_json_list(g)
+  if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
+  if (!(g$graficador %in% graficador_registry)) {
+    stop(sprintf("Graficador no registrado: %s", g$graficador), call. = FALSE)
+  }
+  fn <- getExportedValue("prosecnurapp", g$graficador)
+  do.call(fn, .clean_rebuild_args(g$args, fn))
+}
+
+.graficos_rebuild_slide_json <- function(s, slide_registry = .SLIDE_REGISTRY,
+                                         graficador_registry = .GRAFICADOR_REGISTRY,
+                                         icon_registry = list()) {
+  s <- as.list(s)
+  tipo <- as.character(s$tipo %||% "")
+  if (!nzchar(tipo)) stop("Slide sin tipo", call. = FALSE)
+  if (!(tipo %in% names(slide_registry))) {
+    stop(sprintf("Tipo de slide no registrado: %s", tipo), call. = FALSE)
+  }
+
+  fn <- getExportedValue("prosecnurapp", tipo)
+  payload <- .as_json_list(s$payload) %||% list()
+  payload <- lapply(payload, function(v) {
+    if (is.list(v) && length(v) == 1L && is.null(names(v))) v[[1]] else v
+  })
+
+  for (slot_name in slide_registry[[tipo]]$grafs) {
+    if (!is.null(payload[[slot_name]])) {
+      payload[[slot_name]] <- .graficos_rebuild_graf_json(
+        payload[[slot_name]],
+        graficador_registry = graficador_registry
+      )
+    }
+  }
+
+  payload <- .graficos_normalize_payload_icon(payload, fn, tipo, icon_registry = icon_registry)
+
+  allowed_args <- names(formals(fn))
+  payload <- payload[names(payload) %in% allowed_args]
+  do.call(fn, payload)
+}
+
 .require_rp_data <- function(sid) {
   s <- session_get(sid)
   ds <- estudio_data_sources(sid)
@@ -96,6 +253,7 @@
       payload[[slot_name]] <- .rebuild_graf(.as_json_list(payload[[slot_name]]))
     }
   }
+  payload <- .graficos_normalize_payload_icon(payload, fn, tipo)
   allowed_args <- names(formals(fn))
   payload <- payload[names(payload) %in% allowed_args]
   do.call(fn, payload)
@@ -749,6 +907,7 @@ mount_graficos <- function(pr) {
       # que el backend aplica antes de cada export).
       cfg <- session_get(sid)$graficos_config %||% list()
       presets_json <- .enriquecer_presets(cfg$presets %||% list(), cfg$debug_ph)
+      icon_registry <- .graficos_icon_registry(sid, cfg)
 
       # Plan mini con un solo slide.
       mini_plan <- list(slides = list(slide))
@@ -792,6 +951,7 @@ mount_graficos <- function(pr) {
           }
         }
         fn <- getExportedValue("prosecnurapp", tipo)
+        payload <- .graficos_normalize_payload_icon(payload, fn, tipo, icon_registry = icon_registry)
         allowed_args <- names(formals(fn))
         payload <- payload[names(payload) %in% allowed_args]
         do.call(fn, payload)
@@ -868,6 +1028,7 @@ mount_graficos <- function(pr) {
         .slide_names()
       )
       graficador_registry_arg <- .graf_names()
+      icon_registry_arg <- .graficos_icon_registry(sid, cfg)
 
       # El worker hereda nada del main process (callr::r_bg). Necesitamos
       # cargar el paquete prosecnurapp en el subproceso para que resuelva
@@ -880,6 +1041,7 @@ mount_graficos <- function(pr) {
         kind = "graficos.ppt",
         func = function(rp_data_path, rp_inst_path, plan, presets,
                         slide_registry, graficador_registry,
+                        icon_registry,
                         api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
@@ -928,6 +1090,7 @@ mount_graficos <- function(pr) {
                 payload[[slot_name]] <- rebuild_graf(as_json_list(payload[[slot_name]]))
               }
             }
+            payload <- .graficos_normalize_payload_icon(payload, fn, tipo, icon_registry = icon_registry)
             allowed_args <- names(formals(fn))
             payload <- payload[names(payload) %in% allowed_args]
             do.call(fn, payload)
@@ -967,6 +1130,7 @@ mount_graficos <- function(pr) {
           presets = presets,
           slide_registry = slide_registry_arg,
           graficador_registry = graficador_registry_arg,
+          icon_registry = icon_registry_arg,
           api_path = api_path
         ),
         result_filename = .export_filename(sid, "reporte_ppt", "pptx"),
@@ -998,6 +1162,7 @@ mount_graficos <- function(pr) {
         .slide_names()
       )
       graficador_registry_arg <- .graf_names()
+      icon_registry_arg <- .graficos_icon_registry(sid, cfg)
 
       # Ver comentario en /ppt: el worker necesita cargar prosecnurapp
       # (el motor ya vive dentro del paquete de la app).
@@ -1008,6 +1173,7 @@ mount_graficos <- function(pr) {
         kind = "graficos.word",
         func = function(rp_data_path, rp_inst_path, plan, presets, w_presets,
                         slide_registry, graficador_registry,
+                        icon_registry,
                         api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
@@ -1058,6 +1224,7 @@ mount_graficos <- function(pr) {
                 payload[[slot_name]] <- rebuild_graf(as_json_list(payload[[slot_name]]))
               }
             }
+            payload <- .graficos_normalize_payload_icon(payload, fn, tipo, icon_registry = icon_registry)
             allowed_args <- names(formals(fn))
             payload <- payload[names(payload) %in% allowed_args]
             do.call(fn, payload)
@@ -1103,6 +1270,7 @@ mount_graficos <- function(pr) {
           w_presets = w_presets,
           slide_registry = slide_registry_arg,
           graficador_registry = graficador_registry_arg,
+          icon_registry = icon_registry_arg,
           api_path = api_path
         ),
         result_filename = .export_filename(sid, "reporte_word", "docx"),
