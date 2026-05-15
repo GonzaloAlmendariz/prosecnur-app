@@ -21,6 +21,7 @@ export function LoadingBlock({
   return (
     <div
       role="status"
+      className={`pulso-loading-block pulso-loading-block--${variant}`}
       style={{
         display: "flex", alignItems: "center", justifyContent: "center",
         gap: 10, minHeight: effectiveMinHeight,

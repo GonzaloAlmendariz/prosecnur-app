@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, SetStateAction } from "react";
-import { BarChart3, CheckCircle2, CircleHelp, Download, FileSpreadsheet, FileText, Layers, Loader2, MapPinned, Plus, Play, Search, Shuffle, Target, Trash2 } from "lucide-react";
+import { BarChart3, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Download, FileSpreadsheet, FileText, Layers, Loader2, MapPinned, Plus, Play, Search, Shuffle, Target, Trash2 } from "lucide-react";
 import {
   apiHojasRutaBlockMap,
   apiHojasRutaContextMap,
@@ -40,6 +40,7 @@ import {
   HojasRutaStreetMap,
   HojasRutaStreetMapFeature,
   HojasRutaUiState,
+  HojasRutaWorkspaceOutputs,
   HojasRutaZoneMap,
   HojasRutaZoneMapFeature,
   SampleSizeMode,
@@ -84,7 +85,15 @@ type DistrictFeature = {
 };
 type HojasRutaStage = "territorio" | "poblacion" | "muestra" | "manzanas" | "entrega";
 type HojasRutaMapLevel = HojasRutaUiState["map_level"];
+type HojasRutaBlockLayerMode = "field" | "nse";
 const HOJAS_RUTA_STAGES: HojasRutaStage[] = ["territorio", "poblacion", "muestra", "manzanas", "entrega"];
+const HOJAS_RUTA_STAGE_ORDER: Record<HojasRutaStage, number> = {
+  territorio: 0,
+  poblacion: 1,
+  muestra: 2,
+  manzanas: 3,
+  entrega: 4,
+};
 
 const DISTRICT_FEATURES = (districtCoverage as unknown as { features: DistrictFeature[] }).features;
 const DISTRICT_FEATURE_BY_UBIGEO = new Map(DISTRICT_FEATURES.map((feature) => [feature.properties.ubigeo, feature]));
@@ -127,12 +136,14 @@ function geometryVisualState({
   focused = false,
   hovered = false,
   muted = false,
+  noPopulation = false,
 }: {
   selected?: boolean;
   replacement?: boolean;
   focused?: boolean;
   hovered?: boolean;
   muted?: boolean;
+  noPopulation?: boolean;
 }) {
   if (selected) {
     return {
@@ -150,6 +161,14 @@ function geometryVisualState({
       opacity: 1,
     };
   }
+  if (noPopulation) {
+    return {
+      fill: "rgba(226,232,240,0.78)",
+      stroke: hovered ? MAP_GEOMETRY_STYLE.hoverStroke : "rgba(100,116,139,0.56)",
+      strokeWidth: hovered ? 1.35 : 0.62,
+      opacity: 0.76,
+    };
+  }
   if (focused) {
     return {
       fill: MAP_GEOMETRY_STYLE.focusFill,
@@ -164,6 +183,92 @@ function geometryVisualState({
     strokeWidth: hovered ? 1.15 : 0.58,
     opacity: muted ? 0.9 : 1,
   };
+}
+
+const NSE_STYLE: Record<string, { fill: string; stroke: string; label: string }> = {
+  ALTO: { fill: "#7c3aed", stroke: "#4c1d95", label: "Alto" },
+  "MEDIO ALTO": { fill: "#2563eb", stroke: "#1e3a8a", label: "Medio alto" },
+  MEDIO: { fill: "#0f766e", stroke: "#064e3b", label: "Medio" },
+  "MEDIO BAJO": { fill: "#d97706", stroke: "#92400e", label: "Medio bajo" },
+  BAJO: { fill: "#dc2626", stroke: "#7f1d1d", label: "Bajo" },
+};
+
+function colorWithAlpha(hex: string, alpha: number) {
+  const normalized = hex.replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) return hex;
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${clamp(alpha, 0, 1)})`;
+}
+
+function normalizeNseLevel(value: unknown) {
+  return String(value ?? "").trim().toLocaleUpperCase("es-PE");
+}
+
+function nsePalette(level: unknown) {
+  return NSE_STYLE[normalizeNseLevel(level)];
+}
+
+function nseVisualState(
+  level: unknown,
+  {
+    selected = false,
+    replacement = false,
+    hovered = false,
+    muted = false,
+    noPopulation = false,
+  }: { selected?: boolean; replacement?: boolean; hovered?: boolean; muted?: boolean; noPopulation?: boolean } = {},
+) {
+  const nse = nsePalette(level);
+  if (selected || replacement) {
+    return {
+      fill: selected ? MAP_GEOMETRY_STYLE.selectedFill : MAP_GEOMETRY_STYLE.replacementFill,
+      stroke: hovered ? MAP_GEOMETRY_STYLE.hoverStroke : selected ? MAP_GEOMETRY_STYLE.selectedStroke : MAP_GEOMETRY_STYLE.replacementStroke,
+      strokeWidth: hovered || selected || replacement ? 1.35 : 0.72,
+      opacity: 1,
+    };
+  }
+  if (noPopulation) {
+    return {
+      fill: "rgba(226,232,240,0.82)",
+      stroke: hovered ? MAP_GEOMETRY_STYLE.hoverStroke : "rgba(100,116,139,0.55)",
+      strokeWidth: hovered ? 1.35 : 0.58,
+      opacity: 0.74,
+    };
+  }
+  if (muted) {
+    return {
+      fill: "rgba(241,245,249,0.58)",
+      stroke: hovered ? MAP_GEOMETRY_STYLE.hoverStroke : "rgba(148,163,184,0.42)",
+      strokeWidth: hovered ? 1.15 : 0.48,
+      opacity: 0.58,
+    };
+  }
+  if (!nse) {
+    return {
+      fill: "rgba(226,232,240,0.72)",
+      stroke: hovered ? MAP_GEOMETRY_STYLE.hoverStroke : "rgba(100,116,139,0.52)",
+      strokeWidth: hovered ? 1.35 : 0.56,
+      opacity: 0.72,
+    };
+  }
+  return {
+    fill: colorWithAlpha(nse.fill, hovered ? 0.56 : 0.44),
+    stroke: hovered ? MAP_GEOMETRY_STYLE.hoverStroke : colorWithAlpha(nse.stroke, 0.72),
+    strokeWidth: hovered ? 1.35 : 0.72,
+    opacity: 1,
+  };
+}
+
+function nsePopupStyle(level: unknown) {
+  const nse = nsePalette(level);
+  if (!nse) return undefined;
+  return {
+    borderColor: colorWithAlpha(nse.stroke, 0.34),
+    background: colorWithAlpha(nse.fill, 0.1),
+    color: nse.stroke,
+  } as const;
 }
 
 function normalizeHojasRutaUiState(
@@ -350,13 +455,29 @@ function normalizeRouteJumpManual(value: unknown) {
 }
 
 function normalizeHojasRutaConfig(config: HojasRutaIntegratedConfig): HojasRutaIntegratedConfig {
+  const frameSource = config.frame_source === "inei2017_official" ? "inei2017_official" : "current";
+  const replacementsPerTitular = Math.min(10, Math.max(0, Math.round(Number(config.replacements_per_titular ?? 1))));
   return {
     ...config,
+    frame_source: frameSource,
+    replacements_per_titular: Number.isFinite(replacementsPerTitular) ? replacementsPerTitular : 1,
     age_ranges: (config.age_ranges ?? []).map(normalizeAgeRange),
     route_start_corner: normalizeRouteStartCorner(config.route_start_corner),
     route_jump_mode: normalizeRouteJumpMode(config.route_jump_mode),
     route_jump_manual: normalizeRouteJumpManual(config.route_jump_manual),
   };
+}
+
+function mergeReturnedHojasRutaConfig(
+  current: HojasRutaIntegratedConfig,
+  returned: HojasRutaIntegratedConfig,
+): HojasRutaIntegratedConfig {
+  return normalizeHojasRutaConfig({
+    ...current,
+    ...returned,
+    replacements_per_titular:
+      current.replacements_per_titular ?? returned.replacements_per_titular ?? 1,
+  });
 }
 
 function ageRangesSignature(config: HojasRutaIntegratedConfig | null | undefined) {
@@ -708,6 +829,19 @@ function TechnicalDetailItem({ label, value }: { label: string; value: React.Rea
 }
 
 function FrameTechnicalDetails({ frame }: { frame: NonNullable<HojasRutaState["frame_meta"]> }) {
+  const activeLabel = frame.active_source === "inei2017_official" ? "INEI 2017 oficial" : "Actual";
+  const officialLabel = frame.official?.available
+    ? `${Number(frame.official.n_manzanas ?? 0).toLocaleString("es-PE")} manzanas`
+    : "Pendiente";
+  const nseLabel = frame.nse_data?.available
+    ? `Disponible${frame.nse_data.coverage_rate ? ` · ${(frame.nse_data.coverage_rate * 100).toFixed(1)}%` : ""}`
+    : frame.nse_data?.message ?? "No disponible";
+  const zonesLabel = frame.zone_cartography?.available
+    ? `${Number(frame.zone_cartography.zones ?? 0).toLocaleString("es-PE")} zonas`
+    : "Pendiente";
+  const auditLabel = frame.audit?.available
+    ? `${Number(frame.audit.rows ?? 0).toLocaleString("es-PE")} filas auditadas`
+    : frame.audit?.message ?? "Pendiente";
   return (
     <details className="hojas-ruta-technical-details">
       <summary>
@@ -716,9 +850,13 @@ function FrameTechnicalDetails({ frame }: { frame: NonNullable<HojasRutaState["f
       </summary>
       <div className="hojas-ruta-technical-grid">
         <TechnicalDetailItem label="Base poblacional" value={`${frame.age_data?.source ?? "INEI"} ${frame.age_data?.year ?? frame.year}`} />
+        <TechnicalDetailItem label="Frame activo" value={activeLabel} />
         <TechnicalDetailItem label="Versión del marco" value={frame.version} />
+        <TechnicalDetailItem label="Frame oficial INEI" value={officialLabel} />
         <TechnicalDetailItem label="Cobertura" value={frame.coverage} />
-        <TechnicalDetailItem label="NSE" value={frame.nse_data?.available ? "Disponible" : frame.nse_data?.message ?? "No disponible"} />
+        <TechnicalDetailItem label="NSE" value={nseLabel} />
+        <TechnicalDetailItem label="Zonas INEI" value={zonesLabel} />
+        <TechnicalDetailItem label="Auditoría" value={auditLabel} />
         <TechnicalDetailItem label="Cartografía de manzanas" value={frame.block_cartography?.ok ? cartographyModeLabel(frame.block_cartography.mode) : "Pendiente"} />
         <TechnicalDetailItem label="Calles" value={frame.street_cartography?.ok ? "INEI 2017 + respaldo OSM" : "Pendiente"} />
         <TechnicalDetailItem label="Contexto" value={frame.context_cartography?.ok ? "Local + curado" : "Pendiente"} />
@@ -734,6 +872,97 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-text)" }}>{label}</span>
       {children}
     </label>
+  );
+}
+
+type NumericInputProps = Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "type" | "value" | "onChange" | "min" | "max" | "step"
+> & {
+  value: number | null | undefined;
+  onValueChange: (value: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  integer?: boolean;
+  fallback?: number;
+};
+
+function normalizeNumericDraft(
+  raw: string,
+  {
+    min,
+    max,
+    integer,
+    fallback,
+  }: Pick<NumericInputProps, "min" | "max" | "integer" | "fallback">,
+) {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    const base = fallback ?? min ?? 0;
+    return clampNumericValue(base, { min, max, integer });
+  }
+  return clampNumericValue(parsed, { min, max, integer });
+}
+
+function clampNumericValue(
+  value: number,
+  { min, max, integer }: Pick<NumericInputProps, "min" | "max" | "integer">,
+) {
+  let next = integer ? Math.round(value) : value;
+  if (min != null) next = Math.max(min, next);
+  if (max != null) next = Math.min(max, next);
+  return next;
+}
+
+function NumericInput({
+  value,
+  onValueChange,
+  min,
+  max,
+  step,
+  integer = false,
+  fallback,
+  onBlur,
+  onFocus,
+  ...props
+}: NumericInputProps) {
+  const valueText = value == null || !Number.isFinite(Number(value)) ? "" : String(value);
+  const [draft, setDraft] = useState(valueText);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    if (!editing) setDraft(valueText);
+  }, [editing, valueText]);
+
+  return (
+    <input
+      {...props}
+      type="number"
+      min={min}
+      max={max}
+      step={step}
+      value={draft}
+      onFocus={(event) => {
+        setEditing(true);
+        onFocus?.(event);
+      }}
+      onChange={(event) => {
+        const raw = event.target.value;
+        setDraft(raw);
+        if (raw === "" || raw === "-" || raw === "." || raw === "-.") return;
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed)) return;
+        onValueChange(clampNumericValue(parsed, { min, max, integer }));
+      }}
+      onBlur={(event) => {
+        const next = normalizeNumericDraft(event.target.value, { min, max, integer, fallback });
+        setEditing(false);
+        setDraft(String(next));
+        onValueChange(next);
+        onBlur?.(event);
+      }}
+    />
   );
 }
 
@@ -867,6 +1096,23 @@ function useMapNavigation(width: number, height: number, minZoom: number, maxZoo
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; startPan: MapPan; moved: boolean } | null>(null);
   const suppressClickUntilRef = useRef(0);
   const wheelHostRef = useRef<HTMLElement | null>(null);
+  const queuedPanRef = useRef<MapPan | null>(null);
+  const panFrameRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (panFrameRef.current != null) window.cancelAnimationFrame(panFrameRef.current);
+  }, []);
+
+  const queuePanState = useCallback((nextPan: MapPan) => {
+    queuedPanRef.current = nextPan;
+    if (panFrameRef.current != null) return;
+    panFrameRef.current = window.requestAnimationFrame(() => {
+      panFrameRef.current = null;
+      const queued = queuedPanRef.current;
+      queuedPanRef.current = null;
+      if (queued) setPanState(queued);
+    });
+  }, []);
 
   const setZoom = useCallback((nextZoom: number) => {
     const zoomed = clamp(nextZoom, minZoom, maxZoom);
@@ -903,16 +1149,18 @@ function useMapNavigation(width: number, height: number, minZoom: number, maxZoo
     const y = ((event.clientY - rect.top) / Math.max(1, rect.height)) * height;
     const looksLikeTrackpadPan = !event.ctrlKey && zoom > 1 && (Math.abs(event.deltaX) > 0 || Math.abs(event.deltaY) < 45);
     if (looksLikeTrackpadPan) {
-      setPanState((current) => clampPanForZoom({
-        x: current.x - event.deltaX * (width / Math.max(1, rect.width)),
-        y: current.y - event.deltaY * (height / Math.max(1, rect.height)),
-      }, zoom, width, height));
+      const basePan = queuedPanRef.current ?? pan;
+      const nextPan = clampPanForZoom({
+        x: basePan.x - event.deltaX * (width / Math.max(1, rect.width)),
+        y: basePan.y - event.deltaY * (height / Math.max(1, rect.height)),
+      }, zoom, width, height);
+      queuePanState(nextPan);
       return;
     }
     const intensity = event.ctrlKey ? 0.011 : 0.0048;
     const factor = Math.exp(-event.deltaY * intensity);
     zoomAt(zoom * factor, x, y);
-  }, [height, width, zoom, zoomAt]);
+  }, [height, pan, queuePanState, width, zoom, zoomAt]);
 
   useEffect(() => {
     const node = wheelHostRef.current;
@@ -941,8 +1189,8 @@ function useMapNavigation(width: number, height: number, minZoom: number, maxZoo
     const dx = (event.clientX - drag.startX) * (width / Math.max(1, rect.width));
     const dy = (event.clientY - drag.startY) * (height / Math.max(1, rect.height));
     if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
-    setPanState(clampPanForZoom({ x: drag.startPan.x + dx, y: drag.startPan.y + dy }, zoom, width, height));
-  }, [height, width, zoom]);
+    queuePanState(clampPanForZoom({ x: drag.startPan.x + dx, y: drag.startPan.y + dy }, zoom, width, height));
+  }, [height, queuePanState, width, zoom]);
 
   const onPointerUp = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     const drag = dragRef.current;
@@ -1269,18 +1517,170 @@ function geoBBoxIntersects(a: GeoBBox | null, b: GeoBBox | null) {
   return !(a.maxLon < b.minLon || a.minLon > b.maxLon || a.maxLat < b.minLat || a.minLat > b.maxLat);
 }
 
-function blockFocusFeaturesWithNeighbors(features: HojasRutaBlockMapFeature[], activeZone?: string) {
-  if (!activeZone) return features;
+function geoBBoxIntersectsAny(box: GeoBBox | null, boxes: GeoBBox[]) {
+  if (!boxes.length) return true;
+  return boxes.some((candidate) => geoBBoxIntersects(box, candidate));
+}
+
+function geoPointInBBox(point: GeoPosition, box: GeoBBox) {
+  const [lon, lat] = point;
+  return lon >= box.minLon && lon <= box.maxLon && lat >= box.minLat && lat <= box.maxLat;
+}
+
+function geoPointInAnyBBox(point: GeoPosition, boxes: GeoBBox[]) {
+  if (!boxes.length) return true;
+  return boxes.some((box) => geoPointInBBox(point, box));
+}
+
+function geoRingBBox(ring: GeoRing): GeoBBox | null {
+  if (!ring.length) return null;
+  return {
+    minLon: Math.min(...ring.map(([lon]) => lon)),
+    minLat: Math.min(...ring.map(([, lat]) => lat)),
+    maxLon: Math.max(...ring.map(([lon]) => lon)),
+    maxLat: Math.max(...ring.map(([, lat]) => lat)),
+  };
+}
+
+function geoPolygonBBox(polygon: GeoPolygon): GeoBBox | null {
+  const boxes = polygon.map(geoRingBBox).filter((box): box is GeoBBox => Boolean(box));
+  if (!boxes.length) return null;
+  return {
+    minLon: Math.min(...boxes.map((box) => box.minLon)),
+    minLat: Math.min(...boxes.map((box) => box.minLat)),
+    maxLon: Math.max(...boxes.map((box) => box.maxLon)),
+    maxLat: Math.max(...boxes.map((box) => box.maxLat)),
+  };
+}
+
+function clipGeoLineToBoxes(line: GeoRing, boxes: GeoBBox[]) {
+  if (!boxes.length) return line.length > 1 ? [line] : [];
+  const segments: GeoRing[] = [];
+  let current: GeoRing = [];
+  const pushCurrent = () => {
+    if (current.length > 1) segments.push(current);
+    current = [];
+  };
+  for (let i = 1; i < line.length; i += 1) {
+    const a = line[i - 1];
+    const b = line[i];
+    const segmentBox: GeoBBox = {
+      minLon: Math.min(a[0], b[0]),
+      minLat: Math.min(a[1], b[1]),
+      maxLon: Math.max(a[0], b[0]),
+      maxLat: Math.max(a[1], b[1]),
+    };
+    const keep = geoBBoxIntersectsAny(segmentBox, boxes) || geoPointInAnyBBox(a, boxes) || geoPointInAnyBBox(b, boxes);
+    if (keep) {
+      if (!current.length) current.push(a);
+      current.push(b);
+    } else {
+      pushCurrent();
+    }
+  }
+  pushCurrent();
+  return segments;
+}
+
+function zoneFeatureZone(feature: HojasRutaZoneMapFeature) {
+  const props = feature.properties ?? {};
+  return String(props.zona ?? feature.id ?? "").trim();
+}
+
+function zoneFeatureGeoBBox(feature: HojasRutaZoneMapFeature): GeoBBox | null {
+  let minLon = Infinity;
+  let minLat = Infinity;
+  let maxLon = -Infinity;
+  let maxLat = -Infinity;
+  for (const polygon of zoneGeometryPolygons(feature)) {
+    for (const ring of polygon) {
+      for (const [lon, lat] of ring) {
+        minLon = Math.min(minLon, lon);
+        minLat = Math.min(minLat, lat);
+        maxLon = Math.max(maxLon, lon);
+        maxLat = Math.max(maxLat, lat);
+      }
+    }
+  }
+  if (!Number.isFinite(minLon)) return null;
+  return { minLon, minLat, maxLon, maxLat };
+}
+
+function blockFocusZoneSet(
+  features: HojasRutaBlockMapFeature[],
+  activeZone?: string,
+  zoneMap?: HojasRutaZoneMap | null,
+) {
+  const allZones = new Set(features.map(blockFeatureZone).filter(Boolean));
+  if (!activeZone) return allZones;
   const focused = features.filter((feature) => blockFeatureZone(feature) === activeZone);
-  if (!focused.length) return features;
-  const focusBox = blockFeaturesGeoBBox(focused);
-  if (!focusBox) return focused;
-  const neighborBox = expandGeoBBox(focusBox, 0.38);
+  if (!focused.length) return allZones;
+  const zoneFeatures = zoneMap?.ok ? (zoneMap.geojson.features ?? []) : [];
+  const focusZoneFeature = zoneFeatures.find((feature) => zoneFeatureZone(feature) === activeZone);
+  const focusBox = focusZoneFeature ? zoneFeatureGeoBBox(focusZoneFeature) : blockFeaturesGeoBBox(focused);
+  if (!focusBox) return new Set([activeZone]);
+  const neighborBox = expandGeoBBox(focusBox, 0.015);
+  const zones = new Set<string>([activeZone]);
+  if (zoneFeatures.length) {
+    for (const feature of zoneFeatures) {
+      const zona = zoneFeatureZone(feature);
+      if (!zona || zona === activeZone || !allZones.has(zona)) continue;
+      if (geoBBoxIntersects(zoneFeatureGeoBBox(feature), neighborBox)) zones.add(zona);
+    }
+  } else {
+    for (const feature of features) {
+      const zona = blockFeatureZone(feature);
+      if (!zona || zona === activeZone) continue;
+      if (geoBBoxIntersects(blockFeatureGeoBBox(feature), neighborBox)) zones.add(zona);
+    }
+  }
+  return zones;
+}
+
+function blockFocusFeaturesWithNeighbors(
+  features: HojasRutaBlockMapFeature[],
+  activeZone?: string,
+  zoneMap?: HojasRutaZoneMap | null,
+) {
+  if (!activeZone) return features;
+  const zones = blockFocusZoneSet(features, activeZone, zoneMap);
   const withNeighbors = features.filter((feature) => {
-    if (blockFeatureZone(feature) === activeZone) return true;
-    return geoBBoxIntersects(blockFeatureGeoBBox(feature), neighborBox);
+    const zona = blockFeatureZone(feature);
+    return zona && zones.has(zona);
   });
-  return withNeighbors.length ? withNeighbors : focused;
+  return withNeighbors.length ? withNeighbors : features.filter((feature) => blockFeatureZone(feature) === activeZone);
+}
+
+function blockFocusGeoBoxes(
+  features: HojasRutaBlockMapFeature[],
+  zones: Set<string>,
+  activeZone?: string,
+  zoneMap?: HojasRutaZoneMap | null,
+) {
+  if (!activeZone || !zones.size) return [];
+  const zoneFeatures = zoneMap?.ok ? (zoneMap.geojson.features ?? []) : [];
+  if (zoneFeatures.length) {
+    return zoneFeatures
+      .filter((feature) => zones.has(zoneFeatureZone(feature)))
+      .map(zoneFeatureGeoBBox)
+      .filter((box): box is GeoBBox => Boolean(box))
+      .map((box) => expandGeoBBox(box, 0.025));
+  }
+  const boxes: GeoBBox[] = [];
+  for (const zona of zones) {
+    const box = blockFeaturesGeoBBox(features.filter((feature) => blockFeatureZone(feature) === zona));
+    if (box) boxes.push(expandGeoBBox(box, 0.025));
+  }
+  return boxes;
+}
+
+function projectedBlockHasNoPopulation(feature: { poblacion?: number | null }) {
+  const value = Number(feature.poblacion ?? 0);
+  return !Number.isFinite(value) || value <= 0;
+}
+
+function blockIsInteractive(feature: { zona?: string | null }, activeZone?: string) {
+  return !activeZone || feature.zona === activeZone;
 }
 
 function buildProjectedBlockFeatures(features: HojasRutaBlockMapFeature[], projection = buildBlockProjection(features)) {
@@ -1314,6 +1714,10 @@ function buildProjectedBlockFeatures(features: HojasRutaBlockMapFeature[], proje
       hombres: props.inei_pob_hombres ?? null,
       mujeres: props.inei_pob_mujeres ?? null,
       pob18plus: props.inei_pob_18_plus ?? null,
+      nseCodigo: props.nse_codigo ?? null,
+      nseNivel: props.nse_nivel ?? null,
+      nseMatchMethod: props.nse_match_method ?? null,
+      nseDistanceM: props.nse_distance_m ?? null,
       rings,
       bbox: {
         minX: Math.min(...xs),
@@ -1423,12 +1827,22 @@ function shouldShowContextPoint(
 ) {
   if (!feature.hasPoints) return false;
   if (contextIsCuratedPark(feature)) return zoom >= 0.9;
-  if (contextIsPublicKeyPoint(feature)) return zoom >= 2.1;
+  if (contextIsPublicKeyPoint(feature)) return zoom >= 2.8;
   return false;
 }
 
 function contextMarkerLabel(featureClass: string, kind: string) {
-  return "";
+  const catalog: Record<string, string> = {
+    hospital: "H",
+    clinic: "+",
+    police: "P",
+    fire_station: "F",
+    townhall: "M",
+    courthouse: "J",
+    library: "L",
+    marketplace: "C",
+  };
+  return catalog[kind] ?? (featureClass === "transit" ? "T" : "");
 }
 
 function contextMarkerRadius(
@@ -1436,9 +1850,9 @@ function contextMarkerRadius(
   zoom: number,
 ) {
   if (contextIsCuratedPark(feature)) return 7.5 / Math.pow(Math.max(1, zoom), 0.24);
-  if (contextIsPublicKeyPoint(feature)) return 4.4 / Math.pow(Math.max(1, zoom), 0.3);
+  if (contextIsPublicKeyPoint(feature)) return 2.9 / Math.pow(Math.max(1, zoom), 0.24);
   if (feature.featureClass === "green") return 5 / Math.pow(Math.max(1, zoom), 0.28);
-  return 3.2 / Math.pow(Math.max(1, zoom), 0.3);
+  return 2.4 / Math.pow(Math.max(1, zoom), 0.28);
 }
 
 function contextLabelSize(
@@ -1447,9 +1861,9 @@ function contextLabelSize(
 ) {
   const base = contextIsCuratedPark(feature) ? 10.8
     : feature.featureClass === "green" || feature.featureClass === "water" ? 9.8
-      : contextIsPublicKeyPoint(feature) ? 8.8
-        : 8;
-  return base / Math.pow(Math.max(1, zoom), 0.44);
+      : contextIsPublicKeyPoint(feature) ? 6.6
+        : 6.2;
+  return base / Math.pow(Math.max(1, zoom), 0.5);
 }
 
 function projectedContextPath(ring: GeoRing, closed = false) {
@@ -1465,6 +1879,7 @@ function projectedContextPath(ring: GeoRing, closed = false) {
 function buildProjectedContextFeatures(
   features: HojasRutaContextMapFeature[],
   projection: ReturnType<typeof buildBlockProjection>,
+  focusBoxes: GeoBBox[] = [],
 ) {
   if (!projection) return [];
   return features.map((feature, index) => {
@@ -1472,12 +1887,18 @@ function buildProjectedContextFeatures(
     const featureClass = String(props.feature_class ?? "context");
     const rank = Number(props.rank ?? 9);
     const name = String(props.display_name ?? props.name ?? "").trim();
-    const polygons = contextGeometryPolygons(feature)
+    const geoPolygons = contextGeometryPolygons(feature)
+      .filter((polygon) => geoBBoxIntersectsAny(geoPolygonBBox(polygon), focusBoxes));
+    const geoLines = contextGeometryLines(feature)
+      .flatMap((line) => clipGeoLineToBoxes(line, focusBoxes));
+    const geoPoints = contextGeometryPoints(feature)
+      .filter((point) => geoPointInAnyBBox(point, focusBoxes));
+    const polygons = geoPolygons
       .flatMap((polygon) => polygon.map((ring) => ring.map((point) => projection.project(point) as GeoPosition)));
-    const lines = contextGeometryLines(feature)
+    const lines = geoLines
       .map((line) => line.map((point) => projection.project(point) as GeoPosition))
       .filter((line) => line.length > 1);
-    const points = contextGeometryPoints(feature)
+    const points = geoPoints
       .map((point) => projection.project(point) as GeoPosition);
     if (!polygons.length && !lines.length && !points.length) return null;
     const allPoints = [...polygons.flat(), ...lines.flat(), ...points];
@@ -1516,7 +1937,7 @@ function shouldLabelContext(
   if (contextIsCuratedPark(feature)) return zoom >= 1.05;
   if (feature.featureClass === "green" || feature.featureClass === "square") return false;
   if (feature.featureClass === "water") return zoom >= 0.95 && (feature.area > 900 || feature.rank <= 2);
-  if (contextIsPublicKeyPoint(feature)) return zoom >= 2.8;
+  if (contextIsPublicKeyPoint(feature)) return zoom >= 4.2;
   return false;
 }
 
@@ -1572,10 +1993,12 @@ function lineLabelAnchors(line: GeoRing, spacing: number, maxLabels: number) {
 function buildProjectedStreetFeatures(
   features: HojasRutaStreetMapFeature[],
   projection: ReturnType<typeof buildBlockProjection>,
+  focusBoxes: GeoBBox[] = [],
 ) {
   if (!projection) return [];
   return features.map((feature, index) => {
     const lines = streetGeometryLines(feature)
+      .flatMap((line) => clipGeoLineToBoxes(line, focusBoxes))
       .map((line) => line.map((point) => projection.project(point) as GeoPosition))
       .filter((line) => line.length > 1);
     if (!lines.length) return null;
@@ -1837,6 +2260,41 @@ function buildProjectedDistrictBoundariesForBlocks(
   })).filter((feature) => feature.d);
 }
 
+function buildProjectedZoneOutlinesForBlocks(
+  zoneMap: HojasRutaZoneMap | null | undefined,
+  zones: Set<string>,
+  activeZone: string | undefined,
+  projection: ReturnType<typeof buildBlockProjection>,
+) {
+  if (!projection || !zoneMap?.ok || !zones.size) return [];
+  const ringPath = (ring: GeoRing) => {
+    if (!ring.length) return "";
+    const [first, ...rest] = ring;
+    const [x0, y0] = projection.project(first);
+    return [
+      `M${x0.toFixed(2)} ${y0.toFixed(2)}`,
+      ...rest.map((point) => {
+        const [x, y] = projection.project(point);
+        return `L${x.toFixed(2)} ${y.toFixed(2)}`;
+      }),
+      "Z",
+    ].join(" ");
+  };
+  return (zoneMap.geojson.features ?? [])
+    .map((feature) => {
+      const zona = zoneFeatureZone(feature);
+      if (!zona || !zones.has(zona)) return null;
+      const d = zoneGeometryPolygons(feature).map((polygon) => polygon.map(ringPath).join(" ")).join(" ");
+      if (!d) return null;
+      return {
+        zona,
+        active: zona === activeZone,
+        d,
+      };
+    })
+    .filter((feature): feature is { zona: string; active: boolean; d: string } => Boolean(feature));
+}
+
 function ZoomControls({
   value,
   min = 1,
@@ -1883,12 +2341,15 @@ function ZoomControls({
 
 function BlockCanvasMap({
   projected,
+  interactiveProjected,
   projectedContext,
   projectedStreets,
   boundaries,
+  zoneOutlines,
   selectedSet,
   replacementSet,
   activeZone,
+  layerMode,
   hoveredId,
   inspectedId,
   onHover,
@@ -1897,12 +2358,15 @@ function BlockCanvasMap({
   pan,
 }: {
   projected: ReturnType<typeof buildProjectedBlockFeatures>;
+  interactiveProjected: ReturnType<typeof buildProjectedBlockFeatures>;
   projectedContext: ReturnType<typeof buildProjectedContextFeatures>;
   projectedStreets: ReturnType<typeof buildProjectedStreetFeatures>;
   boundaries: ReturnType<typeof buildProjectedDistrictBoundariesForBlocks>;
+  zoneOutlines: ReturnType<typeof buildProjectedZoneOutlinesForBlocks>;
   selectedSet: Set<string>;
   replacementSet: Set<string>;
   activeZone?: string;
+  layerMode: HojasRutaBlockLayerMode;
   hoveredId: string | null;
   inspectedId: string | null;
   onHover: (id: string | null) => void;
@@ -1911,6 +2375,26 @@ function BlockCanvasMap({
   pan: MapPan;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const gestureRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const hoverFrameRef = useRef<number | null>(null);
+  const hoverTargetRef = useRef<HTMLCanvasElement | null>(null);
+  const hoverPointRef = useRef<{ x: number; y: number } | null>(null);
+  const lastHoverRef = useRef<string | null>(hoveredId);
+
+  useEffect(() => {
+    lastHoverRef.current = hoveredId;
+  }, [hoveredId]);
+
+  useEffect(() => () => {
+    if (hoverFrameRef.current != null) window.cancelAnimationFrame(hoverFrameRef.current);
+  }, []);
+
+  const commitHover = useCallback((id: string | null) => {
+    if (lastHoverRef.current === id) return;
+    lastHoverRef.current = id;
+    onHover(id);
+  }, [onHover]);
+
   const screenToMapPoint = useCallback((event: { clientX: number; clientY: number; currentTarget: HTMLCanvasElement }) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const viewX = ((event.clientX - rect.left) / Math.max(1, rect.width)) * BLOCK_MAP_WIDTH;
@@ -2056,7 +2540,13 @@ function BlockCanvasMap({
     for (const feature of projected) {
       if (selectedSet.has(feature.id) || replacementSet.has(feature.id)) continue;
       const isFocus = Boolean(activeZone && feature.zona === activeZone);
-      const visual = geometryVisualState({ focused: isFocus });
+      const noPopulation = projectedBlockHasNoPopulation(feature);
+      const visual = layerMode === "nse"
+        ? nseVisualState(feature.nseNivel, {
+          muted: Boolean(activeZone && !isFocus),
+          noPopulation,
+        })
+        : geometryVisualState({ focused: isFocus, noPopulation });
       const path = new Path2D(feature.d);
       ctx.strokeStyle = visual.stroke;
       ctx.fillStyle = visual.fill;
@@ -2069,6 +2559,14 @@ function BlockCanvasMap({
     drawContextLabels();
     drawStreetRibbons(1);
     drawStreetLabels();
+    for (const outline of zoneOutlines) {
+      ctx.save();
+      ctx.setLineDash(outline.active ? [] : [6 / Math.max(1, zoom), 5 / Math.max(1, zoom)]);
+      ctx.strokeStyle = outline.active ? "rgba(220,38,38,0.95)" : "rgba(220,38,38,0.55)";
+      ctx.lineWidth = (outline.active ? 2.4 : 1.5) / Math.max(1, zoom);
+      ctx.stroke(new Path2D(outline.d));
+      ctx.restore();
+    }
     ctx.lineWidth = 1.05;
     for (const feature of projected) {
       if (!selectedSet.has(feature.id)) continue;
@@ -2114,26 +2612,56 @@ function BlockCanvasMap({
       ctx.fillText(boundary.label, boundary.labelX, boundary.labelY);
     }
     ctx.restore();
-  }, [activeZone, boundaries, hoveredId, inspectedId, pan, projected, projectedContext, projectedStreets, replacementSet, selectedSet, zoom]);
+  }, [activeZone, boundaries, hoveredId, inspectedId, layerMode, pan, projected, projectedContext, projectedStreets, replacementSet, selectedSet, zoom, zoneOutlines]);
 
   return (
     <div style={{ position: "relative", height: "100%" }}>
       <canvas
         ref={canvasRef}
         aria-label="Mapa de manzanas del distrito"
+        onPointerDown={(event) => {
+          gestureRef.current = { x: event.clientX, y: event.clientY, moved: false };
+        }}
         onPointerMove={(event) => {
+          const gesture = gestureRef.current;
+          if (gesture && event.buttons) {
+            if (Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 4) gesture.moved = true;
+            event.currentTarget.style.cursor = "grabbing";
+            return;
+          }
           const point = screenToMapPoint(event);
-          const hit = featureAtBlockPoint(projected, point.x, point.y);
-          onHover(hit?.id ?? null);
-          event.currentTarget.style.cursor = hit ? "pointer" : "grab";
+          hoverPointRef.current = point;
+          hoverTargetRef.current = event.currentTarget;
+          if (hoverFrameRef.current != null) return;
+          hoverFrameRef.current = window.requestAnimationFrame(() => {
+            hoverFrameRef.current = null;
+            const nextPoint = hoverPointRef.current;
+            const target = hoverTargetRef.current;
+            if (!nextPoint || !target) return;
+            const hit = featureAtBlockPoint(interactiveProjected, nextPoint.x, nextPoint.y);
+            commitHover(hit?.id ?? null);
+            if (target.isConnected) target.style.cursor = hit ? "pointer" : "grab";
+          });
         }}
         onPointerLeave={(event) => {
-          onHover(null);
+          commitHover(null);
+          hoverPointRef.current = null;
+          hoverTargetRef.current = null;
+          gestureRef.current = null;
           event.currentTarget.style.cursor = "grab";
         }}
+        onPointerUp={() => {
+          window.setTimeout(() => {
+            gestureRef.current = null;
+          }, 0);
+        }}
         onClick={(event) => {
+          if (gestureRef.current?.moved) {
+            gestureRef.current = null;
+            return;
+          }
           const point = screenToMapPoint(event);
-          const hit = featureAtBlockPoint(projected, point.x, point.y);
+          const hit = featureAtBlockPoint(interactiveProjected, point.x, point.y);
           onInspect(hit?.id ?? null);
         }}
         style={{ width: "100%", height: "100%", display: "block", background: "#f8fafc" }}
@@ -2344,34 +2872,56 @@ function ZoneGeometryMap({
 
 function BlockGeometryMap({
   blockMap,
+  zoneMap,
   contextMap,
   streetMap,
   selectedBlocks,
   replacementBlocks = [],
   activeZone,
+  layerMode = "field",
 }: {
   blockMap: HojasRutaBlockMap;
+  zoneMap?: HojasRutaZoneMap | null;
   contextMap?: HojasRutaContextMap | null;
   streetMap?: HojasRutaStreetMap | null;
   selectedBlocks: HojasRutaSamplePreview["blocks"];
   replacementBlocks?: HojasRutaSamplePreview["replacement_blocks"];
   activeZone?: string;
+  layerMode?: HojasRutaBlockLayerMode;
 }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [inspected, setInspected] = useState<string | null>(null);
   const navigation = useMapNavigation(BLOCK_MAP_WIDTH, BLOCK_MAP_HEIGHT, 1, BLOCK_MAP_MAX_ZOOM);
   const allBlockFeatures = useMemo(() => blockMap.geojson.features ?? [], [blockMap.geojson.features]);
+  const focusZones = useMemo(
+    () => activeZone
+      ? blockFocusZoneSet(allBlockFeatures, activeZone, zoneMap?.ubigeo === blockMap.ubigeo ? zoneMap : null)
+      : new Set<string>(),
+    [activeZone, allBlockFeatures, blockMap.ubigeo, zoneMap],
+  );
   const focusBlockFeatures = useMemo(
-    () => blockFocusFeaturesWithNeighbors(allBlockFeatures, activeZone),
-    [activeZone, allBlockFeatures],
+    () => blockFocusFeaturesWithNeighbors(allBlockFeatures, activeZone, zoneMap?.ubigeo === blockMap.ubigeo ? zoneMap : null),
+    [activeZone, allBlockFeatures, blockMap.ubigeo, zoneMap],
+  );
+  const focusGeoBoxes = useMemo(
+    () => blockFocusGeoBoxes(allBlockFeatures, focusZones, activeZone, zoneMap?.ubigeo === blockMap.ubigeo ? zoneMap : null),
+    [activeZone, allBlockFeatures, blockMap.ubigeo, focusZones, zoneMap],
   );
   const projection = useMemo(() => buildBlockProjection(focusBlockFeatures), [focusBlockFeatures]);
-  const projected = useMemo(() => buildProjectedBlockFeatures(allBlockFeatures, projection), [allBlockFeatures, projection]);
+  const projected = useMemo(() => buildProjectedBlockFeatures(focusBlockFeatures, projection), [focusBlockFeatures, projection]);
+  const interactiveProjected = useMemo(
+    () => projected.filter((feature) => blockIsInteractive(feature, activeZone)),
+    [activeZone, projected],
+  );
   const contextFeatures = contextMap?.ok && contextMap.ubigeo === blockMap.ubigeo ? (contextMap.geojson.features ?? []) : [];
-  const projectedContext = useMemo(() => buildProjectedContextFeatures(contextFeatures, projection), [contextFeatures, projection]);
+  const projectedContext = useMemo(() => buildProjectedContextFeatures(contextFeatures, projection, focusGeoBoxes), [contextFeatures, focusGeoBoxes, projection]);
   const streetFeatures = streetMap?.ok && streetMap.ubigeo === blockMap.ubigeo ? (streetMap.geojson.features ?? []) : [];
-  const projectedStreets = useMemo(() => buildProjectedStreetFeatures(streetFeatures, projection), [streetFeatures, projection]);
+  const projectedStreets = useMemo(() => buildProjectedStreetFeatures(streetFeatures, projection, focusGeoBoxes), [focusGeoBoxes, streetFeatures, projection]);
   const boundaries = useMemo(() => buildProjectedDistrictBoundariesForBlocks(focusBlockFeatures, blockMap.ubigeo, projection), [focusBlockFeatures, blockMap.ubigeo, projection]);
+  const zoneOutlines = useMemo(
+    () => buildProjectedZoneOutlinesForBlocks(zoneMap?.ubigeo === blockMap.ubigeo ? zoneMap : null, focusZones, activeZone, projection),
+    [activeZone, blockMap.ubigeo, focusZones, projection, zoneMap],
+  );
   const selectedBlockById = useMemo(() => new Map(selectedBlocks.map((block) => [block.id_manzana, block])), [selectedBlocks]);
   const replacementBlockById = useMemo(() => new Map(replacementBlocks.map((block) => [block.id_manzana, block])), [replacementBlocks]);
   const selectedSet = useMemo(() => new Set(selectedBlocks.map((block) => block.id_manzana)), [selectedBlocks]);
@@ -2381,7 +2931,8 @@ function BlockGeometryMap({
   const detailFeature = inspectedFeature ?? hoveredFeature;
   const detailBlock = detailFeature ? selectedBlockById.get(detailFeature.id) : null;
   const detailReplacementBlock = detailFeature ? replacementBlockById.get(detailFeature.id) : null;
-  const useCanvas = projected.length > 4000;
+  const detailNseStyle = detailFeature ? nsePopupStyle(detailFeature.nseNivel) : undefined;
+  const useCanvas = projected.length > 500 || layerMode === "nse";
   const visibleStreets = useMemo(
     () => projectedStreets.filter((street) => shouldShowStreet(street, navigation.zoom)),
     [projectedStreets, navigation.zoom],
@@ -2424,12 +2975,15 @@ function BlockGeometryMap({
       {useCanvas ? (
         <BlockCanvasMap
           projected={projected}
+          interactiveProjected={interactiveProjected}
           projectedContext={projectedContext}
           projectedStreets={projectedStreets}
           boundaries={boundaries}
+          zoneOutlines={zoneOutlines}
           selectedSet={selectedSet}
           replacementSet={replacementSet}
           activeZone={activeZone}
+          layerMode={layerMode}
           hoveredId={hovered}
           inspectedId={inspected}
           onHover={setHovered}
@@ -2441,13 +2995,13 @@ function BlockGeometryMap({
         <svg viewBox={`0 0 ${BLOCK_MAP_WIDTH} ${BLOCK_MAP_HEIGHT}`} role="img" aria-label="Mapa de manzanas del distrito" style={{ width: "100%", height: "100%", display: "block" }}>
           <rect x="0" y="0" width={BLOCK_MAP_WIDTH} height={BLOCK_MAP_HEIGHT} fill={MAP_GEOMETRY_STYLE.background} />
           <g transform={navigation.transform}>
-            {projectedContext.map((context) => {
+            {projectedContext.map((context, index) => {
               const style = contextClassStyle(context.featureClass, context.kind, context.sourceKind);
               if (!context.d || (!context.hasPolygons && !context.hasLines)) return null;
               if (!contextIsSurface(context.featureClass) && !contextIsLinearPriority(context.featureClass)) return null;
               return (
                 <path
-                  key={`${context.key}:context`}
+                  key={`${context.key}:context:${index}`}
                   d={context.d}
                   fill={context.hasPolygons ? style.fill : "none"}
                   stroke={style.stroke}
@@ -2503,7 +3057,9 @@ function BlockGeometryMap({
               const replacement = replacementSet.has(feature.id);
               const hoveredFeaturePath = hovered === feature.id;
               const focused = Boolean(activeZone && feature.zona === activeZone);
-              const visual = geometryVisualState({ selected, replacement, focused, hovered: hoveredFeaturePath });
+              const interactive = blockIsInteractive(feature, activeZone);
+              const noPopulation = projectedBlockHasNoPopulation(feature);
+              const visual = geometryVisualState({ selected, replacement, focused, hovered: hoveredFeaturePath, noPopulation });
               return (
                 <path
                   key={feature.key}
@@ -2512,18 +3068,19 @@ function BlockGeometryMap({
                   stroke={visual.stroke}
                   strokeWidth={visual.strokeWidth}
                   vectorEffect="non-scaling-stroke"
-                  onMouseEnter={() => setHovered(feature.id)}
-                  onMouseLeave={() => setHovered(null)}
-                  onClick={() => setInspected(feature.id)}
-                  style={{ transition: "fill 140ms ease, stroke 140ms ease", cursor: "pointer" }}
+                  onMouseEnter={interactive ? () => setHovered(feature.id) : undefined}
+                  onMouseLeave={interactive ? () => setHovered(null) : undefined}
+                  onClick={interactive ? () => setInspected(feature.id) : undefined}
+                  pointerEvents={interactive ? "auto" : "none"}
+                  style={{ transition: "fill 140ms ease, stroke 140ms ease", cursor: interactive ? "pointer" : "default" }}
                 />
               );
             })}
-            {projectedContext.filter((context) => context.hasPolygons && context.d && contextIsSurface(context.featureClass)).map((context) => {
+            {projectedContext.filter((context) => context.hasPolygons && context.d && contextIsSurface(context.featureClass)).map((context, index) => {
               const style = contextClassStyle(context.featureClass, context.kind, context.sourceKind);
               return (
                 <path
-                  key={`${context.key}:context-overlay`}
+                  key={`${context.key}:context-overlay:${index}`}
                   d={context.d}
                   fill="none"
                   stroke={style.stroke}
@@ -2535,11 +3092,11 @@ function BlockGeometryMap({
                 />
               );
             })}
-            {projectedContext.filter((context) => context.hasLines && context.d && contextIsLinearPriority(context.featureClass)).map((context) => {
+            {projectedContext.filter((context) => context.hasLines && context.d && contextIsLinearPriority(context.featureClass)).map((context, index) => {
               const style = contextClassStyle(context.featureClass, context.kind, context.sourceKind);
               return (
                 <path
-                  key={`${context.key}:context-line-overlay`}
+                  key={`${context.key}:context-line-overlay:${index}`}
                   d={context.d}
                   fill="none"
                   stroke={style.stroke}
@@ -2551,11 +3108,11 @@ function BlockGeometryMap({
                 />
               );
             })}
-            {projectedContext.filter((context) => shouldLabelContext(context, navigation.zoom)).map((context) => {
+            {projectedContext.filter((context) => shouldLabelContext(context, navigation.zoom)).map((context, index) => {
               const style = contextClassStyle(context.featureClass, context.kind, context.sourceKind);
               return (
                 <text
-                  key={`${context.key}:context-label`}
+                  key={`${context.key}:context-label:${index}`}
                   x={context.labelX}
                   y={context.labelY}
                   fill={style.label}
@@ -2572,13 +3129,13 @@ function BlockGeometryMap({
                 </text>
               );
             })}
-            {projectedContext.filter((context) => shouldShowContextPoint(context, navigation.zoom)).flatMap((context) => {
+            {projectedContext.filter((context) => shouldShowContextPoint(context, navigation.zoom)).flatMap((context, contextIndex) => {
               const style = contextClassStyle(context.featureClass, context.kind, context.sourceKind);
               const radius = contextMarkerRadius(context, navigation.zoom);
               const marker = contextMarkerLabel(context.featureClass, context.kind);
               return context.points.map(([x, y], index) => (
                 <g
-                  key={`${context.key}:point:${index}`}
+                  key={`${context.key}:point:${contextIndex}:${index}`}
                   pointerEvents="none"
                 >
                   <circle
@@ -2651,8 +3208,21 @@ function BlockGeometryMap({
                 {street.name}
               </text>
             ))}
+            {zoneOutlines.map((outline) => (
+              <path
+                key={`${outline.zona}:zone-outline`}
+                d={outline.d}
+                fill="none"
+                stroke={outline.active ? "rgba(220,38,38,0.95)" : "rgba(220,38,38,0.55)"}
+                strokeWidth={outline.active ? 2.4 : 1.5}
+                strokeDasharray={outline.active ? undefined : "6 5"}
+                vectorEffect="non-scaling-stroke"
+                pointerEvents="none"
+              />
+            ))}
             {projected.filter((feature) => selectedSet.has(feature.id)).map((feature) => {
               const hoveredFeaturePath = hovered === feature.id;
+              const interactive = blockIsInteractive(feature, activeZone);
               return (
                 <path
                   key={feature.key}
@@ -2661,15 +3231,17 @@ function BlockGeometryMap({
                   stroke={hoveredFeaturePath ? MAP_GEOMETRY_STYLE.hoverStroke : MAP_GEOMETRY_STYLE.selectedStroke}
                   strokeWidth={hoveredFeaturePath ? 1.35 : 1.05}
                   vectorEffect="non-scaling-stroke"
-                  onMouseEnter={() => setHovered(feature.id)}
-                  onMouseLeave={() => setHovered(null)}
-                  onClick={() => setInspected(feature.id)}
-                  style={{ transition: "fill 140ms ease, stroke 140ms ease", cursor: "pointer" }}
+                  onMouseEnter={interactive ? () => setHovered(feature.id) : undefined}
+                  onMouseLeave={interactive ? () => setHovered(null) : undefined}
+                  onClick={interactive ? () => setInspected(feature.id) : undefined}
+                  pointerEvents={interactive ? "auto" : "none"}
+                  style={{ transition: "fill 140ms ease, stroke 140ms ease", cursor: interactive ? "pointer" : "default" }}
                 />
               );
             })}
             {projected.filter((feature) => replacementSet.has(feature.id)).map((feature) => {
               const hoveredFeaturePath = hovered === feature.id;
+              const interactive = blockIsInteractive(feature, activeZone);
               return (
                 <path
                   key={`${feature.key}:replacement`}
@@ -2678,10 +3250,11 @@ function BlockGeometryMap({
                   stroke={hoveredFeaturePath ? MAP_GEOMETRY_STYLE.hoverStroke : MAP_GEOMETRY_STYLE.replacementStroke}
                   strokeWidth={hoveredFeaturePath ? 1.35 : 1.05}
                   vectorEffect="non-scaling-stroke"
-                  onMouseEnter={() => setHovered(feature.id)}
-                  onMouseLeave={() => setHovered(null)}
-                  onClick={() => setInspected(feature.id)}
-                  style={{ transition: "fill 140ms ease, stroke 140ms ease", cursor: "pointer" }}
+                  onMouseEnter={interactive ? () => setHovered(feature.id) : undefined}
+                  onMouseLeave={interactive ? () => setHovered(null) : undefined}
+                  onClick={interactive ? () => setInspected(feature.id) : undefined}
+                  pointerEvents={interactive ? "auto" : "none"}
+                  style={{ transition: "fill 140ms ease, stroke 140ms ease", cursor: interactive ? "pointer" : "default" }}
                 />
               );
             })}
@@ -2724,6 +3297,14 @@ function BlockGeometryMap({
         </svg>
       )}
       <ZoomControls value={navigation.zoom} min={1} max={BLOCK_MAP_MAX_ZOOM} onChange={navigation.setZoom} onReset={navigation.reset} />
+      {layerMode === "nse" ? (
+        <div className="hojas-ruta-nse-legend" aria-hidden="true">
+          {Object.values(NSE_STYLE).map((item) => (
+            <span key={item.label}><i style={{ background: colorWithAlpha(item.fill, 0.48), borderColor: colorWithAlpha(item.stroke, 0.72) }} /> {item.label}</span>
+          ))}
+          <span><i className="is-empty" /> Sin dato / sin población</span>
+        </div>
+      ) : null}
       {streetMap?.ok ? <div className="hojas-ruta-osm-attribution">{streetAttribution}</div> : null}
       {detailFeature && (
         <div className="hojas-ruta-block-popup">
@@ -2762,6 +3343,12 @@ function BlockGeometryMap({
               {detailFeature.pob18plus != null ? (
                 <span className="is-soft">{formatNumber(Math.round(detailFeature.pob18plus))} adultos 18+</span>
               ) : null}
+            </div>
+          ) : null}
+          {detailFeature.nseNivel ? (
+            <div className="hojas-ruta-block-popup-nse" style={detailNseStyle}>
+              <span>NSE</span>
+              <strong>{detailFeature.nseNivel}</strong>
             </div>
           ) : null}
           {detailBlock || detailReplacementBlock ? (
@@ -3101,12 +3688,14 @@ function TerritoryMapExplorer({
   activeUbigeo,
   activeZona,
   mapLevel,
+  frame,
   zoneMap,
   blockMap,
   contextMap,
   streetMap,
   zoneMapLoading,
   blockMapLoading,
+  layerMode,
   selectedBlocks,
   replacementBlocks,
   enableMapSelection = true,
@@ -3115,6 +3704,7 @@ function TerritoryMapExplorer({
   onOpenZone,
   onToggleDraft,
   onMapSelectionModeChange,
+  onLayerModeChange,
   onBackToZones,
   onBackToDistricts,
 }: {
@@ -3124,12 +3714,14 @@ function TerritoryMapExplorer({
   activeUbigeo: string;
   activeZona: string;
   mapLevel: HojasRutaMapLevel;
+  frame: HojasRutaState["frame_meta"] | null | undefined;
   zoneMap: HojasRutaZoneMap | null;
   blockMap: HojasRutaBlockMap | null;
   contextMap: HojasRutaContextMap | null;
   streetMap: HojasRutaStreetMap | null;
   zoneMapLoading: boolean;
   blockMapLoading: boolean;
+  layerMode: HojasRutaBlockLayerMode;
   selectedBlocks: HojasRutaSamplePreview["blocks"];
   replacementBlocks?: HojasRutaSamplePreview["replacement_blocks"];
   enableMapSelection?: boolean;
@@ -3138,6 +3730,7 @@ function TerritoryMapExplorer({
   onOpenZone: (zona: string) => void;
   onToggleDraft: (ubigeo: string) => void;
   onMapSelectionModeChange: (enabled: boolean) => void;
+  onLayerModeChange: (mode: HojasRutaBlockLayerMode) => void;
   onBackToZones: () => void;
   onBackToDistricts: () => void;
 }) {
@@ -3145,6 +3738,7 @@ function TerritoryMapExplorer({
   const activeDistrictName = activeTerritory?.distrito ?? districtNameForUbigeo(activeUbigeo);
   const showingZones = mapLevel === "zonas" && !!activeUbigeo && zoneMap?.ubigeo === activeUbigeo;
   const showingBlocks = mapLevel === "manzanas" && !!activeUbigeo && blockMap?.ubigeo === activeUbigeo;
+  const nseAvailableForBlocks = Boolean(showingBlocks && frame?.nse_data?.available && activeUbigeo.startsWith("1501"));
 
   return (
     <div className="hojas-ruta-map-explorer">
@@ -3194,6 +3788,26 @@ function TerritoryMapExplorer({
               <CheckCircle2 size={13} /> Seleccion en mapa
             </button>
           ) : null}
+          {showingBlocks ? (
+            <div className="hojas-ruta-map-layer-toggle" role="group" aria-label="Capas de manzanas">
+              <button
+                type="button"
+                className={layerMode === "field" ? "is-active" : ""}
+                onClick={() => onLayerModeChange("field")}
+              >
+                Campo
+              </button>
+              <button
+                type="button"
+                className={layerMode === "nse" ? "is-active" : ""}
+                onClick={() => onLayerModeChange("nse")}
+                disabled={!nseAvailableForBlocks}
+                title={nseAvailableForBlocks ? "Colorear manzanas por nivel socioeconomico" : "NSE disponible solo para manzanas de Lima"}
+              >
+                NSE
+              </button>
+            </div>
+          ) : null}
           {!showingZones && !showingBlocks && mapSelectionMode ? <StatusPill ok={draft.length > 0} text={`${draft.length} en borrador`} /> : null}
           <StatusPill ok text={`${selected.length} en cuotas`} />
         </div>
@@ -3208,13 +3822,15 @@ function TerritoryMapExplorer({
             ))}
             <BlockGeometryMap
               blockMap={blockMap}
+              zoneMap={zoneMap}
               contextMap={contextMap}
               streetMap={streetMap}
               selectedBlocks={selectedBlocks}
               replacementBlocks={replacementBlocks ?? []}
               activeZone={activeZona}
+              layerMode={layerMode}
             />
-            <div className="hojas-ruta-mini-map">
+            {layerMode !== "nse" ? <div className="hojas-ruta-mini-map">
               {zoneMap?.ubigeo === activeUbigeo ? (
                 <ZoneGeometryMap
                   zoneMap={zoneMap}
@@ -3233,7 +3849,7 @@ function TerritoryMapExplorer({
                   onFocus={onFocus}
                 />
               )}
-            </div>
+            </div> : null}
           </div>
         ) : showingZones && zoneMap ? (
           <div className="hojas-ruta-block-stage">
@@ -3259,6 +3875,335 @@ function TerritoryMapExplorer({
           />
         )}
       </div>
+    </div>
+  );
+}
+
+function SamplingMapExplorer({
+  territories,
+  selected,
+  activeUbigeo,
+  activeZona,
+  mapLevel,
+  frame,
+  zoneMap,
+  blockMap,
+  contextMap,
+  streetMap,
+  zoneMapLoading,
+  blockMapLoading,
+  layerMode,
+  inspectorCollapsed,
+  selectedBlocks,
+  replacementBlocks = [],
+  onFocus,
+  onOpenZone,
+  onBackToZones,
+  onBackToDistricts,
+  onLayerModeChange,
+  onToggleInspector,
+}: {
+  territories: HojasRutaState["territories"];
+  selected: string[];
+  activeUbigeo: string;
+  activeZona: string;
+  mapLevel: HojasRutaMapLevel;
+  frame: HojasRutaState["frame_meta"] | null | undefined;
+  zoneMap: HojasRutaZoneMap | null;
+  blockMap: HojasRutaBlockMap | null;
+  contextMap: HojasRutaContextMap | null;
+  streetMap: HojasRutaStreetMap | null;
+  zoneMapLoading: boolean;
+  blockMapLoading: boolean;
+  layerMode: HojasRutaBlockLayerMode;
+  inspectorCollapsed: boolean;
+  selectedBlocks: HojasRutaSamplePreview["blocks"];
+  replacementBlocks?: HojasRutaSamplePreview["replacement_blocks"];
+  onFocus: (ubigeo: string) => void;
+  onOpenZone: (zona: string) => void;
+  onBackToZones: () => void;
+  onBackToDistricts: () => void;
+  onLayerModeChange: (mode: HojasRutaBlockLayerMode) => void;
+  onToggleInspector: () => void;
+}) {
+  const activeDistrictConfirmed = Boolean(activeUbigeo && selected.includes(activeUbigeo));
+  const activeTerritory = activeDistrictConfirmed ? territories.find((t) => t.ubigeo === activeUbigeo) : undefined;
+  const activeDistrictName = activeTerritory?.distrito ?? districtNameForUbigeo(activeUbigeo);
+  const showingBlocks = activeDistrictConfirmed && mapLevel === "manzanas" && !!activeUbigeo && blockMap?.ubigeo === activeUbigeo;
+  const showingZones = activeDistrictConfirmed && mapLevel === "zonas" && !!activeUbigeo && zoneMap?.ubigeo === activeUbigeo;
+  const selectedInDistrict = selectedBlocks.filter((block) => block.ubigeo === activeUbigeo);
+  const replacementInDistrict = replacementBlocks.filter((block) => block.ubigeo === activeUbigeo);
+  const visibleSelectedBlocks = activeZona
+    ? selectedInDistrict.filter((block) => block.zona === activeZona)
+    : selectedInDistrict;
+  const visibleReplacementBlocks = activeZona
+    ? replacementInDistrict.filter((block) => block.zona === activeZona)
+    : replacementInDistrict;
+  const zoneRows = useMemo(() => {
+    const rows = new Map<string, {
+      zona: string;
+      titulares: number;
+      reemplazos: number;
+      entrevistas: number;
+      viviendas: number;
+      poblacion: number;
+    }>();
+    if (zoneMap?.ubigeo === activeUbigeo) {
+      for (const feature of zoneMap.geojson.features ?? []) {
+        const zona = String(feature.properties.zona ?? feature.properties.zona_label ?? feature.properties.id ?? "").trim();
+        if (!zona) continue;
+        rows.set(zona, {
+          zona,
+          titulares: 0,
+          reemplazos: 0,
+          entrevistas: 0,
+          viviendas: Number(feature.properties.viviendas ?? 0),
+          poblacion: Number(feature.properties.poblacion ?? 0),
+        });
+      }
+    }
+    for (const block of selectedInDistrict) {
+      const zona = String(block.zona ?? "").trim();
+      if (!zona) continue;
+      const row = rows.get(zona) ?? { zona, titulares: 0, reemplazos: 0, entrevistas: 0, viviendas: 0, poblacion: 0 };
+      row.titulares += 1;
+      row.entrevistas += Number(block.entrevistas || 0);
+      rows.set(zona, row);
+    }
+    for (const block of replacementInDistrict) {
+      const zona = String(block.zona ?? "").trim();
+      if (!zona) continue;
+      const row = rows.get(zona) ?? { zona, titulares: 0, reemplazos: 0, entrevistas: 0, viviendas: 0, poblacion: 0 };
+      row.reemplazos += 1;
+      rows.set(zona, row);
+    }
+    return [...rows.values()]
+      .sort((a, b) => {
+        const selectedDelta = (b.titulares + b.reemplazos) - (a.titulares + a.reemplazos);
+        if (selectedDelta !== 0) return selectedDelta;
+        return a.zona.localeCompare(b.zona, "es", { numeric: true });
+      })
+      .slice(0, 14);
+  }, [activeUbigeo, replacementInDistrict, selectedInDistrict, zoneMap]);
+  const mapTitle = showingBlocks
+    ? `Manzanas de ${activeDistrictName}`
+    : showingZones
+      ? `Zonas de ${activeDistrictName}`
+      : "Lima Metropolitana y Callao";
+  const nseAvailableForBlocks = Boolean(showingBlocks && frame?.nse_data?.available && activeUbigeo.startsWith("1501"));
+
+  return (
+    <div className={`hojas-ruta-sampling-map-explorer${inspectorCollapsed ? " is-inspector-collapsed" : ""}`}>
+      <div className="hojas-ruta-map-explorer hojas-ruta-sampling-lima-context">
+        <div className="hojas-ruta-map-toolbar">
+          <div>
+            <div className="hojas-ruta-workbench-eyebrow">Base poblacional INEI 2017</div>
+            <div className="hojas-ruta-map-title">{mapTitle}</div>
+            {activeTerritory ? (
+              <div className="hojas-ruta-focus-strip">
+                <div className="hojas-ruta-focus-name">
+                  <span>Distrito en inspección</span>
+                  <strong>{activeTerritory.distrito}</strong>
+                </div>
+                <MiniMetric label="Viviendas" value={formatNumber(activeTerritory.viviendas)} />
+                <MiniMetric label="Manzanas" value={formatNumber(activeTerritory.manzanas)} />
+                <MiniMetric label="Titulares" value={formatNumber(selectedInDistrict.length)} />
+              </div>
+            ) : (
+              <div className="hojas-ruta-focus-empty">Haz click en un distrito confirmado para revisar zonas y manzanas.</div>
+            )}
+          </div>
+          <div className="hojas-ruta-map-toolbar-actions">
+            {showingBlocks ? (
+              <div className="hojas-ruta-map-layer-toggle" role="group" aria-label="Capas de manzanas">
+                <button
+                  type="button"
+                  className={layerMode === "field" ? "is-active" : ""}
+                  onClick={() => onLayerModeChange("field")}
+                >
+                  Campo
+                </button>
+                <button
+                  type="button"
+                  className={layerMode === "nse" ? "is-active" : ""}
+                  onClick={() => onLayerModeChange("nse")}
+                  disabled={!nseAvailableForBlocks}
+                  title={nseAvailableForBlocks ? "Colorear manzanas por nivel socioeconomico" : "NSE disponible solo para manzanas de Lima"}
+                >
+                  NSE
+                </button>
+              </div>
+            ) : null}
+            <StatusPill ok text={`${formatNumber(selected.length)} distritos`} />
+          </div>
+        </div>
+        <div className="hojas-ruta-map-stage">
+          {zoneMapLoading || blockMapLoading ? (
+            <LoadingBlock label={blockMapLoading ? "Cargando manzanas, calles y NSE" : "Cargando zonas del distrito"} />
+          ) : showingBlocks && blockMap ? (
+            <div className="hojas-ruta-block-stage">
+              {blockMap.alerts.map((a) => (
+                <Alert key={`${a.code}:${a.message}`} kind={alertKind(a.level)}>{a.message}</Alert>
+              ))}
+              <BlockGeometryMap
+                blockMap={blockMap}
+                zoneMap={zoneMap}
+                contextMap={contextMap}
+                streetMap={streetMap}
+                selectedBlocks={selectedBlocks}
+                replacementBlocks={replacementBlocks}
+                activeZone={activeZona}
+                layerMode={layerMode}
+              />
+            </div>
+          ) : showingZones && zoneMap ? (
+            <div className="hojas-ruta-block-stage">
+              {zoneMap.alerts.map((a) => (
+                <Alert key={`${a.code}:${a.message}`} kind={alertKind(a.level)}>{a.message}</Alert>
+              ))}
+              <ZoneGeometryMap
+                zoneMap={zoneMap}
+                selectedBlocks={selectedBlocks}
+                replacementBlocks={replacementBlocks}
+                activeZona={activeZona}
+                onOpenZone={onOpenZone}
+              />
+            </div>
+          ) : (
+            <LimaCoverageMap
+              territories={territories}
+              selected={selected}
+              activeUbigeo={activeDistrictConfirmed ? activeUbigeo : ""}
+              selectionMode={false}
+              onFocus={onFocus}
+            />
+          )}
+        </div>
+      </div>
+
+      <aside className="hojas-ruta-sampling-inspector" aria-label="Inspector de zonas y manzanas">
+        <div className="hojas-ruta-sampling-inspector-head">
+          <div>
+            <span>Inspector</span>
+            <strong>{activeUbigeo ? activeDistrictName : "Sin distrito"}</strong>
+          </div>
+          <div className="hojas-ruta-sampling-inspector-head-actions">
+            {!inspectorCollapsed && (activeZona ? <StatusPill ok text={`Zona ${activeZona}`} /> : <StatusPill ok={showingZones} text={showingZones ? "Zonas listas" : "Zonas"} />)}
+            <button type="button" className="hojas-ruta-inspector-collapse" onClick={onToggleInspector} aria-label={inspectorCollapsed ? "Expandir inspector" : "Comprimir inspector"}>
+              {inspectorCollapsed ? <ChevronLeft size={18} strokeWidth={2.7} /> : <ChevronRight size={18} strokeWidth={2.7} />}
+            </button>
+          </div>
+        </div>
+
+        {!inspectorCollapsed ? (
+          <div className="hojas-ruta-sampling-inspector-body">
+            {!activeUbigeo ? (
+              <EmptyState
+                icon={<MapPinned size={18} />}
+                title="Selecciona un distrito"
+                hint="El mapa principal abre zonas y luego manzanas con la misma navegación."
+                variant="inline"
+              />
+            ) : zoneMapLoading || blockMapLoading ? (
+              <div className="hojas-ruta-map-loading-shell">
+                <LoadingBlock label={blockMapLoading ? "Cargando manzanas" : "Cargando zonas"} variant="inline" />
+              </div>
+            ) : (
+              <>
+                <div className={`hojas-ruta-sampling-inspector-actions${showingBlocks ? " is-zone-focus" : ""}`}>
+                  <button type="button" onClick={showingBlocks ? onBackToZones : showingZones ? onBackToDistricts : () => onFocus(activeUbigeo)}>
+                    {showingBlocks ? (
+                      <>
+                        <ChevronLeft size={14} strokeWidth={2.5} />
+                        Ver zonas
+                      </>
+                    ) : showingZones ? (
+                      <>
+                        <ChevronLeft size={14} strokeWidth={2.5} />
+                        Mapa Lima
+                      </>
+                    ) : "Cargar zonas"}
+                  </button>
+                  <span className="hojas-ruta-sampling-inspector-action-copy">
+                    {showingBlocks
+                      ? (
+                        <>
+                          <strong>{(visibleSelectedBlocks.length + visibleReplacementBlocks.length) > 0 ? "Rutas en esta zona" : "Zona sin rutas asignadas"}</strong>
+                          <small>
+                            {(visibleSelectedBlocks.length + visibleReplacementBlocks.length) > 0
+                              ? `${formatNumber(visibleSelectedBlocks.length)} titulares · ${formatNumber(visibleReplacementBlocks.length)} reemplazos`
+                              : "Explora sus manzanas; al generar la selección se marcarán aquí."}
+                          </small>
+                        </>
+                      )
+                      : showingZones
+                        ? (
+                          <>
+                            <strong>Zonas de {activeDistrictName}</strong>
+                            <small>Elige una zona para revisar sus manzanas o vuelve al mapa general.</small>
+                          </>
+                        )
+                        : "Click en distrito abre zonas oficiales."}
+                  </span>
+                </div>
+              </>
+            )}
+
+            {zoneRows.length ? (
+              <div className="hojas-ruta-sampling-zone-list">
+                <div className="hojas-ruta-section-title">
+                  <strong>Zonas del distrito</strong>
+                  <span>Abre una zona para revisar sus manzanas; las rutas asignadas quedan marcadas.</span>
+                </div>
+                {zoneRows.map((row) => (
+                  <button
+                    key={row.zona}
+                    type="button"
+                    className={activeZona === row.zona ? "is-active" : ""}
+                    onClick={() => onOpenZone(row.zona)}
+                    aria-label={`Abrir manzanas de zona ${row.zona}`}
+                  >
+                    <span>
+                      <strong>Zona {row.zona}</strong>
+                      <small>{formatNumber(row.viviendas)} viviendas · {formatNumber(row.poblacion)} personas</small>
+                    </span>
+                    <em className={(row.titulares + row.reemplazos) > 0 ? "is-assigned" : "is-empty"}>
+                      <strong>
+                        {(row.titulares + row.reemplazos) > 0
+                          ? `${formatNumber(row.titulares)} titular${row.titulares === 1 ? "" : "es"}`
+                          : "Sin rutas"}
+                      </strong>
+                      <small>
+                        {(row.titulares + row.reemplazos) > 0
+                          ? `${formatNumber(row.reemplazos)} reemplazo${row.reemplazos === 1 ? "" : "s"} · ${formatNumber(row.entrevistas)} encuestas`
+                          : "Ver manzanas"}
+                      </small>
+                    </em>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {(visibleSelectedBlocks.length || visibleReplacementBlocks.length) ? (
+              <div className="hojas-ruta-inspector-blocks">
+                <div className="hojas-ruta-section-title">
+                  <strong>{activeZona ? `Manzanas en zona ${activeZona}` : "Manzanas en distrito"}</strong>
+                  <span>Primeras rutas asignadas en este foco.</span>
+                </div>
+                {[...visibleSelectedBlocks.slice(0, 4), ...visibleReplacementBlocks.slice(0, 3)].map((block) => (
+                  <div key={`${block.tipo_manzana ?? "titular"}:${block.id_manzana}`} className="hojas-ruta-inspector-block-row">
+                    <span>
+                      <strong>{block.tipo_manzana === "reemplazo" ? "Reemplazo" : "Titular"}</strong>
+                      <small>Zona {block.zona} · ID {block.id_manzana}</small>
+                    </span>
+                    <em>{formatNumber(block.entrevistas)}</em>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </aside>
     </div>
   );
 }
@@ -3477,26 +4422,23 @@ function SamplingMethodExplainer({
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
+    <div className="hojas-ruta-method-selector" role="radiogroup" aria-label="Metodo de seleccion de manzanas">
       {methods.map((method) => {
         const active = method.id === value;
         return (
           <button
             key={method.id}
             type="button"
+            role="radio"
+            aria-checked={active}
+            aria-pressed={active}
             onClick={() => onChange(method.id)}
-            style={{
-              border: `1px solid ${active ? method.accent : "var(--pulso-border)"}`,
-              background: active ? "#f8fffc" : "white",
-              borderRadius: 8,
-              padding: 10,
-              textAlign: "left",
-              cursor: "pointer",
-            }}
+            className={active ? "is-active" : ""}
+            style={{ "--method-accent": method.accent } as React.CSSProperties}
           >
             <Diagram method={method.id} accent={method.accent} />
-            <span style={{ display: "block", marginTop: 6, fontSize: 12, fontWeight: 850, color: "var(--pulso-text)" }}>{method.title}</span>
-            <span style={{ display: "block", marginTop: 4, fontSize: 11, lineHeight: 1.35, color: "var(--pulso-text-soft)" }}>{method.body}</span>
+            <strong>{method.title}</strong>
+            <span>{method.body}</span>
           </button>
         );
       })}
@@ -4104,14 +5046,14 @@ function SampleSizeWorkbench({
 	  const customN = Number(customNText);
 	  const customNValid = Number.isFinite(customN) && customN > 0;
   const sampleStepTitle = mode === "calculator"
-    ? "1. Define cómo calcular el N"
+    ? "Configura el cálculo del N"
     : mode === "external_total"
-      ? "1. Ingresa el N total aprobado"
-      : "1. Ingresa el N aprobado por distrito";
+      ? "Ingresa el N total aprobado"
+      : "Ingresa el N aprobado por distrito";
 	  const sampleStepCopy = mode === "calculator"
 	    ? "El margen total calcula el N. El margen distrital puede ser requisito de cálculo o solo alerta."
 	    : "No necesitas recalcular el N: Prosecnur diagnostica margen de error, contactos, rutas y alertas sin reemplazar el N aprobado.";
-  const diagnosisHeadingTitle = isCalculatorMode ? "2. Revisa el N recomendado" : "2. Revisa el diagnóstico del N aprobado";
+  const diagnosisHeadingTitle = isCalculatorMode ? "Revisa el N recomendado" : "Revisa el diagnóstico del N aprobado";
   const diagnosisEmptyCopy = isCalculatorMode
     ? "Pulsa “Calcular muestra” para ver el N recomendado, el margen de error, los contactos sugeridos y el reparto por distrito. No se mostrarán alertas hasta ese cálculo."
     : "Pulsa “Diagnosticar N aprobado” para revisar margen de error, contactos sugeridos, rutas y alertas. Prosecnur respetará el N que ingresaste.";
@@ -4167,27 +5109,39 @@ function SampleSizeWorkbench({
   });
 
   return (
-	    <Panel title="Define la muestra" eyebrow="N, margen y campo">
+	    <Panel title="Cálculo del tamaño muestral" eyebrow="Paso 3 · N, precisión y cuotas">
       <div className="hojas-ruta-sample-size-shell">
-        <div className="hojas-ruta-sample-mode-cards" role="tablist" aria-label="Modo de muestra">
-          {(["calculator", "external_total", "external_district"] as SampleSizeMode[]).map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={mode === item ? "is-active" : ""}
-              onClick={() => onModeChange(item)}
-            >
-              <strong>{modeCopy[item].title}</strong>
-              <span>{modeCopy[item].detail}</span>
-            </button>
-          ))}
-        </div>
+        <section className="hojas-ruta-flow-step is-mode-choice">
+          <div className="hojas-ruta-flow-step-head">
+            <span>1</span>
+            <div>
+              <strong>Elige la lógica del N</strong>
+              <small>Primero decide si Prosecnur calcula el tamaño muestral o si estás validando un N ya aprobado.</small>
+            </div>
+          </div>
+          <div className="hojas-ruta-sample-mode-cards" role="tablist" aria-label="Modo de muestra">
+            {(["calculator", "external_total", "external_district"] as SampleSizeMode[]).map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={mode === item ? "is-active" : ""}
+                onClick={() => onModeChange(item)}
+              >
+                <strong>{modeCopy[item].title}</strong>
+                <span>{modeCopy[item].detail}</span>
+              </button>
+            ))}
+          </div>
+        </section>
 
         <div className="hojas-ruta-sample-size-flow">
-	          <section className="hojas-ruta-sample-size-config" aria-label="Parametros de muestra">
-	            <div className="hojas-ruta-sample-size-heading">
-	              <strong>{sampleStepTitle}</strong>
-	              <span>{sampleStepCopy}</span>
+	          <section className="hojas-ruta-sample-size-config hojas-ruta-flow-step" aria-label="Parametros de muestra">
+	            <div className="hojas-ruta-flow-step-head">
+                <span>2</span>
+                <div>
+	                <strong>{sampleStepTitle}</strong>
+	                <small>{sampleStepCopy}</small>
+                </div>
 	            </div>
 
             {isExternalMode ? (
@@ -4207,12 +5161,14 @@ function SampleSizeWorkbench({
                   suffix="N"
                   hint="Prosecnur lo reparte entre los distritos seleccionados según el modo de asignación elegido."
                 >
-                  <input
+                  <NumericInput
                     style={fieldStyle}
-                    type="number"
                     min={1}
+                    step={1}
+                    integer
                     value={config.n_objetivo}
-                    onChange={(e) => onTotalNChange(Math.max(1, Number(e.target.value || 1)))}
+                    fallback={config.n_objetivo || 1}
+                    onValueChange={onTotalNChange}
                   />
                 </SampleControl>
               </div>
@@ -4255,12 +5211,14 @@ function SampleSizeWorkbench({
                             <td className="is-strong">{t.distrito}</td>
                             <td className="is-number">{formatNumber(t.poblacion)}</td>
                             <td className="is-number">
-                              <input
+                              <NumericInput
                                 className="hojas-ruta-table-input"
-                                type="number"
                                 min={0}
+                                step={1}
+                                integer
                                 value={nValue}
-                                onChange={(e) => onDistrictNChange(t.ubigeo, Number(e.target.value || 0))}
+                                fallback={0}
+                                onValueChange={(value) => onDistrictNChange(t.ubigeo, value)}
                                 onPaste={(e) => {
                                   const text = e.clipboardData.getData("text");
                                   if (text.includes("\n") || text.includes("\t")) {
@@ -4297,15 +5255,14 @@ function SampleSizeWorkbench({
                   suffix="por manzana"
                   hint="El N total o el N de cada distrito debe ser múltiplo de este valor."
                 >
-                  <input
+                  <NumericInput
                     style={fieldStyle}
-                    type="number"
                     min={1}
+                    step={1}
+                    integer
                     value={config.entrevistas_por_manzana}
-                    onChange={(e) => {
-                      const value = Math.max(1, Math.round(Number(e.target.value || 1)));
-                      onRouteSizeChange(value);
-                    }}
+                    fallback={config.entrevistas_por_manzana || 1}
+                    onValueChange={onRouteSizeChange}
                     aria-label="Encuestas por ruta"
                   />
                 </SampleControl>
@@ -4322,7 +5279,7 @@ function SampleSizeWorkbench({
 
 	            <details className={diagnosticDetailsClass} open={isCalculatorMode}>
 		              <summary className="hojas-ruta-sample-setting-title">
-		                <strong>{isCalculatorMode ? "2. Margen de error que quieres lograr" : "Ajustar umbrales del diagnóstico"}</strong>
+		                <strong>{isCalculatorMode ? "Margen de error que quieres lograr" : "Ajustar umbrales del diagnóstico"}</strong>
 		                <span>
                     {isCalculatorMode
                       ? "Mientras más exigente seas, mayor será el N recomendado."
@@ -4331,14 +5288,14 @@ function SampleSizeWorkbench({
 		              </summary>
 	              <div className="hojas-ruta-form-grid">
 	                <SampleControl label={<InlineHelp label="Confianza" text={confidenceHelp} />} suffix="%" hint="95% es el estándar para estudios serios.">
-                  <input
+                  <NumericInput
                     style={fieldStyle}
-                    type="number"
                     min={50}
                     max={99.9}
                     step={0.1}
                     value={percentInput(settings.confidence_level)}
-                    onChange={(e) => setPercent("confidence_level", e.target.value)}
+                    fallback={95}
+                    onValueChange={(value) => setPercent("confidence_level", String(value))}
                   />
                 </SampleControl>
 		                <SampleControl
@@ -4348,14 +5305,14 @@ function SampleSizeWorkbench({
                         ? `Ahora: ±${precisionTotalPct} pts para el estudio completo.`
                         : `Referencia: alerta si el total supera ±${precisionTotalPct} pts.`}
                     >
-                  <input
+                  <NumericInput
                     style={fieldStyle}
-                    type="number"
                     min={0.1}
                     max={50}
                     step={0.1}
                     value={percentInput(settings.margin_total)}
-                    onChange={(e) => setPercent("margin_total", e.target.value)}
+                    fallback={5}
+                    onValueChange={(value) => setPercent("margin_total", String(value))}
                   />
                 </SampleControl>
 		                <SampleControl
@@ -4372,14 +5329,14 @@ function SampleSizeWorkbench({
                           : `No sube el N; solo alerta si un distrito supera ±${districtAlertPct} pts.`
                         : `No cambia el N aprobado; alerta si un distrito supera ±${districtAlertPct} pts.`}
                     >
-                  <input
+                  <NumericInput
                     style={fieldStyle}
-                    type="number"
                     min={0.1}
                     max={80}
                     step={0.1}
                     value={percentInput(settings.margin_district)}
-                    onChange={(e) => setPercent("margin_district", e.target.value)}
+                    fallback={10}
+                    onValueChange={(value) => setPercent("margin_district", String(value))}
                   />
 	                </SampleControl>
 	              </div>
@@ -4419,7 +5376,7 @@ function SampleSizeWorkbench({
 
 	            <details className={diagnosticDetailsClass} open={isCalculatorMode}>
 	              <summary className="hojas-ruta-sample-setting-title">
-	                <strong>{isCalculatorMode ? "3. Supuestos de campo" : "Ajustar supuestos estadísticos"}</strong>
+	                <strong>{isCalculatorMode ? "Supuestos de campo" : "Ajustar supuestos estadísticos"}</strong>
 	                <span>
                     {isCalculatorMode
                       ? "Estos controles vuelven el cálculo más realista para encuestas en territorio."
@@ -4428,38 +5385,39 @@ function SampleSizeWorkbench({
 	              </summary>
 	              <div className="hojas-ruta-form-grid">
                 <SampleControl label={<InlineHelp label="Resultado esperado (p)" text={expectedProportionHelp} />} suffix="%" hint="50% si no sabes; es el escenario más conservador.">
-                  <input
+                  <NumericInput
                     style={fieldStyle}
-                    type="number"
                     min={0.1}
                     max={99.9}
                     step={0.1}
                     value={percentInput(settings.expected_proportion)}
-                    onChange={(e) => setPercent("expected_proportion", e.target.value)}
+                    fallback={50}
+                    onValueChange={(value) => setPercent("expected_proportion", String(value))}
                   />
                 </SampleControl>
                 <SampleControl
                   label={<InlineHelp label="Ajuste por diseño de campo (DEFF)" text={deffHelp} />}
                   hint="Empieza en 1.0. Sube solo si el diseño concentra entrevistas o esperas respuestas parecidas dentro de la misma manzana/zona."
                 >
-                  <input
+                  <NumericInput
                     style={fieldStyle}
-                    type="number"
                     min={0.1}
                     step={0.1}
                     value={settings.design_effect}
-                    onChange={(e) => onSampleSizeChange({ design_effect: Math.max(0.1, Number(e.target.value || 0.1)) })}
+                    fallback={settings.design_effect || 1}
+                    onValueChange={(value) => onSampleSizeChange({ design_effect: value })}
                   />
                 </SampleControl>
                 <SampleControl label={<InlineHelp label="Respuesta esperada" text={responseHelp} />} suffix="%" hint="Sirve para estimar contactos, no para cambiar cuotas.">
-                  <input
+                  <NumericInput
                     style={fieldStyle}
-                    type="number"
                     min={1}
                     max={100}
                     step={1}
+                    integer
                     value={percentInput(settings.response_rate)}
-                    onChange={(e) => setPercent("response_rate", e.target.value)}
+                    fallback={80}
+                    onValueChange={(value) => setPercent("response_rate", String(value))}
                   />
                 </SampleControl>
               </div>
@@ -4520,7 +5478,7 @@ function SampleSizeWorkbench({
 	            {mode !== "external_district" ? (
               <div className="hojas-ruta-sample-setting-group">
 	              <div className="hojas-ruta-sample-setting-title">
-	                <strong>{isCalculatorMode ? "4. Asignación entre distritos" : "2. Cómo repartir el N total aprobado"}</strong>
+	                <strong>{isCalculatorMode ? "Asignación entre distritos" : "Cómo repartir el N total aprobado"}</strong>
 	                <span>
                     {isCalculatorMode
                       ? "Cómo se reparten las entrevistas entre los distritos del marco."
@@ -4717,9 +5675,8 @@ function SampleSizeWorkbench({
                 </SampleAdviceItem>
               </div>
             </details>
-          </section>
 
-          <div className="hojas-ruta-action-row hojas-ruta-sample-primary-action">
+            <div className="hojas-ruta-action-row hojas-ruta-sample-primary-action">
 	            <button type="button" style={btnPrimary} onClick={onPreviewSampleSize} disabled={busy === "sample-size"}>
 	              {busy === "sample-size" ? <Loader2 size={14} className="pulso-spin" /> : <BarChart3 size={14} />}
 	              {isCalculatorMode ? "Calcular muestra" : "Diagnosticar N aprobado"}
@@ -4729,12 +5686,16 @@ function SampleSizeWorkbench({
                   ? "Este paso calcula el N recomendado, contactos sugeridos y alertas antes de calcular cuotas."
                   : "Este paso respeta el N aprobado y calcula margen de error, contactos sugeridos y alertas antes de cuotas."}
 	            </span>
-          </div>
+            </div>
+          </section>
 
-          <section className="hojas-ruta-sample-size-results" aria-label="Resultado de muestra">
-            <div className="hojas-ruta-sample-size-heading">
-              <strong>{diagnosisHeadingTitle}</strong>
-              <span>El resultado aparece después de calcular muestra y queda invalidado si cambias los supuestos.</span>
+          <section className="hojas-ruta-sample-size-results hojas-ruta-flow-step is-result" aria-label="Resultado de muestra">
+            <div className="hojas-ruta-flow-step-head">
+              <span>3</span>
+              <div>
+                <strong>{diagnosisHeadingTitle}</strong>
+                <small>El resultado queda invalidado si cambias los supuestos, el N o la carga por ruta.</small>
+              </div>
             </div>
             {preview ? (
               <>
@@ -4794,7 +5755,7 @@ function SampleSizeWorkbench({
 
 			                <details className="hojas-ruta-sample-setting-group hojas-ruta-n-alternatives" open={!isCalculatorMode}>
 			                  <summary className="hojas-ruta-sample-setting-title">
-			                    <strong>{isCalculatorMode ? "Cambiar N o ver alternativas" : "3. Diagnóstico y alternativas"}</strong>
+			                    <strong>{isCalculatorMode ? "Cambiar N o ver alternativas" : "Diagnóstico y alternativas"}</strong>
 			                    <span>
 			                      {isCalculatorMode
 		                            ? "Opcional. El N final ya está seleccionado; abre esto solo si quieres comparar o usar un N propio."
@@ -4831,12 +5792,14 @@ function SampleSizeWorkbench({
 	                        label="N propio"
 	                        text="N que escribes manualmente. Prosecnur recalcula el margen de error estimado y te avisa si no calza con rutas completas."
 	                      />
-	                      <input
+	                      <NumericInput
 	                        style={fieldStyle}
-	                        type="number"
 	                        min={1}
-	                        value={customNText}
-	                        onChange={(e) => setCustomNText(e.target.value)}
+                          step={1}
+                          integer
+	                        value={customNValid ? customN : null}
+                          fallback={config.n_objetivo || 1}
+                          onValueChange={(value) => setCustomNText(String(value))}
 	                        placeholder="Escribe un N"
 	                        aria-label="N propio"
 	                      />
@@ -4947,7 +5910,7 @@ function SampleSizeWorkbench({
 
                 <div className="hojas-ruta-sample-setting-group">
                   <div className="hojas-ruta-sample-setting-title">
-	                    <strong>5. Reparto por distrito</strong>
+	                    <strong>Reparto por distrito</strong>
                     <span>Así se usará el N para calcular cuotas por edad y sexo.</span>
                   </div>
                   <div className="hojas-ruta-review-table-wrap is-compact">
@@ -5042,13 +6005,17 @@ export default function HojasRutaPage() {
   const [draftTerritories, setDraftTerritories] = useState<string[]>([]);
   const [routeHistory, setRouteHistory] = useState<HojasRutaRouteSnapshot[]>([]);
   const [mapSelectionMode, setMapSelectionMode] = useState(false);
+  const [sampleListTab, setSampleListTab] = useState<"titulares" | "reemplazos">("titulares");
+  const [blockLayerMode, setBlockLayerMode] = useState<HojasRutaBlockLayerMode>("field");
+  const [samplingInspectorCollapsed, setSamplingInspectorCollapsed] = useState(false);
+  const previousActiveStageRef = useRef<HojasRutaStage>(activeStage);
   const blockMapCacheRef = useRef<Map<string, HojasRutaBlockMap>>(new Map());
   const zoneMapCacheRef = useRef<Map<string, HojasRutaZoneMap>>(new Map());
   const contextMapCacheRef = useRef<Map<string, HojasRutaContextMap>>(new Map());
   const streetMapCacheRef = useRef<Map<string, HojasRutaStreetMap>>(new Map());
   const hydratingRef = useRef(true);
   const persistTimerRef = useRef<number | null>(null);
-  const latestWorkspaceRef = useRef<{ config: HojasRutaIntegratedConfig; uiState: HojasRutaUiState } | null>(null);
+  const latestWorkspaceRef = useRef<{ config: HojasRutaIntegratedConfig; uiState: HojasRutaUiState; outputs: HojasRutaWorkspaceOutputs } | null>(null);
 
   const loadState = useCallback(async () => {
     hydratingRef.current = true;
@@ -5071,15 +6038,36 @@ export default function HojasRutaPage() {
         sample_size: normalizeSampleSizeSettings(s.integrated_config.sample_size),
       };
       const uiState = normalizeHojasRutaUiState(s.ui_state, restoredConfig.territorios ?? []);
+      const restoreMapLevel = uiState.active_stage === "manzanas" ? "distritos" : uiState.map_level;
+      const restoreMapZona = uiState.active_stage === "manzanas" ? "" : uiState.map_zona;
+      const shouldRestoreLocalMap = uiState.active_stage !== "manzanas" && Boolean(uiState.map_ubigeo);
+      const savedOutputs = s.workspace_outputs ?? {};
+      let restoredPopulation = savedOutputs.population ?? null;
+      let restoredSampleSizePreview = savedOutputs.sample_size_preview ?? null;
+      let restoredQuota = savedOutputs.quota ?? null;
+      let restoredSample = savedOutputs.sample ?? null;
+      const restoreDepth = HOJAS_RUTA_STAGE_ORDER[uiState.active_stage] ?? 0;
+      if (!restoredPopulation && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.poblacion && (restoredConfig.territorios ?? []).length > 0) {
+        restoredPopulation = await apiHojasRutaPopulationPreview(restoredConfig).catch(() => null);
+      }
+      if (!restoredSampleSizePreview && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.muestra && (restoredConfig.territorios ?? []).length > 0) {
+        restoredSampleSizePreview = await apiHojasRutaSampleSizePreview(restoredConfig).catch(() => null);
+      }
+      if (!restoredQuota && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.manzanas && restoredSampleSizePreview?.ok) {
+        restoredQuota = await apiHojasRutaQuotaPreview(restoredConfig).catch(() => null);
+      }
+      if (!restoredSample && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.entrega && restoredQuota?.ok) {
+        restoredSample = await apiHojasRutaSamplePreview(restoredConfig).catch(() => null);
+      }
       setState(s);
       setConfig(restoredConfig);
       setConfirmedAgeSignature(ageRangesSignature(restoredConfig));
       setActiveStage(uiState.active_stage);
-      setPopulation(null);
+      setPopulation(restoredPopulation);
       setPopulationExport(null);
-      setSampleSizePreview(null);
-      setQuota(null);
-      setSample(null);
+      setSampleSizePreview(restoredSampleSizePreview);
+      setQuota(restoredQuota);
+      setSample(restoredSample);
       setResult(null);
       setRandomPdf(null);
       setRandomPreference(restoredConfig.random_preference ?? "balanced");
@@ -5097,9 +6085,9 @@ export default function HojasRutaPage() {
       setRouteHistory(uiState.route_history);
       setMapSelectionMode(uiState.map_selection_mode);
       setMapUbigeo(uiState.map_ubigeo);
-      setMapZona(uiState.map_zona);
-      setMapLevel(uiState.map_level);
-      if (uiState.map_ubigeo) {
+      setMapZona(restoreMapZona);
+      setMapLevel(restoreMapLevel);
+      if (shouldRestoreLocalMap && uiState.map_ubigeo) {
         setZoneMapLoading(true);
         void apiHojasRutaZoneMap(uiState.map_ubigeo)
           .then((nextZone) => {
@@ -5108,7 +6096,7 @@ export default function HojasRutaPage() {
           })
           .catch(() => undefined)
           .finally(() => setZoneMapLoading(false));
-        if (uiState.map_level === "manzanas") {
+        if (restoreMapLevel === "manzanas") {
           setBlockMapLoading(true);
           void Promise.all([
             apiHojasRutaBlockMap(uiState.map_ubigeo, 0, false),
@@ -5160,6 +6148,24 @@ export default function HojasRutaPage() {
     map_selection_mode: mapSelectionMode,
     route_history: routeHistory,
   }), [activeStage, draftTerritories, mapLevel, mapUbigeo, mapZona, mapSelectionMode, routeHistory]);
+  const hojasRutaWorkspaceOutputs = useMemo<HojasRutaWorkspaceOutputs>(() => ({
+    population,
+    sample_size_preview: sampleSizePreview,
+    quota,
+    sample,
+  }), [population, quota, sample, sampleSizePreview]);
+
+  useEffect(() => {
+    const previousStage = previousActiveStageRef.current;
+    previousActiveStageRef.current = activeStage;
+    if (activeStage !== "manzanas" || previousStage === "manzanas") return;
+    setMapLevel("distritos");
+    setMapZona("");
+    setBlockMap(null);
+    setContextMap(null);
+    setStreetMap(null);
+  }, [activeStage]);
+
   const quotaColumns = useMemo(() => Object.keys(quota?.table?.[0] ?? {}), [quota]);
   const effectiveQuotaN = config?.sample_size_mode === "external_district"
     ? Object.values(config.n_por_distrito ?? {}).reduce((sum, n) => sum + Number(n || 0), 0)
@@ -5185,7 +6191,7 @@ export default function HojasRutaPage() {
   const selectedBlockAvgLoad = selectedBlocks.length
     ? (selectedBlocks.reduce((sum, block) => sum + Number(block.entrevistas || 0), 0) / selectedBlocks.length).toFixed(1)
     : "0.0";
-  const replacementsPerTitular = Number(config?.replacements_per_titular ?? 1);
+  const replacementsPerTitular = Math.min(10, Math.max(0, Math.round(Number(config?.replacements_per_titular ?? 1))));
   const routeStartCorner = normalizeRouteStartCorner(config?.route_start_corner);
   const routeJumpMode = normalizeRouteJumpMode(config?.route_jump_mode);
   const routeJumpManual = normalizeRouteJumpManual(config?.route_jump_manual);
@@ -5195,19 +6201,19 @@ export default function HojasRutaPage() {
 
   useEffect(() => {
     if (!config || hydratingRef.current) return undefined;
-    latestWorkspaceRef.current = { config, uiState: hojasRutaUiState };
-    setHojasRutaWorkspaceSnapshot(config, hojasRutaUiState);
+    latestWorkspaceRef.current = { config, uiState: hojasRutaUiState, outputs: hojasRutaWorkspaceOutputs };
+    setHojasRutaWorkspaceSnapshot(config, hojasRutaUiState, hojasRutaWorkspaceOutputs);
 
     const timer = window.setTimeout(() => {
       if (persistTimerRef.current === timer) persistTimerRef.current = null;
-      void apiHojasRutaPersistWorkspace(config, hojasRutaUiState).catch(() => undefined);
+      void apiHojasRutaPersistWorkspace(config, hojasRutaUiState, hojasRutaWorkspaceOutputs).catch(() => undefined);
     }, 600);
     persistTimerRef.current = timer;
     return () => {
       window.clearTimeout(timer);
       if (persistTimerRef.current === timer) persistTimerRef.current = null;
     };
-  }, [config, hojasRutaUiState]);
+  }, [config, hojasRutaUiState, hojasRutaWorkspaceOutputs]);
 
   useEffect(() => {
     return () => {
@@ -5217,7 +6223,7 @@ export default function HojasRutaPage() {
       }
       const latest = latestWorkspaceRef.current;
       if (latest) {
-        void apiHojasRutaPersistWorkspace(latest.config, latest.uiState).catch(() => undefined);
+        void apiHojasRutaPersistWorkspace(latest.config, latest.uiState, latest.outputs).catch(() => undefined);
       }
       clearHojasRutaWorkspaceSnapshot();
     };
@@ -5287,11 +6293,25 @@ export default function HojasRutaPage() {
     void loadZoneMap(ubigeo);
   }
 
+  function focusSamplingDistrict(ubigeo: string) {
+    if (!selectedTerritories.includes(ubigeo)) return;
+    focusDistrict(ubigeo);
+  }
+
   function openZone(zona: string) {
     const ubigeo = mapUbigeo;
     if (!ubigeo || !zona) return;
     setMapZona(zona);
     setMapLevel("manzanas");
+    void loadBlockMap(ubigeo);
+  }
+
+  function inspectSamplingZone(zona: string) {
+    const ubigeo = mapUbigeo;
+    if (!ubigeo || !zona) return;
+    setMapZona(zona);
+    setMapLevel("manzanas");
+    if (!zoneMap || zoneMap.ubigeo !== ubigeo) void loadZoneMap(ubigeo);
     void loadBlockMap(ubigeo);
   }
 
@@ -5350,7 +6370,7 @@ export default function HojasRutaPage() {
       setResult(null);
       setRandomPdf(null);
       try {
-        const saved = await apiHojasRutaPersistWorkspace(nextConfig, hojasRutaUiState);
+        const saved = await apiHojasRutaPersistWorkspace(nextConfig, hojasRutaUiState, hojasRutaWorkspaceOutputs);
         const confirmedConfig = {
           ...saved.integrated_config,
           age_range_scope: saved.integrated_config.age_range_scope ?? scope,
@@ -5439,7 +6459,7 @@ export default function HojasRutaPage() {
       setError("");
       try {
         const result = await apiHojasRutaSampleSizePreview(config);
-        setConfig(result.config);
+        setConfig(mergeReturnedHojasRutaConfig(config, result.config));
         setSampleSizePreview(result);
       } catch (e) {
       setError((e as Error).message);
@@ -5455,7 +6475,7 @@ export default function HojasRutaPage() {
     setResult(null);
     try {
       const q = await apiHojasRutaQuotaPreview(config);
-      setConfig(q.config);
+      setConfig(mergeReturnedHojasRutaConfig(config, q.config));
       setQuota(q);
       if (!population) {
         setPopulation({
@@ -5485,7 +6505,7 @@ export default function HojasRutaPage() {
     setResult(null);
     try {
       const s = await apiHojasRutaSamplePreview(config);
-      setConfig(s.config);
+      setConfig(mergeReturnedHojasRutaConfig(config, s.config));
       setQuota(s.quota);
       if (!population) {
         setPopulation({
@@ -5512,7 +6532,7 @@ export default function HojasRutaPage() {
         setMapZona(firstBlock.zona ?? "");
         setMapLevel(firstBlock.zona ? "manzanas" : "zonas");
         void loadZoneMap(firstBlock.ubigeo);
-        void loadBlockMap(firstBlock.ubigeo);
+        if (firstBlock.zona) void loadBlockMap(firstBlock.ubigeo);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -5580,29 +6600,26 @@ export default function HojasRutaPage() {
     setBlockMapLoading(true);
     setError("");
     try {
-      const [nextBlock, nextContext, nextStreet] = await Promise.all([
-        apiHojasRutaBlockMap(ubigeo, 0, refresh),
-        apiHojasRutaContextMap(ubigeo).catch(() => null),
-        apiHojasRutaStreetMap(ubigeo).catch(() => null),
-      ]);
+      const nextBlock = await apiHojasRutaBlockMap(ubigeo, 0, refresh);
       blockMapCacheRef.current.set(ubigeo, nextBlock);
       setBlockMap(nextBlock);
-      if (nextContext) {
-        contextMapCacheRef.current.set(contextMapCacheKey(ubigeo), nextContext);
-        setContextMap(nextContext);
-      } else {
-        setContextMap(null);
-      }
-      if (nextStreet) {
-        streetMapCacheRef.current.set(streetMapCacheKey(ubigeo), nextStreet);
-        setStreetMap(nextStreet);
-      } else {
-        setStreetMap(null);
-      }
       setMapUbigeo(ubigeo);
+      setBlockMapLoading(false);
+
+      void apiHojasRutaContextMap(ubigeo)
+        .then((nextContext) => {
+          contextMapCacheRef.current.set(contextMapCacheKey(ubigeo), nextContext);
+          setContextMap(nextContext);
+        })
+        .catch(() => setContextMap(null));
+      void apiHojasRutaStreetMap(ubigeo)
+        .then((nextStreet) => {
+          streetMapCacheRef.current.set(streetMapCacheKey(ubigeo), nextStreet);
+          setStreetMap(nextStreet);
+        })
+        .catch(() => setStreetMap(null));
     } catch (e) {
       setError((e as Error).message);
-    } finally {
       setBlockMapLoading(false);
     }
   }
@@ -5644,13 +6661,13 @@ export default function HojasRutaPage() {
     setAgeDraftMode(restoredConfig.age_range_mode ?? "manual");
     setAgeDraftScope(restoredConfig.age_range_scope ?? "selected");
     setActiveStage("manzanas");
-    const firstBlock = snapshot.sample.blocks[0] ?? snapshot.sample.replacement_blocks?.[0];
+    const firstBlock = (snapshot.sample.blocks ?? [])[0] ?? snapshot.sample.replacement_blocks?.[0];
     if (firstBlock?.ubigeo) {
       setMapUbigeo(firstBlock.ubigeo);
       setMapZona(firstBlock.zona ?? "");
       setMapLevel(firstBlock.zona ? "manzanas" : "zonas");
       void loadZoneMap(firstBlock.ubigeo);
-      void loadBlockMap(firstBlock.ubigeo);
+      if (firstBlock.zona) void loadBlockMap(firstBlock.ubigeo);
     }
   }
 
@@ -5733,7 +6750,7 @@ export default function HojasRutaPage() {
     setError("");
     try {
       const result = await apiHojasRutaSampleSizePreview(nextConfig);
-      setConfig(result.config);
+      setConfig(mergeReturnedHojasRutaConfig(nextConfig, result.config));
       setSampleSizePreview(result);
     } catch (e) {
       setError((e as Error).message);
@@ -5802,7 +6819,13 @@ export default function HojasRutaPage() {
     patchConfig({ sample_size_mode: "external_district", n_mode: "por_distrito", n_por_distrito: next, n_objetivo: Math.max(1, total || config.n_objetivo) });
   }
 
-  if (loading || !config) return <LoadingBlock label="Cargando marco INEI 2017" />;
+  if (loading || !config) {
+    return (
+      <div className="hojas-ruta-module-loading">
+        <LoadingBlock label="Cargando generador de hojas de ruta" />
+      </div>
+    );
+  }
 
   const frame = state?.frame_meta;
   const territories = state?.territories ?? [];
@@ -5810,6 +6833,18 @@ export default function HojasRutaPage() {
   const selectedTerritoryRows = territories.filter((t) => selectedTerritories.includes(t.ubigeo));
   const selectedPopulation = selectedTerritoryRows.reduce((sum, t) => sum + Number(t.poblacion || 0), 0);
   const selectedManzanas = selectedTerritoryRows.reduce((sum, t) => sum + Number(t.manzanas || 0), 0);
+  const routeSizeForUi = Math.max(1, Math.round(Number(config.entrevistas_por_manzana || 1)));
+  const avgHomesPerBlock = selectedBlocks.length
+    ? selectedBlockViviendas / selectedBlocks.length
+    : selectedManzanas > 0
+      ? selectedTerritoryRows.reduce((sum, t) => sum + Number(t.viviendas || 0), 0) / selectedManzanas
+      : 0;
+  const jumpRawPreview = avgHomesPerBlock > 0 ? avgHomesPerBlock / routeSizeForUi : 0;
+  const jumpOperationalPreview = Math.max(1, Math.floor(jumpRawPreview || 1));
+  const jumpPreviewSource = selectedBlocks.length
+    ? "promedio de titulares generados"
+    : "promedio de manzanas en distritos confirmados";
+  const sampleListRows = sampleListTab === "reemplazos" ? replacementBlocks : (sample?.blocks ?? []);
   const stageSteps: StepMeta<HojasRutaStage>[] = [
     {
       key: "territorio",
@@ -5860,7 +6895,9 @@ export default function HojasRutaPage() {
       disabledReason: "Selecciona primero las manzanas.",
     },
   ];
-  const currentStage = stageSteps.some((step) => step.key === activeStage && !step.disabled) ? activeStage : "territorio";
+  const currentStage = stageSteps.some((step) => step.key === activeStage && !step.disabled)
+    ? activeStage
+    : [...stageSteps].reverse().find((step) => !step.disabled)?.key ?? "territorio";
   const quotaAlerts = [...(quota?.alerts ?? []), ...(sample?.alerts ?? [])]
     .filter((a, i, arr) => arr.findIndex((x) => x.code === a.code && x.message === a.message) === i);
   const stageGuide = {
@@ -5894,7 +6931,7 @@ export default function HojasRutaPage() {
   return (
     <PageFrame
       className="hojas-ruta-frame"
-      bodyMode={currentStage === "territorio" ? "fill" : "scroll"}
+      bodyMode={currentStage === "territorio" || currentStage === "manzanas" ? "fill" : "scroll"}
       title="Hojas de ruta"
       lead="Cuotas, manzanas y fichas de campo desde un marco territorial trazable."
       resetScrollKey={currentStage}
@@ -5964,12 +7001,14 @@ export default function HojasRutaPage() {
                     activeUbigeo={activeMapUbigeo}
                     activeZona={mapZona}
                     mapLevel={mapLevel}
+                    frame={frame}
                     zoneMap={zoneMap}
                     blockMap={blockMap}
                     contextMap={contextMap}
                     streetMap={streetMap}
                     zoneMapLoading={zoneMapLoading}
                     blockMapLoading={blockMapLoading}
+                    layerMode={blockLayerMode}
                     selectedBlocks={selectedBlocks}
                     replacementBlocks={replacementBlocks}
                     mapSelectionMode={mapSelectionMode}
@@ -5977,6 +7016,7 @@ export default function HojasRutaPage() {
                     onOpenZone={openZone}
                     onToggleDraft={toggleDraftTerritory}
                     onMapSelectionModeChange={setMapSelectionMode}
+                    onLayerModeChange={setBlockLayerMode}
                     onBackToZones={backToZones}
                     onBackToDistricts={backToDistrictMap}
                   />
@@ -6028,7 +7068,7 @@ export default function HojasRutaPage() {
                     confirmed={selectedTerritories}
                     activeUbigeo={activeMapUbigeo}
                     onToggleDraft={toggleDraftTerritory}
-                    onFocus={focusDistrict}
+                    onFocus={focusSamplingDistrict}
                     onSelectMany={setDraftTerritoryList}
                     onClearDraft={() => setDraftTerritories([])}
                   />
@@ -6265,95 +7305,116 @@ export default function HojasRutaPage() {
             <section className="hojas-ruta-sampling-layout">
               <div className="hojas-ruta-map-column">
                 <div className="hojas-ruta-map-holder">
-                  <TerritoryMapExplorer
+                  <SamplingMapExplorer
                     territories={territories}
                     selected={selectedTerritories}
-                    draft={draftTerritories}
                     activeUbigeo={activeMapUbigeo}
                     activeZona={mapZona}
                     mapLevel={mapLevel}
+                    frame={frame}
                     zoneMap={zoneMap}
                     blockMap={blockMap}
                     contextMap={contextMap}
                     streetMap={streetMap}
                     zoneMapLoading={zoneMapLoading}
                     blockMapLoading={blockMapLoading}
+                    layerMode={blockLayerMode}
+                    inspectorCollapsed={samplingInspectorCollapsed}
                     selectedBlocks={selectedBlocks}
                     replacementBlocks={replacementBlocks}
-                    mapSelectionMode={false}
-                    enableMapSelection={false}
                     onFocus={focusDistrict}
-                    onOpenZone={openZone}
-                    onToggleDraft={toggleDraftTerritory}
-                    onMapSelectionModeChange={setMapSelectionMode}
+                    onOpenZone={inspectSamplingZone}
                     onBackToZones={backToZones}
                     onBackToDistricts={backToDistrictMap}
+                    onLayerModeChange={setBlockLayerMode}
+                    onToggleInspector={() => setSamplingInspectorCollapsed((value) => !value)}
                   />
                 </div>
               </div>
               <div className="hojas-ruta-sampling-panel">
-                <Panel title="Selecciona manzanas" eyebrow="Plan de campo">
+                <Panel title="Genera la selección de manzanas" eyebrow="Paso 4 · titulares y reemplazos">
                   <div className="hojas-ruta-sampling-controls">
-                    <div className="hojas-ruta-form-grid is-tight">
-                      <Field label="Método de selección">
-                        <select style={fieldStyle} value={config.sampling_method} onChange={(e) => patchConfig({ sampling_method: e.target.value as SamplingMethod })}>
-                          <option value="pps">PPS estratificado</option>
-                          <option value="sistematico">Sistemático</option>
-                          <option value="conglomerado_fijo">Conglomerado fijo</option>
-                        </select>
-                      </Field>
-                      <Field label="Tamaño del conglomerado">
-                        <select
-                          style={fieldStyle}
-                          value={config.measure_var}
-                          onChange={(e) => patchConfig({ measure_var: e.target.value as HojasRutaIntegratedConfig["measure_var"] })}
-                          title={config.measure_var === "viviendas"
-                            ? "Cada manzana pesa por su número de viviendas (estándar en encuestas de hogar)."
-                            : "Cada manzana pesa por su población (úsalo solo si el muestreo es por persona dentro de la manzana)."}
-                        >
-                          <option value="viviendas">Viviendas (recomendado)</option>
-                          <option value="poblacion">Población</option>
-                        </select>
-                      </Field>
-                      <Field label="Encuestas por ruta">
-                        <input
-                          style={fieldStyle}
-                          type="number"
-                          min={1}
-                          value={config.entrevistas_por_manzana}
-                          onChange={(e) => {
-                            const v = Math.max(1, Number(e.target.value || 1));
-                            patchConfig({ entrevistas_por_manzana: v, max_per_manzana: v });
-                          }}
-                        />
-                      </Field>
-                      <Field label="Semilla reproducible">
-                        <input style={fieldStyle} type="number" value={config.seed} onChange={(e) => patchConfig({ seed: Number(e.target.value || 2017) })} />
-                      </Field>
-                    </div>
-                    <p className="hojas-ruta-soft-text" style={{ margin: 0 }}>
-                      <strong>Tamaño del conglomerado:</strong>{" "}
-                      {config.measure_var === "viviendas"
-                        ? `las rutas se dispersan por zona y las manzanas se ponderan por viviendas; cada ruta tendrá ${formatNumber(config.entrevistas_por_manzana)} encuestas.`
-                        : `las rutas se dispersan por zona y las manzanas se ponderan por población; cada ruta tendrá ${formatNumber(config.entrevistas_por_manzana)} encuestas.`}
-                    </p>
-                    <div className="hojas-ruta-route-panel">
+                    <section className="hojas-ruta-sampling-step is-method">
                       <div className="hojas-ruta-section-title">
-                        <strong>Ficha PDF de campo</strong>
-                        <span>Define la esquina/coordenada inicial y la constante de salto por casa o domicilio.</span>
+                        <strong>1. Método de selección</strong>
+                        <span>Elige el criterio con el que se sortean titulares; el gráfico activo es el método que se usará.</span>
                       </div>
-                      <div className="hojas-ruta-route-controls">
-                        <Field label="Esquina / coordenada de inicio">
+                      <SamplingMethodExplainer value={config.sampling_method} onChange={(sampling_method) => patchConfig({ sampling_method })} />
+                    </section>
+
+                    <section className="hojas-ruta-sampling-step is-route-load">
+                      <div className="hojas-ruta-section-title">
+                        <strong>2. Carga de ruta</strong>
+                        <span>Define el peso de las manzanas, la carga por hoja y la semilla reproducible.</span>
+                      </div>
+                      <div className="hojas-ruta-route-load-grid">
+                        <Field label="Ponderar manzanas por">
                           <select
                             style={fieldStyle}
-                            value={routeStartCorner}
-                            onChange={(e) => patchConfig({ route_start_corner: e.target.value as HojasRutaRouteStartCorner })}
+                            value={config.measure_var}
+                            onChange={(e) => patchConfig({ measure_var: e.target.value as HojasRutaIntegratedConfig["measure_var"] })}
+                            title={config.measure_var === "viviendas"
+                              ? "Cada manzana pesa por su número de viviendas (estándar en encuestas de hogar)."
+                              : "Cada manzana pesa por su población (úsalo solo si el muestreo es por persona dentro de la manzana)."}
                           >
-                            {routeStartCornerOptions.map((option) => (
-                              <option key={option.key} value={option.key}>{option.label}</option>
-                            ))}
+                            <option value="viviendas">Viviendas (recomendado)</option>
+                            <option value="poblacion">Población</option>
                           </select>
                         </Field>
+                        <Field label="Encuestas por ruta">
+                          <NumericInput
+                            style={fieldStyle}
+                            min={1}
+                            step={1}
+                            integer
+                            value={config.entrevistas_por_manzana}
+                            fallback={config.entrevistas_por_manzana || 1}
+                            onValueChange={setRouteSize}
+                          />
+                        </Field>
+                        <Field label="Semilla reproducible">
+                          <NumericInput
+                            style={fieldStyle}
+                            min={0}
+                            step={1}
+                            integer
+                            value={config.seed}
+                            fallback={2017}
+                            onValueChange={(seed) => patchConfig({ seed })}
+                          />
+                        </Field>
+                      </div>
+                      <p className="hojas-ruta-route-criterion">
+                        <strong>Criterio operativo:</strong>{" "}
+                        {config.measure_var === "viviendas"
+                          ? `las rutas se dispersan por zona y las manzanas se ponderan por viviendas; cada ruta tendrá ${formatNumber(config.entrevistas_por_manzana)} encuestas.`
+                          : `las rutas se dispersan por zona y las manzanas se ponderan por población; cada ruta tendrá ${formatNumber(config.entrevistas_por_manzana)} encuestas.`}
+                      </p>
+                    </section>
+
+                    <section className="hojas-ruta-route-panel">
+                      <div className="hojas-ruta-section-title">
+                        <strong>3. Recorrido PDF de campo</strong>
+                        <span>Define la esquina/coordenada inicial y la constante de salto por casa o domicilio.</span>
+                      </div>
+                      <div className="hojas-ruta-pdf-controls">
+                        <div className="hojas-ruta-segmented-field">
+                          <span>Esquina inicial</span>
+                          <div className="hojas-ruta-segmented" role="radiogroup" aria-label="Esquina inicial">
+                            {routeStartCornerOptions.map((option) => (
+                              <button
+                                key={option.key}
+                                type="button"
+                                role="radio"
+                                aria-checked={routeStartCorner === option.key}
+                                className={routeStartCorner === option.key ? "is-active" : ""}
+                                onClick={() => patchConfig({ route_start_corner: option.key })}
+                              >
+                                {option.label === "Automática" ? "Auto" : option.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                         <div className="hojas-ruta-route-jump-group">
                           <span>Constante de salto</span>
                           <div className="hojas-ruta-route-jump-options" role="radiogroup" aria-label="Constante de salto">
@@ -6373,76 +7434,87 @@ export default function HojasRutaPage() {
                           </div>
                         </div>
                         <Field label="Salto manual">
-                          <input
+                          <NumericInput
                             style={fieldStyle}
-                            type="number"
                             min={1}
                             step={1}
+                            integer
                             value={routeJumpManual}
                             disabled={routeJumpMode !== "manual"}
-                            onChange={(e) => {
-                              const value = normalizeRouteJumpManual(e.target.value);
-                              patchConfig({ route_jump_manual: value, route_jump_mode: "manual" });
-                            }}
+                            fallback={routeJumpManual || 1}
+                            onValueChange={(value) => patchConfig({ route_jump_manual: normalizeRouteJumpManual(value), route_jump_mode: "manual" })}
                           />
                         </Field>
                       </div>
-                    </div>
-                    <div className="hojas-ruta-replacement-panel">
+                      <div className="hojas-ruta-jump-formula">
+                        <span>Regla automática</span>
+                        <strong>K = viviendas / entrevistas de la ruta</strong>
+                        <small>
+                          Valor operativo PDF: floor(K) = {formatNumber(jumpOperationalPreview)} ({formatDecimal(jumpRawPreview, 1)} según {jumpPreviewSource}).
+                        </small>
+                      </div>
+                    </section>
+
+                    <section className="hojas-ruta-replacement-panel">
                       <div className="hojas-ruta-section-title">
-                        <strong>Manzanas de reemplazo</strong>
-                        <span>Se generan pareadas por titular, dentro de la misma zona seleccionada.</span>
+                        <strong>4. Manzanas de reemplazo</strong>
+                        <span>Pueden desactivarse con 0 o generarse pareadas por titular dentro de la misma zona.</span>
                       </div>
                       <div className="hojas-ruta-replacement-toolbar">
-                        <label>
-                          <span>Reemplazos por titular</span>
+                        <div className="hojas-ruta-replacement-slider">
+                          <label htmlFor="hojas-ruta-replacements">Reemplazos por titular</label>
+                          <div className="hojas-ruta-replacement-value">
+                            <strong>{formatNumber(replacementsPerTitular)}</strong>
+                            <span>{replacementsPerTitular === 0 ? "Sin reemplazos" : replacementsPerTitular === 1 ? "1 por titular" : "por titular"}</span>
+                          </div>
                           <input
-                            type="number"
-                            min={1}
+                            id="hojas-ruta-replacements"
+                            type="range"
+                            min={0}
+                            max={10}
                             step={1}
                             value={replacementsPerTitular}
-                            onChange={(e) => {
-                              const value = Math.max(1, Math.round(Number(e.target.value || 1)));
-                              patchConfig({ replacements_per_titular: value });
-                            }}
+                            onChange={(event) => patchConfig({ replacements_per_titular: Number(event.target.value) })}
+                            aria-label="Reemplazos por titular"
                           />
-                        </label>
+                          <div className="hojas-ruta-replacement-ticks" aria-hidden="true">
+                            {[0, 1, 2, 5, 10].map((tick) => <span key={tick}>{tick}</span>)}
+                          </div>
+                        </div>
                         <div className="hojas-ruta-replacement-status">
                           <StatusPill ok text="Misma zona obligatoria" />
-                          <StatusPill ok={replacementRouteTotal > 0} text={`${formatNumber(replacementRouteTotal)} reemplazo(s) previstos`} />
+                          <StatusPill
+                            ok={replacementsPerTitular === 0 || replacementRouteTotal > 0}
+                            text={replacementsPerTitular === 0
+                              ? "Sin reemplazos"
+                              : `${formatNumber(replacementRouteTotal)} reemplazo(s) previstos`}
+                          />
                         </div>
                       </div>
                       <div className="hojas-ruta-replacement-grid">
                         {selectedTerritoryRows.map((t) => (
                           <label key={t.ubigeo}>
                             <span>{t.distrito}</span>
-                            <strong>{formatNumber(replacementsPerTitular)} por titular</strong>
+                            <strong>{replacementsPerTitular === 0 ? "Sin reemplazos" : `${formatNumber(replacementsPerTitular)} por titular`}</strong>
                           </label>
                         ))}
                       </div>
-                    </div>
-                    <details className="hojas-ruta-method-details">
-                      <summary><strong>Cómo funciona el método elegido</strong></summary>
-                      <SamplingMethodExplainer value={config.sampling_method} onChange={(sampling_method) => patchConfig({ sampling_method })} />
-                    </details>
+                    </section>
                   </div>
-                  <div className="hojas-ruta-action-row">
+                  <div className="hojas-ruta-action-row hojas-ruta-sampling-runbar">
                     <button type="button" style={btnPrimary} onClick={() => void previewSample()} disabled={!canSample || busy === "sample"}>
                       {busy === "sample" ? <Loader2 size={14} className="pulso-spin" /> : <Shuffle size={14} />}
-                      Seleccionar manzanas
+                      Generar selección de manzanas
                     </button>
-                    <span className="hojas-ruta-soft-text">{methodLabel(config.sampling_method)} · {formatNumber(effectiveQuotaN)} entrevistas objetivo</span>
+                    <span className="hojas-ruta-soft-text">
+                      {methodLabel(config.sampling_method)} · N {formatNumber(effectiveQuotaN)} · {formatNumber(routeSizeForUi)} encuestas/ruta · {replacementsPerTitular === 0 ? "sin reemplazos" : `${formatNumber(replacementsPerTitular)} reemplazo(s) por titular`}
+                    </span>
                   </div>
                 </Panel>
                 {sample && (
                   <Panel
                     title="Manzanas seleccionadas"
                     eyebrow={`${formatNumber(sample.n_blocks)} de campo`}
-                    actions={(
-                      <button type="button" style={btnSecondary} onClick={() => setActiveStage("entrega")}>
-                        Revisar entrega
-                      </button>
-                    )}
                   >
                     <div className="hojas-ruta-sampling-mini-summary">
                       <MiniMetric label="Entrevistas" value={formatNumber(sample.total_entrevistas)} />
@@ -6450,50 +7522,54 @@ export default function HojasRutaPage() {
                       <MiniMetric label="Carga media" value={selectedBlockAvgLoad} />
                       <MiniMetric label="Reemplazos" value={formatNumber(sample.n_replacement_blocks ?? 0)} />
                     </div>
-                    <div className="hojas-ruta-block-list">
-                      {sample.blocks.slice(0, 8).map((b) => (
-                        <div key={b.id_manzana} className="hojas-ruta-block-list-row">
-                          <div className="hojas-ruta-block-list-info">
-                            <strong>{b.distrito}</strong>
-                            <span>Zona {b.zona} · ID {b.id_manzana}</span>
-                          </div>
-                          <div className="hojas-ruta-block-list-meta">
-                            <em>{formatNumber(b.entrevistas)}</em>
-                            <small>encuestas</small>
-                          </div>
-                        </div>
-                      ))}
-                      {sample.blocks.length > 8 ? (
-                        <div className="hojas-ruta-block-list-more">
-                          <span>+ {formatNumber(sample.blocks.length - 8)} más en la entrega</span>
-                        </div>
-                      ) : null}
+                    <div className="hojas-ruta-sample-tabs" role="tablist" aria-label="Lista de manzanas seleccionadas">
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={sampleListTab === "titulares"}
+                        className={sampleListTab === "titulares" ? "is-active" : ""}
+                        onClick={() => setSampleListTab("titulares")}
+                      >
+                        Titulares <span>{formatNumber(selectedBlocks.length)}</span>
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={sampleListTab === "reemplazos"}
+                        className={sampleListTab === "reemplazos" ? "is-active" : ""}
+                        onClick={() => setSampleListTab("reemplazos")}
+                      >
+                        Reemplazos <span>{formatNumber(replacementBlocks.length)}</span>
+                      </button>
                     </div>
-                    {replacementBlocks.length ? (
-                      <div className="hojas-ruta-block-list is-replacement">
-                        <div className="hojas-ruta-section-title">
-                          <strong>Reemplazos</strong>
-                          <span>Se guardan y saldrán en carpeta separada dentro del ZIP.</span>
-                        </div>
-                        {replacementBlocks.slice(0, 6).map((b) => (
-                          <div key={`r:${b.id_manzana}`} className="hojas-ruta-block-list-row">
+                    {sampleListRows.length ? (
+                      <div className={`hojas-ruta-block-list is-scroll${sampleListTab === "reemplazos" ? " is-replacement" : ""}`}>
+                        {sampleListRows.map((b) => (
+                          <div key={`${sampleListTab}:${b.id_manzana}`} className="hojas-ruta-block-list-row">
                             <div className="hojas-ruta-block-list-info">
                               <strong>{b.distrito}</strong>
                               <span>Zona {b.zona} · ID {b.id_manzana}</span>
                             </div>
                             <div className="hojas-ruta-block-list-meta">
                               <em>{formatNumber(b.entrevistas)}</em>
-                              <small>respaldo</small>
+                              <small>{sampleListTab === "reemplazos" ? "respaldo" : "encuestas"}</small>
                             </div>
                           </div>
                         ))}
-                        {replacementBlocks.length > 6 ? (
-                          <div className="hojas-ruta-block-list-more">
-                            <span>+ {formatNumber(replacementBlocks.length - 6)} reemplazos más</span>
-                          </div>
-                        ) : null}
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="hojas-ruta-block-list-empty">
+                        {sampleListTab === "reemplazos"
+                          ? "Esta corrida no tiene manzanas de reemplazo."
+                          : "No hay manzanas titulares en esta corrida."}
+                      </div>
+                    )}
+                    <div className="hojas-ruta-action-row hojas-ruta-sample-next">
+                      <button type="button" style={btnPrimary} onClick={() => setActiveStage("entrega")}>
+                        Revisar entrega
+                      </button>
+                      <span className="hojas-ruta-soft-text">El ZIP final separará Titulares, Reemplazos y Zonas.</span>
+                    </div>
                   </Panel>
                 )}
                 {routeHistory.length ? (
@@ -6600,7 +7676,7 @@ export default function HojasRutaPage() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {sample.blocks.slice(0, 40).map((b) => (
+                                {selectedBlocks.slice(0, 40).map((b) => (
                                   <tr key={b.id_manzana}>
                                     <td className="is-strong">{b.distrito}</td>
                                     <td className="is-code">{b.id_manzana}</td>
@@ -6675,7 +7751,7 @@ export default function HojasRutaPage() {
                       </div>
                       <div>
                         <FileText size={17} />
-                        <span>PDF de reemplazos pareados por zona</span>
+                        <span>{sample && (sample.n_replacement_blocks ?? 0) === 0 ? "Sin PDFs de reemplazo cuando el respaldo está en 0" : "PDF de reemplazos pareados por zona"}</span>
                       </div>
                       <div>
                         <Layers size={17} />

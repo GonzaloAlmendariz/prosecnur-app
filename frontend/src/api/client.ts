@@ -1498,6 +1498,7 @@ export type HojasRutaZoneAllocation = "proportional";
 export type HojasRutaRandomPreference = "balanced" | "population" | "urban";
 export type HojasRutaRouteStartCorner = "auto" | "1" | "2" | "3" | "4";
 export type HojasRutaRouteJumpMode = "auto" | "off" | "manual";
+export type HojasRutaFrameSource = "current" | "inei2017_official";
 
 export type AllocationMode = "proportional" | "uniform" | "compromise";
 
@@ -1516,6 +1517,7 @@ export type HojasRutaSampleSizeConfig = {
 };
 
 export type HojasRutaIntegratedConfig = {
+  frame_source: HojasRutaFrameSource;
   n_objetivo: number;
   n_mode: "total" | "por_distrito";
   n_por_distrito: Record<string, number>;
@@ -1557,6 +1559,7 @@ export type HojasRutaUiState = {
 
 export type TerritorialFrameMeta = {
   ok: boolean;
+  active_source?: HojasRutaFrameSource;
   source: string;
   year: number;
   version: string;
@@ -1572,7 +1575,37 @@ export type TerritorialFrameMeta = {
   n_manzanas: number;
   viviendas: number;
   poblacion: number;
+  current?: Partial<TerritorialFrameMeta>;
+  official?: Partial<TerritorialFrameMeta> & { available?: boolean };
+  frame?: {
+    current?: Partial<TerritorialFrameMeta>;
+    official?: Partial<TerritorialFrameMeta> & { available?: boolean };
+    active_source?: HojasRutaFrameSource;
+  };
   age_data?: TerritorialAgeSimpleMeta;
+  zone_cartography?: {
+    ok: boolean;
+    available: boolean;
+    source: string;
+    year: number;
+    version: string;
+    coverage: string;
+    districts: number;
+    zones: number;
+    packaged_districts?: number;
+    packaged_zones?: number;
+    note?: string;
+  };
+  audit?: {
+    ok: boolean;
+    available: boolean;
+    summary_path?: string;
+    audit_path?: string;
+    rows?: number;
+    status_counts?: Record<string, number>;
+    major_differences?: unknown[];
+    message?: string;
+  };
   block_cartography?: TerritorialBlockCartographyMeta;
   street_cartography?: StreetCartographyMeta;
   context_cartography?: ContextCartographyMeta;
@@ -1581,6 +1614,12 @@ export type TerritorialFrameMeta = {
     available: boolean;
     source?: string;
     message?: string;
+    coverage?: string;
+    matched_blocks?: number;
+    input_points?: number;
+    coverage_rate?: number;
+    levels?: string[];
+    callao_available?: boolean;
   };
   note: string;
   methods: { id: SamplingMethod; label: string; description: string }[];
@@ -1888,8 +1927,11 @@ export type SelectedBlock = {
   vivienda_inicio?: number;
   domicilio_inicio?: number;
   constante_salto?: number;
+  constante_salto_raw?: number;
+  constante_salto_formula?: string;
   constante_salto_unidad?: string;
   constante_salto_modo?: HojasRutaRouteJumpMode | string;
+  salto_operativo?: number;
   modo_seleccion_vivienda?: string;
 };
 
@@ -1908,6 +1950,13 @@ export type HojasRutaSamplePreview = {
   total_replacement_interviews: number;
   unassigned: number;
   alerts: HojasRutaAlert[];
+};
+
+export type HojasRutaWorkspaceOutputs = {
+  population?: PopulationPlan | null;
+  sample_size_preview?: HojasRutaSampleSizePreview | null;
+  quota?: QuotaPlan | null;
+  sample?: HojasRutaSamplePreview | null;
 };
 
 export type HojasRutaRouteDistrictSummary = {
@@ -1964,6 +2013,10 @@ export type HojasRutaBlockMapFeature = {
     inei_pob_mujeres?: number;
     inei_pob_18_plus?: number;
     inei_age_breakdown?: Record<string, number>;
+    nse_codigo?: number | string | null;
+    nse_nivel?: string | null;
+    nse_match_method?: string | null;
+    nse_distance_m?: number | null;
   };
 };
 
@@ -2064,6 +2117,7 @@ export type HojasRutaState = {
   config: HojasRutaConfig;
   integrated_config: HojasRutaIntegratedConfig;
   ui_state: HojasRutaUiState;
+  workspace_outputs?: HojasRutaWorkspaceOutputs;
   frame_meta: TerritorialFrameMeta;
   territories: HojasRutaTerritory[];
   campos: HojasRutaCampos | null;
@@ -2122,12 +2176,13 @@ export async function apiHojasRutaState() {
 export async function apiHojasRutaPersistWorkspace(
   config: Partial<HojasRutaIntegratedConfig>,
   uiState: Partial<HojasRutaUiState>,
+  outputs?: Partial<HojasRutaWorkspaceOutputs>,
 ) {
-  return handle<{ ok: true; integrated_config: HojasRutaIntegratedConfig; ui_state: HojasRutaUiState }>(
+  return handle<{ ok: true; integrated_config: HojasRutaIntegratedConfig; ui_state: HojasRutaUiState; workspace_outputs?: HojasRutaWorkspaceOutputs }>(
     await apiFetch("/api/hojas-ruta/workspace", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ config, ui_state: uiState }),
+      body: JSON.stringify({ config, ui_state: uiState, workspace_outputs: outputs ?? {} }),
     }),
   );
 }

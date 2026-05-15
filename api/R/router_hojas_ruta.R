@@ -83,12 +83,41 @@
   )
 }
 
+.hojas_ruta_workspace_outputs_normalize <- function(outputs = list()) {
+  if (is.null(outputs) || !is.list(outputs)) outputs <- list()
+  out <- list(
+    population = outputs$population %||% outputs$population_preview %||% outputs$populationPreview %||% NULL,
+    sample_size_preview = outputs$sample_size_preview %||% outputs$sampleSizePreview %||% NULL,
+    quota = outputs$quota %||% outputs$quota_preview %||% outputs$quotaPreview %||% NULL,
+    sample = outputs$sample %||% outputs$sample_preview %||% outputs$samplePreview %||% NULL
+  )
+  Filter(Negate(is.null), out)
+}
+
+.hojas_ruta_workspace_outputs_update <- function(sid, patch = list(), clear = character()) {
+  current <- .hojas_ruta_workspace_outputs_normalize(
+    session_get(sid)$hojas_ruta_workspace_outputs %||% list()
+  )
+  if (length(clear)) {
+    current[intersect(names(current), clear)] <- NULL
+  }
+  if (length(patch)) {
+    for (name in names(patch)) {
+      current[[name]] <- patch[[name]]
+    }
+  }
+  current <- .hojas_ruta_workspace_outputs_normalize(current)
+  session_set(sid, "hojas_ruta_workspace_outputs", current)
+  current
+}
+
 .hojas_ruta_state_payload <- function(sid) {
   data <- tryCatch(.hojas_ruta_data_activa(sid), error = function(e) NULL)
   s <- session_get(sid)
   legacy_cfg <- hojas_ruta_normalize_config(s$hojas_ruta_config %||% list())
   cfg <- hojas_ruta_integrada_normalize_config(s$hojas_ruta_config %||% list())
   ui_state <- .hojas_ruta_ui_state_normalize(s$hojas_ruta_ui_state %||% list(), cfg)
+  workspace_outputs <- .hojas_ruta_workspace_outputs_normalize(s$hojas_ruta_workspace_outputs %||% list())
   frame <- tryCatch(hojas_ruta_inei_frame(), error = function(e) NULL)
   frame_meta <- if (!is.null(frame)) .hojas_ruta_frame_meta(frame) else list(ok = FALSE)
   territories <- if (!is.null(frame)) .hojas_ruta_territories(frame) else list()
@@ -100,6 +129,7 @@
       config = legacy_cfg,
       integrated_config = cfg,
       ui_state = ui_state,
+      workspace_outputs = workspace_outputs,
       frame_meta = frame_meta,
       territories = territories,
       campos = NULL,
@@ -114,6 +144,7 @@
     config = legacy_cfg,
     integrated_config = cfg,
     ui_state = ui_state,
+    workspace_outputs = workspace_outputs,
     frame_meta = frame_meta,
     territories = territories,
     campos = campos,
@@ -143,9 +174,20 @@ mount_hojas_ruta <- function(pr) {
         parsed$ui_state %||% parsed$uiState %||% list(),
         cfg
       )
+      has_outputs <- any(c("workspace_outputs", "workspaceOutputs", "outputs") %in% names(parsed))
+      workspace_outputs <- if (has_outputs) {
+        .hojas_ruta_workspace_outputs_normalize(
+          parsed$workspace_outputs %||% parsed$workspaceOutputs %||% parsed$outputs %||% list()
+        )
+      } else {
+        .hojas_ruta_workspace_outputs_normalize(
+          session_get(sid)$hojas_ruta_workspace_outputs %||% list()
+        )
+      }
       session_set(sid, "hojas_ruta_config", cfg)
       session_set(sid, "hojas_ruta_ui_state", ui_state)
-      list(ok = TRUE, integrated_config = cfg, ui_state = ui_state)
+      session_set(sid, "hojas_ruta_workspace_outputs", workspace_outputs)
+      list(ok = TRUE, integrated_config = cfg, ui_state = ui_state, workspace_outputs = workspace_outputs)
     })) |>
     plumber::pr_post("/api/hojas-ruta/preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -160,7 +202,13 @@ mount_hojas_ruta <- function(pr) {
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
       session_set(sid, "hojas_ruta_config", cfg)
-      hojas_ruta_population_preview_integrado(cfg)
+      result <- hojas_ruta_population_preview_integrado(cfg)
+      .hojas_ruta_workspace_outputs_update(
+        sid,
+        patch = list(population = result),
+        clear = c("sample_size_preview", "quota", "sample")
+      )
+      result
     })) |>
     plumber::pr_post("/api/hojas-ruta/population-export", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -186,21 +234,35 @@ mount_hojas_ruta <- function(pr) {
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
       session_set(sid, "hojas_ruta_config", cfg)
-      hojas_ruta_quota_preview_integrado(cfg)
+      result <- hojas_ruta_quota_preview_integrado(cfg)
+      .hojas_ruta_workspace_outputs_update(
+        sid,
+        patch = list(quota = result),
+        clear = "sample"
+      )
+      result
     })) |>
     plumber::pr_post("/api/hojas-ruta/sample-size-preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
       session_set(sid, "hojas_ruta_config", cfg)
-      hojas_ruta_sample_size_preview(cfg)
+      result <- hojas_ruta_sample_size_preview(cfg)
+      .hojas_ruta_workspace_outputs_update(
+        sid,
+        patch = list(sample_size_preview = result),
+        clear = c("quota", "sample")
+      )
+      result
     })) |>
     plumber::pr_post("/api/hojas-ruta/sample-preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
       session_set(sid, "hojas_ruta_config", cfg)
-      hojas_ruta_sample_preview_integrado(cfg)
+      result <- hojas_ruta_sample_preview_integrado(cfg)
+      .hojas_ruta_workspace_outputs_update(sid, patch = list(sample = result))
+      result
     })) |>
     plumber::pr_post("/api/hojas-ruta/random-pdf", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
