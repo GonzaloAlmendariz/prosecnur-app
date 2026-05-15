@@ -489,6 +489,9 @@ HOJAS_RUTA_CARTO_CALLAO_MANZANAS_QUERY_URL <- paste0(HOJAS_RUTA_CARTO_CALLAO_MAN
 HOJAS_RUTA_CALLES_INEI_VERSION <- "inei2017-streets-lima-callao-v1"
 HOJAS_RUTA_CALLES_INEI_SOURCE <- "INEI - Informacion Digital Urbano Censal Ciudad Lima Metropolitana 2017"
 HOJAS_RUTA_CALLES_OSM_VERSION <- "osm-overture-streets-lima-callao-v3"
+HOJAS_RUTA_INEI_OFFICIAL_VERSION <- "inei2017-official-lima-callao-manzanas-v1"
+HOJAS_RUTA_NSE_INEI_VERSION <- "nse-inei2017-lima-manzanas-v1"
+HOJAS_RUTA_ZONAS_INEI_VERSION <- "inei2017-zonas-lima-callao-v1"
 
 .hojas_ruta_inst_path <- function(...) {
   p <- system.file(..., package = "prosecnurapp", mustWork = FALSE)
@@ -504,10 +507,19 @@ HOJAS_RUTA_CALLES_OSM_VERSION <- "osm-overture-streets-lima-callao-v3"
   candidates[[1]]
 }
 
-hojas_ruta_inei_frame_path <- function() {
+hojas_ruta_inei_frame_path <- function(source = "current") {
+  source_raw <- trimws(tolower(as.character(source %||% "current")[[1]]))
+  source_raw <- gsub("-", "_", source_raw, fixed = TRUE)
+  if (source_raw %in% c("inei", "official", "inei2017", "inei_2017", "inei2017_official")) {
+    return(hojas_ruta_inei_official_frame_path())
+  }
   full <- .hojas_ruta_inst_path("hojas_ruta", "inei2017_lima_callao_manzanas_full.csv.gz")
   if (file.exists(full)) return(full)
   .hojas_ruta_inst_path("hojas_ruta", "inei2017_lima_callao_manzanas.csv")
+}
+
+hojas_ruta_inei_official_frame_path <- function() {
+  .hojas_ruta_inst_path("hojas_ruta", "inei2017_lima_callao_manzanas_oficial.csv.gz")
 }
 
 hojas_ruta_inei_age_simple_path <- function() {
@@ -515,10 +527,33 @@ hojas_ruta_inei_age_simple_path <- function() {
 }
 
 hojas_ruta_cartografia_manzanas_manifest_path <- function(source = "lima") {
+  if (identical(source, "official")) {
+    return(.hojas_ruta_inst_path("hojas_ruta", "cartografia_manzanas_inei2017_lima_callao.json"))
+  }
   if (identical(source, "callao")) {
     return(.hojas_ruta_inst_path("hojas_ruta", "cartografia_manzanas_callao_2019.json"))
   }
   .hojas_ruta_inst_path("hojas_ruta", "cartografia_manzanas_lima_2017.json")
+}
+
+hojas_ruta_cartografia_zonas_manifest_path <- function() {
+  .hojas_ruta_inst_path("hojas_ruta", "cartografia_zonas_inei2017_lima_callao.json")
+}
+
+hojas_ruta_nse_inei_path <- function() {
+  .hojas_ruta_inst_path("hojas_ruta", "nse_inei2017_lima_manzanas.csv.gz")
+}
+
+hojas_ruta_nse_inei_manifest_path <- function() {
+  .hojas_ruta_inst_path("hojas_ruta", "nse_inei2017_lima_manzanas.json")
+}
+
+hojas_ruta_audit_frame_path <- function() {
+  .hojas_ruta_inst_path("hojas_ruta", "auditoria_frame_inei2017_lima_callao.csv.gz")
+}
+
+hojas_ruta_audit_frame_summary_path <- function() {
+  .hojas_ruta_inst_path("hojas_ruta", "auditoria_frame_inei2017_lima_callao.json")
 }
 
 hojas_ruta_cartografia_calles_manifest_path <- function(source = "osm") {
@@ -544,15 +579,83 @@ hojas_ruta_contexto_curado_path <- function() {
   df
 }
 
+.hojas_ruta_frame_sources <- function() c("current", "inei2017_official")
+
+.hojas_ruta_normalize_frame_source <- function(source = "current", require_available = FALSE) {
+  source <- as.character(source %||% "current")[[1]]
+  source <- trimws(tolower(source))
+  source <- gsub("-", "_", source, fixed = TRUE)
+  source <- switch(
+    source,
+    default = "current",
+    actual = "current",
+    vigente = "current",
+    inei = "inei2017_official",
+    official = "inei2017_official",
+    inei2017 = "inei2017_official",
+    inei_2017 = "inei2017_official",
+    source
+  )
+  if (!source %in% .hojas_ruta_frame_sources()) source <- "current"
+  if (identical(source, "inei2017_official") &&
+      !file.exists(hojas_ruta_inei_official_frame_path())) {
+    if (isTRUE(require_available)) {
+      stop("No se encontro el frame oficial INEI 2017 empaquetado.", call. = FALSE)
+    }
+    return("current")
+  }
+  source
+}
+
+.hojas_ruta_normalize_id_manzana <- function(ubigeo, zona, manzana) {
+  ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
+  zona <- sprintf("%05s", as.character(zona %||% ""))
+  manzana <- trimws(as.character(manzana %||% ""))
+  manzana <- toupper(gsub("[^0-9A-ZÑ]", "", manzana))
+  manzana <- ifelse(grepl("^[0-9]{4}$", manzana) & grepl("0$", manzana),
+                    substr(manzana, 1L, 3L), manzana)
+  manzana <- ifelse(!nzchar(manzana), "000", manzana)
+  paste0(ubigeo, zona, manzana)
+}
+
+.hojas_ruta_add_frame_ids <- function(df) {
+  if (!"id_manzana" %in% names(df)) return(df)
+  df$id_manzana <- as.character(df$id_manzana)
+  if (!"id_manzana_norm" %in% names(df)) {
+    if (all(c("ubigeo", "zona", "manzana") %in% names(df))) {
+      df$id_manzana_norm <- .hojas_ruta_normalize_id_manzana(df$ubigeo, df$zona, df$manzana)
+    } else {
+      df$id_manzana_norm <- df$id_manzana
+    }
+  } else {
+    df$id_manzana_norm <- as.character(df$id_manzana_norm)
+  }
+  df
+}
+
+.hojas_ruta_inei_frame_cache <- new.env(parent = emptyenv())
+
 #' Leer el marco territorial empaquetado para hojas de ruta
 #'
 #' @return data.frame con manzanas urbanas piloto Lima/Callao.
 #' @export
-hojas_ruta_inei_frame <- function() {
-  path <- hojas_ruta_inei_frame_path()
+hojas_ruta_inei_frame <- function(source = "current") {
+  source <- .hojas_ruta_normalize_frame_source(source, require_available = TRUE)
+  path <- hojas_ruta_inei_frame_path(source)
   if (!file.exists(path)) {
     stop("No se encontro el marco INEI 2017 empaquetado.", call. = FALSE)
   }
+  info <- file.info(path)
+  key <- paste(
+    source,
+    normalizePath(path, mustWork = FALSE),
+    info$size %||% 0,
+    as.numeric(info$mtime %||% 0),
+    "frame-v3-nse",
+    sep = "|"
+  )
+  cached <- .hojas_ruta_inei_frame_cache[[key]]
+  if (!is.null(cached)) return(cached)
   df <- utils::read.csv(
     path,
     stringsAsFactors = FALSE,
@@ -572,7 +675,18 @@ hojas_ruta_inei_frame <- function() {
   df$zona <- sprintf("%05s", as.character(df$zona))
   df$manzana <- as.character(df$manzana)
   num_cols <- grep("^(viviendas|poblacion|pob_|lat|lon)", names(df), value = TRUE)
-  .hojas_ruta_numeric_cols(df, num_cols)
+  df <- .hojas_ruta_numeric_cols(df, num_cols)
+  df <- .hojas_ruta_add_frame_ids(df)
+  nse <- tryCatch(hojas_ruta_nse_inei(), error = function(e) data.frame())
+  if (nrow(nse) && "id_manzana_norm" %in% names(nse) && "id_manzana_norm" %in% names(df)) {
+    keep <- intersect(
+      c("id_manzana_norm", "nse_codigo", "nse_nivel", "nse_match_method", "nse_distance_m"),
+      names(nse)
+    )
+    df <- merge(df, nse[keep], by = "id_manzana_norm", all.x = TRUE, sort = FALSE)
+  }
+  .hojas_ruta_inei_frame_cache[[key]] <- df
+  df
 }
 
 #' Leer edad simple oficial INEI 2017 empaquetada
@@ -759,6 +873,26 @@ hojas_ruta_inei_age_simple <- function(required = FALSE) {
 }
 
 .hojas_ruta_cartografia_profile <- function(source) {
+  if (identical(source, "official")) {
+    return(list(
+      id = "inei2017_official",
+      source = "INEI - Informacion Digital Urbano Censal Ciudad Lima Metropolitana 2017",
+      source_url = "https://www.inei.gob.pe/",
+      layer_url = "",
+      query_url = "",
+      year = 2017L,
+      provider = "Instituto Nacional de Estadistica e Informatica",
+      version = HOJAS_RUTA_INEI_OFFICIAL_VERSION,
+      coverage = "Lima Metropolitana y Callao",
+      dir_name = "manzanas_inei2017_lima_callao",
+      manifest = hojas_ruta_cartografia_manzanas_manifest_path("official"),
+      id_field = "IDMANZANA",
+      district_field = "NOMBDIST",
+      source_field = "fuente",
+      area_field = "area_m2",
+      out_fields = ""
+    ))
+  }
   if (identical(source, "callao")) {
     return(list(
       id = "callao",
@@ -880,6 +1014,7 @@ hojas_ruta_cartografia_manzanas_meta <- function(ubigeo = NULL) {
 
   lima <- .hojas_ruta_cartografia_meta_from_profile(.hojas_ruta_cartografia_profile("lima"))
   callao <- .hojas_ruta_cartografia_meta_from_profile(.hojas_ruta_cartografia_profile("callao"))
+  official <- .hojas_ruta_cartografia_meta_from_profile(.hojas_ruta_cartografia_profile("official"))
   list(
     ok = isTRUE(lima$ok) && isTRUE(callao$ok),
     source = paste(lima$source, callao$source, sep = " | "),
@@ -902,12 +1037,162 @@ hojas_ruta_cartografia_manzanas_meta <- function(ubigeo = NULL) {
     checksum = paste(na.omit(c(lima$checksum, callao$checksum)), collapse = ";"),
     packaged_districts = as.integer(lima$packaged_districts + callao$packaged_districts),
     packaged_blocks = as.integer(lima$packaged_blocks + callao$packaged_blocks),
-    sources = list(lima = lima, callao = callao),
+    official = official,
+    sources = list(lima = lima, callao = callao, official = official),
     note = paste(
       "Uso operativo 100% local.",
       "Lima usa la capa PlanMet/IMP con fuente declarada INEI 2017;",
       "Callao usa B_070101_Manzanas con fuente declarada META 6 - PCC 2019."
     )
+  )
+}
+
+.hojas_ruta_zones_cartography_dir <- function() {
+  .hojas_ruta_inst_path("hojas_ruta", "cartografia", "zonas_inei2017_lima_callao")
+}
+
+.hojas_ruta_zones_packaged_file <- function(ubigeo) {
+  ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
+  base <- file.path(.hojas_ruta_zones_cartography_dir(), sprintf("%s.geojson", ubigeo))
+  if (file.exists(base)) return(base)
+  gz <- paste0(base, ".gz")
+  if (file.exists(gz)) return(gz)
+  base
+}
+
+#' Metadatos de zonas censales INEI 2017 empaquetadas
+#'
+#' @param ubigeo UBIGEO opcional.
+#' @return Lista serializable con cobertura y estado de la capa oficial.
+#' @export
+hojas_ruta_cartografia_zonas_meta <- function(ubigeo = NULL) {
+  manifest_path <- hojas_ruta_cartografia_zonas_manifest_path()
+  manifest <- if (file.exists(manifest_path)) {
+    tryCatch(jsonlite::read_json(manifest_path, simplifyVector = FALSE), error = function(e) NULL)
+  } else {
+    NULL
+  }
+  packaged_dir <- .hojas_ruta_zones_cartography_dir()
+  files <- list.files(packaged_dir, pattern = "[.]geojson([.]gz)?$", full.names = TRUE)
+  manifest_districts <- manifest$packaged_districts %||% length(files)
+  manifest_zones <- manifest$packaged_zones %||% 0L
+  if (is.null(manifest) && length(files)) {
+    manifest_zones <- sum(vapply(files, function(path) {
+      json <- tryCatch(.hojas_ruta_read_json_any(path), error = function(e) NULL)
+      length(json$features %||% list())
+    }, integer(1)), na.rm = TRUE)
+  }
+  ubigeo <- if (!is.null(ubigeo) && nzchar(as.character(ubigeo))) {
+    sprintf("%06s", as.character(ubigeo))
+  } else {
+    NULL
+  }
+  ubigeo_file <- if (!is.null(ubigeo)) .hojas_ruta_zones_packaged_file(ubigeo) else NULL
+  list(
+    ok = length(files) > 0L && as.integer(manifest_zones %||% 0L) > 0L,
+    available = length(files) > 0L && as.integer(manifest_zones %||% 0L) > 0L,
+    source = "INEI - Zonas censales Lima Metropolitana y Callao 2017",
+    year = 2017L,
+    provider = "Instituto Nacional de Estadistica e Informatica",
+    version = HOJAS_RUTA_ZONAS_INEI_VERSION,
+    coverage = "Lima Metropolitana y Callao",
+    geometry = "poligono_zona_censal",
+    id_field = "IDZONA",
+    codzona_field = "CODZONA",
+    suffix_field = "SUFZONA",
+    ubigeo_field = "UBIGEO",
+    manifest_path = normalizePath(manifest_path, mustWork = FALSE),
+    packaged_dir = normalizePath(packaged_dir, mustWork = FALSE),
+    checksum = .hojas_ruta_checksum(manifest_path),
+    districts = as.integer(manifest_districts %||% 0L),
+    packaged_districts = as.integer(manifest_districts %||% 0L),
+    zones = as.integer(manifest_zones %||% 0L),
+    packaged_zones = as.integer(manifest_zones %||% 0L),
+    ubigeo = ubigeo %||% NA_character_,
+    ubigeo_available = if (!is.null(ubigeo_file)) file.exists(ubigeo_file) else NA,
+    ubigeo_path = if (!is.null(ubigeo_file)) normalizePath(ubigeo_file, mustWork = FALSE) else NA_character_,
+    note = "Capa oficial usada para limites de zona y validacion de reemplazos cuando existe."
+  )
+}
+
+#' Leer NSE INEI 2017 para manzanas de Lima
+#'
+#' @param required Si TRUE, falla cuando el archivo no existe.
+#' @return data.frame con NSE por manzana INEI 2017.
+#' @export
+hojas_ruta_nse_inei <- function(required = FALSE) {
+  path <- hojas_ruta_nse_inei_path()
+  if (!file.exists(path)) {
+    if (isTRUE(required)) stop("No se encontro NSE INEI 2017 empaquetado.", call. = FALSE)
+    return(data.frame())
+  }
+  df <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE,
+                        fileEncoding = "UTF-8")
+  if ("ubigeo" %in% names(df)) df$ubigeo <- sprintf("%06s", as.character(df$ubigeo))
+  if ("id_manzana" %in% names(df)) df$id_manzana <- as.character(df$id_manzana)
+  if ("id_manzana_norm" %in% names(df)) df$id_manzana_norm <- as.character(df$id_manzana_norm)
+  .hojas_ruta_numeric_cols(df, c("nse_codigo", "nse_distance_m", "nse_records_for_manzana"))
+}
+
+.hojas_ruta_nse_meta <- function(nse = NULL) {
+  path <- hojas_ruta_nse_inei_path()
+  manifest_path <- hojas_ruta_nse_inei_manifest_path()
+  manifest <- if (file.exists(manifest_path)) {
+    tryCatch(jsonlite::read_json(manifest_path, simplifyVector = FALSE), error = function(e) NULL)
+  } else {
+    NULL
+  }
+  if (is.null(nse)) {
+    nse <- if (file.exists(path)) tryCatch(hojas_ruta_nse_inei(), error = function(e) data.frame()) else data.frame()
+  }
+  ok <- file.exists(path) && is.data.frame(nse) && nrow(nse) > 0L
+  levels <- if (ok && "nse_nivel" %in% names(nse)) sort(unique(as.character(nse$nse_nivel))) else character(0)
+  list(
+    ok = ok,
+    available = ok,
+    source = "NSE Lima INEI",
+    year = 2017L,
+    version = HOJAS_RUTA_NSE_INEI_VERSION,
+    coverage = "Lima Metropolitana; Callao sin NSE imputado",
+    rows = if (ok) as.integer(nrow(nse)) else 0L,
+    matched_blocks = as.integer(manifest$matched_blocks %||% if (ok) length(unique(nse$id_manzana_norm)) else 0L),
+    input_points = as.integer(manifest$input_points %||% manifest$source_records %||% NA_integer_),
+    coverage_rate = as.numeric(manifest$match_rate %||% manifest$coverage_rate %||% NA_real_),
+    levels = as.list(levels),
+    callao_available = FALSE,
+    manifest_path = normalizePath(manifest_path, mustWork = FALSE),
+    path = normalizePath(path, mustWork = FALSE),
+    checksum = .hojas_ruta_checksum(path),
+    message = if (ok) "NSE Lima INEI disponible; Callao queda como no disponible, sin imputacion." else "NSE no disponible en el paquete local."
+  )
+}
+
+hojas_ruta_frame_audit_meta <- function() {
+  summary_path <- hojas_ruta_audit_frame_summary_path()
+  audit_path <- hojas_ruta_audit_frame_path()
+  summary <- if (file.exists(summary_path)) {
+    tryCatch(jsonlite::read_json(summary_path, simplifyVector = FALSE), error = function(e) NULL)
+  } else {
+    NULL
+  }
+  available <- !is.null(summary) && file.exists(audit_path)
+  list(
+    ok = available,
+    available = available,
+    summary_path = normalizePath(summary_path, mustWork = FALSE),
+    audit_path = normalizePath(audit_path, mustWork = FALSE),
+    rows = as.integer(summary$rows %||% 0L),
+    current = summary$current %||% list(),
+    official = summary$official %||% list(),
+    status_counts = summary$status_counts %||% list(),
+    large_difference_threshold = as.integer(summary$large_difference_threshold %||% 0L),
+    major_differences = summary$major_differences %||% list(),
+    checksum = .hojas_ruta_checksum(audit_path),
+    message = if (available) {
+      "Auditoria disponible: diferencias registradas sin bloquear el motor."
+    } else {
+      "Auditoria del frame oficial pendiente."
+    }
   )
 }
 
@@ -1213,6 +1498,8 @@ hojas_ruta_cartografia_contexto_meta <- function(ubigeo = NULL) {
   }
   packaged_file <- .hojas_ruta_block_map_packaged_file(profile, ubigeo)
   info <- if (file.exists(packaged_file)) file.info(packaged_file) else NULL
+  nse_path <- hojas_ruta_nse_inei_path()
+  nse_info <- if (file.exists(nse_path)) file.info(nse_path) else NULL
   paste(
     ubigeo,
     as.integer(.hojas_ruta_int(limit, 0L)),
@@ -1221,7 +1508,10 @@ hojas_ruta_cartografia_contexto_meta <- function(ubigeo = NULL) {
     normalizePath(packaged_file, mustWork = FALSE),
     if (!is.null(info)) info$size %||% 0 else 0,
     if (!is.null(info)) as.numeric(info$mtime %||% 0) else 0,
-    "slim-json-v4",
+    normalizePath(nse_path, mustWork = FALSE),
+    if (!is.null(nse_info)) nse_info$size %||% 0 else 0,
+    if (!is.null(nse_info)) as.numeric(nse_info$mtime %||% 0) else 0,
+    "slim-json-v5-nse",
     sep = "|"
   )
 }
@@ -1407,7 +1697,11 @@ hojas_ruta_cartografia_contexto_meta <- function(ubigeo = NULL) {
     inei_pob_hombres = as.numeric(pob_h),
     inei_pob_mujeres = as.numeric(pob_m),
     inei_pob_18_plus = if (has_age_breakdown) as.numeric(age_pob_h + age_pob_m) else NULL,
-    inei_age_breakdown = age_breakdown
+    inei_age_breakdown = age_breakdown,
+    nse_codigo = if ("nse_codigo" %in% names(row)) value_num("nse_codigo", NA_real_) else NULL,
+    nse_nivel = if ("nse_nivel" %in% names(row)) as.character(row$nse_nivel[[1]] %||% "") else NULL,
+    nse_match_method = if ("nse_match_method" %in% names(row)) as.character(row$nse_match_method[[1]] %||% "") else NULL,
+    nse_distance_m = if ("nse_distance_m" %in% names(row)) value_num("nse_distance_m", NA_real_) else NULL
   )
 }
 
@@ -1685,6 +1979,62 @@ hojas_ruta_block_map_preview_json <- function(ubigeo, limit = 1200L, refresh = F
   )
 }
 
+.hojas_ruta_zone_map_official_geojson <- function(ubigeo, zone_stats) {
+  packaged_file <- .hojas_ruta_zones_packaged_file(ubigeo)
+  if (!file.exists(packaged_file)) return(NULL)
+  geo <- tryCatch(.hojas_ruta_read_json_any(packaged_file), error = function(e) NULL)
+  if (is.null(geo) || !length(geo$features %||% list())) return(NULL)
+  stats_by_zone <- if (is.data.frame(zone_stats) && nrow(zone_stats)) {
+    split(zone_stats, as.character(zone_stats$zona))
+  } else {
+    list()
+  }
+  features <- lapply(geo$features %||% list(), function(feature) {
+    props <- feature$properties %||% list()
+    codzona <- trimws(as.character(props$CODZONA %||% ""))
+    sufzona <- trimws(as.character(props$SUFZONA %||% ""))
+    codzona <- if (grepl("^[0-9]+$", codzona)) sprintf("%03d", as.integer(codzona)) else codzona
+    sufzona <- if (grepl("^[0-9]+$", sufzona)) sprintf("%02d", as.integer(sufzona)) else sufzona
+    zona <- if (nzchar(codzona) && nzchar(sufzona)) {
+      paste0(codzona, sufzona)
+    } else {
+      as.character(props$zona %||% if (nchar(as.character(props$IDZONA %||% "")) >= 5L) {
+        substr(as.character(props$IDZONA), nchar(as.character(props$IDZONA)) - 4L, nchar(as.character(props$IDZONA)))
+      } else {
+        ""
+      })
+    }
+    row <- stats_by_zone[[zona]]
+    base <- if (!is.null(row) && nrow(row)) {
+      .hojas_ruta_zone_feature_properties(row[1, , drop = FALSE])
+    } else {
+      list(
+        ubigeo = as.character(props$UBIGEO %||% ubigeo),
+        departamento = as.character(props$NOMBDEP %||% ""),
+        provincia = as.character(props$NOMBPROV %||% ""),
+        distrito = as.character(props$NOMBDIST %||% ""),
+        zona = zona,
+        zona_label = paste("Zona", zona),
+        n_manzanas = 0L,
+        viviendas = 0L,
+        poblacion = 0L
+      )
+    }
+    base$IDZONA <- as.character(props$IDZONA %||% "")
+    base$CODZONA <- zona
+    base$SUFZONA <- sufzona
+    base$UBIGEO <- as.character(props$UBIGEO %||% ubigeo)
+    list(
+      type = "Feature",
+      id = paste(ubigeo, zona, sep = "-"),
+      properties = base,
+      geometry = feature$geometry
+    )
+  })
+  features <- features[!vapply(features, function(feature) is.null(feature$geometry), logical(1))]
+  list(type = "FeatureCollection", features = features)
+}
+
 .hojas_ruta_zone_map_fallback_geojson <- function(block_payload, zone_stats) {
   features <- block_payload$geojson$features %||% list()
   by_zone <- list()
@@ -1765,16 +2115,19 @@ hojas_ruta_block_map_preview_json <- function(ubigeo, limit = 1200L, refresh = F
 
 .hojas_ruta_zone_map_file_cache_key <- function(ubigeo) {
   ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
-  profile <- .hojas_ruta_cartografia_profile_for_ubigeo(ubigeo)
-  if (is.null(profile)) return(paste(ubigeo, "unsupported", "zone-json-v1", sep = "|"))
-  packaged_file <- .hojas_ruta_block_map_packaged_file(profile, ubigeo)
+  packaged_file <- .hojas_ruta_zones_packaged_file(ubigeo)
+  if (!file.exists(packaged_file)) {
+    profile <- .hojas_ruta_cartografia_profile_for_ubigeo(ubigeo)
+    if (is.null(profile)) return(paste(ubigeo, "unsupported", "zone-json-v2", sep = "|"))
+    packaged_file <- .hojas_ruta_block_map_packaged_file(profile, ubigeo)
+  }
   info <- if (file.exists(packaged_file)) file.info(packaged_file) else NULL
   paste(
     ubigeo,
     normalizePath(packaged_file, mustWork = FALSE),
     if (!is.null(info)) info$size %||% 0 else 0,
     if (!is.null(info)) as.numeric(info$mtime %||% 0) else 0,
-    "zone-json-v1",
+    "zone-json-v2",
     sep = "|"
   )
 }
@@ -1793,7 +2146,8 @@ hojas_ruta_block_map_preview_json <- function(ubigeo, limit = 1200L, refresh = F
 hojas_ruta_zone_map_preview <- function(ubigeo) {
   ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
   profile <- .hojas_ruta_cartografia_profile_for_ubigeo(ubigeo)
-  meta <- hojas_ruta_cartografia_manzanas_meta(ubigeo)
+  meta <- hojas_ruta_cartografia_zonas_meta(ubigeo)
+  block_meta <- hojas_ruta_cartografia_manzanas_meta(ubigeo)
   territory <- .hojas_ruta_lookup_territory(ubigeo)
   alerts <- list()
   zone_stats <- .hojas_ruta_zone_stats_for_ubigeo(ubigeo)
@@ -1813,6 +2167,30 @@ hojas_ruta_zone_map_preview <- function(ubigeo) {
       returned = 0L,
       cache = FALSE,
       geojson = list(type = "FeatureCollection", features = list()),
+      alerts = alerts
+    ))
+  }
+
+  geojson <- .hojas_ruta_zone_map_official_geojson(ubigeo, zone_stats)
+  if (!is.null(geojson)) {
+    geojson$properties <- list(
+      ubigeo = ubigeo,
+      distrito = territory$distrito,
+      count = as.integer(nrow(zone_stats)),
+      returned = as.integer(length(geojson$features %||% list())),
+      source_version = meta$version,
+      geometry = "zona_censal_inei2017",
+      alerts = alerts
+    )
+    return(list(
+      ok = length(geojson$features %||% list()) > 0L,
+      source = meta,
+      ubigeo = ubigeo,
+      territory = territory,
+      count = as.integer(nrow(zone_stats)),
+      returned = as.integer(length(geojson$features %||% list())),
+      cache = FALSE,
+      geojson = geojson,
       alerts = alerts
     ))
   }
@@ -1852,14 +2230,14 @@ hojas_ruta_zone_map_preview <- function(ubigeo) {
     distrito = territory$distrito,
     count = as.integer(nrow(zone_stats)),
     returned = as.integer(length(geojson$features %||% list())),
-    source_version = meta$version,
+    source_version = block_meta$version,
     geometry = "zona_derivada_de_manzanas",
     alerts = alerts
   )
 
   list(
     ok = length(geojson$features %||% list()) > 0L,
-    source = meta,
+    source = block_meta,
     ubigeo = ubigeo,
     territory = territory,
     count = as.integer(nrow(zone_stats)),
@@ -2024,6 +2402,19 @@ hojas_ruta_zone_map_preview_json <- function(ubigeo) {
     used <- c(used, sub("[.]geojson([.]gz)?$", "", basename(path)))
   }
   list(features = out, ubigeos = unique(used))
+}
+
+.hojas_ruta_street_map_active_features <- function(ubigeo) {
+  ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
+  source <- if (file.exists(.hojas_ruta_street_map_packaged_file(ubigeo, source = "inei"))) {
+    "inei"
+  } else {
+    "osm"
+  }
+  packaged_file <- .hojas_ruta_street_map_packaged_file(ubigeo, source = source)
+  if (!file.exists(packaged_file)) return(list())
+  local <- tryCatch(.hojas_ruta_read_json_any(packaged_file), error = function(e) NULL)
+  .hojas_ruta_slim_street_features(local$features %||% list())
 }
 
 .hojas_ruta_street_map_preview_source <- function(ubigeo, source = "osm", fallback_used = FALSE) {
@@ -2329,20 +2720,60 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
   raw
 }
 
-.hojas_ruta_frame_meta <- function(frame = hojas_ruta_inei_frame()) {
-  path <- hojas_ruta_inei_frame_path()
-  age <- tryCatch(hojas_ruta_inei_age_simple(), error = function(e) data.frame())
-  full_frame <- grepl("manzanas_full[.]csv[.]gz$", basename(path))
+.hojas_ruta_frame_source_meta <- function(source = "current") {
+  source_raw <- trimws(tolower(as.character(source %||% "current")[[1]]))
+  source_raw <- gsub("-", "_", source_raw, fixed = TRUE)
+  requested_official <- source_raw %in% c("inei", "official", "inei2017", "inei_2017", "inei2017_official")
+  source <- if (requested_official) "inei2017_official" else "current"
+  path <- if (requested_official) hojas_ruta_inei_official_frame_path() else hojas_ruta_inei_frame_path("current")
+  exists <- file.exists(path)
+  frame <- if (exists) {
+    tryCatch(hojas_ruta_inei_frame(source), error = function(e) data.frame())
+  } else {
+    data.frame()
+  }
+  full_frame <- requested_official || grepl("manzanas_full[.]csv[.]gz$", basename(path))
   list(
-    ok = TRUE,
-    source = HOJAS_RUTA_INEI_SOURCE,
+    ok = exists && nrow(frame) > 0L,
+    available = exists && nrow(frame) > 0L,
+    id = source,
+    source = if (requested_official) "INEI 2017 oficial Lima Metropolitana y Callao" else HOJAS_RUTA_INEI_SOURCE,
     year = 2017L,
-    version = HOJAS_RUTA_INEI_VERSION,
-    packaged_at = "2026-05-03",
+    version = if (requested_official) HOJAS_RUTA_INEI_OFFICIAL_VERSION else HOJAS_RUTA_INEI_VERSION,
+    packaged_at = if (requested_official) NA_character_ else "2026-05-03",
     checksum = .hojas_ruta_checksum(path),
     coverage = if (full_frame) "Lima Metropolitana y Callao" else "Piloto Lima/Callao",
     pilot = !full_frame,
     granularity = if (full_frame) "manzana_urbana" else "manzana_piloto",
+    path = normalizePath(path, mustWork = FALSE),
+    n_departamentos = if (nrow(frame)) length(unique(frame$departamento)) else 0L,
+    n_provincias = if (nrow(frame)) length(unique(paste(frame$departamento, frame$provincia))) else 0L,
+    n_distritos = if (nrow(frame)) length(unique(frame$ubigeo)) else 0L,
+    n_manzanas = as.integer(nrow(frame)),
+    viviendas = if (nrow(frame)) as.integer(sum(frame$viviendas, na.rm = TRUE)) else 0L,
+    poblacion = if (nrow(frame)) as.integer(sum(frame$poblacion, na.rm = TRUE)) else 0L
+  )
+}
+
+.hojas_ruta_frame_meta <- function(frame = hojas_ruta_inei_frame(), active_source = "current") {
+  active_source <- .hojas_ruta_normalize_frame_source(active_source, require_available = FALSE)
+  path <- hojas_ruta_inei_frame_path(active_source)
+  age <- tryCatch(hojas_ruta_inei_age_simple(), error = function(e) data.frame())
+  current_meta <- .hojas_ruta_frame_source_meta("current")
+  official_meta <- .hojas_ruta_frame_source_meta("inei2017_official")
+  active_meta <- if (identical(active_source, "inei2017_official")) official_meta else current_meta
+  full_frame <- isFALSE(active_meta$pilot)
+  list(
+    ok = TRUE,
+    active_source = active_source,
+    source = active_meta$source,
+    year = active_meta$year,
+    version = active_meta$version,
+    packaged_at = active_meta$packaged_at,
+    checksum = active_meta$checksum,
+    coverage = active_meta$coverage,
+    pilot = active_meta$pilot,
+    granularity = active_meta$granularity,
     path = normalizePath(path, mustWork = FALSE),
     n_departamentos = length(unique(frame$departamento)),
     n_provincias = length(unique(paste(frame$departamento, frame$provincia))),
@@ -2350,13 +2781,17 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     n_manzanas = nrow(frame),
     viviendas = as.integer(sum(frame$viviendas, na.rm = TRUE)),
     poblacion = as.integer(sum(frame$poblacion, na.rm = TRUE)),
-    age_data = .hojas_ruta_age_simple_meta(age),
-    nse_data = list(
-      ok = FALSE,
-      available = FALSE,
-      source = "",
-      message = "NSE no disponible en el marco local INEI 2017 empaquetado."
+    current = current_meta,
+    official = official_meta,
+    frame = list(
+      current = current_meta,
+      official = official_meta,
+      active_source = active_source
     ),
+    age_data = .hojas_ruta_age_simple_meta(age),
+    nse_data = .hojas_ruta_nse_meta(),
+    zone_cartography = hojas_ruta_cartografia_zonas_meta(),
+    audit = hojas_ruta_frame_audit_meta(),
     block_cartography = hojas_ruta_cartografia_manzanas_meta(),
     street_cartography = hojas_ruta_cartografia_calles_meta(),
     context_cartography = hojas_ruta_cartografia_contexto_meta(),
@@ -2364,14 +2799,13 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     note = if (full_frame) {
       paste(
         "Marco local completo para Lima Metropolitana y Callao urbano.",
-        "Las manzanas se empatan por ID cartografico con conteos REDATAM CPV2017;",
-        "Callao mantiene cartografia 2019 claramente separada de la base poblacional 2017."
+        "El frame actual sigue siendo el default; el frame oficial INEI 2017 queda disponible para auditoria y activacion controlada."
       )
     } else {
       paste(
         "Marco empaquetado para el piloto funcional Lima/Callao.",
         "Las cuotas por edad/sexo usan edad simple oficial INEI REDATAM cuando esta disponible;",
-        "las manzanas siguen limitadas al piloto hasta empaquetar el marco completo."
+        "las manzanas siguen limitadas al piloto hasta activar el frame oficial validado."
       )
     }
   )
@@ -2379,6 +2813,7 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
 
 .hojas_ruta_default_integrated_config <- function(frame = hojas_ruta_inei_frame()) {
   list(
+    frame_source = "current",
     n_objetivo = 120L,
     n_mode = "total",
     n_por_distrito = list(),
@@ -2776,9 +3211,13 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
 #' @return Lista normalizada.
 #' @export
 hojas_ruta_integrada_normalize_config <- function(config = list()) {
-  frame <- hojas_ruta_inei_frame()
-  defaults <- .hojas_ruta_default_integrated_config(frame)
   if (is.null(config) || !is.list(config)) config <- list()
+  frame_source <- .hojas_ruta_normalize_frame_source(
+    config$frame_source %||% config$frameSource %||% "current",
+    require_available = FALSE
+  )
+  frame <- hojas_ruta_inei_frame(frame_source)
+  defaults <- .hojas_ruta_default_integrated_config(frame)
   method <- .hojas_ruta_scalar(config$sampling_method %||% config$method,
                                defaults$sampling_method)
   if (!method %in% vapply(.hojas_ruta_sampling_methods(), `[[`, character(1), "id")) {
@@ -2832,7 +3271,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
     replacement_policy <- defaults$replacement_policy
   }
   replacements_per_titular <- max(
-    1L,
+    0L,
     .hojas_ruta_int(
       config$replacements_per_titular %||%
         config$replacementsPerTitular %||%
@@ -2900,6 +3339,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
     .hojas_ruta_age_ranges_from_population(territorios, age_range_mode, age_range_scope)
   }
   list(
+    frame_source = frame_source,
     n_objetivo = n_objetivo,
     n_mode = n_mode,
     n_por_distrito = n_por_distrito,
@@ -2930,7 +3370,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
 
 .hojas_ruta_filter_frame <- function(config) {
   cfg <- hojas_ruta_integrada_normalize_config(config)
-  frame <- hojas_ruta_inei_frame()
+  frame <- hojas_ruta_inei_frame(cfg$frame_source)
   frame[frame$ubigeo %in% unlist(cfg$territorios, use.names = FALSE), , drop = FALSE]
 }
 
@@ -3332,7 +3772,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
 #' @export
 hojas_ruta_population_preview_integrado <- function(config = list()) {
   cfg <- hojas_ruta_integrada_normalize_config(config)
-  frame_all <- hojas_ruta_inei_frame()
+  frame_all <- hojas_ruta_inei_frame(cfg$frame_source)
   frame <- frame_all[frame_all$ubigeo %in% unlist(cfg$territorios, use.names = FALSE), , drop = FALSE]
   cells <- .hojas_ruta_population_cells(frame, cfg)
   age_source <- attr(cells, "age_source", exact = TRUE) %||% list(type = "none")
@@ -3340,7 +3780,7 @@ hojas_ruta_population_preview_integrado <- function(config = list()) {
   territories <- .hojas_ruta_territories(frame)
   list(
     ok = nrow(frame) > 0L && nrow(cells) > 0L,
-    frame_meta = .hojas_ruta_frame_meta(frame_all),
+    frame_meta = .hojas_ruta_frame_meta(frame_all, cfg$frame_source),
     age_source = age_source,
     config = cfg,
     total_poblacion = as.integer(round(sum(cells$poblacion, na.rm = TRUE))),
@@ -3521,7 +3961,7 @@ hojas_ruta_exportar_matriz_poblacional <- function(config = list(), path) {
 #' @export
 hojas_ruta_sample_size_preview <- function(config = list()) {
   cfg <- hojas_ruta_integrada_normalize_config(config)
-  frame_all <- hojas_ruta_inei_frame()
+  frame_all <- hojas_ruta_inei_frame(cfg$frame_source)
   frame <- frame_all[frame_all$ubigeo %in% unlist(cfg$territorios, use.names = FALSE), , drop = FALSE]
   params <- cfg$sample_size
   alerts <- list()
@@ -3687,7 +4127,7 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
 
   list(
     ok = nrow(frame) > 0L && n_used > 0L && isTRUE(route_status$ok),
-    frame_meta = .hojas_ruta_frame_meta(frame_all),
+    frame_meta = .hojas_ruta_frame_meta(frame_all, cfg$frame_source),
     config = cfg,
     sample_size = params,
     mode = cfg$sample_size_mode,
@@ -3720,10 +4160,10 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
 #' @export
 hojas_ruta_quota_preview_integrado <- function(config = list()) {
   cfg <- hojas_ruta_integrada_normalize_config(config)
-  frame_all <- hojas_ruta_inei_frame()
+  frame_all <- hojas_ruta_inei_frame(cfg$frame_source)
   frame <- frame_all[frame_all$ubigeo %in% unlist(cfg$territorios, use.names = FALSE), , drop = FALSE]
   alerts <- list()
-  if (!identical(.hojas_ruta_frame_meta(frame_all)$pilot, FALSE)) {
+  if (!identical(.hojas_ruta_frame_meta(frame_all, cfg$frame_source)$pilot, FALSE)) {
     alerts[[length(alerts) + 1L]] <- list(
       level = "warn",
       code = "W_PILOT_FRAME",
@@ -3735,7 +4175,7 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
     age_source <- list(type = "none")
     return(list(
       ok = FALSE,
-      frame_meta = .hojas_ruta_frame_meta(frame_all),
+      frame_meta = .hojas_ruta_frame_meta(frame_all, cfg$frame_source),
       age_source = age_source,
       config = cfg,
       n_objetivo = as.integer(cfg$n_objetivo),
@@ -3765,7 +4205,7 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
   territories <- .hojas_ruta_territories(frame)
   list(
     ok = nrow(frame) > 0L && sum(cells$cuota, na.rm = TRUE) == cfg$n_objetivo,
-    frame_meta = .hojas_ruta_frame_meta(frame_all),
+    frame_meta = .hojas_ruta_frame_meta(frame_all, cfg$frame_source),
     age_source = age_source,
     config = cfg,
     n_objetivo = as.integer(cfg$n_objetivo),
@@ -3862,7 +4302,7 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
   entrevistas <- max(1L, entrevistas)
   id <- as.character(block$id_manzana %||% block$manzana %||% block$orden_seleccion %||% "")
   seed <- as.integer(cfg$seed %||% 2017L)
-  direction_labels <- c("Horario", "Antihorario")
+  direction_labels <- c("1", "2")
   corner_code <- if (identical(route_start_corner, "auto")) {
     .hojas_ruta_stable_bucket(seed, id, "corner", 4L)
   } else {
@@ -3870,7 +4310,8 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
   }
   if (is.na(corner_code) || corner_code < 1L || corner_code > 4L) corner_code <- 1L
   direction_code <- .hojas_ruta_stable_bucket(seed, id, "direction", length(direction_labels))
-  auto_constante <- max(1L, floor(viviendas / entrevistas))
+  raw_constante <- if (entrevistas > 0L) viviendas / entrevistas else NA_real_
+  auto_constante <- max(1L, floor(raw_constante))
   constante <- switch(
     route_jump_mode,
     off = 1L,
@@ -3894,10 +4335,13 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
     esquina_codigo = as.integer(corner_code),
     esquina_inicio = corner_label,
     esquina_coordenada = corner_label,
-    sentido_recorrido = direction_labels[[direction_code]],
+    sentido_recorrido = as.character(direction_labels[[direction_code]]),
     vivienda_inicio = as.integer(start),
     domicilio_inicio = as.integer(start),
     constante_salto = as.integer(constante),
+    constante_salto_raw = as.numeric(raw_constante),
+    constante_salto_formula = sprintf("K=%s/%s; operativo=floor(K)", viviendas, entrevistas),
+    salto_operativo = as.integer(constante),
     constante_salto_unidad = "casa/domicilio",
     constante_salto_modo = route_jump_mode,
     modo_seleccion_vivienda = modo
@@ -3923,7 +4367,10 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
   if (is.null(blocks_df) || !nrow(blocks_df)) {
     return(list(blocks = data.frame(), alerts = alerts, ok = TRUE))
   }
-  n_per <- max(1L, as.integer(cfg$replacements_per_titular %||% 1L))
+  n_per <- max(0L, as.integer(cfg$replacements_per_titular %||% 1L))
+  if (n_per <= 0L) {
+    return(list(blocks = data.frame(), alerts = alerts, ok = TRUE))
+  }
   selected_ids <- unique(as.character(selected_ids %||% character(0)))
   used_ids <- selected_ids
   replacement_blocks <- list()
@@ -4041,7 +4488,7 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
     add_error("E_MAP_ORIENTATION_INVALID", "La prueba de orientacion del mapa fallo: norte debe quedar arriba y este a la derecha.")
   }
   if (identical(cfg$replacement_policy %||% "paired_by_titular_zone", "paired_by_titular_zone") && nrow(blocks)) {
-    n_per <- max(1L, as.integer(cfg$replacements_per_titular %||% 1L))
+    n_per <- max(0L, as.integer(cfg$replacements_per_titular %||% 1L))
     expected <- as.integer(nrow(blocks) * n_per)
     if (nrow(replacements) != expected) {
       add_error(
@@ -4570,7 +5017,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   accepted
 }
 
-.hojas_ruta_pdf_label_box <- function(candidate, pad = 0.004) {
+.hojas_ruta_pdf_label_box <- function(candidate, pad = 0.004, size_cache = NULL) {
   label <- as.character(candidate$name %||% candidate$label %||% "")
   x <- suppressWarnings(as.numeric(candidate$x %||% NA_real_))
   y <- suppressWarnings(as.numeric(candidate$y %||% NA_real_))
@@ -4580,15 +5027,26 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   if (!is.finite(fontsize) || fontsize <= 0) fontsize <- 5
   if (!is.finite(angle)) angle <- 0
 
-  grob <- grid::textGrob(label, gp = grid::gpar(fontsize = fontsize))
-  text_w <- tryCatch(
-    grid::convertWidth(grid::grobWidth(grob), "npc", valueOnly = TRUE),
-    error = function(e) NA_real_
-  )
-  text_h <- tryCatch(
-    grid::convertHeight(grid::grobHeight(grob), "npc", valueOnly = TRUE),
-    error = function(e) NA_real_
-  )
+  size_key <- paste(label, format(fontsize, trim = TRUE, scientific = FALSE), sep = "|")
+  size <- if (is.environment(size_cache) && exists(size_key, envir = size_cache, inherits = FALSE)) {
+    get(size_key, envir = size_cache, inherits = FALSE)
+  } else {
+    grob <- grid::textGrob(label, gp = grid::gpar(fontsize = fontsize))
+    out <- list(
+      w = tryCatch(
+        grid::convertWidth(grid::grobWidth(grob), "npc", valueOnly = TRUE),
+        error = function(e) NA_real_
+      ),
+      h = tryCatch(
+        grid::convertHeight(grid::grobHeight(grob), "npc", valueOnly = TRUE),
+        error = function(e) NA_real_
+      )
+    )
+    if (is.environment(size_cache)) assign(size_key, out, envir = size_cache)
+    out
+  }
+  text_w <- size$w
+  text_h <- size$h
   if (!is.finite(text_w) || text_w <= 0) {
     text_w <- max(0.018, nchar(label, type = "width") * fontsize * 0.0011)
   }
@@ -4658,6 +5116,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   candidates <- candidates[ord]
   accepted <- list()
   name_counts <- list()
+  label_size_cache <- new.env(parent = emptyenv())
   for (candidate in candidates) {
     if (candidate$x < 0.014 || candidate$x > 0.986 || candidate$y < 0.014 || candidate$y > 0.986) next
     key <- toupper(trimws(gsub("\\s+", " ", candidate$name)))
@@ -4667,7 +5126,8 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     candidate$key <- key
     candidate$box <- .hojas_ruta_pdf_label_box(
       candidate,
-      pad = if (isTRUE(candidate$major)) 0.004 else 0.005
+      pad = if (isTRUE(candidate$major)) 0.004 else 0.005,
+      size_cache = label_size_cache
     )
     if (is.null(candidate$box)) next
     if (candidate$box$xmin < 0.006 || candidate$box$xmax > 0.994 ||
@@ -4968,6 +5428,50 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       .hojas_ruta_bbox_intersects(feature$bbox, bbox)
     }, logical(1))])
   }
+  official_file <- tryCatch(.hojas_ruta_zones_packaged_file(ubigeo), error = function(e) "")
+  if (nzchar(official_file) && file.exists(official_file)) {
+    info <- file.info(official_file)
+    key <- paste(
+      normalizePath(official_file, mustWork = FALSE),
+      info$size %||% 0,
+      as.numeric(info$mtime %||% 0),
+      "zone-outline-official-v1",
+      sep = "|"
+    )
+    cached <- .hojas_ruta_pdf_zone_outline_cache[[key]]
+    if (is.null(cached)) {
+      geo <- tryCatch(.hojas_ruta_read_json_any(official_file), error = function(e) NULL)
+      features <- geo$features %||% list()
+      cached <- lapply(features, function(feature) {
+        props <- feature$properties %||% list()
+        codzona <- as.character(props$CODZONA %||% props$cod_zona %||% props$zona %||% "")
+        sufzona <- as.character(props$SUFZONA %||% props$suf_zona %||% "")
+        zona <- if (nzchar(codzona) && nzchar(sufzona) && nchar(codzona) <= 3L) {
+          paste0(sprintf("%03s", codzona), sprintf("%02s", sufzona))
+        } else if (nzchar(codzona)) {
+          sprintf("%05s", codzona)
+        } else {
+          as.character(props$IDZONA %||% "")
+        }
+        rings <- .hojas_ruta_geometry_rings(feature$geometry)
+        if (!length(rings)) return(NULL)
+        feature_bbox <- .hojas_ruta_bbox_from_rings(rings)
+        if (is.null(feature_bbox)) return(NULL)
+        list(zona = zona, rings = rings, bbox = feature_bbox)
+      })
+      cached <- cached[!vapply(cached, is.null, logical(1))]
+      .hojas_ruta_pdf_zone_outline_cache[[key]] <- cached
+    }
+    if (length(cached)) {
+      if (!is.null(render_ctx) && is.environment(render_ctx$zone_outlines)) {
+        assign(ubigeo, cached, envir = render_ctx$zone_outlines)
+      }
+      if (is.null(bbox)) return(cached)
+      return(cached[vapply(cached, function(feature) {
+        .hojas_ruta_bbox_intersects(feature$bbox, bbox)
+      }, logical(1))])
+    }
+  }
   key <- paste(ubigeo, "fallback", sep = "|")
   if (requireNamespace("sf", quietly = TRUE)) {
     profile <- .hojas_ruta_cartografia_profile_for_ubigeo(ubigeo)
@@ -5262,21 +5766,14 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   out[!vapply(out, is.null, logical(1))]
 }
 
-.hojas_ruta_pdf_street_features <- function(ubigeo, bbox, max_features = 360L,
-                                            render_ctx = NULL) {
-  features <- if (!is.null(render_ctx)) {
-    .hojas_ruta_render_street_geo_features(render_ctx, ubigeo)
-  } else {
-    payload <- tryCatch(hojas_ruta_street_map_preview(ubigeo), error = function(e) NULL)
-    payload$geojson$features %||% list()
-  }
+.hojas_ruta_prepare_street_features <- function(features) {
   if (!length(features)) return(list())
   out <- lapply(features, function(feature) {
     props <- feature$properties %||% list()
     lines <- .hojas_ruta_geometry_line_parts(feature$geometry)
     if (!length(lines)) return(NULL)
     feature_bbox <- .hojas_ruta_bbox_from_rings(lines)
-    if (!.hojas_ruta_bbox_intersects(feature_bbox, bbox)) return(NULL)
+    if (is.null(feature_bbox)) return(NULL)
     rank <- suppressWarnings(as.integer(props$rank %||% 9L))
     if (!is.finite(rank)) rank <- 9L
     highway <- as.character(props$highway %||% "")
@@ -5298,6 +5795,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       avenue_like = avenue_like,
       length_m = suppressWarnings(as.numeric(props$length_m %||% 0)),
       source = as.character(props$source %||% ""),
+      bbox = feature_bbox,
       lines = lines
     )
   })
@@ -5327,6 +5825,24 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     -vapply(out, function(x) x$length_m %||% 0, numeric(1))
   )
   out <- out[order_idx]
+  out
+}
+
+.hojas_ruta_pdf_street_features <- function(ubigeo, bbox, max_features = 360L,
+                                            render_ctx = NULL) {
+  out <- if (!is.null(render_ctx)) {
+    .hojas_ruta_render_street_features_processed(render_ctx, ubigeo)
+  } else {
+    payload <- tryCatch(hojas_ruta_street_map_preview(ubigeo), error = function(e) NULL)
+    .hojas_ruta_prepare_street_features(payload$geojson$features %||% list())
+  }
+  if (!length(out)) return(list())
+  if (!is.null(bbox)) {
+    out <- out[vapply(out, function(feature) {
+      .hojas_ruta_bbox_intersects(feature$bbox, bbox)
+    }, logical(1))]
+  }
+  if (!length(out)) return(list())
   if (length(out) <= max_features) return(out)
   keep_major <- vapply(out, function(x) x$rank <= 5L || isTRUE(x$avenue_like), logical(1))
   major <- out[keep_major]
@@ -5356,48 +5872,55 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   )
 }
 
-.hojas_ruta_pdf_context_features <- function(ubigeo, bbox, max_points = 34L,
-                                             render_ctx = NULL) {
-  features <- if (!is.null(render_ctx)) {
-    .hojas_ruta_render_context_geo_features(render_ctx, ubigeo)
-  } else {
-    payload <- tryCatch(hojas_ruta_context_map_preview(ubigeo), error = function(e) NULL)
-    payload$geojson$features %||% list()
-  }
-  if (!length(features)) return(list(polygons = list(), lines = list(), points = list()))
-  payload <- NULL
-  polys <- list()
-  lines_out <- list()
-  points_out <- list()
-  for (feature in features) {
+.hojas_ruta_prepare_context_features <- function(features) {
+  if (!length(features)) return(list())
+  out <- lapply(features, function(feature) {
     props <- feature$properties %||% list()
     cls <- as.character(props$feature_class %||% "")
-    if (!cls %in% c("green", "water", "square", "waterway", "coast")) next
+    if (!cls %in% c("green", "water", "square", "waterway", "coast")) return(NULL)
     rank <- suppressWarnings(as.integer(props$rank %||% 9L))
     if (!is.finite(rank)) rank <- 9L
-    label <- as.character(props$display_name %||% props$name %||% "")
     rings <- .hojas_ruta_geometry_rings(feature$geometry)
     line_parts <- .hojas_ruta_geometry_line_parts(feature$geometry)
     points <- .hojas_ruta_geometry_points(feature$geometry)
     geom_parts <- c(rings, line_parts, if (nrow(points)) list(points) else list())
     feature_bbox <- .hojas_ruta_bbox_from_rings(geom_parts)
-    if (!.hojas_ruta_bbox_intersects(feature_bbox, bbox)) next
-    item <- list(
+    if (is.null(feature_bbox)) return(NULL)
+    list(
       class = cls,
       kind = as.character(props$kind %||% ""),
-      label = label,
+      label = as.character(props$display_name %||% props$name %||% ""),
       rank = rank,
       area_m2 = suppressWarnings(as.numeric(props$area_m2 %||% 0)),
       length_m = suppressWarnings(as.numeric(props$length_m %||% 0)),
+      bbox = feature_bbox,
       rings = rings,
       lines = line_parts,
       points = points
     )
-    if (length(rings) && cls %in% c("green", "water", "square")) {
-      polys[[length(polys) + 1L]] <- item
+  })
+  out[!vapply(out, is.null, logical(1))]
+}
+
+.hojas_ruta_pdf_context_features <- function(ubigeo, bbox, max_points = 34L,
+                                             render_ctx = NULL) {
+  features <- if (!is.null(render_ctx)) {
+    .hojas_ruta_render_context_features_processed(render_ctx, ubigeo)
+  } else {
+    payload <- tryCatch(hojas_ruta_context_map_preview(ubigeo), error = function(e) NULL)
+    .hojas_ruta_prepare_context_features(payload$geojson$features %||% list())
+  }
+  if (!length(features)) return(list(polygons = list(), lines = list(), points = list()))
+  polys <- list()
+  lines_out <- list()
+  points_out <- list()
+  for (feature in features) {
+    if (!.hojas_ruta_bbox_intersects(feature$bbox, bbox)) next
+    if (length(feature$rings) && feature$class %in% c("green", "water", "square")) {
+      polys[[length(polys) + 1L]] <- feature
     }
-    if (length(line_parts) && cls %in% c("water", "waterway", "coast")) {
-      lines_out[[length(lines_out) + 1L]] <- item
+    if (length(feature$lines) && feature$class %in% c("water", "waterway", "coast")) {
+      lines_out[[length(lines_out) + 1L]] <- feature
     }
   }
   points_out <- points_out[order(vapply(points_out, `[[`, integer(1), "rank"))]
@@ -5411,8 +5934,12 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   ctx$block_features <- new.env(parent = emptyenv())
   ctx$frame_lookup <- new.env(parent = emptyenv())
   ctx$street_features <- new.env(parent = emptyenv())
+  ctx$street_feature_index <- new.env(parent = emptyenv())
   ctx$context_features <- new.env(parent = emptyenv())
+  ctx$context_feature_index <- new.env(parent = emptyenv())
   ctx$zone_outlines <- new.env(parent = emptyenv())
+  ctx$zone_contexts <- new.env(parent = emptyenv())
+  ctx$street_label_maps <- new.env(parent = emptyenv())
   ctx$frame <- tryCatch({
     frame <- sample$frame %||% NULL
     if (is.data.frame(frame) && nrow(frame)) frame else hojas_ruta_inei_frame()
@@ -5505,8 +6032,16 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
 .hojas_ruta_render_street_geo_features <- function(render_ctx, ubigeo) {
   ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
   .hojas_ruta_render_cache_get(render_ctx, "street_features", ubigeo, function() {
-    payload <- tryCatch(hojas_ruta_street_map_preview(ubigeo), error = function(e) NULL)
-    payload$geojson$features %||% list()
+    .hojas_ruta_street_map_active_features(ubigeo)
+  })
+}
+
+.hojas_ruta_render_street_features_processed <- function(render_ctx, ubigeo) {
+  ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
+  .hojas_ruta_render_cache_get(render_ctx, "street_feature_index", ubigeo, function() {
+    .hojas_ruta_prepare_street_features(
+      .hojas_ruta_render_street_geo_features(render_ctx, ubigeo)
+    )
   })
 }
 
@@ -5518,7 +6053,16 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   })
 }
 
-.hojas_ruta_block_context_features <- function(block, render_ctx = NULL) {
+.hojas_ruta_render_context_features_processed <- function(render_ctx, ubigeo) {
+  ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
+  .hojas_ruta_render_cache_get(render_ctx, "context_feature_index", ubigeo, function() {
+    .hojas_ruta_prepare_context_features(
+      .hojas_ruta_render_context_geo_features(render_ctx, ubigeo)
+    )
+  })
+}
+
+.hojas_ruta_block_context_features <- function(block, render_ctx = NULL, include_context = TRUE) {
   if (!is.null(render_ctx)) {
     base <- .hojas_ruta_render_block_features(render_ctx, block$ubigeo)
     if (!length(base)) return(NULL)
@@ -5527,6 +6071,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
         id = as.character(feature$id %||% ""),
         label = as.character(feature$raw_label %||% feature$label %||% ""),
         rings = feature$rings,
+        bbox = feature$bbox,
         cx = feature$cx,
         cy = feature$cy
       )
@@ -5546,6 +6091,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       id = as.character(props$cartografia_id %||% props$ID_MANZANA %||% props$IDMZNAR %||% ""),
       label = as.character(props$manzana_label %||% props$ID_MANZANA %||% props$IDMZNAR %||% ""),
       rings = rings,
+      bbox = .hojas_ruta_bbox_from_rings(rings),
       cx = if (nrow(pts)) mean(pts[, 1], na.rm = TRUE) else NA_real_,
       cy = if (nrow(pts)) mean(pts[, 2], na.rm = TRUE) else NA_real_
     )
@@ -5557,6 +6103,14 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   selected_idx <- which(vapply(rings_by_feature, function(feature) identical(feature$id, selected_id), logical(1)))[1]
   if (is.na(selected_idx)) return(NULL)
   selected <- rings_by_feature[[selected_idx]]
+  if (!isTRUE(include_context)) {
+    return(list(
+      all = rings_by_feature,
+      context = list(),
+      selected = selected,
+      selected_id = selected_id
+    ))
+  }
   distances <- vapply(rings_by_feature, function(feature) {
     sqrt((feature$cx - selected$cx)^2 + (feature$cy - selected$cy)^2)
   }, numeric(1))
@@ -6257,7 +6811,8 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     return(.hojas_ruta_draw_context_map_pdf_legacy(block, config, out_pdf,
                                                    render_ctx = render_ctx))
   }
-  ctx_block <- .hojas_ruta_block_context_features(block, render_ctx = render_ctx)
+  ctx_block <- .hojas_ruta_block_context_features(block, render_ctx = render_ctx,
+                                                  include_context = FALSE)
 
   grDevices::pdf(out_pdf, paper = "special", width = 11.69, height = 8.27)
   on.exit(grDevices::dev.off(), add = TRUE)
@@ -6293,7 +6848,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   project <- .hojas_ruta_project_rings(list(map_ring), 0.012, 0.012, 0.976, 0.976, pad = 0)
 
   visible_features <- ctx_zone$features[vapply(ctx_zone$features, function(feature) {
-    .hojas_ruta_bbox_intersects(.hojas_ruta_bbox_from_rings(feature$rings), map_bbox)
+    .hojas_ruta_bbox_intersects(feature$bbox %||% .hojas_ruta_bbox_from_rings(feature$rings), map_bbox)
   }, logical(1))]
   if (!length(visible_features)) visible_features <- ctx_zone$features
   zone_outlines <- .hojas_ruta_pdf_zone_outline_features(block$ubigeo, map_bbox,
@@ -6463,29 +7018,41 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   }
 
   if (!isTRUE(has_reference_map)) {
-    street_labels <- .hojas_ruta_pdf_street_label_candidates_map(streets, project,
-                                                                  max_labels = 220L,
-                                                                  viewport_aspect = map_viewport_aspect)
-    if (length(street_labels) < 12L) {
-      gap_labels <- .hojas_ruta_pdf_gap_street_label_candidates(
-        all_visible_features,
-        project,
-        max_labels = if (length(street_labels)) 36L else 90L
-      )
-      street_labels <- c(street_labels, gap_labels)
-    }
-    for (label in street_labels) {
-      grid::grid.text(
-        label$name,
-        x = label$x,
-        y = label$y,
-        rot = label$angle,
-        gp = grid::gpar(
-          fontsize = label$fontsize,
-          fontface = if (isTRUE(label$major)) "bold" else "plain",
-          col = "#111111"
+    street_label_key <- paste(
+      sprintf("%06s", as.character(block$ubigeo %||% "")),
+      as.character(block$zona %||% ""),
+      paste(format(round(as.numeric(map_bbox), 8), scientific = FALSE), collapse = ","),
+      "balanced-v2",
+      sep = "|"
+    )
+    street_labels <- .hojas_ruta_render_cache_get(render_ctx, "street_label_maps", street_label_key, function() {
+      labels <- .hojas_ruta_pdf_street_label_candidates_map(streets, project,
+                                                             max_labels = 220L,
+                                                             viewport_aspect = map_viewport_aspect)
+      if (length(labels) < 12L) {
+        gap_labels <- .hojas_ruta_pdf_gap_street_label_candidates(
+          all_visible_features,
+          project,
+          max_labels = if (length(labels)) 36L else 90L
         )
-      )
+        labels <- c(labels, gap_labels)
+      }
+      labels
+    })
+    if (length(street_labels)) {
+      for (label in street_labels) {
+        grid::grid.text(
+          label$name,
+          x = label$x,
+          y = label$y,
+          rot = label$angle,
+          gp = grid::gpar(
+            fontsize = label$fontsize,
+            fontface = if (isTRUE(label$major)) "bold" else "plain",
+            col = "#111111"
+          )
+        )
+      }
     }
   }
 
@@ -6541,10 +7108,13 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       }, logical(1)))[1]
       if (!is.na(active_idx)) active_district <- district_context_all[[active_idx]]
     }
-    district_outlines_mini <- tryCatch(
-      .hojas_ruta_pdf_district_outline_features(block$ubigeo),
-      error = function(err) list()
-    )
+    district_outlines_mini <- list()
+    if (is.null(active_district)) {
+      district_outlines_mini <- tryCatch(
+        .hojas_ruta_pdf_district_outline_features(block$ubigeo),
+        error = function(err) list()
+      )
+    }
     district_rings <- if (!is.null(active_district)) {
       active_district$rings
     } else if (length(district_outlines_mini)) {
@@ -6594,7 +7164,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       paper_w = mini_w * 11.69, paper_h = mini_h * 8.27, pad = 0
     )
     visible_block <- ctx_block$all[vapply(ctx_block$all, function(feature) {
-      .hojas_ruta_bbox_intersects(.hojas_ruta_bbox_from_rings(feature$rings), mini_bbox)
+      .hojas_ruta_bbox_intersects(feature$bbox %||% .hojas_ruta_bbox_from_rings(feature$rings), mini_bbox)
     }, logical(1))]
     # Capa 1: municipios vecinos rellenos para que el contexto distrital no
     # quede flotando sobre blanco.
@@ -6860,12 +7430,11 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   )]
 }
 
-.hojas_ruta_zone_context_features <- function(ubigeo, zona, selected_ids = character(0),
-                                             render_ctx = NULL) {
+.hojas_ruta_render_zone_context_base <- function(render_ctx, ubigeo, zona) {
   ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
   zona <- as.character(zona %||% "")
-  selected_ids <- as.character(selected_ids %||% character(0))
-  if (!is.null(render_ctx)) {
+  key <- paste(ubigeo, zona, sep = "|")
+  .hojas_ruta_render_cache_get(render_ctx, "zone_contexts", key, function() {
     base <- .hojas_ruta_render_block_features(render_ctx, ubigeo)
     if (!length(base)) return(NULL)
     features_all <- lapply(base, function(feature) {
@@ -6874,10 +7443,11 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
         label = feature$label,
         zona = feature$zona,
         in_zone = identical(feature$zona, zona),
-        selected = feature$id %in% selected_ids,
+        selected = FALSE,
         viviendas = feature$viviendas,
         poblacion = feature$poblacion,
         rings = feature$rings,
+        bbox = feature$bbox,
         cx = feature$cx,
         cy = feature$cy
       )
@@ -6888,14 +7458,38 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     zone_bbox <- .hojas_ruta_bbox_expand(raw_zone_bbox, pad = 0.22)
     features <- features_all[vapply(features_all, function(feature) {
       isTRUE(feature$in_zone) ||
-        .hojas_ruta_bbox_intersects(.hojas_ruta_bbox_from_rings(feature$rings), zone_bbox)
+        .hojas_ruta_bbox_intersects(feature$bbox, zone_bbox)
     }, logical(1))]
-    return(list(
+    list(
       all = features_all,
       features = features,
       zone_features = zone_features,
       zone_bbox = raw_zone_bbox,
-      context_bbox = zone_bbox,
+      context_bbox = zone_bbox
+    )
+  })
+}
+
+.hojas_ruta_zone_context_features <- function(ubigeo, zona, selected_ids = character(0),
+                                             render_ctx = NULL) {
+  ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
+  zona <- as.character(zona %||% "")
+  selected_ids <- as.character(selected_ids %||% character(0))
+  if (!is.null(render_ctx)) {
+    base_ctx <- .hojas_ruta_render_zone_context_base(render_ctx, ubigeo, zona)
+    if (is.null(base_ctx)) return(NULL)
+    mark_selected <- function(feature) {
+      feature$selected <- feature$id %in% selected_ids
+      feature
+    }
+    features <- lapply(base_ctx$features, mark_selected)
+    zone_features <- lapply(base_ctx$zone_features, mark_selected)
+    return(list(
+      all = base_ctx$all,
+      features = features,
+      zone_features = zone_features,
+      zone_bbox = base_ctx$zone_bbox,
+      context_bbox = base_ctx$context_bbox,
       selected_ids = selected_ids
     ))
   }
@@ -7318,6 +7912,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   }
   table_c <- matrix(c(
     "ESQUINA / COORDENADA DE INICIO", as.character(esquina),
+    "RECORRIDO", as.character(recorrido),
     "CASA / DOMICILIO DE INICIO", as.character(arranque),
     "CONSTANTE DE SALTO POR CASA / DOMICILIO", constante_label
   ), ncol = 2, byrow = TRUE)
@@ -7330,7 +7925,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   .hojas_ruta_draw_reference_table(
     table_c, x = 0.215, y = 0.175,
     col_widths = c(0.34, 0.235),
-    row_heights = rep(0.032, 3),
+    row_heights = rep(0.032, 4),
     grey_cells = grey_c,
     font_size = 9.5,
     align = align_c,
@@ -7455,10 +8050,17 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   weights
 }
 
+.hojas_ruta_excel_clip <- function(value, limit = 20000L) {
+  value <- as.character(value %||% "")
+  too_long <- !is.na(value) & nchar(value, type = "chars") > limit
+  value[too_long] <- paste0(substr(value[too_long], 1L, limit - 16L), " ... [truncado]")
+  value
+}
+
 .hojas_ruta_excel_scalar <- function(x, default = "") {
   if (is.null(x) || !length(x)) return(default)
   if (is.data.frame(x)) {
-    return(as.character(jsonlite::toJSON(
+    return(.hojas_ruta_excel_clip(jsonlite::toJSON(
       x,
       dataframe = "rows",
       auto_unbox = TRUE,
@@ -7468,7 +8070,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   }
   if (is.list(x)) {
     if (!length(x)) return(default)
-    return(as.character(jsonlite::toJSON(
+    return(.hojas_ruta_excel_clip(jsonlite::toJSON(
       x,
       auto_unbox = TRUE,
       null = "null",
@@ -7477,11 +8079,11 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   }
   if (length(x) > 1L) {
     keep <- !is.na(x)
-    return(paste(as.character(x[keep]), collapse = ", "))
+    return(.hojas_ruta_excel_clip(paste(as.character(x[keep]), collapse = ", ")))
   }
   value <- x[[1]]
   if (is.null(value) || !length(value) || is.na(value)) return(default)
-  as.character(value)
+  .hojas_ruta_excel_clip(value)
 }
 
 .hojas_ruta_key_value_table <- function(x, drop = character()) {
@@ -7549,7 +8151,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       politica_reemplazos = sample$config$replacement_policy %||% "paired_by_titular_zone",
       reemplazos_por_titular = sample$config$replacements_per_titular %||% 1L,
       regla_esquina_inicio = "Auto por hash estable o codigo fijo 1/2/3/4.",
-      regla_recorrido = "Hash estable de semilla + id_manzana; sentido Horario o Antihorario.",
+      regla_recorrido = "Hash estable de semilla + id_manzana; codigo fijo 1/2.",
       regla_vivienda_inicio = "Casa/domicilio inicial entre 1 y constante_salto; si no hay salto, inicia en 1.",
       regla_constante_salto = "Auto=max(1, floor(viviendas / entrevistas)); manual=valor definido; deshabilitado=sin salto.",
       modo_rangos_edad = sample$config$age_range_mode %||% "manual",
@@ -7593,6 +8195,11 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     if (!length(value) || is.na(value[[1]])) return(as.integer(default))
     as.integer(value[[1]])
   }
+  dbl_value <- function(name, default = NA_real_) {
+    value <- suppressWarnings(as.numeric(block[[name]]))
+    if (!length(value) || is.na(value[[1]])) return(as.numeric(default))
+    as.numeric(value[[1]])
+  }
   data.frame(
     Distrito = text_value("distrito"),
     Ubigeo = text_value("ubigeo"),
@@ -7604,8 +8211,14 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     Encuestas = int_value("entrevistas"),
     `Total viviendas` = int_value("viviendas"),
     `Esquina inicio` = text_value("esquina_coordenada", text_value("esquina_inicio")),
+    Recorrido = text_value("sentido_recorrido"),
     `Casa inicio` = int_value("domicilio_inicio", int_value("vivienda_inicio")),
     Salto = int_value("constante_salto"),
+    `K teorico` = dbl_value("constante_salto_raw"),
+    `Salto operativo` = int_value("salto_operativo", int_value("constante_salto")),
+    `Formula salto` = text_value("constante_salto_formula"),
+    `Modo salto` = text_value("modo_seleccion_vivienda"),
+    `Unidad salto` = text_value("constante_salto_unidad"),
     `Codigo compuesto` = text_value("id_manzana"),
     `Archivo PDF` = as.character(archivo_pdf %||% NA_character_),
     stringsAsFactors = FALSE,
@@ -7660,7 +8273,7 @@ hojas_ruta_generar_pdf_aleatorio_integrado <- function(config = list(), result_p
     render_config$random_preference <- random_preference
     alerts <- sample$alerts %||% list()
   } else {
-    frame_all <- hojas_ruta_inei_frame()
+    frame_all <- hojas_ruta_inei_frame(cfg$frame_source)
     territorios <- unlist(cfg$territorios, use.names = FALSE)
     frame <- if (length(territorios)) {
       frame_all[as.character(frame_all$ubigeo) %in% territorios, , drop = FALSE]
@@ -7686,7 +8299,7 @@ hojas_ruta_generar_pdf_aleatorio_integrado <- function(config = list(), result_p
     block$rango_inicio <- 1L
     block$rango_fin <- route_size
     qdom <- data.frame()
-    meta <- .hojas_ruta_frame_meta(frame_all)
+    meta <- .hojas_ruta_frame_meta(frame_all, cfg$frame_source)
     render_config <- cfg
     alerts <- if (!is.null(sample)) sample$alerts %||% list() else list()
   }

@@ -98,6 +98,53 @@ test_that("hojas_ruta_inei_frame carga marco completo versionado", {
   expect_true(all(c("150103", "150143", "070106") %in% unique(frame$ubigeo)))
 })
 
+test_that("frame oficial INEI 2017 queda disponible sin reemplazar default", {
+  current <- hojas_ruta_inei_frame()
+  official <- hojas_ruta_inei_frame("inei2017_official")
+  expect_equal(nrow(official), 118408L)
+  expect_equal(length(unique(official$ubigeo)), 50L)
+  expect_true(all(c("id_manzana", "id_manzana_norm", "cartografia_id") %in% names(official)))
+  expect_equal(length(unique(official$id_manzana_norm)), nrow(official))
+
+  cfg_default <- hojas_ruta_integrada_normalize_config(list(territorios = "150122"))
+  cfg_official <- hojas_ruta_integrada_normalize_config(list(
+    frame_source = "inei2017_official",
+    territorios = "150122"
+  ))
+  expect_equal(cfg_default$frame_source, "current")
+  expect_equal(cfg_official$frame_source, "inei2017_official")
+
+  meta <- .hojas_ruta_frame_meta(current, cfg_default$frame_source)
+  expect_equal(meta$active_source, "current")
+  expect_true(meta$official$available)
+  expect_equal(meta$official$n_manzanas, 118408L)
+  expect_true(meta$audit$available)
+})
+
+test_that("NSE Lima INEI y zonas censales oficiales reportan cobertura", {
+  nse <- hojas_ruta_nse_inei(required = TRUE)
+  expect_true(nrow(nse) > 90000L)
+  expect_setequal(
+    sort(unique(nse$nse_nivel)),
+    c("ALTO", "BAJO", "MEDIO", "MEDIO ALTO", "MEDIO BAJO")
+  )
+  expect_false(any(grepl("^0701", nse$ubigeo)))
+  nse_meta <- .hojas_ruta_nse_meta(nse)
+  expect_true(nse_meta$available)
+  expect_gte(nse_meta$coverage_rate, 0.98)
+  expect_gte(nse_meta$matched_blocks, 90000L)
+
+  zones <- hojas_ruta_cartografia_zonas_meta()
+  expect_true(zones$available)
+  expect_equal(zones$districts, 50L)
+  expect_equal(zones$zones, 1721L)
+
+  audit <- hojas_ruta_frame_audit_meta()
+  expect_true(audit$available)
+  expect_true(audit$rows > 100000L)
+  expect_true(length(audit$status_counts) > 0L)
+})
+
 test_that("hojas_ruta_inei_age_simple carga edad simple oficial REDATAM", {
   age <- hojas_ruta_inei_age_simple(required = TRUE)
   expect_true(nrow(age) > 0)
@@ -657,7 +704,7 @@ test_that("rotulos viales densos se desduplican y evitan solapes", {
   on.exit(grDevices::dev.off(), add = TRUE)
   grid::grid.newpage()
   grid::pushViewport(grid::viewport(width = 0.80, height = 0.80))
-  on.exit(grid::popViewport(), add = TRUE)
+  on.exit(try(grid::popViewport(), silent = TRUE), add = TRUE)
 
   labels <- .hojas_ruta_pdf_street_label_candidates_map(streets, project, max_labels = 20L)
   expect_lte(length(labels), 20L)
@@ -807,6 +854,26 @@ test_that("hojas_ruta_sample_preview_integrado selecciona reemplazos pareados po
   ) %in% names(blocks)))
 })
 
+test_that("hojas_ruta_sample_preview_integrado permite cero reemplazos", {
+  out <- hojas_ruta_sample_preview_integrado(list(
+    n_objetivo = 24,
+    territorios = c("150110", "070106"),
+    sampling_method = "pps",
+    entrevistas_por_manzana = 6,
+    seed = 99,
+    replacements_per_titular = 0
+  ))
+  expect_true(out$ok)
+  expect_equal(out$config$replacements_per_titular, 0L)
+  expect_equal(out$n_replacement_blocks, 0L)
+  expect_equal(out$total_replacement_interviews, 0L)
+  expect_equal(length(out$replacement_blocks), 0L)
+  expect_length(
+    Filter(function(x) identical(x$code, "E_REPLACEMENT_PAIR_COUNT"), out$alerts),
+    0L
+  )
+})
+
 test_that("validacion integral rechaza reemplazos ausentes o fuera de zona", {
   cfg <- hojas_ruta_integrada_normalize_config(list(
     n_objetivo = 12,
@@ -872,13 +939,17 @@ test_that("valores operativos son estables por id_manzana y no por orden", {
   expect_equal(a, b)
   expect_match(a$esquina_inicio, "^[1-4]$")
   expect_true(a$esquina_coordenada %in% as.character(1:4))
-  expect_true(a$sentido_recorrido %in% c("Horario", "Antihorario"))
+  expect_true(a$sentido_recorrido %in% c("1", "2"))
   expect_gte(a$vivienda_inicio, 1L)
   expect_equal(a$domicilio_inicio, a$vivienda_inicio)
   expect_lte(a$vivienda_inicio, a$constante_salto)
   expect_equal(a$constante_salto_unidad, "casa/domicilio")
+  expect_equal(a$constante_salto_raw, 8)
+  expect_equal(a$constante_salto_formula, "K=48/6; operativo=floor(K)")
+  expect_equal(a$salto_operativo, a$constante_salto)
   sweep <- .hojas_ruta_route_operational_values(list(id_manzana = "150110001000011", viviendas = 4L, entrevistas = 6L), cfg)
   expect_equal(sweep$constante_salto, 1L)
+  expect_equal(sweep$salto_operativo, 1L)
   expect_equal(sweep$vivienda_inicio, 1L)
   expect_equal(sweep$modo_seleccion_vivienda, "Barrido completo")
 

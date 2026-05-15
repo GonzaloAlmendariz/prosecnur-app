@@ -1,0 +1,26 @@
+{
+  "id": "nse-inei2017-lima-manzanas",
+  "version": "nse-inei2017-lima-manzanas-v1",
+  "source": "NSE Lima INEI",
+  "source_file": "/Users/gonzaloalmendariz/Documents/Pulso/GIZ/drive_insumos_descarga_relevante/NSE Lima INEI/NSE.xlsx",
+  "coverage": "Lima Metropolitana",
+  "year": 2017,
+  "levels": {
+    "BAJO": 32464,
+    "MEDIO BAJO": 25845,
+    "MEDIO": 18913,
+    "MEDIO ALTO": 8758,
+    "ALTO": 6646
+  },
+  "source_records": 92626,
+  "matched_source_records": 92607,
+  "matched_blocks": 92278,
+  "match_rate": 0.9998,
+  "unmatched_source_records": 19,
+  "duplicate_block_matches": 328,
+  "callao_available": false,
+  "packaged_at": "2026-05-14T04:27:02Z",
+  "checksum": {
+    "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/hojas_ruta/nse_inei2017_lima_manzanas.csv.gz": "362c1294490a868d2055b00464a518ed"
+  }
+}
