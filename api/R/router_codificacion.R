@@ -2047,6 +2047,7 @@ mount_codificacion <- function(pr) {
           base_activa <- codif_source_active(j$sid)
           if (!is.null(base_activa) && nzchar(base_activa) &&
               !is.null(s_now$estudio) && !is.null(s_now$estudio$bases[[base_activa]])) {
+            estudio_preserve_original_base_files(j$sid, base_activa)
             estudio_replace_base_files(
               sid = j$sid,
               nombre = base_activa,

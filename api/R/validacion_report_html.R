@@ -128,8 +128,7 @@
       "Decisiones registradas",
       "Pendientes por resolver",
       "Casos excluidos",
-      "Reemplazos / normalizaciones",
-      "Imputaciones"
+      "Celdas corregidas"
     ),
     Valor = c(
       .report_fmt_int(summary$total_reglas_con_casos %||% 0L),
@@ -138,8 +137,8 @@
       .report_fmt_int(summary$total_decisiones %||% 0L),
       .report_fmt_int(summary$pendientes %||% 0L),
       .report_fmt_int(summary$total_casos_excluidos %||% 0L),
-      .report_fmt_int(summary$total_reemplazos %||% 0L),
-      .report_fmt_int(summary$total_imputaciones %||% 0L)
+      .report_fmt_int(summary$total_celdas_corregidas %||%
+                        ((summary$total_reemplazos %||% 0L) + (summary$total_imputaciones %||% 0L)))
     )
   )
   rows <- vapply(seq_len(nrow(df)), function(i) {

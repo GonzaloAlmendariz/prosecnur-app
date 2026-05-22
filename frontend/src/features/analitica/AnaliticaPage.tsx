@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, BookOpen, Database, Grid3x3, Layers, Users } from "lucide-react";
+import { BarChart2, BookOpen, ClipboardList, Database, Grid3x3, Layers } from "lucide-react";
 import { apiAnaliticaPreparar } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
@@ -9,28 +9,23 @@ import { PageFrame } from "../../components/PageFrame";
 import { TabStrip, TabMeta } from "../../components/TabStrip";
 import { useAnaliticaAutosave } from "./useAnaliticaAutosave";
 import { AnaliticaHeader } from "./AnaliticaHeader";
-import { DefinicionGlobal } from "./DefinicionGlobal";
 import { CodebookPane } from "./panes/CodebookPane";
 import { FrecuenciasPane } from "./panes/FrecuenciasPane";
 import { CrucesPane } from "./panes/CrucesPane";
 import { BasesPane } from "./panes/BasesPane";
-import { EnumeradoresPane } from "./panes/EnumeradoresPane";
 import { DimensionesPane } from "./panes/DimensionesPane";
+import { DataReviewPane } from "./panes/DataReviewPane";
 
-// 6 reportes en el orden que el analista suele correrlos: primero calidad
-// de campo (enumeradores), luego diccionario (codebook), luego datos
-// exportables (bases), luego tablas univariadas y, antes de los cruces,
-// dimensiones (insumo opcional pero compartido por Cruces, Gráficos y
-// el módulo Dashboard).
-type Reporte = "enumeradores" | "codebook" | "bases" | "frecuencias" | "dimensiones" | "cruces";
+// Revisión de data primero; enumeradores vive en Monitoreo.
+type Reporte = "datos" | "codebook" | "bases" | "frecuencias" | "cruces" | "dimensiones";
 
 const REPORTES: TabMeta<Reporte>[] = [
-  { key: "enumeradores", label: "Enumeradores",      icon: Users,     desc: "PDF de producción" },
+  { key: "datos",        label: "Datos",             icon: ClipboardList, desc: "Revisión de data" },
   { key: "codebook",     label: "Libro de códigos",  icon: BookOpen,  desc: "Diccionario de variables" },
   { key: "bases",        label: "Bases",             icon: Database,  desc: "Datos exportables (SPSS)" },
   { key: "frecuencias",  label: "Frecuencias",       icon: BarChart2, desc: "Tablas univariadas" },
-  { key: "dimensiones",  label: "Dimensiones",       icon: Layers,    desc: "Índices 0-100 jerárquicos" },
   { key: "cruces",       label: "Cruces",            icon: Grid3x3,   desc: "Tablas 2D con semáforo" },
+  { key: "dimensiones",  label: "Dimensiones",       icon: Layers,    desc: "Índices 0-100 jerárquicos" },
 ];
 
 export default function AnaliticaPage() {
@@ -69,11 +64,11 @@ export default function AnaliticaPage() {
 
   // Reporte activo desde el query string.
   const raw = new URLSearchParams(location.search).get("reporte");
-  const active: Reporte = (REPORTES.find((r) => r.key === raw)?.key) ?? "enumeradores";
+  const active: Reporte = (REPORTES.find((r) => r.key === raw)?.key) ?? "datos";
 
   function goReporte(next: Reporte) {
     const sp = new URLSearchParams(location.search);
-    if (next === "enumeradores") sp.delete("reporte");
+    if (next === "datos") sp.delete("reporte");
     else sp.set("reporte", next);
     navigate({ pathname: "/analitica", search: sp.toString() ? `?${sp}` : "" });
   }
@@ -94,7 +89,6 @@ export default function AnaliticaPage() {
           {prereqOk && (
             <>
               <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} />
-              {prepOk && <DefinicionGlobal />}
               <TabStrip<Reporte>
                 tabs={REPORTES}
                 active={active}
@@ -112,12 +106,12 @@ export default function AnaliticaPage() {
             <LoadingBlock label="Preparando datos…" />
           ) : prepOk ? (
             <>
-              {active === "enumeradores" && <EnumeradoresPane />}
+              {active === "datos"        && <DataReviewPane />}
               {active === "codebook"     && <CodebookPane />}
               {active === "bases"        && <BasesPane />}
               {active === "frecuencias"  && <FrecuenciasPane />}
-              {active === "dimensiones"  && <DimensionesPane />}
               {active === "cruces"       && <CrucesPane />}
+              {active === "dimensiones"  && <DimensionesPane />}
             </>
           ) : (
             <Alert kind="warn">

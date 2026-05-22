@@ -42,8 +42,17 @@
 # file en el store. Devuelve una lista con info por base:
 #   list(nombre, file_id, filename, size, path)
 run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
-  ds <- estudio_data_sources(sid)
-  is_ <- estudio_inst_sources(sid)
+  s <- session_get(sid, required = FALSE)
+  ds <- if (!is.null(s$analitica_rp_data_sources) && length(s$analitica_rp_data_sources) > 0L) {
+    s$analitica_rp_data_sources
+  } else {
+    estudio_data_sources(sid)
+  }
+  is_ <- if (!is.null(s$analitica_rp_inst_sources) && length(s$analitica_rp_inst_sources) > 0L) {
+    s$analitica_rp_inst_sources
+  } else {
+    estudio_inst_sources(sid)
+  }
   if (length(ds) == 0L) {
     stop_api(409, "E_NO_RP_DATA",
              "El estudio no tiene bases. Agrega al menos una en Fase 1.")

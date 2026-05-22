@@ -12,6 +12,10 @@ import PreguntaDetalle from "../features/codificacion/PreguntaDetalle";
 import AnaliticaPage from "../features/analitica/AnaliticaPage";
 import GraficosPage from "../features/graficos/GraficosPage";
 import HojasRutaPage from "../features/hojasRuta/HojasRutaPage";
+import MuestraHub from "../features/muestra/MuestraHub";
+import EnciclopediaHome from "../features/enciclopedia/EnciclopediaHome";
+import FichaMetodologica from "../features/enciclopedia/FichaMetodologica";
+import CalcMuestraPage from "../features/calcMuestra/CalcMuestraPage";
 import MonitoreoPage from "../features/monitoreo/MonitoreoPage";
 import ProjectShell from "../features/project/ProjectShell";
 import XlsformEditorPage from "../features/xlsformEditor/XlsformEditorPage";
@@ -83,6 +87,13 @@ export default function App() {
               <Route path="/analitica" element={<AnaliticaPage />} />
               <Route path="/graficos" element={<GraficosPage />} />
               <Route path="/hojas-ruta" element={<HojasRutaPage />} />
+              <Route path="/calc-muestra" element={<CalcMuestraPage />} />
+              <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />
+              <Route path="/diseno-muestra/metodologia/:metodologia" element={<Navigate to="/calc-muestra" replace />} />
+              <Route path="/enciclopedia" element={<EnciclopediaHome />} />
+              <Route path="/enciclopedia/metodologia/:id" element={<FichaMetodologica />} />
+              <Route path="/muestra" element={<MuestraHub />} />
+              <Route path="/muestra-aulas" element={<Navigate to="/calc-muestra" replace />} />
               <Route path="/monitoreo" element={<MonitoreoPage />} />
               <Route path="/editor-xlsform" element={<XlsformEditorPage />} />
               <Route

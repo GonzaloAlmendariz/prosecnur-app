@@ -206,7 +206,7 @@
     )),
     meta = list(
       eyebrow = "Variables críticas",
-      note = "Sirve como guía para priorizar reemplazos, normalizaciones e imputaciones dentro del cierre."
+      note = "Sirve como guía para priorizar correcciones de valores dentro del cierre."
     )
   )
 }

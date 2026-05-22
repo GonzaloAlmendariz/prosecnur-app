@@ -823,6 +823,7 @@ test_that("hojas_ruta_sample_preview_integrado selecciona reemplazos pareados po
     sampling_method = "pps",
     entrevistas_por_manzana = 6,
     seed = 99,
+    replacement_policy = "paired_by_titular_zone",
     replacement_routes_per_district = list("150110" = 2, "070106" = 1)
   ))
   expect_true(out$ok)
@@ -854,6 +855,149 @@ test_that("hojas_ruta_sample_preview_integrado selecciona reemplazos pareados po
   ) %in% names(blocks)))
 })
 
+test_that("hojas_ruta_sample_preview_integrado selecciona reemplazos en otra zona del mismo distrito", {
+  cfg <- hojas_ruta_integrada_normalize_config(list(
+    n_objetivo = 24,
+    territorios = "150110",
+    sampling_method = "pps",
+    entrevistas_por_manzana = 6,
+    seed = 99,
+    replacement_policy = "alternate_zone_same_district"
+  ))
+  expect_equal(cfg$replacement_policy, "alternate_zone_same_district")
+
+  out <- hojas_ruta_sample_preview_integrado(cfg)
+  expect_true(out$ok)
+  expect_equal(out$config$replacement_policy, "alternate_zone_same_district")
+  expect_equal(out$n_replacement_blocks, out$n_blocks)
+  expect_true(.hojas_ruta_validate_delivery_sample(out)$ok)
+
+  blocks <- .hojas_ruta_rows_df(out$blocks)
+  replacements <- .hojas_ruta_rows_df(out$replacement_blocks)
+  expect_true(all(c(
+    "titular_hoja_num", "titular_rango_inicio", "titular_rango_fin",
+    "rango_inicio", "rango_fin", "replacement_label"
+  ) %in% names(replacements)))
+  paired <- merge(
+    replacements,
+    blocks[, c("id_manzana", "ubigeo", "zona", "hoja_num", "rango_inicio", "rango_fin"), drop = FALSE],
+    by.x = "titular_id_manzana",
+    by.y = "id_manzana",
+    suffixes = c("_replacement", "_titular")
+  )
+  expect_equal(nrow(paired), nrow(replacements))
+  expect_true(all(paired$ubigeo_replacement == paired$ubigeo_titular))
+  expect_true(all(paired$zona_replacement != paired$zona_titular))
+  expect_false(any(replacements$zona %in% unique(blocks$zona)))
+  expect_equal(as.integer(paired$rango_inicio_replacement), as.integer(paired$rango_inicio_titular))
+  expect_equal(as.integer(paired$rango_fin_replacement), as.integer(paired$rango_fin_titular))
+  expect_equal(as.integer(paired$titular_rango_inicio), as.integer(paired$rango_inicio_titular))
+  expect_equal(as.integer(paired$titular_rango_fin), as.integer(paired$rango_fin_titular))
+  expect_true(all(grepl("^Remplazo de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacements$replacement_label)))
+})
+
+test_that("reemplazos en otra zona hacen fallback advertido a la zona titular", {
+  cfg <- hojas_ruta_integrada_normalize_config(list(
+    n_objetivo = 6,
+    territorios = "150110",
+    entrevistas_por_manzana = 6,
+    seed = 99,
+    replacement_policy = "alternate_zone_same_district"
+  ))
+  blocks <- data.frame(
+    id_manzana = "A",
+    ubigeo = "150110",
+    zona = "00100",
+    distrito = "COMAS",
+    manzana = "0010",
+    viviendas = 30L,
+    poblacion = 100L,
+    orden_seleccion = 1L,
+    entrevistas = 6L,
+    stringsAsFactors = FALSE
+  )
+  blocks <- .hojas_ruta_blocks_with_route_ranges(blocks)
+  frame <- data.frame(
+    id_manzana = c("A", "R1"),
+    ubigeo = c("150110", "150110"),
+    zona = c("00100", "00100"),
+    distrito = c("COMAS", "COMAS"),
+    manzana = c("0010", "0020"),
+    viviendas = c(30L, 25L),
+    poblacion = c(100L, 90L),
+    stringsAsFactors = FALSE
+  )
+  assigned <- .hojas_ruta_assign_alternate_zone_replacements(blocks, frame, cfg, selected_ids = "A")
+  expect_true(assigned$ok)
+  expect_true(any(vapply(assigned$alerts, function(x) identical(x$code, "W_REPLACEMENT_FALLBACK_SAME_ZONE"), logical(1))))
+  replacements <- .hojas_ruta_apply_replacement_route_ranges(assigned$blocks, blocks)
+  expect_equal(nrow(replacements), 1L)
+  expect_equal(replacements$zona[[1]], "00100")
+  expect_true(isTRUE(replacements$replacement_fallback[[1]]))
+  expect_equal(replacements$rango_inicio[[1]], blocks$rango_inicio[[1]])
+  expect_equal(replacements$rango_fin[[1]], blocks$rango_fin[[1]])
+  expect_equal(replacements$replacement_label[[1]], "Remplazo de A [Encuestas 1 a 6]")
+})
+
+test_that("etiqueta ordinal de reemplazo aparece solo cuando hay varios por titular", {
+  titulars <- data.frame(
+    id_manzana = c("A", "B"),
+    hoja_num = c(2L, 1L),
+    rango_inicio = c(7L, 1L),
+    rango_fin = c(12L, 6L),
+    stringsAsFactors = FALSE
+  )
+  replacements <- data.frame(
+    id_manzana = c("RA2", "RB1", "RA1"),
+    titular_id_manzana = c("A", "B", "A"),
+    titular_orden_seleccion = c(2L, 1L, 2L),
+    replacement_order = c(2L, 1L, 1L),
+    stringsAsFactors = FALSE
+  )
+  replacements <- .hojas_ruta_apply_replacement_route_ranges(replacements, titulars)
+  expect_equal(replacements$replacement_total, c(2L, 1L, 2L))
+  expect_equal(replacements$replacement_label, c(
+    "Remplazo 2/2 de A [Encuestas 7 a 12]",
+    "Remplazo de B [Encuestas 1 a 6]",
+    "Remplazo 1/2 de A [Encuestas 7 a 12]"
+  ))
+
+  ordered <- .hojas_ruta_order_replacements(replacements)
+  expect_equal(ordered$id_manzana, c("RB1", "RA1", "RA2"))
+})
+
+test_that("reemplazos puntuales generan PDF unificado para titulares seleccionadas", {
+  testthat::skip_if_not_installed("qpdf")
+  cfg <- hojas_ruta_integrada_normalize_config(list(
+    n_objetivo = 12,
+    territorios = "150110",
+    entrevistas_por_manzana = 6,
+    seed = 99,
+    replacement_policy = "alternate_zone_same_district",
+    replacements_per_titular = 0
+  ))
+  sample <- hojas_ruta_sample_preview_integrado(cfg)
+  expect_true(sample$ok)
+  titular_id <- .hojas_ruta_rows_df(sample$blocks)$id_manzana[[1]]
+  out_pdf <- tempfile(fileext = ".pdf")
+  res <- hojas_ruta_generar_reemplazos_manual_pdf(
+    cfg,
+    sample = sample,
+    titular_ids = titular_id,
+    replacements_per_titular = 2,
+    result_path = out_pdf
+  )
+  expect_true(file.exists(out_pdf))
+  expect_gt(file.info(out_pdf)$size, 0)
+  expect_equal(res$n_titulars, 1L)
+  expect_equal(res$n_replacement_blocks, 2L)
+  expect_true(qpdf::pdf_length(out_pdf) >= res$n_replacement_blocks)
+  replacements <- .hojas_ruta_rows_df(res$replacement_blocks)
+  expect_equal(replacements$replacement_total, c(2L, 2L))
+  expect_true(all(grepl("^Remplazo [12]/2 de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacements$replacement_label)))
+  expect_equal(as.character(replacements$titular_id_manzana), rep(titular_id, 2))
+})
+
 test_that("hojas_ruta_sample_preview_integrado permite cero reemplazos", {
   out <- hojas_ruta_sample_preview_integrado(list(
     n_objetivo = 24,
@@ -878,7 +1022,8 @@ test_that("validacion integral rechaza reemplazos ausentes o fuera de zona", {
   cfg <- hojas_ruta_integrada_normalize_config(list(
     n_objetivo = 12,
     territorios = "150110",
-    seed = 99
+    seed = 99,
+    replacement_policy = "paired_by_titular_zone"
   ))
   blocks <- data.frame(
     id_manzana = c("A", "B"),
@@ -1097,6 +1242,7 @@ test_that("hojas_ruta_generar_zip_integrado produce entrega operativa plana", {
       sampling_method = "pps",
       seed = 99,
       max_per_manzana = 8,
+      replacement_policy = "alternate_zone_same_district",
       replacement_routes_per_district = list("150110" = 1, "070106" = 1)
     ),
     out_zip
@@ -1124,6 +1270,13 @@ test_that("hojas_ruta_generar_zip_integrado produce entrega operativa plana", {
   report <- openxlsx::read.xlsx(report_path, sheet = "Hojas_de_ruta")
   expect_equal(nrow(report), res$n_blocks + res$n_replacement_blocks)
   expect_setequal(unique(report$Tipo.de.ruta), c("TITULAR", "REEMPLAZO"))
+  replacement_report <- report[report$Tipo.de.ruta == "REEMPLAZO", , drop = FALSE]
+  expect_true(all(!is.na(replacement_report$Numero.inicio)))
+  expect_true(all(!is.na(replacement_report$Numero.fin)))
+  expect_true(any(grepl("^Remplazo de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacement_report$Etiqueta.reemplazo)))
+  zone_report <- openxlsx::read.xlsx(report_path, sheet = "Resumen_zonas")
+  expect_true(any(zone_report$manzanas_reemplazo > 0L))
+  expect_true(any(zone_report$manzanas_reemplazo > 0L & zone_report$manzanas_titulares == 0L))
 })
 
 test_that("hojas_ruta_rows_df tolera NULL serializados desde frontend", {

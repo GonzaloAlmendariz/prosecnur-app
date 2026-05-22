@@ -83,6 +83,7 @@
       target_case_ids = character(),
       target_variable = character(),
       action_type = character(),
+      action_label = character(),
       action_params = character(),
       rationale = character(),
       status = character(),
@@ -99,6 +100,7 @@
     target_case_ids = vapply(decisions, function(d) paste(unlist(d$target_case_ids %||% list()), collapse = ", "), character(1)),
     target_variable = vapply(decisions, function(d) as.character(d$target_variable %||% ""), character(1)),
     action_type = vapply(decisions, function(d) as.character(d$action_type %||% ""), character(1)),
+    action_label = vapply(decisions, .limpieza_summarize_decision, character(1)),
     action_params = vapply(decisions, function(d) jsonlite::toJSON(d$action_params %||% list(), auto_unbox = TRUE, null = "null"), character(1)),
     rationale = vapply(decisions, function(d) as.character(d$rationale %||% ""), character(1)),
     status = vapply(decisions, function(d) as.character(d$status %||% ""), character(1)),
@@ -391,13 +393,14 @@
 .limpieza_summarize_decision <- function(decision) {
   if (is.null(decision)) return(NA_character_)
   map <- c(
-    ignore_rule = "Ignorar regla",
-    exclude_cases = "Excluir casos",
-    replace_value = "Reemplazar valor",
-    normalize_value = "Normalizar valor",
-    impute_value = "Imputar"
+    ignore_rule = "No modificar / documentar",
+    exclude_cases = "Excluir registros",
+    replace_value = "Corregir valor",
+    normalize_value = "Corregir valor",
+    impute_value = "Corregir valor"
   )
-  label <- unname(map[decision$action_type %||% ""]) %||% "Decisión"
+  label <- unname(map[decision$action_type %||% ""])
+  if (is.na(label) || !nzchar(label)) label <- "Decisión"
   if (!is.null(decision$target_variable) && !is.na(decision$target_variable) && nzchar(decision$target_variable)) {
     paste(label, "·", as.character(decision$target_variable))
   } else {
@@ -778,6 +781,7 @@
     decisiones_listas = as.integer(sum(vapply(decisions, function(d) identical(as.character(d$status %||% ""), "ready"), logical(1)))),
     pendientes = pending_count,
     total_casos_excluidos = as.integer(preview$impact$cases_excluded %||% 0L),
+    total_celdas_corregidas = as.integer(preview$impact$cells_changed %||% 0L),
     total_reemplazos = as.integer((preview$impact$replacements %||% 0L) + (preview$impact$normalizations %||% 0L)),
     total_imputaciones = as.integer(preview$impact$imputations %||% 0L),
     ready_to_finalize = isTRUE(!is.null(scope$evaluacion) && pending_count == 0L)
@@ -801,8 +805,7 @@
   write_sheet("Resumen", tibble::as_tibble(summary))
   write_sheet("Decisiones_reglas", .limpieza_flatten_decisions(decisions))
   write_sheet("Casos_excluidos", preview$logs$excluded_cases %||% tibble::tibble())
-  write_sheet("Reemplazos", preview$logs$replacements %||% tibble::tibble())
-  write_sheet("Imputaciones", preview$logs$imputations %||% tibble::tibble())
+  write_sheet("Correcciones", preview$logs$trace %||% tibble::tibble())
   write_sheet("Trazabilidad", preview$logs$trace %||% tibble::tibble())
   write_sheet("Residual_final", if (!is.null(preview$evaluacion_final) && !is.null(preview$evaluacion_final$resumen)) tibble::as_tibble(preview$evaluacion_final$resumen) else tibble::tibble())
 

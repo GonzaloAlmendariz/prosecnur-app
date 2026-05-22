@@ -2818,7 +2818,7 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     n_mode = "total",
     n_por_distrito = list(),
     replacement_routes_per_district = list(),
-    replacement_policy = "paired_by_titular_zone",
+    replacement_policy = "alternate_zone_same_district",
     replacements_per_titular = 1L,
     territorios = list(),
     row_var = "distrito",
@@ -2839,6 +2839,10 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     sample_size_mode = "calculator",
     sample_size = .hojas_ruta_normalize_sample_size(list(), "pps")
   )
+}
+
+.hojas_ruta_replacement_policies <- function() {
+  c("paired_by_titular_zone", "alternate_zone_same_district")
 }
 
 .hojas_ruta_scalar <- function(x, default = "") {
@@ -3267,17 +3271,20 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
     config$replacement_policy %||% config$replacementPolicy %||% config$politica_reemplazo,
     defaults$replacement_policy
   )
-  if (!replacement_policy %in% c("paired_by_titular_zone")) {
+  if (!replacement_policy %in% .hojas_ruta_replacement_policies()) {
     replacement_policy <- defaults$replacement_policy
   }
-  replacements_per_titular <- max(
-    0L,
-    .hojas_ruta_int(
-      config$replacements_per_titular %||%
-        config$replacementsPerTitular %||%
-        config$reemplazos_por_titular %||%
-        config$reemplazosPorTitular,
-      defaults$replacements_per_titular
+  replacements_per_titular <- min(
+    10L,
+    max(
+      0L,
+      .hojas_ruta_int(
+        config$replacements_per_titular %||%
+          config$replacementsPerTitular %||%
+          config$reemplazos_por_titular %||%
+          config$reemplazosPorTitular,
+        defaults$replacements_per_titular
+      )
     )
   )
   route_start_corner <- tolower(.hojas_ruta_scalar(
@@ -4362,6 +4369,297 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
   blocks
 }
 
+.hojas_ruta_short_manzana_id <- function(id_manzana) {
+  x <- trimws(as.character(id_manzana %||% ""))
+  vapply(x, function(value) {
+    if (is.na(value) || !nzchar(value)) return("")
+    parsed <- hojas_ruta_parse_id_manzana(value)
+    short <- as.character(parsed$cod_manzana %||% "")
+    if (!is.na(short) && nzchar(short)) short else value
+  }, character(1), USE.NAMES = FALSE)
+}
+
+.hojas_ruta_replacement_range_label <- function(start, end, replacement_order = NULL,
+                                                replacement_total = NULL,
+                                                titular_id_manzana = NULL) {
+  n <- max(
+    length(start),
+    length(end),
+    length(replacement_order),
+    length(replacement_total),
+    length(titular_id_manzana),
+    1L
+  )
+  int_vec <- function(x) {
+    if (is.null(x)) return(rep(NA_integer_, n))
+    rep(suppressWarnings(as.integer(x)), length.out = n)
+  }
+  chr_vec <- function(x) {
+    if (is.null(x)) return(rep(NA_character_, n))
+    rep(as.character(x), length.out = n)
+  }
+  start <- int_vec(start)
+  end <- int_vec(end)
+  replacement_order <- int_vec(replacement_order)
+  replacement_total <- int_vec(replacement_total)
+  titular_id <- .hojas_ruta_short_manzana_id(chr_vec(titular_id_manzana))
+  has_range <- !is.na(start) & !is.na(end)
+  has_multi <- !is.na(replacement_order) & replacement_order > 0L &
+    !is.na(replacement_total) & replacement_total > 1L
+  has_titular_id <- !is.na(titular_id) & nzchar(titular_id)
+  base <- rep("Remplazo", n)
+  base[has_multi] <- sprintf(
+    "Remplazo %d/%d",
+    replacement_order[has_multi],
+    replacement_total[has_multi]
+  )
+  base[has_titular_id] <- sprintf("%s de %s", base[has_titular_id], titular_id[has_titular_id])
+  out <- base
+  out[has_range] <- sprintf(
+    "%s [Encuestas %d a %d]",
+    base[has_range],
+    start[has_range],
+    end[has_range]
+  )
+  out
+}
+
+.hojas_ruta_apply_replacement_route_ranges <- function(replacements, titulars) {
+  if (is.null(replacements) || !nrow(replacements)) return(replacements)
+  if (!"hoja_num" %in% names(replacements)) {
+    replacements$hoja_num <- seq_len(nrow(replacements))
+  } else {
+    hoja_num <- suppressWarnings(as.integer(replacements$hoja_num))
+    missing <- is.na(hoja_num)
+    hoja_num[missing] <- seq_len(nrow(replacements))[missing]
+    replacements$hoja_num <- hoja_num
+  }
+  fields <- c(
+    "titular_hoja_num", "titular_rango_inicio", "titular_rango_fin",
+    "rango_inicio", "rango_fin", "replacement_order", "replacement_total",
+    "replacement_label"
+  )
+  for (field in fields) {
+    if (!field %in% names(replacements)) replacements[[field]] <- NA
+  }
+  replacement_key <- if ("titular_id_manzana" %in% names(replacements)) {
+    as.character(replacements$titular_id_manzana)
+  } else {
+    rep(NA_character_, nrow(replacements))
+  }
+  replacement_key[is.na(replacement_key) | !nzchar(replacement_key)] <- paste0("__row_", seq_len(nrow(replacements)))
+  ordinal <- suppressWarnings(as.integer(replacements$replacement_order))
+  total <- suppressWarnings(as.integer(replacements$replacement_total))
+  within_order <- integer(nrow(replacements))
+  within_total <- integer(nrow(replacements))
+  for (key in unique(replacement_key)) {
+    idx_key <- which(replacement_key == key)
+    within_order[idx_key] <- seq_along(idx_key)
+    within_total[idx_key] <- length(idx_key)
+  }
+  missing_order <- is.na(ordinal) | ordinal <= 0L
+  ordinal[missing_order] <- within_order[missing_order]
+  missing_total <- is.na(total) | total <= 0L
+  total[missing_total] <- within_total[missing_total]
+  replacements$replacement_order <- ordinal
+  replacements$replacement_total <- total
+  if (is.null(titulars) || !nrow(titulars) ||
+      !"titular_id_manzana" %in% names(replacements) ||
+      !"id_manzana" %in% names(titulars)) {
+    replacements$replacement_label <- .hojas_ruta_replacement_range_label(
+      replacements$rango_inicio,
+      replacements$rango_fin,
+      replacements$replacement_order,
+      replacements$replacement_total,
+      if ("titular_id_manzana" %in% names(replacements)) replacements$titular_id_manzana else NULL
+    )
+    return(replacements)
+  }
+  idx <- match(as.character(replacements$titular_id_manzana), as.character(titulars$id_manzana))
+  ok <- !is.na(idx)
+  if (any(ok)) {
+    replacements$titular_hoja_num[ok] <- suppressWarnings(as.integer(titulars$hoja_num[idx[ok]]))
+    replacements$titular_rango_inicio[ok] <- suppressWarnings(as.integer(titulars$rango_inicio[idx[ok]]))
+    replacements$titular_rango_fin[ok] <- suppressWarnings(as.integer(titulars$rango_fin[idx[ok]]))
+    replacements$rango_inicio[ok] <- suppressWarnings(as.integer(titulars$rango_inicio[idx[ok]]))
+    replacements$rango_fin[ok] <- suppressWarnings(as.integer(titulars$rango_fin[idx[ok]]))
+  }
+  replacements$replacement_label <- .hojas_ruta_replacement_range_label(
+    replacements$rango_inicio,
+    replacements$rango_fin,
+    replacements$replacement_order,
+    replacements$replacement_total,
+    replacements$titular_id_manzana
+  )
+  replacements
+}
+
+.hojas_ruta_order_replacements <- function(replacements) {
+  if (is.null(replacements) || !nrow(replacements)) return(replacements)
+  int_col <- function(name) {
+    if (!name %in% names(replacements)) return(rep(.Machine$integer.max, nrow(replacements)))
+    value <- suppressWarnings(as.integer(replacements[[name]]))
+    value[is.na(value)] <- .Machine$integer.max
+    value
+  }
+  chr_col <- function(name) {
+    if (!name %in% names(replacements)) return(rep("\uffff", nrow(replacements)))
+    value <- as.character(replacements[[name]])
+    value[is.na(value)] <- "\uffff"
+    value
+  }
+  ord <- order(
+    int_col("titular_hoja_num"),
+    int_col("titular_orden_seleccion"),
+    int_col("replacement_order"),
+    int_col("orden_seleccion"),
+    chr_col("id_manzana")
+  )
+  out <- replacements[ord, , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+.hojas_ruta_write_manual_replacements_pdf <- function(replacements, sample, cfg, result_path) {
+  replacements <- .hojas_ruta_order_replacements(replacements)
+  if (!nrow(replacements)) {
+    stop("No hay reemplazos para exportar.", call. = FALSE)
+  }
+  if (nrow(replacements) > 1L && !requireNamespace("qpdf", quietly = TRUE)) {
+    stop("El paquete `qpdf` es necesario para unificar varios PDF de reemplazo.", call. = FALSE)
+  }
+  stage <- tempfile("hojas_ruta_manual_replacements_")
+  dir.create(stage, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(stage, recursive = TRUE, force = TRUE), add = TRUE)
+
+  quota_table <- .hojas_ruta_rows_df(sample$quota$table %||% list())
+  meta <- sample$frame_meta %||% list()
+  render_config <- sample$config %||% cfg
+  render_config$replacement_policy <- cfg$replacement_policy %||% render_config$replacement_policy
+  render_ctx <- .hojas_ruta_render_context(sample %||% list())
+  pdf_files <- character(0)
+  for (i in seq_len(nrow(replacements))) {
+    block <- as.list(replacements[i, , drop = FALSE])
+    block[] <- lapply(block, function(x) x[[1]])
+    if (is.null(block$hoja_num) || is.na(suppressWarnings(as.integer(block$hoja_num)))) {
+      block$hoja_num <- i
+    }
+    if (is.null(block$rango_inicio) || is.na(suppressWarnings(as.integer(block$rango_inicio)))) {
+      block$rango_inicio <- as.integer(block$titular_rango_inicio %||% 1L)
+    }
+    if (is.null(block$rango_fin) || is.na(suppressWarnings(as.integer(block$rango_fin)))) {
+      block$rango_fin <- as.integer(block$titular_rango_fin %||% block$entrevistas %||% .hojas_ruta_route_size(cfg))
+    }
+    if (is.null(block$replacement_label) || !nzchar(as.character(block$replacement_label %||% ""))) {
+      block$replacement_label <- .hojas_ruta_replacement_range_label(
+        block$rango_inicio,
+        block$rango_fin,
+        block$replacement_order,
+        block$replacement_total,
+        block$titular_id_manzana
+      )[[1]]
+    }
+    block$tipo_manzana <- "reemplazo"
+    qdom <- if (nrow(quota_table) && "territorio" %in% names(quota_table)) {
+      quota_table[quota_table$territorio %in% c(block$territorio_muestral, "TOTAL"), , drop = FALSE]
+    } else {
+      quota_table
+    }
+    out_pdf <- file.path(stage, sprintf("manual_replacement_%03d.pdf", i))
+    .hojas_ruta_draw_integrated_pdf(
+      block,
+      qdom,
+      meta,
+      render_config,
+      out_pdf,
+      render_ctx = render_ctx
+    )
+    pdf_files <- c(pdf_files, out_pdf)
+  }
+  .hojas_ruta_combinar_pdf(pdf_files, result_path)
+  normalizePath(result_path, mustWork = FALSE)
+}
+
+hojas_ruta_generar_reemplazos_manual_pdf <- function(config = list(), sample = NULL,
+                                                     titular_ids = character(),
+                                                     replacements_per_titular = 1L,
+                                                     result_path,
+                                                     progress_path = NULL) {
+  report <- if (exists("job_progress_writer", mode = "function")) {
+    job_progress_writer(progress_path)
+  } else {
+    function(...) invisible(NULL)
+  }
+  cfg <- hojas_ruta_integrada_normalize_config(config)
+  count <- min(10L, max(1L, suppressWarnings(as.integer(replacements_per_titular %||% 1L))))
+  ids <- .hojas_ruta_chr_vec(titular_ids)
+  if (!length(ids)) {
+    stop("Selecciona al menos una manzana titular para generar reemplazos puntuales.", call. = FALSE)
+  }
+  if (is.null(sample) || !is.list(sample)) {
+    stop("Primero genera una seleccion de manzanas antes de pedir reemplazos puntuales.", call. = FALSE)
+  }
+  report("preview", percent = 5, message = "Preparando titulares seleccionadas...")
+  blocks <- .hojas_ruta_rows_df(sample$blocks %||% list())
+  if (!nrow(blocks)) {
+    stop("La muestra no contiene manzanas titulares.", call. = FALSE)
+  }
+  blocks <- .hojas_ruta_add_operational_values(blocks, cfg)
+  blocks <- .hojas_ruta_blocks_with_route_ranges(blocks)
+  id_key <- as.character(blocks$id_manzana)
+  manzana_key <- as.character(blocks$manzana %||% "")
+  selected <- blocks[id_key %in% ids | manzana_key %in% ids, , drop = FALSE]
+  if (!nrow(selected)) {
+    stop("No se encontraron las manzanas titulares seleccionadas en la muestra actual.", call. = FALSE)
+  }
+  selected <- selected[match(unique(as.character(selected$id_manzana)), as.character(selected$id_manzana)), , drop = FALSE]
+  replacement_existing <- .hojas_ruta_rows_df(sample$replacement_blocks %||% list())
+  selected_ids <- unique(c(as.character(blocks$id_manzana), as.character(replacement_existing$id_manzana %||% character(0))))
+  frame <- .hojas_ruta_filter_frame(cfg)
+  manual_cfg <- cfg
+  manual_cfg$replacements_per_titular <- count
+  report("replacement", percent = 25, message = "Seleccionando manzanas de reemplazo...")
+  assignment <- .hojas_ruta_assign_replacements(selected, frame, manual_cfg, selected_ids)
+  blocking <- Filter(function(x) identical(x$level, "error"), assignment$alerts %||% list())
+  if (length(blocking)) {
+    stop(as.character(blocking[[1]]$message %||% "No se pudieron generar reemplazos puntuales."), call. = FALSE)
+  }
+  replacements <- .hojas_ruta_apply_replacement_route_ranges(assignment$blocks, blocks)
+  replacements <- .hojas_ruta_add_operational_values(replacements, manual_cfg)
+  replacements <- .hojas_ruta_order_replacements(replacements)
+  if (!nrow(replacements)) {
+    stop("No se generaron manzanas de reemplazo con los criterios actuales.", call. = FALSE)
+  }
+  manual_sample <- sample
+  manual_sample$config <- manual_cfg
+  report("export", percent = 70, message = "Armando PDF unificado de reemplazos...")
+  .hojas_ruta_write_manual_replacements_pdf(replacements, manual_sample, manual_cfg, result_path)
+  report("done", percent = 100, message = "PDF unificado de reemplazos listo.")
+  public <- replacements[, intersect(c(
+    "id_manzana", "departamento", "provincia", "distrito", "ubigeo", "zona",
+    "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
+    "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
+    "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
+    "replacement_policy", "replacement_order", "replacement_total", "titular_id_manzana",
+    "titular_orden_seleccion", "titular_ubigeo", "titular_zona",
+    "titular_hoja_num", "titular_rango_inicio", "titular_rango_fin",
+    "replacement_label", "replacement_fallback",
+    "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
+    "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
+    "constante_salto_modo", "modo_seleccion_vivienda"
+  ), names(replacements)), drop = FALSE]
+  list(
+    ok = TRUE,
+    path = normalizePath(result_path, mustWork = FALSE),
+    n_titulars = as.integer(nrow(selected)),
+    n_replacement_blocks = as.integer(nrow(public)),
+    replacements_per_titular = as.integer(count),
+    replacement_blocks = .hojas_ruta_df_rows(public),
+    alerts = assignment$alerts %||% list(),
+    frame_version = .hojas_ruta_frame_meta(frame, cfg$frame_source)$version %||% NA_character_
+  )
+}
+
 .hojas_ruta_assign_paired_replacements <- function(blocks_df, frame, cfg, selected_ids = character()) {
   alerts <- list()
   if (is.null(blocks_df) || !nrow(blocks_df)) {
@@ -4430,6 +4728,7 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
     replacement$titular_orden_seleccion <- rep(NA_integer_, nrow(replacement))
     replacement$titular_ubigeo <- rep(NA_character_, nrow(replacement))
     replacement$titular_zona <- rep(NA_character_, nrow(replacement))
+    replacement$replacement_fallback <- rep(FALSE, nrow(replacement))
 
     pos <- 1L
     for (i in seq_len(nrow(titulars))) {
@@ -4453,6 +4752,122 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
     alerts = alerts,
     ok = !any(vapply(alerts, function(x) identical(x$level, "error"), logical(1)))
   )
+}
+
+.hojas_ruta_assign_alternate_zone_replacements <- function(blocks_df, frame, cfg, selected_ids = character()) {
+  alerts <- list()
+  if (is.null(blocks_df) || !nrow(blocks_df)) {
+    return(list(blocks = data.frame(), alerts = alerts, ok = TRUE))
+  }
+  n_per <- max(0L, as.integer(cfg$replacements_per_titular %||% 1L))
+  if (n_per <= 0L) {
+    return(list(blocks = data.frame(), alerts = alerts, ok = TRUE))
+  }
+  selected_ids <- unique(as.character(selected_ids %||% character(0)))
+  used_ids <- selected_ids
+  replacement_blocks <- list()
+  replacement_index <- 0L
+  replacement_zone_usage <- integer(0)
+  titular_zone_keys <- unique(paste(as.character(blocks_df$ubigeo), as.character(blocks_df$zona), sep = "\r"))
+  titulars <- blocks_df[order(blocks_df$ubigeo, blocks_df$orden_seleccion, blocks_df$id_manzana), , drop = FALSE]
+
+  for (i in seq_len(nrow(titulars))) {
+    titular <- titulars[i, , drop = FALSE]
+    ubigeo <- as.character(titular$ubigeo[[1]])
+    titular_zona <- as.character(titular$zona[[1]])
+    district_name <- as.character(titular$distrito[[1]] %||% ubigeo)
+    for (k in seq_len(n_per)) {
+      district_frame <- frame[
+        as.character(frame$ubigeo) == ubigeo &
+          !as.character(frame$id_manzana) %in% used_ids,
+        ,
+        drop = FALSE
+      ]
+      candidates <- district_frame[as.character(district_frame$zona) != titular_zona, , drop = FALSE]
+      fallback <- FALSE
+      if (nrow(candidates)) {
+        zone_key <- paste(as.character(candidates$ubigeo), as.character(candidates$zona), sep = "\r")
+        has_titular <- zone_key %in% titular_zone_keys
+        tier <- ifelse(has_titular, 1L, 0L)
+        candidates <- candidates[tier == min(tier, na.rm = TRUE), , drop = FALSE]
+        zone_key <- paste(as.character(candidates$ubigeo), as.character(candidates$zona), sep = "\r")
+        usage <- replacement_zone_usage[zone_key]
+        usage[is.na(usage)] <- 0L
+        candidates <- candidates[usage == min(usage, na.rm = TRUE), , drop = FALSE]
+      } else {
+        fallback <- TRUE
+        candidates <- district_frame[as.character(district_frame$zona) == titular_zona, , drop = FALSE]
+      }
+      if (!nrow(candidates)) {
+        alerts[[length(alerts) + 1L]] <- list(
+          level = "error",
+          code = "E_REPLACEMENT_DISTRICT_INSUFFICIENT",
+          message = sprintf(
+            "%s requiere reemplazo(s) para la manzana %s, pero no hay manzanas elegibles disponibles en el distrito.",
+            district_name,
+            as.character(titular$id_manzana[[1]] %||% "")
+          ),
+          ubigeo = ubigeo,
+          distrito = district_name,
+          titular_id_manzana = as.character(titular$id_manzana[[1]] %||% "")
+        )
+        next
+      }
+      if (isTRUE(fallback)) {
+        alerts[[length(alerts) + 1L]] <- list(
+          level = "warn",
+          code = "W_REPLACEMENT_FALLBACK_SAME_ZONE",
+          message = sprintf(
+            "%s zona %s no tiene reemplazos disponibles en otra zona; se uso la misma zona como ultimo recurso para %s.",
+            district_name,
+            titular_zona,
+            as.character(titular$id_manzana[[1]] %||% "")
+          ),
+          ubigeo = ubigeo,
+          distrito = district_name,
+          zona = titular_zona,
+          titular_id_manzana = as.character(titular$id_manzana[[1]] %||% "")
+        )
+      }
+      idx <- .hojas_ruta_sample_indices(candidates, 1L, cfg)
+      replacement <- candidates[idx, , drop = FALSE]
+      if (!nrow(replacement)) next
+      replacement_index <- replacement_index + 1L
+      replacement$territorio_muestral <- paste(replacement$ubigeo, replacement$zona, sep = "-")
+      replacement$metodo <- cfg$sampling_method
+      replacement$orden_seleccion <- replacement_index
+      replacement$entrevistas <- as.integer(.hojas_ruta_route_size(cfg))
+      replacement$medida_tamano <- replacement[[cfg$measure_var]]
+      replacement$tipo_manzana <- "reemplazo"
+      replacement$replacement_policy <- cfg$replacement_policy %||% "alternate_zone_same_district"
+      replacement$replacement_order <- k
+      replacement$titular_id_manzana <- as.character(titular$id_manzana[[1]])
+      replacement$titular_orden_seleccion <- as.integer(titular$orden_seleccion[[1]] %||% i)
+      replacement$titular_ubigeo <- ubigeo
+      replacement$titular_zona <- titular_zona
+      replacement$replacement_fallback <- isTRUE(fallback)
+      used_ids <- unique(c(used_ids, as.character(replacement$id_manzana)))
+      replacement_zone_key <- paste(as.character(replacement$ubigeo[[1]]), as.character(replacement$zona[[1]]), sep = "\r")
+      current_usage <- replacement_zone_usage[replacement_zone_key]
+      if (is.na(current_usage)) current_usage <- 0L
+      replacement_zone_usage[replacement_zone_key] <- as.integer(current_usage) + 1L
+      replacement_blocks[[length(replacement_blocks) + 1L]] <- replacement
+    }
+  }
+
+  list(
+    blocks = if (length(replacement_blocks)) .hojas_ruta_rows_df(.hojas_ruta_df_rows(do.call(rbind, replacement_blocks))) else data.frame(),
+    alerts = alerts,
+    ok = !any(vapply(alerts, function(x) identical(x$level, "error"), logical(1)))
+  )
+}
+
+.hojas_ruta_assign_replacements <- function(blocks_df, frame, cfg, selected_ids = character()) {
+  policy <- cfg$replacement_policy %||% "paired_by_titular_zone"
+  if (identical(policy, "alternate_zone_same_district")) {
+    return(.hojas_ruta_assign_alternate_zone_replacements(blocks_df, frame, cfg, selected_ids))
+  }
+  .hojas_ruta_assign_paired_replacements(blocks_df, frame, cfg, selected_ids)
 }
 
 .hojas_ruta_projection_orientation_ok <- function() {
@@ -4481,13 +4896,20 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
   cfg <- sample$config %||% list()
   blocks <- .hojas_ruta_rows_df(sample$blocks %||% list())
   replacements <- .hojas_ruta_rows_df(sample$replacement_blocks %||% list())
+  if (nrow(blocks)) {
+    blocks <- .hojas_ruta_blocks_with_route_ranges(blocks)
+  }
+  if (nrow(replacements)) {
+    replacements <- .hojas_ruta_apply_replacement_route_ranges(replacements, blocks)
+  }
   if (!nrow(blocks)) {
     add_error("E_DELIVERY_NO_TITULAR_BLOCKS", "No hay manzanas titulares listas para generar el ZIP.")
   }
   if (!.hojas_ruta_projection_orientation_ok()) {
     add_error("E_MAP_ORIENTATION_INVALID", "La prueba de orientacion del mapa fallo: norte debe quedar arriba y este a la derecha.")
   }
-  if (identical(cfg$replacement_policy %||% "paired_by_titular_zone", "paired_by_titular_zone") && nrow(blocks)) {
+  replacement_policy <- cfg$replacement_policy %||% "paired_by_titular_zone"
+  if (replacement_policy %in% .hojas_ruta_replacement_policies() && nrow(blocks)) {
     n_per <- max(0L, as.integer(cfg$replacements_per_titular %||% 1L))
     expected <- as.integer(nrow(blocks) * n_per)
     if (nrow(replacements) != expected) {
@@ -4506,8 +4928,11 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
       if (!all(c("titular_id_manzana", "titular_ubigeo", "titular_zona") %in% names(replacements))) {
         add_error("E_REPLACEMENT_PAIR_METADATA", "Los reemplazos no tienen trazabilidad completa hacia su titular.")
       } else {
-        titular_lookup <- blocks[, c("id_manzana", "ubigeo", "zona"), drop = FALSE]
-        names(titular_lookup) <- c("titular_id_manzana", "expected_ubigeo", "expected_zona")
+        titular_lookup <- blocks[, c("id_manzana", "ubigeo", "zona", "hoja_num", "rango_inicio", "rango_fin"), drop = FALSE]
+        names(titular_lookup) <- c(
+          "titular_id_manzana", "expected_ubigeo", "expected_zona",
+          "expected_hoja_num", "expected_rango_inicio", "expected_rango_fin"
+        )
         checked <- merge(
           replacements,
           titular_lookup,
@@ -4515,27 +4940,72 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
           all.x = TRUE,
           sort = FALSE
         )
-        bad <- is.na(checked$expected_ubigeo) |
+        fallback <- if ("replacement_fallback" %in% names(checked)) {
+          tolower(as.character(checked$replacement_fallback)) %in% c("1", "true", "t", "yes", "y", "si", "sí")
+        } else {
+          rep(FALSE, nrow(checked))
+        }
+        bad_common <- is.na(checked$expected_ubigeo) |
           as.character(checked$ubigeo) != as.character(checked$expected_ubigeo) |
-          as.character(checked$zona) != as.character(checked$expected_zona) |
           as.character(checked$titular_ubigeo) != as.character(checked$expected_ubigeo) |
           as.character(checked$titular_zona) != as.character(checked$expected_zona)
+        if (identical(replacement_policy, "alternate_zone_same_district")) {
+          bad <- bad_common |
+            (as.character(checked$zona) == as.character(checked$expected_zona) & !fallback)
+        } else {
+          bad <- bad_common |
+            as.character(checked$zona) != as.character(checked$expected_zona)
+        }
         if (any(bad, na.rm = TRUE)) {
           first_bad <- checked[which(bad)[[1]], , drop = FALSE]
-          add_error(
-            "E_REPLACEMENT_ZONE_MISMATCH",
-            sprintf(
-              "El reemplazo %s no pertenece a la misma zona que su titular %s.",
-              as.character(first_bad$id_manzana[[1]] %||% ""),
-              as.character(first_bad$titular_id_manzana[[1]] %||% "")
+          if (identical(replacement_policy, "alternate_zone_same_district")) {
+            add_error(
+              "E_REPLACEMENT_ALTERNATE_ZONE_MISMATCH",
+              sprintf(
+                "El reemplazo %s debe pertenecer al mismo distrito y a otra zona que su titular %s, salvo fallback documentado.",
+                as.character(first_bad$id_manzana[[1]] %||% ""),
+                as.character(first_bad$titular_id_manzana[[1]] %||% "")
+              )
             )
-          )
+          } else {
+            add_error(
+              "E_REPLACEMENT_ZONE_MISMATCH",
+              sprintf(
+                "El reemplazo %s no pertenece a la misma zona que su titular %s.",
+                as.character(first_bad$id_manzana[[1]] %||% ""),
+                as.character(first_bad$titular_id_manzana[[1]] %||% "")
+              )
+            )
+          }
+        }
+        required_range_cols <- c("titular_hoja_num", "titular_rango_inicio", "titular_rango_fin", "rango_inicio", "rango_fin")
+        if (!all(required_range_cols %in% names(checked))) {
+          add_error("E_REPLACEMENT_RANGE_METADATA", "Los reemplazos no tienen la numeracion heredada completa de su titular.")
+        } else {
+          bad_range <- suppressWarnings(as.integer(checked$titular_hoja_num)) != suppressWarnings(as.integer(checked$expected_hoja_num)) |
+            suppressWarnings(as.integer(checked$titular_rango_inicio)) != suppressWarnings(as.integer(checked$expected_rango_inicio)) |
+            suppressWarnings(as.integer(checked$titular_rango_fin)) != suppressWarnings(as.integer(checked$expected_rango_fin)) |
+            suppressWarnings(as.integer(checked$rango_inicio)) != suppressWarnings(as.integer(checked$expected_rango_inicio)) |
+            suppressWarnings(as.integer(checked$rango_fin)) != suppressWarnings(as.integer(checked$expected_rango_fin))
+          bad_range[is.na(bad_range)] <- TRUE
+          if (any(bad_range)) {
+            first_bad <- checked[which(bad_range)[[1]], , drop = FALSE]
+            add_error(
+              "E_REPLACEMENT_RANGE_MISMATCH",
+              sprintf(
+                "El reemplazo %s no hereda el rango operativo de su titular %s.",
+                as.character(first_bad$id_manzana[[1]] %||% ""),
+                as.character(first_bad$titular_id_manzana[[1]] %||% "")
+              )
+            )
+          }
         }
       }
     }
   }
   if (nrow(blocks)) {
-    zone_expected <- unique(paste(as.character(blocks$ubigeo), as.character(blocks$zona), sep = "\r"))
+    zone_expected_blocks <- .hojas_ruta_rows_df(c(.hojas_ruta_df_rows(blocks), .hojas_ruta_df_rows(replacements)))
+    zone_expected <- unique(paste(as.character(zone_expected_blocks$ubigeo), as.character(zone_expected_blocks$zona), sep = "\r"))
     zone_summary <- tryCatch(.hojas_ruta_zone_summary(sample), error = function(e) data.frame())
     if (nrow(zone_summary) < length(zone_expected)) {
       add_error(
@@ -4676,13 +5146,16 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   }
 
   blocks_df <- if (length(blocks)) do.call(rbind, blocks) else data.frame()
+  blocks_df <- .hojas_ruta_blocks_with_route_ranges(blocks_df)
   selected_ids <- if (nrow(blocks_df) && "id_manzana" %in% names(blocks_df)) {
     unique(as.character(blocks_df$id_manzana))
   } else {
     character(0)
   }
-  replacement_assignment <- .hojas_ruta_assign_paired_replacements(blocks_df, frame, cfg, selected_ids)
+  replacement_assignment <- .hojas_ruta_assign_replacements(blocks_df, frame, cfg, selected_ids)
   replacement_blocks_df <- replacement_assignment$blocks
+  replacement_blocks_df <- .hojas_ruta_apply_replacement_route_ranges(replacement_blocks_df, blocks_df)
+  replacement_blocks_df <- .hojas_ruta_order_replacements(replacement_blocks_df)
   alerts <- c(alerts, replacement_assignment$alerts)
   if (unassigned_total > 0L) {
     alerts[[length(alerts) + 1L]] <- list(
@@ -4699,7 +5172,8 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   blocks_public <- blocks_df[, intersect(c(
     "id_manzana", "departamento", "provincia", "distrito", "ubigeo", "zona",
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
-    "orden_seleccion", "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
+    "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
+    "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
     "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
     "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
     "constante_salto_modo", "modo_seleccion_vivienda"
@@ -4707,9 +5181,12 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   replacement_public <- replacement_blocks_df[, intersect(c(
     "id_manzana", "departamento", "provincia", "distrito", "ubigeo", "zona",
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
-    "orden_seleccion", "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
-    "replacement_policy", "replacement_order", "titular_id_manzana",
+    "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
+    "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
+    "replacement_policy", "replacement_order", "replacement_total", "titular_id_manzana",
     "titular_orden_seleccion", "titular_ubigeo", "titular_zona",
+    "titular_hoja_num", "titular_rango_inicio", "titular_rango_fin",
+    "replacement_label", "replacement_fallback",
     "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
     "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
     "constante_salto_modo", "modo_seleccion_vivienda"
@@ -6598,9 +7075,13 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   # Header consistente con la pagina 1: logo a la izq, contexto a la der.
   .hojas_ruta_draw_reference_logo(x = 0.06, y = 0.945, height = 0.052,
                                    paper_w = 11.69, paper_h = 8.27)
+  is_replacement <- identical(as.character(block$tipo_manzana %||% ""), "reemplazo")
   grid::grid.text(
-    sprintf("Mapa de contexto · UMP %d",
-            as.integer(block$hoja_num %||% block$orden_seleccion %||% 1L)),
+    if (is_replacement) {
+      sprintf("Mapa de contexto · Reemplazo R%d", as.integer(block$hoja_num %||% block$orden_seleccion %||% 1L))
+    } else {
+      sprintf("Mapa de contexto · UMP %d", as.integer(block$hoja_num %||% block$orden_seleccion %||% 1L))
+    },
     x = 0.5, y = 0.95, gp = grid::gpar(fontsize = 15, fontface = "bold", col = "black")
   )
   grid::grid.text(
@@ -6821,9 +7302,13 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
 
   .hojas_ruta_draw_reference_logo(x = 0.06, y = 0.945, height = 0.052,
                                    paper_w = 11.69, paper_h = 8.27)
+  is_replacement <- identical(as.character(block$tipo_manzana %||% ""), "reemplazo")
   grid::grid.text(
-    sprintf("Mapa de zona · UMP %d",
-            as.integer(block$hoja_num %||% block$orden_seleccion %||% 1L)),
+    if (is_replacement) {
+      sprintf("Mapa de zona · Reemplazo R%d", as.integer(block$hoja_num %||% block$orden_seleccion %||% 1L))
+    } else {
+      sprintf("Mapa de zona · UMP %d", as.integer(block$hoja_num %||% block$orden_seleccion %||% 1L))
+    },
     x = 0.5, y = 0.95, gp = grid::gpar(fontsize = 15, fontface = "bold", col = "black")
   )
   grid::grid.text(
@@ -7391,13 +7876,15 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
 
 .hojas_ruta_zone_summary <- function(sample, render_ctx = NULL) {
   blocks <- .hojas_ruta_rows_df(sample$blocks)
-  if (!nrow(blocks)) return(data.frame())
+  replacements <- .hojas_ruta_rows_df(sample$replacement_blocks %||% list())
+  all_blocks <- .hojas_ruta_rows_df(c(.hojas_ruta_df_rows(blocks), .hojas_ruta_df_rows(replacements)))
+  if (!nrow(all_blocks)) return(data.frame())
   frame <- if (!is.null(render_ctx) && is.data.frame(render_ctx$frame) && nrow(render_ctx$frame)) {
     render_ctx$frame
   } else {
     hojas_ruta_inei_frame()
   }
-  keys <- unique(paste(blocks$ubigeo, blocks$zona, sep = "|"))
+  keys <- unique(paste(all_blocks$ubigeo, all_blocks$zona, sep = "|"))
   frame <- frame[paste(frame$ubigeo, frame$zona, sep = "|") %in% keys, , drop = FALSE]
   zone_stats <- stats::aggregate(
     frame[c("viviendas", "poblacion")],
@@ -7408,25 +7895,51 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   counts <- stats::aggregate(frame["id_manzana"], by = frame[c("ubigeo", "zona")], FUN = length)
   names(counts)[3] <- "manzanas_zona"
   zone_stats <- merge(zone_stats, counts, by = c("ubigeo", "zona"), all.x = TRUE)
-  sel <- stats::aggregate(
-    blocks["entrevistas"],
-    by = blocks[c("ubigeo", "distrito", "zona")],
-    FUN = sum,
-    na.rm = TRUE
-  )
-  names(sel)[4] <- "entrevistas"
-  sel_count <- stats::aggregate(blocks["id_manzana"], by = blocks[c("ubigeo", "zona")], FUN = length)
-  names(sel_count)[3] <- "manzanas_seleccionadas"
-  out <- merge(zone_stats, sel, by = c("ubigeo", "distrito", "zona"), all.x = TRUE)
-  out <- merge(out, sel_count, by = c("ubigeo", "zona"), all.x = TRUE)
-  out$entrevistas[is.na(out$entrevistas)] <- 0
-  out$manzanas_seleccionadas[is.na(out$manzanas_seleccionadas)] <- 0
+  out <- zone_stats
+  if (nrow(blocks)) {
+    sel <- stats::aggregate(
+      blocks["entrevistas"],
+      by = blocks[c("ubigeo", "distrito", "zona")],
+      FUN = sum,
+      na.rm = TRUE
+    )
+    names(sel)[4] <- "entrevistas_titulares"
+    sel_count <- stats::aggregate(blocks["id_manzana"], by = blocks[c("ubigeo", "zona")], FUN = length)
+    names(sel_count)[3] <- "manzanas_titulares"
+    out <- merge(out, sel, by = c("ubigeo", "distrito", "zona"), all.x = TRUE)
+    out <- merge(out, sel_count, by = c("ubigeo", "zona"), all.x = TRUE)
+  } else {
+    out$entrevistas_titulares <- 0L
+    out$manzanas_titulares <- 0L
+  }
+  if (nrow(replacements)) {
+    repl <- stats::aggregate(
+      replacements["entrevistas"],
+      by = replacements[c("ubigeo", "distrito", "zona")],
+      FUN = sum,
+      na.rm = TRUE
+    )
+    names(repl)[4] <- "entrevistas_reemplazo"
+    repl_count <- stats::aggregate(replacements["id_manzana"], by = replacements[c("ubigeo", "zona")], FUN = length)
+    names(repl_count)[3] <- "manzanas_reemplazo"
+    out <- merge(out, repl, by = c("ubigeo", "distrito", "zona"), all.x = TRUE)
+    out <- merge(out, repl_count, by = c("ubigeo", "zona"), all.x = TRUE)
+  } else {
+    out$entrevistas_reemplazo <- 0L
+    out$manzanas_reemplazo <- 0L
+  }
+  for (col in c("entrevistas_titulares", "manzanas_titulares", "entrevistas_reemplazo", "manzanas_reemplazo")) {
+    out[[col]][is.na(out[[col]])] <- 0
+  }
+  out$manzanas_seleccionadas <- as.integer(out$manzanas_titulares + out$manzanas_reemplazo)
+  out$entrevistas <- as.integer(out$entrevistas_titulares + out$entrevistas_reemplazo)
   out <- out[order(out$distrito, out$zona), , drop = FALSE]
   rownames(out) <- NULL
   out[c(
     "departamento", "provincia", "distrito", "ubigeo", "zona",
     "poblacion", "viviendas", "manzanas_zona",
-    "manzanas_seleccionadas", "entrevistas"
+    "manzanas_seleccionadas", "manzanas_titulares", "manzanas_reemplazo",
+    "entrevistas", "entrevistas_titulares", "entrevistas_reemplazo"
   )]
 }
 
@@ -7593,8 +8106,10 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     list("Distrito", .hojas_ruta_title_case(zone_row$distrito)),
     list("Zona", as.character(zone_row$zona)),
     list("Manzanas de la zona", format(as.integer(zone_row$manzanas_zona %||% 0L), big.mark = ",")),
-    list("Manzanas seleccionadas", format(as.integer(zone_row$manzanas_seleccionadas %||% 0L), big.mark = ",")),
-    list("Entrevistas", format(as.integer(zone_row$entrevistas %||% 0L), big.mark = ",")),
+    list("Titulares", format(as.integer(zone_row$manzanas_titulares %||% zone_row$manzanas_seleccionadas %||% 0L), big.mark = ",")),
+    list("Reemplazos", format(as.integer(zone_row$manzanas_reemplazo %||% 0L), big.mark = ",")),
+    list("Entrevistas titulares", format(as.integer(zone_row$entrevistas_titulares %||% zone_row$entrevistas %||% 0L), big.mark = ",")),
+    list("Entrevistas reemplazo", format(as.integer(zone_row$entrevistas_reemplazo %||% 0L), big.mark = ",")),
     list("Viviendas censadas", format(as.integer(zone_row$viviendas %||% 0L), big.mark = ","))
   )
   yy <- 0.825
@@ -7605,22 +8120,34 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
                     gp = grid::gpar(fontsize = 7.8, col = "black"))
     yy <- yy - 0.026
   }
-  .hojas_ruta_pdf_text("MANZANAS SELECCIONADAS", side_x, 0.61,
+  .hojas_ruta_pdf_text("RUTAS EN ZONA", side_x, 0.61,
                        fontsize = 9, fontface = "bold", col = "black")
   grid::grid.lines(x = c(side_x, side_x + side_w), y = c(0.597, 0.597),
                    gp = grid::gpar(col = "black", lwd = 0.5))
   rows <- zone_blocks
   if (nrow(rows) && "orden_seleccion" %in% names(rows)) {
-    rows <- rows[order(rows$orden_seleccion), , drop = FALSE]
+    tipo_sort <- if ("tipo_manzana" %in% names(rows)) ifelse(as.character(rows$tipo_manzana) == "reemplazo", 1L, 0L) else 0L
+    rows <- rows[order(tipo_sort, rows$orden_seleccion, rows$id_manzana), , drop = FALSE]
   }
-  rows <- utils::head(rows, 18L)
+  rows <- utils::head(rows, 14L)
   if (nrow(rows)) {
+    tipo <- if ("tipo_manzana" %in% names(rows)) {
+      ifelse(as.character(rows$tipo_manzana) == "reemplazo", "R", "T")
+    } else {
+      rep("T", nrow(rows))
+    }
+    rango <- if (all(c("rango_inicio", "rango_fin") %in% names(rows))) {
+      paste0(as.character(rows$rango_inicio), "-", as.character(rows$rango_fin))
+    } else {
+      as.character(rows$entrevistas %||% "")
+    }
     tbl <- cbind(
+      Tipo = tipo,
       Manzana = as.character(rows$manzana %||% rows$id_manzana),
-      Entrev = as.character(rows$entrevistas %||% ""),
+      Rango = rango,
       Viviendas = as.character(rows$viviendas %||% "")
     )
-    data <- rbind(c("Manzana", "Entrev.", "Viviendas"), tbl)
+    data <- rbind(c("Tipo", "Manzana", "Rango", "Viviendas"), tbl)
     grey <- matrix(FALSE, nrow(data), ncol(data))
     grey[1, ] <- TRUE
     font <- matrix("plain", nrow(data), ncol(data))
@@ -7629,7 +8156,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       data,
       x = side_x,
       y = 0.58,
-      col_widths = c(0.105, 0.07, 0.09),
+      col_widths = c(0.04, 0.085, 0.06, 0.08),
       row_heights = rep(0.026, nrow(data)),
       grey_cells = grey,
       font_size = 7.4,
@@ -7654,6 +8181,12 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
                                            zone_blocks$id_manzana,
                                            render_ctx = render_ctx)
   if (is.null(ctx)) return(.hojas_ruta_draw_zone_sheet_fallback_pdf(zone_row, zone_blocks, out_pdf))
+  replacement_ids <- if ("tipo_manzana" %in% names(zone_blocks)) {
+    as.character(zone_blocks$id_manzana[as.character(zone_blocks$tipo_manzana) == "reemplazo"])
+  } else {
+    character(0)
+  }
+  titular_ids <- setdiff(as.character(zone_blocks$id_manzana), replacement_ids)
   grDevices::pdf(out_pdf, paper = "special", width = 11.69, height = 8.27)
   on.exit(grDevices::dev.off(), add = TRUE)
   grid::grid.newpage()
@@ -7683,23 +8216,29 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   all_rings <- unlist(lapply(ctx$features, `[[`, "rings"), recursive = FALSE)
   project <- .hojas_ruta_project_rings(all_rings, map_x + 0.015, map_y + 0.015, map_w - 0.03, map_h - 0.03, pad = 0.08)
   for (feature in ctx$features) {
+    is_replacement <- as.character(feature$id %||% "") %in% replacement_ids
+    is_titular <- as.character(feature$id %||% "") %in% titular_ids
     for (ring in feature$rings) {
       p <- project(ring)
-      fill <- if (isTRUE(feature$selected)) {
+      fill <- if (is_replacement) {
+        "#dbeafe"
+      } else if (is_titular || isTRUE(feature$selected)) {
         "#bdbdbd"
       } else if (isTRUE(feature$in_zone)) {
         "#f5f5f5"
       } else {
         "#fbfbfb"
       }
-      col <- if (isTRUE(feature$selected)) {
+      col <- if (is_replacement) {
+        "#1d4ed8"
+      } else if (is_titular || isTRUE(feature$selected)) {
         "black"
       } else if (isTRUE(feature$in_zone)) {
         "#686868"
       } else {
         "#b8b8b8"
       }
-      lwd <- if (isTRUE(feature$selected)) 1.2 else if (isTRUE(feature$in_zone)) 0.36 else 0.22
+      lwd <- if (is_replacement || is_titular || isTRUE(feature$selected)) 1.2 else if (isTRUE(feature$in_zone)) 0.36 else 0.22
       grid::grid.polygon(
         x = p$x, y = p$y, default.units = "npc",
         gp = grid::gpar(fill = fill, col = col, lwd = lwd)
@@ -7719,8 +8258,10 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     list("Distrito", .hojas_ruta_title_case(zone_row$distrito)),
     list("Zona", as.character(zone_row$zona)),
     list("Manzanas de la zona", format(as.integer(zone_row$manzanas_zona %||% 0L), big.mark = ",")),
-    list("Manzanas seleccionadas", format(as.integer(zone_row$manzanas_seleccionadas %||% 0L), big.mark = ",")),
-    list("Entrevistas", format(as.integer(zone_row$entrevistas %||% 0L), big.mark = ",")),
+    list("Titulares", format(as.integer(zone_row$manzanas_titulares %||% zone_row$manzanas_seleccionadas %||% 0L), big.mark = ",")),
+    list("Reemplazos", format(as.integer(zone_row$manzanas_reemplazo %||% 0L), big.mark = ",")),
+    list("Entrevistas titulares", format(as.integer(zone_row$entrevistas_titulares %||% zone_row$entrevistas %||% 0L), big.mark = ",")),
+    list("Entrevistas reemplazo", format(as.integer(zone_row$entrevistas_reemplazo %||% 0L), big.mark = ",")),
     list("Viviendas censadas", format(as.integer(zone_row$viviendas %||% 0L), big.mark = ","))
   )
   yy <- 0.825
@@ -7732,19 +8273,41 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     yy <- yy - 0.026
   }
 
-  .hojas_ruta_pdf_text("MANZANAS SELECCIONADAS", side_x, 0.61,
+  .hojas_ruta_pdf_text("RUTAS EN ZONA", side_x, 0.61,
                        fontsize = 9, fontface = "bold", col = "black")
   grid::grid.lines(x = c(side_x, side_x + side_w), y = c(0.597, 0.597),
                    gp = grid::gpar(col = "black", lwd = 0.5))
-  rows <- zone_blocks[order(zone_blocks$orden_seleccion), , drop = FALSE]
-  rows <- utils::head(rows, 18L)
+  rows <- zone_blocks
+  if (nrow(rows)) {
+    tipo_sort <- if ("tipo_manzana" %in% names(rows)) ifelse(as.character(rows$tipo_manzana) == "reemplazo", 1L, 0L) else 0L
+    rows <- rows[order(tipo_sort, rows$orden_seleccion, rows$id_manzana), , drop = FALSE]
+  }
+  rows <- utils::head(rows, 14L)
+  tipo <- if ("tipo_manzana" %in% names(rows)) {
+    ifelse(as.character(rows$tipo_manzana) == "reemplazo", "R", "T")
+  } else {
+    rep("T", nrow(rows))
+  }
+  rango <- if (all(c("rango_inicio", "rango_fin") %in% names(rows))) {
+    paste0(as.character(rows$rango_inicio), "-", as.character(rows$rango_fin))
+  } else {
+    as.character(rows$entrevistas)
+  }
+  reemplaza <- if ("titular_id_manzana" %in% names(rows)) {
+    value <- as.character(rows$titular_id_manzana)
+    value[is.na(value) | !nzchar(value)] <- "-"
+    value
+  } else {
+    rep("-", nrow(rows))
+  }
   tbl <- cbind(
+    Tipo = tipo,
     Manzana = as.character(rows$manzana),
-    Entrev = as.character(rows$entrevistas),
-    Viviendas = as.character(rows$viviendas)
+    Rango = rango,
+    Reemplaza = reemplaza
   )
   if (nrow(tbl)) {
-    data <- rbind(c("Manzana", "Entrev.", "Viviendas"), tbl)
+    data <- rbind(c("Tipo", "Manzana", "Rango", "Reemplaza"), tbl)
     grey <- matrix(FALSE, nrow(data), ncol(data))
     grey[1, ] <- TRUE
     font <- matrix("plain", nrow(data), ncol(data))
@@ -7753,7 +8316,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       data,
       x = side_x,
       y = 0.58,
-      col_widths = c(0.105, 0.07, 0.09),
+      col_widths = c(0.04, 0.07, 0.055, 0.10),
       row_heights = rep(0.026, nrow(data)),
       grey_cells = grey,
       font_size = 7.4,
@@ -7764,13 +8327,18 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
 
   grid::grid.rect(x = side_x + 0.012, y = 0.12, width = 0.018, height = 0.018,
                   gp = grid::gpar(fill = "#bdbdbd", col = "black", lwd = 1.0))
-  grid::grid.text("Manzana seleccionada",
+  grid::grid.text("Titular",
                   x = side_x + 0.03, y = 0.12, just = c("left", "center"),
                   gp = grid::gpar(fontsize = 7.5, col = "black"))
   grid::grid.rect(x = side_x + 0.012, y = 0.092, width = 0.018, height = 0.018,
+                  gp = grid::gpar(fill = "#dbeafe", col = "#1d4ed8", lwd = 1.0))
+  grid::grid.text("Reemplazo",
+                  x = side_x + 0.03, y = 0.092, just = c("left", "center"),
+                  gp = grid::gpar(fontsize = 7.5, col = "#1d4ed8"))
+  grid::grid.rect(x = side_x + 0.012, y = 0.064, width = 0.018, height = 0.018,
                   gp = grid::gpar(fill = "white", col = "#9a9a9a", lwd = 0.5))
   grid::grid.text("Manzana no seleccionada",
-                  x = side_x + 0.03, y = 0.092, just = c("left", "center"),
+                  x = side_x + 0.03, y = 0.064, just = c("left", "center"),
                   gp = grid::gpar(fontsize = 7.5, col = "#3a3a3a"))
   grid::grid.lines(x = c(0.055, 0.955), y = c(0.05, 0.05),
                    gp = grid::gpar(col = "#888888", lwd = 0.4))
@@ -7795,6 +8363,17 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   viviendas <- as.integer(block$viviendas %||% 0L)
   entrevistas <- max(1L, as.integer(block$entrevistas %||% 1L))
   is_replacement <- identical(as.character(block$tipo_manzana %||% ""), "reemplazo")
+  replacement_label <- as.character(block$replacement_label %||% "")
+  if (!nzchar(replacement_label) ||
+      grepl("^Reemplazo( [0-9]+ de [0-9]+)?( de [0-9]+ a [0-9]+)?$", replacement_label)) {
+    replacement_label <- .hojas_ruta_replacement_range_label(
+      start,
+      end,
+      block$replacement_order,
+      block$replacement_total,
+      block$titular_id_manzana
+    )[[1]]
+  }
   route_ops <- .hojas_ruta_route_operational_values(block, config)
   constante <- as.integer(route_ops$constante_salto)
   esquina <- as.character(route_ops$esquina_coordenada %||% route_ops$esquina_inicio)
@@ -7814,7 +8393,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   )
   grid::grid.text(
     if (is_replacement) {
-      sprintf("Reemplazo · %s encuestas", entrevistas)
+      replacement_label
     } else {
       sprintf("Encuestas %s a %s", start, end)
     },
@@ -7839,6 +8418,13 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     x = 0.085, y = 0.886, just = c("left", "center"),
     gp = grid::gpar(fontsize = 11, col = "#2a2a2a")
   )
+  if (is_replacement) {
+    grid::grid.text(
+      replacement_label,
+      x = 0.085, y = 0.869, just = c("left", "center"),
+      gp = grid::gpar(fontsize = 9, fontface = "bold", col = "#1d4ed8")
+    )
+  }
   grid::grid.text(
     sprintf("UBIGEO %s", block$ubigeo),
     x = 0.92, y = 0.886, just = c("right", "center"),
@@ -7938,7 +8524,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   grid::grid.text("Pulso PUCP · Ficha de trabajo de campo",
                   x = 0.085, y = 0.038, just = c("left", "center"),
                   gp = grid::gpar(fontsize = 7.5, col = "#4a4a4a"))
-  grid::grid.text(if (is_replacement) sprintf("REEMPLAZO R%d", hoja_num) else sprintf("UMP %d", hoja_num),
+  grid::grid.text(if (is_replacement) sprintf("REEMPLAZO R%d · %d-%d", hoja_num, start, end) else sprintf("UMP %d", hoja_num),
                   x = 0.5, y = 0.038,
                   gp = grid::gpar(fontsize = 7.5, fontface = "bold", col = "#4a4a4a"))
   grid::grid.text(format(Sys.Date(), "%d/%m/%Y"),
@@ -8205,9 +8791,14 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     Ubigeo = text_value("ubigeo"),
     `Codigo de zona` = text_value("zona"),
     `Codigo de manzana` = text_value("manzana"),
-    `Numero inicio` = if (identical(tipo_ruta, "TITULAR")) int_value("rango_inicio") else NA_integer_,
-    `Numero fin` = if (identical(tipo_ruta, "TITULAR")) int_value("rango_fin") else NA_integer_,
+    `Numero inicio` = int_value("rango_inicio"),
+    `Numero fin` = int_value("rango_fin"),
     `Tipo de ruta` = tipo_ruta,
+    `Etiqueta reemplazo` = if (identical(tipo_ruta, "REEMPLAZO")) text_value("replacement_label") else "",
+    `Reemplaza a` = if (identical(tipo_ruta, "REEMPLAZO")) text_value("titular_id_manzana") else "",
+    `Zona titular` = if (identical(tipo_ruta, "REEMPLAZO")) text_value("titular_zona") else "",
+    `Rango titular inicio` = if (identical(tipo_ruta, "REEMPLAZO")) int_value("titular_rango_inicio") else NA_integer_,
+    `Rango titular fin` = if (identical(tipo_ruta, "REEMPLAZO")) int_value("titular_rango_fin") else NA_integer_,
     Encuestas = int_value("entrevistas"),
     `Total viviendas` = int_value("viviendas"),
     `Esquina inicio` = text_value("esquina_coordenada", text_value("esquina_inicio")),
@@ -8360,12 +8951,19 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
     hojas_ruta_sample_preview_integrado(config)
   }
   sample$config <- sample$config %||% hojas_ruta_integrada_normalize_config(config)
-  sample$blocks <- .hojas_ruta_df_rows(
-    .hojas_ruta_add_operational_values(.hojas_ruta_rows_df(sample$blocks %||% list()), sample$config)
+  blocks_prepared <- .hojas_ruta_add_operational_values(.hojas_ruta_rows_df(sample$blocks %||% list()), sample$config)
+  blocks_prepared <- .hojas_ruta_blocks_with_route_ranges(blocks_prepared)
+  replacement_blocks_prepared <- .hojas_ruta_add_operational_values(
+    .hojas_ruta_rows_df(sample$replacement_blocks %||% list()),
+    sample$config
   )
-  sample$replacement_blocks <- .hojas_ruta_df_rows(
-    .hojas_ruta_add_operational_values(.hojas_ruta_rows_df(sample$replacement_blocks %||% list()), sample$config)
+  replacement_blocks_prepared <- .hojas_ruta_apply_replacement_route_ranges(
+    replacement_blocks_prepared,
+    blocks_prepared
   )
+  replacement_blocks_prepared <- .hojas_ruta_order_replacements(replacement_blocks_prepared)
+  sample$blocks <- .hojas_ruta_df_rows(blocks_prepared)
+  sample$replacement_blocks <- .hojas_ruta_df_rows(replacement_blocks_prepared)
   if (!isTRUE(sample$ok)) {
     blocking <- Filter(function(x) identical(x$level, "error"), sample$alerts %||% list())
     message <- if (length(blocking)) {
@@ -8385,7 +8983,8 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
   dir.create(stage, recursive = TRUE, showWarnings = FALSE)
   on.exit(unlink(stage, recursive = TRUE, force = TRUE), add = TRUE)
   blocks <- .hojas_ruta_rows_df(sample$blocks)
-  replacement_blocks <- .hojas_ruta_rows_df(sample$replacement_blocks %||% list())
+  replacement_blocks <- .hojas_ruta_order_replacements(.hojas_ruta_rows_df(sample$replacement_blocks %||% list()))
+  sample$replacement_blocks <- .hojas_ruta_df_rows(replacement_blocks)
   quota_table <- .hojas_ruta_rows_df(sample$quota$table)
   render_ctx <- .hojas_ruta_render_context(sample)
   zone_summary <- .hojas_ruta_zone_summary(sample, render_ctx = render_ctx)
@@ -8459,9 +9058,22 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
     for (i in seq_len(nrow(replacement_blocks))) {
       block <- as.list(replacement_blocks[i, , drop = FALSE])
       block[] <- lapply(block, function(x) x[[1]])
-      block$hoja_num <- i
-      block$rango_inicio <- 1L
-      block$rango_fin <- as.integer(block$entrevistas %||% .hojas_ruta_route_size(sample$config))
+      if (is.null(block$hoja_num) || is.na(suppressWarnings(as.integer(block$hoja_num)))) block$hoja_num <- i
+      if (is.null(block$rango_inicio) || is.na(suppressWarnings(as.integer(block$rango_inicio)))) {
+        block$rango_inicio <- as.integer(block$titular_rango_inicio %||% 1L)
+      }
+      if (is.null(block$rango_fin) || is.na(suppressWarnings(as.integer(block$rango_fin)))) {
+        block$rango_fin <- as.integer(block$titular_rango_fin %||% block$entrevistas %||% .hojas_ruta_route_size(sample$config))
+      }
+      if (is.null(block$replacement_label) || !nzchar(as.character(block$replacement_label %||% ""))) {
+        block$replacement_label <- .hojas_ruta_replacement_range_label(
+          block$rango_inicio,
+          block$rango_fin,
+          block$replacement_order,
+          block$replacement_total,
+          block$titular_id_manzana
+        )[[1]]
+      }
       block$tipo_manzana <- "reemplazo"
       qdom <- quota_table[quota_table$territorio %in% c(block$territorio_muestral, "TOTAL"), , drop = FALSE]
       base_name <- sprintf(
@@ -8504,11 +9116,17 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
     for (i in seq_len(nrow(zone_summary))) {
       zone_row <- as.list(zone_summary[i, , drop = FALSE])
       zone_row[] <- lapply(zone_row, function(x) x[[1]])
-      zone_blocks <- blocks[
+      zone_titulars <- blocks[
         blocks$ubigeo == zone_row$ubigeo & blocks$zona == zone_row$zona,
         ,
         drop = FALSE
       ]
+      zone_replacements <- replacement_blocks[
+        replacement_blocks$ubigeo == zone_row$ubigeo & replacement_blocks$zona == zone_row$zona,
+        ,
+        drop = FALSE
+      ]
+      zone_blocks <- .hojas_ruta_rows_df(c(.hojas_ruta_df_rows(zone_titulars), .hojas_ruta_df_rows(zone_replacements)))
       if (!nrow(zone_blocks)) next
       base_name <- sprintf(
         "HojaZona_INEI2017_%s_Zona_%s.pdf",

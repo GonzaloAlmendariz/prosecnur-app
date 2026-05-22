@@ -1,0 +1,139 @@
+---
+title: "`r params$titulo`"
+subtitle: "Propuesta metodológica preliminar — estimación inicial"
+date: today
+lang: es
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    df-print: paged
+    theme: cosmo
+    embed-resources: true
+execute:
+  echo: false
+  warning: false
+  message: false
+params:
+  titulo: "Estudio sin título"
+  bundle_path: ""
+---
+
+```{r setup}
+suppressPackageStartupMessages({
+  library(tibble)
+  library(dplyr)
+  library(knitr)
+  library(kableExtra)
+})
+
+stopifnot(nzchar(params$bundle_path), file.exists(params$bundle_path))
+bundle  <- readRDS(params$bundle_path)
+estudio <- bundle$estudio
+
+pulsoazul <- "#1F3864"
+
+tabla_pulso <- function(df, caption = NULL) {
+  kable(df, caption = caption, format.args = list(big.mark = ",")) |>
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                  full_width = FALSE, position = "left") |>
+    row_spec(0, bold = TRUE, color = "white", background = pulsoazul)
+}
+
+`%||%` <- function(x, y) if (is.null(x) || length(x) == 0L) y else x
+
+fmt_int <- function(x) if (is.null(x) || is.na(x)) "—" else format(x, big.mark = ",", scientific = FALSE)
+fmt_pct <- function(x, dec = 1) if (is.null(x) || is.na(x)) "—" else sprintf(paste0("%.", dec, "f%%"), x * 100)
+```
+
+## Resumen del estudio
+
+- **Título:** `r estudio$titulo`
+- **Macro-familia:** `r estudio$macro_familia`
+- **Fase:** estimación preliminar (propuesta inicial)
+- **Cliente:** `r estudio$contexto$cliente %||% "—"`
+`r if (isTRUE(estudio$modo_sensible)) "- **Consideraciones éticas:** estudio requiere protocolos de investigación con población especial." else ""`
+
+::: {.callout-note}
+Este reporte corresponde a una **estimación preliminar**: los universos pueden no estar
+todavía validados y las metas son indicativas. El diseño debe refinarse en la fase
+`diseno_validado` con bases recibidas y limpiadas.
+:::
+
+## Componentes propuestos
+
+```{r componentes_tabla}
+filas <- lapply(estudio$componentes, function(c) {
+  res <- c$resultado
+  tibble(
+    Actor             = c$actor,
+    Tecnica           = c$tecnica,
+    Origen            = c$origen_tamano,
+    Marco_validado    = fmt_int(c$marco$marco_validado),
+    n_objetivo        = fmt_int(res$n_objetivo %||% NA),
+    n_operativo       = fmt_int(res$n_operativo %||% NA),
+    Precision         = if (!is.null(res$precision_alcanzada) && !is.na(res$precision_alcanzada))
+                          fmt_pct(res$precision_alcanzada) else "-"
+  )
+})
+tabla_pulso(do.call(rbind, filas), caption = "Componentes del estudio")
+```
+
+## Detalle por componente
+
+```{r detalle_componentes, results="asis"}
+for (c in estudio$componentes) {
+  cat(sprintf("### %s — %s\n\n", c$actor, c$tecnica))
+  cat(sprintf("- **Naturaleza inferencial:** %s\n", c$naturaleza))
+  cat(sprintf("- **Origen del tamaño:** %s\n", c$origen_tamano))
+  cat(sprintf("- **Nivel de respaldo:** %s\n", c$nivel_respaldo))
+  cat(sprintf("- **Marco:** bruto=%s · validado=%s · contactable=%s · estado=%s\n",
+              fmt_int(c$marco$universo_bruto),
+              fmt_int(c$marco$marco_validado),
+              fmt_int(c$marco$marco_contactable),
+              c$marco$estado))
+  if (!is.null(c$resultado)) {
+    r <- c$resultado
+    cat(sprintf("- **n objetivo:** %s\n", fmt_int(r$n_objetivo)))
+    cat(sprintf("- **n operativo:** %s\n", fmt_int(r$n_operativo)))
+    if (!is.null(r$advertencia)) {
+      cat(sprintf("\n> ⚠ %s\n", r$advertencia))
+    }
+  }
+  cat("\n")
+}
+```
+
+## Cuotas operativas calculadas
+
+```{r cuotas_matriz, results="asis"}
+for (c in estudio$componentes) {
+  res <- c$resultado
+  if (is.null(res$cuotas_matriz) || length(res$cuotas_matriz) == 0L) next
+  cat(sprintf("### %s\n\n", c$actor))
+  df <- do.call(rbind, lapply(res$cuotas_matriz, function(x) {
+    data.frame(
+      Territorio = x$territorio, Servicio = x$servicio,
+      Marco = x$N, Cuota = x$n,
+      Regla = x$regla %||% "",
+      stringsAsFactors = FALSE, check.names = FALSE
+    )
+  }))
+  print(tabla_pulso(df, caption = "Matriz de cuotas calculada desde el marco operativo"))
+  cat("\n\n")
+}
+```
+
+## Lineamientos metodológicos
+
+1. Cada actor puede tener un diseño distinto: el estudio es contenedor de componentes.
+2. Marco y unidad se separan: `unidad_seleccion` ≠ `unidad_analisis`.
+3. Solo diseños probabilísticos con marco completo y probabilidad conocida producen margen de error formal.
+4. Los demás diseños se reportan como cobertura operacional, representatividad teórica o validez interna.
+
+## Próximos pasos
+
+1. Validar marcos por actor: limpieza, deduplicación, validación de rol único.
+2. Confirmar canal de campo y tasa de respuesta esperada por componente.
+3. Avanzar a "diseño validado" cuando las bases estén listas para definir cuotas finales.

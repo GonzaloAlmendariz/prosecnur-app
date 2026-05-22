@@ -31,6 +31,7 @@ ast_to_r <- function(x) {
     "in_set"                   = .c_in_set(x$var, x$values),
     "not_in_set"               = .c_not_in_set(x$var, x$values),
     "matches_regex"            = .c_regex(x$var, x$pattern),
+    "text_length_cmp"          = .c_text_length_cmp(x$var, x$op, x$n),
     "compare_const"            = .c_cmp_const(x$var, x$op, x$value),
     "compare_vars"             = .c_cmp_vars(x$var_a, x$op, x$var_b),
     "selected"                 = .c_selected(x$var, x$value),
@@ -108,6 +109,11 @@ ast_to_r <- function(x) {
   pattern <- .regex_pattern_for_r(pattern)
   sprintf("(!is.na(%s) & grepl(%s, as.character(%s), perl = TRUE))",
           var, .lit_str(pattern), var)
+}
+
+.c_text_length_cmp <- function(var, op, n) {
+  sprintf("(!is.na(%s) & nchar(as.character(%s), type = 'chars') %s %d)",
+          var, var, op, as.integer(n))
 }
 
 .regex_pattern_for_r <- function(pattern) {

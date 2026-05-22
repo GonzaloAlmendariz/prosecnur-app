@@ -1,0 +1,231 @@
+---
+title: "`r params$titulo`"
+subtitle: "Diseño metodológico validado — listo para campo"
+date: today
+lang: es
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    df-print: paged
+    theme: cosmo
+    embed-resources: true
+execute:
+  echo: false
+  warning: false
+  message: false
+params:
+  titulo: "Estudio sin título"
+  bundle_path: ""
+---
+
+```{r setup}
+suppressPackageStartupMessages({
+  library(tibble)
+  library(dplyr)
+  library(knitr)
+  library(kableExtra)
+})
+
+stopifnot(nzchar(params$bundle_path), file.exists(params$bundle_path))
+bundle  <- readRDS(params$bundle_path)
+estudio <- bundle$estudio
+
+pulsoazul <- "#1F3864"
+
+tabla_pulso <- function(df, caption = NULL) {
+  kable(df, caption = caption, format.args = list(big.mark = ",")) |>
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                  full_width = FALSE, position = "left") |>
+    row_spec(0, bold = TRUE, color = "white", background = pulsoazul)
+}
+
+`%||%` <- function(x, y) if (is.null(x) || length(x) == 0L) y else x
+
+fmt_int <- function(x) if (is.null(x) || is.na(x)) "—" else format(x, big.mark = ",", scientific = FALSE)
+fmt_pct <- function(x, dec = 2) if (is.null(x) || is.na(x)) "—" else sprintf(paste0("%.", dec, "f%%"), x * 100)
+```
+
+## Diseño metodológico
+
+- **Estudio:** `r estudio$titulo`
+- **Macro-familia:** `r estudio$macro_familia`
+- **Cliente:** `r estudio$contexto$cliente %||% "—"`
+- **Modo de trabajo:** Diseño validado (listo para campo)
+
+::: {.callout-tip}
+Este reporte documenta el diseño **validado**: marcos confirmados, técnica seleccionada,
+parámetros declarados, metas definitivas. Es la pieza metodológica que respalda el
+levantamiento de campo.
+:::
+
+## Componentes del estudio
+
+```{r componentes_resumen}
+filas <- lapply(estudio$componentes, function(c) {
+  res <- c$resultado
+  tibble(
+    Actor              = c$actor,
+    Tecnica            = c$tecnica,
+    Nivel_respaldo     = c$nivel_respaldo,
+    Marco_contactable  = fmt_int(c$marco$marco_contactable),
+    n_objetivo         = fmt_int(res$n_objetivo %||% NA),
+    n_operativo        = fmt_int(res$n_operativo %||% NA),
+    Sobremuestra       = fmt_int(res$sobremuestra %||% NA),
+    Precision          = if (!is.null(res$precision_alcanzada) && !is.na(res$precision_alcanzada))
+                           fmt_pct(res$precision_alcanzada) else "no aplica"
+  )
+})
+tabla_pulso(do.call(rbind, filas), caption = "Resumen de componentes validados")
+```
+
+## Decisiones documentadas
+
+```{r decisiones, results="asis"}
+if (!is.null(estudio$decision_log)) {
+  for (cd in estudio$decision_log$componentes) {
+    cat(sprintf("### %s\n\n", cd$actor))
+    cat(sprintf("- **Técnica:** %s (naturaleza: %s)\n", cd$tecnica, cd$naturaleza))
+    cat(sprintf("- **Origen del tamaño:** %s\n", cd$origen_tamano))
+    cat(sprintf("- **Nivel de respaldo:** %s\n\n", cd$nivel_respaldo))
+    if (length(cd$decisiones) > 0L) {
+      cat("**Decisiones detalladas:**\n\n")
+      for (d in cd$decisiones) {
+        cat(sprintf("- *%s*: **%s** — %s\n", d$decision, d$valor, d$justificacion))
+      }
+    }
+    cat("\n")
+  }
+}
+```
+
+## Detalle de cálculo por componente
+
+```{r detalle, results="asis"}
+for (c in estudio$componentes) {
+  cat(sprintf("### %s\n\n", c$actor))
+  cat(sprintf("- **Universo bruto:** %s\n", fmt_int(c$marco$universo_bruto)))
+  cat(sprintf("- **Marco validado:** %s\n", fmt_int(c$marco$marco_validado)))
+  cat(sprintf("- **Marco contactable:** %s\n", fmt_int(c$marco$marco_contactable)))
+  cat(sprintf("- **Estado del marco:** %s\n\n", c$marco$estado))
+
+  if (c$tecnica == "prob_conglomerado_multietapico") {
+    p <- c$parametros
+    cat("**Parámetros del cálculo:**\n\n")
+    cat(sprintf("- z = %.2f · p = %.2f · e = %.4f · deff = %.2f · τ = %.2f\n",
+                p$z, p$p, p$e, p$deff, p$tau))
+    cat(sprintf("- promedio por conglomerado: %.0f · sobremuestra: %s\n\n",
+                p$promedio_conglomerado, fmt_pct(p$oversample_pct, dec=0)))
+  }
+
+  if (!is.null(c$resultado)) {
+    r <- c$resultado
+    cat("**Resultado:**\n\n")
+    if (!is.null(r$n_teorico) && !is.na(r$n_teorico)) {
+      cat(sprintf("- n teórico (fórmula): %s\n", fmt_int(r$n_teorico)))
+    }
+    cat(sprintf("- n objetivo: %s\n", fmt_int(r$n_objetivo)))
+    if (!is.null(r$n_teorico) && !is.na(r$n_teorico) &&
+        !is.null(r$n_objetivo) && !is.na(r$n_objetivo) &&
+        r$n_objetivo != r$n_teorico) {
+      ajuste <- r$n_objetivo - r$n_teorico
+      cat(sprintf("- ajuste operativo sobre la fórmula: %s\n",
+                  paste0(ifelse(ajuste > 0, "+", ""), fmt_int(ajuste))))
+    }
+    cat(sprintf("- n operativo: %s\n", fmt_int(r$n_operativo)))
+    if (!is.null(r$unidades_operativas) && !is.na(r$unidades_operativas)) {
+      cat(sprintf("- unidades operativas requeridas: %s\n", fmt_int(r$unidades_operativas)))
+    }
+    if (!is.null(r$precision_alcanzada) && !is.na(r$precision_alcanzada)) {
+      cat(sprintf("- precisión alcanzada: %s\n", fmt_pct(r$precision_alcanzada)))
+    }
+    if (!is.null(r$cobertura_objetivo) && !is.na(r$cobertura_objetivo)) {
+      cat(sprintf("- cobertura objetivo: %s\n", fmt_pct(r$cobertura_objetivo)))
+    }
+    if (!is.null(r$registros_a_contactar)) {
+      cat(sprintf("- registros a contactar: %s (tasa contacto %s × elegibilidad %s × respuesta %s)\n",
+                  fmt_int(r$registros_a_contactar),
+                  fmt_pct(r$tasa_contacto, dec = 0),
+                  fmt_pct(r$tasa_elegibilidad, dec = 0),
+                  fmt_pct(r$tasa_respuesta, dec = 0)))
+    }
+    if (!is.null(r$advertencia)) {
+      cat(sprintf("\n> ⚠ %s\n", r$advertencia))
+    }
+  }
+  cat("\n")
+}
+```
+
+## Distribución por estrato (cuando aplica)
+
+```{r distribucion_estratos, results="asis"}
+for (c in estudio$componentes) {
+  res <- c$resultado
+  if (is.null(res$distribucion_estratos) || length(res$distribucion_estratos) == 0L) next
+  cat(sprintf("### %s\n\n", c$actor))
+  df <- do.call(rbind, lapply(res$distribucion_estratos, function(d) {
+    data.frame(
+      Estrato = d$estrato, N = d$N, n = d$n,
+      Asignacion = sprintf("%.1f%%", (d$n / max(d$N, 1)) * 100),
+      p = if (!is.null(d$p_e) && !is.na(d$p_e)) sprintf("%.0f%%", d$p_e * 100) else "-",
+      Precision = if (!is.null(d$precision_e)) sprintf("+/- %.2f%%", d$precision_e * 100) else "-",
+      stringsAsFactors = FALSE, check.names = FALSE
+    )
+  }))
+  print(tabla_pulso(df, caption = "Cuota proporcional al N de cada estrato"))
+  cat("\n\n")
+}
+```
+
+## Aulas/unidades operativas por estrato
+
+```{r aulas_estratos, results="asis"}
+for (c in estudio$componentes) {
+  res <- c$resultado
+  if (is.null(res$aulas_por_estrato) || length(res$aulas_por_estrato) == 0L) next
+  cat(sprintf("### %s\n\n", c$actor))
+  df <- do.call(rbind, lapply(res$aulas_por_estrato, function(a) {
+    data.frame(
+      Estrato = a$estrato, Cuota = a$cuota,
+      Prom = sprintf("%.1f", a$avg_conglomerado),
+      Tau = sprintf("%.2f", a$tau),
+      Aulas_base = a$aulas_base, Reemplazo = a$aulas_reemplazo,
+      Total = a$aulas_total, Tipo = a$tipo_aula,
+      stringsAsFactors = FALSE, check.names = FALSE
+    )
+  }))
+  print(tabla_pulso(df, caption = sprintf(
+    "Aulas: base %d + reemplazo %d = total %d",
+    res$aulas_base_total, res$aulas_total - res$aulas_base_total, res$aulas_total
+  )))
+  cat("\n\n")
+}
+```
+
+## Cuotas por territorio y servicio
+
+```{r cuotas_matriz, results="asis"}
+for (c in estudio$componentes) {
+  res <- c$resultado
+  if (is.null(res$cuotas_matriz) || length(res$cuotas_matriz) == 0L) next
+  cat(sprintf("### %s\n\n", c$actor))
+  df <- do.call(rbind, lapply(res$cuotas_matriz, function(x) {
+    data.frame(
+      Territorio = x$territorio, Servicio = x$servicio,
+      Marco = x$N, Cuota = x$n,
+      Regla = x$regla %||% "",
+      stringsAsFactors = FALSE, check.names = FALSE
+    )
+  }))
+  print(tabla_pulso(df, caption = "Matriz de cuotas calculada desde el marco operativo"))
+  cat("\n\n")
+}
+```
+
+## Confidencialidad y restricciones de uso de datos
+
+Los datos generados para este estudio tienen uso exclusivo en el marco del proyecto
+contratado. Las bases cuantitativas se anonimizan antes de cualquier compartición.
+Las transcripciones cualitativas no son compartibles si identifican participantes.

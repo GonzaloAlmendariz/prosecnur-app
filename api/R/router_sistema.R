@@ -471,6 +471,77 @@ mount_sistema <- function(pr) {
       } else if (!is.null(s$rp_data)) {
         list(default = list(nombre = "default"))
       } else list()
+      file_brief <- function(file_id) {
+        fid <- as.character(file_id %||% "")
+        if (!nzchar(fid) || is.null(s$files[[fid]])) return(NULL)
+        meta <- s$files[[fid]]
+        list(
+          file_id = fid,
+          filename = as.character(meta$original_name %||% basename(meta$path %||% "")),
+          kind = as.character(meta$kind %||% ""),
+          ext = as.character(meta$ext %||% "")
+        )
+      }
+      last_file_brief_by_kind <- function(kinds) {
+        hits <- Filter(function(f) as.character(f$kind %||% "") %in% kinds, s$files %||% list())
+        if (!length(hits)) return(NULL)
+        meta <- hits[[length(hits)]]
+        list(
+          file_id = as.character(meta$file_id %||% ""),
+          filename = as.character(meta$original_name %||% basename(meta$path %||% "")),
+          kind = as.character(meta$kind %||% ""),
+          ext = as.character(meta$ext %||% "")
+        )
+      }
+      pair_brief <- function(nombre, base, source) {
+        if (identical(source, "original")) {
+          xls_id <- base$original_xlsform_file_id %||% base$xlsform_file_id
+          dat_id <- base$original_data_file_id %||% base$data_file_id
+        } else {
+          xls_id <- base$xlsform_file_id
+          dat_id <- base$data_file_id
+        }
+        xls <- file_brief(xls_id)
+        dat <- file_brief(dat_id)
+        if (identical(source, "original") &&
+            (identical((xls %||% list())$kind, "instrumento_adaptado") ||
+             identical((dat %||% list())$kind, "data_adaptada"))) {
+          xls <- last_file_brief_by_kind("xlsform") %||% xls
+          dat <- last_file_brief_by_kind(c("data", "sav")) %||% dat
+        }
+        list(
+          nombre = nombre,
+          xlsform = xls,
+          data = dat,
+          available = !is.null(xls) && !is.null(dat)
+        )
+      }
+      original_bases <- if (length(bases) > 0L) {
+        lapply(names(bases), function(nm) pair_brief(nm, bases[[nm]], "original"))
+      } else list()
+      codificada_bases <- if (length(bases) > 0L) {
+        lapply(names(bases), function(nm) pair_brief(nm, bases[[nm]], "codificada"))
+      } else list()
+      codificada_available <- any(vapply(codificada_bases, function(b) {
+        isTRUE(b$available) &&
+          identical((b$xlsform %||% list())$kind, "instrumento_adaptado") &&
+          identical((b$data %||% list())$kind, "data_adaptada")
+      }, logical(1)))
+      if (!codificada_available && isTRUE(s$codif_aplicado) &&
+          !is.null(s$codif_inst_adaptado_fid) && !is.null(s$codif_data_adaptada_fid)) {
+        codificada_available <- TRUE
+        if (length(codificada_bases) == 0L) {
+          codificada_bases <- list(list(
+            nombre = "default",
+            xlsform = file_brief(s$codif_inst_adaptado_fid),
+            data = file_brief(s$codif_data_adaptada_fid),
+            available = TRUE
+          ))
+        }
+      }
+      if (!isTRUE(codificada_available)) {
+        codificada_bases <- list()
+      }
       list(
         session_id = s$id,
         created_at = format(s$created_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
@@ -493,6 +564,19 @@ mount_sistema <- function(pr) {
         analitica_enumeradores_ok = isTRUE(s$analitica_enumeradores_ok),
         analitica_dim_ok = isTRUE(s$analitica_dim_ok),
         analitica_fuente = s$analitica_fuente %||% NA_character_,
+        analitica_fuente_detalle = list(
+          actual = s$analitica_fuente %||% NA_character_,
+          original = list(
+            label = "Original",
+            available = length(original_bases) > 0L,
+            bases = original_bases
+          ),
+          codificada = list(
+            label = "Codificada",
+            available = isTRUE(codificada_available),
+            bases = codificada_bases
+          )
+        ),
         hojas_ruta_ok = isTRUE(s$hojas_ruta_ok),
         graficos_ppt_ok = isTRUE(s$graficos_ppt_ok),
         graficos_word_ok = isTRUE(s$graficos_word_ok),

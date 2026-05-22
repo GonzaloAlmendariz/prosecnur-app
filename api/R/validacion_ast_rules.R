@@ -1381,6 +1381,8 @@ compile_rule <- function(rule) {
       .human_label_for_var(x$var, label_map), x$min %||% "-", x$max %||% "-"),
     "count_selected_cmp" = sprintf("la cantidad de opciones marcadas en %s %s %s",
       .human_label_for_var(x$var, label_map), .human_op(x$op), as.character(x$n)),
+    "text_length_cmp" = sprintf("la longitud de %s %s %s caracteres",
+      .human_label_for_var(x$var, label_map), .human_op(x$op), as.character(x$n)),
     "collection_date_cmp" = sprintf("%s %s hoy",
       .human_label_for_var(x$var, label_map), .human_op(x$op)),
     "collection_date_offset_cmp" = {

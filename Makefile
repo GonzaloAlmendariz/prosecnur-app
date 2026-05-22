@@ -13,7 +13,7 @@ DIST_ROOT := $(REPO_ROOT)/dist.nosync
 PACKAGE_DIR := $(DIST_ROOT)/$(PACKAGE_NAME)
 PACKAGE_STAGING := $(DIST_ROOT)/.package-staging/$(PACKAGE_NAME)
 
-.PHONY: help dev-api dev-frontend dev-pulso build clean install-r install-frontend install-desktop desktop package-local package-windows-self-contained package-mac-dmg
+.PHONY: help dev-api dev-frontend dev-pulso build build-if-stale clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -28,6 +28,7 @@ help:
 	@echo "  dev-api          Run Plumber API (no frontend build, no Electron)"
 	@echo "  dev-frontend     Run Vite dev server (proxies /api to :8787)"
 	@echo "  build            Build the frontend into api/inst/www"
+	@echo "  desktop-fast     Run Electron, rebuilding frontend only if stale"
 	@echo "  package-local    Generate distributable in dist.nosync/Prosecnur/"
 	@echo "  package-windows-self-contained Generate offline Windows bundle ZIP + Setup.exe + latest.yml"
 	@echo "  package-mac-dmg  Generate macOS .dmg (arm64 + x64) + latest-mac.yml"
@@ -73,7 +74,32 @@ dev-pulso:
 build:
 	cd frontend && pnpm build
 
+build-if-stale:
+	@BUILD_INDEX="$(REPO_ROOT)/api/inst/www/index.html"; \
+	  FRONTEND_DIR="$(REPO_ROOT)/frontend"; \
+	  needs_build=0; \
+	  if [ ! -f "$$BUILD_INDEX" ]; then \
+	    needs_build=1; \
+	  elif find "$$FRONTEND_DIR/src" \
+	      "$$FRONTEND_DIR/index.html" \
+	      "$$FRONTEND_DIR/package.json" \
+	      "$$FRONTEND_DIR/pnpm-lock.yaml" \
+	      "$$FRONTEND_DIR/vite.config.ts" \
+	      "$$FRONTEND_DIR"/tsconfig*.json \
+	      -type f -newer "$$BUILD_INDEX" 2>/dev/null | grep -q .; then \
+	    needs_build=1; \
+	  fi; \
+	  if [ "$$needs_build" = "1" ]; then \
+	    echo "→ Frontend faltante o desactualizado; compilando..."; \
+	    cd frontend && pnpm build; \
+	  else \
+	    echo "✓ Frontend vigente; saltando build."; \
+	  fi
+
 desktop: build
+	cd desktop && pnpm start
+
+desktop-fast: build-if-stale
 	cd desktop && pnpm start
 
 package-local: build

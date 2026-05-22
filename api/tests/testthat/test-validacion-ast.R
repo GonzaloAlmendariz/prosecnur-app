@@ -289,6 +289,52 @@ test_that("parser: regex(., 'pat') con self_var → matches_regex", {
   expect_equal(res$ast$var, "codigo")
 })
 
+test_that("parser: string-length(.) en comparaciones → text_length_cmp", {
+  res <- odk_parse_to_ast("string-length(.) <= 9 and string-length(.) >= 9",
+                          context = "constraint", self_var = "telefono")
+  expect_false(res$degraded_to_raw)
+  expect_equal(ast_op(res$ast), "and")
+  expect_true(all(vapply(res$ast$args, function(x) ast_op(x) == "text_length_cmp", logical(1))))
+  expect_equal(vapply(res$ast$args, function(x) x$var, character(1)), c("telefono", "telefono"))
+})
+
+test_that("evaluate_validation_bundle evalúa constraints string-length sin modo experto", {
+  survey <- data.frame(
+    type = "text",
+    name = "telefono",
+    label = "Telefono",
+    required = "",
+    relevant = "",
+    constraint = "string-length(.) <= 9 and string-length(.) >= 9",
+    stringsAsFactors = FALSE
+  )
+  rules <- infer_rules_from_xlsform(list(survey = survey))$rules
+  bundle <- list(
+    rules = rules,
+    plan = compile_rules_to_plan(rules),
+    compatibility = make_validation_compatibility_profile()
+  )
+  main <- data.frame(
+    telefono = c("987654321", "12345", "", NA),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  ev <- evaluate_validation_bundle(
+    bundle = bundle,
+    data_input = list(
+      principal = main,
+      tables = list(principal = main),
+      data_multi = list(),
+      rc_checks = list()
+    )
+  )
+
+  expect_equal(ev$resumen$estado_dinamico[[1]], "correcta")
+  expect_true(is.na(ev$resumen$issue_code[[1]]))
+  expect_equal(ev$resumen$n_inconsistencias[[1]], 1L)
+})
+
 test_that("lector XLSForm normaliza referencias SM qNNNN dentro de expresiones", {
   skip_if_not_installed("openxlsx")
 

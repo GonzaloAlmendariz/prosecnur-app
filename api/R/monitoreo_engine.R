@@ -43,6 +43,413 @@
   if (!nzchar(x)) "campo" else x
 }
 
+monitoreo_estado_cumplimiento <- function(n_efectivo, n_objetivo) {
+  n_efectivo <- .monitoreo_int(n_efectivo, 0L)
+  n_objetivo <- .monitoreo_int(n_objetivo, NA_integer_)
+  if (!is.finite(n_objetivo) || n_objetivo <= 0L) {
+    return(list(
+      estado = "sin_objetivo",
+      brecha_absoluta = NA_integer_,
+      brecha_porcentual = NA_real_
+    ))
+  }
+  brecha_abs <- as.integer(n_objetivo - n_efectivo)
+  brecha_pct <- brecha_abs / n_objetivo
+  estado <- if (n_efectivo >= n_objetivo) {
+    "cumple_meta"
+  } else if (brecha_pct < 0.05) {
+    "brecha_menor_documentada"
+  } else {
+    "brecha_relevante"
+  }
+  list(
+    estado = estado,
+    brecha_absoluta = brecha_abs,
+    brecha_porcentual = brecha_pct
+  )
+}
+
+.monitoreo_actor_id <- function(actor, actor_id = "") {
+  raw <- .monitoreo_scalar(actor_id, "")
+  if (!nzchar(raw)) raw <- .monitoreo_scalar(actor, "")
+  id <- .monitoreo_safe_name(raw)
+  if (grepl("admin", id)) return("administrativos")
+  if (grepl("docent", id)) return("docentes")
+  if (grepl("estudiant", id)) return("estudiantes")
+  if (grepl("egresad", id)) return("egresados")
+  id
+}
+
+.monitoreo_acreditacion_benchmark <- function(actor_id) {
+  benchmarks <- list(
+    estudiantes = list(rango = "58% a 97%", promedio_historico = 0.713, mediana_historica = 0.69),
+    docentes = list(rango = "66% a 100%", promedio_historico = 0.893, mediana_historica = 0.985),
+    egresados = list(rango = "62% a 75%", promedio_historico = 0.682, mediana_historica = 0.67),
+    administrativos = list(rango = "64% a 100%", promedio_historico = 0.946, mediana_historica = 0.97)
+  )
+  benchmarks[[actor_id]] %||% NULL
+}
+
+.monitoreo_canal_intentos <- function(x = list()) {
+  aliases <- list(
+    email = c("email", "correo"),
+    whatsapp = c("whatsapp", "wa"),
+    sms = c("sms"),
+    telefono = c("telefono", "phone", "llamada"),
+    presencial = c("presencial")
+  )
+  if (is.null(x) || !is.list(x)) x <- list()
+  out <- list(email = 0L, whatsapp = 0L, sms = 0L, telefono = 0L, presencial = 0L)
+  for (nm in names(aliases)) {
+    val <- NULL
+    for (key in aliases[[nm]]) {
+      if (!is.null(x[[key]])) {
+        val <- x[[key]]
+        break
+      }
+    }
+    out[[nm]] <- max(0L, .monitoreo_int(val, 0L))
+  }
+  out
+}
+
+.monitoreo_acreditacion_subcuotas <- function(raw = NULL, cuotas = NULL) {
+  if (is.null(raw)) raw <- list()
+  if (is.data.frame(raw)) {
+    raw <- lapply(seq_len(nrow(raw)), function(i) as.list(raw[i, , drop = FALSE]))
+  }
+  out <- list()
+  if (is.list(raw) && length(raw)) {
+    if (is.null(names(raw)) || any(!nzchar(names(raw)))) {
+      for (item in raw) {
+        if (!is.list(item)) next
+        celda <- .monitoreo_scalar(item$celda %||% item$id %||% item$name, "")
+        if (!nzchar(celda)) next
+        cuota <- .monitoreo_int(item$cuota %||% item$meta, 0L)
+        logrado <- .monitoreo_int(item$logrado %||% item$n, 0L)
+        estado <- .monitoreo_scalar(item$estado, "")
+        if (!estado %in% c("completa", "parcial", "vacia")) {
+          estado <- if (logrado >= cuota && cuota > 0L) "completa" else if (logrado > 0L) "parcial" else "vacia"
+        }
+        out[[celda]] <- list(cuota = cuota, logrado = logrado, estado = estado)
+      }
+    } else {
+      for (celda in names(raw)) {
+        item <- raw[[celda]]
+        if (is.list(item)) {
+          cuota <- .monitoreo_int(item$cuota %||% item$meta, 0L)
+          logrado <- .monitoreo_int(item$logrado %||% item$n, 0L)
+          estado <- .monitoreo_scalar(item$estado, "")
+        } else {
+          cuota <- .monitoreo_int(item, 0L)
+          logrado <- 0L
+          estado <- "vacia"
+        }
+        if (!estado %in% c("completa", "parcial", "vacia")) {
+          estado <- if (logrado >= cuota && cuota > 0L) "completa" else if (logrado > 0L) "parcial" else "vacia"
+        }
+        out[[celda]] <- list(cuota = cuota, logrado = logrado, estado = estado)
+      }
+    }
+  }
+  if (!length(out) && is.list(cuotas) && length(cuotas)) {
+    for (celda in names(cuotas)) {
+      out[[celda]] <- list(
+        cuota = max(0L, .monitoreo_int(cuotas[[celda]], 0L)),
+        logrado = 0L,
+        estado = "vacia"
+      )
+    }
+  }
+  out
+}
+
+.monitoreo_acreditacion_bolsa <- function(raw = NULL) {
+  if (is.null(raw)) return(list())
+  if (is.data.frame(raw)) raw <- lapply(seq_len(nrow(raw)), function(i) as.list(raw[i, , drop = FALSE]))
+  if (!is.list(raw)) return(list())
+  out <- list()
+  for (i in seq_along(raw)) {
+    item <- raw[[i]]
+    if (!is.list(item)) next
+    tipo <- .monitoreo_scalar(item$tipo, "titular")
+    if (!tipo %in% c("titular", "reemplazo")) tipo <- "titular"
+    estado <- .monitoreo_scalar(item$estado, "pendiente")
+    if (!estado %in% c("pendiente", "activado", "completado", "descartado")) estado <- "pendiente"
+    out[[length(out) + 1L]] <- list(
+      id = .monitoreo_scalar(item$id, paste0("unidad-", i)),
+      tipo = tipo,
+      prioridad = max(1L, .monitoreo_int(item$prioridad, if (tipo == "titular") 1L else i)),
+      estado = estado,
+      fecha_activacion = .monitoreo_scalar(item$fecha_activacion, ""),
+      motivo_descarte = .monitoreo_scalar(item$motivo_descarte, "")
+    )
+  }
+  out
+}
+
+.monitoreo_acreditacion_componente <- function(comp = list()) {
+  if (is.null(comp) || !is.list(comp)) comp <- list()
+  actor <- .monitoreo_scalar(comp$actor, "Componente")
+  actor_id <- .monitoreo_actor_id(actor, comp$actor_id %||% "")
+  resultado <- comp$resultado %||% list()
+  meta_raw <- comp$meta %||% list()
+  marco_raw <- comp$marco %||% list()
+  n_objetivo <- .monitoreo_int(
+    comp$n_objetivo %||% meta_raw$n_objetivo %||% comp$meta_efectiva %||%
+      resultado$n_objetivo %||% resultado$n_operativo %||% meta_raw$valor,
+    NA_integer_
+  )
+  tecnica <- .monitoreo_scalar(comp$tecnica %||% resultado$tecnica, "")
+  variable_control <- .monitoreo_scalar(
+    comp$variable_control %||% resultado$variable_control %||% meta_raw$variable_control,
+    ""
+  )
+  tasa_respuesta_esperada <- .monitoreo_num(
+    comp$tasa_respuesta_esperada %||% resultado$tasa_respuesta_esperada %||%
+      comp$parametros$tasa_respuesta,
+    NA_real_
+  )
+
+  seguimiento_raw <- comp$seguimiento %||% list()
+  n_efectivo <- max(0L, .monitoreo_int(seguimiento_raw$n_efectivo %||% comp$n_efectivo, 0L))
+  cumplimiento <- monitoreo_estado_cumplimiento(n_efectivo, n_objetivo)
+  benchmark <- .monitoreo_acreditacion_benchmark(actor_id)
+  benchmark_comparado <- NULL
+  if (!is.null(benchmark) && is.finite(n_objetivo) && n_objetivo > 0L) {
+    cobertura_actual <- n_efectivo / n_objetivo
+    benchmark_comparado <- c(
+      benchmark,
+      list(
+        cobertura_actual = cobertura_actual,
+        desviacion_actual = cobertura_actual - benchmark$promedio_historico
+      )
+    )
+  }
+  cumplimiento$benchmark_comparado <- benchmark_comparado
+
+  cuotas <- resultado$sub_cuotas %||% meta_raw$sub_cuotas %||% NULL
+  subcuotas <- .monitoreo_acreditacion_subcuotas(
+    seguimiento_raw$sub_cuotas_progreso %||% comp$sub_cuotas_progreso,
+    cuotas
+  )
+  intentos <- .monitoreo_canal_intentos(seguimiento_raw$intentos_canal %||% comp$intentos_canal)
+
+  list(
+    id = .monitoreo_scalar(comp$id, paste0("cmp-", actor_id)),
+    actor = actor,
+    actor_id = actor_id,
+    tecnica = tecnica,
+    variable_control = variable_control,
+    habilita_margen = .monitoreo_bool(comp$habilita_margen, identical(tecnica, "prob_conglomerado_multietapico")),
+    marco = list(
+      universo_bruto = .monitoreo_int(marco_raw$universo_bruto, NA_integer_),
+      marco_actualizado = .monitoreo_int(marco_raw$marco_actualizado %||% marco_raw$marco_validado, NA_integer_),
+      marco_contactable = .monitoreo_int(marco_raw$marco_contactable, NA_integer_),
+      meta_efectiva = if (is.finite(n_objetivo)) as.integer(n_objetivo) else NA_integer_,
+      tasa_respuesta_esperada = tasa_respuesta_esperada
+    ),
+    meta = list(
+      n_objetivo = if (is.finite(n_objetivo)) as.integer(n_objetivo) else NA_integer_,
+      tipo = .monitoreo_scalar(meta_raw$tipo, "objetivo"),
+      variable_control = variable_control
+    ),
+    seguimiento = list(
+      n_efectivo = as.integer(n_efectivo),
+      fecha_actualizacion = .monitoreo_scalar(seguimiento_raw$fecha_actualizacion, ""),
+      notas_campo = .monitoreo_scalar(seguimiento_raw$notas_campo, ""),
+      intentos_canal = intentos,
+      tasa_contacto_efectiva = .monitoreo_num(seguimiento_raw$tasa_contacto_efectiva, NA_real_),
+      cumplimiento = cumplimiento,
+      bolsa_operativa = .monitoreo_acreditacion_bolsa(seguimiento_raw$bolsa_operativa %||% comp$bolsa_operativa),
+      sub_cuotas_progreso = subcuotas
+    )
+  )
+}
+
+monitoreo_acreditacion_dashboard <- function(acreditacion = list()) {
+  comps <- acreditacion$componentes %||% list()
+  cards <- list()
+  alertas <- list()
+  add_alerta <- function(severidad, componente_id, actor, tipo, mensaje) {
+    alertas[[length(alertas) + 1L]] <<- list(
+      severidad = severidad,
+      componente_id = componente_id,
+      actor = actor,
+      tipo = tipo,
+      mensaje = mensaje
+    )
+  }
+  for (comp in comps) {
+    seg <- comp$seguimiento %||% list()
+    meta <- comp$meta %||% list()
+    cum <- seg$cumplimiento %||% monitoreo_estado_cumplimiento(seg$n_efectivo, meta$n_objetivo)
+    n_objetivo <- .monitoreo_int(meta$n_objetivo, NA_integer_)
+    n_efectivo <- .monitoreo_int(seg$n_efectivo, 0L)
+    avance_pct <- if (is.finite(n_objetivo) && n_objetivo > 0L) round(100 * n_efectivo / n_objetivo, 1) else NA_real_
+    cards[[length(cards) + 1L]] <- list(
+      id = comp$id,
+      actor = comp$actor,
+      actor_id = comp$actor_id,
+      tecnica = comp$tecnica,
+      n_efectivo = n_efectivo,
+      n_objetivo = if (is.finite(n_objetivo)) as.integer(n_objetivo) else NA_integer_,
+      avance_pct = avance_pct,
+      estado = cum$estado,
+      brecha_absoluta = cum$brecha_absoluta,
+      brecha_porcentual = cum$brecha_porcentual,
+      benchmark_comparado = cum$benchmark_comparado,
+      ultima_actualizacion = seg$fecha_actualizacion %||% ""
+    )
+    if (identical(cum$estado, "brecha_relevante")) {
+      add_alerta("bloqueante", comp$id, comp$actor, "brecha_relevante",
+                 "Brecha relevante: requiere refuerzo o aprobacion metodologica.")
+    } else if (identical(cum$estado, "brecha_menor_documentada")) {
+      add_alerta("advertencia", comp$id, comp$actor, "brecha_menor",
+                 "Brecha menor: documentar justificacion antes del cierre.")
+    } else if (identical(cum$estado, "sin_objetivo")) {
+      add_alerta("advertencia", comp$id, comp$actor, "sin_objetivo",
+                 "Sin meta efectiva configurada.")
+    }
+    if (n_efectivo > 0L && n_efectivo < 30L) {
+      add_alerta("advertencia", comp$id, comp$actor, "minimo_estadistico",
+                 "Avance bajo n=30 para analisis estadistico.")
+    }
+    bench <- cum$benchmark_comparado
+    if (!is.null(bench) && is.finite(bench$cobertura_actual) &&
+        is.finite(bench$mediana_historica) &&
+        (bench$cobertura_actual - bench$mediana_historica) <= -0.15) {
+      add_alerta("advertencia", comp$id, comp$actor, "benchmark_bajo",
+                 "Cobertura 15pp o mas por debajo de la mediana historica interna.")
+    }
+    subcuotas <- seg$sub_cuotas_progreso %||% list()
+    if (length(subcuotas)) {
+      estados <- vapply(subcuotas, function(x) .monitoreo_scalar(x$estado, ""), character(1))
+      if (any(estados %in% c("vacia", "parcial"))) {
+        add_alerta("advertencia", comp$id, comp$actor, "subcuotas_incompletas",
+                   "Hay subcuotas vacias o parciales.")
+      }
+    }
+    bolsa <- seg$bolsa_operativa %||% list()
+    if (length(bolsa)) {
+      sin_motivo <- vapply(bolsa, function(x) {
+        identical(x$tipo, "reemplazo") &&
+          x$estado %in% c("activado", "completado") &&
+          !nzchar(.monitoreo_scalar(x$motivo_descarte, ""))
+      }, logical(1))
+      if (any(sin_motivo)) {
+        add_alerta("advertencia", comp$id, comp$actor, "reemplazo_sin_motivo",
+                   "Hay reemplazos activados sin motivo documentado.")
+      }
+    }
+  }
+  bloqueos <- vapply(alertas, function(a) identical(a$severidad, "bloqueante"), logical(1))
+  list(
+    cards = cards,
+    alertas = alertas,
+    cierre_habilitado = length(cards) > 0L && !any(bloqueos),
+    bloqueos = as.integer(sum(bloqueos))
+  )
+}
+
+monitoreo_normalize_acreditacion <- function(acreditacion = list()) {
+  if (is.null(acreditacion) || !is.list(acreditacion)) acreditacion <- list()
+  comps_raw <- acreditacion$componentes %||% list()
+  if (is.data.frame(comps_raw)) {
+    comps_raw <- lapply(seq_len(nrow(comps_raw)), function(i) as.list(comps_raw[i, , drop = FALSE]))
+  }
+  comps <- lapply(comps_raw, .monitoreo_acreditacion_componente)
+  modo <- .monitoreo_scalar(acreditacion$modo_trabajo, "seguimiento_campo")
+  if (!modo %in% c("seguimiento_campo", "cierre_campo")) modo <- "seguimiento_campo"
+  estudio_raw <- acreditacion$estudio %||% list()
+  out <- list(
+    enabled = .monitoreo_bool(acreditacion$enabled, length(comps) > 0L),
+    modo_trabajo = modo,
+    estudio = list(
+      id = .monitoreo_scalar(estudio_raw$id %||% acreditacion$estudio_id, ""),
+      titulo = .monitoreo_scalar(estudio_raw$titulo %||% acreditacion$titulo, "Estudio de acreditacion"),
+      cliente = .monitoreo_scalar(estudio_raw$cliente %||% estudio_raw$contexto$cliente, ""),
+      macro_familia = .monitoreo_scalar(estudio_raw$macro_familia, "acreditacion"),
+      creado_desde_calc_muestra = .monitoreo_bool(estudio_raw$creado_desde_calc_muestra, FALSE)
+    ),
+    componentes = comps,
+    plan_refuerzo = .monitoreo_scalar(acreditacion$plan_refuerzo, ""),
+    aprobacion_metodologica = .monitoreo_bool(acreditacion$aprobacion_metodologica, FALSE),
+    cierre_at = .monitoreo_scalar(acreditacion$cierre_at, "")
+  )
+  out$dashboard <- monitoreo_acreditacion_dashboard(out)
+  out
+}
+
+monitoreo_acreditacion_from_calc <- function(estudio) {
+  if (is.null(estudio) || !is.list(estudio)) stop("No hay estudio de calculador para importar.", call. = FALSE)
+  comps <- estudio$componentes %||% list()
+  if (!length(comps)) stop("El estudio del calculador no tiene componentes.", call. = FALSE)
+  acreditacion <- list(
+    enabled = TRUE,
+    modo_trabajo = "seguimiento_campo",
+    estudio = list(
+      id = .monitoreo_scalar(estudio$id, ""),
+      titulo = .monitoreo_scalar(estudio$titulo, "Estudio de acreditacion"),
+      cliente = .monitoreo_scalar(estudio$contexto$cliente, ""),
+      macro_familia = .monitoreo_scalar(estudio$macro_familia, "acreditacion"),
+      creado_desde_calc_muestra = TRUE
+    ),
+    componentes = comps
+  )
+  monitoreo_normalize_acreditacion(acreditacion)
+}
+
+monitoreo_acreditacion_update_seguimiento <- function(acreditacion, payload = list()) {
+  acr <- monitoreo_normalize_acreditacion(acreditacion)
+  id <- .monitoreo_scalar(payload$id %||% payload$componente_id, "")
+  if (!nzchar(id)) stop("Falta id de componente.", call. = FALSE)
+  ids <- vapply(acr$componentes, function(comp) comp$id, character(1))
+  idx <- match(id, ids)
+  if (is.na(idx)) stop("Componente no existe en el seguimiento.", call. = FALSE)
+  comp <- acr$componentes[[idx]]
+  seg <- comp$seguimiento %||% list()
+  if ("n_efectivo" %in% names(payload)) seg$n_efectivo <- max(0L, .monitoreo_int(payload$n_efectivo, 0L))
+  if ("notas_campo" %in% names(payload)) seg$notas_campo <- .monitoreo_scalar(payload$notas_campo, "")
+  if ("intentos_canal" %in% names(payload)) {
+    current <- seg$intentos_canal %||% list()
+    incoming <- payload$intentos_canal %||% list()
+    if (is.list(incoming)) {
+      for (nm in names(incoming)) current[[nm]] <- incoming[[nm]]
+    }
+    seg$intentos_canal <- .monitoreo_canal_intentos(current)
+  }
+  if ("tasa_contacto_efectiva" %in% names(payload)) {
+    seg$tasa_contacto_efectiva <- .monitoreo_num(payload$tasa_contacto_efectiva, NA_real_)
+  }
+  if ("sub_cuotas_progreso" %in% names(payload)) {
+    seg$sub_cuotas_progreso <- payload$sub_cuotas_progreso
+  }
+  if ("bolsa_operativa" %in% names(payload)) {
+    seg$bolsa_operativa <- payload$bolsa_operativa
+  }
+  seg$fecha_actualizacion <- .monitoreo_scalar(payload$fecha_actualizacion, .monitoreo_now_iso())
+  comp$seguimiento <- seg
+  acr$componentes[[idx]] <- .monitoreo_acreditacion_componente(comp)
+  monitoreo_normalize_acreditacion(acr)
+}
+
+monitoreo_acreditacion_cerrar <- function(acreditacion, plan_refuerzo = "", aprobar_brechas = FALSE) {
+  acr <- monitoreo_normalize_acreditacion(acreditacion)
+  dashboard <- acr$dashboard %||% monitoreo_acreditacion_dashboard(acr)
+  bloqueado <- !isTRUE(dashboard$cierre_habilitado)
+  plan_refuerzo <- .monitoreo_scalar(plan_refuerzo, acr$plan_refuerzo %||% "")
+  aprobar_brechas <- .monitoreo_bool(aprobar_brechas, acr$aprobacion_metodologica %||% FALSE)
+  if (isTRUE(bloqueado) && !aprobar_brechas && !nzchar(plan_refuerzo)) {
+    stop("Hay brechas relevantes sin plan de refuerzo o aprobacion metodologica.", call. = FALSE)
+  }
+  acr$modo_trabajo <- "cierre_campo"
+  acr$plan_refuerzo <- plan_refuerzo
+  acr$aprobacion_metodologica <- aprobar_brechas
+  acr$cierre_at <- .monitoreo_now_iso()
+  monitoreo_normalize_acreditacion(acr)
+}
+
 monitoreo_default_config <- function(data = NULL) {
   cols <- if (is.data.frame(data)) names(data) else character(0)
   pick <- function(patterns) {
@@ -70,7 +477,8 @@ monitoreo_default_config <- function(data = NULL) {
     min_duration_seconds = 60,
     max_duration_seconds = 7200,
     supervision_n = 20,
-    supervision_seed = 20260514
+    supervision_seed = 20260514,
+    acreditacion = monitoreo_normalize_acreditacion(list())
   )
 }
 
@@ -128,7 +536,8 @@ monitoreo_normalize_config <- function(config = list(), data = NULL) {
     min_duration_seconds = max(0, .monitoreo_num(config$min_duration_seconds, defaults$min_duration_seconds)),
     max_duration_seconds = max(0, .monitoreo_num(config$max_duration_seconds, defaults$max_duration_seconds)),
     supervision_n = max(1L, .monitoreo_int(config$supervision_n, defaults$supervision_n)),
-    supervision_seed = .monitoreo_int(config$supervision_seed, defaults$supervision_seed)
+    supervision_seed = .monitoreo_int(config$supervision_seed, defaults$supervision_seed),
+    acreditacion = monitoreo_normalize_acreditacion(config$acreditacion %||% defaults$acreditacion)
   )
 }
 
@@ -189,6 +598,86 @@ monitoreo_demo_dataset <- function(seed = 20260514L, n = 96L) {
   )
 }
 
+monitoreo_demo_acreditacion <- function() {
+  monitoreo_normalize_acreditacion(list(
+    enabled = TRUE,
+    modo_trabajo = "seguimiento_campo",
+    estudio = list(
+      id = "demo-acreditacion",
+      titulo = "Acreditacion multi-actor demo",
+      cliente = "PUCP",
+      macro_familia = "acreditacion",
+      creado_desde_calc_muestra = FALSE
+    ),
+    componentes = list(
+      list(
+        id = "cmp-admin",
+        actor = "Administrativos",
+        actor_id = "administrativos",
+        tecnica = "intencion_censal",
+        marco = list(universo_bruto = 100L, marco_actualizado = 96L, marco_contactable = 92L),
+        meta = list(tipo = "cobertura", valor = 80L, variable_control = "condicion_laboral"),
+        seguimiento = list(
+          n_efectivo = 78L,
+          notas_campo = "Pendiente refuerzo con coordinacion de carrera.",
+          intentos_canal = list(email = 96L, whatsapp = 44L, telefono = 12L)
+        )
+      ),
+      list(
+        id = "cmp-docentes",
+        actor = "Docentes",
+        actor_id = "docentes",
+        tecnica = "no_prob_cuotas",
+        marco = list(universo_bruto = 280L, marco_actualizado = 268L, marco_contactable = 260L),
+        meta = list(
+          tipo = "cuota",
+          valor = 150L,
+          variable_control = "dedicacion_docente",
+          sub_cuotas = list(TC = 50L, TPA = 50L, TPC = 50L)
+        ),
+        seguimiento = list(
+          n_efectivo = 135L,
+          intentos_canal = list(email = 260L, whatsapp = 120L, telefono = 32L),
+          sub_cuotas_progreso = list(
+            TC = list(cuota = 50L, logrado = 48L, estado = "parcial"),
+            TPA = list(cuota = 50L, logrado = 50L, estado = "completa"),
+            TPC = list(cuota = 50L, logrado = 37L, estado = "parcial")
+          )
+        )
+      ),
+      list(
+        id = "cmp-estudiantes",
+        actor = "Estudiantes",
+        actor_id = "estudiantes",
+        tecnica = "prob_conglomerado_multietapico",
+        marco = list(universo_bruto = 4200L, marco_actualizado = 4100L, marco_contactable = 3900L),
+        meta = list(tipo = "objetivo", valor = 900L, variable_control = "nivel_curricular"),
+        seguimiento = list(
+          n_efectivo = 920L,
+          intentos_canal = list(email = 3900L, whatsapp = 1800L, presencial = 22L),
+          bolsa_operativa = list(
+            list(id = "AULA-101", tipo = "titular", prioridad = 1L, estado = "completado"),
+            list(id = "AULA-204", tipo = "reemplazo", prioridad = 2L, estado = "activado")
+          )
+        )
+      ),
+      list(
+        id = "cmp-egresados",
+        actor = "Egresados",
+        actor_id = "egresados",
+        tecnica = "no_prob_cuotas",
+        marco = list(universo_bruto = 520L, marco_actualizado = 480L, marco_contactable = 420L),
+        meta = list(tipo = "cuota", valor = 150L, variable_control = "ciclo_egreso"),
+        seguimiento = list(
+          n_efectivo = 110L,
+          notas_campo = "Canal telefonico en refuerzo.",
+          intentos_canal = list(email = 420L, whatsapp = 210L, telefono = 170L)
+        )
+      )
+    )
+  ))
+}
+
 monitoreo_demo_config <- function(data = NULL) {
   if (is.null(data) || !is.data.frame(data)) data <- monitoreo_demo_dataset()
   monitoreo_normalize_config(list(
@@ -212,7 +701,8 @@ monitoreo_demo_config <- function(data = NULL) {
     min_duration_seconds = 90,
     max_duration_seconds = 5400,
     supervision_n = 12,
-    supervision_seed = 20260514L
+    supervision_seed = 20260514L,
+    acreditacion = monitoreo_demo_acreditacion()
   ), data)
 }
 

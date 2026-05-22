@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "actualizado_en": "2026-05-17",
+  "fuente_canonica": "outputs/fuentes_metodologicas/00_COMPENDIO_METODOLOGICO_PULSO.md §6",
+  "terminos": [
+    {
+      "id": "deff",
+      "termino": "deff",
+      "nombre_completo": "Efecto de diseño (effect of design)",
+      "definicion": "Cociente entre la varianza del diseño aplicado y la varianza que tendría un MAS de igual n. Mide la pérdida de eficiencia por correlación intra-conglomerado o por estratificación subóptima. Para aulas universitarias típicamente 1.5-2.5.",
+      "formula": "\\mathrm{deff} = \\dfrac{\\mathrm{Var}(\\text{diseño aplicado})}{\\mathrm{Var}(\\text{MAS})}",
+      "metodologias_relacionadas": ["prob_conglomerado_multietapico", "prob_estratificado", "medicion_recurrente"],
+      "campos_calculador_relacionados": ["deff"]
+    },
+    {
+      "id": "fpc",
+      "termino": "FPC",
+      "nombre_completo": "Corrección por población finita (finite population correction)",
+      "definicion": "Factor √(1 - n/N) que reduce la varianza estimada cuando el tamaño muestral representa una fracción no despreciable del universo (n/N > 5%). Aplicar siempre cuando aplique; omitir solo para universos muy grandes (>100k).",
+      "formula": "\\mathrm{FPC} = \\sqrt{1 - \\dfrac{n}{N}}",
+      "metodologias_relacionadas": ["prob_aleatorio_simple", "prob_estratificado", "prob_conglomerado_multietapico"],
+      "campos_calculador_relacionados": []
+    },
+    {
+      "id": "tau",
+      "termino": "τ (tau)",
+      "nombre_completo": "Tasa de rendimiento",
+      "definicion": "Producto de τ_asistencia × τ_aceptación × τ_validez. Estima qué fracción de la unidad operativa termina en respuestas válidas. Calibrar con histórico interno cuando exista. Típicamente 0.35-1.00.",
+      "formula": "\\tau = \\tau_{\\text{asistencia}} \\cdot \\tau_{\\text{aceptación}} \\cdot \\tau_{\\text{validez}}",
+      "metodologias_relacionadas": ["prob_conglomerado_multietapico"],
+      "campos_calculador_relacionados": ["tau"]
+    },
+    {
+      "id": "upm",
+      "termino": "UPM",
+      "nombre_completo": "Unidad Primaria de Muestreo",
+      "definicion": "El conglomerado seleccionado en la primera etapa de un diseño multietápico: aulas (HSVG), manzanas (territorial), establecimientos de salud (EESS), rutas (campo). Define la unidad operativa del campo.",
+      "formula": null,
+      "metodologias_relacionadas": ["prob_conglomerado_multietapico"],
+      "campos_calculador_relacionados": ["unidad_seleccion"]
+    },
+    {
+      "id": "bolsa_operativa",
+      "termino": "Bolsa operativa",
+      "nombre_completo": "Bolsa operativa (titular + reemplazos)",
+      "definicion": "Conjunto de conglomerados etiquetados como titular (M1) + reemplazos (M2, M3, ...). Permite activar respaldos sin elevar la sobremuestra estadística. NO confundir con sobremuestra estadística: la bolsa son unidades físicas de respaldo; la sobremuestra es cuota adicional de respuestas para compensar no respuesta.",
+      "formula": null,
+      "metodologias_relacionadas": ["prob_conglomerado_multietapico"],
+      "campos_calculador_relacionados": ["bolsa_operativa", "sobremuestra"]
+    },
+    {
+      "id": "salto_k",
+      "termino": "Salto K",
+      "nombre_completo": "Intervalo de selección sistemática",
+      "definicion": "Intervalo k = N/n entre unidades en muestreo sistemático. El arranque es uniforme en {1, ..., k} y luego se seleccionan posiciones a, a+k, a+2k, ...",
+      "formula": "k = \\dfrac{N}{n}",
+      "metodologias_relacionadas": ["sistematico"],
+      "campos_calculador_relacionados": []
+    },
+    {
+      "id": "madow",
+      "termino": "Madow",
+      "nombre_completo": "Variante Madow del muestreo sistemático",
+      "definicion": "Variante de muestreo sistemático para selección de aulas (Madow 1953). Replica MAS si el marco no tiene periodicidad correlacionada con la variable de interés.",
+      "formula": null,
+      "metodologias_relacionadas": ["sistematico", "prob_conglomerado_multietapico"],
+      "campos_calculador_relacionados": []
+    },
+    {
+      "id": "refresh_panel",
+      "termino": "Refresh vs Panel",
+      "nombre_completo": "Refresh vs Panel en medición recurrente",
+      "definicion": "Refresh = muestra fresca por ola. Panel = recontacto entre olas. Panel reduce la varianza del cambio estimado pero requiere controlar atrición y costos crecientes de mantención.",
+      "formula": null,
+      "metodologias_relacionadas": ["medicion_recurrente"],
+      "campos_calculador_relacionados": []
+    },
+    {
+      "id": "ruptura_serie",
+      "termino": "Ruptura de serie",
+      "nombre_completo": "Ruptura de serie metodológica",
+      "definicion": "Cambio metodológico entre olas (cambio de marco, criterio de elegibilidad, modo de aplicación, instrumento) que rompe la comparabilidad estricta entre olas. Debe documentarse explícitamente en el reporte.",
+      "formula": null,
+      "metodologias_relacionadas": ["medicion_recurrente"],
+      "campos_calculador_relacionados": []
+    },
+    {
+      "id": "origen_tamano",
+      "termino": "Origen del tamaño",
+      "nombre_completo": "Origen del tamaño muestral calculable",
+      "definicion": "Antes de cualquier cálculo, el módulo pregunta cuál es el origen real del tamaño: (1) fórmula estadística; (2) cobertura esperada; (3) matriz de perfiles o cuotas. Si el tamaño ya viene como base/listado/muestra/meta cerrada, queda fuera del calculador.",
+      "formula": null,
+      "metodologias_relacionadas": [],
+      "campos_calculador_relacionados": ["origen_tamano"]
+    },
+    {
+      "id": "protocolos_eticos_especiales",
+      "termino": "Protocolos éticos especiales",
+      "nombre_completo": "Estudios con población especial",
+      "definicion": "Conjunto de salvaguardas aplicables cuando el estudio aborda temas o poblaciones que requieren consentimiento informado reforzado, anonimización estricta o rutas de derivación. La activación de estas salvaguardas no altera el cálculo muestral; solo se documenta en el reporte metodológico.",
+      "formula": null,
+      "metodologias_relacionadas": [],
+      "campos_calculador_relacionados": []
+    },
+    {
+      "id": "nivel_evidencia",
+      "termino": "Nivel de evidencia",
+      "nombre_completo": "Nivel de evidencia",
+      "definicion": "Calificación interna del estudio: fuerte · media · limitada. Refleja calidad del marco, completitud de la documentación y consistencia de los resultados.",
+      "formula": null,
+      "metodologias_relacionadas": [],
+      "campos_calculador_relacionados": ["nivel_evidencia"]
+    },
+    {
+      "id": "marco_contactable",
+      "termino": "Marco contactable",
+      "nombre_completo": "Marco contactable",
+      "definicion": "Subconjunto del marco validado con canal útil para campo (teléfono, correo). Diferenciado de universo_bruto (todos los registros recibidos), marco_validado (elegibles post-limpieza) y meta_efectiva (objetivo final).",
+      "formula": null,
+      "metodologias_relacionadas": [],
+      "campos_calculador_relacionados": ["marco_contactable", "marco_validado", "universo_bruto"]
+    },
+    {
+      "id": "tcl",
+      "termino": "TCL",
+      "nombre_completo": "Teorema Central del Límite",
+      "definicion": "Con n ≥ 30, la distribución de las medias muestrales tiende a la normalidad independientemente de la distribución del universo. Sustento técnico de mínimos: 30 casos para análisis válido, 30 por grupo para cruces. Permite a diseños no probabilísticos sostener robusta validez interna.",
+      "formula": null,
+      "metodologias_relacionadas": ["intencion_censal", "no_prob_conveniencia", "no_prob_cuotas"],
+      "campos_calculador_relacionados": []
+    },
+    {
+      "id": "validez_interna",
+      "termino": "Validez interna",
+      "nombre_completo": "Validez interna",
+      "definicion": "Capacidad del diseño de describir correctamente al grupo respondiente aunque no permita inferir al universo. Especialmente relevante en muestras no probabilísticas con cuotas: aunque no haya inferencia poblacional, la composición controlada sostiene la validez interna.",
+      "formula": null,
+      "metodologias_relacionadas": ["no_prob_cuotas", "no_prob_conveniencia"],
+      "campos_calculador_relacionados": []
+    },
+    {
+      "id": "tres_marcos",
+      "termino": "Marco bruto / validado / contactable",
+      "nombre_completo": "Los tres niveles del marco muestral",
+      "definicion": "Universo bruto: todos los registros recibidos. Marco validado: elegibles post-limpieza, deduplicación y rol único. Marco contactable: registros con canal útil para campo (teléfono, correo verificado). El módulo debe pedir los tres conteos y reportar sobre cuál se calculó la meta.",
+      "formula": null,
+      "metodologias_relacionadas": [],
+      "campos_calculador_relacionados": ["universo_bruto", "marco_validado", "marco_contactable"]
+    },
+    {
+      "id": "duplicados_inter_actor",
+      "termino": "Duplicados inter-actor",
+      "nombre_completo": "Duplicados inter-actor",
+      "definicion": "Una persona registrada en más de un actor (ej. egresado que también es docente). Requiere asignar un rol único según una regla del cliente (priorización por carrera) antes de calcular metas.",
+      "formula": null,
+      "metodologias_relacionadas": [],
+      "campos_calculador_relacionados": []
+    }
+  ]
+}

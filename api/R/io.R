@@ -1,4 +1,5 @@
-allowed_upload_kinds <- c("xlsform", "data", "sav", "plan_limpieza", "plantilla_codif")
+allowed_upload_kinds <- c("xlsform", "data", "sav", "plan_limpieza",
+                          "plantilla_codif", "universo_muestra")
 
 ext_for_kind <- function(kind, original_name) {
   name <- trimws(as.character(original_name %||% ""))
@@ -12,7 +13,8 @@ ext_for_kind <- function(kind, original_name) {
   if (!nzchar(ext)) {
     ext <- switch(kind,
       xlsform = "xlsx", data = "xlsx", sav = "sav",
-      plan_limpieza = "xlsx", plantilla_codif = "xlsx", "bin"
+      plan_limpieza = "xlsx", plantilla_codif = "xlsx",
+      universo_muestra = "xlsx", "bin"
     )
   }
   ext

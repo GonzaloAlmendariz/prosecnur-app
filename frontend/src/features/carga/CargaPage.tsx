@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import * as Lucide from "lucide-react";
 import {
   ArrowRight, CheckCircle2, Database, FileSpreadsheet,
-  RotateCcw, Trash2, Upload,
+  Trash2, Upload,
 } from "lucide-react";
-import { IconHint } from "../../lib/icons";
 import {
   apiCargaData,
   apiCargaInstrumento,
@@ -13,12 +11,9 @@ import {
   apiEstudioGet,
   apiEstudioInit,
   apiInstrumentoEstructura,
-  apiListDemos,
-  apiLoadDemo,
   apiQuitarData,
   apiQuitarInstrumento,
   apiUpload,
-  DemoMeta,
   EstudioPayload,
   Pregunta,
   Seccion,
@@ -35,13 +30,8 @@ import { BasesPanel } from "./BasesPanel";
 
 // Fase 1 — Carga de insumos.
 //
-// El analista tiene tres caminos:
-//   1. Elegir un demo pre-cargado (Estudio GIZ, OPS Salud, Acreditación
-//      multi-base) — el backend carga XLSForm + data de un tiro y
-//      salta directamente a la inspección.
-//   2. Subir su propio XLSForm + base de datos manualmente. Cada uno
-//      se parsea y muestra un resumen con contadores.
-//   3. Combinación: cargar demo y luego reemplazar la data con la suya.
+// El analista sube su propio XLSForm + base de datos. Cada archivo se parsea
+// y muestra un resumen con contadores.
 //
 // Tras la carga, esta página muestra la estructura del instrumento
 // (secciones + preguntas con reglas) para que el analista verifique
@@ -69,11 +59,6 @@ function dataPreviewNormalizationDetails(preview: DataPreview | null): string[] 
   return rows;
 }
 
-function resolveLucideIcon(name: string | undefined): IconCmp {
-  const registry = Lucide as unknown as Record<string, IconCmp>;
-  return (name && registry[name]) || registry["FileText"] || registry["Square"];
-}
-
 export default function CargaPage() {
   const { sessionId, state, refresh } = useSession();
   const [instrumento, setInstrumento] = useState<InstrumentoResumen | null>(null);
@@ -81,51 +66,7 @@ export default function CargaPage() {
   const [estructura, setEstructura] = useState<{ secciones: Seccion[]; preguntas: Pregunta[] } | null>(null);
   const [error, setError] = useState<string>("");
   const [busy, setBusy] = useState<string>("");
-  const [demos, setDemos] = useState<DemoMeta[]>([]);
-  const [demosLoading, setDemosLoading] = useState<boolean>(true);
-  const [loadingDemo, setLoadingDemo] = useState<string | null>(null);
   const normalizationDetails = dataPreviewNormalizationDetails(dataPreview);
-
-  // Cargar catálogo de demos disponibles al montar.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const r = await apiListDemos();
-        if (!cancelled) setDemos(r.demos);
-      } catch {
-        if (!cancelled) setDemos([]);
-      } finally {
-        if (!cancelled) setDemosLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  async function onLoadDemo(name?: string) {
-    setError("");
-    setLoadingDemo(name ?? "giz");
-    setBusy(`Cargando ${name ?? "demo"}…`);
-    try {
-      const out = await apiLoadDemo(name);
-      localStorage.setItem("pulso.sessionId", out.session_id);
-      setInstrumento(out.resumen_instrumento);
-      setDataPreview({
-        n_filas: out.n_filas,
-        n_columnas: out.n_columnas,
-        columnas: [],
-        preview_filas: [],
-      } as DataPreview);
-      await refresh();
-      const r = await apiInstrumentoEstructura();
-      setEstructura(r);
-    } catch (e: unknown) {
-      setError((e as Error).message);
-    } finally {
-      setBusy("");
-      setLoadingDemo(null);
-    }
-  }
 
   async function onQuitar(kind: "xlsform" | "data") {
     const label = kind === "xlsform" ? "el XLSForm" : "la base de datos";
@@ -166,6 +107,10 @@ export default function CargaPage() {
 
   async function onPick(kind: "xlsform" | "data", file?: File) {
     if (!file) return;
+    if (kind === "data" && !state?.xlsform) {
+      setError("Primero carga el XLSForm. La data se normaliza y valida usando ese formulario.");
+      return;
+    }
     setError("");
     setBusy(`Subiendo ${file.name}…`);
     try {
@@ -198,16 +143,6 @@ export default function CargaPage() {
   const hasXlsform = !!state?.xlsform;
   const hasData = !!state?.data;
   const allReady = hasXlsform && hasData;
-
-  // Detectar cuál demo (si alguno) está cargado en la sesión actual.
-  // Match por `titulo_humano` contra `estudio_nombre` — es el identifier
-  // humano que el backend usa al crear la sesión desde un demo. Funciona
-  // single-base (estudio_nombre = titulo_humano del demo) y multi-base
-  // (GIZ o Acreditación también setean titulo_humano como nombre).
-  const activeDemoName = state?.estudio_nombre ?? null;
-  const activeDemo = activeDemoName
-    ? demos.find((d) => d.titulo_humano === activeDemoName)
-    : null;
 
   // ¿Está el usuario en modo multi-base? Dos formas de activarse:
   // 1) Demo/preset cargó ≥1 base real (Acreditación) → has_estudio
@@ -282,7 +217,7 @@ export default function CargaPage() {
   return (
     <PageFrame
       title="Fase 1 - Carga de insumos"
-      lead="Sube un XLSForm y la base de datos, o arranca con un dataset de ejemplo."
+      lead="Sube un XLSForm y la base de datos para preparar el estudio."
       meta={
         allReady ? (
           <SaveStatusIndicator state="saved" variant="badge" savedLabel="Insumos listos" />
@@ -365,7 +300,7 @@ export default function CargaPage() {
         <div className="pulso-upload-section-head">
           <SectionEyebrow
             label="Tus dos insumos"
-            hint="Para generar el reporte, Prosecnur necesita estas dos piezas. Cada una explica una parte del estudio — el XLSForm el 'qué se preguntó' y la base de datos el 'qué respondieron'."
+            hint="Carga primero el XLSForm y después la data. Pulso usa el formulario para normalizar nombres, reconstruir select_multiple y validar compatibilidad antes de procesar reportes."
           />
         </div>
 
@@ -373,7 +308,7 @@ export default function CargaPage() {
           <UploadCard
             kind="xlsform"
             icon={FileSpreadsheet}
-            title="XLSForm (instrumento)"
+            title="1. XLSForm (instrumento)"
             hint="El formulario que usaste en ODK / KoBo / SurveyCTO. Describe las preguntas, opciones, secciones y reglas del estudio."
             whatIs={
               <>
@@ -386,6 +321,7 @@ export default function CargaPage() {
             acceptLabel="Solo Excel (.xlsx)"
             done={hasXlsform}
             busy={!!busy}
+            disabled={!!busy}
             resumen={instrumento && (
               <>
                 <ResumenStat label="Preguntas" value={instrumento.n_preguntas} />
@@ -403,8 +339,10 @@ export default function CargaPage() {
           <UploadCard
             kind="data"
             icon={Database}
-            title="Base de datos"
-            hint="Las respuestas de los encuestados, una fila por caso. Cada columna corresponde a una pregunta del XLSForm."
+            title="2. Base de datos"
+            hint={hasXlsform
+              ? "Las respuestas de los encuestados. Se validarán contra el XLSForm ya cargado."
+              : "Primero carga el XLSForm para activar la data y evitar normalización silenciosa."}
             whatIs={
               <>
                 Es el resultado de tu trabajo de campo. Acepta <strong>Excel (.xlsx)</strong>,{" "}
@@ -416,24 +354,30 @@ export default function CargaPage() {
             acceptLabel=".xlsx · .csv · .sav"
             done={hasData}
             busy={!!busy}
+            disabled={!!busy || !hasXlsform}
+            disabledHint="Disponible después de cargar el XLSForm"
             resumen={dataPreview && (
               <>
                 <ResumenStat label="Filas" value={dataPreview.n_filas} />
                 <ResumenStat label="Columnas" value={dataPreview.n_columnas} />
-                {dataPreview.normalizacion?.applied && (
-                  <div className="pulso-upload-normalizacion">
-                    Nombres adaptados al XLSForm · {dataPreview.normalizacion.aliases} alias
-                    {dataPreview.normalizacion.select_multiple > 0
-                      ? ` · ${dataPreview.normalizacion.select_multiple} select_multiple reconstruido(s)`
-                      : ""}
-                    {(dataPreview.normalizacion.single_child_collapses ?? 0) > 0
-                      ? ` · ${dataPreview.normalizacion.single_child_collapses} escala(s) colapsada(s)`
-                      : ""}
-                    {typeof dataPreview.normalizacion.extra_columns === "number" && dataPreview.normalizacion.extra_columns > 0
-                      ? ` · ${dataPreview.normalizacion.extra_columns} columna(s) técnica(s) al final`
-                      : ""}
-                  </div>
-                )}
+                <div className="pulso-upload-normalizacion">
+                  {dataPreview.normalizacion?.applied
+                    ? (
+                      <>
+                        Normalización aplicada · {dataPreview.normalizacion.aliases} alias
+                        {dataPreview.normalizacion.select_multiple > 0
+                          ? ` · ${dataPreview.normalizacion.select_multiple} select_multiple reconstruido(s)`
+                          : ""}
+                        {(dataPreview.normalizacion.single_child_collapses ?? 0) > 0
+                          ? ` · ${dataPreview.normalizacion.single_child_collapses} escala(s) colapsada(s)`
+                          : ""}
+                        {typeof dataPreview.normalizacion.extra_columns === "number" && dataPreview.normalizacion.extra_columns > 0
+                          ? ` · ${dataPreview.normalizacion.extra_columns} columna(s) técnica(s) al final`
+                          : ""}
+                      </>
+                    )
+                    : "Normalización pendiente: se activa después de cargar el XLSForm"}
+                </div>
                 {normalizationDetails.length > 0 && (
                   <details className="pulso-normalization-details">
                     <summary>Ver normalización</summary>
@@ -490,47 +434,6 @@ export default function CargaPage() {
       </>
       )}
 
-      {/* Sección 2 — Demos discretos (ambient content, no compite).
-          Reactivo: si ya hay un demo cargado, ese chip queda resaltado
-          (primary-soft + check) y ofrece "Quitar". El resto se muestra
-          deshabilitado para señalar que cambiar de demo requiere
-          descargar primero el actual. */}
-      {(demosLoading || demos.length > 0) && (
-        <section className={`pulso-demo-section${demosLoading ? " is-loading" : ""}`}>
-          <div className="pulso-demo-header">
-            <IconHint size={13} className="pulso-demo-header-icon" aria-hidden="true" />
-            <span className="pulso-demo-eyebrow">
-              {activeDemo ? "Datos de ejemplo cargados" : "¿Sin datos propios? Explora con un ejemplo"}
-            </span>
-            <span className="pulso-demo-copy">
-              {activeDemo
-                ? <>Estás trabajando con <strong>{activeDemo.titulo_humano}</strong>. Si quieres cambiar, primero quítalo.</>
-                : "Cargamos XLSForm + base de datos de un estudio real para que veas el flujo completo."}
-            </span>
-          </div>
-
-          {demosLoading ? null : (
-            <div className="pulso-demo-grid">
-              {demos.map((d) => {
-                const isActive = activeDemo?.name === d.name;
-                const isOtherActive = !!activeDemo && !isActive;
-                return (
-                  <DemoChip
-                    key={d.name}
-                    demo={d}
-                    isActive={isActive}
-                    isLoading={loadingDemo === d.name}
-                    isDisabled={(!!busy && loadingDemo !== d.name) || isOtherActive}
-                    onLoad={() => onLoadDemo(d.name)}
-                    onRemove={isActive ? () => onQuitar("xlsform") : undefined}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </section>
-      )}
-
       {/* Inspección del instrumento */}
       {state?.instrumento_parsed && estructura && (
         <>
@@ -576,91 +479,15 @@ export default function CargaPage() {
 // sino que permite renombrar, quitar y agregar.
 
 // =====================================================================
-// Demo chip — compact, ambient (nota al pie de la carga manual).
-// =====================================================================
-function DemoChip({
-  demo, isActive, isLoading, isDisabled, onLoad, onRemove,
-}: {
-  demo: DemoMeta;
-  /** Este demo está cargado en la sesión actual. */
-  isActive: boolean;
-  isLoading: boolean;
-  isDisabled: boolean;
-  onLoad: () => void;
-  /** Si está presente + isActive, se muestra botón "Quitar". */
-  onRemove?: () => void;
-}) {
-  const Icon = resolveLucideIcon(demo.icono_ui);
-  const multiBase = demo.n_bases > 1;
-  const className = [
-    "pulso-demo-chip",
-    isActive ? "is-active" : "",
-    !isActive && isDisabled ? "is-disabled" : "",
-  ].filter(Boolean).join(" ");
-
-  return (
-    <div className={className}>
-      {/* Icon — pasa a check cuando está activo */}
-      <span aria-hidden="true" className="pulso-demo-chip-icon">
-        {isLoading ? (
-          <Lucide.Loader2 size={13} className="pulso-spin" />
-        ) : isActive ? (
-          <CheckCircle2 size={13} />
-        ) : (
-          <Icon size={13} />
-        )}
-      </span>
-
-      {/* Texto: título + etiqueta. Es la zona clickeable cuando NO está
-          activo — cargar al click. Cuando está activo, el chip entero
-          no es un botón; las acciones van en el botón Quitar. */}
-      <button
-        type="button"
-        onClick={isActive ? undefined : onLoad}
-        disabled={isActive || isDisabled || isLoading}
-        title={demo.descripcion}
-        className="pulso-demo-chip-body"
-      >
-        <span className="pulso-demo-chip-title">
-          {demo.titulo_humano}
-        </span>
-        <span className="pulso-demo-chip-meta">
-          {isActive ? "Cargado" : demo.etiqueta_estudio}
-          {multiBase && ` · ${demo.n_bases} bases`}
-        </span>
-      </button>
-
-      {/* Acción lateral: Quitar cuando activo, flecha cuando disponible. */}
-      {isActive && onRemove ? (
-        <button
-          type="button"
-          onClick={onRemove}
-          title="Quitar este demo"
-          aria-label={`Quitar ${demo.titulo_humano}`}
-          className="pulso-demo-chip-remove"
-        >
-          <RotateCcw size={10} /> Quitar
-        </button>
-      ) : (
-        <ArrowRight
-          size={12}
-          className="pulso-demo-chip-arrow"
-        />
-      )}
-    </div>
-  );
-}
-
-// =====================================================================
 // Upload card — dropzone unificada con estado visual
 // =====================================================================
 function UploadCard({
-  kind, icon: Icon, title, hint, whatIs, accept, acceptLabel, done, busy, resumen, onPick, onRemove,
+  kind, icon: Icon, title, hint, whatIs, accept, acceptLabel, done, busy, disabled, disabledHint, resumen, onPick, onRemove,
 }: {
   kind: "xlsform" | "data";
   icon: IconCmp;
   title: string;
-  hint: string;
+  hint: React.ReactNode;
   /** Explicación adicional de qué ES este insumo (no qué hacer). */
   whatIs: React.ReactNode;
   accept: string;
@@ -669,13 +496,15 @@ function UploadCard({
   done: boolean;
   /** Si hay otra operación en curso globalmente, deshabilita Remove. */
   busy: boolean;
+  disabled?: boolean;
+  disabledHint?: string;
   resumen: React.ReactNode | null;
   onPick: (file?: File) => void;
   onRemove: () => void;
 }) {
   const [dragOver, setDragOver] = useState(false);
   return (
-    <div className={`pulso-upload-card${done ? " is-done" : ""}`}>
+    <div className={`pulso-upload-card${done ? " is-done" : ""}${disabled && !done ? " is-disabled" : ""}`}>
       {/* Header del insumo */}
       <div className="pulso-upload-card-head">
         <span aria-hidden="true" className="pulso-upload-card-icon">
@@ -711,27 +540,35 @@ function UploadCard({
 
       {/* Dropzone */}
       <label
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!disabled) setDragOver(true);
+        }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
           e.preventDefault();
           setDragOver(false);
+          if (disabled) return;
           onPick(e.dataTransfer.files?.[0]);
         }}
-        className={`pulso-upload-dropzone${dragOver ? " is-drag-over" : ""}`}
+        className={`pulso-upload-dropzone${dragOver ? " is-drag-over" : ""}${disabled ? " is-disabled" : ""}`}
+        aria-disabled={disabled}
       >
         <Upload size={22} className="pulso-upload-dropzone-icon" />
         <span className="pulso-upload-dropzone-title">
-          {done
+          {disabled && !done
+            ? "Carga el XLSForm primero"
+            : done
             ? `Reemplazar ${kind === "xlsform" ? "XLSForm" : "base de datos"}`
             : "Arrastra o haz click para subir"}
         </span>
         <span className="pulso-upload-dropzone-formats">
-          {acceptLabel}
+          {disabled && disabledHint ? disabledHint : acceptLabel}
         </span>
         <input
           type="file"
           accept={accept}
+          disabled={disabled}
           onChange={(e) => onPick(e.target.files?.[0])}
           style={{ display: "none" }}
         />

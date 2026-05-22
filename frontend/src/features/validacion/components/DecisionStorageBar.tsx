@@ -8,7 +8,7 @@
 //   ┌─────────────────────────────────────────────────────────────────┐
 //   │ ████████████████████████████████████▒░░░░░░░░░░░░░░░░░░░░░░░░░░│
 //   └─────────────────────────────────────────────────────────────────┘
-//    ■ Ignorar 6,847 · ■ Excluir 342 · ■ Reemplazar 124 · … ▒ Pendiente 123
+//    ■ Documentar 6,847 · ■ Excluir 342 · ■ Corregir 124 · ▒ Pendiente 123
 //
 // Interacciones:
 //   - Hover sobre segmento: tooltip con N y %
@@ -22,17 +22,13 @@ import { useMemo, useRef, useState } from "react";
 export type DecisionKind =
   | "ignore"
   | "exclude"
-  | "replace"
-  | "normalize"
-  | "impute"
+  | "change"
   | "pending";
 
 export type DecisionCounts = {
   ignore: number;
   exclude: number;
-  replace: number;
-  normalize: number;
-  impute: number;
+  change: number;
   pending: number;
 };
 
@@ -56,20 +52,16 @@ const KIND_META: Record<
   DecisionKind,
   { label: string; color: string; isPattern?: boolean }
 > = {
-  ignore: { label: "Ignorar", color: "var(--pulso-dec-ignore)" },
+  ignore: { label: "Documentar", color: "var(--pulso-dec-ignore)" },
   exclude: { label: "Excluir", color: "var(--pulso-dec-exclude)" },
-  replace: { label: "Reemplazar", color: "var(--pulso-dec-replace)" },
-  normalize: { label: "Normalizar", color: "var(--pulso-dec-normalize)" },
-  impute: { label: "Imputar", color: "var(--pulso-dec-impute)" },
+  change: { label: "Corregir", color: "var(--pulso-dec-change)" },
   pending: { label: "Pendiente", color: "var(--pulso-dec-pending)", isPattern: true },
 };
 
 const DECIDED_KINDS: DecisionKind[] = [
   "ignore",
   "exclude",
-  "replace",
-  "normalize",
-  "impute",
+  "change",
 ];
 const ALL_KINDS: DecisionKind[] = [...DECIDED_KINDS, "pending"];
 
@@ -84,7 +76,7 @@ export default function DecisionStorageBar({
 }: DecisionStorageBarProps) {
   const totals = useMemo(() => {
     const total =
-      counts.ignore + counts.exclude + counts.replace + counts.normalize + counts.impute + counts.pending;
+      counts.ignore + counts.exclude + counts.change + counts.pending;
     const decided = total - counts.pending;
     return { total, decided, pct_done: total > 0 ? (decided / total) * 100 : 0 };
   }, [counts]);

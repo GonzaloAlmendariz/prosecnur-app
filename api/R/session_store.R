@@ -464,6 +464,27 @@ estudio_replace_base_files <- function(sid, nombre,
   invisible(s$estudio$bases[[nombre]])
 }
 
+estudio_preserve_original_base_files <- function(sid, nombre) {
+  s <- session_get(sid)
+  if (is.null(s$estudio) || is.null(s$estudio$bases[[nombre]])) {
+    stop_api(404, "E_BASE_NOT_FOUND", sprintf("Base '%s' no existe.", nombre))
+  }
+  meta <- s$estudio$bases[[nombre]]
+  if (is.null(meta$original_xlsform_file_id) || !nzchar(as.character(meta$original_xlsform_file_id))) {
+    meta$original_xlsform_file_id <- meta$xlsform_file_id
+  }
+  if (is.null(meta$original_data_file_id) || !nzchar(as.character(meta$original_data_file_id))) {
+    meta$original_data_file_id <- meta$data_file_id
+  }
+  if (is.null(meta$original_data_ext) || !nzchar(as.character(meta$original_data_ext))) {
+    meta$original_data_ext <- meta$data_ext
+  }
+  s$estudio$bases[[nombre]] <- meta
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(meta)
+}
+
 # Setea/limpia el nombre del estudio (opcional — solo metadata).
 estudio_set_nombre <- function(sid, nombre) {
   estudio_ensure(sid)

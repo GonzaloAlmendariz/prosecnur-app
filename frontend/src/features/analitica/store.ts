@@ -5,7 +5,7 @@ import { create } from "zustand";
 // Autosave debounced 2s → POST /api/analitica/config. Export/import vía JSON
 // (mismo patrón que Fase 3 Codificación y Fase 5 Gráficos).
 
-export type FuentePreferida = "auto" | "originales" | "adaptados";
+export type FuentePreferida = "originales" | "adaptados";
 
 export type SeccionConfig = {
   id: string;
@@ -224,33 +224,41 @@ export type BasesConfig = {
   overrides: Record<string, BasesOverride>;
 };
 
+export type DatosConfig = {
+  variable_labels: Record<string, string>;
+  value_labels: Record<string, Record<string, string>>;
+};
+
 export type AnaliticaConfig = {
-  // v1 → v2: añadir `bases`. Migración no-destructiva en mergeWithDefaults.
-  version: 2;
+  // v1 → v2: `bases`; v2 → v3: revisión de metadata de data.
+  version: 3;
   fuente_preferida: FuentePreferida;
   secciones: SeccionConfig[];
   numericas: string[];
-  // Variables que se excluyen globalmente de Codebook y Frecuencias.
-  // No afecta a Cruces ni Enumeradores. La UI expone este bucket desde
-  // ambos panes (Codebook y Frecuencias) para que el usuario pueda
-  // sincronizar qué variables reporta en ambos sitios.
+  // Variables excluidas globalmente de la revisión y reportes de Analítica.
+  // Es la fuente de verdad para inclusión/exclusión; no modifica respuestas crudas.
   variables_excluidas: string[];
   codebook: CodebookConfig;
   frecuencias: FrecuenciasConfig;
   cruces: CrucesConfig;
   enumeradores: EnumeradoresConfig;
   bases: BasesConfig;
+  datos: DatosConfig;
   dimensiones: DimensionesConfig;
 };
 
 // ----- Defaults --------------------------------------------------------------
 
 export const DEFAULT_CONFIG: AnaliticaConfig = {
-  version: 2,
-  fuente_preferida: "auto",
+  version: 3,
+  fuente_preferida: "adaptados",
   secciones: [],
   numericas: [],
   variables_excluidas: [],
+  datos: {
+    variable_labels: {},
+    value_labels: {},
+  },
   codebook: {
     codigos_solo_si_presentes: [96, 97, 98, 99],
   },
@@ -352,6 +360,9 @@ type AnaliticaStore = {
   setNumericas: (v: string[]) => void;
   setVariablesExcluidas: (v: string[]) => void;
   toggleVariableExcluida: (name: string) => void;
+  setDatosVariableLabel: (name: string, label: string) => void;
+  setDatosValueLabel: (name: string, code: string, label: string) => void;
+  clearDatosVariable: (name: string) => void;
 
   setCodebook: (patch: Partial<CodebookConfig>) => void;
   setFrecuencias: (patch: Partial<FrecuenciasConfig>) => void;
@@ -464,6 +475,40 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
       const list = s.config.variables_excluidas;
       const next = list.includes(name) ? list.filter((x) => x !== name) : [...list, name];
       return dirty({ config: { ...s.config, variables_excluidas: next } });
+    }),
+
+  setDatosVariableLabel: (name, label) =>
+    set((s) => {
+      const variable_labels = { ...s.config.datos.variable_labels };
+      if (label.trim()) variable_labels[name] = label;
+      else delete variable_labels[name];
+      return dirty({
+        config: { ...s.config, datos: { ...s.config.datos, variable_labels } },
+      });
+    }),
+
+  setDatosValueLabel: (name, code, label) =>
+    set((s) => {
+      const value_labels = { ...s.config.datos.value_labels };
+      const current = { ...(value_labels[name] ?? {}) };
+      if (label.trim()) current[code] = label;
+      else delete current[code];
+      if (Object.keys(current).length > 0) value_labels[name] = current;
+      else delete value_labels[name];
+      return dirty({
+        config: { ...s.config, datos: { ...s.config.datos, value_labels } },
+      });
+    }),
+
+  clearDatosVariable: (name) =>
+    set((s) => {
+      const variable_labels = { ...s.config.datos.variable_labels };
+      const value_labels = { ...s.config.datos.value_labels };
+      delete variable_labels[name];
+      delete value_labels[name];
+      return dirty({
+        config: { ...s.config, datos: { variable_labels, value_labels } },
+      });
     }),
 
   setCodebook: (patch) =>

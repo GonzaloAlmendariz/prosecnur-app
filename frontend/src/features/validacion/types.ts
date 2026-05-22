@@ -202,6 +202,7 @@ export type LimpiezaDecisionSummary = {
   decisiones_listas: number;
   pendientes: number;
   total_casos_excluidos: number;
+  total_celdas_corregidas: number;
   total_reemplazos: number;
   total_imputaciones: number;
   ready_to_finalize: boolean;

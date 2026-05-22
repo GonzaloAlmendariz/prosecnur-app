@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import {
   FilePlus2,
   FolderOpen,
-  Github,
+  Info,
   Power,
   Map as MapIcon,
   Workflow,
@@ -10,6 +10,8 @@ import {
   QrCode,
   LayoutDashboard,
   Activity,
+  Calculator,
+  Library,
   Folder,
   Clock,
 } from "lucide-react";
@@ -19,6 +21,7 @@ import { useSession } from "../../lib/SessionContext";
 import { useProjectShell } from "../project/ProjectShell";
 import type { RecentProject } from "../project/types";
 import type { UseProjectReturn } from "../project/useProject";
+import { CreditsDrawer } from "./CreditsDrawer";
 import { ExitDialog } from "./ExitDialog";
 import { ModuleDetail } from "./ModuleDetail";
 import { ModuleTile } from "./ModuleTile";
@@ -132,6 +135,44 @@ const MODULES: ModuleMeta[] = [
     iconFg: "#059669",
     iconBorder: "#a7f3d0",
     to: "/hojas-ruta",
+  },
+  {
+    slug: "calc-muestra",
+    title: "Cálculo de muestra para propuestas",
+    tagline: "Diseño metodológico multi-componente",
+    blurb:
+      "Calcula el diseño muestral de una propuesta: cada actor puede tener su propia técnica, el marco se distingue en tres niveles (bruto, validado, contactable) y el sistema bloquea margen de error cuando el diseño no lo sostiene. Para el seguimiento del trabajo de campo usar el módulo de Monitoreo.",
+    features: [
+      "Cuatro técnicas iniciales: conglomerados multietápico, intención censal, cuotas y listado externo",
+      "Plantilla de acreditación universitaria con reglas por umbral de marco",
+      "Bloqueo automático de margen de error en diseños no inferenciales",
+      "Dos fases: estimación preliminar y diseño validado",
+      "Reporte metodológico generado en Quarto",
+    ],
+    icon: Calculator,
+    iconBg: "#fdf2f8",
+    iconFg: "#be185d",
+    iconBorder: "#fbcfe8",
+    to: "/calc-muestra",
+  },
+  {
+    slug: "enciclopedia",
+    title: "Enciclopedia metodológica",
+    tagline: "Manual técnico de métodos estadísticos de muestreo",
+    blurb:
+      "Catálogo técnico de los métodos estadísticos de muestreo cuantitativo. Cada ficha documenta definición formal, supuestos, fórmulas aplicables, escenarios de uso, decisiones técnicas y trade-offs frente a alternativas. Cross-link bidireccional con el módulo de Cálculo.",
+    features: [
+      "Fichas técnicas por método (probabilísticas · operativas · no probabilísticas)",
+      "Definiciones formales, supuestos y fórmulas con referencias bibliográficas",
+      "Decisiones técnicas a considerar y variantes operativas",
+      "Filtros por naturaleza inferencial, unidad, marco y modalidad",
+      "CTA 'Aplicar esta metodología' que abre el Cálculo configurado",
+    ],
+    icon: Library,
+    iconBg: "#faf5ff",
+    iconFg: "#7e22ce",
+    iconBorder: "#e9d5ff",
+    to: "/enciclopedia",
   },
   {
     slug: "recopiladores",
@@ -271,10 +312,8 @@ const RELEASE_NOTES: ReleaseNote[] = [
 ];
 
 // ---- Atribución ------------------------------------------------------
-const AUTHOR = {
-  name: "Gonzalo Almendáriz",
-  github: "https://github.com/gonzaloalmendariz",
-};
+const PULSO_FULL_NAME =
+  "Instituto de Analítica Social e Inteligencia Estratégica de la Pontificia Universidad Católica del Perú (PULSO PUCP)";
 
 // ---- Estado del módulo "Procesamiento" ------------------------------
 type ModulePhaseState = {
@@ -325,6 +364,8 @@ function computeMeta(
       return state?.xlsform && state?.data ? "Listo para explorar" : null;
     case "hojas-ruta":
       return state?.hojas_ruta_ok ? "Lista generada" : null;
+    case "muestra":
+      return null;
     case "recopiladores":
       return "Próximamente";
     case "monitoreo":
@@ -343,6 +384,7 @@ export default function HomePage() {
   const proc = useProcesamientoState();
   const [exitOpen, setExitOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [creditsOpen, setCreditsOpen] = useState(false);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
 
   const activeMod = activeSlug
@@ -361,7 +403,14 @@ export default function HomePage() {
       <HomeFooter
         version={version}
         onClose={() => setExitOpen(true)}
-        onOpenNotes={() => setNotesOpen(true)}
+        onOpenNotes={() => {
+          setCreditsOpen(false);
+          setNotesOpen(true);
+        }}
+        onOpenCredits={() => {
+          setNotesOpen(false);
+          setCreditsOpen(true);
+        }}
       />
 
       {activeMod && (
@@ -372,6 +421,12 @@ export default function HomePage() {
         open={notesOpen}
         notes={RELEASE_NOTES}
         onClose={() => setNotesOpen(false)}
+      />
+
+      <CreditsDrawer
+        open={creditsOpen}
+        pulsoName={PULSO_FULL_NAME}
+        onClose={() => setCreditsOpen(false)}
       />
 
       {exitOpen && (
@@ -615,30 +670,27 @@ function HomeFooter({
   version,
   onClose,
   onOpenNotes,
+  onOpenCredits,
 }: {
   version: string;
   onClose: () => void;
   onOpenNotes: () => void;
+  onOpenCredits: () => void;
 }) {
   return (
     <footer className="home-footer">
       <div className="home-footer-attr">
         <span>Prosecnur{version && version !== "…" ? ` · ${version}` : ""}</span>
         <span aria-hidden="true">·</span>
-        <span>
-          Hecho por{" "}
-          <a
-            href={AUTHOR.github}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="home-footer-author"
-            title="Ver el perfil del autor en GitHub"
-          >
-            {AUTHOR.name}
-            <Github size={11} />
-          </a>
-        </span>
+        <span>Hecho para el {PULSO_FULL_NAME}</span>
         <div style={{ flex: 1 }} />
+        <button
+          type="button"
+          className="home-footer-notes"
+          onClick={onOpenCredits}
+        >
+          <Info size={11} /> Créditos
+        </button>
         <button
           type="button"
           className="home-footer-notes"

@@ -1,0 +1,56 @@
+{
+  "version": 2,
+  "actualizado_en": "2026-05-17",
+  "fuente_canonica": "outputs/fuentes_metodologicas/.../DOCUMENTO_PUCP_SELECCION_MUESTRAS_ACTORES_2026 + revisión Marzo 2026 §4",
+  "id_preset": "acreditacion_pucp",
+  "nombre_preset": "Acreditación PUCP — cuadro maestro Marzo 2026",
+  "descripcion": "Genera 4 componentes (administrativos, docentes, estudiantes, egresados) con actor_categoria y canal_recojo definidos. El motor infiere automáticamente la técnica y el mínimo a cumplir según el cuadro maestro PULSO: administrativos online 80%, docentes online (60% si N≤250, cuotas 150 si N≥251), estudiantes en aula QR (60% si N≤3000, conglomerados con parámetros canónicos si N≥3001), egresados telefónico (50% si N≤300, conveniencia clamp si N≥301).",
+  "macro_familia": "acreditacion",
+  "componentes_template": [
+    {
+      "actor": "Personal administrativo",
+      "actor_id": "administrativos",
+      "actor_categoria": "administrativos",
+      "canal_recojo": "online_email",
+      "tecnica": "intencion_censal",
+      "origen_tamano": "cobertura_esperada",
+      "nivel_respaldo": "representatividad_operacional",
+      "parametros": { "cobertura_objetivo": 0.80 },
+      "meta": { "tipo": "cobertura", "valor": 0, "variable_control": "condicion_laboral" }
+    },
+    {
+      "actor": "Docentes",
+      "actor_id": "docentes",
+      "actor_categoria": "docentes",
+      "canal_recojo": "online_email",
+      "tecnica": "intencion_censal",
+      "origen_tamano": "cobertura_esperada",
+      "nivel_respaldo": "representatividad_operacional",
+      "parametros": { "cobertura_objetivo": 0.60 },
+      "meta": { "tipo": "cobertura", "valor": 0, "variable_control": "dedicacion_docente" }
+    },
+    {
+      "actor": "Estudiantes pregrado",
+      "actor_id": "estudiantes",
+      "actor_categoria": "estudiantes",
+      "canal_recojo": "aula_qr",
+      "tecnica": "intencion_censal",
+      "origen_tamano": "cobertura_esperada",
+      "nivel_respaldo": "representatividad_operacional",
+      "parametros": { "cobertura_objetivo": 0.60 },
+      "meta": { "tipo": "cobertura", "valor": 0, "variable_control": "nivel_curricular" }
+    },
+    {
+      "actor": "Egresados",
+      "actor_id": "egresados",
+      "actor_categoria": "egresados",
+      "canal_recojo": "telefonico",
+      "tecnica": "intencion_censal",
+      "origen_tamano": "cobertura_esperada",
+      "nivel_respaldo": "representatividad_operacional",
+      "parametros": { "cobertura_objetivo": 0.50 },
+      "meta": { "tipo": "cobertura", "valor": 0, "variable_control": "ciclo_egreso" }
+    }
+  ],
+  "nota_operativa": "Llena el N del marco validado de cada actor en su componente. El motor aplica el cuadro maestro Marzo 2026 automáticamente: cambia técnica y mínimo según el umbral de cada actor (250/251 docentes, 3000/3001 estudiantes, 300/301 egresados). No requiere elegir técnica manualmente."
+}

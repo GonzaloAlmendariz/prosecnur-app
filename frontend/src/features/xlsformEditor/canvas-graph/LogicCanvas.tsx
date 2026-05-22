@@ -21,6 +21,7 @@
 // =============================================================================
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ChevronLeft,
   ChevronsDown,
@@ -625,7 +626,7 @@ export function LogicCanvas({
       }
     : { visible: 0, edges: 0 };
 
-  return (
+  const overlay = (
     <div
       className="pulso-graph-overlay"
       role="dialog"
@@ -1946,6 +1947,8 @@ export function LogicCanvas({
       </div>
     </div>
   );
+
+  return createPortal(overlay, document.body);
 }
 
 // ─────────────────────────────────────────────────────────────────────

@@ -76,10 +76,22 @@ pick_join_key_pair <- function(x, y){
 leer_datos_generico <- function(path_data, sheet = NULL){
   ext <- tolower(tools::file_ext(path_data))
   if (ext %in% c("csv","txt")) {
-    suppressWarnings(readr::read_csv(path_data, show_col_types = FALSE))
-  } else {
-    readxl::read_excel(path_data, sheet = sheet %||% 1)
+    return(suppressWarnings(readr::read_csv(path_data, show_col_types = FALSE)))
   }
+  if (ext %in% c("xlsx", "xls")) {
+    return(readxl::read_excel(path_data, sheet = sheet %||% 1))
+  }
+  if (ext == "sav") {
+    if (!requireNamespace("haven", quietly = TRUE)) {
+      stop("No se encontró el paquete 'haven' para leer archivos .sav.", call. = FALSE)
+    }
+    return(haven::read_sav(path_data))
+  }
+  stop(
+    "Formato de data no soportado para codificación: .", ext,
+    ". Usa .xlsx, .xls, .csv, .txt o .sav.",
+    call. = FALSE
+  )
 }
 
 # Resuelve el text_col asociado a una parent en el xlsx de familias.
@@ -308,6 +320,10 @@ ppra_resolve_template_sheet <- function(path_plantilla, parent_var){
 
 # -------- localizar hoja de datos donde vive el parent -------------------------
 locate_var_sheet <- function(parent, path_datos, path_familias = NULL){
+  ext <- tolower(tools::file_ext(path_datos))
+  if (!ext %in% c("xlsx", "xls")) {
+    return(list(source = "main", sheet = NA_character_))
+  }
   sheets <- readxl::excel_sheets(path_datos)
   hoja <- NA_character_
   if (!is.null(path_familias) && file.exists(path_familias)) {
@@ -928,20 +944,33 @@ ppra_export_preserving_sheets <- function(path_datos, out_path,
     return(invisible(NULL))
   }
 
-  sheets <- readxl::excel_sheets(path_datos)
-  main_sheet <- sheets[1]
-
   wb <- openxlsx::createWorkbook()
 
   paint_cols <- function(wb, sheet, df, cols, color){
     if (!length(cols)) return()
     idx <- match(cols, names(df))
     idx <- idx[!is.na(idx)]
-    if (!length(idx)) return()
-    openxlsx::addStyle(wb, sheet, openxlsx::createStyle(fgFill = color),
-                       rows = 1:(nrow(df)+1), cols = idx,
-                       gridExpand = TRUE, stack = TRUE)
+	    if (!length(idx)) return()
+	    openxlsx::addStyle(wb, sheet, openxlsx::createStyle(fgFill = color),
+	                       rows = 1:(nrow(df)+1), cols = idx,
+	                       gridExpand = TRUE, stack = TRUE)
+	  }
+
+  ext <- tolower(tools::file_ext(path_datos))
+  if (!ext %in% c("xlsx", "xls")) {
+    openxlsx::addWorksheet(wb, "datos")
+    openxlsx::writeData(wb, "datos", df_main)
+    paint_cols(wb, "datos", df_main, unique(main_cols_color$sm),  "#DFF5DF")
+    paint_cols(wb, "datos", df_main, unique(c(main_cols_color$sop, main_cols_color$soh)), "#DCEBFF")
+    paint_cols(wb, "datos", df_main, unique(main_cols_color$int), "#E6D9F2")
+    openxlsx::freezePane(wb, "datos", firstActiveRow = 2)
+    openxlsx::setColWidths(wb, "datos", cols = seq_along(df_main), widths = "auto")
+    openxlsx::saveWorkbook(wb, out_path, overwrite = TRUE)
+    return(invisible(out_path))
   }
+
+  sheets <- readxl::excel_sheets(path_datos)
+  main_sheet <- sheets[1]
 
   for (s in sheets) {
     openxlsx::addWorksheet(wb, s)

@@ -10,8 +10,9 @@
 #
 # Efecto equivalente a Prosecnur.app en modo DEV:
 #   - cd al directorio del repo.
-#   - make desktop → pnpm build del frontend + pnpm --dir desktop start
-#     (que arranca Electron; Electron a su vez spawea Rscript launch.R).
+#   - make desktop-fast → pnpm build solo si el frontend falta o está viejo
+#     + pnpm --dir desktop start (que arranca Electron; Electron a su vez
+#     spawea Rscript launch.R).
 #
 # Diferencia con el .app:
 #   - Abre una ventana de Terminal visible que muestra la salida.
@@ -90,7 +91,7 @@ if ! command -v quarto >/dev/null 2>&1 && [ ! -f "$QUARTO_SENTINEL" ]; then
   echo ""
 fi
 
-# Levantar la app via make desktop. exec reemplaza el proceso bash con
-# make para que Ctrl+C en Terminal mate todo limpio.
+# Levantar la app via make desktop-fast. exec reemplaza el proceso bash
+# con make para que Ctrl+C en Terminal mate todo limpio.
 echo "→ Lanzando Prosecnur..."
-exec make desktop
+exec make desktop-fast

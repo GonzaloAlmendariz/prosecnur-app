@@ -5,6 +5,7 @@ import {
   apiHojasRutaBlockMap,
   apiHojasRutaContextMap,
   apiHojasRutaGenerate,
+  apiHojasRutaManualReplacementsPdf,
   apiHojasRutaPersistWorkspace,
   apiHojasRutaPopulationExport,
   apiHojasRutaPopulationPreview,
@@ -27,9 +28,11 @@ import {
   HojasRutaContextMapFeature,
   HojasRutaIntegratedConfig,
   HojasRutaJobResult,
+  HojasRutaManualReplacementResult,
   HojasRutaPopulationExportResult,
   HojasRutaRandomPdfResult,
   HojasRutaRandomPreference,
+  HojasRutaReplacementPolicy,
   HojasRutaRouteJumpMode,
   HojasRutaRouteSnapshot,
   HojasRutaRouteStartCorner,
@@ -355,6 +358,15 @@ const routeJumpModeOptions: Array<{ key: HojasRutaRouteJumpMode; label: string; 
   { key: "manual", label: "Manual", hint: "Mismo salto para todas" },
 ];
 
+const replacementPolicyOptions: Array<{ key: HojasRutaReplacementPolicy; label: string; hint: string }> = [
+  { key: "alternate_zone_same_district", label: "Otra zona", hint: "Mismo distrito, prioriza zonas libres" },
+  { key: "paired_by_titular_zone", label: "Misma zona", hint: "Respaldo dentro de la zona titular" },
+];
+const MAX_REPLACEMENTS_PER_TITULAR = 10;
+const MANUAL_REPLACEMENT_SEARCH_LIMIT = 12;
+const DELIVERY_TABLE_PAGE_SIZE = 25;
+const LEGACY_REPLACEMENT_LABEL_RE = /^Reemplazo(?: \d+ de \d+)?(?: de \d+ a \d+)?$/;
+
 const fieldStyle: React.CSSProperties = {
   width: "100%",
   border: "1px solid var(--pulso-border)",
@@ -375,6 +387,42 @@ function formatDecimal(value: number | null | undefined, digits = 2) {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(Number(value));
+}
+
+function shortManzanaId(value: unknown) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  return text.length >= 12 ? text.slice(11) : text;
+}
+
+function replacementRangeLabel(block: Partial<HojasRutaSamplePreview["replacement_blocks"][number]> | null | undefined) {
+  if (!block) return "Remplazo";
+  const explicit = String(block.replacement_label ?? "").trim();
+  if (explicit && !LEGACY_REPLACEMENT_LABEL_RE.test(explicit)) return explicit;
+  const start = Number(block.rango_inicio ?? block.titular_rango_inicio ?? 0);
+  const end = Number(block.rango_fin ?? block.titular_rango_fin ?? 0);
+  const replacementOrder = Number(block.replacement_order ?? 0);
+  const replacementTotal = Number(block.replacement_total ?? 0);
+  const manzanaId = shortManzanaId(block.titular_id_manzana ?? block.manzana ?? block.id_manzana);
+  const hasMultipleReplacements = Number.isFinite(replacementOrder)
+    && replacementOrder > 0
+    && Number.isFinite(replacementTotal)
+    && replacementTotal > 1;
+  const base = `${hasMultipleReplacements ? `Remplazo ${formatNumber(replacementOrder)}/${formatNumber(replacementTotal)}` : "Remplazo"}${manzanaId ? ` de ${manzanaId}` : ""}`;
+  if (Number.isFinite(start) && start > 0 && Number.isFinite(end) && end >= start) {
+    return `${base} [Encuestas ${formatNumber(start)} a ${formatNumber(end)}]`;
+  }
+  return base;
+}
+
+function routeRangeLabel(block: Partial<HojasRutaSamplePreview["blocks"][number]> | null | undefined) {
+  if (!block) return "Encuestas";
+  const start = Number(block.rango_inicio ?? 0);
+  const end = Number(block.rango_fin ?? 0);
+  if (Number.isFinite(start) && start > 0 && Number.isFinite(end) && end >= start) {
+    return `Encuestas ${formatNumber(start)} a ${formatNumber(end)}`;
+  }
+  return `${formatNumber(block.entrevistas)} encuestas`;
 }
 
 function formatPercent(part: number | null | undefined, total: number | null | undefined) {
@@ -454,12 +502,19 @@ function normalizeRouteJumpManual(value: unknown) {
   return Number.isFinite(parsed) ? Math.max(1, parsed) : 1;
 }
 
+function normalizeReplacementPolicy(value: unknown): HojasRutaReplacementPolicy {
+  return replacementPolicyOptions.some((option) => option.key === value)
+    ? value as HojasRutaReplacementPolicy
+    : "alternate_zone_same_district";
+}
+
 function normalizeHojasRutaConfig(config: HojasRutaIntegratedConfig): HojasRutaIntegratedConfig {
   const frameSource = config.frame_source === "inei2017_official" ? "inei2017_official" : "current";
-  const replacementsPerTitular = Math.min(10, Math.max(0, Math.round(Number(config.replacements_per_titular ?? 1))));
+  const replacementsPerTitular = Math.min(MAX_REPLACEMENTS_PER_TITULAR, Math.max(0, Math.round(Number(config.replacements_per_titular ?? 1))));
   return {
     ...config,
     frame_source: frameSource,
+    replacement_policy: normalizeReplacementPolicy(config.replacement_policy),
     replacements_per_titular: Number.isFinite(replacementsPerTitular) ? replacementsPerTitular : 1,
     age_ranges: (config.age_ranges ?? []).map(normalizeAgeRange),
     route_start_corner: normalizeRouteStartCorner(config.route_start_corner),
@@ -3354,7 +3409,11 @@ function BlockGeometryMap({
           {detailBlock || detailReplacementBlock ? (
             <div className="hojas-ruta-block-popup-assignment">
               <strong>{formatNumber((detailBlock ?? detailReplacementBlock)?.entrevistas)} encuestas asignadas</strong>
-              <span>{detailReplacementBlock ? "ruta de reemplazo" : "orden de visita"} #{formatNumber((detailBlock ?? detailReplacementBlock)?.orden_seleccion)}</span>
+              <span>
+                {detailReplacementBlock
+                  ? `${replacementRangeLabel(detailReplacementBlock)} · reemplaza ${detailReplacementBlock.titular_id_manzana ?? ""}`
+                  : `orden de visita #${formatNumber(detailBlock?.orden_seleccion)}`}
+              </span>
             </div>
           ) : null}
           <div className="hojas-ruta-block-popup-meta">
@@ -3982,8 +4041,7 @@ function SamplingMapExplorer({
         const selectedDelta = (b.titulares + b.reemplazos) - (a.titulares + a.reemplazos);
         if (selectedDelta !== 0) return selectedDelta;
         return a.zona.localeCompare(b.zona, "es", { numeric: true });
-      })
-      .slice(0, 14);
+      });
   }, [activeUbigeo, replacementInDistrict, selectedInDistrict, zoneMap]);
   const mapTitle = showingBlocks
     ? `Manzanas de ${activeDistrictName}`
@@ -4188,13 +4246,17 @@ function SamplingMapExplorer({
               <div className="hojas-ruta-inspector-blocks">
                 <div className="hojas-ruta-section-title">
                   <strong>{activeZona ? `Manzanas en zona ${activeZona}` : "Manzanas en distrito"}</strong>
-                  <span>Primeras rutas asignadas en este foco.</span>
+                  <span>Todas las rutas asignadas en este foco.</span>
                 </div>
-                {[...visibleSelectedBlocks.slice(0, 4), ...visibleReplacementBlocks.slice(0, 3)].map((block) => (
+                {[...visibleSelectedBlocks, ...visibleReplacementBlocks].map((block) => (
                   <div key={`${block.tipo_manzana ?? "titular"}:${block.id_manzana}`} className="hojas-ruta-inspector-block-row">
                     <span>
                       <strong>{block.tipo_manzana === "reemplazo" ? "Reemplazo" : "Titular"}</strong>
-                      <small>Zona {block.zona} · ID {block.id_manzana}</small>
+                      <small>
+                        {block.tipo_manzana === "reemplazo"
+                          ? `${replacementRangeLabel(block)} · zona ${block.titular_zona ?? "?"} -> ${block.zona}`
+                          : `Zona ${block.zona} · ID ${block.id_manzana}`}
+                      </small>
                     </span>
                     <em>{formatNumber(block.entrevistas)}</em>
                   </div>
@@ -4550,6 +4612,64 @@ function reviewCellClass(header: string, value: unknown) {
   if (/(id|ubigeo|zona|semilla)/.test(normalized)) classes.push("is-code");
   if (/(territorio|distrito)/.test(normalized)) classes.push("is-strong");
   return classes.join(" ") || undefined;
+}
+
+function quotaColumnWidth(header: string, columns: string[]) {
+  const normalized = header.toLowerCase();
+  const hasGeo = columns.some((column) => /(territorio|distrito)/.test(column.toLowerCase()));
+  const hasSex = columns.some((column) => column.toLowerCase() === "sexo");
+  const hasTotal = columns.some((column) => column.toLowerCase() === "total");
+  const fixed = (hasGeo ? 24 : 0) + (hasSex ? 12 : 0) + (hasTotal ? 10 : 0);
+  const measureCount = Math.max(1, columns.length - Number(hasGeo) - Number(hasSex) - Number(hasTotal));
+  if (/(territorio|distrito)/.test(normalized)) return "24%";
+  if (normalized === "sexo") return "12%";
+  if (normalized === "total") return "10%";
+  return `${Math.max(8, (100 - fixed) / measureCount)}%`;
+}
+
+function deliveryPageSlice<T>(rows: T[], page: number) {
+  const pageCount = Math.max(1, Math.ceil(rows.length / DELIVERY_TABLE_PAGE_SIZE));
+  const safePage = Math.min(Math.max(0, page), pageCount - 1);
+  const start = safePage * DELIVERY_TABLE_PAGE_SIZE;
+  return {
+    rows: rows.slice(start, start + DELIVERY_TABLE_PAGE_SIZE),
+    safePage,
+    pageCount,
+    start,
+    end: Math.min(rows.length, start + DELIVERY_TABLE_PAGE_SIZE),
+  };
+}
+
+function DeliveryTablePager({
+  total,
+  page,
+  pageCount,
+  start,
+  end,
+  label,
+  onPageChange,
+}: {
+  total: number;
+  page: number;
+  pageCount: number;
+  start: number;
+  end: number;
+  label: string;
+  onPageChange: (page: number) => void;
+}) {
+  if (total <= DELIVERY_TABLE_PAGE_SIZE) return null;
+  return (
+    <div className="hojas-ruta-table-pager">
+      <span>
+        {formatNumber(start + 1)}-{formatNumber(end)} de {formatNumber(total)} {label}
+      </span>
+      <div>
+        <button type="button" disabled={page <= 0} onClick={() => onPageChange(page - 1)}>Anterior</button>
+        <strong>{formatNumber(page + 1)} / {formatNumber(pageCount)}</strong>
+        <button type="button" disabled={page >= pageCount - 1} onClick={() => onPageChange(page + 1)}>Siguiente</button>
+      </div>
+    </div>
+  );
 }
 
 function PopulationMatrixPreview({
@@ -5989,6 +6109,14 @@ export default function HojasRutaPage() {
   const [error, setError] = useState("");
   const [jobId, setJobId] = useState<string | null>(null);
   const [result, setResult] = useState<HojasRutaJobResult | null>(null);
+  const [manualReplacementJobId, setManualReplacementJobId] = useState<string | null>(null);
+  const [manualReplacementResult, setManualReplacementResult] = useState<HojasRutaManualReplacementResult | null>(null);
+  const [manualReplacementQuery, setManualReplacementQuery] = useState("");
+  const [manualReplacementSelectedIds, setManualReplacementSelectedIds] = useState<string[]>([]);
+  const [manualReplacementCount, setManualReplacementCount] = useState(1);
+  const [manualReplacementPolicy, setManualReplacementPolicy] = useState<HojasRutaReplacementPolicy>("alternate_zone_same_district");
+  const [deliveryBlocksPage, setDeliveryBlocksPage] = useState(0);
+  const [deliveryReplacementsPage, setDeliveryReplacementsPage] = useState(0);
   const [randomPdf, setRandomPdf] = useState<HojasRutaRandomPdfResult | null>(null);
   const [randomPreference, setRandomPreference] = useState<HojasRutaRandomPreference>("balanced");
   const [ageDraftMode, setAgeDraftMode] = useState<HojasRutaAgeRangeMode>("manual");
@@ -6029,7 +6157,7 @@ export default function HojasRutaPage() {
         n_mode: s.integrated_config.n_mode ?? "total",
         n_por_distrito: s.integrated_config.n_por_distrito ?? {},
         replacement_routes_per_district: s.integrated_config.replacement_routes_per_district ?? {},
-        replacement_policy: s.integrated_config.replacement_policy ?? "paired_by_titular_zone",
+        replacement_policy: normalizeReplacementPolicy(s.integrated_config.replacement_policy),
         replacements_per_titular: s.integrated_config.replacements_per_titular ?? 1,
         age_range_mode: s.integrated_config.age_range_mode ?? "manual",
         age_range_scope: s.integrated_config.age_range_scope ?? "selected",
@@ -6182,22 +6310,63 @@ export default function HojasRutaPage() {
   const canQuota = !!config && effectiveQuotaN > 0 && selectedTerritories.length > 0 && !!population?.ok && !!sampleSizePreview && routeStatus.ok;
   const canSample = !!quota?.ok && !!config;
   const hasBlockingSampleAlerts = Boolean(sample?.alerts?.some((alert) => alert.level === "error"));
-  const canGenerate = !!sample?.ok && !hasBlockingSampleAlerts && !jobId;
+  const canGenerate = !!sample?.ok && !hasBlockingSampleAlerts && !jobId && !manualReplacementJobId;
   const selectedBlocks = useMemo(() => sample?.blocks ?? [], [sample]);
   const replacementBlocks = useMemo(() => sample?.replacement_blocks ?? [], [sample]);
+  const selectedBlocksPage = deliveryPageSlice(selectedBlocks, deliveryBlocksPage);
+  const replacementBlocksPage = deliveryPageSlice(replacementBlocks, deliveryReplacementsPage);
+  const manualReplacementCountClamped = Math.min(MAX_REPLACEMENTS_PER_TITULAR, Math.max(1, Math.round(Number(manualReplacementCount || 1))));
+  const manualReplacementSelectedSet = useMemo(() => new Set(manualReplacementSelectedIds), [manualReplacementSelectedIds]);
+  const manualReplacementQueryText = manualReplacementQuery.trim();
+  const manualReplacementMatches = useMemo(() => {
+    const query = manualReplacementQuery.trim().toLowerCase();
+    if (!query) return [];
+    return selectedBlocks.filter((block) => {
+      return [
+        block.id_manzana,
+        block.manzana,
+        block.zona,
+        block.distrito,
+        block.ubigeo,
+        String(block.hoja_num ?? ""),
+      ].some((value) => String(value ?? "").toLowerCase().includes(query));
+    });
+  }, [manualReplacementQuery, selectedBlocks]);
+  const manualReplacementSearchRows = useMemo(
+    () => manualReplacementMatches.slice(0, MANUAL_REPLACEMENT_SEARCH_LIMIT),
+    [manualReplacementMatches],
+  );
+  const canGenerateManualReplacements = !!config
+    && !!sample?.ok
+    && !hasBlockingSampleAlerts
+    && manualReplacementSelectedIds.length > 0
+    && !jobId
+    && !manualReplacementJobId;
   const selectedBlockDistricts = useMemo(() => new Set(selectedBlocks.map((block) => block.ubigeo)).size, [selectedBlocks]);
   const selectedBlockViviendas = selectedBlocks.reduce((sum, block) => sum + Number(block.viviendas || 0), 0);
   const selectedBlockMaxLoad = selectedBlocks.reduce((max, block) => Math.max(max, Number(block.entrevistas || 0)), 0);
   const selectedBlockAvgLoad = selectedBlocks.length
     ? (selectedBlocks.reduce((sum, block) => sum + Number(block.entrevistas || 0), 0) / selectedBlocks.length).toFixed(1)
     : "0.0";
-  const replacementsPerTitular = Math.min(10, Math.max(0, Math.round(Number(config?.replacements_per_titular ?? 1))));
+  const replacementsPerTitular = Math.min(MAX_REPLACEMENTS_PER_TITULAR, Math.max(0, Math.round(Number(config?.replacements_per_titular ?? 1))));
+  const replacementPolicy = normalizeReplacementPolicy(config?.replacement_policy);
+  const replacementPolicyLabel = replacementPolicyOptions.find((option) => option.key === replacementPolicy)?.label ?? "Misma zona";
   const routeStartCorner = normalizeRouteStartCorner(config?.route_start_corner);
   const routeJumpMode = normalizeRouteJumpMode(config?.route_jump_mode);
   const routeJumpManual = normalizeRouteJumpManual(config?.route_jump_manual);
   const replacementRouteTotal = sample
     ? Number(sample.n_replacement_blocks ?? 0)
     : selectedBlocks.length * replacementsPerTitular;
+
+  useEffect(() => {
+    const validIds = new Set(selectedBlocks.map((block) => block.id_manzana));
+    setManualReplacementSelectedIds((prev) => prev.filter((id) => validIds.has(id)));
+  }, [selectedBlocks]);
+
+  useEffect(() => {
+    setDeliveryBlocksPage(0);
+    setDeliveryReplacementsPage(0);
+  }, [sample]);
 
   useEffect(() => {
     if (!config || hydratingRef.current) return undefined;
@@ -6254,7 +6423,11 @@ export default function HojasRutaPage() {
     }
     if (invalidatesSampleSize) setSampleSizePreview(null);
     if (invalidatesQuota) setQuota(null);
-    if (invalidatesSample) setSample(null);
+    if (invalidatesSample) {
+      setSample(null);
+      setManualReplacementResult(null);
+      setManualReplacementSelectedIds([]);
+    }
     setResult(null);
     setRandomPdf(null);
     if (patch.territorios) {
@@ -6374,7 +6547,7 @@ export default function HojasRutaPage() {
         const confirmedConfig = {
           ...saved.integrated_config,
           age_range_scope: saved.integrated_config.age_range_scope ?? scope,
-          replacement_policy: saved.integrated_config.replacement_policy ?? "paired_by_titular_zone",
+          replacement_policy: normalizeReplacementPolicy(saved.integrated_config.replacement_policy),
           replacements_per_titular: saved.integrated_config.replacements_per_titular ?? 1,
         };
         setConfig(confirmedConfig);
@@ -6503,6 +6676,8 @@ export default function HojasRutaPage() {
     setBusy("sample");
     setError("");
     setResult(null);
+    setManualReplacementResult(null);
+    setManualReplacementSelectedIds([]);
     try {
       const s = await apiHojasRutaSamplePreview(config);
       setConfig(mergeReturnedHojasRutaConfig(config, s.config));
@@ -6639,12 +6814,40 @@ export default function HojasRutaPage() {
     }
   }
 
+  function toggleManualReplacementBlock(id: string) {
+    setManualReplacementSelectedIds((prev) => (
+      prev.includes(id)
+        ? prev.filter((item) => item !== id)
+        : [...prev, id]
+    ));
+  }
+
+  async function generateManualReplacementsPdf() {
+    if (!config || !sample || manualReplacementSelectedIds.length === 0) return;
+    setBusy("manual-replacements");
+    setError("");
+    setManualReplacementResult(null);
+    try {
+      const started = await apiHojasRutaManualReplacementsPdf(
+        { ...config, replacement_policy: manualReplacementPolicy },
+        sample,
+        manualReplacementSelectedIds,
+        manualReplacementCountClamped,
+      );
+      setManualReplacementJobId(started.job_id);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   function restoreRouteSnapshot(snapshot: HojasRutaRouteSnapshot) {
     const restoredConfig = {
       ...snapshot.config,
       n_por_distrito: snapshot.config.n_por_distrito ?? {},
       replacement_routes_per_district: snapshot.config.replacement_routes_per_district ?? {},
-      replacement_policy: snapshot.config.replacement_policy ?? "paired_by_titular_zone",
+      replacement_policy: normalizeReplacementPolicy(snapshot.config.replacement_policy),
       replacements_per_titular: snapshot.config.replacements_per_titular ?? 1,
       sample_size: normalizeSampleSizeSettings(snapshot.config.sample_size),
     };
@@ -6656,6 +6859,8 @@ export default function HojasRutaPage() {
     setSampleSizePreview(null);
     setResult(null);
     setRandomPdf(null);
+    setManualReplacementResult(null);
+    setManualReplacementSelectedIds([]);
     setDraftTerritories(restoredConfig.territorios ?? []);
     setConfirmedAgeSignature(ageRangesSignature(restoredConfig));
     setAgeDraftMode(restoredConfig.age_range_mode ?? "manual");
@@ -6845,6 +7050,9 @@ export default function HojasRutaPage() {
     ? "promedio de titulares generados"
     : "promedio de manzanas en distritos confirmados";
   const sampleListRows = sampleListTab === "reemplazos" ? replacementBlocks : (sample?.blocks ?? []);
+  const sampleListTotalLabel = sampleListTab === "reemplazos"
+    ? `${formatNumber(sampleListRows.length)} reemplazo(s)`
+    : `${formatNumber(sampleListRows.length)} titular(es)`;
   const stageSteps: StepMeta<HojasRutaStage>[] = [
     {
       key: "territorio",
@@ -6931,7 +7139,7 @@ export default function HojasRutaPage() {
   return (
     <PageFrame
       className="hojas-ruta-frame"
-      bodyMode={currentStage === "territorio" || currentStage === "manzanas" ? "fill" : "scroll"}
+      bodyMode={currentStage === "territorio" || currentStage === "manzanas" || currentStage === "entrega" ? "fill" : "scroll"}
       title="Hojas de ruta"
       lead="Cuotas, manzanas y fichas de campo desde un marco territorial trazable."
       resetScrollKey={currentStage}
@@ -7458,7 +7666,7 @@ export default function HojasRutaPage() {
                     <section className="hojas-ruta-replacement-panel">
                       <div className="hojas-ruta-section-title">
                         <strong>4. Manzanas de reemplazo</strong>
-                        <span>Pueden desactivarse con 0 o generarse pareadas por titular dentro de la misma zona.</span>
+                        <span>Pueden desactivarse con 0 o generarse por titular en la misma zona u otra zona del distrito.</span>
                       </div>
                       <div className="hojas-ruta-replacement-toolbar">
                         <div className="hojas-ruta-replacement-slider">
@@ -7471,7 +7679,7 @@ export default function HojasRutaPage() {
                             id="hojas-ruta-replacements"
                             type="range"
                             min={0}
-                            max={10}
+                            max={MAX_REPLACEMENTS_PER_TITULAR}
                             step={1}
                             value={replacementsPerTitular}
                             onChange={(event) => patchConfig({ replacements_per_titular: Number(event.target.value) })}
@@ -7481,8 +7689,24 @@ export default function HojasRutaPage() {
                             {[0, 1, 2, 5, 10].map((tick) => <span key={tick}>{tick}</span>)}
                           </div>
                         </div>
+                        <div className="hojas-ruta-segmented-field is-replacement-policy">
+                          <span>Ubicación del reemplazo</span>
+                          <div className="hojas-ruta-segmented">
+                            {replacementPolicyOptions.map((option) => (
+                              <button
+                                key={option.key}
+                                type="button"
+                                className={replacementPolicy === option.key ? "is-active" : ""}
+                                onClick={() => patchConfig({ replacement_policy: option.key })}
+                                title={option.hint}
+                              >
+                                {option.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                         <div className="hojas-ruta-replacement-status">
-                          <StatusPill ok text="Misma zona obligatoria" />
+                          <StatusPill ok text={replacementPolicy === "alternate_zone_same_district" ? "Mismo distrito" : "Misma zona"} />
                           <StatusPill
                             ok={replacementsPerTitular === 0 || replacementRouteTotal > 0}
                             text={replacementsPerTitular === 0
@@ -7495,7 +7719,7 @@ export default function HojasRutaPage() {
                         {selectedTerritoryRows.map((t) => (
                           <label key={t.ubigeo}>
                             <span>{t.distrito}</span>
-                            <strong>{replacementsPerTitular === 0 ? "Sin reemplazos" : `${formatNumber(replacementsPerTitular)} por titular`}</strong>
+                            <strong>{replacementsPerTitular === 0 ? "Sin reemplazos" : `${formatNumber(replacementsPerTitular)} por titular · ${replacementPolicyLabel}`}</strong>
                           </label>
                         ))}
                       </div>
@@ -7507,7 +7731,7 @@ export default function HojasRutaPage() {
                       Generar selección de manzanas
                     </button>
                     <span className="hojas-ruta-soft-text">
-                      {methodLabel(config.sampling_method)} · N {formatNumber(effectiveQuotaN)} · {formatNumber(routeSizeForUi)} encuestas/ruta · {replacementsPerTitular === 0 ? "sin reemplazos" : `${formatNumber(replacementsPerTitular)} reemplazo(s) por titular`}
+                      {methodLabel(config.sampling_method)} · N {formatNumber(effectiveQuotaN)} · {formatNumber(routeSizeForUi)} encuestas/ruta · {replacementsPerTitular === 0 ? "sin reemplazos" : `${formatNumber(replacementsPerTitular)} reemplazo(s) por titular · ${replacementPolicyLabel}`}
                     </span>
                   </div>
                 </Panel>
@@ -7543,19 +7767,51 @@ export default function HojasRutaPage() {
                       </button>
                     </div>
                     {sampleListRows.length ? (
-                      <div className={`hojas-ruta-block-list is-scroll${sampleListTab === "reemplazos" ? " is-replacement" : ""}`}>
-                        {sampleListRows.map((b) => (
-                          <div key={`${sampleListTab}:${b.id_manzana}`} className="hojas-ruta-block-list-row">
-                            <div className="hojas-ruta-block-list-info">
-                              <strong>{b.distrito}</strong>
-                              <span>Zona {b.zona} · ID {b.id_manzana}</span>
-                            </div>
-                            <div className="hojas-ruta-block-list-meta">
-                              <em>{formatNumber(b.entrevistas)}</em>
-                              <small>{sampleListTab === "reemplazos" ? "respaldo" : "encuestas"}</small>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="hojas-ruta-sample-table-shell">
+                        <div className="hojas-ruta-section-title">
+                          <strong>{sampleListTotalLabel}</strong>
+                          <span>Todas las manzanas de la corrida, incluyendo todos los distritos seleccionados.</span>
+                        </div>
+                        <div className="hojas-ruta-review-table-wrap is-sample-list">
+                          <table className="hojas-ruta-review-table">
+                            <thead>
+                              <tr>
+                                {(sampleListTab === "reemplazos"
+                                  ? ["Distrito", "ID manzana", "Zona titular -> reemplazo", "Reemplaza a", "Rango", "Viviendas", "Método"]
+                                  : ["Distrito", "ID manzana", "Zona", "Hoja", "Rango", "Viviendas", "Entrevistas", "Método"]
+                                ).map((h) => (
+                                  <th key={h}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {sampleListRows.map((b) => (
+                                sampleListTab === "reemplazos" ? (
+                                  <tr key={`sample-replacement:${b.id_manzana}`}>
+                                    <td className="is-strong">{b.distrito}</td>
+                                    <td className="is-code">{b.id_manzana}</td>
+                                    <td className="is-code">{b.titular_zona ? `${b.titular_zona} -> ${b.zona}` : b.zona}</td>
+                                    <td className="is-code">{b.titular_id_manzana ?? "-"}</td>
+                                    <td className="is-code">{replacementRangeLabel(b)}</td>
+                                    <td className="is-number">{formatNumber(b.viviendas)}</td>
+                                    <td>{methodLabel(b.metodo)}</td>
+                                  </tr>
+                                ) : (
+                                  <tr key={`sample-titular:${b.id_manzana}`}>
+                                    <td className="is-strong">{b.distrito}</td>
+                                    <td className="is-code">{b.id_manzana}</td>
+                                    <td className="is-code">{b.zona}</td>
+                                    <td className="is-number">{formatNumber(b.hoja_num ?? b.orden_seleccion ?? 0)}</td>
+                                    <td className="is-code">{routeRangeLabel(b)}</td>
+                                    <td className="is-number">{formatNumber(b.viviendas)}</td>
+                                    <td className="is-number is-strong">{formatNumber(b.entrevistas)}</td>
+                                    <td>{methodLabel(b.metodo)}</td>
+                                  </tr>
+                                )
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     ) : (
                       <div className="hojas-ruta-block-list-empty">
@@ -7601,131 +7857,202 @@ export default function HojasRutaPage() {
           )}
 
           {currentStage === "entrega" && (
-            <div className="hojas-ruta-stage-shell">
+            <div className="hojas-ruta-stage-shell is-delivery-stage">
               <div className="hojas-ruta-delivery-layout">
-                <Panel title="Revisión final" eyebrow="Antes de generar">
-                  {!quota ? (
-                    <EmptyState icon={<BarChart3 size={18} />} title="Sin cuotas calculadas" hint="Calcula cuotas para revisar la asignacion." variant="inline" />
-                  ) : (
-                    <div className="hojas-ruta-delivery-review">
-                      <div className="hojas-ruta-delivery-summary">
-                        <MiniMetric label="Cuotas asignadas" value={`${formatNumber(quota.total_asignado)} / ${formatNumber(quota.n_objetivo)}`} />
-                        <MiniMetric label="Manzanas" value={sample ? formatNumber(sample.n_blocks) : "0"} />
-                        <MiniMetric label="Entrevistas" value={sample ? formatNumber(sample.total_entrevistas) : "0"} />
-                        <MiniMetric label="Reemplazos" value={sample ? formatNumber(sample.n_replacement_blocks ?? 0) : "0"} />
+                <div className="hojas-ruta-delivery-main">
+                  <Panel title="Revisión final" eyebrow="Antes de generar">
+                    {!quota ? (
+                      <EmptyState icon={<BarChart3 size={18} />} title="Sin cuotas calculadas" hint="Calcula cuotas para revisar la asignacion." variant="inline" />
+                    ) : (
+                      <div className="hojas-ruta-delivery-review">
+                        <div className="hojas-ruta-delivery-summary">
+                          <MiniMetric label="Cuotas asignadas" value={`${formatNumber(quota.total_asignado)} / ${formatNumber(quota.n_objetivo)}`} />
+                          <MiniMetric label="Manzanas" value={sample ? formatNumber(sample.n_blocks) : "0"} />
+                          <MiniMetric label="Entrevistas" value={sample ? formatNumber(sample.total_entrevistas) : "0"} />
+                          <MiniMetric label="Reemplazos" value={sample ? formatNumber(sample.n_replacement_blocks ?? 0) : "0"} />
+                        </div>
+
+                        {quotaAlerts.length ? (
+                          <div className="hojas-ruta-sample-alerts">
+                            {quotaAlerts.map((a) => (
+                              <Alert key={`${a.code}:${a.message}`} kind={alertKind(a.level)}>{a.message}</Alert>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="hojas-ruta-sample-plain-card is-success">
+                            <strong>Sin alertas bloqueantes</strong>
+                            <span>La asignación de cuotas y manzanas está lista para generar entregables.</span>
+                          </div>
+                        )}
+
+                        <section className="hojas-ruta-delivery-section">
+                          <div className="hojas-ruta-section-title">
+                            <strong>Cuotas por perfil</strong>
+                            <span>Primeras filas para una revisión rápida.</span>
+                          </div>
+                          <div className="hojas-ruta-review-table-wrap is-delivery">
+                            <table className="hojas-ruta-review-table is-delivery-table is-quota-table">
+                              <colgroup>
+                                {quotaColumns.map((column) => (
+                                  <col key={column} style={{ width: quotaColumnWidth(column, quotaColumns) }} />
+                                ))}
+                              </colgroup>
+                              <thead>
+                                <tr>
+                                  {quotaColumns.map((h) => (
+                                    <th key={h}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {quota.table.slice(0, 16).map((row, i) => (
+                                  <tr key={i}>
+                                    {quotaColumns.map((c) => {
+                                      const value = row[c];
+                                      return (
+                                        <td key={c} className={reviewCellClass(c, value)}>
+                                          {typeof value === "number" ? formatNumber(value as number) : String(value ?? "")}
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </section>
+
+                        {sample && (
+                          <section className="hojas-ruta-delivery-section">
+                            <div className="hojas-ruta-section-title">
+                              <strong>Manzanas de campo</strong>
+                              <span>Todas las manzanas titulares de todos los distritos seleccionados.</span>
+                            </div>
+                            <div className="hojas-ruta-review-table-wrap is-delivery">
+                              <table className="hojas-ruta-review-table is-delivery-table is-block-table">
+                                <colgroup>
+                                  <col className="is-district" />
+                                  <col className="is-block-id" />
+                                  <col className="is-zone" />
+                                  <col className="is-households" />
+                                  <col className="is-interviews" />
+                                  <col className="is-method" />
+                                </colgroup>
+                                <thead>
+                                  <tr>
+                                    {["Distrito", "ID manzana", "Zona", "Viviendas", "Entrevistas", "Método"].map((h) => (
+                                      <th key={h}>{h}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {selectedBlocksPage.rows.map((b) => (
+                                    <tr key={b.id_manzana}>
+                                      <td className="is-strong">{b.distrito}</td>
+                                      <td className="is-code">{b.id_manzana}</td>
+                                      <td className="is-code">{b.zona}</td>
+                                      <td className="is-number">{formatNumber(b.viviendas)}</td>
+                                      <td className="is-number is-strong">{formatNumber(b.entrevistas)}</td>
+                                      <td>{methodLabel(b.metodo)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <DeliveryTablePager
+                              total={selectedBlocks.length}
+                              page={selectedBlocksPage.safePage}
+                              pageCount={selectedBlocksPage.pageCount}
+                              start={selectedBlocksPage.start}
+                              end={selectedBlocksPage.end}
+                              label="titulares"
+                              onPageChange={setDeliveryBlocksPage}
+                            />
+                          </section>
+                        )}
+                        {sample && replacementBlocks.length ? (
+                          <section className="hojas-ruta-delivery-section">
+                            <div className="hojas-ruta-section-title">
+                              <strong>Manzanas de reemplazo</strong>
+                              <span>Todas las manzanas de reemplazo, trazadas a su titular, zona origen y rango operativo.</span>
+                            </div>
+                            <div className="hojas-ruta-review-table-wrap is-delivery">
+                              <table className="hojas-ruta-review-table is-delivery-table is-replacement-table">
+                                <colgroup>
+                                  <col className="is-district" />
+                                  <col className="is-block-id" />
+                                  <col className="is-zone" />
+                                  <col className="is-replaces" />
+                                  <col className="is-range" />
+                                  <col className="is-households" />
+                                  <col className="is-method" />
+                                </colgroup>
+                                <thead>
+                                  <tr>
+                                    {["Distrito", "ID manzana", "Zona", "Reemplaza a", "Rango", "Viviendas", "Método"].map((h) => (
+                                      <th key={h}>{h}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {replacementBlocksPage.rows.map((b) => (
+                                    <tr key={`replacement:${b.id_manzana}`}>
+                                      <td className="is-strong">{b.distrito}</td>
+                                      <td className="is-code">{b.id_manzana}</td>
+                                      <td className="is-code">{b.titular_zona ? `${b.titular_zona} -> ${b.zona}` : b.zona}</td>
+                                      <td className="is-code">{b.titular_id_manzana ?? "—"}</td>
+                                      <td className="is-code">{replacementRangeLabel(b)}</td>
+                                      <td className="is-number">{formatNumber(b.viviendas)}</td>
+                                      <td>{methodLabel(b.metodo)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <DeliveryTablePager
+                              total={replacementBlocks.length}
+                              page={replacementBlocksPage.safePage}
+                              pageCount={replacementBlocksPage.pageCount}
+                              start={replacementBlocksPage.start}
+                              end={replacementBlocksPage.end}
+                              label="reemplazos"
+                              onPageChange={setDeliveryReplacementsPage}
+                            />
+                          </section>
+                        ) : null}
                       </div>
+                    )}
+                  </Panel>
 
-                      {quotaAlerts.length ? (
-                        <div className="hojas-ruta-sample-alerts">
-                          {quotaAlerts.map((a) => (
-                            <Alert key={`${a.code}:${a.message}`} kind={alertKind(a.level)}>{a.message}</Alert>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="hojas-ruta-sample-plain-card is-success">
-                          <strong>Sin alertas bloqueantes</strong>
-                          <span>La asignación de cuotas y manzanas está lista para generar entregables.</span>
-                        </div>
-                      )}
+                  <JobProgress<HojasRutaJobResult>
+                    label="Generando hojas de ruta"
+                    jobId={jobId}
+                    onDone={(data) => {
+                      setResult(data);
+                      setJobId(null);
+                    }}
+                    onError={(msg) => {
+                      setError(msg);
+                      setJobId(null);
+                    }}
+                    onCancelled={() => setJobId(null)}
+                  />
 
-                      <section className="hojas-ruta-delivery-section">
-                        <div className="hojas-ruta-section-title">
-                          <strong>Cuotas por perfil</strong>
-                          <span>Primeras filas para una revisión rápida.</span>
-                        </div>
-                        <div className="hojas-ruta-review-table-wrap is-delivery">
-                          <table className="hojas-ruta-review-table">
-                            <thead>
-                              <tr>
-                                {quotaColumns.map((h) => (
-                                  <th key={h}>{h}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {quota.table.slice(0, 16).map((row, i) => (
-                                <tr key={i}>
-                                  {quotaColumns.map((c) => {
-                                    const value = row[c];
-                                    return (
-                                      <td key={c} className={reviewCellClass(c, value)}>
-                                        {typeof value === "number" ? formatNumber(value as number) : String(value ?? "")}
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </section>
-
-                      {sample && (
-                        <section className="hojas-ruta-delivery-section">
-                          <div className="hojas-ruta-section-title">
-                            <strong>Manzanas de campo</strong>
-                            <span>Vista operativa de los puntos seleccionados.</span>
-                          </div>
-                          <div className="hojas-ruta-review-table-wrap is-delivery">
-                            <table className="hojas-ruta-review-table">
-                              <thead>
-                                <tr>
-                                  {["Distrito", "ID manzana", "Zona", "Viviendas", "Entrevistas", "Método"].map((h) => (
-                                    <th key={h}>{h}</th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {selectedBlocks.slice(0, 40).map((b) => (
-                                  <tr key={b.id_manzana}>
-                                    <td className="is-strong">{b.distrito}</td>
-                                    <td className="is-code">{b.id_manzana}</td>
-                                    <td className="is-code">{b.zona}</td>
-                                    <td className="is-number">{formatNumber(b.viviendas)}</td>
-                                    <td className="is-number is-strong">{formatNumber(b.entrevistas)}</td>
-                                    <td>{methodLabel(b.metodo)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </section>
-                      )}
-                      {sample && replacementBlocks.length ? (
-                        <section className="hojas-ruta-delivery-section">
-                          <div className="hojas-ruta-section-title">
-                            <strong>Manzanas de reemplazo</strong>
-                            <span>No alteran cuotas; cada una queda trazada a su titular y a la misma zona.</span>
-                          </div>
-                          <div className="hojas-ruta-review-table-wrap is-delivery">
-                            <table className="hojas-ruta-review-table">
-                              <thead>
-                                <tr>
-                                  {["Distrito", "ID manzana", "Zona", "Reemplaza a", "Viviendas", "Entrevistas", "Método"].map((h) => (
-                                    <th key={h}>{h}</th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {replacementBlocks.slice(0, 40).map((b) => (
-                                  <tr key={`replacement:${b.id_manzana}`}>
-                                    <td className="is-strong">{b.distrito}</td>
-                                    <td className="is-code">{b.id_manzana}</td>
-                                    <td className="is-code">{b.zona}</td>
-                                    <td className="is-code">{b.titular_id_manzana ?? "—"}</td>
-                                    <td className="is-number">{formatNumber(b.viviendas)}</td>
-                                    <td className="is-number is-strong">{formatNumber(b.entrevistas)}</td>
-                                    <td>{methodLabel(b.metodo)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </section>
-                      ) : null}
-                    </div>
-                  )}
-                </Panel>
+                  <JobProgress<HojasRutaManualReplacementResult>
+                    label="Generando PDF de reemplazos"
+                    jobId={manualReplacementJobId}
+                    onDone={(data) => {
+                      setManualReplacementResult(data);
+                      setManualReplacementJobId(null);
+                      if (data.file_id) window.open(downloadUrl(data.file_id), "_blank", "noopener,noreferrer");
+                    }}
+                    onError={(msg) => {
+                      setError(msg);
+                      setManualReplacementJobId(null);
+                    }}
+                    onCancelled={() => setManualReplacementJobId(null)}
+                  />
+                </div>
 
                 <aside className="hojas-ruta-delivery-side">
                   <Panel title="Paquete de entrega" eyebrow="ZIP final">
@@ -7751,7 +8078,7 @@ export default function HojasRutaPage() {
                       </div>
                       <div>
                         <FileText size={17} />
-                        <span>{sample && (sample.n_replacement_blocks ?? 0) === 0 ? "Sin PDFs de reemplazo cuando el respaldo está en 0" : "PDF de reemplazos pareados por zona"}</span>
+                        <span>{sample && (sample.n_replacement_blocks ?? 0) === 0 ? "Sin PDFs de reemplazo cuando el respaldo está en 0" : `PDF de reemplazos · ${replacementPolicyLabel}`}</span>
                       </div>
                       <div>
                         <Layers size={17} />
@@ -7769,6 +8096,131 @@ export default function HojasRutaPage() {
                     <p className="hojas-ruta-sample-note">
                       Si cambias cuotas, muestra o selección de manzanas, Prosecnur invalidará este resultado para evitar entregar archivos desactualizados.
                     </p>
+                  </Panel>
+
+                  <Panel title="Reemplazos puntuales" eyebrow="PDF unificado">
+                    <div className="hojas-ruta-manual-replacements">
+                      <div className="hojas-ruta-manual-search">
+                        <Search size={14} />
+                        <input
+                          value={manualReplacementQuery}
+                          onChange={(event) => setManualReplacementQuery(event.target.value)}
+                          placeholder="Buscar titular por codigo, zona o distrito"
+                          disabled={!sample?.ok || !!jobId || !!manualReplacementJobId}
+                        />
+                      </div>
+                      <div className="hojas-ruta-manual-results">
+                        {!sample?.ok ? (
+                          <div className="hojas-ruta-block-list-empty">
+                            Genera primero la seleccion de manzanas.
+                          </div>
+                        ) : !manualReplacementQueryText ? (
+                          <div className="hojas-ruta-manual-summary">
+                            <strong>{formatNumber(selectedBlocks.length)} manzanas titulares disponibles</strong>
+                            <span>{formatNumber(manualReplacementSelectedIds.length)} seleccionada(s)</span>
+                          </div>
+                        ) : manualReplacementSearchRows.length ? (
+                          <>
+                            <div className="hojas-ruta-manual-results-meta">
+                              <span>
+                                {formatNumber(manualReplacementSearchRows.length)} de {formatNumber(manualReplacementMatches.length)} coincidencia(s)
+                              </span>
+                            </div>
+                            {manualReplacementSearchRows.map((block) => {
+                              const active = manualReplacementSelectedSet.has(block.id_manzana);
+                              return (
+                                <button
+                                  key={`manual-replacement-source:${block.id_manzana}`}
+                                  type="button"
+                                  className={active ? "is-active" : ""}
+                                  onClick={() => toggleManualReplacementBlock(block.id_manzana)}
+                                  disabled={!sample?.ok || !!jobId || !!manualReplacementJobId}
+                                >
+                                  <span>
+                                    <strong>{block.id_manzana}</strong>
+                                    <small>{block.distrito} · zona {block.zona} · {routeRangeLabel(block)}</small>
+                                  </span>
+                                  {active ? <CheckCircle2 size={15} /> : <Plus size={15} />}
+                                </button>
+                              );
+                            })}
+                          </>
+                        ) : (
+                          <div className="hojas-ruta-block-list-empty">
+                            No hay titulares que coincidan con la busqueda.
+                          </div>
+                        )}
+                      </div>
+                      <div className="hojas-ruta-manual-controls">
+                        <div className="hojas-ruta-replacement-slider is-manual-count">
+                          <label htmlFor="hojas-ruta-manual-replacements">Reemplazos por titular</label>
+                          <div className="hojas-ruta-replacement-value">
+                            <strong>{formatNumber(manualReplacementCountClamped)}</strong>
+                            <span>{manualReplacementCountClamped === 1 ? "1 por titular" : "por titular"}</span>
+                          </div>
+                          <input
+                            id="hojas-ruta-manual-replacements"
+                            type="range"
+                            min={1}
+                            max={MAX_REPLACEMENTS_PER_TITULAR}
+                            step={1}
+                            value={manualReplacementCountClamped}
+                            onChange={(event) => setManualReplacementCount(Number(event.target.value))}
+                            disabled={!sample?.ok || !!jobId || !!manualReplacementJobId}
+                          />
+                          <div className="hojas-ruta-replacement-ticks" aria-hidden="true">
+                            {[1, 2, 5, 10].map((tick) => <span key={`manual-replacement-tick:${tick}`}>{tick}</span>)}
+                          </div>
+                        </div>
+                        <StatusPill
+                          ok={manualReplacementSelectedIds.length > 0}
+                          text={`${formatNumber(manualReplacementSelectedIds.length)} titular(es)`}
+                        />
+                      </div>
+                      <div className="hojas-ruta-segmented-field is-replacement-policy is-manual">
+                        <span>Ubicación del reemplazo</span>
+                        <div className="hojas-ruta-segmented" role="radiogroup" aria-label="Ubicación del reemplazo puntual">
+                          {replacementPolicyOptions.map((option) => (
+                            <button
+                              key={`manual-policy:${option.key}`}
+                              type="button"
+                              role="radio"
+                              aria-checked={manualReplacementPolicy === option.key}
+                              className={manualReplacementPolicy === option.key ? "is-active" : ""}
+                              onClick={() => setManualReplacementPolicy(option.key)}
+                              disabled={!sample?.ok || !!jobId || !!manualReplacementJobId}
+                              title={option.hint}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {manualReplacementSelectedIds.length ? (
+                        <div className="hojas-ruta-manual-selected">
+                          {manualReplacementSelectedIds.slice(0, 8).map((id) => (
+                            <button key={`manual-selected:${id}`} type="button" onClick={() => toggleManualReplacementBlock(id)}>
+                              {id} <Trash2 size={11} />
+                            </button>
+                          ))}
+                          {manualReplacementSelectedIds.length > 8 ? <span>+{formatNumber(manualReplacementSelectedIds.length - 8)}</span> : null}
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        style={{ ...btnSecondary, width: "100%", justifyContent: "center" }}
+                        onClick={() => void generateManualReplacementsPdf()}
+                        disabled={!canGenerateManualReplacements || busy !== ""}
+                      >
+                        {busy === "manual-replacements" ? <Loader2 size={14} className="pulso-spin" /> : <FileText size={14} />}
+                        Generar PDF unificado
+                      </button>
+                      {manualReplacementResult ? (
+                        <a href={downloadUrl(manualReplacementResult.file_id)} style={{ ...btnPrimary, width: "100%", justifyContent: "center", textDecoration: "none" }}>
+                          <Download size={14} /> Descargar PDF ({formatNumber(manualReplacementResult.n_replacement_blocks)})
+                        </a>
+                      ) : null}
+                    </div>
                   </Panel>
 
                   <Panel title="PDF de prueba" eyebrow="Validacion rapida">
@@ -7806,20 +8258,6 @@ export default function HojasRutaPage() {
                   </Panel>
                 </aside>
               </div>
-
-              <JobProgress<HojasRutaJobResult>
-                label="Generando hojas de ruta"
-                jobId={jobId}
-                onDone={(data) => {
-                  setResult(data);
-                  setJobId(null);
-                }}
-                onError={(msg) => {
-                  setError(msg);
-                  setJobId(null);
-                }}
-                onCancelled={() => setJobId(null)}
-              />
 
               {result && (
                 <Panel title="Entregables generados" eyebrow="ZIP operativo + informe tecnico">

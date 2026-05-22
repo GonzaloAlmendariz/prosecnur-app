@@ -1,16 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { Activity, BookOpen, Database, Download, Loader2, PhoneCall, PlugZap, RefreshCw, Save, ShieldAlert, Target, Trash2 } from "lucide-react";
 import {
+  Activity,
+  AlertTriangle,
+  BookOpen,
+  CheckCircle2,
+  ClipboardCheck,
+  Database,
+  Download,
+  FileCheck2,
+  Link2,
+  Loader2,
+  PhoneCall,
+  PlugZap,
+  RefreshCw,
+  Save,
+  ShieldAlert,
+  Target,
+  Trash2,
+  XCircle,
+} from "lucide-react";
+import {
+  apiMonitoreoAcreditacionSeguimiento,
   apiMonitoreoConfig,
+  apiMonitoreoCierre,
   apiMonitoreoDemo,
   apiMonitoreoExport,
+  apiMonitoreoImportFromCalcMuestra,
   apiMonitoreoSource,
   apiMonitoreoState,
   apiMonitoreoSupervisionSample,
   apiMonitoreoSync,
   downloadUrl,
   MonitoreoConfig,
+  MonitoreoAcreditacion,
+  MonitoreoAcreditacionComponente,
+  MonitoreoAcreditacionIntentos,
+  MonitoreoAcreditacionSeguimientoPayload,
   MonitoreoDashboard,
   MonitoreoGoal,
   MonitoreoRow,
@@ -24,7 +50,31 @@ import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { Panel } from "../../components/Panel";
 import { EmptyState, LoadingBlock } from "../../components/States";
+import { useAnaliticaAutosave } from "../analitica/useAnaliticaAutosave";
+import { EnumeradoresPane } from "../analitica/panes/EnumeradoresPane";
 import "./monitoreo.css";
+
+const EMPTY_ACREDITACION: MonitoreoAcreditacion = {
+  enabled: false,
+  modo_trabajo: "seguimiento_campo",
+  estudio: {
+    id: "",
+    titulo: "Estudio de acreditacion",
+    cliente: "",
+    macro_familia: "acreditacion",
+    creado_desde_calc_muestra: false,
+  },
+  componentes: [],
+  plan_refuerzo: "",
+  aprobacion_metodologica: false,
+  cierre_at: "",
+  dashboard: {
+    cards: [],
+    alertas: [],
+    cierre_habilitado: false,
+    bloqueos: 0,
+  },
+};
 
 const EMPTY_CONFIG: MonitoreoConfig = {
   enumerator_var: "",
@@ -44,6 +94,7 @@ const EMPTY_CONFIG: MonitoreoConfig = {
   max_duration_seconds: 7200,
   supervision_n: 20,
   supervision_seed: 20260514,
+  acreditacion: EMPTY_ACREDITACION,
 };
 
 type SourceDraft = {
@@ -79,6 +130,23 @@ function arrayOrEmpty<T>(value: unknown): T[] {
   return Array.isArray(value) ? value as T[] : [];
 }
 
+function mergeAcreditacion(value: unknown): MonitoreoAcreditacion {
+  const acr = (value && typeof value === "object" ? value : {}) as Partial<MonitoreoAcreditacion>;
+  const dashboard = acr.dashboard ?? EMPTY_ACREDITACION.dashboard;
+  return {
+    ...EMPTY_ACREDITACION,
+    ...acr,
+    estudio: { ...EMPTY_ACREDITACION.estudio, ...(acr.estudio ?? {}) },
+    componentes: arrayOrEmpty<MonitoreoAcreditacionComponente>(acr.componentes),
+    dashboard: {
+      ...EMPTY_ACREDITACION.dashboard,
+      ...dashboard,
+      cards: arrayOrEmpty(dashboard.cards),
+      alertas: arrayOrEmpty(dashboard.alertas),
+    },
+  };
+}
+
 function mergeConfig(config: Partial<MonitoreoConfig> | undefined): MonitoreoConfig {
   const next = { ...EMPTY_CONFIG, ...(config ?? {}) };
   return {
@@ -92,10 +160,13 @@ function mergeConfig(config: Partial<MonitoreoConfig> | undefined): MonitoreoCon
     max_duration_seconds: numberOrFallback(next.max_duration_seconds, EMPTY_CONFIG.max_duration_seconds),
     supervision_n: numberOrFallback(next.supervision_n, EMPTY_CONFIG.supervision_n),
     supervision_seed: numberOrFallback(next.supervision_seed, EMPTY_CONFIG.supervision_seed),
+    acreditacion: mergeAcreditacion(next.acreditacion),
   };
 }
 
 export default function MonitoreoPage() {
+  useAnaliticaAutosave();
+
   const [state, setState] = useState<MonitoreoState | null>(null);
   const [config, setConfig] = useState<MonitoreoConfig>(EMPTY_CONFIG);
   const [source, setSource] = useState<SourceDraft>(DEFAULT_SOURCE);
@@ -103,6 +174,7 @@ export default function MonitoreoPage() {
   const [loadingDemo, setLoadingDemo] = useState(false);
   const [savingSource, setSavingSource] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
+  const [savingAcreditacion, setSavingAcreditacion] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [exportLink, setExportLink] = useState<{ href: string; filename: string } | null>(null);
@@ -138,6 +210,7 @@ export default function MonitoreoPage() {
   const variables = state?.variables ?? [];
   const sources = state?.sources ?? [];
   const activeSources = sources.filter((s) => s.enabled);
+  const acreditacion = mergeAcreditacion(state?.acreditacion ?? config.acreditacion);
   const rawDashboard = state?.dashboard;
   const dashboard: MonitoreoDashboard | null =
     rawDashboard?.kpis && Array.isArray(rawDashboard.progress) && Array.isArray(rawDashboard.production)
@@ -201,6 +274,48 @@ export default function MonitoreoPage() {
     }
   }
 
+  async function importCalcMuestra() {
+    setSavingAcreditacion(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoImportFromCalcMuestra();
+      setState(result.state);
+      setConfig(mergeConfig(result.state.config));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSavingAcreditacion(false);
+    }
+  }
+
+  async function saveAcreditacionSeguimiento(payload: MonitoreoAcreditacionSeguimientoPayload) {
+    setSavingAcreditacion(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoAcreditacionSeguimiento(payload);
+      setState(result.state);
+      setConfig(mergeConfig(result.state.config));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSavingAcreditacion(false);
+    }
+  }
+
+  async function closeAcreditacion(plan_refuerzo: string, aprobar_brechas: boolean) {
+    setSavingAcreditacion(true);
+    setError("");
+    try {
+      const result = await apiMonitoreoCierre({ plan_refuerzo, aprobar_brechas });
+      setState(result.state);
+      setConfig(mergeConfig(result.state.config));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSavingAcreditacion(false);
+    }
+  }
+
   async function syncNow() {
     setError("");
     setExportLink(null);
@@ -256,6 +371,10 @@ export default function MonitoreoPage() {
           <button type="button" onClick={saveConfig} disabled={savingConfig}>
             <Save size={14} />
             Guardar config
+          </button>
+          <button type="button" onClick={importCalcMuestra} disabled={savingAcreditacion}>
+            {savingAcreditacion ? <Loader2 size={14} className="pulso-spin" /> : <Link2 size={14} />}
+            Importar diseño
           </button>
           <button type="button" onClick={exportReport} disabled={!state?.has_snapshot}>
             <Download size={14} />
@@ -325,6 +444,16 @@ export default function MonitoreoPage() {
           }
         />
       )}
+
+      <AcreditacionPanel
+        acreditacion={acreditacion}
+        saving={savingAcreditacion}
+        onImport={importCalcMuestra}
+        onSaveSeguimiento={saveAcreditacionSeguimiento}
+        onCerrar={closeAcreditacion}
+      />
+
+      <EnumeradoresPane />
 
       <div className="mon-grid mon-grid--wide mon-grid--intro">
         <DemoPanel loading={loadingDemo} onLoad={loadDemo} />
@@ -637,6 +766,284 @@ function DashboardSummary({ dashboard, syncedAt, nRows }: { dashboard: Monitoreo
   );
 }
 
+type SeguimientoDraft = {
+  n_efectivo: string;
+  notas_campo: string;
+  intentos: Record<keyof MonitoreoAcreditacionIntentos, string>;
+};
+
+const CANALES: Array<keyof MonitoreoAcreditacionIntentos> = ["email", "whatsapp", "sms", "telefono", "presencial"];
+
+function draftFromComponent(comp: MonitoreoAcreditacionComponente | null): SeguimientoDraft {
+  const intentos = comp?.seguimiento.intentos_canal ?? { email: 0, whatsapp: 0, sms: 0, telefono: 0, presencial: 0 };
+  return {
+    n_efectivo: String(comp?.seguimiento.n_efectivo ?? 0),
+    notas_campo: comp?.seguimiento.notas_campo ?? "",
+    intentos: {
+      email: String(intentos.email ?? 0),
+      whatsapp: String(intentos.whatsapp ?? 0),
+      sms: String(intentos.sms ?? 0),
+      telefono: String(intentos.telefono ?? 0),
+      presencial: String(intentos.presencial ?? 0),
+    },
+  };
+}
+
+function AcreditacionPanel({
+  acreditacion,
+  saving,
+  onImport,
+  onSaveSeguimiento,
+  onCerrar,
+}: {
+  acreditacion: MonitoreoAcreditacion;
+  saving: boolean;
+  onImport: () => void;
+  onSaveSeguimiento: (payload: MonitoreoAcreditacionSeguimientoPayload) => Promise<void>;
+  onCerrar: (planRefuerzo: string, aprobarBrechas: boolean) => Promise<void>;
+}) {
+  const componentes = acreditacion.componentes ?? [];
+  const [activeId, setActiveId] = useState(componentes[0]?.id ?? "");
+  const selected = componentes.find((comp) => comp.id === activeId) ?? componentes[0] ?? null;
+  const [draft, setDraft] = useState<SeguimientoDraft>(() => draftFromComponent(selected));
+  const [planRefuerzo, setPlanRefuerzo] = useState(acreditacion.plan_refuerzo ?? "");
+  const [aprobarBrechas, setAprobarBrechas] = useState(acreditacion.aprobacion_metodologica ?? false);
+
+  useEffect(() => {
+    if (componentes.length && !componentes.some((comp) => comp.id === activeId)) {
+      setActiveId(componentes[0].id);
+    }
+  }, [activeId, componentes]);
+
+  useEffect(() => {
+    setDraft(draftFromComponent(selected));
+  }, [
+    selected?.id,
+    selected?.seguimiento.n_efectivo,
+    selected?.seguimiento.notas_campo,
+    selected?.seguimiento.intentos_canal.email,
+    selected?.seguimiento.intentos_canal.whatsapp,
+    selected?.seguimiento.intentos_canal.sms,
+    selected?.seguimiento.intentos_canal.telefono,
+    selected?.seguimiento.intentos_canal.presencial,
+  ]);
+
+  useEffect(() => {
+    setPlanRefuerzo(acreditacion.plan_refuerzo ?? "");
+    setAprobarBrechas(acreditacion.aprobacion_metodologica ?? false);
+  }, [acreditacion.plan_refuerzo, acreditacion.aprobacion_metodologica]);
+
+  async function saveSelected() {
+    if (!selected) return;
+    const intentos_canal = CANALES.reduce<Partial<MonitoreoAcreditacionIntentos>>((acc, canal) => {
+      acc[canal] = Math.max(0, Number(draft.intentos[canal]) || 0);
+      return acc;
+    }, {});
+    await onSaveSeguimiento({
+      id: selected.id,
+      n_efectivo: Math.max(0, Number(draft.n_efectivo) || 0),
+      notas_campo: draft.notas_campo,
+      intentos_canal,
+    });
+  }
+
+  if (!acreditacion.enabled) {
+    return (
+      <Panel
+        eyebrow="Acreditacion"
+        title={<span className="mon-title-icon"><ClipboardCheck size={16} /> Acreditacion multi-actor</span>}
+        actions={
+          <button type="button" onClick={onImport} disabled={saving}>
+            {saving ? <Loader2 size={14} className="pulso-spin" /> : <Link2 size={14} />}
+            Importar diseño
+          </button>
+        }
+      >
+        <EmptyState
+          icon={<ClipboardCheck size={18} />}
+          title="Sin estudio multi-componente"
+          hint="Importa un diseño validado del calculador para activar seguimiento por actor."
+          variant="inline"
+        />
+      </Panel>
+    );
+  }
+
+  const dashboard = acreditacion.dashboard;
+  const cierreListo = dashboard.cierre_habilitado || planRefuerzo.trim().length > 0 || aprobarBrechas;
+  return (
+    <Panel
+      eyebrow={acreditacion.modo_trabajo === "cierre_campo" ? "Cierre de campo" : "Seguimiento de campo"}
+      title={<span className="mon-title-icon"><ClipboardCheck size={16} /> {acreditacion.estudio.titulo}</span>}
+      actions={
+        <div className="mon-acr-actions">
+          <button type="button" onClick={onImport} disabled={saving}>
+            {saving ? <Loader2 size={14} className="pulso-spin" /> : <Link2 size={14} />}
+            Reimportar
+          </button>
+          <button
+            type="button"
+            onClick={() => onCerrar(planRefuerzo, aprobarBrechas)}
+            disabled={saving || acreditacion.modo_trabajo === "cierre_campo" || !cierreListo}
+          >
+            <FileCheck2 size={14} />
+            Marcar cierre
+          </button>
+        </div>
+      }
+    >
+      <div className="mon-acr-grid">
+        {dashboard.cards.map((card) => {
+          const pct = numberOrNull(card.avance_pct);
+          const width = Math.max(0, Math.min(100, pct ?? 0));
+          const bench = card.benchmark_comparado;
+          return (
+            <button
+              key={card.id}
+              type="button"
+              className={`mon-acr-card mon-acr-card--${card.estado}${selected?.id === card.id ? " is-active" : ""}`}
+              onClick={() => setActiveId(card.id)}
+            >
+              <span className="mon-acr-card-head">
+                <strong>{card.actor}</strong>
+                <EstadoBadge estado={card.estado} />
+              </span>
+              <span className="mon-acr-count">
+                {card.n_efectivo.toLocaleString("es-PE")} / {card.n_objetivo?.toLocaleString("es-PE") ?? "S/M"}
+              </span>
+              <span className="mon-acr-progress" aria-hidden="true"><i style={{ width: `${width}%` }} /></span>
+              <span className="mon-acr-meta">
+                {pct == null ? "Sin meta" : `${pct.toFixed(1)}%`}
+                {bench ? ` · mediana ${formatRatioPct(bench.mediana_historica)}` : ""}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {dashboard.alertas.length > 0 && (
+        <div className="mon-acr-alerts">
+          {dashboard.alertas.slice(0, 5).map((alerta, i) => (
+            <div key={`${alerta.componente_id}-${alerta.tipo}-${i}`} className={`mon-acr-alert is-${alerta.severidad}`}>
+              <AlertTriangle size={14} />
+              <span><strong>{alerta.actor}</strong>: {alerta.mensaje}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selected && (
+        <div className="mon-acr-detail">
+          <div className="mon-acr-detail-head">
+            <div>
+              <h3>{selected.actor}</h3>
+              <p>{selected.tecnica || "Sin tecnica"} · {selected.variable_control || "Sin variable de control"}</p>
+            </div>
+            <EstadoBadge estado={selected.seguimiento.cumplimiento.estado} />
+          </div>
+
+          <div className="mon-acr-metrics">
+            <Metric label="Universo" value={selected.marco.universo_bruto} />
+            <Metric label="Marco act." value={selected.marco.marco_actualizado} />
+            <Metric label="Contactable" value={selected.marco.marco_contactable} />
+            <Metric label="Meta" value={selected.meta.n_objetivo} />
+          </div>
+
+          <div className="mon-form mon-form--two mon-acr-form">
+            <label>
+              <span>n efectivo</span>
+              <input
+                type="number"
+                min={0}
+                value={draft.n_efectivo}
+                onChange={(e) => setDraft((prev) => ({ ...prev, n_efectivo: e.target.value }))}
+              />
+            </label>
+            {CANALES.map((canal) => (
+              <label key={canal}>
+                <span>{canal}</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={draft.intentos[canal]}
+                  onChange={(e) => setDraft((prev) => ({
+                    ...prev,
+                    intentos: { ...prev.intentos, [canal]: e.target.value },
+                  }))}
+                />
+              </label>
+            ))}
+          </div>
+          <label className="mon-acr-notes">
+            <span>Notas de campo</span>
+            <textarea value={draft.notas_campo} onChange={(e) => setDraft((prev) => ({ ...prev, notas_campo: e.target.value }))} />
+          </label>
+          <div className="mon-acr-footer">
+            <div className="mon-acr-close-controls">
+              <input
+                value={planRefuerzo}
+                onChange={(e) => setPlanRefuerzo(e.target.value)}
+                placeholder="Plan de refuerzo o justificacion de cierre"
+              />
+              <label>
+                <input
+                  type="checkbox"
+                  checked={aprobarBrechas}
+                  onChange={(e) => setAprobarBrechas(e.target.checked)}
+                />
+                Aprobacion metodologica
+              </label>
+            </div>
+            <button type="button" onClick={saveSelected} disabled={saving}>
+              {saving ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
+              Registrar avance
+            </button>
+          </div>
+
+          {Object.keys(selected.seguimiento.sub_cuotas_progreso).length > 0 && (
+            <MiniTable
+              title="Subcuotas"
+              rows={Object.entries(selected.seguimiento.sub_cuotas_progreso).map(([celda, row]) => ({ celda, ...row }))}
+            />
+          )}
+          {selected.seguimiento.bolsa_operativa.length > 0 && (
+            <MiniTable title="Bolsa operativa" rows={selected.seguimiento.bolsa_operativa} />
+          )}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+function EstadoBadge({ estado }: { estado: MonitoreoAcreditacion["dashboard"]["cards"][number]["estado"] }) {
+  const icon = estado === "cumple_meta"
+    ? <CheckCircle2 size={13} />
+    : estado === "brecha_relevante"
+      ? <XCircle size={13} />
+      : estado === "brecha_menor_documentada"
+        ? <AlertTriangle size={13} />
+        : <Target size={13} />;
+  return <span className={`mon-acr-badge is-${estado}`}>{icon}{estadoLabel(estado)}</span>;
+}
+
+function Metric({ label, value }: { label: string; value: number | null }) {
+  return (
+    <div className="mon-acr-metric">
+      <span>{label}</span>
+      <strong>{value == null ? "S/D" : value.toLocaleString("es-PE")}</strong>
+    </div>
+  );
+}
+
+function MiniTable({ title, rows }: { title: string; rows: Record<string, unknown>[] }) {
+  return (
+    <div className="mon-acr-mini">
+      <h4>{title}</h4>
+      <DataTable rows={rows as MonitoreoRow[]} />
+    </div>
+  );
+}
+
 function TablePanel({ title, icon, rows }: { title: string; icon: ReactNode; rows: MonitoreoRow[] }) {
   return (
     <div className="mon-table-panel">
@@ -677,6 +1084,24 @@ function formatCell(value: unknown) {
   if (value == null) return "";
   if (typeof value === "number") return Number.isInteger(value) ? value.toLocaleString("es-PE") : value.toFixed(1);
   return String(value);
+}
+
+function estadoLabel(estado: MonitoreoAcreditacion["dashboard"]["cards"][number]["estado"]) {
+  switch (estado) {
+    case "cumple_meta":
+      return "Cumple";
+    case "brecha_menor_documentada":
+      return "Brecha menor";
+    case "brecha_relevante":
+      return "Brecha relevante";
+    default:
+      return "Sin meta";
+  }
+}
+
+function formatRatioPct(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return "S/D";
+  return `${(value * 100).toFixed(1)}%`;
 }
 
 function formatDate(value: string) {

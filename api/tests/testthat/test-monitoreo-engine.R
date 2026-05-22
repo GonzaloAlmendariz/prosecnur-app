@@ -65,7 +65,55 @@ test_that("monitoreo demo carga snapshot sin credenciales", {
   expect_equal(demo$config$id_var, "response_id")
   expect_true(all(!vapply(demo$sources, `[[`, logical(1), "enabled")))
   expect_true(demo$snapshot$dashboard$kpis$total >= 24L)
+  expect_true(isTRUE(demo$config$acreditacion$enabled))
+  expect_equal(length(demo$config$acreditacion$componentes), 4L)
   expect_false(any(vapply(demo$sources, function(src) "token" %in% names(src), logical(1))))
+})
+
+test_that("monitoreo acreditacion calcula cumplimiento y cierre", {
+  expect_equal(monitoreo_estado_cumplimiento(100, 100)$estado, "cumple_meta")
+  expect_equal(monitoreo_estado_cumplimiento(97, 100)$estado, "brecha_menor_documentada")
+  expect_equal(monitoreo_estado_cumplimiento(80, 100)$estado, "brecha_relevante")
+  expect_equal(monitoreo_estado_cumplimiento(10, NA)$estado, "sin_objetivo")
+
+  estudio <- list(
+    id = "est-1",
+    titulo = "Acreditacion test",
+    macro_familia = "acreditacion",
+    contexto = list(cliente = "PUCP"),
+    componentes = list(
+      list(
+        id = "cmp-estudiantes",
+        actor = "Estudiantes",
+        actor_id = "estudiantes",
+        tecnica = "prob_conglomerado_multietapico",
+        marco = list(universo_bruto = 4200L, marco_validado = 4100L, marco_contactable = 3900L),
+        meta = list(tipo = "objetivo", valor = 100L, variable_control = "nivel_curricular"),
+        resultado = list(n_objetivo = 100L, tecnica = "prob_conglomerado_multietapico")
+      )
+    )
+  )
+
+  acr <- monitoreo_acreditacion_from_calc(estudio)
+  expect_true(isTRUE(acr$enabled))
+  expect_equal(acr$estudio$titulo, "Acreditacion test")
+  expect_equal(acr$componentes[[1]]$marco$marco_actualizado, 4100L)
+  expect_equal(acr$componentes[[1]]$seguimiento$cumplimiento$estado, "brecha_relevante")
+  expect_error(monitoreo_acreditacion_cerrar(acr), "brechas relevantes")
+
+  acr <- monitoreo_acreditacion_update_seguimiento(acr, list(
+    id = "cmp-estudiantes",
+    n_efectivo = 97L,
+    notas_campo = "Cierre con brecha documentada",
+    intentos_canal = list(email = 100L, whatsapp = 40L)
+  ))
+  expect_equal(acr$componentes[[1]]$seguimiento$cumplimiento$estado, "brecha_menor_documentada")
+  expect_equal(acr$componentes[[1]]$seguimiento$intentos_canal$email, 100L)
+  expect_true(isTRUE(acr$dashboard$cierre_habilitado))
+
+  cerrado <- monitoreo_acreditacion_cerrar(acr)
+  expect_equal(cerrado$modo_trabajo, "cierre_campo")
+  expect_true(nzchar(cerrado$cierre_at))
 })
 
 test_that("SurveyMonkey flatten convierte respuestas bulk a tabla", {

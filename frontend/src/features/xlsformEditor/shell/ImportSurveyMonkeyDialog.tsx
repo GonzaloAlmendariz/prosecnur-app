@@ -9,6 +9,7 @@ import {
   KeyRound,
   Search,
   ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { IconBranching, IconChecklist } from "../../../lib/icons";
 import {
@@ -163,23 +164,45 @@ function apiInfoToQuestions(pages: PageEntry[]): SurveyMonkeyQuestion[] {
   );
 }
 
-function visualQuestionsFromPages(pages: PageEntry[]): VisualLogicQuestion[] {
+function isSelectOneType(type: string | null | undefined): boolean {
+  return /^select_one(?:\s|$)/i.test((type ?? "").trim());
+}
+
+export function visualQuestionsFromPages(pages: PageEntry[]): VisualLogicQuestion[] {
   return pages.flatMap((page) =>
-    (page.questionDetails ?? [])
-      .filter((q) => (q.family ?? "").toLowerCase() === "single_choice" && (q.choices?.length ?? 0) > 0)
-      .map((q) => ({
-        ref: q.name,
-        label: `${displayQuestionRef(q.name)}: ${q.heading ?? q.name}`,
-        choices: (q.choices ?? []).map((choice, idx) => ({
-          name: choice.code,
-          label: choice.label,
-          index: idx + 1,
-        })),
-      })),
+    (page.questionDetails ?? []).flatMap((q) => {
+      const choices = (q.choices ?? []).map((choice, idx) => ({
+        name: choice.code,
+        label: choice.label,
+        index: idx + 1,
+      }));
+      if (!choices.length) return [];
+
+      const family = (q.family ?? "").toLowerCase();
+      if (family === "single_choice") {
+        return [{
+          ref: q.name,
+          label: `${displayQuestionRef(q.name)}: ${q.heading ?? q.name}`,
+          choices,
+        }];
+      }
+
+      // SurveyMonkey modela algunas escalas/matrices de una sola fila como
+      // `matrix`, pero el XLSForm las convierte en una variable select_one
+      // normal (p17, p32, ...). Esas variables tambien deben poder originar
+      // logica visual.
+      return (q.children ?? [])
+        .filter((child) => child.name && isSelectOneType(child.type))
+        .map((child) => ({
+          ref: child.name,
+          label: `${displayQuestionRef(child.name)}: ${child.heading ?? q.heading ?? child.name}`,
+          choices,
+        }));
+    }),
   );
 }
 
-function visualPagesFromEntries(pages: PageEntry[]): VisualLogicPage[] {
+export function visualPagesFromEntries(pages: PageEntry[]): VisualLogicPage[] {
   return pages.map((page, idx) => ({
     pageId: page.pageId,
     label: `Pag${idx + 1}${page.title ? `: ${page.title}` : ""}`,
@@ -192,6 +215,10 @@ function visualPagesFromEntries(pages: PageEntry[]): VisualLogicPage[] {
       return children.length ? children : base;
     }),
   }));
+}
+
+export function shouldShowManualPageQuestionsInput(page: Pick<PageEntry, "questionDetails">): boolean {
+  return !page.questionDetails;
 }
 
 export function ImportSurveyMonkeyDialog({
@@ -232,6 +259,9 @@ export function ImportSurveyMonkeyDialog({
   const [smListing, setSmListing] = useState(false);
   const [smTokenStatus, setSmTokenStatus] = useState<SurveyMonkeyTokenInfo | null>(null);
   const [smRememberToken, setSmRememberToken] = useState<boolean>(true);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewChecked, setReviewChecked] = useState(false);
+  const [visualPending, setVisualPending] = useState(false);
 
   // Cargar token previamente guardado (cifrado en disco por el backend).
   useEffect(() => {
@@ -418,10 +448,25 @@ export function ImportSurveyMonkeyDialog({
     0,
   );
   const totalLogicCount = visualActionCount + wizardRules.length;
+  const overrideCount = Object.keys(choiceOrderOverrides).length;
+
+  function openReview() {
+    if (visualPending) {
+      setError("Confirma o descarta la lógica visual pendiente antes de revisar la importación final.");
+      return;
+    }
+    setReviewChecked(false);
+    setReviewOpen(true);
+  }
 
   async function handleApply() {
     if (!smFetchedSurveyId || !smToken.trim()) {
       setError("Conecta SurveyMonkey antes de importar. El XLSForm se crea solo desde la API.");
+      return;
+    }
+    if (visualPending) {
+      setError("Hay lógica visual pendiente de confirmar. Confírmala o descártala antes de importar.");
+      setReviewOpen(false);
       return;
     }
     setSubmitting(true);
@@ -634,6 +679,7 @@ export function ImportSurveyMonkeyDialog({
                   onRemove={(id) => setWizardRules((prev) => prev.filter((x) => x.id !== id))}
                   onClearAll={() => setWizardRules([])}
                   onVisualRulesChange={setVisualRules}
+                  onVisualPendingChange={setVisualPending}
                   overrides={choiceOrderOverrides}
                   onOverridesChange={setChoiceOrderOverrides}
                 />
@@ -672,24 +718,157 @@ export function ImportSurveyMonkeyDialog({
           <div style={{ display: "flex", gap: 10 }}>
             <button
               type="button"
-              onClick={handleApply}
-              disabled={submitting || loading || !smFetchedSurveyId}
+              onClick={openReview}
+              disabled={submitting || loading || !smFetchedSurveyId || visualPending}
               style={{
-                background: smFetchedSurveyId ? "var(--pulso-accent, #2563eb)" : "#cbd5e1",
+                background: smFetchedSurveyId && !visualPending ? "var(--pulso-accent, #2563eb)" : "#cbd5e1",
                 color: "white",
                 border: "none",
                 borderRadius: 6,
                 padding: "8px 16px",
-                cursor: submitting || loading || !smFetchedSurveyId ? "not-allowed" : "pointer",
-                opacity: submitting || loading || !smFetchedSurveyId ? 0.65 : 1,
+                cursor: submitting || loading || !smFetchedSurveyId || visualPending ? "not-allowed" : "pointer",
+                opacity: submitting || loading || !smFetchedSurveyId || visualPending ? 0.65 : 1,
                 fontSize: 13,
                 fontWeight: 500,
               }}
             >
-              {submitting ? "Importando…" : "Importar con SurveyMonkey"}
+              {submitting ? "Importando…" : "Revisar importación"}
             </button>
           </div>
         </footer>
+
+        {reviewOpen ? (
+          <FinalImportReviewModal
+            surveyId={smFetchedSurveyId ?? ""}
+            sectionCount={pages.length}
+            questionCount={apiQuestions.length}
+            visualRuleCount={visualActionCount}
+            advancedRuleCount={wizardRules.length}
+            overrideCount={overrideCount}
+            checked={reviewChecked}
+            submitting={submitting}
+            onCheckedChange={setReviewChecked}
+            onCancel={() => {
+              if (submitting) return;
+              setReviewOpen(false);
+            }}
+            onConfirm={handleApply}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function FinalImportReviewModal({
+  surveyId,
+  sectionCount,
+  questionCount,
+  visualRuleCount,
+  advancedRuleCount,
+  overrideCount,
+  checked,
+  submitting,
+  onCheckedChange,
+  onCancel,
+  onConfirm,
+}: {
+  surveyId: string;
+  sectionCount: number;
+  questionCount: number;
+  visualRuleCount: number;
+  advancedRuleCount: number;
+  overrideCount: number;
+  checked: boolean;
+  submitting: boolean;
+  onCheckedChange: (value: boolean) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const totalRules = visualRuleCount + advancedRuleCount;
+  const rows = [
+    ["Encuesta", surveyId || "Sin Survey ID"],
+    ["Secciones", String(sectionCount)],
+    ["Preguntas", String(questionCount)],
+    ["Reglas", `${totalRules} (${visualRuleCount} visuales, ${advancedRuleCount} avanzadas)`],
+    ["Overrides", String(overrideCount)],
+  ];
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sm-final-review-title"
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 4,
+        background: "rgba(15, 23, 42, 0.4)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+      }}
+    >
+      <div
+        style={{
+          width: "min(520px, 100%)",
+          borderRadius: 12,
+          background: "white",
+          boxShadow: "var(--pulso-shadow-high)",
+          border: "1px solid var(--pulso-border, #e5e7eb)",
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ padding: "16px 18px", borderBottom: "1px solid var(--pulso-border, #e5e7eb)", background: "#f8fafc" }}>
+          <h3 id="sm-final-review-title" style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
+            Revisión final
+          </h3>
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>
+            Al importar se crearán secciones, preguntas, opciones, validaciones y reglas en el XLSForm actual.
+          </p>
+        </div>
+        <div style={{ padding: 18, display: "grid", gap: 14 }}>
+          <div style={{ display: "grid", gap: 7 }}>
+            {rows.map(([label, value]) => (
+              <div key={label} style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr)", gap: 10, fontSize: 13 }}>
+                <span style={{ color: "#64748b", fontWeight: 700 }}>{label}</span>
+                <strong style={{ color: "#0f172a", overflowWrap: "anywhere" }}>{value}</strong>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 10, padding: 12, border: "1px solid #fde68a", borderRadius: 8, background: "#fffbeb", color: "#92400e", fontSize: 12, lineHeight: 1.45 }}>
+            <AlertTriangle size={16} style={{ flex: "0 0 auto", marginTop: 1 }} />
+            <span>Revisa bien la lógica antes de continuar. Estos cambios se aplican juntos al formulario y, si están mal, obligan a rehacer pasos avanzados.</span>
+          </div>
+          <label style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 13, color: "#334155", lineHeight: 1.45 }}>
+            <input
+              type="checkbox"
+              checked={checked}
+              disabled={submitting}
+              onChange={(event) => onCheckedChange(event.target.checked)}
+              style={{ marginTop: 2 }}
+            />
+            <span>Confirmo que revisé páginas, preguntas y lógica de ramificación antes de aplicar la importación.</span>
+          </label>
+        </div>
+        <div style={{ padding: "12px 18px", borderTop: "1px solid var(--pulso-border, #e5e7eb)", display: "flex", justifyContent: "flex-end", gap: 10, background: "#f9fafb" }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={submitting}
+            style={{ border: "1px solid var(--pulso-border, #e5e7eb)", background: "white", borderRadius: 6, padding: "8px 12px", cursor: submitting ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 700 }}
+          >
+            Volver a revisar
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!checked || submitting}
+            style={{ border: "none", background: checked ? "#16a34a" : "#cbd5e1", color: "white", borderRadius: 6, padding: "8px 14px", cursor: checked && !submitting ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 800 }}
+          >
+            {submitting ? "Importando..." : "Aplicar importación"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1279,9 +1458,10 @@ function PageMapEditor({
                         {p.notes[0]}
                       </div>
                     ) : null}
+                    {shouldShowManualPageQuestionsInput(p) ? (
                     <div style={{ marginTop: 8 }}>
                       <label style={{ display: "block", marginBottom: 3, fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
-                        Preguntas SM usadas para lógica de página
+                        Preguntas SM para lógica de página (manual avanzado)
                       </label>
                       <PageQuestionsInput
                         value={p.questions}
@@ -1292,6 +1472,7 @@ function PageMapEditor({
                         })}
                       />
                     </div>
+                    ) : null}
                   </div>
                 </div>
               </div>

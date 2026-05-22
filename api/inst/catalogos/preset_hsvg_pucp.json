@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "actualizado_en": "2026-05-20",
+  "fuente_canonica": "/Users/gonzaloalmendariz/Documents/Pulso/HST UNSA/Documentación PUCP/Propuesta_Muestral_PUCP_2026.qmd",
+  "id_preset": "hsvg_pucp",
+  "nombre_preset": "Estudiantes universitarios PUCP — propuesta estándar 2026",
+  "descripcion": "Marco universitario por facultad y sexo. Universo PUCP 2025-II validado en Tablas_Muestra.xlsx (15 facultades, 21,365 estudiantes elegibles). Parámetros canónicos para propuesta global: p=0.30, e=2.5%, deff=2.0, sobremuestra 50%.",
+  "macro_familia": "hsvg_universitario",
+  "componente_template": {
+    "actor": "Estudiantes universitarios",
+    "actor_id": "estudiantes",
+    "actor_categoria": "estudiantes",
+    "canal_recojo": "aula_qr",
+    "tecnica": "prob_conglomerado_multietapico",
+    "origen_tamano": "formula",
+    "nivel_respaldo": "representatividad_estadistica",
+    "parametros": {
+      "z": 1.96,
+      "p": 0.30,
+      "e": 0.025,
+      "deff": 2.0,
+      "tau": 0.50,
+      "oversample_pct": 0.50,
+      "tasa_respuesta": 0.70,
+      "promedio_conglomerado": 28
+    },
+    "meta": { "tipo": "objetivo", "valor": 2500, "variable_control": "facultad_sexo" }
+  },
+  "estratos_template": [
+    { "label": "ARQUITECTURA Y URBANISMO",                "N": 1080, "N_a": 744,  "N_b": 336,  "e_facultad": 0.05, "p_facultad": 0.30, "confianza_facultad": 0.95, "cuota_fija": 126, "sobremuestra_fija": 189, "aulas_base_fijas": 11, "aulas_extra_operativas": 1, "promedio_conglomerado": 37.8, "tau": 0.55 },
+    { "label": "ARTE Y DISEÑO",                           "N": 1021, "N_a": 792,  "N_b": 229,  "e_facultad": 0.05, "p_facultad": 0.50, "confianza_facultad": 0.95, "cuota_fija": 120, "sobremuestra_fija": 180, "aulas_base_fijas": 13, "aulas_extra_operativas": 1, "promedio_conglomerado": 22.5, "tau": 0.50 },
+    { "label": "ARTES ESCÉNICAS",                         "N": 590,  "N_a": 307,  "N_b": 283,  "e_facultad": 0.07, "p_facultad": 0.50, "confianza_facultad": 0.95, "cuota_fija": 69,  "sobremuestra_fija": 104, "aulas_base_fijas": 11, "aulas_extra_operativas": 1, "promedio_conglomerado": 17.6, "tau": 0.45 },
+    { "label": "CIENCIAS CONTABLES",                      "N": 183,  "N_a": 96,   "N_b": 87,   "e_facultad": 0.10, "p_facultad": 0.20, "confianza_facultad": 0.90, "cuota_fija": 21,  "sobremuestra_fija": 32,  "aulas_base_fijas": 3,  "aulas_extra_operativas": 1, "promedio_conglomerado": 25.2, "tau": 0.60 },
+    { "label": "CIENCIAS E INGENIERÍA",                   "N": 4512, "N_a": 1127, "N_b": 3385, "e_facultad": 0.05, "p_facultad": 0.20, "confianza_facultad": 0.95, "cuota_fija": 528, "sobremuestra_fija": 792, "aulas_base_fijas": 33, "aulas_extra_operativas": 1, "promedio_conglomerado": 31.1, "tau": 0.55 },
+    { "label": "CIENCIAS SOCIALES",                       "N": 1287, "N_a": 689,  "N_b": 598,  "e_facultad": 0.05, "p_facultad": 0.40, "confianza_facultad": 0.95, "cuota_fija": 151, "sobremuestra_fija": 227, "aulas_base_fijas": 12, "aulas_extra_operativas": 1, "promedio_conglomerado": 26.8, "tau": 0.50 },
+    { "label": "CIENCIAS Y ARTES DE LA COMUNICACIÓN",     "N": 832,  "N_a": 531,  "N_b": 301,  "e_facultad": 0.07, "p_facultad": 0.40, "confianza_facultad": 0.95, "cuota_fija": 97,  "sobremuestra_fija": 146, "aulas_base_fijas": 9,  "aulas_extra_operativas": 1, "promedio_conglomerado": 20.8, "tau": 0.50 },
+    { "label": "DERECHO",                                 "N": 2969, "N_a": 1933, "N_b": 1036, "e_facultad": 0.05, "p_facultad": 0.50, "confianza_facultad": 0.95, "cuota_fija": 347, "sobremuestra_fija": 521, "aulas_base_fijas": 21, "aulas_extra_operativas": 1, "promedio_conglomerado": 37.2, "tau": 0.60 },
+    { "label": "EDUCACIÓN",                               "N": 197,  "N_a": 158,  "N_b": 39,   "e_facultad": 0.10, "p_facultad": 0.60, "confianza_facultad": 0.90, "cuota_fija": 23,  "sobremuestra_fija": 35,  "aulas_base_fijas": 4,  "aulas_extra_operativas": 1, "promedio_conglomerado": 16.0, "tau": 0.45 },
+    { "label": "ESTUDIOS GENERALES CIENCIAS",             "N": 3355, "N_a": 951,  "N_b": 2404, "e_facultad": 0.05, "p_facultad": 0.20, "confianza_facultad": 0.95, "cuota_fija": 393, "sobremuestra_fija": 590, "aulas_base_fijas": 20, "aulas_extra_operativas": 1, "promedio_conglomerado": 40.6, "tau": 0.55 },
+    { "label": "ESTUDIOS GENERALES LETRAS",               "N": 3327, "N_a": 1932, "N_b": 1395, "e_facultad": 0.05, "p_facultad": 0.30, "confianza_facultad": 0.95, "cuota_fija": 389, "sobremuestra_fija": 584, "aulas_base_fijas": 18, "aulas_extra_operativas": 1, "promedio_conglomerado": 41.4, "tau": 0.39 },
+    { "label": "GASTRONOMÍA, HOTELERÍA Y TURISMO",        "N": 128,  "N_a": 80,   "N_b": 48,   "e_facultad": 0.10, "p_facultad": 0.30, "confianza_facultad": 0.90, "cuota_fija": 15,  "sobremuestra_fija": 23,  "aulas_base_fijas": 3,  "aulas_extra_operativas": 1, "promedio_conglomerado": 17.5, "tau": 1.00 },
+    { "label": "GESTIÓN Y ALTA DIRECCIÓN",                "N": 986,  "N_a": 574,  "N_b": 412,  "e_facultad": 0.07, "p_facultad": 0.30, "confianza_facultad": 0.95, "cuota_fija": 115, "sobremuestra_fija": 173, "aulas_base_fijas": 8,  "aulas_extra_operativas": 1, "promedio_conglomerado": 32.0, "tau": 0.55 },
+    { "label": "LETRAS Y CIENCIAS HUMANAS",               "N": 225,  "N_a": 128,  "N_b": 97,   "e_facultad": 0.10, "p_facultad": 0.30, "confianza_facultad": 0.90, "cuota_fija": 26,  "sobremuestra_fija": 39,  "aulas_base_fijas": 5,  "aulas_extra_operativas": 1, "promedio_conglomerado": 12.9, "tau": 0.50 },
+    { "label": "PSICOLOGÍA",                              "N": 673,  "N_a": 496,  "N_b": 177,  "e_facultad": 0.07, "p_facultad": 0.50, "confianza_facultad": 0.95, "cuota_fija": 79,  "sobremuestra_fija": 119, "aulas_base_fijas": 6,  "aulas_extra_operativas": 1, "promedio_conglomerado": 22.1, "tau": 0.50 }
+  ],
+  "sub_a_label": "Mujeres",
+  "sub_b_label": "Hombres"
+}

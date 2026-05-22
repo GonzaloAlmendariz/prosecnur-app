@@ -6,7 +6,7 @@
 #
 #   - `ast()` — constructor canónico de nodos AST
 #   - `ast_op()` / `ast_arg()` — accesores
-#   - Los 21 ops soportados (enum cerrado) como constructores `ast_*()`
+#   - Los ops soportados (enum cerrado) como constructores `ast_*()`
 #   - `ast_is_valid()` — chequeo estructural
 #   - `ast_walk()` — recorrido genérico
 #   - `ast_hash()` — hash determinístico para dedup
@@ -40,6 +40,7 @@
   "in_set",               # (var, values)
   "not_in_set",           # (var, values)
   "matches_regex",        # (var, pattern)
+  "text_length_cmp",      # (var, op, n)       ODK: string-length(.) op n
   # --- Comparaciones -----------------------------------------------------
   "compare_const",        # (var, op, value)   op ∈ ==, !=, <, <=, >, >=
   "compare_vars",         # (var_a, op, var_b)
@@ -209,6 +210,18 @@ ast_matches_regex <- function(var, pattern) {
 }
 
 .BINOP_CMP <- c("==", "!=", "<", "<=", ">", ">=")
+
+#' @export
+ast_text_length_cmp <- function(var, op, n) {
+  .check_var(var)
+  if (!(op %in% .BINOP_CMP)) {
+    stop(sprintf("ast_text_length_cmp(): op '%s' inválido.", op))
+  }
+  if (!is.numeric(n) || length(n) != 1L || is.na(n)) {
+    stop("ast_text_length_cmp(): n debe ser número.")
+  }
+  ast("text_length_cmp", var = var, op = op, n = as.integer(n))
+}
 
 #' @export
 ast_compare_const <- function(var, op, value) {
@@ -483,6 +496,7 @@ ast_is_valid <- function(x) {
     "in_set"                   = c("var", "values"),
     "not_in_set"               = c("var", "values"),
     "matches_regex"            = c("var", "pattern"),
+    "text_length_cmp"          = c("var", "op", "n"),
     "compare_const"            = c("var", "op", "value"),
     "compare_vars"             = c("var_a", "op", "var_b"),
     "selected"                 = c("var", "value"),

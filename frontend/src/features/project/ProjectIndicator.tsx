@@ -12,6 +12,7 @@ import { useState } from "react";
 import {
   CheckCircle2,
   Circle,
+  Copy,
   Folder,
   Save,
   X,
@@ -38,7 +39,10 @@ function relTime(iso: string | null): string {
 
 export default function ProjectIndicator({ project, onRequestStartModal }: Props) {
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const { status } = project;
+  const projectPath = status.path ?? "";
+  const pathFile = projectPath ? projectPath.replace(/\\/g, "/").split("/").pop() ?? projectPath : "";
 
   if (!status.has_project) {
     return (
@@ -69,6 +73,7 @@ export default function ProjectIndicator({ project, onRequestStartModal }: Props
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
+        title={projectPath ? `Ruta .pulso: ${projectPath}` : undefined}
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -85,6 +90,24 @@ export default function ProjectIndicator({ project, onRequestStartModal }: Props
       >
         <Folder size={12} />
         <span>{status.name}</span>
+        {pathFile && (
+          <>
+            <span style={{ opacity: 0.55 }}>·</span>
+            <span
+              style={{
+                maxWidth: 170,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                fontFamily: "ui-monospace, monospace",
+                fontWeight: 500,
+                opacity: 0.82,
+              }}
+            >
+              {pathFile}
+            </span>
+          </>
+        )}
         <span style={{ opacity: 0.7 }}>·</span>
         {status.dirty ? (
           <>
@@ -120,15 +143,67 @@ export default function ProjectIndicator({ project, onRequestStartModal }: Props
           }}
         >
           <div style={{
-            padding: "6px 10px",
-            fontSize: 10,
-            fontFamily: "ui-monospace, monospace",
-            color: "var(--pulso-text-soft)",
+            padding: "8px 10px 9px",
             borderBottom: "1px solid var(--pulso-border)",
             marginBottom: 4,
-            wordBreak: "break-all",
+            display: "grid",
+            gap: 5,
           }}>
-            {status.path}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+            }}>
+              <span style={{
+                fontSize: 10,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: 0.3,
+                color: "var(--pulso-text-soft)",
+              }}>
+                Ruta .pulso
+              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!projectPath) return;
+                  try {
+                    await navigator.clipboard?.writeText(projectPath);
+                    setCopied(true);
+                    window.setTimeout(() => setCopied(false), 1200);
+                  } catch {
+                    setCopied(false);
+                  }
+                }}
+                disabled={!projectPath}
+                title="Copiar ruta .pulso"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  border: "1px solid var(--pulso-border)",
+                  borderRadius: 5,
+                  background: "white",
+                  padding: "3px 6px",
+                  fontSize: 10,
+                  color: "var(--pulso-text-soft)",
+                  cursor: projectPath ? "pointer" : "not-allowed",
+                }}
+              >
+                <Copy size={10} />
+                {copied ? "Copiada" : "Copiar"}
+              </button>
+            </div>
+            <div style={{
+              fontSize: 10,
+              fontFamily: "ui-monospace, monospace",
+              color: "var(--pulso-text)",
+              wordBreak: "break-all",
+              lineHeight: 1.45,
+            }}>
+              {projectPath}
+            </div>
           </div>
           <MenuItem
             icon={<Save size={13} />}

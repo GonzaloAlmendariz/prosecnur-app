@@ -1,0 +1,231 @@
+{
+  "version": 1,
+  "actualizado_en": "2026-05-17",
+  "fuente_canonica": "Sistematizacion interna PULSO de estudios 2024-2026",
+  "criterio_general": "La familia de estudio clasifica el tipo de proyecto. La accion del evaluador de muestra define que debe hacer el modulo de propuestas: calcular muestra, calcular marco de cobertura, calcular cuotas desde un marco operativo, evaluar componentes mixtos o declarar que el caso queda fuera del calculador porque ya trae base/listado/muestra/meta cerrada.",
+  "acciones_evaluador_muestra": [
+    {
+      "id": "calcular_muestra",
+      "nombre": "Calcular muestra",
+      "descripcion": "Usar formulas, estratos, conglomerados o parametros probabilisticos para estimar n teorico, n objetivo, n operativo y precision alcanzada.",
+      "salida_principal": "n_muestral"
+    },
+    {
+      "id": "calcular_marco_cobertura",
+      "nombre": "Calcular marco de cobertura",
+      "descripcion": "Determinar el universo o marco operativo que se debe cubrir por actor, canal o fuente, sin convertirlo necesariamente en una muestra estadistica.",
+      "salida_principal": "marco_a_cubrir"
+    },
+    {
+      "id": "calcular_cuotas",
+      "nombre": "Calcular cuotas",
+      "descripcion": "Dimensionar una matriz operativa de cuotas desde volúmenes de marco por territorio, servicio, actor o perfil.",
+      "salida_principal": "matriz_cuotas"
+    },
+    {
+      "id": "fuera_calculador",
+      "nombre": "Fuera del calculador",
+      "descripcion": "El estudio ya trae base, listado, muestra o meta cerrada. No corresponde usar el calculador de propuestas muestrales.",
+      "salida_principal": "no_aplica_calculador"
+    },
+    {
+      "id": "evaluar_por_componente",
+      "nombre": "Evaluar por componente",
+      "descripcion": "Separar actores o componentes calculables: algunos calculan muestra, otros marco de cobertura y otros cuotas.",
+      "salida_principal": "plan_multicomponente"
+    }
+  ],
+  "origenes_muestra": [
+    {
+      "id": "por_calcular",
+      "nombre": "Por calcular",
+      "descripcion": "El estudio requiere que el modulo estime el tamano de muestra desde marco y parametros."
+    },
+    {
+      "id": "muestra_historica_replicada",
+      "nombre": "Muestra historica replicada",
+      "descripcion": "El diseno se basa en una medicion recurrente o una estructura historica que se actualiza con marcos nuevos."
+    },
+    {
+      "id": "mixto_por_componente",
+      "nombre": "Mixto por componente",
+      "descripcion": "El proyecto contiene actores o frentes con reglas distintas: calculo, cobertura o cuotas."
+    },
+    {
+      "id": "meta_contractual",
+      "nombre": "Meta contractual",
+      "descripcion": "La cantidad objetivo viene dada por contrato, termino de referencia o acuerdo operativo."
+    },
+    {
+      "id": "marco_total_barrido",
+      "nombre": "Marco total para barrido",
+      "descripcion": "La tarea central es identificar y cubrir el universo operativo completo o una fraccion explicita de ese universo."
+    },
+    {
+      "id": "cobertura_por_actor",
+      "nombre": "Cobertura por actor",
+      "descripcion": "Cada actor tiene un marco o minimo de cobertura propio; el evaluador debe consolidar la matriz actor x marco."
+    }
+  ],
+  "familias_estudio": [
+    {
+      "id": "acreditacion_programa",
+      "nombre": "Estudios de acreditacion de programa",
+      "descripcion": "Estudios multiactor usados para procesos de acreditacion, autoevaluacion o mejora de programas academicos.",
+      "criterios": [
+        "Incluye actores como estudiantes, docentes, administrativos, egresados, empleadores o comites consultivos.",
+        "La unidad de decision no es siempre una muestra estadistica: muchas veces es el marco de cobertura por actor.",
+        "Puede combinar barrido, intencion censal, cuotas, conveniencia o componentes cualitativos documentados."
+      ],
+      "acciones_evaluador_permitidas": [
+        "calcular_marco_cobertura",
+        "calcular_cuotas",
+        "evaluar_por_componente"
+      ],
+      "elementos_comunes": [
+        "matriz_actor_canal_marco",
+        "cobertura_por_actor",
+        "marco_contactable",
+        "cuotas_o_minimos",
+        "cobertura_por_celda"
+      ],
+      "ejemplos": [
+        "ACR-COM-2025",
+        "AMDT-2025",
+        "DDC-2024",
+        "ACR-CON-2026",
+        "ACR-ING-2026"
+      ]
+    },
+    {
+      "id": "opinion_universitaria",
+      "nombre": "Estudios de opinion universitaria",
+      "descripcion": "Encuestas aplicadas a poblaciones universitarias, con enfasis en estudiantes, cursos, horarios o actores academicos.",
+      "criterios": [
+        "Suele requerir calculo de muestra cuando el objetivo es estimacion cuantitativa.",
+        "En mediciones recurrentes se replica una estructura historica y se actualizan marcos, estratos o conglomerados.",
+        "Cuando aparecen varios actores o canales, el evaluador debe resolver cada componente por separado."
+      ],
+      "acciones_evaluador_permitidas": [
+        "calcular_muestra",
+        "calcular_cuotas",
+        "evaluar_por_componente"
+      ],
+      "elementos_comunes": [
+        "cursos_horario",
+        "conglomerados_aulas",
+        "estratos_facultad",
+        "sobremuestra",
+        "protocolo_etico"
+      ],
+      "ejemplos": [
+        "HSVG-PUCP-2024",
+        "HSVG-PUCP-2025",
+        "HSVG-PUCP-2026",
+        "HSVG-UNSA-2026"
+      ]
+    },
+    {
+      "id": "territorial_hogares",
+      "nombre": "Estudios territoriales y de hogares",
+      "descripcion": "Encuestas a hogares, personas o segmentos poblacionales definidos por territorio.",
+      "criterios": [
+        "El diseño territorial operativo se gestiona en Hojas de Ruta.",
+        "Cuando aparece en el calculador, debe tratarse como handoff al modulo territorial.",
+        "No se duplica la seleccion de zonas, manzanas o rutas dentro del calculador de propuestas."
+      ],
+      "acciones_evaluador_permitidas": [
+        "fuera_calculador"
+      ],
+      "elementos_comunes": [
+        "marco_territorial",
+        "conglomerados",
+        "estratos_geograficos",
+        "sobremuestra",
+        "precision"
+      ],
+      "ejemplos": [
+        "SER-ADOLESCENTE-2024",
+        "ACN-FA004521-2026",
+        "POL-ELECTORAL-2026"
+      ]
+    },
+    {
+      "id": "servicios_establecimientos",
+      "nombre": "Estudios de servicios y establecimientos",
+      "descripcion": "Evaluaciones o diagnosticos en instituciones, sedes, servicios, establecimientos o unidades de atencion.",
+      "criterios": [
+        "La unidad operativa puede ser establecimiento, usuario, expediente o actor institucional.",
+        "En estudios ocasionales el marco puede cambiar mucho: usuarios, atenciones, expedientes, sedes o IIEE.",
+        "El evaluador debe decidir desde el marco disponible si corresponde muestra, cobertura o cuotas."
+      ],
+      "acciones_evaluador_permitidas": [
+        "evaluar_por_componente",
+        "calcular_muestra",
+        "calcular_cuotas"
+      ],
+      "elementos_comunes": [
+        "sedes",
+        "servicios",
+        "usuarios",
+        "expedientes",
+        "marcos_operativos",
+        "matriz_territorio_servicio"
+      ],
+      "ejemplos": [
+        "OPS-DIAG-2025",
+        "RET55-IIEE-2025",
+        "GIZ-LB-2026"
+      ]
+    },
+    {
+      "id": "listado_telefonico_programa",
+      "nombre": "Estudios con listado telefonico o base de programa",
+      "descripcion": "Estudios que parten de una base entregada, listado de beneficiarios, padrón operativo o muestra/meta ya comprometida.",
+      "criterios": [
+        "No se debe recalcular muestra si la meta ya esta definida por contrato o por el programa.",
+        "Estos casos quedan fuera del calculador de propuestas muestrales.",
+        "No se recalcula muestra si la meta, base o listado ya viene definido por contrato o contraparte."
+      ],
+      "acciones_evaluador_permitidas": [
+        "fuera_calculador"
+      ],
+      "elementos_comunes": [
+        "listado_externo",
+        "contactabilidad",
+        "meta_contractual",
+        "elegibilidad",
+        "tasas_de_respuesta"
+      ],
+      "ejemplos": [
+        "ECHO-PADF-2024",
+        "ACN-PDM-2024",
+        "ACN-CBI-2024"
+      ]
+    },
+    {
+      "id": "institucional_no_probabilistico",
+      "nombre": "Estudios institucionales no probabilisticos",
+      "descripcion": "Estudios internos, institucionales o cualitativos donde la meta se define por alcance operativo, conveniencia, perfiles o disponibilidad.",
+      "criterios": [
+        "No corresponde reportar margen de error formal.",
+        "Si la meta ya esta cerrada, queda fuera del calculador de propuestas.",
+        "Puede coexistir con componentes cuantitativos si el estudio se redefine como multicomponente."
+      ],
+      "acciones_evaluador_permitidas": [
+        "calcular_cuotas",
+        "fuera_calculador",
+        "evaluar_por_componente"
+      ],
+      "elementos_comunes": [
+        "perfiles",
+        "criterios_de_inclusion",
+        "meta_operativa",
+        "alcance_descriptivo"
+      ],
+      "ejemplos": [
+        "RES-CAP-PUCP-2024"
+      ]
+    }
+  ]
+}

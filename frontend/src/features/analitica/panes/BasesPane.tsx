@@ -58,7 +58,7 @@ function FuenteInfo() {
     >
       <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
       <div>
-        Los tres formatos exportan la <strong>misma base</strong> (la que está activa según el toggle de fuente del encabezado).
+        Los tres formatos exportan la <strong>misma base analítica</strong> seleccionada en el encabezado: Original o Codificada.
         Cada formato tiene su propia configuración y su botón "Generar" independiente, así puedes re-ejecutar solo lo que cambió.
       </div>
     </div>

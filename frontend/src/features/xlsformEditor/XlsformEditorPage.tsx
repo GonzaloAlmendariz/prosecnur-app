@@ -8,6 +8,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowDown,
   ArrowUp,
@@ -2401,7 +2402,7 @@ export default function XlsformEditorPage() {
 	        />
 	      ) : null}
 
-	      {questionnaireViewOpen ? (
+	      {questionnaireViewOpen ? createPortal((
         <div
           className="pulso-graph-overlay"
           role="dialog"
@@ -2446,7 +2447,7 @@ export default function XlsformEditorPage() {
             </div>
           </main>
         </div>
-      ) : null}
+      ), document.body) : null}
 
       {/* Toasts deslizables: mensajes efímeros de operaciones (import/export).
           El deck se monta una sola vez y se mantiene a nivel del editor —

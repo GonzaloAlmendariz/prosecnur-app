@@ -1,5 +1,10 @@
-import { useEffect, useRef } from "react";
-import { apiAnaliticaConfigGet, apiAnaliticaConfigPut } from "../../api/client";
+import { useCallback, useEffect, useRef } from "react";
+import {
+  apiAnaliticaConfigGet,
+  apiAnaliticaConfigPut,
+  apiProjectSave,
+  apiProjectStatus,
+} from "../../api/client";
 import { useAnaliticaStore, AnaliticaConfig, DEFAULT_CONFIG, normalizeCrucesVars } from "./store";
 
 // Misma mecánica que el autosave de RespuestasCodificador en Fase 3:
@@ -10,6 +15,8 @@ import { useAnaliticaStore, AnaliticaConfig, DEFAULT_CONFIG, normalizeCrucesVars
 //   agenda un POST /api/analitica/config con debounce de 2s.
 // - Tras guardar exitosamente, markClean para que el UI pueda reflejar
 //   "Guardado ✓".
+// - Si hay un `.pulso` abierto, persistimos también el proyecto activo:
+//   el backend guarda `analitica_config` dentro del ActiveState serializado.
 
 const DEBOUNCE_MS = 2000;
 
@@ -18,6 +25,7 @@ function mergeWithDefaults(remote: unknown): AnaliticaConfig {
   const r = remote as Partial<AnaliticaConfig> & {
     cruces?: { cruces_vars?: unknown };
     bases?: Partial<AnaliticaConfig["bases"]>;
+    datos?: Partial<AnaliticaConfig["datos"]>;
   };
   // Shallow-merge por sección para tolerar schemas parciales / versiones
   // viejas. No merge recursivo — si el backend no trajo `cruces`, usamos
@@ -28,9 +36,23 @@ function mergeWithDefaults(remote: unknown): AnaliticaConfig {
   return {
     ...DEFAULT_CONFIG,
     ...r,
-    // Siempre forzamos version=2 tras el merge (es lo que persiste al backend).
-    version: 2,
+    // Siempre forzamos version=3 tras el merge (es lo que persiste al backend).
+    version: 3,
+    fuente_preferida:
+      r.fuente_preferida === "originales" || r.fuente_preferida === "adaptados"
+        ? r.fuente_preferida
+        : "adaptados",
     variables_excluidas: Array.isArray(r.variables_excluidas) ? r.variables_excluidas : [],
+    datos: {
+      variable_labels:
+        r.datos?.variable_labels && typeof r.datos.variable_labels === "object" && !Array.isArray(r.datos.variable_labels)
+          ? (r.datos.variable_labels as AnaliticaConfig["datos"]["variable_labels"])
+          : {},
+      value_labels:
+        r.datos?.value_labels && typeof r.datos.value_labels === "object" && !Array.isArray(r.datos.value_labels)
+          ? (r.datos.value_labels as AnaliticaConfig["datos"]["value_labels"])
+          : {},
+    },
     codebook: { ...DEFAULT_CONFIG.codebook, ...(r.codebook ?? {}) },
     frecuencias: { ...DEFAULT_CONFIG.frecuencias, ...(r.frecuencias ?? {}) },
     cruces: {
@@ -108,12 +130,32 @@ export function useAnaliticaAutosave() {
 
   // 2) Autosave debounced.
   const timer = useRef<number | null>(null);
+  const projectSaveChain = useRef<Promise<void>>(Promise.resolve());
+
+  const saveActivePulso = useCallback(async () => {
+    const run = projectSaveChain.current.then(async () => {
+      try {
+        const status = await apiProjectStatus();
+        if (status.has_project) {
+          await apiProjectSave(null);
+          window.dispatchEvent(new Event("pulso:project-status-changed"));
+        }
+      } catch {
+        // Si falla, el backend mantiene project_dirty=TRUE; el autosave
+        // global del proyecto o un guardado manual lo reintentará.
+      }
+    });
+    projectSaveChain.current = run.catch(() => undefined);
+    await run;
+  }, []);
+
   useEffect(() => {
     if (!hydrated || !dirty) return;
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(async () => {
       try {
         await apiAnaliticaConfigPut(config);
+        await saveActivePulso();
         markClean();
       } catch {
         // Silencioso: el próximo cambio reintenta. Podemos mostrar un
@@ -123,5 +165,5 @@ export function useAnaliticaAutosave() {
     return () => {
       if (timer.current) window.clearTimeout(timer.current);
     };
-  }, [config, dirty, hydrated, markClean]);
+  }, [config, dirty, hydrated, markClean, saveActivePulso]);
 }

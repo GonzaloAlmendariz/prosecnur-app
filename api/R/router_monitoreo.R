@@ -60,8 +60,23 @@
     n_rows = as.integer(nrow(data)),
     variables = if (nrow(data)) monitoreo_variables(data) else list(),
     dashboard = .monitoreo_public_dashboard(dashboard),
+    acreditacion = cfg$acreditacion %||% monitoreo_normalize_acreditacion(list()),
     errors = snapshot$errors %||% list()
   )
+}
+
+.monitoreo_store_config <- function(sid, cfg) {
+  s <- session_get(sid)
+  snapshot <- s$monitoreo_snapshot %||% NULL
+  data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+  cfg <- monitoreo_normalize_config(cfg, data)
+  session_set(sid, "monitoreo_config", cfg)
+  if (!is.null(snapshot) && nrow(data)) {
+    snapshot$config <- cfg
+    snapshot$dashboard <- monitoreo_build_dashboard(data, cfg)
+    session_set(sid, "monitoreo_snapshot", snapshot)
+  }
+  cfg
 }
 
 .monitoreo_validate_source <- function(source) {
@@ -147,16 +162,70 @@ mount_monitoreo <- function(pr) {
     plumber::pr_post("/api/monitoreo/config", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
-      current_snapshot <- session_get(sid)$monitoreo_snapshot %||% NULL
-      data <- if (!is.null(current_snapshot) && is.data.frame(current_snapshot$data)) current_snapshot$data else data.frame()
-      cfg <- monitoreo_normalize_config(parsed$config %||% parsed, data)
-      session_set(sid, "monitoreo_config", cfg)
-      if (nrow(data)) {
-        current_snapshot$config <- cfg
-        current_snapshot$dashboard <- monitoreo_build_dashboard(data, cfg)
-        session_set(sid, "monitoreo_snapshot", current_snapshot)
-      }
+      cfg <- .monitoreo_store_config(sid, parsed$config %||% parsed)
       list(ok = TRUE, config = cfg, state = .monitoreo_state_payload(sid))
+    })) |>
+    plumber::pr_post("/api/monitoreo/import-from-calc-muestra", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      estudio <- parsed$estudio %||% s$calc_muestra_estudio %||% NULL
+      if (is.null(estudio)) {
+        stop_api(409, "E_NO_CALC_MUESTRA",
+                 "No hay estudio de calculador para importar.")
+      }
+      acr <- tryCatch(
+        monitoreo_acreditacion_from_calc(estudio),
+        error = function(e) stop_api(400, "E_ACREDITACION_IMPORT", conditionMessage(e))
+      )
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      cfg$acreditacion <- acr
+      cfg <- .monitoreo_store_config(sid, cfg)
+      list(ok = TRUE, acreditacion = cfg$acreditacion, state = .monitoreo_state_payload(sid))
+    })) |>
+    plumber::pr_post("/api/monitoreo/acreditacion/seguimiento", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      if (!isTRUE(cfg$acreditacion$enabled)) {
+        stop_api(409, "E_NO_ACREDITACION",
+                 "No hay seguimiento de acreditacion activo.")
+      }
+      acr <- tryCatch(
+        monitoreo_acreditacion_update_seguimiento(cfg$acreditacion, parsed$seguimiento %||% parsed),
+        error = function(e) stop_api(400, "E_ACREDITACION_SEGUIMIENTO", conditionMessage(e))
+      )
+      cfg$acreditacion <- acr
+      cfg <- .monitoreo_store_config(sid, cfg)
+      list(ok = TRUE, acreditacion = cfg$acreditacion, state = .monitoreo_state_payload(sid))
+    })) |>
+    plumber::pr_post("/api/monitoreo/cierre", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      if (!isTRUE(cfg$acreditacion$enabled)) {
+        stop_api(409, "E_NO_ACREDITACION",
+                 "No hay seguimiento de acreditacion activo.")
+      }
+      acr <- tryCatch(
+        monitoreo_acreditacion_cerrar(
+          cfg$acreditacion,
+          plan_refuerzo = parsed$plan_refuerzo %||% "",
+          aprobar_brechas = .monitoreo_bool(parsed$aprobar_brechas, FALSE)
+        ),
+        error = function(e) stop_api(409, "E_CIERRE_BLOQUEADO", conditionMessage(e))
+      )
+      cfg$acreditacion <- acr
+      cfg <- .monitoreo_store_config(sid, cfg)
+      list(ok = TRUE, acreditacion = cfg$acreditacion, state = .monitoreo_state_payload(sid))
     })) |>
     plumber::pr_post("/api/monitoreo/sync", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

@@ -47,8 +47,8 @@ import type {
 // =============================================================================
 // Limpieza y normalización
 // =============================================================================
-// Tab de cierre: decide qué hacer con cada inconsistencia (ignorar, excluir,
-// reemplazar, normalizar, imputar) y genera la base final + reporte.
+// Tab de cierre: decide qué hacer con cada inconsistencia (documentar, excluir
+// o corregir valores) y genera la base final + reporte.
 //
 // Tres zonas:
 //   1. StatusBar: estado del cierre, progreso, CTA de cerrar base.
@@ -98,21 +98,18 @@ const ACTION_OPTIONS: Array<{
   value: LimpiezaDecisionActionType;
   label: string;
 }> = [
-  { value: "ignore_rule", label: "Ignorar regla" },
-  { value: "exclude_cases", label: "Excluir casos" },
-  { value: "replace_value", label: "Reemplazar valor" },
-  { value: "normalize_value", label: "Normalizar valor" },
-  { value: "impute_value", label: "Imputar" },
+  { value: "ignore_rule", label: "No modificar / documentar" },
+  { value: "replace_value", label: "Corregir valores" },
+  { value: "exclude_cases", label: "Excluir registros" },
 ];
 
-// Map action_type → kind de la DecisionStorageBar.
-const ACTION_KIND_MAP: Record<LimpiezaDecisionActionType, DecisionKind> = {
-  ignore_rule: "ignore",
-  exclude_cases: "exclude",
-  replace_value: "replace",
-  normalize_value: "normalize",
-  impute_value: "impute",
-};
+const LEGACY_ACTION_OPTIONS: Array<{
+  value: LimpiezaDecisionActionType;
+  label: string;
+}> = [
+  { value: "normalize_value", label: "Normalizar valor (anterior)" },
+  { value: "impute_value", label: "Imputar (anterior)" },
+];
 
 // -----------------------------------------------------------------------------
 // Helper: derivar distribución de decisiones para DecisionStorageBar.
@@ -122,7 +119,7 @@ const ACTION_KIND_MAP: Record<LimpiezaDecisionActionType, DecisionKind> = {
 // -----------------------------------------------------------------------------
 function deriveDecisionCounts(queue: LimpiezaQueueItem[]): DecisionCounts {
   const counts: DecisionCounts = {
-    ignore: 0, exclude: 0, replace: 0, normalize: 0, impute: 0, pending: 0,
+    ignore: 0, exclude: 0, change: 0, pending: 0,
   };
   for (const item of queue) {
     const n = item.n_casos ?? 0;
@@ -134,14 +131,35 @@ function deriveDecisionCounts(queue: LimpiezaQueueItem[]): DecisionCounts {
     // Item tiene decisión lista — inferir kind desde current_action (string
     // legible) o source_type.
     const action = (item.current_action ?? "").toLowerCase();
-    if (action.startsWith("ignorar")) counts.ignore += n;
+    if (isDocumentedActionLabel(action)) counts.ignore += n;
     else if (action.startsWith("excluir")) counts.exclude += n;
-    else if (action.startsWith("reemplazar")) counts.replace += n;
-    else if (action.startsWith("normalizar")) counts.normalize += n;
-    else if (action.startsWith("imputar")) counts.impute += n;
+    else if (isCorrectionActionLabel(action)) counts.change += n;
     else counts.ignore += n; // fallback conservador si el label no calza
   }
   return counts;
+}
+
+function isDocumentedActionLabel(action: string) {
+  return action.startsWith("documentar") || action.startsWith("no modificar") || action.startsWith("ignorar");
+}
+
+function isCorrectionActionLabel(action: string) {
+  return (
+    action.startsWith("corregir") ||
+    action.startsWith("reemplazar") ||
+    action.startsWith("normalizar") ||
+    action.startsWith("imputar")
+  );
+}
+
+function actionOptionsFor(actionType: LimpiezaDecisionActionType) {
+  if (actionType === "normalize_value" || actionType === "impute_value") {
+    return [
+      ...ACTION_OPTIONS,
+      ...LEGACY_ACTION_OPTIONS.filter((option) => option.value === actionType),
+    ];
+  }
+  return ACTION_OPTIONS;
 }
 
 // Convierte un LimpiezaQueueItem al shape ReglaLike que consume RuleNarrative.
@@ -640,9 +658,7 @@ function StatusBar({
   const total =
     decisionCounts.ignore +
     decisionCounts.exclude +
-    decisionCounts.replace +
-    decisionCounts.normalize +
-    decisionCounts.impute +
+    decisionCounts.change +
     decisionCounts.pending;
 
   const statusLabel = !auditReady
@@ -808,11 +824,9 @@ function Workbench({
       q = q.filter((item) => {
         const action = (item.current_action ?? "").toLowerCase();
         if (activeFilterKind === "pending") return item.pending;
-        if (activeFilterKind === "ignore") return action.startsWith("ignorar");
+        if (activeFilterKind === "ignore") return isDocumentedActionLabel(action);
         if (activeFilterKind === "exclude") return action.startsWith("excluir");
-        if (activeFilterKind === "replace") return action.startsWith("reemplazar");
-        if (activeFilterKind === "normalize") return action.startsWith("normalizar");
-        if (activeFilterKind === "impute") return action.startsWith("imputar");
+        if (activeFilterKind === "change") return isCorrectionActionLabel(action);
         return true;
       });
     }
@@ -1190,7 +1204,7 @@ function EditorPanel({
             }}
             style={inputStyle}
           >
-            {ACTION_OPTIONS.map((option) => (
+            {actionOptionsFor(form.action_type).map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -1513,9 +1527,7 @@ function ImpactPreview({ preview }: { preview: LimpiezaSummary["before_after_pre
         <ImpactChip label="Filas después" value={formatNumber(preview.after.filas_base)} />
         <ImpactChip label="Reglas resueltas" value={formatNumber(preview.impact.rules_resolved)} />
         <ImpactChip label="Casos excluidos" value={formatNumber(preview.impact.cases_excluded)} />
-        <ImpactChip label="Reemplazos" value={formatNumber(preview.impact.replacements)} />
-        <ImpactChip label="Normalizaciones" value={formatNumber(preview.impact.normalizations)} />
-        <ImpactChip label="Imputaciones" value={formatNumber(preview.impact.imputations)} />
+        <ImpactChip label="Celdas corregidas" value={formatNumber(preview.impact.cells_changed)} />
       </div>
 
       {preview.residual_final && preview.residual_final.length > 0 && (
@@ -1921,7 +1933,7 @@ function renderActionSpecificFields(
   if (form.action_type === "replace_value") {
     return (
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
-        <FormField label="Valor original (opcional)">
+        <FormField label="Valor actual (opcional)">
           <input
             value={form.replace_from}
             onChange={(event) => {
@@ -1929,10 +1941,10 @@ function renderActionSpecificFields(
               setForm((current) => ({ ...current, replace_from: replaceFrom }));
             }}
             style={inputStyle}
-            placeholder="Ej. Otro"
+            placeholder="Ej. Sii"
           />
         </FormField>
-        <FormField label="Nuevo valor">
+        <FormField label="Valor corregido">
           <input
             value={form.replace_to}
             onChange={(event) => {
@@ -1940,7 +1952,7 @@ function renderActionSpecificFields(
               setForm((current) => ({ ...current, replace_to: replaceTo }));
             }}
             style={inputStyle}
-            placeholder="Ej. No especifica"
+            placeholder="Ej. Sí"
           />
         </FormField>
       </div>
@@ -2088,7 +2100,7 @@ function buildDecisionPayload({
 
   if (form.action_type === "replace_value") {
     if (!form.replace_to.trim()) {
-      throw new Error("Indica el nuevo valor del reemplazo.");
+      throw new Error("Indica el valor corregido.");
     }
     if (form.replace_from.trim()) actionParams.from_value = form.replace_from.trim();
     actionParams.to_value = form.replace_to.trim();
@@ -2229,7 +2241,8 @@ function formatDateTime(value?: string) {
 }
 
 function humanizeAction(actionType?: LimpiezaDecisionActionType | null) {
-  return ACTION_OPTIONS.find((option) => option.value === actionType)?.label ?? "Decisión";
+  if (!actionType) return "Decisión";
+  return actionOptionsFor(actionType).find((option) => option.value === actionType)?.label ?? "Decisión";
 }
 
 // =============================================================================

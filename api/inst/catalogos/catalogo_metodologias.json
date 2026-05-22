@@ -1,0 +1,450 @@
+{
+  "version": 1,
+  "actualizado_en": "2026-05-17",
+  "fuente_canonica": "outputs/fuentes_metodologicas/00_COMPENDIO_METODOLOGICO_PULSO.md §2",
+  "metodologias": [
+    {
+      "id": "prob_aleatorio_simple",
+      "nombre_tecnico": "Muestreo Aleatorio Simple (MAS)",
+      "abreviatura": "MAS",
+      "naturaleza": "prob",
+      "permite_margen_error": true,
+      "implementada_en_calculador": true,
+      "definicion": "Diseño en que cada unidad del universo tiene la misma probabilidad de ser seleccionada. Es el diseño probabilístico de referencia: todos los demás se comparan contra él vía el efecto de diseño (deff).",
+      "supuestos_formales": [
+        "Existe un marco completo y enumerable del universo.",
+        "La probabilidad de inclusión es conocida e igual para cada unidad: π = n/N.",
+        "No hay agrupamientos naturales que induzcan correlación intra-clase."
+      ],
+      "formulas": [
+        {
+          "expresion": "n = \\dfrac{N \\cdot z^{2} \\cdot p \\cdot q}{(N-1) \\cdot e^{2} + z^{2} \\cdot p \\cdot q}",
+          "descripcion": "Fórmula clásica con corrección por población finita (FPC). Cuando N → ∞ se reduce a n = z² · p · q / e².",
+          "notas": ["q = 1 − p", "z es el cuantil normal asociado al nivel de confianza (1.96 para 95%)."]
+        }
+      ],
+      "parametros_tipicos": [
+        { "nombre": "Nivel de confianza (1−α)", "rango_recomendado": "90% · 95% · 99%", "justificacion": "Estándar en ciencias sociales: 95% (z = 1.96)." },
+        { "nombre": "Proporción esperada (p)", "rango_recomendado": "0.5 conservador · 0.2-0.4 con evidencia previa local", "justificacion": "Calibrar reduce el n requerido sin perder precisión cuando la evidencia es confiable." },
+        { "nombre": "Margen de error (e)", "rango_recomendado": "2.5% (estudios globales) · 5% (estudios por dominio)", "justificacion": "Es la variable que más mueve el presupuesto." }
+      ],
+      "origen_tamano_aplicable": ["formula"],
+      "escenarios_de_uso": [
+        { "contexto": "Universos pequeños o medianos con marco enumerable", "porque_aplica": "Permite inferencia directa sin necesidad de estratificar." },
+        { "contexto": "Estudios exploratorios sin dominios obligatorios", "porque_aplica": "Estructura mínima, fácil de comunicar al cliente." }
+      ],
+      "cuando_no_usar": [
+        "Cuando existen dominios obligatorios que requieren control de muestra mínima.",
+        "Cuando la unidad natural de contacto es un conglomerado (aula, hogar, ruta).",
+        "Cuando no hay marco enumerable disponible."
+      ],
+      "decisiones_tecnicas": [
+        { "titulo": "Calibración de p", "detalle": "Usar p = 0.5 (máxima varianza) si no hay evidencia previa. Si hay medición histórica con prevalencia estable, calibrar reduce el n teórico ~10-20%." },
+        { "titulo": "Corrección por población finita (FPC)", "detalle": "Aplicar siempre que n/N > 5%. Para universos grandes (>100k) puede omitirse." }
+      ],
+      "trade_offs": [
+        { "ventaja": "Simple y defendible: inferencia directa sin supuestos adicionales.", "limitacion": "Pierde eficiencia cuando hay agrupamientos naturales o dominios obligatorios." },
+        { "ventaja": "Comunicación clara: 'cada persona tuvo la misma probabilidad'.", "limitacion": "Requiere marco completo y un mecanismo de selección aleatoria operativamente viable." }
+      ],
+      "salida_principal": "n_con_margen_de_error",
+      "referencias_bibliograficas": [
+        "Cochran, W. G. (1977). Sampling Techniques (3rd ed.). Wiley.",
+        "Lohr, S. L. (2010). Sampling: Design and Analysis. Cengage."
+      ],
+      "aplicaciones_internas": ["APO-IDHAL-2024", "GIZ-LB-2026"]
+    },
+    {
+      "id": "prob_estratificado",
+      "nombre_tecnico": "Muestreo Probabilístico Estratificado",
+      "abreviatura": "EST",
+      "naturaleza": "prob",
+      "permite_margen_error": true,
+      "implementada_en_calculador": false,
+      "definicion": "El universo se divide en subgrupos excluyentes (estratos) y se selecciona una muestra independiente dentro de cada estrato. Garantiza representación de cada estrato y, cuando los estratos son internamente homogéneos, mejora la eficiencia estadística.",
+      "supuestos_formales": [
+        "Existe variable de estratificación con cobertura completa del marco.",
+        "Los estratos son excluyentes y exhaustivos.",
+        "La selección dentro de cada estrato es probabilística (típicamente MAS o sistemática)."
+      ],
+      "formulas": [
+        {
+          "expresion": "n_{h} = n_{\\text{total}} \\cdot \\dfrac{N_{h}}{N_{\\text{total}}}",
+          "descripcion": "Asignación proporcional: cada estrato recibe muestra proporcional a su tamaño en el universo. Es el método estándar.",
+          "notas": []
+        },
+        {
+          "expresion": "n_{h} = n_{\\text{total}} \\cdot \\dfrac{N_{h} \\cdot \\sigma_{h}}{\\sum_{i} N_{i} \\cdot \\sigma_{i}}",
+          "descripcion": "Asignación de Neyman: óptima en términos de varianza global, pero requiere conocer σₕ por estrato a priori.",
+          "notas": []
+        }
+      ],
+      "parametros_tipicos": [
+        { "nombre": "Variables de estratificación", "rango_recomendado": "1-3 variables máximo", "justificacion": "Más variables fragmentan el marco y obligan a muestras mínimas por celda altas." },
+        { "nombre": "Cuota mínima por estrato", "rango_recomendado": "30-50 casos por celda", "justificacion": "Bajo de esto, el intervalo de confianza por estrato es demasiado ancho." }
+      ],
+      "origen_tamano_aplicable": ["formula"],
+      "escenarios_de_uso": [
+        { "contexto": "Estudios que requieren reporte por dominio (sexo, región, servicio, cohorte)", "porque_aplica": "Asegura n suficiente en cada celda para análisis individual." }
+      ],
+      "cuando_no_usar": [
+        "Cuando el marco no contiene la variable de estratificación de forma confiable.",
+        "Cuando se requiere selección por conglomerados naturales (aula, manzana)."
+      ],
+      "decisiones_tecnicas": [
+        { "titulo": "Proporcional vs Neyman", "detalle": "PULSO usa por estándar asignación proporcional al universo: replica composición real y simplifica comunicación. Neyman se calcula en paralelo como referencia técnica." },
+        { "titulo": "Cap por estrato pequeño", "detalle": "Si un estrato es muy pequeño y la asignación proporcional exige >50% de su universo, aplicar un cap (típicamente 50%)." }
+      ],
+      "trade_offs": [
+        { "ventaja": "Garantiza muestra mínima por estrato para reporte desagregado.", "limitacion": "Requiere variables de estratificación bien definidas y presentes en el marco." }
+      ],
+      "salida_principal": "n_con_margen_de_error",
+      "referencias_bibliograficas": [
+        "Cochran, W. G. (1977). Sampling Techniques. Wiley, Cap. 5.",
+        "Lohr, S. L. (2010). Sampling: Design and Analysis. Cengage, Cap. 3."
+      ],
+      "aplicaciones_internas": ["ALEGRA-III-2025", "ALEGRA-IV-2025", "RET55-IIEE-2025"]
+    },
+    {
+      "id": "prob_conglomerado_multietapico",
+      "nombre_tecnico": "Muestreo Probabilístico por Conglomerados / Multietápico",
+      "abreviatura": "CONG",
+      "naturaleza": "prob",
+      "permite_margen_error": true,
+      "implementada_en_calculador": true,
+      "definicion": "El universo se agrupa en conglomerados naturales (aulas, manzanas, rutas, instituciones). Se seleccionan probabilísticamente los conglomerados como unidad primaria de muestreo (UPM) y luego se encuesta a sus integrantes (una etapa) o se sub-muestrea dentro (dos etapas). Reduce costo operativo a costa de eficiencia estadística.",
+      "supuestos_formales": [
+        "Existe un marco enumerable de conglomerados con tamaño conocido (o estimable).",
+        "Los conglomerados son operativamente abordables como bloque.",
+        "Se asume cierto grado de homogeneidad intra-conglomerado, cuantificado en el efecto de diseño (deff)."
+      ],
+      "formulas": [
+        {
+          "expresion": "n = \\dfrac{N \\cdot z^{2} \\cdot p \\cdot q \\cdot \\mathrm{deff}}{(N-1) \\cdot e^{2} + z^{2} \\cdot p \\cdot q \\cdot \\mathrm{deff}}",
+          "descripcion": "Fórmula clásica con deff integrado. Un deff > 1 indica que se requiere mayor n que MAS para alcanzar la misma precisión.",
+          "notas": [
+            "deff = Var(diseño aplicado) / Var(MAS)",
+            "Para muestreo por aulas universitarias, deff suele situarse entre 1.5 y 2.5."
+          ]
+        },
+        {
+          "expresion": "k = \\dfrac{N_{\\text{marco}}}{n_{\\text{conglomerados}}}",
+          "descripcion": "Salto sistemático entre conglomerados consecutivos seleccionados del marco ordenado con arranque aleatorio.",
+          "notas": []
+        },
+        {
+          "expresion": "\\text{conglomerados a coordinar} = \\left\\lceil \\dfrac{\\text{cuota}}{\\bar{u}_{\\text{conglom}} \\cdot \\tau} \\right\\rceil",
+          "descripcion": "Número de conglomerados a abordar operativamente, ajustado por el tamaño promedio del conglomerado y la tasa de rendimiento histórica τ (asistencia × aceptación × validez).",
+          "notas": []
+        }
+      ],
+      "parametros_tipicos": [
+        { "nombre": "Efecto de diseño (deff)", "rango_recomendado": "1.5-2.5 universal · 1.0-1.5 con cuotas por dominio", "justificacion": "Refleja la pérdida de eficiencia por correlación intra-conglomerado." },
+        { "nombre": "Tasa de rendimiento (τ)", "rango_recomendado": "0.35-1.00 según contexto operativo", "justificacion": "Producto de asistencia × aceptación × validez. Calibrar con histórico interno cuando exista." },
+        { "nombre": "Sobremuestra operativa", "rango_recomendado": "10%-50% con bolsas de reemplazo · hasta 100% sin reemplazos", "justificacion": "Las bolsas operativas (conglomerados de respaldo) reducen la necesidad de sobremuestra estadística." }
+      ],
+      "origen_tamano_aplicable": ["formula"],
+      "escenarios_de_uso": [
+        { "contexto": "Estudios en aulas o secciones académicas", "porque_aplica": "La unidad operativa natural es el grupo-clase; sub-muestrear individuos dentro genera rechazo del docente." },
+        { "contexto": "Encuestas territoriales por manzanas/viviendas", "porque_aplica": "El marco cartográfico INEI provee conglomerados con tamaños conocidos." },
+        { "contexto": "Estudios en establecimientos (salud, educativos)", "porque_aplica": "Cada establecimiento agrupa la población objetivo accesible en un único punto operativo." }
+      ],
+      "cuando_no_usar": [
+        "Cuando la unidad final puede contactarse individualmente sin pasar por un conglomerado.",
+        "Cuando no se dispone de un marco enumerable de conglomerados.",
+        "Cuando la varianza intra-conglomerado es tan alta que deff se vuelve inmanejable."
+      ],
+      "decisiones_tecnicas": [
+        { "titulo": "Bolsa operativa vs sobremuestra estadística", "detalle": "Diferenciar siempre: bolsa operativa son conglomerados físicos de respaldo (M1 titular + M2..Mn reemplazos). Sobremuestra estadística es cuota adicional para compensar no respuesta. Confundirlas infla costos." },
+        { "titulo": "Estratificar antes de seleccionar conglomerados", "detalle": "Combinar estratos (facultad, región) con selección por conglomerados dentro mejora cobertura sin perder eficiencia." }
+      ],
+      "trade_offs": [
+        { "ventaja": "Operativamente eficiente: se trabaja con la unidad natural del campo.", "limitacion": "Pierde eficiencia estadística: requiere mayor n que MAS para la misma precisión." }
+      ],
+      "salida_principal": "n_con_margen_de_error_y_unidades_operativas",
+      "referencias_bibliograficas": [
+        "Cochran, W. G. (1977). Sampling Techniques. Wiley, Cap. 9-11.",
+        "Lohr, S. L. (2010). Sampling: Design and Analysis. Cengage, Cap. 5-6.",
+        "Kish, L. (1965). Survey Sampling. Wiley."
+      ],
+      "aplicaciones_internas": ["HSVG-PUCP-2024", "HSVG-PUCP-2025", "HSVG-PUCP-2026", "HSVG-UNSAAC-2024", "HSVG-UNSA-2026", "ADI-PUCP-2024", "PSI-PUCP-2024", "OPS-DIAG-2025", "SER-ADOLESCENTE-2024", "ACN-FA004521-2026"]
+    },
+    {
+      "id": "sistematico",
+      "nombre_tecnico": "Muestreo Sistemático con Salto K",
+      "abreviatura": "SIS",
+      "naturaleza": "prob",
+      "permite_margen_error": true,
+      "implementada_en_calculador": false,
+      "definicion": "Selección de unidades a intervalos regulares k = N/n desde un arranque aleatorio entre 1 y k. Usado típicamente como táctica de selección dentro de otro diseño (estratificado o por conglomerados).",
+      "supuestos_formales": [
+        "El marco está ordenado de manera que no introduzca sesgo periódico.",
+        "El arranque es aleatorio en {1, ..., k}.",
+        "k es un entero o se manejan reglas explícitas para fracciones."
+      ],
+      "formulas": [
+        { "expresion": "k = \\dfrac{N}{n}", "descripcion": "Intervalo de selección.", "notas": [] },
+        { "expresion": "a \\sim \\mathrm{Uniforme}\\{1, 2, \\ldots, k\\}", "descripcion": "Arranque aleatorio que define la fila a, a+k, a+2k, ... seleccionada.", "notas": [] }
+      ],
+      "parametros_tipicos": [
+        { "nombre": "Orden del marco", "rango_recomendado": "Alfabético, geográfico, cronológico", "justificacion": "Evitar orden que correlacione con la variable de interés." }
+      ],
+      "origen_tamano_aplicable": ["formula"],
+      "escenarios_de_uso": [
+        { "contexto": "Selección dentro de conglomerados estratificados (parte de multietápico)", "porque_aplica": "Replica MAS sin necesidad de generar aleatorios uno a uno." }
+      ],
+      "cuando_no_usar": [
+        "Cuando el marco tiene periodicidad relacionada con la variable de interés."
+      ],
+      "decisiones_tecnicas": [
+        { "titulo": "Variante Madow", "detalle": "Para aulas universitarias usar Madow (1953): arranque aleatorio + paso fijo." }
+      ],
+      "trade_offs": [
+        { "ventaja": "Operativamente simple, replica MAS si el marco es bien aleatorio.", "limitacion": "Vulnerable a sesgos periódicos del marco." }
+      ],
+      "salida_principal": "n_con_margen_de_error",
+      "referencias_bibliograficas": [
+        "Madow, W. G. (1953). On the theory of systematic sampling.",
+        "Cochran, W. G. (1977). Sampling Techniques. Wiley."
+      ],
+      "aplicaciones_internas": ["HSVG-PUCP-2024", "HSVG-PUCP-2025", "ADI-PUCP-2024", "PSI-PUCP-2024", "ACN-FA004521-2026"]
+    },
+    {
+      "id": "medicion_recurrente",
+      "nombre_tecnico": "Medición Recurrente Probabilística",
+      "abreviatura": "MR",
+      "naturaleza": "prob",
+      "permite_margen_error": true,
+      "implementada_en_calculador": false,
+      "definicion": "Aplicación periódica del mismo diseño muestral a olas sucesivas para producir mediciones comparables en el tiempo. Cada ola recalcula n sobre la N actualizada manteniendo los demás parámetros constantes.",
+      "supuestos_formales": [
+        "El diseño de la ola base es probabilístico y replicable.",
+        "Los cambios metodológicos entre olas se documentan como ruptura de serie."
+      ],
+      "formulas": [
+        { "expresion": "n^{(t)} = f_{\\text{clasica}}(N^{(t)}, z, p, e, \\mathrm{deff})", "descripcion": "Cada ola t recalcula n sobre la nueva N manteniendo otros parámetros constantes.", "notas": [] }
+      ],
+      "parametros_tipicos": [
+        { "nombre": "Sobremuestra por ola", "rango_recomendado": "50%-100%", "justificacion": "Mayor que ola única por pérdida de contactabilidad y atrición." },
+        { "nombre": "Piloto", "rango_recomendado": "20-40 unidades", "justificacion": "Validar instrumento antes de aplicar a toda la ola." }
+      ],
+      "origen_tamano_aplicable": ["formula"],
+      "escenarios_de_uso": [
+        { "contexto": "Líneas de base con mediciones periódicas", "porque_aplica": "Permite comparar evolución manteniendo el diseño constante." }
+      ],
+      "cuando_no_usar": [
+        "Cuando el universo cambia drásticamente entre olas y no hay base comparable."
+      ],
+      "decisiones_tecnicas": [
+        { "titulo": "Refresh vs panel", "detalle": "Refresh = muestra fresca por ola. Panel = recontacto entre olas. Panel reduce varianza del cambio pero requiere control de atrición." },
+        { "titulo": "Clonación de diseño", "detalle": "Operador clona configuración de ola previa, solo actualiza la base." }
+      ],
+      "trade_offs": [
+        { "ventaja": "Comparabilidad temporal directa.", "limitacion": "Cambios metodológicos entre olas rompen la serie y deben reportarse." }
+      ],
+      "salida_principal": "n_por_ola_con_margen_de_error",
+      "referencias_bibliograficas": [
+        "Kish, L. (1965). Survey Sampling. Wiley.",
+        "Groves, R. M. (2009). Survey Methodology (2nd ed.). Wiley."
+      ],
+      "aplicaciones_internas": ["ALEGRA-III-2025", "ALEGRA-IV-2025", "ECHO-PADF-2024", "ACN-PDM-2024", "ACN-CBI-2024", "ACN-MDV-2024", "ACN-EDP-2024", "ACN-RMS-2025", "HSVG-PUCP-2024", "HSVG-PUCP-2025", "HSVG-PUCP-2026", "POL-ELECTORAL-2026"]
+    },
+    {
+      "id": "barrido",
+      "nombre_tecnico": "Barrido Operativo de Cobertura",
+      "abreviatura": "BAR",
+      "naturaleza": "operativo",
+      "permite_margen_error": false,
+      "implementada_en_calculador": false,
+      "definicion": "Estrategia operativa que busca cubrir el máximo posible mediante visita sistemática de unidades operativas (cursos, instituciones, zonas, actores). Salida: plan de cobertura con % del universo alcanzado, NO margen de error.",
+      "supuestos_formales": [
+        "Existe un universo enumerable de unidades operativas.",
+        "El objetivo es cobertura, no inferencia poblacional estricta."
+      ],
+      "formulas": [
+        { "expresion": "u_{\\text{barrer}} = \\left\\lceil \\dfrac{c_{\\text{obj}} \\cdot N_{\\text{total}}}{\\bar{u}_{\\text{prom}}} \\right\\rceil + u_{\\text{adic}}", "descripcion": "Unidades operativas a barrer = cobertura objetivo × universo / tamaño promedio + adicionales.", "notas": [] }
+      ],
+      "parametros_tipicos": [
+        { "nombre": "Cobertura objetivo", "rango_recomendado": "60%-100%", "justificacion": "Debajo de 60% pierde utilidad operativa." },
+        { "nombre": "Adicionales operativos", "rango_recomendado": "10%-30%", "justificacion": "Reserva por especialidad/concurrencia." }
+      ],
+      "origen_tamano_aplicable": ["cobertura_esperada"],
+      "escenarios_de_uso": [
+        { "contexto": "Acreditaciones con bases pequeñas/medianas de cursos-horario", "porque_aplica": "Cobertura por aulas es operativamente clara y reportable." }
+      ],
+      "cuando_no_usar": [
+        "Cuando se requiere inferencia poblacional con margen de error."
+      ],
+      "decisiones_tecnicas": [
+        { "titulo": "Comunicar como cobertura, no como muestra", "detalle": "El reporte habla de qué % se cubrió, no de margen de error." }
+      ],
+      "trade_offs": [
+        { "ventaja": "Operativamente claro: 'cubrimos el 80% de los cursos'.", "limitacion": "No produce intervalos de confianza ni inferencia probabilística." }
+      ],
+      "salida_principal": "cobertura_porcentual",
+      "referencias_bibliograficas": ["Documento PUCP Marzo 2026."],
+      "aplicaciones_internas": ["ACR-COM-2025", "AMDT-2025", "DDC-2024", "ACR-CON-2026", "ACR-GEO-2024", "ACR-DER-2024"]
+    },
+    {
+      "id": "intencion_censal",
+      "nombre_tecnico": "Intención Censal",
+      "abreviatura": "IC",
+      "naturaleza": "operativo",
+      "permite_margen_error": false,
+      "implementada_en_calculador": true,
+      "definicion": "Estrategia que busca contactar la totalidad del universo elegible. Salida: tasa de respuesta alcanzada, NO margen de error. Etiqueta oficial PULSO PUCP: 'No probabilístico por conveniencia con intención censal' (documento Marzo 2026).",
+      "supuestos_formales": [
+        "El universo es enumerable y manejable operativamente (≤300-500 unidades típicamente).",
+        "Existe canal multi-vía para maximizar contacto.",
+        "Aplica el Teorema Central del Límite (n ≥ 30) para sostener robusta validez interna sin pretender inferencia poblacional estricta."
+      ],
+      "formulas": [
+        { "expresion": "\\tau_{\\text{respuesta}} = \\dfrac{n_{\\text{logrado}}}{N_{\\text{universo}}}", "descripcion": "Tasa de respuesta como métrica central, sustituyendo al margen de error.", "notas": [] }
+      ],
+      "parametros_tipicos": [
+        { "nombre": "Tasa respuesta esperada", "rango_recomendado": "30%-70% según canal", "justificacion": "Email asíncrono: 30-40%. Telefónico activo: 50-70%. Presencial: 70-90%." },
+        { "nombre": "Universo elegible", "rango_recomendado": "≤500 unidades", "justificacion": "Universos mayores tienden a beneficiarse de diseño probabilístico." }
+      ],
+      "origen_tamano_aplicable": ["cobertura_esperada"],
+      "escenarios_de_uso": [
+        { "contexto": "Personal administrativo de carrera (acreditación PUCP)", "porque_aplica": "Universo pequeño y manejable; cobertura ≥80% es objetivo realista." },
+        { "contexto": "Docentes con base ≤250 (acreditación PUCP)", "porque_aplica": "Permite contactar a todos con cobertura objetivo 60%+." },
+        { "contexto": "Estudiantes con base ≤3000 (acreditación PUCP)", "porque_aplica": "Cobertura ≥60% defensible operativamente." },
+        { "contexto": "Egresados con base ≤300 (acreditación PUCP)", "porque_aplica": "Cobertura ≥50% por canal multi-vía." }
+      ],
+      "cuando_no_usar": [
+        "Cuando el universo es mayor a las cotas operativas (>500 típicamente).",
+        "Cuando se requiere inferencia poblacional con margen formal."
+      ],
+      "decisiones_tecnicas": [
+        { "titulo": "Diseño multi-canal", "detalle": "Fases secuenciales: correo → recordatorio → WhatsApp/SMS → llamada." },
+        { "titulo": "Documentar brechas por subgrupo", "detalle": "Reportar dónde la cobertura quedó por debajo del objetivo y qué subgrupos no se alcanzaron." }
+      ],
+      "trade_offs": [
+        { "ventaja": "Maximiza información del universo elegible.", "limitacion": "No produce inferencia estadística formal; reporta cobertura operacional." }
+      ],
+      "salida_principal": "tasa_respuesta_y_cobertura",
+      "referencias_bibliograficas": [
+        "Documento PUCP Marzo 2026 — Selección de muestras de actores."
+      ],
+      "aplicaciones_internas": ["ACR-DER-2025", "ACR-EDU-2025", "ACR-ESC-2025", "ACR-ING-2026", "CON-AC-2024", "RET55-IIEE-2025"]
+    },
+    {
+      "id": "listado_externo_meta_fija",
+      "nombre_tecnico": "Operación sobre Listado Externo con Meta Fija",
+      "abreviatura": "LEMF",
+      "naturaleza": "operativo",
+      "permite_margen_error": false,
+      "implementada_en_calculador": true,
+      "definicion": "Operación basada en un listado entregado por la contraparte (universo operativo) con meta contractual de casos efectivos. La meta no se calcula vía fórmula sino que viene predefinida por el acuerdo cliente.",
+      "supuestos_formales": [
+        "Existe listado entregado con canal de contacto válido.",
+        "Hay meta contractual de casos efectivos definida ex-ante."
+      ],
+      "formulas": [
+        { "expresion": "R = \\dfrac{m_{\\text{efectiva}}}{\\tau_{\\text{cont}} \\cdot \\tau_{\\text{eleg}} \\cdot \\tau_{\\text{resp}}}", "descripcion": "Registros a contactar = meta efectiva / (tasa contacto × tasa elegibilidad × tasa respuesta).", "notas": [
+          "τ_cont = fracción contactable",
+          "τ_eleg = fracción elegible",
+          "τ_resp = fracción que completa el cuestionario"
+        ] }
+      ],
+      "parametros_tipicos": [
+        { "nombre": "Tasa contacto", "rango_recomendado": "30%-60% telefónico", "justificacion": "Calibrar con histórico del proveedor del listado." },
+        { "nombre": "Intentos máximos", "rango_recomendado": "3-5 por caso", "justificacion": "Más allá los costos superan los beneficios marginales." }
+      ],
+      "origen_tamano_aplicable": ["meta_contractual"],
+      "escenarios_de_uso": [
+        { "contexto": "Listados telefónicos de beneficiarios entregados por contraparte", "porque_aplica": "El universo operativo es el listado; la meta es contractual." }
+      ],
+      "cuando_no_usar": [
+        "Cuando no hay listado entregado (debería usarse otro diseño)."
+      ],
+      "decisiones_tecnicas": [
+        { "titulo": "Versionamiento del listado", "detalle": "Archivar con fecha cada versión recibida; los cambios afectan la base de cálculo." },
+        { "titulo": "Consolidación de teléfonos por caso", "detalle": "Estado a nivel de caso (no de teléfono): un caso con 3 teléfonos no es 3 casos." }
+      ],
+      "trade_offs": [
+        { "ventaja": "Meta clara y verificable contractualmente.", "limitacion": "Diseño original del listado puede ser desconocido; no permite inferencia poblacional." }
+      ],
+      "salida_principal": "meta_efectiva_y_registros_a_contactar",
+      "referencias_bibliograficas": ["Documento PUCP Marzo 2026."],
+      "aplicaciones_internas": ["ACN-PDM-2024", "ACN-CBI-2024", "ACN-MDV-2024", "ACN-EDP-2024", "ACN-RMS-2025", "ACN-JNA-2024", "ECHO-PADF-2024"]
+    },
+    {
+      "id": "no_prob_conveniencia",
+      "nombre_tecnico": "No Probabilístico por Conveniencia",
+      "abreviatura": "NPC",
+      "naturaleza": "no_prob",
+      "permite_margen_error": false,
+      "implementada_en_calculador": false,
+      "definicion": "Selección por accesibilidad o disponibilidad, sin probabilidad de inclusión conocida. Los resultados son evidencia de participantes alcanzados, NO estimaciones del universo. Sustento técnico (PUCP Marzo 2026): Teorema Central del Límite con n ≥ 30 sostiene robusta validez interna sin pretender inferencia poblacional estricta.",
+      "supuestos_formales": [
+        "No hay marco probabilístico ni mecanismo de selección aleatorio.",
+        "Los participantes acceden voluntariamente o son alcanzables operativamente.",
+        "La interpretación se restringe al grupo respondiente."
+      ],
+      "formulas": [
+        { "expresion": "n_{\\text{efectiva}} = \\text{meta operativa fijada por presupuesto/objetivo}", "descripcion": "El n no se deriva de fórmula sino de la meta operativa del proyecto.", "notas": [] }
+      ],
+      "parametros_tipicos": [
+        { "nombre": "Meta efectiva por actor", "rango_recomendado": "300-500 casos", "justificacion": "Suficiente para análisis descriptivo y validez interna." }
+      ],
+      "origen_tamano_aplicable": ["matriz_perfiles_cualitativa", "meta_contractual"],
+      "escenarios_de_uso": [
+        { "contexto": "Encuestas online por invitación abierta", "porque_aplica": "Sin marco probabilístico operativamente viable." }
+      ],
+      "cuando_no_usar": [
+        "Cuando hay marco probabilístico disponible y se requiere inferencia."
+      ],
+      "decisiones_tecnicas": [
+        { "titulo": "Comunicación obligatoria", "detalle": "Reporte debe decir explícitamente: 'muestreo no probabilístico por conveniencia; los resultados son evidencia de los participantes alcanzados, no inferencia poblacional'." },
+        { "titulo": "Bloquear margen de error en la UI", "detalle": "El sistema NO debe permitir reportar margen de error en este diseño." }
+      ],
+      "trade_offs": [
+        { "ventaja": "Operativamente viable cuando no hay marco.", "limitacion": "No inferencia poblacional; resultados describen al grupo respondiente." }
+      ],
+      "salida_principal": "evidencia_descriptiva_del_grupo_alcanzado",
+      "referencias_bibliograficas": ["Documento PUCP Marzo 2026."],
+      "aplicaciones_internas": ["RES-CAP-PUCP-2024", "ACR-ING-2026", "ACR-CON-2026", "OPS-DIAG-2025"]
+    },
+    {
+      "id": "no_prob_cuotas",
+      "nombre_tecnico": "No Probabilístico por Cuotas",
+      "abreviatura": "CUO",
+      "naturaleza": "no_prob",
+      "permite_margen_error": false,
+      "implementada_en_calculador": true,
+      "definicion": "Selección no aleatoria que controla composición final mediante cuotas por variables clave (sexo, edad, región, categoría laboral). Dentro de cada celda la selección es por conveniencia.",
+      "supuestos_formales": [
+        "Las variables de cuota están bien definidas y se pueden verificar en campo.",
+        "La selección dentro de cada celda es por conveniencia, no aleatoria.",
+        "El control es de composición, no de probabilidad."
+      ],
+      "formulas": [
+        { "expresion": "q_{h} = m_{\\text{total}} \\cdot \\dfrac{N_{h}}{N_{\\text{total}}}", "descripcion": "Cuota por celda proporcional al universo (mismo principio que estratificado proporcional, pero sin selección aleatoria dentro).", "notas": [] }
+      ],
+      "parametros_tipicos": [
+        { "nombre": "Variables de cuota", "rango_recomendado": "1-3 máximo", "justificacion": "Más variables fragmentan las cuotas y dificultan el cierre operativo." },
+        { "nombre": "Cuota mínima total", "rango_recomendado": "150-300 casos", "justificacion": "Documento PUCP Marzo 2026: docentes ≥251 → cuota 150; egresados ≥301 → cuota 150." }
+      ],
+      "origen_tamano_aplicable": ["matriz_perfiles_cualitativa"],
+      "escenarios_de_uso": [
+        { "contexto": "Docentes con base ≥251 (acreditación PUCP)", "porque_aplica": "Cuota 150 con control por dedicación docente (TC/TPA/TPC) asegura 50 casos por dedicación." },
+        { "contexto": "Egresados con base ≥301 (acreditación PUCP)", "porque_aplica": "Cuota 150 con control por año/ciclo de egreso." }
+      ],
+      "cuando_no_usar": [
+        "Cuando se requiere inferencia probabilística poblacional."
+      ],
+      "decisiones_tecnicas": [
+        { "titulo": "Cuotas como control, no como probabilidad", "detalle": "Controla composición pero no garantiza probabilidad conocida de inclusión." },
+        { "titulo": "Tablero de cuotas en tiempo real", "detalle": "Necesario para detectar celdas subcubiertas y reasignar esfuerzo de campo." },
+        { "titulo": "Etiqueta explícita en reporte", "detalle": "'No probabilístico por conveniencia con control de cuotas'." }
+      ],
+      "trade_offs": [
+        { "ventaja": "Garantiza composición balanceada por variables clave.", "limitacion": "No produce margen de error formal." }
+      ],
+      "salida_principal": "cuotas_por_celda_y_meta_efectiva",
+      "referencias_bibliograficas": ["Documento PUCP Marzo 2026."],
+      "aplicaciones_internas": ["ACR-DER-2025", "ACR-EDU-2025", "ACR-DER-OE-2024", "RES-CAP-PUCP-2024", "APO-IDHAL-2024", "SER-ADOLESCENTE-2024", "ECHO-PADF-2024"]
+    }
+  ]
+}

@@ -185,6 +185,7 @@ export function RuleWizard({
   onRemove,
   onClearAll,
   onVisualRulesChange,
+  onVisualPendingChange,
   overrides,
   onOverridesChange,
 }: {
@@ -203,6 +204,7 @@ export function RuleWizard({
   onRemove: (id: string) => void;
   onClearAll?: () => void;
   onVisualRulesChange: (rules: SurveyMonkeyVisualLogicRule[]) => void;
+  onVisualPendingChange?: (pending: boolean) => void;
   // Mapeo qref-string → labels en el orden que el usuario quiere asignar
   // a C1, C2, ... Persiste en el padre (ImportSurveyMonkeyDialog) para que
   // sobreviva al cierre del wizard y viaje al endpoint de import.
@@ -307,6 +309,7 @@ export function RuleWizard({
         existingKoboLogic={existingKoboLogic}
         busy={busy}
         onRulesChange={onVisualRulesChange}
+        onPendingChange={onVisualPendingChange}
       />
 
       <section
@@ -411,6 +414,7 @@ export function RuleWizard({
               original={draft.trim()}
               busy={busy}
               hasOverride={Boolean(overrides[extractWhenVarKey(interp.regla_parseada.when_var)]?.length)}
+              pages={resolvedVisualPages}
               onConfirm={confirm}
               onDiscard={discard}
               onReorder={(nextLabels) => {
@@ -595,6 +599,7 @@ function SurveyMonkeyLogicWindow({
   existingKoboLogic,
   busy,
   onRulesChange,
+  onPendingChange,
 }: {
   rules: SurveyMonkeyVisualLogicRule[];
   questions: VisualLogicQuestion[];
@@ -602,6 +607,7 @@ function SurveyMonkeyLogicWindow({
   existingKoboLogic: Array<{ name: string; label: string; relevant: string }>;
   busy: boolean;
   onRulesChange: (rules: SurveyMonkeyVisualLogicRule[]) => void;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const [selectedRef, setSelectedRef] = useState(rules[0]?.variableRef ?? questions[0]?.ref ?? "");
   const [draftRules, setDraftRules] = useState<SurveyMonkeyVisualLogicRule[]>(rules);
@@ -623,6 +629,10 @@ function SurveyMonkeyLogicWindow({
     setDraftRules(rules);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [committedRulesSignature]);
+
+  useEffect(() => {
+    onPendingChange?.(hasPendingVisualChanges);
+  }, [hasPendingVisualChanges, onPendingChange]);
 
   function actionForChoice(choice: VisualLogicChoice): SurveyMonkeyVisualLogicAction {
     return selectedRule?.choices.find((c) => c.choiceName === choice.name)?.action ?? { kind: "none" };
@@ -702,6 +712,44 @@ function SurveyMonkeyLogicWindow({
 
   function defaultQuestionForPage(pageId: string) {
     return pageQuestions(pageId)[0] ?? null;
+  }
+
+  function actionPageQuestions(action: SurveyMonkeyVisualLogicAction) {
+    if (action.kind !== "page_top") return [];
+    return pageQuestions(action.pageId);
+  }
+
+  function renderPageQuestionPreview(action: SurveyMonkeyVisualLogicAction) {
+    const qs = actionPageQuestions(action);
+    if (qs.length === 0) return null;
+    return (
+      <div style={{ marginTop: 4, display: "flex", flexWrap: "wrap", gap: 4 }}>
+        {qs.slice(0, 6).map((q) => (
+          <span
+            key={q.ref}
+            style={{
+              padding: "2px 6px",
+              border: "1px solid #bbf7d0",
+              borderRadius: 999,
+              background: "#ecfdf5",
+              color: "#166534",
+              fontSize: 10,
+              fontWeight: 800,
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+            title={q.label}
+          >
+            {displayRef(q.ref)}
+          </span>
+        ))}
+        {qs.length > 6 ? (
+          <span style={{ color: "#64748b", fontSize: 10, fontWeight: 800 }}>+{qs.length - 6}</span>
+        ) : null}
+      </div>
+    );
   }
 
   function makeAction(kind: string, current: SurveyMonkeyVisualLogicAction): SurveyMonkeyVisualLogicAction {
@@ -862,7 +910,8 @@ function SurveyMonkeyLogicWindow({
                     ) : null}
                   </div>
                   <div style={{ color: currentAction.kind === "none" ? "#64748b" : "#0b7a4b", fontSize: 12, fontWeight: 800, paddingTop: 9 }}>
-                    {actionLabel(currentAction)}
+                    <div>{actionLabel(currentAction)}</div>
+                    {renderPageQuestionPreview(currentAction)}
                   </div>
                 </div>
               );
@@ -1032,7 +1081,8 @@ function SurveyMonkeyLogicWindow({
                             <strong style={{ color: "#334155" }}>{choice.choiceLabel}</strong>
                           </div>
                           <div style={{ minWidth: 0, overflowWrap: "anywhere", color: "#0b7a4b", fontWeight: 800 }}>
-                            {actionLabel(choice.action)}
+                            <div>{actionLabel(choice.action)}</div>
+                            {renderPageQuestionPreview(choice.action)}
                           </div>
                         </div>
                       ))}
@@ -1132,6 +1182,7 @@ function InterpretationCard({
   original,
   busy,
   hasOverride,
+  pages,
   onConfirm,
   onDiscard,
   onReorder,
@@ -1141,6 +1192,7 @@ function InterpretationCard({
   original: string;
   busy: boolean;
   hasOverride: boolean;
+  pages: VisualLogicPage[];
   onConfirm: () => void;
   onDiscard: () => void;
   onReorder: (nextLabels: string[]) => void;
@@ -1154,6 +1206,22 @@ function InterpretationCard({
   }, [choices]);
 
   const hasPendingOrder = draftChoices.map((c) => c.label).join("\u0000") !== choices.map((c) => c.label).join("\u0000");
+  const pageQuestionLookup = new Map<string, string>();
+  for (const page of pages) {
+    for (const q of page.questions) {
+      pageQuestionLookup.set(q.ref, q.label);
+      pageQuestionLookup.set(displayRef(q.ref), q.label);
+      pageQuestionLookup.set(ruleRef(q.ref), q.label);
+    }
+  }
+  const pageTargets = interp.resolucion.targets_resueltos.filter(
+    (target): target is Extract<(typeof interp.resolucion.targets_resueltos)[number], { kind: "hide_page" }> =>
+      target.kind === "hide_page",
+  );
+
+  function labelForPageQuestion(ref: string) {
+    return pageQuestionLookup.get(ref) ?? pageQuestionLookup.get(displayRef(ref)) ?? ref;
+  }
 
   function moveUp(idx: number) {
     if (idx <= 0) return;
@@ -1281,6 +1349,51 @@ function InterpretationCard({
           </div>
         </div>
       </div>
+
+      {pageTargets.length > 0 ? (
+        <div style={{ padding: 10, background: "white", border: "1px solid #e5e7eb", borderRadius: 6, marginBottom: 12 }}>
+          <div style={{ fontSize: 10, color: "var(--pulso-muted, #6b7280)", marginBottom: 6, fontWeight: 700, letterSpacing: 0 }}>
+            Preguntas dentro de páginas afectadas
+          </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {pageTargets.map((target) => {
+              const refs = target.preguntas ?? [];
+              return (
+                <div key={`${target.page_id}-${target.page_label}`} style={{ display: "grid", gap: 5 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>
+                    {target.page_label || `Pág. ${target.page_id}`}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                    {refs.length > 0 ? refs.map((ref) => (
+                      <span
+                        key={ref}
+                        style={{
+                          padding: "3px 7px",
+                          borderRadius: 999,
+                          background: "#ecfdf5",
+                          border: "1px solid #bbf7d0",
+                          color: "#166534",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          maxWidth: "100%",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={labelForPageQuestion(ref)}
+                      >
+                        {displayRef(ref)}
+                      </span>
+                    )) : (
+                      <span style={{ color: "#64748b", fontSize: 11 }}>Sin preguntas exportables detectadas en esta página.</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {/* Diagrama simple: condición arriba, acciones abajo */}
       <div

@@ -142,6 +142,7 @@ export type SessionState = {
   analitica_enumeradores_ok: boolean;
   analitica_dim_ok: boolean;
   analitica_fuente: string | null;
+  analitica_fuente_detalle?: AnaliticaFuenteDetalle | null;
   hojas_ruta_ok: boolean;
   graficos_ppt_ok: boolean;
   graficos_word_ok: boolean;
@@ -153,6 +154,34 @@ export type SessionState = {
   has_estudio: boolean;
   n_bases: number;
   bases_nombres: string[];
+};
+
+export type AnaliticaFuenteFile = {
+  file_id: string;
+  filename: string;
+  kind: string;
+  ext: string;
+};
+
+export type AnaliticaFuenteBase = {
+  nombre: string;
+  xlsform: AnaliticaFuenteFile | null;
+  data: AnaliticaFuenteFile | null;
+  available: boolean;
+};
+
+export type AnaliticaFuenteDetalle = {
+  actual: string | null;
+  original: {
+    label: string;
+    available: boolean;
+    bases: AnaliticaFuenteBase[];
+  };
+  codificada: {
+    label: string;
+    available: boolean;
+    bases: AnaliticaFuenteBase[];
+  };
 };
 
 export async function apiSessionState() {
@@ -328,7 +357,7 @@ export async function apiCodifSourceSet(source: string) {
   );
 }
 
-export type UploadKind = "xlsform" | "data" | "sav" | "plan_limpieza" | "plantilla_codif";
+export type UploadKind = "xlsform" | "data" | "sav" | "plan_limpieza" | "plantilla_codif" | "universo_muestra";
 
 export function isSavLikeFileName(name: string) {
   return /\.sav(?:\s+\d+)?$/i.test(name.trim());
@@ -1476,6 +1505,124 @@ export type MonitoreoGoal = {
   meta: number;
 };
 
+export type MonitoreoCumplimientoEstado =
+  | "cumple_meta"
+  | "brecha_menor_documentada"
+  | "brecha_relevante"
+  | "sin_objetivo";
+
+export type MonitoreoAcreditacionIntentos = {
+  email: number;
+  whatsapp: number;
+  sms: number;
+  telefono: number;
+  presencial: number;
+};
+
+export type MonitoreoAcreditacionSubcuota = {
+  cuota: number;
+  logrado: number;
+  estado: "completa" | "parcial" | "vacia";
+};
+
+export type MonitoreoAcreditacionBolsa = {
+  id: string;
+  tipo: "titular" | "reemplazo";
+  prioridad: number;
+  estado: "pendiente" | "activado" | "completado" | "descartado";
+  fecha_activacion?: string;
+  motivo_descarte?: string;
+};
+
+export type MonitoreoAcreditacionCumplimiento = {
+  estado: MonitoreoCumplimientoEstado;
+  brecha_absoluta: number | null;
+  brecha_porcentual: number | null;
+  benchmark_comparado?: {
+    rango?: string;
+    promedio_historico: number;
+    mediana_historica: number;
+    cobertura_actual: number;
+    desviacion_actual: number;
+  } | null;
+};
+
+export type MonitoreoAcreditacionComponente = {
+  id: string;
+  actor: string;
+  actor_id: string;
+  tecnica: string;
+  variable_control: string;
+  habilita_margen: boolean;
+  marco: {
+    universo_bruto: number | null;
+    marco_actualizado: number | null;
+    marco_contactable: number | null;
+    meta_efectiva: number | null;
+    tasa_respuesta_esperada: number | null;
+  };
+  meta: {
+    n_objetivo: number | null;
+    tipo: string;
+    variable_control: string;
+  };
+  seguimiento: {
+    n_efectivo: number;
+    fecha_actualizacion: string;
+    notas_campo: string;
+    intentos_canal: MonitoreoAcreditacionIntentos;
+    tasa_contacto_efectiva: number | null;
+    cumplimiento: MonitoreoAcreditacionCumplimiento;
+    bolsa_operativa: MonitoreoAcreditacionBolsa[];
+    sub_cuotas_progreso: Record<string, MonitoreoAcreditacionSubcuota>;
+  };
+};
+
+export type MonitoreoAcreditacionCard = {
+  id: string;
+  actor: string;
+  actor_id: string;
+  tecnica: string;
+  n_efectivo: number;
+  n_objetivo: number | null;
+  avance_pct: number | null;
+  estado: MonitoreoCumplimientoEstado;
+  brecha_absoluta: number | null;
+  brecha_porcentual: number | null;
+  benchmark_comparado?: MonitoreoAcreditacionCumplimiento["benchmark_comparado"];
+  ultima_actualizacion: string;
+};
+
+export type MonitoreoAcreditacionAlerta = {
+  severidad: "bloqueante" | "advertencia";
+  componente_id: string;
+  actor: string;
+  tipo: string;
+  mensaje: string;
+};
+
+export type MonitoreoAcreditacion = {
+  enabled: boolean;
+  modo_trabajo: "seguimiento_campo" | "cierre_campo";
+  estudio: {
+    id: string;
+    titulo: string;
+    cliente: string;
+    macro_familia: string;
+    creado_desde_calc_muestra: boolean;
+  };
+  componentes: MonitoreoAcreditacionComponente[];
+  plan_refuerzo: string;
+  aprobacion_metodologica: boolean;
+  cierre_at: string;
+  dashboard: {
+    cards: MonitoreoAcreditacionCard[];
+    alertas: MonitoreoAcreditacionAlerta[];
+    cierre_habilitado: boolean;
+    bloqueos: number;
+  };
+};
+
 export type MonitoreoConfig = {
   enumerator_var: string;
   date_var: string;
@@ -1494,6 +1641,7 @@ export type MonitoreoConfig = {
   max_duration_seconds: number;
   supervision_n: number;
   supervision_seed: number;
+  acreditacion: MonitoreoAcreditacion;
 };
 
 export type MonitoreoVariable = {
@@ -1534,6 +1682,7 @@ export type MonitoreoState = {
   n_rows: number;
   variables: MonitoreoVariable[];
   dashboard: MonitoreoDashboard | null;
+  acreditacion: MonitoreoAcreditacion;
   errors: { source_id?: string; source_label?: string; message: string }[];
 };
 
@@ -1554,6 +1703,16 @@ export type MonitoreoSourcePayload = {
   asset_uid?: string;
   survey_id?: string;
   base_url?: string;
+};
+
+export type MonitoreoAcreditacionSeguimientoPayload = {
+  id: string;
+  n_efectivo?: number;
+  notas_campo?: string;
+  intentos_canal?: Partial<MonitoreoAcreditacionIntentos>;
+  tasa_contacto_efectiva?: number | null;
+  sub_cuotas_progreso?: Record<string, MonitoreoAcreditacionSubcuota>;
+  bolsa_operativa?: MonitoreoAcreditacionBolsa[];
 };
 
 export async function apiMonitoreoState() {
@@ -1588,6 +1747,36 @@ export async function apiMonitoreoConfig(config: Partial<MonitoreoConfig>) {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiMonitoreoImportFromCalcMuestra(estudio?: CalcMuestraEstudio) {
+  return handle<{ ok: true; acreditacion: MonitoreoAcreditacion; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/import-from-calc-muestra", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(estudio ? { estudio } : {}),
+    }),
+  );
+}
+
+export async function apiMonitoreoAcreditacionSeguimiento(payload: MonitoreoAcreditacionSeguimientoPayload) {
+  return handle<{ ok: true; acreditacion: MonitoreoAcreditacion; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/acreditacion/seguimiento", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ seguimiento: payload }),
+    }),
+  );
+}
+
+export async function apiMonitoreoCierre(options: { plan_refuerzo?: string; aprobar_brechas?: boolean } = {}) {
+  return handle<{ ok: true; acreditacion: MonitoreoAcreditacion; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/cierre", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(options),
     }),
   );
 }
@@ -1671,6 +1860,7 @@ export type HojasRutaRandomPreference = "balanced" | "population" | "urban";
 export type HojasRutaRouteStartCorner = "auto" | "1" | "2" | "3" | "4";
 export type HojasRutaRouteJumpMode = "auto" | "off" | "manual";
 export type HojasRutaFrameSource = "current" | "inei2017_official";
+export type HojasRutaReplacementPolicy = "paired_by_titular_zone" | "alternate_zone_same_district";
 
 export type AllocationMode = "proportional" | "uniform" | "compromise";
 
@@ -1694,7 +1884,7 @@ export type HojasRutaIntegratedConfig = {
   n_mode: "total" | "por_distrito";
   n_por_distrito: Record<string, number>;
   replacement_routes_per_district: Record<string, number>;
-  replacement_policy: "paired_by_titular_zone";
+  replacement_policy: HojasRutaReplacementPolicy;
   replacements_per_titular: number;
   territorios: string[];
   row_var: "departamento" | "provincia" | "distrito" | "ubigeo" | "zona";
@@ -2081,6 +2271,9 @@ export type SelectedBlock = {
   territorio_muestral: string;
   metodo: SamplingMethod;
   orden_seleccion: number;
+  hoja_num?: number;
+  rango_inicio?: number;
+  rango_fin?: number;
   entrevistas: number;
   medida_tamano: number;
   lat: number | null;
@@ -2088,10 +2281,16 @@ export type SelectedBlock = {
   tipo_manzana?: "titular" | "reemplazo" | string;
   replacement_policy?: string;
   replacement_order?: number;
+  replacement_total?: number;
   titular_id_manzana?: string;
   titular_orden_seleccion?: number;
   titular_ubigeo?: string;
   titular_zona?: string;
+  titular_hoja_num?: number;
+  titular_rango_inicio?: number;
+  titular_rango_fin?: number;
+  replacement_label?: string;
+  replacement_fallback?: boolean | string;
   esquina_codigo?: number;
   esquina_inicio?: string;
   esquina_coordenada?: string;
@@ -2282,6 +2481,13 @@ export type HojasRutaPreviewRow = {
   cuota: Record<string, string | number | null>[];
 };
 
+export type HojasRutaReporteDecisionalMeta = {
+  disponible: boolean;
+  generated_at?: string | null;
+  formato?: "html" | "pdf" | null;
+  job_id?: string | null;
+};
+
 export type HojasRutaState = {
   ok: boolean;
   has_data: boolean;
@@ -2294,6 +2500,8 @@ export type HojasRutaState = {
   territories: HojasRutaTerritory[];
   campos: HojasRutaCampos | null;
   variables: HojasRutaVariable[];
+  reporte_decisional?: HojasRutaReporteDecisionalMeta;
+  reporte_decisional_listo_para_generar?: boolean;
 };
 
 export type HojasRutaPreview = HojasRutaState & {
@@ -2318,6 +2526,19 @@ export type HojasRutaJobResult = {
   frame_version: string;
   alerts: HojasRutaAlert[];
   mapas_faltantes: number;
+};
+
+export type HojasRutaManualReplacementResult = {
+  ok: true;
+  file_id: string;
+  filename: string;
+  size: number;
+  n_titulars: number;
+  n_replacement_blocks: number;
+  replacements_per_titular: number;
+  replacement_blocks: SelectedBlock[];
+  alerts: HojasRutaAlert[];
+  frame_version: string;
 };
 
 export type HojasRutaRandomPdfResult = {
@@ -2483,6 +2704,47 @@ export async function apiHojasRutaGenerate(
       body: JSON.stringify({ config, sample }),
     }),
   );
+}
+
+export async function apiHojasRutaManualReplacementsPdf(
+  config: Partial<HojasRutaIntegratedConfig>,
+  sample: HojasRutaSamplePreview,
+  titularIds: string[],
+  replacementsPerTitular: number,
+) {
+  return handle<JobStart>(
+    await apiFetch("/api/hojas-ruta/manual-replacements-pdf", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        config,
+        sample,
+        titular_ids: titularIds,
+        replacements_per_titular: replacementsPerTitular,
+      }),
+    }),
+  );
+}
+
+export async function apiHojasRutaReporteDecisionalIniciar(
+  formato: "html" | "pdf" = "html",
+) {
+  return handle<{ ok: true; job_id: string; formato: "html" | "pdf" }>(
+    await apiFetch("/api/hojas-ruta/reporte-decisional", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ formato }),
+    }),
+  );
+}
+
+export function hojasRutaReporteDecisionalUrl(opts: { inline?: boolean } = {}): string {
+  const sid = localStorage.getItem(SESSION_KEY);
+  const params = new URLSearchParams();
+  if (sid) params.set("sid", sid);
+  if (opts.inline) params.set("inline", "1");
+  const qs = params.toString();
+  return apiPath(`/api/hojas-ruta/reporte-decisional/descargar${qs ? `?${qs}` : ""}`);
 }
 
 // ---------- Validación ----------
@@ -2937,6 +3199,30 @@ export async function apiAnaliticaVariables() {
   );
 }
 
+export type DataReviewOption = {
+  code: string;
+  label: string;
+  count: number;
+};
+
+export type DataReviewVariable = {
+  name: string;
+  tipo_xlsform: string;
+  seccion: string;
+  included: boolean;
+  label_actual: string;
+  label_original: string;
+  n_non_missing: number;
+  n_missing: number;
+  opciones: DataReviewOption[];
+};
+
+export async function apiAnaliticaDataReview() {
+  return handle<{ ok: true; variables: DataReviewVariable[] }>(
+    await apiFetch("/api/analitica/data-review", { headers: headers() })
+  );
+}
+
 export type ValorColumna = { value: string; label: string };
 
 export async function apiAnaliticaColumnValues(name: string) {
@@ -2975,6 +3261,7 @@ export type MultiBaseResult = {
   // Multi-base
   zip?: { file_id: string; filename: string; size: number };
   bases?: BasePerOutput[];
+  xlsform?: MultiBaseResult;
 };
 
 export async function apiAnaliticaCodebook() {
@@ -5289,5 +5576,934 @@ export async function apiSaveFileAs(
 export async function apiListProjectDir() {
   return handle<{ ok: true; project_dir: string | null; files: string[] }>(
     await apiFetch("/api/fs/list-project-dir", { headers: headers() })
+  );
+}
+
+// ============================================================================
+// [DEPRECATED] Cálculo de muestra por aulas universitarias
+// Reemplazado por `Calculador de Muestra` (calc-muestra). Las funciones
+// `apiMuestraAulas*` apuntan a endpoints que ya no existen en el backend;
+// ningún componente UI las consume. Se mantienen temporalmente sólo porque
+// otros tipos exportados (MuestraAulasReporteMeta) podrían ser referenciados
+// hasta el siguiente cleanup. Tree-shaking las elimina del bundle.
+// ============================================================================
+
+export type MuestraAulasFacultadRow = {
+  facultad: string;
+  N_total: number;
+  N_hombres: number;
+  N_mujeres: number;
+  avg_matriculados_aula: number;
+  tau: number;
+};
+
+export type MuestraAulasRedondeo = "arriba" | "cuadratura";
+export type MuestraAulasTipoEstudio =
+  | "universitario_aulas"
+  | "universitario_online"
+  | "universitario_mixto"
+  | "acreditacion_egresados"
+  | "territorial_hogares";
+
+export type MuestraAulasGlobales = {
+  z: number;
+  p: number;
+  tipo_estudio: MuestraAulasTipoEstudio;
+  titulo_estudio: string;
+  fecha_aplicacion: string;
+  redondeo: MuestraAulasRedondeo;
+};
+
+export type MuestraAulasParamsA = {
+  e: number;
+  deff: number;
+  oversample_pct: number;
+};
+
+export type MuestraAulasParamsB = {
+  e: number;
+  deff: number;
+  cap_pct: number;
+  oversample_pct: number;
+};
+
+export type MuestraAulasConfig = {
+  version: 1;
+  globales: MuestraAulasGlobales;
+  escenario_A: MuestraAulasParamsA;
+  escenario_B: MuestraAulasParamsB;
+};
+
+export type MuestraAulasDistribucionRow = {
+  facultad: string;
+  sexo: "Hombres" | "Mujeres";
+  N: number;
+  n: number;
+};
+
+export type MuestraAulasAulaRow = {
+  facultad: string;
+  cuota_total: number;
+  aulas_base: number;
+  aulas_reemplazo: number;
+  aulas_total: number;
+  tipo_aula: string;
+};
+
+export type MuestraAulasResultadoA = {
+  n_bruto: number;
+  n_ajustado_deff: number;
+  n_redondeado: number;
+  n_con_sobremuestra: number;
+  precision_universidad: number;
+  distribucion: MuestraAulasDistribucionRow[];
+  aulas: MuestraAulasAulaRow[];
+  N_universo: number;
+};
+
+export type MuestraAulasFacultadResB = {
+  facultad: string;
+  N_facultad: number;
+  n_objetivo: number;
+  n_final: number;
+  cap_activo: boolean;
+  precision_e: number;
+  aulas_base: number;
+  aulas_reemplazo: number;
+  aulas_total: number;
+  tipo_aula: string;
+};
+
+export type MuestraAulasResultadoB = {
+  por_facultad: MuestraAulasFacultadResB[];
+  distribucion: MuestraAulasDistribucionRow[];
+  n_total: number;
+  n_total_objetivo: number;
+  n_con_sobremuestra: number;
+  facultades_cap: string[];
+  cap_pct: number;
+};
+
+export type MuestraAulasDecisionEntry = {
+  nombre?: string;
+  decision?: string;
+  paso?: string;
+  valor?: string;
+  resultado?: string | number;
+  justificacion?: string;
+  nota?: string;
+  z?: number;
+};
+
+export type MuestraAulasDecisionLog = {
+  parametros: MuestraAulasDecisionEntry[];
+  metodologicas: MuestraAulasDecisionEntry[];
+  ajustes: MuestraAulasDecisionEntry[];
+};
+
+export type MuestraAulasReporteMeta = {
+  disponible: boolean;
+  generated_at?: string | null;
+  formato?: "html" | "pdf" | null;
+  hash_config?: string | null;
+  job_id?: string | null;
+};
+
+export type MuestraAulasState = {
+  config: MuestraAulasConfig;
+  universo: MuestraAulasFacultadRow[];
+  universo_n: number;
+  resultados: {
+    A?: MuestraAulasResultadoA | null;
+    B?: MuestraAulasResultadoB | null;
+  } | null;
+  decision_log: MuestraAulasDecisionLog | null;
+  computado_at: string | null;
+  reporte: MuestraAulasReporteMeta;
+  sample_disponible: boolean;
+};
+
+export const DEFAULT_MUESTRA_AULAS_CONFIG: MuestraAulasConfig = {
+  version: 1,
+  globales: {
+    z: 1.96,
+    p: 0.5,
+    tipo_estudio: "universitario_aulas",
+    titulo_estudio: "Estudio sin título",
+    fecha_aplicacion: "",
+    redondeo: "cuadratura",
+  },
+  escenario_A: { e: 0.025, deff: 2.0, oversample_pct: 0.10 },
+  escenario_B: { e: 0.05, deff: 1.5, cap_pct: 0.50, oversample_pct: 0.10 },
+};
+
+export async function apiMuestraAulasState() {
+  return handle<MuestraAulasState>(
+    await apiFetch("/api/muestra-aulas/state", { headers: headers() }),
+  );
+}
+
+export async function apiMuestraAulasConfigPut(config: MuestraAulasConfig) {
+  return handle<{ ok: true; config: MuestraAulasConfig }>(
+    await apiFetch("/api/muestra-aulas/config", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiMuestraAulasUniversoPut(rows: MuestraAulasFacultadRow[]) {
+  return handle<{
+    ok: true;
+    universo: MuestraAulasFacultadRow[];
+    warnings: string[];
+  }>(
+    await apiFetch("/api/muestra-aulas/universo", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ universo: rows }),
+    }),
+  );
+}
+
+export async function apiMuestraAulasUniversoUpload(fileId: string) {
+  return handle<{
+    ok: true;
+    universo: MuestraAulasFacultadRow[];
+    warnings: string[];
+  }>(
+    await apiFetch("/api/muestra-aulas/universo/upload", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id: fileId }),
+    }),
+  );
+}
+
+export function muestraAulasPlantillaUrl(): string {
+  const sid = localStorage.getItem(SESSION_KEY);
+  const qs = sid ? `?sid=${encodeURIComponent(sid)}` : "";
+  return apiPath(`/api/muestra-aulas/plantilla${qs}`);
+}
+
+export async function apiMuestraAulasCalcular(
+  escenario: "A" | "B" | "ambos" = "ambos",
+) {
+  return handle<{
+    ok: true;
+    resultados: { A?: MuestraAulasResultadoA; B?: MuestraAulasResultadoB };
+    decision_log: MuestraAulasDecisionLog;
+    computado_at: string;
+  }>(
+    await apiFetch("/api/muestra-aulas/calcular", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ escenario }),
+    }),
+  );
+}
+
+export async function apiMuestraAulasReporteIniciar(
+  formato: "html" | "pdf" = "html",
+) {
+  return handle<{ ok: true; job_id: string; formato: "html" | "pdf" }>(
+    await apiFetch("/api/muestra-aulas/reporte", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ formato }),
+    }),
+  );
+}
+
+export function muestraAulasReporteDescargarUrl(opts: { inline?: boolean } = {}): string {
+  const sid = localStorage.getItem(SESSION_KEY);
+  const params = new URLSearchParams();
+  if (sid) params.set("sid", sid);
+  if (opts.inline) params.set("inline", "1");
+  const qs = params.toString();
+  return apiPath(`/api/muestra-aulas/reporte/descargar${qs ? `?${qs}` : ""}`);
+}
+
+// ============================================================================
+// Calculador de Muestra (nuevo módulo `calc-muestra`)
+// ============================================================================
+//
+// Reemplazo de muestra-aulas y diseno-muestra. Multi-componente, basado en el
+// blueprint canónico de PULSO PUCP (outputs/fuentes_metodologicas).
+//
+// Cobertura Fase 1: 4 metodologías (conglomerados, intención censal, cuotas,
+// listado externo) con plantilla ACREDITACION PUCP multi-actor.
+
+export type CalcMuestraTecnica =
+  | "prob_aleatorio_simple"
+  | "prob_estratificado"
+  | "prob_estratificado_independiente"
+  | "prob_conglomerado_multietapico"
+  | "sistematico"
+  | "medicion_recurrente"
+  | "barrido"
+  | "intencion_censal"
+  | "listado_externo_meta_fija"
+  | "no_prob_conveniencia"
+  | "no_prob_cuotas";
+
+export type CalcMuestraNaturaleza = "prob" | "operativo" | "no_prob";
+
+export type CalcMuestraOrigenTamano =
+  | "formula"
+  | "meta_contractual"
+  | "cobertura_esperada"
+  | "matriz_perfiles_cualitativa";
+
+// Modos de trabajo del calculador (alcance: PROPUESTA).
+// El seguimiento de campo y el cierre con brechas viven en el módulo
+// de Monitoreo, no acá.
+export type CalcMuestraModoTrabajo =
+  | "estimacion_preliminar"
+  | "diseno_validado";
+
+export type CalcMuestraMacroFamilia =
+  | "acreditacion"
+  | "hsvg_universitario"
+  | "territorial"
+  | "listado_telefonico"
+  | "linea_base_servicios"
+  | "estudio_propio";
+
+export type CalcMuestraNivelRespaldo =
+  | "representatividad_estadistica"
+  | "representatividad_operacional"
+  | "representatividad_teorica_controlada"
+  | "cobertura_balanceada"
+  | "evidencia_descriptiva";
+
+export type CalcMuestraEstadoMarco =
+  | "no_definido"
+  | "bruto"
+  | "validado"
+  | "contactable"
+  | "listado_externo"
+  | "operativo";
+
+export type CalcMuestraEstrato = {
+  id: string;
+  label: string;
+  N: number;
+  N_a: number;
+  N_b: number;
+  sub_a_label: string;
+  sub_b_label: string;
+  e_facultad?: number;
+  p_facultad?: number;
+  confianza_facultad?: number;
+  z_facultad?: number;
+  cuota_fija?: number;
+  sobremuestra_fija?: number;
+  aulas_base_fijas?: number;
+  aulas_extra_operativas?: number;
+  promedio_conglomerado: number;
+  tau: number;
+};
+
+export type CalcMuestraMatrizOperativaCelda = {
+  id: string;
+  territorio: string;
+  servicio: string;
+  N: number;
+  notas: string;
+};
+
+export type CalcMuestraMarco = {
+  universo_bruto: number;
+  marco_validado: number;
+  marco_contactable: number;
+  estado: CalcMuestraEstadoMarco;
+  notas: string;
+  estratos?: CalcMuestraEstrato[];
+  matriz_operativa?: CalcMuestraMatrizOperativaCelda[];
+};
+
+export type CalcMuestraParametros = {
+  z: number;
+  p: number;
+  e: number;
+  deff: number;
+  tau: number;
+  oversample_pct: number;
+  tasa_contacto: number;
+  tasa_elegibilidad: number;
+  tasa_respuesta: number;
+  cobertura_objetivo: number;
+  promedio_conglomerado: number;
+  n_minimo_estrato: number;
+  tope_operativo: number;
+};
+
+export type CalcMuestraMeta = {
+  tipo: "objetivo" | "cuota" | "cobertura" | "contractual";
+  valor: number;
+  variable_control: string;
+  sub_cuotas: Record<string, number>;
+};
+
+export type CalcMuestraDistribucionEstrato = {
+  estrato: string;
+  N: number;
+  n: number;
+  p_e?: number;
+  z_e?: number;
+  confianza_e?: number;
+  precision_e: number | null;
+  regla?: string;
+};
+
+export type CalcMuestraDistribucionSub = {
+  estrato: string;
+  sub: string;
+  N: number;
+  n: number;
+};
+
+export type CalcMuestraAulasEstrato = {
+  estrato: string;
+  N: number;
+  cuota: number;
+  avg_conglomerado: number;
+  tau: number;
+  aulas_base: number;
+  aulas_reemplazo: number;
+  aulas_extra_operativas?: number;
+  aulas_total: number;
+  tipo_aula: string;
+  precision_e: number | null;
+};
+
+export type CalcMuestraCuotaMatriz = {
+  territorio: string;
+  servicio: string;
+  N: number;
+  n: number;
+  regla?: string;
+};
+
+export type CalcMuestraResultado = {
+  n_bruto?: number;
+  n_teorico: number | null;
+  n_objetivo: number;
+  n_operativo: number;
+  unidades_operativas?: number | null;
+  precision_alcanzada?: number | null;
+  sobremuestra?: number;
+  cobertura_objetivo?: number;
+  tasa_respuesta_esperada?: number;
+  universo_a_contactar?: number;
+  variable_control?: string;
+  sub_cuotas?: Record<string, number>;
+  tasa_contacto?: number;
+  tasa_elegibilidad?: number;
+  tasa_respuesta?: number;
+  registros_a_contactar?: number;
+  origen_tamano: CalcMuestraOrigenTamano;
+  advertencia?: string;
+  tecnica: CalcMuestraTecnica;
+  computado_at: string;
+  inferencia: {
+    permitido: boolean;
+    motivos: string | null;
+  };
+  // Solo presente cuando el componente es conglomerados con marco estratificado.
+  distribucion_estratos?: CalcMuestraDistribucionEstrato[];
+  distribucion_sub?: CalcMuestraDistribucionSub[];
+  aulas_por_estrato?: CalcMuestraAulasEstrato[];
+  aulas_total?: number;
+  aulas_base_total?: number;
+  aulas_extra_total?: number;
+  cuotas_matriz?: CalcMuestraCuotaMatriz[];
+};
+
+export type CalcMuestraActorCategoria =
+  | "estudiantes"
+  | "docentes"
+  | "administrativos"
+  | "egresados"
+  | "empleadores"
+  | "comite_consultivo"
+  | "otros";
+
+export type CalcMuestraCanalRecojo =
+  | "aula_qr"
+  | "telefonico"
+  | "online_email"
+  | "presencial"
+  | "mixto"
+  | "sin_definir";
+
+export type CalcMuestraInferenciaAcreditacion = {
+  tecnica: CalcMuestraTecnica | null;
+  regla: string;
+  justificacion: string;
+  minimo_cobertura?: number;
+  minimo_cuota?: number;
+  minimo_n?: number;
+  piso_n_minimo?: number;
+  tope_operativo?: number;
+  variable_control?: string;
+  aulas_referencia?: number;
+  params_canonicos?: Partial<CalcMuestraParametros>;
+};
+
+export type CalcMuestraComponente = {
+  id: string;
+  actor: string;
+  actor_id: string;
+  actor_categoria: CalcMuestraActorCategoria;
+  canal_recojo: CalcMuestraCanalRecojo;
+  tecnica: CalcMuestraTecnica;
+  naturaleza: CalcMuestraNaturaleza;
+  origen_tamano: CalcMuestraOrigenTamano;
+  nivel_respaldo: CalcMuestraNivelRespaldo;
+  marco: CalcMuestraMarco;
+  parametros: CalcMuestraParametros;
+  meta: CalcMuestraMeta;
+  inferencia_acreditacion?: CalcMuestraInferenciaAcreditacion;
+  resultado?: CalcMuestraResultado | null;
+};
+
+export type CalcMuestraDecisionLog = {
+  estudio: {
+    titulo: string;
+    macro_familia: CalcMuestraMacroFamilia;
+    modo_trabajo: CalcMuestraModoTrabajo;
+    modo_sensible: boolean;
+  };
+  componentes: Array<{
+    actor: string;
+    tecnica: CalcMuestraTecnica;
+    naturaleza: CalcMuestraNaturaleza;
+    origen_tamano: CalcMuestraOrigenTamano;
+    nivel_respaldo: CalcMuestraNivelRespaldo;
+    marco: CalcMuestraMarco;
+    decisiones: Array<{ decision: string; valor: string; justificacion: string }>;
+  }>;
+};
+
+export type CalcMuestraWorkspaceFrameMode =
+  | "sin_definir"
+  | "acreditacion"
+  | "opinion_universitaria"
+  | "marco_disponible"
+  | "territorial_handoff"
+  | "legacy";
+
+export type CalcMuestraWorkspaceProducto =
+  | "muestra_probabilistica"
+  | "cobertura_marco"
+  | "matriz_cuotas"
+  | "componentes_mixtos";
+
+export type CalcMuestraWorkspaceVariableControl = {
+  id: string;
+  label: string;
+  tipo: "estrato" | "cuota" | "filtro" | "segmento" | "otro";
+  disponible: boolean;
+  notas?: string;
+};
+
+export type CalcMuestraWorkspaceEscenario = {
+  id: string;
+  label: string;
+  descripcion: string;
+  activo: boolean;
+  tecnica: CalcMuestraTecnica;
+  producto: CalcMuestraWorkspaceProducto;
+  component_id?: string;
+  incluir_reporte?: boolean;
+  redondeo_multiplo?: number;
+  parametros: Partial<CalcMuestraParametros>;
+};
+
+export type CalcMuestraWorkspace = {
+  version: 2;
+  frame_mode: CalcMuestraWorkspaceFrameMode;
+  marco_disponible: string;
+  fuente_marco: string;
+  unidad_observacion: string;
+  unidad_muestreo: string;
+  variables_control: CalcMuestraWorkspaceVariableControl[];
+  escenarios: CalcMuestraWorkspaceEscenario[];
+  notas_diseno: string;
+};
+
+export type CalcMuestraEstudio = {
+  version: number;
+  id: string;
+  titulo: string;
+  fecha_creacion: string;
+  modo_trabajo: CalcMuestraModoTrabajo;
+  macro_familia: CalcMuestraMacroFamilia;
+  modo_sensible: boolean;
+  contexto: {
+    cliente: string;
+    tipo_cliente: string;
+    descripcion_libre: string;
+  };
+  componentes: CalcMuestraComponente[];
+  workspace?: CalcMuestraWorkspace | null;
+  decision_log?: CalcMuestraDecisionLog;
+  computado_at?: string;
+};
+
+export type CalcMuestraReporteMeta = {
+  disponible: boolean;
+  generated_at?: string | null;
+  formato?: "html" | "pdf" | null;
+  job_id?: string | null;
+};
+
+export type CalcMuestraState = {
+  estudio: CalcMuestraEstudio;
+  reporte: CalcMuestraReporteMeta;
+};
+
+export const DEFAULT_CALC_MUESTRA_ESTUDIO: CalcMuestraEstudio = {
+  version: 1,
+  id: "",
+  titulo: "Estudio sin título",
+  fecha_creacion: new Date().toISOString(),
+  modo_trabajo: "estimacion_preliminar",
+  macro_familia: "estudio_propio",
+  modo_sensible: false,
+  contexto: { cliente: "", tipo_cliente: "", descripcion_libre: "" },
+  componentes: [],
+  workspace: null,
+};
+
+export type CalcMuestraDiagnostico = {
+  buscaCenso?: boolean;
+  universoPequeno?: boolean;
+  poblacionOculta?: boolean;
+  marcoEstado?: CalcMuestraEstadoMarco;
+  probabilidadConocida?: boolean;
+  buscaRepresentatividad?: boolean;
+  controlaCuotas?: boolean;
+  necesitaMargenError?: boolean;
+  modoCampo?: "individual" | "por_grupos";
+  tieneConglomerados?: boolean;
+  marcoOrdenado?: boolean;
+  tieneEstratos?: boolean;
+  medicionRecurrente?: boolean;
+  N_marco?: number;
+};
+
+export type CalcMuestraRecomendacion = {
+  tecnica: CalcMuestraTecnica;
+  naturaleza: CalcMuestraNaturaleza;
+  nivel_respaldo: CalcMuestraNivelRespaldo;
+  origen_tamano: CalcMuestraOrigenTamano;
+  razon: string;
+};
+
+export async function apiCalcMuestraState() {
+  return handle<CalcMuestraState>(
+    await apiFetch("/api/calc-muestra/state", { headers: headers() }),
+  );
+}
+
+export async function apiCalcMuestraEstudioPut(estudio: Partial<CalcMuestraEstudio>) {
+  return handle<{ ok: true; estudio: CalcMuestraEstudio }>(
+    await apiFetch("/api/calc-muestra/estudio", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ estudio }),
+    }),
+  );
+}
+
+export async function apiCalcMuestraComponenteUpsert(
+  componente: Partial<CalcMuestraComponente>,
+  op: "add" | "update" = "update",
+) {
+  return handle<{ ok: true; componente: CalcMuestraComponente; estudio: CalcMuestraEstudio }>(
+    await apiFetch("/api/calc-muestra/componente", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ componente, op }),
+    }),
+  );
+}
+
+export async function apiCalcMuestraComponenteEliminar(id: string) {
+  return handle<{ ok: true; estudio: CalcMuestraEstudio }>(
+    await apiFetch("/api/calc-muestra/componente", {
+      method: "DELETE",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ id }),
+    }),
+  );
+}
+
+export async function apiCalcMuestraCalcular() {
+  return handle<{ ok: true; estudio: CalcMuestraEstudio }>(
+    await apiFetch("/api/calc-muestra/calcular", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({}),
+    }),
+  );
+}
+
+export async function apiCalcMuestraRecomendar(diagnostico: CalcMuestraDiagnostico) {
+  return handle<{ ok: true; recomendacion: CalcMuestraRecomendacion }>(
+    await apiFetch("/api/calc-muestra/recomendar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ diagnostico }),
+    }),
+  );
+}
+
+// ----------------------------------------------------------------------------
+// Inicialización por tipo de estudio (reemplaza los antiguos presets).
+//
+// Cada tipo de estudio crea una estructura de componentes vacíos lista para
+// que el usuario edite N, parámetros y metas por UI. El motor infiere técnicas
+// y mínimos automáticamente al completar actor + canal + N.
+//
+// Variante:
+//   - "vacio" (default): solo la estructura, sin datos. Aplica para todos.
+//   - "plantilla_pucp" (solo HSVG): pre-carga los 15 estratos de facultades
+//     con el marco DTI 2025-II como punto de partida editable.
+// ----------------------------------------------------------------------------
+
+export type CalcMuestraVarianteEstudio = "vacio" | "plantilla_pucp";
+
+export async function apiCalcMuestraIniciarEstudio(
+  tipo: CalcMuestraMacroFamilia,
+  variante: CalcMuestraVarianteEstudio = "vacio",
+) {
+  return handle<{ ok: true; estudio: CalcMuestraEstudio }>(
+    await apiFetch("/api/calc-muestra/iniciar-estudio", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ tipo, variante }),
+    }),
+  );
+}
+
+export async function apiCalcMuestraModoTrabajo(modo: CalcMuestraModoTrabajo) {
+  return handle<{ ok: true; modo_trabajo: CalcMuestraModoTrabajo; estudio: CalcMuestraEstudio }>(
+    await apiFetch("/api/calc-muestra/modo-trabajo", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ modo }),
+    }),
+  );
+}
+
+export async function apiCalcMuestraReporteIniciar(formato: "html" | "pdf" = "html") {
+  return handle<{ ok: true; job_id: string; formato: "html" | "pdf" }>(
+    await apiFetch("/api/calc-muestra/reporte", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ formato }),
+    }),
+  );
+}
+
+export function calcMuestraReporteDescargarUrl(opts: { inline?: boolean } = {}): string {
+  const sid = localStorage.getItem(SESSION_KEY);
+  const params = new URLSearchParams();
+  if (sid) params.set("sid", sid);
+  if (opts.inline) params.set("inline", "1");
+  const qs = params.toString();
+  return apiPath(`/api/calc-muestra/reporte/descargar${qs ? `?${qs}` : ""}`);
+}
+
+// ============================================================================
+// Enciclopedia Metodológica
+// ============================================================================
+
+export type EnciclopediaFichaFormula = {
+  expresion: string;
+  descripcion: string;
+  notas: string[];
+};
+
+export type EnciclopediaFichaParametro = {
+  nombre: string;
+  rango_recomendado: string;
+  justificacion: string;
+};
+
+export type EnciclopediaFichaEscenario = {
+  contexto: string;
+  porque_aplica: string;
+};
+
+export type EnciclopediaFichaDecision = {
+  titulo: string;
+  detalle: string;
+};
+
+export type EnciclopediaFichaTradeOff = {
+  ventaja: string;
+  limitacion: string;
+};
+
+export type EnciclopediaFicha = {
+  id: CalcMuestraTecnica;
+  nombre_tecnico: string;
+  abreviatura?: string;
+  naturaleza: CalcMuestraNaturaleza;
+  permite_margen_error: boolean;
+  implementada_en_calculador: boolean;
+  definicion: string;
+  supuestos_formales: string[];
+  formulas: EnciclopediaFichaFormula[];
+  parametros_tipicos: EnciclopediaFichaParametro[];
+  origen_tamano_aplicable: CalcMuestraOrigenTamano[];
+  escenarios_de_uso: EnciclopediaFichaEscenario[];
+  cuando_no_usar: string[];
+  decisiones_tecnicas: EnciclopediaFichaDecision[];
+  trade_offs: EnciclopediaFichaTradeOff[];
+  salida_principal: string;
+  referencias_bibliograficas: string[];
+  aplicaciones_internas: string[];
+};
+
+export type EnciclopediaCatalogo = {
+  version: number;
+  actualizado_en: string;
+  fuente_canonica: string;
+  metodologias: EnciclopediaFicha[];
+};
+
+export type EnciclopediaTermino = {
+  id: string;
+  termino: string;
+  nombre_completo: string;
+  definicion: string;
+  formula: string | null;
+  metodologias_relacionadas: CalcMuestraTecnica[];
+  campos_calculador_relacionados: string[];
+};
+
+export type EnciclopediaGlosario = {
+  version: number;
+  actualizado_en: string;
+  fuente_canonica: string;
+  terminos: EnciclopediaTermino[];
+};
+
+export type EnciclopediaFamiliaEstudio =
+  | "acreditacion_programa"
+  | "opinion_universitaria"
+  | "territorial_hogares"
+  | "servicios_establecimientos"
+  | "listado_telefonico_programa"
+  | "institucional_no_probabilistico";
+
+export type EnciclopediaRequiereCalculoMuestra = "si" | "no" | "parcial";
+
+export type EnciclopediaOrigenMuestra =
+  | "por_calcular"
+  | "muestra_historica_replicada"
+  | "mixto_por_componente"
+  | "meta_contractual"
+  | "marco_total_barrido"
+  | "cobertura_por_actor";
+
+export type EnciclopediaAccionEvaluadorMuestra =
+  | "calcular_muestra"
+  | "calcular_marco_cobertura"
+  | "calcular_cuotas"
+  | "fuera_calculador"
+  | "evaluar_por_componente";
+
+export type EnciclopediaNivelEvidencia = "alto" | "medio" | "limitado";
+
+export type EnciclopediaEstudio = {
+  codigo: string;
+  anio: number;
+  familia_estudio: EnciclopediaFamiliaEstudio;
+  metodologia_principal: CalcMuestraTecnica;
+  metodologias_secundarias: CalcMuestraTecnica[];
+  dominio: string;
+  es_recurrente: boolean;
+  requiere_calculo_muestra: EnciclopediaRequiereCalculoMuestra;
+  origen_muestra: EnciclopediaOrigenMuestra;
+  accion_evaluador_muestra: EnciclopediaAccionEvaluadorMuestra;
+  elementos_comunes: string[];
+  nivel_evidencia: EnciclopediaNivelEvidencia;
+};
+
+export type EnciclopediaTablaEstudios = {
+  version: number;
+  actualizado_en: string;
+  fuente_canonica: string;
+  nota_confidencialidad: string;
+  rutas_evaluador_muestra?: Record<EnciclopediaAccionEvaluadorMuestra, string>;
+  naturalezas_dominantes: Record<CalcMuestraNaturaleza, string>;
+  estudios: EnciclopediaEstudio[];
+};
+
+export type EnciclopediaCatalogItem = {
+  id: string;
+  nombre: string;
+  descripcion: string;
+};
+
+export type EnciclopediaTipoEstudio = EnciclopediaCatalogItem & {
+  criterios: string[];
+  acciones_evaluador_permitidas: EnciclopediaAccionEvaluadorMuestra[];
+  elementos_comunes: string[];
+  ejemplos: string[];
+};
+
+export type EnciclopediaTiposEstudioCatalogo = {
+  version: number;
+  actualizado_en: string;
+  fuente_canonica: string;
+  criterio_general: string;
+  acciones_evaluador_muestra: Array<EnciclopediaCatalogItem & { salida_principal: string }>;
+  origenes_muestra: EnciclopediaCatalogItem[];
+  familias_estudio: EnciclopediaTipoEstudio[];
+};
+
+export type EnciclopediaComparador = {
+  version: number;
+  seleccionadas: EnciclopediaFicha[];
+  ejes_comparacion: string[];
+};
+
+export async function apiEnciclopediaCatalogo() {
+  return handle<EnciclopediaCatalogo>(
+    await apiFetch("/api/enciclopedia/catalogo", { headers: headers() }),
+  );
+}
+
+export async function apiEnciclopediaGlosario() {
+  return handle<EnciclopediaGlosario>(
+    await apiFetch("/api/enciclopedia/glosario", { headers: headers() }),
+  );
+}
+
+export async function apiEnciclopediaEstudios() {
+  return handle<EnciclopediaTablaEstudios>(
+    await apiFetch("/api/enciclopedia/estudios", { headers: headers() }),
+  );
+}
+
+export async function apiEnciclopediaTiposEstudio() {
+  return handle<EnciclopediaTiposEstudioCatalogo>(
+    await apiFetch("/api/enciclopedia/tipos-estudio", { headers: headers() }),
+  );
+}
+
+export async function apiEnciclopediaComparador(ids: string[]) {
+  const qs = new URLSearchParams({ ids: ids.join(",") }).toString();
+  return handle<EnciclopediaComparador>(
+    await apiFetch(`/api/enciclopedia/comparador?${qs}`, { headers: headers() }),
   );
 }

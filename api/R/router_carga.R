@@ -402,19 +402,23 @@ mount_carga <- function(pr) {
       meta <- get_file(sid, file_id)
       if (!(meta$kind %in% c("data", "sav"))) {
         stop_api(400, "E_WRONG_KIND", "file must have kind in {'data','sav'}")
-      }
-      preview_inst <- .carga_current_instrumento_for_data(sid)
-      preview <- read_data_preview(meta$path, meta$ext, instrumento = preview_inst)
-      session_set(sid, "data_raw_meta", list(file_id = file_id, path = meta$path, ext = meta$ext))
-      # Si ya hay xlsform subido, este punto cierra el par y auto-crea la
-      # base "default" — el caso típico cuando el user va Carga →
-      # Validación sin pasar por Analítica primero.
-      tryCatch(estudio_init_default_base(sid),
-               error = function(e) {
-                 message("[carga] estudio_init_default_base falló: ", conditionMessage(e))
-               })
-      list(ok = TRUE, preview = preview)
-    })) |>
+	      }
+	      preview_inst <- .carga_current_instrumento_for_data(sid)
+	      if (is.null(preview_inst)) {
+	        stop_api(
+	          409,
+	          "E_XLSFORM_REQUIRED_FOR_DATA",
+	          "Primero carga el XLSForm. La data se normaliza y valida usando ese formulario."
+	        )
+	      }
+	      preview <- read_data_preview(meta$path, meta$ext, instrumento = preview_inst)
+	      session_set(sid, "data_raw_meta", list(file_id = file_id, path = meta$path, ext = meta$ext))
+	      # Si ya hay xlsform subido, este punto cierra el par y auto-crea la
+	      # base "default" — el caso típico cuando el user va Carga →
+	      # Validación sin pasar por Analítica primero.
+	      estudio_init_default_base(sid)
+	      list(ok = TRUE, preview = preview)
+	    })) |>
 
     # DELETE /api/carga/instrumento — limpia XLSForm cargado.
     # También limpia los artefactos derivados (rp_inst, inst_limpieza,

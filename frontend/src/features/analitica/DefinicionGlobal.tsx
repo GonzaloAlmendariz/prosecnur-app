@@ -21,12 +21,12 @@ import { VariablesExcluidas } from "./VariablesExcluidas";
 //   · Secciones del instrumento (auto-detect + reorder + rename + merge + ocultar)
 //   · Variables excluidas globalmente (bucket compartido)
 
-export function DefinicionGlobal() {
+export function DefinicionGlobal({ embedded = false, defaultOpen = false }: { embedded?: boolean; defaultOpen?: boolean } = {}) {
   const hydrated = useAnaliticaStore((s) => s.hydrated);
   const secciones = useAnaliticaStore((s) => s.config.secciones);
   const excluidas = useAnaliticaStore((s) => s.config.variables_excluidas);
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [hover, setHover] = useState(false);
 
   const [variables, setVariables] = useState<VariableInstrumento[]>([]);
@@ -37,6 +37,16 @@ export function DefinicionGlobal() {
         setVariables(r.variables);
       } catch {/* no-op */}
     })();
+    function onSourceChanged() {
+      (async () => {
+        try {
+          const r = await apiAnaliticaVariables();
+          setVariables(r.variables);
+        } catch {/* no-op */}
+      })();
+    }
+    window.addEventListener("pulso:analitica-source-changed", onSourceChanged);
+    return () => window.removeEventListener("pulso:analitica-source-changed", onSourceChanged);
   }, []);
 
   if (!hydrated) return null;
@@ -59,10 +69,10 @@ export function DefinicionGlobal() {
       style={{
         background: "white",
         border: "1px solid var(--pulso-border)",
-        borderRadius: 10,
+        borderRadius: embedded ? 8 : 10,
         // Sin overflow:hidden porque los dropdowns de VariableSelect
         // (que usan position:absolute) necesitan escapar verticalmente.
-        marginBottom: 14,
+        marginBottom: embedded ? 0 : 14,
       }}
     >
       <button
@@ -73,7 +83,7 @@ export function DefinicionGlobal() {
         aria-expanded={open}
         style={{
           width: "100%", textAlign: "left",
-          padding: "10px 14px",
+          padding: embedded ? "8px 10px" : "10px 14px",
           display: "flex", alignItems: "center", gap: 10,
           background: hover || open ? "var(--pulso-surface)" : "white",
           border: "none", cursor: "pointer",
@@ -96,7 +106,7 @@ export function DefinicionGlobal() {
       </button>
 
       {open && (
-        <div style={{ padding: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, borderTop: "1px solid var(--pulso-border)" }}>
+        <div style={{ padding: embedded ? 10 : 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: embedded ? 12 : 18, borderTop: "1px solid var(--pulso-border)" }}>
           <SeccionesBlock variables={variables} />
           <VariablesExcluidasBlock variables={variables} />
         </div>

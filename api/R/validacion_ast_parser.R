@@ -13,6 +13,7 @@
 #   Selecteds:                selected(${v}, 'x')      → ast_selected
 #   Cuenta seleccionados:     count-selected(.) > 3    → count_selected_cmp
 #   Regex:                    regex(., '^\\d+$')       → matches_regex
+#   Largo de texto:           string-length(.) <= 9     → text_length_cmp
 #   Referencia de salto:      ${v} != '' (relevant)    → not(is_missing(v))
 #   Empty compare:            ${v} = ''                → is_missing
 #   today():                  . <= today()             → compare_const con ref
@@ -22,7 +23,7 @@
 #
 # Patrones fuera de scope (caen a odk_raw):
 #   indexed-repeat, position(..), jr:choice-name, coalesce,
-#   selected-at, once(), format-date, decimal-date, string-length
+#   selected-at, once(), format-date, decimal-date
 #
 # Para el contexto de constraint, `.` se refiere a la variable definida en
 # la misma fila del XLSForm (el "self"). El caller debe pasar `self_var`.
@@ -407,6 +408,8 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
   r_is_today_offset <- is_ast(right) && ast_op(right) == "__today_offset"
   l_is_count_selected <- is_ast(left) && ast_op(left) == "__count_selected"
   r_is_count_selected <- is_ast(right) && ast_op(right) == "__count_selected"
+  l_is_string_length <- is_ast(left) && ast_op(left) == "__string_length"
+  r_is_string_length <- is_ast(right) && ast_op(right) == "__string_length"
 
   # var OP today() → collection_date_cmp(var, op)
   # today() OP var → invertimos el operador
@@ -435,6 +438,16 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
     swapped <- switch(op, "==" = "==", "!=" = "!=",
                       "<" = ">", "<=" = ">=", ">" = "<", ">=" = "<=")
     return(ast_count_selected_cmp(right$var, swapped, left$value))
+  }
+
+  # string-length(var) OP n
+  if (l_is_string_length && r_is_lit && ast_op(right) == "__num") {
+    return(ast_text_length_cmp(left$var, op, right$value))
+  }
+  if (r_is_string_length && l_is_lit && ast_op(left) == "__num") {
+    swapped <- switch(op, "==" = "==", "!=" = "!=",
+                      "<" = ">", "<=" = ">=", ">" = "<", ">=" = "<=")
+    return(ast_text_length_cmp(right$var, swapped, left$value))
   }
 
   # var OP lit
@@ -595,6 +608,8 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
     "selected"       = .resolve_selected(args),
     "count-selected" = .resolve_count_selected(args),
     "count_selected" = .resolve_count_selected(args),
+    "string-length"  = .resolve_string_length(args),
+    "string_length"  = .resolve_string_length(args),
     "regex"          = .resolve_regex(args),
     "not"            = .resolve_not(args),
     "today"          = .resolve_today(args),
@@ -629,6 +644,13 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
   a1 <- args[[1]]
   if (!is_ast(a1) || ast_op(a1) != "__var") return(NULL)
   .__count_selected(a1$name)
+}
+
+.resolve_string_length <- function(args) {
+  if (length(args) != 1L) return(NULL)
+  a1 <- args[[1]]
+  if (!is_ast(a1) || ast_op(a1) != "__var") return(NULL)
+  .__string_length(a1$name)
 }
 
 .resolve_regex <- function(args) {
@@ -668,6 +690,7 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
   if (op == "__str") return(sprintf("'%s'", x$value))
   if (op == "__num") return(format(x$value))
   if (op == "__count_selected") return(sprintf("count-selected(%s)", x$var))
+  if (op == "__string_length") return(sprintf("string-length(%s)", x$var))
   if (op == "__today_offset") return(sprintf("today()%+d", x$offset_days))
   ast_to_string(x)
 }
@@ -712,6 +735,12 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
 .__count_selected <- function(var) {
   out <- list(var = var)
   attr(out, "op") <- "__count_selected"
+  class(out) <- c("vd_ast", "list")
+  out
+}
+.__string_length <- function(var) {
+  out <- list(var = var)
+  attr(out, "op") <- "__string_length"
   class(out) <- c("vd_ast", "list")
   out
 }

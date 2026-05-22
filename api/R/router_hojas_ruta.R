@@ -118,6 +118,14 @@
   cfg <- hojas_ruta_integrada_normalize_config(s$hojas_ruta_config %||% list())
   ui_state <- .hojas_ruta_ui_state_normalize(s$hojas_ruta_ui_state %||% list(), cfg)
   workspace_outputs <- .hojas_ruta_workspace_outputs_normalize(s$hojas_ruta_workspace_outputs %||% list())
+  reporte_meta_raw <- s$hojas_ruta_reporte_decisional %||% list(disponible = FALSE)
+  reporte_meta <- list(
+    disponible   = isTRUE(reporte_meta_raw$disponible),
+    generated_at = reporte_meta_raw$generated_at %||% NULL,
+    formato      = reporte_meta_raw$formato %||% NULL,
+    job_id       = reporte_meta_raw$job_id %||% NULL
+  )
+  has_sample_size <- !is.null(workspace_outputs$sample_size_preview)
   frame <- tryCatch(hojas_ruta_inei_frame(), error = function(e) NULL)
   frame_meta <- if (!is.null(frame)) .hojas_ruta_frame_meta(frame) else list(ok = FALSE)
   territories <- if (!is.null(frame)) .hojas_ruta_territories(frame) else list()
@@ -133,7 +141,9 @@
       frame_meta = frame_meta,
       territories = territories,
       campos = NULL,
-      variables = list()
+      variables = list(),
+      reporte_decisional = reporte_meta,
+      reporte_decisional_listo_para_generar = has_sample_size
     ))
   }
   campos <- hojas_ruta_detectar_campos(data)
@@ -148,7 +158,9 @@
     frame_meta = frame_meta,
     territories = territories,
     campos = campos,
-    variables = hojas_ruta_variables_disponibles(data)
+    variables = hojas_ruta_variables_disponibles(data),
+    reporte_decisional = reporte_meta,
+    reporte_decisional_listo_para_generar = has_sample_size
   )
 }
 
@@ -356,6 +368,91 @@ mount_hojas_ruta <- function(pr) {
       res$body <- body
       res
     })) |>
+    plumber::pr_post("/api/hojas-ruta/manual-replacements-pdf", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .hojas_ruta_parse_body(req)
+      cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
+      session_set(sid, "hojas_ruta_config", cfg)
+      outputs <- .hojas_ruta_workspace_outputs_normalize(
+        session_get(sid)$hojas_ruta_workspace_outputs %||% list()
+      )
+      sample_override <- parsed$sample %||% parsed$sample_snapshot %||% parsed$sampleSnapshot %||% outputs$sample %||% NULL
+      if (is.null(sample_override) || !is.list(sample_override)) {
+        stop_api(409, "E_NO_SAMPLE", "Primero genera una seleccion de manzanas antes de pedir reemplazos puntuales.")
+      }
+      titular_ids <- .hojas_ruta_chr_vec(
+        parsed$titular_ids %||%
+          parsed$titularIds %||%
+          parsed$id_manzanas %||%
+          parsed$idManzanas %||%
+          parsed$manzanas
+      )
+      if (!length(titular_ids)) {
+        stop_api(400, "E_NO_TITULAR_IDS", "Selecciona al menos una manzana titular.")
+      }
+      replacements_per_titular <- min(
+        10L,
+        max(
+          1L,
+          .hojas_ruta_int(
+            parsed$replacements_per_titular %||%
+              parsed$replacementsPerTitular %||%
+              parsed$n_reemplazos %||%
+              parsed$nReemplazos,
+            1L
+          )
+        )
+      )
+      cfg_path <- job_save_rds(sid, "hojas_ruta_config", cfg)
+      sample_path <- job_save_rds(sid, "hojas_ruta_sample_snapshot", sample_override)
+      api_path <- .app_api_dir()
+
+      job_id <- job_submit(
+        sid = sid,
+        kind = "hojas_ruta.manual_replacements_pdf",
+        func = function(cfg_path, api_path, sample_path, titular_ids, replacements_per_titular, result_path, progress_path = NULL) {
+          if (requireNamespace("pkgload", quietly = TRUE)) {
+            pkgload::load_all(api_path, quiet = TRUE)
+          } else if (requireNamespace("devtools", quietly = TRUE)) {
+            devtools::load_all(api_path, quiet = TRUE)
+          }
+          cfg <- readRDS(cfg_path)
+          sample <- readRDS(sample_path)
+          hojas_ruta_generar_reemplazos_manual_pdf(
+            cfg,
+            sample = sample,
+            titular_ids = titular_ids,
+            replacements_per_titular = replacements_per_titular,
+            result_path = result_path,
+            progress_path = progress_path
+          )
+        },
+        args = list(
+          cfg_path = cfg_path,
+          api_path = api_path,
+          sample_path = sample_path,
+          titular_ids = titular_ids,
+          replacements_per_titular = replacements_per_titular
+        ),
+        result_filename = .export_filename(sid, "hojas_ruta_reemplazos_puntuales", "pdf"),
+        on_complete = function(j) {
+          meta <- .register_output_file(j$sid, "hojas_ruta_reemplazos_puntuales", j$result_path)
+          list(
+            ok = TRUE,
+            file_id = meta$file_id,
+            filename = meta$original_name,
+            size = meta$size,
+            n_titulars = as.integer(j$result_data$n_titulars %||% 0L),
+            n_replacement_blocks = as.integer(j$result_data$n_replacement_blocks %||% 0L),
+            replacements_per_titular = as.integer(j$result_data$replacements_per_titular %||% replacements_per_titular),
+            replacement_blocks = j$result_data$replacement_blocks %||% list(),
+            alerts = j$result_data$alerts %||% list(),
+            frame_version = j$result_data$frame_version %||% NA_character_
+          )
+        }
+      )
+      list(ok = TRUE, job_id = job_id, kind = "hojas_ruta.manual_replacements_pdf")
+    })) |>
     plumber::pr_post("/api/hojas-ruta/generate", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
@@ -413,5 +510,136 @@ mount_hojas_ruta <- function(pr) {
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "hojas_ruta.generate")
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/hojas-ruta/reporte-decisional — genera la propuesta muestral
+    # Toma el estado actual (config + workspace_outputs) y arma un reporte
+    # Quarto al mismo estilo que el del modulo de aulas universitarias.
+    # Body: { formato: "html" | "pdf" }
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/hojas-ruta/reporte-decisional",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .hojas_ruta_parse_body(req)
+      formato <- as.character(parsed$formato %||% "html")
+      if (!formato %in% c("html", "pdf")) {
+        stop_api(400, "E_FORMATO_INVALIDO",
+                 "formato debe ser 'html' o 'pdf'.")
+      }
+      s <- session_get(sid)
+      cfg <- hojas_ruta_integrada_normalize_config(s$hojas_ruta_config %||% list())
+      outputs <- .hojas_ruta_workspace_outputs_normalize(
+        s$hojas_ruta_workspace_outputs %||% list()
+      )
+      # Validacion minima: necesitamos al menos sample_size_preview para
+      # que el reporte tenga contenido util.
+      if (is.null(outputs$sample_size_preview)) {
+        stop_api(409, "E_NO_SAMPLE_SIZE",
+                 "Ejecuta el calculo de tamano muestral en Hojas de Ruta antes de generar el reporte.")
+      }
+      frame <- tryCatch(hojas_ruta_inei_frame(), error = function(e) NULL)
+      territorios_all <- if (!is.null(frame)) .hojas_ruta_territories(frame) else list()
+      ubigeos_sel <- cfg$territorios %||% list()
+      territorios_sel <- if (length(ubigeos_sel) > 0L && length(territorios_all) > 0L) {
+        Filter(function(t) (t$ubigeo %||% "") %in% as.character(ubigeos_sel),
+               territorios_all)
+      } else {
+        territorios_all
+      }
+
+      ext <- if (formato == "pdf") "pdf" else "html"
+      filename <- sprintf("reporte_muestra_territorial.%s", ext)
+
+      sid_capt <- sid
+      on_complete <- function(j) {
+        if (identical(j$status, "done") &&
+            !is.null(j$result_path) && file.exists(j$result_path)) {
+          s_now <- session_get(sid_capt, required = FALSE)
+          if (is.null(s_now)) return(j$result_data)
+          meta_now <- list(
+            disponible   = TRUE,
+            path         = j$result_path,
+            formato      = formato,
+            generated_at = format(j$finished_at,
+                                  "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+          )
+          session_set(sid_capt, "hojas_ruta_reporte_decisional", meta_now)
+        }
+        j$result_data
+      }
+
+      job_id <- job_submit(
+        sid    = sid,
+        kind   = "hojas_ruta_reporte_decisional",
+        func   = muestra_territorial_render_job,
+        args   = list(
+          config              = cfg,
+          territorios         = territorios_sel,
+          population          = outputs$population,
+          sample_size_preview = outputs$sample_size_preview,
+          quota               = outputs$quota,
+          decision_log        = NULL,
+          formato             = formato
+        ),
+        result_filename = filename,
+        on_complete = on_complete
+      )
+
+      session_set(sid, "hojas_ruta_reporte_decisional", list(
+        disponible = FALSE,
+        formato    = formato,
+        job_id     = job_id
+      ))
+
+      list(ok = TRUE, job_id = job_id, formato = formato)
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # GET /api/hojas-ruta/reporte-decisional/descargar — binario del reporte.
+    # Soporta ?sid=... (link) y ?inline=1 (iframe preview). El `t=` se
+    # acepta como cache-buster.
+    # -----------------------------------------------------------------------
+    plumber::pr_get("/api/hojas-ruta/reporte-decisional/descargar",
+                    wrap_endpoint(function(req, res, sid = NULL,
+                                           inline = NULL, t = NULL) {
+      effective_sid <- session_header(req)
+      if (is.null(effective_sid) && is.character(sid) &&
+          length(sid) >= 1 && nzchar(sid[[1]])) {
+        effective_sid <- as.character(sid[[1]])
+      }
+      s <- session_get(effective_sid)
+      meta <- s$hojas_ruta_reporte_decisional
+      if (is.null(meta) || !isTRUE(meta$disponible) ||
+          is.null(meta$path) || !file.exists(meta$path)) {
+        # Fallback: si el job termino pero on_complete no actualizo el
+        # meta (caso raro), reintentar via job_id.
+        if (!is.null(meta$job_id)) {
+          j <- tryCatch(job_poll(meta$job_id), error = function(e) NULL)
+          if (!is.null(j) && identical(j$status, "done") &&
+              !is.null(j$result_path) && file.exists(j$result_path)) {
+            meta$path <- j$result_path
+            meta$disponible <- TRUE
+            meta$generated_at <- format(j$finished_at,
+                                        "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+            session_set(effective_sid, "hojas_ruta_reporte_decisional", meta)
+          }
+        }
+        if (is.null(meta$path) || !file.exists(meta$path)) {
+          stop_api(404, "E_NO_REPORTE",
+                   "No hay reporte decisional generado todavia.")
+        }
+      }
+      n <- file.info(meta$path)$size
+      bytes <- readBin(meta$path, what = "raw", n = n)
+      res$setHeader("Content-Type", mime::guess_type(meta$path))
+      res$setHeader("Content-Length", as.character(n))
+      modo <- if (is.character(inline) && length(inline) >= 1 &&
+                  inline[[1]] %in% c("1", "true", "TRUE")) "inline"
+              else "attachment"
+      res$setHeader("Content-Disposition",
+                    sprintf('%s; filename="%s"', modo, basename(meta$path)))
+      res$body <- bytes
+      res
     }))
 }

@@ -47,6 +47,13 @@ api/inst/standalone/
 # Audit outputs (generados por scripts/ast_corpus_audit.R etc.)
 api/outputs/
 
+# Outputs de revisión y fuentes metodológicas internas (NO van al repo).
+# Contiene documentación interna PULSO (taxonomía 2024-2026, documento
+# oficial PUCP Marzo 2026, revisiones, compendio metodológico, análisis
+# verticales por estudio). Es material de uso interno del equipo
+# metodológico — no debe publicarse en GitHub bajo ninguna condición.
+outputs/
+
 # Backups puntuales (ej. fixes manuales de data con .bak_edad_fix)
 *.bak_edad_fix
 *.bak_*
