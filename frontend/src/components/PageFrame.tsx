@@ -15,6 +15,7 @@ type PageFrameProps = {
   bodyMode?: "scroll" | "fill";
   className?: string;
   resetScrollKey?: unknown;
+  density?: "normal" | "compact";
 };
 
 export function PageFrame({
@@ -26,6 +27,7 @@ export function PageFrame({
   bodyMode = "scroll",
   className,
   resetScrollKey,
+  density = "normal",
 }: PageFrameProps) {
   const headerRef = useRef<HTMLElement | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
@@ -33,6 +35,7 @@ export function PageFrame({
   const previousResetKeyRef = useRef(resetScrollKey);
   const classes = [
     "pulso-page-frame",
+    `pulso-page-frame--${density}`,
     className,
   ].filter(Boolean).join(" ");
 

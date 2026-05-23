@@ -31,16 +31,22 @@ type Props<K extends string = string> = {
   onChange: (key: K) => void;
   /** ariaLabel del container (ej. "Reportes disponibles"). */
   ariaLabel?: string;
+  variant?: "segmented" | "bar";
+  className?: string;
 };
 
 export function TabStrip<K extends string = string>({
-  tabs, active, onChange, ariaLabel,
+  tabs, active, onChange, ariaLabel, variant = "segmented", className,
 }: Props<K>) {
   return (
     <div
       role="tablist"
       aria-label={ariaLabel ?? "Tabs"}
-      className="pulso-tab-strip"
+      className={[
+        "pulso-tab-strip",
+        `pulso-tab-strip--${variant}`,
+        className,
+      ].filter(Boolean).join(" ")}
     >
       {tabs.map((t, i) => (
         <TabChip
@@ -73,7 +79,7 @@ function TabChip<K extends string = string>({
       aria-selected={active}
       aria-disabled={meta.disabled || undefined}
       disabled={meta.disabled}
-      title={meta.disabled ? meta.disabledReason : undefined}
+      title={meta.disabled ? meta.disabledReason : meta.desc}
       onClick={onClick}
       className={[
         "pulso-tab-chip",

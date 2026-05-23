@@ -36,11 +36,14 @@ type Props = {
    * "compact" = `8px 12px` para bandas secundarias.
    */
   density?: "normal" | "compact";
+  /** Tratamiento de superficie. `material` se reserva para command bars/nav. */
+  variant?: "solid" | "material";
   /**
    * ARIA label para lectores de pantalla. Ej. "Estado del autosave y
    * acciones de configuración".
    */
   ariaLabel?: string;
+  className?: string;
   /** Ref al div. Útil para medir o scrollar hacia él. */
   style?: React.CSSProperties;
 };
@@ -51,23 +54,28 @@ export function ContextBar({
   border,
   elevated = false,
   density = "normal",
+  variant = "material",
   ariaLabel,
+  className,
   style,
 }: Props) {
-  const pad = density === "compact" ? "8px 12px" : "10px 14px";
+  const cssVars = {
+    "--pulso-context-bg": background,
+    "--pulso-context-border": border,
+  } as React.CSSProperties;
+  const classes = [
+    "pulso-context-bar",
+    `pulso-context-bar--${density}`,
+    `pulso-context-bar--${variant}`,
+    elevated ? "is-elevated" : "",
+    className,
+  ].filter(Boolean).join(" ");
   return (
     <div
       aria-label={ariaLabel}
-      style={{
-        display: "flex", alignItems: "center", gap: 10,
-        flexWrap: "wrap",
-        padding: pad,
-        background: background ?? "var(--pulso-surface)",
-        border: border ?? "1px solid var(--pulso-border)",
-        borderRadius: 8,
-        boxShadow: elevated ? "var(--pulso-shadow-low)" : undefined,
-        ...style,
-      }}
+      role={ariaLabel ? "toolbar" : undefined}
+      className={classes}
+      style={{ ...cssVars, ...style }}
     >
       {children}
     </div>
@@ -81,12 +89,7 @@ export function ContextBarDivider() {
   return (
     <span
       aria-hidden="true"
-      style={{
-        width: 1, height: 22,
-        background: "var(--pulso-border)",
-        margin: "0 4px",
-        flexShrink: 0,
-      }}
+      className="pulso-context-bar-divider"
     />
   );
 }
