@@ -33,8 +33,6 @@ import CrossBar from "../components/CrossBar";
 //
 // El deep-link desde Limpieza (prefill.explorar.var) se consume al montar.
 
-const SIDEBAR_WIDTH = 300;
-
 export default function ExplorarTab() {
   const baseNombre = useValidacionStore((s) => s.baseNombre);
   const version = useValidacionStore((s) => s.version);
@@ -230,26 +228,9 @@ export default function ExplorarTab() {
   }
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: `${SIDEBAR_WIDTH}px 1fr`,
-        gap: 20,
-        alignItems: "start",
-      }}
-    >
+    <div className="pulso-validacion-explorar-layout">
       {/* --- Sidebar: picker --------------------------------------------- */}
-      <aside
-        style={{
-          background: "white",
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 10,
-          padding: 14,
-          boxShadow: "var(--pulso-shadow-low)",
-          position: "sticky",
-          top: 16,
-        }}
-      >
+      <aside className="pulso-validacion-explorar-sidebar">
         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 10 }}>
           Variables · {inv.n_variables}
         </div>
@@ -264,7 +245,7 @@ export default function ExplorarTab() {
       </aside>
 
       {/* --- Vista principal ---------------------------------------------- */}
-      <main style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+      <main className="pulso-validacion-explorar-main">
         {/* Toggle de fuente: data cruda vs final (tras Limpieza). */}
         <FuenteToggle
           fuente={fuente}
