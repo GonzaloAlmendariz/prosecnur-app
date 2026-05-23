@@ -381,24 +381,15 @@ export function PreguntasLanding() {
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-    <div>
+    <div className="pulso-codificacion-organizar">
       {/* Barra de navegación operativa: filtros agrupados + search. El
-          stepper de alto nivel vive en CodificacionPage; acá solo los
+          flujo de alto nivel vive en CodificacionPage; acá solo los
           controles del paso "Organizar". */}
-      <div
-        style={{
-          display: "flex", gap: 10, marginBottom: 16,
-          flexWrap: "wrap", alignItems: "center",
-          padding: 8,
-          background: "var(--pulso-surface)",
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 12,
-        }}
-      >
+      <div className="pulso-codificacion-organizar-toolbar">
         <div
           role="tablist"
           aria-label="Filtrar preguntas"
-          style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}
+          className="pulso-codificacion-filter-row"
         >
           <FilterChip
             label="Todas" count={counts.total}
@@ -421,7 +412,6 @@ export function PreguntasLanding() {
             active={filter === "codificadas"} onClick={() => setFilter("codificadas")}
           />
         </div>
-        <div style={{ flex: 1 }} />
         <SearchBar value={query} onChange={setQuery} />
       </div>
 
@@ -524,26 +514,7 @@ function SearchBar({
   onChange: (v: string) => void;
 }) {
   return (
-    <div
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 6,
-        padding: "4px 10px", borderRadius: 8,
-        border: "1px solid var(--pulso-border)",
-        background: "white",
-        minWidth: 280,
-        transition: "border-color 120ms ease, box-shadow 120ms ease",
-      }}
-      onFocusCapture={(e) => {
-        const parent = e.currentTarget;
-        parent.style.borderColor = "var(--pulso-primary-border)";
-        parent.style.boxShadow = "0 0 0 3px var(--pulso-primary-focus)";
-      }}
-      onBlurCapture={(e) => {
-        const parent = e.currentTarget;
-        parent.style.borderColor = "var(--pulso-border)";
-        parent.style.boxShadow = "none";
-      }}
-    >
+    <div className="pulso-codificacion-search">
       <Search size={13} color="var(--pulso-text-soft)" aria-hidden="true" />
       <input
         type="text"
@@ -551,12 +522,6 @@ function SearchBar({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Buscar por nombre, etiqueta o sección…"
         aria-label="Buscar preguntas"
-        style={{
-          flex: 1, minWidth: 0,
-          border: "none", outline: "none",
-          background: "transparent",
-          fontSize: 13, padding: "4px 0",
-        }}
       />
       {value && (
         <button
@@ -564,16 +529,7 @@ function SearchBar({
           onClick={() => onChange("")}
           aria-label="Limpiar búsqueda"
           title="Limpiar"
-          style={{
-            width: 20, height: 20, padding: 0,
-            border: "none", background: "transparent",
-            color: "var(--pulso-text-soft)",
-            cursor: "pointer",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            borderRadius: 4,
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--pulso-surface-2)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          className="pulso-codificacion-search-clear"
         >
           <XIcon size={12} />
         </button>
@@ -604,21 +560,9 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
   const codificadas = preguntas.filter((p) => p.status === "completo").length;
 
   return (
-    <section aria-labelledby={`sec-${id}`} style={{ marginBottom: 22 }}>
+    <section aria-labelledby={`sec-${id}`} className="pulso-codificacion-question-section">
       <header
-        style={{
-          position: "sticky",
-          top: 56,
-          zIndex: 2,
-          background: "var(--pulso-bg)",
-          padding: "10px 4px",
-          borderBottom: "1px solid var(--pulso-border)",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          marginBottom: 10,
-          cursor: "pointer",
-        }}
+        className="pulso-codificacion-section-head"
         onClick={onToggle}
       >
         {collapsed ? <ChevronRightIcon size={14} /> : <ChevronDown size={14} />}
@@ -632,7 +576,7 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
         </span>
       </header>
       {!collapsed && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
+        <div className="pulso-codificacion-question-grid">
           {preguntas.map((p) => (
             <PreguntaCard
               key={p.parent}
@@ -744,9 +688,10 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
       ? `2px dashed var(--drag-valid-border)`
       : "1px solid var(--pulso-border)",
     borderLeft: `4px solid ${ts.border}`,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 14,
-    background: dropOver ? "var(--drag-valid-bg)" : "white",
+    background: dropOver ? "var(--drag-valid-bg)" : "rgba(255, 255, 255, 0.96)",
+    boxShadow: dropOver ? "0 10px 24px rgba(0, 36, 87, 0.14)" : "var(--pulso-shadow-low)",
     display: "flex",
     flexDirection: "column",
     gap: 8,
@@ -757,7 +702,7 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     minHeight: 210,
     height: "100%",
     position: "relative",
-    transition: "background 120ms, border-color 120ms",
+    transition: "background 140ms ease-out, border-color 140ms ease-out, box-shadow 140ms ease-out, opacity 140ms ease-out",
     opacity: draggable.isDragging ? 0.4 : 1,
   };
   // Attach dnd-kit refs — una card puede ser AL MISMO TIEMPO draggable y

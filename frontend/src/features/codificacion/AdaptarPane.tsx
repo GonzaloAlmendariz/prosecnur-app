@@ -75,20 +75,9 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
   };
 
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <section className="pulso-codificacion-adaptar">
       {/* Header con totales */}
-      <div
-        style={{
-          background: "white",
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 8,
-          padding: 16,
-          display: "flex",
-          alignItems: "center",
-          gap: 20,
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="pulso-codificacion-adaptar-stats">
         <Stat label="Preguntas" value={t.n_preguntas} />
         <Divider />
         <Stat label="Variables nuevas" value={t.n_variables_nuevas} hint="Se agregan como *_recod al dataset" />
@@ -146,17 +135,7 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
 
       {/* Acciones */}
       {!output && (
-        <div
-          style={{
-            background: "var(--pulso-surface)",
-            borderRadius: 6,
-            padding: 14,
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
+        <div className="pulso-codificacion-adaptar-actions">
           <button type="button" onClick={onBackToCodificar} style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <ArrowLeft size={13} /> Volver a codificar
           </button>

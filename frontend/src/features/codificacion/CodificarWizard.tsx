@@ -139,10 +139,10 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(240px, 280px) 1fr", gap: 16, alignItems: "flex-start" }}>
+    <div className="pulso-codificacion-wizard">
       {/* Sidebar */}
-      <aside style={{ position: "sticky", top: 96, display: "flex", flexDirection: "column", gap: 4, maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)", marginBottom: 6, padding: "0 6px" }}>
+      <aside className="pulso-codificacion-wizard-sidebar">
+        <div className="pulso-codificacion-wizard-count">
           {marcadas.length} {marcadas.length === 1 ? "pregunta" : "preguntas"} para codificar
         </div>
         {marcadas.map((p) => (
@@ -153,24 +153,18 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
             onClick={() => setActiveParent(p.parent)}
           />
         ))}
-        <div style={{ marginTop: 14, padding: "0 6px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="pulso-codificacion-wizard-actions">
           <button
             type="button"
             onClick={onBackToOrganizar}
-            style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "center" }}
+            className="pulso-codificacion-soft-button"
           >
             <ArrowLeft size={12} /> Volver a organizar
           </button>
 
           {/* Autoguardado + atajos para compartir/respaldar progreso */}
           <div
-            style={{
-              marginTop: 10, padding: 12,
-              background: "var(--pulso-success-bg)",
-              border: "1px solid var(--pulso-success-border)",
-              borderRadius: 8,
-              display: "flex", flexDirection: "column", gap: 10,
-            }}
+            className="pulso-codificacion-autosave-card"
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-success-fg)", display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -185,18 +179,13 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
                 type="button"
                 onClick={onExportJson}
                 disabled={ioBusy === "export"}
-                style={{ fontSize: 11, padding: "5px 8px", display: "inline-flex", alignItems: "center", gap: 5, justifyContent: "center" }}
+                className="pulso-codificacion-soft-button"
                 title="Descarga el estado actual (draft de familias, grupos, marcadas)"
               >
                 <Download size={11} /> {ioBusy === "export" ? "Exportando…" : "Exportar JSON"}
               </button>
               <label
-                style={{
-                  fontSize: 11, padding: "5px 8px",
-                  display: "inline-flex", alignItems: "center", gap: 5, justifyContent: "center",
-                  cursor: ioBusy === "import" ? "wait" : "pointer",
-                  border: "1px solid var(--pulso-border)", borderRadius: 4, background: "white",
-                }}
+                className="pulso-codificacion-soft-button"
                 title="Restaura un estado previamente exportado"
               >
                 <Upload size={11} />
@@ -218,7 +207,7 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
       </aside>
 
       {/* Central */}
-      <main style={{ minWidth: 0 }}>
+      <main className="pulso-codificacion-wizard-main">
         {activePregunta ? (
           <CodificadorPane
             p={activePregunta}
@@ -249,20 +238,9 @@ function SidebarItem({ p, active, onClick }: { p: PreguntaAbierta; active: boole
     <button
       type="button"
       onClick={onClick}
-      style={{
-        display: "grid",
-        gridTemplateColumns: "4px 1fr",
-        gap: 8,
-        alignItems: "flex-start",
-        textAlign: "left",
-        padding: "6px 8px",
-        border: active ? "1px solid var(--pulso-primary)" : "1px solid var(--pulso-border)",
-        borderRadius: 6,
-        background: active ? "var(--pulso-primary-soft)" : "white",
-        cursor: "pointer",
-      }}
+      className={`pulso-codificacion-sidebar-question${active ? " is-active" : ""}`}
     >
-      <span style={{ width: 3, alignSelf: "stretch", background: ts.border, borderRadius: 2 }} />
+      <span className="pulso-codificacion-sidebar-question-accent" style={{ background: ts.border }} />
       <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
         <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: active ? "var(--pulso-primary)" : ts.fg }}>
           {p.parent}
@@ -314,16 +292,14 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
     arq === "config-so";
 
   return (
-    <section>
+    <section className="pulso-codificacion-coder-pane">
       {/* Header: misma jerarquía que el resto del app — h2 humano + code-pill
           del identifier del XLSForm + chip de tipo + sección. */}
-      <header style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
+      <header className="pulso-codificacion-coder-head">
         <span
+          className="pulso-codificacion-type-avatar"
           style={{
-            width: 34, height: 34, borderRadius: 8,
             background: ts.bg, color: ts.fg,
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0, fontSize: 11, fontWeight: 700,
             border: `1px solid ${ts.border}`,
           }}
           aria-hidden="true"
@@ -369,7 +345,7 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
       </header>
 
       {/* Nav prev/next con ghost-buttons consistentes */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+      <div className="pulso-codificacion-coder-nav">
         <button
           type="button"
           onClick={onPrev}

@@ -1,9 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Layers, Tags, Wand2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Database, FileSpreadsheet, Layers, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
+import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { PageFrame } from "../../components/PageFrame";
-import { Stepper, StepMeta } from "../../components/Stepper";
+import { StepMeta } from "../../components/Stepper";
+import { EmptyState } from "../../components/States";
 import { PreguntasLanding } from "./PreguntasLanding";
 import { CodificarWizard } from "./CodificarWizard";
 import { AdaptarPane } from "./AdaptarPane";
@@ -36,9 +38,15 @@ export default function CodificacionPage() {
     navigate({ pathname: "/codificacion", search: sp.toString() ? `?${sp}` : "" });
   }
 
+  const activeStepMeta = CODIFICACION_STEPS.find((s) => s.key === step) ?? CODIFICACION_STEPS[0];
+  const ActiveIcon = activeStepMeta.icon;
+  const activeBaseName = codifSource.active && codifSource.active !== "default" ? codifSource.active : "Base única";
+
   return (
     <PageFrame
       title="Fase 3 - Codificación"
+      className="pulso-codificacion-frame"
+      density="compact"
       resetScrollKey={step}
       lead={
         step === "organizar"
@@ -48,42 +56,85 @@ export default function CodificacionPage() {
           : "Revisa la adaptación y descarga los archivos finales."
       }
       toolbar={
-        <>
-          {prereqOk && codifSource.options.length > 1 && (
-            <BaseSelector source={codifSource} />
-          )}
-
-          {prereqOk && (
-            <Stepper<Step>
-              steps={CODIFICACION_STEPS}
-              current={step}
-              onChange={goStep}
-              ariaLabel="Fases de la codificación"
+        <div className="pulso-codificacion-toolbar-stack">
+          <ContextBar
+            ariaLabel="Contexto de codificación"
+            className="pulso-codificacion-commandbar"
+            elevated
+          >
+            <CodificacionStatusSummary
+              hasXlsform={!!state?.xlsform}
+              hasData={!!state?.data}
+              prereqOk={prereqOk}
+              applied={!!state?.codif_aplicado}
+              bases={state?.n_bases ?? codifSource.options.length}
+              step={step}
             />
-          )}
+
+            {prereqOk && codifSource.options.length > 1 && (
+              <>
+                <ContextBarDivider />
+                <BaseSelector source={codifSource} />
+              </>
+            )}
+          </ContextBar>
 
           {!prereqOk && (
             <Alert kind="warn">Necesitas cargar el XLSForm y la base de datos en <strong>1. Carga</strong> antes de codificar.</Alert>
           )}
-        </>
+        </div>
       }
     >
-      {/* `key={codifActive}` fuerza el remount de los hijos cuando
-          el analista cambia la base activa. Cada hijo tiene sus propios
-          useEffect([]) que refetchean familias/preguntas/columnas del
-          backend; al remontarse cargan el estado scoped de la base
-          nueva sin tener que refactorear 8 archivos con listeners. */}
-      {prereqOk && step === "organizar" && (
-        <PreguntasLanding key={codifActive} />
-      )}
+      <section className={`pulso-codificacion-shell pulso-split-view${!prereqOk ? " is-empty" : ""}`}>
+        <CodificacionModeSidebar
+          active={step}
+          onChange={goStep}
+          disabled={!prereqOk}
+        />
 
-      {prereqOk && step === "codificar" && (
-        <CodificarWizard key={codifActive} onBackToOrganizar={() => goStep("organizar")} />
-      )}
+        <main
+          id="codificacion-panel"
+          className="pulso-codificacion-content pulso-content-area"
+          role="tabpanel"
+          aria-labelledby={`codificacion-step-${step}`}
+        >
+          {!prereqOk ? (
+            <EmptyState
+              icon={<FileSpreadsheet size={20} />}
+              title="Carga insumos para codificar"
+              hint="La codificación se habilita cuando la sesión tiene un XLSForm y una base de datos cargados."
+            />
+          ) : (
+            <>
+              <header className="pulso-codificacion-panel-head">
+                <span aria-hidden="true" className="pulso-codificacion-panel-icon">
+                  <ActiveIcon size={17} />
+                </span>
+                <div className="pulso-codificacion-panel-copy">
+                  <span className="pulso-section-eyebrow">Paso actual</span>
+                  <h2>{activeStepMeta.label}</h2>
+                  {activeStepMeta.hint && <p>{activeStepMeta.hint}</p>}
+                </div>
+                <span className="pulso-codificacion-base-current">
+                  <Database size={12} />
+                  {activeBaseName}
+                </span>
+              </header>
 
-      {prereqOk && step === "adaptar" && (
-        <AdaptarPane key={codifActive} onBackToCodificar={() => goStep("codificar")} />
-      )}
+              <div className="pulso-codificacion-panel-body">
+                {/* `key={codifActive}` fuerza el remount de los hijos cuando
+                    el analista cambia la base activa. Cada hijo tiene sus propios
+                    useEffect([]) que refetchean familias/preguntas/columnas del
+                    backend; al remontarse cargan el estado scoped de la base
+                    nueva sin tener que refactorear 8 archivos con listeners. */}
+                {step === "organizar" && <PreguntasLanding key={codifActive} />}
+                {step === "codificar" && <CodificarWizard key={codifActive} onBackToOrganizar={() => goStep("organizar")} />}
+                {step === "adaptar" && <AdaptarPane key={codifActive} onBackToCodificar={() => goStep("codificar")} />}
+              </div>
+            </>
+          )}
+        </main>
+      </section>
     </PageFrame>
   );
 }
@@ -97,27 +148,12 @@ function BaseSelector({ source }: { source: ReturnType<typeof useCodifSource> })
   const { active, options, loading, setActive } = source;
   if (options.length <= 1) return null;
   return (
-    <div
-      style={{
-        marginBottom: 16,
-        padding: "10px 14px",
-        borderRadius: "var(--pulso-radius)",
-        background: "var(--pulso-primary-soft)",
-        border: "1px solid var(--pulso-primary-border)",
-        display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-      }}
-    >
-      <Layers size={16} color="var(--pulso-primary)" />
-      <div style={{ flex: 1, minWidth: 200 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-primary)" }}>
-          Codificando la base:
-        </div>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.4 }}>
-          Cada base tiene su propio progreso de codificación (familias, grupos, plantilla).
-          Al cambiar verás el estado guardado de la otra base.
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+    <div className="pulso-codificacion-base-selector">
+      <span className="pulso-codificacion-base-label">
+        <Layers size={13} />
+        Base
+      </span>
+      <div className="pulso-codificacion-base-list">
         {options.map((src) => {
           const isActive = src === active;
           return (
@@ -126,14 +162,7 @@ function BaseSelector({ source }: { source: ReturnType<typeof useCodifSource> })
               type="button"
               disabled={loading}
               onClick={() => setActive(src)}
-              style={{
-                fontSize: 12, fontWeight: 600,
-                padding: "6px 12px", borderRadius: 999,
-                border: `1px solid ${isActive ? "var(--pulso-primary)" : "var(--pulso-primary-border)"}`,
-                background: isActive ? "var(--pulso-primary)" : "white",
-                color: isActive ? "white" : "var(--pulso-primary)",
-                cursor: loading ? "wait" : "pointer",
-              }}
+              className={`pulso-codificacion-base-chip${isActive ? " is-active" : ""}`}
             >
               {src}
             </button>
@@ -144,9 +173,110 @@ function BaseSelector({ source }: { source: ReturnType<typeof useCodifSource> })
   );
 }
 
-// Definición de los 3 pasos del flujo de codificación. El componente
-// visual vive en `components/Stepper.tsx` — unificado con otras fases
-// que tengan flujos lineales.
+function CodificacionStatusSummary({
+  hasXlsform,
+  hasData,
+  prereqOk,
+  applied,
+  bases,
+  step,
+}: {
+  hasXlsform: boolean;
+  hasData: boolean;
+  prereqOk: boolean;
+  applied: boolean;
+  bases: number;
+  step: Step;
+}) {
+  const readyLabel =
+    step === "codificar" ? "Lista para codificar" :
+    step === "adaptar" ? "Lista para adaptar" :
+    "Lista para organizar";
+  return (
+    <div className="pulso-codificacion-status" aria-label="Estado de la codificación">
+      <CodificacionStatusPill label="XLSForm" done={hasXlsform} />
+      <CodificacionStatusPill label="Data" done={hasData} />
+      <span className={`pulso-codificacion-status-pill${applied ? " is-done" : ""}`}>
+        {applied ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
+        {applied ? "Codificación aplicada" : prereqOk ? readyLabel : "En espera"}
+      </span>
+      {bases > 1 && (
+        <span className="pulso-codificacion-status-pill">
+          <Database size={13} />
+          {bases} bases
+        </span>
+      )}
+    </div>
+  );
+}
+
+function CodificacionStatusPill({ label, done }: { label: string; done: boolean }) {
+  return (
+    <span className={`pulso-codificacion-status-pill${done ? " is-done" : ""}`}>
+      <span aria-hidden="true" className="pulso-codificacion-status-dot" />
+      {label}
+    </span>
+  );
+}
+
+function CodificacionModeSidebar({
+  active,
+  onChange,
+  disabled,
+}: {
+  active: Step;
+  onChange: (step: Step) => void;
+  disabled: boolean;
+}) {
+  return (
+    <aside className="pulso-codificacion-sidebar pulso-sidebar" aria-label="Pasos de codificación">
+      <div className="pulso-codificacion-sidebar-head">
+        <span className="pulso-section-eyebrow">Codificación</span>
+        <strong>{disabled ? "Pendiente" : "Flujo de trabajo"}</strong>
+      </div>
+      <div
+        role="tablist"
+        aria-label="Pasos de codificación"
+        aria-orientation="vertical"
+        className="pulso-codificacion-nav"
+      >
+        {CODIFICACION_STEPS.map((item) => {
+          const Icon = item.icon;
+          const isActive = active === item.key;
+          return (
+            <button
+              key={item.key}
+              id={`codificacion-step-${item.key}`}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              aria-controls="codificacion-panel"
+              disabled={disabled}
+              onClick={() => onChange(item.key)}
+              className={`pulso-codificacion-nav-item${isActive ? " is-active" : ""}`}
+            >
+              <span className="pulso-codificacion-nav-index">{item.n}</span>
+              <span aria-hidden="true" className="pulso-codificacion-nav-icon">
+                <Icon size={15} />
+              </span>
+              <span className="pulso-codificacion-nav-copy">
+                <strong>{item.label}</strong>
+                {item.hint && <span>{item.hint}</span>}
+              </span>
+              {isActive && !disabled && (
+                <span className="pulso-codificacion-nav-current">
+                  <CheckCircle2 size={12} />
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </aside>
+  );
+}
+
+// Definición de los 3 pasos del flujo de codificación.
 const CODIFICACION_STEPS: StepMeta<Step>[] = [
   { key: "organizar", n: 1, label: "Organizar", icon: Layers, hint: "Emparejar y marcar" },
   { key: "codificar", n: 2, label: "Codificar", icon: Tags,   hint: "Agrupar respuestas" },
