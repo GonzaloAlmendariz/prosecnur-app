@@ -138,7 +138,7 @@ export function GraficosHeader({
   }, [pptFileId, docxFileId, pptFilename, docxFilename, exportBusy, project.status.path]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
+    <div className="pulso-gv2-command-header">
       {/* Banda 1: contexto del plan + acciones de config/plantillas. */}
       <ContextBar
         ariaLabel="Estado del plan y acciones de configuración"
@@ -162,6 +162,7 @@ export function GraficosHeader({
         <button
           type="button"
           onClick={() => setTemplatesOpen(true)}
+          className="pulso-gv2-pill-button pulso-gv2-pill-button--soft"
           style={{
             fontSize: 11, padding: "5px 10px",
             display: "inline-flex", alignItems: "center", gap: 5,
@@ -184,6 +185,7 @@ export function GraficosHeader({
           type="button"
           onClick={onResetClick}
           disabled={nSlides === 0}
+          className="pulso-gv2-pill-button pulso-gv2-pill-button--danger"
           style={{
             fontSize: 11, padding: "5px 10px",
             display: "inline-flex", alignItems: "center", gap: 5,
@@ -202,7 +204,7 @@ export function GraficosHeader({
         <button
           type="button"
           onClick={() => setEstiloOpen(true)}
-          className="pulso-gv2-estilo-trigger"
+          className="pulso-gv2-estilo-trigger pulso-gv2-pill-button"
           title="Configurar presets, paletas, íconos y modos para todos los slides"
         >
           <Settings2 size={13} /> Estilo global
@@ -221,7 +223,7 @@ export function GraficosHeader({
         <ContextBarDivider />
 
         <button
-          className="pulso-primary"
+          className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary"
           onClick={onExportPpt}
           disabled={!canExportFinal || exportBusy}
           style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
@@ -232,6 +234,7 @@ export function GraficosHeader({
         {pptFileId && !exportBusy && (
           <a
             href={downloadUrl(pptFileId)}
+            className="pulso-gv2-download-pill"
             style={{
               fontSize: 12, fontWeight: 600, textDecoration: "none",
               display: "inline-flex", alignItems: "center", gap: 4,
@@ -244,7 +247,7 @@ export function GraficosHeader({
         )}
 
         <button
-          className="pulso-primary"
+          className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary"
           onClick={onExportWord}
           disabled={!canExportFinal || exportBusy}
           style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
@@ -255,6 +258,7 @@ export function GraficosHeader({
         {docxFileId && !exportBusy && (
           <a
             href={downloadUrl(docxFileId)}
+            className="pulso-gv2-download-pill"
             style={{
               fontSize: 12, fontWeight: 600, textDecoration: "none",
               display: "inline-flex", alignItems: "center", gap: 4,
@@ -312,6 +316,7 @@ function DebugPhToggle() {
       <button
         type="button"
         onClick={() => setDebugPh({ activo: !active })}
+        className="pulso-gv2-pill-button"
         title={active ? "Ocultar bordes" : "Mostrar bordes"}
         style={{
           fontSize: 11, padding: "5px 10px",
@@ -340,7 +345,7 @@ function DebugPhToggle() {
       <button
         type="button"
         onClick={() => setPopoverOpen((v) => !v)}
-        className="pulso-icon"
+        className="pulso-icon pulso-gv2-icon-button"
         aria-label="Opciones de bordes"
         title="Color y grosor de los bordes"
         style={{ minWidth: 22, minHeight: 22 }}
@@ -436,6 +441,7 @@ function UndoRedoButtons() {
         type="button"
         onClick={undo}
         disabled={past.length === 0}
+        className="pulso-gv2-icon-button"
         title={past.length === 0
           ? "Nada que deshacer"
           : `Deshacer (${mod}+Z) — ${past.length} ${past.length === 1 ? "acción disponible" : "acciones disponibles"}`}
@@ -457,6 +463,7 @@ function UndoRedoButtons() {
         type="button"
         onClick={redo}
         disabled={future.length === 0}
+        className="pulso-gv2-icon-button"
         title={future.length === 0
           ? "Nada que rehacer"
           : `Rehacer (${mod}+Shift+Z) — ${future.length} ${future.length === 1 ? "acción disponible" : "acciones disponibles"}`}

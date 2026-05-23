@@ -19,7 +19,7 @@ export function ModeToolbar() {
     <div className="pulso-gv2-mode-toolbar" role="toolbar" aria-label="Modo de vista del editor">
       <button
         type="button"
-        className={`pulso-gv2-density-toggle ${density === "compact" ? "is-on" : ""}`}
+        className={`pulso-gv2-density-toggle pulso-gv2-pill-button ${density === "compact" ? "is-on" : ""}`}
         onClick={() => setDensity(density === "comfortable" ? "compact" : "comfortable")}
         title={density === "compact" ? "Cambiar a vista cómoda" : "Cambiar a vista compacta"}
         aria-pressed={density === "compact"}
@@ -30,7 +30,7 @@ export function ModeToolbar() {
 
       <span className="pulso-gv2-mode-spacer" />
 
-      <div className="pulso-gv2-mode-tabs" role="tablist">
+      <div className="pulso-gv2-mode-tabs pulso-gv2-segmented" role="tablist">
         {MODES.map(({ key, label, Icon, hint }) => (
           <button
             key={key}

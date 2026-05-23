@@ -263,7 +263,7 @@ function ContentTabBody({ slide, args, updatePayload, variables }: {
     );
   }
   return (
-    <section style={{ maxWidth: 640 }}>
+    <section className="pulso-gv2-config-section">
       {groupArgs(args).map(({ grupo, args: gargs }) => (
         <ArgGroup
           key={grupo}
@@ -308,7 +308,7 @@ function DataTabBody({ slide, args, updatePayload, variables, slotNames }: {
 
       {/* Otros args de datos no-slot */}
       {args.length > 0 && (
-        <section style={{ maxWidth: 640 }}>
+        <section className="pulso-gv2-config-section">
           {groupArgs(args).map(({ grupo, args: gargs }) => (
             <ArgGroup
               key={grupo}

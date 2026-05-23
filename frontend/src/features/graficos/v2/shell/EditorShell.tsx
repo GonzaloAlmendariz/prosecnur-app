@@ -18,7 +18,7 @@ export function EditorShell() {
     <div className="pulso-gv2-shell">
       <ModeToolbar />
 
-      <div className="pulso-gv2-shell-body">
+      <div className={`pulso-gv2-shell-body is-${viewMode}`}>
         {viewMode === "timeline" && (
           <>
             <TimelinePanelV2 />

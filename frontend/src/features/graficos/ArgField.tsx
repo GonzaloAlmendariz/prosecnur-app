@@ -64,11 +64,14 @@ export function ArgField({
   // Si el arg está heredado y no tiene valor propio, mostramos el
   // valor del preset en el input pero con styling gris.
   const isInherited = argState === "inherited";
-  const hasOwnValue = value !== undefined && value !== null && value !== "";
+  const hasOwnValue = value !== undefined && value !== null && (value !== "" || allowsEmptyStringValue(meta));
   const displayValue: ArgValue = hasOwnValue ? value : inheritedValue;
 
   return (
     <label
+      className="pulso-arg-field"
+      data-arg-name={meta.name}
+      data-arg-type={meta.tipo_input}
       data-arg-state={argState}
       style={{
         display: "flex", flexDirection: "column", gap: 4, marginBottom: 10,
@@ -79,6 +82,10 @@ export function ArgField({
       <FieldControl meta={meta} value={displayValue} onChange={onChange} variables={variables} />
     </label>
   );
+}
+
+function allowsEmptyStringValue(meta: ArgMetadata): boolean {
+  return meta.tipo_input === "string" || meta.tipo_input === "textarea";
 }
 
 // ---- Header con label + tooltip info ------------------------------------
@@ -136,6 +143,7 @@ function FieldHeader({ meta, argState, onReset }: { meta: ArgMetadata; argState:
       {(isCustom || isFromMode) && onReset && (
         <button
           type="button"
+          className="pulso-gv2-field-reset"
           onClick={(e) => { e.preventDefault(); onReset(); }}
           title={isCustom ? "Restaurar al valor del preset" : "Quitar este arg del modo (volver al preset)"}
           aria-label="Restaurar al preset"
@@ -191,15 +199,7 @@ function FieldControl({
       return <VarsListPicker value={(value as string[]) ?? []} onChange={(v) => onChange(v)} />;
 
     case "string":
-      return (
-        <input
-          type="text"
-          value={(value as string) ?? ""}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={meta.descripcion ? undefined : "(opcional)"}
-          style={inputStyle}
-        />
-      );
+      return <StringControl meta={meta} value={(value as string) ?? ""} onChange={onChange} />;
 
     case "textarea":
       return (
@@ -282,6 +282,57 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
 };
 
+function StringControl({
+  meta,
+  value,
+  onChange,
+}: {
+  meta: ArgMetadata;
+  value: string;
+  onChange: (v: ArgValue) => void;
+}) {
+  const presets = quickStringPresetsFor(meta.name);
+  return (
+    <div className="pulso-gv2-string-control">
+      <div className="pulso-gv2-text-input-wrap">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={meta.descripcion ? undefined : "(opcional)"}
+          style={inputStyle}
+        />
+        {value !== "" && (
+          <button
+            type="button"
+            className="pulso-gv2-field-clear"
+            onClick={(e) => { e.preventDefault(); onChange(""); }}
+            aria-label={`Limpiar ${meta.label}`}
+            title="Limpiar"
+          >
+            <XIcon size={12} />
+          </button>
+        )}
+      </div>
+      {presets.length > 0 && (
+        <div className="pulso-gv2-quick-presets" aria-label={`Atajos para ${meta.label}`}>
+          {presets.map((preset) => (
+            <button
+              key={`${meta.name}-${preset.label}`}
+              type="button"
+              className="pulso-arg-preset-button"
+              onClick={(e) => { e.preventDefault(); onChange(preset.value); }}
+              aria-pressed={value === preset.value}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NumberControl({
   meta,
   value,
@@ -346,7 +397,7 @@ function NumberControl({
   const relatedHint = getRelatedHint(meta.name);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: controlWidth }}>
+    <div className="pulso-gv2-number-control" style={{ maxWidth: controlWidth }}>
       <div style={{ display: "flex", alignItems: "stretch", gap: 4 }}>
         <button
           type="button"
@@ -430,23 +481,13 @@ function NumberControl({
       )}
 
       {presets.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+        <div className="pulso-gv2-quick-presets">
           {presets.map((preset) => (
             <button
               key={`${preset.label}-${preset.value}`}
               type="button"
               className="pulso-arg-preset-button"
               onClick={(e) => { e.preventDefault(); update(preset.value); }}
-              style={{
-                padding: "3px 7px",
-                borderRadius: 999,
-                border: "1px solid var(--pulso-border)",
-                background: "white",
-                color: "var(--pulso-text-soft)",
-                fontSize: 10.5,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
             >
               {preset.label}
             </button>
@@ -587,6 +628,17 @@ function quickPresetsFor(name: string): { label: string; value: number }[] {
   return [];
 }
 
+function quickStringPresetsFor(name: string): { label: string; value: string }[] {
+  if (name === "prefijo_barra_extra" || name === "prefijo_n_sobre_barras") {
+    return [
+      { label: "Vacío", value: "" },
+      { label: "N =", value: "N = " },
+      { label: "Base:", value: "Base: " },
+    ];
+  }
+  return [];
+}
+
 const stepButtonStyle: React.CSSProperties = {
   width: 28,
   border: "1px solid var(--pulso-border)",
@@ -603,6 +655,7 @@ function BoolToggle({ value, onChange }: { value: boolean; onChange: (v: boolean
   return (
     <button
       type="button"
+      className={`pulso-gv2-switch ${value ? "is-on" : ""}`}
       onClick={() => onChange(!value)}
       role="switch"
       aria-checked={value}
@@ -618,6 +671,7 @@ function BoolToggle({ value, onChange }: { value: boolean; onChange: (v: boolean
       }}
     >
       <span
+        className="pulso-gv2-switch-track"
         style={{
           width: 24, height: 12, borderRadius: 999,
           background: value ? "var(--pulso-primary)" : "var(--pulso-border)",
@@ -626,6 +680,7 @@ function BoolToggle({ value, onChange }: { value: boolean; onChange: (v: boolean
         }}
       >
         <span
+          className="pulso-gv2-switch-thumb"
           style={{
             position: "absolute",
             top: 1, left: value ? 13 : 1,
@@ -651,13 +706,14 @@ function ChoicePills({
 }) {
   const choices = meta.choices ?? [];
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+    <div className="pulso-gv2-choice-pills">
       {choices.map((c) => {
         const active = value === c.value;
         return (
           <button
             key={c.value}
             type="button"
+            className={`pulso-gv2-choice-pill ${active ? "is-active" : ""}`}
             onClick={() => onChange(c.value)}
             title={c.hint}
             style={{

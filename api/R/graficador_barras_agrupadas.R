@@ -248,6 +248,7 @@ graficar_barras_agrupadas <- function(
 ) {
 
   `%||%` <- function(x, y) if (!is.null(x)) x else y
+  prefijo_barra_extra <- prefijo_barra_extra %||% ""
   hjust_from_pos <- function(x) switch(x, "izquierda" = 0, "centro" = 0.5, "derecha" = 1, 0.5)
 
   # deps minimas

@@ -1214,7 +1214,7 @@ graficar_barras_apiladas <- function(
         if (!length(cols_sel)) cols_sel <- .default_top2(cols_porcentaje, etiquetas_grupos)
 
         df_wide_extra$valor_extra <- rowSums(as.matrix(base_mat[, cols_sel, drop = FALSE]), na.rm = TRUE)
-        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "TOP TWO BOX"
+        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "TOP 2 BOX"
 
       } else if (barra_extra_preset == "top3box") {
 
@@ -1222,7 +1222,7 @@ graficar_barras_apiladas <- function(
         if (!length(cols_sel)) cols_sel <- .default_top3(cols_porcentaje, etiquetas_grupos)
 
         df_wide_extra$valor_extra <- rowSums(as.matrix(base_mat[, cols_sel, drop = FALSE]), na.rm = TRUE)
-        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "TOP THREE BOX"
+        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "TOP 3 BOX"
 
       } else if (barra_extra_preset == "bottom2box") {
 
@@ -1230,7 +1230,7 @@ graficar_barras_apiladas <- function(
         if (!length(cols_sel)) cols_sel <- .default_bottom2(cols_porcentaje, etiquetas_grupos)
 
         df_wide_extra$valor_extra <- rowSums(as.matrix(base_mat[, cols_sel, drop = FALSE]), na.rm = TRUE)
-        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "BOTTOM TWO BOX"
+        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "BOTTOM 2 BOX"
       }
 
       df_wide_extra$valor_extra <- df_wide_extra$valor_extra * 100

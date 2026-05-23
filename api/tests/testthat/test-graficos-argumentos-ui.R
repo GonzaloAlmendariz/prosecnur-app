@@ -61,6 +61,27 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_match(by_name$leyenda_posicion$label, "leyenda")
 })
 
+test_that("preset Pulso deja la barra extra configurable y con defaults neutros", {
+  payload <- .presets_metadata_payload()
+  presets <- stats::setNames(payload$presets, vapply(payload$presets, `[[`, character(1), "name"))
+
+  apiladas_names <- vapply(presets$barras_apiladas$args, `[[`, character(1), "name")
+  multi_names <- vapply(presets$multi_apiladas$args, `[[`, character(1), "name")
+  agrupadas_names <- vapply(presets$barras_agrupadas$args, `[[`, character(1), "name")
+
+  expect_true("barra_extra_preset" %in% apiladas_names)
+  expect_true("titulo_barra_extra" %in% apiladas_names)
+  expect_true("prefijo_barra_extra" %in% apiladas_names)
+  expect_true("barra_extra_preset" %in% multi_names)
+  expect_true("titulo_barra_extra" %in% multi_names)
+  expect_true("titulo_barra_extra" %in% agrupadas_names)
+
+  expect_identical(.PRESETS_DEFAULT_PULSO$barras_apiladas$prefijo_barra_extra, "")
+  expect_identical(.PRESETS_DEFAULT_PULSO$barras_agrupadas$prefijo_barra_extra, "")
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_agrupadas$canvas_w_etiquetas, 0.22)
+  expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$titulo_tabla, "TOP 2 BOX")
+})
+
 test_that("metadata principal no expone editores tecnicos JSON", {
   registry <- .graficos_registry_payload()
   exposed <- unlist(lapply(registry$graficadores, function(g) {
@@ -120,4 +141,68 @@ test_that("leyenda_posicion cambia el placeholder de leyenda en canvas", {
   i_bottom <- png::readPNG(f_bottom)
   i_top <- png::readPNG(f_top)
   expect_gt(sum(abs(i_bottom - i_top)), 10000)
+})
+
+test_that("PPT usa textos pulidos para selección múltiple y Top 2 Box", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    x1 = c(1, 2, 3, 4, 4, 3),
+    x2 = c(2, 3, 3, 4, 4, 4),
+    m1 = c("1", "1 2", "2", "1", "2", "1 2"),
+    stringsAsFactors = FALSE
+  )
+  inst <- list(
+    survey = data.frame(
+      name = c("x1", "x2", "m1"),
+      type = c("select_one", "select_one", "select_multiple"),
+      list_name = c("lst_likert", "lst_likert", "lst_multi"),
+      label = c("Indicador 1", "Indicador 2", "Pregunta múltiple"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c(rep("lst_likert", 4), rep("lst_multi", 2)),
+      name = c("1", "2", "3", "4", "1", "2"),
+      label = c("Nada", "Bajo", "Alto", "Muy alto", "Opción A", "Opción B"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = list(
+      lst_likert = c("1", "2", "3", "4"),
+      lst_multi = c("1", "2")
+    )
+  )
+
+  plan <- p_plan(slides = list(
+    p_slide_1_grafico(
+      titulo = "Top 2",
+      grafico = p_barras_multiapiladas(
+        modo = "var",
+        vars = c("x1", "x2"),
+        top2box = TRUE,
+        top2box_labels = c("Alto", "Muy alto")
+      )
+    ),
+    p_slide_1_grafico(
+      titulo = "Múltiple",
+      grafico = p_barras_agrupadas("m1")
+    )
+  ))
+
+  out <- tempfile(fileext = ".pptx")
+  reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = plan,
+    presets = do.call(p_presets, .PRESETS_DEFAULT_PULSO),
+    path_ppt = out,
+    mensajes_progreso = FALSE
+  )
+
+  slide_files <- grep("^ppt/slides/slide[0-9]+\\.xml$", unzip(out, list = TRUE)$Name, value = TRUE)
+  xml <- paste(unlist(lapply(unzip(out, files = slide_files, exdir = tempdir()), readLines, warn = FALSE)), collapse = " ")
+
+  expect_true(grepl("TOP 2 BOX", xml, fixed = TRUE))
+  expect_false(grepl("N =", xml, fixed = TRUE))
+  expect_true(grepl("Pregunta de opción múltiple", xml, fixed = TRUE))
 })

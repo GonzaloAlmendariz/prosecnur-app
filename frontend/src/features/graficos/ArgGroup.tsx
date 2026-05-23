@@ -94,7 +94,6 @@ export function ArgGroup({
   const normalizedGrupo = normalizeArgGroup(grupo);
   const meta = GRUPO_META[normalizedGrupo];
   const [open, setOpen] = useState(meta.defaultOpen);
-  const [hover, setHover] = useState(false);
   const toggleOpen = () => setOpen((v) => !v);
 
   if (args.length === 0) return null;
@@ -131,15 +130,11 @@ export function ArgGroup({
 
   return (
     <div
-      style={{
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 6,
-        background: "var(--pulso-surface)",
-        marginBottom: 8,
-      }}
+      className={`pulso-gv2-arg-group ${open ? "is-open" : ""}`}
     >
       <button
         type="button"
+        className="pulso-gv2-arg-group-trigger"
         onMouseDown={(e) => {
           if (e.button !== 0) return;
           e.preventDefault();
@@ -156,21 +151,11 @@ export function ArgGroup({
           e.stopPropagation();
           toggleOpen();
         }}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
         aria-expanded={open}
-        style={{
-          width: "100%", textAlign: "left",
-          padding: "9px 10px",
-          display: "flex", alignItems: "flex-start", gap: 7,
-          background: hover || open ? "var(--pulso-surface-2)" : "transparent",
-          border: "none", cursor: "pointer",
-          borderRadius: open ? "5px 5px 0 0" : 5,
-          transition: "background 120ms ease",
-        }}
       >
         <span style={{ display: "flex", alignItems: "flex-start", gap: 7, minWidth: 0, flex: 1 }}>
           <span
+            className="pulso-gv2-arg-chevron"
             style={{
               display: "inline-flex",
               marginTop: 2,
@@ -192,6 +177,7 @@ export function ArgGroup({
           </span>
         </span>
         <span
+          className={`pulso-gv2-arg-count ${nValuados > 0 ? "has-value" : ""}`}
           title={nValuados > 0 ? `${nValuados} con valor · ${args.length - nValuados} vacíos` : `${args.length} args sin valor`}
           style={{
             marginLeft: "auto",
@@ -209,7 +195,7 @@ export function ArgGroup({
         </span>
       </button>
       {open && (
-        <div style={{ padding: "10px 12px", background: "white", borderTop: "1px solid var(--pulso-border)" }}>
+        <div className="pulso-gv2-arg-body">
           {args.map((a) => (
             <ArgField
               key={a.name}

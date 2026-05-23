@@ -1912,7 +1912,7 @@ reporte_ppt_plan <- function(
         base_args$top2box_labels <- el$top2box_labels
       }
       if (is.null(base_args$titulo_barra_extra) || !nzchar(base_args$titulo_barra_extra)) {
-        base_args$titulo_barra_extra <- "TOP TWO BOX"
+        base_args$titulo_barra_extra <- "TOP 2 BOX"
       }
 
       base_args
@@ -2714,7 +2714,7 @@ reporte_ppt_plan <- function(
         mask <- !is.na(ctx_v$survey$name) & ctx_v$survey$name == ctx_v$var
         tps  <- unique(stats::na.omit(ctx_v$survey$type[mask]))
         if (any(grepl("^select_multiple(\\s|$)", tps))) {
-          overrides$subtitulo <- "Pregunta de opcion multiple"
+          overrides$subtitulo <- "Pregunta de opción múltiple"
         }
       }
     }

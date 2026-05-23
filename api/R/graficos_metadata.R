@@ -789,10 +789,21 @@
       list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "color", grupo = "estilo",
            descripcion = "Hex del color de la barra extra. Ej. '#39588B'."),
       list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo"),
+      list(name = "barra_extra_preset",   label = "Qué muestra la barra extra", tipo_input = "choice", grupo = "estilo",
+           choices = list(
+             list(value = "ninguno",   label = "Base / N"),
+             list(value = "totales",   label = "Total"),
+             list(value = "top2box",   label = "Top 2 box"),
+             list(value = "top3box",   label = "Top 3 box"),
+             list(value = "bottom2box",label = "Bottom 2 box")
+           ),
+           descripcion = "Define si la columna extra muestra la base o un indicador agregado como Top 2 Box."),
       list(name = "size_titulo_extra",    label = "Tamaño título de la columna extra", tipo_input = "number", grupo = "estilo",
-           descripcion = "Tamaño del título que va encima de la barra extra (ej. 'TOP 2')."),
+           descripcion = "Tamaño del título que va encima de la barra extra (ej. 'TOP 2 BOX')."),
+      list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos",
+           descripcion = "Texto que aparece encima de la columna extra. Déjalo vacío para usar el título automático del indicador."),
       list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos",
-           descripcion = "Texto antes del valor de la barra extra. Ej. 'N = ' → 'N = 120'."),
+           descripcion = "Texto antes del valor de la barra extra. Déjalo vacío para mostrar solo el valor; ej. 'N = ' → 'N = 120'."),
       list(name = "size_titulos_grupo",   label = "Tamaño títulos de grupo", tipo_input = "number", grupo = "estilo",
            descripcion = "Tamaño de los títulos de bloque cuando se usan varias variables agrupadas."),
 
@@ -921,6 +932,15 @@
 
       # --- Barra extra ---------------------------------------------------
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo"),
+      list(name = "barra_extra_preset",   label = "Qué muestra la barra extra", tipo_input = "choice", grupo = "estilo",
+           choices = list(
+             list(value = "ninguno",   label = "Base / N"),
+             list(value = "totales",   label = "Total"),
+             list(value = "top2box",   label = "Top 2 box"),
+             list(value = "top3box",   label = "Top 3 box"),
+             list(value = "bottom2box",label = "Bottom 2 box")
+           )),
+      list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos"),
       list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos"),
       list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "color", grupo = "estilo"),
 
@@ -995,7 +1015,10 @@
 
       # --- Barra extra (menos común acá) ---------------------------------
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo"),
-      list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos"),
+      list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos",
+           descripcion = "Texto que rotula la columna extra cuando se muestra."),
+      list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos",
+           descripcion = "Texto antes del valor extra. Déjalo vacío para mostrar solo el valor."),
       list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo"),
       list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo"),
 
@@ -1004,7 +1027,7 @@
       list(name = "wrap_y",               label = "Wrap eje Y",            tipo_input = "number", grupo = "filtro"),
 
       # --- Canvas ---------------------------------------------------------
-      list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas", default = 0.15),
+      list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas", default = 0.22),
       list(name = "canvas_w_buf_etq_bars",  label = "Espacio etiquetas→barras", tipo_input = "number", grupo = "canvas", default = 0.02),
       list(name = "canvas_w_bars",          label = "Ancho zona de barras",   tipo_input = "number", grupo = "canvas", default = 0.58),
       list(name = "canvas_w_buf_bars_extra",label = "Espacio barras→extra",   tipo_input = "number", grupo = "canvas"),
@@ -1249,7 +1272,7 @@
       # --- Tabla derecha: existencia + contenido ------------------------
       list(name = "mostrar_tabla_derecha",label = "Mostrar tabla a la derecha", tipo_input = "bool", grupo = "tabla", default = TRUE),
       list(name = "titulo_tabla",         label = "Título de la tabla",    tipo_input = "string", grupo = "tabla",
-           default = "TOP TWO BOX"),
+           default = "TOP 2 BOX"),
       list(name = "tabla_digits",         label = "Decimales en tabla",    tipo_input = "number", grupo = "tabla", default = 0),
       list(name = "umbral_rojo_pct",      label = "Umbral rojo (%)",       tipo_input = "number", grupo = "tabla", default = 60,
            descripcion = "Celdas por debajo de este porcentaje se marcan en rojo. 0 = deshabilitado."),
@@ -1512,7 +1535,7 @@
     size_barra_extra         = 10,
     size_titulo_extra        = 10,
     ancho_max_eje_y          = 15,
-    prefijo_barra_extra      = "N = ",
+    prefijo_barra_extra      = "",
 
     color_texto_barras       = "white",
     size_titulos_grupo       = 10,
@@ -1520,7 +1543,7 @@
   ),
 
   multi_apiladas = list(
-    canvas_w_etiquetas       = 0.15,
+    canvas_w_etiquetas       = 0.22,
     canvas_w_bars            = 0.60,
     canvas_w_extra           = 0.10,
 
@@ -1544,7 +1567,7 @@
   ),
 
   barras_agrupadas = list(
-    canvas_w_etiquetas       = 0.15,
+    canvas_w_etiquetas       = 0.22,
     canvas_w_buf_etq_bars    = 0.02,
     canvas_w_bars            = 0.58,
     canvas_w_buf_bars_extra  = 0.02,
@@ -1564,7 +1587,7 @@
     umbral_posicion          = 0.07,
 
     mostrar_barra_extra      = FALSE,
-    prefijo_barra_extra      = "N = ",
+    prefijo_barra_extra      = "",
 
     mostrar_leyenda          = FALSE,
     invertir_barras          = TRUE,
@@ -1664,7 +1687,7 @@
     textos_negrita           = c("ejes", "leyenda"),
 
     mostrar_tabla_derecha    = TRUE,
-    titulo_tabla             = "TOP TWO BOX",
+    titulo_tabla             = "TOP 2 BOX",
     umbral_rojo_pct          = 60,
     tabla_digits             = 0,
     tabla_padding_mm         = 10,
@@ -1757,7 +1780,7 @@
       canvas_h_toprow_in = 0.08,
       canvas_h_header_in = 0.64,
       canvas_h_caption_in = 0.04,
-      canvas_w_etiquetas = 0.28
+      canvas_w_etiquetas = 0.22
     )
   ),
   list(
@@ -1775,7 +1798,7 @@
       mostrar_barra_extra = FALSE,
       canvas_w_extra = 0,
       canvas_w_buf_bars_extra = 0,
-      canvas_w_etiquetas = 0.26
+      canvas_w_etiquetas = 0.20
     )
   ),
   # --- Pie ---

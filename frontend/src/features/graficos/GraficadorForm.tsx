@@ -42,6 +42,10 @@ function hasArgValue(value: unknown): boolean {
     !(Array.isArray(value) && value.length === 0);
 }
 
+function allowsEmptyStringOverride(meta: ArgMetadata | undefined): boolean {
+  return meta?.tipo_input === "string" || meta?.tipo_input === "textarea";
+}
+
 function sameValue(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
@@ -104,6 +108,12 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
     return new Set(presetMeta?.args.map((a) => a.name) ?? []);
   }, [presetMeta]);
 
+  const argsByName = useMemo(() => {
+    const map: Record<string, ArgMetadata> = {};
+    for (const arg of expandedArgs) map[arg.name] = arg;
+    return map;
+  }, [expandedArgs]);
+
   const slotArgs = useMemo<Record<string, unknown>>(() => asRecord(graf.args), [graf.args]);
 
   // argState por arg: para args del preset, calculamos según overrides
@@ -112,7 +122,7 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
   const currentOverrides = useMemo<Record<string, unknown>>(() => {
     const merged: Record<string, unknown> = {};
     for (const [name, value] of Object.entries(asRecord(slotArgs.overrides))) {
-      if (!hasArgValue(value)) continue;
+      if (!hasArgValue(value) && !(value === "" && allowsEmptyStringOverride(argsByName[name]))) continue;
       if (presetArgNames.has(name) && sameValue(value, presetValues[name])) continue;
       merged[name] = value;
     }
@@ -124,13 +134,13 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
     for (const name of presetArgNames) {
       if (name in merged) continue;
       const topLevelValue = slotArgs[name];
-      if (!hasArgValue(topLevelValue)) continue;
+      if (!hasArgValue(topLevelValue) && !(topLevelValue === "" && allowsEmptyStringOverride(argsByName[name]))) continue;
       if (sameValue(topLevelValue, presetValues[name])) continue;
       merged[name] = topLevelValue;
     }
 
     return merged;
-  }, [presetArgNames, presetValues, slotArgs]);
+  }, [argsByName, presetArgNames, presetValues, slotArgs]);
 
   const appliedMode = useMemo(() => {
     if (!presetType) return null;
@@ -218,7 +228,8 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
       // Si el valor coincide con el del preset, lo borramos (vuelve a heredado)
       const presetVal = presetValues[name];
       const isSameAsPreset = sameValue(value, presetVal);
-      if (value === null || value === undefined || value === "" || isSameAsPreset) {
+      const isEmptyStringOverride = value === "" && allowsEmptyStringOverride(argsByName[name]);
+      if (value === null || value === undefined || (!isEmptyStringOverride && value === "") || isSameAsPreset) {
         delete next[name];
       } else {
         next[name] = value;
