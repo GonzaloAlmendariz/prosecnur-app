@@ -23,6 +23,7 @@ import {
   uploadKindForDataFile,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
+import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { Panel } from "../../components/Panel";
 import { PageFrame } from "../../components/PageFrame";
 import { LoadingBlock, ErrorBlock, EmptyState, SectionEyebrow } from "../../components/States";
@@ -289,6 +290,8 @@ export default function CargaPage() {
     <PageFrame
       title="Fase 1 - Carga de insumos"
       lead="Sube un XLSForm y la base de datos para preparar el estudio."
+      className="pulso-carga-frame"
+      density="compact"
       meta={
         allReady ? (
           <SaveStatusIndicator state="saved" variant="badge" savedLabel="Insumos listos" />
@@ -297,51 +300,64 @@ export default function CargaPage() {
         ) : undefined
       }
       toolbar={
-        <MultiBaseToggle
-          on={isMultiBase}
-          canTurnOff={isMultiBase && (state?.n_bases ?? 0) <= 1}
-          bases={state?.n_bases ?? 0}
-          disabled={!!busy}
-          onTurnOn={async () => {
-            setError("");
-            setBusy("Activando modo de varias bases…");
-            try {
-              if (hasXlsform && hasData) {
-                // Hay archivos single-base — los promovemos a base_1.
-                await apiEstudioFromSession();
-                const p = await apiEstudioGet();
-                setEstudio(p);
-                setAutoOpenAddBase(true);
-              } else {
-                // Todavía no hay archivos — creamos un estudio vacío.
-                // El BasesPanel renderiza con su form "Agregar base"
-                // listo para que el usuario suba su primera base.
-                const p = await apiEstudioInit();
-                setEstudio(p);
-                setAutoOpenAddBase(true);
+        <ContextBar
+          ariaLabel="Estado de carga y modo del estudio"
+          className="pulso-carga-commandbar"
+          elevated
+        >
+          <CargaCommandSummary
+            hasXlsform={hasXlsform}
+            hasData={hasData}
+            pendingChoiceMapping={pendingChoiceMapping}
+            allReady={allReady}
+          />
+          <ContextBarDivider />
+          <MultiBaseToggle
+            on={isMultiBase}
+            canTurnOff={isMultiBase && (state?.n_bases ?? 0) <= 1}
+            bases={state?.n_bases ?? 0}
+            disabled={!!busy}
+            onTurnOn={async () => {
+              setError("");
+              setBusy("Activando modo de varias bases…");
+              try {
+                if (hasXlsform && hasData) {
+                  // Hay archivos single-base — los promovemos a base_1.
+                  await apiEstudioFromSession();
+                  const p = await apiEstudioGet();
+                  setEstudio(p);
+                  setAutoOpenAddBase(true);
+                } else {
+                  // Todavía no hay archivos — creamos un estudio vacío.
+                  // El BasesPanel renderiza con su form "Agregar base"
+                  // listo para que el usuario suba su primera base.
+                  const p = await apiEstudioInit();
+                  setEstudio(p);
+                  setAutoOpenAddBase(true);
+                }
+                await refresh();
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy("");
               }
-              await refresh();
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setBusy("");
-            }
-          }}
-          onTurnOff={async () => {
-            setError("");
-            setBusy("Volviendo a una sola base…");
-            try {
-              await apiEstudioDowngradeToSingle();
-              setEstudio(null);
-              setAutoOpenAddBase(false);
-              await refresh();
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setBusy("");
-            }
-          }}
-        />
+            }}
+            onTurnOff={async () => {
+              setError("");
+              setBusy("Volviendo a una sola base…");
+              try {
+                await apiEstudioDowngradeToSingle();
+                setEstudio(null);
+                setAutoOpenAddBase(false);
+                await refresh();
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy("");
+              }
+            }}
+          />
+        </ContextBar>
       }
     >
       {(busy || error) && (
@@ -365,17 +381,32 @@ export default function CargaPage() {
           usuario puede agregar, quitar, renombrar y volver a la carga
           simple si queda 1 sola base. */}
       {isMultiBase && estudio && (
-        <BasesPanel
-          estudio={estudio}
-          onChanged={onEstudioChanged}
-          autoOpenAdd={autoOpenAddBase}
-          onAutoOpenConsumed={() => setAutoOpenAddBase(false)}
-          onDowngraded={async () => {
-            setAutoOpenAddBase(false);
-            setEstudio(null);
-            await refresh();
-          }}
-        />
+        <section className="pulso-upload-section pulso-carga-workbench pulso-split-view">
+          <CargaStageRail
+            hasXlsform={hasXlsform}
+            hasData={hasData}
+            pendingChoiceMapping={pendingChoiceMapping}
+            allReady={allReady}
+            isMultiBase={isMultiBase}
+            bases={state?.n_bases ?? 0}
+            instrumento={instrumento}
+            dataPreview={dataPreview}
+            estructura={estructura}
+          />
+          <div className="pulso-carga-content pulso-content-area pulso-carga-content--multi">
+            <BasesPanel
+              estudio={estudio}
+              onChanged={onEstudioChanged}
+              autoOpenAdd={autoOpenAddBase}
+              onAutoOpenConsumed={() => setAutoOpenAddBase(false)}
+              onDowngraded={async () => {
+                setAutoOpenAddBase(false);
+                setEstudio(null);
+                await refresh();
+              }}
+            />
+          </div>
+        </section>
       )}
 
       {/* Sección 1 — LOS DOS INSUMOS (single-base). Solo se muestra si
@@ -383,157 +414,171 @@ export default function CargaPage() {
           BasesPanel ya cubre la carga de insumos. */}
       {!isMultiBase && (
       <>
-      <section className="pulso-upload-section">
-        <div className="pulso-upload-section-head">
-          <SectionEyebrow
-            label="Tus dos insumos"
-            hint="Carga primero el XLSForm y después la data. Pulso usa el formulario para normalizar nombres, reconstruir select_multiple y validar compatibilidad antes de procesar reportes."
-          />
-        </div>
+      <section className="pulso-upload-section pulso-carga-workbench pulso-split-view">
+        <CargaStageRail
+          hasXlsform={hasXlsform}
+          hasData={hasData}
+          pendingChoiceMapping={pendingChoiceMapping}
+          allReady={allReady}
+          isMultiBase={isMultiBase}
+          bases={state?.n_bases ?? 0}
+          instrumento={instrumento}
+          dataPreview={dataPreview}
+          estructura={estructura}
+        />
 
-        <div className="pulso-upload-grid">
-          <UploadCard
-            kind="xlsform"
-            icon={FileSpreadsheet}
-            title="1. XLSForm (instrumento)"
-            hint="El formulario que usaste en ODK / KoBo / SurveyCTO. Describe las preguntas, opciones, secciones y reglas del estudio."
-            whatIs={
-              <>
-                Es un archivo <strong>Excel (.xlsx)</strong> con una estructura especial:
-                una hoja <code>survey</code> con las preguntas y una <code>choices</code>{" "}
-                con las opciones. Sin este archivo, la app no sabe qué variables significan qué.
-              </>
-            }
-            accept=".xlsx,.xls"
-            acceptLabel="Solo Excel (.xlsx)"
-            done={hasXlsform}
-            busy={!!busy}
-            disabled={!!busy}
-            resumen={instrumento && (
-              <>
-                <ResumenStat label="Preguntas" value={instrumento.n_preguntas} />
-                {(instrumento.n_calculos ?? 0) > 0 && (
-                  <ResumenStat label="Cálculos" value={instrumento.n_calculos ?? 0} />
-                )}
-                <ResumenStat label="Secciones" value={instrumento.n_secciones} />
-                <ResumenStat label="Listas de opciones" value={instrumento.n_listas_opciones} />
-              </>
-            )}
-            onPick={(file) => onPick("xlsform", file)}
-            onRemove={() => onQuitar("xlsform")}
+        <div className="pulso-carga-content pulso-content-area">
+          <div className="pulso-upload-section-head pulso-carga-content-head">
+            <SectionEyebrow
+              label="Tus dos insumos"
+              hint="Carga primero el XLSForm y después la data. Pulso usa el formulario para normalizar nombres, reconstruir select_multiple y validar compatibilidad antes de procesar reportes."
           />
+          </div>
 
-          <UploadCard
-            kind="data"
-            icon={Database}
-            title="2. Base de datos"
-            hint={hasXlsform
-              ? "Las respuestas de los encuestados. Se validarán contra el XLSForm ya cargado."
-              : "Primero carga el XLSForm para activar la data y evitar normalización silenciosa."}
-            whatIs={
-              <>
-                Es el resultado de tu trabajo de campo. Acepta <strong>Excel (.xlsx)</strong>,{" "}
-                <strong>CSV</strong> o <strong>SPSS (.sav)</strong>. Los nombres de columna deben
-                coincidir con los <code>name</code> del XLSForm.
-              </>
-            }
-            accept=".xlsx,.xls,.csv,.sav,application/x-spss-sav,application/octet-stream"
-            acceptLabel=".xlsx · .csv · .sav"
-            done={hasData}
-            busy={!!busy}
-            disabled={!!busy || !hasXlsform}
-            disabledHint="Disponible después de cargar el XLSForm"
-            resumen={dataPreview && (
-              <>
-                <ResumenStat label="Filas" value={dataPreview.n_filas} />
-                <ResumenStat label="Columnas" value={dataPreview.n_columnas} />
-                <div className="pulso-upload-normalizacion">
-                  {dataPreview.normalizacion?.applied
-                    ? (
-                      <>
-                        Normalización aplicada · {dataPreview.normalizacion.aliases} alias
-                        {dataPreview.normalizacion.select_multiple > 0
-                          ? ` · ${dataPreview.normalizacion.select_multiple} select_multiple reconstruido(s)`
-                          : ""}
-                        {(dataPreview.normalizacion.single_child_collapses ?? 0) > 0
-                          ? ` · ${dataPreview.normalizacion.single_child_collapses} escala(s) colapsada(s)`
-                          : ""}
-                        {typeof dataPreview.normalizacion.extra_columns === "number" && dataPreview.normalizacion.extra_columns > 0
-                          ? ` · ${dataPreview.normalizacion.extra_columns} columna(s) técnica(s) al final`
-                          : ""}
-                        {dataPreview.normalizacion.choice_code_maps?.applied
-                          ? ` · ${dataPreview.normalizacion.choice_code_maps.n_questions} mapeo(s) SAV-XLSForm`
-                          : ""}
-                      </>
-                    )
-                    : "Normalización pendiente: se activa después de cargar el XLSForm"}
-                </div>
-                {choiceMappingReviewFromPreview(dataPreview) && (
-                  <div className={`pulso-choice-map-inline${dataPreview.normalizacion?.choice_code_maps?.requires_confirmation ? " needs-review" : ""}`}>
-                    <span aria-hidden="true" className="pulso-choice-map-inline-icon">
-                      <ArrowRightLeft size={13} />
-                    </span>
-                    <span>
-                      {dataPreview.normalizacion?.choice_code_maps?.requires_confirmation
-                        ? "Pulso detectó las mismas etiquetas con códigos distintos entre SM/SAV y el XLSForm. Confirma cómo recodificar la data antes de validar."
-                        : "Mapeo SAV -> XLSForm confirmado para esta data."}
-                    </span>
-                    <button
-                      type="button"
-                      className="pulso-choice-map-inline-button"
-                      onClick={() => setChoiceMappingReview(choiceMappingReviewFromPreview(dataPreview))}
-                    >
-                      {dataPreview.normalizacion?.choice_code_maps?.requires_confirmation ? "Revisar" : "Ver mapeo"}
-                    </button>
+          <div className="pulso-upload-grid">
+            <UploadCard
+              kind="xlsform"
+              icon={FileSpreadsheet}
+              title="1. XLSForm (instrumento)"
+              hint="El formulario que usaste en ODK / KoBo / SurveyCTO. Describe las preguntas, opciones, secciones y reglas del estudio."
+              whatIs={
+                <>
+                  Es un archivo <strong>Excel (.xlsx)</strong> con una estructura especial:
+                  una hoja <code>survey</code> con las preguntas y una <code>choices</code>{" "}
+                  con las opciones. Sin este archivo, la app no sabe qué variables significan qué.
+                </>
+              }
+              accept=".xlsx,.xls"
+              acceptLabel="Solo Excel (.xlsx)"
+              done={hasXlsform}
+              busy={!!busy}
+              disabled={!!busy}
+              resumen={instrumento && (
+                <>
+                  <ResumenStat label="Preguntas" value={instrumento.n_preguntas} />
+                  {(instrumento.n_calculos ?? 0) > 0 && (
+                    <ResumenStat label="Cálculos" value={instrumento.n_calculos ?? 0} />
+                  )}
+                  <ResumenStat label="Secciones" value={instrumento.n_secciones} />
+                  <ResumenStat label="Listas de opciones" value={instrumento.n_listas_opciones} />
+                </>
+              )}
+              onPick={(file) => onPick("xlsform", file)}
+              onRemove={() => onQuitar("xlsform")}
+            />
+
+            <UploadCard
+              kind="data"
+              icon={Database}
+              title="2. Base de datos"
+              hint={hasXlsform
+                ? "Las respuestas de los encuestados. Se validarán contra el XLSForm ya cargado."
+                : "Primero carga el XLSForm para activar la data y evitar normalización silenciosa."}
+              whatIs={
+                <>
+                  Es el resultado de tu trabajo de campo. Acepta <strong>Excel (.xlsx)</strong>,{" "}
+                  <strong>CSV</strong> o <strong>SPSS (.sav)</strong>. Los nombres de columna deben
+                  coincidir con los <code>name</code> del XLSForm.
+                </>
+              }
+              accept=".xlsx,.xls,.csv,.sav,application/x-spss-sav,application/octet-stream"
+              acceptLabel=".xlsx · .csv · .sav"
+              done={hasData}
+              busy={!!busy}
+              disabled={!!busy || !hasXlsform}
+              disabledHint="Disponible después de cargar el XLSForm"
+              resumen={dataPreview && (
+                <>
+                  <ResumenStat label="Filas" value={dataPreview.n_filas} />
+                  <ResumenStat label="Columnas" value={dataPreview.n_columnas} />
+                  <div className="pulso-upload-normalizacion">
+                    {dataPreview.normalizacion?.applied
+                      ? (
+                        <>
+                          Normalización aplicada · {dataPreview.normalizacion.aliases} alias
+                          {dataPreview.normalizacion.select_multiple > 0
+                            ? ` · ${dataPreview.normalizacion.select_multiple} select_multiple reconstruido(s)`
+                            : ""}
+                          {(dataPreview.normalizacion.single_child_collapses ?? 0) > 0
+                            ? ` · ${dataPreview.normalizacion.single_child_collapses} escala(s) colapsada(s)`
+                            : ""}
+                          {typeof dataPreview.normalizacion.extra_columns === "number" && dataPreview.normalizacion.extra_columns > 0
+                            ? ` · ${dataPreview.normalizacion.extra_columns} columna(s) técnica(s) al final`
+                            : ""}
+                          {dataPreview.normalizacion.choice_code_maps?.applied
+                            ? ` · ${dataPreview.normalizacion.choice_code_maps.n_questions} mapeo(s) SAV-XLSForm`
+                            : ""}
+                        </>
+                      )
+                      : "Normalización pendiente: se activa después de cargar el XLSForm"}
                   </div>
-                )}
-                {normalizationDetails.length > 0 && (
-                  <details className="pulso-normalization-details">
-                    <summary>Ver normalización</summary>
-                    <ul>
-                      {normalizationDetails.map((row, i) => (
-                        <li key={i}>{row}</li>
-                      ))}
-                    </ul>
-                  </details>
-                )}
-                {dataPreview.compatibilidad?.applied && (
-                  <div className={`pulso-upload-compat ${dataPreview.compatibilidad.ok ? "is-ok" : "is-bad"}`}>
-                    {dataPreview.compatibilidad.ok ? "Compatible con XLSForm" : "Incompatible con XLSForm"}
-                    {typeof dataPreview.compatibilidad.expected_columns === "number"
-                      ? ` · ${dataPreview.compatibilidad.matched_columns}/${dataPreview.compatibilidad.expected_columns} variables`
-                      : ""}
-                    {(dataPreview.compatibilidad.n_missing ?? dataPreview.compatibilidad.missing_columns.length) > 0
-                      ? ` · faltan ${dataPreview.compatibilidad.missing_columns.slice(0, 6).join(", ")}`
-                      : ""}
-                    {(dataPreview.compatibilidad.n_extra ?? dataPreview.compatibilidad.extra_columns.length) > 0
-                      ? ` · ${dataPreview.compatibilidad.n_extra ?? dataPreview.compatibilidad.extra_columns.length} extra permitida(s)`
-                      : ""}
-                  </div>
-                )}
-                {dataPreview.columnas.length > 0 && (
-                  <details className="pulso-column-details">
-                    <summary>
-                      Ver columnas ({dataPreview.columnas.length})
-                    </summary>
-                    <ul>
-                      {dataPreview.columnas.map((c, i) => (
-                        <li key={i}>
-                          <code>{c.nombre}</code>{" "}
-                          <em>({c.tipo})</em>
-                          {c.origen === "extra" && (
-                            <span className="pulso-column-extra">extra</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                )}
-              </>
-            )}
-            onPick={(file) => onPick("data", file)}
-            onRemove={() => onQuitar("data")}
-          />
+                  {choiceMappingReviewFromPreview(dataPreview) && (
+                    <div className={`pulso-choice-map-inline${dataPreview.normalizacion?.choice_code_maps?.requires_confirmation ? " needs-review" : ""}`}>
+                      <span aria-hidden="true" className="pulso-choice-map-inline-icon">
+                        <ArrowRightLeft size={13} />
+                      </span>
+                      <span>
+                        {dataPreview.normalizacion?.choice_code_maps?.requires_confirmation
+                          ? "Pulso detectó las mismas etiquetas con códigos distintos entre SM/SAV y el XLSForm. Confirma cómo recodificar la data antes de validar."
+                          : "Mapeo SAV -> XLSForm confirmado para esta data."}
+                      </span>
+                      <button
+                        type="button"
+                        className="pulso-choice-map-inline-button"
+                        onClick={() => setChoiceMappingReview(choiceMappingReviewFromPreview(dataPreview))}
+                      >
+                        {dataPreview.normalizacion?.choice_code_maps?.requires_confirmation ? "Revisar" : "Ver mapeo"}
+                      </button>
+                    </div>
+                  )}
+                  {normalizationDetails.length > 0 && (
+                    <details className="pulso-normalization-details">
+                      <summary>Ver normalización</summary>
+                      <ul>
+                        {normalizationDetails.map((row, i) => (
+                          <li key={i}>{row}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                  {dataPreview.compatibilidad?.applied && (
+                    <div className={`pulso-upload-compat ${dataPreview.compatibilidad.ok ? "is-ok" : "is-bad"}`}>
+                      {dataPreview.compatibilidad.ok ? "Compatible con XLSForm" : "Incompatible con XLSForm"}
+                      {typeof dataPreview.compatibilidad.expected_columns === "number"
+                        ? ` · ${dataPreview.compatibilidad.matched_columns}/${dataPreview.compatibilidad.expected_columns} variables`
+                        : ""}
+                      {(dataPreview.compatibilidad.n_missing ?? dataPreview.compatibilidad.missing_columns.length) > 0
+                        ? ` · faltan ${dataPreview.compatibilidad.missing_columns.slice(0, 6).join(", ")}`
+                        : ""}
+                      {(dataPreview.compatibilidad.n_extra ?? dataPreview.compatibilidad.extra_columns.length) > 0
+                        ? ` · ${dataPreview.compatibilidad.n_extra ?? dataPreview.compatibilidad.extra_columns.length} extra permitida(s)`
+                        : ""}
+                    </div>
+                  )}
+                  {dataPreview.columnas.length > 0 && (
+                    <details className="pulso-column-details">
+                      <summary>
+                        Ver columnas ({dataPreview.columnas.length})
+                      </summary>
+                      <ul>
+                        {dataPreview.columnas.map((c, i) => (
+                          <li key={i}>
+                            <code>{c.nombre}</code>{" "}
+                            <em>({c.tipo})</em>
+                            {c.origen === "extra" && (
+                              <span className="pulso-column-extra">extra</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </>
+              )}
+              onPick={(file) => onPick("data", file)}
+              onRemove={() => onQuitar("data")}
+            />
+          </div>
         </div>
 
         {/* El botón "+ Agregar otra base" se eliminó — ahora la
@@ -545,11 +590,12 @@ export default function CargaPage() {
 
       {/* Inspección del instrumento */}
       {state?.instrumento_parsed && estructura && (
-        <>
+        <section className="pulso-carga-inspection" aria-label="Inspección del instrumento">
           <Panel
             eyebrow="Instrumento"
             title="Mapa de secciones"
             hint="Cada fila es una sección del XLSForm con su lógica de visibilidad (relevant)."
+            className="pulso-carga-inspection-panel"
           >
             <SeccionesPanel secciones={estructura.secciones} />
           </Panel>
@@ -557,10 +603,11 @@ export default function CargaPage() {
             eyebrow="Instrumento"
             title="Mapa del instrumento"
             hint="Distingue preguntas respondidas, variables calculadas y reglas declaradas en el XLSForm."
+            className="pulso-carga-inspection-panel"
           >
             <PreguntasPanel preguntas={estructura.preguntas} secciones={estructura.secciones} />
           </Panel>
-        </>
+        </section>
       )}
 
       {/* CTA de continuar cuando todo está listo */}
@@ -578,6 +625,145 @@ export default function CargaPage() {
 // =====================================================================
 // Upload card — dropzone unificada con estado visual
 // =====================================================================
+function CargaCommandSummary({
+  hasXlsform,
+  hasData,
+  pendingChoiceMapping,
+  allReady,
+}: {
+  hasXlsform: boolean;
+  hasData: boolean;
+  pendingChoiceMapping: boolean;
+  allReady: boolean;
+}) {
+  const reviewLabel = pendingChoiceMapping ? "Mapeo pendiente" : allReady ? "Listo para validar" : "En preparación";
+  return (
+    <div className="pulso-carga-command-summary" aria-label="Resumen de carga">
+      <CargaCommandPill label="XLSForm" done={hasXlsform} />
+      <CargaCommandPill label="Data" done={hasData} />
+      <span className={`pulso-carga-command-review${allReady ? " is-ready" : pendingChoiceMapping ? " needs-review" : ""}`}>
+        <ShieldCheck size={13} />
+        {reviewLabel}
+      </span>
+    </div>
+  );
+}
+
+function CargaCommandPill({ label, done }: { label: string; done: boolean }) {
+  return (
+    <span className={`pulso-carga-command-pill${done ? " is-done" : ""}`}>
+      <span aria-hidden="true" className="pulso-carga-command-dot" />
+      {label}
+    </span>
+  );
+}
+
+function CargaStageRail({
+  hasXlsform,
+  hasData,
+  pendingChoiceMapping,
+  allReady,
+  isMultiBase,
+  bases,
+  instrumento,
+  dataPreview,
+  estructura,
+}: {
+  hasXlsform: boolean;
+  hasData: boolean;
+  pendingChoiceMapping: boolean;
+  allReady: boolean;
+  isMultiBase: boolean;
+  bases: number;
+  instrumento: InstrumentoResumen | null;
+  dataPreview: DataPreview | null;
+  estructura: { secciones: Seccion[]; preguntas: Pregunta[] } | null;
+}) {
+  const xlsformMeta = instrumento
+    ? `${instrumento.n_preguntas} preguntas · ${instrumento.n_secciones} secciones`
+    : hasXlsform
+    ? "Instrumento cargado"
+    : "Pendiente";
+  const dataMeta = dataPreview
+    ? `${dataPreview.n_filas} filas · ${dataPreview.n_columnas} columnas`
+    : hasData
+    ? "Data cargada"
+    : hasXlsform
+    ? "Lista para cargar"
+    : "Espera el XLSForm";
+  const reviewTone = pendingChoiceMapping ? "warning" : allReady ? "ready" : "pending";
+  const reviewMeta = pendingChoiceMapping
+    ? "Requiere confirmar mapeo"
+    : allReady
+    ? "Compatible para Validación"
+    : estructura
+    ? `${estructura.secciones.length} secciones detectadas`
+    : "Se activa con ambos insumos";
+
+  return (
+    <aside className="pulso-carga-stage-rail pulso-sidebar" aria-label="Estado de la carga">
+      <div className="pulso-carga-stage-head">
+        <span className="pulso-carga-stage-kicker">Ruta de carga</span>
+        <strong>{allReady ? "Insumos listos" : "Preparando estudio"}</strong>
+      </div>
+      <div className="pulso-carga-stage-list">
+        <CargaStageItem
+          icon={FileSpreadsheet}
+          title="XLSForm"
+          meta={xlsformMeta}
+          tone={hasXlsform ? "ready" : "pending"}
+          index="1"
+        />
+        <CargaStageItem
+          icon={Database}
+          title="Base de datos"
+          meta={dataMeta}
+          tone={hasData ? "ready" : "pending"}
+          index="2"
+        />
+        <CargaStageItem
+          icon={ShieldCheck}
+          title="Revisión"
+          meta={reviewMeta}
+          tone={reviewTone}
+          index="3"
+        />
+      </div>
+      <div className={`pulso-carga-stage-mode${isMultiBase ? " is-on" : ""}`}>
+        <span>{isMultiBase ? "Varias bases" : "Una base"}</span>
+        <strong>{isMultiBase ? `${bases} base${bases === 1 ? "" : "s"}` : "Flujo simple"}</strong>
+      </div>
+    </aside>
+  );
+}
+
+function CargaStageItem({
+  icon: Icon,
+  title,
+  meta,
+  tone,
+  index,
+}: {
+  icon: IconCmp;
+  title: string;
+  meta: string;
+  tone: "ready" | "pending" | "warning";
+  index: string;
+}) {
+  return (
+    <div className={`pulso-carga-stage-item is-${tone}`}>
+      <span className="pulso-carga-stage-index">{index}</span>
+      <span aria-hidden="true" className="pulso-carga-stage-icon">
+        <Icon size={15} />
+      </span>
+      <span className="pulso-carga-stage-copy">
+        <strong>{title}</strong>
+        <span>{meta}</span>
+      </span>
+    </div>
+  );
+}
+
 function UploadCard({
   kind, icon: Icon, title, hint, whatIs, accept, acceptLabel, done, busy, disabled, disabledHint, resumen, onPick, onRemove,
 }: {
