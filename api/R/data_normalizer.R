@@ -25,8 +25,8 @@
   if (!is.na(ln) && nzchar(trimws(ln))) return(trimws(ln))
   tp <- trimws(as.character(row$type %||% "")[1])
   if (grepl("^select_(one|multiple)\\b", tp)) {
-    out <- sub("^select_(one|multiple)\\s+([^\\s]+).*$", "\\2", tp)
-    if (!identical(out, tp) && nzchar(out)) return(out)
+    m <- regmatches(tp, regexec("^select_(?:one|multiple)\\s+(\\S+)", tp, perl = TRUE))[[1]]
+    if (length(m) >= 2L && nzchar(m[2])) return(m[2])
   }
   NA_character_
 }
@@ -35,6 +35,298 @@
   candidates <- c("label", "label::es", "label::Spanish (ES)", "label_spanish_es")
   hit <- candidates[candidates %in% names(choices)][1]
   hit %||% NA_character_
+}
+
+.dn_is_other_label <- function(x) {
+  x_norm <- .dn_norm_text(x)
+  nzchar(x_norm) & grepl("\\b(otro|otra|other|especificar|specify)\\b", x_norm, perl = TRUE)
+}
+
+.dn_source_code_from_column <- function(col, parent) {
+  col <- as.character(col %||% "")[1]
+  parent <- as.character(parent %||% "")[1]
+  if (!nzchar(col) || !nzchar(parent)) return(NA_character_)
+  pat <- paste0("^", .dn_escape_regex(parent), "([_/.])(.+)$")
+  if (!grepl(pat, col, perl = TRUE)) return(NA_character_)
+  suffix <- sub(pat, "\\2", col, perl = TRUE)
+  suffix <- sub("^0+([0-9]+)$", "\\1", suffix)
+  if (!nzchar(suffix)) "0" else suffix
+}
+
+.dn_alias_source_column <- function(col, aliases = character()) {
+  col <- as.character(col %||% "")[1]
+  if (!nzchar(col) || !length(aliases)) return(col)
+  src <- unname(aliases[[col]] %||% NA_character_)
+  if (!is.na(src) && nzchar(src)) src else col
+}
+
+.dn_choice_map_payload <- function(parent, row, list_name, type_kind, items) {
+  if (!length(items)) return(NULL)
+  mismatched <- vapply(items, function(x) {
+    !identical(as.character(x$source_code %||% ""), as.character(x$xls_code %||% ""))
+  }, logical(1))
+  weak <- vapply(items, function(x) {
+    !(as.character(x$match %||% "") %in% c("label", "label_unique"))
+  }, logical(1))
+  if (!any(mismatched) && !any(weak)) return(NULL)
+  label <- as.character(row$label %||% parent)[1]
+  list(
+    variable = parent,
+    label = label,
+    type = type_kind,
+    list_name = list_name,
+    status = if (any(mismatched)) "order_or_code_mismatch" else "match_review",
+    high_confidence = !any(weak),
+    requires_confirmation = TRUE,
+    mappings = items
+  )
+}
+
+.dn_choice_code_maps_list <- function(choice_code_maps) {
+  if (is.null(choice_code_maps) || !length(choice_code_maps)) return(list())
+  if (!is.null(choice_code_maps$maps)) return(choice_code_maps$maps %||% list())
+  if (is.list(choice_code_maps) && length(choice_code_maps) &&
+      all(c("variable", "mappings") %in% names(choice_code_maps))) {
+    return(list(choice_code_maps))
+  }
+  choice_code_maps
+}
+
+.dn_choice_code_maps_named <- function(choice_code_maps) {
+  maps <- .dn_choice_code_maps_list(choice_code_maps)
+  if (!length(maps)) return(list())
+  out <- list()
+  for (idx in seq_along(maps)) {
+    mp <- maps[[idx]]
+    if (is.null(mp)) next
+    variable <- as.character(mp$variable %||% names(maps)[idx] %||% "")[1]
+    if (!nzchar(variable)) next
+    mp$variable <- variable
+    out[[variable]] <- mp
+  }
+  out
+}
+
+.dn_choice_map_items <- function(mp) {
+  mappings <- mp$mappings %||% list()
+  if (is.data.frame(mappings)) {
+    return(lapply(seq_len(nrow(mappings)), function(i) as.list(mappings[i, , drop = FALSE])))
+  }
+  if (is.list(mappings) && length(mappings) &&
+      all(c("source_code", "xls_code") %in% names(mappings))) {
+    return(list(mappings))
+  }
+  mappings
+}
+
+.dn_merge_choice_maps <- function(preferred, detected) {
+  out <- preferred
+  for (nm in names(detected)) {
+    if (!nzchar(nm)) next
+    if (!is.null(out[[nm]])) next
+    out[[nm]] <- detected[[nm]]
+  }
+  out
+}
+
+.dn_choice_code_maps <- function(data, survey, choices, aliases = character(), choice_code_maps = NULL) {
+  maps <- list()
+  preferred_maps <- .dn_choice_code_maps_named(choice_code_maps)
+  if (is.null(survey) || !nrow(survey) || is.null(choices) || !nrow(choices) ||
+      !all(c("name", "type") %in% names(survey)) ||
+      !all(c("list_name", "name") %in% names(choices))) {
+    return(preferred_maps)
+  }
+
+  choices <- as.data.frame(choices, stringsAsFactors = FALSE)
+  label_col <- .dn_choice_label_col(choices)
+  choices$label <- if (is.na(label_col)) as.character(choices$name) else as.character(choices[[label_col]])
+  survey_names <- .dn_survey_names(survey)
+  type_raw <- .dn_survey_type_raw(survey)
+  type_base <- .dn_survey_type_base(survey)
+
+  for (i in seq_len(nrow(survey))) {
+    parent <- survey_names[i]
+    if (!nzchar(parent)) next
+    ln <- .dn_survey_list_name(survey[i, , drop = FALSE])
+    if (is.na(ln) || !nzchar(ln)) next
+    ch <- choices[as.character(choices$list_name) == ln, c("name", "label"), drop = FALSE]
+    if (!nrow(ch)) next
+    ch$name <- as.character(ch$name)
+    ch$label <- as.character(ch$label)
+    preferred_map <- preferred_maps[[parent]]
+    if (!is.null(preferred_map)) {
+      if (identical(type_base[i], "select_multiple") || grepl("^select_multiple\\b", type_raw[i], perl = TRUE)) {
+        preferred_map$type <- "select_multiple"
+      } else if (identical(type_base[i], "select_one") || grepl("^select_one\\b", type_raw[i], perl = TRUE)) {
+        preferred_map$type <- "select_one"
+      }
+      preferred_map$list_name <- as.character(preferred_map$list_name %||% ln)
+      preferred_maps[[parent]] <- preferred_map
+    }
+
+    if (identical(type_base[i], "select_multiple") || grepl("^select_multiple\\b", type_raw[i], perl = TRUE)) {
+      dummies <- .dn_match_sm_dummy_columns(data, parent, ch, choice_map = preferred_map)
+      dummies <- dummies[!is.na(dummies) & nzchar(dummies) & dummies %in% names(data)]
+      if (!length(dummies)) next
+      items <- lapply(names(dummies), function(xls_code) {
+        dummy_col <- unname(dummies[[xls_code]])
+        source_col <- .dn_alias_source_column(dummy_col, aliases)
+        source_code <- .dn_source_code_from_column(dummy_col, parent)
+        xls_label <- as.character(ch$label[match(xls_code, ch$name)] %||% xls_code)
+        source_label <- as.character(.dn_dummy_option_label(data[[dummy_col]]) %||% "")
+        matched_by <- if (nzchar(source_label) && .dn_norm_text(source_label) == .dn_norm_text(xls_label)) {
+          "label"
+        } else if (!is.na(source_code) && identical(source_code, as.character(xls_code))) {
+          "code"
+        } else {
+          "order"
+        }
+        list(
+          source_code = as.character(source_code %||% ""),
+          source_column = source_col,
+          source_label = if (nzchar(source_label)) source_label else xls_label,
+          xls_code = as.character(xls_code),
+          xls_label = xls_label,
+          match = matched_by
+        )
+      })
+      payload <- .dn_choice_map_payload(parent, survey[i, , drop = FALSE], ln, "select_multiple", items)
+      if (!is.null(payload)) maps[[parent]] <- payload
+      next
+    }
+
+    if (identical(type_base[i], "select_one") || grepl("^select_one\\b", type_raw[i], perl = TRUE)) {
+      if (!(parent %in% names(data))) next
+      labs <- attr(data[[parent]], "labels", exact = TRUE)
+      if (is.null(labs) || !length(labs)) next
+      lab_names <- names(labs)
+      lab_codes <- as.character(unname(labs))
+      items <- list()
+      for (j in seq_len(nrow(ch))) {
+        xls_code <- as.character(ch$name[j])
+        xls_label <- as.character(ch$label[j])
+        hit <- which(.dn_norm_text(lab_names) == .dn_norm_text(xls_label))
+        if (!length(hit)) next
+        source_code <- lab_codes[hit[1]]
+        items[[length(items) + 1L]] <- list(
+          source_code = as.character(source_code),
+          source_column = parent,
+          source_label = as.character(lab_names[hit[1]]),
+          xls_code = xls_code,
+          xls_label = xls_label,
+          match = "label"
+        )
+      }
+      payload <- .dn_choice_map_payload(parent, survey[i, , drop = FALSE], ln, "select_one", items)
+      if (!is.null(payload)) maps[[parent]] <- payload
+    }
+  }
+
+  .dn_merge_choice_maps(preferred_maps, maps)
+}
+
+.dn_recode_select_one_choice_maps <- function(data, choice_code_maps) {
+  out <- data
+  recoded <- character(0)
+  if (!length(choice_code_maps)) return(list(data = out, recoded = recoded))
+  for (parent in names(choice_code_maps)) {
+    mp <- choice_code_maps[[parent]]
+    if (!identical(as.character(mp$type %||% ""), "select_one")) next
+    if (!(parent %in% names(out))) next
+    mappings <- .dn_choice_map_items(mp)
+    if (!length(mappings)) next
+    x <- trimws(as.character(out[[parent]]))
+    changed <- FALSE
+    changed_sources <- character(0)
+    placeholders <- character(0)
+    for (item in mappings) {
+      src <- as.character(item$source_code %||% "")
+      dst <- as.character(item$xls_code %||% "")
+      if (!nzchar(src) || !nzchar(dst) || identical(src, dst)) next
+      ph <- paste0("__PULSO_CHOICE_MAP_", length(placeholders) + 1L, "__")
+      placeholders[ph] <- dst
+      hit <- !is.na(x) & x == src
+      if (any(hit)) {
+        x[hit] <- ph
+        changed <- TRUE
+        changed_sources <- c(changed_sources, src)
+      }
+    }
+    if (!changed) next
+    for (ph in names(placeholders)) {
+      x[x == ph] <- placeholders[[ph]]
+    }
+    out[[parent]] <- x
+    recoded <- c(recoded, stats::setNames(paste(unique(changed_sources), collapse = ","), parent))
+  }
+  if (length(recoded)) {
+    keys <- names(recoded)
+    if (is.null(keys)) keys <- rep("", length(recoded))
+    keys[is.na(keys) | !nzchar(keys)] <- unname(recoded[is.na(keys) | !nzchar(keys)])
+    recoded <- recoded[!duplicated(keys)]
+  }
+  list(data = out, recoded = recoded)
+}
+
+.dn_recode_sm_select_one_other <- function(data, survey, choices) {
+  out <- data
+  recoded <- character(0)
+  if (is.null(survey) || !nrow(survey) || is.null(choices) || !nrow(choices) ||
+      !all(c("name", "type") %in% names(survey)) ||
+      !all(c("list_name", "name") %in% names(choices))) {
+    return(list(data = out, recoded = recoded))
+  }
+
+  type_raw <- .dn_survey_type_raw(survey)
+  type_base <- .dn_survey_type_base(survey)
+  survey_names <- .dn_survey_names(survey)
+  label_col <- .dn_choice_label_col(choices)
+  if (is.na(label_col)) {
+    choices$label <- as.character(choices$name)
+  } else {
+    choices$label <- as.character(choices[[label_col]])
+  }
+
+  rows <- which(type_base == "select_one" | grepl("^select_one\\b", type_raw, perl = TRUE))
+  for (i in rows) {
+    parent <- survey_names[i]
+    if (!nzchar(parent) || !(parent %in% names(out))) next
+
+    ln <- .dn_survey_list_name(survey[i, , drop = FALSE])
+    if (is.na(ln) || !nzchar(ln)) next
+    ch <- choices[as.character(choices$list_name) == ln, c("name", "label"), drop = FALSE]
+    if (!nrow(ch)) next
+
+    other_rows <- which(.dn_is_other_label(ch$label))
+    if (length(other_rows) != 1L) next
+    other_code <- as.character(ch$name[other_rows[1]])
+    if (!nzchar(other_code) || identical(other_code, "0")) next
+
+    labs <- attr(out[[parent]], "labels", exact = TRUE)
+    has_sm_zero_other <- FALSE
+    if (!is.null(labs) && length(labs)) {
+      has_sm_zero_other <- any(trimws(as.character(unname(labs))) == "0" & .dn_is_other_label(names(labs)))
+    }
+    other_text_col <- paste0(parent, "_other")
+    if (!isTRUE(has_sm_zero_other) && !(other_text_col %in% names(out))) next
+
+    x_chr <- trimws(as.character(out[[parent]]))
+    hit <- !is.na(x_chr) & x_chr == "0"
+    if (!any(hit)) next
+
+    other_num <- suppressWarnings(as.numeric(other_code))
+    if (!is.na(other_num) && is.numeric(out[[parent]])) {
+      out[[parent]][hit] <- other_num
+    } else {
+      replacement <- as.character(out[[parent]])
+      replacement[hit] <- other_code
+      out[[parent]] <- replacement
+    }
+    recoded <- c(recoded, stats::setNames("0", parent))
+  }
+
+  list(data = out, recoded = recoded)
 }
 
 .dn_is_selected_dummy <- function(x) {
@@ -87,7 +379,7 @@
   paste0(prefix, suffix)
 }
 
-.dn_match_sm_dummy_columns <- function(data, parent, choices_sub) {
+.dn_match_sm_dummy_columns <- function(data, parent, choices_sub, choice_map = NULL) {
   data_names <- names(data)
   if (!length(data_names) || is.na(parent) || !nzchar(parent)) {
     return(stats::setNames(rep(NA_character_, nrow(choices_sub)), choices_sub$name))
@@ -107,10 +399,26 @@
 
   out <- stats::setNames(rep(NA_character_, length(choice_names)), choice_names)
 
+  # 0. Si el editor XLSForm ya trae un mapa confirmado C{n} -> código XLSForm,
+  #    ese mapa gobierna antes que etiquetas/orden detectados en el SAV/SPSS.
+  #    Esto permite que la data se adapte al contrato que decidió el usuario.
+  if (!is.null(choice_map) && length(.dn_choice_map_items(choice_map))) {
+    for (item in .dn_choice_map_items(choice_map)) {
+      source_code <- as.character(item$source_code %||% "")
+      xls_code <- as.character(item$xls_code %||% "")
+      if (!nzchar(source_code) || !nzchar(xls_code) || !(xls_code %in% names(out))) next
+      source_unpadded <- sub("^0+([0-9]+)$", "\\1", source_code)
+      if (!nzchar(source_unpadded)) source_unpadded <- "0"
+      hit <- which(suffix == source_code | suffix_unpadded == source_unpadded)
+      if (length(hit)) out[[xls_code]] <- candidates[hit[1]]
+    }
+  }
+
   # 1. Match por etiqueta de opcion del dummy SPSS vs label del XLSForm.
   choice_labels <- .dn_norm_text(choices_sub$label)
   dummy_labels <- .dn_norm_text(vapply(candidates, function(nm) .dn_dummy_option_label(data[[nm]]), character(1)))
   for (i in seq_along(choice_names)) {
+    if (!is.na(out[[i]]) && nzchar(out[[i]])) next
     if (!nzchar(choice_labels[i])) next
     hit <- which(dummy_labels == choice_labels[i])
     if (length(hit)) out[[i]] <- candidates[hit[1]]
@@ -310,7 +618,8 @@
 normalize_data_for_xlsform <- function(data,
                                        instrumento,
                                        drop_source_dummies = TRUE,
-                                       add_metadata = TRUE) {
+                                       add_metadata = TRUE,
+                                       choice_code_maps = NULL) {
   if (!is.data.frame(data) || is.null(instrumento) || is.null(instrumento$survey)) {
     return(data)
   }
@@ -332,11 +641,33 @@ normalize_data_for_xlsform <- function(data,
   #    q0017_0001 -> p17_1 aunque el XLSForm canonico espera p17.
   collapse_info <- .dn_collapse_single_child_columns(out, survey)
   out <- collapse_info$data
+  # 4. Si el SAV y el XLSForm usan codigos distintos para las mismas etiquetas,
+  #    construimos un mapa SAV/API -> XLSForm. En select_multiple ese mapa se
+  #    usa al reconstruir la madre; en select_one recodificamos aqui.
+  choice_code_maps <- .dn_choice_code_maps(out, survey, choices,
+    aliases = q2p_info$aliased,
+    choice_code_maps = choice_code_maps
+  )
+  choice_map_recode <- .dn_recode_select_one_choice_maps(out, choice_code_maps)
+  out <- choice_map_recode$data
+  # 5. SurveyMonkey codifica la opción "Other/Otra" de select_one como 0 en
+  #    el SAV, aunque el XLSForm traducido la catalogue con su código final
+  #    (por ejemplo 14). Reescribimos ese 0 al código del XLSForm para que
+  #    relevant como `${p12} = '14'` calce con la data real.
+  other_recode_info <- .dn_recode_sm_select_one_other(out, survey, choices)
+  out <- other_recode_info$data
   sm_rows <- survey[grepl("^select_multiple\\b", as.character(survey$type)), , drop = FALSE]
 
   dropped <- unique(c(q2p_info$dropped, alias_info$dropped, collapse_info$dropped))
   aliased_combined <- c(q2p_info$aliased, alias_info$aliased)
   single_child_collapses <- collapse_info$collapsed
+  select_one_other_recodes <- c(choice_map_recode$recoded, other_recode_info$recoded)
+  if (length(select_one_other_recodes)) {
+    recode_keys <- names(select_one_other_recodes)
+    if (is.null(recode_keys)) recode_keys <- rep("", length(select_one_other_recodes))
+    recode_keys[is.na(recode_keys) | !nzchar(recode_keys)] <- unname(select_one_other_recodes[is.na(recode_keys) | !nzchar(recode_keys)])
+    select_one_other_recodes <- select_one_other_recodes[!duplicated(recode_keys)]
+  }
   normalized <- list()
 
   choices_ok <- nrow(choices) > 0L && all(c("list_name", "name") %in% names(choices))
@@ -355,7 +686,7 @@ normalize_data_for_xlsform <- function(data,
     ch <- choices[as.character(choices$list_name) == ln, c("name", "label"), drop = FALSE]
     if (!nrow(ch)) next
     ch$name <- as.character(ch$name)
-    dummies <- .dn_match_sm_dummy_columns(out, parent, ch)
+    dummies <- .dn_match_sm_dummy_columns(out, parent, ch, choice_map = choice_code_maps[[parent]])
     dummies <- dummies[!is.na(dummies) & nzchar(dummies) & dummies %in% names(out)]
     if (!length(dummies)) next
 
@@ -382,12 +713,16 @@ normalize_data_for_xlsform <- function(data,
   }
 
   if (isTRUE(add_metadata) &&
-      (length(normalized) || length(aliased_combined) || length(single_child_collapses))) {
+      (length(normalized) || length(aliased_combined) ||
+       length(single_child_collapses) || length(select_one_other_recodes) ||
+       length(choice_code_maps))) {
     attr(out, "xlsform_normalized") <- list(
       normalized_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
       select_multiple = normalized,
       aliases = aliased_combined,
       single_child_collapses = single_child_collapses,
+      select_one_other_recodes = select_one_other_recodes,
+      choice_code_maps = choice_code_maps,
       dropped_columns = if (isTRUE(drop_source_dummies)) dropped else character(0)
     )
   }

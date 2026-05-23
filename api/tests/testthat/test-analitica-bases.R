@@ -62,7 +62,7 @@ if (!exists("%||%")) {
 # Helper: construir un rp_data con attrs tipo reporte_data
 .fixture_data <- function() {
   # Columnas con attr(, "labels") y attr(, "label") como las produce
-  # prosecnur::reporte_data.
+  # prosecnurapp::reporte_data.
   sexo <- c("1", "2", "1", "2", "1")
   attr(sexo, "labels") <- stats::setNames(c("1", "2"), c("Hombre", "Mujer"))
   attr(sexo, "label") <- "Sexo"

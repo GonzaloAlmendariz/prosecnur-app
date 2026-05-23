@@ -1,0 +1,438 @@
+---
+title: "Guía aplicada de PPT declarativo"
+subtitle: "Presets, elementos, layouts y exportación con `reporte_ppt_plan()`"
+date: today
+lang: es
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 1.9cm
+      y: 2.2cm
+    fontsize: 10pt
+    include-in-header:
+      - files_manuales/typst/manuales_base.typ
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+![](files_manuales/img/logo_pulso.png){width=3cm}
+
+```{r}
+#| include: false
+manual_dir <- normalizePath(dirname(knitr::current_input()), winslash = "/")
+manual_file <- function(...) file.path(manual_dir, "files_manuales", ...)
+manual_qmd <- basename(knitr::current_input())
+
+if (!requireNamespace("prosecnur", quietly = TRUE)) {
+  stop("Instale o cargue `prosecnur` antes de renderizar esta guía.", call. = FALSE)
+}
+
+library(prosecnur)
+```
+
+```{r}
+#| include: false
+rp_data_demo <- readRDS(manual_file("data_ejemplo", "reportes", "rp_data.rds"))
+rp_inst_demo <- readRDS(manual_file("data_ejemplo", "reportes", "rp_inst.rds"))
+
+presets_demo <- p_presets(
+  base = list(
+    formato = "Base: %s",
+    sufijo_auto = "Establecimientos de salud",
+    color_titulo = "#39588B",
+    color_leyenda = "#39588B",
+    color_ejes = "#39588B"
+  ),
+  barras_apiladas = list(
+    mostrar_barra_extra = TRUE,
+    prefijo_barra_extra = "N = "
+  ),
+  barras_agrupadas = list(
+    mostrar_leyenda = FALSE,
+    invertir_barras = TRUE
+  )
+)
+
+plan_demo <- p_plan(
+  p_slide_title(
+    title = "Ejemplo de plan PPT",
+    subtitle = "Manual aplicado",
+    date = format(Sys.Date(), "%d/%m/%Y")
+  ),
+  p_slide_section(title = "Frecuencias"),
+  p_slide_1(
+    title = "Distribución de p102",
+    plot = p_barras_apiladas("p102")
+  ),
+  p_slide_2(
+    title = "Dos miradas rápidas",
+    left = p_barras_apiladas("region"),
+    right = p_barras_apiladas("p112")
+  )
+)
+
+path_demo_ppt <- tempfile("manual_ppt_", fileext = ".pptx")
+reporte_ppt_plan(
+  data = rp_data_demo,
+  instrumento = rp_inst_demo,
+  path_ppt = path_demo_ppt,
+  presets = presets_demo,
+  plan = plan_demo,
+  mensajes_progreso = FALSE,
+  template_pptx = system.file("plantillas/plantilla_16_9.pptx", package = "prosecnur")
+)
+```
+
+# Archivo fuente QMD
+
+Este PDF sale del archivo:
+
+`r manual_qmd`
+
+La lógica de este manual es que el PDF sirva para lectura rápida y que el `.qmd`
+sea la versión completamente resuelta, con bloques comentados y argumentos
+explícitos. Si quiere seguir el ejemplo línea por línea, abra el `.qmd`
+correspondiente dentro de `manuales/`.
+
+# Qué resuelve este sistema
+
+El motor PPT declarativo sirve para separar tres decisiones que en la práctica
+conviene no mezclar:
+
+1. **cómo se ve el gráfico**;
+2. **en qué layout cae ese gráfico**;
+3. **cómo se exporta todo el conjunto**.
+
+En el paquete, esas capas se reparten así:
+
+- `p_presets()`: define estilos por tipo de gráfico;
+- `p_*()`: define elementos;
+- `p_slide_*()`: define layouts;
+- `diapo()` o `p_plan()`: arma el plan;
+- `reporte_ppt_plan()`: exporta el `.pptx`.
+
+# Antes de empezar
+
+En esta guía usamos un ejemplo ya preparado:
+
+```{r}
+list.files(manual_file("data_ejemplo", "reportes"))
+```
+
+La base práctica es:
+
+```{r}
+#| eval: false
+# Base ya preparada para reporte y gráficos.
+rp_data <- readRDS("files_manuales/data_ejemplo/reportes/rp_data.rds")
+
+# Instrumento que acompaña esa base.
+rp_inst <- readRDS("files_manuales/data_ejemplo/reportes/rp_inst.rds")
+```
+
+Si quiere construir estos objetos desde cero, primero siga la guía de
+entregables hasta `reporte_instrumento()` y `reporte_data()`.
+
+# Capa 1. Presets
+
+`p_presets()` centraliza configuraciones por tipo de elemento. Es el mejor
+punto para fijar tamaños, colores y texto de base de manera consistente.
+
+```{r}
+#| eval: false
+presets <- p_presets(
+  # Estilo común que se hereda a varios tipos de gráficos.
+  base = list(
+    formato = "Base: %s",
+    sufijo_auto = "Establecimientos de salud",
+    color_titulo = "#39588B",
+    color_leyenda = "#39588B",
+    color_ejes = "#39588B"
+  ),
+
+  # Ajustes específicos para barras apiladas.
+  barras_apiladas = list(
+    mostrar_barra_extra = TRUE,
+    prefijo_barra_extra = "N = "
+  ),
+
+  # Ajustes específicos para barras agrupadas.
+  barras_agrupadas = list(
+    mostrar_leyenda = FALSE,
+    invertir_barras = TRUE
+  )
+)
+```
+
+Regla práctica: si un ajuste se repetirá varias veces, llévelo a `p_presets()`
+en lugar de volver a escribirlo slide por slide.
+
+# Capa 2. Elementos `p_*`
+
+Los `p_*` no exportan nada por sí solos. Más bien describen **qué gráfico o
+texto quiere insertar**.
+
+Ejemplos comunes:
+
+```{r}
+#| eval: false
+p_barras_apiladas("p102")
+p_barras_agrupadas("region")
+p_barras_multiapiladas(modo = "var", vars = c("p103_a_recod", "p103_b_recod"))
+p_numerico("p101")
+p_boxplot("p101", cruce = "region")
+p_pie("p112")
+p_donut("p112")
+p_media_rango("p101", cruce = "region")
+p_text("Mensaje de apoyo o interpretación")
+```
+
+Piense en ellos como piezas sueltas que después se acomodan en un layout.
+
+# Capa 3. Layouts `p_slide_*`
+
+Aquí decide dónde cae cada pieza dentro de la diapositiva.
+
+## Portada y sección
+
+```{r}
+#| eval: false
+p_slide_title(
+  title = "Reporte PPT",
+  subtitle = "Versión aplicada",
+  date = "Abril 2026"
+)
+
+p_slide_section(
+  title = "Frecuencias"
+)
+```
+
+## Layouts simples
+
+```{r}
+#| eval: false
+p_slide_1(
+  title = "Distribución principal",
+  plot = p_barras_apiladas("p102")
+)
+
+p_slide_2(
+  title = "Comparación rápida",
+  left = p_barras_apiladas("region"),
+  right = p_barras_apiladas("p112")
+)
+```
+
+## Layouts con texto
+
+```{r}
+#| eval: false
+p_slide_text_r(
+  title = "Lectura guiada",
+  plot = p_barras_apiladas("p102"),
+  text = "Use este layout cuando quiera explicar el gráfico en la misma diapositiva."
+)
+
+p_slide_text_l(
+  title = "Texto primero",
+  plot = p_barras_agrupadas("region"),
+  text = "Útil cuando el mensaje manda más que la gráfica."
+)
+
+p_slide_text_l2(
+  title = "Dos gráficos y comentario",
+  plot1 = p_barras_agrupadas("region"),
+  plot2 = p_barras_apiladas("p112"),
+  text = "Sirve para contrastar dos piezas en una lectura guiada."
+)
+
+p_slide_text_r2(
+  title = "Dos gráficos con texto a la derecha",
+  plot1 = p_barras_agrupadas("region"),
+  plot2 = p_barras_apiladas("p102"),
+  text = "Conviene cuando la explicación final es corta y lateral."
+)
+```
+
+## Layouts de población
+
+```{r}
+#| eval: false
+p_slide_poblacion_2(
+  title = "Dos paneles grandes",
+  left = p_barras_apiladas("p102"),
+  right = p_barras_apiladas("p112"),
+  tag = "Resumen"
+)
+
+p_slide_poblacion_4(
+  title = "Cuatro paneles",
+  up_left = p_barras_apiladas("p102"),
+  up_right = p_barras_apiladas("region"),
+  bottom_left = p_barras_apiladas("p112"),
+  bottom_right = p_barras_agrupadas("region"),
+  tag = "Comparativo"
+)
+
+p_slide_poblacion_5(
+  title = "Cinco paneles",
+  pic1 = p_barras_apiladas("p102"),
+  pic2 = p_barras_apiladas("region"),
+  pic3 = p_barras_apiladas("p112"),
+  pic4 = p_barras_agrupadas("region"),
+  pic5 = p_barras_multiapiladas(modo = "var", vars = c("p103_a_recod", "p103_b_recod")),
+  tag = "Lectura múltiple"
+)
+
+p_slide_poblacion_6(
+  title = "Seis paneles",
+  pic1 = p_barras_apiladas("p102"),
+  pic2 = p_barras_apiladas("region"),
+  pic3 = p_barras_agrupadas("region"),
+  pic4 = p_barras_apiladas("p112"),
+  pic5 = p_barras_multiapiladas(modo = "var", vars = c("p103_a_recod", "p103_b_recod")),
+  pic6 = p_numerico("p101"),
+  tag = "Barrido general"
+)
+```
+
+# Dos maneras de armar el plan
+
+Puede armarlo como lista explícita o como acumulador.
+
+## Opción A. Con `p_plan()`
+
+```{r}
+#| eval: false
+plan <- p_plan(
+  # Portada.
+  p_slide_title(title = "Reporte", subtitle = "Versión 1"),
+
+  # Separador de sección.
+  p_slide_section(title = "Frecuencias"),
+
+  # Primer slide de contenido.
+  p_slide_1(title = "p102", plot = p_barras_apiladas("p102"))
+)
+```
+
+## Opción B. Con `diapo()`
+
+```{r}
+#| eval: false
+# Limpiar acumuladores previos si venía trabajando por chunks.
+p_reset()
+
+# Ir agregando slides uno por uno.
+diapo(p_slide_title(title = "Reporte", subtitle = "Versión 1"))
+diapo(p_slide_section(title = "Frecuencias"))
+diapo(p_slide_1(title = "p102", plot = p_barras_apiladas("p102")))
+
+# Recuperar el plan final.
+plan <- p_get_plan()
+```
+
+Use `diapo()` cuando está construyendo el reporte en varios chunks. Use
+`p_plan()` cuando prefiere dejar todo junto en un solo objeto.
+
+# Exportar el `.pptx`
+
+Una vez que tiene `presets` y `plan`, la exportación se concentra en
+`reporte_ppt_plan()`.
+
+```{r}
+#| eval: false
+reporte_ppt_plan(
+  # Base lista para reporte.
+  data = rp_data,
+
+  # Instrumento asociado.
+  instrumento = rp_inst,
+
+  # Ruta final del archivo PPT.
+  path_ppt = "reporte_aplicado.pptx",
+
+  # Presets estéticos.
+  presets = presets,
+
+  # Plan de diapositivas ya construido.
+  plan = plan,
+
+  # Plantilla de PowerPoint que define masters y layouts.
+  template_pptx = system.file("plantillas/plantilla_16_9.pptx", package = "prosecnur")
+)
+```
+
+Si trabaja con varias fuentes de datos, el sistema también acepta referencias
+del tipo `fuente$variable`.
+
+# Diferencia entre `graficar_ppt()` y `reporte_ppt_plan()`
+
+La regla más útil es esta:
+
+- use `graficar_ppt()` cuando solo quiere exportar gráficos sueltos, una
+  diapositiva por gráfico;
+- use `reporte_ppt_plan()` cuando necesita una narrativa con layouts, portada,
+  secciones, texto y composición.
+
+En otras palabras, `graficar_ppt()` es más directo; `reporte_ppt_plan()` es más
+potente y más ordenado para entregables finales.
+
+# Un ejemplo mínimo completo
+
+Este es el ejemplo más corto que conviene memorizar:
+
+```{r}
+#| eval: false
+presets <- p_presets(
+  base = list(formato = "Base: %s", sufijo_auto = "Establecimientos de salud")
+)
+
+plan <- p_plan(
+  p_slide_title(title = "Reporte de ejemplo", subtitle = "Manual aplicado"),
+  p_slide_section(title = "Resultados"),
+  p_slide_1(
+    title = "Distribución de p102",
+    plot = p_barras_apiladas("p102")
+  )
+)
+
+reporte_ppt_plan(
+  data = rp_data,
+  instrumento = rp_inst,
+  path_ppt = "ejemplo_minimo.pptx",
+  presets = presets,
+  plan = plan
+)
+```
+
+# Errores frecuentes
+
+## El gráfico existe, pero no entra al layout
+
+Normalmente el problema no está en el gráfico sino en el tipo de slide o en la
+plantilla PPT usada para exportar.
+
+## El reporte exporta, pero la plantilla no se ve bien
+
+Revise `template_pptx` y los layouts que realmente existen en esa plantilla.
+
+## Se repiten estilos una y otra vez
+
+Llévelos a `p_presets()` para no reescribirlos manualmente.
+
+# Cierre
+
+La mejor forma de pensar este sistema es como una maqueta:
+
+- `p_*` define las piezas;
+- `p_slide_*` define dónde va cada pieza;
+- `p_plan()` o `diapo()` arma el orden;
+- `reporte_ppt_plan()` convierte todo eso en un archivo final.
+
+Ese cambio de lógica es el que hace que el PPT sea más fácil de mantener cuando
+el reporte empieza a crecer.

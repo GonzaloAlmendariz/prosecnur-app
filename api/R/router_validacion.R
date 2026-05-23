@@ -61,6 +61,106 @@
   )
 }
 
+.drill_chr_vec <- function(x) {
+  if (is.null(x)) return(character(0))
+  if (is.list(x) && !is.data.frame(x)) {
+    x <- unlist(x, recursive = TRUE, use.names = FALSE)
+  }
+  x <- as.character(x)
+  x <- x[!is.na(x) & nzchar(x)]
+  unique(x)
+}
+
+.drill_named_chr <- function(x) {
+  if (is.null(x) || !length(x)) return(character(0))
+  out <- unlist(x, recursive = FALSE, use.names = TRUE)
+  nms <- names(out)
+  if (is.null(nms)) return(character(0))
+  out <- as.character(out)
+  names(out) <- nms
+  keep <- !is.na(nms) & nzchar(nms) & !is.na(out) & nzchar(out)
+  out[keep]
+}
+
+.drill_choice_value_labels <- function(inst, vars = NULL) {
+  if (is.null(inst) || is.null(inst$survey) || is.null(inst$choices)) return(list())
+  choices_map <- tryCatch(
+    .survey_choices_map(inst$survey, inst$choices),
+    error = function(e) list()
+  )
+  if (!length(choices_map)) return(list())
+  vars <- .drill_chr_vec(vars)
+  if (length(vars)) {
+    choices_map <- choices_map[intersect(vars, names(choices_map))]
+  }
+  choices_map <- choices_map[lengths(choices_map) > 0L]
+  lapply(choices_map, function(entry) as.list(.drill_named_chr(entry)))
+}
+
+.drill_norm_label <- function(x) {
+  x <- as.character(x %||% "")
+  if (!length(x) || is.na(x)) return("")
+  x <- tolower(trimws(x))
+  ascii <- suppressWarnings(iconv(x, from = "", to = "ASCII//TRANSLIT", sub = ""))
+  if (!is.na(ascii) && nzchar(ascii)) x <- ascii
+  x <- gsub("[^a-z0-9]+", " ", x, perl = TRUE)
+  trimws(gsub("\\s+", " ", x, perl = TRUE))
+}
+
+.drill_is_other_label <- function(x) {
+  n <- .drill_norm_label(x)
+  grepl("\\b(other|otro|otros|otra|especificar|especifique)\\b", n, perl = TRUE)
+}
+
+.drill_label_from_roles <- function(variable_roles, key) {
+  labels <- variable_roles$labels %||% NULL
+  if (is.null(labels) || is.null(key) || !nzchar(key)) return(NA_character_)
+  labels_chr <- .drill_named_chr(labels)
+  if (!(key %in% names(labels_chr))) return(NA_character_)
+  labels_chr[[key]]
+}
+
+.drill_other_context <- function(variable_roles, value_labels) {
+  if (is.null(variable_roles)) return(NULL)
+  target <- .drill_chr_vec(variable_roles$target)[1] %||% NA_character_
+  if (is.na(target) || !nzchar(target)) return(NULL)
+
+  parent <- sub("([_./-])other$", "", target, ignore.case = TRUE, perl = TRUE)
+  if (!nzchar(parent) || identical(parent, target)) return(NULL)
+
+  target_label <- .drill_label_from_roles(variable_roles, target)
+  parent_label <- .drill_label_from_roles(variable_roles, parent)
+  choices <- value_labels[[parent]] %||% NULL
+  choices_chr <- .drill_named_chr(choices)
+
+  choice_code <- NA_character_
+  choice_label <- NA_character_
+  if (length(choices_chr)) {
+    target_norm <- .drill_norm_label(target_label)
+    exact <- if (nzchar(target_norm)) {
+      which(vapply(choices_chr, .drill_norm_label, character(1)) == target_norm)
+    } else integer(0)
+    idx <- exact[1] %||% NA_integer_
+    if (is.na(idx)) {
+      idx <- which(vapply(choices_chr, .drill_is_other_label, logical(1)) |
+                     vapply(names(choices_chr), .drill_is_other_label, logical(1)))[1] %||% NA_integer_
+    }
+    if (!is.na(idx)) {
+      choice_code <- names(choices_chr)[idx]
+      choice_label <- unname(choices_chr[idx])
+    }
+  }
+
+  list(
+    target_var = target,
+    target_label = target_label,
+    parent_var = parent,
+    parent_label = parent_label,
+    choice_code = choice_code,
+    choice_label = choice_label
+  )
+}
+
 # -----------------------------------------------------------------------------
 # .resolve_explorar_data: devuelve la data para el explorador según fuente.
 #   - "raw" (default): data cargada originalmente (comportamiento histórico).
@@ -856,6 +956,17 @@ mount_validacion <- function(pr) {
           }
         }
       }
+      value_label_vars <- unique(c(
+        vars,
+        names(casos_df %||% data.frame()),
+        .drill_chr_vec(variable_roles$target %||% NULL),
+        .drill_chr_vec(variable_roles$drivers %||% NULL),
+        .drill_chr_vec(variable_roles$compare %||% NULL),
+        .drill_chr_vec(variable_roles$gate %||% NULL),
+        .drill_chr_vec(variable_roles$all %||% NULL)
+      ))
+      value_labels <- .drill_choice_value_labels(inst, value_label_vars)
+      other_context <- .drill_other_context(variable_roles, value_labels)
 
       list(
         ok = TRUE,
@@ -870,6 +981,8 @@ mount_validacion <- function(pr) {
           tabla = if (is.na(tabla)) NA_character_ else tabla,
           variables = as.list(vars),
           variable_roles = variable_roles,
+          value_labels = value_labels,
+          other_context = other_context,
           presentation = presentation,
           procesamiento = if (is.null(procesamiento) || is.na(procesamiento)) NA_character_ else procesamiento,
           activa = activa,

@@ -24,6 +24,7 @@ import {
   type SurveyMonkeyListItem,
   type SurveyMonkeyTokenInfo,
   type SurveyMonkeyVisualLogicRule,
+  type ChoiceCodeMap,
   type EditorPayloadWithHallazgos,
 } from "../../../api/client";
 import { compileVisualLogicRules, RuleWizard, type VisualLogicPage, type VisualLogicQuestion } from "./RuleWizard";
@@ -234,6 +235,7 @@ export function ImportSurveyMonkeyDialog({
     surveyMonkeyRules?: import("./RuleWizard").ConfirmedRule[];
     surveyMonkeyVisualRules?: SurveyMonkeyVisualLogicRule[];
     surveyMonkeyChoiceOverrides?: Record<string, string[]>;
+    surveyMonkeyChoiceCodeMaps?: ChoiceCodeMap[];
   }) => void;
 }) {
   const [apiQuestions, setApiQuestions] = useState<SurveyMonkeyQuestion[]>([]);
@@ -247,6 +249,7 @@ export function ImportSurveyMonkeyDialog({
   // usuario quiere. Persiste mientras el dialog está abierto y viaja al
   // endpoint de import junto con las reglas.
   const [choiceOrderOverrides, setChoiceOrderOverrides] = useState<Record<string, string[]>>({});
+  const [choiceCodeMaps, setChoiceCodeMaps] = useState<ChoiceCodeMap[]>([]);
   const [submitting, setSubmitting] = useState(false);
   // Vía 3: auto-completar mapeo de páginas desde la API SurveyMonkey
   const [smSurveyId, setSmSurveyId] = useState("");
@@ -408,6 +411,7 @@ export function ImportSurveyMonkeyDialog({
       setPages(newPages);
       setApiQuestions(apiInfoToQuestions(newPages));
       setVisualRules([]);
+      setChoiceCodeMaps([]);
       setSmFetchedSurveyId(cleanedId);
       setSmApiSuccess(
         `${info.summary.title ?? "Survey"} · ${info.summary.n_paginas} secciones · ${info.summary.n_preguntas} preguntas mapeadas` +
@@ -480,12 +484,14 @@ export function ImportSurveyMonkeyDialog({
         "es",
         { survey_id: smFetchedSurveyId, token: smToken.trim() },
         choiceOrderOverrides,
+        choiceCodeMaps,
       );
       onComplete({
         ...result,
         surveyMonkeyRules: wizardRules,
         surveyMonkeyVisualRules: visualRules,
         surveyMonkeyChoiceOverrides: choiceOrderOverrides,
+        surveyMonkeyChoiceCodeMaps: choiceCodeMaps,
       });
     } catch (e) {
       setError(String((e as Error)?.message ?? e));
@@ -681,7 +687,11 @@ export function ImportSurveyMonkeyDialog({
                   onVisualRulesChange={setVisualRules}
                   onVisualPendingChange={setVisualPending}
                   overrides={choiceOrderOverrides}
-                  onOverridesChange={setChoiceOrderOverrides}
+                  choiceCodeMaps={choiceCodeMaps}
+                  onOverridesChange={(nextOverrides, nextMaps) => {
+                    setChoiceOrderOverrides(nextOverrides);
+                    if (nextMaps) setChoiceCodeMaps(nextMaps);
+                  }}
                 />
                 </div>
               </section>

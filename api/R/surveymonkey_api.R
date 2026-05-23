@@ -976,6 +976,24 @@ sm_api_enrich_xlsform_choices <- function(xlsform, details, sm, style = NULL) {
   !identical(type, "none")
 }
 
+.sm_api_required_value <- function(q, row_idx = 1L, row_count = 1L, family = NULL) {
+  if (!isTRUE(.sm_api_is_required(q))) return(NA_character_)
+  family <- .sm_or(family, .sm_or(q$family, ""))
+  row_idx <- suppressWarnings(as.integer(.sm_or(row_idx, 1L)))
+  row_count <- suppressWarnings(as.integer(.sm_or(row_count, 1L)))
+  if (is.na(row_idx) || row_idx < 1L) row_idx <- 1L
+  if (is.na(row_count) || row_count < 1L) row_count <- 1L
+
+  if (identical(family, "open_ended") && row_count > 1L) {
+    req <- .sm_or(q$required, list())
+    amount <- suppressWarnings(as.integer(.sm_or(req$amount, .sm_or(req$min, NA_integer_))))
+    if (is.na(amount) || amount < 1L) amount <- 1L
+    return(if (row_idx <= amount) "yes" else NA_character_)
+  }
+
+  "yes"
+}
+
 .sm_api_type_and_constraint <- function(family, subtype, validation = list()) {
   family <- .sm_or(family, "")
   subtype <- .sm_or(subtype, "")
@@ -1112,7 +1130,7 @@ sm_api_xlsform <- function(details, style = .sm_api_default_style(), lang = "es"
       if (is.na(heading) || !nzchar(heading)) heading <- paste("Pregunta", global_pos)
       subtype <- .sm_or(q$subtype, "")
       validation <- .sm_or(q$validation, list())
-      required <- if (isTRUE(.sm_api_is_required(q))) "yes" else NA_character_
+      required <- .sm_api_required_value(q, family = fam)
       answers <- .sm_or(q$answers, list())
       rows <- .sm_or(answers$rows, list())
       choices <- .sm_api_question_choices(q)
@@ -1140,7 +1158,8 @@ sm_api_xlsform <- function(details, style = .sm_api_default_style(), lang = "es"
           for (r_idx in seq_along(rows)) {
             row_label <- .sm_api_clean_text(.sm_or(rows[[r_idx]]$text, NA_character_))
             if (is.na(row_label) || !nzchar(row_label)) row_label <- paste("Respuesta", r_idx)
-            add_survey(type_final, paste0(q_name, "_", r_idx), row_label, required, constraint = constraint, section = sec_name)
+            row_required <- .sm_api_required_value(q, row_idx = r_idx, row_count = length(rows), family = fam)
+            add_survey(type_final, paste0(q_name, "_", r_idx), row_label, row_required, constraint = constraint, section = sec_name)
           }
         } else {
           add_survey(type_final, q_name, heading, required, constraint = constraint, section = sec_name)
@@ -1155,7 +1174,7 @@ sm_api_xlsform <- function(details, style = .sm_api_default_style(), lang = "es"
           if (!is.na(other_idx) && !is.na(other_label) && nzchar(other_label)) {
             code <- choices[[other_idx]]$code
             add_survey("text", paste0(q_name, "_other"), paste0(other_label, ":"), NA_character_,
-              relevant = sprintf("${%s} = '%s'", q_name, code), section = sec_name)
+              relevant = .sm_other_relevant(q_name, code, parent_type = type_final), section = sec_name)
           }
         }
       } else if (identical(fam, "multiple_choice")) {
@@ -1168,7 +1187,7 @@ sm_api_xlsform <- function(details, style = .sm_api_default_style(), lang = "es"
           if (!is.na(other_idx) && !is.na(other_label) && nzchar(other_label)) {
             code <- choices[[other_idx]]$code
             add_survey("text", paste0(q_name, "_other"), paste0(other_label, ":"), NA_character_,
-              relevant = sprintf("selected(${%s}, '%s')", q_name, code), section = sec_name)
+              relevant = .sm_other_relevant(q_name, code, parent_type = type_final), section = sec_name)
           }
         }
       } else if (identical(fam, "matrix")) {
@@ -1353,7 +1372,12 @@ sm_api_enrich_xlsform_structure <- function(xlsform, details, sm, style = NULL) 
     }
 
     if (isTRUE(spec$required[1]) && length(target_idx)) {
-      survey$required[target_idx] <- "yes"
+      if (identical(family, "open_ended") && !length(exact_idx) && length(child_idx) > 1L) {
+        survey$required[child_idx] <- NA_character_
+        survey$required[child_idx[1]] <- "yes"
+      } else {
+        survey$required[target_idx] <- "yes"
+      }
     }
   }
 
@@ -1414,19 +1438,26 @@ sm_api_enrich_xlsform_structure <- function(xlsform, details, sm, style = NULL) 
       spec <- specs[q_idx, , drop = FALSE]
       group <- spec$group_guess[1]
       other_label <- .sm_api_clean_text(.sm_or(other$text, NA_character_))
-      other_row <- which(survey$name == paste0(group, "_other"))[1]
-      parent_row <- which(survey$name == group)[1]
+      name_remap <- if (!is.null(xlsform$name_remap)) xlsform$name_remap else character(0)
+      remapped_group <- if (group %in% names(name_remap)) name_remap[[group]] else NA_character_
+      group_candidates <- unique(c(group, remapped_group, .sm_qp_variants(toupper(group), style)))
+      group_candidates <- group_candidates[!is.na(group_candidates) & nzchar(group_candidates)]
+      group_name <- group_candidates[group_candidates %in% survey$name][1]
+      if (is.na(group_name) || !nzchar(group_name)) next
+      other_row <- which(survey$name == paste0(group_name, "_other"))[1]
+      parent_row <- which(survey$name == group_name)[1]
       if (is.na(other_row) || is.na(parent_row) || is.na(other_label) || !nzchar(other_label)) next
       parent_type <- survey$type[parent_row]
       list_name <- sub("^(select_one|select_multiple)\\s+", "", parent_type)
       ch <- choices[choices$list_name == list_name, , drop = FALSE]
       code <- ch$name[which(tolower(trimws(ch$`label::es`)) == tolower(trimws(other_label)))[1]]
       if (is.na(code) || !nzchar(code)) next
-      if (grepl("^select_multiple\\s+", parent_type)) {
-        survey$relevant[other_row] <- sprintf("selected(${%s}, '%s')", group, code)
-      } else {
-        survey$relevant[other_row] <- sprintf("${%s} = '%s'", group, code)
-      }
+      other_relevant <- .sm_other_relevant(group_name, code, parent_type = parent_type)
+      survey$relevant[other_row] <- .sm_combine_relevant(
+        survey$relevant[other_row],
+        survey$relevant[parent_row],
+        other_relevant
+      )
     }
   }
 
@@ -1668,7 +1699,7 @@ sm_api_enrich_xlsform_structure <- function(xlsform, details, sm, style = NULL) 
         family = fam,
         subtype = .sm_or(q$subtype, NA_character_),
         heading = .sm_or(q$headings[[1]]$heading, NA_character_),
-        required = !is.null(q$required) && length(q$required) > 0L,
+        required = .sm_api_is_required(q),
         validation = if (!is.null(q$validation) && length(q$validation) > 0L) q$validation else NULL
       )
     }
@@ -1690,10 +1721,23 @@ sm_api_enrich_xlsform_structure <- function(xlsform, details, sm, style = NULL) 
     m <- regmatches(type_str, regexec(perl = TRUE, "^select_(?:one|multiple)\\s+(\\S+)", type_str))[[1]]
     if (length(m) == 2L) m[2] else NA_character_
   }
+  qref_for_name <- function(name) {
+    name <- as.character(name)[1]
+    if (is.na(name) || !nzchar(name)) return(NULL)
+    if (name %in% names(raw_to_qref)) return(raw_to_qref[[name]])
+    for (grp in names(group_to_qref)) {
+      candidates <- unique(c(grp, .sm_qp_variants(toupper(grp), style)))
+      candidates <- candidates[!is.na(candidates) & nzchar(candidates)]
+      if (name %in% candidates) return(group_to_qref[[grp]])
+    }
+    NULL
+  }
+  required_open_seen <- new.env(parent = emptyenv())
 
   for (i in seq_len(nrow(survey_df))) {
     name <- as.character(survey_df$name[i])
-    qref <- raw_to_qref[[name]]
+    if (!is.na(name) && grepl("_other$", name)) next
+    qref <- qref_for_name(name)
     if (is.null(qref) || is.na(qref)) {
       # No hay match con la API → preservar tipo y lista
       lst <- list_from_type(as.character(survey_df$type[i]))
@@ -1712,7 +1756,14 @@ sm_api_enrich_xlsform_structure <- function(xlsform, details, sm, style = NULL) 
       if (!is.na(vt_type) && vt_type %in% c("decimal")) new_type <- "decimal"
       survey_df$type[i] <- new_type
       if (!is.na(info$heading)) survey_df[["label::es"]][i] <- info$heading
-      if (info$required) survey_df$required[i] <- "yes"
+      if (info$required) {
+        if (isTRUE(required_open_seen[[qref]])) {
+          survey_df$required[i] <- NA_character_
+        } else {
+          survey_df$required[i] <- "yes"
+          required_open_seen[[qref]] <- TRUE
+        }
+      }
       # Constraint
       cons <- NA_character_
       if (!is.null(vt)) {
@@ -1747,6 +1798,8 @@ sm_api_enrich_xlsform_structure <- function(xlsform, details, sm, style = NULL) 
 
   xlsform$survey <- tibble::as_tibble(survey_df)
   xlsform$choices <- tibble::as_tibble(choices_df)
+  xlsform <- .sm_api_apply_other_relevance(xlsform, details, sm, style = style)
+  xlsform$choices <- .sm_api_prune_unreferenced_choices(xlsform$survey, xlsform$choices)
   xlsform
 }
 

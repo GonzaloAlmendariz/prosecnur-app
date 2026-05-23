@@ -63,6 +63,30 @@ describe("DataReviewPane helpers", () => {
     expect(groups[1].variables.map((v) => v.name)).toEqual(["p1"]);
   });
 
+  test("keeps select-multiple dummy columns with their mother section", () => {
+    const groups = buildDataReviewSectionGroups(
+      [
+        variable({ name: "p7", seccion: "Trayectoria", tipo_xlsform: "select_multiple lst_p7" }),
+        variable({
+          name: "p7.1",
+          seccion: "Trayectoria",
+          tipo_xlsform: "dummy_select_multiple",
+          dummy_parent: "p7",
+          dummy_parent_label: "Grado alcanzado",
+          dummy_option_code: "1",
+          dummy_option_label: "Egresado/a",
+        }),
+      ],
+      [
+        { id: "pag7", nombre: "Trayectoria", variables: ["p7"], oculto: false, orden: 0, manual: false },
+      ],
+    );
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].synthetic).toBe(false);
+    expect(groups[0].variables.map((v) => v.name)).toEqual(["p7", "p7.1"]);
+  });
+
   test("draft labels can be temporarily blank but are invalid to confirm", () => {
     const v = variable({
       tipo_xlsform: "select_one yesno",

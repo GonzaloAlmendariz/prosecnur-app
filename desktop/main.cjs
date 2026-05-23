@@ -59,6 +59,11 @@ const APP_NAME = "Prosecnur";
 const HOST = "127.0.0.1";
 const MIN_R_PORT = 1024;
 const MAX_R_PORT = 49151;
+const SMOKE_CDP_PORT = process.env.PROSECNUR_SMOKE_CDP_PORT;
+
+if (SMOKE_CDP_PORT && /^\d+$/.test(SMOKE_CDP_PORT)) {
+  app.commandLine.appendSwitch("remote-debugging-port", SMOKE_CDP_PORT);
+}
 
 // Token aleatorio por arranque. Lo pasamos al backend R vía env var
 // PULSO_SHUTDOWN_TOKEN. El endpoint /api/system/shutdown exige el mismo

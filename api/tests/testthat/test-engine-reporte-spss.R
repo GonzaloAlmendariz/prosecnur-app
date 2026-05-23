@@ -25,7 +25,7 @@ test_that("reporte_spss genera un .sps complementario cuando se solicita", {
 
   out <- NULL
   expect_message({
-    out <- prosecnur::reporte_spss(
+    out <- prosecnurapp::reporte_spss(
       data = df,
       path_sav = path_sav,
       path_sps = path_sps,
@@ -53,7 +53,7 @@ test_that("reporte_spss valida path_sps vacio", {
   df <- data.frame(q1 = 1, stringsAsFactors = FALSE)
 
   expect_error(
-    prosecnur::reporte_spss(df, path_sav = tempfile(fileext = ".sav"), path_sps = ""),
+    prosecnurapp::reporte_spss(df, path_sav = tempfile(fileext = ".sav"), path_sps = ""),
     "ruta no vacia"
   )
 })

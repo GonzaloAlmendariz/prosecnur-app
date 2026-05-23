@@ -69,12 +69,16 @@ export function cloneWorkbook(book: XlsformEditorWorkbook): XlsformEditorWorkboo
             ...rule,
             choices: rule.choices.map((choice) => ({ ...choice, action: { ...choice.action } })),
           })),
-          choice_order_overrides: Object.fromEntries(
-            Object.entries(book.surveyMonkeyLogic.choice_order_overrides).map(([key, labels]) => [key, [...labels]]),
-          ),
-        }
-      : null,
-  };
+	          choice_order_overrides: Object.fromEntries(
+	            Object.entries(book.surveyMonkeyLogic.choice_order_overrides).map(([key, labels]) => [key, [...labels]]),
+	          ),
+	          choice_code_maps: (book.surveyMonkeyLogic.choice_code_maps ?? []).map((map) => ({
+	            ...map,
+	            mappings: map.mappings.map((item) => ({ ...item })),
+	          })),
+	        }
+	      : null,
+	  };
 }
 
 // -----------------------------------------------------------------------------

@@ -43,12 +43,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libxml2-dev \
         libssl-dev \
         libcurl4-openssl-dev \
+        libgdal-dev \
+        libgeos-dev \
+        libproj-dev \
+        libudunits2-dev \
         libfontconfig1-dev \
         libfreetype6-dev \
         libharfbuzz-dev \
         libfribidi-dev \
         libpng-dev \
-        libtiff5-dev \
+        libtiff-dev \
         libjpeg-dev \
         libxt6 \
         zlib1g-dev \

@@ -1,0 +1,344 @@
+---
+title: "Guía aplicada de codificación"
+subtitle: "De los insumos a la plantilla y a la adaptación final"
+date: today
+lang: es
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 1.9cm
+      y: 2.2cm
+    fontsize: 10pt
+    include-in-header:
+      - files_manuales/typst/manuales_base.typ
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+![](files_manuales/img/logo_pulso.png){width=3cm}
+
+```{r}
+#| include: false
+manual_dir <- normalizePath(dirname(knitr::current_input()), winslash = "/")
+manual_file <- function(...) file.path(manual_dir, "files_manuales", ...)
+manual_qmd <- basename(knitr::current_input())
+
+if (!requireNamespace("prosecnur", quietly = TRUE)) {
+  stop("Instale o cargue `prosecnur` antes de renderizar esta guía.", call. = FALSE)
+}
+
+library(prosecnur)
+```
+
+```{r}
+#| include: false
+ej_dir <- manual_file("data_ejemplo", "codificacion")
+
+inst_demo <- leer_instrumento_xlsform(file.path(ej_dir, "instrumento_ejercicio.xlsx"))
+dat_demo  <- leer_datos(file.path(ej_dir, "datos_ejercicio.xlsx"), sheet = "main")
+
+fams_demo <- leer_familias_clasificar(
+  path = file.path(ej_dir, "familias_ejercicio_resuelta.xlsx"),
+  inst = inst_demo,
+  dat  = dat_demo
+)
+
+plantilla_demo <- construir_plantilla_desde_familias(
+  inst  = inst_demo,
+  dat   = dat_demo,
+  split = fams_demo
+)
+
+path_tpl_demo <- tempfile("plantilla_codif_", fileext = ".xlsx")
+exportar_plantilla_codificacion_xlsx(
+  plantilla = plantilla_demo,
+  path_xlsx = path_tpl_demo,
+  inst      = inst_demo
+)
+
+path_data_demo <- tempfile("datos_adaptados_", fileext = ".xlsx")
+ppra_adaptar_data(
+  path_instrumento = file.path(ej_dir, "instrumento_ejercicio.xlsx"),
+  path_datos = file.path(ej_dir, "datos_ejercicio.xlsx"),
+  path_plantilla = path_tpl_demo,
+  sm_vars = c("servicios"),
+  so_parent_vars = c("motivo"),
+  so_child_vars = c("satisfaccion"),
+  int_vars = c("edad"),
+  out_path = path_data_demo,
+  path_familias = file.path(ej_dir, "familias_ejercicio_resuelta.xlsx")
+)
+
+path_inst_demo <- tempfile("instrumento_adaptado_", fileext = ".xlsx")
+ppra_adaptar_instrumento(
+  path_instrumento_in = file.path(ej_dir, "instrumento_ejercicio.xlsx"),
+  path_data_adaptada = path_data_demo,
+  path_instrumento_out = path_inst_demo,
+  sm_vars = c("servicios"),
+  so_parent_vars = c("motivo"),
+  so_child_vars = c("satisfaccion"),
+  integer_vars = c("edad"),
+  path_plantilla = path_tpl_demo
+)
+```
+
+# Archivo fuente QMD
+
+Este PDF sale del archivo:
+
+`r manual_qmd`
+
+La versión `.qmd` es la versión completa y comentada del manual. Si quiere ver
+todo resuelto paso a paso, con cada argumento escrito de forma explícita, abra
+ese archivo directamente dentro de la carpeta `manuales/`.
+
+# Cómo leer esta guía
+
+Esta guía no busca explicar toda la lógica interna del paquete. La idea es más
+simple: mostrar **qué insumos necesita la codificación**, **qué paso sigue
+después de cuál** y **qué archivo debe revisar en cada momento**.
+
+El ejemplo usa un caso pequeño incluido en `files_manuales/data_ejemplo/codificacion`.
+Si quiere probar con su propio estudio, lo normal es reemplazar esas rutas por
+las de su proyecto.
+
+# Qué entra y qué sale
+
+En el flujo de codificación hay cuatro momentos prácticos:
+
+1. Leer instrumento y datos.
+2. Definir o revisar las familias que sí se van a codificar.
+3. Generar la plantilla editable de codificación.
+4. Aplicar esa plantilla tanto a los datos como al instrumento.
+
+Los archivos del ejemplo son estos:
+
+```{r}
+list.files(manual_file("data_ejemplo", "codificacion"))
+```
+
+# Paso 1. Leer el instrumento y la base
+
+Primero se carga el XLSForm y la base. Este paso sirve para que el paquete
+entienda nombres de variables, tipos de pregunta y estructura de los datos.
+
+```{r}
+#| eval: false
+library(prosecnur)
+
+# Ruta al XLSForm del ejemplo.
+inst <- leer_instrumento_xlsform(
+  "files_manuales/data_ejemplo/codificacion/instrumento_ejercicio.xlsx"
+)
+
+# Ruta a la base de datos del ejemplo.
+dat <- leer_datos(
+  "files_manuales/data_ejemplo/codificacion/datos_ejercicio.xlsx",
+  sheet = "main"
+)
+```
+
+Qué conviene revisar aquí:
+
+- que el instrumento abra sin error;
+- que la hoja correcta de datos quede bien leída;
+- que las variables clave estén presentes antes de pasar al siguiente paso.
+
+# Paso 2. Construir o revisar familias
+
+La hoja de familias es la pieza de trabajo que le dice al paquete **qué
+variables se usarán para codificar** y **cómo debe tratar cada caso**.
+
+Si quiere empezar desde una base inicial generada por el paquete:
+
+```{r}
+#| eval: false
+escribir_plantilla_familias(
+  inst = inst,
+  dat = dat,
+  path = "familias_ejercicio.xlsx",
+  incluir_text_vars = TRUE
+)
+```
+
+Si ya tiene una hoja de familias editada, el siguiente paso es leerla y
+clasificarla:
+
+```{r}
+#| eval: false
+# Ruta a la hoja de familias ya revisada.
+fams <- leer_familias_clasificar(
+  path = "files_manuales/data_ejemplo/codificacion/familias_ejercicio_resuelta.xlsx",
+
+  # Instrumento ya leído.
+  inst = inst,
+
+  # Base ya leída.
+  dat = dat
+)
+```
+
+En términos prácticos, aquí suele revisar sobre todo:
+
+- `use`: si esa familia entra o no al flujo;
+- `modo_so`: si un `select_one` se trabaja como padre o como hijo;
+- `other_dummy_col`: si existe una opción tipo “otro” en un `select_multiple`;
+- `text_col`: qué texto abierto acompaña esa familia.
+
+# Paso 3. Generar la plantilla editable
+
+Una vez que las familias están listas, se arma la plantilla que luego se edita
+para decidir recodificaciones.
+
+```{r}
+#| eval: false
+# Construir el objeto interno de plantilla.
+plantilla <- construir_plantilla_desde_familias(
+  inst = inst,
+  dat = dat,
+  split = fams
+)
+
+# Exportar el Excel que luego se edita manualmente.
+exportar_plantilla_codificacion_xlsx(
+  plantilla = plantilla,
+  path_xlsx = "plantilla_codificacion_ejercicio.xlsx",
+  inst = inst
+)
+```
+
+Qué produce este paso:
+
+- una hoja de instrucciones;
+- una hoja por tipo o familia de codificación;
+- columnas editables `*_recod` y bloques auxiliares para nuevas categorías.
+
+En otras palabras, este es el archivo que su equipo realmente edita.
+
+# Paso 4. Aplicar la plantilla a los datos
+
+Cuando la plantilla ya está revisada, se puede aplicar a la base.
+
+```{r}
+#| eval: false
+ppra_adaptar_data(
+  # Instrumento original.
+  path_instrumento = "files_manuales/data_ejemplo/codificacion/instrumento_ejercicio.xlsx",
+
+  # Datos originales.
+  path_datos = "files_manuales/data_ejemplo/codificacion/datos_ejercicio.xlsx",
+
+  # Plantilla editada o resuelta.
+  path_plantilla = "plantilla_codificacion_ejercicio_resuelta.xlsx",
+
+  # Variables select_multiple.
+  sm_vars = c("servicios"),
+
+  # Variables select_one tratadas como padre.
+  so_parent_vars = c("motivo"),
+
+  # Variables select_one tratadas como hijo.
+  so_child_vars = c("satisfaccion"),
+
+  # Variables enteras con posible recodificación.
+  int_vars = c("edad"),
+
+  # Ruta de salida de la base adaptada.
+  out_path = "datos_adaptados_ejercicio.xlsx",
+
+  # Hoja de familias que acompaña el proceso.
+  path_familias = "files_manuales/data_ejemplo/codificacion/familias_ejercicio_resuelta.xlsx"
+)
+```
+
+Use este paso cuando quiera obtener una base ya adaptada a la codificación que
+definió en Excel.
+
+# Paso 5. Aplicar la plantilla al instrumento
+
+El flujo no termina en la base. También conviene adaptar el instrumento para
+que quede coherente con la recodificación final.
+
+```{r}
+#| eval: false
+ppra_adaptar_instrumento(
+  # Instrumento original.
+  path_instrumento_in = "files_manuales/data_ejemplo/codificacion/instrumento_ejercicio.xlsx",
+
+  # Base ya adaptada en el paso previo.
+  path_data_adaptada = "datos_adaptados_ejercicio.xlsx",
+
+  # Ruta del instrumento final.
+  path_instrumento_out = "instrumento_adaptado_ejercicio.xlsx",
+
+  # Variables select_multiple.
+  sm_vars = c("servicios"),
+
+  # Variables select_one tipo padre.
+  so_parent_vars = c("motivo"),
+
+  # Variables select_one tipo hijo.
+  so_child_vars = c("satisfaccion"),
+
+  # Variables enteras.
+  integer_vars = c("edad"),
+
+  # Plantilla de codificación usada como referencia final.
+  path_plantilla = "plantilla_codificacion_ejercicio_resuelta.xlsx"
+)
+```
+
+Este archivo adaptado es especialmente útil cuando después quiere producir
+entregables estandarizados.
+
+# Flujo corto recomendado
+
+Si necesita pensar el proceso como una receta, quédese con esta secuencia:
+
+1. `leer_instrumento_xlsform()`
+2. `leer_datos()`
+3. `escribir_plantilla_familias()` solo si aún no existe una hoja base
+4. `leer_familias_clasificar()`
+5. `construir_plantilla_desde_familias()`
+6. `exportar_plantilla_codificacion_xlsx()`
+7. edición humana de la plantilla
+8. `ppra_adaptar_data()`
+9. `ppra_adaptar_instrumento()`
+
+# Errores frecuentes
+
+## La familia no entra al flujo
+
+Revise la columna `use`. Si está vacía o en falso, esa familia no se procesará.
+
+## Un `select_one` no se adapta como esperaba
+
+Revise `modo_so`. Ahí se define si el cambio recae sobre la pregunta padre o
+sobre el texto asociado.
+
+## Falta el texto de apoyo para “otro”
+
+Revise `text_col` y, cuando exista una dummy de “otro”, también
+`other_dummy_col`.
+
+## La plantilla se exporta, pero luego falla la adaptación
+
+Suele pasar cuando el archivo editado cambia columnas técnicas o cuando los
+bloques auxiliares quedan incompletos. Si edita la plantilla, procure tocar
+solo las columnas pensadas para edición.
+
+# Cierre
+
+La lógica completa de codificación puede parecer grande, pero en la práctica se
+resume en dos ideas:
+
+- primero se decide la estructura de trabajo en la hoja de familias;
+- después esa estructura se convierte en una plantilla editable que termina
+  afectando tanto la base como el instrumento.
+
+Si el objetivo es seguir con salidas analíticas, el siguiente paso natural es
+pasar a `reporte_instrumento()` y `reporte_data()`, que se cubren en la guía de
+entregables.

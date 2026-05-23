@@ -630,7 +630,7 @@
 }
 
 .ppt_contract_entry_for_layout <- function(layout_name) {
-  contract <- get(".PPT_CONTRACT", envir = asNamespace("prosecnur"))
+  contract <- get(".PPT_CONTRACT", envir = environment(.ppt_contract_entry_for_layout))
   make_entry <- function(contract_key, overrides = list()) {
     if (!contract_key %in% names(contract)) return(NULL)
     out <- contract[[contract_key]]
@@ -664,21 +664,21 @@
     )),
     "Graficos" = make_entry("slide_1", list(
       title = list(type = "title", type_idx = 1L),
-      plot = list(type = "pic", type_idx = 1L),
-      base = list(type = "body", type_idx = 1L),
-      right = list(type = "body", type_idx = 2L)
+      plot = list(type = "body", type_idx = 1L),
+      base = list(type = "body", type_idx = 2L),
+      right = list(type = "body", type_idx = 3L)
     )),
     "Graficos2" = make_entry("slide_1", list(
       title = list(type = "title", type_idx = 1L),
-      plot = list(type = "pic", type_idx = 1L),
-      base = list(type = "body", type_idx = 1L),
-      right = list(type = "body", type_idx = 2L)
+      plot = list(type = "body", type_idx = 1L),
+      base = list(type = "body", type_idx = 2L),
+      right = list(type = "body", type_idx = 3L)
     )),
     "Graficos_unabarra" = make_entry("slide_1", list(
       title = list(type = "title", type_idx = 1L),
-      plot = list(type = "pic", type_idx = 1L),
-      base = list(type = "body", type_idx = 1L),
-      right = list(type = "body", type_idx = 2L)
+      plot = list(type = "body", type_idx = 1L),
+      base = list(type = "body", type_idx = 2L),
+      right = list(type = "body", type_idx = 3L)
     )),
     "Graficos_2columnas" = make_entry("slide_2", list(
       title = list(type = "title", type_idx = 1L),

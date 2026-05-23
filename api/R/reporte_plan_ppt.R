@@ -321,8 +321,7 @@ reporte_ppt_plan <- function(
   .select_placeholder_props <- function(props, spec, layout_name, master_name) {
     if (!nrow(props)) {
       stop(
-        "No se encontro placeholder type='", spec$type,
-        "' en layout='", layout_name %||% "<NA>",
+        "No se encontro placeholder para layout='", layout_name %||% "<NA>",
         "', master='", master_name %||% "<NA>", "'.",
         call. = FALSE
       )
@@ -334,6 +333,16 @@ reporte_ppt_plan <- function(
       if (nrow(props_label)) {
         return(props_label[1, , drop = FALSE])
       }
+    }
+
+    props <- props[props$type %in% spec$type, , drop = FALSE]
+    if (!nrow(props)) {
+      stop(
+        "No se encontro placeholder type='", spec$type,
+        "' en layout='", layout_name %||% "<NA>",
+        "', master='", master_name %||% "<NA>", "'.",
+        call. = FALSE
+      )
     }
 
     type_idx <- spec$type_idx %||% NULL
@@ -385,7 +394,6 @@ reporte_ppt_plan <- function(
       master = master_name
     )
 
-    props <- props[props$type %in% spec$type, , drop = FALSE]
     props <- .select_placeholder_props(props, spec, layout_name, master_name)
 
     loc <- officer::ph_location(
@@ -1383,7 +1391,6 @@ reporte_ppt_plan <- function(
       master = master_name
     )
 
-    props <- props[props$type %in% spec$type, , drop = FALSE]
     .select_placeholder_props(props, spec, layout_name, master_name)
   }
 

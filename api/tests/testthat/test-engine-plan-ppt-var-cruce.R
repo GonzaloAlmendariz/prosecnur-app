@@ -695,12 +695,12 @@ test_that("top2box y bottom2box excluyen categorias especiales por defecto", {
   )
 
   expect_identical(
-    prosecnur:::.default_box_cols(cols, labels, n = 2L, side = "top"),
+    prosecnurapp:::.default_box_cols(cols, labels, n = 2L, side = "top"),
     c("pct_3", "pct_4")
   )
 
   expect_identical(
-    prosecnur:::.default_box_cols(cols, labels, n = 2L, side = "bottom"),
+    prosecnurapp:::.default_box_cols(cols, labels, n = 2L, side = "bottom"),
     c("pct_1", "pct_2")
   )
 
@@ -712,7 +712,7 @@ test_that("top2box y bottom2box excluyen categorias especiales por defecto", {
   )
 
   expect_identical(
-    prosecnur:::.default_box_cols(names(labels_ns), labels_ns, n = 2L, side = "top"),
+    prosecnurapp:::.default_box_cols(names(labels_ns), labels_ns, n = 2L, side = "top"),
     c("pct_1", "pct_2")
   )
 })
@@ -726,7 +726,7 @@ test_that("graficar_barras_apiladas acepta 'valores' como alias de 'porcentajes'
     stringsAsFactors = FALSE
   )
 
-  p <- prosecnur::graficar_barras_apiladas(
+  p <- prosecnurapp::graficar_barras_apiladas(
     data = df,
     var_categoria = "categoria",
     var_n = "N",
@@ -752,7 +752,7 @@ test_that("graficar_barras_apiladas separa horizontalmente etiquetas pequenas", 
     stringsAsFactors = FALSE
   )
 
-  p <- prosecnur::graficar_barras_apiladas(
+  p <- prosecnurapp::graficar_barras_apiladas(
     data = df,
     var_categoria = "categoria",
     var_n = "N",
@@ -797,7 +797,7 @@ test_that("graficar_barras_apiladas permite desactivar repulsion de etiquetas pe
     stringsAsFactors = FALSE
   )
 
-  p <- prosecnur::graficar_barras_apiladas(
+  p <- prosecnurapp::graficar_barras_apiladas(
     data = df,
     var_categoria = "categoria",
     var_n = "N",
@@ -836,7 +836,7 @@ test_that("graficar_barras_apiladas admite umbrales explicitos de mostrar y tama
     stringsAsFactors = FALSE
   )
 
-  p <- prosecnur::graficar_barras_apiladas(
+  p <- prosecnurapp::graficar_barras_apiladas(
     data = df,
     var_categoria = "categoria",
     var_n = "N",
@@ -874,7 +874,7 @@ test_that("graficar_barras_apiladas repela etiquetas pequenas con umbrales expli
     stringsAsFactors = FALSE
   )
 
-  p <- prosecnur::graficar_barras_apiladas(
+  p <- prosecnurapp::graficar_barras_apiladas(
     data = df,
     var_categoria = "categoria",
     var_n = "N",
@@ -919,7 +919,7 @@ test_that("graficar_barras_apiladas activa modo uniforme con una sola capa de et
     stringsAsFactors = FALSE
   )
 
-  p <- prosecnur::graficar_barras_apiladas(
+  p <- prosecnurapp::graficar_barras_apiladas(
     data = df,
     var_categoria = "categoria",
     var_n = "N",
@@ -958,7 +958,7 @@ test_that("graficar_barras_apiladas en modo uniforme empuja hacia adentro en bor
     stringsAsFactors = FALSE
   )
 
-  p <- prosecnur::graficar_barras_apiladas(
+  p <- prosecnurapp::graficar_barras_apiladas(
     data = df,
     var_categoria = "categoria",
     var_n = "N",
@@ -998,7 +998,7 @@ test_that("graficar_barras_apiladas en modo uniforme empuja hacia adentro en bor
     stringsAsFactors = FALSE
   )
 
-  p <- prosecnur::graficar_barras_apiladas(
+  p <- prosecnurapp::graficar_barras_apiladas(
     data = df,
     var_categoria = "categoria",
     var_n = "N",
@@ -1038,7 +1038,7 @@ test_that("graficar_barras_apiladas en modo uniforme aumenta separacion minima e
     stringsAsFactors = FALSE
   )
 
-  p <- prosecnur::graficar_barras_apiladas(
+  p <- prosecnurapp::graficar_barras_apiladas(
     data = df,
     var_categoria = "categoria",
     var_n = "N",
@@ -1093,8 +1093,8 @@ test_that("graficar_barras_apiladas mantiene comportamiento legacy con etiquetas
     umbral_etiqueta_normal = 0.05
   )
 
-  p_default <- do.call(prosecnur::graficar_barras_apiladas, mk_args)
-  p_legacy  <- do.call(prosecnur::graficar_barras_apiladas, c(mk_args, list(etiquetas_uniformes = FALSE)))
+  p_default <- do.call(prosecnurapp::graficar_barras_apiladas, mk_args)
+  p_legacy  <- do.call(prosecnurapp::graficar_barras_apiladas, c(mk_args, list(etiquetas_uniformes = FALSE)))
 
   extract_labels <- function(p) {
     text_layers <- Filter(function(layer) inherits(layer$geom, "GeomText"), p$layers)
@@ -1180,11 +1180,11 @@ test_that("slide_1 agrega subtitulo y base automatica multi-fuente en orden de d
 })
 
 test_that("auto_bar_width_apiladas modera pocas categorias y sostiene muchas", {
-  w3 <- prosecnur:::.auto_bar_width_apiladas(3)
-  w9 <- prosecnur:::.auto_bar_width_apiladas(9)
-  w15 <- prosecnur:::.auto_bar_width_apiladas(15)
-  w3_plain <- prosecnur:::.auto_bar_width_apiladas(3, usar_grupos_canvas = FALSE)
-  w9_plain <- prosecnur:::.auto_bar_width_apiladas(9, usar_grupos_canvas = FALSE)
+  w3 <- prosecnurapp:::.auto_bar_width_apiladas(3)
+  w9 <- prosecnurapp:::.auto_bar_width_apiladas(9)
+  w15 <- prosecnurapp:::.auto_bar_width_apiladas(15)
+  w3_plain <- prosecnurapp:::.auto_bar_width_apiladas(3, usar_grupos_canvas = FALSE)
+  w9_plain <- prosecnurapp:::.auto_bar_width_apiladas(9, usar_grupos_canvas = FALSE)
 
   expect_true(w3 < w9)
   expect_true(w9 < w15)

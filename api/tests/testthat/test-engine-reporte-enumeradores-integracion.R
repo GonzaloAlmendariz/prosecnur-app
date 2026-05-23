@@ -16,7 +16,7 @@ test_that("reporte_enumeradores genera PDF con multiples cols_corte", {
   on.exit(unlink(c(out_pdf, out_general, out_telef, out_pres)), add = TRUE)
 
   res <- try(
-    prosecnur::reporte_enumeradores(
+    prosecnurapp::reporte_enumeradores(
       data = df,
       col_enumerador = "enumerador",
       cols_corte = c("sexo", "aula"),
@@ -57,7 +57,7 @@ test_that("reporte_enumeradores funciona con cols_corte = NULL", {
   on.exit(unlink(c(out_pdf, out_general, out_telef, out_pres)), add = TRUE)
 
   res <- try(
-    prosecnur::reporte_enumeradores(
+    prosecnurapp::reporte_enumeradores(
       data = df,
       col_enumerador = "enumerador",
       cols_corte = NULL,

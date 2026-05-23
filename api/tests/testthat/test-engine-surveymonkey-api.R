@@ -358,6 +358,32 @@ test_that("sm_api_xlsform deja preguntas abiertas por fila como hermanas de la p
   expect_equal(survey$`label::es`[2:3], c("Función 1:", "Función 2:"))
 })
 
+test_that("sm_api_xlsform no propaga required a todas las filas abiertas", {
+  details <- list(
+    title = "Encuesta abierta requerida",
+    pages = list(
+      list(position = 1L, questions = list(
+        list(
+          family = "open_ended",
+          subtype = "multi",
+          headings = list(list(heading = "¿Cuál es su función principal?")),
+          required = list(type = "all"),
+          answers = list(rows = list(
+            list(text = "Función 1:"),
+            list(text = "Función 2:"),
+            list(text = "Función 3:")
+          ))
+        )
+      ))
+    )
+  )
+
+  out <- sm_api_xlsform(details, style = list(prefix = "q", pad = 4L), lang = "es")
+  req <- out$survey$required[out$survey$name %in% c("p1_1", "p1_2", "p1_3")]
+
+  expect_equal(req, c("yes", NA_character_, NA_character_))
+})
+
 test_that("sm_api_xlsform crea campo other para select_one", {
   details <- list(
     title = "Encuesta other",
@@ -390,6 +416,55 @@ test_that("sm_api_xlsform crea campo other para select_one", {
   expect_equal(survey$type[other_idx], "text")
   expect_equal(unname(survey$relevant[other_idx]), "${p1} = '3'")
   expect_true(any(choices$list_name == "lst_p1" & choices$name == "3" & choices$`label::es` == "Otra institución"))
+})
+
+test_that("sm_api_enrich_xlsform_structure combina other con relevant de la madre", {
+  details <- list(
+    pages = list(
+      list(position = 1L, questions = list(
+        list(
+          family = "single_choice",
+          subtype = "vertical",
+          headings = list(list(heading = "¿En qué institución?")),
+          answers = list(
+            choices = list(
+              list(position = 1L, text = "PUCP"),
+              list(position = 2L, text = "UNI")
+            ),
+            other = list(is_answer_choice = TRUE, text = "Otra institución")
+          )
+        )
+      ))
+    )
+  )
+  sm <- list(vars_tbl = tibble::tibble(name_raw = "q0001"))
+  xlsform <- list(
+    survey = tibble::tibble(
+      type = c("select_one lst_p1", "text"),
+      name = c("p1", "p1_other"),
+      `label::es` = c("¿En qué institución?", "Otra institución:"),
+      required = NA_character_,
+      relevant = c("${p0} = '1'", NA_character_),
+      constraint = NA_character_
+    ),
+    choices = tibble::tibble(
+      list_name = rep("lst_p1", 3),
+      name = c("1", "2", "3"),
+      `label::es` = c("PUCP", "UNI", "Otra institución")
+    )
+  )
+
+  out <- sm_api_enrich_xlsform_structure(
+    xlsform,
+    details,
+    sm,
+    style = list(prefix = "q", pad = 4L)
+  )
+  rel <- out$survey$relevant[out$survey$name == "p1_other"][1]
+
+  expect_match(rel, "\\$\\{p0\\} = '1'")
+  expect_match(rel, "\\$\\{p1\\} = '3'")
+  expect_match(rel, " and ")
 })
 
 test_that("sm_api_xlsform aplica reglas con nombres p normalizados", {

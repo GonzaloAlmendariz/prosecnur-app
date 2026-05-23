@@ -639,8 +639,11 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL) {
     if (!"principal" %in% names(tables) && !is.null(main_name) && main_name %in% names(tables)) {
       tables <- c(list(principal = tables[[main_name]]), tables)
     }
+    filtered <- list(data = tables$principal, filter = NULL)
     if (!is.null(tables$principal)) {
       tables$principal <- normalize_data_for_xlsform(tables$principal, instrumento)
+      filtered <- .validation_filter_sm_partial_rows(tables$principal)
+      tables$principal <- filtered$data
     }
     return(list(
       principal = tables$principal %||% tables[[1]],
@@ -648,6 +651,7 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL) {
       data_multi = tables[setdiff(names(tables), "principal")],
       rc_checks = lx$rc_checks %||% list(),
       meta = lx$meta %||% list(),
+      row_filter = filtered$filter %||% NULL,
       source = "lector_limpieza"
     ))
   }
@@ -658,14 +662,80 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL) {
     stop(sprintf("Unsupported data extension for AST runtime: %s", ext))
   )
   df <- normalize_data_for_xlsform(df, instrumento)
+  filtered <- .validation_filter_sm_partial_rows(df)
+  df <- filtered$data
   list(
     principal = df,
     tables = list(principal = df),
     data_multi = list(),
     rc_checks = list(),
     meta = list(main = "principal"),
+    row_filter = filtered$filter %||% NULL,
     source = "single_table"
   )
+}
+
+.validation_missing_cell <- function(x) {
+  if (is.factor(x)) x <- as.character(x)
+  if (is.logical(x)) return(is.na(x) | !x)
+  x_chr <- trimws(as.character(x))
+  is.na(x_chr) | !nzchar(x_chr) | x_chr == "NA"
+}
+
+.validation_sm_page_marker_cols <- function(df) {
+  if (!is.data.frame(df) || !length(names(df))) return(character(0))
+  candidates <- names(df)[grepl("^p0{3,}[0-9]+$", names(df), perl = TRUE)]
+  if (!length(candidates)) return(character(0))
+  labelled <- candidates[vapply(candidates, function(nm) {
+    lab <- attr(df[[nm]], "label", exact = TRUE)
+    !is.null(lab) && grepl("^Page\\s+[0-9]+$", as.character(lab), ignore.case = TRUE)
+  }, logical(1))]
+  if (length(labelled)) return(labelled)
+  if (length(candidates) >= 2L) candidates else character(0)
+}
+
+.validation_filter_sm_partial_rows <- function(df) {
+  if (!is.data.frame(df) || !nrow(df)) {
+    return(list(data = df, filter = NULL))
+  }
+  marker_cols <- .validation_sm_page_marker_cols(df)
+  if (!length(marker_cols)) {
+    return(list(data = df, filter = NULL))
+  }
+
+  marker_mat <- vapply(marker_cols, function(nm) {
+    !.validation_missing_cell(df[[nm]])
+  }, logical(nrow(df)))
+  if (is.null(dim(marker_mat))) {
+    marker_any <- marker_mat
+  } else {
+    marker_any <- rowSums(marker_mat, na.rm = TRUE) > 0L
+  }
+  marker_any[is.na(marker_any)] <- FALSE
+  n_marked <- sum(marker_any)
+
+  filter_info <- list(
+    kind = "surveymonkey_partial_page_markers",
+    applied = FALSE,
+    original_rows = as.integer(nrow(df)),
+    kept_rows = as.integer(nrow(df)),
+    excluded_rows = 0L,
+    marker_columns = marker_cols
+  )
+
+  # Salvaguarda: si todas las filas vienen con marcadores de página, no
+  # asumimos que son parciales; algunos exports podrían usar esas columnas
+  # como metadata normal. El patrón SurveyMonkey problemático marca solo
+  # abandonos, como en los .sav de ingeniería.
+  if (!n_marked || n_marked == nrow(df)) {
+    return(list(data = df, filter = filter_info))
+  }
+
+  out <- df[!marker_any, , drop = FALSE]
+  filter_info$applied <- TRUE
+  filter_info$kept_rows <- as.integer(nrow(out))
+  filter_info$excluded_rows <- as.integer(n_marked)
+  list(data = out, filter = filter_info)
 }
 
 # -----------------------------------------------------------------------------
@@ -954,6 +1024,7 @@ evaluate_validation_bundle <- function(bundle,
     resumen = resumen,
     reglas_meta = reglas_meta,
     diagnostico_reglas = diagnostico_reglas,
+    row_filter = data_ctx$row_filter %||% NULL,
     bundle = bundle
   )
 }

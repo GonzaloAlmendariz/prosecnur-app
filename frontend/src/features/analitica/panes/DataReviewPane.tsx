@@ -85,6 +85,7 @@ export function buildDataReviewSectionGroups(
   const byName = new Map(variables.map((variable) => [variable.name, variable]));
   const assigned = new Set<string>();
   const groups: DataReviewSectionGroup[] = [];
+  const groupByVariable = new Map<string, DataReviewSectionGroup>();
   const sortedSections = [...sections].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
 
   for (const section of sortedSections) {
@@ -93,29 +94,52 @@ export function buildDataReviewSectionGroups(
       .filter((variable): variable is DataReviewVariable => Boolean(variable));
     sectionVars.forEach((variable) => assigned.add(variable.name));
     if (sectionVars.length === 0) continue;
-    groups.push({
+    const group = {
       id: section.id,
       name: section.nombre || section.id,
       hidden: Boolean(section.oculto),
       manual: section.manual,
       synthetic: false,
       variables: sectionVars,
-    });
+    };
+    groups.push(group);
+    sectionVars.forEach((variable) => groupByVariable.set(variable.name, group));
   }
 
   for (const variable of variables) {
     if (assigned.has(variable.name)) continue;
+    const parentGroup = variable.dummy_parent ? groupByVariable.get(variable.dummy_parent) : undefined;
+    if (parentGroup) {
+      parentGroup.variables.push(variable);
+      assigned.add(variable.name);
+      groupByVariable.set(variable.name, parentGroup);
+      continue;
+    }
+    const configuredSection = groups.find(
+      (group) => !group.synthetic && (group.name === variable.seccion || group.id === variable.seccion),
+    );
+    if (configuredSection) {
+      configuredSection.variables.push(variable);
+      assigned.add(variable.name);
+      groupByVariable.set(variable.name, configuredSection);
+      continue;
+    }
     const fallbackName = variable.seccion || "General";
     const existing = groups.find((group) => group.synthetic && group.name === fallbackName);
-    if (existing) existing.variables.push(variable);
+    if (existing) {
+      existing.variables.push(variable);
+      groupByVariable.set(variable.name, existing);
+    }
     else {
-      groups.push({
+      const group = {
         id: `__fallback_${fallbackName}`,
         name: fallbackName,
         hidden: false,
         synthetic: true,
         variables: [variable],
-      });
+      };
+      groups.push(group);
+      groupByVariable.set(variable.name, group);
     }
   }
 
@@ -564,6 +588,13 @@ function DataReviewSection({
           const canEditOptions = dataReviewHasEditableOptions(variable);
           const optionsOpen = openOptions.has(variable.name);
           const variableLocked = group.hidden && !group.synthetic;
+          const isDummyOption = Boolean(variable.dummy_parent);
+          const dummyParent = variable.dummy_parent ?? "";
+          const dummyParentLabel = variable.dummy_parent_label?.trim() || dummyParent;
+          const dummyOptionLabel = variable.dummy_option_label?.trim() || draftLabel;
+          const typeCaption = isDummyOption
+            ? `dummy de ${dummyParent} · ${variable.n_non_missing} con dato`
+            : `${variable.tipo_xlsform || "data"} · ${variable.n_non_missing} con dato`;
           const hasOptionDraftChanges = canEditOptions && variable.opciones.some((option) => {
             const draftOption = draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
             const baselineOption = baselineDraft.valueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
@@ -590,9 +621,39 @@ function DataReviewSection({
                   <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 12, color: "var(--pulso-primary)" }}>
                     {variable.name}
                   </code>
+                  {isDummyOption ? (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: "2px 7px",
+                        borderRadius: 999,
+                        background: "var(--pulso-primary-soft)",
+                        color: "var(--pulso-primary)",
+                      }}
+                      title={`Opción de «${dummyParentLabel}»`}
+                    >
+                      opción dummy
+                    </span>
+                  ) : null}
                   <div style={{ marginTop: 3, fontSize: 11, color: "var(--pulso-text-soft)" }}>
-                    {variable.tipo_xlsform || "data"} · {variable.n_non_missing} con dato
+                    {typeCaption}
                   </div>
+                  {isDummyOption ? (
+                    <div
+                      style={{
+                        marginTop: 4,
+                        fontSize: 11,
+                        color: "var(--pulso-text-soft)",
+                        lineHeight: 1.35,
+                        maxWidth: 520,
+                      }}
+                      title={dummyParentLabel}
+                    >
+                      Pertenece a <code style={{ fontFamily: "ui-monospace, monospace" }}>{dummyParent}</code> · {dummyOptionLabel}
+                    </div>
+                  ) : null}
                 </div>
                 <label className="pulso-data-review-label">
                   <span>Etiqueta de pregunta</span>

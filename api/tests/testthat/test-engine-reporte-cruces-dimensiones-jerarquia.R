@@ -87,7 +87,7 @@ make_dimensiones_jerarquia_fixture <- function() {
     orders_list = list(sat5 = c("1", "2", "3", "4", "5"))
   )
 
-  d1 <- prosecnur::reporte_dimensiones(
+  d1 <- prosecnurapp::reporte_dimensiones(
     data = dat,
     instrumento = inst,
     vars = c("p12", "p38"),
@@ -96,16 +96,16 @@ make_dimensiones_jerarquia_fixture <- function() {
     orden_por_lista = list(sat5 = c("1", "2", "3", "4", "5"))
   )
 
-  d2 <- prosecnur::reporte_dimensiones_indices(
+  d2 <- prosecnurapp::reporte_dimensiones_indices(
     data = d1,
     subindices = list(
-      prosecnur::subindice("trato", "Trato", c("r100_p12")),
-      prosecnur::subindice("recomendacion", "Recomendación", c("r100_p38"))
+      prosecnurapp::subindice("trato", "Trato", c("r100_p12")),
+      prosecnurapp::subindice("recomendacion", "Recomendación", c("r100_p38"))
     ),
     indices = list(
-      prosecnur::indice("indice_general", "Indice General", c("trato", "recomendacion")),
-      prosecnur::indice("indice_pertinencia", "Indice de Pertinencia", c("trato")),
-      prosecnur::indice("indice_eficiencia", "Indice de Eficiencia", c("recomendacion"))
+      prosecnurapp::indice("indice_general", "Indice General", c("trato", "recomendacion")),
+      prosecnurapp::indice("indice_pertinencia", "Indice de Pertinencia", c("trato")),
+      prosecnurapp::indice("indice_eficiencia", "Indice de Eficiencia", c("recomendacion"))
     )
   )
 
@@ -118,7 +118,7 @@ make_dimensiones_jerarquia_fixture <- function() {
 test_that("tablas_dimensiones_jerarquicas construye resumen y detalle en orden", {
   fx <- make_dimensiones_jerarquia_fixture()
 
-  tablas <- prosecnur::tablas_dimensiones_jerarquicas(
+  tablas <- prosecnurapp::tablas_dimensiones_jerarquicas(
     data = fx$data,
     indices = c("idx_indice_general", "idx_indice_pertinencia", "idx_indice_eficiencia"),
     hoja_indicadores = "Indicadores",
@@ -159,7 +159,7 @@ test_that("tablas_dimensiones_jerarquicas construye resumen y detalle en orden",
 test_that("metodologia editorial muestra pregunta humana y escala completa", {
   fx <- make_dimensiones_jerarquia_fixture()
 
-  meta <- prosecnur:::.dim_metodologia_df(
+  meta <- prosecnurapp:::.dim_metodologia_df(
     data = fx$data,
     fuente = "Pulso PUCP",
     fila = "servicio",
@@ -187,7 +187,7 @@ test_that("reporte_cruces dimensiones genera hojas jerarquicas reutilizables", {
   path_xlsx <- tempfile(fileext = ".xlsx")
   on.exit(unlink(path_xlsx), add = TRUE)
 
-  tablas <- prosecnur::tablas_dimensiones_jerarquicas(
+  tablas <- prosecnurapp::tablas_dimensiones_jerarquicas(
     data = fx$data,
     indices = c("idx_indice_general", "idx_indice_pertinencia", "idx_indice_eficiencia"),
     hoja_indicadores = "Indicadores",
@@ -201,7 +201,7 @@ test_that("reporte_cruces dimensiones genera hojas jerarquicas reutilizables", {
   )
 
   expect_no_error(
-    prosecnur::reporte_cruces(
+    prosecnurapp::reporte_cruces(
       data = fx$data,
       instrumento = fx$instrumento,
       SECCIONES = NULL,
@@ -265,7 +265,7 @@ test_that("reporte_cruces clasico renombra Media total a Promedio general", {
   )
 
   expect_no_error(
-    prosecnur::reporte_cruces(
+    prosecnurapp::reporte_cruces(
       data = fx$data,
       instrumento = fx$instrumento,
       SECCIONES = NULL,

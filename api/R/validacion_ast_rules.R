@@ -1299,6 +1299,103 @@ compile_rule <- function(rule) {
   if (!length(lab) || is.na(lab) || !nzchar(lab)) NULL else lab
 }
 
+.human_compare_const_text <- function(x, label_map = NULL, choices_map = NULL, negate = FALSE) {
+  lbl <- .human_label_for_var(x$var, label_map)
+  val_raw <- as.character(x$value)
+  op <- as.character(x$op)
+  if (isTRUE(negate)) {
+    op <- switch(op,
+      "==" = "!=",
+      "!=" = "==",
+      ">" = "<=",
+      ">=" = "<",
+      "<" = ">=",
+      "<=" = ">",
+      op
+    )
+  }
+  choice_lbl <- .resolve_choice_label(choices_map, x$var, val_raw)
+  # Para variables select, "==" / "!=" se leen como "marcó" / "no marcó"
+  # con el label del choice — mucho más legible que "debe ser igual a '1'".
+  if (!is.null(choice_lbl) && op %in% c("==", "!=")) {
+    verb <- if (identical(op, "==")) "marcó" else "no marcó"
+    sprintf("%s %s «%s»", lbl, verb, choice_lbl)
+  } else {
+    sprintf("%s %s %s", lbl, .human_op(op), sQuote(val_raw))
+  }
+}
+
+.human_selected_text <- function(x, label_map = NULL, choices_map = NULL, negate = FALSE) {
+  lbl <- .human_label_for_var(x$var, label_map)
+  choice_lbl <- .resolve_choice_label(choices_map, x$var, x$value)
+  verb <- if (isTRUE(negate)) "no marcó" else "marcó"
+  if (!is.null(choice_lbl)) {
+    sprintf("%s %s «%s»", lbl, verb, choice_lbl)
+  } else {
+    suffix <- if (isTRUE(negate)) "no incluye" else "incluye"
+    sprintf("%s %s %s", lbl, suffix, sQuote(as.character(x$value)))
+  }
+}
+
+.human_any_selected_text <- function(x, label_map = NULL, choices_map = NULL, negate = FALSE) {
+  lbl <- .human_label_for_var(x$var, label_map)
+  labs <- vapply(as.character(x$values), function(code) {
+    cl <- .resolve_choice_label(choices_map, x$var, code)
+    if (is.null(cl)) sprintf("'%s'", code) else sprintf("«%s»", cl)
+  }, character(1))
+  if (isTRUE(negate)) {
+    sprintf("%s no marcó ninguna de %s", lbl, paste(labs, collapse = ", "))
+  } else {
+    sprintf("%s marcó alguna de %s", lbl, paste(labs, collapse = ", "))
+  }
+}
+
+.ast_human_child_text <- function(x, parent_op, label_map = NULL, choices_map = NULL) {
+  txt <- .ast_to_human_text(x, label_map = label_map, choices_map = choices_map)
+  child_op <- if (is_ast(x)) ast_op(x) else ""
+  if (nzchar(txt) &&
+      ((identical(parent_op, "and") && identical(child_op, "or")) ||
+       (identical(parent_op, "or") && identical(child_op, "and")))) {
+    return(sprintf("(%s)", txt))
+  }
+  txt
+}
+
+.ast_human_join <- function(args, parent_op, label_map = NULL, choices_map = NULL) {
+  sep <- if (identical(parent_op, "and")) " y " else " o "
+  parts <- vapply(
+    args,
+    .ast_human_child_text,
+    character(1),
+    parent_op = parent_op,
+    label_map = label_map,
+    choices_map = choices_map
+  )
+  parts <- parts[nzchar(parts)]
+  paste(parts, collapse = sep)
+}
+
+.ast_not_to_human_text <- function(x, label_map = NULL, choices_map = NULL) {
+  arg <- x$arg
+  if (!is_ast(arg)) return("no se cumple la condición")
+  op <- ast_op(arg)
+  if (identical(op, "selected")) {
+    return(.human_selected_text(arg, label_map = label_map, choices_map = choices_map, negate = TRUE))
+  }
+  if (identical(op, "any_selected")) {
+    return(.human_any_selected_text(arg, label_map = label_map, choices_map = choices_map, negate = TRUE))
+  }
+  if (identical(op, "compare_const")) {
+    return(.human_compare_const_text(arg, label_map = label_map, choices_map = choices_map, negate = TRUE))
+  }
+  if (op %in% c("and", "or")) {
+    inner <- .ast_to_human_text(arg, label_map = label_map, choices_map = choices_map)
+    return(if (!nzchar(inner)) "NO se cumple la condición" else sprintf("NO se cumple que (%s)", inner))
+  }
+  inner <- .ast_to_human_text(arg, label_map = label_map, choices_map = choices_map)
+  if (!nzchar(inner)) "NO se cumple la condición" else sprintf("NO se cumple: %s", inner)
+}
+
 .ast_to_human_text <- function(x, label_map = NULL, choices_map = NULL) {
   if (is.null(x) || !is_ast(x)) return("")
   op <- ast_op(x)
@@ -1318,39 +1415,12 @@ compile_rule <- function(rule) {
     return(sprintf("%s debe tener valor", .human_label_for_var(x$arg$var, label_map)))
   }
   switch(op,
-    "compare_const" = {
-      lbl <- .human_label_for_var(x$var, label_map)
-      val_raw <- as.character(x$value)
-      choice_lbl <- .resolve_choice_label(choices_map, x$var, val_raw)
-      # Para variables select, "==" / "!=" se leen como "marcó" / "no marcó"
-      # con el label del choice — mucho más legible que "debe ser igual a '1'".
-      if (!is.null(choice_lbl) && x$op %in% c("==", "!=")) {
-        verb <- if (identical(x$op, "==")) "marcó" else "no marcó"
-        sprintf("%s %s «%s»", lbl, verb, choice_lbl)
-      } else {
-        sprintf("%s %s %s", lbl, .human_op(x$op), sQuote(val_raw))
-      }
-    },
+    "compare_const" = .human_compare_const_text(x, label_map = label_map, choices_map = choices_map),
     "compare_vars" = sprintf("%s %s %s",
       .human_label_for_var(x$left, label_map), .human_op(x$op), .human_label_for_var(x$right, label_map)),
     "is_missing" = sprintf("%s está vacía", .human_label_for_var(x$var, label_map)),
-    "selected" = {
-      lbl <- .human_label_for_var(x$var, label_map)
-      choice_lbl <- .resolve_choice_label(choices_map, x$var, x$value)
-      if (!is.null(choice_lbl)) {
-        sprintf("%s marcó «%s»", lbl, choice_lbl)
-      } else {
-        sprintf("%s incluye %s", lbl, sQuote(as.character(x$value)))
-      }
-    },
-    "any_selected" = {
-      lbl <- .human_label_for_var(x$var, label_map)
-      labs <- vapply(as.character(x$values), function(code) {
-        cl <- .resolve_choice_label(choices_map, x$var, code)
-        if (is.null(cl)) sprintf("'%s'", code) else sprintf("«%s»", cl)
-      }, character(1))
-      sprintf("%s marcó alguna de %s", lbl, paste(labs, collapse = ", "))
-    },
+    "selected" = .human_selected_text(x, label_map = label_map, choices_map = choices_map),
+    "any_selected" = .human_any_selected_text(x, label_map = label_map, choices_map = choices_map),
     "in_set" = {
       lbl <- .human_label_for_var(x$var, label_map)
       if (.is_select_var(choices_map, x$var)) {
@@ -1407,12 +1477,9 @@ compile_rule <- function(rule) {
     "any_column_equals" = sprintf("alguna de {%s} debe ser igual a %s",
       paste(vapply(as.character(x$cols), .human_label_for_var, character(1), label_map = label_map), collapse = ", "),
       sQuote(as.character(x$value))),
-    "and" = paste(vapply(x$args, .ast_to_human_text, character(1), label_map = label_map, choices_map = choices_map), collapse = " y "),
-    "or" = paste(vapply(x$args, .ast_to_human_text, character(1), label_map = label_map, choices_map = choices_map), collapse = " o "),
-    "not" = {
-      inner <- .ast_to_human_text(x$arg, label_map = label_map, choices_map = choices_map)
-      if (!nzchar(inner)) "no se cumple la condición" else paste("no", inner)
-    },
+    "and" = .ast_human_join(x$args, "and", label_map = label_map, choices_map = choices_map),
+    "or" = .ast_human_join(x$args, "or", label_map = label_map, choices_map = choices_map),
+    "not" = .ast_not_to_human_text(x, label_map = label_map, choices_map = choices_map),
     "odk_raw" = "debe cumplir una condición experta del formulario",
     ast_to_string(x)
   )

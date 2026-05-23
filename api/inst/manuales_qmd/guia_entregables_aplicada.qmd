@@ -1,0 +1,375 @@
+---
+title: "Guía aplicada de entregables"
+subtitle: "Codebook, SPSS, frecuencias y cruces simples"
+date: today
+lang: es
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 1.9cm
+      y: 2.2cm
+    fontsize: 10pt
+    include-in-header:
+      - files_manuales/typst/manuales_base.typ
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+![](files_manuales/img/logo_pulso.png){width=3cm}
+
+```{r}
+#| include: false
+manual_dir <- normalizePath(dirname(knitr::current_input()), winslash = "/")
+manual_file <- function(...) file.path(manual_dir, "files_manuales", ...)
+manual_qmd <- basename(knitr::current_input())
+
+if (!requireNamespace("prosecnur", quietly = TRUE)) {
+  stop("Instale o cargue `prosecnur` antes de renderizar esta guía.", call. = FALSE)
+}
+
+library(prosecnur)
+```
+
+```{r}
+#| include: false
+rep_dir <- manual_file("data_ejemplo", "reportes")
+
+data_cruda_demo <- readxl::read_excel(file.path(rep_dir, "OPS_DATA_FINAL.xlsx"))
+rp_inst_demo <- reporte_instrumento(
+  path = file.path(rep_dir, "OPS_INST_FINAL.xlsx"),
+  listas_ordinales = c(
+    "poblacion_mensual", "trato_discriminatorio", "frecuencia",
+    "rango_atencion", "p103_recod_lista", "p118_recod_lista",
+    "p125_recod_lista"
+  ),
+  vars_fecha = "fecha_visita",
+  vars_hora = c("hora_inicio", "hora_fin")
+)
+rp_data_demo <- reporte_data(data_cruda_demo, rp_inst_demo)
+
+path_codebook_demo <- tempfile("codebook_", fileext = ".xlsx")
+reporte_codebook(rp_data_demo, path_xlsx = path_codebook_demo)
+
+path_sav_demo <- tempfile("reporte_", fileext = ".sav")
+path_sps_demo <- tempfile("niveles_", fileext = ".sps")
+reporte_spss(rp_data_demo, path_sav = path_sav_demo, path_sps = path_sps_demo)
+
+secciones_demo <- list(
+  "Perfil general" = c("region", "p102", "p112"),
+  "Capacidad declarada" = c("p103_a_recod", "p103_b_recod", "p103_c_recod")
+)
+
+path_freq_demo <- tempfile("frecuencias_", fileext = ".xlsx")
+reporte_frecuencias(
+  data = rp_data_demo,
+  instrumento = rp_inst_demo,
+  secciones = secciones_demo,
+  path_xlsx = path_freq_demo
+)
+
+path_cruces_demo <- tempfile("cruces_", fileext = ".xlsx")
+reporte_cruces(
+  data = rp_data_demo,
+  instrumento = rp_inst_demo,
+  SECCIONES = secciones_demo,
+  cruces = "region",
+  modo = "estandar",
+  path_xlsx = path_cruces_demo
+)
+```
+
+# Archivo fuente QMD
+
+Este PDF sale del archivo:
+
+`r manual_qmd`
+
+La idea de esta arquitectura es que el PDF funcione como lectura guiada, pero
+que el archivo `.qmd` sea la versión totalmente resuelta y comentada. Si quiere
+entender exactamente qué hace cada bloque y qué rol cumple cada argumento, abra
+el `.qmd` que vive al lado de este PDF dentro de la carpeta `manuales/`.
+
+# Qué cubre esta guía
+
+Este manual parte de una base ya lista para reporte. El flujo corto es:
+
+1. `reporte_instrumento()`
+2. `reporte_data()`
+3. generar los entregables que necesite
+
+Aquí nos vamos a concentrar solo en cuatro salidas:
+
+- `reporte_codebook()`
+- `reporte_spss()`
+- `reporte_frecuencias()`
+- `reporte_cruces()` en modo estándar
+- `reporte_enumeradores()`
+
+No se cubren dimensiones, dashboard ni interactivo.
+
+# Paso 1. Preparar el instrumento de reporte
+
+Este objeto concentra etiquetas, listas de opciones y reglas de medición para
+que después las demás funciones no trabajen “a ciegas”.
+
+```{r}
+#| eval: false
+library(prosecnur)
+library(readxl)
+
+# 1) Leer la base cruda que quiere convertir luego en entregables.
+data_cruda <- read_excel("files_manuales/data_ejemplo/reportes/OPS_DATA_FINAL.xlsx")
+
+# 2) Construir el objeto de instrumento que funcionará como diccionario.
+#    Aquí se definen listas ordinales y variables especiales de fecha/hora.
+rp_inst <- reporte_instrumento(
+  # Ruta al XLSForm o instrumento final.
+  path = "files_manuales/data_ejemplo/reportes/OPS_INST_FINAL.xlsx",
+
+  # Listas que quiere tratar como ordinales en los entregables.
+  listas_ordinales = c(
+    "poblacion_mensual", "trato_discriminatorio", "frecuencia",
+    "rango_atencion", "p103_recod_lista", "p118_recod_lista",
+    "p125_recod_lista"
+  ),
+
+  # Variables de fecha.
+  vars_fecha = "fecha_visita",
+
+  # Variables de hora.
+  vars_hora = c("hora_inicio", "hora_fin")
+)
+```
+
+Piense en `rp_inst` como el diccionario que acompañará a su base.
+
+# Paso 2. Preparar la base de reporte
+
+`reporte_data()` toma la base y le agrega la estructura necesaria para que
+después sea más fácil producir salidas estándar.
+
+```{r}
+#| eval: false
+# 3) Transformar la base para que quede lista para reportar.
+#    Este objeto es la base de casi todos los entregables posteriores.
+rp_data <- reporte_data(
+  # Base adaptada o base cruda ya preparada para reporte.
+  data = data_cruda,
+
+  # Diccionario de instrumento que acompaña a la base.
+  instrumento = rp_inst
+)
+```
+
+En la práctica, este paso deja la base con mejores etiquetas, medidas y dummies
+ya listas para reportar.
+
+# Salida 1. Codebook
+
+Si quiere un libro de códigos para documentar variables y categorías, el flujo
+es directo:
+
+```{r}
+#| eval: false
+reporte_codebook(
+  # Base lista para reporte.
+  data = rp_data,
+
+  # Ruta de salida del Excel con el libro de códigos.
+  path_xlsx = "codebook_estudio.xlsx"
+)
+```
+
+Cuándo usarlo:
+
+- cuando necesita documentar variables para terceros;
+- cuando quiere revisar rápidamente labels y categorías válidas;
+- cuando necesita entregar una referencia antes de análisis más complejos.
+
+# Salida 2. SPSS
+
+Si la entrega final necesita `.sav`, esta es la función clave.
+
+```{r}
+#| eval: false
+reporte_spss(
+  # Base lista para entregar a SPSS.
+  data = rp_data,
+
+  # Archivo principal .sav.
+  path_sav = "estudio_final.sav",
+
+  # Archivo auxiliar .sps para niveles o formatos.
+  path_sps = "estudio_final_niveles.sps"
+)
+```
+
+Regla práctica:
+
+- el `.sav` es la base que normalmente se comparte;
+- el `.sps` sirve como apoyo cuando se quiere aplicar niveles de medición o
+  formatos adicionales dentro de SPSS.
+
+# Salida 3. Frecuencias simples
+
+Para frecuencias necesita definir las secciones que quiere reportar. Como este
+ejemplo no depende de una columna de sección en el XLSForm, las definimos a
+mano.
+
+```{r}
+#| eval: false
+# 1) Definir qué variables irán juntas en cada bloque del reporte.
+SECCIONES <- list(
+  "Perfil general" = c("region", "p102", "p112"),
+  "Capacidad declarada" = c("p103_a_recod", "p103_b_recod", "p103_c_recod")
+)
+
+# 2) Generar el Excel de frecuencias.
+reporte_frecuencias(
+  # Base lista para reporte.
+  data = rp_data,
+
+  # Instrumento con labels y órdenes.
+  instrumento = rp_inst,
+
+  # Lista de secciones que organiza la salida.
+  secciones = SECCIONES,
+
+  # Ruta del archivo final.
+  path_xlsx = "frecuencias_estudio.xlsx"
+)
+```
+
+Use esta salida cuando quiera tablas descriptivas simples para revisión interna
+o anexos.
+
+# Salida 4. Cruces simples
+
+Para cruces estándar, la lógica es parecida a frecuencias: se define qué
+variables quiere reportar y contra qué variable va a cruzarlas.
+
+```{r}
+#| eval: false
+reporte_cruces(
+  # Base lista para reporte.
+  data = rp_data,
+
+  # Instrumento con diccionario y órdenes de categorías.
+  instrumento = rp_inst,
+
+  # Secciones o bloques de variables a cruzar.
+  SECCIONES = SECCIONES,
+
+  # Variable contra la que se cruzarán las preguntas.
+  cruces = "region",
+
+  # En esta guía usamos solo el modo estándar.
+  modo = "estandar",
+
+  # Ruta del Excel final.
+  path_xlsx = "cruces_estudio.xlsx"
+)
+```
+
+En esta guía nos quedamos solo con el modo estándar. Si su objetivo son tablas
+de dimensiones o productos más editoriales, eso pertenece a otro flujo.
+
+# Salida 5. Enumeradores
+
+`reporte_enumeradores()` genera un PDF orientado a seguimiento o producción de
+campo. A diferencia de codebook, SPSS, frecuencias o cruces, aquí el resultado
+final no es Excel sino un PDF narrativo listo para compartir.
+
+```{r}
+#| eval: false
+reporte_enumeradores(
+  # Base de datos donde ya existe la columna del enumerador.
+  data = rp_data,
+
+  # Variable que identifica al encuestador o enumerador.
+  col_enumerador = "nombre_encuestador",
+
+  # Cortes que quiere ver dentro del resumen por enumerador.
+  cols_corte = c("region", "sexo_encuestado_principal"),
+
+  # Ruta final del PDF.
+  output_file = "reporte_enumeradores.pdf",
+
+  # Título principal del documento.
+  titulo = "Producción de enumeradores",
+
+  # Subtítulo opcional.
+  subtitulo = "Seguimiento por región y sexo principal",
+
+  # Filtro mínimo para no mostrar enumeradores con muy pocos casos.
+  min_encuestas = 1,
+
+  # Reduce mensajes de Quarto durante la renderización.
+  quiet = TRUE
+)
+```
+
+Cuándo conviene usarlo:
+
+- cuando quiere monitorear producción de campo;
+- cuando necesita un PDF que ya esté organizado para circular;
+- cuando le interesa una lectura por enumerador y por cortes simples.
+
+# Un flujo corto de producción
+
+Si necesita una receta mínima para salir rápido, esta secuencia suele bastar:
+
+1. `reporte_instrumento()`
+2. `reporte_data()`
+3. `reporte_codebook()`
+4. `reporte_spss()`
+5. `reporte_frecuencias()`
+6. `reporte_cruces()`
+7. `reporte_enumeradores()`
+
+# Qué argumento tocar según lo que quiera cambiar
+
+## Cambiar el archivo final
+
+Use `path_xlsx`, `path_sav` o `path_sps`.
+
+## Cambiar qué variables salen
+
+En frecuencias y cruces, cambie `secciones` o `SECCIONES`.
+
+## Cambiar la variable de cruce
+
+En cruces, cambie `cruces`.
+
+## Añadir listas ordinales o fechas
+
+Eso se hace en `reporte_instrumento()`, no al final.
+
+# Errores frecuentes
+
+## `reporte_frecuencias()` no sabe cómo agrupar variables
+
+Suele pasar cuando no se pasan `secciones` y el instrumento no trae una columna
+de sección lista para inferirlas.
+
+## El SPSS sale, pero no como esperaba
+
+Revise primero el objeto `rp_data`. Si la base de reporte quedó mal preparada,
+el `.sav` solo heredará ese problema.
+
+## El codebook no muestra lo que esperaba
+
+Revise etiquetas de variable y `labels` en `rp_data`. El codebook depende de
+esos atributos.
+
+# Cierre
+
+La idea práctica es esta: `reporte_instrumento()` organiza el diccionario,
+`reporte_data()` organiza la base y, desde ahí, cada función produce una salida
+distinta sin tener que reinventar la preparación de datos cada vez.
+
+Si además quiere producir salidas visuales y narrativas, el siguiente paso es la
+guía de PPT basada en `reporte_ppt_plan()`.

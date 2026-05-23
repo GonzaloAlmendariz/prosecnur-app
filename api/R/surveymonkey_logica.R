@@ -243,18 +243,23 @@ surveymonkey_parsear_logica <- function(text) {
 #' @return El mismo `xlsform` con la columna `survey$relevant` actualizada.
 #' @export
 surveymonkey_aplicar_logica <- function(xlsform, reglas, sm, paginas = NULL,
-                                          choice_order_overrides = NULL) {
+                                          choice_order_overrides = NULL,
+                                          choice_code_maps = NULL,
+                                          replace_existing = FALSE) {
   if (is.character(reglas)) {
     reglas <- surveymonkey_parsear_logica(reglas)
   }
   if (!nrow(reglas)) return(xlsform)
   if (!"action" %in% names(reglas)) reglas$action <- "hide"
 
-  # Si el usuario corrigió el orden visual de C1/C2/... en la declaratoria
-  # avanzada, ese orden es la fuente de verdad de SurveyMonkey. Lo aplicamos al
-  # catálogo antes de resolver reglas para que C8 termine siendo también código
-  # "8" en XLSForm, no solo una traducción diagnóstica.
-  xlsform <- .sm_apply_choice_order_overrides_to_xlsform(xlsform, choice_order_overrides)
+  # Si hay un mapa confirmado SAV/API → XLSForm, ese mapa es más preciso que un
+  # orden visual reconstruido. Solo aplicamos overrides de orden para preguntas
+  # que todavía no tengan mapa de códigos.
+  xlsform <- .sm_apply_choice_order_overrides_to_xlsform(
+    xlsform,
+    choice_order_overrides,
+    choice_code_maps = choice_code_maps
+  )
   sm <- .sm_logic_context_from_xlsform(xlsform)
 
   vars_tbl <- sm$vars_tbl
@@ -284,7 +289,10 @@ surveymonkey_aplicar_logica <- function(xlsform, reglas, sm, paginas = NULL,
       }
       next
     }
-    when_resolved <- .sm_resolve_when(r$when_var[1], r$when_codes[[1]], vars_tbl, label_sets, survey, style, xlsform$choices, choice_order_overrides)
+    when_resolved <- .sm_resolve_when(
+      r$when_var[1], r$when_codes[[1]], vars_tbl, label_sets, survey, style,
+      xlsform$choices, choice_order_overrides, choice_code_maps
+    )
     if (is.null(when_resolved)) {
       warning(sprintf("No pude resolver la variable condicional '%s', regla ignorada.", r$when_var[1]), call. = FALSE)
       next
@@ -318,15 +326,77 @@ surveymonkey_aplicar_logica <- function(xlsform, reglas, sm, paginas = NULL,
     exprs <- resolved[[tn]]
     combined <- if (length(exprs) == 1L) exprs[[1]] else paste0("(", paste(exprs, collapse = ") and ("), ")")
     idx <- which(survey$name == tn)
-    if (length(idx)) survey$relevant[idx[1]] <- combined
+    if (length(idx)) {
+      survey$relevant[idx[1]] <- if (isTRUE(replace_existing)) {
+        combined
+      } else {
+        .sm_combine_relevant(survey$relevant[idx[1]], combined)
+      }
+    }
   }
 
+  survey <- .sm_logic_enforce_synthetic_other_relevants(survey, xlsform$choices)
   survey <- .sm_logic_normalize_final_expr_refs(survey)
   xlsform$survey <- tibble::as_tibble(survey)
   xlsform
 }
 
-.sm_apply_choice_order_overrides_to_xlsform <- function(xlsform, choice_order_overrides = NULL) {
+.sm_logic_is_other_choice_label <- function(x) {
+  x_norm <- .sm_ascii_lower(.sm_norm_ws(x))
+  grepl("^(otro|otra|otros|otras|other)(\\b|:)", x_norm, perl = TRUE)
+}
+
+.sm_logic_synthetic_other_gate <- function(survey, choices, child_name) {
+  child_name <- as.character(child_name %||% "")[1]
+  if (!nzchar(child_name) || !grepl("(^|[_/.])other$", tolower(child_name), perl = TRUE)) return(NULL)
+  parent <- sub("([_/.])other$", "", child_name, ignore.case = TRUE, perl = TRUE)
+  if (!nzchar(parent) || !parent %in% as.character(survey$name %||% character())) return(NULL)
+
+  parent_idx <- which(as.character(survey$name) == parent)[1]
+  if (is.na(parent_idx)) return(NULL)
+  parent_type <- as.character(survey$type[parent_idx] %||% "")[1]
+  match <- regmatches(parent_type, regexec("^select_(one|multiple)\\s+(\\S+)", parent_type, perl = TRUE))[[1]]
+  if (length(match) < 3L) return(NULL)
+  list_name <- match[3]
+
+  choices_df <- as.data.frame(choices %||% data.frame(), stringsAsFactors = FALSE)
+  if (!nrow(choices_df) || !"list_name" %in% names(choices_df) || !"name" %in% names(choices_df)) return(NULL)
+  ch <- choices_df[as.character(choices_df$list_name) == list_name, , drop = FALSE]
+  if (!nrow(ch)) return(NULL)
+  lbl_col <- .sm_logic_label_col(ch)
+  labels <- if (!is.na(lbl_col)) as.character(ch[[lbl_col]]) else as.character(ch$name)
+  codes <- as.character(ch$name)
+  hit <- which(.sm_logic_is_other_choice_label(labels) | .sm_logic_is_other_choice_label(codes))[1]
+  if (is.na(hit)) return(NULL)
+  code <- codes[hit]
+  if (is.na(code) || !nzchar(code)) return(NULL)
+
+  list(
+    parent = parent,
+    parent_relevant = as.character(survey$relevant[parent_idx] %||% NA_character_)[1],
+    gate = .sm_other_relevant(parent, code, parent_type = parent_type)
+  )
+}
+
+.sm_logic_enforce_synthetic_other_relevants <- function(survey, choices) {
+  if (is.null(survey) || !nrow(survey) || !"name" %in% names(survey)) return(survey)
+  if (!"relevant" %in% names(survey)) survey$relevant <- NA_character_
+  other_rows <- which(grepl("(^|[_/.])other$", tolower(as.character(survey$name %||% "")), perl = TRUE))
+  if (!length(other_rows)) return(survey)
+  for (idx in other_rows) {
+    gate <- .sm_logic_synthetic_other_gate(survey, choices, survey$name[idx])
+    if (is.null(gate) || is.na(gate$gate) || !nzchar(gate$gate)) next
+    survey$relevant[idx] <- .sm_combine_relevant(
+      survey$relevant[idx],
+      gate$parent_relevant,
+      gate$gate
+    )
+  }
+  survey
+}
+
+.sm_apply_choice_order_overrides_to_xlsform <- function(xlsform, choice_order_overrides = NULL,
+                                                       choice_code_maps = NULL) {
   if (is.null(choice_order_overrides) || !length(choice_order_overrides)) return(xlsform)
   if (is.null(xlsform$survey) || is.null(xlsform$choices)) return(xlsform)
 
@@ -344,6 +414,7 @@ surveymonkey_aplicar_logica <- function(xlsform, reglas, sm, paginas = NULL,
 
     qnum <- suppressWarnings(as.integer(q_key))
     if (is.na(qnum)) next
+    if (.sm_logic_choice_map_has_question(q_key, choice_code_maps)) next
     parent <- paste0("p", qnum)
     sidx <- which(!is.na(survey$name) & survey$name == parent)[1]
     if (is.na(sidx)) next
@@ -702,10 +773,183 @@ surveymonkey_aplicar_logica <- function(xlsform, reglas, sm, paginas = NULL,
   character(0)
 }
 
+.sm_logic_choice_code_norm <- function(x) {
+  x <- trimws(as.character(x %||% "")[1])
+  if (!nzchar(x)) return("")
+  sub("^0+([0-9]+)$", "\\1", x, perl = TRUE)
+}
+
+.sm_logic_choice_code_maps_list <- function(choice_code_maps) {
+  if (is.null(choice_code_maps) || !length(choice_code_maps)) return(list())
+  if (!is.null(choice_code_maps$maps)) return(choice_code_maps$maps %||% list())
+  choice_code_maps
+}
+
+.sm_logic_choice_map_has_question <- function(q_key, choice_code_maps = NULL) {
+  maps <- .sm_logic_choice_code_maps_list(choice_code_maps)
+  if (!length(maps)) return(FALSE)
+  qnum <- suppressWarnings(as.integer(sub("^[QPqp]0*([0-9]+).*$", "\\1", as.character(q_key))))
+  keys <- unique(tolower(c(
+    as.character(q_key),
+    if (!is.na(qnum)) paste0("p", qnum) else NA_character_,
+    if (!is.na(qnum)) paste0("q", qnum) else NA_character_,
+    if (!is.na(qnum)) as.character(qnum) else NA_character_
+  )))
+  keys <- keys[!is.na(keys) & nzchar(keys)]
+  if (!length(keys)) return(FALSE)
+
+  for (idx in seq_along(maps)) {
+    mp <- maps[[idx]]
+    map_var <- as.character(mp$variable %||% names(maps)[idx] %||% "")[1]
+    map_num <- suppressWarnings(as.integer(sub("^[QPqp]0*([0-9]+).*$", "\\1", map_var)))
+    map_keys <- unique(tolower(c(
+      map_var,
+      .sm_logic_ref_to_p(map_var),
+      if (!is.na(map_num)) paste0("p", map_num) else NA_character_,
+      if (!is.na(map_num)) paste0("q", map_num) else NA_character_,
+      if (!is.na(map_num)) as.character(map_num) else NA_character_
+    )))
+    map_keys <- map_keys[!is.na(map_keys) & nzchar(map_keys)]
+    if (length(intersect(keys, map_keys)) && length(.sm_logic_choice_map_items(mp))) return(TRUE)
+  }
+  FALSE
+}
+
+.sm_logic_choice_map_items <- function(mp) {
+  mappings <- mp$mappings %||% list()
+  if (is.data.frame(mappings)) {
+    return(lapply(seq_len(nrow(mappings)), function(i) as.list(mappings[i, , drop = FALSE])))
+  }
+  if (is.list(mappings) && length(mappings) &&
+      all(c("source_code", "xls_code") %in% names(mappings))) {
+    return(list(mappings))
+  }
+  mappings
+}
+
+.sm_logic_choice_map_for_question <- function(q_key, choice_code_maps = NULL) {
+  maps <- .sm_logic_choice_code_maps_list(choice_code_maps)
+  if (!length(maps)) return(NULL)
+  qnum <- suppressWarnings(as.integer(sub("^[QPqp]0*([0-9]+).*$", "\\1", as.character(q_key))))
+  keys <- unique(tolower(c(
+    as.character(q_key),
+    if (!is.na(qnum)) paste0("p", qnum) else NA_character_,
+    if (!is.na(qnum)) paste0("q", qnum) else NA_character_,
+    if (!is.na(qnum)) as.character(qnum) else NA_character_
+  )))
+  keys <- keys[!is.na(keys) & nzchar(keys)]
+  if (!length(keys)) return(NULL)
+
+  for (idx in seq_along(maps)) {
+    mp <- maps[[idx]]
+    map_var <- as.character(mp$variable %||% names(maps)[idx] %||% "")[1]
+    map_num <- suppressWarnings(as.integer(sub("^[QPqp]0*([0-9]+).*$", "\\1", map_var)))
+    map_keys <- unique(tolower(c(
+      map_var,
+      .sm_logic_ref_to_p(map_var),
+      if (!is.na(map_num)) paste0("p", map_num) else NA_character_,
+      if (!is.na(map_num)) paste0("q", map_num) else NA_character_,
+      if (!is.na(map_num)) as.character(map_num) else NA_character_
+    )))
+    map_keys <- map_keys[!is.na(map_keys) & nzchar(map_keys)]
+    if (length(intersect(keys, map_keys)) && length(.sm_logic_choice_map_items(mp))) {
+      return(mp)
+    }
+  }
+  NULL
+}
+
+.sm_logic_choices_by_pos_from_map <- function(q_key, choice_code_maps = NULL, fallback = NULL) {
+  mp <- .sm_logic_choice_map_for_question(q_key, choice_code_maps)
+  if (is.null(mp)) return(NULL)
+  items <- .sm_logic_choice_map_items(mp)
+  if (!length(items)) return(NULL)
+
+  norm <- function(x) tolower(trimws(.sm_or(x, "")))
+  fallback_by_label <- list()
+  if (!is.null(fallback) && length(fallback)) {
+    for (k in names(fallback)) {
+      ch <- fallback[[k]]
+      fallback_by_label[[norm(.sm_or(ch$text, ""))]] <- ch
+    }
+  }
+
+  out <- list()
+  for (item in items) {
+    source_code <- .sm_logic_choice_code_norm(item$source_code %||% "")
+    if (!nzchar(source_code)) next
+    pos <- suppressWarnings(as.integer(source_code))
+    if (is.na(pos)) next
+    label <- .sm_first_nonempty(
+      c(item$xls_label %||% NA_character_, item$source_label %||% NA_character_),
+      fallback = paste0("C", pos)
+    )
+    base <- fallback_by_label[[norm(label)]]
+    out[[as.character(pos)]] <- list(
+      text = label,
+      position = pos,
+      is_other = isTRUE(.sm_or(base$is_other, FALSE)) || grepl("\\b(other|otro|otra)\\b", norm(label), perl = TRUE),
+      is_none = isTRUE(.sm_or(base$is_none, FALSE)) || grepl("\\b(ninguna|ninguno|none)\\b", norm(label), perl = TRUE)
+    )
+  }
+  if (!length(out)) return(NULL)
+  out
+}
+
+.sm_logic_choice_map_lookup <- function(when_var, token, choice_code_maps = NULL) {
+  m <- regmatches(token, regexec("^C(\\d+)$", token, ignore.case = TRUE))[[1]]
+  if (length(m) != 2L) return(NULL)
+  source_code <- .sm_logic_choice_code_norm(m[2])
+  maps <- .sm_logic_choice_code_maps_list(choice_code_maps)
+  if (!length(maps)) return(NULL)
+
+  when_p <- .sm_logic_ref_to_p(when_var)
+  qnum <- suppressWarnings(as.integer(sub("^[QPqp]0*([0-9]+).*$", "\\1", as.character(when_var))))
+  when_keys <- unique(tolower(c(
+    as.character(when_var),
+    when_p,
+    if (!is.na(qnum)) paste0("p", qnum) else NA_character_,
+    if (!is.na(qnum)) paste0("q", qnum) else NA_character_,
+    if (!is.na(qnum)) as.character(qnum) else NA_character_
+  )))
+  when_keys <- when_keys[!is.na(when_keys) & nzchar(when_keys)]
+
+  for (idx in seq_along(maps)) {
+    mp <- maps[[idx]]
+    map_var <- as.character(mp$variable %||% names(maps)[idx] %||% "")[1]
+    map_p <- .sm_logic_ref_to_p(map_var)
+    map_num <- suppressWarnings(as.integer(sub("^[QPqp]0*([0-9]+).*$", "\\1", map_var)))
+    map_keys <- unique(tolower(c(
+      map_var,
+      map_p,
+      if (!is.na(map_num)) paste0("p", map_num) else NA_character_,
+      if (!is.na(map_num)) paste0("q", map_num) else NA_character_,
+      if (!is.na(map_num)) as.character(map_num) else NA_character_
+    )))
+    map_keys <- map_keys[!is.na(map_keys) & nzchar(map_keys)]
+    if (!length(intersect(when_keys, map_keys))) next
+
+    for (item in .sm_logic_choice_map_items(mp)) {
+      src <- .sm_logic_choice_code_norm(item$source_code %||% "")
+      dst <- trimws(as.character(item$xls_code %||% "")[1])
+      if (!nzchar(src) || !nzchar(dst) || !identical(src, source_code)) next
+      return(list(
+        source_code = as.character(item$source_code %||% source_code),
+        source_label = as.character(item$source_label %||% ""),
+        xls_code = dst,
+        xls_label = as.character(item$xls_label %||% ""),
+        variable = as.character(mp$variable %||% map_var)
+      ))
+    }
+  }
+
+  NULL
+}
+
 # Resuelve la variable condicional. Devuelve list(var_ref, is_multi, codes)
 # o NULL si la variable no existe.
 .sm_resolve_when <- function(when_var, raw_codes, vars_tbl, label_sets, survey, style = NULL, choices = NULL,
-                              choice_order_overrides = NULL) {
+                              choice_order_overrides = NULL, choice_code_maps = NULL) {
   # SurveyMonkey numera Q1, Q2... pero el .sav puede exportar P1 / q0007 /
   # P0007 según cómo se descargue. Generamos todas las variantes razonables.
   variants_low <- .sm_qp_variants(when_var, style)
@@ -799,6 +1043,8 @@ surveymonkey_aplicar_logica <- function(xlsform, reglas, sm, paginas = NULL,
     # 1) C{N} — referencia por índice
     m <- regmatches(token, regexec("^C(\\d+)$", token, ignore.case = TRUE))[[1]]
     if (length(m) == 2L) {
+      mapped <- .sm_logic_choice_map_lookup(when_var, token, choice_code_maps)
+      if (!is.null(mapped) && nzchar(mapped$xls_code)) return(mapped$xls_code)
       idx <- as.integer(m[2])
       if (length(choice_names) >= idx) return(choice_names[idx])
       if (length(labs) >= idx) {
@@ -1038,7 +1284,8 @@ surveymonkey_validar_logica <- function(xlsform, sm, threshold = 0.95) {
   list(vars_tbl = vars_tbl, label_sets = label_sets)
 }
 
-.sm_logic_qref_info_from_xlsform <- function(xlsform, choice_order_overrides = NULL) {
+.sm_logic_qref_info_from_xlsform <- function(xlsform, choice_order_overrides = NULL,
+                                            choice_code_maps = NULL) {
   survey <- as.data.frame(xlsform$survey %||% data.frame(), stringsAsFactors = FALSE)
   choices <- as.data.frame(xlsform$choices %||% data.frame(), stringsAsFactors = FALSE)
   for (col in c("type", "name", "label", "label::es")) if (!col %in% names(survey)) survey[[col]] <- NA_character_
@@ -1047,10 +1294,18 @@ surveymonkey_validar_logica <- function(xlsform, sm, threshold = 0.95) {
   for (i in seq_len(nrow(survey))) {
     nm <- as.character(survey$name[i] %||% "")
     if (!nzchar(nm)) next
-    qnum <- suppressWarnings(as.integer(sub("^[pPqQ]0*([0-9]+).*", "\\1", nm, perl = TRUE)))
-    if (is.na(qnum) || !grepl("^[pPqQ]0*[0-9]+", nm)) next
+    ref_match <- regmatches(nm, regexec("^[pPqQ]0*([0-9]+)(.*)$", nm, perl = TRUE))[[1]]
+    if (length(ref_match) < 3L) next
+    qnum <- suppressWarnings(as.integer(ref_match[2]))
+    if (is.na(qnum)) next
+    suffix <- tolower(ref_match[3] %||% "")
+    is_base_ref <- identical(suffix, "")
+    is_synthetic_other <- grepl("(^|[_/.])other$", suffix, perl = TRUE)
     tp <- as.character(survey$type[i] %||% "")
     if (tp %in% c("begin_group", "end_group", "begin_repeat", "end_repeat", "note")) next
+    qkey <- as.character(qnum)
+    if (!is.null(out[[qkey]]) && !is_base_ref) next
+    if (is_synthetic_other && !is.null(out[[qkey]])) next
     label <- .sm_first_nonempty(c(survey$`label::es`[i], survey$label[i], nm), fallback = nm)
     list_name <- NA_character_
     m <- regmatches(tp, regexec(perl = TRUE, "^select_(one|multiple)\\s+(\\S+)", tp))[[1]]
@@ -1063,7 +1318,12 @@ surveymonkey_validar_logica <- function(xlsform, sm, threshold = 0.95) {
     if (!is.na(list_name) && nzchar(list_name)) {
       sub <- choices[!is.na(choices$list_name) & choices$list_name == list_name, , drop = FALSE]
       lbl_col <- .sm_logic_label_col(sub)
-      override <- if (!is.null(choice_order_overrides)) choice_order_overrides[[as.character(qnum)]] else NULL
+      override <- if (!is.null(choice_order_overrides) &&
+                      !.sm_logic_choice_map_has_question(as.character(qnum), choice_code_maps)) {
+        choice_order_overrides[[as.character(qnum)]]
+      } else {
+        NULL
+      }
       if (!is.null(override) && length(override)) {
         labels <- as.character(unlist(override))
       } else {
@@ -1072,8 +1332,16 @@ surveymonkey_validar_logica <- function(xlsform, sm, threshold = 0.95) {
       for (j in seq_along(labels)) {
         choices_by_pos[[as.character(j)]] <- list(text = labels[j], position = j)
       }
+      mapped_by_code <- .sm_logic_choices_by_pos_from_map(
+        as.character(qnum),
+        choice_code_maps,
+        fallback = choices_by_pos
+      )
+      if (!is.null(mapped_by_code)) {
+        choices_by_pos <- mapped_by_code
+      }
     }
-    out[[as.character(qnum)]] <- list(
+    out[[qkey]] <- list(
       family = family,
       subtype = NA_character_,
       heading = label,
@@ -1174,7 +1442,8 @@ surveymonkey_interpretar_regla <- function(regla_text,
                                             sm = NULL,
                                             paginas = NULL,
                                             paginas_labels = NULL,
-                                            choice_order_overrides = NULL) {
+                                            choice_order_overrides = NULL,
+                                            choice_code_maps = NULL) {
   if (!nzchar(trimws(regla_text))) {
     return(list(ok = FALSE, error = "Regla vacía."))
   }
@@ -1290,7 +1559,14 @@ surveymonkey_interpretar_regla <- function(regla_text,
         override_key <- as.character(g_pos)
         override_labels <- if (!is.null(choice_order_overrides))
           choice_order_overrides[[override_key]] else NULL
-        if (!is.null(override_labels) && length(override_labels) > 0L) {
+        mapped_by_code <- .sm_logic_choices_by_pos_from_map(
+          override_key,
+          choice_code_maps,
+          fallback = choices_by_pos
+        )
+        if (!is.null(mapped_by_code)) {
+          choices_by_pos <- mapped_by_code
+        } else if (!is.null(override_labels) && length(override_labels) > 0L) {
           override_labels <- as.character(unlist(override_labels))
           # Map label normalizado → choice info original (para preservar flags).
           norm <- function(x) tolower(trimws(.sm_or(x, "")))
@@ -1327,7 +1603,11 @@ surveymonkey_interpretar_regla <- function(regla_text,
       }
     }
   } else if (!is.null(xlsform)) {
-    qref_info <- .sm_logic_qref_info_from_xlsform(xlsform, choice_order_overrides = choice_order_overrides)
+    qref_info <- .sm_logic_qref_info_from_xlsform(
+      xlsform,
+      choice_order_overrides = choice_order_overrides,
+      choice_code_maps = choice_code_maps
+    )
   }
 
   # Resolver when_var (Q4 → posición global → prompt + choices)
@@ -1375,6 +1655,17 @@ surveymonkey_interpretar_regla <- function(regla_text,
 
   for (token in raw_codes) {
     m <- regmatches(token, regexec("^C(\\d+)$", token, ignore.case = TRUE))[[1]]
+    mapped <- .sm_logic_choice_map_lookup(when_var_str, token, choice_code_maps)
+    if (length(m) == 2L && !is.null(mapped) && nzchar(mapped$xls_code)) {
+      when_codes_resueltos[[length(when_codes_resueltos) + 1L]] <- list(
+        code = mapped$xls_code,
+        label = .sm_first_nonempty(c(mapped$xls_label, mapped$source_label, token), fallback = token),
+        source_code = mapped$source_code,
+        source_label = mapped$source_label,
+        mapped = TRUE
+      )
+      next
+    }
     if (length(m) == 2L && !is.null(choices_map) && length(choices_map)) {
       idx <- as.integer(m[2])
       ch <- choices_map[[as.character(idx)]]
@@ -1416,7 +1707,8 @@ surveymonkey_interpretar_regla <- function(regla_text,
       as.data.frame(xlsform$survey, stringsAsFactors = FALSE),
       .sm_detect_naming_style(xlsform$survey),
       xlsform$choices,
-      choice_order_overrides
+      choice_order_overrides,
+      choice_code_maps
     )
     if (!is.null(wr)) {
       when_var_xlsform <- wr$var_ref

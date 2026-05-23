@@ -517,8 +517,8 @@
   if (!nzchar(ln) && "type" %in% names(sv)) {
     type <- trimws(as.character(sv$type[i] %||% ""))
     if (grepl("^select_(one|multiple)\\b", type)) {
-      ln <- sub("^select_(one|multiple)\\s+([^\\s]+).*$", "\\2", type)
-      if (identical(ln, type)) ln <- ""
+      m <- regmatches(type, regexec("^select_(?:one|multiple)\\s+(\\S+)", type, perl = TRUE))[[1]]
+      ln <- if (length(m) >= 2L) m[2] else ""
     }
   }
   ln
@@ -599,13 +599,118 @@
     }
   }
 
+  dummy_lookup <- .analitica_select_multiple_dummy_lookup(data, inst)
+  if (length(dummy_lookup)) {
+    for (col in names(dummy_lookup)) {
+      if (!col %in% names(data)) next
+      meta <- dummy_lookup[[col]]
+      opt_label <- as.character(meta$dummy_option_label %||% "")
+      if (nzchar(opt_label)) attr(data[[col]], "label") <- opt_label
+    }
+  }
+
   list(data = data, inst = inst)
+}
+
+.analitica_clean_dummy_name <- function(x) {
+  base <- gsub("/", ".", as.character(x))
+  base <- iconv(base, from = "", to = "ASCII//TRANSLIT")
+  base <- tolower(base)
+  base <- gsub(" ", ".", base)
+  base <- gsub("[^a-z0-9._]", "_", base)
+  base <- gsub("_+", "_", base)
+  base <- gsub("\\.+", ".", base)
+  gsub("^[_\\.]+|[_\\.]+$", "", base)
+}
+
+.analitica_slug_dummy_code <- function(x) {
+  out <- iconv(as.character(x), from = "", to = "ASCII//TRANSLIT", sub = "")
+  out <- tolower(out)
+  out <- gsub("[^a-z0-9]+", "_", out)
+  out <- gsub("^_+|_+$", "", out)
+  out[!nzchar(out)] <- "na"
+  out
+}
+
+.analitica_find_dummy_col <- function(data_names, parent, code) {
+  parent <- as.character(parent %||% "")
+  code <- as.character(code %||% "")
+  if (!nzchar(parent) || !nzchar(code) || !length(data_names)) return(NA_character_)
+  candidates <- unique(c(
+    .analitica_clean_dummy_name(paste0(parent, "/", code)),
+    .analitica_clean_dummy_name(paste0(parent, ".", code)),
+    paste0(parent, "___", .analitica_slug_dummy_code(code)),
+    paste0(tolower(parent), "___", .analitica_slug_dummy_code(code))
+  ))
+  hit <- intersect(candidates, data_names)[1] %||% NA_character_
+  if (!is.na(hit) && nzchar(hit)) return(hit)
+  data_lower <- stats::setNames(data_names, tolower(data_names))
+  hit_lower <- intersect(tolower(candidates), names(data_lower))[1] %||% NA_character_
+  if (!is.na(hit_lower) && nzchar(hit_lower)) return(unname(data_lower[[hit_lower]]))
+  NA_character_
+}
+
+.analitica_var_label <- function(inst, var) {
+  var <- as.character(var %||% "")
+  if (!nzchar(var)) return("")
+  if (!is.null(inst$var_labels) && var %in% names(inst$var_labels)) {
+    lab <- as.character(inst$var_labels[[var]])
+    if (nzchar(lab)) return(lab)
+  }
+  i <- .analitica_survey_row(inst, var)
+  if (!is.na(i) && !is.null(inst$survey) && "label" %in% names(inst$survey)) {
+    lab <- as.character(inst$survey$label[i] %||% "")
+    if (!is.na(lab) && nzchar(lab)) return(lab)
+  }
+  var
+}
+
+.analitica_select_multiple_dummy_lookup <- function(data, inst) {
+  sv <- inst$survey %||% NULL
+  if (is.null(sv) || !nrow(sv) || !all(c("name", "type") %in% names(sv))) return(list())
+  data_names <- names(data)
+  if (!length(data_names)) return(list())
+  tipos <- as.character(sv$type %||% "")
+  sm_idx <- which(grepl("^select_multiple(\\s|$)", tipos, perl = TRUE))
+  if (!length(sm_idx)) return(list())
+
+  out <- list()
+  for (i in sm_idx) {
+    parent <- as.character(sv$name[i] %||% "")
+    if (!nzchar(parent)) next
+    list_name <- .analitica_list_name_for_var(inst, parent)
+    choices <- if (nzchar(list_name)) {
+      .choices_desde_instrumento(inst, list_name)
+    } else {
+      data.frame(name = character(0), label = character(0), stringsAsFactors = FALSE)
+    }
+    if (!nrow(choices)) next
+    parent_label <- .analitica_var_label(inst, parent)
+    for (j in seq_len(nrow(choices))) {
+      code <- as.character(choices$name[j] %||% "")
+      if (!nzchar(code)) next
+      col <- .analitica_find_dummy_col(data_names, parent, code)
+      if (is.na(col) || !nzchar(col) || !col %in% data_names) next
+      option_label <- as.character(choices$label[j] %||% "")
+      if (!nzchar(option_label)) {
+        option_label <- as.character(attr(data[[col]], "label", exact = TRUE) %||% code)
+      }
+      out[[col]] <- list(
+        dummy_parent = parent,
+        dummy_parent_label = parent_label,
+        dummy_option_code = code,
+        dummy_option_label = option_label
+      )
+    }
+  }
+  out
 }
 
 .analitica_data_review_payload <- function(rp_data, rp_inst, cfg) {
   reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
   data <- reviewed$data
   inst <- reviewed$inst
+  dummy_lookup <- .analitica_select_multiple_dummy_lookup(data, inst)
   vars <- .variables_desde_instrumento(inst)
   by_name <- list()
   for (v in vars) by_name[[as.character(v$name %||% "")]] <- v
@@ -622,11 +727,16 @@
   all_names <- all_names[nzchar(all_names)]
   lapply(all_names, function(nm) {
     col <- if (nm %in% names(data)) data[[nm]] else NULL
+    dummy_meta <- dummy_lookup[[nm]] %||% NULL
     vmeta <- by_name[[nm]] %||% list(name = nm, label = "", tipo = "", list_name = "")
     original_label <- if (!is.null(col)) attr(col, "label", exact = TRUE) %||% "" else ""
+    if (!is.null(dummy_meta) && !nzchar(as.character(original_label))) {
+      original_label <- as.character(dummy_meta$dummy_option_label %||% "")
+    }
     if (!nzchar(as.character(original_label))) original_label <- as.character(vmeta$label %||% "")
     if (!nzchar(original_label)) original_label <- nm
     tipo_xlsform <- as.character(vmeta$tipo %||% "")
+    if (!nzchar(tipo_xlsform) && !is.null(dummy_meta)) tipo_xlsform <- "dummy_select_multiple"
     is_select_one <- grepl("^select_one(\\s|$)", tipo_xlsform)
     is_select_multiple <- grepl("^select_multiple(\\s|$)", tipo_xlsform)
     map <- if ((is_select_one || is_select_multiple) && !is.null(col)) {
@@ -656,13 +766,23 @@
     list(
       name = nm,
       tipo_xlsform = tipo_xlsform,
-      seccion = as.character(section_by_var[[nm]] %||% "General"),
+      seccion = as.character(
+        if (!is.null(dummy_meta)) {
+          section_by_var[[as.character(dummy_meta$dummy_parent %||% "")]] %||% "General"
+        } else {
+          section_by_var[[nm]] %||% "General"
+        }
+      ),
       included = !nm %in% cfg_excluidas,
       label_actual = as.character(attr(col, "label", exact = TRUE) %||% original_label),
       label_original = as.character(original_label),
       n_non_missing = if (!is.null(col)) as.integer(sum(!is.na(col) & nzchar(as.character(col)))) else 0L,
       n_missing = if (!is.null(col)) as.integer(sum(is.na(col) | !nzchar(as.character(col)))) else 0L,
-      opciones = opts
+      opciones = opts,
+      dummy_parent = if (!is.null(dummy_meta)) as.character(dummy_meta$dummy_parent %||% "") else NA_character_,
+      dummy_parent_label = if (!is.null(dummy_meta)) as.character(dummy_meta$dummy_parent_label %||% "") else NA_character_,
+      dummy_option_code = if (!is.null(dummy_meta)) as.character(dummy_meta$dummy_option_code %||% "") else NA_character_,
+      dummy_option_label = if (!is.null(dummy_meta)) as.character(dummy_meta$dummy_option_label %||% "") else NA_character_
     )
   })
 }
@@ -700,8 +820,11 @@
   if ("type" %in% names(survey)) {
     type <- trimws(as.character(survey$type))
     hit <- grepl("^select_(one|multiple)\\s+", type)
-    parsed <- sub("^select_(one|multiple)\\s+([^\\s]+).*$", "\\2", type[hit])
-    out <- c(out, parsed[parsed != type[hit]])
+    parsed <- vapply(type[hit], function(tp) {
+      m <- regmatches(tp, regexec("^select_(?:one|multiple)\\s+(\\S+)", tp, perl = TRUE))[[1]]
+      if (length(m) >= 2L) m[2] else ""
+    }, character(1))
+    out <- c(out, parsed)
   }
   unique(out[!is.na(out) & nzchar(out)])
 }
@@ -1191,7 +1314,7 @@ mount_analitica <- function(pr) {
       sem <- cc$semaforo %||% list()
       aplicar_sem <- isTRUE(sem$activo)
       sem_modo <- as.character(sem$modo %||% "grupos")
-      if (!sem_modo %in% c("grupos","degradado_automatico","degradado_manual")) sem_modo <- "grupos"
+      if (!sem_modo %in% c("grupos", "degradado", "degradado_automatico", "degradado_manual")) sem_modo <- "grupos"
       sem_cortes <- .as_int_vec(sem$cortes)
       if (length(sem_cortes) == 0L) sem_cortes <- c(50L, 75L)
       sem_colores <- sem$colores %||% list()

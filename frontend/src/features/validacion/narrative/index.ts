@@ -152,16 +152,16 @@ export function buildExpectationHeadline(
   targetDisplay: string,
 ): string {
   const explicit = cleanSentence(regla.presentation?.objetivo ?? regla.objetivo ?? "");
-  if (explicit) return explicit;
-
   const tipoRegla = (regla.tipo_regla ?? "").toLowerCase();
   const tipoObs = (regla.tipo_observacion ?? "").toLowerCase();
   const subtipo = (regla.presentation?.subtipo_semantico ?? "").toLowerCase();
 
+  if (explicit && !looksLikeTechnicalCondition(explicit)) return explicit;
+
   if (subtipo === "nodebe")
-    return `${targetDisplay} no debería tener respuesta cuando la condición no aplica.`;
+    return `${targetDisplay} no debería tener respuesta si la pregunta no correspondía.`;
   if (subtipo === "debe")
-    return `Si se cumple la condición, ${targetDisplay} debe registrarse.`;
+    return `${targetDisplay} debía responderse en esa ruta del formulario.`;
   if (subtipo === "req" || tipoRegla === "required" || tipoObs.includes("required"))
     return `${targetDisplay} debe responderse cuando corresponde.`;
   if (tipoRegla === "skip") return `El salto de ${targetDisplay} debe respetarse.`;
@@ -195,7 +195,8 @@ export function buildActivationSummary(
   sections: RoleSection[] = [],
 ): string {
   const explicit = cleanSentence(regla.presentation?.gate_humano ?? "");
-  if (explicit) return explicit;
+  if (explicit && !looksLikeTechnicalCondition(explicit)) return explicit;
+  if (explicit) return "La ruta del formulario decide si esta pregunta debía aparecer.";
   const driverSections = sections.filter((s) => s.role === "drivers" || s.role === "gate");
   const labels = uniqueStrings(
     driverSections.flatMap((s) => s.items.map((it) => it.label ?? it.key)),
@@ -210,13 +211,21 @@ export function buildCompareSummary(
   sections: RoleSection[] = [],
 ): string {
   const explicit = cleanSentence(regla.presentation?.detalle_condicion ?? "");
-  if (explicit) return explicit;
+  if (explicit && !looksLikeTechnicalCondition(explicit)) return explicit;
+  if (explicit) return "La condición exacta está disponible en el detalle técnico.";
   const compareSections = sections.filter((s) => s.role === "compare");
   const labels = uniqueStrings(
     compareSections.flatMap((s) => s.items.map((it) => it.label ?? it.key)),
   );
   if (!labels.length) return "";
   return `Se contrasta con ${humanList(labels.map((v) => `«${v}»`))}.`;
+}
+
+function looksLikeTechnicalCondition(value: string): boolean {
+  const text = cleanSentence(value);
+  if (!text) return false;
+  if (text.length > 220) return true;
+  return /\bNO se cumple que\b/i.test(text) || /\(\(.+\)\)/.test(text);
 }
 
 /**
@@ -270,7 +279,13 @@ export function displayTargetName(
   const target = sections.find((s) => s.role === "target")?.items[0];
   if (!target) return regla.variables?.[0] ?? regla.nombre ?? "la respuesta";
   const label = target.label && target.label !== target.key ? target.label : null;
-  return label ? `«${label}»` : `«${target.key}»`;
+  return label ? `«${shortNarrativeLabel(label)}»` : `«${target.key}»`;
+}
+
+function shortNarrativeLabel(label: string, max = 96): string {
+  const clean = label.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max - 1).trimEnd()}...`;
 }
 
 // -----------------------------------------------------------------------------

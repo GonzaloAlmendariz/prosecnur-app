@@ -346,7 +346,7 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
 
   left_ast <- left$ast
   right_ast <- right$ast
-  ast_cmp <- .build_compare(left_ast, op, right_ast)
+  ast_cmp <- .build_compare(left_ast, op, right_ast, context = state$context %||% "relevant")
   out <- list(ast = ast_cmp)
   attr(out, "state") <- state
   out
@@ -397,7 +397,7 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
 #                            sin tipo_info no lo sabemos; queda como compare_const)
 #   var OP var             → compare_vars
 #   `.` OP literal         → usa self_var (resuelto en .parse_atom)
-.build_compare <- function(left, op, right) {
+.build_compare <- function(left, op, right, context = "relevant") {
   l_is_var <- is_ast(left) && ast_op(left) == "__var"
   r_is_var <- is_ast(right) && ast_op(right) == "__var"
   l_is_lit <- is_ast(left) && ast_op(left) %in% c("__str", "__num")
@@ -459,7 +459,11 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
       if (op == "==") return(ast_is_missing(v))
       if (op == "!=") return(ast_not(ast_is_missing(v)))
     }
-    return(ast_compare_const(v, op, val))
+    cmp <- ast_compare_const(v, op, val)
+    if (identical(context, "relevant") && identical(op, "!=")) {
+      return(ast_or(ast_is_missing(v), cmp))
+    }
+    return(cmp)
   }
   # lit OP var (swap)
   if (r_is_var && l_is_lit) {
@@ -471,7 +475,11 @@ odk_parse_to_ast <- function(expr, context = c("relevant", "constraint", "calcul
       if (op == "==") return(ast_is_missing(v))
       if (op == "!=") return(ast_not(ast_is_missing(v)))
     }
-    return(ast_compare_const(v, swapped, val))
+    cmp <- ast_compare_const(v, swapped, val)
+    if (identical(context, "relevant") && identical(swapped, "!=")) {
+      return(ast_or(ast_is_missing(v), cmp))
+    }
+    return(cmp)
   }
   # var OP var
   if (l_is_var && r_is_var) {

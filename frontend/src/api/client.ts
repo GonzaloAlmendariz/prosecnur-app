@@ -61,9 +61,18 @@ async function handle<T>(res: Response): Promise<T> {
     }
   }
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    const code = body?.error?.code ?? "E_UNKNOWN";
-    const message = body?.error?.message ?? res.statusText;
+    const raw = await res.text().catch(() => "");
+    let body: any = {};
+    if (raw.trim()) {
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        body = {};
+      }
+    }
+    const code = body?.error?.code ?? body?.code ?? `HTTP_${res.status}`;
+    const fallbackMessage = raw.trim() || res.statusText || `HTTP ${res.status}`;
+    const message = body?.error?.message ?? body?.message ?? fallbackMessage;
     // E_NO_SESSION: el backend no reconoce el sid que tenemos en
     // localStorage. Típicamente porque el backend se reinició (sesiones
     // en memoria, no persistidas). Disparamos un evento global que
@@ -424,6 +433,7 @@ export type SurveyMonkeyLogicState = {
   }>;
   visual_rules: SurveyMonkeyVisualLogicRule[];
   choice_order_overrides: Record<string, string[]>;
+  choice_code_maps?: ChoiceCodeMap[];
 };
 
 export type XlsformEditorWorkbook = {
@@ -956,11 +966,12 @@ export async function apiXlsformEditorSmInterpretRule(
 	  opts: {
 	    survey_id?: string;
 	    token?: string;
-	    workbook?: XlsformEditorWorkbook | null;
-	    paginas?: Record<string, string[]>;
-	    paginas_labels?: Record<string, string>;
-	    choice_order_overrides?: Record<string, string[]>;
-  } = {},
+		    workbook?: XlsformEditorWorkbook | null;
+		    paginas?: Record<string, string[]>;
+		    paginas_labels?: Record<string, string>;
+		    choice_order_overrides?: Record<string, string[]>;
+		    choice_code_maps?: ChoiceCodeMap[];
+	  } = {},
 ): Promise<RuleInterpretation> {
   const raw = await handle<unknown>(
     await apiFetch("/api/xlsform-editor/sm-interpret-rule", {
@@ -971,10 +982,11 @@ export async function apiXlsformEditorSmInterpretRule(
 	        workbook: opts.workbook ?? undefined,
 	        survey_id: opts.survey_id ?? "",
 	        token: opts.token ?? "",
-        paginas: opts.paginas ?? {},
-        paginas_labels: opts.paginas_labels ?? {},
-        choice_order_overrides: opts.choice_order_overrides ?? {},
-      }),
+	        paginas: opts.paginas ?? {},
+	        paginas_labels: opts.paginas_labels ?? {},
+	        choice_order_overrides: opts.choice_order_overrides ?? {},
+	        choice_code_maps: opts.choice_code_maps ?? [],
+	      }),
     }),
   );
   const r = (raw ?? {}) as Record<string, unknown>;
@@ -1057,6 +1069,8 @@ export async function apiXlsformEditorSmApplyLogic(
   paginas: Record<string, string[]> = {},
   choice_order_overrides: Record<string, string[]> = {},
   sourceName = "XLSForm actual",
+  choice_code_maps: ChoiceCodeMap[] = [],
+  replace_existing = false,
 ): Promise<XlsformEditorPayload> {
   const raw = await handle<unknown>(
     await apiFetch("/api/xlsform-editor/sm-apply-logic", {
@@ -1065,10 +1079,12 @@ export async function apiXlsformEditorSmApplyLogic(
       body: JSON.stringify({
         workbook,
         reglas,
-        paginas,
-        choice_order_overrides,
-        source_name: sourceName,
-      }),
+	        paginas,
+		        choice_order_overrides,
+		        source_name: sourceName,
+		        choice_code_maps,
+		        replace_existing,
+		      }),
     }),
   );
   return normalizeEditorPayload(raw);
@@ -1082,6 +1098,7 @@ export async function apiXlsformEditorImportSurveyMonkeyWithLogic(
   lang = "es",
   smApi?: { survey_id: string; token: string },
   choice_order_overrides?: Record<string, string[]>,
+  choice_code_maps: ChoiceCodeMap[] = [],
 ): Promise<EditorPayloadWithHallazgos> {
   const raw = await handle<unknown>(
     await apiFetch("/api/xlsform-editor/import-surveymonkey-with-logic", {
@@ -1096,6 +1113,7 @@ export async function apiXlsformEditorImportSurveyMonkeyWithLogic(
         survey_id: smApi?.survey_id ?? "",
         token: smApi?.token ?? "",
         choice_order_overrides: choice_order_overrides ?? {},
+        choice_code_maps,
       }),
     })
   );
@@ -1133,6 +1151,7 @@ function normalizeSurveyMonkeyLogicState(value: unknown): SurveyMonkeyLogicState
       choice_order_overrides[key] = Array.isArray(val) ? val.map((item) => String(item)) : [];
     }
   }
+  const choice_code_maps = normalizeChoiceCodeMaps(raw.choice_code_maps ?? raw.choiceCodeMaps);
   const rules = rulesRaw
     .map((item) => {
       const r = (item ?? {}) as Record<string, unknown>;
@@ -1164,8 +1183,38 @@ function normalizeSurveyMonkeyLogicState(value: unknown): SurveyMonkeyLogicState
       };
     })
     .filter((rule) => rule.variableRef.trim());
-  if (!rules.length && !visual_rules.length && Object.keys(choice_order_overrides).length === 0) return null;
-  return { rules, advanced_rules: rules, visual_rules, choice_order_overrides };
+  if (!rules.length && !visual_rules.length && Object.keys(choice_order_overrides).length === 0 && choice_code_maps.length === 0) return null;
+  return { rules, advanced_rules: rules, visual_rules, choice_order_overrides, choice_code_maps };
+}
+
+function normalizeChoiceCodeMaps(value: unknown): ChoiceCodeMap[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      const raw = (item ?? {}) as Record<string, unknown>;
+      const mappingsRaw = Array.isArray(raw.mappings) ? raw.mappings : [];
+      return {
+        variable: String(raw.variable ?? ""),
+        label: String(raw.label ?? ""),
+        type: String(raw.type ?? ""),
+        list_name: String(raw.list_name ?? raw.listName ?? ""),
+        status: String(raw.status ?? ""),
+        high_confidence: Boolean(raw.high_confidence ?? raw.highConfidence),
+        requires_confirmation: Boolean(raw.requires_confirmation ?? raw.requiresConfirmation),
+        mappings: mappingsRaw.map((mapping) => {
+          const m = (mapping ?? {}) as Record<string, unknown>;
+          return {
+            source_code: String(m.source_code ?? m.sourceCode ?? ""),
+            source_column: String(m.source_column ?? m.sourceColumn ?? ""),
+            source_label: String(m.source_label ?? m.sourceLabel ?? ""),
+            xls_code: String(m.xls_code ?? m.xlsCode ?? ""),
+            xls_label: String(m.xls_label ?? m.xlsLabel ?? ""),
+            match: String(m.match ?? ""),
+          };
+        }),
+      };
+    })
+    .filter((map) => map.variable && map.mappings.length > 0);
 }
 
 function normalizeSurveyMonkeyVisualAction(value: unknown): SurveyMonkeyVisualLogicAction {
@@ -1325,6 +1374,33 @@ export async function apiInstrumentoEstructura() {
   );
 }
 
+export type ChoiceCodeMapItem = {
+  source_code: string;
+  source_column: string;
+  source_label: string;
+  xls_code: string;
+  xls_label: string;
+  match: string;
+};
+
+export type ChoiceCodeMap = {
+  variable: string;
+  label: string;
+  type: string;
+  list_name: string;
+  status: string;
+  high_confidence: boolean;
+  requires_confirmation: boolean;
+  mappings: ChoiceCodeMapItem[];
+};
+
+export type ChoiceCodeMapReview = {
+  applied: boolean;
+  requires_confirmation: boolean;
+  n_questions: number;
+  maps: ChoiceCodeMap[];
+};
+
 export async function apiCargaData(file_id: string) {
   return handle<{
     ok: true;
@@ -1343,6 +1419,7 @@ export async function apiCargaData(file_id: string) {
         alias_columns?: Record<string, string>;
         select_multiple_columns?: Record<string, string[]>;
         single_child_collapse_columns?: Record<string, string>;
+        choice_code_maps?: ChoiceCodeMapReview;
       };
       compatibilidad?: {
         applied: boolean;
@@ -1364,6 +1441,22 @@ export async function apiCargaData(file_id: string) {
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ file_id }),
     })
+  );
+}
+
+export async function apiCargaConfirmChoiceMapping() {
+  return handle<{
+    ok: true;
+    confirmed: boolean;
+    n_questions?: number;
+    confirmed_at?: string;
+    message?: string;
+  }>(
+    await apiFetch("/api/carga/choice-mapping/confirm", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({}),
+    }),
   );
 }
 
@@ -3215,6 +3308,10 @@ export type DataReviewVariable = {
   n_non_missing: number;
   n_missing: number;
   opciones: DataReviewOption[];
+  dummy_parent?: string | null;
+  dummy_parent_label?: string | null;
+  dummy_option_code?: string | null;
+  dummy_option_label?: string | null;
 };
 
 export async function apiAnaliticaDataReview() {
@@ -5198,6 +5295,15 @@ export type ReglaInstrumento = {
     all?: string | Array<string | null> | null;
     labels?: Record<string, string | null>;
     tables?: Record<string, string | null>;
+  } | null;
+  value_labels?: Record<string, Record<string, string | null> | null> | null;
+  other_context?: {
+    target_var?: string | null;
+    target_label?: string | null;
+    parent_var?: string | null;
+    parent_label?: string | null;
+    choice_code?: string | null;
+    choice_label?: string | null;
   } | null;
   presentation?: {
     gate_humano?: string | null;

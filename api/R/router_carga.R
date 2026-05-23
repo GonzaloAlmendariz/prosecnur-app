@@ -57,8 +57,8 @@ estructura_instrumento <- function(inst) {
       if (!nzchar(as.character(survey$name[i] %||% ""))) next
       list_name <- field(survey, "list_name", i, "")
       if (!nzchar(list_name) && grepl("^select_(one|multiple)\\b", tt)) {
-        list_name <- sub("^select_(one|multiple)\\s+([^\\s]+).*$", "\\2", tt)
-        if (identical(list_name, tt)) list_name <- ""
+        m <- regmatches(tt, regexec("^select_(?:one|multiple)\\s+(\\S+)", tt, perl = TRUE))[[1]]
+        list_name <- if (length(m) >= 2L) m[2] else ""
       }
       relevant_expr <- field(survey, "relevant", i, "")
       constraint_expr <- field(survey, "constraint", i, "")
@@ -137,7 +137,7 @@ summarize_instrumento <- function(inst) {
   }
   skip_types <- c(
     "begin_group", "end_group", "begin_repeat", "end_repeat",
-    "note", "calculate", "start", "end", "today", "deviceid",
+    "note", "start", "end", "today", "deviceid",
     "subscriberid", "phonenumber", "simserial", "username", "audit"
   )
   type_raw <- trimws(as.character(survey$type %||% ""))
@@ -171,8 +171,78 @@ summarize_instrumento <- function(inst) {
     ))
   }
   compat <- validate_data_xlsform_compatibility(df, instrumento)
+  compat <- unclass(compat)
   compat$applied <- TRUE
   compat
+}
+
+.carga_choice_code_maps_payload <- function(norm_attr) {
+  maps_raw <- norm_attr$choice_code_maps %||% list()
+  if (!length(maps_raw)) {
+    return(list(
+      applied = FALSE,
+      requires_confirmation = FALSE,
+      n_questions = 0L,
+      maps = list()
+    ))
+  }
+
+  maps <- lapply(maps_raw, function(mp) {
+    mappings <- mp$mappings %||% list()
+    mappings <- lapply(mappings, function(item) {
+      list(
+        source_code = as.character(item$source_code %||% ""),
+        source_column = as.character(item$source_column %||% ""),
+        source_label = as.character(item$source_label %||% ""),
+        xls_code = as.character(item$xls_code %||% ""),
+        xls_label = as.character(item$xls_label %||% ""),
+        match = as.character(item$match %||% "")
+      )
+    })
+    list(
+      variable = as.character(mp$variable %||% ""),
+      label = as.character(mp$label %||% mp$variable %||% ""),
+      type = as.character(mp$type %||% ""),
+      list_name = as.character(mp$list_name %||% ""),
+      status = as.character(mp$status %||% "match_review"),
+      high_confidence = isTRUE(mp$high_confidence),
+      requires_confirmation = isTRUE(mp$requires_confirmation),
+      mappings = unname(mappings)
+    )
+  })
+
+  list(
+    applied = TRUE,
+    requires_confirmation = any(vapply(maps, function(mp) isTRUE(mp$requires_confirmation), logical(1))),
+    n_questions = as.integer(length(maps)),
+    maps = unname(maps)
+  )
+}
+
+.carga_store_choice_code_maps <- function(sid, maps_payload, confirmed = FALSE) {
+  if (is.null(sid) || !nzchar(sid)) return(invisible(FALSE))
+  if (is.null(maps_payload) || !isTRUE(maps_payload$applied) || !length(maps_payload$maps %||% list())) {
+    session_set(sid, "choice_code_maps_pending", NULL)
+    if (isTRUE(confirmed)) {
+      session_set(sid, "choice_code_maps_confirmed", NULL)
+    }
+    return(invisible(FALSE))
+  }
+
+  payload <- list(
+    confirmed = isTRUE(confirmed),
+    confirmed_at = if (isTRUE(confirmed)) format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC") else NA_character_,
+    n_questions = as.integer(maps_payload$n_questions %||% length(maps_payload$maps)),
+    maps = maps_payload$maps
+  )
+
+  if (isTRUE(confirmed)) {
+    session_set(sid, "choice_code_maps_confirmed", payload)
+    session_set(sid, "choice_code_maps_pending", NULL)
+  } else {
+    session_set(sid, "choice_code_maps_pending", payload)
+  }
+  invisible(TRUE)
 }
 
 .carga_assert_data_xlsform_compatible <- function(df, instrumento) {
@@ -194,7 +264,7 @@ summarize_instrumento <- function(inst) {
   compat
 }
 
-read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL) {
+read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, choice_code_maps = NULL) {
   # Envolvemos el read_excel en suppressWarnings porque readxl infiere
   # tipo por las primeras 1000 filas; cuando una columna tiene muchos
   # NA al comienzo y texto más abajo (caso típico en encuestas con
@@ -212,7 +282,7 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL) {
   normalized_info <- NULL
   compatibility_info <- .carga_compatibility_payload(df, NULL)
   if (!is.null(instrumento)) {
-    df <- normalize_data_for_xlsform(df, instrumento)
+    df <- normalize_data_for_xlsform(df, instrumento, choice_code_maps = choice_code_maps)
     norm_attr <- attr(df, "xlsform_normalized")
     df <- .carga_reorder_data_columns(df, instrumento)
     compatibility_info <- .carga_compatibility_payload(df, instrumento)
@@ -228,7 +298,8 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL) {
         extra_columns = as.integer(ncol(df) - length(survey_cols)),
         alias_columns = norm_attr$aliases %||% character(0),
         select_multiple_columns = norm_attr$select_multiple %||% list(),
-        single_child_collapse_columns = norm_attr$single_child_collapses %||% character(0)
+        single_child_collapse_columns = norm_attr$single_child_collapses %||% character(0),
+        choice_code_maps = .carga_choice_code_maps_payload(norm_attr)
       )
     }
   }
@@ -240,7 +311,8 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL) {
       single_child_collapses = 0L,
       dropped_columns = 0L,
       xlsform_columns = 0L,
-      extra_columns = 0L
+      extra_columns = 0L,
+      choice_code_maps = .carga_choice_code_maps_payload(list())
     )
   }
   n <- nrow(df)
@@ -274,6 +346,20 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL) {
     preview_filas = jsonlite::toJSON(head_df, na = "null", dataframe = "rows", auto_unbox = TRUE) |>
       jsonlite::fromJSON(simplifyVector = FALSE)
   )
+}
+
+.carga_editor_choice_code_maps <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(NULL)
+  maps <- s$xlsform_state$workbook$surveyMonkeyLogic$choice_code_maps %||%
+    s$xlsform_state$workbook$surveyMonkeyLogic$choiceCodeMaps %||%
+    NULL
+  if (!is.null(maps) && length(maps)) return(maps)
+  confirmed <- s$choice_code_maps_confirmed %||% NULL
+  if (isTRUE(confirmed$confirmed) && length(confirmed$maps %||% list())) {
+    return(confirmed$maps)
+  }
+  NULL
 }
 
 .carga_current_instrumento_for_data <- function(sid) {
@@ -327,7 +413,18 @@ estudio_init_default_base <- function(sid) {
   # Computar reportes (caros: parsea xlsform + lee data completa).
   rp_inst <- reporte_instrumento(path = xls_meta$path)
   data_df <- .read_data_any_path(dat_meta$path, dat_meta$ext)
-  data_df <- normalize_data_for_xlsform(data_df, rp_inst)
+  data_df <- normalize_data_for_xlsform(
+    data_df,
+    rp_inst,
+    choice_code_maps = .carga_editor_choice_code_maps(sid)
+  )
+  norm_attr <- attr(data_df, "xlsform_normalized")
+  maps_payload <- .carga_choice_code_maps_payload(norm_attr %||% list())
+  s_current <- session_get(sid, required = FALSE)
+  if (isTRUE(maps_payload$applied) &&
+      !isTRUE(s_current$choice_code_maps_confirmed$confirmed %||% FALSE)) {
+    .carga_store_choice_code_maps(sid, maps_payload, confirmed = FALSE)
+  }
   .carga_assert_data_xlsform_compatible(data_df, rp_inst)
   rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
@@ -409,16 +506,55 @@ mount_carga <- function(pr) {
 	          409,
 	          "E_XLSFORM_REQUIRED_FOR_DATA",
 	          "Primero carga el XLSForm. La data se normaliza y valida usando ese formulario."
-	        )
-	      }
-	      preview <- read_data_preview(meta$path, meta$ext, instrumento = preview_inst)
-	      session_set(sid, "data_raw_meta", list(file_id = file_id, path = meta$path, ext = meta$ext))
-	      # Si ya hay xlsform subido, este punto cierra el par y auto-crea la
-	      # base "default" — el caso típico cuando el user va Carga →
-	      # Validación sin pasar por Analítica primero.
-	      estudio_init_default_base(sid)
-	      list(ok = TRUE, preview = preview)
-	    })) |>
+		        )
+		      }
+		      session_set(sid, "choice_code_maps_confirmed", NULL)
+		      preview <- read_data_preview(
+		        meta$path,
+		        meta$ext,
+		        instrumento = preview_inst,
+		        choice_code_maps = .carga_editor_choice_code_maps(sid)
+		      )
+		      .carga_store_choice_code_maps(
+		        sid,
+		        preview$normalizacion$choice_code_maps %||% list(),
+		        confirmed = FALSE
+		      )
+		      session_set(sid, "data_raw_meta", list(file_id = file_id, path = meta$path, ext = meta$ext))
+		      # Si ya hay xlsform subido, este punto cierra el par y auto-crea la
+		      # base "default" — el caso típico cuando el user va Carga →
+		      # Validación sin pasar por Analítica primero.
+		      estudio_init_default_base(sid)
+		      list(ok = TRUE, preview = preview)
+		    })) |>
+    plumber::pr_post("/api/carga/choice-mapping/confirm", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      pending <- s$choice_code_maps_pending %||% NULL
+      if (is.null(pending) || !length(pending$maps %||% list())) {
+        return(list(ok = TRUE, confirmed = FALSE, message = "No hay mapeos pendientes por confirmar."))
+      }
+      maps_payload <- list(
+        applied = TRUE,
+        requires_confirmation = FALSE,
+        n_questions = as.integer(pending$n_questions %||% length(pending$maps)),
+        maps = pending$maps
+      )
+      .carga_store_choice_code_maps(sid, maps_payload, confirmed = TRUE)
+      tryCatch(
+        estudio_init_default_base(sid),
+        error = function(e) {
+          message("[carga] estudio_init_default_base tras confirmar mapeo falló: ", conditionMessage(e))
+        }
+      )
+      confirmed <- session_get(sid)$choice_code_maps_confirmed
+      list(
+        ok = TRUE,
+        confirmed = TRUE,
+        n_questions = as.integer(confirmed$n_questions %||% 0L),
+        confirmed_at = as.character(confirmed$confirmed_at %||% "")
+      )
+    })) |>
 
     # DELETE /api/carga/instrumento — limpia XLSForm cargado.
     # También limpia los artefactos derivados (rp_inst, inst_limpieza,
@@ -452,6 +588,8 @@ mount_carga <- function(pr) {
       session_set(sid, "evaluacion",     NULL)  # validación ya no aplica
       session_set(sid, "plan_result",    NULL)
       session_set(sid, "estudio",        NULL)
+      session_set(sid, "choice_code_maps_pending", NULL)
+      session_set(sid, "choice_code_maps_confirmed", NULL)
       session_set(sid, "analitica_prep_ok", FALSE)
 
       list(ok = TRUE)
@@ -483,6 +621,8 @@ mount_carga <- function(pr) {
       session_set(sid, "rp_data",        NULL)
       session_set(sid, "evaluacion",     NULL)  # validación necesitaba la data
       session_set(sid, "plan_result",    NULL)
+      session_set(sid, "choice_code_maps_pending", NULL)
+      session_set(sid, "choice_code_maps_confirmed", NULL)
       # Si el estudio tiene bases, las vaciamos también — cada base
       # depende de su data. XLSForm sigue disponible para reconstruir.
       session_set(sid, "estudio",        NULL)

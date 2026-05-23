@@ -174,6 +174,21 @@
   )
 }
 
+.xlsform_editor_choice_code_maps <- function(parsed, req = NULL) {
+  incoming <- parsed$choice_code_maps %||% NULL
+  if (!is.null(incoming) && length(incoming)) return(incoming)
+
+  sid <- if (is.null(req)) NULL else session_header(req)
+  if (is.null(sid) || !nzchar(sid)) return(NULL)
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(NULL)
+  confirmed <- s$choice_code_maps_confirmed %||% NULL
+  if (isTRUE(confirmed$confirmed) && length(confirmed$maps %||% list())) {
+    return(confirmed$maps)
+  }
+  NULL
+}
+
 .xlsform_editor_validate_meta <- function(meta, expected_kind, code, message) {
   if (is.null(meta) || !identical(as.character(meta$kind), expected_kind)) {
     stop_api(400, code, message)
@@ -964,8 +979,9 @@ mount_xlsform_editor <- function(pr) {
       survey_id <- as.character(parsed$survey_id %||% "")
       token <- as.character(parsed$token %||% "")
       paginas_in <- parsed$paginas
-      paginas_labels_in <- parsed$paginas_labels
-      overrides_in <- parsed$choice_order_overrides
+	      paginas_labels_in <- parsed$paginas_labels
+	      overrides_in <- parsed$choice_order_overrides
+	      choice_code_maps <- .xlsform_editor_choice_code_maps(parsed, req)
 
       paginas <- NULL
       if (!is.null(paginas_in) && length(paginas_in)) {
@@ -1008,21 +1024,24 @@ mount_xlsform_editor <- function(pr) {
         }
       }
 
-      tryCatch(
-        surveymonkey_interpretar_regla(regla, details = details,
-          xlsform = xlsform, sm = sm,
-          paginas = paginas, paginas_labels = paginas_labels,
-          choice_order_overrides = choice_order_overrides),
-        error = function(e) list(ok = FALSE, error = conditionMessage(e))
-      )
+	      tryCatch(
+	        surveymonkey_interpretar_regla(regla, details = details,
+	          xlsform = xlsform, sm = sm,
+	          paginas = paginas, paginas_labels = paginas_labels,
+	          choice_order_overrides = choice_order_overrides,
+	          choice_code_maps = choice_code_maps),
+	        error = function(e) list(ok = FALSE, error = conditionMessage(e))
+	      )
     })) |>
     plumber::pr_post("/api/xlsform-editor/sm-apply-logic", wrap_endpoint(function(req, res, ...) {
       parsed <- .xlsform_editor_parse_body(req)
       workbook <- parsed$workbook %||% list()
       reglas_text <- as.character(parsed$reglas %||% "")
-      paginas_in <- parsed$paginas
-      overrides_in <- parsed$choice_order_overrides
-      source_name <- as.character(parsed$source_name %||% "XLSForm actual")
+	      paginas_in <- parsed$paginas
+		      overrides_in <- parsed$choice_order_overrides
+		      choice_code_maps <- .xlsform_editor_choice_code_maps(parsed, req)
+		      replace_existing <- isTRUE(parsed$replace_existing %||% FALSE)
+		      source_name <- as.character(parsed$source_name %||% "XLSForm actual")
 
       survey <- .xlsform_editor_payload_to_df(workbook$survey, "survey")
       choices <- .xlsform_editor_payload_to_df(workbook$choices, "choices")
@@ -1045,13 +1064,15 @@ mount_xlsform_editor <- function(pr) {
         names(choice_order_overrides) <- as.character(names(overrides_in))
       }
 
-      if (nzchar(trimws(reglas_text))) {
-        xlsform <- tryCatch(
-          surveymonkey_aplicar_logica(xlsform, reglas_text, sm, paginas = paginas,
-            choice_order_overrides = choice_order_overrides),
-          error = function(e) stop_api(400, "E_LOGIC_APPLY_FAILED",
-            sprintf("Aplicación de lógica falló: %s", conditionMessage(e)))
-        )
+	      if (nzchar(trimws(reglas_text))) {
+		        xlsform <- tryCatch(
+		          surveymonkey_aplicar_logica(xlsform, reglas_text, sm, paginas = paginas,
+		            choice_order_overrides = choice_order_overrides,
+		            choice_code_maps = choice_code_maps,
+		            replace_existing = replace_existing),
+	          error = function(e) stop_api(400, "E_LOGIC_APPLY_FAILED",
+	            sprintf("Aplicación de lógica falló: %s", conditionMessage(e)))
+	        )
       }
 
       .xlsform_editor_workbook_payload(
@@ -1073,9 +1094,10 @@ mount_xlsform_editor <- function(pr) {
       lang <- as.character(parsed$lang %||% "es")
       reglas_text <- as.character(parsed$reglas %||% "")
       paginas_in <- parsed$paginas
-      paginas_labels_in <- parsed$paginas_labels
-      overrides_in <- parsed$choice_order_overrides
-      survey_id <- as.character(parsed$survey_id %||% "")
+	      paginas_labels_in <- parsed$paginas_labels
+	      overrides_in <- parsed$choice_order_overrides
+	      choice_code_maps <- .xlsform_editor_choice_code_maps(parsed, req)
+	      survey_id <- as.character(parsed$survey_id %||% "")
       token <- as.character(parsed$token %||% "")
 
       if (!nzchar(survey_id) || !nzchar(token)) {
@@ -1115,13 +1137,14 @@ mount_xlsform_editor <- function(pr) {
 
       # Aplicar reglas si vinieron
       hallazgos <- list()
-      if (nzchar(trimws(reglas_text))) {
-        out <- tryCatch(
-          surveymonkey_aplicar_logica(out, reglas_text, sm, paginas = paginas,
-            choice_order_overrides = choice_order_overrides),
-          error = function(e) stop_api(400, "E_LOGIC_APPLY_FAILED",
-            sprintf("Aplicación de lógica falló: %s", conditionMessage(e)))
-        )
+	      if (nzchar(trimws(reglas_text))) {
+	        out <- tryCatch(
+	          surveymonkey_aplicar_logica(out, reglas_text, sm, paginas = paginas,
+	            choice_order_overrides = choice_order_overrides,
+	            choice_code_maps = choice_code_maps),
+	          error = function(e) stop_api(400, "E_LOGIC_APPLY_FAILED",
+	            sprintf("Aplicación de lógica falló: %s", conditionMessage(e)))
+	        )
       }
 
       payload <- .xlsform_editor_workbook_payload(

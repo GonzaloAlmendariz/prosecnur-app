@@ -94,7 +94,7 @@ export function MoreViewsMenu({
     {
       key: "survey-monkey-logic",
       label: "Lógica de SurveyMonkey",
-      description: "Importar reglas de salto desde un cuestionario de SurveyMonkey.",
+      description: "Editar, agregar o reutilizar reglas de salto sin regenerar el XLSForm.",
       icon: IconBranching,
       onClick: () => {
         onOpenSurveyMonkeyLogic();

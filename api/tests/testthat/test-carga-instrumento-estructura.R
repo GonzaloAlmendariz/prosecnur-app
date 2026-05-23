@@ -49,3 +49,35 @@ test_that("estructura_instrumento conserva filas calculate y expone formula", {
   expect_equal(resumen$n_filas_survey, 2L)
   expect_equal(.carga_data_survey_names(inst), c("edad", "edad_doble"))
 })
+
+test_that("estructura_instrumento extrae list_name desde type sin columna list_name", {
+  inst <- list(
+    survey = data.frame(
+      type = "select_one lst_p1",
+      type_base = "select_one",
+      name = "p1",
+      label = "Pregunta 1",
+      required = "yes",
+      relevant = "",
+      constraint = "",
+      calculation = "",
+      choice_filter = "",
+      appearance = "",
+      hint = "",
+      group_name = "datos",
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_p1", "lst_p1"),
+      name = c("1", "2"),
+      label = c("Sí", "No"),
+      stringsAsFactors = FALSE
+    ),
+    meta = list(section_map = data.frame())
+  )
+
+  out <- estructura_instrumento(inst)
+
+  expect_equal(out$preguntas[[1]]$list_name, "lst_p1")
+  expect_equal(vapply(out$preguntas[[1]]$choices, `[[`, character(1), "label"), c("Sí", "No"))
+})

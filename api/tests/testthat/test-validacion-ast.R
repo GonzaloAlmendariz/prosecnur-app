@@ -234,6 +234,85 @@ test_that("parser: ${v} != '' → not(is_missing)", {
   expect_equal(ast_op(res$ast$arg), "is_missing")
 })
 
+test_that("parser: relevant con != trata vacios como distintos del codigo", {
+  rel <- odk_parse_to_ast("${p20} != '1'", context = "relevant")
+  rhs_rel <- ast_to_r(rel$ast)
+  p20 <- c(NA, "", "1", "2")
+  expect_identical(as.vector(eval(parse(text = rhs_rel))), c(TRUE, TRUE, FALSE, TRUE))
+
+  con <- odk_parse_to_ast("${p20} != '1'", context = "constraint", self_var = "p20")
+  rhs_con <- ast_to_r(con$ast)
+  expect_identical(as.vector(eval(parse(text = rhs_con))), c(FALSE, NA, FALSE, TRUE))
+})
+
+test_that("narrativa AST evita 'no pregunta marco' en selected negados", {
+  labels <- c(
+    p27 = "Actividades laborales",
+    p20 = "Trabaja dependiente"
+  )
+  choices <- list(
+    p27 = list(`1` = "Emprendimiento", `2` = "Investigación"),
+    p20 = list(`1` = "Sí")
+  )
+  gate <- ast_and(
+    ast_not(ast_selected("p27", "1")),
+    ast_selected("p27", "2"),
+    ast_or(
+      ast_compare_const("p20", "!=", "1"),
+      ast_is_missing("p20")
+    )
+  )
+
+  txt <- .ast_to_human_text(gate, label_map = labels, choices_map = choices)
+
+  expect_match(txt, "«Actividades laborales» no marcó «Emprendimiento»", fixed = TRUE)
+  expect_match(txt, "«Actividades laborales» marcó «Investigación»", fixed = TRUE)
+  expect_match(txt, "(«Trabaja dependiente» no marcó «Sí» o «Trabaja dependiente» está vacía)", fixed = TRUE)
+  expect_false(grepl("^no «", txt))
+})
+
+test_that("narrativa AST agrupa negaciones compuestas", {
+  labels <- c(p27 = "Actividades laborales", p20 = "Trabaja dependiente")
+  choices <- list(
+    p27 = list(`1` = "Emprendimiento"),
+    p20 = list(`1` = "Sí")
+  )
+  gate <- ast_not(ast_and(
+    ast_selected("p27", "1"),
+    ast_compare_const("p20", "==", "1")
+  ))
+
+  txt <- .ast_to_human_text(gate, label_map = labels, choices_map = choices)
+
+  expect_match(txt, "NO se cumple que", fixed = TRUE)
+  expect_match(txt, "«Actividades laborales» marcó «Emprendimiento» y «Trabaja dependiente» marcó «Sí»", fixed = TRUE)
+})
+
+test_that("inferencia de salto nodebe presenta la condicion negada", {
+  survey <- data.frame(
+    type = c("select_one lst_p1", "select_one lst_p20", "text"),
+    name = c("p1", "p20", "detalle"),
+    label = c("Consentimiento", "Trabaja dependiente", "Detalle"),
+    required = c("", "", ""),
+    relevant = c("", "", "${p1} != '2' and ${p20} = '1'"),
+    constraint = c("", "", ""),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("lst_p1", "lst_p1", "lst_p20"),
+    name = c("1", "2", "1"),
+    label = c("Sí", "No", "Sí"),
+    stringsAsFactors = FALSE
+  )
+
+  rules <- infer_rules_from_xlsform(list(survey = survey, choices = choices), include = c("skip"))$rules
+  nodebe <- Filter(function(r) identical(r$presentation$subtipo_semantico, "nodebe"), rules)[[1]]
+
+  expect_match(nodebe$presentation$gate_humano, "NO se cumple que", fixed = TRUE)
+  expect_match(nodebe$presentation$objetivo, "Si NO se cumple que", fixed = TRUE)
+  expect_match(nodebe$presentation$objetivo, "«Detalle» no debe responderse", fixed = TRUE)
+})
+
 test_that("parser: pulldata() devuelve raw con origin='pulldata'", {
   res <- odk_parse_to_ast("pulldata('catalog','col','key',${v}) != ''",
                            context = "constraint", self_var = "v")

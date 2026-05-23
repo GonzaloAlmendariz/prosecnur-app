@@ -183,10 +183,10 @@ test_that("generar_plan_limpieza conserva calculate ambiguo y no emite debug fij
 
   path_xlsx <- tempfile(fileext = ".xlsx")
   fixture <- make_consistency_fixture(path_xlsx)
-  inst <- prosecnur::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
+  inst <- prosecnurapp::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
 
   expect_no_message({
-    plan <- prosecnur::generar_plan_limpieza(inst)
+    plan <- prosecnurapp::generar_plan_limpieza(inst)
   })
 
   expect_true("calc_raw_num_eq" %in% plan$`Nombre de regla`)
@@ -198,8 +198,8 @@ test_that("relevant no genera salto_debe para preguntas no required", {
 
   path_xlsx <- tempfile(fileext = ".xlsx")
   make_consistency_fixture(path_xlsx)
-  inst <- prosecnur::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
-  plan <- prosecnur::generar_plan_limpieza(inst)
+  inst <- prosecnurapp::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
+  plan <- prosecnurapp::generar_plan_limpieza(inst)
 
   expect_false("salto_ExpOpinion_debe" %in% plan$`Nombre de regla`)
   expect_true("salto_ExpOpinion_nodebe" %in% plan$`Nombre de regla`)
@@ -238,8 +238,8 @@ test_that("generar_plan_limpieza tipa comparaciones numericas en relevantes", {
     overwrite = TRUE
   )
 
-  inst <- prosecnur::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
-  plan <- prosecnur::generar_plan_limpieza(inst)
+  inst <- prosecnurapp::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
+  plan <- prosecnurapp::generar_plan_limpieza(inst)
   row_rel <- dplyr::filter(plan, .data$`Nombre de regla` == "salto_HH08_debe")
 
   expect_equal(nrow(row_rel), 1L)
@@ -274,8 +274,8 @@ test_that("generar_plan_limpieza prioriza ventana de campo sobre today() en inte
     overwrite = TRUE
   )
 
-  inst <- prosecnur::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
-  plan <- prosecnur::generar_plan_limpieza(
+  inst <- prosecnurapp::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
+  plan <- prosecnurapp::generar_plan_limpieza(
     inst,
     incluir = list(
       required = TRUE,
@@ -296,9 +296,9 @@ test_that("generar_plan_limpieza prioriza ventana de campo sobre today() en inte
 })
 
 test_that("eq_chr_na compara texto de forma estable entre numeros, blancos y espacios", {
-  expect_true(prosecnur::eq_chr_na(1, "1 "))
-  expect_true(prosecnur::eq_chr_na(NA, ""))
-  expect_true(prosecnur::eq_chr_na("abc", " abc "))
+  expect_true(prosecnurapp::eq_chr_na(1, "1 "))
+  expect_true(prosecnurapp::eq_chr_na(NA, ""))
+  expect_true(prosecnurapp::eq_chr_na("abc", " abc "))
 })
 
 test_that("calculate tipo concat indice no dispara falsos positivos por espacios", {
@@ -329,15 +329,15 @@ test_that("calculate tipo concat indice no dispara falsos positivos por espacios
     overwrite = TRUE
   )
 
-  inst <- prosecnur::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
-  plan <- prosecnur::generar_plan_limpieza(inst)
+  inst <- prosecnurapp::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
+  plan <- prosecnurapp::generar_plan_limpieza(inst)
   datos <- tibble::tibble(
     personId = c(1, 2, 3),
     age = c(20, 18, 25),
     adult18 = c(1, NA, 3)
   )
 
-  ev <- prosecnur::evaluar_consistencia(datos, plan)
+  ev <- prosecnurapp::evaluar_consistencia(datos, plan)
   row_calc <- dplyr::filter(ev$resumen, .data$nombre_regla == "calc_adult18_eq")
 
   expect_equal(nrow(row_calc), 1L)
@@ -379,8 +379,8 @@ test_that("calculate jr choice name usa etiquetas y no codigos", {
     overwrite = TRUE
   )
 
-  inst <- prosecnur::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
-  plan <- prosecnur::generar_plan_limpieza(inst)
+  inst <- prosecnurapp::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
+  plan <- prosecnurapp::generar_plan_limpieza(inst)
   row_calc <- dplyr::filter(plan, .data$`Nombre de regla` == "calc_electricity_source_eq")
 
   expect_equal(nrow(row_calc), 1L)
@@ -391,7 +391,7 @@ test_that("calculate jr choice name usa etiquetas y no codigos", {
     electricity_source = c("Red publica", "Minirred")
   )
 
-  ev <- prosecnur::evaluar_consistencia(datos, plan)
+  ev <- prosecnurapp::evaluar_consistencia(datos, plan)
   row_res <- dplyr::filter(ev$resumen, .data$nombre_regla == "calc_electricity_source_eq")
 
   expect_equal(nrow(row_res), 1L)
@@ -440,8 +440,8 @@ test_that("required hereda gate de grupo padre cuando el grupo hijo no lo tiene"
     overwrite = TRUE
   )
 
-  inst <- prosecnur::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
-  plan <- prosecnur::generar_plan_limpieza(inst)
+  inst <- prosecnurapp::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
+  plan <- prosecnurapp::generar_plan_limpieza(inst)
   row_req <- dplyr::filter(plan, .data$`Nombre de regla` == "req_REG03_req")
 
   expect_equal(nrow(row_req), 1L)
@@ -452,7 +452,7 @@ test_that("required hereda gate de grupo padre cuando el grupo hijo no lo tiene"
     REG03 = c(NA, NA, "ok")
   )
 
-  ev <- prosecnur::evaluar_consistencia(datos, plan)
+  ev <- prosecnurapp::evaluar_consistencia(datos, plan)
   row_res <- dplyr::filter(ev$resumen, .data$nombre_regla == "req_REG03_req")
 
   expect_equal(nrow(row_res), 1L)
@@ -465,10 +465,10 @@ test_that("evaluar_consistencia no infiere agregacion implicita y diagnostica la
 
   path_xlsx <- tempfile(fileext = ".xlsx")
   fixture <- make_consistency_fixture(path_xlsx)
-  inst <- prosecnur::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
-  plan <- prosecnur::generar_plan_limpieza(inst)
+  inst <- prosecnurapp::leer_xlsform_limpieza(path_xlsx, verbose = FALSE)
+  plan <- prosecnurapp::generar_plan_limpieza(inst)
 
-  ev <- prosecnur::evaluar_consistencia(fixture$datos, plan)
+  ev <- prosecnurapp::evaluar_consistencia(fixture$datos, plan)
 
   row_raw <- dplyr::filter(ev$resumen, .data$nombre_regla == "calc_raw_num_eq")
   expect_equal(nrow(row_raw), 1L)
@@ -517,7 +517,7 @@ test_that("evaluar_consistencia alinea repeats por _index real y no por posicion
     )
   )
 
-  ev <- prosecnur::evaluar_consistencia(datos, plan)
+  ev <- prosecnurapp::evaluar_consistencia(datos, plan)
   row_sum <- dplyr::filter(ev$resumen, .data$nombre_regla == "calc_total_num_eq")
 
   expect_equal(nrow(row_sum), 1L)
@@ -561,7 +561,7 @@ test_that("evaluar_consistencia resuelve nombres estandarizados entre plan y rep
     )
   )
 
-  ev <- prosecnur::evaluar_consistencia(datos, plan)
+  ev <- prosecnurapp::evaluar_consistencia(datos, plan)
   row_calc <- dplyr::filter(ev$resumen, .data$nombre_regla == "calc_nochild2less_eq")
 
   expect_equal(nrow(row_calc), 1L)
@@ -609,7 +609,7 @@ test_that("evaluar_consistencia no marca ambiguo cuando principal y hoja real so
     )
   )
 
-  ev <- prosecnur::evaluar_consistencia(datos, plan, hoja_principal = "RMS 2025 Perú - Q4")
+  ev <- prosecnurapp::evaluar_consistencia(datos, plan, hoja_principal = "RMS 2025 Perú - Q4")
   row_res <- dplyr::filter(ev$resumen, .data$nombre_regla == "salto_HH08_debe")
 
   expect_equal(nrow(row_res), 1L)
@@ -632,7 +632,7 @@ test_that("auditar_consistencia_corpus devuelve matriz, hallazgos y exporta arte
     hoja_principal = list(NULL)
   )
 
-  res <- prosecnur::auditar_consistencia_corpus(
+  res <- prosecnurapp::auditar_consistencia_corpus(
     corpus = corpus,
     sample_n = 3,
     export_dir = export_dir

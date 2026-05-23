@@ -43,18 +43,26 @@ import {
   apiXlsformEditorSmInterpretRule,
   apiXlsformEditorValidate,
   downloadUrl,
+  type ChoiceCodeMap,
   type Hallazgo,
   type SurveyMonkeyVisualLogicRule,
 } from "../../api/client";
 import { useProjectShell } from "../project/ProjectShell";
 import { ImportSurveyMonkeyDialog } from "./shell/ImportSurveyMonkeyDialog";
 import { compileVisualLogicRules, RuleWizard, type ConfirmedRule } from "./shell/RuleWizard";
+import {
+  buildSurveyMonkeyLogicPack,
+  importSurveyMonkeyLogicPack,
+  type SurveyMonkeyLogicPackWarning,
+} from "./shell/surveyMonkeyLogicPack";
 import { HallazgosPanel } from "./shell/HallazgosPanel";
 import smMonkey from "../../assets/sm-monkey.png";
 import { Panel } from "../../components/Panel";
 import { PageFrame } from "../../components/PageFrame";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../components/States";
+import { ConfigIoButtons } from "../../components/ConfigIoButtons";
 import SaveEntregableButton from "../project/SaveEntregableButton";
+import { sanitizeFilenameStem } from "../project/FilenameInput";
 
 // -----------------------------------------------------------------------------
 // Tipos, parsing y helpers extraídos a submódulos durante el revamp Sub-PR 1.
@@ -205,12 +213,14 @@ function workbookWithSurveyMonkeyLogic(
   advancedRules: ConfirmedRule[],
   visualRules: SurveyMonkeyVisualLogicRule[],
   choiceOrderOverrides: Record<string, string[]>,
+  choiceCodeMaps: ChoiceCodeMap[] = workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
 ): XlsformEditorWorkbook {
   const next = cloneWorkbook(workbook);
   const overrides = Object.fromEntries(
     Object.entries(choiceOrderOverrides).map(([key, labels]) => [key, [...labels]]),
   );
-  next.surveyMonkeyLogic = advancedRules.length || visualRules.length || Object.keys(overrides).length
+  const resolvedChoiceCodeMaps = choiceCodeMapsWithOverrides(next, overrides, choiceCodeMaps);
+  next.surveyMonkeyLogic = advancedRules.length || visualRules.length || Object.keys(overrides).length || resolvedChoiceCodeMaps.length
     ? {
         rules: advancedRules.map((rule) => ({ ...rule })),
         advanced_rules: advancedRules.map((rule) => ({ ...rule })),
@@ -219,6 +229,7 @@ function workbookWithSurveyMonkeyLogic(
           choices: rule.choices.map((choice) => ({ ...choice, action: { ...choice.action } })),
         })),
         choice_order_overrides: overrides,
+        choice_code_maps: cloneChoiceCodeMaps(resolvedChoiceCodeMaps),
       }
     : null;
   return next;
@@ -235,6 +246,7 @@ async function refreshSurveyMonkeyAdvancedRules(
       const interp = await apiXlsformEditorSmInterpretRule(rule.texto, {
         workbook,
         choice_order_overrides: choiceOrderOverrides,
+        choice_code_maps: workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
       });
       if (!interp.ok) return rule;
       return {
@@ -266,6 +278,197 @@ function extractExistingKoboLogic(workbook: XlsformEditorWorkbook | null) {
 
 function visualActionCountForFooter(rules: SurveyMonkeyVisualLogicRule[]) {
   return rules.reduce((sum, rule) => sum + rule.choices.filter((choice) => choice.action.kind !== "none").length, 0);
+}
+
+function actionSignature(choice: SurveyMonkeyVisualLogicRule["choices"][number]) {
+  return JSON.stringify({ choiceName: choice.choiceName, action: choice.action });
+}
+
+function mergeAdvancedLogicRules(current: ConfirmedRule[], incoming: ConfirmedRule[]) {
+  const seen = new Set(current.map((rule) => rule.texto.trim()));
+  const merged = [...current];
+  for (const rule of incoming) {
+    const key = rule.texto.trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(rule);
+  }
+  return merged;
+}
+
+function mergeVisualLogicRules(
+  current: SurveyMonkeyVisualLogicRule[],
+  incoming: SurveyMonkeyVisualLogicRule[],
+  warnings: SurveyMonkeyLogicPackWarning[],
+) {
+  const merged = current.map((rule) => ({
+    ...rule,
+    choices: rule.choices.map((choice) => ({ ...choice, action: { ...choice.action } })),
+  }));
+  for (const rule of incoming) {
+    const existing = merged.find((item) => item.variableRef === rule.variableRef);
+    if (!existing) {
+      merged.push({
+        ...rule,
+        choices: rule.choices.map((choice) => ({ ...choice, action: { ...choice.action } })),
+      });
+      continue;
+    }
+    const seen = new Set(existing.choices.map(actionSignature));
+    for (const choice of rule.choices) {
+      const sameChoice = existing.choices.find((item) => item.choiceName === choice.choiceName);
+      const sig = actionSignature(choice);
+      if (seen.has(sig)) continue;
+      if (sameChoice && JSON.stringify(sameChoice.action) !== JSON.stringify(choice.action)) {
+        warnings.push({
+          severity: "warn",
+          message: `La opción "${choice.choiceLabel}" en ${rule.variableLabel} ya tenía otro salto; se conservó el existente.`,
+        });
+        continue;
+      }
+      seen.add(sig);
+      existing.choices.push({ ...choice, action: { ...choice.action } });
+    }
+  }
+  return merged;
+}
+
+function cloneChoiceCodeMaps(maps: ChoiceCodeMap[] | undefined | null): ChoiceCodeMap[] {
+  return (maps ?? []).map((map) => ({
+    ...map,
+    mappings: map.mappings.map((item) => ({ ...item })),
+  }));
+}
+
+function normalizeChoiceMapLabel(label: string) {
+  return label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function questionKeyFromVariable(ref: string) {
+  const match = ref.match(/^[pq]0*(\d+)/i);
+  return match ? String(Number(match[1])) : "";
+}
+
+function choiceCodeMapsWithOverrides(
+  workbook: XlsformEditorWorkbook,
+  overrides: Record<string, string[]>,
+  maps: ChoiceCodeMap[] | undefined | null,
+): ChoiceCodeMap[] {
+  const out = cloneChoiceCodeMaps(maps);
+  const existingKeys = new Set(out.map((map) => questionKeyFromVariable(map.variable)).filter(Boolean));
+  const surveyCols = workbook.survey.columns;
+  const choiceCols = workbook.choices.columns;
+  const nameIdx = surveyCols.indexOf("name");
+  const typeIdx = surveyCols.indexOf("type");
+  const labelIdx = surveyCols.indexOf("label::es") >= 0 ? surveyCols.indexOf("label::es") : surveyCols.indexOf("label");
+  const listIdx = choiceCols.indexOf("list_name");
+  const choiceNameIdx = choiceCols.indexOf("name");
+  const choiceLabelIdx = choiceCols.indexOf("label::es") >= 0 ? choiceCols.indexOf("label::es") : choiceCols.indexOf("label");
+  if (nameIdx < 0 || typeIdx < 0 || listIdx < 0 || choiceNameIdx < 0) return out;
+
+  for (const [qKey, labels] of Object.entries(overrides)) {
+    if (!labels.length || existingKeys.has(qKey)) continue;
+    const surveyRow = workbook.survey.rows.find((row) => questionKeyFromVariable(row[nameIdx] ?? "") === qKey);
+    if (!surveyRow) continue;
+    const typeRaw = surveyRow[typeIdx] ?? "";
+    const typeMatch = typeRaw.match(/^(select_one|select_multiple)\s+(\S+)/i);
+    if (!typeMatch) continue;
+    const listName = typeMatch[2];
+    const choices = workbook.choices.rows
+      .filter((row) => (row[listIdx] ?? "") === listName)
+      .map((row) => ({
+        name: row[choiceNameIdx] ?? "",
+        label: (choiceLabelIdx >= 0 ? row[choiceLabelIdx] ?? "" : "") || row[choiceNameIdx] || "",
+      }));
+    if (!choices.length) continue;
+    const choicesByLabel = new Map<string, typeof choices>();
+    for (const choice of choices) {
+      const key = normalizeChoiceMapLabel(choice.label);
+      const arr = choicesByLabel.get(key) ?? [];
+      arr.push(choice);
+      choicesByLabel.set(key, arr);
+    }
+    const mappings = labels.map((label, index) => {
+      const key = normalizeChoiceMapLabel(label);
+      const queue = choicesByLabel.get(key) ?? [];
+      const matched = queue.shift();
+      if (queue.length) choicesByLabel.set(key, queue);
+      else choicesByLabel.delete(key);
+      return {
+        source_code: String(index + 1),
+        source_column: "",
+        source_label: label,
+        xls_code: matched?.name ?? String(index + 1),
+        xls_label: matched?.label ?? label,
+        match: matched ? "manual_editor" : "manual_editor_fallback",
+      };
+    });
+    out.push({
+      variable: surveyRow[nameIdx] ?? `p${qKey}`,
+      label: labelIdx >= 0 ? surveyRow[labelIdx] ?? surveyRow[nameIdx] ?? `p${qKey}` : surveyRow[nameIdx] ?? `p${qKey}`,
+      type: typeMatch[1].toLowerCase() === "select_multiple" ? "select_multiple" : "select_one",
+      list_name: listName,
+      status: "manual_editor",
+      high_confidence: true,
+      requires_confirmation: false,
+      mappings,
+    });
+    existingKeys.add(qKey);
+  }
+  return out;
+}
+
+function choiceCodeMapKey(map: ChoiceCodeMap) {
+  return map.variable.trim().toLowerCase();
+}
+
+function mergeChoiceCodeMaps(
+  current: ChoiceCodeMap[] | undefined | null,
+  incoming: ChoiceCodeMap[] | undefined | null,
+  warnings: SurveyMonkeyLogicPackWarning[],
+) {
+  const merged = cloneChoiceCodeMaps(current);
+  const byVariable = new Map(merged.map((map) => [choiceCodeMapKey(map), map]));
+
+  for (const rawMap of incoming ?? []) {
+    const map = cloneChoiceCodeMaps([rawMap])[0];
+    if (!map) continue;
+    const key = choiceCodeMapKey(map);
+    const existing = byVariable.get(key);
+    if (!existing) {
+      merged.push(map);
+      byVariable.set(key, map);
+      continue;
+    }
+
+    const existingBySource = new Map(existing.mappings.map((item) => [item.source_code.trim(), item]));
+    for (const item of map.mappings) {
+      const sourceCode = item.source_code.trim();
+      const currentItem = existingBySource.get(sourceCode);
+      if (!currentItem) {
+        existing.mappings.push({ ...item });
+        existingBySource.set(sourceCode, item);
+        continue;
+      }
+      if (
+        currentItem.xls_code !== item.xls_code ||
+        currentItem.xls_label !== item.xls_label ||
+        currentItem.source_label !== item.source_label
+      ) {
+        warnings.push({
+          severity: "warn",
+          message: `El mapa interno ${map.variable} ${sourceCode} ya existía; se conservó el mapeo confirmado en este workbook.`,
+        });
+      }
+    }
+  }
+
+  return merged;
 }
 
 export default function XlsformEditorPage() {
@@ -836,18 +1039,27 @@ export default function XlsformEditorPage() {
   }
 
   // Callback del modal cuando completa con éxito (ya con o sin reglas aplicadas)
-	  async function onSurveyMonkeyImportComplete(payload: {
-	    workbook: XlsformEditorWorkbook;
-	    source: { kind: string | null; original_name: string | null };
-	    hallazgos: Hallazgo[];
-	    surveyMonkeyRules?: ConfirmedRule[];
-	    surveyMonkeyVisualRules?: SurveyMonkeyVisualLogicRule[];
-	    surveyMonkeyChoiceOverrides?: Record<string, string[]>;
-	  }) {
+  async function onSurveyMonkeyImportComplete(payload: {
+    workbook: XlsformEditorWorkbook;
+    source: { kind: string | null; original_name: string | null };
+    hallazgos: Hallazgo[];
+    surveyMonkeyRules?: ConfirmedRule[];
+    surveyMonkeyVisualRules?: SurveyMonkeyVisualLogicRule[];
+    surveyMonkeyChoiceOverrides?: Record<string, string[]>;
+    surveyMonkeyChoiceCodeMaps?: ChoiceCodeMap[];
+  }) {
     const fileName = smImportDialog?.fileName ?? payload.source.original_name ?? "archivo";
+    const choiceCodeMaps = payload.surveyMonkeyChoiceCodeMaps ?? payload.workbook.surveyMonkeyLogic?.choice_code_maps ?? [];
+    const workbookDraft = workbookWithSurveyMonkeyLogic(
+      payload.workbook,
+      payload.surveyMonkeyRules ?? [],
+      payload.surveyMonkeyVisualRules ?? [],
+      payload.surveyMonkeyChoiceOverrides ?? {},
+      choiceCodeMaps,
+    );
     const refreshedRules = await refreshSurveyMonkeyAdvancedRules(
       payload.surveyMonkeyRules ?? [],
-      payload.workbook,
+      workbookDraft,
       payload.surveyMonkeyChoiceOverrides ?? {},
     );
     const workbookWithLogic = workbookWithSurveyMonkeyLogic(
@@ -855,6 +1067,7 @@ export default function XlsformEditorPage() {
       refreshedRules,
       payload.surveyMonkeyVisualRules ?? [],
       payload.surveyMonkeyChoiceOverrides ?? {},
+      choiceCodeMaps,
     );
     setSmImportDialog(null);
     setHallazgos(payload.hallazgos);
@@ -873,64 +1086,99 @@ export default function XlsformEditorPage() {
           ? `${fileName} traducido — revisa los hallazgos del validador.`
           : `${fileName} ahora es un XLSForm editable.`,
     });
-	  }
+  }
 
-	  async function applySurveyMonkeyLogicFromEditor() {
-	    if (!workbook) return;
-	    const visualText = compileVisualLogicRules(smVisualLogicRules);
-	    const advancedText = smLogicRules.map((r) => r.texto).join("\n");
-	    const reglasText = [visualText, advancedText].filter((part) => part.trim()).join("\n");
-	    if (!reglasText.trim()) {
-	      toasts.push({
-	        kind: "warn",
-	        title: "Sin lógica configurada",
-	        detail: "Configura al menos un salto visual o una regla avanzada antes de aplicar.",
-	      });
-	      return;
-	    }
-	    setBusy("Aplicando lógica SurveyMonkey…");
-	    try {
-	      const result = await apiXlsformEditorSmApplyLogic(
-	        workbook,
-	        reglasText,
-	        {},
-	        smLogicChoiceOverrides,
-	        source?.original_name ?? "XLSForm actual",
-	      );
-	      const refreshedRules = await refreshSurveyMonkeyAdvancedRules(smLogicRules, result.workbook, smLogicChoiceOverrides);
-	      const nextWorkbook = workbookWithSurveyMonkeyLogic(result.workbook, refreshedRules, smVisualLogicRules, smLogicChoiceOverrides);
-	      setSmLogicRules(refreshedRules);
-	      dispatch({ type: "SET", workbook: nextWorkbook });
-	      setArtifact(null);
-	      setSmLogicDialogOpen(false);
-	      toasts.push({
-	        kind: "success",
-	        title: "Lógica SurveyMonkey aplicada",
-	        detail: "Los saltos quedaron aplicados al XLSForm.",
-	      });
-	    } catch (e) {
-	      const msg = (e as Error).message;
-	      toasts.push({ kind: "danger", title: "No se pudo aplicar la lógica", detail: msg });
-	    } finally {
-	      setBusy("");
-	    }
-	  }
+  async function applySurveyMonkeyLogicFromEditor() {
+    if (!workbook) return;
+    const visualText = compileVisualLogicRules(smVisualLogicRules);
+    const advancedText = smLogicRules.map((r) => r.texto).join("\n");
+    const reglasText = [visualText, advancedText].filter((part) => part.trim()).join("\n");
+    if (!reglasText.trim()) {
+      toasts.push({
+        kind: "warn",
+        title: "Sin lógica configurada",
+        detail: "Configura al menos un salto visual o una regla avanzada antes de aplicar.",
+      });
+      return;
+    }
+    setBusy("Aplicando lógica SurveyMonkey…");
+    try {
+      const choiceCodeMaps = choiceCodeMapsWithOverrides(
+        workbook,
+        smLogicChoiceOverrides,
+        workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
+      );
+      const result = await apiXlsformEditorSmApplyLogic(
+        workbook,
+        reglasText,
+        {},
+        smLogicChoiceOverrides,
+        source?.original_name ?? "XLSForm actual",
+        choiceCodeMaps,
+        true,
+      );
+      const refreshedRules = await refreshSurveyMonkeyAdvancedRules(
+        smLogicRules,
+        workbookWithSurveyMonkeyLogic(result.workbook, smLogicRules, smVisualLogicRules, smLogicChoiceOverrides, choiceCodeMaps),
+        smLogicChoiceOverrides,
+      );
+      const nextWorkbook = workbookWithSurveyMonkeyLogic(
+        result.workbook,
+        refreshedRules,
+        smVisualLogicRules,
+        smLogicChoiceOverrides,
+        choiceCodeMaps,
+      );
+      setSmLogicRules(refreshedRules);
+      dispatch({ type: "SET", workbook: nextWorkbook });
+      setArtifact(null);
+      setSmLogicDialogOpen(false);
+      toasts.push({
+        kind: "success",
+        title: "Lógica SurveyMonkey recalculada",
+        detail: "Los saltos del modal reemplazaron la lógica previa en los destinos afectados.",
+      });
+    } catch (e) {
+      const msg = (e as Error).message;
+      toasts.push({ kind: "danger", title: "No se pudo aplicar la lógica", detail: msg });
+    } finally {
+      setBusy("");
+    }
+  }
 
   function updateSurveyMonkeyLogicDraft(
     nextRules: ConfirmedRule[],
     nextVisualRules = smVisualLogicRules,
     nextOverrides = smLogicChoiceOverrides,
+    nextChoiceCodeMaps = workbook?.surveyMonkeyLogic?.choice_code_maps ?? [],
   ) {
     setSmLogicRules(nextRules);
     setSmVisualLogicRules(nextVisualRules);
     setSmLogicChoiceOverrides(nextOverrides);
     if (!workbook) return;
-    dispatch({ type: "SET", workbook: workbookWithSurveyMonkeyLogic(workbook, nextRules, nextVisualRules, nextOverrides) });
+    dispatch({
+      type: "SET",
+      workbook: workbookWithSurveyMonkeyLogic(workbook, nextRules, nextVisualRules, nextOverrides, nextChoiceCodeMaps),
+    });
     setArtifact(null);
   }
 
-  function updateSurveyMonkeyOverridesDraft(nextOverrides: Record<string, string[]>) {
-    updateSurveyMonkeyLogicDraft(smLogicRules, smVisualLogicRules, nextOverrides);
+  function updateSurveyMonkeyOverridesDraft(nextOverrides: Record<string, string[]>, nextChoiceCodeMaps?: ChoiceCodeMap[]) {
+    const choiceCodeMaps = nextChoiceCodeMaps ?? workbook?.surveyMonkeyLogic?.choice_code_maps ?? [];
+    updateSurveyMonkeyLogicDraft(smLogicRules, smVisualLogicRules, nextOverrides, choiceCodeMaps);
+    if (!workbook || smLogicRules.length === 0) return;
+
+    const workbookForRefresh = workbookWithSurveyMonkeyLogic(
+      workbook,
+      smLogicRules,
+      smVisualLogicRules,
+      nextOverrides,
+      choiceCodeMaps,
+    );
+    void refreshSurveyMonkeyAdvancedRules(smLogicRules, workbookForRefresh, nextOverrides).then((refreshedRules) => {
+      if (JSON.stringify(refreshedRules) === JSON.stringify(smLogicRules)) return;
+      updateSurveyMonkeyLogicDraft(refreshedRules, smVisualLogicRules, nextOverrides, choiceCodeMaps);
+    });
   }
 
   function updateSurveyMonkeyVisualRulesDraft(nextVisualRules: SurveyMonkeyVisualLogicRule[]) {
@@ -938,13 +1186,7 @@ export default function XlsformEditorPage() {
   }
 
   function entregableStem(originalName: string): string {
-    return originalName
-      .replace(/\.(xlsx|pdf)$/i, "")
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .replace(/[^a-zA-Z0-9._-]+/g, "_")
-      .replace(/_{2,}/g, "_")
-      .replace(/^_+|_+$/g, "");
+    return sanitizeFilenameStem(originalName);
   }
 
   function pdfFilenameFromSource(name: string | null | undefined): string {
@@ -2389,11 +2631,13 @@ export default function XlsformEditorPage() {
 	      {smLogicDialogOpen && workbook ? (
 	        <SurveyMonkeyLogicPopup
 	          workbook={workbook}
+	          sourceName={source?.original_name ?? null}
 	          rules={smLogicRules}
 	          visualRules={smVisualLogicRules}
 	          existingKoboLogic={extractExistingKoboLogic(workbook)}
 	          overrides={smLogicChoiceOverrides}
 	          busy={Boolean(busy)}
+	          onLogicDraftChange={updateSurveyMonkeyLogicDraft}
 	          onRulesChange={(nextRules) => updateSurveyMonkeyLogicDraft(nextRules)}
 	          onVisualRulesChange={updateSurveyMonkeyVisualRulesDraft}
 	          onOverridesChange={updateSurveyMonkeyOverridesDraft}
@@ -2914,11 +3158,13 @@ function undoButtonStyle(enabled: boolean): CSSProperties {
 
 function SurveyMonkeyLogicPopup({
   workbook,
+  sourceName,
   rules,
   visualRules,
   existingKoboLogic,
   overrides,
   busy,
+  onLogicDraftChange,
   onRulesChange,
   onVisualRulesChange,
   onOverridesChange,
@@ -2926,17 +3172,109 @@ function SurveyMonkeyLogicPopup({
   onApply,
 }: {
   workbook: XlsformEditorWorkbook;
+  sourceName: string | null;
   rules: ConfirmedRule[];
   visualRules: SurveyMonkeyVisualLogicRule[];
   existingKoboLogic: Array<{ name: string; label: string; relevant: string }>;
   overrides: Record<string, string[]>;
   busy: boolean;
+  onLogicDraftChange: (
+    rules: ConfirmedRule[],
+    visualRules: SurveyMonkeyVisualLogicRule[],
+    overrides: Record<string, string[]>,
+    choiceCodeMaps?: ChoiceCodeMap[],
+  ) => void;
   onRulesChange: (rules: ConfirmedRule[]) => void;
   onVisualRulesChange: (rules: SurveyMonkeyVisualLogicRule[]) => void;
-  onOverridesChange: (next: Record<string, string[]>) => void;
+  onOverridesChange: (next: Record<string, string[]>, nextChoiceCodeMaps?: ChoiceCodeMap[]) => void;
   onClose: () => void;
   onApply: () => void;
 }) {
+  const [logicPackWarnings, setLogicPackWarnings] = useState<SurveyMonkeyLogicPackWarning[]>([]);
+  const refreshedOnOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (refreshedOnOpenRef.current || rules.length === 0) return;
+    refreshedOnOpenRef.current = true;
+    let cancelled = false;
+    const choiceCodeMaps = choiceCodeMapsWithOverrides(
+      workbook,
+      overrides,
+      workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
+    );
+    const workbookForRefresh = workbookWithSurveyMonkeyLogic(
+      workbook,
+      rules,
+      visualRules,
+      overrides,
+      choiceCodeMaps,
+    );
+    void refreshSurveyMonkeyAdvancedRules(rules, workbookForRefresh, overrides).then((refreshedRules) => {
+      if (cancelled) return;
+      const changed = JSON.stringify(refreshedRules) !== JSON.stringify(rules);
+      const mapsChanged = JSON.stringify(choiceCodeMaps) !== JSON.stringify(workbook.surveyMonkeyLogic?.choice_code_maps ?? []);
+      if (changed || mapsChanged) onLogicDraftChange(refreshedRules, visualRules, overrides, choiceCodeMaps);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [onLogicDraftChange, overrides, rules, visualRules, workbook]);
+
+  async function exportLogicPack() {
+    const choiceCodeMaps = choiceCodeMapsWithOverrides(
+      workbook,
+      overrides,
+      workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
+    );
+    return buildSurveyMonkeyLogicPack({
+      workbook,
+      advancedRules: rules,
+      visualRules,
+      choiceOrderOverrides: overrides,
+      choiceCodeMaps,
+      sourceName,
+    });
+  }
+
+  async function importLogicPack(parsed: unknown) {
+    const imported = importSurveyMonkeyLogicPack(parsed, workbook);
+    const warnings = [...imported.warnings];
+    const nextRules = mergeAdvancedLogicRules(rules, imported.advanced_rules);
+    const nextVisualRules = mergeVisualLogicRules(visualRules, imported.visual_rules, warnings);
+    const nextOverrides = { ...overrides };
+    for (const [key, labels] of Object.entries(imported.choice_order_overrides)) {
+      if (nextOverrides[key] && JSON.stringify(nextOverrides[key]) !== JSON.stringify(labels)) {
+        warnings.push({
+          severity: "warn",
+          message: `La pregunta ${key} ya tenía un orden de opciones personalizado; se conservó el existente.`,
+        });
+        continue;
+      }
+      nextOverrides[key] = labels;
+    }
+    const nextChoiceCodeMaps = mergeChoiceCodeMaps(
+      workbook.surveyMonkeyLogic?.choice_code_maps ?? [],
+      imported.choice_code_maps,
+      warnings,
+    );
+    const workbookForRefresh = workbookWithSurveyMonkeyLogic(
+      workbook,
+      nextRules,
+      nextVisualRules,
+      nextOverrides,
+      nextChoiceCodeMaps,
+    );
+    const refreshedRules = await refreshSurveyMonkeyAdvancedRules(
+      nextRules,
+      workbookForRefresh,
+      nextOverrides,
+    );
+    setLogicPackWarnings(warnings);
+    onLogicDraftChange(refreshedRules, nextVisualRules, nextOverrides, nextChoiceCodeMaps);
+    const total = imported.advanced_rules.length + visualActionCountForFooter(imported.visual_rules);
+    return `${total} salto${total === 1 ? "" : "s"} cargado${total === 1 ? "" : "s"} para revisar`;
+  }
+
   return (
     <div
       role="dialog"
@@ -2980,6 +3318,15 @@ function SurveyMonkeyLogicPopup({
             <p style={{ margin: "4px 0 0", color: "var(--pulso-muted, #6b7280)", fontSize: 13, lineHeight: 1.45 }}>
               Configura saltos por opción sin ver código. Si necesitas condiciones complejas, usa ramificación avanzada.
             </p>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
+              <ConfigIoButtons
+                filenamePrefix="pulso_surveymonkey_logic"
+                exportLabel="Exportar lógica JSON"
+                importLabel="Importar lógica JSON"
+                onExport={exportLogicPack}
+                onImport={importLogicPack}
+              />
+            </div>
           </div>
           <button
             type="button"
@@ -2991,6 +3338,33 @@ function SurveyMonkeyLogicPopup({
           </button>
         </header>
         <div style={{ padding: 20, overflowY: "auto" }}>
+          {logicPackWarnings.length > 0 ? (
+            <div
+              role="status"
+              style={{
+                border: "1px solid #fde68a",
+                background: "#fffbeb",
+                color: "#854d0e",
+                borderRadius: 8,
+                padding: "10px 12px",
+                marginBottom: 14,
+                fontSize: 12,
+                lineHeight: 1.45,
+              }}
+            >
+              <strong>Revisión del paquete importado</strong>
+              <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
+                {logicPackWarnings.slice(0, 8).map((warning, index) => (
+                  <li key={`${warning.message}-${index}`}>{warning.message}</li>
+                ))}
+              </ul>
+              {logicPackWarnings.length > 8 ? (
+                <div style={{ marginTop: 6, fontWeight: 700 }}>
+                  +{logicPackWarnings.length - 8} aviso{logicPackWarnings.length - 8 === 1 ? "" : "s"} adicional{logicPackWarnings.length - 8 === 1 ? "" : "es"}.
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <RuleWizard
             surveyId=""
             token=""
@@ -3006,6 +3380,7 @@ function SurveyMonkeyLogicPopup({
             onClearAll={() => onRulesChange([])}
             onVisualRulesChange={onVisualRulesChange}
             overrides={overrides}
+            choiceCodeMaps={workbook.surveyMonkeyLogic?.choice_code_maps ?? []}
             onOverridesChange={onOverridesChange}
           />
         </div>
@@ -3034,7 +3409,7 @@ function SurveyMonkeyLogicPopup({
               disabled={busy || (rules.length === 0 && visualActionCountForFooter(visualRules) === 0)}
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              <CheckCircle2 size={14} /> Aplicar al XLSForm
+              <CheckCircle2 size={14} /> Recalcular y aplicar
             </button>
           </div>
         </footer>

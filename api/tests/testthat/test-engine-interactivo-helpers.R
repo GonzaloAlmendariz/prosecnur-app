@@ -6,7 +6,7 @@ test_that(".interactivo_limit_levels conserva todos los niveles y limita la vist
     stringsAsFactors = FALSE
   )
 
-  lim_df <- prosecnur:::.interactivo_limit_levels(df_levels, max_levels = 2)
+  lim_df <- prosecnurapp:::.interactivo_limit_levels(df_levels, max_levels = 2)
   expect_equal(nrow(lim_df$all), 3L)
   expect_equal(nrow(lim_df$visible), 2L)
   expect_equal(lim_df$hidden_count, 1L)
@@ -17,7 +17,7 @@ test_that(".interactivo_limit_levels conserva todos los niveles y limita la vist
     list(key = "c", base_n = 10)
   )
 
-  lim_list <- prosecnur:::.interactivo_limit_levels(list_levels, max_levels = 2)
+  lim_list <- prosecnurapp:::.interactivo_limit_levels(list_levels, max_levels = 2)
   expect_length(lim_list$all, 3L)
   expect_length(lim_list$visible, 2L)
   expect_equal(lim_list$hidden_count, 1L)
@@ -52,7 +52,7 @@ test_that(".interactivo_resumen_build_rows usa el esquema de la sección aunque 
     )
   }
 
-  rows_full <- prosecnur:::.interactivo_resumen_build_rows(
+  rows_full <- prosecnurapp:::.interactivo_resumen_build_rows(
     sec = "Sección A",
     secciones_limpias = secciones,
     instrumento = instrumento,
@@ -61,7 +61,7 @@ test_that(".interactivo_resumen_build_rows usa el esquema de la sección aunque 
     label_var = function(var) paste("Label", var),
     resolver_var_spec_fn = resolver_sm
   )
-  rows_empty <- prosecnur:::.interactivo_resumen_build_rows(
+  rows_empty <- prosecnurapp:::.interactivo_resumen_build_rows(
     sec = "Sección A",
     secciones_limpias = secciones,
     instrumento = instrumento,
@@ -81,7 +81,7 @@ test_that(".interactivo_resumen_build_rows usa el esquema de la sección aunque 
 
 test_that(".interactivo_resolve_filter_selection restaura la última selección válida", {
   expect_equal(
-    prosecnur:::.interactivo_resolve_filter_selection(
+    prosecnurapp:::.interactivo_resolve_filter_selection(
       selected = character(0),
       valid_values = c("a", "b", "c"),
       last_valid = c("b", "c"),
@@ -91,7 +91,7 @@ test_that(".interactivo_resolve_filter_selection restaura la última selección 
   )
 
   expect_equal(
-    prosecnur:::.interactivo_resolve_filter_selection(
+    prosecnurapp:::.interactivo_resolve_filter_selection(
       selected = c("c"),
       valid_values = c("a", "b", "c"),
       last_valid = c("a", "b"),
@@ -103,7 +103,7 @@ test_that(".interactivo_resolve_filter_selection restaura la última selección 
 
 test_that(".interactivo_resolve_filter_selection resuelve bien el caso de una sola categoría", {
   expect_equal(
-    prosecnur:::.interactivo_resolve_filter_selection(
+    prosecnurapp:::.interactivo_resolve_filter_selection(
       selected = character(0),
       valid_values = "solo",
       last_valid = character(0),
@@ -121,13 +121,13 @@ test_that("helpers de casos detectan gráficos vacíos y generan placeholder plo
   df_sm_ok <- data.frame(dummy = c(NA, 0, 1), stringsAsFactors = FALSE)
   df_sm_empty <- data.frame(dummy = c(NA, 2, 3), stringsAsFactors = FALSE)
 
-  expect_true(prosecnur:::.interactivo_has_cases_so(df_so_ok, "so"))
-  expect_false(prosecnur:::.interactivo_has_cases_so(df_so_empty, "so"))
-  expect_true(prosecnur:::.interactivo_has_cases_dummy(df_sm_ok, "dummy"))
-  expect_false(prosecnur:::.interactivo_has_cases_dummy(df_sm_empty, "dummy"))
+  expect_true(prosecnurapp:::.interactivo_has_cases_so(df_so_ok, "so"))
+  expect_false(prosecnurapp:::.interactivo_has_cases_so(df_so_empty, "so"))
+  expect_true(prosecnurapp:::.interactivo_has_cases_dummy(df_sm_ok, "dummy"))
+  expect_false(prosecnurapp:::.interactivo_has_cases_dummy(df_sm_empty, "dummy"))
 
   empty_plot <- expect_no_warning(
-    prosecnur:::.interactivo_empty_plotly(
+    prosecnurapp:::.interactivo_empty_plotly(
       title = "Sin casos por mostrar",
       subtitle = "Ajusta los filtros para ver información."
     )
@@ -147,7 +147,7 @@ test_that(".interactivo_write_simple_xlsx genera un archivo Excel legible", {
     stringsAsFactors = FALSE
   )
 
-  prosecnur:::.interactivo_write_simple_xlsx(path = path, data = df, sheet_name = "Export")
+  prosecnurapp:::.interactivo_write_simple_xlsx(path = path, data = df, sheet_name = "Export")
 
   expect_true(file.exists(path))
   expect_true("Export" %in% openxlsx::getSheetNames(path))

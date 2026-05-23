@@ -27,6 +27,60 @@
   x[1]
 }
 
+.sm_expr_outer_parens_wrap <- function(x) {
+  x <- trimws(as.character(x)[1])
+  if (is.na(x) || !nzchar(x) || !startsWith(x, "(") || !endsWith(x, ")")) return(FALSE)
+  chars <- strsplit(x, "", fixed = TRUE)[[1]]
+  depth <- 0L
+  quote <- NULL
+  escaped <- FALSE
+  for (i in seq_along(chars)) {
+    ch <- chars[[i]]
+    if (!is.null(quote)) {
+      if (escaped) {
+        escaped <- FALSE
+      } else if (identical(ch, "\\")) {
+        escaped <- TRUE
+      } else if (identical(ch, quote)) {
+        quote <- NULL
+      }
+      next
+    }
+    if (ch %in% c("'", "\"")) {
+      quote <- ch
+      next
+    }
+    if (identical(ch, "(")) {
+      depth <- depth + 1L
+    } else if (identical(ch, ")")) {
+      depth <- depth - 1L
+      if (depth == 0L && i < length(chars)) return(FALSE)
+      if (depth < 0L) return(FALSE)
+    }
+  }
+  depth == 0L && is.null(quote)
+}
+
+.sm_relevant_key <- function(x) {
+  x <- trimws(as.character(x)[1])
+  while (nzchar(x) && .sm_expr_outer_parens_wrap(x)) {
+    x <- trimws(substr(x, 2L, nchar(x) - 1L))
+  }
+  gsub("[[:space:]]+", " ", x)
+}
+
+.sm_combine_relevant <- function(...) {
+  parts <- unlist(list(...), use.names = FALSE)
+  if (!length(parts)) return(NA_character_)
+  parts <- trimws(as.character(parts))
+  parts <- parts[!is.na(parts) & nzchar(parts)]
+  if (!length(parts)) return(NA_character_)
+  keys <- vapply(parts, .sm_relevant_key, character(1))
+  parts <- parts[!duplicated(keys)]
+  if (length(parts) == 1L) return(parts[[1]])
+  paste0("(", paste(parts, collapse = ") and ("), ")")
+}
+
 .sm_unique_nonempty <- function(x) {
   x <- .sm_norm_ws(x)
   x <- x[!is.na(x) & nzchar(x)]
@@ -630,11 +684,16 @@
   as.character(unname(labs)[idx[1]])
 }
 
-.sm_other_relevant <- function(parent_name, other_value) {
+.sm_other_relevant <- function(parent_name, other_value, parent_type = NULL) {
   if (is.na(parent_name) || !nzchar(parent_name) || is.na(other_value) || !nzchar(other_value)) {
     return(NA_character_)
   }
-  sprintf("selected(${%s}, '%s')", parent_name, other_value)
+  parent_type <- trimws(as.character(.sm_or(parent_type, ""))[1])
+  if (grepl("^select_one(\\s|$)", parent_type)) {
+    sprintf("${%s} = '%s'", parent_name, other_value)
+  } else {
+    sprintf("selected(${%s}, '%s')", parent_name, other_value)
+  }
 }
 
 .sm_infer_other_label_from_group <- function(row, vars_tbl, label_sets) {
@@ -1083,8 +1142,8 @@
   multi_specs <- list()
   battery_specs <- list()
 
-  metadata_section <- "MetaSM"
-  auxiliary_section <- "AuxSM"
+  metadata_section <- "survey_monkey_metadata"
+  auxiliary_section <- "survey_monkey_auxiliary"
   list_registry_sig <- character(0)
   list_registry_name <- character(0)
 
@@ -1212,7 +1271,7 @@
           label = .sm_infer_other_label(others[i, , drop = FALSE], choice_labels = choice_labels),
           type = "text",
           list_name = NA_character_,
-          relevant = .sm_other_relevant(mother_name, other_value),
+          relevant = .sm_other_relevant(mother_name, other_value, parent_type = "select_multiple"),
           section = others$section_final[i],
           order = others$order[i],
           group_guess = grp
@@ -1282,7 +1341,7 @@
           parent_raw <- parent_rows$name_raw[j]
           other_value <- .sm_other_choice_value(label_sets[[parent_raw]])
           if (!is.na(other_value) && nzchar(other_value)) {
-            q_relevant <- .sm_other_relevant(parent_rows$name_final[j], other_value)
+            q_relevant <- .sm_other_relevant(parent_rows$name_final[j], other_value, parent_type = "select_one")
             break
           }
         }

@@ -465,14 +465,16 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       seccion = seccion_row, tabla = tabla_row, repeat_context = row$repeat_context
     )
     gate_h <- .ast_to_human_text(gate_full, label_map = label_map, choices_map = choices_map)
+    gate_neg <- ast_normalize(ast_not(gate_full))
+    gate_neg_h <- .ast_to_human_text(gate_neg, label_map = label_map, choices_map = choices_map)
     pref <- .context_prefix(tabla_row, row$repeat_context, seccion_row)
     obj_debe <- if (nzchar(gate_h)) {
       sprintf("%sSi %s, entonces «%s» debe responderse.", pref, gate_h, label %||% var)
     } else {
       sprintf("%s«%s» debe responderse cuando el salto está activo.", pref, label %||% var)
     }
-    obj_nodebe <- if (nzchar(gate_h)) {
-      sprintf("%sSi no se cumple %s, entonces «%s» no debe responderse.", pref, gate_h, label %||% var)
+    obj_nodebe <- if (nzchar(gate_neg_h)) {
+      sprintf("%sSi %s, entonces «%s» no debe responderse.", pref, gate_neg_h, label %||% var)
     } else {
       sprintf("%s«%s» no debe responderse cuando el salto no aplica.", pref, label %||% var)
     }
@@ -491,11 +493,11 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       r_nodebe,
       survey = survey,
       target_var = var,
-      gate_ast = gate_full,
+      gate_ast = gate_neg,
       nombre_humano = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — no debe responderse", var, label) else sprintf("[%s] Salto — no debe responderse", var),
       objetivo = obj_nodebe,
       subtipo_semantico = "nodebe",
-      detalle_ast = gate_full,
+      detalle_ast = gate_neg,
       choices_map = choices_map
     )
     rules[[length(rules) + 1L]] <- r_debe

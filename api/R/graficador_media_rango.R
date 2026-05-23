@@ -94,6 +94,8 @@ graficar_media_rango <- function(
     altura_bloque_ref_rel = 0.13,
     size_chip_ref_max_pt  = NULL,
     umbral_brecha     = 0,
+    destacar_significativos = FALSE,
+    mostrar_delta_no_significativo = TRUE,
     pos_delta         = c("centro", "derecha", "izquierda"),
     offset_delta      = 0.12,
     mostrar_rango     = TRUE,
@@ -243,6 +245,8 @@ graficar_media_rango <- function(
   mostrar_ref_line <- isTRUE(mostrar_ref_line) || identical(modo, "score_ref")
   mostrar_ref_label <- isTRUE(mostrar_ref_label)
   mostrar_rango <- isTRUE(mostrar_rango)
+  destacar_significativos <- isTRUE(destacar_significativos)
+  mostrar_delta_no_significativo <- isTRUE(mostrar_delta_no_significativo)
 
   if (!requireNamespace("ggplot2", quietly = TRUE) ||
       !requireNamespace("dplyr", quietly = TRUE) ||
@@ -488,9 +492,27 @@ graficar_media_rango <- function(
     gradiente_limites = semaforo_gradiente_limites,
     gradiente_segmentos = semaforo_gradiente_segmentos
   )
+  sum_df$delta_significativo <- TRUE
+  if (isTRUE(destacar_significativos)) {
+    sum_df$delta_significativo <- vapply(as.character(sum_df$categoria), function(cat_i) {
+      vals <- df$valor[df$categoria == cat_i]
+      vals <- vals[is.finite(vals)]
+      if (length(vals) < 2L || !is.finite(stats::sd(vals)) || stats::sd(vals) <= 0) {
+        return(FALSE)
+      }
+      p_val <- tryCatch(
+        stats::t.test(vals, mu = ref_value)$p.value,
+        error = function(e) NA_real_
+      )
+      is.finite(p_val) && p_val < 0.05
+    }, logical(1))
+  }
   delta_abs_round <- abs(round(sum_df$delta_ref, chip_decimales))
   sum_df$delta_label_min <- ifelse(
-    delta_abs_round < max(10^(-chip_decimales) / 2, umbral_brecha),
+    delta_abs_round < max(10^(-chip_decimales) / 2, umbral_brecha) |
+      (isTRUE(destacar_significativos) &
+         !isTRUE(mostrar_delta_no_significativo) &
+         !sum_df$delta_significativo),
     NA_character_,
     .fmt_delta(sum_df$delta_ref)
   )
@@ -1051,8 +1073,11 @@ graficar_media_rango <- function(
       )
   }
 
+  if (identical(modo, "delta")) {
+    p_core <- p_core + ggplot2::scale_fill_manual(values = pal, drop = FALSE)
+  }
+
   p_core <- p_core +
-    ggplot2::scale_fill_manual(values = pal, drop = FALSE) +
     ggplot2::scale_colour_manual(values = pal, drop = FALSE) +
     ggplot2::scale_x_discrete(
       limits = x_levels_plot,

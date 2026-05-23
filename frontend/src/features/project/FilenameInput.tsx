@@ -14,6 +14,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 const NAME_REGEX = /^[A-Za-z0-9_-]{1,60}$/;
+const MAX_FILENAME_STEM = 60;
+
+export function sanitizeFilenameStem(raw: string | null | undefined, fallback = "entregable"): string {
+  const cleaned = String(raw ?? "")
+    .replace(/\.[A-Za-z0-9]{1,8}$/i, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9_-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^[_-]+|[_-]+$/g, "")
+    .slice(0, MAX_FILENAME_STEM)
+    .replace(/^[_-]+|[_-]+$/g, "");
+  return cleaned || fallback;
+}
 
 type Props = {
   defaultValue?: string;
@@ -38,7 +52,11 @@ export function useFilenameValidation(
   extension: string,
   existingFiles: string[] = []
 ): [FilenameValidation, (v: string) => void] {
-  const [value, setValue] = useState<string>(initial);
+  const [value, setValue] = useState<string>(() => sanitizeFilenameStem(initial));
+
+  useEffect(() => {
+    setValue(sanitizeFilenameStem(initial));
+  }, [initial]);
 
   const result = useMemo<FilenameValidation>(() => {
     const trimmed = value.trim();
@@ -51,7 +69,7 @@ export function useFilenameValidation(
     if (!NAME_REGEX.test(trimmed)) {
       return {
         value, finalName: "", isValid: false, collides: false,
-        errorMsg: "Solo letras, dígitos, '-' y '_'. Sin espacios, puntos ni tildes.",
+        errorMsg: "Usa solo letras sin tilde, números, '-' o '_'.",
       };
     }
     const finalName = `${trimmed}.${extension}`;

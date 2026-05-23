@@ -65,6 +65,8 @@ test_that("preview de .sav se alinea al contrato pN del XLSForm", {
   expect_equal(preview$normalizacion$extra_columns, 2L)
   expect_true(isTRUE(preview$compatibilidad$ok))
   expect_equal(preview$compatibilidad$n_missing, 0L)
+  expect_false(inherits(preview$compatibilidad, "pulso_data_xlsform_compatibility"))
+  expect_no_error(jsonlite::toJSON(list(ok = TRUE, preview = preview), auto_unbox = TRUE, null = "null"))
   expect_false(any(grepl("^q0007_", vapply(preview$columnas, `[[`, character(1), "nombre"))))
 })
 
@@ -112,6 +114,43 @@ test_that("gate de carga bloquea bases incompatibles con codigo explicito", {
 
   expect_s3_class(err, "api_error")
   expect_equal(err$code, "E_DATA_XLSFORM_INCOMPATIBLE")
+})
+
+test_that("runtime de validacion excluye respuestas parciales SurveyMonkey marcadas por Page", {
+  skip_if_not_installed("haven")
+
+  tmp <- tempfile(fileext = ".sav")
+  on.exit(unlink(tmp), add = TRUE)
+  haven::write_sav(
+    data.frame(
+      q0001 = c(1, 1, 1),
+      q0002 = c(25, NA, 27),
+      p0001 = haven::labelled(c(NA, 1, NA), labels = c("Page 1" = 1)),
+      p0002 = haven::labelled(c(NA, 2, NA), labels = c("Page 2" = 2)),
+      check.names = FALSE
+    ),
+    tmp
+  )
+  instrumento <- list(
+    survey = tibble::tibble(
+      type = c("select_one lst_p1", "integer"),
+      name = c("p1", "p2"),
+      list_name = c("lst_p1", NA),
+      label = c("Continuar", "Edad")
+    ),
+    choices = tibble::tibble(
+      list_name = c("lst_p1", "lst_p1"),
+      name = c("1", "2"),
+      label = c("Si", "No")
+    )
+  )
+
+  data_ctx <- read_validation_data_ast(tmp, "sav", instrumento = instrumento)
+
+  expect_equal(nrow(data_ctx$principal), 2L)
+  expect_true(isTRUE(data_ctx$row_filter$applied))
+  expect_equal(data_ctx$row_filter$excluded_rows, 1L)
+  expect_equal(data_ctx$principal$p2, c(25, 27))
 })
 
 test_that("cache de codificacion lee .sav adaptado al XLSForm normalizado", {

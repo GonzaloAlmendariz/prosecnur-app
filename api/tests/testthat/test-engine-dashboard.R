@@ -35,10 +35,24 @@ test_that(".dashboard_default_config retorna shape esperada", {
   cfg <- prosecnurapp:::.dashboard_default_config()
   expect_named(cfg, c("titulo", "subtitulo", "logo_data_uri", "logo_alt",
                       "logo_height_px", "paleta_id", "paletas_listas",
-                      "color_primario_override", "notas"))
+                      "color_primario_override", "notas",
+                      "semaforo_modo", "semaforo_red_color", "semaforo_amber_color",
+                      "semaforo_green_color", "semaforo_red_max", "semaforo_amber_max",
+                      "radar_min", "radar_max", "radar_gridshape", "radar_modo",
+                      "radar_animado", "barras_orientacion", "barras_x_min",
+                      "barras_x_max", "foda_iconos_enabled", "foda_icon_tint",
+                      "foda_icon_size", "foda_icon_legend", "foda_score_min",
+                      "foda_score_max", "foda_show_total", "foda_spacing",
+                      "foda_grid_intensity", "foda_vista", "foda_views",
+                      "foda_aliases", "foda_service_icons", "dim_desglose_layout",
+                      "matriz_var_color", "matriz_var_nombre", "dim_axis_icons"))
   expect_identical(cfg$titulo, "Dashboard")
   expect_null(cfg$logo_data_uri)
   expect_null(cfg$paleta_id)
+  expect_identical(cfg$semaforo_modo, "cortes")
+  expect_identical(cfg$radar_min, 0L)
+  expect_identical(cfg$barras_orientacion, "horizontal")
+  expect_true(is.list(cfg$foda_views))
 })
 
 test_that(".dashboard_theme_default retorna los 8 colores del legacy", {

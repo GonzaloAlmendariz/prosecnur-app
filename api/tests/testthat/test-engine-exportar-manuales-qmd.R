@@ -2,7 +2,7 @@ test_that("exportar_manuales_qmd copia qmd y files_manuales en un destino tempor
   dest <- tempfile("manuales_dest_")
 
   expect_no_error({
-    out <- prosecnur::exportar_manuales_qmd(
+    out <- prosecnurapp::exportar_manuales_qmd(
       dir_destino = dest,
       render_pdf = FALSE,
       limpiar_destino = TRUE

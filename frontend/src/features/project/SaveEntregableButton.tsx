@@ -21,14 +21,15 @@
 //     icon={<Download size={14}/>}
 //   />
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CheckCircle2, Download, Loader2, X } from "lucide-react";
 import {
   apiListProjectDir,
   apiSaveEntregable,
   downloadUrl,
 } from "../../api/client";
-import FilenameInput from "./FilenameInput";
+import FilenameInput, { sanitizeFilenameStem } from "./FilenameInput";
 import { useProjectShell } from "./ProjectShell";
 
 type Props = {
@@ -42,6 +43,17 @@ type Props = {
   disabled?: boolean;
 };
 
+type PopoverPosition = {
+  left: number;
+  top: number;
+  width: number;
+  maxHeight: number;
+};
+
+const POPOVER_MARGIN = 12;
+const POPOVER_WIDTH = 380;
+const POPOVER_HEIGHT_HINT = 360;
+
 export default function SaveEntregableButton({
   fileId,
   defaultName,
@@ -53,13 +65,45 @@ export default function SaveEntregableButton({
   disabled,
 }: Props) {
   const { project } = useProjectShell();
+  const safeDefaultName = sanitizeFilenameStem(defaultName);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const [filename, setFilename] = useState(defaultName);
+  const [filename, setFilename] = useState(safeDefaultName);
   const [valid, setValid] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<string | null>(null);
   const [existing, setExisting] = useState<string[]>([]);
+  const [popoverPosition, setPopoverPosition] = useState<PopoverPosition | null>(null);
+
+  const updatePopoverPosition = useCallback(() => {
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const width = Math.min(POPOVER_WIDTH, window.innerWidth - POPOVER_MARGIN * 2);
+    const left = Math.min(
+      Math.max(rect.right - width, POPOVER_MARGIN),
+      window.innerWidth - width - POPOVER_MARGIN,
+    );
+    const spaceBelow = window.innerHeight - rect.bottom - POPOVER_MARGIN - 8;
+    const spaceAbove = rect.top - POPOVER_MARGIN - 8;
+    const openAbove = spaceBelow < 260 && spaceAbove > spaceBelow;
+    const availableHeight = Math.max(
+      160,
+      Math.min(POPOVER_HEIGHT_HINT, openAbove ? spaceAbove : spaceBelow),
+    );
+    const top = openAbove
+      ? Math.max(POPOVER_MARGIN, rect.top - availableHeight - 8)
+      : rect.bottom + 8;
+
+    setPopoverPosition({ left, top, width, maxHeight: availableHeight });
+  }, []);
+
+  useEffect(() => {
+    setFilename(safeDefaultName);
+    setValid(true);
+    setError("");
+  }, [safeDefaultName, fileId]);
 
   // Cuando se abre el popover, cargar la lista de archivos existentes
   // del proyecto para detección de colisiones.
@@ -70,12 +114,26 @@ export default function SaveEntregableButton({
     }).catch(() => setExisting([]));
   }, [open]);
 
+  useEffect(() => {
+    if (!open) {
+      setPopoverPosition(null);
+      return;
+    }
+    updatePopoverPosition();
+    window.addEventListener("resize", updatePopoverPosition);
+    window.addEventListener("scroll", updatePopoverPosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePopoverPosition);
+      window.removeEventListener("scroll", updatePopoverPosition, true);
+    };
+  }, [open, updatePopoverPosition]);
+
   // Caso fallback: SIN proyecto activo → ancla nativa.
   if (!project.status.has_project) {
     return (
       <a
         href={disabled ? undefined : downloadUrl(fileId)}
-        download={`${defaultName}.${extension}`}
+        download={`${safeDefaultName}.${extension}`}
         className={className}
         style={style}
         aria-disabled={disabled}
@@ -84,7 +142,7 @@ export default function SaveEntregableButton({
         }}
       >
         {icon ?? <Download size={14} />}
-        {label ?? `${defaultName}.${extension}`}
+        {label ?? `${safeDefaultName}.${extension}`}
       </a>
     );
   }
@@ -110,6 +168,7 @@ export default function SaveEntregableButton({
   return (
     <span style={{ position: "relative", display: "inline-block" }}>
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         disabled={disabled || busy}
@@ -117,7 +176,7 @@ export default function SaveEntregableButton({
         style={style}
       >
         {icon ?? <Download size={14} />}
-        {label ?? `${defaultName}.${extension}`}
+        {label ?? `${safeDefaultName}.${extension}`}
       </button>
 
       {success && !open && (
@@ -133,28 +192,31 @@ export default function SaveEntregableButton({
         </span>
       )}
 
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <>
           <div
             onClick={() => setOpen(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 200 }}
+            style={{ position: "fixed", inset: 0, zIndex: 1000 }}
           />
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute",
-              top: "calc(100% + 6px)",
-              left: 0,
-              minWidth: 320,
+              position: "fixed",
+              top: popoverPosition?.top ?? POPOVER_MARGIN,
+              left: popoverPosition?.left ?? POPOVER_MARGIN,
+              width: popoverPosition?.width ?? POPOVER_WIDTH,
+              maxHeight: popoverPosition?.maxHeight ?? POPOVER_HEIGHT_HINT,
+              overflowY: "auto",
               background: "white",
               border: "1px solid var(--pulso-border)",
               borderRadius: 8,
               boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
               padding: 12,
-              zIndex: 201,
+              zIndex: 1001,
               display: "flex",
               flexDirection: "column",
               gap: 10,
+              opacity: popoverPosition ? 1 : 0,
             }}
           >
             <div style={{
@@ -177,7 +239,7 @@ export default function SaveEntregableButton({
               </button>
             </div>
             <FilenameInput
-              defaultValue={defaultName}
+              defaultValue={safeDefaultName}
               extension={extension}
               existingFiles={existing}
               autoFocus
@@ -236,7 +298,7 @@ export default function SaveEntregableButton({
             </div>
           </div>
         </>
-      )}
+      , document.body)}
     </span>
   );
 }

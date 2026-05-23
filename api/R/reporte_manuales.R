@@ -16,7 +16,7 @@
 #' @param limpiar_destino Si `TRUE`, vacía el directorio de destino antes de
 #'   copiar los manuales.
 #' @param quiet Si `TRUE`, reduce la salida de Quarto al renderizar.
-#' @param package Nombre del paquete fuente. Por defecto `"prosecnur"`.
+#' @param package Nombre del paquete fuente. Por defecto `"prosecnurapp"`.
 #'
 #' @return Invisiblemente, una lista con `source_dir`, `dest_dir`, `qmd_files`
 #'   y `pdf_files`.
@@ -29,7 +29,7 @@ exportar_manuales_qmd <- function(
     overwrite = TRUE,
     limpiar_destino = TRUE,
     quiet = FALSE,
-    package = "prosecnur"
+    package = "prosecnurapp"
 ) {
   source_dir <- .manuales_qmd_source_dir(package = package)
   qmd_src <- list.files(
@@ -115,7 +115,7 @@ exportar_manuales_qmd <- function(
 }
 
 #' @keywords internal
-.manuales_qmd_source_dir <- function(package = "prosecnur") {
+.manuales_qmd_source_dir <- function(package = "prosecnurapp") {
   if (!requireNamespace(package, quietly = TRUE)) {
     stop("No se pudo cargar el paquete `", package, "`.", call. = FALSE)
   }

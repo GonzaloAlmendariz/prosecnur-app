@@ -27,8 +27,8 @@ guess_spss_measure <- function(x,
       if (is.na(ln) || !nzchar(ln)) {
         tp <- trimws(as.character(surv$type[i]))
         if (!is.na(tp) && nzchar(tp) && grepl("^select_one\\b|^select_multiple\\b", tp)) {
-          ln2 <- sub("^(select_one|select_multiple)\\s+([^\\s]+).*$", "\\2", tp)
-          if (!is.na(ln2) && nzchar(ln2)) ln <- ln2
+          m <- regmatches(tp, regexec("^(?:select_one|select_multiple)\\s+(\\S+)", tp, perl = TRUE))[[1]]
+          if (length(m) >= 2L && nzchar(m[2])) ln <- m[2]
         }
       }
 

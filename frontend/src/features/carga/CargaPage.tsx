@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowRight, CheckCircle2, Database, FileSpreadsheet,
-  Trash2, Upload,
+  ArrowRight, ArrowRightLeft, CheckCircle2, Database, FileSpreadsheet,
+  Info, ShieldCheck, Trash2, Upload,
 } from "lucide-react";
 import {
   apiCargaData,
+  apiCargaConfirmChoiceMapping,
   apiCargaInstrumento,
   apiEstudioDowngradeToSingle,
   apiEstudioFromSession,
@@ -14,6 +15,8 @@ import {
   apiQuitarData,
   apiQuitarInstrumento,
   apiUpload,
+  ChoiceCodeMap,
+  ChoiceCodeMapReview,
   EstudioPayload,
   Pregunta,
   Seccion,
@@ -56,16 +59,58 @@ function dataPreviewNormalizationDetails(preview: DataPreview | null): string[] 
     const sourceList = Array.isArray(sources) ? sources : [String(sources)];
     rows.push(`select_multiple ${target}: ${sourceList.join(", ")}`);
   });
+  const choiceMaps = normalizacion.choice_code_maps;
+  if (choiceMaps?.applied && choiceMaps.maps.length > 0) {
+    choiceMaps.maps.forEach((map) => {
+      rows.push(`mapeo SAV -> XLSForm ${map.variable}: ${map.mappings.length} opción(es) por etiqueta`);
+    });
+  }
   return rows;
+}
+
+function choiceMappingReviewFromPreview(preview: DataPreview | null): ChoiceCodeMapReview | null {
+  const review = preview?.normalizacion?.choice_code_maps;
+  if (!review?.applied) return null;
+  const maps = Array.isArray(review.maps) ? review.maps : [];
+  if (!maps.length) return null;
+  return { ...review, maps };
+}
+
+function markChoiceMappingConfirmed(preview: DataPreview | null): DataPreview | null {
+  if (!preview?.normalizacion?.choice_code_maps) return preview;
+  return {
+    ...preview,
+    normalizacion: {
+      ...preview.normalizacion,
+      choice_code_maps: {
+        ...preview.normalizacion.choice_code_maps,
+        requires_confirmation: false,
+        maps: preview.normalizacion.choice_code_maps.maps.map((map) => ({
+          ...map,
+          requires_confirmation: false,
+        })),
+      },
+    },
+  };
+}
+
+function normalizedChoiceCode(value: string): string {
+  return String(value ?? "").replace(/^0+([0-9]+)$/, "$1");
+}
+
+function choiceMapChangedItems(map: ChoiceCodeMap) {
+  return map.mappings.filter((item) => normalizedChoiceCode(item.source_code) !== normalizedChoiceCode(item.xls_code));
 }
 
 export default function CargaPage() {
   const { sessionId, state, refresh } = useSession();
   const [instrumento, setInstrumento] = useState<InstrumentoResumen | null>(null);
   const [dataPreview, setDataPreview] = useState<DataPreview | null>(null);
+  const [choiceMappingReview, setChoiceMappingReview] = useState<ChoiceCodeMapReview | null>(null);
   const [estructura, setEstructura] = useState<{ secciones: Seccion[]; preguntas: Pregunta[] } | null>(null);
   const [error, setError] = useState<string>("");
   const [busy, setBusy] = useState<string>("");
+  const feedbackRef = useRef<HTMLDivElement | null>(null);
   const normalizationDetails = dataPreviewNormalizationDetails(dataPreview);
 
   async function onQuitar(kind: "xlsform" | "data") {
@@ -93,9 +138,11 @@ export default function CargaPage() {
         // Quitar XLSForm también invalida la data a nivel UI porque
         // el backend la tiró de la sesión.
         setDataPreview(null);
+        setChoiceMappingReview(null);
       } else {
         await apiQuitarData();
         setDataPreview(null);
+        setChoiceMappingReview(null);
       }
       await refresh();
     } catch (e: unknown) {
@@ -124,6 +171,8 @@ export default function CargaPage() {
       } else {
         const r = await apiCargaData(up.file_id);
         setDataPreview(r.preview);
+        const review = choiceMappingReviewFromPreview(r.preview);
+        setChoiceMappingReview(review?.requires_confirmation ? review : null);
       }
       await refresh();
     } catch (e: unknown) {
@@ -142,7 +191,8 @@ export default function CargaPage() {
   // Estado de prereqs — muestra al lado del título como meta chip.
   const hasXlsform = !!state?.xlsform;
   const hasData = !!state?.data;
-  const allReady = hasXlsform && hasData;
+  const pendingChoiceMapping = !!dataPreview?.normalizacion?.choice_code_maps?.requires_confirmation;
+  const allReady = hasXlsform && hasData && !pendingChoiceMapping;
 
   // ¿Está el usuario en modo multi-base? Dos formas de activarse:
   // 1) Demo/preset cargó ≥1 base real (Acreditación) → has_estudio
@@ -172,12 +222,18 @@ export default function CargaPage() {
     lastSessionIdRef.current = sessionId;
     setInstrumento(null);
     setDataPreview(null);
+    setChoiceMappingReview(null);
     setEstructura(null);
     setEstudio(null);
     setAutoOpenAddBase(false);
     setError("");
     setBusy("");
   }, [sessionId]);
+
+  useEffect(() => {
+    if (!error) return;
+    feedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [error]);
 
   useEffect(() => {
     if (!isMultiBase) {
@@ -211,6 +267,21 @@ export default function CargaPage() {
       } catch { /* primera base puede no tener estructura aún */ }
     } else {
       setEstructura(null);
+    }
+  }
+
+  async function onConfirmChoiceMapping() {
+    setError("");
+    setBusy("Confirmando mapeo SAV -> XLSForm…");
+    try {
+      await apiCargaConfirmChoiceMapping();
+      setDataPreview((prev) => markChoiceMappingConfirmed(prev));
+      setChoiceMappingReview(null);
+      await refresh();
+    } catch (e: unknown) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
     }
   }
 
@@ -273,6 +344,22 @@ export default function CargaPage() {
         />
       }
     >
+      {(busy || error) && (
+        <div ref={feedbackRef} className="pulso-feedback-stack pulso-feedback-stack--upload">
+          {busy && <LoadingBlock variant="inline" label={busy} />}
+          {error && <ErrorBlock label="No se pudo completar la carga" detail={error} />}
+        </div>
+      )}
+
+      {choiceMappingReview && (
+        <ChoiceMappingReviewDialog
+          review={choiceMappingReview}
+          busy={!!busy}
+          onClose={() => setChoiceMappingReview(null)}
+          onConfirm={onConfirmChoiceMapping}
+        />
+      )}
+
       {/* Modo multi-base: BasesPanel reemplaza los UploadCards.
           Cada base es un par (XLSForm + data) con nombre único. El
           usuario puede agregar, quitar, renombrar y volver a la carga
@@ -374,10 +461,32 @@ export default function CargaPage() {
                         {typeof dataPreview.normalizacion.extra_columns === "number" && dataPreview.normalizacion.extra_columns > 0
                           ? ` · ${dataPreview.normalizacion.extra_columns} columna(s) técnica(s) al final`
                           : ""}
+                        {dataPreview.normalizacion.choice_code_maps?.applied
+                          ? ` · ${dataPreview.normalizacion.choice_code_maps.n_questions} mapeo(s) SAV-XLSForm`
+                          : ""}
                       </>
                     )
                     : "Normalización pendiente: se activa después de cargar el XLSForm"}
                 </div>
+                {choiceMappingReviewFromPreview(dataPreview) && (
+                  <div className={`pulso-choice-map-inline${dataPreview.normalizacion?.choice_code_maps?.requires_confirmation ? " needs-review" : ""}`}>
+                    <span aria-hidden="true" className="pulso-choice-map-inline-icon">
+                      <ArrowRightLeft size={13} />
+                    </span>
+                    <span>
+                      {dataPreview.normalizacion?.choice_code_maps?.requires_confirmation
+                        ? "Pulso detectó las mismas etiquetas con códigos distintos entre SM/SAV y el XLSForm. Confirma cómo recodificar la data antes de validar."
+                        : "Mapeo SAV -> XLSForm confirmado para esta data."}
+                    </span>
+                    <button
+                      type="button"
+                      className="pulso-choice-map-inline-button"
+                      onClick={() => setChoiceMappingReview(choiceMappingReviewFromPreview(dataPreview))}
+                    >
+                      {dataPreview.normalizacion?.choice_code_maps?.requires_confirmation ? "Revisar" : "Ver mapeo"}
+                    </button>
+                  </div>
+                )}
                 {normalizationDetails.length > 0 && (
                   <details className="pulso-normalization-details">
                     <summary>Ver normalización</summary>
@@ -452,18 +561,6 @@ export default function CargaPage() {
             <PreguntasPanel preguntas={estructura.preguntas} secciones={estructura.secciones} />
           </Panel>
         </>
-      )}
-
-      {/* Feedback inferior — loading + errores */}
-      {busy && (
-        <div className="pulso-feedback-stack">
-          <LoadingBlock variant="inline" label={busy} />
-        </div>
-      )}
-      {error && (
-        <div className="pulso-feedback-stack">
-          <ErrorBlock label="No se pudo completar la carga" detail={error} />
-        </div>
       )}
 
       {/* CTA de continuar cuando todo está listo */}
@@ -591,6 +688,158 @@ function ResumenStat({ label, value }: { label: string; value: number | string }
         {value}
       </strong>
     </div>
+  );
+}
+
+function ChoiceMappingReviewDialog({
+  review,
+  busy,
+  onClose,
+  onConfirm,
+}: {
+  review: ChoiceCodeMapReview;
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const needsConfirmation = review.requires_confirmation;
+  const changedCounts = review.maps.map((map) => choiceMapChangedItems(map).length);
+  const totalChangedOptions = changedCounts.reduce((sum, count) => sum + count, 0);
+  const allHighConfidence = review.maps.every((map) => map.high_confidence);
+  return (
+    <div className="pulso-choice-map-backdrop" role="presentation">
+      <div
+        className="pulso-choice-map-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="choice-map-title"
+      >
+        <div className="pulso-choice-map-head">
+          <span aria-hidden="true" className="pulso-choice-map-head-icon">
+            {needsConfirmation ? <ArrowRightLeft size={18} /> : <ShieldCheck size={18} />}
+          </span>
+          <div>
+            <p className="pulso-choice-map-kicker">
+              Normalización de data
+            </p>
+            <h2 id="choice-map-title">
+              Usar mapeo recomendado
+            </h2>
+          </div>
+        </div>
+
+        <div className="pulso-choice-map-explain">
+          <Info size={16} />
+          <p>
+            Pulso ya detectó diferencias entre los códigos de origen de SurveyMonkey/SAV y los valores finales
+            del XLSForm. Las etiquetas coinciden, pero algunos códigos no. Al confirmar, la data se recodifica
+            hacia el XLSForm; las reglas SurveyMonkey usan este mismo puente para interpretar C1, C2, C3.
+          </p>
+        </div>
+
+        <div className="pulso-choice-map-summary">
+          <div>
+            <span>Preguntas afectadas</span>
+            <strong>{review.maps.length}</strong>
+          </div>
+          <div>
+            <span>Opciones ajustadas</span>
+            <strong>{totalChangedOptions}</strong>
+          </div>
+          <div>
+            <span>Confianza</span>
+            <strong>{allHighConfidence ? "Alta" : "Requiere revisión"}</strong>
+          </div>
+        </div>
+
+        <p className="pulso-choice-map-guidance">
+          Revisa solo si algo te llama la atención. Si las etiquetas son las correctas, la acción esperada es usar el mapeo recomendado.
+        </p>
+
+        <div className="pulso-choice-map-list">
+          {review.maps.map((map, index) => (
+            <ChoiceMappingCard
+              key={`${map.variable}-${map.list_name}`}
+              map={map}
+              defaultOpen={!map.high_confidence || index === 0}
+            />
+          ))}
+        </div>
+
+        <div className="pulso-choice-map-actions">
+          <button
+            type="button"
+            className="pulso-choice-map-secondary"
+            onClick={onClose}
+            disabled={busy}
+          >
+            Cerrar y revisar luego
+          </button>
+          {needsConfirmation && (
+            <button
+              type="button"
+              className="pulso-choice-map-primary"
+              onClick={onConfirm}
+              disabled={busy}
+            >
+              <ShieldCheck size={15} />
+              Usar este mapeo
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChoiceMappingCard({ map, defaultOpen }: { map: ChoiceCodeMap; defaultOpen?: boolean }) {
+  const changedRows = choiceMapChangedItems(map);
+  const visibleRows = changedRows.length > 0 ? changedRows : map.mappings.slice(0, 4);
+  const unchangedRows = Math.max(0, map.mappings.length - changedRows.length);
+  return (
+    <details className="pulso-choice-map-card" open={defaultOpen}>
+      <summary className="pulso-choice-map-card-head">
+        <div>
+          <h3>
+            <code>{map.variable}</code> {map.label}
+          </h3>
+          <p>
+            {changedRows.length} ajuste(s) de código · {map.type === "select_multiple" ? "selección múltiple" : "selección única"} · catálogo <code>{map.list_name}</code>
+          </p>
+        </div>
+        <span className={`pulso-choice-map-confidence${map.high_confidence ? " is-high" : " is-review"}`}>
+          {map.high_confidence ? "Alta confianza" : "Revisar"}
+        </span>
+      </summary>
+
+      <div className="pulso-choice-map-table" role="table" aria-label={`Mapeo de ${map.variable}`}>
+        <div className="pulso-choice-map-row is-head" role="row">
+          <span role="columnheader">Código origen SM/SAV</span>
+          <span role="columnheader">Etiqueta detectada</span>
+          <span role="columnheader">Valor XLSForm final</span>
+        </div>
+        {visibleRows.map((item, idx) => (
+          <div className="pulso-choice-map-row" role="row" key={`${item.source_code}-${item.xls_code}-${idx}`}>
+            <span role="cell">
+              <code>C{item.source_code}</code>
+            </span>
+            <span role="cell">
+              {item.source_label || item.xls_label}
+            </span>
+            <span role="cell">
+              <code>{item.xls_code}</code>
+              {item.xls_label && <em>{item.xls_label}</em>}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {unchangedRows > 0 && (
+        <p className="pulso-choice-map-more">
+          {unchangedRows} opción(es) ya coincidían o no necesitaban cambio.
+        </p>
+      )}
+    </details>
   );
 }
 

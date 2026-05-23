@@ -1,12 +1,14 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ArrowDown, ArrowUp, Check, RotateCcw, X } from "lucide-react";
 import {
   apiXlsformEditorSmInterpretRule,
+  type ChoiceCodeMap,
   type RuleInterpretation,
   type SurveyMonkeyVisualLogicAction,
   type SurveyMonkeyVisualLogicRule,
   type XlsformEditorWorkbook,
 } from "../../../api/client";
+import { SurveyMonkeyAdvancedLogicIcon, SurveyMonkeyVisualLogicIcon } from "./SurveyMonkeyLogicIcons";
 
 // Wizard paso-a-paso para reglas de skip logic. El usuario pega UNA regla,
 // Prosecnur la interpreta (resuelve labels desde la API SM), muestra el
@@ -41,12 +43,77 @@ export type VisualLogicPage = {
 
 const newId = () => Math.random().toString(36).slice(2, 9);
 
+const surveyMonkeyLogicIconFrame: CSSProperties = {
+  width: 36,
+  height: 36,
+  borderRadius: 8,
+  border: "1px solid #dbe3ea",
+  background: "white",
+  color: "#6f7d84",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: "0 0 auto",
+};
+
+const surveyMonkeyLogicIconFrameSmall: CSSProperties = {
+  width: 24,
+  height: 24,
+  borderRadius: 6,
+  border: "1px solid #dbe3ea",
+  background: "white",
+  color: "#6f7d84",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: "0 0 auto",
+};
+
 // Extrae el número de Q{N} (ej. "Q27" → "27"). Devuelve "" si la regla
 // todavía no fue interpretada o el formato es inesperado.
 function extractWhenVarKey(when_var: string | undefined): string {
   if (!when_var) return "";
   const m = /^[QPqp](\d+)$/.exec(when_var);
   return m ? m[1] : "";
+}
+
+function normalizeChoiceLabel(label: string): string {
+  return label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function questionKeyFromRef(ref: string): string {
+  const match = ref.match(/^[pq]0*(\d+)/i);
+  return match ? String(Number(match[1])) : "";
+}
+
+function hasChoiceCodeMapForQuestion(maps: ChoiceCodeMap[] | undefined | null, qrefKey: string): boolean {
+  if (!qrefKey) return false;
+  return (maps ?? []).some((map) => questionKeyFromRef(map.variable) === qrefKey && map.mappings.length > 0);
+}
+
+function upsertChoiceCodeMap(maps: ChoiceCodeMap[] | undefined | null, nextMap: ChoiceCodeMap): ChoiceCodeMap[] {
+  const key = questionKeyFromRef(nextMap.variable);
+  return [
+    ...(maps ?? []).filter((map) => questionKeyFromRef(map.variable) !== key),
+    nextMap,
+  ];
+}
+
+function removeChoiceCodeMapForQuestion(maps: ChoiceCodeMap[] | undefined | null, qrefKey: string): ChoiceCodeMap[] {
+  return (maps ?? []).filter((map) => questionKeyFromRef(map.variable) !== qrefKey);
+}
+
+function afterPaint(callback: () => void) {
+  if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+    window.requestAnimationFrame(callback);
+  } else {
+    setTimeout(callback, 0);
+  }
 }
 
 function splitSmRuleText(text: string): { condition: string; actions: string } {
@@ -169,6 +236,51 @@ function visualContextFromWorkbook(workbook?: XlsformEditorWorkbook | null): { q
   return { questions, pages };
 }
 
+function choiceContextFromWorkbook(
+  workbook: XlsformEditorWorkbook | null | undefined,
+  qrefKey: string,
+): { ref: string; label: string; type: "select_one" | "select_multiple"; listName: string; choices: VisualLogicChoice[] } | null {
+  if (!workbook || !qrefKey) return null;
+  const surveyCols = workbook.survey.columns;
+  const choiceCols = workbook.choices.columns;
+  const nameIdx = surveyCols.indexOf("name");
+  const typeIdx = surveyCols.indexOf("type");
+  if (nameIdx < 0 || typeIdx < 0) return null;
+  const labelIdx = surveyCols.indexOf("label::es") >= 0 ? surveyCols.indexOf("label::es") : surveyCols.indexOf("label");
+  const choiceListIdx = choiceCols.indexOf("list_name");
+  const choiceNameIdx = choiceCols.indexOf("name");
+  const choiceLabelIdx = choiceCols.indexOf("label::es") >= 0 ? choiceCols.indexOf("label::es") : choiceCols.indexOf("label");
+  if (choiceListIdx < 0 || choiceNameIdx < 0) return null;
+
+  for (const row of workbook.survey.rows) {
+    const ref = row[nameIdx] ?? "";
+    if (questionKeyFromRef(ref) !== qrefKey) continue;
+    const typeRaw = row[typeIdx] ?? "";
+    const match = typeRaw.match(/^(select_one|select_multiple)\s+(\S+)/i);
+    if (!match) return null;
+    const listName = match[2];
+    const choices: VisualLogicChoice[] = [];
+    for (const choiceRow of workbook.choices.rows) {
+      if ((choiceRow[choiceListIdx] ?? "") !== listName) continue;
+      choices.push({
+        name: choiceRow[choiceNameIdx] ?? "",
+        label: (choiceLabelIdx >= 0 ? choiceRow[choiceLabelIdx] ?? "" : "") || choiceRow[choiceNameIdx] || "",
+        index: choices.length + 1,
+      });
+    }
+    if (!choices.length) return null;
+    const label = labelIdx >= 0 ? row[labelIdx] ?? ref : ref;
+    return {
+      ref,
+      label: `${displayRef(ref)}: ${label}`,
+      type: match[1].toLowerCase() === "select_multiple" ? "select_multiple" : "select_one",
+      listName,
+      choices,
+    };
+  }
+  return null;
+}
+
 export function RuleWizard({
   surveyId,
   token,
@@ -187,6 +299,7 @@ export function RuleWizard({
   onVisualRulesChange,
   onVisualPendingChange,
   overrides,
+  choiceCodeMaps,
   onOverridesChange,
 }: {
   surveyId: string;
@@ -209,18 +322,88 @@ export function RuleWizard({
   // a C1, C2, ... Persiste en el padre (ImportSurveyMonkeyDialog) para que
   // sobreviva al cierre del wizard y viaje al endpoint de import.
   overrides: Record<string, string[]>;
-  onOverridesChange: (next: Record<string, string[]>) => void;
+  choiceCodeMaps?: ChoiceCodeMap[];
+  onOverridesChange: (next: Record<string, string[]>, nextChoiceCodeMaps?: ChoiceCodeMap[]) => void;
 }) {
   const [draft, setDraft] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [interp, setInterp] = useState<RuleInterpretation | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const advancedEditorRef = useRef<HTMLDivElement | null>(null);
+  const advancedTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const workbookContext = visualContextFromWorkbook(workbook);
   const resolvedVisualQuestions = visualQuestions ?? workbookContext.questions;
   const resolvedVisualPages = visualPages ?? workbookContext.pages;
 
-  async function callInterpret(text: string, ovr: Record<string, string[]>) {
+  function buildManualChoiceCodeMap(qrefKey: string, orderedLabels: string[]): ChoiceCodeMap | null {
+    const questionFromContext = choiceContextFromWorkbook(workbook, qrefKey) ??
+      resolvedVisualQuestions.find((q) => questionKeyFromRef(q.ref) === qrefKey);
+    const existingMap = (choiceCodeMaps ?? []).find((map) => questionKeyFromRef(map.variable) === qrefKey);
+    const existingByLabel = new Map(
+      (existingMap?.mappings ?? []).map((item) => [normalizeChoiceLabel(item.xls_label || item.source_label), item]),
+    );
+    const interpretationChoices = interp?.ok
+      ? interp.resolucion.choices_disponibles.map((choice) => {
+          const existing = existingByLabel.get(normalizeChoiceLabel(choice.label));
+          return {
+            name: existing?.xls_code || choice.code.replace(/^C/i, ""),
+            label: existing?.xls_label || choice.label,
+            index: choice.position,
+          };
+        })
+      : [];
+    const question = questionFromContext ?? (interpretationChoices.length
+      ? {
+          ref: interp?.ok ? interp.resolucion.when_var_xlsform || `p${Number(qrefKey)}` : `p${Number(qrefKey)}`,
+          label: interp?.ok ? interp.resolucion.when_var_label || `p${Number(qrefKey)}` : `p${Number(qrefKey)}`,
+          choices: interpretationChoices,
+        }
+      : null);
+    if (!question || orderedLabels.length === 0) return null;
+    const choicesByLabel = new Map<string, VisualLogicChoice[]>();
+    for (const choice of question.choices) {
+      const key = normalizeChoiceLabel(choice.label);
+      const arr = choicesByLabel.get(key) ?? [];
+      arr.push(choice);
+      choicesByLabel.set(key, arr);
+    }
+    const mappings = orderedLabels.map((label, idx) => {
+      const key = normalizeChoiceLabel(label);
+      const queue = choicesByLabel.get(key) ?? [];
+      const matched = queue.shift();
+      if (queue.length) choicesByLabel.set(key, queue);
+      else choicesByLabel.delete(key);
+      return {
+        source_code: String(idx + 1),
+        source_column: "",
+        source_label: label,
+        xls_code: matched?.name ?? String(idx + 1),
+        xls_label: matched?.label ?? label,
+        match: matched ? "manual_editor" : "manual_editor_fallback",
+      };
+    });
+    const typedQuestion = question as VisualLogicQuestion & {
+      type?: "select_one" | "select_multiple";
+      listName?: string;
+    };
+    return {
+      variable: question.ref,
+      label: question.label,
+      type: typedQuestion.type ?? "select_one",
+      list_name: typedQuestion.listName ?? "",
+      status: "manual_editor",
+      high_confidence: true,
+      requires_confirmation: false,
+      mappings,
+    };
+  }
+
+  async function callInterpret(
+    text: string,
+    ovr: Record<string, string[]>,
+    maps: ChoiceCodeMap[] = choiceCodeMaps ?? workbook?.surveyMonkeyLogic?.choice_code_maps ?? [],
+  ) {
     if (!text.trim()) return null;
     setBusy(true);
     setError(null);
@@ -229,9 +412,10 @@ export function RuleWizard({
 	        survey_id: surveyId,
 	        token,
 	        workbook: workbook ?? null,
-	        paginas,
+        paginas,
         paginas_labels: paginasLabels,
         choice_order_overrides: ovr,
+        choice_code_maps: maps,
       });
       if (!r.ok) {
         setError(r.error);
@@ -259,15 +443,20 @@ export function RuleWizard({
   // interpretar la regla.
   async function reorderChoices(qrefKey: string, nextLabels: string[]) {
     const nextOverrides = { ...overrides, [qrefKey]: nextLabels };
-    onOverridesChange(nextOverrides);
-    await callInterpret(draft, nextOverrides);
+    const manualMap = buildManualChoiceCodeMap(qrefKey, nextLabels);
+    const nextMaps = manualMap
+      ? upsertChoiceCodeMap(choiceCodeMaps, manualMap)
+      : choiceCodeMaps ?? [];
+    onOverridesChange(nextOverrides, nextMaps);
+    await callInterpret(draft, nextOverrides, nextMaps);
   }
 
   async function resetOrder(qrefKey: string) {
     const next = { ...overrides };
     delete next[qrefKey];
-    onOverridesChange(next);
-    await callInterpret(draft, next);
+    const nextMaps = removeChoiceCodeMapForQuestion(choiceCodeMaps, qrefKey);
+    onOverridesChange(next, nextMaps);
+    await callInterpret(draft, next, nextMaps);
   }
 
   function confirm() {
@@ -298,6 +487,11 @@ export function RuleWizard({
     setEditingId(rule.id);
     setInterp(null);
     setError(null);
+    void callInterpret(rule.texto, overrides);
+    afterPaint(() => {
+      advancedEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      advancedTextareaRef.current?.focus({ preventScroll: true });
+    });
   }
 
   return (
@@ -324,13 +518,18 @@ export function RuleWizard({
       >
         <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--pulso-border, #dbe3ea)", background: "#fbfdff" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#0b2e63" }}>
-                Lógica de ramificación avanzada
-              </h3>
-              <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
-                Pega reglas copiables de SurveyMonkey cuando el salto no se pueda expresar con el selector visual.
-              </p>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <span style={surveyMonkeyLogicIconFrame}>
+                <SurveyMonkeyAdvancedLogicIcon size={27} title="Lógica de ramificación avanzada" />
+              </span>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#0b2e63" }}>
+                  Lógica de ramificación avanzada
+                </h3>
+                <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
+                  Pega reglas copiables de SurveyMonkey cuando el salto no se pueda expresar con el selector visual.
+                </p>
+              </div>
             </div>
             <span
               style={{
@@ -349,9 +548,10 @@ export function RuleWizard({
           </div>
         </div>
 
-        <div style={{ padding: 16, display: "grid", gap: 12 }}>
+        <div ref={advancedEditorRef} style={{ padding: 16, display: "grid", gap: 12 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
             <textarea
+              ref={advancedTextareaRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Ej: Q7 NOT IN [C4, C5, C6, C7] => Ocultar P8, Ocultar P9, Ocultar P10."
@@ -413,7 +613,10 @@ export function RuleWizard({
               interp={interp}
               original={draft.trim()}
               busy={busy}
-              hasOverride={Boolean(overrides[extractWhenVarKey(interp.regla_parseada.when_var)]?.length)}
+              hasOverride={
+                Boolean(overrides[extractWhenVarKey(interp.regla_parseada.when_var)]?.length) ||
+                hasChoiceCodeMapForQuestion(choiceCodeMaps, extractWhenVarKey(interp.regla_parseada.when_var))
+              }
               pages={resolvedVisualPages}
               onConfirm={confirm}
               onDiscard={discard}
@@ -459,12 +662,17 @@ function AdvancedConfirmedRulesList({
   return (
     <div style={{ borderTop: "1px solid var(--pulso-border, #dbe3ea)", background: "#f8fafc", padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 10 }}>
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 900, color: "#475569", letterSpacing: 0 }}>
-            Reglas avanzadas confirmadas
-          </div>
-          <div style={{ marginTop: 2, fontSize: 12, color: "#64748b" }}>
-            Se aplicarán junto con la lógica visual cuando guardes los cambios.
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <span style={surveyMonkeyLogicIconFrameSmall}>
+            <SurveyMonkeyAdvancedLogicIcon size={18} title="Reglas avanzadas confirmadas" />
+          </span>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: "#475569", letterSpacing: 0 }}>
+              Reglas avanzadas confirmadas
+            </div>
+            <div style={{ marginTop: 2, fontSize: 12, color: "#64748b" }}>
+              Se aplicarán junto con la lógica visual cuando guardes los cambios.
+            </div>
           </div>
         </div>
         {rules.length > 0 && onClearAll ? (
@@ -611,6 +819,7 @@ function SurveyMonkeyLogicWindow({
 }) {
   const [selectedRef, setSelectedRef] = useState(rules[0]?.variableRef ?? questions[0]?.ref ?? "");
   const [draftRules, setDraftRules] = useState<SurveyMonkeyVisualLogicRule[]>(rules);
+  const visualEditorRef = useRef<HTMLDivElement | null>(null);
   const committedRulesSignature = JSON.stringify(rules);
   const draftRulesSignature = JSON.stringify(draftRules);
   const hasPendingVisualChanges = committedRulesSignature !== draftRulesSignature;
@@ -690,6 +899,9 @@ function SurveyMonkeyLogicWindow({
 
   function editVisualRule(rule: SurveyMonkeyVisualLogicRule) {
     setSelectedRef(rule.variableRef);
+    afterPaint(() => {
+      visualEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   function removeVisualRule(ruleId: string) {
@@ -798,16 +1010,21 @@ function SurveyMonkeyLogicWindow({
     >
       <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--pulso-border, #dbe3ea)", background: "#f8fafc" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#0b2e63" }}>Lógica</h3>
-            <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
-              Elige una pregunta y decide qué ocurre con cada respuesta. Prosecnur lo convierte al formulario al aplicar.
-            </p>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span style={surveyMonkeyLogicIconFrame}>
+              <SurveyMonkeyVisualLogicIcon size={24} title="Lógica visual" />
+            </span>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#0b2e63" }}>Lógica visual</h3>
+              <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
+                Elige una pregunta y decide qué ocurre con cada respuesta. Prosecnur lo convierte al formulario al aplicar.
+              </p>
+            </div>
           </div>
           <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>{appliedSummary()}</span>
         </div>
       </div>
-      <div style={{ padding: 16, display: "grid", gap: 14 }}>
+      <div ref={visualEditorRef} style={{ padding: 16, display: "grid", gap: 14 }}>
         <div>
           <label style={{ display: "block", marginBottom: 6, fontSize: 12, fontWeight: 800, color: "#475569" }}>
             Variable
@@ -1001,12 +1218,17 @@ function SurveyMonkeyLogicWindow({
 
       <div style={{ borderTop: "1px solid var(--pulso-border, #dbe3ea)", background: "#f8fafc", padding: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 10 }}>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 900, color: "#475569", letterSpacing: 0 }}>
-              Lógica visual confirmada
-            </div>
-            <div style={{ marginTop: 2, fontSize: 12, color: "#64748b" }}>
-              Estos saltos ya están listos para aplicarse al formulario.
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+            <span style={surveyMonkeyLogicIconFrameSmall}>
+              <SurveyMonkeyVisualLogicIcon size={16} title="Lógica visual confirmada" />
+            </span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 900, color: "#475569", letterSpacing: 0 }}>
+                Lógica visual confirmada
+              </div>
+              <div style={{ marginTop: 2, fontSize: 12, color: "#64748b" }}>
+                Estos saltos ya están listos para aplicarse al formulario.
+              </div>
             </div>
           </div>
           <span
@@ -1257,13 +1479,18 @@ function InterpretationCard({
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
-        <div>
-          <h4 style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>
-            Interpretador de ramificación avanzada
-          </h4>
-          <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
-            Lo pegado viene del código copiable de SurveyMonkey. Revisa el resultado antes de confirmarlo.
-          </p>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <span style={surveyMonkeyLogicIconFrameSmall}>
+            <SurveyMonkeyAdvancedLogicIcon size={18} title="Interpretador de ramificación avanzada" />
+          </span>
+          <div>
+            <h4 style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>
+              Interpretador de ramificación avanzada
+            </h4>
+            <p style={{ margin: "3px 0 0", fontSize: 11, color: "var(--pulso-muted, #6b7280)" }}>
+              Lo pegado viene del código copiable de SurveyMonkey. Revisa el resultado antes de confirmarlo.
+            </p>
+          </div>
         </div>
         <span
           style={{
@@ -1487,8 +1714,8 @@ function InterpretationCard({
             <span>
               Opciones disponibles ({choices.length})
               {hasOverride ? (
-                <span style={{ marginLeft: 8, color: "#9333ea", fontSize: 11, fontWeight: 600 }}>
-                  · orden personalizado
+                <span style={{ marginLeft: 8, color: "#15803d", fontSize: 11, fontWeight: 700 }}>
+                  · mapa confirmado
                 </span>
               ) : null}
             </span>
@@ -1529,14 +1756,14 @@ function InterpretationCard({
             }}
           >
             <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--pulso-muted, #6b7280)", lineHeight: 1.4 }}>
-              Si el orden no coincide con tu cuestionario, usa ↑ ↓ para corregirlo.
-              La lógica se recalcula recién cuando aplicas el nuevo orden.
+              Este mapa define qué opción del XLSForm representa cada C1, C2, C3 copiado desde SurveyMonkey.
+              No cambia los valores del XLSForm; cambia cómo se interpretan esos códigos de origen.
             </p>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
               <thead>
                 <tr style={{ color: "var(--pulso-muted, #6b7280)", textAlign: "left" }}>
-                  <th style={{ padding: "4px 6px", width: 50 }}>Código</th>
-                  <th style={{ padding: "4px 6px" }}>Etiqueta</th>
+                  <th style={{ padding: "4px 6px", width: 78 }}>Código SM</th>
+                  <th style={{ padding: "4px 6px" }}>Opción XLSForm interpretada</th>
                   <th style={{ padding: "4px 6px", width: 60 }}>Tipo</th>
                   <th style={{ padding: "4px 6px", width: 70, textAlign: "right" }}>Orden</th>
                 </tr>
@@ -1610,7 +1837,7 @@ function InterpretationCard({
                   gap: 4,
                 }}
               >
-                <Check size={12} /> Aplicar orden
+                <Check size={12} /> Confirmar mapa
               </button>
             </div>
           </div>

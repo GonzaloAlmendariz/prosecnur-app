@@ -1,11 +1,11 @@
 # Snapshot test contra fixtures reales del estudio AMDT (PUCP).
 #
-# Los .xlsx golden se generaron con el paquete legacy `prosecnur` desde
+# Los .xlsx golden se generan con el traductor actual de `prosecnurapp` desde
 # /Users/gonzaloalmendariz/Documents/Pulso/Pruebas_Prosecnur/ y se commitean
 # en tests/testthat/fixtures/surveymonkey/golden/. Los .sav crudos NO se
 # incluyen en el repo: el test los busca en PROSECNUR_SM_FIXTURES_DIR (default
 # a la ruta local del autor) y se salta si no están disponibles. Sirve a la vez
-# como verificación de paridad fork ↔ legacy y como baseline anti-regresión.
+# como baseline anti-regresión contra fixtures reales.
 
 .amdt_fixtures_dir <- function() {
   Sys.getenv(

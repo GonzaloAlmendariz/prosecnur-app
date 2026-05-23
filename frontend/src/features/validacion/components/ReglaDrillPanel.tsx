@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight,
   Check,
   ChevronDown,
   ChevronRight,
@@ -16,7 +15,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReglaInstrumento } from "../../../api/client";
-import DrilldownTable from "./DrilldownTable";
+import DrilldownTable, { formatDisplayValue } from "./DrilldownTable";
 
 type Props = {
   regla: ReglaInstrumento;
@@ -216,24 +215,11 @@ export default function ReglaDrillPanel({
   const activationSections = roleSections.filter((section) => section.key === "drivers" || section.key === "gate");
   const targetItem = targetSection?.items[0] ?? null;
   const targetLabel = targetItem?.label ?? targetItem?.key ?? null;
-  const targetDisplay = targetLabel ? `«${targetLabel}»` : "esta respuesta";
+  const targetDisplay = targetLabel ? `«${shortRuleLabel(targetLabel)}»` : "esta respuesta";
   const gateHumano = cleanSentence(regla.presentation?.gate_humano ?? "");
   const detalleCondicion = cleanSentence(regla.presentation?.detalle_condicion ?? "");
-  const heroText = buildExpectationHeadline(regla, targetDisplay);
-  const objectiveText = cleanSentence(regla.objetivo ?? "") || heroText;
-  const activationSummary =
-    gateHumano ||
-    buildActivationSummary(activationSections) ||
-    "Esta revision aplica cada vez que la pregunta entra en juego.";
-  const compareSummary =
-    detalleCondicion ||
-    buildCompareSummary(compareSection) ||
-    "La respuesta se revisa contra una condicion adicional del instrumento.";
-  const showCompareBlock = Boolean((compareSection?.items.length ?? 0) > 0 || detalleCondicion);
-  const compareBlockTitle =
-    (regla.presentation?.subtipo_semantico ?? "").toLowerCase() === "nodebe"
-      ? "Y NO DEBERIA PASAR"
-      : "SE CONTRASTA CON";
+  const plainReading = buildPlainRuleReading(regla, targetDisplay, targetItem, activationSections, compareSection);
+  const heroText = plainReading.headline || buildExpectationHeadline(regla, targetDisplay);
   const technicalVariables = orderedAllVariables.length ? orderedAllVariables : uniqueStrings(regla.variables);
 
   const selectedQuickValues = useMemo(
@@ -518,8 +504,8 @@ export default function ReglaDrillPanel({
 
       <div style={bandStyle}>
         <SectionHeading
-          title="Que valida esta regla"
-          subtitle="Una lectura corta para entender que espera el instrumento antes de mirar el detalle."
+          title="Que significa"
+          subtitle="La lectura principal en palabras simples. La condicion exacta queda en detalle tecnico."
         />
 
         <div style={{ display: "grid", gap: 12 }}>
@@ -535,30 +521,7 @@ export default function ReglaDrillPanel({
             {heroText}
           </div>
 
-          {detalleCondicion && detalleCondicion !== objectiveText && (
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 10px",
-                borderRadius: 8,
-                border: "1px solid var(--pulso-border)",
-                background: "white",
-                fontSize: 12,
-                color: "var(--pulso-text-soft)",
-                lineHeight: 1.5,
-                maxWidth: 980,
-              }}
-            >
-              <Info size={13} />
-              <span>{detalleCondicion}</span>
-            </div>
-          )}
-
-          <div style={{ fontSize: 13, color: "var(--pulso-text)", lineHeight: 1.6, maxWidth: 980 }}>
-            {objectiveText || <em style={{ color: "var(--pulso-text-soft)" }}>Sin explicacion narrativa definida.</em>}
-          </div>
+          <PlainRuleSteps reading={plainReading} />
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {regla.tipo_observacion && (
@@ -579,89 +542,12 @@ export default function ReglaDrillPanel({
 
       <div style={bandStyle}>
         <SectionHeading
-          title="Como funciona"
-          subtitle="Primero miramos cuando aplica la regla y despues que respuesta espera encontrar."
+          title="Variables usadas"
+          subtitle="Estas preguntas ayudan a decidir si la respuesta era esperada o no."
         />
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "stretch" }}>
-          <LogicCard
-            title={activationSections.length > 0 || gateHumano ? "SI" : "SIEMPRE"}
-            summary={activationSummary}
-            tone={activationSections.length > 0 || gateHumano ? "drivers" : "gate"}
-            delay={0}
-          >
-            {activationSections.length > 0 ? (
-              <div style={{ display: "grid", gap: 10 }}>
-                {activationSections.map((section) => (
-                  <RoleInlineGroup
-                    key={section.key}
-                    section={section}
-                    focusedVariable={focusedVariable}
-                    onFocusVariable={handleVariableFocus}
-                  />
-                ))}
-              </div>
-            ) : (
-              <EmptyFlowText text="No hay condiciones previas visibles: esta revision se entiende como parte natural del flujo del formulario." />
-            )}
-          </LogicCard>
-
-          <FlowConnector label="entonces" delay={90} />
-
-          <LogicCard title="ENTONCES" summary={heroText} tone="target" delay={150}>
-            {targetSection?.items.length ? (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {targetSection.items.map((item) => (
-                  <VariableBlock
-                    key={`target-${item.key}`}
-                    item={item}
-                    tone="target"
-                    active={focusedVariable === item.key}
-                    onClick={() => handleVariableFocus(item.key)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <EmptyFlowText text="No hay variable objetivo mapeada en el detalle tecnico de esta regla." />
-            )}
-          </LogicCard>
-
-          {showCompareBlock && (
-            <>
-              <FlowConnector label="y se verifica" delay={210} />
-              <LogicCard title={compareBlockTitle} summary={compareSummary} tone="compare" delay={270}>
-                {compareSection?.items.length ? (
-                  <RoleInlineGroup
-                    section={compareSection}
-                    focusedVariable={focusedVariable}
-                    onFocusVariable={handleVariableFocus}
-                    compact
-                  />
-                ) : (
-                  <EmptyFlowText text={compareSummary} />
-                )}
-              </LogicCard>
-            </>
-          )}
-        </div>
-
-        {objectiveText && objectiveText !== heroText && (
-          <div
-            style={{
-              marginTop: 14,
-              fontSize: 13,
-              lineHeight: 1.6,
-              color: "var(--pulso-text-soft)",
-              maxWidth: 980,
-            }}
-          >
-            {objectiveText}
-          </div>
-        )}
-
         {roleSections.length > 0 && (
-          <div style={{ marginTop: 18 }}>
-            <div style={sectionMiniTitleStyle}>Variables que intervienen</div>
+          <div>
             <div
               style={{
                 display: "grid",
@@ -857,6 +743,7 @@ export default function ReglaDrillPanel({
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {selectedQuickValues.slice(0, 10).map((value) => {
                 const selected = filters[focusedVariable]?.size === 1 && filters[focusedVariable]?.has(value);
+                const shown = formatDisplayValue(focusedVariable, value, regla.value_labels);
                 return (
                   <button
                     key={`quick-${focusedVariable}-${value}`}
@@ -872,9 +759,9 @@ export default function ReglaDrillPanel({
                       cursor: "pointer",
                       fontFamily: "ui-monospace, monospace",
                     }}
-                    title={value}
+                    title={shown.title}
                   >
-                    {value}
+                    {shown.display}
                   </button>
                 );
               })}
@@ -942,6 +829,7 @@ export default function ReglaDrillPanel({
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                     {distinct.map((value) => {
                       const included = allShown || activeSet!.has(value);
+                      const shown = formatDisplayValue(col, value, regla.value_labels);
                       return (
                         <button
                           key={`${col}-${value}`}
@@ -961,9 +849,9 @@ export default function ReglaDrillPanel({
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
                           }}
-                          title={value}
+                          title={shown.title}
                         >
-                          {value}
+                          {shown.display}
                         </button>
                       );
                     })}
@@ -977,6 +865,7 @@ export default function ReglaDrillPanel({
         <DrilldownTable
           rows={filteredCasos}
           preferredOrder={preferredOrder}
+          valueLabels={regla.value_labels}
           emptyHint={isFiltered ? "Ningun caso coincide con los filtros actuales." : "Sin casos inconsistentes."}
         />
       </div>
@@ -1069,119 +958,64 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle: string }
   );
 }
 
-function LogicCard({
-  title,
-  summary,
-  tone,
-  delay,
-  children,
-}: {
-  title: string;
-  summary: string;
-  tone: RoleTone;
-  delay: number;
-  children: React.ReactNode;
-}) {
-  const colors = ROLE_TONES[tone];
+type PlainRuleReading = {
+  found: string;
+  expected: string;
+  reason: string;
+  headline: string;
+};
+
+function PlainRuleSteps({ reading }: { reading: PlainRuleReading }) {
+  const steps = [
+    { title: "Se encontró", body: reading.found },
+    { title: "Lo esperado", body: reading.expected },
+    { title: "Por eso se marca", body: reading.reason },
+  ];
   return (
     <div
-      className="pulso-rule-flow-item"
       style={{
-        flex: "1 1 250px",
-        minWidth: 240,
-        padding: "12px 13px",
-        borderRadius: 8,
-        border: `1px solid ${colors.border}`,
-        background: colors.bg,
         display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
         gap: 10,
-        alignContent: "start",
-        animationDelay: `${delay}ms`,
+        maxWidth: 980,
       }}
     >
-      <div style={{ display: "grid", gap: 4 }}>
+      {steps.map((step, index) => (
         <div
+          key={step.title}
           style={{
-            fontSize: 10,
-            fontWeight: 800,
-            letterSpacing: 0.4,
-            textTransform: "uppercase",
-            color: colors.fg,
+            display: "grid",
+            gap: 7,
+            padding: "12px 13px",
+            borderRadius: 8,
+            border: "1px solid var(--pulso-border)",
+            background: "white",
           }}
         >
-          {title}
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <span
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 999,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--pulso-primary-soft)",
+                color: "var(--pulso-primary)",
+                fontSize: 11,
+                fontWeight: 800,
+              }}
+            >
+              {index + 1}
+            </span>
+            <span style={sectionMiniTitleStyle}>{step.title}</span>
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.55, color: "var(--pulso-text)" }}>
+            {step.body}
+          </div>
         </div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--pulso-text)", lineHeight: 1.5 }}>
-          {summary}
-        </div>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function FlowConnector({ label, delay }: { label: string; delay: number }) {
-  return (
-    <div
-      className="pulso-rule-flow-item"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 6,
-        minWidth: 66,
-        color: "var(--pulso-text-soft)",
-        fontSize: 11,
-        fontWeight: 700,
-        textTransform: "uppercase",
-        letterSpacing: 0.3,
-        animationDelay: `${delay}ms`,
-      }}
-    >
-      <ArrowRight size={15} />
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function EmptyFlowText({ text }: { text: string }) {
-  return (
-    <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--pulso-text-soft)" }}>
-      {text}
-    </div>
-  );
-}
-
-function RoleInlineGroup({
-  section,
-  focusedVariable,
-  onFocusVariable,
-  compact = false,
-}: {
-  section: RoleSection;
-  focusedVariable: string | null;
-  onFocusVariable: (key: string) => void;
-  compact?: boolean;
-}) {
-  const { Icon } = section;
-  return (
-    <div style={{ display: "grid", gap: 6 }}>
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-        <Icon size={12} color={ROLE_TONES[section.tone].fg} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text)" }}>{section.title}</span>
-        <InfoHint text={section.hint} />
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: compact ? 6 : 8 }}>
-        {section.items.map((item) => (
-          <VariableBlock
-            key={`${section.key}-${item.key}`}
-            item={item}
-            tone={section.tone}
-            active={focusedVariable === item.key}
-            onClick={() => onFocusVariable(item.key)}
-          />
-        ))}
-      </div>
+      ))}
     </div>
   );
 }
@@ -1386,18 +1220,113 @@ function buildExpectationHeadline(regla: ReglaInstrumento, targetDisplay: string
   return `${targetDisplay} debe comportarse como espera el instrumento.`;
 }
 
-function buildActivationSummary(sections: RoleSection[]): string {
-  const labels = uniqueStrings(
-    sections.flatMap((section) => section.items.map((item) => item.label ?? item.key)),
-  );
-  if (!labels.length) return "";
-  return `La regla se activa cuando ya se registraron ${humanList(labels.map((value) => `«${value}»`))}.`;
+function buildPlainRuleReading(
+  regla: ReglaInstrumento,
+  targetDisplay: string,
+  targetItem: RoleItem | null,
+  activationSections: RoleSection[],
+  compareSection: RoleSection | null,
+): PlainRuleReading {
+  const tipo = (regla.tipo_observacion ?? "").toLowerCase();
+  const subtipo = (regla.presentation?.subtipo_semantico ?? "").toLowerCase();
+  const isOtherText = isSyntheticOtherTarget(targetItem);
+  const otherChoice = choiceLabelForSyntheticOther(regla, targetItem);
+  const parentLabel = parentLabelForSyntheticOther(regla, targetItem, activationSections);
+  const otherChoiceDisplay = otherChoice ? `«${shortRuleLabel(otherChoice, 58)}»` : "la opcion Otro/Other";
+  const otherParentDisplay = parentLabel ? ` en «${shortRuleLabel(parentLabel, 82)}»` : " en su pregunta principal";
+  const hasRouteVariables = activationSections.some((section) => section.items.length > 0) ||
+    Boolean(compareSection?.items.length);
+
+  if (subtipo === "nodebe") {
+    return {
+      headline: isOtherText
+        ? `${targetDisplay} solo debe tener texto cuando se eligio ${otherChoiceDisplay}${otherParentDisplay}.`
+        : `${targetDisplay} no deberia tener respuesta si la pregunta no correspondia.`,
+      found: `Hay una respuesta guardada en ${targetDisplay}.`,
+      expected: isOtherText
+        ? `${targetDisplay} debe quedar vacio si no se eligio ${otherChoiceDisplay}${otherParentDisplay} o si el salto ocultaba esa pregunta.`
+        : `Si el salto del formulario no llevaba a esta pregunta, ${targetDisplay} debia quedar vacio.`,
+      reason: hasRouteVariables
+        ? "La ruta esperada del formulario no activaba esta pregunta para ese caso. Las preguntas usadas para decidirlo aparecen abajo."
+        : "La ruta esperada del formulario no activaba esta pregunta para ese caso.",
+    };
+  }
+
+  if (subtipo === "debe" || subtipo === "req" || tipo.includes("required")) {
+    return {
+      headline: `${targetDisplay} debia responderse y quedo vacio.`,
+      found: `No hay respuesta registrada en ${targetDisplay}.`,
+      expected: `Cuando la ruta del formulario llega a esta pregunta, ${targetDisplay} debe tener respuesta.`,
+      reason: hasRouteVariables
+        ? "La pregunta correspondia para ese caso. Las preguntas usadas para decidirlo aparecen abajo."
+        : "La pregunta correspondia para ese caso.",
+    };
+  }
+
+  if (tipo.includes("constraint")) {
+    return {
+      headline: `${targetDisplay} no cumple una condicion de consistencia.`,
+      found: `La respuesta registrada en ${targetDisplay} existe, pero no pasa la regla del instrumento.`,
+      expected: `${targetDisplay} debe respetar la condicion definida en el XLSForm.`,
+      reason: "El valor observado queda fuera de lo que el formulario considera valido.",
+    };
+  }
+
+  if (tipo.includes("choice")) {
+    return {
+      headline: `${targetDisplay} usa una opcion que no coincide con el catalogo esperado.`,
+      found: `Hay un valor en ${targetDisplay} que no calza con sus opciones permitidas.`,
+      expected: `${targetDisplay} debe usar los codigos y etiquetas del XLSForm.`,
+      reason: "El dato no coincide con el catalogo final del instrumento.",
+    };
+  }
+
+  return {
+    headline: `${targetDisplay} debe comportarse como espera el instrumento.`,
+    found: `Se encontró un caso llamativo en ${targetDisplay}.`,
+    expected: "La respuesta debe coincidir con la regla definida en el formulario.",
+    reason: "El dato no coincide con la condicion esperada por el instrumento.",
+  };
 }
 
-function buildCompareSummary(section: RoleSection | null): string {
-  const labels = uniqueStrings(section?.items.map((item) => item.label ?? item.key) ?? []);
-  if (!labels.length) return "";
-  return `La respuesta se contrasta con ${humanList(labels.map((value) => `«${value}»`))}.`;
+function isSyntheticOtherTarget(item: RoleItem | null): boolean {
+  const key = (item?.key ?? "").toLowerCase();
+  const label = (item?.label ?? "").toLowerCase();
+  return /(^|[_./-])other$/.test(key) || /\b(other|otro|otros|especificar)\b/.test(label);
+}
+
+function choiceLabelForSyntheticOther(regla: ReglaInstrumento, item: RoleItem | null): string | null {
+  const fromContext = regla.other_context?.choice_label?.trim();
+  if (fromContext) return stripTrailingPunctuation(fromContext);
+  const label = item?.label?.trim();
+  return label ? stripTrailingPunctuation(label) : null;
+}
+
+function parentLabelForSyntheticOther(
+  regla: ReglaInstrumento,
+  item: RoleItem | null,
+  sections: RoleSection[],
+): string | null {
+  const fromContext = regla.other_context?.parent_label?.trim();
+  if (fromContext) return fromContext;
+  const key = item?.key ?? "";
+  const parentKey = key.replace(/([_./-])other$/i, "");
+  if (!parentKey || parentKey === key) return null;
+  for (const section of sections) {
+    const match = section.items.find((candidate) => candidate.key === parentKey);
+    if (match) return match.label ?? match.key;
+  }
+  return null;
+}
+
+function stripTrailingPunctuation(value: string): string {
+  return value.replace(/[:：;,.]+$/g, "").trim();
+}
+
+function shortRuleLabel(label: string, max = 92): string {
+  const clean = label.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max - 1).trimEnd()}...`;
 }
 
 function findRoleLabel(sections: RoleSection[], key: string): string | null {

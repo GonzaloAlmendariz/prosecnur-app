@@ -34,6 +34,10 @@ env:
   PNPM_VERSION: '10'
 
 jobs:
+  quality:
+    name: Quality gate
+    uses: ./.github/workflows/quality.yml
+
   # ---------------------------------------------------------------------------
   # Windows installer: lo buildeamos en ubuntu-latest porque NSIS via apt es
   # mas estable que en runners Windows + el bundle es 100% archivos copiados,
@@ -41,6 +45,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build-windows:
     name: Build Windows (.exe + latest.yml)
+    needs: quality
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -99,6 +104,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build-mac:
     name: Build macOS (.dmg arm64 + x64)
+    needs: quality
     runs-on: macos-latest   # arm64 nativo
     # Mac es best-effort: si falla, el .exe Windows igual se publica. El owner
     # puede generar los .dmg localmente con `make package-mac-dmg` y agregarlos

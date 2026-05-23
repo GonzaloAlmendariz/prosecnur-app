@@ -72,8 +72,7 @@
   out <- as.character(modo %||% default)[1]
   if (is.na(out) || !nzchar(trimws(out))) out <- default
   out <- tolower(trimws(out))
-  if (identical(out, "degradado")) out <- "degradado_automatico"
-  if (!out %in% c("grupos", "degradado_automatico", "degradado_manual")) out <- default
+  if (!out %in% c("grupos", "degradado", "degradado_automatico", "degradado_manual")) out <- default
   out
 }
 

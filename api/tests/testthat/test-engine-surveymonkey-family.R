@@ -108,7 +108,7 @@ test_that("familia surveymonkey_ genera XLSForm de referencia y data compatible"
   expect_true(all(c("survey", "choices", "settings", "diagnostico") %in% names(inst_ref)))
   expect_true(any(inst_ref$survey$type == "begin_group"))
   expect_true(any(grepl("^select_multiple ", inst_ref$survey$type)))
-  expect_true(any(inst_ref$survey$section == "AuxSM"))
+  expect_true(any(inst_ref$survey$section == "survey_monkey_auxiliary"))
   expect_true(any(inst_ref$survey$name == "p6_other"))
   expect_true(any(inst_ref$survey$name == "sexo"))
   expect_true(any(inst_ref$survey$type == "select_one lst_sexo"))
@@ -116,7 +116,7 @@ test_that("familia surveymonkey_ genera XLSForm de referencia y data compatible"
   expect_identical(inst_ref$survey$`label::es`[idx_p5_other], "Otro:")
   expect_identical(inst_ref$survey$`label::es`[idx_p6_other], "Otro:")
   expect_identical(inst_ref$survey$relevant[idx_p5_other], "selected(${p5}, 'other')")
-  expect_identical(inst_ref$survey$relevant[idx_p6_other], "selected(${p6}, '3')")
+  expect_identical(inst_ref$survey$relevant[idx_p6_other], "${p6} = '3'")
   expect_true("lst_si_no" %in% inst_ref$choices$list_name)
   expect_true("lst_sexo" %in% inst_ref$choices$list_name)
   expect_true("lst_acuerdo_4" %in% inst_ref$choices$list_name)
@@ -269,8 +269,8 @@ test_that("surveymonkey_xlsform reconoce satisfaccion_4 y ordena grupos por sufi
 
   haven::write_sav(df, path_sav)
 
-  sm <- prosecnur::surveymonkey_leer(path_sav)
-  inst_ref <- prosecnur::surveymonkey_xlsform(sm, path = path_xlsx)
+  sm <- prosecnurapp::surveymonkey_leer(path_sav)
+  inst_ref <- prosecnurapp::surveymonkey_xlsform(sm, path = path_xlsx)
 
   p8_rows <- inst_ref$survey[grepl("^p8_", inst_ref$survey$name), , drop = FALSE]
   expect_identical(p8_rows$name, paste0("p8_", 1:6))
@@ -403,7 +403,7 @@ test_that("recodificacion detecta other por semantica del XLSForm y usa la etiqu
   on.exit(unlink(path_familias), add = TRUE)
 
   expect_no_warning(
-    prosecnur::escribir_plantilla_familias(inst, dat, path = path_familias)
+    prosecnurapp::escribir_plantilla_familias(inst, dat, path = path_familias)
   )
   fam <- leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
 
@@ -505,13 +505,13 @@ test_that("recodificacion no sugiere other si no hay vinculo semantico claro", {
   path_familias <- tempfile(fileext = ".xlsx")
   on.exit(unlink(path_familias), add = TRUE)
 
-  prosecnur::escribir_plantilla_familias(inst, dat, path = path_familias)
+  prosecnurapp::escribir_plantilla_familias(inst, dat, path = path_familias)
   sugeridas <- readxl::read_excel(path_familias, sheet = "familias")
   row_need <- sugeridas[sugeridas$parent == "need", , drop = FALSE]
   expect_true(is.na(row_need$text_col[1]) || row_need$text_col[1] == "")
   expect_true(is.na(row_need$other_dummy_col[1]) || row_need$other_dummy_col[1] == "")
 
-  fam <- prosecnur::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
+  fam <- prosecnurapp::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
   diag_need <- fam$diagnostico_clasificacion[fam$diagnostico_clasificacion$parent == "need", , drop = FALSE]
   expect_identical(diag_need$estado_clasificacion[1], "excluida")
   expect_match(diag_need$motivo_clasificacion[1], "text_col no existe", fixed = TRUE)
@@ -544,9 +544,9 @@ test_that("recodificacion resuelve select_one con codigo no literal", {
   path_familias <- tempfile(fileext = ".xlsx")
   on.exit(unlink(path_familias), add = TRUE)
 
-  prosecnur::escribir_plantilla_familias(inst, dat, path = path_familias)
+  prosecnurapp::escribir_plantilla_familias(inst, dat, path = path_familias)
   set_familias_modo_so(path_familias, c(mode = "padre"))
-  fam <- prosecnur::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
+  fam <- prosecnurapp::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
   row_mode <- fam$familias_filtradas[fam$familias_filtradas$parent == "mode", , drop = FALSE]
   expect_identical(row_mode$tipo[1], "select_one")
   expect_identical(row_mode$text_col[1], "mode_detail")
@@ -586,14 +586,14 @@ test_that("recodificacion repeat-aware replica la deteccion semantica y no inven
   path_familias <- tempfile(fileext = ".xlsx")
   on.exit(unlink(path_familias), add = TRUE)
 
-  prosecnur::escribir_plantilla_familias_repeat(inst, tabs, path = path_familias, verbose = FALSE)
-  fam <- prosecnur::leer_familias_clasificar_repeat(path_familias, inst, tabs, verbose = FALSE)
+  prosecnurapp::escribir_plantilla_familias_repeat(inst, tabs, path = path_familias, verbose = FALSE)
+  fam <- prosecnurapp::leer_familias_clasificar_repeat(path_familias, inst, tabs, verbose = FALSE)
   row_need <- fam$familias_filtradas[fam$familias_filtradas$parent == "need", , drop = FALSE]
   expect_identical(row_need$hoja_datos[1], "hh")
   expect_identical(row_need$other_dummy_col[1], "need/70")
   expect_identical(row_need$text_col[1], "need_detail")
 
-  plantilla <- prosecnur::construir_plantilla_desde_familias_repeat(inst, tabs, fam)
+  plantilla <- prosecnurapp::construir_plantilla_desde_familias_repeat(inst, tabs, fam)
   sheet_need <- plantilla$sheets[["need"]]
   expect_true("Servicio comunitario" %in% names(sheet_need))
   expect_false("Otro, por favor especificar" %in% names(sheet_need))
@@ -650,7 +650,7 @@ test_that("construir_plantilla_desde_familias_repeat no crea columna generica de
     choices_usadas = NULL
   )
 
-  plantilla <- prosecnur::construir_plantilla_desde_familias_repeat(inst, tabs, fam)
+  plantilla <- prosecnurapp::construir_plantilla_desde_familias_repeat(inst, tabs, fam)
   sheet_need <- plantilla$sheets[["need"]]
   expect_false("Otro, por favor especificar" %in% names(sheet_need))
 })
@@ -682,10 +682,10 @@ test_that("leer_familias_clasificar exige modo_so para select_one", {
   path_familias <- tempfile(fileext = ".xlsx")
   on.exit(unlink(path_familias), add = TRUE)
 
-  prosecnur::escribir_plantilla_familias(inst, dat, path = path_familias)
+  prosecnurapp::escribir_plantilla_familias(inst, dat, path = path_familias)
 
   expect_error(
-    prosecnur::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE),
+    prosecnurapp::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE),
     regexp = "modo_so.*padre.*hijo",
     perl = TRUE
   )
@@ -726,11 +726,11 @@ test_that("exportar plantilla codificacion separa select_one e integer con bloqu
   path_tpl <- tempfile(fileext = ".xlsx")
   on.exit(unlink(c(path_familias, path_tpl)), add = TRUE)
 
-  prosecnur::escribir_plantilla_familias(inst, dat, path = path_familias)
+  prosecnurapp::escribir_plantilla_familias(inst, dat, path = path_familias)
   set_familias_modo_so(path_familias, c(mode = "padre"))
-  fam <- prosecnur::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
-  plantilla <- prosecnur::construir_plantilla_desde_familias(inst, dat, fam)
-  prosecnur::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
+  fam <- prosecnurapp::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
+  plantilla <- prosecnurapp::construir_plantilla_desde_familias(inst, dat, fam)
+  prosecnurapp::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
 
   instr <- readxl::read_excel(path_tpl, sheet = "INSTRUCCIONES", col_names = FALSE)
   instr_lines <- as.character(unlist(instr, use.names = FALSE))
@@ -804,12 +804,12 @@ test_that("ppra_adaptar_data usa el bloque auxiliar para integer", {
 
   write_codif_inst_xlsx(inst, path_inst)
   openxlsx::write.xlsx(list(data = dat$raw), file = path_data, overwrite = TRUE)
-  prosecnur::escribir_plantilla_familias(inst, dat, path = path_familias)
-  fam <- prosecnur::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
+  prosecnurapp::escribir_plantilla_familias(inst, dat, path = path_familias)
+  fam <- prosecnurapp::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
   expect_s3_class(fam$integer, "data.frame")
   expect_identical(fam$integer$parent[[1]], "age")
-  plantilla <- prosecnur::construir_plantilla_desde_familias(inst, dat, fam)
-  prosecnur::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
+  plantilla <- prosecnurapp::construir_plantilla_desde_familias(inst, dat, fam)
+  prosecnurapp::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
 
   wb <- openxlsx::loadWorkbook(path_tpl)
   hdr_age <- read_sheet_headers(path_tpl, "age")
@@ -821,7 +821,7 @@ test_that("ppra_adaptar_data usa el bloque auxiliar para integer", {
   openxlsx::writeData(wb, "age", x = c("Adulto", "Mayor"), startCol = col_new_label, startRow = 3, colNames = FALSE)
   openxlsx::saveWorkbook(wb, path_tpl, overwrite = TRUE)
 
-  prosecnur::ppra_adaptar_data(
+  prosecnurapp::ppra_adaptar_data(
     path_instrumento = path_inst,
     path_datos = path_data,
     path_plantilla = path_tpl,
@@ -870,11 +870,11 @@ test_that("ppra_adaptar_data e instrumento resuelven select_one modo padre con b
 
   write_codif_inst_xlsx(inst, path_inst)
   openxlsx::write.xlsx(list(data = dat$raw), file = path_data, overwrite = TRUE)
-  prosecnur::escribir_plantilla_familias(inst, dat, path = path_familias)
+  prosecnurapp::escribir_plantilla_familias(inst, dat, path = path_familias)
   set_familias_modo_so(path_familias, c(mode = "padre"))
-  fam <- prosecnur::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
-  plantilla <- prosecnur::construir_plantilla_desde_familias(inst, dat, fam)
-  prosecnur::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
+  fam <- prosecnurapp::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
+  plantilla <- prosecnurapp::construir_plantilla_desde_familias(inst, dat, fam)
+  prosecnurapp::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
 
   wb <- openxlsx::loadWorkbook(path_tpl)
   hdr_mode <- read_sheet_headers(path_tpl, "mode")
@@ -886,7 +886,7 @@ test_that("ppra_adaptar_data e instrumento resuelven select_one modo padre con b
   openxlsx::writeData(wb, "mode", x = "Canal mixto", startCol = col_new_label, startRow = 3, colNames = FALSE)
   openxlsx::saveWorkbook(wb, path_tpl, overwrite = TRUE)
 
-  prosecnur::ppra_adaptar_data(
+  prosecnurapp::ppra_adaptar_data(
     path_instrumento = path_inst,
     path_datos = path_data,
     path_plantilla = path_tpl,
@@ -898,7 +898,7 @@ test_that("ppra_adaptar_data e instrumento resuelven select_one modo padre con b
   expect_identical(as.character(out$mode_recod[[1]]), "3")
   expect_false("mode_recod_label" %in% names(out))
 
-  prosecnur::ppra_adaptar_instrumento(
+  prosecnurapp::ppra_adaptar_instrumento(
     path_instrumento_in = path_inst,
     path_data_adaptada = path_out_data,
     path_instrumento_out = path_out_inst,
@@ -958,10 +958,10 @@ test_that("ppra_adaptar_data e instrumento preservan labels de codigos nuevos en
 
   write_codif_inst_xlsx(inst, path_inst)
   openxlsx::write.xlsx(list(data = dat$raw), file = path_data, overwrite = TRUE)
-  prosecnur::escribir_plantilla_familias(inst, dat, path = path_familias)
-  fam <- prosecnur::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
-  plantilla <- prosecnur::construir_plantilla_desde_familias(inst, dat, fam)
-  prosecnur::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
+  prosecnurapp::escribir_plantilla_familias(inst, dat, path = path_familias)
+  fam <- prosecnurapp::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
+  plantilla <- prosecnurapp::construir_plantilla_desde_familias(inst, dat, fam)
+  prosecnurapp::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
 
   wb <- openxlsx::loadWorkbook(path_tpl)
   hdr_need <- read_sheet_headers(path_tpl, "need")
@@ -971,7 +971,7 @@ test_that("ppra_adaptar_data e instrumento preservan labels de codigos nuevos en
   openxlsx::writeData(wb, "need", x = "1", startCol = col_new, startRow = 3, colNames = FALSE)
   openxlsx::saveWorkbook(wb, path_tpl, overwrite = TRUE)
 
-  prosecnur::ppra_adaptar_data(
+  prosecnurapp::ppra_adaptar_data(
     path_instrumento = path_inst,
     path_datos = path_data,
     path_plantilla = path_tpl,
@@ -984,7 +984,7 @@ test_that("ppra_adaptar_data e instrumento preservan labels de codigos nuevos en
   expect_false("need_recod_label" %in% names(out))
   expect_match(as.character(out$need_recod[[1]]), "(^|\\s)99(\\s|$)", perl = TRUE)
 
-  prosecnur::ppra_adaptar_instrumento(
+  prosecnurapp::ppra_adaptar_instrumento(
     path_instrumento_in = path_inst,
     path_data_adaptada = path_out_data,
     path_instrumento_out = path_out_inst,
@@ -1041,11 +1041,11 @@ test_that("ppra_adaptar_data e instrumento resuelven select_one modo hijo con bl
 
   write_codif_inst_xlsx(inst, path_inst)
   openxlsx::write.xlsx(list(data = dat$raw), file = path_data, overwrite = TRUE)
-  prosecnur::escribir_plantilla_familias(inst, dat, path = path_familias)
+  prosecnurapp::escribir_plantilla_familias(inst, dat, path = path_familias)
   set_familias_modo_so(path_familias, c(mode = "hijo"))
-  fam <- prosecnur::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
-  plantilla <- prosecnur::construir_plantilla_desde_familias(inst, dat, fam)
-  prosecnur::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
+  fam <- prosecnurapp::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
+  plantilla <- prosecnurapp::construir_plantilla_desde_familias(inst, dat, fam)
+  prosecnurapp::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
 
   hdr_mode <- read_sheet_headers(path_tpl, "mode")
   expect_false("mode_recod" %in% as.character(hdr_mode[1, ]))
@@ -1060,7 +1060,7 @@ test_that("ppra_adaptar_data e instrumento resuelven select_one modo hijo con bl
   openxlsx::writeData(wb, "mode", x = "Canal mixto extendido", startCol = col_new_label, startRow = 3, colNames = FALSE)
   openxlsx::saveWorkbook(wb, path_tpl, overwrite = TRUE)
 
-  prosecnur::ppra_adaptar_data(
+  prosecnurapp::ppra_adaptar_data(
     path_instrumento = path_inst,
     path_datos = path_data,
     path_plantilla = path_tpl,
@@ -1074,7 +1074,7 @@ test_that("ppra_adaptar_data e instrumento resuelven select_one modo hijo con bl
   expect_identical(as.character(out$mode_detail_recod[[1]]), "7")
   expect_false("mode_detail_recod_label" %in% names(out))
 
-  prosecnur::ppra_adaptar_instrumento(
+  prosecnurapp::ppra_adaptar_instrumento(
     path_instrumento_in = path_inst,
     path_data_adaptada = path_out_data,
     path_instrumento_out = path_out_inst,
@@ -1123,11 +1123,11 @@ test_that("ppra_adaptar_data devuelve un error claro si el bloque auxiliar tiene
 
   write_codif_inst_xlsx(inst, path_inst)
   openxlsx::write.xlsx(list(data = dat$raw), file = path_data, overwrite = TRUE)
-  prosecnur::escribir_plantilla_familias(inst, dat, path = path_familias)
+  prosecnurapp::escribir_plantilla_familias(inst, dat, path = path_familias)
   set_familias_modo_so(path_familias, c(mode = "padre"))
-  fam <- prosecnur::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
-  plantilla <- prosecnur::construir_plantilla_desde_familias(inst, dat, fam)
-  prosecnur::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
+  fam <- prosecnurapp::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
+  plantilla <- prosecnurapp::construir_plantilla_desde_familias(inst, dat, fam)
+  prosecnurapp::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
 
   wb <- openxlsx::loadWorkbook(path_tpl)
   hdr_mode <- read_sheet_headers(path_tpl, "mode")
@@ -1140,7 +1140,7 @@ test_that("ppra_adaptar_data devuelve un error claro si el bloque auxiliar tiene
   openxlsx::saveWorkbook(wb, path_tpl, overwrite = TRUE)
 
   expect_error(
-    prosecnur::ppra_adaptar_data(
+    prosecnurapp::ppra_adaptar_data(
       path_instrumento = path_inst,
       path_datos = path_data,
       path_plantilla = path_tpl,
@@ -1183,7 +1183,7 @@ test_that("ppra_adaptar_instrumento reutiliza listas iguales para integer", {
   on.exit(unlink(c(path_inst, path_out_inst)), add = TRUE)
 
   write_codif_inst_xlsx(inst, path_inst)
-  prosecnur::ppra_adaptar_instrumento(
+  prosecnurapp::ppra_adaptar_instrumento(
     path_instrumento_in = path_inst,
     path_data_adaptada = data_adapt,
     path_instrumento_out = path_out_inst,
@@ -1336,7 +1336,7 @@ test_that("reporte_cruces excluye categorias tambien en la variable de cruce", {
   )
 
   expect_no_error(
-    prosecnur::reporte_cruces(
+    prosecnurapp::reporte_cruces(
       data = dat,
       instrumento = inst,
       SECCIONES = list(Principal = c("v_cat", "v_num")),

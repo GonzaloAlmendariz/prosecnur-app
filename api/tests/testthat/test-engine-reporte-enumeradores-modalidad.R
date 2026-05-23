@@ -11,7 +11,7 @@ test_that("resolver_modalidad_enumeradores respeta precedencia fn > columna > re
     list(modalidad = "Telefónica", servicio = "UPSEP", distrito = "Ate")
   )
 
-  out_fn <- prosecnur:::resolver_modalidad_enumeradores(
+  out_fn <- prosecnurapp:::resolver_modalidad_enumeradores(
     data = df,
     col_modalidad = "modalidad_col",
     modalidad_reglas = reglas,
@@ -20,7 +20,7 @@ test_that("resolver_modalidad_enumeradores respeta precedencia fn > columna > re
   )
   expect_identical(unique(out_fn), "Custom")
 
-  out_col <- prosecnur:::resolver_modalidad_enumeradores(
+  out_col <- prosecnurapp:::resolver_modalidad_enumeradores(
     data = df,
     col_modalidad = "modalidad_col",
     modalidad_reglas = reglas,
@@ -28,7 +28,7 @@ test_that("resolver_modalidad_enumeradores respeta precedencia fn > columna > re
   )
   expect_identical(out_col, c("Presencial", "Telefónica", "Presencial", "Presencial"))
 
-  out_reglas <- prosecnur:::resolver_modalidad_enumeradores(
+  out_reglas <- prosecnurapp:::resolver_modalidad_enumeradores(
     data = df,
     modalidad_reglas = reglas,
     modalidad_default = "Presencial"
@@ -46,14 +46,14 @@ test_that("resolver_modalidad_enumeradores cubre escenarios de una o dos modalid
   reglas_dos <- list(
     list(modalidad = "Telefónica", servicio = "ULE", distrito = c("Ate", "Rimac"))
   )
-  out_dos <- prosecnur:::resolver_modalidad_enumeradores(
+  out_dos <- prosecnurapp:::resolver_modalidad_enumeradores(
     data = df,
     modalidad_reglas = reglas_dos,
     modalidad_default = "Presencial"
   )
   expect_setequal(unique(out_dos), c("Telefónica", "Presencial"))
 
-  out_una <- prosecnur:::resolver_modalidad_enumeradores(
+  out_una <- prosecnurapp:::resolver_modalidad_enumeradores(
     data = df,
     modalidad_reglas = NULL,
     modalidad_default = "Presencial"

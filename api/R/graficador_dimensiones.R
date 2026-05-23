@@ -1417,6 +1417,8 @@ graficar_heatmap_dimensiones <- function(
   .wrap_heatmap_group <- function(x, width) {
     x <- as.character(x %||% "")
     if (!nzchar(trimws(x))) return(x)
+    if (identical(x, etiq_brecha_cols)) return(x)
+    if (startsWith(x, paste0(titulo_total_x, " (N="))) return(x)
     if (!is.finite(width) || is.na(width) || width < 4) return(x)
     paste(base::strwrap(x, width = width), collapse = "\n")
   }
@@ -2399,7 +2401,7 @@ graficar_radar_dimensiones <- function(
         if (is.finite(min_obs) && min_obs < inicio_eje_pct) {
           stop(
             "`inicio_eje_pct`=", format(inicio_eje_pct, trim = TRUE),
-            " no es valido: el minimo observado es ",
+            " no es válido: el mínimo observado es ",
             format(round(min_obs, 1), trim = TRUE),
             ". Ajuste el piso o revise los datos.",
             call. = FALSE

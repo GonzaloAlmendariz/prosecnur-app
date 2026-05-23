@@ -24,6 +24,8 @@ type Props = {
   rows: Array<Record<string, unknown>>;
   /** Orden preferido de columnas. Las no listadas van al final. */
   preferredOrder?: string[];
+  /** Diccionario variable -> código -> etiqueta para mostrar respuestas legibles. */
+  valueLabels?: Record<string, Record<string, string | null> | null> | null;
   /** Callback al click en una fila (opcional, para drill adicional). */
   onRowClick?: (row: Record<string, unknown>) => void;
   emptyHint?: string;
@@ -33,6 +35,7 @@ type Props = {
 export default function DrilldownTable({
   rows,
   preferredOrder,
+  valueLabels,
   onRowClick,
   emptyHint = "Sin filas para mostrar.",
   maxHeight = 420,
@@ -56,10 +59,10 @@ export default function DrilldownTable({
       cell: (info) => {
         const v = info.getValue();
         if (v == null) return <span style={{ color: "var(--pulso-text-soft)" }}>—</span>;
-        const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+        const formatted = formatDisplayValue(k, v, valueLabels);
         return (
           <span
-            title={s}
+            title={formatted.title}
             style={{
               display: "inline-block",
               maxWidth: 320,
@@ -69,12 +72,12 @@ export default function DrilldownTable({
               verticalAlign: "top",
             }}
           >
-            {s}
+            {formatted.display}
           </span>
         );
       },
     }));
-  }, [rows, preferredOrder]);
+  }, [rows, preferredOrder, valueLabels]);
 
   const table = useReactTable({
     data: rows,
@@ -202,4 +205,47 @@ export default function DrilldownTable({
       </table>
     </div>
   );
+}
+
+export function formatDisplayValue(
+  columnKey: string,
+  value: unknown,
+  valueLabels?: Record<string, Record<string, string | null> | null> | null,
+): { display: string; title: string } {
+  const raw = typeof value === "object" ? JSON.stringify(value) : String(value);
+  const clean = raw.trim();
+  if (!clean) return { display: "—", title: "" };
+
+  const labels = lookupValueLabels(columnKey, valueLabels);
+  if (!labels) return { display: raw, title: raw };
+
+  const tokens = clean.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return { display: raw, title: raw };
+
+  const mapped = tokens.map((token) => labels[token] ?? null);
+  if (!mapped.some((label) => label && label.trim())) {
+    return { display: raw, title: raw };
+  }
+
+  const display = mapped
+    .map((label, index) => {
+      const fallback = tokens[index] ?? "";
+      const cleanLabel = typeof label === "string" ? label.trim() : "";
+      return cleanLabel || fallback;
+    })
+    .join("; ");
+  const title = display === raw ? raw : `${display} (codigo original: ${raw})`;
+  return { display, title };
+}
+
+function lookupValueLabels(
+  columnKey: string,
+  valueLabels?: Record<string, Record<string, string | null> | null> | null,
+): Record<string, string | null> | null {
+  if (!valueLabels) return null;
+  const exact = valueLabels[columnKey];
+  if (exact) return exact;
+  const lowerKey = columnKey.toLowerCase();
+  const match = Object.keys(valueLabels).find((key) => key.toLowerCase() === lowerKey);
+  return match ? valueLabels[match] ?? null : null;
 }

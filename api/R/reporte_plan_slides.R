@@ -1256,10 +1256,6 @@ p_barras_multiapiladas <- function(
 
   if (identical(modo, "var_cruce")) {
     if (is.null(vars)) stop("modo='var_cruce': `vars` no puede ser NULL.", call. = FALSE)
-    if (is.list(vars) && !is.data.frame(vars) &&
-        (is.null(names(vars)) || !all(nzchar(trimws(as.character(names(vars))))))) {
-      vars <- .ppt_as_chr_vec(vars)
-    }
     if (is.character(vars)) {
       if (length(vars) < 1L) stop("modo='var_cruce': `vars` debe ser character() con >= 1 variable.", call. = FALSE)
       vars <- trimws(vars)

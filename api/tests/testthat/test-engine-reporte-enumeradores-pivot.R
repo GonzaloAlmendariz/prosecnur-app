@@ -4,7 +4,7 @@ test_that("pivot_enum_x_corte arma columnas dinamicas y totales correctos", {
     sexo = c("F", "M", "M", "F", "F", NA_character_)
   )
 
-  tab <- prosecnur:::pivot_enum_x_corte(
+  tab <- prosecnurapp:::pivot_enum_x_corte(
     data = df,
     col_enumerador = "enumerador",
     col_corte = "sexo",
@@ -30,7 +30,7 @@ test_that("pivot_enum_x_corte aplica filtro min_encuestas y mantiene fila TOTAL"
     aula = c("101", "102", "101", "102")
   )
 
-  tab <- prosecnur:::pivot_enum_x_corte(
+  tab <- prosecnurapp:::pivot_enum_x_corte(
     data = df,
     col_enumerador = "enumerador",
     col_corte = "aula",
@@ -47,7 +47,7 @@ test_that("pivot_enum_x_corte aplica filtro min_encuestas y mantiene fila TOTAL"
 test_that("pivot_enum_resumen soporta caso vacio y retorna TOTAL=0", {
   df <- tibble::tibble(enumerador = character(0))
 
-  tab <- prosecnur:::pivot_enum_resumen(
+  tab <- prosecnurapp:::pivot_enum_resumen(
     data = df,
     col_enumerador = "enumerador",
     min_encuestas = 0,
