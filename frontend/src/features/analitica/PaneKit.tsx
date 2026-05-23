@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, ChevronDown, ChevronRight, Download, Loader2, Play } from "lucide-react";
+import { CheckCircle2, ChevronDown, Download, Loader2, Play } from "lucide-react";
 import { JobProgress } from "../../components/JobProgress";
 import { ErrorBlock } from "../../components/States";
 import { apiSaveFileAs, downloadUrl, FileJobResult } from "../../api/client";
@@ -15,11 +15,11 @@ import { useProjectShell } from "../project/ProjectShell";
 // cada paso de configuración dentro de un Panel.
 export function Section({ title, subtitle, children }: { title: React.ReactNode; subtitle?: string | React.ReactNode; children: React.ReactNode }) {
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)", lineHeight: 1.4 }}>{title}</div>
+    <section className="analitica-section">
+      <div className="analitica-section-head">
+        <div className="analitica-section-title">{title}</div>
         {subtitle && (
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4, lineHeight: 1.55 }}>
+          <div className="analitica-section-subtitle">
             {subtitle}
           </div>
         )}
@@ -35,60 +35,26 @@ export function Section({ title, subtitle, children }: { title: React.ReactNode;
 // dar affordance; la animación del chevron suaviza el switch.
 export function Collapsible({ title, summary, defaultOpen, children }: { title: string; summary?: string; defaultOpen: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
-  const [hover, setHover] = useState(false);
   return (
-    <div
-      style={{
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 6,
-        background: "var(--pulso-surface)",
-        overflow: "hidden",
-      }}
-    >
+    <div className="analitica-collapsible">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        style={{
-          width: "100%", textAlign: "left",
-          padding: "9px 12px",
-          display: "flex", alignItems: "center", gap: 6,
-          background: hover ? "var(--pulso-surface-2)" : "transparent",
-          border: "none", cursor: "pointer",
-          fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3,
-          color: "var(--pulso-text-soft)",
-          transition: "background 120ms ease",
-        }}
+        className="analitica-collapsible-trigger"
         aria-expanded={open}
       >
-        <span style={{ display: "inline-flex", transition: "transform 150ms ease", transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}>
+        <span className="analitica-collapsible-chevron" data-open={open ? "true" : "false"}>
           <ChevronDown size={13} />
         </span>
         <span>{title}</span>
         {summary && !open && (
-          <span
-            style={{
-              marginLeft: "auto",
-              fontSize: 11, fontWeight: 500,
-              textTransform: "none", letterSpacing: 0,
-              color: "var(--pulso-text)",
-              maxWidth: "60%",
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}
-          >
+          <span className="analitica-collapsible-summary">
             {summary}
           </span>
         )}
       </button>
       {open && (
-        <div
-          style={{
-            padding: "10px 14px 14px",
-            background: "white",
-            borderTop: "1px solid var(--pulso-border)",
-          }}
-        >
+        <div className="analitica-collapsible-body">
           {children}
         </div>
       )}
@@ -173,18 +139,11 @@ export function GenerateFooter({
 
   return (
     <>
-      <div
-        style={{
-          display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap",
-          borderTop: "1px solid var(--pulso-border)",
-          paddingTop: 14, marginTop: 6,
-        }}
-      >
+      <div className="analitica-generate-footer">
         <button
           className="pulso-primary"
           onClick={onGenerate}
           disabled={running || !!disabled}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
         >
           {running ? (
             <Loader2 size={14} className="pulso-spin" />
@@ -201,15 +160,7 @@ export function GenerateFooter({
         {fileId && (
           <a
             href={downloadUrl(fileId)}
-            style={{
-              fontSize: 12,
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "5px 10px", borderRadius: 999,
-              color: "var(--pulso-primary)",
-              background: "var(--pulso-primary-soft)",
-              textDecoration: "none",
-              fontWeight: 600,
-            }}
+            className="analitica-download-pill"
           >
             <Download size={12} />
             {multi ? `${downloadName} (zip · ${perBase!.length} bases)` : downloadName}
@@ -230,15 +181,8 @@ export function GenerateFooter({
       </div>
 
       {multi && (
-        <div
-          style={{
-            marginTop: 10, padding: "8px 10px",
-            borderRadius: 6, background: "var(--pulso-surface)",
-            border: "1px solid var(--pulso-border)",
-            display: "flex", flexDirection: "column", gap: 6,
-          }}
-        >
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--pulso-text-soft)" }}>
+        <div className="analitica-per-base-card">
+          <div className="analitica-per-base-title">
             Descarga individual por base:
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>

@@ -5,7 +5,7 @@ import { apiAnaliticaConfigExport, apiAnaliticaConfigImport, apiAnaliticaConfigP
 import type { AnaliticaFuenteBase } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { ConfigIoButtons } from "../../components/ConfigIoButtons";
-import { ContextBar } from "../../components/ContextBar";
+import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { useAnaliticaStore, type FuentePreferida } from "./store";
 
@@ -14,7 +14,7 @@ import { useAnaliticaStore, type FuentePreferida } from "./store";
 //   original) con toggle para forzar una u otra.
 // - Export / Import de la configuración como JSON.
 // - Indicador "Autoguardado activo".
-// Aparece por encima del stepper de 5 reportes.
+// Aparece como command bar por encima del split view de reportes.
 
 export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; prepError: string }) {
   const { state, refresh } = useSession();
@@ -77,59 +77,61 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
     : "Codificada está disponible y suele ser la opción recomendada para entregables finales.";
 
   return (
-    <div style={{ marginBottom: 10 }}>
-      <ContextBar
-        ariaLabel="Fuente de datos de los reportes"
-        density="compact"
-        background={usandoAdaptados ? "var(--tipo-sm-bg)" : undefined}
-        border={usandoAdaptados ? "1px solid var(--tipo-sm-border)" : undefined}
-        style={{ gap: 10 }}
-      >
-        {usandoAdaptados ? (
-          <CheckCircle2 size={16} color="var(--tipo-sm-fg)" />
-        ) : (
-          <Database size={16} color="var(--pulso-text-soft)" />
-        )}
-        <div style={{ fontSize: 12, flex: "1 1 420px", lineHeight: 1.35, minWidth: 260 }}>
-          <strong style={{ color: usandoAdaptados ? "var(--tipo-sm-fg)" : "var(--pulso-text)" }}>
+    <ContextBar
+      ariaLabel="Fuente de datos y configuración de analítica"
+      density="compact"
+      className={`pulso-analitica-sourcebar${usandoAdaptados ? " is-adapted" : ""}${prepError ? " has-error" : ""}`}
+      elevated
+    >
+      <div className="pulso-analitica-source-status">
+        <span aria-hidden="true" className="pulso-analitica-source-icon">
+          {usandoAdaptados ? <CheckCircle2 size={16} /> : <Database size={16} />}
+        </span>
+        <div className="pulso-analitica-source-copy">
+          <strong>
             Fuente analítica: {usandoAdaptados ? "Codificada" : "Original"}
-          </strong>
-          <span style={{ color: prepError ? "var(--pulso-danger-fg)" : "var(--pulso-text-soft)" }}> · {guidance}</span>
-          <div style={{ marginTop: 2, fontSize: 10.5, color: "var(--pulso-text-soft)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          </strong>{" "}
+          <span>{guidance}</span>
+          <div className="pulso-analitica-source-files" title={`XLSForm: ${activeXls} · Data: ${activeData}`}>
             XLSForm: {activeXls} · Data: {activeData}
           </div>
         </div>
-        <div style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-          <SourceButton
-            source="originales"
-            title="Original"
-            icon={<FileSpreadsheet size={14} />}
-            active={fuenteActiva === "originales"}
-            disabled={prepBusy || switching}
-            bases={detalle?.original.bases ?? []}
-            description="Fase 1"
-            onSelect={selectFuente}
-          />
-          <SourceButton
-            source="adaptados"
-            title="Codificada"
-            icon={<GitBranch size={14} />}
-            active={fuenteActiva === "adaptados"}
-            disabled={prepBusy || switching || !codificadaDisponible}
-            bases={detalle?.codificada.bases ?? []}
-            description={codificadaDisponible ? "Fase 3" : "No disponible"}
-            onSelect={selectFuente}
-          />
-        </div>
-        <span style={{ flex: "1 1 auto" }} />
+      </div>
+
+      <div className="pulso-analitica-source-switch" role="group" aria-label="Fuente analítica">
+        <SourceButton
+          source="originales"
+          title="Original"
+          icon={<FileSpreadsheet size={14} />}
+          active={fuenteActiva === "originales"}
+          disabled={prepBusy || switching}
+          bases={detalle?.original.bases ?? []}
+          description="Fase 1"
+          onSelect={selectFuente}
+        />
+        <SourceButton
+          source="adaptados"
+          title="Codificada"
+          icon={<GitBranch size={14} />}
+          active={fuenteActiva === "adaptados"}
+          disabled={prepBusy || switching || !codificadaDisponible}
+          bases={detalle?.codificada.bases ?? []}
+          description={codificadaDisponible ? "Fase 3" : "No disponible"}
+          onSelect={selectFuente}
+        />
+      </div>
+
+      <ContextBarDivider />
+
+      <div className="pulso-analitica-source-actions">
         <SaveStatusIndicator state="saved" savedLabel="Autoguardado" />
         <ConfigIoButtons
           onExport={ioExport}
           onImport={ioImport}
           filenamePrefix="prosecnur_analitica"
         />
-      </ContextBar>
-    </div>
+      </div>
+    </ContextBar>
   );
 }
 
@@ -165,29 +167,17 @@ function SourceButton({
       disabled={disabled}
       onClick={() => void onSelect(source)}
       title={titleAttr}
-      style={{
-        border: `1px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-        background: active ? "white" : "rgba(255,255,255,0.7)",
-        color: disabled ? "var(--pulso-text-soft)" : "var(--pulso-text)",
-        borderRadius: 999,
-        padding: "5px 10px",
-        cursor: disabled ? "not-allowed" : "pointer",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        textAlign: "center",
-        opacity: disabled ? 0.65 : 1,
-        minHeight: 30,
-      }}
+      aria-pressed={active}
+      className={`pulso-analitica-source-option${active ? " is-active" : ""}`}
     >
-      <span style={{ color: active ? "var(--pulso-primary)" : "var(--pulso-text-soft)", display: "inline-flex" }}>
+      <span className="pulso-analitica-source-option-icon">
         {icon}
       </span>
-      <span style={{ fontSize: 12, fontWeight: 800 }}>{title}</span>
-      <span style={{ fontSize: 10, color: active ? "var(--pulso-primary)" : "var(--pulso-text-soft)", fontWeight: 700 }}>
-        {description}
+      <span className="pulso-analitica-source-option-copy">
+        <strong>{title}</strong>
+        <span>{description}</span>
       </span>
-      {active ? <CheckCircle2 size={13} color="var(--pulso-primary)" /> : null}
+      {active ? <CheckCircle2 size={13} /> : null}
     </button>
   );
 }
