@@ -69,17 +69,20 @@ export function ArgField({
 
   return (
     <label
-      className="pulso-arg-field"
+      className="pulso-arg-field pulso-gv2-field-card"
       data-arg-name={meta.name}
       data-arg-type={meta.tipo_input}
       data-arg-state={argState}
+      data-has-own-value={hasOwnValue}
       style={{
         display: "flex", flexDirection: "column", gap: 4, marginBottom: 10,
         opacity: isInherited && !hasOwnValue ? 0.78 : 1,
       }}
     >
       <FieldHeader meta={meta} argState={argState} onReset={onReset} />
-      <FieldControl meta={meta} value={displayValue} onChange={onChange} variables={variables} />
+      <div className="pulso-gv2-field-control">
+        <FieldControl meta={meta} value={displayValue} onChange={onChange} variables={variables} />
+      </div>
     </label>
   );
 }
@@ -95,45 +98,26 @@ function FieldHeader({ meta, argState, onReset }: { meta: ArgMetadata; argState:
   const isCustom = argState === "custom";
   const isFromMode = argState === "from-mode";
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12 }}>
-      <span style={{ fontWeight: 600, color: "var(--pulso-text)" }}>{meta.label}</span>
+    <span className="pulso-gv2-field-header">
+      <span className="pulso-gv2-field-title">{meta.label}</span>
       {(isCustom || isFromMode) && (
         <span
+          className={`pulso-gv2-field-state-dot ${isCustom ? "is-custom" : "is-mode"}`}
           title={isCustom ? "Valor custom (azul): tú lo cambiaste sobre el preset/modo" : "Valor del modo (morado): proviene del modo aplicado"}
           aria-label={isCustom ? "Valor custom" : "Valor del modo"}
-          style={{
-            width: 7, height: 7, borderRadius: 999,
-            background: isCustom ? "var(--pulso-primary)" : "#7c3aed",
-            display: "inline-block",
-            flexShrink: 0,
-          }}
         />
       )}
       {meta.descripcion && (
         <span
+          className="pulso-gv2-field-info"
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
-          style={{ position: "relative", display: "inline-flex", alignItems: "center", cursor: "help" }}
         >
           <Info size={11} color="var(--pulso-text-soft)" />
           {showTooltip && (
             <span
               role="tooltip"
-              style={{
-                position: "absolute",
-                left: "calc(100% + 6px)", top: "50%", transform: "translateY(-50%)",
-                zIndex: 30,
-                minWidth: 180, maxWidth: 280,
-                padding: "7px 10px",
-                background: "var(--pulso-text)",
-                color: "white",
-                fontSize: 11, fontWeight: 400,
-                lineHeight: 1.45,
-                borderRadius: 6,
-                boxShadow: "var(--pulso-shadow-med)",
-                whiteSpace: "normal",
-                pointerEvents: "none",
-              }}
+              className="pulso-gv2-field-tooltip"
             >
               {meta.descripcion}
             </span>
@@ -147,25 +131,6 @@ function FieldHeader({ meta, argState, onReset }: { meta: ArgMetadata; argState:
           onClick={(e) => { e.preventDefault(); onReset(); }}
           title={isCustom ? "Restaurar al valor del preset" : "Quitar este arg del modo (volver al preset)"}
           aria-label="Restaurar al preset"
-          style={{
-            marginLeft: "auto",
-            display: "inline-flex", alignItems: "center", gap: 3,
-            padding: "2px 6px", borderRadius: 4,
-            border: "1px solid var(--pulso-border)",
-            background: "white",
-            color: "var(--pulso-text-soft)",
-            fontSize: 10, fontWeight: 500,
-            cursor: "pointer",
-            transition: "background 120ms, color 120ms",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--pulso-surface-2)";
-            e.currentTarget.style.color = "var(--pulso-primary)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "white";
-            e.currentTarget.style.color = "var(--pulso-text-soft)";
-          }}
         >
           <RotateCcw size={10} />
           preset
@@ -398,7 +363,7 @@ function NumberControl({
 
   return (
     <div className="pulso-gv2-number-control" style={{ maxWidth: controlWidth }}>
-      <div style={{ display: "flex", alignItems: "stretch", gap: 4 }}>
+      <div className="pulso-gv2-number-stepper">
         <button
           type="button"
           className="pulso-arg-stepper-button"
@@ -408,7 +373,7 @@ function NumberControl({
         >
           −
         </button>
-        <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+        <div className="pulso-gv2-number-input-wrap">
           <input
             type="text"
             inputMode="decimal"
@@ -441,15 +406,7 @@ function NumberControl({
           {displayUnit && (
             <span
               aria-hidden="true"
-              style={{
-                position: "absolute",
-                right: 8,
-                top: "50%",
-                transform: "translateY(-50%)",
-                fontSize: 10,
-                color: "var(--pulso-text-soft)",
-                pointerEvents: "none",
-              }}
+              className="pulso-gv2-number-unit"
             >
               {displayUnit}
             </span>
@@ -496,7 +453,7 @@ function NumberControl({
       )}
 
       {(meta.efecto || relatedHint) && (
-        <span style={{ fontSize: 10.5, color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>
+        <span className="pulso-gv2-field-hint">
           {meta.efecto}
           {meta.efecto && relatedHint ? " " : ""}
           {relatedHint}
@@ -819,36 +776,22 @@ function SeriesColorsField({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 460 }}>
+    <div className="pulso-gv2-series-colors">
       {visibleRows.length === 0 ? (
-        <div
-          style={{
-            border: "1px dashed var(--pulso-border)",
-            borderRadius: 8,
-            background: "var(--pulso-surface)",
-            padding: 10,
-            fontSize: 11,
-            color: "var(--pulso-text-soft)",
-          }}
-        >
+        <div className="pulso-gv2-inline-empty">
           Sin colores personalizados. Se usará la paleta del gráfico.
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="pulso-gv2-series-list">
           {showingInherited && (
-            <span style={{ fontSize: 10.5, color: "var(--pulso-text-soft)" }}>
+            <span className="pulso-gv2-field-hint">
               Valores heredados del preset. Edita una fila para personalizarlos.
             </span>
           )}
           {visibleRows.map(([name, color], index) => (
             <div
               key={`${name}-${index}`}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(140px, 1fr) minmax(180px, 220px) 28px",
-                gap: 8,
-                alignItems: "start",
-              }}
+              className="pulso-gv2-series-row"
             >
               <input
                 type="text"
@@ -868,7 +811,6 @@ function SeriesColorsField({
                 onClick={(e) => { e.preventDefault(); removeRow(index); }}
                 aria-label={`Quitar color de ${name}`}
                 title="Quitar serie"
-                style={{ minWidth: 28, minHeight: 28 }}
               >
                 <Trash2 size={12} />
               </button>
@@ -877,12 +819,11 @@ function SeriesColorsField({
         </div>
       )}
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      <div className="pulso-gv2-inline-actions">
         <button
           type="button"
           className="pulso-arg-preset-button"
           onClick={(e) => { e.preventDefault(); addRow(); }}
-          style={seriesButtonStyle}
         >
           <Plus size={12} /> Agregar serie
         </button>
@@ -890,7 +831,6 @@ function SeriesColorsField({
           type="button"
           className="pulso-arg-preset-button"
           onClick={(e) => { e.preventDefault(); applySuggested(); }}
-          style={seriesButtonStyle}
         >
           <Palette size={12} /> Paleta sugerida
         </button>
@@ -899,7 +839,6 @@ function SeriesColorsField({
             type="button"
             className="pulso-arg-preset-button"
             onClick={(e) => { e.preventDefault(); onChange(null); }}
-            style={seriesButtonStyle}
           >
             <RotateCcw size={12} /> Usar preset
           </button>
@@ -908,20 +847,6 @@ function SeriesColorsField({
     </div>
   );
 }
-
-const seriesButtonStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 5,
-  padding: "5px 9px",
-  borderRadius: 7,
-  border: "1px solid var(--pulso-border)",
-  background: "white",
-  color: "var(--pulso-text)",
-  fontSize: 11,
-  fontWeight: 600,
-  cursor: "pointer",
-};
 
 function normalizeSeriesColors(value: unknown): Record<string, string> {
   if (!value) return {};
@@ -996,35 +921,18 @@ function CriteriaConfigField({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 560 }}>
+    <div className="pulso-gv2-criteria-config">
       {items.length === 0 ? (
-        <div
-          style={{
-            border: "1px dashed var(--pulso-border)",
-            borderRadius: 8,
-            background: "var(--pulso-surface)",
-            padding: 10,
-            fontSize: 11,
-            color: "var(--pulso-text-soft)",
-          }}
-        >
+        <div className="pulso-gv2-inline-empty">
           Agrega criterios y asigna variables a cada uno.
         </div>
       ) : (
         items.map((item, index) => (
           <div
             key={`${item.id ?? item.titulo}-${index}`}
-            style={{
-              border: "1px solid var(--pulso-border)",
-              borderRadius: 8,
-              background: "white",
-              padding: 10,
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-            }}
+            className="pulso-gv2-criteria-card"
           >
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 28px", gap: 8, alignItems: "center" }}>
+            <div className="pulso-gv2-criteria-row">
               <input
                 type="text"
                 value={item.titulo}
@@ -1041,7 +949,6 @@ function CriteriaConfigField({
                 }}
                 aria-label={`Quitar criterio ${item.titulo || index + 1}`}
                 title="Quitar criterio"
-                style={{ minWidth: 28, minHeight: 28 }}
               >
                 <Trash2 size={12} />
               </button>
@@ -1058,7 +965,6 @@ function CriteriaConfigField({
         type="button"
         className="pulso-arg-preset-button"
         onClick={(e) => { e.preventDefault(); addCriterion(); }}
-        style={{ ...seriesButtonStyle, alignSelf: "flex-start" }}
       >
         <Plus size={12} /> Agregar criterio
       </button>
@@ -1189,21 +1095,9 @@ function DedicatedSurfaceNotice({
     !(Array.isArray(value) && value.length === 0);
 
   return (
-    <div
-      style={{
-        padding: "8px 10px",
-        borderRadius: 6,
-        border: "1px dashed var(--pulso-border)",
-        background: "var(--pulso-surface)",
-        fontSize: 11,
-        color: "var(--pulso-text-soft)",
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-      }}
-    >
+    <div className="pulso-gv2-dedicated-notice">
       <Info size={12} />
-      <span style={{ flex: 1 }}>
+      <span className="pulso-gv2-dedicated-notice-text">
         {surfaceLabel(meta.tipo_input)}
       </span>
       {hasValue && (
@@ -1213,7 +1107,7 @@ function DedicatedSurfaceNotice({
             e.preventDefault();
             onChange(meta.tipo_input === "overrides" || meta.tipo_input === "filtros" || meta.tipo_input === "base_config" ? {} : null);
           }}
-          style={{ fontSize: 10, padding: "3px 7px", color: "#991b1b" }}
+          className="pulso-gv2-dedicated-clear"
         >
           Limpiar
         </button>
@@ -1255,7 +1149,7 @@ function MultiFlag({
   }
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+    <div className="pulso-gv2-multiflag">
       {opciones.map((opt) => {
         const on = set.has(opt.value);
         return (
@@ -1266,25 +1160,12 @@ function MultiFlag({
             aria-checked={on}
             title={opt.hint}
             onClick={() => toggle(opt.value)}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              padding: "4px 10px", borderRadius: 999,
-              border: `1px solid ${on ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-              background: on ? "var(--pulso-primary-soft)" : "white",
-              color: on ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-              fontSize: 11, fontWeight: on ? 700 : 500,
-              cursor: "pointer",
-              transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
-            }}
+            className={`pulso-gv2-multiflag-chip ${on ? "is-on" : ""}`}
           >
             {on && (
               <span
                 aria-hidden="true"
-                style={{
-                  width: 6, height: 6, borderRadius: "50%",
-                  background: "var(--pulso-primary)",
-                  display: "inline-block",
-                }}
+                className="pulso-gv2-multiflag-dot"
               />
             )}
             {opt.label}
@@ -1392,22 +1273,19 @@ function ColorField({
     .filter((p) => p.colores.length > 0);
 
   return (
-    <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: 8, width: "min(100%, 360px)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+    <div ref={ref} className="pulso-gv2-color-control">
+      <div className="pulso-gv2-color-row">
         {/* Swatch clickeable */}
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           title="Elegir color"
+          className="pulso-gv2-color-swatch"
           style={{
-            width: 28, height: 28, borderRadius: 6,
-            border: "1px solid var(--pulso-border)",
             background:
               effective && effective !== "transparent"
                 ? effective
                 : "repeating-linear-gradient(45deg, #eee 0 4px, #fff 4px 8px)",
-            cursor: "pointer", padding: 0, flexShrink: 0,
-            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.4)",
           }}
           aria-label="Abrir selector de color"
         />
@@ -1436,10 +1314,9 @@ function ColorField({
           <button
             type="button"
             onClick={() => commit(null)}
-            className="pulso-icon"
+            className="pulso-icon pulso-gv2-color-clear"
             aria-label="Borrar color (heredar)"
             title="Borrar (hereda del preset padre)"
-            style={{ padding: 3, minWidth: 22, minHeight: 22 }}
           >
             <XIcon size={11} />
           </button>
@@ -1448,17 +1325,7 @@ function ColorField({
 
       {open && (
         <div
-          style={{
-            width: "100%",
-            maxHeight: 260,
-            overflowY: "auto",
-            background: "white",
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 8,
-            boxShadow: "var(--pulso-shadow-med)",
-            padding: 10,
-            display: "flex", flexDirection: "column", gap: 10,
-          }}
+          className="pulso-gv2-color-popover"
         >
           {/* Presets comunes */}
           <PopoverSection icon={<Palette size={11} />} label="Comunes">
@@ -1535,15 +1402,8 @@ function PopoverSection({ icon, label, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      <h5
-        style={{
-          margin: 0, fontSize: 10, fontWeight: 700,
-          textTransform: "uppercase", letterSpacing: 0.4,
-          color: "var(--pulso-text-soft)",
-          display: "inline-flex", alignItems: "center", gap: 5,
-        }}
-      >
+    <section className="pulso-gv2-color-popover-section">
+      <h5>
         {icon}
         {label}
       </h5>
@@ -1560,7 +1420,7 @@ function SwatchRow({
   onPick: (hex: string) => void;
 }) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+    <div className="pulso-gv2-swatch-row">
       {colors.map((c) => {
         const isActive = active.toLowerCase() === c.value.toLowerCase();
         return (
@@ -1569,20 +1429,10 @@ function SwatchRow({
             type="button"
             onClick={() => onPick(c.value)}
             title={`${c.label} · ${c.value}`}
+            className={`pulso-gv2-swatch ${isActive ? "is-active" : ""}`}
             style={{
-              width: 22, height: 22, borderRadius: 5,
               background: c.value,
-              border: isActive
-                ? "2px solid var(--pulso-primary)"
-                : "1px solid var(--pulso-border)",
-              boxShadow: isActive
-                ? "0 0 0 2px var(--pulso-primary-soft)"
-                : "inset 0 0 0 1px rgba(255,255,255,0.35)",
-              cursor: "pointer", padding: 0,
-              transition: "transform 120ms ease",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.1)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
           />
         );
       })}

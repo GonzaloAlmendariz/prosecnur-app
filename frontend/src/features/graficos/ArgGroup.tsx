@@ -102,7 +102,7 @@ export function ArgGroup({
   // ArgGroup vive dentro de una card mayor (StylePanel/FiltersPanel).
   if (flatten) {
     return (
-      <div style={{ marginBottom: 8 }}>
+      <div className="pulso-gv2-arg-body pulso-gv2-arg-body--flat">
         {args.map((a) => (
           <ArgField
             key={a.name}
@@ -153,25 +153,21 @@ export function ArgGroup({
         }}
         aria-expanded={open}
       >
-        <span style={{ display: "flex", alignItems: "flex-start", gap: 7, minWidth: 0, flex: 1 }}>
+        <span className="pulso-gv2-arg-group-main">
           <span
             className="pulso-gv2-arg-chevron"
-            style={{
-              display: "inline-flex",
-              marginTop: 2,
-              transition: "transform 150ms ease",
-              transform: open ? "rotate(0deg)" : "rotate(-90deg)",
-              flexShrink: 0,
-            }}
+            data-open={open}
           >
             <ChevronDown size={12} color="var(--pulso-text-soft)" />
           </span>
-          <Icon size={12} color="var(--pulso-text-soft)" style={{ marginTop: 2, flexShrink: 0 }} />
-          <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "var(--pulso-text-soft)" }}>
+          <span className="pulso-gv2-arg-group-icon">
+            <Icon size={12} />
+          </span>
+          <span className="pulso-gv2-arg-group-copy">
+            <span className="pulso-gv2-arg-group-label">
               {meta.label}
             </span>
-            <span style={{ fontSize: 10.5, fontWeight: 500, lineHeight: 1.35, color: "var(--pulso-text-soft)" }}>
+            <span className="pulso-gv2-arg-group-description">
               {meta.descripcion}
             </span>
           </span>
@@ -179,17 +175,6 @@ export function ArgGroup({
         <span
           className={`pulso-gv2-arg-count ${nValuados > 0 ? "has-value" : ""}`}
           title={nValuados > 0 ? `${nValuados} con valor · ${args.length - nValuados} vacíos` : `${args.length} args sin valor`}
-          style={{
-            marginLeft: "auto",
-            fontSize: 10, fontWeight: 600,
-            padding: "2px 8px", borderRadius: 999,
-            border: "1px solid",
-            borderColor: nValuados > 0 ? "var(--pulso-primary-border)" : "var(--pulso-border)",
-            background: nValuados > 0 ? "var(--pulso-primary-soft)" : "white",
-            color: nValuados > 0 ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-            display: "inline-flex", alignItems: "center", gap: 4,
-            lineHeight: 1.4,
-          }}
         >
           {nValuados > 0 ? `${nValuados} / ${args.length}` : args.length}
         </span>
