@@ -81,15 +81,23 @@ export function StylePanel({ slide, args }: StylePanelProps) {
             </div>
             <div className="pulso-gv2-style-banner-hint">
               Ajusta cómo Prosecnur dibuja cada gráfico en el PPT. Los cambios se guardan sobre el modo aplicado.
-              <span className="pulso-gv2-style-legend" aria-label="Estados de los valores">
-                <span className="pulso-gv2-style-legend-item">
-                  <span className="pulso-gv2-state-chip is-inherited">●</span> valor por defecto
+              <span className="pulso-gv2-source-flow" aria-label="Jerarquía de origen de los valores">
+                <span className="pulso-gv2-source-step is-inherited">
+                  <span className="pulso-gv2-source-dot" />
+                  <strong>Preset</strong>
+                  <span>base heredada</span>
                 </span>
-                <span className="pulso-gv2-style-legend-item">
-                  <span className="pulso-gv2-state-chip is-mode">●</span> modo guardado
+                <span className="pulso-gv2-source-arrow">→</span>
+                <span className="pulso-gv2-source-step is-mode">
+                  <span className="pulso-gv2-source-dot" />
+                  <strong>Modo</strong>
+                  <span>estilo guardado</span>
                 </span>
-                <span className="pulso-gv2-style-legend-item">
-                  <span className="pulso-gv2-state-chip is-custom">●</span> tu cambio
+                <span className="pulso-gv2-source-arrow">→</span>
+                <span className="pulso-gv2-source-step is-custom">
+                  <span className="pulso-gv2-source-dot" />
+                  <strong>Manual</strong>
+                  <span>pisa lo anterior</span>
                 </span>
               </span>
             </div>

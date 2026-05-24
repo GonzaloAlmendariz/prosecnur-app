@@ -97,16 +97,21 @@ function FieldHeader({ meta, argState, onReset }: { meta: ArgMetadata; argState:
   const [showTooltip, setShowTooltip] = useState(false);
   const isCustom = argState === "custom";
   const isFromMode = argState === "from-mode";
+  const stateMeta = fieldStateMeta(argState);
   return (
     <span className="pulso-gv2-field-header">
       <span className="pulso-gv2-field-title">{meta.label}</span>
-      {(isCustom || isFromMode) && (
+      <span
+        className={`pulso-gv2-field-state-badge ${stateMeta.className}`}
+        title={stateMeta.title}
+        aria-label={stateMeta.ariaLabel}
+      >
         <span
-          className={`pulso-gv2-field-state-dot ${isCustom ? "is-custom" : "is-mode"}`}
-          title={isCustom ? "Valor custom (azul): tú lo cambiaste sobre el preset/modo" : "Valor del modo (morado): proviene del modo aplicado"}
-          aria-label={isCustom ? "Valor custom" : "Valor del modo"}
+          aria-hidden="true"
+          className={`pulso-gv2-field-state-dot ${stateMeta.className}`}
         />
-      )}
+        {stateMeta.label}
+      </span>
       {meta.descripcion && (
         <span
           className="pulso-gv2-field-info"
@@ -138,6 +143,36 @@ function FieldHeader({ meta, argState, onReset }: { meta: ArgMetadata; argState:
       )}
     </span>
   );
+}
+
+function fieldStateMeta(argState: ArgState): {
+  label: string;
+  className: string;
+  title: string;
+  ariaLabel: string;
+} {
+  if (argState === "custom") {
+    return {
+      label: "Manual",
+      className: "is-custom",
+      title: "Cambio manual: pisa el preset o el modo aplicado",
+      ariaLabel: "Valor cambiado manualmente",
+    };
+  }
+  if (argState === "from-mode") {
+    return {
+      label: "Modo",
+      className: "is-mode",
+      title: "Valor del modo aplicado",
+      ariaLabel: "Valor proveniente del modo aplicado",
+    };
+  }
+  return {
+    label: "Preset",
+    className: "is-inherited",
+    title: "Valor heredado del preset",
+    ariaLabel: "Valor heredado del preset",
+  };
 }
 
 // ---- Control por tipo_input ---------------------------------------------
@@ -1190,26 +1225,47 @@ const COLOR_PRESETS: { value: string; label: string }[] = [
   { value: "#002457", label: "Azul Prosecnur" },
   { value: "#0B3A67", label: "Azul profundo" },
   { value: "#39588B", label: "Azul acero" },
+  { value: "#4F6FA7", label: "Azul medio" },
+  { value: "#93C4EB", label: "Celeste" },
+  { value: "#00BFC4", label: "Turquesa" },
   { value: "#B33A3A", label: "Rojo" },
+  { value: "#F8766D", label: "Coral" },
+  { value: "#C77CFF", label: "Violeta" },
   { value: "#2E7D32", label: "Verde" },
+  { value: "#7CAE00", label: "Verde lima" },
   { value: "#F5A623", label: "Ámbar" },
+  { value: "#E68613", label: "Naranja" },
 ];
 
 // Palabras clave CSS que los graficadores R también aceptan y que no
 // tienen representación hex — se muestran como chip literal en vez
 // de swatch.
-const COLOR_KEYWORDS = ["transparent", "white", "black"];
+const COLOR_KEYWORDS: { value: string; label: string }[] = [
+  { value: "transparent", label: "Transparente" },
+  { value: "white", label: "Blanco" },
+  { value: "black", label: "Negro" },
+];
+
+const COLOR_KEYWORD_ALIASES: Record<string, string> = {
+  transparente: "transparent",
+  transparent: "transparent",
+  blanco: "white",
+  white: "white",
+  negro: "black",
+  black: "black",
+};
 
 function isValidColor(v: string): boolean {
   if (!v) return true; // vacío = hereda
-  if (COLOR_KEYWORDS.includes(v.toLowerCase())) return true;
-  return /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v.trim());
+  const clean = canonicalizeColorInput(v);
+  if (COLOR_KEYWORDS.some((kw) => kw.value === clean.toLowerCase())) return true;
+  return /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(clean.trim());
 }
 
 // Normaliza shorthand (#abc → #aabbcc) y keyword → hex, para que el
 // <input type="color"> nativo siempre reciba un hex de 7 chars.
 function toHex7(v: string): string {
-  const s = (v || "").trim().toLowerCase();
+  const s = canonicalizeColorInput(v).toLowerCase();
   if (s === "white") return "#ffffff";
   if (s === "black" || s === "transparent" || s === "") return "#000000";
   const m = s.match(/^#([0-9a-f]{3})$/);
@@ -1222,6 +1278,26 @@ function toHex7(v: string): string {
   return "#000000";
 }
 
+function canonicalizeColorInput(v: string): string {
+  const clean = (v || "").trim();
+  const alias = COLOR_KEYWORD_ALIASES[clean.toLowerCase()];
+  return alias ?? clean;
+}
+
+function formatColorInput(v: string | undefined): string {
+  const clean = (v || "").trim();
+  const keyword = COLOR_KEYWORDS.find((kw) => kw.value === clean.toLowerCase());
+  return keyword?.label ?? clean;
+}
+
+function swatchBackgroundFor(value: string): string {
+  const clean = canonicalizeColorInput(value).toLowerCase();
+  if (clean === "transparent") {
+    return "repeating-linear-gradient(45deg, #d8deea 0 4px, #fff 4px 8px)";
+  }
+  return clean;
+}
+
 function ColorField({
   value, defaultValue, onChange,
 }: {
@@ -1231,11 +1307,12 @@ function ColorField({
 }) {
   const paletas = usePlanStore((s) => s.paletas);
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(value);
+  const [draft, setDraft] = useState(formatColorInput(value));
   const ref = useRef<HTMLDivElement>(null);
+  const colorInputRef = useRef<HTMLInputElement | null>(null);
 
   // Sync draft con prop externo (ej. al cambiar de preset seleccionado).
-  useEffect(() => { setDraft(value); }, [value]);
+  useEffect(() => { setDraft(formatColorInput(value)); }, [value]);
 
   // Click fuera → cerrar popover.
   useEffect(() => {
@@ -1248,10 +1325,10 @@ function ColorField({
   }, [open]);
 
   function commit(v: string | null) {
-    const clean = v == null ? null : v.trim();
+    const clean = v == null ? null : canonicalizeColorInput(v);
     if (clean === "" || clean == null) onChange(null);
     else onChange(clean);
-    setDraft(clean ?? "");
+    setDraft(formatColorInput(clean ?? ""));
   }
 
   function pickSwatch(hex: string) {
@@ -1261,6 +1338,7 @@ function ColorField({
 
   const effective = value || defaultValue || "";
   const valid = isValidColor(draft);
+  const wheelHex = toHex7(draft || effective);
 
   // Todos los colores únicos extraídos de las paletas del estudio.
   // Agrupados por paleta para que el analista reconozca de dónde viene
@@ -1282,10 +1360,9 @@ function ColorField({
           title="Elegir color"
           className="pulso-gv2-color-swatch"
           style={{
-            background:
-              effective && effective !== "transparent"
-                ? effective
-                : "repeating-linear-gradient(45deg, #eee 0 4px, #fff 4px 8px)",
+            background: effective
+              ? swatchBackgroundFor(effective)
+              : "repeating-linear-gradient(45deg, #d8deea 0 4px, #fff 4px 8px)",
           }}
           aria-label="Abrir selector de color"
         />
@@ -1293,12 +1370,12 @@ function ColorField({
         <input
           type="text"
           value={draft}
-          placeholder={defaultValue || "#RRGGBB o 'white'"}
+          placeholder={formatColorInput(defaultValue) || "#RRGGBB, blanco o transparente"}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={() => commit(draft)}
           onKeyDown={(e) => {
             if (e.key === "Enter") { commit(draft); (e.target as HTMLInputElement).blur(); }
-            if (e.key === "Escape") { setDraft(value); (e.target as HTMLInputElement).blur(); }
+            if (e.key === "Escape") { setDraft(formatColorInput(value)); (e.target as HTMLInputElement).blur(); }
           }}
           style={{
             ...inputStyle,
@@ -1352,42 +1429,50 @@ function ColorField({
 
           {/* Color wheel nativo + keywords */}
           <PopoverSection icon={<Pipette size={11} />} label="Personalizado">
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <label
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  fontSize: 11, cursor: "pointer",
+            <div className="pulso-gv2-color-custom">
+              <button
+                type="button"
+                className="pulso-gv2-color-wheel-button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  colorInputRef.current?.click();
                 }}
               >
-                <input
-                  type="color"
-                  value={toHex7(draft || effective)}
-                  onChange={(e) => commit(e.target.value)}
-                  style={{
-                    width: 28, height: 28, padding: 0,
-                    border: "1px solid var(--pulso-border)",
-                    borderRadius: 6, cursor: "pointer",
-                  }}
+                <span className="pulso-gv2-color-wheel-icon">
+                  <Pipette size={13} />
+                </span>
+                <span>Rueda de color</span>
+                <span
+                  className="pulso-gv2-color-wheel-preview"
+                  style={{ background: wheelHex }}
+                  aria-hidden="true"
                 />
-                Abrir rueda
-              </label>
-              {COLOR_KEYWORDS.map((kw) => (
-                <button
-                  key={kw}
-                  type="button"
-                  onClick={() => pickSwatch(kw)}
-                  style={{
-                    fontSize: 10, padding: "3px 8px", borderRadius: 999,
-                    border: `1px solid ${effective === kw ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-                    background: effective === kw ? "var(--pulso-primary-soft)" : "white",
-                    color: effective === kw ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-                    fontFamily: "ui-monospace, monospace",
-                    cursor: "pointer",
-                  }}
-                >
-                  {kw}
-                </button>
-              ))}
+              </button>
+              <input
+                ref={colorInputRef}
+                type="color"
+                value={wheelHex}
+                onInput={(e) => commit((e.target as HTMLInputElement).value)}
+                onChange={(e) => commit(e.target.value)}
+                className="pulso-gv2-color-native-input"
+                aria-label="Selector nativo de color"
+              />
+              <div className="pulso-gv2-color-keywords" aria-label="Colores especiales">
+                {COLOR_KEYWORDS.map((kw) => {
+                  const active = canonicalizeColorInput(effective).toLowerCase() === kw.value;
+                  return (
+                    <button
+                      key={kw.value}
+                      type="button"
+                      onClick={() => pickSwatch(kw.value)}
+                      className={`pulso-gv2-color-keyword ${active ? "is-active" : ""}`}
+                      aria-pressed={active}
+                    >
+                      {kw.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </PopoverSection>
         </div>
@@ -1429,9 +1514,10 @@ function SwatchRow({
             type="button"
             onClick={() => onPick(c.value)}
             title={`${c.label} · ${c.value}`}
+            aria-label={`${c.label} (${c.value})`}
             className={`pulso-gv2-swatch ${isActive ? "is-active" : ""}`}
             style={{
-              background: c.value,
+              background: swatchBackgroundFor(c.value),
             }}
           />
         );
