@@ -456,6 +456,51 @@ function appRoot() {
   return path.resolve(__dirname, "..");
 }
 
+function firstExistingPath(candidates) {
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      if (fs.existsSync(candidate)) return candidate;
+    } catch (_error) {
+      // Ignore unreadable candidates; they are optional discovery paths.
+    }
+  }
+  return "";
+}
+
+function configurePptxPreviewRenderer(root) {
+  const moduleRel = path.join("@oai", "artifact-tool", "dist", "artifact_tool.mjs");
+  const artifactModule = firstExistingPath([
+    process.env.PROSECNUR_ARTIFACT_TOOL_MODULE,
+    path.join(root, "node_modules", moduleRel),
+    path.join(root, "desktop", "node_modules", moduleRel),
+    path.join(root, "frontend", "node_modules", moduleRel),
+    path.join(__dirname, "node_modules", moduleRel),
+    path.join(os.homedir(), ".cache", "codex-runtimes", "codex-primary-runtime", "dependencies", "node", "node_modules", moduleRel)
+  ]);
+
+  if (artifactModule && !process.env.PROSECNUR_ARTIFACT_TOOL_MODULE) {
+    process.env.PROSECNUR_ARTIFACT_TOOL_MODULE = artifactModule;
+  }
+  if (artifactModule && !process.env.PROSECNUR_ENABLE_ARTIFACT_RENDERER) {
+    process.env.PROSECNUR_ENABLE_ARTIFACT_RENDERER = "1";
+  }
+
+  // Electron can run as Node for a specific child process when
+  // ELECTRON_RUN_AS_NODE is set for that spawn. Do not set it globally here:
+  // if it leaks into Chromium helper processes, Electron may crash with
+  // "bad option" for renderer flags.
+  if (artifactModule && !process.env.PROSECNUR_NODE) {
+    process.env.PROSECNUR_NODE = process.execPath;
+    process.env.PROSECNUR_NODE_RUN_AS_NODE = "1";
+  }
+
+  writeLog(
+    `[pptx-preview] artifact-tool=${artifactModule || "not-found"}; ` +
+    `node=${process.env.PROSECNUR_NODE || "system"}; desktop_automation=false\n`
+  );
+}
+
 function htmlPage(title, body) {
   return `<!doctype html>
 <html lang="es">
@@ -731,10 +776,12 @@ function lookedLikePortBindError(stderrSoFar) {
 // startBackend reintente con otro puerto. Si todo va bien, devuelve
 // { bound: true, port }.
 async function spawnBackendOnce(rscript, launchScript, root, port) {
+  const backendEnv = { ...process.env };
+  delete backendEnv.ELECTRON_RUN_AS_NODE;
   const proc = spawn(rscript, [launchScript], {
     cwd: root,
     env: {
-      ...process.env,
+      ...backendEnv,
       PULSO_HOST: HOST,
       PULSO_PORT: String(port),
       PULSO_OPEN_BROWSER: "false",
@@ -791,6 +838,7 @@ async function spawnBackendOnce(rscript, launchScript, root, port) {
 
 async function startBackend() {
   const root = appRoot();
+  configurePptxPreviewRenderer(root);
   const launchScript = path.join(root, "launcher", "launch.R");
   const rscript = process.env.PULSO_RSCRIPT || "Rscript";
   const requestedPort = Number(process.env.PULSO_PORT || 0);

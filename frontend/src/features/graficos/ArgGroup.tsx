@@ -117,14 +117,6 @@ export function ArgGroup({
   }
 
   const Icon = meta.icon;
-  const nValuados = args.filter((a) => {
-    const v = values[a.name];
-    if (v === null || v === undefined || v === "") return false;
-    if (Array.isArray(v) && v.length === 0) return false;
-    if (typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0) return false;
-    return true;
-  }).length;
-
   return (
     <section
       className="pulso-gv2-arg-group pulso-gv2-arg-group--section is-open"
@@ -146,12 +138,6 @@ export function ArgGroup({
               {meta.descripcion}
             </span>
           </span>
-        </span>
-        <span
-          className={`pulso-gv2-arg-count ${nValuados > 0 ? "has-value" : ""}`}
-          title={nValuados > 0 ? `${nValuados} con valor · ${args.length - nValuados} vacíos` : `${args.length} args sin valor`}
-        >
-          {nValuados > 0 ? `${nValuados} / ${args.length}` : args.length}
         </span>
       </div>
       <div className="pulso-gv2-arg-body">

@@ -1855,7 +1855,7 @@
 #
 # La metadata histórica expone muchos nombres cercanos al motor R
 # (canvas_w_*, wrap_y, etc.). Antes de enviarla al frontend, compactamos esa
-# superficie en grupos y ayudas pensadas para quien está armando el PPT.
+# superficie en grupos y descripciones pensadas para quien está armando el PPT.
 
 .graf_arg_ui_group <- function(arg_name, grupo = NULL) {
   nm <- as.character(arg_name %||% "")
@@ -1897,9 +1897,18 @@
 
   patch <- switch(
     nm,
+    formato = list(
+      descripcion = "Plantilla del texto automático de la base. Usa %s como marcador del conteo. Ej. Base: %s -> Base: 120."
+    ),
+    sufijo_auto = list(
+      descripcion = "Texto que se agrega después del conteo automático. Déjalo vacío si no quieres añadir nada. Ej. respuestas."
+    ),
+    prefijo_barra_extra = list(
+      descripcion = "Texto antes del valor lateral. Déjalo vacío para mostrar solo el número o porcentaje. Ej. N = 120."
+    ),
     ancho_max_eje_y = list(
       label = "Ancho de texto de etiquetas",
-      descripcion = "Cuántos caracteres se permiten por línea en las etiquetas. Sube este valor si el texto queda demasiado partido.",
+      descripcion = "Cuántos caracteres se permiten por línea en etiquetas. No reserva espacio; combínalo con Espacio para etiquetas. Ej. 24 compacto, 42 más largo.",
       unidad = "caracteres",
       min = 10,
       max = 80,
@@ -1910,7 +1919,7 @@
     ),
     wrap_y = list(
       label = "Ancho de texto de etiquetas",
-      descripcion = "Cuántos caracteres se permiten por línea en las etiquetas. Es el mismo ajuste que usa el eje Y.",
+      descripcion = "Ancho de corte del texto del eje. Úsalo junto con el espacio para etiquetas si el texto queda muy partido. Ej. 18 parte más; 36 deja frases completas.",
       unidad = "caracteres",
       min = 10,
       max = 80,
@@ -1921,7 +1930,7 @@
     ),
     canvas_w_etiquetas = list(
       label = "Espacio para etiquetas",
-      descripcion = "Reserva más ancho a la izquierda para que las etiquetas respiren. Para que el texto use ese espacio, ajusta también el ancho de texto.",
+      descripcion = "Proporción del ancho interno reservada a etiquetas. Si sube, queda menos espacio para barras. Ej. 0.28 reserva 28%.",
       unidad = "proporción",
       min = 0,
       max = 0.55,
@@ -1932,7 +1941,7 @@
     ),
     canvas_w_bars = list(
       label = "Espacio para barras",
-      descripcion = "Ancho relativo reservado al área principal de barras.",
+      descripcion = "Proporción destinada al cuerpo principal de barras. Convive con etiquetas, columna derecha y separaciones. Ej. 0.62 reserva 62%.",
       unidad = "proporción",
       min = 0.2,
       max = 0.9,
@@ -1941,7 +1950,7 @@
     ),
     canvas_w_extra = list(
       label = "Espacio para columna derecha",
-      descripcion = "Reserva ancho para N, Top Two Box u otra columna de apoyo a la derecha.",
+      descripcion = "Proporción reservada para N, Total, top boxes u otro valor lateral. Si no usas barra extra, puede quedar en 0. Ej. 0.12 reserva 12%.",
       unidad = "proporción",
       min = 0,
       max = 0.35,
@@ -1950,6 +1959,7 @@
     ),
     canvas_w_buf_etq_bars = list(
       label = "Separación etiquetas-barras",
+      descripcion = "Espacio proporcional entre etiquetas y barras. Ej. 0.02 agrega una separación sutil.",
       unidad = "proporción",
       min = 0,
       max = 0.12,
@@ -1958,6 +1968,7 @@
     ),
     canvas_w_buf_bars_extra = list(
       label = "Separación barras-columna derecha",
+      descripcion = "Espacio proporcional entre el final de las barras y la columna derecha. Ej. 0.015 evita que el valor lateral se pegue.",
       unidad = "proporción",
       min = 0,
       max = 0.12,
@@ -1972,6 +1983,18 @@
       max = 1.2,
       step = 0.02,
       control = "stepper"
+    ),
+    tabla_firstcol_wrap = list(
+      descripcion = "Caracteres máximos por línea antes de partir la primera columna. Ej. 28 compacto; 45 deja textos más largos."
+    ),
+    tabla_firstcol_frac = list(
+      descripcion = "Proporción del ancho total de la tabla reservada para la primera columna. Ej. 0.4 reserva 40%."
+    ),
+    tabla_height_frac = list(
+      descripcion = "Proporción del alto disponible que ocupa la tabla dentro del placeholder. Ej. 0.72 usa 72%."
+    ),
+    umbral_rojo_pct = list(
+      descripcion = "Marca celdas por debajo del porcentaje indicado. Usa 0 para desactivar el marcado. Ej. 60 marca valores menores a 60%."
     ),
     leyenda_posicion = list(
       label = "Ubicación de la leyenda",
@@ -2004,6 +2027,7 @@
     ),
     canvas_h_header_in = list(
       label = "Alto del encabezado",
+      descripcion = "Reserva alto interno para título, subtítulo o elementos superiores del gráfico exportado. Ej. 0.45 pulgadas.",
       unidad = "pulgadas",
       min = 0,
       max = 1.5,
@@ -2012,6 +2036,7 @@
     ),
     canvas_h_legend_in = list(
       label = "Alto de leyenda",
+      descripcion = "Reserva alto interno para la leyenda. Si la ocultas, normalmente puede quedar en 0. Ej. 0.22 para una leyenda baja.",
       unidad = "pulgadas",
       min = 0,
       max = 1.2,
@@ -2020,6 +2045,7 @@
     ),
     canvas_h_caption_in = list(
       label = "Alto del pie",
+      descripcion = "Reserva alto para notas, fuente o pie dentro del gráfico exportado. Ej. 0.08 deja una franja pequeña.",
       unidad = "pulgadas",
       min = 0,
       max = 1,
@@ -2028,6 +2054,7 @@
     ),
     canvas_h_toprow_in = list(
       label = "Alto de fila superior",
+      descripcion = "Alto reservado para la fila superior en layouts con tabla o bloques superiores. Ej. 0.35 crea una fila compacta.",
       unidad = "pulgadas",
       min = 0,
       max = 0.8,
@@ -2048,7 +2075,7 @@
       max = 1,
       step = 0.0001,
       control = "stepper",
-      descripcion = "Porcentaje minimo de la barra para mostrar o mover la etiqueta. Puedes escribir 0.05 para 0.05%.",
+      descripcion = "Porcentaje visible de la barra para mostrar o mover la etiqueta. Ej. escribe 0.05 para 0.05%; escribe 1 para 1%.",
       efecto = "Define desde que tamano se muestra o cambia de posicion la etiqueta."
     ), patch)
   }

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Palette, Sliders, RotateCcw, Info, LayoutPanelTop } from "lucide-react";
+import { Palette, Sliders, RotateCcw, Info, LayoutPanelTop, ArrowRight } from "lucide-react";
 import { ArgMetadata, GraficadorRef, Slide, VarInfo } from "../../../../api/client";
 import { usePlanStore, SLIDE_GRAF_SLOTS } from "../../store";
 import { graficadorToPresetType } from "../../graficadorPresetMap";
@@ -29,7 +29,7 @@ export type StylePanelProps = {
 };
 
 export function StylePanel({ slide, args }: StylePanelProps) {
-  const presets = usePlanStore((s) => s.presets);
+  const overridesReusables = usePlanStore((s) => s.overridesReusables);
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
 
   const slotNames = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
@@ -58,21 +58,72 @@ export function StylePanel({ slide, args }: StylePanelProps) {
     return set;
   }, [args, slide.payload]);
 
+  const styleFlow = useMemo(() => {
+    let hasPreset = false;
+    let hasMode = false;
+    let hasManual = false;
+
+    for (const { slot, graf } of presetInfo.populatedSlots) {
+      const value = (slide.payload as Record<string, unknown>)[slot] as GraficadorRef | undefined;
+      const overrides = asRecord(value?.args?.overrides);
+      const overrideKeys = Object.keys(overrides).filter(
+        (k) => overrides[k] !== null && overrides[k] !== undefined
+      );
+
+      if (overrideKeys.length === 0) {
+        hasPreset = true;
+        continue;
+      }
+
+      const presetType = graficadorToPresetType(graf);
+      const aplicables = presetType
+        ? overridesReusables.filter((o) => o.tipo_preset === presetType)
+        : [];
+      if (!aplicables.length) {
+        hasManual = true;
+        continue;
+      }
+
+      const exactMatch = aplicables.find((o) => shallowEqualArgs((o.args as Record<string, unknown>) ?? {}, overrides));
+      if (exactMatch) {
+        hasMode = true;
+        continue;
+      }
+
+      const partialMatch = aplicables.find((o) =>
+        isSubsetArgs((o.args as Record<string, unknown>) ?? {}, overrides)
+      );
+      if (partialMatch) {
+        hasManual = true;
+        continue;
+      }
+
+      hasManual = true;
+    }
+
+    return {
+      hasPreset,
+      hasMode,
+      hasManual,
+    };
+  }, [presetInfo.populatedSlots, slide.payload, overridesReusables]);
+
   function resetSlideStyleArgs() {
-    if (!window.confirm("¿Restaurar los args de estilo del slide al preset?")) return;
+    if (!window.confirm("¿Restaurar los args de estilo del slide al estilo base?")) return;
     const patch: Record<string, unknown> = {};
     for (const a of args) patch[a.name] = null;
     updatePayload(slide.id, patch);
   }
 
   const grouped = groupArgs(args);
+  const hasSlideCustom = customSlideArgKeys.size > 0;
   const hasSlideArgs = grouped.length > 0;
   const hasSlots = slotNames.length > 0;
 
   return (
     <div className="pulso-gv2-style-panel">
       {/* Banner: leyenda visual de estados (más concisa). */}
-      {presetInfo.presetTypes.length > 0 ? (
+      {hasSlots ? (
         <div className="pulso-gv2-style-banner">
           <span className="pulso-gv2-style-banner-icon"><Palette size={14} /></span>
           <div className="pulso-gv2-style-banner-body">
@@ -80,36 +131,41 @@ export function StylePanel({ slide, args }: StylePanelProps) {
               Estilo del gráfico
             </div>
             <div className="pulso-gv2-style-banner-hint">
-              Ajusta cómo Prosecnur dibuja cada gráfico en el PPT. Los cambios se guardan sobre el modo aplicado.
-              <span className="pulso-gv2-source-flow" aria-label="Jerarquía de origen de los valores">
-                <span className="pulso-gv2-source-step is-inherited">
-                  <span className="pulso-gv2-source-dot" />
-                  <strong>Preset</strong>
-                  <span>base heredada</span>
-                </span>
-                <span className="pulso-gv2-source-arrow">→</span>
-                <span className="pulso-gv2-source-step is-mode">
-                  <span className="pulso-gv2-source-dot" />
-                  <strong>Modo</strong>
-                  <span>estilo guardado</span>
-                </span>
-                <span className="pulso-gv2-source-arrow">→</span>
-                <span className="pulso-gv2-source-step is-custom">
-                  <span className="pulso-gv2-source-dot" />
-                  <strong>Manual</strong>
-                  <span>pisa lo anterior</span>
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : slotNames.length > 0 ? (
-        <div className="pulso-gv2-style-banner is-info">
-          <span className="pulso-gv2-style-banner-icon"><Info size={14} /></span>
-          <div className="pulso-gv2-style-banner-body">
-            <div className="pulso-gv2-style-banner-title">Aún no hay gráficos</div>
-            <div className="pulso-gv2-style-banner-hint">
-              Ve a la pestaña <strong>Datos</strong> y elige el tipo de gráfico. Después podrás ajustar su estilo aquí.
+              <div className="pulso-gv2-style-flow-title">Ruta de estilo del gráfico</div>
+              <div className="pulso-gv2-style-flow" aria-label="Jerarquía de origen de los valores">
+                <div className="pulso-gv2-style-flow-step is-base is-active" data-state="Base">
+                  <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
+                  <div className="pulso-gv2-style-flow-step-copy">
+                    <strong>Base global</strong>
+                    <span>
+                      Configura el aspecto base del tipo de gráfico para toda la presentación.
+                      Es el punto de inicio compartido antes de los ajustes por gráfico.
+                    </span>
+                  </div>
+                </div>
+                <ArrowRight size={13} className="pulso-gv2-style-flow-arrow" />
+                <div className={`pulso-gv2-style-flow-step is-mode ${styleFlow.hasMode ? "is-active" : ""}`} data-state="Modo">
+                  <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
+                  <div className="pulso-gv2-style-flow-step-copy">
+                    <strong>Modo</strong>
+                    <span>
+                      Ajuste reutilizable para varios gráficos (compacto, narrativo, etc.).
+                      Aplícalo para homogeneidad sin tocar cada gráfico uno por uno.
+                    </span>
+                  </div>
+                </div>
+                <ArrowRight size={13} className="pulso-gv2-style-flow-arrow" />
+                <div className={`pulso-gv2-style-flow-step is-custom ${styleFlow.hasManual ? "is-active" : ""}`} data-state="Manual">
+                  <div className="pulso-gv2-style-flow-step-icon"><Sliders size={12} /></div>
+                  <div className="pulso-gv2-style-flow-step-copy">
+                    <strong>Manual</strong>
+                    <span>
+                      Ajustes puntuales solo de este slide/slot.
+                      Si interviene aquí, <strong>Manual tiene prioridad</strong> sobre modo y base.
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -129,16 +185,12 @@ export function StylePanel({ slide, args }: StylePanelProps) {
           <div className="pulso-gv2-style-section-head">
             <Sliders size={13} />
             <span>Diseño de la lámina</span>
-            {customSlideArgKeys.size > 0 && (
-              <span className="pulso-gv2-style-section-meta has-custom">
-                {customSlideArgKeys.size} con cambios
-              </span>
-            )}
+            {hasSlideCustom && <span className="pulso-gv2-style-section-meta has-custom">Ajustes personalizados</span>}
             <button
               type="button"
               className="pulso-gv2-style-reset"
               onClick={resetSlideStyleArgs}
-              disabled={customSlideArgKeys.size === 0}
+              disabled={!hasSlideCustom}
               title="Borrar tus cambios y volver al estilo por defecto"
             >
               <RotateCcw size={11} /> Restaurar
@@ -166,12 +218,11 @@ export function StylePanel({ slide, args }: StylePanelProps) {
           <div className="pulso-gv2-style-section-head pulso-gv2-style-slots-head">
             <LayoutPanelTop size={13} />
             <span>Cada gráfico</span>
-            <span className="pulso-gv2-style-section-meta">
-              {presetInfo.populatedSlots.length} de {slotNames.length} configurado{presetInfo.populatedSlots.length === 1 ? "" : "s"}
-            </span>
           </div>
           <div className="pulso-gv2-style-section-hint">
-            Ajusta lectura, espacio, leyenda y valores del gráfico. Usa <strong>Modo</strong> para aplicar o guardar un estilo reutilizable.
+            Ajusta lectura, espacio, leyenda y valores del gráfico.
+            Usa <strong>Modo</strong> para reutilizar el mismo estilo en varios gráficos y,
+            cuando hace falta, <strong>Manual</strong> para ajustes finos por slot.
           </div>
           <div className="pulso-gv2-slot-stack">
             {slotNames.map((slotName) => (
@@ -195,4 +246,33 @@ export function StylePanel({ slide, args }: StylePanelProps) {
       )}
     </div>
   );
+}
+
+function shallowEqualArgs(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  const ka = Object.keys(a);
+  const kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  for (const key of ka) {
+    if (!sameValue(a[key], b[key])) return false;
+  }
+  return true;
+}
+
+function isSubsetArgs(subset: Record<string, unknown>, superset: Record<string, unknown>): boolean {
+  const keys = Object.keys(subset);
+  if (keys.length === 0) return false;
+  for (const key of keys) {
+    if (!Object.prototype.hasOwnProperty.call(superset, key)) return false;
+    if (!sameValue(subset[key], superset[key])) return false;
+  }
+  return true;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function sameValue(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }

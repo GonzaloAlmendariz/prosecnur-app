@@ -3833,9 +3833,9 @@ export async function apiGraficosIconoUpload(nombre: string, dataBase64: string)
 }
 
 // Preview de UN slide: genera un mini-PPTX de 1 slide usando el mismo
-// pipeline que el export completo. Rápido (~2-3s típico) y 100% fiel al
-// output final (no una maqueta). El analista lo descarga y lo abre en
-// PowerPoint/Keynote sin salir del flujo.
+// pipeline que el export completo. El backend intenta rasterizar ese PPTX
+// con un renderer headless; si no hay renderer, mantiene el PPTX interno
+// como fallback técnico pero la UI no obliga a descargarlo.
 // Imagen PNG embebida en el .pptx del preview — una por slot de
 // graficador (prosecnur con `usar_canvas=TRUE` renderiza cada slot como
 // un PNG dentro del ZIP). El backend las extrae y devuelve inline como
@@ -3846,20 +3846,62 @@ export type PreviewImage = {
   size: number;
 };
 
+export type SlideRenderedPreview = {
+  png_base64: string;          // data:image/png;base64,… del slide completo
+  width: number | null;
+  height: number | null;
+  renderer: string;            // "soffice+pdftoppm", "soffice+magick", …
+};
+
+export type PreviewSlideOptions = {
+  preview_quality?: "quick" | "normal";
+  include_images?: boolean;
+};
+
 export type PreviewSlideResponse = {
   ok: true;
-  file_id: string;             // para descargar el .pptx si lo quiere
+  file_id: string;             // id interno del mini-PPTX generado
   size: number;
   type: "pptx";
   images: PreviewImage[];      // vacío si el slide no tiene gráficos (ej. portada)
+  slide_preview?: SlideRenderedPreview | null;
 };
 
-export async function apiGraficosPreviewSlide(slide: Slide) {
+export type GraficosPreviewRendererStatus = {
+  ok: true;
+  available: boolean;
+  renderer: string | null;
+  platform: string | null;
+  desktop_automation: boolean;
+  message: string;
+  renderers: Array<{
+    id: string;
+    available: boolean;
+    configured: boolean;
+    command?: string | null;
+    script?: string | null;
+    module?: string | null;
+  }>;
+};
+
+export async function apiGraficosPreviewSlide(
+  slide: Slide,
+  config?: unknown,
+  options?: PreviewSlideOptions
+) {
   return handle<PreviewSlideResponse>(
     await apiFetch("/api/graficos/preview-slide", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ slide }),
+      body: JSON.stringify({ slide, config, ...options }),
+    })
+  );
+}
+
+export async function apiGraficosPreviewRenderer() {
+  return handle<GraficosPreviewRendererStatus>(
+    await apiFetch("/api/graficos/preview-renderer", {
+      headers: headers(),
     })
   );
 }
@@ -3888,22 +3930,22 @@ export async function apiGraficosValidar(plan: PlanJson) {
   );
 }
 
-export async function apiGraficosPpt(plan: PlanJson, presets?: Record<string, unknown>, w_presets?: Record<string, unknown>) {
+export async function apiGraficosPpt(plan: PlanJson, presets?: Record<string, unknown>, w_presets?: Record<string, unknown>, config?: unknown) {
   return handle<JobStart>(
     await apiFetch("/api/graficos/ppt", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ plan, presets, w_presets }),
+      body: JSON.stringify({ plan, presets, w_presets, config }),
     })
   );
 }
 
-export async function apiGraficosWord(plan: PlanJson, presets?: Record<string, unknown>, w_presets?: Record<string, unknown>) {
+export async function apiGraficosWord(plan: PlanJson, presets?: Record<string, unknown>, w_presets?: Record<string, unknown>, config?: unknown) {
   return handle<JobStart>(
     await apiFetch("/api/graficos/word", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ plan, presets, w_presets }),
+      body: JSON.stringify({ plan, presets, w_presets, config }),
     })
   );
 }

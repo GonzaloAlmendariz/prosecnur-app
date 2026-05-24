@@ -321,6 +321,15 @@
   )
 }
 
+.graficos_effective_config <- function(sid, override = NULL) {
+  cfg <- session_get(sid, required = FALSE)$graficos_config %||% list()
+  override <- .as_json_list(override)
+  if (is.list(override) && length(override) > 0L) {
+    cfg[names(override)] <- override
+  }
+  cfg
+}
+
 # Enriquece la config de presets JSON antes de pasarla a prosecnur con:
 # 1. `usar_canvas = TRUE` en todos los tipos (invariante de Prosecnur — todos
 #    los reportes usan canvas/cowplot).
@@ -504,6 +513,461 @@
   }) |> Filter(f = Negate(is.null))
 }
 
+.first_available_cmd <- function(candidates) {
+  hits <- Sys.which(candidates)
+  hits <- unname(hits[nzchar(hits)])
+  if (length(hits)) hits[[1]] else ""
+}
+
+.first_available_executable <- function(candidates) {
+  candidates <- unique(candidates[nzchar(candidates)])
+  for (candidate in candidates) {
+    if (grepl("[/\\\\]", candidate)) {
+      if (file.exists(candidate)) return(candidate)
+    } else {
+      hit <- Sys.which(candidate)
+      if (nzchar(hit)) return(unname(hit))
+    }
+  }
+  ""
+}
+
+.soffice_cmd <- function() {
+  env_candidates <- unname(Sys.getenv(
+    c("PROSECNUR_SOFFICE", "SOFFICE_PATH", "LIBREOFFICE_PATH"),
+    unset = ""
+  ))
+
+  platform_candidates <- switch(
+    Sys.info()[["sysname"]] %||% "",
+    "Darwin" = c(
+      "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+      "/Applications/OpenOffice.app/Contents/MacOS/soffice"
+    ),
+    "Windows" = c(
+      file.path(Sys.getenv("ProgramFiles", "C:/Program Files"), "LibreOffice/program/soffice.exe"),
+      file.path(Sys.getenv("ProgramFiles(x86)", "C:/Program Files (x86)"), "LibreOffice/program/soffice.exe"),
+      file.path(Sys.getenv("LOCALAPPDATA", ""), "Programs/LibreOffice/program/soffice.exe")
+    ),
+    character()
+  )
+
+  .first_available_executable(c(env_candidates, "soffice", "libreoffice", platform_candidates))
+}
+
+.artifact_renderer_script <- function() {
+  installed <- tryCatch(
+    system.file("scripts/render_pptx_slide_artifact.mjs", package = "prosecnurapp"),
+    error = function(e) ""
+  )
+  candidates <- c(
+    installed,
+    file.path(getwd(), "api", "inst", "scripts", "render_pptx_slide_artifact.mjs"),
+    file.path(getwd(), "inst", "scripts", "render_pptx_slide_artifact.mjs")
+  )
+  .first_available_executable(candidates)
+}
+
+.artifact_tool_module_path <- function() {
+  env_module <- Sys.getenv("PROSECNUR_ARTIFACT_TOOL_MODULE", unset = "")
+  module_rel <- file.path("@oai", "artifact-tool", "dist", "artifact_tool.mjs")
+  node_path_dirs <- strsplit(Sys.getenv("NODE_PATH", unset = ""), .Platform$path.sep, fixed = TRUE)[[1]]
+  node_path_dirs <- node_path_dirs[nzchar(node_path_dirs)]
+
+  repo_root <- Sys.getenv("PULSO_REPO_ROOT", unset = "")
+  cwd <- getwd()
+  home <- path.expand("~")
+  candidates <- c(
+    env_module,
+    file.path(cwd, "node_modules", module_rel),
+    file.path(cwd, "desktop", "node_modules", module_rel),
+    file.path(cwd, "frontend", "node_modules", module_rel),
+    if (nzchar(repo_root)) file.path(repo_root, "node_modules", module_rel) else "",
+    if (nzchar(repo_root)) file.path(repo_root, "desktop", "node_modules", module_rel) else "",
+    if (nzchar(repo_root)) file.path(repo_root, "frontend", "node_modules", module_rel) else "",
+    file.path(node_path_dirs, module_rel),
+    file.path(home, ".cache", "codex-runtimes", "codex-primary-runtime", "dependencies", "node", "node_modules", module_rel)
+  )
+  .first_available_executable(candidates)
+}
+
+.artifact_renderer_configured <- function() {
+  nzchar(.artifact_tool_module_path()) ||
+    isTRUE(tolower(Sys.getenv("PROSECNUR_ENABLE_ARTIFACT_RENDERER", unset = "")) %in% c("1", "true", "yes"))
+}
+
+.artifact_node_cmd <- function() {
+  home <- path.expand("~")
+  .first_available_executable(c(
+    Sys.getenv("PROSECNUR_NODE", unset = ""),
+    Sys.getenv("NODE_BINARY", unset = ""),
+    "node",
+    file.path(home, ".cache", "codex-runtimes", "codex-primary-runtime", "dependencies", "node", "bin", "node")
+  ))
+}
+
+.artifact_node_env <- function(node) {
+  run_as_node <- tolower(Sys.getenv("PROSECNUR_NODE_RUN_AS_NODE", unset = ""))
+  if (run_as_node %in% c("1", "true", "yes")) {
+    return("ELECTRON_RUN_AS_NODE=1")
+  }
+  character()
+}
+
+.preview_renderer_status <- function() {
+  artifact_enabled <- .artifact_renderer_configured()
+  artifact_node <- if (artifact_enabled) .artifact_node_cmd() else ""
+  artifact_script <- if (artifact_enabled) .artifact_renderer_script() else ""
+  artifact_module <- if (artifact_enabled) .artifact_tool_module_path() else ""
+  artifact_available <- isTRUE(artifact_enabled) &&
+    nzchar(artifact_node) &&
+    nzchar(artifact_script) &&
+    nzchar(artifact_module)
+
+  soffice <- .soffice_cmd()
+  soffice_available <- nzchar(soffice)
+
+  renderer <- if (artifact_available) {
+    "artifact-tool"
+  } else if (soffice_available) {
+    "soffice"
+  } else {
+    NA_character_
+  }
+
+  list(
+    available = isTRUE(artifact_available || soffice_available),
+    renderer = renderer,
+    platform = Sys.info()[["sysname"]] %||% NA_character_,
+    desktop_automation = FALSE,
+    message = if (artifact_available || soffice_available) {
+      "Renderer headless disponible para preview inline."
+    } else {
+      "No se encontro renderer headless. Configura LibreOffice/soffice o un renderer interno de desarrollo."
+    },
+    renderers = list(
+      list(
+        id = "artifact-tool",
+        available = isTRUE(artifact_available),
+        configured = isTRUE(artifact_enabled),
+        command = if (nzchar(artifact_node)) artifact_node else NA_character_,
+        script = if (nzchar(artifact_script)) artifact_script else NA_character_,
+        module = if (nzchar(artifact_module)) artifact_module else NA_character_
+      ),
+      list(
+        id = "soffice",
+        available = isTRUE(soffice_available),
+        configured = isTRUE(soffice_available),
+        command = if (nzchar(soffice)) soffice else NA_character_
+      )
+    )
+  )
+}
+
+.png_preview_payload <- function(path, renderer) {
+  if (!file.exists(path)) return(NULL)
+  bytes <- tryCatch(readBin(path, "raw", file.info(path)$size), error = function(e) NULL)
+  if (is.null(bytes) || !length(bytes)) return(NULL)
+
+  dims <- tryCatch(dim(png::readPNG(path)), error = function(e) NULL)
+  if (is.null(dims) || length(dims) < 2L) {
+    width <- NA_integer_
+    height <- NA_integer_
+  } else {
+    height <- as.integer(dims[[1]])
+    width <- as.integer(dims[[2]])
+  }
+
+  list(
+    png_base64 = paste0("data:image/png;base64,", jsonlite::base64_enc(bytes)),
+    width = width,
+    height = height,
+    renderer = renderer
+  )
+}
+
+.pdf_page_to_png <- function(pdf_path, out_dir, renderer, page = 1L, dpi = 220, timeout = 20) {
+  if (!file.exists(pdf_path)) return(NULL)
+  page <- suppressWarnings(as.integer(page %||% 1L))
+  if (is.na(page) || page < 1L) page <- 1L
+  timeout <- suppressWarnings(as.integer(timeout %||% 20L))
+  if (is.na(timeout) || timeout < 1L) timeout <- 20L
+
+  pdftoppm <- .first_available_cmd(c("pdftoppm"))
+  if (nzchar(pdftoppm)) {
+    prefix <- file.path(out_dir, sprintf("slide_preview_%03d", page))
+    png_path <- paste0(prefix, ".png")
+    ok <- tryCatch({
+      system2(
+        pdftoppm,
+        c(
+          "-png",
+          "-singlefile",
+          "-f", as.character(page),
+          "-l", as.character(page),
+          "-r", as.character(dpi),
+          pdf_path,
+          prefix
+        ),
+        stdout = TRUE,
+        stderr = TRUE,
+        timeout = timeout
+      )
+      file.exists(png_path)
+    }, error = function(e) FALSE)
+    if (isTRUE(ok)) return(.png_preview_payload(png_path, paste0(renderer, "+pdftoppm")))
+  }
+
+  if (requireNamespace("magick", quietly = TRUE)) {
+    png_path <- file.path(out_dir, sprintf("slide_preview_%03d.png", page))
+    ok <- tryCatch({
+      img <- magick::image_read_pdf(pdf_path, density = dpi)
+      if (length(img) < page) return(FALSE)
+      magick::image_write(img[page], path = png_path, format = "png")
+      file.exists(png_path)
+    }, error = function(e) FALSE)
+    if (isTRUE(ok)) return(.png_preview_payload(png_path, paste0(renderer, "+magick")))
+  }
+
+  NULL
+}
+
+.render_pptx_slide_png_artifact <- function(pptx_path, out_dir, slide_index = 1L, timeout = 30, scale = 2) {
+  if (!.artifact_renderer_configured()) return(NULL)
+  node <- .artifact_node_cmd()
+  script <- .artifact_renderer_script()
+  module <- .artifact_tool_module_path()
+  if (!nzchar(node) || !nzchar(script) || !nzchar(module)) return(NULL)
+
+  slide_index <- suppressWarnings(as.integer(slide_index %||% 1L))
+  if (is.na(slide_index) || slide_index < 1L) slide_index <- 1L
+  pptx_path <- tryCatch(normalizePath(pptx_path, winslash = "/", mustWork = TRUE), error = function(e) pptx_path)
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  png_path <- file.path(out_dir, sprintf("slide_preview_%03d.png", slide_index))
+
+  args <- c(
+    script,
+    "--pptx", pptx_path,
+    "--output", png_path,
+    "--slide-index", as.character(slide_index),
+    "--scale", as.character(scale)
+  )
+  args <- c(args, "--module", module)
+
+  ok <- tryCatch({
+    system2(
+      node,
+      args,
+      stdout = TRUE,
+      stderr = TRUE,
+      env = .artifact_node_env(node),
+      timeout = timeout
+    )
+    file.exists(png_path)
+  }, error = function(e) FALSE)
+  if (!isTRUE(ok)) return(NULL)
+  .png_preview_payload(png_path, "artifact-tool")
+}
+
+.pptx_to_pdf_soffice <- function(pptx_path, out_dir, timeout = 30) {
+  cmd <- .soffice_cmd()
+  if (!nzchar(cmd)) return(NULL)
+  pptx_path <- tryCatch(normalizePath(pptx_path, winslash = "/", mustWork = TRUE), error = function(e) pptx_path)
+
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  profile_dir <- file.path(out_dir, "lo-profile")
+  dir.create(profile_dir, recursive = TRUE, showWarnings = FALSE)
+  profile_uri <- paste0("file:///", normalizePath(profile_dir, winslash = "/", mustWork = FALSE))
+
+  ok <- tryCatch({
+    system2(
+      cmd,
+      c(
+        "--headless",
+        "--invisible",
+        "--nodefault",
+        "--nofirststartwizard",
+        "--nolockcheck",
+        "--norestore",
+        paste0("-env:UserInstallation=", profile_uri),
+        "--convert-to",
+        "pdf",
+        "--outdir",
+        out_dir,
+        pptx_path
+      ),
+      stdout = TRUE,
+      stderr = TRUE,
+      timeout = timeout
+    )
+    TRUE
+  }, error = function(e) FALSE)
+  if (!isTRUE(ok)) return(NULL)
+
+  pdfs <- list.files(out_dir, pattern = "\\.pdf$", full.names = TRUE, ignore.case = TRUE)
+  if (!length(pdfs)) return(NULL)
+  pdfs[[1]]
+}
+
+.render_pptx_slide_png_soffice <- function(pptx_path, out_dir, slide_index = 1L, timeout = 30, dpi = 220) {
+  pdf_path <- .pptx_to_pdf_soffice(pptx_path, out_dir, timeout = timeout)
+  if (is.null(pdf_path)) return(NULL)
+  .pdf_page_to_png(
+    pdf_path,
+    out_dir,
+    "soffice",
+    page = slide_index,
+    dpi = dpi,
+    timeout = timeout
+  )
+}
+
+.render_pptx_slide_png <- function(pptx_path, out_dir, slide_index = 1L, timeout = 30, dpi = 220) {
+  out <- .render_pptx_slide_png_artifact(
+    pptx_path,
+    out_dir,
+    slide_index = slide_index,
+    timeout = timeout,
+    scale = max(1, dpi / 96)
+  )
+  if (!is.null(out)) return(out)
+  .render_pptx_slide_png_soffice(pptx_path, out_dir, slide_index = slide_index, timeout = timeout, dpi = dpi)
+}
+
+.render_pptx_slide_preview_headless <- function(pptx_path, timeout = 30, dpi = 220) {
+  tmpdir <- tempfile("pptx_slide_preview_")
+  dir.create(tmpdir, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(tmpdir, recursive = TRUE, force = TRUE), add = TRUE)
+  .render_pptx_slide_png(
+    pptx_path,
+    tmpdir,
+    slide_index = 1L,
+    timeout = timeout,
+    dpi = dpi
+  )
+}
+
+.compare_png_files <- function(reference_png, candidate_png) {
+  if (!file.exists(reference_png) || !file.exists(candidate_png)) return(NULL)
+
+  if (requireNamespace("magick", quietly = TRUE)) {
+    return(tryCatch({
+      ref <- magick::image_background(magick::image_read(reference_png), "white", flatten = TRUE)
+      cand <- magick::image_background(magick::image_read(candidate_png), "white", flatten = TRUE)
+      ref_info <- magick::image_info(ref)
+      cand_info <- magick::image_info(cand)
+      dimensions_match <- identical(
+        c(ref_info$width[[1]], ref_info$height[[1]]),
+        c(cand_info$width[[1]], cand_info$height[[1]])
+      )
+      if (!isTRUE(dimensions_match)) {
+        cand <- magick::image_resize(cand, sprintf("%dx%d!", ref_info$width[[1]], ref_info$height[[1]]))
+      }
+
+      ref_data <- as.integer(magick::image_data(ref, channels = "rgb"))
+      cand_data <- as.integer(magick::image_data(cand, channels = "rgb"))
+      diff <- abs(ref_data - cand_data) / 255
+      mae <- mean(diff)
+      rmse <- sqrt(mean(diff ^ 2))
+
+      list(
+        available = TRUE,
+        dimensions_match = isTRUE(dimensions_match),
+        resized_for_metric = !isTRUE(dimensions_match),
+        reference = list(width = as.integer(ref_info$width[[1]]), height = as.integer(ref_info$height[[1]])),
+        candidate = list(width = as.integer(cand_info$width[[1]]), height = as.integer(cand_info$height[[1]])),
+        mean_abs_diff = round(mae, 6),
+        rmse = round(rmse, 6),
+        similarity = round(max(0, 1 - rmse), 6),
+        verdict = if (rmse <= 0.01 && isTRUE(dimensions_match)) "match" else if (rmse <= 0.04) "near" else "different"
+      )
+    }, error = function(e) NULL))
+  }
+
+  ref <- tryCatch(png::readPNG(reference_png), error = function(e) NULL)
+  cand <- tryCatch(png::readPNG(candidate_png), error = function(e) NULL)
+  if (is.null(ref) || is.null(cand)) return(NULL)
+  if (!identical(dim(ref), dim(cand))) {
+    return(list(
+      available = FALSE,
+      reason = "dimension_mismatch_without_resizer",
+      reference = list(width = as.integer(dim(ref)[2]), height = as.integer(dim(ref)[1])),
+      candidate = list(width = as.integer(dim(cand)[2]), height = as.integer(dim(cand)[1]))
+    ))
+  }
+
+  ref <- ref[, , seq_len(min(3L, dim(ref)[3])), drop = FALSE]
+  cand <- cand[, , seq_len(min(3L, dim(cand)[3])), drop = FALSE]
+  diff <- abs(ref - cand)
+  mae <- mean(diff)
+  rmse <- sqrt(mean(diff ^ 2))
+  list(
+    available = TRUE,
+    dimensions_match = TRUE,
+    resized_for_metric = FALSE,
+    reference = list(width = as.integer(dim(ref)[2]), height = as.integer(dim(ref)[1])),
+    candidate = list(width = as.integer(dim(cand)[2]), height = as.integer(dim(cand)[1])),
+    mean_abs_diff = round(mae, 6),
+    rmse = round(rmse, 6),
+    similarity = round(max(0, 1 - rmse), 6),
+    verdict = if (rmse <= 0.01) "match" else if (rmse <= 0.04) "near" else "different"
+  )
+}
+
+.compare_pptx_slide_preview <- function(full_pptx_path, preview_pptx_path, slide_index = 1L, dpi = 220) {
+  if (!.artifact_renderer_configured() && !nzchar(.soffice_cmd())) {
+    return(list(available = FALSE, reason = "renderer_missing", renderer = NULL))
+  }
+  slide_index <- suppressWarnings(as.integer(slide_index %||% 1L))
+  if (is.na(slide_index) || slide_index < 1L) slide_index <- 1L
+
+  tmpdir <- tempfile("pptx_slide_compare_")
+  dir.create(tmpdir, recursive = TRUE, showWarnings = FALSE)
+  on.exit(unlink(tmpdir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  full_dir <- file.path(tmpdir, "full")
+  preview_dir <- file.path(tmpdir, "preview")
+  full_render <- .render_pptx_slide_png(full_pptx_path, full_dir, slide_index = slide_index, dpi = dpi)
+  preview_render <- .render_pptx_slide_png(preview_pptx_path, preview_dir, slide_index = 1L, dpi = dpi)
+  if (is.null(full_render) || is.null(preview_render)) {
+    return(list(available = FALSE, reason = "render_failed", renderer = "headless"))
+  }
+
+  metrics <- .compare_png_files(
+    file.path(full_dir, sprintf("slide_preview_%03d.png", slide_index)),
+    file.path(preview_dir, "slide_preview_001.png")
+  )
+  if (is.null(metrics)) {
+    return(list(available = FALSE, reason = "compare_failed", renderer = "headless"))
+  }
+  metrics$renderer <- full_render$renderer %||% "headless"
+  metrics$candidate_renderer <- preview_render$renderer %||% "headless"
+  metrics$slide_index <- slide_index
+  metrics
+}
+
+.render_pptx_slide_preview <- function(pptx_path, preview_quality = "quick", dpi = NA_integer_) {
+  # Keep Mac and Windows on the same rendering path. Desktop-app automation
+  # is intentionally avoided because it is platform-specific, can show
+  # blocking dialogs, and can require OS permissions. Headless renderers are
+  # tried only when explicitly configured or discoverable, then degrade
+  # safely to NULL.
+  preview_quality <- tolower(as.character(preview_quality %||% "quick"))
+  if (!preview_quality %in% c("quick", "normal")) preview_quality <- "quick"
+
+  preview_dpi <- suppressWarnings(as.integer(dpi %||% NA_integer_))
+  if (is.na(preview_dpi) || preview_dpi <= 0L) {
+    preview_dpi <- if (preview_quality == "quick") 160L else 220L
+  }
+  timeout <- if (preview_quality == "quick") 12L else 30L
+
+  .render_pptx_slide_preview_headless(
+    pptx_path,
+    timeout = timeout,
+    dpi = preview_dpi
+  )
+}
+
 mount_graficos <- function(pr) {
   pr |>
     plumber::pr_get("/api/graficos/config", wrap_endpoint(function(req, res) {
@@ -577,6 +1041,9 @@ mount_graficos <- function(pr) {
       # Los `plan.slides[*].id` son placeholder — el frontend los regenera
       # al aplicar el template para evitar colisiones con slides existentes.
       .templates_payload()
+    })) |>
+    plumber::pr_get("/api/graficos/preview-renderer", wrap_endpoint(function(req, res) {
+      c(list(ok = TRUE), .preview_renderer_status())
     })) |>
     plumber::pr_post("/api/graficos/presets-defaults", wrap_endpoint(function(req, res, ...) {
       # "Guardar como default": toma los `presets` actuales del store de
@@ -894,6 +1361,14 @@ mount_graficos <- function(pr) {
       )
       slide <- parsed$slide
       if (is.null(slide)) stop_api(400, "E_NO_SLIDE", "Body debe incluir 'slide'.")
+      preview_quality <- tolower(as.character(parsed$preview_quality %||% "quick"))
+      if (!preview_quality %in% c("quick", "normal")) {
+        stop_api(400, "E_BAD_PREVIEW_QUALITY", "preview_quality debe ser 'quick' o 'normal'.")
+      }
+      include_images <- parsed$include_images %||% TRUE
+      if (!is.logical(include_images) || length(include_images) != 1L) {
+        stop_api(400, "E_BAD_INCLUDE_IMAGES", "include_images debe ser booleano.")
+      }
 
       # Validación mínima: tiene tipo y payload.
       tipo <- as.character(slide$tipo %||% "")
@@ -905,9 +1380,54 @@ mount_graficos <- function(pr) {
       # respete el estilo global ya configurado en Configuración Global.
       # Enriquecemos con usar_canvas=TRUE + debug_ph (invariantes globales
       # que el backend aplica antes de cada export).
-      cfg <- session_get(sid)$graficos_config %||% list()
+      cfg <- .graficos_effective_config(sid, parsed$config %||% parsed$graficos_config)
       presets_json <- .enriquecer_presets(cfg$presets %||% list(), cfg$debug_ph)
       icon_registry <- .graficos_icon_registry(sid, cfg)
+      preview_cache_key <- digest::digest(list(
+        slide = slide,
+        preset_hash = digest::digest(
+          list(
+            presets = cfg$presets %||% list(),
+            debug_ph = cfg$debug_ph %||% list(),
+            iconos = cfg$iconos %||% list()
+          ),
+          algo = "xxhash64"
+        ),
+        preview_quality = preview_quality,
+        include_images = include_images
+      ), algo = "xxhash64")
+      preview_cache <- s$graficos_preview_cache %||% list()
+      if (!is.list(preview_cache)) preview_cache <- list()
+      now <- as.numeric(Sys.time())
+      if (length(preview_cache)) {
+        preview_cache <- preview_cache[vapply(
+          preview_cache,
+          function(v) {
+            is.list(v) &&
+              is.numeric(v$cached_at) &&
+              v$cached_at >= (now - 300)
+          },
+          logical(1)
+        )]
+      }
+      cached <- preview_cache[[preview_cache_key]] %||% NULL
+      if (is.list(cached) && is.numeric(cached$cached_at) && cached$cached_at >= now - 300) {
+        cached_meta <- tryCatch(
+          get_file(sid, cached$file_id),
+          error = function(e) NULL
+        )
+        if (!is.null(cached_meta) && file.exists(cached_meta$path)) {
+          session_set(sid, "graficos_preview_cache", preview_cache)
+          return(list(
+            ok = TRUE,
+            file_id = cached$file_id,
+            size = cached$size,
+            type = "pptx",
+            images = if (include_images) cached$images %||% list() else list(),
+            slide_preview = cached$slide_preview %||% NA
+          ))
+        }
+      }
 
       # Plan mini con un solo slide.
       mini_plan <- list(slides = list(slide))
@@ -943,15 +1463,19 @@ mount_graficos <- function(pr) {
       }
       rebuild_slide <- function(s0) {
         s0 <- as.list(s0)
+        tipo0 <- as.character(s0$tipo %||% "")
+        if (!nzchar(tipo0) || !(tipo0 %in% names(slide_registry))) {
+          stop(sprintf("Tipo de slide inválido: %s", tipo0))
+        }
         payload <- as_list_shallow(s0$payload) %||% list()
         payload <- lapply(payload, function(v) if (is.list(v) && length(v) == 1 && is.null(names(v))) v[[1]] else v)
-        for (slot_name in slide_registry[[tipo]]$grafs) {
+        for (slot_name in slide_registry[[tipo0]]$grafs) {
           if (!is.null(payload[[slot_name]])) {
             payload[[slot_name]] <- rebuild_graf(as_list_shallow(payload[[slot_name]]))
           }
         }
-        fn <- getExportedValue("prosecnurapp", tipo)
-        payload <- .graficos_normalize_payload_icon(payload, fn, tipo, icon_registry = icon_registry)
+        fn <- getExportedValue("prosecnurapp", tipo0)
+        payload <- .graficos_normalize_payload_icon(payload, fn, tipo0, icon_registry = icon_registry)
         allowed_args <- names(formals(fn))
         payload <- payload[names(payload) %in% allowed_args]
         do.call(fn, payload)
@@ -982,6 +1506,11 @@ mount_graficos <- function(pr) {
         stop_api(400, "E_PREVIEW_FAILED", sprintf("No se pudo generar el preview: %s", conditionMessage(e)))
       })
 
+      # Si no hay renderer headless disponible, devolvemos el .pptx y
+      # mantenemos slide_preview en NULL para que el front-end ofrezca
+      # descarga de fallback sin romper flujo.
+      renderer_status <- .preview_renderer_status()
+
       # Extraemos las imágenes PNG embebidas en el .pptx para devolverlas
       # inline al frontend. Los graficadores de prosecnur con
       # `usar_canvas=TRUE` (invariante global) renderizan cada slot como
@@ -993,18 +1522,46 @@ mount_graficos <- function(pr) {
       # Si hay 1 slot, `images` tiene 1 PNG (el del gráfico). Si hay N
       # slots, N PNGs. El frontend los puede mostrar lado a lado. Los
       # layouts puros (p_slide_portada, p_slide_indice) devuelven 0.
-      images <- .extract_pptx_images(out_path)
-
+      images <- if (isTRUE(include_images)) .extract_pptx_images(out_path) else list()
+      slide_preview <- if (isTRUE(renderer_status$available)) {
+        .render_pptx_slide_preview(
+          out_path,
+          preview_quality = preview_quality
+        )
+      } else {
+        NULL
+      }
       meta <- .register_output_file(sid, "graficos_preview", out_path)
+      preview_cache[[preview_cache_key]] <- list(
+        file_id = meta$file_id,
+        size = meta$size,
+        images = images,
+        slide_preview = slide_preview,
+        cached_at = now
+      )
+      if (length(preview_cache) > 16L) {
+        order_idx <- order(
+          vapply(
+            preview_cache,
+            function(v) if (is.list(v) && is.numeric(v$cached_at)) v$cached_at else 0,
+            numeric(1)
+          ),
+          decreasing = TRUE,
+          na.last = TRUE
+        )
+        preview_cache <- preview_cache[order_idx][seq_len(min(length(order_idx), 16L))]
+      }
+      session_set(sid, "graficos_preview_cache", preview_cache)
       list(
         ok = TRUE,
         file_id = meta$file_id,
         size = meta$size,
         type = "pptx",
-        images = images
+        images = images,
+        slide_preview = slide_preview %||% NA
       )
     })) |>
-    plumber::pr_post("/api/graficos/ppt", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL) {
+    plumber::pr_post("/api/graficos/ppt", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {
       sid <- session_header(req)
       s <- .require_rp_data(sid)
       if (is.null(plan)) stop_api(400, "E_NO_PLAN", "Falta 'plan' en el body")
@@ -1013,7 +1570,7 @@ mount_graficos <- function(pr) {
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
       # Enriquecer presets con canvas-always + debug_ph global antes de
       # pasarlos al worker (invariantes Pulso).
-      cfg <- session_get(sid)$graficos_config %||% list()
+      cfg <- .graficos_effective_config(sid, config)
       presets <- .enriquecer_presets(presets, cfg$debug_ph)
       # Serializamos las LISTAS NOMBRADAS (multi-base) a RDS para el
       # worker. Cuando hay 1 sola base, la lista tiene 1 sola entrada
@@ -1142,7 +1699,7 @@ mount_graficos <- function(pr) {
       )
       list(ok = TRUE, job_id = job_id, kind = "graficos.ppt")
     })) |>
-    plumber::pr_post("/api/graficos/word", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL) {
+    plumber::pr_post("/api/graficos/word", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {
       sid <- session_header(req)
       s <- .require_rp_data(sid)
       if (is.null(plan)) stop_api(400, "E_NO_PLAN", "Falta 'plan' en el body")
@@ -1150,7 +1707,7 @@ mount_graficos <- function(pr) {
       validation <- .validar_plan_json(plan)
       if (!validation$ok) stop_api(400, "E_INVALID_PLAN", paste(validation$errors, collapse = "; "))
       # Mismas invariantes que en /ppt.
-      cfg <- session_get(sid)$graficos_config %||% list()
+      cfg <- .graficos_effective_config(sid, config)
       presets <- .enriquecer_presets(presets, cfg$debug_ph)
       # Serializamos las LISTAS NOMBRADAS (multi-base) a RDS para el
       # worker. Cuando hay 1 sola base, la lista tiene 1 sola entrada

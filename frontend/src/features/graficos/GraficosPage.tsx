@@ -16,6 +16,7 @@ import { humanizeGraficosExportError, HumanizedError } from "./humanizeExportErr
 import { GraficosHeader } from "./GraficosHeader";
 import { EditorShell } from "./v2/shell/EditorShell";
 import { useShortcutsV2 } from "./v2/shortcuts/useShortcutsV2";
+import { buildGraficosConfigFromStore } from "./configSnapshot";
 
 type ExportResult = { ok: true; file_id: string; filename?: string; size: number; n_slides: number };
 
@@ -57,7 +58,7 @@ export default function GraficosPage() {
         return;
       }
       const fn = kind === "ppt" ? apiGraficosPpt : apiGraficosWord;
-      const out = await fn(plan, presets, wPresets);
+      const out = await fn(plan, presets, wPresets, buildGraficosConfigFromStore());
       setExportJob({ kind, id: out.job_id });
     } catch (e: unknown) {
       setError(humanizeGraficosExportError((e as Error).message, plan));

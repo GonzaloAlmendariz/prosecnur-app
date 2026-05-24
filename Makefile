@@ -97,10 +97,10 @@ build-if-stale:
 	  fi
 
 desktop: build
-	cd desktop && pnpm start
+	cd desktop && env -u ELECTRON_RUN_AS_NODE pnpm start
 
 desktop-fast: build-if-stale
-	cd desktop && pnpm start
+	cd desktop && env -u ELECTRON_RUN_AS_NODE pnpm start
 
 package-local: build
 	@APP_VERSION=$$(awk -F': *' '/^Version:/ {print $$2; exit}' api/DESCRIPTION); \

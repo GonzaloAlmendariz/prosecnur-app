@@ -30,14 +30,54 @@ type TipoMeta = {
 };
 
 const TIPOS: TipoMeta[] = [
-  { key: "no_nulo", label: "No nulo", descripcion: "Marca los casos donde la variable está vacía o es NA.", nVars: 1 },
-  { key: "rango_num", label: "Rango numérico", descripcion: "Marca casos fuera de [min, max] en una variable numérica.", nVars: 1 },
-  { key: "rango_fecha", label: "Rango de fecha", descripcion: "Marca casos fuera del rango de fechas (YYYY-MM-DD).", nVars: 1 },
-  { key: "outliers_iqr", label: "Outliers (IQR)", descripcion: "Detecta casos fuera de [Q1 − k·IQR, Q3 + k·IQR].", nVars: 1 },
-  { key: "outliers_z", label: "Outliers (Z-score)", descripcion: "Detecta casos con |z| > k.", nVars: 1 },
-  { key: "duplicados", label: "Duplicados", descripcion: "Marca casos cuya tupla de variables se repite.", nVars: [1, 5] },
-  { key: "fuera_catalogo", label: "Fuera de catálogo", descripcion: "Marca casos cuyo valor no está en la lista permitida.", nVars: 1 },
-  { key: "coherencia_2v", label: "Coherencia entre 2 variables", descripcion: "Ej.: si X = 'a' entonces Y debe estar entre 1 y 5.", nVars: 2 },
+  {
+    key: "no_nulo",
+    label: "No vacíos",
+    descripcion: "Marca filas sin respuesta o con NA en la variable objetivo.",
+    nVars: 1,
+  },
+  {
+    key: "rango_num",
+    label: "Rango numérico",
+    descripcion: "Alerta si el valor numérico se sale del rango esperado.",
+    nVars: 1,
+  },
+  {
+    key: "rango_fecha",
+    label: "Rango de fecha",
+    descripcion: "Alerta si la fecha queda fuera de un intervalo permitido.",
+    nVars: 1,
+  },
+  {
+    key: "outliers_iqr",
+    label: "Outliers (IQR)",
+    descripcion: "Alerta valores extremos respecto a la distribución de la variable.",
+    nVars: 1,
+  },
+  {
+    key: "outliers_z",
+    label: "Outliers (Z-score)",
+    descripcion: "Alerta valores muy alejados del comportamiento histórico.",
+    nVars: 1,
+  },
+  {
+    key: "duplicados",
+    label: "Duplicados",
+    descripcion: "Alerta combinaciones repetidas de variables objetivo.",
+    nVars: [1, 5],
+  },
+  {
+    key: "fuera_catalogo",
+    label: "Fuera de catálogo",
+    descripcion: "Alerta valores no incluidos en la lista oficial.",
+    nVars: 1,
+  },
+  {
+    key: "coherencia_2v",
+    label: "Coherencia entre 2 variables",
+    descripcion: "Aplica una condición condicional tipo si X ... entonces Y ....",
+    nVars: 2,
+  },
 ];
 
 export default function ReglaEditor({ inv, inicial, onSubmit, onCancel }: Props) {
@@ -99,7 +139,7 @@ export default function ReglaEditor({ inv, inicial, onSubmit, onCancel }: Props)
     if (s === 2) {
       if (!tipoMeta) return "Tipo no definido.";
       const needed = typeof tipoMeta.nVars === "number" ? tipoMeta.nVars : tipoMeta.nVars[0];
-      if (variables.length < needed) return `Necesitas al menos ${needed} variable(s).`;
+      if (variables.length < needed) return `Necesitas al menos ${needed} variable${needed === 1 ? "" : "s"}.`;
     }
     if (s === 3) {
       if (!nombre.trim()) return "Agrega un nombre descriptivo a la regla.";
@@ -107,12 +147,12 @@ export default function ReglaEditor({ inv, inicial, onSubmit, onCancel }: Props)
       if (tipo === "rango_num") {
         const mn = params.min as string | undefined;
         const mx = params.max as string | undefined;
-        if (!mn && !mx) return "Define al menos min o max.";
+        if (!mn && !mx) return "Define al menos un límite mínimo o máximo.";
       }
       if (tipo === "rango_fecha") {
         const mn = params.min as string | undefined;
         const mx = params.max as string | undefined;
-        if (!mn && !mx) return "Define al menos min o max (YYYY-MM-DD).";
+        if (!mn && !mx) return "Define al menos fecha mínima o máxima (YYYY-MM-DD).";
       }
       if (tipo === "outliers_iqr" || tipo === "outliers_z") {
         const k = Number(params.k);
@@ -120,11 +160,13 @@ export default function ReglaEditor({ inv, inicial, onSubmit, onCancel }: Props)
       }
       if (tipo === "fuera_catalogo") {
         const vals = (params.valores as string[] | undefined) ?? [];
-        if (!vals.length) return "Lista 'valores' vacía.";
+        if (!vals.length) return "Añade al menos un valor permitido.";
       }
       if (tipo === "coherencia_2v") {
         if (!params.op_x || !params.op_y) return "Define operadores para ambas variables.";
-        if (params.valor_x === undefined || params.valor_y === undefined) return "Define valor_x y valor_y.";
+        if (params.valor_x === undefined || params.valor_y === undefined) {
+          return "Define la condición de ambas variables.";
+        }
       }
     }
     return "";
@@ -444,7 +486,8 @@ function Step2({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-        Elige {needed === max ? `${needed}` : `entre ${needed} y ${max}`} variable{needed === 1 ? "" : "s"}. Seleccionadas: <strong>{variables.length}</strong>.
+        Selecciona {needed === max ? `${needed}` : `entre ${needed} y ${max}`} variable{needed === 1 ? "" : "s"}.
+        Ya elegiste <strong>{variables.length}</strong> y esto te queda para validar.
       </div>
       <input
         type="text"
@@ -499,11 +542,11 @@ function Step2({
             </label>
           );
         })}
-        {!candidatas.length && (
-          <div style={{ padding: 20, textAlign: "center", fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
-            Sin variables que coincidan.
-          </div>
-        )}
+      {!candidatas.length && (
+        <div style={{ padding: 20, textAlign: "center", fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
+            No encontramos variables con ese filtro.
+        </div>
+      )}
       </div>
 
       {/* Chips de variables seleccionadas */}

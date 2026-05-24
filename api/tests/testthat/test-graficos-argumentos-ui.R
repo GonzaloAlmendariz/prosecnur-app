@@ -61,6 +61,37 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_match(by_name$leyenda_posicion$label, "leyenda")
 })
 
+test_that("Word mantiene un grosor apilado mayor por defecto y respeta overrides", {
+  wp <- w_presets()
+  applied <- .apply_word_chart_presets(NULL, wp)
+  expect_equal(as.numeric(applied$barras_apiladas$args$grosor_barras_mult), 1.2)
+
+  applied_with_override <- .apply_word_chart_presets(
+    presets_ppt = list(
+      barras_apiladas = list(
+        args = list(
+          grosor_barras_mult = 0.72,
+          grosor_modo = "manual"
+        )
+      )
+    ),
+    presets_word = wp
+  )
+  expect_equal(applied_with_override$barras_apiladas$args$grosor_barras_mult, 0.72)
+  expect_equal(applied_with_override$barras_apiladas$args$grosor_modo, "manual")
+
+  applied_with_chart_preset <- .apply_word_chart_presets(
+    presets_ppt = NULL,
+    presets_word = w_presets(chart_presets = list(
+      barras_apiladas = list(grosor_barras_mult = 1.25)
+    ))
+  )
+  expect_equal(
+    applied_with_chart_preset$barras_apiladas$args$grosor_barras_mult,
+    1.25
+  )
+})
+
 test_that("preset Pulso deja la barra extra configurable y con defaults neutros", {
   payload <- .presets_metadata_payload()
   presets <- stats::setNames(payload$presets, vapply(payload$presets, `[[`, character(1), "name"))

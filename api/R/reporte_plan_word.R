@@ -75,6 +75,13 @@ w_presets <- function(
       presets_ppt[[nm]]$args$word_ocultar_etiqueta_categoria %||% ocultar_dup
   }
 
+  # Ajuste de fábrica para Word: que las barras apiladas se vean un poco más
+  # gruesas por defecto sin afectar otros destinos (PPT). Se permite override
+  # explícito desde `chart_presets`.
+  if (is.null(presets_ppt$barras_apiladas$args$grosor_barras_mult)) {
+    presets_ppt$barras_apiladas$args$grosor_barras_mult <- 1.2
+  }
+
   chart_presets <- presets_word$chart_presets %||% list()
   if (is.list(chart_presets) && length(chart_presets)) {
     for (nm in names(chart_presets)) {

@@ -66,15 +66,10 @@ export function PresetsEditor() {
   const hasChanges = !presetArgsEqual(current, defaultForPreset);
 
   return (
-    <div style={{ display: "flex", gap: 16, minHeight: 420 }}>
+    <div className="pulso-gv2-presets-editor">
       {/* Sidebar — lista de tipos de preset */}
       <aside
-        style={{
-          width: 220, flexShrink: 0,
-          borderRight: "1px solid var(--pulso-border)",
-          paddingRight: 12,
-          display: "flex", flexDirection: "column", gap: 2,
-        }}
+        className="pulso-gv2-presets-sidebar"
       >
         {/* Agrupamos los presets en dos secciones:
             - Gráficos normales: base + 2D/1D habituales (barras, pie, etc.).
@@ -175,7 +170,7 @@ export function PresetsEditor() {
       </aside>
 
       {/* Editor del preset seleccionado */}
-      <section style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+      <section className="pulso-gv2-presets-detail">
         <PresetHeader
           meta={meta}
           hasChanges={hasChanges}
@@ -257,7 +252,6 @@ function PresetHeader({
             style={{
               margin: "4px 0 0", fontSize: 11,
               color: "var(--pulso-text-soft)", lineHeight: 1.5,
-              maxWidth: 560,
             }}
           >
             {meta.descripcion}
@@ -319,7 +313,7 @@ function PresetBody({
   }, [meta]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 560 }}>
+    <div className="pulso-gv2-presets-body">
       {meta.args.length === 0 ? (
         <div
           style={{

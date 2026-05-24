@@ -107,6 +107,10 @@ make dev-frontend     # Vite dev server en :5173 (proxy /api → :8787)
 make build            # compilar frontend sin levantar Electron
 ```
 
+La preview inline de slides PPTX necesita un renderizador headless
+detectable, normalmente LibreOffice/`soffice`. Ver
+[docs/pptx-preview-renderer.md](docs/pptx-preview-renderer.md).
+
 ## Estructura
 
 ```

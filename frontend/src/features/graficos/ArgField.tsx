@@ -1,10 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Info, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw, Plus, Trash2 } from "lucide-react";
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
 import { downloadUrl } from "../../api/client";
 import VariablePicker from "./VariablePicker";
 import VarsListPicker from "./VarsListPicker";
+import {
+  coerceNumber,
+  evaluateNumberDraft,
+  formatNumberInput,
+  inferNumberStep,
+  isPartialNumberInput,
+} from "./argFieldNumberUtils";
+
+const DEFAULT_ARG_HINT = "Este ajuste define cómo se ve o se interpreta este bloque del gráfico en el slide.";
 
 // Renderer universal de un argumento, según su `tipo_input` en el
 // registry. Es la pieza que hace que podamos añadir nuevos args en
@@ -28,14 +37,19 @@ import VarsListPicker from "./VarsListPicker";
 //   - overrides / filtros / base_config / meta → aviso de superficie dedicada
 
 type ArgValue = unknown;
+type FieldInputState = "default" | "focus" | "warning" | "error" | "disabled";
+type FieldStatus = {
+  state: FieldInputState;
+  message: string;
+};
 
-/** Tres estados visuales para args de un graficador en el inspector V2:
- *  - "inherited": el valor proviene del preset (sin override). Dot oculto,
+/** Estados de origen para args de un graficador en el inspector V2:
+ *  - "inherited": el valor proviene de la Base (sin override). Dot oculto,
  *    input en gris claro mostrando el valor heredado.
  *  - "from-mode": el valor proviene de un modo aplicado (override exacto).
- *    Dot morado.
+ *    Se muestra como estado, pero sin reset por campo.
  *  - "custom": el usuario lo cambió individualmente (edit ad-hoc encima
- *    del preset o del modo). Dot azul. */
+ *    de la base o del modo). Dot azul. */
 export type ArgState = "inherited" | "from-mode" | "custom";
 
 export function ArgField({
@@ -53,12 +67,12 @@ export function ArgField({
   variables: VarInfo[];
   /** Estado visual del arg. Por defecto `inherited`. */
   argState?: ArgState;
-  /** Valor del preset (o del modo). Si `argState === "inherited"` y
+  /** Valor base (o del modo). Si `argState === "inherited"` y
    *  `value` es undefined/null/"", el control muestra `inheritedValue`
    *  con styling apagado para indicar que es heredado. */
   inheritedValue?: ArgValue;
   /** Si se provee y `argState !== "inherited"`, muestra un botón ↺ que
-   *  llama a esta función para resetear el arg al preset/default. */
+   *  llama a esta función para resetear el arg al valor base. */
   onReset?: () => void;
 }) {
   // Si el arg está heredado y no tiene valor propio, mostramos el
@@ -66,20 +80,32 @@ export function ArgField({
   const isInherited = argState === "inherited";
   const hasOwnValue = value !== undefined && value !== null && (value !== "" || allowsEmptyStringValue(meta));
   const displayValue: ArgValue = hasOwnValue ? value : inheritedValue;
+  const labelId = useId();
+  const description = resolveArgumentDescription(meta);
+  const descriptionId = `${labelId}-description`;
 
   return (
-    <label
+    <div
       className="pulso-arg-field pulso-gv2-field-card"
       data-arg-name={meta.name}
       data-arg-type={meta.tipo_input}
       data-arg-state={argState}
       data-has-own-value={hasOwnValue}
+      aria-labelledby={labelId}
+      aria-describedby={descriptionId}
       style={{
         display: "flex", flexDirection: "column", gap: 4, marginBottom: 10,
         opacity: isInherited && !hasOwnValue ? 0.94 : 1,
       }}
     >
-      <FieldHeader meta={meta} argState={argState} onReset={onReset} />
+      <FieldHeader
+        meta={meta}
+        argState={argState}
+        description={description}
+        onReset={onReset}
+        labelId={labelId}
+        descriptionId={descriptionId}
+      />
       <div className="pulso-gv2-field-control">
         <FieldControl
           meta={meta}
@@ -91,7 +117,7 @@ export function ArgField({
           variables={variables}
         />
       </div>
-    </label>
+    </div>
   );
 }
 
@@ -99,64 +125,69 @@ function allowsEmptyStringValue(meta: ArgMetadata): boolean {
   return meta.tipo_input === "string" || meta.tipo_input === "textarea";
 }
 
-// ---- Header con label + tooltip info ------------------------------------
+// ---- Copy + estado de origen --------------------------------------------
 
-function FieldHeader({ meta, argState, onReset }: { meta: ArgMetadata; argState: ArgState; onReset?: () => void }) {
-  const [showTooltip, setShowTooltip] = useState(false);
+function FieldHeader({
+  meta,
+  argState,
+  description,
+  onReset,
+  labelId,
+  descriptionId,
+}: {
+  meta: ArgMetadata;
+  argState: ArgState;
+  description: string;
+  onReset?: () => void;
+  labelId: string;
+  descriptionId?: string;
+}) {
   const isCustom = argState === "custom";
-  const isFromMode = argState === "from-mode";
   const stateMeta = fieldStateMeta(argState);
+
   return (
-    <span className="pulso-gv2-field-header">
+    <>
       <span className="pulso-gv2-field-copy">
-        <span className="pulso-gv2-field-title">{meta.label}</span>
-        {meta.descripcion && (
-          <span className="pulso-gv2-field-description">
-            {meta.descripcion}
+        <span id={labelId} className="pulso-gv2-field-title">{meta.label}</span>
+        {description && (
+          <span id={descriptionId} className="pulso-gv2-field-description">
+            {description}
           </span>
         )}
       </span>
-      <span
-        className={`pulso-gv2-field-state-badge ${stateMeta.className}`}
-        title={stateMeta.title}
-        aria-label={stateMeta.ariaLabel}
-      >
+      <span className="pulso-gv2-field-utilities">
         <span
-          aria-hidden="true"
-          className={`pulso-gv2-field-state-dot ${stateMeta.className}`}
-        />
-        {stateMeta.label}
-      </span>
-      {meta.descripcion && (
-        <span
-          className="pulso-gv2-field-info"
-          onMouseEnter={() => setShowTooltip(true)}
-          onMouseLeave={() => setShowTooltip(false)}
+          className={`pulso-gv2-source-badge ${stateMeta.className}`}
+          title={stateMeta.title}
+          aria-label={stateMeta.ariaLabel}
         >
-          <Info size={11} color="var(--pulso-text-soft)" />
-          {showTooltip && (
-            <span
-              role="tooltip"
-              className="pulso-gv2-field-tooltip"
-            >
-              {meta.descripcion}
-            </span>
-          )}
+          <span
+            aria-hidden="true"
+            className={`pulso-gv2-source-dot ${stateMeta.className}`}
+          />
+          {stateMeta.label}
         </span>
-      )}
-      {(isCustom || isFromMode) && onReset && (
-        <button
-          type="button"
-          className="pulso-gv2-field-reset"
-          onClick={(e) => { e.preventDefault(); onReset(); }}
-          title={isCustom ? "Restaurar al valor del preset" : "Quitar este arg del modo (volver al preset)"}
-          aria-label="Restaurar al preset"
-        >
-          <RotateCcw size={10} />
-          preset
-        </button>
-      )}
-    </span>
+          {isCustom && onReset && (
+            <button
+              type="button"
+              className="pulso-gv2-field-reset"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onReset();
+              }}
+              title="Restablecer al valor base"
+              aria-label="Restablecer cambio manual al valor base"
+            >
+              <RotateCcw size={13} />
+            </button>
+          )}
+      </span>
+    </>
   );
 }
 
@@ -170,7 +201,7 @@ function fieldStateMeta(argState: ArgState): {
     return {
       label: "Manual",
       className: "is-custom",
-      title: "Cambio manual: pisa el preset o el modo aplicado",
+      title: "Ajuste manual del slide/slot. Tiene prioridad sobre base y modo.",
       ariaLabel: "Valor cambiado manualmente",
     };
   }
@@ -178,15 +209,15 @@ function fieldStateMeta(argState: ArgState): {
     return {
       label: "Modo",
       className: "is-mode",
-      title: "Valor del modo aplicado",
-      ariaLabel: "Valor proveniente del modo aplicado",
+      title: "Valor aplicado por el modo activo",
+      ariaLabel: "Valor proveniente del modo activo",
     };
   }
   return {
-    label: "Preset",
+    label: "Base",
     className: "is-inherited",
-    title: "Valor heredado del preset",
-    ariaLabel: "Valor heredado del preset",
+    title: "Valor base del estilo global (o base heredada del layout).",
+    ariaLabel: "Valor base heredado del estilo global",
   };
 }
 
@@ -222,15 +253,22 @@ function FieldControl({
       return <VarsListPicker value={(shownValue as string[]) ?? []} onChange={(v) => onChange(v)} />;
 
     case "string":
-      return <StringControl meta={meta} value={(shownValue as string) ?? ""} onChange={onChange} />;
+      return (
+        <TextControl
+          meta={meta}
+          value={(shownValue as string) ?? ""}
+          onChange={onChange}
+        />
+      );
 
     case "textarea":
       return (
-        <textarea
+        <TextControl
+          meta={meta}
           value={(shownValue as string) ?? ""}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={onChange}
+          multiline
           rows={3}
-          style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
         />
       );
 
@@ -306,38 +344,114 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
 };
 
-function StringControl({
+function TextControl({
   meta,
   value,
   onChange,
+  multiline = false,
+  rows = 1,
 }: {
   meta: ArgMetadata;
   value: string;
   onChange: (v: ArgValue) => void;
+  multiline?: boolean;
+  rows?: number;
 }) {
   const presets = quickStringPresetsFor(meta.name);
+  const baseHint = buildTextHint(meta);
+  const [draft, setDraft] = useState(value);
+  const [status, setStatus] = useState<FieldStatus>({
+    state: "default",
+    message: buildTextStatusMessage({
+      value,
+      metaName: meta.name,
+      baseHint,
+    }),
+  });
+  const [isFocused, setIsFocused] = useState(false);
+  const statusId = useId();
+
+  function evaluate(next: string) {
+    const message = buildTextStatusMessage({ value: next, metaName: meta.name, baseHint });
+    setStatus({
+      state: isCriticalTextField(meta.name) && next.trim() === "" ? "warning" : "default",
+      message,
+    });
+  }
+
+  useEffect(() => {
+    setDraft(value);
+    evaluate(value);
+  }, [meta.name, value]);
+
+  const statusRowState = isFocused && status.state === "default" ? "focus" : status.state;
+
   return (
     <div className="pulso-gv2-string-control">
       <div className="pulso-gv2-text-input-wrap">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={meta.descripcion ? undefined : "(opcional)"}
-          style={inputStyle}
-        />
-        {value !== "" && (
-          <button
-            type="button"
-            className="pulso-gv2-field-clear"
-            onClick={(e) => { e.preventDefault(); onChange(""); }}
-            aria-label={`Limpiar ${meta.label}`}
-            title="Limpiar"
-          >
-            <XIcon size={12} />
-          </button>
+        {multiline ? (
+          <textarea
+            rows={rows}
+            value={draft}
+            onChange={(e) => {
+              const next = e.target.value;
+              setDraft(next);
+              evaluate(next);
+              onChange(next);
+            }}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => {
+              setIsFocused(false);
+              evaluate(draft);
+            }}
+            placeholder={meta.descripcion ? undefined : "(opcional)"}
+            style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
+            className={`pulso-gv2-text-input-control is-${statusRowState}`}
+            aria-describedby={statusId}
+            aria-invalid={status.state === "error" ? "true" : undefined}
+          />
+        ) : (
+          <>
+            <input
+              type="text"
+              value={draft}
+              onChange={(e) => {
+                const next = e.target.value;
+                setDraft(next);
+                evaluate(next);
+                onChange(next);
+              }}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => {
+                setIsFocused(false);
+                evaluate(draft);
+              }}
+              placeholder={meta.descripcion ? undefined : "(opcional)"}
+              style={inputStyle}
+              className={`pulso-gv2-text-input-control is-${statusRowState}`}
+              aria-describedby={statusId}
+              aria-invalid={status.state === "error" ? "true" : undefined}
+            />
+            {draft !== "" && (
+              <button
+                type="button"
+                className="pulso-gv2-field-clear"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setDraft("");
+                  evaluate("");
+                  onChange("");
+                }}
+                aria-label={`Limpiar ${meta.label}`}
+                title="Limpiar"
+              >
+                <XIcon size={12} />
+              </button>
+            )}
+          </>
         )}
       </div>
+
       {presets.length > 0 && (
         <div className="pulso-gv2-quick-presets" aria-label={`Atajos para ${meta.label}`}>
           {presets.map((preset) => (
@@ -345,14 +459,28 @@ function StringControl({
               key={`${meta.name}-${preset.label}`}
               type="button"
               className="pulso-arg-preset-button"
-              onClick={(e) => { e.preventDefault(); onChange(preset.value); }}
-              aria-pressed={value === preset.value}
+              onClick={(e) => {
+                e.preventDefault();
+                setDraft(preset.value);
+                evaluate(preset.value);
+                onChange(preset.value);
+              }}
+              aria-pressed={draft === preset.value}
             >
               {preset.label}
             </button>
           ))}
         </div>
       )}
+
+      <FieldStatusRow
+        id={statusId}
+        status={{
+          ...status,
+          state: statusRowState,
+        }}
+        minHeight={16}
+      />
     </div>
   );
 }
@@ -377,58 +505,155 @@ function NumberControl({
   const displayMin = typeof min === "number" ? min * displayScale : undefined;
   const displayMax = typeof max === "number" ? max * displayScale : undefined;
   const displayUnit = displayAsPercent ? "%" : meta.unidad;
+  const rangeHint = buildRangeHint(meta);
+  const baseHint = [buildNumberHint(meta), rangeHint].filter(Boolean).join(" ");
   const [draft, setDraft] = useState(formatNumberInput(value, displayScale));
-  const presets = quickPresetsFor(meta.name);
-  const controlWidth = displayUnit && String(displayUnit).length > 3 ? 220 : hasSlider ? 260 : 180;
-  const unitPadding = displayUnit ? Math.max(46, String(displayUnit).length * 9 + 18) : 8;
+  const [status, setStatus] = useState<FieldStatus>(() => ({
+    state: "default",
+    message: baseHint,
+  }));
+  const [isFocused, setIsFocused] = useState(false);
+  const statusId = useId();
+  const currentNumeric = n ?? (typeof min === "number" ? min : 0);
+  const hasCurrentValue = Number.isFinite(n);
+
+  const applyCandidate = (raw: number | null) => {
+    if (raw === null || !Number.isFinite(raw)) {
+      const fallback = formatNumberInput(value, displayScale);
+      const normalized = evaluateNumberDraft(fallback, {
+        min,
+        max,
+        meta,
+        displayScale,
+        displayHint: baseHint,
+        step,
+      });
+      setStatus({
+        state: normalized.state === "default" ? "default" : normalized.state,
+        message: normalized.message || baseHint,
+      });
+      setDraft(fallback);
+      return;
+    }
+    const result = evaluateNumberDraft(formatNumberInput(raw, displayScale), {
+      min,
+      max,
+      meta,
+      displayScale,
+      displayHint: baseHint,
+      step,
+    });
+    if (result.parsedInternal === null) {
+      const fallback = evaluateNumberDraft(formatNumberInput(value, displayScale), {
+        min,
+        max,
+        meta,
+        displayScale,
+        displayHint: baseHint,
+        step,
+      });
+      setStatus({
+        state: fallback.state === "default" ? "default" : fallback.state,
+        message: fallback.message || baseHint,
+      });
+      return;
+    }
+    setDraft(formatNumberInput(result.parsedInternal, displayScale));
+    onChange(result.parsedInternal);
+    setStatus({
+      state: result.state === "default" ? (isFocused ? "focus" : "default") : result.state,
+      message: result.message || baseHint,
+    });
+  };
+
+  const resolveFromDraft = (raw: string) => {
+    const result = evaluateNumberDraft(raw, {
+      min,
+      max,
+      meta,
+      displayScale,
+      displayHint: baseHint,
+      step,
+    });
+    if (isPartialNumberInput(raw) || result.state === "error" || result.parsedInternal === null) {
+      setStatus({
+        state: isFocused && result.state !== "error" ? "focus" : result.state === "default" ? "default" : "error",
+        message: result.message || baseHint,
+      });
+      return;
+    }
+    setDraft(formatNumberInput(result.parsedInternal, displayScale));
+    onChange(result.parsedInternal);
+    setStatus({
+      state: result.state === "default" ? (isFocused ? "focus" : "default") : result.state,
+      message: result.message || baseHint,
+    });
+  };
+
+  const revertDraft = () => {
+    const next = formatNumberInput(value, displayScale);
+    setDraft(next);
+    setStatus({
+      state: "default",
+      message: baseHint,
+    });
+  };
+
+  const commitDraft = (raw = draft) => {
+    const trimmed = raw.trim();
+    const result = evaluateNumberDraft(trimmed, {
+      min,
+      max,
+      meta,
+      displayScale,
+      displayHint: baseHint,
+      step,
+    });
+    if (result.state === "error" || result.parsedInternal === null) {
+      revertDraft();
+      return;
+    }
+    setDraft(formatNumberInput(result.parsedInternal, displayScale));
+    onChange(result.parsedInternal);
+    setStatus({
+      state: result.state === "default" ? "default" : result.state,
+      message: result.message || baseHint,
+    });
+  };
 
   useEffect(() => {
-    setDraft(formatNumberInput(value, displayScale));
-  }, [displayScale, value]);
+    const normalized = formatNumberInput(value, displayScale);
+    setDraft(normalized);
+    const result = evaluateNumberDraft(normalized, {
+      min,
+      max,
+      meta,
+      displayScale,
+      displayHint: baseHint,
+      step,
+    });
+    setStatus({
+      state: result.state === "default" ? "default" : result.state,
+      message: result.message || baseHint,
+    });
+  }, [baseHint, displayScale, max, meta, min, step, value]);
 
-  function clamp(next: number | null): number | null {
-    if (next === null || !Number.isFinite(next)) return null;
-    let out = next;
-    if (typeof min === "number") out = Math.max(min, out);
-    if (typeof max === "number") out = Math.min(max, out);
-    return Number(out.toFixed(decimalsForStep(step)));
-  }
-
-  function update(next: number | null) {
-    const clamped = clamp(next);
-    onChange(clamped);
-    setDraft(formatNumberInput(clamped, displayScale));
-  }
-
-  function revertDraft() {
-    setDraft(formatNumberInput(value, displayScale));
-  }
-
-  function commitDraft(raw = draft) {
-    const trimmed = raw.trim();
-    if (trimmed === "" || isPartialNumberInput(trimmed)) {
-      revertDraft();
-      return;
-    }
-    const parsed = parseNumberInput(raw);
-    if (parsed === null) {
-      revertDraft();
-      return;
-    }
-    update(parsed / displayScale);
-  }
-
-  const relatedHint = getRelatedHint(meta.name);
+  const unitPadding = displayUnit ? Math.max(46, String(displayUnit).length * 9 + 18) : 8;
+  const statusClass = isFocused && status.state === "default" ? "focus" : status.state;
+  const statusClassName = statusClass === "default" ? "" : `is-${statusClass}`;
 
   return (
-    <div className="pulso-gv2-number-control" style={{ maxWidth: controlWidth }}>
+    <div className="pulso-gv2-number-control" style={{ width: "100%", maxWidth: "100%" }}>
       <div className="pulso-gv2-number-stepper">
-        <button
-          type="button"
-          className="pulso-arg-stepper-button"
-          onClick={(e) => { e.preventDefault(); update((Number.isFinite(n) ? n : (min ?? 0)) - step); }}
-          aria-label={`Disminuir ${meta.label}`}
-          style={stepButtonStyle}
+          <button
+            type="button"
+            className="pulso-arg-stepper-button"
+            onClick={(e) => {
+              e.preventDefault();
+              applyCandidate(currentNumeric - step);
+            }}
+            aria-label={`Disminuir ${meta.label}`}
+            style={stepButtonStyle}
         >
           −
         </button>
@@ -440,11 +665,14 @@ function NumberControl({
             onChange={(e) => {
               const raw = e.target.value;
               setDraft(raw);
-              if (isPartialNumberInput(raw)) return;
-              const parsed = parseNumberInput(raw);
-              if (parsed !== null) onChange(clamp(parsed / displayScale));
+              setIsFocused(true);
+              resolveFromDraft(raw);
             }}
-            onBlur={() => commitDraft()}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => {
+              setIsFocused(false);
+              commitDraft();
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 commitDraft();
@@ -452,6 +680,7 @@ function NumberControl({
               }
               if (e.key === "Escape") {
                 revertDraft();
+                setIsFocused(false);
                 (e.target as HTMLInputElement).blur();
               }
             }}
@@ -461,6 +690,9 @@ function NumberControl({
               paddingRight: unitPadding,
               fontVariantNumeric: "tabular-nums",
             }}
+            className={`pulso-gv2-number-input ${statusClassName}`}
+            aria-describedby={statusId}
+            aria-invalid={status.state === "error" || status.state === "warning" ? "true" : undefined}
           />
           {displayUnit && (
             <span
@@ -471,12 +703,15 @@ function NumberControl({
             </span>
           )}
         </div>
-        <button
-          type="button"
-          className="pulso-arg-stepper-button"
-          onClick={(e) => { e.preventDefault(); update((Number.isFinite(n) ? n : (min ?? 0)) + step); }}
-          aria-label={`Aumentar ${meta.label}`}
-          style={stepButtonStyle}
+          <button
+            type="button"
+            className="pulso-arg-stepper-button"
+            onClick={(e) => {
+              e.preventDefault();
+              applyCandidate(currentNumeric + step);
+            }}
+            aria-label={`Aumentar ${meta.label}`}
+            style={stepButtonStyle}
         >
           +
         </button>
@@ -486,112 +721,536 @@ function NumberControl({
         <input
           className="pulso-arg-range"
           type="range"
-          value={Number.isFinite(n) ? n * displayScale : displayMin}
+          value={hasCurrentValue ? currentNumeric * displayScale : displayMin}
           min={displayMin}
           max={displayMax}
           step={displayStep}
-          onChange={(e) => update(Number(e.target.value) / displayScale)}
+          onChange={(e) => applyCandidate(Number(e.target.value) / displayScale)}
           aria-label={`${meta.label} fino`}
           style={{ width: "100%", accentColor: "var(--pulso-primary)" }}
         />
       )}
 
-      {presets.length > 0 && (
-        <div className="pulso-gv2-quick-presets">
-          {presets.map((preset) => (
-            <button
-              key={`${preset.label}-${preset.value}`}
-              type="button"
-              className="pulso-arg-preset-button"
-              onClick={(e) => { e.preventDefault(); update(preset.value); }}
-            >
+      {quickPresetsFor(meta.name).length > 0 && (
+        <div className="pulso-gv2-quick-presets" aria-label={`Atajos para ${meta.label}`}>
+          {quickPresetsFor(meta.name).map((preset) => (
+              <button
+                key={`${preset.label}-${preset.value}`}
+                type="button"
+                className="pulso-arg-preset-button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  applyCandidate(preset.value);
+                }}
+                aria-pressed={hasCurrentValue && n === preset.value}
+                aria-label={`${meta.label}: ${preset.label}`}
+              >
               {preset.label}
             </button>
           ))}
         </div>
       )}
 
-      {(meta.efecto || relatedHint) && (
-        <span className="pulso-gv2-field-hint">
-          {meta.efecto}
-          {meta.efecto && relatedHint ? " " : ""}
-          {relatedHint}
-        </span>
-      )}
+      <FieldStatusRow
+        id={statusId}
+        status={{
+          ...status,
+          state: isFocused && status.state === "default" ? "focus" : status.state,
+        }}
+        minHeight={16}
+      />
     </div>
   );
 }
 
-function coerceNumber(value: ArgValue): number {
-  if (typeof value === "number") return value;
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value.replace(",", "."));
-    return Number.isFinite(parsed) ? parsed : NaN;
-  }
-  return NaN;
+function buildTextHint(meta: ArgMetadata): string {
+  return resolveArgumentDescription(meta, {
+    forText: true,
+  });
 }
 
-function formatNumberInput(value: ArgValue, scale = 1): string {
-  if (value === null || value === undefined || value === "") return "";
-  if (typeof value === "number" && Number.isFinite(value)) return String(Number((value * scale).toFixed(6)));
-  if (typeof value === "string") {
-    const parsed = parseNumberInput(value);
-    if (parsed !== null) return String(Number((parsed * scale).toFixed(6)));
-    return value;
+function buildNumberHint(meta: ArgMetadata): string {
+  return resolveArgumentDescription(meta, {
+    forNumber: true,
+  });
+}
+
+function buildRangeHint(meta: ArgMetadata): string {
+  const min = typeof meta.min === "number" ? meta.min : null;
+  const max = typeof meta.max === "number" ? meta.max : null;
+  const unitSuffix = formatUnitHint(meta.unidad);
+  if (min === null && max === null) return "";
+  if (min === null && max !== null) return `Máximo permitido: ${formatNumberInput(max)}${unitSuffix}.`;
+  if (min !== null && max === null) return `Mínimo permitido: ${formatNumberInput(min)}${unitSuffix}.`;
+  return `Rango permitido: ${formatNumberInput(min!)} a ${formatNumberInput(max!)}${unitSuffix}.`;
+}
+
+function formatUnitHint(unit: string | undefined): string {
+  const normalized = String(unit ?? "").trim();
+  if (!normalized) return "";
+  return ` (${normalized})`;
+}
+
+function normalizeArgKey(input: string): string {
+  return String(input ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+function normalizeHintSentence(value: string): string {
+  const text = value.trim().replace(/\s+/g, " ");
+  if (!text) return "";
+  if (/[.!?]$/.test(text)) return text;
+  return `${text}.`;
+}
+
+export const ARGUMENT_HINT_BY_NAME: Record<string, string> = {
+  brecha_cols: "Espacio horizontal entre columnas o bloques cercanos.",
+  brecha_filas: "Espacio vertical entre filas o niveles.",
+  colores_series: "Paleta o mapa de color que distingue cada serie.",
+  config_criterios: "Criterios de cálculo y segmentación que configuran el estilo del bloque.",
+  base: "Texto base de contexto para notas, nota de fuente o total de casos.",
+  pie_slide: "Nota corta para aclarar contexto al final del slide.",
+  decimales: "Cantidad de decimales para números estándar.",
+  decimales_promedio: "Detalle decimal para el promedio mostrado.",
+  desplazamiento_max_etiquetas_peq: "Máximo corrimiento permitido para mover etiquetas pequeñas.",
+  texto: "Texto libre para contar la idea principal del bloque o gráfico.",
+  texto_narrativo: "Texto de apoyo para guiar la lectura del bloque.",
+  donut_hole: "Ajusta el tamaño del centro vacío en donuts.",
+  objetivo: "Enunciado corto del objetivo o foco del análisis.",
+  bullets: "Texto por renglón para convertirlo en bullets visuales.",
+  eje_label_mult: "Escala de etiquetas de eje para mejorar lectura y jerarquía.",
+  escala_valor: "Escala de transformación para los valores mostrados.",
+  espaciado_vertical_cm: "Espaciado vertical adicional (en cm) entre filas o bloques.",
+  espacio_entre_barras: "Espacio entre barras contiguas.",
+  subtitulo: "Línea de apoyo que completa el contexto del título.",
+  titulo: "Texto principal del bloque o gráfico.",
+  titulo_slide: "Texto principal del slide.",
+  pie: "Texto de cierre al pie de bloque o slide.",
+  pie_grafico: "Texto de apoyo que cierra la interpretación del gráfico.",
+  nota: "Nota de contexto para ayudar a interpretar el gráfico.",
+  notas: "Notas complementarias de apoyo a la lectura.",
+  leyenda: "Texto de referencia para distinguir categorías o grupos.",
+  etiqueta: "Texto de etiqueta o rótulo visible en el gráfico.",
+  etiquetas: "Texto de etiquetas o rótulos visibles en el gráfico.",
+  etiqueta_x: "Etiqueta visible del eje horizontal.",
+  etiqueta_y: "Etiqueta visible del eje vertical.",
+  titulo_eje_x: "Texto de título para el eje X.",
+  titulo_eje_y: "Texto de título para el eje Y.",
+  texto_adicional: "Texto adicional para reforzar una interpretación.",
+  introduccion_word: "Texto introductorio usado solo en la exportación Word.",
+  descripcion: "Texto explicativo del bloque o su objetivo.",
+  titulo_leyenda: "Título visible para la leyenda.",
+  prefijo_barra_extra: "Texto fijo al inicio de etiquetas de barra.",
+  sufijo_barra_extra: "Texto fijo al final de etiquetas de barra.",
+  prefijo_n_sobre_barras: "Texto fijo para etiquetar el contador N de cada barra.",
+  titulo_tabla: "Título de la tabla asociada al bloque.",
+  prefijo: "Texto fijo que aparece antes del valor.",
+  sufijo: "Texto fijo que aparece después del valor.",
+  margen: "Espacio extra entre el bloque y su contenedor.",
+  margen_superior: "Espacio de separación arriba del bloque.",
+  margen_inferior: "Espacio de separación abajo del bloque.",
+  margen_izquierdo: "Espacio de separación izquierda del bloque.",
+  margen_derecho: "Espacio de separación derecha del bloque.",
+  width: "Ancho relativo del área dibujada.",
+  height: "Alto relativo del área dibujada.",
+  ancho: "Ancho principal del área dibujada.",
+  alto: "Altura principal del área dibujada.",
+  canvas_w_etiquetas: "Espacio destinado a etiquetas dentro del gráfico.",
+  canvas_h_etiquetas: "Espacio destinado para etiquetas verticales.",
+  ancho_max_eje_y: "Ancho útil para mostrar etiquetas del eje Y.",
+  wrap_y: "Largo máximo de texto antes de cortar en varias líneas.",
+  wrap_ejes: "Largo máximo de texto antes de cortar etiquetas de eje.",
+  alto_por_categoria: "Altura base por cada categoría o fila.",
+  n_top: "Cantidad de elementos principales que se muestran.",
+  top_n: "Cantidad de elementos destacados en la vista.",
+  top2box: "Cantidad de elementos para el análisis top2box.",
+  top2box_labels: "Texto visible para cada tramo del bloque top2box.",
+  tipo_rango: "Define el modo de clasificación por rangos.",
+  debug_lw: "Controla marcadores de diagnóstico de layout.",
+  debug_ph_bordes: "Muestra bordes de ayuda para validar espacios del gráfico.",
+  debug_ph_col: "Activa líneas de ayuda por columna para revisar el layout.",
+  debug_ph_lwd: "Ajusta el grosor de líneas de diagnóstico.",
+  mostrar: "Activa o desactiva la visibilidad de este bloque.",
+  mostrar_titulo: "Activa o desactiva el bloque de título.",
+  mostrar_subtitulo: "Activa o desactiva el subtítulo.",
+  mostrar_valores: "Muestra u oculta los valores numéricos.",
+  mostrar_leyenda: "Muestra u oculta la leyenda.",
+  mostrar_tabla: "Muestra u oculta la tabla asociada.",
+  mostrar_pie: "Muestra u oculta el texto de pie.",
+  mostrar_barras: "Muestra u oculta las barras del gráfico.",
+  mostrar_barras_extra: "Muestra u oculta barras extra de apoyo.",
+  mostrar_barra_extra: "Muestra u oculta la barra extra de apoyo.",
+  mostrar_eje_y: "Muestra u oculta el eje Y.",
+  mostrar_rango: "Muestra u oculta la zona de rango o segmentación.",
+  mostrar_tabla_derecha: "Activa o desactiva la tabla a la derecha del gráfico.",
+  mostrar_ref_label: "Muestra u oculta la etiqueta de referencia.",
+  mostrar_niveles: "Muestra u oculta niveles de estructura secundaria.",
+  mostrar_media: "Muestra u oculta la media de referencia.",
+  mostrar_n_sobre_barras: "Muestra u oculta el contador N sobre cada barra.",
+  mostrar_outliers: "Controla si aparecen o no valores atípicos.",
+  mostrar_radios: "Muestra u oculta radios de referencia.",
+  color_borde: "Color del contorno de bloques o líneas.",
+  color_fondo: "Color de fondo del bloque o panel.",
+  color_texto: "Color del texto principal visible.",
+  color_titulo: "Color del texto del título.",
+  color_subtitulo: "Color del texto secundario.",
+  color_nota_pie: "Color del texto de nota o pie.",
+  color_barra_extra: "Color de la barra extra o apoyo visual.",
+  color_texto_barras: "Color de los textos de las barras.",
+  color_ejes: "Color de ejes y marcas principales.",
+  color_leyenda: "Color de leyenda y textos de referencia.",
+  color_etiquetas_pct: "Color de las etiquetas de porcentaje.",
+  color_n_sobre_barras: "Color del contador N mostrado sobre barras.",
+  grosor_borde: "Grosor del borde de bloques o líneas.",
+  radio_borde: "Redondez de esquinas para bloques y tarjetas.",
+  canvas_w_bars: "Espacio para barras dentro del canvas.",
+  canvas_w_buf_bars_extra: "Margen interno para barras auxiliares.",
+  canvas_w_buf_etq_bars: "Espacio de separación para etiquetas de barras.",
+  canvas_w_legend_right: "Espacio reservado al lado derecho de la leyenda.",
+  canvas_h_caption: "Altura del área de caption del bloque.",
+  canvas_h_caption_in: "Sangría interna del área de caption.",
+  canvas_h_header_in: "Sangría interna del encabezado.",
+  canvas_h_legend: "Altura para el área de leyenda.",
+  canvas_h_title: "Altura disponible para el título.",
+  canvas_h_toprow_in: "Margen interno para la fila superior.",
+  canvas_h_legend_in: "Margen interno para leyenda.",
+  canvas_h_legend_bottom: "Altura base para leyenda inferior.",
+  canvas_pad_top: "Margen superior interno del canvas.",
+  canvas_w_extra: "Ancho adicional de reserva del canvas.",
+  bar_ra_extra: "Ajuste para el bloque de barras extra.",
+  bar_rrra_extra: "Ajusta separación extra del bloque de barras.",
+  barra_extra_preset: "Reserva visual para la barra extra.",
+  donat_hole: "Ajusta la proporción del vacío en gráficos de dona.",
+  angle_x: "Ángulo de inclinación para barras/elementos del eje X.",
+  invertir_barras: "Invierte la dirección de visualización de barras.",
+  invertir_leyenda: "Invierte la posición y orden de leyenda.",
+  orden: "Ajusta el orden de presentación de elementos.",
+  ordenar_categorias: "Ordena categorías según estrategia definida.",
+  legend_espaciado: "Espaciado entre ítems y bloques de leyenda.",
+  legend_key_cm: "Tamaño visual de símbolos de leyenda.",
+  legend_key_spacing_x_cm: "Espacio horizontal entre los símbolos de leyenda.",
+  legend_n_por_fila: "Cantidad de entradas por fila en la leyenda.",
+  leyenda_posicion: "Posición del bloque de leyenda.",
+  ncol_leyenda_bajo: "Número de columnas para leyenda inferior.",
+  size_linea: "Espesor o grosor visual de la línea principal.",
+  size_leyenda: "Tamaño del texto o símbolos de leyenda.",
+  size_titulo: "Tamaño del texto del título.",
+  size_subtitulo: "Tamaño del texto del subtítulo.",
+  size_ejes: "Tamaño del texto de ejes.",
+  size_nota_pie: "Tamaño del texto del pie o nota final.",
+  size_etiquetas_pct: "Tamaño del texto de etiquetas de porcentaje.",
+  size_texto_barras: "Tamaño del texto en barras y etiquetas numéricas.",
+  size_texto_celdas: "Tamaño del texto de celdas o tablas.",
+  size_titulo_extra: "Tamaño del texto auxiliar extra en títulos.",
+  size_titulos_grupo: "Tamaño de títulos de grupo.",
+  size_barra_extra: "Tamaño del texto de la barra extra.",
+  tamano_key_cm: "Tamaño del cuadrante o ícono de leyenda.",
+  etiqueta_n: "Texto fijo para etiqueta de N.",
+  etiquetas_negrita: "Destaca con negrita ciertas etiquetas en el bloque.",
+  modo: "Modo de interpretación o presentación del bloque.",
+  modo_foda: "Activa el formato de análisis FODA.",
+  modo_semaforo: "Aplica lectura por niveles semáforo.",
+  font_family: "Familia tipográfica principal del bloque gráfico.",
+  font_family_ppt: "Familia tipográfica para salida PPT.",
+  cruce: "Variable usada para cruce o segmento.",
+  cruces: "Número de cruces o categorías separadas.",
+  exporatr: "Control de exposición o participación del bloque.",
+  exposicion: "Controla qué tanto pesa la evidencia de este bloque.",
+  exportar: "Indica si este bloque participa en la salida.",
+  fecha: "Texto de fecha visible para contextualizar el bloque en el tiempo.",
+  var: "Variable principal asociada al control.",
+  vars: "Variables usadas en el control o cálculo.",
+  filas: "Cantidad de filas o elementos base usados en el bloque.",
+  filtros: "Ajustes de selección para filtrar observaciones.",
+  cortes_chip: "Filtros rápidos por código o segmento.",
+  cortes_grilla: "Grilla visual de cortes de referencia.",
+  formato: "Formato de presentación de valores o etiquetas.",
+  grosor_barras: "Grosor base de las barras del gráfico.",
+  grosor_barras_mult: "Grosor relativo de barras cuando hay múltiples bloques.",
+  grosor_modo: "Ajusta el nivel de grosor aplicado por el modo activo.",
+  repeler_etiquetas_peq: "Evita que etiquetas pequeñas se superpongan.",
+  icono: "Selecciona o personaliza el icono asociado al gráfico.",
+  incluir_total: "Incluye o elimina el total agregado en la visualización.",
+  limites: "Ajusta límites mínimos o máximos de interpretación.",
+  metrica: "Métrica o variable que se calcula para este bloque.",
+  mostrar_etiquetas_pct: "Activa o desactiva etiquetas de porcentaje.",
+  umbral_posicion: "Posición del umbral visual dentro del bloque.",
+  umbral_etiqueta: "Nivel mínimo para mostrar una etiqueta especial.",
+  umbral_etiqueta_normal: "Referencia de etiqueta para estado normal.",
+  umbral_mostrar_etiqueta: "Activa etiqueta al cruzar este umbral.",
+  umbral_rojo_pct: "Define porcentaje de disparo del color rojo.",
+  nivel: "Nivel de severidad o intensidad de la señal.",
+  nota_pie: "Nota corta que refuerza la lectura final del bloque.",
+  overrides: "Ajustes heredados de modo o base que puedes refinar por slide/slot.",
+  pos_titulo: "Ajusta la posición/espaciado del título principal.",
+  tabla_auto_fit: "Ajusta tabla al espacio disponible.",
+  tabla_body_size: "Tamaño de texto del cuerpo de tabla.",
+  radar_min_ejes: "Fija el límite mínimo de los ejes para gráficos radar.",
+  radar_scale: "Escala global aplicada al radar para ampliar o comprimir.",
+  rellenar_poligono: "Rellena el polígono central para reforzar el área del radar.",
+  tabla_digits: "Cantidad de decimales en números de tabla.",
+  tabla_firstcol_bold: "Resalta la primera columna con texto más fuerte.",
+  tabla_firstcol_size: "Tamaño de texto para la primera columna.",
+  tabla_header_size: "Tamaño de texto del encabezado de tabla.",
+  tabla_grid_col: "Activa líneas de grilla en tabla.",
+  tabla_ph_ancho: "Ancho base de referencia de tabla.",
+  tabla_ph_gap: "Espacio entre columnas de tabla.",
+  tabla_ph_margin_top: "Margen superior dentro de la tabla.",
+  tabla_ph_margin_bot: "Margen inferior dentro de la tabla.",
+  tabla_header_fill: "Color de fondo del encabezado de tabla.",
+  tabla_firstcol_indent_npc: "Indentación de primera columna.",
+  tabla_firstcol_wrap: "Permite salto de línea en primera columna.",
+  tabla_firstcol_frac: "Anchura relativa de la primera columna como fracción de la tabla.",
+  size_n_sobre_barras: "Tamaño del texto/contador N mostrado sobre barras.",
+  tabla_text_blue: "Color azul para texto destacado de tabla.",
+  tabla_line_lwd: "Grosor de líneas de separación de tabla.",
+  tabla_height_frac: "Altura relativa de filas de tabla.",
+  tabla_body_fill: "Color de fondo del cuerpo de tabla.",
+  tabla_padding_mm: "Padding interno de celdas de tabla.",
+  textos_negrita: "Elige qué textos se resalten en negrita para guiar la atención.",
+  subtexto: "Texto secundario para aclarar o ampliar el significado principal.",
+  sufijo_auto: "Texto fijo al final de cada valor o etiqueta.",
+  titulo_barra_extra: "Texto del título para la barra extra.",
+  titulos_grupo: "Ajusta cómo se muestran los títulos de grupo.",
+  usar_pesos: "Controla si se usan pesos en el cálculo.",
+  sm_omit_codes: "Excluye códigos específicos del cálculo.",
+  sm_omit_na: "Excluye filas sin respuesta o vacías.",
+  orientacion: "Dirección general de lectura del gráfico.",
+  tipo_pie: "Estilo gráfico del bloque de sectores.",
+};
+
+function joinHints(values: Array<string | undefined>): string {
+  const clean = values
+    .map((value) => normalizeHintSentence(value ?? ""))
+    .filter((value) => value.length > 0);
+
+  return clean.join(" ");
+}
+
+function resolveTextHintByName(key: string): string {
+  if (ARGUMENT_HINT_BY_NAME[key]) return ARGUMENT_HINT_BY_NAME[key];
+  if (key.includes("titulo")) return "Texto de título visible para el bloque o gráfico.";
+  if (key.includes("subtitulo")) return "Texto de subtítulo o contexto para completar el encabezado.";
+  if (key.includes("pie") || key.includes("nota")) return "Texto de apoyo al pie para clarificar la lectura.";
+  if (key.includes("etiqueta")) return "Texto para etiquetas o rótulos que aparecen en el gráfico.";
+  if (key.includes("leyenda")) return "Texto de leyenda para distinguir categorías o grupos.";
+  if (key.includes("texto") || key.includes("subtexto")) return "Texto libre para explicar o narrar esta sección.";
+  if (key.includes("bullets") || key.includes("bullet")) return "Texto en viñetas para listar mensajes clave.";
+  if (key.includes("introduccion")) return "Mensaje introductorio que prepara lo que viene en el slide.";
+  if (key.includes("objetivo")) return "Texto de objetivo para enfocar la interpretación.";
+  return "";
+}
+
+function resolveBooleanHintByName(key: string): string {
+  if (key.startsWith("mostrar_") || key === "mostrar") return "Activa o desactiva este elemento en la salida.";
+  if (key.includes("usar_")) return "Decide si este comportamiento se aplica aquí.";
+  if (key.includes("activar")) return "Controla si el comportamiento entra en efecto.";
+  return "";
+}
+
+function resolveNumberHintByName(key: string): string {
+  if (key.includes("size") || key.includes("tamano") || key.includes("tamaño")) {
+    return "Ajusta el tamaño visual para mejorar legibilidad y jerarquía.";
+  }
+  if (key.includes("grosor") || key.includes("thick")) {
+    return "Ajusta el grosor del trazo o bloque para marcar mayor o menor énfasis.";
+  }
+  if (key.includes("canvas_w") || key.includes("canvas_h") || key.includes("canvas")) {
+    return "Reparte mejor el espacio interno disponible del área del gráfico.";
+  }
+  if (key.includes("ancho") || key.includes("alto") || key.includes("width") || key.includes("height")) {
+    return "Controla la distribución horizontal o vertical de elementos.";
+  }
+  if (key.includes("umbral")) {
+    return "Fija el punto de corte para clasificar o resaltar segmentos.";
+  }
+  if (key.includes("espacio") || key.includes("espaciado") || key.includes("brecha")) {
+    return "Controla separación y compactación entre elementos relacionados.";
+  }
+  if (key.includes("wrap")) {
+    return "Define hasta dónde se parte el texto en líneas.";
+  }
+  if (key.includes("mostrar_") && !key.includes("color")) {
+    return "Permite activar o desactivar la visibilidad de un componente.";
+  }
+  if (key.includes("top_") || key === "top_n" || key.startsWith("top") || key.includes("n_")) {
+    return "Ajusta cuántos elementos entran en el top o comparación principal.";
+  }
+  if (key.includes("decimales") || key.includes("precision")) {
+    return "Ajusta el detalle numérico mostrado en etiquetas.";
   }
   return "";
 }
 
-function parseNumberInput(value: string): number | null {
-  const clean = value.trim().replace(",", ".");
-  if (!clean) return null;
-  const parsed = Number(clean);
-  return Number.isFinite(parsed) ? parsed : null;
+function resolveGeneralHintByName(key: string): string {
+  if (key.includes("modo")) return "Define el modo de lectura o interpretación del bloque.";
+  if (key.includes("base")) return "Configura el punto de partida del estilo antes de aplicar ajustes.";
+  if (key.includes("prefijo")) return "Añade un texto inicial fijo a cada etiqueta.";
+  if (key.includes("sufijo")) return "Añade un texto final fijo a cada etiqueta.";
+  if (key.includes("filtro") || key.includes("filtros")) return "Aplica restricciones para mostrar solo parte de los datos.";
+  return "";
 }
 
-function isPartialNumberInput(value: string): boolean {
-  const clean = value.trim();
+function buildTextualLabelHint(meta: ArgMetadata): string {
+  const normalizedLabel = normalizeArgKey(meta.label);
+  if (meta.tipo_input === "number") {
+    const displayLabel = meta.label || normalizedLabel || "este parámetro";
+    const withUnit = meta.unidad ? ` y la unidad ${meta.unidad}` : "";
+    return `Ajusta el valor numérico para controlar ${displayLabel}${withUnit}.`;
+  }
+  const fallback = resolveTextHintByName(normalizedLabel) || resolveGeneralHintByName(normalizedLabel);
+  if (fallback) return fallback;
+  return `Ajusta el contenido de texto de ${meta.label || "este campo"} para mejorar la lectura visual.`;
+}
+
+function buildTypeHint(meta: ArgMetadata, options: { forText?: boolean; forNumber?: boolean } = {}): string {
+  const tipo = meta.tipo_input;
+
+  if (tipo === "variable" || tipo === "variable_opt") {
+    return "Selecciona la variable del dataset que alimenta este bloque visual.";
+  }
+  if (tipo === "variables_list") {
+    return "Selecciona varias variables para construir el cálculo o la comparación.";
+  }
+  if (tipo === "string" || tipo === "textarea") {
+    return "Texto visible en el resultado; cambia el mensaje que ve el lector.";
+  }
+  if (tipo === "number") {
+    return options.forNumber
+      ? "Ajusta un valor numérico que modifica escala, tamaño o umbrales."
+      : "Ajusta un número asociado a este control.";
+  }
+  if (tipo === "bool") {
+    return "Activa o desactiva este comportamiento en el bloque.";
+  }
+  if (tipo === "choice") {
+    return "Escoge una alternativa y cambia cómo se interpreta el gráfico.";
+  }
+  if (tipo === "codigos_list") {
+    return "Introduce códigos para filtrar o seleccionar casos específicos.";
+  }
+  if (tipo === "multiflag") {
+    return "Marca varias opciones para combinar condiciones en este bloque.";
+  }
+  if (tipo === "color") {
+    return "Selecciona el color base para esta zona visual.";
+  }
+  if (tipo === "series_colors") {
+    return "Asigna colores por serie para distinguir mejor cada grupo.";
+  }
+  if (tipo === "criteria_config") {
+    return "Define criterios y parámetros avanzados para segmentar o agrupar datos.";
+  }
+  if (tipo === "icono") {
+    return "Selecciona un icono para reforzar el mensaje visual.";
+  }
+  if (tipo === "overrides") {
+    return "Configurable desde estilos globales o modos para aplicar cambios a varios gráficos.";
+  }
+  if (tipo === "filtros") {
+    return "Este control usa una interfaz dedicada para combinar condiciones lógicas.";
+  }
+  if (tipo === "base_config") {
+    return "Parametros base usados por el render del graficador.";
+  }
+  if (tipo === "meta") {
+    return "Configuración técnica interna; normalmente no requiere edición manual.";
+  }
+
+  return "";
+}
+
+function resolveArgumentHintByName(meta: ArgMetadata, options: {
+  forText?: boolean;
+  forNumber?: boolean;
+}): string {
+  const normalized = normalizeArgKey(meta.name || "");
+  const boolHint = meta.tipo_input === "bool" ? resolveBooleanHintByName(normalized) : "";
+  const nameHint =
+    ARGUMENT_HINT_BY_NAME[normalized] ||
+    resolveGeneralHintByName(normalized) ||
+    (options.forNumber ? resolveNumberHintByName(normalized) : resolveTextHintByName(normalized)) ||
+    boolHint;
+  if (nameHint) return nameHint;
+
+  const labelHint = buildTextualLabelHint(meta);
+  if (labelHint) return labelHint;
+
+  return "";
+}
+
+export function resolveArgumentDescription(meta: ArgMetadata, options: {
+  forText?: boolean;
+  forNumber?: boolean;
+} = {}): string {
+  const source =
+    meta.efecto?.trim() ||
+    meta.descripcion?.trim();
+  if (source) return source;
+
+  const rangeHint = options.forNumber ? buildRangeHint(meta) : "";
+  const typeHint = buildTypeHint(meta, options);
+  const nameHint = resolveArgumentHintByName(meta, options);
+  const groupContext = groupHint(meta.grupo);
+  const numberContext = options.forNumber ? relatedNumericHint(meta.name ?? "", meta.grupo ?? "") : "";
+  const fallbackHint = buildTextualLabelHint(meta);
+
+  return joinHints([typeHint, nameHint, groupContext, rangeHint, numberContext, fallbackHint]) || DEFAULT_ARG_HINT;
+}
+
+function buildTextStatusMessage({
+  value,
+  metaName,
+  baseHint,
+}: {
+  value: string | undefined;
+  metaName: string;
+  baseHint: string;
+}): string {
+  const trimmed = (value ?? "").trim();
+  if (isCriticalTextField(metaName) && trimmed.length === 0) {
+    return "Este texto es clave para la lectura del gráfico.";
+  }
+  return baseHint;
+}
+
+function isCriticalTextField(name: string): boolean {
+  const key = String(name).toLowerCase();
   return (
-    clean === "" ||
-    clean === "-" ||
-    clean === "+" ||
-    clean === "." ||
-    clean === "," ||
-    /^[-+]?\d+[.,]$/.test(clean)
+    key === "titulo" ||
+    key === "subtitulo" ||
+    key.endsWith("_titulo") ||
+    key.startsWith("titulo_") ||
+    key.includes("nota") ||
+    key.includes("pie")
   );
 }
 
-function decimalsForStep(step: number): number {
-  const s = String(step);
-  const dot = s.indexOf(".");
-  return dot >= 0 ? Math.min(6, s.length - dot - 1) : 0;
-}
-
-function inferNumberStep(meta: ArgMetadata, value: ArgValue): number {
-  if (typeof meta.step === "number" && meta.step > 0) return meta.step;
-
-  const fromText = typeof value === "string" ? value.trim() : "";
-  const decimalMatch = fromText.match(/[.,](\d+)/);
-  if (decimalMatch) {
-    const decimals = Math.min(4, decimalMatch[1].length);
-    return Math.pow(10, -decimals);
-  }
-
-  const n = coerceNumber(value);
-  const min = typeof meta.min === "number" ? meta.min : undefined;
-  const max = typeof meta.max === "number" ? meta.max : undefined;
-  const span = typeof min === "number" && typeof max === "number" ? max - min : NaN;
-  const unit = String(meta.unidad ?? "").toLowerCase();
-  const name = String(meta.name ?? "").toLowerCase();
-
-  if (isProportionThreshold(meta)) return 0.0001;
-  if (unit.includes("propor") || name.startsWith("canvas_w_")) return 0.01;
-  if (unit.includes("pulgada") || name.endsWith("_in") || name.includes("_in_")) return 0.02;
-  if (Number.isFinite(span) && span > 0 && span <= 2) return 0.01;
-  if (Number.isFinite(n) && Math.abs(n) > 0 && Math.abs(n) < 1) return 0.01;
-  if (Number.isFinite(n) && !Number.isInteger(n)) return 0.1;
-
-  return 1;
+function FieldStatusRow({
+  id,
+  status,
+  minHeight,
+}: {
+  id: string;
+  status: FieldStatus;
+  minHeight: number;
+}) {
+  return (
+    <p
+      id={id}
+      className={`pulso-gv2-field-status is-${status.state}`}
+      role={status.state === "error" ? "alert" : "status"}
+      aria-live="polite"
+      style={{ minHeight }}
+    >
+      {status.message || "\u00a0"}
+    </p>
+  );
 }
 
 function isProportionThreshold(meta: ArgMetadata): boolean {
@@ -599,17 +1258,31 @@ function isProportionThreshold(meta: ArgMetadata): boolean {
   return (name.startsWith("umbral_") || name.includes("_umbral_")) && !name.endsWith("_pct");
 }
 
-function getRelatedHint(name: string): string | null {
-  if (name === "canvas_w_etiquetas") {
-    return "Si el texto sigue partido, sube también el ancho de texto de etiquetas.";
-  }
-  if (name === "ancho_max_eje_y" || name === "wrap_y") {
-    return "Trabaja junto con el espacio para etiquetas.";
-  }
+function relatedNumericHint(name: string, grupo: string): string {
+  if (name === "canvas_w_etiquetas") return "útil para ajustar ancho de etiquetas.";
+  if (name === "ancho_max_eje_y" || name === "wrap_y") return "trabaja junto al espacio de etiquetas.";
   if ((name.startsWith("umbral_") || name.includes("_umbral_")) && !name.endsWith("_pct")) {
-    return "Está en porcentaje visible: escribe 0.05 para 0.05%.";
+    return "usa proporción de datos (por ejemplo, 0.05 = 5%).";
   }
-  return null;
+  if (grupo === "espacio" || grupo === "canvas") return "controla el espacio de dibujo y separación visual.";
+  if (grupo === "leyenda") return "afecta cómo se distribuyen y legibilizan etiquetas o leyendas.";
+  if (grupo === "valores") return "incide directamente sobre el tamaño y escala visual de barras o etiquetas.";
+  if (grupo === "lectura") return "afecta cómo se ve la lectura numérica del gráfico.";
+  return "";
+}
+
+function groupHint(grupo: string): string {
+  if (grupo === "lectura") return "Ajusta texto, tipografía y etiquetas para que el mensaje sea más claro.";
+  if (grupo === "valores") return "Ajusta escalas, límites y la interpretación numérica del bloque.";
+  if (grupo === "leyenda") return "Define cómo se ordena, posiciona y presenta la leyenda.";
+  if (grupo === "espacio" || grupo === "canvas") return "Controla separación, márgenes y distribución del espacio visual.";
+  if (grupo === "diagrama") return "Configura la presentación general de este bloque gráfico.";
+  if (grupo === "tabla") return "Configura el estilo y la lectura de la tabla asociada.";
+  if (grupo === "estilo") return "Ajusta estética, consistencia y jerarquía visual.";
+  if (grupo === "datos") return "Define qué datos entran y cómo se estructuran para este bloque.";
+  if (grupo === "textos") return "Controla títulos, notas y contenido textual visible.";
+  if (grupo === "filtro") return "Filtra o ordena los casos antes de mostrarlos.";
+  return "";
 }
 
 function quickPresetsFor(name: string): { label: string; value: number }[] {
@@ -1279,16 +1952,24 @@ const COLOR_KEYWORD_ALIASES: Record<string, string> = {
   black: "black",
 };
 
-function isValidColor(v: string): boolean {
+export function isValidColor(v: string): boolean {
   if (!v) return true; // vacío = hereda
   const clean = canonicalizeColorInput(v);
   if (COLOR_KEYWORDS.some((kw) => kw.value === clean.toLowerCase())) return true;
   return /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(clean.trim());
 }
 
+export function isValidColorDraft(v: string): boolean {
+  const clean = (v || "").trim();
+  if (!clean) return true;
+  const lower = clean.toLowerCase();
+  if (COLOR_KEYWORDS.some((kw) => kw.value.startsWith(lower))) return true;
+  return /^#?[0-9a-f]{0,8}$/i.test(clean);
+}
+
 // Normaliza shorthand (#abc → #aabbcc) y keyword → hex, para que el
 // <input type="color"> nativo siempre reciba un hex de 7 chars.
-function toHex7(v: string): string {
+export function toHex7(v: string): string {
   const s = canonicalizeColorInput(v).toLowerCase();
   if (s === "white") return "#ffffff";
   if (s === "black" || s === "transparent" || s === "") return "#000000";
@@ -1302,7 +1983,7 @@ function toHex7(v: string): string {
   return "#000000";
 }
 
-function canonicalizeColorInput(v: string): string {
+export function canonicalizeColorInput(v: string): string {
   const clean = (v || "").trim();
   const alias = COLOR_KEYWORD_ALIASES[clean.toLowerCase()];
   if (alias) return alias;
@@ -1320,12 +2001,12 @@ function formatColorInput(v: string | undefined): string {
   return clean;
 }
 
-function shouldCommitColorDraft(v: string): boolean {
+export function shouldCommitColorDraft(v: string): boolean {
   const clean = v.trim();
   if (!clean) return false;
   const canonical = canonicalizeColorInput(clean).toLowerCase();
   if (COLOR_KEYWORDS.some((kw) => kw.value === canonical)) return true;
-  return /^#?[0-9a-f]{6}$/i.test(clean) || /^#?[0-9a-f]{8}$/i.test(clean);
+  return /^#?[0-9a-f]{3}$/i.test(clean) || /^#?[0-9a-f]{6}$/i.test(clean) || /^#?[0-9a-f]{8}$/i.test(clean);
 }
 
 function swatchBackgroundFor(value: string): string {
@@ -1350,33 +2031,63 @@ function ColorField({
   const effective = value || inheritedColor;
   const [draft, setDraft] = useState(formatColorInput(effective));
   const ref = useRef<HTMLDivElement>(null);
+  const draftRef = useRef(draft);
+  const committedRef = useRef(canonicalizeColorInput(effective));
+  const pendingCommitRef = useRef<string | null>(null);
   const colorInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Sync draft con prop externo (ej. al cambiar de preset seleccionado).
-  useEffect(() => { setDraft(formatColorInput(value || inheritedColor)); }, [inheritedColor, value]);
+  useEffect(() => { draftRef.current = draft; }, [draft]);
 
-  // Click fuera → cerrar popover.
+  // Sync draft con prop externo (ej. al cambiar de preset seleccionado).
+  useEffect(() => {
+    const next = canonicalizeColorInput(value || inheritedColor);
+    if (pendingCommitRef.current && next !== pendingCommitRef.current) {
+      return;
+    }
+    pendingCommitRef.current = null;
+    committedRef.current = next;
+    setDraft(formatColorInput(next));
+  }, [inheritedColor, value]);
+
+  // Click fuera -> cerrar popover. No commiteamos acá: el input de texto ya
+  // confirma en blur y los swatches/native picker confirman explícitamente.
+  // Esto evita que un draft anterior vuelva a pisar el color recién elegido.
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
-        commit(draft);
         setOpen(false);
       }
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
-  }, [draft, open]);
+  }, [open]);
+
+  function setDraftText(next: string) {
+    draftRef.current = next;
+    setDraft(next);
+  }
+
+  function acceptLocalCommit(next: string) {
+    const clean = canonicalizeColorInput(next);
+    pendingCommitRef.current = clean;
+    committedRef.current = clean;
+    setDraftText(formatColorInput(clean));
+  }
 
   function commit(v: string | null) {
     const clean = v == null ? null : canonicalizeColorInput(v);
-    if (clean === "" || clean == null) onChange(null);
-    else if (isValidColor(clean)) onChange(clean);
-    else {
-      setDraft(formatColorInput(value || inheritedColor));
+    if (clean === "" || clean == null) {
+      acceptLocalCommit(canonicalizeColorInput(inheritedColor));
+      onChange(null);
       return;
     }
-    setDraft(formatColorInput(clean ?? ""));
+    if (!isValidColor(clean)) {
+      setDraftText(formatColorInput(committedRef.current));
+      return;
+    }
+    acceptLocalCommit(clean);
+    onChange(clean);
   }
 
   function pickSwatch(hex: string) {
@@ -1384,8 +2095,9 @@ function ColorField({
     setOpen(false);
   }
 
-  const valid = isValidColor(draft);
-  const previewColor = valid
+  const valid = isValidColorDraft(draft);
+  const canPreviewDraft = isValidColor(draft);
+  const previewColor = canPreviewDraft
     ? canonicalizeColorInput(draft || effective)
     : canonicalizeColorInput(effective);
   const wheelHex = toHex7(previewColor);
@@ -1407,6 +2119,10 @@ function ColorField({
         {/* Swatch clickeable */}
         <button
           type="button"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
           onClick={() => setOpen((v) => !v)}
           title="Elegir color"
           className="pulso-gv2-color-swatch"
@@ -1424,20 +2140,23 @@ function ColorField({
           placeholder={formatColorInput(inheritedColor) || "#RRGGBB, blanco o transparente"}
           onChange={(e) => {
             const raw = e.target.value;
-            setDraft(raw);
+            setDraftText(raw);
             if (shouldCommitColorDraft(raw)) {
               const clean = canonicalizeColorInput(raw);
-              if (isValidColor(clean)) onChange(clean);
+              if (isValidColor(clean)) {
+                acceptLocalCommit(clean);
+                onChange(clean);
+              }
             }
           }}
           onBlur={() => commit(draft)}
           onKeyDown={(e) => {
             if (e.key === "Enter") { commit(draft); (e.target as HTMLInputElement).blur(); }
-            if (e.key === "Escape") { setDraft(formatColorInput(value || inheritedColor)); (e.target as HTMLInputElement).blur(); }
+            if (e.key === "Escape") { setDraftText(formatColorInput(committedRef.current)); (e.target as HTMLInputElement).blur(); }
           }}
           style={{
             ...inputStyle,
-            width: 150,
+            width: "100%",
             minWidth: 0,
             fontFamily: "ui-monospace, monospace",
             fontSize: 11,
@@ -1448,6 +2167,10 @@ function ColorField({
         {canClear && (
           <button
             type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
             onClick={() => commit(null)}
             className="pulso-icon pulso-gv2-color-clear"
             aria-label="Borrar color (heredar)"
@@ -1461,6 +2184,7 @@ function ColorField({
       {open && (
         <div
           className="pulso-gv2-color-popover"
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {/* Presets comunes */}
           <PopoverSection icon={<Palette size={11} />} label="Comunes">
@@ -1491,6 +2215,10 @@ function ColorField({
               <button
                 type="button"
                 className="pulso-gv2-color-wheel-button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
                 onClick={(e) => {
                   e.preventDefault();
                   colorInputRef.current?.click();

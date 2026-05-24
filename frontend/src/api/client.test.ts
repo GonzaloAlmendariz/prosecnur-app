@@ -4,6 +4,8 @@ import {
   apiMonitoreoDemo,
   apiMonitoreoSource,
   apiMonitoreoSync,
+  apiGraficosPpt,
+  apiGraficosPreviewSlide,
   apiXlsformEditorExportPdf,
   apiXlsformEditorImport,
   type MonitoreoConfig,
@@ -239,5 +241,91 @@ describe("Monitoreo client", () => {
       expect.objectContaining({ method: "POST" }),
     );
     expect(JSON.parse(String(sentInit?.body))).toEqual({ seed: 7, n: 24 });
+  });
+});
+
+describe("Graficos preview/export client", () => {
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", makeLocalStorage());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("sends current visual config to slide preview and PPT export", async () => {
+    const bodies: unknown[] = [];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body ?? "{}")));
+      if (String(input).endsWith("/preview-slide")) {
+        return jsonResponse({
+          ok: true,
+          file_id: "preview-pptx",
+          size: 1024,
+          type: "pptx",
+          images: [],
+          slide_preview: null,
+        });
+      }
+      return jsonResponse({ ok: true, job_id: "job-ppt", kind: "graficos.ppt" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const slide = { id: "s1", tipo: "p_slide_texto", payload: { titulo: "Demo" } };
+    const config = {
+      presets: { base: { color_titulo: "#123456" } },
+      debug_ph: { activo: true, color: "#00FFAA", lwd: 2 },
+      iconos: [],
+    };
+
+    await apiGraficosPreviewSlide(slide as never, config);
+    await apiGraficosPpt({ slides: [slide] } as never, config.presets, {}, config);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/graficos/preview-slide",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/graficos/ppt",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(bodies).toEqual([
+      { slide, config },
+      { plan: { slides: [slide] }, presets: config.presets, w_presets: {}, config },
+    ]);
+  });
+
+  test("preview slide sends optional quality/image flags when provided", async () => {
+    const bodies: unknown[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body ?? "{}")));
+      return jsonResponse({
+        ok: true,
+        file_id: "preview-pptx",
+        size: 1024,
+        type: "pptx",
+        images: [],
+        slide_preview: null,
+      });
+    }));
+
+    const slide = { id: "s2", tipo: "p_slide_texto", payload: { titulo: "Demo" } };
+    const config = { presets: {}, debug_ph: {}, iconos: [] };
+
+    await apiGraficosPreviewSlide(slide as never, config, {
+      preview_quality: "normal",
+      include_images: true,
+    });
+
+    expect(bodies).toEqual([
+      {
+        slide,
+        config,
+        preview_quality: "normal",
+        include_images: true,
+      },
+    ]);
   });
 });

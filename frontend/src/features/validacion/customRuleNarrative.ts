@@ -33,7 +33,7 @@ const CUSTOM_TIPO_TO_AST: Record<ReglaCustomTipo, string> = {
 // Label humano del tipo — se usa también como `categoria_ux` y en el chip
 // de la lista.
 export const CUSTOM_TIPO_LABEL: Record<ReglaCustomTipo, string> = {
-  no_nulo: "No nulo",
+  no_nulo: "No vacíos",
   rango_num: "Rango numérico",
   rango_fecha: "Rango de fecha",
   outliers_iqr: "Outliers (IQR)",
@@ -56,29 +56,29 @@ export function describeCustomParams(
 
   switch (tipo) {
     case "no_nulo":
-      return "No puede estar vacío ni NA.";
+      return "Marca las filas donde la variable quedó vacía o con NA.";
     case "rango_num":
       if (mn && mx) return `Debe estar entre ${mn} y ${mx}.`;
       if (mn) return `Debe ser ≥ ${mn}.`;
       if (mx) return `Debe ser ≤ ${mx}.`;
-      return "Define un rango permitido.";
+      return "Define un rango permitido para el valor numérico.";
     case "rango_fecha":
       if (mn && mx) return `Debe estar entre ${mn} y ${mx}.`;
       if (mn) return `Debe ser desde ${mn}.`;
       if (mx) return `Debe ser hasta ${mx}.`;
-      return "Define el rango de fechas permitido.";
+      return "Define el rango de fechas permitido para esta variable.";
     case "outliers_iqr":
-      return `Se marcan valores fuera de [Q1 − ${k ?? 1.5}·IQR, Q3 + ${k ?? 1.5}·IQR].`;
+      return `Se marcan valores fuera del intervalo [Q1 − ${k ?? 1.5}·IQR, Q3 + ${k ?? 1.5}·IQR].`;
     case "outliers_z":
-      return `Se marcan valores con |z-score| > ${k ?? 3}.`;
+      return `Se marcan valores cuyo |z-score| supere ${k ?? 3}.`;
     case "duplicados":
-      return "Se marcan casos cuya combinación de variables se repita.";
+      return "Se marcan filas donde esa combinación de variables aparece más de una vez.";
     case "fuera_catalogo":
       return valores > 0
-        ? `Se marcan casos con valores fuera de la lista permitida (${valores} entradas).`
-        : "Define la lista de valores permitidos.";
+        ? `Se marcan filas con valores que no están en la lista permitida (${valores} entradas).`
+        : "Define la lista de opciones esperadas.";
     case "coherencia_2v":
-      return "Si la primera variable cumple su condición, la segunda debe cumplir la suya.";
+      return "Si la primera variable cumple su condición, la segunda debe cumplir también la suya.";
     default:
       return "";
   }

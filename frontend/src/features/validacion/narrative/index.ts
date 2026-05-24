@@ -68,10 +68,10 @@ export type RoleMeta = {
 export const ROLE_META: Record<RoleKey, RoleMeta> = {
   target: {
     key: "target",
-    title: "Respuesta que revisamos",
+    title: "Respuesta objetivo",
     eyebrow: "Respuesta central",
-    hint: "Es la respuesta que esta regla evalúa directamente.",
-    description: "El dato que debe quedar correcto según el instrumento.",
+    hint: "Es la variable que queremos validar con esta regla.",
+    description: "Es la respuesta principal que se espera validar al revisar el formulario.",
     Icon: CircleDot,
     tokenBg: "var(--pulso-role-target-bg)",
     tokenFg: "var(--pulso-role-target-fg)",
@@ -79,10 +79,10 @@ export const ROLE_META: Record<RoleKey, RoleMeta> = {
   },
   drivers: {
     key: "drivers",
-    title: "Condiciones que activan la regla",
+    title: "Condiciones que activan",
     eyebrow: "Activadores",
-    hint: "Respuestas previas que hacen que esta pregunta aplique.",
-    description: "Cuando estas respuestas se cumplen, la regla entra en juego.",
+    hint: "Respuestas previas que hacen aplicable esta validación.",
+    description: "Si se cumplen, la regla se evalúa en ese caso.",
     Icon: GitBranch,
     tokenBg: "var(--pulso-role-drivers-bg)",
     tokenFg: "var(--pulso-role-drivers-fg)",
@@ -90,10 +90,10 @@ export const ROLE_META: Record<RoleKey, RoleMeta> = {
   },
   compare: {
     key: "compare",
-    title: "Se compara con",
+    title: "Referencia de comparación",
     eyebrow: "Comparación",
-    hint: "Datos o referencias que sirven para contrastar la respuesta.",
-    description: "Con qué otra información se contrasta la respuesta.",
+    hint: "Variable o referencia usada para contrastar la respuesta objetivo.",
+    description: "La regla valida la relación entre la respuesta objetivo y estas variables.",
     Icon: Scale,
     tokenBg: "var(--pulso-role-compare-bg)",
     tokenFg: "var(--pulso-role-compare-fg)",
@@ -101,10 +101,10 @@ export const ROLE_META: Record<RoleKey, RoleMeta> = {
   },
   gate: {
     key: "gate",
-    title: "Condiciones heredadas",
+    title: "Contexto",
     eyebrow: "Contexto",
-    hint: "Vienen de la lógica de la sección o del grupo del formulario.",
-    description: "Acompañan la regla desde la estructura del formulario.",
+    hint: "Reglas de sección/salto que definen por qué esta regla aplica aquí.",
+    description: "No definen el valor, pero sí el caso en el que la regla debe ejecutarse.",
     Icon: Hash,
     tokenBg: "var(--pulso-role-gate-bg)",
     tokenFg: "var(--pulso-role-gate-fg)",
@@ -159,31 +159,31 @@ export function buildExpectationHeadline(
   if (explicit && !looksLikeTechnicalCondition(explicit)) return explicit;
 
   if (subtipo === "nodebe")
-    return `${targetDisplay} no debería tener respuesta si la pregunta no correspondía.`;
+    return `${targetDisplay} debe quedar vacía cuando la ruta del formulario no la habilita.`;
   if (subtipo === "debe")
-    return `${targetDisplay} debía responderse en esa ruta del formulario.`;
+    return `${targetDisplay} debe estar presente cuando la ruta del formulario la habilita.`;
   if (subtipo === "req" || tipoRegla === "required" || tipoObs.includes("required"))
     return `${targetDisplay} debe responderse cuando corresponde.`;
-  if (tipoRegla === "skip") return `El salto de ${targetDisplay} debe respetarse.`;
+  if (tipoRegla === "skip") return `${targetDisplay} debe respetar su regla de salto.`;
   if (tipoRegla === "constraint" || tipoObs.includes("constraint"))
-    return `${targetDisplay} debe cumplir la consistencia definida.`;
+    return `${targetDisplay} debe respetar la condición definida en el instrumento.`;
   if (tipoRegla === "range")
     return `${targetDisplay} debe estar dentro del rango permitido.`;
   if (tipoRegla === "catalog")
-    return `${targetDisplay} debe pertenecer al catálogo permitido.`;
+    return `${targetDisplay} debe ser un valor permitido del catálogo.`;
   if (tipoRegla === "outlier")
-    return `${targetDisplay} no debería ser un valor atípico.`;
+    return `${targetDisplay} no debería ser estadísticamente atípico.`;
   if (tipoRegla === "duplicate")
-    return `La combinación en ${targetDisplay} no debería repetirse entre casos.`;
+    return `La combinación de variables en ${targetDisplay} no debería repetirse entre casos válidos.`;
   if (tipoRegla === "coherence")
-    return `${targetDisplay} debe ser coherente con las demás variables.`;
+    return `${targetDisplay} debe ser coherente con las variables de contexto.`;
   if (tipoRegla === "pattern")
-    return `${targetDisplay} no debería mostrar un patrón sospechoso.`;
+    return `${targetDisplay} debe respetar el patrón esperado.`;
   if (tipoRegla === "calculate_check" || tipoObs.includes("calculate"))
-    return `${targetDisplay} debe derivarse correctamente.`;
+    return `${targetDisplay} debe calcularse automáticamente y mantenerse consistente.`;
   if (tipoObs.includes("choice"))
-    return `${targetDisplay} solo debería usar opciones válidas del catálogo.`;
-  return `${targetDisplay} debe comportarse como espera el instrumento.`;
+    return `${targetDisplay} solo debe usar opciones válidas del catálogo.`;
+  return `${targetDisplay} debe cumplir la validación definida en el instrumento.`;
 }
 
 /**
@@ -196,13 +196,13 @@ export function buildActivationSummary(
 ): string {
   const explicit = cleanSentence(regla.presentation?.gate_humano ?? "");
   if (explicit && !looksLikeTechnicalCondition(explicit)) return explicit;
-  if (explicit) return "La ruta del formulario decide si esta pregunta debía aparecer.";
+  if (explicit) return "Esta regla se activa cuando se cumplen las condiciones indicadas.";
   const driverSections = sections.filter((s) => s.role === "drivers" || s.role === "gate");
   const labels = uniqueStrings(
     driverSections.flatMap((s) => s.items.map((it) => it.label ?? it.key)),
   );
   if (!labels.length) return "";
-  return `Aplica cuando ya se registraron ${humanList(labels.map((v) => `«${v}»`))}.`;
+  return `La regla se activa cuando ya están registrados ${humanList(labels.map((v) => `«${v}»`))}.`;
 }
 
 /** Frase sobre la comparación — si la regla cruza con otras variables. */
@@ -212,13 +212,13 @@ export function buildCompareSummary(
 ): string {
   const explicit = cleanSentence(regla.presentation?.detalle_condicion ?? "");
   if (explicit && !looksLikeTechnicalCondition(explicit)) return explicit;
-  if (explicit) return "La condición exacta está disponible en el detalle técnico.";
+  if (explicit) return "El detalle técnico muestra la condición exacta que evalúa el sistema.";
   const compareSections = sections.filter((s) => s.role === "compare");
   const labels = uniqueStrings(
     compareSections.flatMap((s) => s.items.map((it) => it.label ?? it.key)),
   );
   if (!labels.length) return "";
-  return `Se contrasta con ${humanList(labels.map((v) => `«${v}»`))}.`;
+  return `Se valida comparando el caso con ${humanList(labels.map((v) => `«${v}»`))}.`;
 }
 
 function looksLikeTechnicalCondition(value: string): boolean {

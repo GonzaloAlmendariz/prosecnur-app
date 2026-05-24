@@ -61,6 +61,25 @@ if (requireNamespace("devtools", quietly = TRUE)) {
   stop("Need 'devtools' or 'pkgload' installed to run in dev mode. Install with: install.packages('pkgload')")
 }
 
+local({
+  status_fn <- tryCatch(
+    get(".preview_renderer_status", envir = asNamespace("prosecnurapp"), inherits = FALSE),
+    error = function(e) NULL
+  )
+  if (is.function(status_fn)) {
+    st <- tryCatch(status_fn(), error = function(e) NULL)
+    if (is.list(st)) {
+      renderer <- as.character(st$renderer %||% "none")
+      available <- isTRUE(st$available)
+      cat(sprintf(
+        "[prosecnur-app] pptx preview renderer = %s (available=%s, desktop_automation=false)\n",
+        renderer,
+        tolower(as.character(available))
+      ))
+    }
+  }
+})
+
 port <- as.integer(Sys.getenv("PULSO_PORT", "8787"))
 host <- Sys.getenv("PULSO_HOST", "127.0.0.1")
 open_browser <- !tolower(Sys.getenv("PULSO_OPEN_BROWSER", "true")) %in% c("0", "false", "no")

@@ -115,6 +115,14 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
   }, [expandedArgs]);
 
   const slotArgs = useMemo<Record<string, unknown>>(() => asRecord(graf.args), [graf.args]);
+  const rawOverrideArgs = useMemo<Record<string, unknown>>(() => {
+    const raw: Record<string, unknown> = {};
+    for (const [name, value] of Object.entries(asRecord(slotArgs.overrides))) {
+      if (!hasArgValue(value) && !(value === "" && allowsEmptyStringOverride(argsByName[name]))) continue;
+      raw[name] = value;
+    }
+    return raw;
+  }, [argsByName, slotArgs]);
 
   // argState por arg: para args del preset, calculamos según overrides
   // y appliedMode. Para args propios del graficador (no overrides), los
@@ -145,42 +153,52 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
   const appliedMode = useMemo(() => {
     if (!presetType) return null;
     const aplicables = overridesReusables.filter((o) => o.tipo_preset === presetType);
-    // Buscamos un modo cuyas keys/values sean subset del overrides actual
+    // Buscamos contra los overrides crudos del slot. `currentOverrides`
+    // elimina valores iguales al preset para persistencia/manualidad, pero
+    // esos valores todavía pueden venir de un modo activo y deben mostrarse
+    // como "Modo" en la UI.
     for (const o of aplicables) {
       const okeys = Object.keys(o.args);
       if (okeys.length === 0) continue;
       let isSubset = true;
       for (const k of okeys) {
-        if (!(k in currentOverrides)) { isSubset = false; break; }
-        if (!sameValue(currentOverrides[k], o.args[k])) { isSubset = false; break; }
+        if (!(k in rawOverrideArgs)) { isSubset = false; break; }
+        if (!sameValue(rawOverrideArgs[k], o.args[k])) { isSubset = false; break; }
       }
       if (isSubset) return o;
     }
     return null;
-  }, [presetType, overridesReusables, currentOverrides]);
+  }, [presetType, overridesReusables, rawOverrideArgs]);
 
   const argStates = useMemo<Record<string, ArgState>>(() => {
     const map: Record<string, ArgState> = {};
-    const modeKeys = appliedMode ? new Set(Object.keys(appliedMode.args)) : new Set<string>();
     for (const a of expandedArgs) {
+      const comesFromAppliedMode = Boolean(
+        appliedMode &&
+        Object.prototype.hasOwnProperty.call(appliedMode.args, a.name) &&
+        Object.prototype.hasOwnProperty.call(rawOverrideArgs, a.name) &&
+        sameValue(rawOverrideArgs[a.name], appliedMode.args[a.name])
+      );
       if (presetArgNames.has(a.name)) {
         // Arg del preset
-        if (a.name in currentOverrides) {
-          if (modeKeys.has(a.name)) {
-            map[a.name] = "from-mode";
-          } else {
-            map[a.name] = "custom";
-          }
+        if (comesFromAppliedMode) {
+          map[a.name] = "from-mode";
+        } else if (a.name in currentOverrides) {
+          map[a.name] = "custom";
         } else {
           map[a.name] = "inherited";
         }
       } else {
         // Arg propio del graficador (var, cruces, etc.) — comportamiento normal
-        map[a.name] = hasArgValue(slotArgs[a.name]) ? "custom" : "inherited";
+        map[a.name] = comesFromAppliedMode
+          ? "from-mode"
+          : hasArgValue(slotArgs[a.name])
+            ? "custom"
+            : "inherited";
       }
     }
     return map;
-  }, [expandedArgs, presetArgNames, currentOverrides, appliedMode, slotArgs]);
+  }, [expandedArgs, presetArgNames, currentOverrides, appliedMode, rawOverrideArgs, slotArgs]);
 
   // inheritedValues: para args del preset, el valor del preset (gris).
   // Para args propios del graficador, undefined (no hay heredado).

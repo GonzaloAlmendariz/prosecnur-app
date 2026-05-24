@@ -2,11 +2,13 @@ import { useMemo } from "react";
 import * as Lucide from "lucide-react";
 import { LayoutPanelTop, FileText, Database, Palette, Filter as FilterIcon } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../../../api/client";
+import { useSession } from "../../../../lib/SessionContext";
 import { usePlanStore, SLIDE_LABELS, InspectorTab } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { useVariables } from "../../useVariables";
 import { ArgGroup, ARG_GROUP_ORDER, normalizeArgGroup } from "../../ArgGroup";
 import GraficadorSlot from "../../GraficadorSlot";
+import { SlidePreview } from "../../SlidePreview";
 import { LoadingBlock, EmptyState } from "../../../../components/States";
 import { usePlanValidator } from "../../usePlanValidator";
 import { StylePanel } from "./StylePanel";
@@ -31,6 +33,7 @@ const TABS: { key: InspectorTab; label: string; Icon: typeof FileText; grupos: A
 ];
 
 export function InspectorV2() {
+  const { state } = useSession();
   const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
   const slide = usePlanStore((s) => s.plan.slides.find((x) => x.id === selectedSlideId));
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
@@ -40,6 +43,7 @@ export function InspectorV2() {
   const { slidesById, loading } = useGraficosRegistry();
   const { variables } = useVariables();
   const { issues } = usePlanValidator();
+  const prepOk = !!state?.analitica_prep_ok;
 
   const slideMeta = slide ? slidesById[slide.tipo] : undefined;
   const slotNames = slide ? (slideMeta?.slots.filter((s: string) => s !== "icono") ?? []) : [];
@@ -106,25 +110,31 @@ export function InspectorV2() {
   return (
     <div className="pulso-gv2-inspector">
       <div className="pulso-gv2-inspector-head">
-        <div className="pulso-gv2-inspector-title-row">
-          <div className="pulso-gv2-inspector-title-cluster">
-            <span className="pulso-gv2-inspector-icon">
-              <SlideIcon size={16} />
-            </span>
-            <div className="pulso-gv2-inspector-title-copy">
-              <h2 className="pulso-gv2-inspector-title">{humanTitle}</h2>
-              <code className="pulso-gv2-inspector-code">
-                {slide.tipo}
-              </code>
+        <div className="pulso-gv2-inspector-head-main">
+          <div className="pulso-gv2-inspector-head-copy">
+            <div className="pulso-gv2-inspector-title-row">
+              <div className="pulso-gv2-inspector-title-cluster">
+                <span className="pulso-gv2-inspector-icon">
+                  <SlideIcon size={16} />
+                </span>
+                <div className="pulso-gv2-inspector-title-copy">
+                  <h2 className="pulso-gv2-inspector-title">{humanTitle}</h2>
+                  <code className="pulso-gv2-inspector-code">
+                    {slide.tipo}
+                  </code>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {slideMeta?.descripcion && (
-          <div className="pulso-gv2-inspector-description">
-            {slideMeta.descripcion}
+            {slideMeta?.descripcion && (
+              <div className="pulso-gv2-inspector-description">
+                {slideMeta.descripcion}
+              </div>
+            )}
           </div>
-        )}
+
+          <SlidePreview slide={slide} prepOk={prepOk} compact />
+        </div>
 
         <div className="pulso-gv2-inspector-tabs" role="tablist" aria-label="Configuración del slide">
           {TABS.map(({ key, label, Icon }) => {
@@ -282,7 +292,7 @@ function DataTabBody({ slide, args, updatePayload, variables, slotNames }: {
       {slotNames.length > 0 && (
         <section className="pulso-gv2-data-slots-section">
           <div className="pulso-gv2-section-caption">
-            Gráficos del slide · {slotNames.length} slot{slotNames.length === 1 ? "" : "s"}
+            Gráficos del slide
           </div>
           <div className="pulso-gv2-slot-stack">
             {slotNames.map((slotName) => (

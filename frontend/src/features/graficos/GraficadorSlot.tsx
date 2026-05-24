@@ -231,16 +231,16 @@ function resolveLucide(name: string): LucideIcon {
 // sobreescribe al preset global para este slot.
 //
 // Estados visuales:
-//   - "Modo: por defecto"  → sin overrides (preset puro)
+//   - "Modo: por defecto"  → sin overrides (estilo base)
 //   - "Modo: 'compacto'"   → un override reusable aplicado exacto
-//   - "'compacto' + N"     → override aplicado + edits encima
-//   - "Manual (N)"         → solo edits, sin override base
+//   - "Modo + ajustes propios" → override aplicado + ajustes adicionales
+//   - "Manual"             → ajustes propios, sin override base
 //
 // Acciones:
 //   - Selección de modo predefinido (con confirmación si hay edits).
 //   - "Crear modo nuevo" → guarda los args custom actuales como un
 //     OverrideReusable nombrado.
-//   - "Volver al preset" → limpia overrides del slot.
+//   - "Descartar cambios manuales" → vuelve al estilo base.
 function OverrideDropdown({
   slideId,
   slotName,
@@ -281,7 +281,7 @@ function OverrideDropdown({
 
   if (!presetType) return null;
 
-  // Estado actual: ¿está aplicado un modo exacto, modo+edits, o custom puro?
+  // Estado actual: ¿está aplicado un modo exacto, modo+ajustes propios, o manual puro?
   const currentOverrideArgs = (value.args?.overrides as Record<string, unknown>) ?? {};
   const customCount = Object.keys(currentOverrideArgs).length;
 
@@ -292,16 +292,13 @@ function OverrideDropdown({
   const partialMatch = exactMatch
     ? null
     : aplicables.find((o) => isSubset(o.args, currentOverrideArgs));
-  const editsOverMatch = partialMatch
-    ? Object.keys(currentOverrideArgs).length - Object.keys(partialMatch.args).length
-    : 0;
   const isPureCustom = customCount > 0 && !exactMatch && !partialMatch;
 
   // Label del trigger
   let triggerLabel = "Modo: por defecto";
   if (exactMatch) triggerLabel = `Modo: ${exactMatch.nombre}`;
-  else if (partialMatch) triggerLabel = `${partialMatch.nombre} + ${editsOverMatch}`;
-  else if (isPureCustom) triggerLabel = `Manual (${customCount})`;
+  else if (partialMatch) triggerLabel = `${partialMatch.nombre} + ajustes propios`;
+  else if (isPureCustom) triggerLabel = "Manual";
 
   const isActive = exactMatch || partialMatch || isPureCustom;
 
@@ -312,7 +309,7 @@ function OverrideDropdown({
       !shallowEqualArgs(currentOverrideArgs, args ?? {});
     if (willOverwriteCustom) {
       const ok = window.confirm(
-        `Tienes ${customCount} cambio${customCount === 1 ? "" : "s"} sobre el preset. ` +
+        `Hay cambios manuales sin guardar en este gráfico. ` +
         `Aplicar otro modo los reemplaza. ¿Continuar?\n\n` +
         `Tip: cancela y usa "Crear modo" si quieres guardarlos antes.`
       );
@@ -351,7 +348,7 @@ function OverrideDropdown({
         aria-haspopup="menu"
         title={
           isPureCustom
-            ? `${customCount} cambio${customCount === 1 ? "" : "s"} manual sobre el preset`
+            ? "Hay ajustes manuales sobre el estilo base"
             : "Cambiar modo de estilo"
         }
         className={`pulso-gv2-mode-trigger ${isActive ? "is-active" : ""}`}
@@ -368,17 +365,16 @@ function OverrideDropdown({
 
           <DropdownOption
             label="Por defecto"
-            hint="Solo los valores del preset"
+            hint="Solo el estilo base"
             active={customCount === 0}
             onClick={() => applyMode(null)}
           />
           {aplicables.map((o) => {
-            const n = Object.keys(o.args).length;
             return (
               <DropdownOption
                 key={o.id}
                 label={o.nombre}
-                hint={`${n} arg${n === 1 ? "" : "s"}`}
+                hint=""
                 active={exactMatch?.id === o.id}
                 onClick={() => applyMode({ ...o.args })}
               />
@@ -395,8 +391,9 @@ function OverrideDropdown({
               className="pulso-gv2-mode-option pulso-gv2-mode-option--create"
             >
               <Save size={12} />
-              <span className="pulso-gv2-mode-option-label">Crear modo "{partialMatch?.nombre ?? "personalizado"}"</span>
-              <span className="pulso-gv2-mode-option-hint">{customCount} cambio{customCount === 1 ? "" : "s"}</span>
+              <span className="pulso-gv2-mode-option-label">
+                Crear modo "{partialMatch?.nombre ?? "personalizado"}"
+              </span>
             </button>
           )}
 
@@ -407,8 +404,8 @@ function OverrideDropdown({
               onClick={() => applyMode(null)}
               className="pulso-gv2-mode-option pulso-gv2-mode-option--muted"
             >
-              <RotateCcw size={11} />
-              Descartar todos los cambios y volver al preset
+            <RotateCcw size={11} />
+              Descartar cambios manuales y volver al estilo base
             </button>
           )}
         </div>

@@ -1,60 +1,162 @@
-import { useMemo, useState } from "react";
-import { Download, Eye, Loader2, AlertCircle, CheckCircle2, Image as ImageIcon } from "lucide-react";
-import { apiGraficosPreviewSlide, downloadUrl, GraficadorRef, PreviewImage, Slide } from "../../api/client";
-import { SLIDE_GRAF_SLOTS } from "./store";
-
-// Preview de un slide individual. Al generar, el backend:
-//   1. Crea un mini-PPTX con este slide (fuente de verdad, descargable).
-//   2. Extrae los PNGs embebidos por `cowplot` en cada slot de graficador
-//      (prosecnur con `usar_canvas=TRUE` los deja en ppt/media/*.png del
-//      ZIP). Los manda al frontend como data-URL.
-//
-// Así el analista VE el gráfico dentro de la UI sin abrir PowerPoint —
-// iteración rápida sobre datos, colores, etiquetas. Si quiere ver el
-// slide completo con layout (título, pie, etc.) sigue teniendo el
-// botón "Descargar .pptx".
-//
-// Slides estructurales (portada, índice, texto) no tienen gráficos —
-// el backend devuelve `images: []` y pintamos solo el botón de descarga.
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { AlertCircle, Eye, Image as ImageIcon, Loader2, RefreshCw } from "lucide-react";
+import {
+  apiGraficosPreviewRenderer,
+  apiGraficosPreviewSlide,
+  GraficosPreviewRendererStatus,
+  GraficadorRef,
+  Slide,
+  SlideRenderedPreview,
+  downloadUrl,
+} from "../../api/client";
+import { buildGraficosConfigFromStore } from "./configSnapshot";
+import { SLIDE_GRAF_SLOTS, usePlanStore } from "./store";
 
 type Props = {
   slide: Slide;
   prepOk: boolean;
-  /** Cuando es true, oculta el texto descriptivo y se muestra como un
-   *  card compacto (usado en el header del inspector V2). */
   compact?: boolean;
 };
 
-function hashSlide(slide: Slide): string {
-  return JSON.stringify({ tipo: slide.tipo, payload: slide.payload });
+function hashSlide(slide: Slide, visualConfigHash: string): string {
+  return JSON.stringify({ tipo: slide.tipo, payload: slide.payload, visualConfigHash });
+}
+
+let rendererStatusRequest: Promise<GraficosPreviewRendererStatus> | null = null;
+function getRendererStatus() {
+  if (!rendererStatusRequest) {
+    rendererStatusRequest = apiGraficosPreviewRenderer().catch((error) => {
+      rendererStatusRequest = null;
+      throw error;
+    });
+  }
+  return rendererStatusRequest;
 }
 
 export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const [busy, setBusy] = useState(false);
   const [fileId, setFileId] = useState<string | null>(null);
-  const [images, setImages] = useState<PreviewImage[]>([]);
+  const [slidePreview, setSlidePreview] = useState<SlideRenderedPreview | null>(null);
   const [error, setError] = useState("");
   const [lastHash, setLastHash] = useState<string | null>(null);
+  const [rendererStatus, setRendererStatus] = useState<GraficosPreviewRendererStatus | null>(null);
+  const [isBubbleOpen, setIsBubbleOpen] = useState(false);
+  const [isBubbleRendered, setIsBubbleRendered] = useState(false);
+  const [isBubbleClosing, setIsBubbleClosing] = useState(false);
+  const closeTimerRef = useRef<number | null>(null);
+  const previewRootRef = useRef<HTMLDivElement>(null);
+  const previewBubbleRef = useRef<HTMLDivElement>(null);
+  const visualConfigHash = usePlanStore((s) => JSON.stringify({
+    presets: s.presets,
+    debugPh: s.debugPh,
+    iconos: s.iconos,
+  }));
 
-  const currentHash = hashSlide(slide);
+  const currentHash = hashSlide(slide, visualConfigHash);
   const isStale = fileId !== null && lastHash !== currentHash;
 
-  // Pre-validación local. Detecta problemas comunes ANTES de llamar al
-  // backend para evitar errores opacos. Cubre los 2 casos más frecuentes:
-  // (a) un slot sin graficador (slide con barras_apiladas vacío); (b) un
-  // graficador sin la variable principal (`var`) configurada.
   const preIssues = useMemo(() => preValidateSlide(slide), [slide]);
   const blocked = preIssues.length > 0;
+  const rendererUnavailable = rendererStatus?.available === false;
+  const hasPreview = !!slidePreview?.png_base64;
+  const hasResult = !!fileId && !error;
+  const renderFailed = hasResult && !hasPreview && rendererStatus?.available === true;
+  const hasUsableResult = hasResult && (hasPreview || rendererUnavailable || renderFailed);
+
+  useEffect(() => {
+    let alive = true;
+    getRendererStatus()
+      .then((status) => { if (alive) setRendererStatus(status); })
+      .catch(() => { if (alive) setRendererStatus(null); });
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isBubbleRendered) return;
+    function onDocMouseDown(e: MouseEvent) {
+      if (
+        previewBubbleRef.current &&
+        !previewBubbleRef.current.contains(e.target as Node)
+      ) {
+        closeBubble();
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        closeBubble();
+      }
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [isBubbleRendered]);
+
+  function openBubble() {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setIsBubbleRendered(true);
+    setIsBubbleClosing(false);
+    requestAnimationFrame(() => setIsBubbleOpen(true));
+  }
+
+  function closeBubble() {
+    if (!isBubbleRendered) return;
+    setIsBubbleOpen(false);
+    setIsBubbleClosing(true);
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsBubbleRendered(false);
+      setIsBubbleClosing(false);
+      closeTimerRef.current = null;
+    }, 180);
+  }
+
+  function toggleBubble() {
+    if (isBubbleRendered) {
+      if (isBubbleOpen) {
+        closeBubble();
+      } else {
+        openBubble();
+      }
+      return;
+    }
+    openBubble();
+  }
 
   async function onGenerate() {
-    if (blocked) return;
+    if (blocked || busy || !prepOk) return;
     setBusy(true);
     setError("");
+    if (!isBubbleRendered) {
+      openBubble();
+    }
     try {
-      const r = await apiGraficosPreviewSlide(slide);
+      const r = await apiGraficosPreviewSlide(
+        slide,
+        buildGraficosConfigFromStore(),
+        {
+          preview_quality: "quick",
+          include_images: false,
+        },
+      );
       setFileId(r.file_id);
-      setImages(r.images ?? []);
+      setSlidePreview(r.slide_preview ?? null);
       setLastHash(currentHash);
+      openBubble();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -62,216 +164,267 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     }
   }
 
+  async function onActionClick() {
+    if (!prepOk) {
+      setError("Necesitas completar la fase de preparación de datos antes de previsualizar.");
+      openBubble();
+      return;
+    }
+    if (blocked) {
+      setError(`Antes de previsualizar: ${preIssues.join(" · ")}`);
+      openBubble();
+      return;
+    }
+
+    const canOpen = !busy && (
+      (hasPreview && !isStale && !error) ||
+      (hasUsableResult && !isStale)
+    );
+    if (canOpen) {
+      toggleBubble();
+      return;
+    }
+    await onGenerate();
+  }
+
+  async function onRefreshClick() {
+    if (!prepOk || blocked) {
+      if (!prepOk) {
+        setError("Necesitas completar la fase de preparación de datos antes de previsualizar.");
+      } else {
+        setError(`Antes de previsualizar: ${preIssues.join(" · ")}`);
+      }
+      openBubble();
+      return;
+    }
+    if (busy) return;
+    await onGenerate();
+  }
+
+  const showRefreshAction = compact && hasResult;
+
+  const previewAspectRatio = previewAspect(slidePreview);
+  const frameStyle: CSSProperties | undefined = previewAspectRatio
+    ? { aspectRatio: previewAspectRatio }
+    : undefined;
+  const stateLabel = getStateLabel({
+    busy,
+    error: !!error,
+    prepOk,
+    blocked,
+    hasPreview,
+    isStale,
+    rendererUnavailable,
+    renderFailed,
+    hasResult,
+  });
+
   return (
     <section
-      style={{
-        marginTop: 14,
-        padding: 14,
-        borderRadius: 8,
-        border: "1px solid var(--pulso-border)",
-        background: "var(--pulso-surface)",
-        display: "flex", flexDirection: "column", gap: 10,
-      }}
+      ref={previewRootRef}
+      className={`pulso-slide-preview ${compact ? "is-compact" : ""}`}
+      aria-label="Preview del slide seleccionado"
     >
-      <header style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <header className="pulso-slide-preview-head">
         {!compact && (
-          <>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "var(--pulso-text)" }}>
-              <Eye size={14} /> Previsualizar este slide
-            </span>
-            <span style={{ flex: 1, fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
-              Renderiza el slide con datos reales. El PPTX queda disponible para descarga.
-            </span>
-          </>
+          <div className="pulso-slide-preview-copy">
+            <strong><Eye size={14} /> Previsualizar este slide</strong>
+            <span>Renderiza una lámina real desde el PPTX de un solo slide.</span>
+          </div>
         )}
 
-        <button
-          type="button"
-          className="pulso-primary"
-          onClick={onGenerate}
-          disabled={!prepOk || busy || blocked}
-          title={
-            !prepOk
-              ? "Primero prepara los datos en Analítica"
-              : blocked
-                ? `Faltan datos: ${preIssues[0]}`
-                : undefined
-          }
-          style={{
-            fontSize: compact ? 12 : 12, padding: compact ? "6px 12px" : "6px 12px",
-            display: "inline-flex", alignItems: "center", gap: 6,
-            marginLeft: compact ? "auto" : undefined,
-          }}
-        >
-          {busy ? <Loader2 size={13} className="pulso-spin" /> : <Eye size={13} />}
-          {busy ? "Generando…" : fileId ? "Volver a previsualizar" : "Previsualizar"}
-        </button>
+        <div className="pulso-slide-preview-controls">
+          <button
+            type="button"
+            className="pulso-primary pulso-slide-preview-action"
+            onClick={onActionClick}
+            disabled={busy}
+            title={
+              !prepOk
+                ? "Primero prepara los datos en Analítica"
+                : blocked
+                  ? `Faltan datos: ${preIssues[0]}`
+              : rendererUnavailable
+                    ? "No hay renderer headless configurado para generar la captura inline"
+                    : hasPreview && !isStale && !renderFailed && !error
+                      ? "Mostrar/Ocultar preview del slide"
+                      : "Generar preview exacta del slide"
+            }
+          >
+            {busy ? <Loader2 size={13} className="pulso-spin" /> : <Eye size={13} />}
+              {busy
+                ? "Generando..."
+                : !prepOk
+                  ? "Preparar datos"
+                  : blocked
+                    ? "Bloqueado"
+                    : hasPreview && !isStale && !renderFailed && !error
+                  ? isBubbleOpen
+                    ? "Ocultar"
+                    : "Previsualizar"
+                  : "Actualizar"}
+          </button>
+          {showRefreshAction && (
+            <button
+              type="button"
+              className="pulso-gv2-icon-button pulso-slide-preview-refresh"
+              onClick={onRefreshClick}
+              disabled={busy}
+              title="Actualizar preview del slide"
+              aria-label="Actualizar preview del slide"
+            >
+              <RefreshCw size={14} className={busy ? "pulso-spin" : ""} />
+            </button>
+          )}
+        </div>
       </header>
 
-      {blocked && !error && (
+      {!compact && blocked && !error && (
+        <PreviewNotice tone="warn">
+          <strong>Antes de previsualizar:</strong> {preIssues.join(" · ")}
+        </PreviewNotice>
+      )}
+
+      {!compact && rendererUnavailable && !error && (
+        <PreviewNotice tone="muted">
+          <strong>Sin renderizador headless:</strong> configura LibreOffice/soffice para ver la lámina dentro de la app.
+        </PreviewNotice>
+      )}
+
+      {!compact && !prepOk && (
+        <PreviewNotice tone="muted">
+          Necesitas correr <strong>Fase 4 {"->"} Preparar datos</strong> antes de generar previews.
+        </PreviewNotice>
+      )}
+
+      {!compact && error && (
+        <PreviewNotice tone="danger">
+          <strong>No pudimos generar la previsualización.</strong> {humanizePreviewError(error)}
+        </PreviewNotice>
+      )}
+
+      {isBubbleRendered && (
         <div
-          style={{
-            display: "flex", alignItems: "flex-start", gap: 7,
-            padding: "8px 10px", borderRadius: 6,
-            background: "var(--pulso-warn-bg, rgba(217, 119, 6, 0.08))",
-            border: "1px solid var(--pulso-warn-border, rgba(217, 119, 6, 0.4))",
-            fontSize: 11, color: "var(--pulso-warn-fg, #92400e)", lineHeight: 1.45,
-          }}
+          ref={previewBubbleRef}
+          className={[
+            "pulso-slide-preview-bubble",
+            isBubbleOpen ? "is-open" : "",
+            isBubbleClosing ? "is-closing" : "",
+            busy ? "is-loading" : "",
+            error ? "is-error" : "",
+            isStale ? "is-stale" : "",
+            hasPreview ? "has-image" : "",
+          ].filter(Boolean).join(" ")}
+          aria-label={stateLabel}
+          role="dialog"
+          aria-live="polite"
         >
-          <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>
-            <strong>Antes de previsualizar:</strong> {preIssues.join(" · ")}
-          </span>
-        </div>
-      )}
-
-      {!prepOk && (
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
-          Necesitas correr <strong>Fase 4 → Preparar datos</strong> antes de poder generar previews.
-        </div>
-      )}
-
-      {error && (
-        <div
-          style={{
-            display: "flex", alignItems: "flex-start", gap: 7,
-            padding: "8px 10px", borderRadius: 6,
-            background: "var(--pulso-danger-bg)", border: "1px solid var(--pulso-danger-border)",
-            fontSize: 11, color: "var(--pulso-danger-fg)", lineHeight: 1.45,
-          }}
-        >
-          <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>
-            <strong>No pudimos generar la previsualización.</strong> {humanizePreviewError(error)}
-          </span>
-        </div>
-      )}
-
-      {fileId && !error && (
-        <>
-          <div
-            style={{
-              display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-              padding: "10px 12px", borderRadius: 6,
-              background: "white",
-              border: `1px solid ${isStale ? "var(--pulso-warn-accent)" : "var(--pulso-border)"}`,
-            }}
-          >
-            {isStale ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--pulso-warn-fg)" }}>
-                <AlertCircle size={12} /> Preview desactualizado (el slide cambió)
-              </span>
+          <div className="pulso-slide-preview-bubble-arrow" />
+          <div className="pulso-slide-preview-bubble-inner" style={frameStyle}>
+            {busy ? (
+              <div className="pulso-slide-preview-placeholder">
+                <Loader2 size={18} className="pulso-spin" />
+                <span>Renderizando PPTX...</span>
+              </div>
+            ) : hasPreview ? (
+              <img
+                src={slidePreview.png_base64}
+                alt="Preview exacta del slide"
+                className="pulso-slide-preview-img"
+              />
+            ) : rendererUnavailable ? (
+              <div className="pulso-slide-preview-placeholder">
+                <ImageIcon size={18} />
+                <span>Sin renderizador headless.</span>
+                <small>Configura LibreOffice/soffice para activar la captura inline.</small>
+                {fileId && (
+                  <a href={downloadUrl(fileId)} download="preview.pptx" className="pulso-slide-preview-link">
+                    Descargar preview.pptx
+                  </a>
+                )}
+              </div>
+            ) : renderFailed ? (
+              <div className="pulso-slide-preview-placeholder">
+                <AlertCircle size={18} />
+                <span>No se pudo crear la captura.</span>
+                <small>El PPTX se generó, pero el renderer no devolvió imagen.</small>
+                {fileId && (
+                  <a href={downloadUrl(fileId)} download="preview.pptx" className="pulso-slide-preview-link">
+                    Descargar preview.pptx
+                  </a>
+                )}
+              </div>
+            ) : hasResult ? (
+              <div className="pulso-slide-preview-placeholder">
+                <ImageIcon size={18} />
+                <span>No hay captura disponible.</span>
+                <small>No se encontró un renderer headless de PPTX en este equipo.</small>
+                <a href={downloadUrl(fileId)} download="preview.pptx" className="pulso-slide-preview-link">
+                  Descargar preview.pptx
+                </a>
+              </div>
+            ) : error ? (
+              <div className="pulso-slide-preview-placeholder">
+                <AlertCircle size={18} />
+                <span>No se pudo generar la previsualización.</span>
+                <small>{humanizePreviewError(error)}</small>
+              </div>
             ) : (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--pulso-success-fg)" }}>
-                <CheckCircle2 size={12} /> Listo
-              </span>
+              <div className="pulso-slide-preview-placeholder">
+                <Eye size={18} />
+                <span>Genera una preview exacta.</span>
+              </div>
             )}
-
-            <a
-              href={downloadUrl(fileId)}
-              style={{
-                fontSize: 12, fontWeight: 600, textDecoration: "none",
-                display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "5px 10px", borderRadius: 999,
-                color: "var(--pulso-primary)",
-                background: "var(--pulso-primary-soft)",
-              }}
-            >
-              <Download size={12} /> preview.pptx
-            </a>
-
-            <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginLeft: "auto" }}>
-              Ábrelo en PowerPoint o Keynote para ver el layout completo.
-            </span>
+            {isStale && (
+              <div className="pulso-slide-preview-bubble-stale">
+                Desactualizada
+              </div>
+            )}
           </div>
-
-          {images.length > 0 ? (
-            <PreviewImagesGrid images={images} stale={isStale} />
-          ) : (
-            <div
-              style={{
-                display: "flex", alignItems: "center", gap: 7,
-                padding: "10px 12px", borderRadius: 6,
-                background: "white",
-                border: "1px solid var(--pulso-border)",
-                fontSize: 11, color: "var(--pulso-text-soft)",
-                lineHeight: 1.5,
-              }}
-            >
-              <ImageIcon size={12} />
-              Este slide no tiene gráficos (es estructural o de texto).
-              Abre el .pptx para ver el layout renderizado.
-            </div>
-          )}
-        </>
+        </div>
       )}
     </section>
   );
 }
 
-// Grid de imágenes del preview. Para slides con 1 gráfico se ve grande
-// (full width); con 2+ se lado a lado en responsive auto-fit.
-function PreviewImagesGrid({ images, stale }: { images: PreviewImage[]; stale: boolean }) {
-  const cols = images.length === 1 ? "1fr" : "repeat(auto-fit, minmax(260px, 1fr))";
+function PreviewNotice({ tone, children }: { tone: "warn" | "danger" | "muted"; children: ReactNode }) {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: cols,
-        gap: 10,
-        opacity: stale ? 0.55 : 1,
-        transition: "opacity 120ms ease",
-      }}
-    >
-      {images.map((img, i) => (
-        <figure
-          key={img.filename}
-          style={{
-            margin: 0, padding: 8,
-            background: "white",
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 6,
-            display: "flex", flexDirection: "column", gap: 6,
-          }}
-        >
-          <img
-            src={img.png_base64}
-            alt={`Gráfico ${i + 1}`}
-            loading="lazy"
-            style={{
-              width: "100%", height: "auto",
-              objectFit: "contain",
-              borderRadius: 3,
-              background: "white",
-              maxHeight: 420,
-            }}
-          />
-          <figcaption
-            style={{
-              fontSize: 10, color: "var(--pulso-text-soft)",
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-            }}
-          >
-            <span>Gráfico {i + 1} de {images.length}</span>
-            <span style={{ fontFamily: "ui-monospace, monospace" }}>
-              {formatKb(img.size)}
-            </span>
-          </figcaption>
-        </figure>
-      ))}
+    <div className={`pulso-slide-preview-notice is-${tone}`}>
+      <AlertCircle size={13} />
+      <span>{children}</span>
     </div>
   );
 }
 
-function formatKb(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function previewAspect(preview: SlideRenderedPreview | null): string | undefined {
+  const width = Number(preview?.width);
+  const height = Number(preview?.height);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return undefined;
+  return `${Math.round(width)} / ${Math.round(height)}`;
 }
 
-// Pre-validación del slide antes de pegarle al backend. Detecta los
-// problemas más comunes (slot vacío, var faltante) para que el usuario
-// reciba feedback inmediato sin esperar el roundtrip + error opaco.
+function getStateLabel(state: {
+  busy: boolean;
+  error: boolean;
+  prepOk: boolean;
+  blocked: boolean;
+  hasPreview: boolean;
+  isStale: boolean;
+  rendererUnavailable: boolean;
+  renderFailed: boolean;
+  hasResult: boolean;
+}) {
+  if (state.busy) return "Generando preview";
+  if (state.error) return "Error de preview";
+  if (!state.prepOk) return "Datos no preparados";
+  if (state.blocked) return "Configuración incompleta";
+  if (state.hasPreview) return state.isStale ? "Preview desactualizada" : "Preview lista";
+  if (state.rendererUnavailable) return "Sin renderizador";
+  if (state.renderFailed) return "Captura no disponible";
+  if (state.hasResult) return "Sin captura disponible";
+  return "Sin preview";
+}
+
 function preValidateSlide(slide: Slide): string[] {
   const issues: string[] = [];
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
@@ -291,16 +444,10 @@ function preValidateSlide(slide: Slide): string[] {
   return issues;
 }
 
-// Convierte mensajes técnicos del backend en frases legibles. El backend
-// devuelve cosas como "[E_PREVIEW_FAILED] La plantilla NO tiene el layout
-// requerido: '1_Grafico_narrativo'" — el usuario no necesita ver códigos
-// internos ni nombres de layout.
 function humanizePreviewError(raw: string): string {
-  // Quita códigos tipo [E_X] y prefijos genéricos del backend
   let cleaned = raw.replace(/^\s*\[[A-Z_]+\]\s*/i, "").trim();
   cleaned = cleaned.replace(/^No se pudo generar el preview:\s*/i, "");
 
-  // Argumento requerido faltante (R: "argument 'var' is missing, with no default")
   const argMissing = cleaned.match(/argument ['"]?([a-z_]+)['"]?\s+is missing/i);
   if (argMissing) {
     const argName = argMissing[1];
@@ -311,14 +458,13 @@ function humanizePreviewError(raw: string): string {
     return "La plantilla actual no incluye el diseño que este slide necesita. Si usas una plantilla custom, añade ese layout o elige otro tipo de slide.";
   }
   if (/rp_data|rp_inst|prepar.*datos|preparar/i.test(cleaned)) {
-    return "Los datos no están listos. Ve a la fase 4 → Preparar datos y vuelve a intentarlo.";
+    return "Los datos no están listos. Ve a la fase 4 -> Preparar datos y vuelve a intentarlo.";
   }
   if (/timeout|timed out/i.test(cleaned)) {
-    return "El render tardó demasiado. Intenta de nuevo o simplifica el gráfico.";
+    return "El renderer tardó demasiado. Intenta de nuevo o simplifica el gráfico.";
   }
   if (/variable.*no existe|var.*unknown|variable inv/i.test(cleaned)) {
     return "Una de las variables del gráfico no existe en el instrumento. Revísala en la pestaña Datos.";
   }
-  // Fallback: muestra el mensaje del backend pero sin el código de error
   return cleaned || "Algo salió mal al renderizar. Intenta de nuevo.";
 }

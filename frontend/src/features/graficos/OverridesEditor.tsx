@@ -344,7 +344,7 @@ function OverrideEditPanel({
         </p>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 560 }}>
+      <div className="pulso-gv2-presets-body">
         {gruposDeArgs.length === 0 ? (
           <div
             style={{
