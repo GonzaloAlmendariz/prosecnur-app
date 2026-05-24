@@ -264,7 +264,7 @@ export function RespuestasCodificador({ parent }: Props) {
   if (!respuestas) return <LoadingBlock variant="inline" label="Cargando respuestas…" />;
 
   return (
-    <div>
+    <div className="pulso-codificacion-respuestas" style={{ minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
         <SaveStatusIndicator state={saveStatus} variant="badge" />
         <span style={{ fontSize: 13, color: "var(--pulso-text-soft)" }}>
@@ -283,9 +283,18 @@ export function RespuestasCodificador({ parent }: Props) {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(320px, 1fr) minmax(340px, 1fr)", gap: 16, alignItems: "flex-start" }}>
+      <div
+        className="pulso-codificacion-respuestas-grid"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(340px, 100%), 1fr))",
+          gap: 16,
+          alignItems: "flex-start",
+          minWidth: 0,
+        }}
+      >
         {/* LEFT — respuestas */}
-        <section>
+        <section style={{ minWidth: 0 }}>
           <div style={{
             fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
             color: "var(--pulso-text-soft)", marginBottom: 10,
@@ -414,7 +423,7 @@ export function RespuestasCodificador({ parent }: Props) {
         </section>
 
         {/* RIGHT — grupos */}
-        <section>
+        <section style={{ minWidth: 0 }}>
           <div style={{
             fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
             color: "var(--pulso-text-soft)", marginBottom: 10,
@@ -433,14 +442,12 @@ export function RespuestasCodificador({ parent }: Props) {
               hint="Crea uno con '+ Nuevo grupo' o marca una respuesta de la izquierda — se crea un grupo vacío automáticamente."
             />
           )}
-          {/* Scroll interno independiente de la columna de respuestas. Cap
-              en 540px + scrollbar minimalista para que ambas columnas
-              puedan desplazarse en paralelo sin arrastrar a la otra. */}
-          <div style={{
+          {/* La columna de grupos deja el scroll al panel principal de
+              Codificación para no quedar recortada dentro de otro scroller. */}
+          <div className="pulso-codificacion-grupos-list" style={{
             display: "flex", flexDirection: "column", gap: 10,
-            maxHeight: grupos.length > 3 ? 540 : undefined,
-            overflowY: grupos.length > 3 ? "auto" : undefined,
-            paddingRight: grupos.length > 3 ? 6 : 0,
+            paddingRight: 0,
+            paddingBottom: 14,
             scrollbarWidth: "thin",
             scrollbarColor: "var(--pulso-border) transparent",
           }}>
