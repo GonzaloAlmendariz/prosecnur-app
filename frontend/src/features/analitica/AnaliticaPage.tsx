@@ -97,6 +97,7 @@ export default function AnaliticaPage() {
       lead="Configura y genera los reportes estándar desde una sola mesa de trabajo."
       className="pulso-analitica-frame"
       density="compact"
+      headerMode="sr-only"
       bodyMode="fill"
       resetScrollKey={active}
       toolbar={

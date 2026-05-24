@@ -130,6 +130,8 @@ export default function ValidacionPage() {
       lead="Explora la base, valida contra el XLSForm, afina reglas y cierra la limpieza."
       className="pulso-validacion-frame"
       density="compact"
+      headerMode="sr-only"
+      bodyMode="fill"
       resetScrollKey={`${activeTab}:${baseNombre ?? ""}`}
       toolbar={
         <div className="pulso-validacion-toolbar-stack">

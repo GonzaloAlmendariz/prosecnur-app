@@ -149,6 +149,7 @@ export default function Layout() {
   const items = useNavItems();
   const location = useLocation();
   const showFases = isProcesamientoRoute(location.pathname);
+  const isProcessing = isProcesamientoRoute(location.pathname);
   const policy = routePolicy(location.pathname);
   const routeMotionKey = location.pathname;
   const previousPathRef = useRef(location.pathname);
@@ -190,7 +191,7 @@ export default function Layout() {
         <SessionChip />
       </header>
       <main
-        className={`pulso-main pulso-main--${policy}`}
+        className={`pulso-main pulso-main--${policy}${isProcessing ? " pulso-main--processing" : ""}`}
         data-route-policy={policy}
       >
         <div className="pulso-main-inner">

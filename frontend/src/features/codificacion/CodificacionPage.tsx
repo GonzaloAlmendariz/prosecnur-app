@@ -47,6 +47,8 @@ export default function CodificacionPage() {
       title="Fase 3 - Codificación"
       className="pulso-codificacion-frame"
       density="compact"
+      headerMode="sr-only"
+      bodyMode="fill"
       resetScrollKey={step}
       lead={
         step === "organizar"

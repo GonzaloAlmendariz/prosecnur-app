@@ -93,6 +93,8 @@ export default function GraficosPage() {
     <PageFrame
       title="Fase 5 - Reportes gráficos"
       lead="Editor bloque por bloque con autoguardado y exportación PPT/Word."
+      className="pulso-graficos-frame"
+      headerMode="sr-only"
       bodyMode="fill"
       toolbar={
         <>

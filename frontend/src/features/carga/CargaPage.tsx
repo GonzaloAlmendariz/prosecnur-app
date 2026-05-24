@@ -292,13 +292,8 @@ export default function CargaPage() {
       lead="Sube un XLSForm y la base de datos para preparar el estudio."
       className="pulso-carga-frame"
       density="compact"
-      meta={
-        allReady ? (
-          <SaveStatusIndicator state="saved" variant="badge" savedLabel="Insumos listos" />
-        ) : hasXlsform || hasData ? (
-          <SaveStatusIndicator state="dirty" variant="badge" />
-        ) : undefined
-      }
+      headerMode="sr-only"
+      bodyMode="fill"
       toolbar={
         <ContextBar
           ariaLabel="Estado de carga y modo del estudio"
@@ -311,6 +306,13 @@ export default function CargaPage() {
             pendingChoiceMapping={pendingChoiceMapping}
             allReady={allReady}
           />
+          {(allReady || hasXlsform || hasData) && (
+            <SaveStatusIndicator
+              state={allReady ? "saved" : "dirty"}
+              variant="badge"
+              savedLabel="Insumos listos"
+            />
+          )}
           <ContextBarDivider />
           <MultiBaseToggle
             on={isMultiBase}
@@ -405,6 +407,13 @@ export default function CargaPage() {
                 await refresh();
               }}
             />
+            <CargaFollowupContent
+              showInspection={!!state?.instrumento_parsed && !!estructura}
+              estructura={estructura}
+              allReady={allReady}
+              busy={busy}
+              error={error}
+            />
           </div>
         </section>
       )}
@@ -432,7 +441,7 @@ export default function CargaPage() {
             <SectionEyebrow
               label="Tus dos insumos"
               hint="Carga primero el XLSForm y después la data. Pulso usa el formulario para normalizar nombres, reconstruir select_multiple y validar compatibilidad antes de procesar reportes."
-          />
+            />
           </div>
 
           <div className="pulso-upload-grid">
@@ -579,6 +588,13 @@ export default function CargaPage() {
               onRemove={() => onQuitar("data")}
             />
           </div>
+          <CargaFollowupContent
+            showInspection={!!state?.instrumento_parsed && !!estructura}
+            estructura={estructura}
+            allReady={allReady}
+            busy={busy}
+            error={error}
+          />
         </div>
 
         {/* El botón "+ Agregar otra base" se eliminó — ahora la
@@ -587,9 +603,30 @@ export default function CargaPage() {
       </section>
       </>
       )}
+    </PageFrame>
+  );
+}
 
-      {/* Inspección del instrumento */}
-      {state?.instrumento_parsed && estructura && (
+// `EstudioActivoBanner` (banner genérico multi-base que vivía acá) se
+// reemplazó por `BasesPanel` completo — ahora no solo muestra las bases
+// sino que permite renombrar, quitar y agregar.
+
+function CargaFollowupContent({
+  showInspection,
+  estructura,
+  allReady,
+  busy,
+  error,
+}: {
+  showInspection: boolean;
+  estructura: { secciones: Seccion[]; preguntas: Pregunta[] } | null;
+  allReady: boolean;
+  busy: string;
+  error: string;
+}) {
+  return (
+    <>
+      {showInspection && estructura && (
         <section className="pulso-carga-inspection" aria-label="Inspección del instrumento">
           <Panel
             eyebrow="Instrumento"
@@ -610,17 +647,10 @@ export default function CargaPage() {
         </section>
       )}
 
-      {/* CTA de continuar cuando todo está listo */}
-      {allReady && !busy && !error && (
-        <ContinuarCTA />
-      )}
-    </PageFrame>
+      {allReady && !busy && !error && <ContinuarCTA />}
+    </>
   );
 }
-
-// `EstudioActivoBanner` (banner genérico multi-base que vivía acá) se
-// reemplazó por `BasesPanel` completo — ahora no solo muestra las bases
-// sino que permite renombrar, quitar y agregar.
 
 // =====================================================================
 // Upload card — dropzone unificada con estado visual

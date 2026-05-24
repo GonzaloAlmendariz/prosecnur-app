@@ -13,6 +13,7 @@ type PageFrameProps = {
   toolbar?: ReactNode;
   children: ReactNode;
   bodyMode?: "scroll" | "fill";
+  headerMode?: "visible" | "sr-only";
   className?: string;
   resetScrollKey?: unknown;
   density?: "normal" | "compact";
@@ -25,6 +26,7 @@ export function PageFrame({
   toolbar,
   children,
   bodyMode = "scroll",
+  headerMode = "visible",
   className,
   resetScrollKey,
   density = "normal",
@@ -88,13 +90,19 @@ export function PageFrame({
 
   return (
     <section className={classes}>
-      <header ref={headerRef} className="pulso-page-frame-header">
-        <div className="pulso-page-frame-heading">
-          <h1 className="pulso-page-frame-title">{title}</h1>
-          {lead && <p className="pulso-page-frame-lead">{lead}</p>}
-        </div>
-        {meta && <div className="pulso-page-frame-meta">{meta}</div>}
-      </header>
+      {headerMode === "sr-only" ? (
+        <header ref={headerRef} className="pulso-sr-only">
+          <h1>{title}</h1>
+        </header>
+      ) : (
+        <header ref={headerRef} className="pulso-page-frame-header">
+          <div className="pulso-page-frame-heading">
+            <h1 className="pulso-page-frame-title">{title}</h1>
+            {lead && <p className="pulso-page-frame-lead">{lead}</p>}
+          </div>
+          {meta && <div className="pulso-page-frame-meta">{meta}</div>}
+        </header>
+      )}
 
       {toolbar && <div ref={toolbarRef} className="pulso-page-frame-toolbar">{toolbar}</div>}
 
