@@ -81,7 +81,15 @@ export function ArgField({
     >
       <FieldHeader meta={meta} argState={argState} onReset={onReset} />
       <div className="pulso-gv2-field-control">
-        <FieldControl meta={meta} value={displayValue} onChange={onChange} variables={variables} />
+        <FieldControl
+          meta={meta}
+          value={value}
+          displayValue={displayValue}
+          hasOwnValue={hasOwnValue}
+          inheritedValue={inheritedValue}
+          onChange={onChange}
+          variables={variables}
+        />
       </div>
     </label>
   );
@@ -180,31 +188,39 @@ function fieldStateMeta(argState: ArgState): {
 function FieldControl({
   meta,
   value,
+  displayValue,
+  hasOwnValue,
+  inheritedValue,
   onChange,
   variables,
 }: {
   meta: ArgMetadata;
   value: ArgValue;
+  displayValue: ArgValue;
+  hasOwnValue: boolean;
+  inheritedValue?: ArgValue;
   onChange: (v: ArgValue) => void;
   variables: VarInfo[];
 }) {
+  const shownValue = displayValue;
+
   switch (meta.tipo_input) {
     case "variable":
-      return <VariablePicker value={value as string} onChange={(v) => onChange(v ?? "")} />;
+      return <VariablePicker value={shownValue as string} onChange={(v) => onChange(v ?? "")} />;
 
     case "variable_opt":
-      return <VariablePicker value={value as string} onChange={(v) => onChange(v)} allowEmpty />;
+      return <VariablePicker value={shownValue as string} onChange={(v) => onChange(v)} allowEmpty />;
 
     case "variables_list":
-      return <VarsListPicker value={(value as string[]) ?? []} onChange={(v) => onChange(v)} />;
+      return <VarsListPicker value={(shownValue as string[]) ?? []} onChange={(v) => onChange(v)} />;
 
     case "string":
-      return <StringControl meta={meta} value={(value as string) ?? ""} onChange={onChange} />;
+      return <StringControl meta={meta} value={(shownValue as string) ?? ""} onChange={onChange} />;
 
     case "textarea":
       return (
         <textarea
-          value={(value as string) ?? ""}
+          value={(shownValue as string) ?? ""}
           onChange={(e) => onChange(e.target.value)}
           rows={3}
           style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
@@ -212,28 +228,28 @@ function FieldControl({
       );
 
     case "number":
-      return <NumberControl meta={meta} value={value} onChange={onChange} />;
+      return <NumberControl meta={meta} value={shownValue} onChange={onChange} />;
 
     case "bool":
-      return <BoolToggle value={!!value} onChange={onChange} />;
+      return <BoolToggle value={!!shownValue} onChange={onChange} />;
 
     case "choice":
-      return <ChoicePills meta={meta} value={value as string} onChange={onChange} />;
+      return <ChoicePills meta={meta} value={shownValue as string} onChange={onChange} />;
 
     case "codigos_list":
-      return <CodigosList value={(value as (string | number)[]) ?? []} onChange={onChange} />;
+      return <CodigosList value={(shownValue as (string | number)[]) ?? []} onChange={onChange} />;
 
     case "multiflag":
       // Fallback a texto libre si el registry no trajo opciones — mantiene
       // compat con args antiguos que quedaron declarados como multiflag
       // sin el catálogo cerrado.
       if (!meta.opciones || meta.opciones.length === 0) {
-        return <CodigosList value={(value as string[]) ?? []} onChange={onChange} />;
+        return <CodigosList value={(shownValue as string[]) ?? []} onChange={onChange} />;
       }
       return (
         <MultiFlag
           opciones={meta.opciones}
-          value={(value as string[]) ?? []}
+          value={(shownValue as string[]) ?? []}
           onChange={onChange}
         />
       );
@@ -241,7 +257,8 @@ function FieldControl({
     case "color":
       return (
         <ColorField
-          value={(value as string | null | undefined) ?? ""}
+          value={hasOwnValue ? String(value ?? "") : ""}
+          inheritedValue={typeof inheritedValue === "string" ? inheritedValue : undefined}
           defaultValue={typeof meta.default === "string" ? meta.default : undefined}
           onChange={onChange}
         />
@@ -250,24 +267,24 @@ function FieldControl({
     case "series_colors":
       return (
         <SeriesColorsField
-          value={value}
+          value={shownValue}
           defaultValue={meta.default}
           onChange={onChange}
         />
       );
 
     case "criteria_config":
-      return <CriteriaConfigField value={value} onChange={onChange} />;
+      return <CriteriaConfigField value={shownValue} onChange={onChange} />;
 
     case "icono":
-      return <IconoSelect value={value as string | null} onChange={onChange} />;
+      return <IconoSelect value={shownValue as string | null} onChange={onChange} />;
 
     case "overrides":
     case "filtros":
     case "base_config":
     case "meta":
     default:
-      return <DedicatedSurfaceNotice meta={meta} value={value} onChange={onChange} />;
+      return <DedicatedSurfaceNotice meta={meta} value={shownValue} onChange={onChange} />;
   }
 }
 
@@ -1299,20 +1316,23 @@ function swatchBackgroundFor(value: string): string {
 }
 
 function ColorField({
-  value, defaultValue, onChange,
+  value, inheritedValue, defaultValue, onChange,
 }: {
   value: string;
+  inheritedValue?: string;
   defaultValue?: string;
   onChange: (v: string | null) => void;
 }) {
   const paletas = usePlanStore((s) => s.paletas);
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(formatColorInput(value));
+  const inheritedColor = inheritedValue || defaultValue || "";
+  const effective = value || inheritedColor;
+  const [draft, setDraft] = useState(formatColorInput(effective));
   const ref = useRef<HTMLDivElement>(null);
   const colorInputRef = useRef<HTMLInputElement | null>(null);
 
   // Sync draft con prop externo (ej. al cambiar de preset seleccionado).
-  useEffect(() => { setDraft(formatColorInput(value)); }, [value]);
+  useEffect(() => { setDraft(formatColorInput(value || inheritedColor)); }, [inheritedColor, value]);
 
   // Click fuera → cerrar popover.
   useEffect(() => {
@@ -1336,9 +1356,10 @@ function ColorField({
     setOpen(false);
   }
 
-  const effective = value || defaultValue || "";
   const valid = isValidColor(draft);
-  const wheelHex = toHex7(draft || effective);
+  const previewColor = canonicalizeColorInput(draft || effective);
+  const wheelHex = toHex7(previewColor);
+  const canClear = value.trim() !== "";
 
   // Todos los colores únicos extraídos de las paletas del estudio.
   // Agrupados por paleta para que el analista reconozca de dónde viene
@@ -1360,8 +1381,8 @@ function ColorField({
           title="Elegir color"
           className="pulso-gv2-color-swatch"
           style={{
-            background: effective
-              ? swatchBackgroundFor(effective)
+            background: previewColor
+              ? swatchBackgroundFor(previewColor)
               : "repeating-linear-gradient(45deg, #d8deea 0 4px, #fff 4px 8px)",
           }}
           aria-label="Abrir selector de color"
@@ -1370,12 +1391,12 @@ function ColorField({
         <input
           type="text"
           value={draft}
-          placeholder={formatColorInput(defaultValue) || "#RRGGBB, blanco o transparente"}
+          placeholder={formatColorInput(inheritedColor) || "#RRGGBB, blanco o transparente"}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={() => commit(draft)}
           onKeyDown={(e) => {
             if (e.key === "Enter") { commit(draft); (e.target as HTMLInputElement).blur(); }
-            if (e.key === "Escape") { setDraft(formatColorInput(value)); (e.target as HTMLInputElement).blur(); }
+            if (e.key === "Escape") { setDraft(formatColorInput(value || inheritedColor)); (e.target as HTMLInputElement).blur(); }
           }}
           style={{
             ...inputStyle,
@@ -1387,7 +1408,7 @@ function ColorField({
             background: valid ? "white" : "#fef7f7",
           }}
         />
-        {draft && (
+        {canClear && (
           <button
             type="button"
             onClick={() => commit(null)}
@@ -1406,7 +1427,7 @@ function ColorField({
         >
           {/* Presets comunes */}
           <PopoverSection icon={<Palette size={11} />} label="Comunes">
-            <SwatchRow colors={COLOR_PRESETS} active={effective} onPick={pickSwatch} />
+            <SwatchRow colors={COLOR_PRESETS} active={previewColor} onPick={pickSwatch} />
           </PopoverSection>
 
           {/* Paletas del estudio */}
@@ -1418,7 +1439,7 @@ function ColorField({
                     <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>{p.name}</span>
                     <SwatchRow
                       colors={p.colores.map((c) => ({ value: c, label: c }))}
-                      active={effective}
+                      active={previewColor}
                       onPick={pickSwatch}
                     />
                   </div>
@@ -1459,7 +1480,7 @@ function ColorField({
               />
               <div className="pulso-gv2-color-keywords" aria-label="Colores especiales">
                 {COLOR_KEYWORDS.map((kw) => {
-                  const active = canonicalizeColorInput(effective).toLowerCase() === kw.value;
+                  const active = canonicalizeColorInput(previewColor).toLowerCase() === kw.value;
                   return (
                     <button
                       key={kw.value}
