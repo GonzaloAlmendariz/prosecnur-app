@@ -241,14 +241,17 @@ function SidebarItem({ p, active, onClick }: { p: PreguntaAbierta; active: boole
       className={`pulso-codificacion-sidebar-question${active ? " is-active" : ""}`}
     >
       <span className="pulso-codificacion-sidebar-question-accent" style={{ background: ts.border }} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-        <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: active ? "var(--pulso-primary)" : ts.fg }}>
+      <div className="pulso-codificacion-sidebar-question-copy">
+        <span
+          className="pulso-codificacion-sidebar-question-code"
+          style={{ color: active ? "var(--pulso-primary)" : ts.fg }}
+        >
           {p.parent}
         </span>
-        <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span className="pulso-codificacion-sidebar-question-label">
           {p.parent_label}
         </span>
-        <span style={{ fontSize: 9, color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center", gap: 3, marginTop: 2 }}>
+        <span className="pulso-codificacion-sidebar-question-status">
           <StatusIcon size={10} color={sm.color} />
           {sm.label}
         </span>

@@ -2541,7 +2541,7 @@
 
 .pulso-gv2-slide-card-title {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 5px;
   min-width: 0;
   font-size: 12px;
@@ -2551,17 +2551,21 @@
 }
 
 .pulso-gv2-slide-card-title span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .pulso-gv2-slide-card-subtitle {
   font-size: 11px;
   color: var(--pulso-text-soft);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.28;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .pulso-gv2-slide-card-thumb {

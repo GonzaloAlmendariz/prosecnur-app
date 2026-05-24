@@ -1757,9 +1757,10 @@ a { color: var(--pulso-primary); }
 }
 .pulso-validacion-nav-copy strong,
 .pulso-validacion-nav-copy span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .pulso-validacion-nav-copy strong {
   color: var(--pulso-text);
@@ -2071,9 +2072,10 @@ a { color: var(--pulso-primary); }
 }
 .pulso-codificacion-nav-copy strong,
 .pulso-codificacion-nav-copy span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .pulso-codificacion-nav-copy strong {
   color: var(--pulso-text);
@@ -2315,6 +2317,36 @@ a { color: var(--pulso-primary); }
   width: 3px;
   align-self: stretch;
   border-radius: 999px;
+}
+.pulso-codificacion-sidebar-question-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.pulso-codificacion-sidebar-question-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.pulso-codificacion-sidebar-question-label {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  line-height: 1.25;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.pulso-codificacion-sidebar-question-status {
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--pulso-text-soft);
+  font-size: 9px;
+  line-height: 1.2;
 }
 .pulso-codificacion-wizard-actions {
   margin-top: 14px;
@@ -2948,17 +2980,19 @@ h1.pulso-page-title {
   gap: 2px;
 }
 .pulso-carga-stage-copy strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--pulso-text);
   font-size: 12px;
   line-height: 1.2;
 }
 .pulso-carga-stage-copy span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   line-height: 1.25;
@@ -4419,9 +4453,10 @@ h1.pulso-page-title {
 }
 .pulso-analitica-nav-copy strong,
 .pulso-analitica-nav-copy span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .pulso-analitica-nav-copy strong {
   color: var(--pulso-text);
@@ -4436,6 +4471,66 @@ h1.pulso-page-title {
 .pulso-analitica-nav-done {
   display: inline-flex;
   color: var(--pulso-success-fg);
+}
+
+/* Procesamiento · navegación legible sin puntos suspensivos.
+   Aplica solo a rails/sidebars de fases; tablas y listas densas conservan
+   sus reglas locales de truncado. */
+.pulso-main--processing :is(
+  .pulso-carga-stage-item,
+  .pulso-validacion-nav-item,
+  .pulso-codificacion-nav-item,
+  .pulso-analitica-nav-item
+) {
+  min-height: 50px;
+  height: auto;
+  align-items: flex-start;
+  overflow: visible;
+}
+
+.pulso-main--processing :is(
+  .pulso-carga-stage-index,
+  .pulso-validacion-nav-index,
+  .pulso-codificacion-nav-index,
+  .pulso-carga-stage-icon,
+  .pulso-validacion-nav-icon,
+  .pulso-codificacion-nav-icon,
+  .pulso-analitica-nav-icon
+) {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.pulso-main--processing :is(
+  .pulso-carga-stage-copy,
+  .pulso-validacion-nav-copy,
+  .pulso-codificacion-nav-copy,
+  .pulso-analitica-nav-copy
+) {
+  min-width: 0;
+  align-self: center;
+}
+
+.pulso-main--processing :is(
+  .pulso-carga-stage-copy,
+  .pulso-validacion-nav-copy,
+  .pulso-codificacion-nav-copy,
+  .pulso-analitica-nav-copy
+) :is(strong, span) {
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.pulso-main--processing :is(
+  .pulso-validacion-nav-current,
+  .pulso-codificacion-nav-current,
+  .pulso-analitica-nav-done
+) {
+  align-self: flex-start;
+  margin-top: 3px;
 }
 .pulso-analitica-content {
   display: grid;
