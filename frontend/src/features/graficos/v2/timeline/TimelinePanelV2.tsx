@@ -138,13 +138,10 @@ export function TimelinePanelV2() {
         </div>
       )}
 
-      <div
-        className="pulso-section-eyebrow"
-        style={{ marginBottom: 8, display: "flex", justifyContent: "space-between" }}
-      >
+      <div className="pulso-gv2-timeline-title-row">
         <span>Timeline</span>
         {slides.length > 0 && (
-          <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", fontWeight: 500, textTransform: "none", letterSpacing: 0 }}>
+          <span className="pulso-gv2-timeline-count">
             {filtered.length === slides.length
               ? `${slides.length} ${slides.length === 1 ? "slide" : "slides"}`
               : `${filtered.length} de ${slides.length}`}
@@ -158,11 +155,10 @@ export function TimelinePanelV2() {
 
       {slides.length >= 3 && (
         <>
-          <div style={{ position: "relative", marginBottom: 8 }}>
+          <div className="pulso-gv2-timeline-search">
             <Search
               size={12}
-              color="var(--pulso-text-soft)"
-              style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+              className="pulso-gv2-timeline-search-icon"
             />
             <input
               ref={searchRef}
@@ -172,23 +168,13 @@ export function TimelinePanelV2() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar slide… (/)"
               aria-label="Buscar slide por título o tipo"
-              style={{
-                width: "100%", fontSize: 12, padding: "6px 8px 6px 26px",
-                border: "1px solid var(--pulso-border)", borderRadius: 5,
-                background: "white", outline: "none",
-              }}
             />
             {query && (
               <button
                 type="button"
                 onClick={() => setQuery("")}
                 aria-label="Limpiar búsqueda"
-                style={{
-                  position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
-                  width: 18, height: 18, padding: 0, background: "transparent",
-                  border: "none", color: "var(--pulso-text-soft)", cursor: "pointer",
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                }}
+                className="pulso-gv2-timeline-search-clear"
               >
                 <X size={11} />
               </button>
@@ -241,7 +227,7 @@ export function TimelinePanelV2() {
           </div>
         </div>
       ) : filtered.length === 0 ? (
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", padding: "10px 4px", fontStyle: "italic" }}>
+        <div className="pulso-gv2-timeline-no-results">
           Ningún slide coincide con "{query}".
         </div>
       ) : (

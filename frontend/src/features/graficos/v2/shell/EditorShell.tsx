@@ -15,7 +15,7 @@ export function EditorShell() {
   const density = usePlanStore((s) => s.density);
 
   return (
-    <div className="pulso-gv2-shell">
+    <div className={`pulso-gv2-shell is-${density}`} data-density={density}>
       <ModeToolbar />
 
       <div className={`pulso-gv2-shell-body is-${viewMode}`}>
@@ -29,7 +29,7 @@ export function EditorShell() {
         {viewMode === "canvas" && <PlanCanvas />}
       </div>
 
-      {/* Marker invisible: density data attr permite reglas CSS extra si se necesitan */}
+      {/* Marker invisible: mantiene compatibilidad con reglas/tests previos. */}
       <span data-density={density} hidden aria-hidden="true" />
     </div>
   );

@@ -70,7 +70,7 @@ export function InspectorV2() {
   if (!slide) {
     return (
       <div className="pulso-gv2-inspector">
-        <div style={{ padding: "18px 22px", flex: 1 }}>
+        <div className="pulso-gv2-inspector-empty">
           <EmptyState
             icon={<LayoutPanelTop size={22} />}
             title="Sin slide seleccionado"
@@ -106,37 +106,27 @@ export function InspectorV2() {
   return (
     <div className="pulso-gv2-inspector">
       <div className="pulso-gv2-inspector-head">
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
-            <span style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: "var(--pulso-primary-soft)",
-              color: "var(--pulso-primary)",
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0,
-            }}>
+        <div className="pulso-gv2-inspector-title-row">
+          <div className="pulso-gv2-inspector-title-cluster">
+            <span className="pulso-gv2-inspector-icon">
               <SlideIcon size={16} />
             </span>
-            <div style={{ minWidth: 0 }}>
-              <h2 style={{ margin: 0, fontSize: 16, lineHeight: 1.2 }}>{humanTitle}</h2>
-              <code style={{ fontSize: 10, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
+            <div className="pulso-gv2-inspector-title-copy">
+              <h2 className="pulso-gv2-inspector-title">{humanTitle}</h2>
+              <code className="pulso-gv2-inspector-code">
                 {slide.tipo}
               </code>
             </div>
           </div>
-
         </div>
 
         {slideMeta?.descripcion && (
-          <div style={{
-            fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 6,
-            lineHeight: 1.5, maxWidth: 600,
-          }}>
+          <div className="pulso-gv2-inspector-description">
             {slideMeta.descripcion}
           </div>
         )}
 
-        <div className="pulso-gv2-inspector-tabs" role="tablist">
+        <div className="pulso-gv2-inspector-tabs" role="tablist" aria-label="Configuración del slide">
           {TABS.map(({ key, label, Icon }) => {
             const count = tabArgCounts[key];
             const issueN = issuesByTab[key];
@@ -290,19 +280,21 @@ function DataTabBody({ slide, args, updatePayload, variables, slotNames }: {
       {/* Slots de gráfico (si aplica) — modo data: solo args de datos
           (var, cruces, etc.). Sin wand de override (eso vive en Estilo). */}
       {slotNames.length > 0 && (
-        <section style={{ marginBottom: 18 }}>
-          <div className="pulso-section-eyebrow" style={{ marginBottom: 10 }}>
+        <section className="pulso-gv2-data-slots-section">
+          <div className="pulso-gv2-section-caption">
             Gráficos del slide · {slotNames.length} slot{slotNames.length === 1 ? "" : "s"}
           </div>
-          {slotNames.map((slotName) => (
-            <GraficadorSlot
-              key={slotName}
-              slideId={slide.id}
-              slotName={slotName}
-              value={(slide.payload as Record<string, unknown>)[slotName] as never}
-              mode="data"
-            />
-          ))}
+          <div className="pulso-gv2-slot-stack">
+            {slotNames.map((slotName) => (
+              <GraficadorSlot
+                key={slotName}
+                slideId={slide.id}
+                slotName={slotName}
+                value={(slide.payload as Record<string, unknown>)[slotName] as never}
+                mode="data"
+              />
+            ))}
+          </div>
         </section>
       )}
 

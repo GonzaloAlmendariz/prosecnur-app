@@ -86,21 +86,20 @@ export function SlideCard({ slide, index, active, issues, density }: SlideCardPr
         >
           <GripVertical size={12} />
         </span>
-        <span style={{ flex: 1 }}>#{index + 1}</span>
+        <span className="pulso-gv2-slide-card-index">#{index + 1}</span>
         {(errors > 0 || warns > 0) && (
           <span
             className={`pulso-gv2-slide-card-diag ${errors > 0 ? "is-error" : "is-warn"}`}
             title={`${errors > 0 ? `${errors} error(es)` : ""}${errors > 0 && warns > 0 ? " · " : ""}${warns > 0 ? `${warns} aviso(s)` : ""}`}
-            style={{ position: "static" }}
           >
             {errors > 0 ? <AlertCircle size={10} strokeWidth={3} /> : <AlertTriangle size={10} strokeWidth={3} />}
           </span>
         )}
       </div>
 
-      <div className="pulso-gv2-slide-card-title" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+      <div className="pulso-gv2-slide-card-title">
         <TypeIcon size={11} />
-        {SLIDE_LABELS[slide.tipo] ?? slide.tipo}
+        <span>{SLIDE_LABELS[slide.tipo] ?? slide.tipo}</span>
       </div>
       {titulo && (
         <div className="pulso-gv2-slide-card-subtitle" title={titulo}>

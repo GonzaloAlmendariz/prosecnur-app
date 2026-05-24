@@ -28,9 +28,7 @@ export function ModeToolbar() {
         {density === "compact" ? "Compacto" : "Cómodo"}
       </button>
 
-      <span className="pulso-gv2-mode-spacer" />
-
-      <div className="pulso-gv2-mode-tabs pulso-gv2-segmented" role="tablist">
+      <div className="pulso-gv2-mode-tabs pulso-gv2-segmented" role="tablist" aria-label="Vista del constructor">
         {MODES.map(({ key, label, Icon, hint }) => (
           <button
             key={key}
@@ -46,6 +44,8 @@ export function ModeToolbar() {
           </button>
         ))}
       </div>
+
+      <span className="pulso-gv2-mode-toolbar-tail" aria-hidden="true" />
     </div>
   );
 }

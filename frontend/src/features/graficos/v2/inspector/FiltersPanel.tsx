@@ -107,7 +107,7 @@ export function FiltersPanel({ slide, variables, slotNames }: FiltersPanelProps)
   }
 
   return (
-    <div style={{ maxWidth: 760 }}>
+    <div className="pulso-gv2-filters-panel">
       {/* Motor de filtros */}
       <section className="pulso-gv2-filters-section">
         <div className="pulso-gv2-filters-head">
@@ -158,7 +158,7 @@ export function FiltersPanel({ slide, variables, slotNames }: FiltersPanelProps)
       </section>
 
       {rules.length === 0 && slotNames.length === 0 && (
-        <div style={{ marginTop: 12, padding: 16, fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center", border: "1px dashed var(--pulso-border)", borderRadius: 8 }}>
+        <div className="pulso-gv2-filters-na">
           Este tipo de slide no consume datos — los filtros no aplican.
         </div>
       )}
@@ -189,7 +189,7 @@ function FilterRow({ rule, index, variables, onUpdate, onRemove }: {
       </span>
 
       {/* Variable picker */}
-      <div className="pulso-gv2-filter-cell" style={{ flex: 2 }}>
+      <div className="pulso-gv2-filter-cell pulso-gv2-filter-cell--var">
         <button
           type="button"
           className="pulso-gv2-filter-cell-btn"
@@ -244,7 +244,7 @@ function FilterRow({ rule, index, variables, onUpdate, onRemove }: {
       </div>
 
       {/* Operator picker */}
-      <div className="pulso-gv2-filter-cell" style={{ flex: 1.2 }}>
+      <div className="pulso-gv2-filter-cell pulso-gv2-filter-cell--op">
         <button
           type="button"
           className="pulso-gv2-filter-cell-btn"
@@ -279,7 +279,6 @@ function FilterRow({ rule, index, variables, onUpdate, onRemove }: {
         placeholder={rule.op === "in" || rule.op === "notin" ? "valor1, valor2…" : "valor"}
         value={rule.value}
         onChange={(e) => onUpdate({ value: e.target.value })}
-        style={{ flex: 1.5 }}
       />
 
       <button

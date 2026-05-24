@@ -93,14 +93,7 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
   // (rompiendo el flujo). En su lugar, pintamos un mensaje sutil.
   if ((!value || !value.graficador) && mode !== "data") {
     return (
-      <div style={{
-        marginBottom: 12, padding: "10px 14px",
-        border: "1px dashed var(--pulso-border)",
-        borderRadius: 8,
-        background: "var(--pulso-surface-2)",
-        fontSize: 11, color: "var(--pulso-text-soft)",
-        display: "flex", alignItems: "center", gap: 8,
-      }}>
+      <div className="pulso-gv2-slot-empty-note">
         <SlotLabel text={slotLabel} slotName={slotName} />
         <span>Slot vacío. Elige un gráfico en la pestaña <strong>Datos</strong> primero.</span>
       </div>
@@ -113,54 +106,25 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
   // placeholder grande a la izquierda, copy guiado, CTA primario.
   if (!value || !value.graficador) {
     return (
-      <div
-        style={{
-          marginBottom: 12, padding: "14px 16px",
-          border: "1px dashed var(--pulso-border)",
-          borderRadius: 8,
-          background: "var(--pulso-surface)",
-          display: "flex", alignItems: "center", gap: 14,
-          minHeight: 66,
-          transition: "border-color 120ms ease, background 120ms ease",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = "var(--pulso-primary-border)";
-          e.currentTarget.style.background = "var(--pulso-primary-soft)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = "var(--pulso-border)";
-          e.currentTarget.style.background = "var(--pulso-surface)";
-        }}
-      >
-        <span
-          aria-hidden="true"
-          style={{
-            width: 38, height: 38, borderRadius: 8,
-            background: "white",
-            color: "var(--pulso-text-soft)",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            border: "1px solid var(--pulso-border)",
-            flexShrink: 0,
-          }}
-        >
+      <div className="pulso-gv2-slot-empty-card">
+        <span className="pulso-gv2-slot-empty-icon" aria-hidden="true">
           <ImagePlus size={16} />
         </span>
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="pulso-gv2-slot-empty-copy">
+          <div className="pulso-gv2-slot-empty-title-row">
             <SlotLabel text={slotLabel} slotName={slotName} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--pulso-text)" }}>
+            <span className="pulso-gv2-slot-empty-title">
               Añade un gráfico a este slot
             </span>
           </div>
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+          <span className="pulso-gv2-slot-empty-hint">
             Elige un tipo del catálogo (barras, pie, radar, etc.) y configura sus args.
           </span>
         </div>
         <button
           type="button"
-          className="pulso-primary"
+          className="pulso-primary pulso-gv2-pill-button"
           onClick={() => setPickerOpen(true)}
-          style={{ fontSize: 12, padding: "7px 12px", display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}
         >
           <Plus size={13} /> Elegir graficador
         </button>
@@ -175,42 +139,20 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
   const titulo = meta?.titulo_humano ?? value.graficador;
 
   return (
-    <div
-      style={{
-        marginBottom: 12,
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 8,
-        background: "white",
-        overflow: "hidden",
-      }}
-    >
+    <div className="pulso-gv2-slot-card">
       {/* Header */}
-      <div
-        style={{
-          padding: "10px 12px",
-          background: "var(--pulso-surface)",
-          borderBottom: "1px solid var(--pulso-border)",
-          display: "flex", alignItems: "center", gap: 10,
-        }}
-      >
+      <div className="pulso-gv2-slot-head">
         <SlotLabel text={slotLabel} slotName={slotName} />
 
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flex: 1 }}>
-          <span
-            style={{
-              width: 28, height: 28, borderRadius: 6,
-              background: "var(--pulso-primary-soft)",
-              color: "var(--pulso-primary)",
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-            }}
-          >
+        <span className="pulso-gv2-slot-title-cluster">
+          <span className="pulso-gv2-slot-icon">
             <Icon size={14} />
           </span>
-          <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-text)", lineHeight: 1.2 }}>
+          <span className="pulso-gv2-slot-title-copy">
+            <span className="pulso-gv2-slot-title">
               {titulo}
             </span>
-            <code style={{ fontSize: 10, color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
+            <code className="pulso-gv2-slot-code">
               {value.graficador}
             </code>
           </span>
@@ -227,7 +169,7 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
-            style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 10px" }}
+            className="pulso-gv2-pill-button pulso-gv2-slot-action"
             title="Cambiar por otro tipo de gráfico"
           >
             <Shuffle size={11} /> Cambiar
@@ -240,7 +182,6 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
             className="pulso-icon pulso-icon-danger"
             aria-label="Quitar graficador"
             title="Quitar graficador"
-            style={{ minWidth: 26, minHeight: 26 }}
           >
             <X size={12} />
           </button>
@@ -248,7 +189,7 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
       </div>
 
       {/* Body: args agrupados, filtrados por modo */}
-      <div style={{ padding: 12 }}>
+      <div className="pulso-gv2-slot-body">
         {mode === "data" && value.graficador === "p_barras_multiapiladas" ? (
           <MultiApiladasBuilder
             graf={value}
@@ -271,15 +212,7 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
 function SlotLabel({ text, slotName }: { text: string; slotName: string }) {
   return (
     <span
-      style={{
-        fontSize: 9, fontWeight: 700,
-        textTransform: "uppercase", letterSpacing: 0.5,
-        color: "var(--pulso-text-soft)",
-        padding: "3px 7px", borderRadius: 999,
-        background: "white",
-        border: "1px solid var(--pulso-border)",
-        whiteSpace: "nowrap",
-      }}
+      className="pulso-gv2-slot-label"
       title={`Slot técnico: ${slotName}`}
     >
       {text}
@@ -410,7 +343,7 @@ function OverrideDropdown({
   }
 
   return (
-    <div ref={rootRef} style={{ position: "relative" }}>
+    <div ref={rootRef} className="pulso-gv2-mode-menu">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -421,15 +354,7 @@ function OverrideDropdown({
             ? `${customCount} cambio${customCount === 1 ? "" : "s"} custom sobre el preset`
             : "Cambiar modo de estilo"
         }
-        style={{
-          fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4,
-          padding: "5px 10px",
-          border: `1px solid ${isActive ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-          background: isActive ? "var(--pulso-primary-soft)" : "white",
-          color: isActive ? "var(--pulso-primary)" : "var(--pulso-text)",
-          borderRadius: 5, cursor: "pointer",
-          fontWeight: isActive ? 600 : 500,
-        }}
+        className={`pulso-gv2-mode-trigger ${isActive ? "is-active" : ""}`}
       >
         <Wand2 size={11} />
         {triggerLabel}
@@ -437,22 +362,9 @@ function OverrideDropdown({
       {open && (
         <div
           role="menu"
-          style={{
-            position: "absolute", top: "calc(100% + 4px)", right: 0,
-            zIndex: 21,
-            minWidth: 260,
-            background: "white",
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 7,
-            boxShadow: "var(--pulso-shadow-med)",
-            padding: 4,
-            display: "flex", flexDirection: "column", gap: 1,
-          }}
+          className="pulso-gv2-mode-popover"
         >
-          <div style={{
-            fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
-            color: "var(--pulso-text-soft)", padding: "6px 9px 4px",
-          }}>Modos disponibles</div>
+          <div className="pulso-gv2-mode-popover-label">Modos disponibles</div>
 
           <DropdownOption
             label="Por defecto"
@@ -473,26 +385,18 @@ function OverrideDropdown({
             );
           })}
 
-          <div style={{ height: 1, background: "var(--pulso-border)", margin: "6px 0 4px" }} />
+          <div className="pulso-gv2-mode-popover-divider" />
 
           {customCount > 0 && (
             <button
               type="button"
               role="menuitem"
               onClick={createMode}
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "7px 9px", borderRadius: 5,
-                border: "1px solid var(--pulso-primary)",
-                background: "var(--pulso-primary-soft)",
-                color: "var(--pulso-primary)",
-                fontSize: 12, fontWeight: 600,
-                textAlign: "left", cursor: "pointer", width: "100%",
-              }}
+              className="pulso-gv2-mode-option pulso-gv2-mode-option--create"
             >
               <Save size={12} />
-              <span style={{ flex: 1 }}>Crear modo "{partialMatch?.nombre ?? "personalizado"}"</span>
-              <span style={{ fontSize: 10, opacity: 0.7 }}>{customCount} cambio{customCount === 1 ? "" : "s"}</span>
+              <span className="pulso-gv2-mode-option-label">Crear modo "{partialMatch?.nombre ?? "personalizado"}"</span>
+              <span className="pulso-gv2-mode-option-hint">{customCount} cambio{customCount === 1 ? "" : "s"}</span>
             </button>
           )}
 
@@ -501,18 +405,7 @@ function OverrideDropdown({
               type="button"
               role="menuitem"
               onClick={() => applyMode(null)}
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "6px 9px", borderRadius: 5,
-                border: "1px solid transparent",
-                background: "transparent",
-                color: "var(--pulso-text-soft)",
-                fontSize: 11, fontWeight: 500,
-                textAlign: "left", cursor: "pointer", width: "100%",
-                marginTop: 2,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--pulso-surface)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              className="pulso-gv2-mode-option pulso-gv2-mode-option--muted"
             >
               <RotateCcw size={11} />
               Descartar todos los cambios y volver al preset
@@ -549,27 +442,13 @@ function DropdownOption({
       type="button"
       role="menuitem"
       onClick={onClick}
-      style={{
-        display: "flex", alignItems: "center", gap: 8,
-        padding: "6px 9px", borderRadius: 5,
-        border: "1px solid transparent",
-        background: active ? "var(--pulso-primary-soft)" : "transparent",
-        color: active ? "var(--pulso-primary)" : "var(--pulso-text)",
-        fontSize: 12, fontWeight: active ? 600 : 500,
-        textAlign: "left", cursor: "pointer", width: "100%",
-      }}
-      onMouseEnter={(e) => {
-        if (!active) e.currentTarget.style.background = "var(--pulso-surface)";
-      }}
-      onMouseLeave={(e) => {
-        if (!active) e.currentTarget.style.background = "transparent";
-      }}
+      className={`pulso-gv2-mode-option ${active ? "is-active" : ""}`}
     >
-      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <span className="pulso-gv2-mode-option-label">
         {label}
       </span>
       {hint && (
-        <span style={{ fontSize: 10, color: active ? "var(--pulso-primary)" : "var(--pulso-text-soft)" }}>
+        <span className="pulso-gv2-mode-option-hint">
           {hint}
         </span>
       )}

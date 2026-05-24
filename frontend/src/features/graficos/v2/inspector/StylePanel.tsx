@@ -155,30 +155,32 @@ export function StylePanel({ slide, args }: StylePanelProps) {
       {/* Sub-cards por slot — args de estilo de cada graficador */}
       {hasSlots && (
         <section className="pulso-gv2-style-slots-section">
-          <div className="pulso-gv2-style-section-head" style={{ padding: "0 0 8px" }}>
+          <div className="pulso-gv2-style-section-head pulso-gv2-style-slots-head">
             <LayoutPanelTop size={13} />
             <span>Cada gráfico</span>
             <span className="pulso-gv2-style-section-meta">
               {presetInfo.populatedSlots.length} de {slotNames.length} configurado{presetInfo.populatedSlots.length === 1 ? "" : "s"}
             </span>
           </div>
-          <div className="pulso-gv2-style-section-hint" style={{ marginBottom: 12 }}>
+          <div className="pulso-gv2-style-section-hint">
             Ajusta lectura, espacio, leyenda y valores del gráfico. Usa <strong>Modo</strong> para aplicar o guardar un estilo reutilizable.
           </div>
-          {slotNames.map((slotName) => (
-            <GraficadorSlot
-              key={slotName}
-              slideId={slide.id}
-              slotName={slotName}
-              value={(slide.payload as Record<string, unknown>)[slotName] as never}
-              mode="style"
-            />
-          ))}
+          <div className="pulso-gv2-slot-stack">
+            {slotNames.map((slotName) => (
+              <GraficadorSlot
+                key={slotName}
+                slideId={slide.id}
+                slotName={slotName}
+                value={(slide.payload as Record<string, unknown>)[slotName] as never}
+                mode="style"
+              />
+            ))}
+          </div>
         </section>
       )}
 
       {!hasSlideArgs && !hasSlots && (
-        <div style={{ marginTop: 12, padding: 16, fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center", border: "1px dashed var(--pulso-border)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <div className="pulso-gv2-style-empty">
           <LayoutPanelTop size={14} />
           Sin opciones de estilo para este tipo de slide.
         </div>
