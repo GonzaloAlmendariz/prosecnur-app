@@ -689,14 +689,15 @@
 }
 
 .pulso-gv2-arg-body {
-  padding: 14px;
+  padding: 16px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface-2) 54%, var(--pulso-surface)), var(--pulso-surface)),
-    var(--pulso-surface);
-  border-top: 1px solid var(--pulso-border);
+    linear-gradient(180deg, rgba(0, 36, 87, 0.035), rgba(0, 36, 87, 0.012)),
+    color-mix(in srgb, var(--pulso-surface-2) 78%, var(--pulso-surface));
+  border-top: 1px solid color-mix(in srgb, var(--pulso-primary-border) 64%, var(--pulso-border));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
   align-items: stretch;
   grid-auto-flow: row;
   overflow: visible;
@@ -734,37 +735,72 @@
 }
 
 .pulso-gv2-arg-group {
-  border: 1px solid var(--pulso-border);
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 42%, var(--pulso-border));
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   overflow: hidden;
-  box-shadow: var(--pulso-shadow-low);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.8) inset,
+    0 10px 24px rgba(0, 36, 87, 0.055);
+}
+
+.pulso-gv2-arg-group::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--pulso-primary) 24%, transparent), transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-gv2-arg-group.is-open {
-  border-color: var(--pulso-primary-border);
-  box-shadow: var(--pulso-shadow-soft);
+  border-color: color-mix(in srgb, var(--pulso-primary) 42%, var(--pulso-border));
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.85) inset,
+    0 16px 38px rgba(0, 36, 87, 0.105),
+    0 0 0 1px color-mix(in srgb, var(--pulso-primary-border) 58%, transparent);
   overflow: visible;
+}
+
+.pulso-gv2-arg-group.is-open::before {
+  opacity: 1;
 }
 
 .pulso-gv2-arg-group-trigger {
   width: 100%;
   min-height: 54px;
   text-align: left;
-  padding: 12px 14px !important;
+  padding: 13px 16px !important;
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  background: transparent !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface) 96%, var(--pulso-surface-2)), var(--pulso-surface)) !important;
   border: none !important;
   border-radius: 0 !important;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
 .pulso-gv2-arg-group-trigger:hover {
-  background: var(--pulso-surface-2) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary-soft) 34%, var(--pulso-surface)), var(--pulso-surface-2)) !important;
+}
+
+.pulso-gv2-arg-group-trigger:active {
+  transform: scale(0.997);
+}
+
+.pulso-gv2-arg-group-trigger:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: -3px;
 }
 
 .pulso-gv2-arg-group-main {
@@ -783,7 +819,12 @@
   height: 18px;
   border-radius: 999px;
   flex-shrink: 0;
-  transition: transform var(--motion-dur-fast) var(--gv2-press-ease), background var(--motion-dur-fast) ease;
+  background: color-mix(in srgb, var(--pulso-surface-2) 72%, var(--pulso-surface));
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 48%, var(--pulso-border));
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-out),
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease;
 }
 
 .pulso-gv2-arg-chevron[data-open="false"] {
@@ -792,19 +833,22 @@
 
 .pulso-gv2-arg-group-trigger:hover .pulso-gv2-arg-chevron {
   background: var(--pulso-surface);
+  border-color: var(--pulso-primary-border);
 }
 
 .pulso-gv2-arg-group-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: var(--pulso-primary);
-  background: var(--pulso-primary-soft);
-  border: 1px solid var(--pulso-primary-border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary-soft) 78%, white), var(--pulso-primary-soft));
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 30%, var(--pulso-primary-border));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
 }
 
 .pulso-gv2-arg-group-copy {
@@ -818,7 +862,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--pulso-text-soft);
+  color: color-mix(in srgb, var(--pulso-primary) 44%, var(--pulso-text-soft));
   font-size: 11px;
   font-weight: 750;
   letter-spacing: 0.07em;
@@ -840,9 +884,9 @@
   min-width: 28px;
   min-height: 24px;
   padding: 3px 9px;
-  border: 1px solid var(--pulso-border);
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 50%, var(--pulso-border));
   border-radius: 999px !important;
-  background: var(--pulso-surface);
+  background: color-mix(in srgb, var(--pulso-surface) 88%, var(--pulso-surface-2));
   color: var(--pulso-text-soft);
   display: inline-flex;
   align-items: center;
@@ -861,13 +905,17 @@
 .pulso-gv2-field-card {
   position: relative;
   overflow: visible;
-  min-height: 96px;
+  min-height: 104px;
   height: 100%;
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 84%, transparent);
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 54%, var(--pulso-border));
   border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
-  box-shadow: 0 1px 1px rgba(0, 36, 87, 0.03);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.94)),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.86),
+    0 7px 18px rgba(0, 36, 87, 0.06);
   gap: 8px !important;
   transition:
     border-color var(--motion-dur-fast) ease,
@@ -879,10 +927,16 @@
 .pulso-gv2-field-card::before {
   content: "";
   position: absolute;
-  inset: 10px auto 10px 0;
-  width: 3px;
+  inset: 12px auto 12px 0;
+  width: 4px;
   border-radius: 999px;
-  background: transparent;
+  background: color-mix(in srgb, var(--pulso-border) 80%, transparent);
+}
+
+.pulso-gv2-field-card[data-has-own-value="false"] {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.92), rgba(250,251,255,0.92)),
+    var(--pulso-surface-2);
 }
 
 .pulso-gv2-field-card[data-arg-state="from-mode"]::before {
@@ -894,14 +948,20 @@
 }
 
 .pulso-gv2-field-card:focus-within {
-  border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus), var(--pulso-shadow-low);
+  border-color: color-mix(in srgb, var(--pulso-primary) 62%, var(--pulso-primary-border));
+  box-shadow:
+    0 0 0 3px var(--pulso-primary-focus),
+    inset 0 1px 0 rgba(255,255,255,0.86),
+    0 10px 24px rgba(0, 36, 87, 0.09);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .pulso-gv2-field-card:hover {
-    border-color: var(--pulso-primary-border);
-    box-shadow: var(--pulso-shadow-low);
+    border-color: color-mix(in srgb, var(--pulso-primary) 46%, var(--pulso-primary-border));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.88),
+      0 12px 26px rgba(0, 36, 87, 0.085);
+    transform: translateY(-1px);
   }
 }
 
@@ -919,7 +979,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--pulso-text);
+  color: color-mix(in srgb, var(--pulso-text) 88%, var(--pulso-primary));
   font-weight: 700;
 }
 
@@ -947,6 +1007,19 @@
   align-items: center;
   cursor: help;
   flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--pulso-text-soft);
+  transition:
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease;
+}
+
+.pulso-gv2-field-info:hover {
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
 }
 
 .pulso-gv2-field-tooltip {
@@ -985,9 +1058,13 @@
 .pulso-arg-field select {
   min-height: 36px;
   width: 100%;
-  border-radius: 10px !important;
-  border-color: var(--pulso-border) !important;
-  background: color-mix(in srgb, var(--pulso-surface) 96%, var(--pulso-surface-2)) !important;
+  border-radius: 11px !important;
+  border-color: color-mix(in srgb, var(--pulso-primary-border) 46%, var(--pulso-border)) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,251,255,0.96)) !important;
+  box-shadow:
+    inset 0 1px 1px rgba(0, 36, 87, 0.045),
+    0 1px 0 rgba(255,255,255,0.72) !important;
   transition:
     border-color var(--motion-dur-fast) ease,
     box-shadow var(--motion-dur-fast) var(--gv2-press-ease),
@@ -997,8 +1074,10 @@
 .pulso-arg-field input:not([type="color"]):not([type="range"]):focus,
 .pulso-arg-field textarea:focus,
 .pulso-arg-field select:focus {
-  border-color: var(--pulso-primary-border) !important;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus) !important;
+  border-color: color-mix(in srgb, var(--pulso-primary) 60%, var(--pulso-primary-border)) !important;
+  box-shadow:
+    0 0 0 3px var(--pulso-primary-focus),
+    inset 0 1px 1px rgba(0, 36, 87, 0.035) !important;
   background: var(--pulso-surface) !important;
 }
 
@@ -1029,11 +1108,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition:
+    background var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
 .pulso-gv2-field-clear:hover {
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
+}
+
+.pulso-gv2-field-clear:active {
+  transform: translateY(-50%) scale(0.92);
 }
 
 .pulso-gv2-string-control,
@@ -1047,10 +1134,10 @@
 
 .pulso-gv2-number-stepper {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
   align-items: stretch;
-  gap: 6px;
-  width: min(100%, 300px);
+  gap: 8px;
+  width: min(100%, 340px);
 }
 
 .pulso-gv2-number-input-wrap {
@@ -1072,8 +1159,8 @@
 .pulso-gv2-field-hint {
   max-width: 36rem;
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
-  line-height: 1.4;
+  font-size: 10.75px;
+  line-height: 1.45;
 }
 
 .pulso-gv2-quick-presets,
@@ -1088,36 +1175,73 @@
 .pulso-arg-preset-button,
 .pulso-gv2-choice-pill,
 .pulso-gv2-multiflag-chip {
-  min-height: 28px;
-  padding: 5px 10px !important;
+  min-height: 30px;
+  padding: 5px 11px !important;
   border-radius: 999px !important;
-  border: 1px solid var(--pulso-border) !important;
-  background: var(--pulso-surface) !important;
-  color: var(--pulso-text-soft) !important;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 48%, var(--pulso-border)) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,255,0.94)) !important;
+  color: color-mix(in srgb, var(--pulso-text) 76%, var(--pulso-text-soft)) !important;
   font-size: 10.5px !important;
-  font-weight: 650 !important;
+  font-weight: 700 !important;
   cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.8),
+    0 2px 5px rgba(0, 36, 87, 0.045);
   transition:
     background var(--motion-dur-fast) ease,
     border-color var(--motion-dur-fast) ease,
     color var(--motion-dur-fast) ease,
-    transform var(--motion-dur-press) var(--gv2-press-ease);
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
 .pulso-arg-preset-button:hover,
 .pulso-gv2-choice-pill:hover,
 .pulso-gv2-multiflag-chip:hover {
-  border-color: var(--pulso-primary-border) !important;
-  background: var(--pulso-primary-soft) !important;
+  border-color: color-mix(in srgb, var(--pulso-primary) 54%, var(--pulso-primary-border)) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary-soft) 62%, white), var(--pulso-primary-soft)) !important;
   color: var(--pulso-primary) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.82),
+    0 6px 12px rgba(0, 36, 87, 0.07);
+  transform: translateY(-1px);
 }
 
 .pulso-arg-preset-button[aria-pressed="true"],
 .pulso-gv2-choice-pill.is-active,
 .pulso-gv2-multiflag-chip.is-on {
   border-color: var(--pulso-primary) !important;
-  background: var(--pulso-primary) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary) 88%, #45648f), var(--pulso-primary)) !important;
   color: white !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    0 7px 16px rgba(0, 36, 87, 0.18);
+}
+
+.pulso-arg-preset-button:active,
+.pulso-gv2-choice-pill:active,
+.pulso-gv2-multiflag-chip:active,
+.pulso-gv2-field-reset:active,
+.pulso-gv2-switch:active,
+.pulso-gv2-color-clear:active,
+.pulso-gv2-dedicated-clear:active {
+  transform: scale(0.965);
+}
+
+.pulso-arg-preset-button:focus-visible,
+.pulso-gv2-choice-pill:focus-visible,
+.pulso-gv2-multiflag-chip:focus-visible,
+.pulso-gv2-field-reset:focus-visible,
+.pulso-gv2-switch:focus-visible,
+.pulso-gv2-color-clear:focus-visible,
+.pulso-gv2-dedicated-clear:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--pulso-primary-focus),
+    0 4px 10px rgba(0, 36, 87, 0.08) !important;
 }
 
 .pulso-gv2-multiflag-chip {
@@ -1136,34 +1260,63 @@
   align-items: center !important;
   gap: 4px !important;
   border-radius: 999px !important;
-  min-height: 24px !important;
-  padding: 2px 8px !important;
-  border: 1px solid var(--pulso-border) !important;
-  background: var(--pulso-surface) !important;
+  min-height: 26px !important;
+  padding: 3px 9px !important;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 55%, var(--pulso-border)) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,255,0.94)) !important;
   color: var(--pulso-text-soft) !important;
   font-size: 10px !important;
-  font-weight: 650 !important;
+  font-weight: 750 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.78),
+    0 2px 5px rgba(0, 36, 87, 0.045);
+  transition:
+    color var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    background var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-gv2-field-reset:hover {
+  color: var(--pulso-primary) !important;
+  border-color: var(--pulso-primary-border) !important;
+  background: var(--pulso-primary-soft) !important;
 }
 
 .pulso-gv2-switch {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 7px !important;
+  gap: 8px !important;
   border-radius: 999px !important;
-  min-height: 32px !important;
-  padding: 6px 11px !important;
-  background: var(--pulso-surface) !important;
-  border-color: var(--pulso-border) !important;
+  min-height: 34px !important;
+  padding: 6px 12px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,249,254,0.94)) !important;
+  border-color: color-mix(in srgb, var(--pulso-primary-border) 48%, var(--pulso-border)) !important;
   color: var(--pulso-text-soft) !important;
   font-size: 11px !important;
-  font-weight: 700 !important;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.45);
+  font-weight: 750 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.82),
+    0 2px 6px rgba(0,36,87,0.055);
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
 .pulso-gv2-switch.is-on {
-  background: var(--pulso-primary-soft) !important;
-  border-color: var(--pulso-primary-border) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary-soft) 66%, white), var(--pulso-primary-soft)) !important;
+  border-color: color-mix(in srgb, var(--pulso-primary) 48%, var(--pulso-primary-border)) !important;
   color: var(--pulso-primary) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.78),
+    0 7px 15px rgba(0,36,87,0.09);
 }
 
 .pulso-gv2-switch-track,
@@ -1175,9 +1328,10 @@
 }
 
 .pulso-gv2-switch-track {
-  width: 30px !important;
-  height: 16px !important;
-  background: color-mix(in srgb, var(--pulso-border) 78%, var(--pulso-surface-2)) !important;
+  width: 34px !important;
+  height: 18px !important;
+  background: color-mix(in srgb, var(--pulso-border) 82%, var(--pulso-surface-2)) !important;
+  box-shadow: inset 0 1px 2px rgba(0,36,87,0.16);
 }
 
 .pulso-gv2-switch.is-on .pulso-gv2-switch-track {
@@ -1187,13 +1341,14 @@
 .pulso-gv2-switch-thumb {
   top: 2px !important;
   left: 2px !important;
-  width: 12px !important;
-  height: 12px !important;
+  width: 14px !important;
+  height: 14px !important;
+  box-shadow: 0 1px 4px rgba(0,36,87,0.24);
 }
 
 .pulso-gv2-switch.is-on .pulso-gv2-switch-thumb {
-  left: 16px !important;
-  box-shadow: 0 1px 4px rgba(0,36,87,0.22);
+  left: 18px !important;
+  box-shadow: 0 2px 5px rgba(0,36,87,0.28);
 }
 
 .pulso-gv2-color-control,
@@ -1208,10 +1363,10 @@
 
 .pulso-gv2-color-row {
   display: grid;
-  grid-template-columns: 36px minmax(120px, 1fr) 28px;
+  grid-template-columns: 40px minmax(140px, 1fr) 32px;
   align-items: center;
   gap: 8px;
-  width: min(100%, 340px);
+  width: min(100%, 520px);
 }
 
 .pulso-gv2-color-swatch,
@@ -1222,17 +1377,73 @@
 }
 
 .pulso-gv2-color-swatch {
-  width: 34px !important;
-  height: 34px !important;
-  border-radius: 10px !important;
-  border: 1px solid var(--pulso-border) !important;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.45), var(--pulso-shadow-low);
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 12px !important;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 54%, var(--pulso-border)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.55),
+    0 6px 12px rgba(0,36,87,0.095);
+  transition:
+    transform var(--motion-dur-press) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) ease;
+}
+
+.pulso-gv2-color-swatch:hover {
+  transform: translateY(-1px);
+  border-color: var(--pulso-primary-border) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.6),
+    0 10px 20px rgba(0,36,87,0.12);
+}
+
+.pulso-gv2-color-swatch:active {
+  transform: scale(0.96);
 }
 
 .pulso-gv2-color-clear {
-  min-width: 28px !important;
-  min-height: 28px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
   border-radius: 999px !important;
+}
+
+.pulso-gv2-field-card .pulso-arg-stepper-button {
+  width: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 999px !important;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 52%, var(--pulso-border)) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,249,254,0.94)) !important;
+  color: var(--pulso-text) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.8),
+    0 3px 7px rgba(0,36,87,0.055);
+  transition:
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-gv2-field-card .pulso-arg-stepper-button:hover {
+  border-color: var(--pulso-primary-border) !important;
+  color: var(--pulso-primary) !important;
+  background: var(--pulso-primary-soft) !important;
+  box-shadow: 0 7px 14px rgba(0,36,87,0.085);
+}
+
+.pulso-gv2-field-card .pulso-arg-stepper-button:active {
+  transform: scale(0.92);
+}
+
+.pulso-gv2-field-card .pulso-arg-stepper-button:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--pulso-primary-focus),
+    0 5px 12px rgba(0,36,87,0.085) !important;
 }
 
 .pulso-gv2-color-popover {
@@ -1240,10 +1451,12 @@
   max-height: 280px;
   overflow-y: auto;
   padding: 10px;
-  border: 1px solid var(--pulso-border);
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 58%, var(--pulso-border));
   border-radius: 12px;
   background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-med);
+  box-shadow:
+    0 18px 42px rgba(0,36,87,0.14),
+    inset 0 1px 0 rgba(255,255,255,0.84);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1278,8 +1491,10 @@
   width: 24px !important;
   height: 24px !important;
   border-radius: 8px !important;
-  border: 1px solid var(--pulso-border) !important;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 46%, var(--pulso-border)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.35),
+    0 2px 5px rgba(0,36,87,0.06);
   transition:
     transform var(--motion-dur-press) var(--gv2-press-ease),
     box-shadow var(--motion-dur-fast) var(--gv2-press-ease),
@@ -1288,7 +1503,10 @@
 
 .pulso-gv2-swatch.is-active {
   border: 2px solid var(--pulso-primary) !important;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus), inset 0 0 0 1px rgba(255,255,255,0.35);
+  box-shadow:
+    0 0 0 3px var(--pulso-primary-focus),
+    0 6px 14px rgba(0,36,87,0.12),
+    inset 0 0 0 1px rgba(255,255,255,0.35);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1299,9 +1517,11 @@
 
 .pulso-gv2-inline-empty,
 .pulso-gv2-dedicated-notice {
-  border: 1px dashed var(--pulso-border);
-  border-radius: 10px;
-  background: var(--pulso-surface-2);
+  border: 1px dashed color-mix(in srgb, var(--pulso-primary-border) 60%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.72), rgba(250,251,255,0.78)),
+    var(--pulso-surface-2);
   color: var(--pulso-text-soft);
   font-size: 11px;
   line-height: 1.4;
@@ -1329,10 +1549,15 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 10px;
-  background: var(--pulso-surface);
+  padding: 11px;
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 50%, var(--pulso-border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,255,0.94)),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.78),
+    0 5px 12px rgba(0,36,87,0.05);
 }
 
 .pulso-gv2-criteria-row {
@@ -1360,6 +1585,13 @@
   color: var(--pulso-danger-fg);
   font-size: 10px;
   font-weight: 650;
+  transition:
+    background var(--motion-dur-fast) ease,
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-gv2-dedicated-clear:hover {
+  background: var(--pulso-danger-bg);
 }
 .pulso-gv2-style-section-head {
   display: flex;

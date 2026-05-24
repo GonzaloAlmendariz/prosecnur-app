@@ -76,7 +76,7 @@ export function ArgField({
       data-has-own-value={hasOwnValue}
       style={{
         display: "flex", flexDirection: "column", gap: 4, marginBottom: 10,
-        opacity: isInherited && !hasOwnValue ? 0.78 : 1,
+        opacity: isInherited && !hasOwnValue ? 0.94 : 1,
       }}
     >
       <FieldHeader meta={meta} argState={argState} onReset={onReset} />
