@@ -143,13 +143,14 @@ export function GraficosHeader({
       <ContextBar
         ariaLabel="Estado del plan y acciones de configuración"
         density="compact"
+        className="pulso-gv2-command-row pulso-gv2-command-row--status"
       >
         <SaveStatusIndicator
           state={savedAll ? "saved" : savingNow ? "saving" : "loading"}
           savedLabel="Autoguardado"
         />
 
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", flex: 1, lineHeight: 1.4 }}>
+        <span className="pulso-gv2-header-note">
           {nSlides === 0
             ? "Empieza agregando slides en el panel izquierdo."
             : `${nSlides} ${nSlides === 1 ? "slide" : "slides"} en el plan. Tu plan se guarda automáticamente.`}
@@ -162,15 +163,7 @@ export function GraficosHeader({
         <button
           type="button"
           onClick={() => setTemplatesOpen(true)}
-          className="pulso-gv2-pill-button pulso-gv2-pill-button--soft"
-          style={{
-            fontSize: 11, padding: "5px 10px",
-            display: "inline-flex", alignItems: "center", gap: 5,
-            border: "1px solid var(--pulso-primary)",
-            color: "var(--pulso-primary)",
-            background: "var(--pulso-primary-soft)",
-            borderRadius: 6, cursor: "pointer",
-          }}
+          className="pulso-gv2-pill-button pulso-gv2-pill-button--soft pulso-gv2-toolbar-action is-template"
         >
           <IconTemplate size={12} /> Plantillas
         </button>
@@ -185,12 +178,7 @@ export function GraficosHeader({
           type="button"
           onClick={onResetClick}
           disabled={nSlides === 0}
-          className="pulso-gv2-pill-button pulso-gv2-pill-button--danger"
-          style={{
-            fontSize: 11, padding: "5px 10px",
-            display: "inline-flex", alignItems: "center", gap: 5,
-            color: nSlides === 0 ? "var(--pulso-text-soft)" : "var(--pulso-danger-fg)",
-          }}
+          className="pulso-gv2-pill-button pulso-gv2-pill-button--danger pulso-gv2-toolbar-action"
         >
           <RotateCcw size={12} /> Reset
         </button>
@@ -199,7 +187,7 @@ export function GraficosHeader({
       {/* Banda 2: estilo global (popup unificado) + export de PPT/Word. */}
       <ContextBar
         ariaLabel="Estilo global y exportación de reportes"
-        style={{ gap: 8 }}
+        className="pulso-gv2-command-row pulso-gv2-command-row--exports"
       >
         <button
           type="button"
@@ -226,7 +214,6 @@ export function GraficosHeader({
           className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary"
           onClick={onExportPpt}
           disabled={!canExportFinal || exportBusy}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
         >
           {exportJobKind === "ppt" ? <Loader2 size={13} className="pulso-spin" /> : <FileText size={13} />}
           Exportar .pptx
@@ -235,12 +222,6 @@ export function GraficosHeader({
           <a
             href={downloadUrl(pptFileId)}
             className="pulso-gv2-download-pill"
-            style={{
-              fontSize: 12, fontWeight: 600, textDecoration: "none",
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "5px 10px", borderRadius: 999,
-              color: "var(--pulso-primary)", background: "var(--pulso-primary-soft)",
-            }}
           >
             <Download size={12} /> {pptFilename ?? "reporte.pptx"}
           </a>
@@ -250,7 +231,6 @@ export function GraficosHeader({
           className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary"
           onClick={onExportWord}
           disabled={!canExportFinal || exportBusy}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
         >
           {exportJobKind === "word" ? <Loader2 size={13} className="pulso-spin" /> : <FileText size={13} />}
           Exportar .docx
@@ -259,24 +239,12 @@ export function GraficosHeader({
           <a
             href={downloadUrl(docxFileId)}
             className="pulso-gv2-download-pill"
-            style={{
-              fontSize: 12, fontWeight: 600, textDecoration: "none",
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "5px 10px", borderRadius: 999,
-              color: "var(--pulso-primary)", background: "var(--pulso-primary-soft)",
-            }}
           >
             <Download size={12} /> {docxFilename ?? "reporte.docx"}
           </a>
         )}
         {saveStatus && (
-          <span style={{
-            fontSize: 11,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            color: saveStatus.startsWith("[") ? "var(--pulso-danger-fg)" : "var(--pulso-success-fg)",
-          }}>
+          <span className={`pulso-gv2-save-result ${saveStatus.startsWith("[") ? "is-error" : "is-ok"}`}>
             {!saveStatus.startsWith("[") && <CheckCircle2 size={12} />}
             {saveStatus}
           </span>
@@ -436,7 +404,7 @@ function UndoRedoButtons() {
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
   const mod = isMac ? "⌘" : "Ctrl";
   return (
-    <div style={{ display: "inline-flex", gap: 2 }}>
+    <div className="pulso-gv2-undo-redo">
       <button
         type="button"
         onClick={undo}
@@ -446,16 +414,6 @@ function UndoRedoButtons() {
           ? "Nada que deshacer"
           : `Deshacer (${mod}+Z) — ${past.length} ${past.length === 1 ? "acción disponible" : "acciones disponibles"}`}
         aria-label="Deshacer"
-        style={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          width: 28, height: 28, padding: 0,
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 6,
-          background: "white",
-          color: past.length === 0 ? "var(--pulso-text-soft)" : "var(--pulso-text)",
-          cursor: past.length === 0 ? "default" : "pointer",
-          opacity: past.length === 0 ? 0.5 : 1,
-        }}
       >
         <Undo2 size={13} />
       </button>
@@ -468,16 +426,6 @@ function UndoRedoButtons() {
           ? "Nada que rehacer"
           : `Rehacer (${mod}+Shift+Z) — ${future.length} ${future.length === 1 ? "acción disponible" : "acciones disponibles"}`}
         aria-label="Rehacer"
-        style={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          width: 28, height: 28, padding: 0,
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 6,
-          background: "white",
-          color: future.length === 0 ? "var(--pulso-text-soft)" : "var(--pulso-text)",
-          cursor: future.length === 0 ? "default" : "pointer",
-          opacity: future.length === 0 ? 0.5 : 1,
-        }}
       >
         <Redo2 size={13} />
       </button>

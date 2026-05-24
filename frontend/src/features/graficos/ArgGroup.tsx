@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { ChevronDown, Database, Type, Palette, Filter, Gauge, LayoutPanelTop, Table2, BarChart3, Tags, SlidersHorizontal } from "lucide-react";
+import { Database, Type, Palette, Filter, Gauge, LayoutPanelTop, Table2, BarChart3, Tags, SlidersHorizontal } from "lucide-react";
 import { IconDiagnostic } from "../../lib/icons";
 import { ArgGrupo, ArgMetadata, VarInfo } from "../../api/client";
 import { ArgField, ArgState } from "./ArgField";
@@ -10,21 +9,21 @@ import { ArgField, ArgState } from "./ArgField";
 
 export const GRUPO_META: Record<
   ArgGrupo,
-  { label: string; icon: typeof Database; descripcion: string; defaultOpen: boolean; order: number }
+  { label: string; icon: typeof Database; descripcion: string; order: number }
 > = {
-  datos:       { label: "Datos",                     icon: Database,          descripcion: "Qué variable se muestra y cómo se segmenta.",                         defaultOpen: true,  order: 0 },
-  lectura:     { label: "Texto y lectura",           icon: Type,              descripcion: "Títulos, etiquetas, tamaños y reglas que mejoran la lectura.",         defaultOpen: false, order: 1 },
-  valores:     { label: "Valores y barras",          icon: BarChart3,         descripcion: "Porcentajes, N, top boxes, cortes y comportamiento de barras.",        defaultOpen: false, order: 2 },
-  leyenda:     { label: "Leyenda",                   icon: Tags,              descripcion: "Ubicación y tamaño de la leyenda dentro del canvas.",                  defaultOpen: false, order: 3 },
-  espacio:     { label: "Distribución del espacio",  icon: LayoutPanelTop,    descripcion: "Cómo se reparte el canvas entre etiquetas, barras y columnas de apoyo.", defaultOpen: false, order: 4 },
-  tabla:       { label: "Tabla",                     icon: Table2,            descripcion: "Configuración de tablas asociadas al gráfico.",                       defaultOpen: false, order: 5 },
-  diagnostico: { label: "Diagnóstico",               icon: SlidersHorizontal, descripcion: "Guías y controles técnicos para verificar layout.",                    defaultOpen: false, order: 6 },
-  textos:      { label: "Texto y lectura",           icon: Type,              descripcion: "Títulos, etiquetas, tamaños y reglas que mejoran la lectura.",         defaultOpen: false, order: 1 },
-  filtro:      { label: "Valores y barras",          icon: Filter,            descripcion: "Umbrales, decimales, top2box y filtros numéricos.",                   defaultOpen: false, order: 2 },
-  semaforo:    { label: "Valores y barras",          icon: Gauge,             descripcion: "Colores por rangos de valores.",                                     defaultOpen: false, order: 2 },
-  estilo:      { label: "Valores y barras",          icon: Palette,           descripcion: "Tipografía, tamaños, colores, leyenda y negritas.",                   defaultOpen: false, order: 2 },
-  canvas:      { label: "Distribución del espacio",  icon: LayoutPanelTop,    descripcion: "Dimensiones del canvas interno.",                                    defaultOpen: false, order: 4 },
-  avanzado:    { label: "Diagnóstico",               icon: IconDiagnostic,    descripcion: "Opciones poco comunes.",                                             defaultOpen: false, order: 6 },
+  datos:       { label: "Datos",                     icon: Database,          descripcion: "Qué variable se muestra y cómo se segmenta.",                         order: 0 },
+  lectura:     { label: "Texto y lectura",           icon: Type,              descripcion: "Títulos, etiquetas, tamaños y reglas que mejoran la lectura.",         order: 1 },
+  valores:     { label: "Valores y barras",          icon: BarChart3,         descripcion: "Porcentajes, N, top boxes, cortes y comportamiento de barras.",        order: 2 },
+  leyenda:     { label: "Leyenda",                   icon: Tags,              descripcion: "Ubicación y tamaño de la leyenda dentro del canvas.",                  order: 3 },
+  espacio:     { label: "Distribución del espacio",  icon: LayoutPanelTop,    descripcion: "Cómo se reparte el canvas entre etiquetas, barras y columnas de apoyo.", order: 4 },
+  tabla:       { label: "Tabla",                     icon: Table2,            descripcion: "Configuración de tablas asociadas al gráfico.",                       order: 5 },
+  diagnostico: { label: "Diagnóstico",               icon: SlidersHorizontal, descripcion: "Guías y controles técnicos para verificar layout.",                    order: 6 },
+  textos:      { label: "Texto y lectura",           icon: Type,              descripcion: "Títulos, etiquetas, tamaños y reglas que mejoran la lectura.",         order: 1 },
+  filtro:      { label: "Valores y barras",          icon: Filter,            descripcion: "Umbrales, decimales, top2box y filtros numéricos.",                   order: 2 },
+  semaforo:    { label: "Valores y barras",          icon: Gauge,             descripcion: "Colores por rangos de valores.",                                     order: 2 },
+  estilo:      { label: "Valores y barras",          icon: Palette,           descripcion: "Tipografía, tamaños, colores, leyenda y negritas.",                   order: 2 },
+  canvas:      { label: "Distribución del espacio",  icon: LayoutPanelTop,    descripcion: "Dimensiones del canvas interno.",                                    order: 4 },
+  avanzado:    { label: "Diagnóstico",               icon: IconDiagnostic,    descripcion: "Opciones poco comunes.",                                             order: 6 },
 };
 
 export const ARG_GROUP_ORDER: ArgGrupo[] = [
@@ -93,8 +92,6 @@ export function ArgGroup({
 }) {
   const normalizedGrupo = normalizeArgGroup(grupo);
   const meta = GRUPO_META[normalizedGrupo];
-  const [open, setOpen] = useState(meta.defaultOpen);
-  const toggleOpen = () => setOpen((v) => !v);
 
   if (args.length === 0) return null;
 
@@ -129,37 +126,15 @@ export function ArgGroup({
   }).length;
 
   return (
-    <div
-      className={`pulso-gv2-arg-group ${open ? "is-open" : ""}`}
+    <section
+      className="pulso-gv2-arg-group pulso-gv2-arg-group--section is-open"
     >
-      <button
-        type="button"
-        className="pulso-gv2-arg-group-trigger"
-        onMouseDown={(e) => {
-          if (e.button !== 0) return;
-          e.preventDefault();
-          e.stopPropagation();
-          toggleOpen();
-        }}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-        onKeyDown={(e) => {
-          if (e.key !== "Enter" && e.key !== " ") return;
-          e.preventDefault();
-          e.stopPropagation();
-          toggleOpen();
-        }}
-        aria-expanded={open}
+      <div
+        className="pulso-gv2-arg-group-trigger pulso-gv2-arg-group-header"
+        role="heading"
+        aria-level={4}
       >
         <span className="pulso-gv2-arg-group-main">
-          <span
-            className="pulso-gv2-arg-chevron"
-            data-open={open}
-          >
-            <ChevronDown size={12} color="var(--pulso-text-soft)" />
-          </span>
           <span className="pulso-gv2-arg-group-icon">
             <Icon size={12} />
           </span>
@@ -178,23 +153,21 @@ export function ArgGroup({
         >
           {nValuados > 0 ? `${nValuados} / ${args.length}` : args.length}
         </span>
-      </button>
-      {open && (
-        <div className="pulso-gv2-arg-body">
-          {args.map((a) => (
-            <ArgField
-              key={a.name}
-              meta={a}
-              value={values[a.name]}
-              onChange={(v) => onChangeArg(a.name, v)}
-              variables={variables}
-              argState={argStates?.[a.name] ?? "inherited"}
-              inheritedValue={inheritedValues?.[a.name]}
-              onReset={onResetArg ? () => onResetArg(a.name) : undefined}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      </div>
+      <div className="pulso-gv2-arg-body">
+        {args.map((a) => (
+          <ArgField
+            key={a.name}
+            meta={a}
+            value={values[a.name]}
+            onChange={(v) => onChangeArg(a.name, v)}
+            variables={variables}
+            argState={argStates?.[a.name] ?? "inherited"}
+            inheritedValue={inheritedValues?.[a.name]}
+            onReset={onResetArg ? () => onResetArg(a.name) : undefined}
+          />
+        ))}
+      </div>
+    </section>
   );
 }

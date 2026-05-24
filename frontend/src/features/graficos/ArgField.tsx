@@ -108,7 +108,14 @@ function FieldHeader({ meta, argState, onReset }: { meta: ArgMetadata; argState:
   const stateMeta = fieldStateMeta(argState);
   return (
     <span className="pulso-gv2-field-header">
-      <span className="pulso-gv2-field-title">{meta.label}</span>
+      <span className="pulso-gv2-field-copy">
+        <span className="pulso-gv2-field-title">{meta.label}</span>
+        {meta.descripcion && (
+          <span className="pulso-gv2-field-description">
+            {meta.descripcion}
+          </span>
+        )}
+      </span>
       <span
         className={`pulso-gv2-field-state-badge ${stateMeta.className}`}
         title={stateMeta.title}
@@ -1298,13 +1305,27 @@ function toHex7(v: string): string {
 function canonicalizeColorInput(v: string): string {
   const clean = (v || "").trim();
   const alias = COLOR_KEYWORD_ALIASES[clean.toLowerCase()];
-  return alias ?? clean;
+  if (alias) return alias;
+  if (/^[0-9a-f]{3}$|^[0-9a-f]{6}$|^[0-9a-f]{8}$/i.test(clean)) {
+    return `#${clean}`;
+  }
+  return clean;
 }
 
 function formatColorInput(v: string | undefined): string {
-  const clean = (v || "").trim();
+  const clean = canonicalizeColorInput(v || "");
   const keyword = COLOR_KEYWORDS.find((kw) => kw.value === clean.toLowerCase());
-  return keyword?.label ?? clean;
+  if (keyword) return keyword.label;
+  if (/^#[0-9a-f]{3,8}$/i.test(clean)) return clean.toUpperCase();
+  return clean;
+}
+
+function shouldCommitColorDraft(v: string): boolean {
+  const clean = v.trim();
+  if (!clean) return false;
+  const canonical = canonicalizeColorInput(clean).toLowerCase();
+  if (COLOR_KEYWORDS.some((kw) => kw.value === canonical)) return true;
+  return /^#?[0-9a-f]{6}$/i.test(clean) || /^#?[0-9a-f]{8}$/i.test(clean);
 }
 
 function swatchBackgroundFor(value: string): string {
@@ -1338,16 +1359,23 @@ function ColorField({
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        commit(draft);
+        setOpen(false);
+      }
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
-  }, [open]);
+  }, [draft, open]);
 
   function commit(v: string | null) {
     const clean = v == null ? null : canonicalizeColorInput(v);
     if (clean === "" || clean == null) onChange(null);
-    else onChange(clean);
+    else if (isValidColor(clean)) onChange(clean);
+    else {
+      setDraft(formatColorInput(value || inheritedColor));
+      return;
+    }
     setDraft(formatColorInput(clean ?? ""));
   }
 
@@ -1357,7 +1385,9 @@ function ColorField({
   }
 
   const valid = isValidColor(draft);
-  const previewColor = canonicalizeColorInput(draft || effective);
+  const previewColor = valid
+    ? canonicalizeColorInput(draft || effective)
+    : canonicalizeColorInput(effective);
   const wheelHex = toHex7(previewColor);
   const canClear = value.trim() !== "";
 
@@ -1373,7 +1403,7 @@ function ColorField({
 
   return (
     <div ref={ref} className="pulso-gv2-color-control">
-      <div className="pulso-gv2-color-row">
+      <div className="pulso-gv2-color-row" data-can-clear={canClear}>
         {/* Swatch clickeable */}
         <button
           type="button"
@@ -1392,7 +1422,14 @@ function ColorField({
           type="text"
           value={draft}
           placeholder={formatColorInput(inheritedColor) || "#RRGGBB, blanco o transparente"}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            const raw = e.target.value;
+            setDraft(raw);
+            if (shouldCommitColorDraft(raw)) {
+              const clean = canonicalizeColorInput(raw);
+              if (isValidColor(clean)) onChange(clean);
+            }
+          }}
           onBlur={() => commit(draft)}
           onKeyDown={(e) => {
             if (e.key === "Enter") { commit(draft); (e.target as HTMLInputElement).blur(); }
@@ -1459,9 +1496,7 @@ function ColorField({
                   colorInputRef.current?.click();
                 }}
               >
-                <span className="pulso-gv2-color-wheel-icon">
-                  <Pipette size={13} />
-                </span>
+                <span className="pulso-gv2-color-wheel-icon" aria-hidden="true" />
                 <span>Rueda de color</span>
                 <span
                   className="pulso-gv2-color-wheel-preview"
@@ -1485,6 +1520,7 @@ function ColorField({
                     <button
                       key={kw.value}
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => pickSwatch(kw.value)}
                       className={`pulso-gv2-color-keyword ${active ? "is-active" : ""}`}
                       aria-pressed={active}
@@ -1533,6 +1569,7 @@ function SwatchRow({
           <button
             key={c.value + c.label}
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => onPick(c.value)}
             title={`${c.label} · ${c.value}`}
             aria-label={`${c.label} (${c.value})`}

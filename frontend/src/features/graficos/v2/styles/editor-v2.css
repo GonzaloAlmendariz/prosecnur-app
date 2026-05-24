@@ -758,14 +758,18 @@
 }
 
 .pulso-gv2-arg-body {
+  margin: 0 8px 8px;
   padding: 16px;
   background:
-    linear-gradient(180deg, rgba(0, 36, 87, 0.035), rgba(0, 36, 87, 0.012)),
-    color-mix(in srgb, var(--pulso-surface-2) 78%, var(--pulso-surface));
-  border-top: 1px solid color-mix(in srgb, var(--pulso-primary-border) 64%, var(--pulso-border));
-  border-radius: 0 0 calc(var(--pulso-radius-card) - 1px) calc(var(--pulso-radius-card) - 1px);
+    radial-gradient(circle at 18px 18px, rgba(0, 36, 87, 0.055), transparent 26px),
+    linear-gradient(180deg, rgba(0, 36, 87, 0.04), rgba(0, 36, 87, 0.014)),
+    color-mix(in srgb, var(--pulso-surface-2) 84%, var(--pulso-surface));
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 62%, var(--pulso-border));
+  border-radius: 0 0 calc(var(--pulso-radius-card) - 5px) calc(var(--pulso-radius-card) - 5px);
   background-clip: padding-box;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.72),
+    0 1px 0 rgba(0,36,87,0.035);
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 12px;
@@ -774,11 +778,16 @@
   overflow: visible;
 }
 
+.pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) {
+  --gv2-settings-divider: color-mix(in srgb, var(--pulso-primary-border) 48%, var(--pulso-border));
+}
+
 .pulso-gv2-arg-body--flat {
   padding: 0;
+  margin: 0 0 8px;
   border-top: none;
+  border: none;
   background: transparent;
-  margin-bottom: 8px;
 }
 
 .pulso-gv2-arg-body .pulso-arg-field {
@@ -789,6 +798,7 @@
 }
 
 .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="choice"],
+.pulso-gv2-arg-body .pulso-arg-field[data-arg-type="number"],
 .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="color"],
 .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="series_colors"],
 .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="criteria_config"],
@@ -807,14 +817,15 @@
 
 .pulso-gv2-arg-group {
   position: relative;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 42%, var(--pulso-border));
+  border: 1.5px solid color-mix(in srgb, var(--pulso-primary-border) 58%, var(--pulso-border));
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
-  margin-bottom: 12px;
-  overflow: hidden;
+  margin-bottom: 16px;
+  overflow: visible;
   box-shadow:
     0 1px 0 rgba(255,255,255,0.8) inset,
-    0 10px 24px rgba(0, 36, 87, 0.055);
+    0 10px 24px rgba(0, 36, 87, 0.055),
+    0 0 0 1px rgba(0,36,87,0.018);
 }
 
 .pulso-gv2-arg-group::before {
@@ -829,12 +840,12 @@
 }
 
 .pulso-gv2-arg-group.is-open {
-  border-color: color-mix(in srgb, var(--pulso-primary) 42%, var(--pulso-border));
+  border-color: color-mix(in srgb, var(--pulso-primary) 62%, var(--pulso-border));
   box-shadow:
     0 1px 0 rgba(255,255,255,0.85) inset,
     0 16px 38px rgba(0, 36, 87, 0.105),
-    0 0 0 1px color-mix(in srgb, var(--pulso-primary-border) 58%, transparent);
-  overflow: hidden;
+    0 0 0 2px color-mix(in srgb, var(--pulso-primary-border) 58%, transparent);
+  overflow: visible;
 }
 
 .pulso-gv2-arg-group.is-open::before {
@@ -852,12 +863,16 @@
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface) 96%, var(--pulso-surface-2)), var(--pulso-surface)) !important;
   border: none !important;
-  border-radius: 0 !important;
+  border-radius: calc(var(--pulso-radius-card) - 2px) !important;
   cursor: pointer;
   transition:
     background var(--motion-dur-fast) ease,
     color var(--motion-dur-fast) ease,
     transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-gv2-arg-group.is-open .pulso-gv2-arg-group-trigger {
+  border-radius: calc(var(--pulso-radius-card) - 2px) calc(var(--pulso-radius-card) - 2px) 0 0 !important;
 }
 
 .pulso-gv2-arg-group-trigger:hover {
@@ -872,6 +887,21 @@
 .pulso-gv2-arg-group-trigger:focus-visible {
   outline: 2px solid var(--pulso-primary);
   outline-offset: -3px;
+}
+
+.pulso-gv2-arg-group--section .pulso-gv2-arg-group-trigger {
+  cursor: default;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), color-mix(in srgb, var(--pulso-surface-2) 28%, var(--pulso-surface))) !important;
+}
+
+.pulso-gv2-arg-group--section .pulso-gv2-arg-group-trigger:hover {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), color-mix(in srgb, var(--pulso-surface-2) 28%, var(--pulso-surface))) !important;
+}
+
+.pulso-gv2-arg-group--section .pulso-gv2-arg-group-trigger:active {
+  transform: none;
 }
 
 .pulso-gv2-arg-group-main {
@@ -930,9 +960,10 @@
 }
 
 .pulso-gv2-arg-group-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: color-mix(in srgb, var(--pulso-primary) 44%, var(--pulso-text-soft));
   font-size: 11px;
   font-weight: 750;
@@ -941,9 +972,10 @@
 }
 
 .pulso-gv2-arg-group-description {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   font-weight: 500;
@@ -980,14 +1012,14 @@
   min-height: 116px;
   height: 100%;
   padding: 14px 16px;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 66%, var(--pulso-border));
+  border: 1.5px solid color-mix(in srgb, var(--pulso-primary-border) 72%, var(--pulso-border));
   border-radius: var(--pulso-radius-card);
   background:
     linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.94)),
     var(--pulso-surface);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.86),
-    0 8px 20px rgba(0, 36, 87, 0.072);
+    0 10px 24px rgba(0, 36, 87, 0.082);
   gap: 8px !important;
   transition:
     border-color var(--motion-dur-fast) ease,
@@ -1009,6 +1041,21 @@
   background:
     linear-gradient(180deg, rgba(255,255,255,0.92), rgba(250,251,255,0.92)),
     var(--pulso-surface-2);
+  border-color: color-mix(in srgb, var(--pulso-border) 78%, var(--pulso-primary-border));
+}
+
+.pulso-gv2-field-card[data-arg-state="from-mode"] {
+  border-color: color-mix(in srgb, #7c3aed 42%, var(--pulso-primary-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #7c3aed 4%, white), rgba(255,255,255,0.94)),
+    var(--pulso-surface);
+}
+
+.pulso-gv2-field-card[data-arg-state="custom"] {
+  border-color: color-mix(in srgb, var(--pulso-primary) 52%, var(--pulso-primary-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary-soft) 34%, white), rgba(255,255,255,0.95)),
+    var(--pulso-surface);
 }
 
 .pulso-gv2-field-card[data-arg-state="from-mode"]::before {
@@ -1048,17 +1095,31 @@
   font-size: 12px;
 }
 
+.pulso-gv2-field-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .pulso-gv2-field-title {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
   white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
   color: color-mix(in srgb, var(--pulso-text) 88%, var(--pulso-primary));
   font-weight: 700;
   line-height: 1.18;
+}
+
+.pulso-gv2-field-description {
+  display: none;
+  max-width: 44rem;
+  color: color-mix(in srgb, var(--pulso-text-soft) 88%, var(--pulso-text));
+  font-size: 10.75px;
+  font-weight: 520;
+  line-height: 1.38;
 }
 
 .pulso-gv2-field-state-dot,
@@ -1076,11 +1137,11 @@
   gap: 4px;
   min-height: 20px;
   padding: 2px 7px;
-  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 34%, var(--pulso-border));
+  border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 48%, var(--pulso-border));
   border-radius: 999px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,249,254,0.92));
-  color: var(--pulso-text-soft);
+  color: color-mix(in srgb, var(--pulso-text-soft) 72%, var(--pulso-text));
   font-size: 9.5px;
   font-weight: 800;
   line-height: 1;
@@ -1102,14 +1163,14 @@
 }
 
 .pulso-gv2-field-state-badge.is-mode {
-  border-color: color-mix(in srgb, #7c3aed 40%, var(--pulso-border));
-  background: color-mix(in srgb, #7c3aed 10%, white);
+  border-color: color-mix(in srgb, #7c3aed 56%, var(--pulso-border));
+  background: color-mix(in srgb, #7c3aed 14%, white);
   color: #5b21b6;
 }
 
 .pulso-gv2-field-state-badge.is-custom {
-  border-color: color-mix(in srgb, var(--pulso-primary) 42%, var(--pulso-border));
-  background: var(--pulso-primary-soft);
+  border-color: color-mix(in srgb, var(--pulso-primary) 58%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-primary-soft) 82%, white);
   color: var(--pulso-primary);
 }
 
@@ -1163,6 +1224,167 @@
   flex-direction: column;
   gap: 8px;
   justify-content: flex-start;
+}
+
+@media (min-width: 1100px) {
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,255,0.96)),
+      var(--pulso-surface);
+    border-width: 1.5px;
+    border-color: color-mix(in srgb, var(--pulso-primary-border) 66%, var(--pulso-border));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.82),
+      0 12px 28px rgba(0,36,87,0.065);
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field {
+    width: 100%;
+    grid-column: auto;
+    display: grid !important;
+    grid-template-columns: minmax(180px, 0.78fr) minmax(220px, 1.22fr);
+    column-gap: 16px !important;
+    row-gap: 10px !important;
+    align-items: center;
+    min-height: 82px;
+    height: auto;
+    padding: 16px 20px;
+    border: 0;
+    border-bottom: 1px solid var(--gv2-settings-divider);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field:first-child {
+    border-radius: 0;
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field:last-child {
+    border-bottom: none;
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field::before {
+    inset: 14px auto 14px 0;
+    width: 3px;
+    opacity: 0.84;
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-gv2-field-card[data-has-own-value="false"] {
+    background: transparent;
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-gv2-field-card[data-arg-state="from-mode"] {
+    background: linear-gradient(90deg, color-mix(in srgb, #7c3aed 7%, transparent), transparent 52%);
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-gv2-field-card[data-arg-state="custom"] {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--pulso-primary-soft) 54%, transparent), transparent 52%);
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-gv2-field-card:focus-within {
+    box-shadow:
+      inset 3px 0 0 var(--pulso-primary),
+      0 0 0 2px var(--pulso-primary-focus);
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-gv2-field-header {
+    align-self: center;
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-gv2-field-description {
+    display: -webkit-box;
+    overflow: hidden;
+    text-overflow: clip;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-gv2-field-control {
+    align-self: center;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-type="textarea"],
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-type="variables_list"],
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-type="series_colors"],
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-type="criteria_config"],
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-type="multiflag"],
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-name="titulo"],
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-name="subtitulo"],
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-name="nota_pie"],
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-name="nota_pie_derecha"] {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-type="textarea"] .pulso-gv2-field-control,
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-type="variables_list"] .pulso-gv2-field-control,
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-type="series_colors"] .pulso-gv2-field-control,
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-type="criteria_config"] .pulso-gv2-field-control,
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-type="multiflag"] .pulso-gv2-field-control,
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-name="titulo"] .pulso-gv2-field-control,
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-name="subtitulo"] .pulso-gv2-field-control,
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-name="nota_pie"] .pulso-gv2-field-control,
+  .pulso-gv2-arg-body:not(.pulso-gv2-arg-body--flat) .pulso-arg-field[data-arg-name="nota_pie_derecha"] .pulso-gv2-field-control {
+    align-items: stretch;
+  }
+
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="bool"],
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="number"],
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="choice"],
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="color"] {
+    min-height: 92px;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 18px !important;
+    row-gap: 8px !important;
+    align-items: center;
+  }
+
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="number"],
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="choice"],
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="color"] {
+    grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+  }
+
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="bool"] .pulso-gv2-field-header,
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="number"] .pulso-gv2-field-header,
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="choice"] .pulso-gv2-field-header,
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="color"] .pulso-gv2-field-header {
+    align-self: center;
+  }
+
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="bool"] .pulso-gv2-field-control,
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="number"] .pulso-gv2-field-control,
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="choice"] .pulso-gv2-field-control,
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="color"] .pulso-gv2-field-control {
+    align-self: center;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="number"] .pulso-gv2-number-control {
+    align-items: flex-end;
+  }
+
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="number"] .pulso-gv2-number-stepper {
+    width: min(100%, 360px);
+  }
+
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="choice"] .pulso-gv2-choice-pills {
+    justify-content: flex-end;
+  }
+
+  .pulso-gv2-arg-body .pulso-arg-field[data-arg-type="color"] .pulso-gv2-color-row {
+    width: 100%;
+  }
 }
 
 .pulso-arg-field input:not([type="color"]):not([type="range"]),
@@ -1483,6 +1705,10 @@
   width: min(100%, 520px);
 }
 
+.pulso-gv2-color-row[data-can-clear="false"] {
+  grid-template-columns: 40px minmax(140px, 1fr);
+}
+
 .pulso-gv2-color-swatch,
 .pulso-gv2-swatch {
   padding: 0 !important;
@@ -1635,8 +1861,13 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--pulso-surface);
-  color: var(--pulso-primary);
+  background:
+    radial-gradient(circle at 50% 50%, white 0 22%, transparent 24%),
+    conic-gradient(from 0deg, #f43f5e, #f59e0b, #84cc16, #06b6d4, #3b82f6, #8b5cf6, #f43f5e);
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,36,87,0.08),
+    0 1px 3px rgba(0,36,87,0.12);
 }
 
 .pulso-gv2-color-wheel-preview {
@@ -2947,13 +3178,41 @@
 }
 
 .pulso-gv2-command-header > [aria-label] {
-  min-height: 40px;
+  min-height: 42px;
   border-radius: var(--pulso-radius-card) !important;
   border-color: var(--gv2-glass-border) !important;
-  background: var(--gv2-glass-strong) !important;
-  box-shadow: var(--pulso-shadow-low) !important;
-  backdrop-filter: blur(8px) saturate(1.06);
-  -webkit-backdrop-filter: blur(8px) saturate(1.06);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface) 95%, transparent), color-mix(in srgb, var(--pulso-surface-2) 70%, var(--pulso-surface))) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.82),
+    0 8px 24px rgba(0,36,87,0.055) !important;
+  backdrop-filter: blur(10px) saturate(1.08);
+  -webkit-backdrop-filter: blur(10px) saturate(1.08);
+}
+
+.pulso-gv2-command-row {
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+.pulso-gv2-command-row--status {
+  display: flex !important;
+  flex-wrap: wrap !important;
+}
+
+.pulso-gv2-command-row--exports {
+  display: flex !important;
+}
+
+.pulso-gv2-header-note {
+  flex: 1 1 260px;
+  min-width: 180px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pulso-gv2-command-header button,
@@ -2974,11 +3233,65 @@
   color: var(--pulso-danger-fg);
 }
 
+.pulso-gv2-toolbar-action {
+  font-size: 11px !important;
+  padding: 5px 11px !important;
+}
+
+.pulso-gv2-toolbar-action.is-template {
+  border-color: var(--pulso-primary) !important;
+  color: var(--pulso-primary) !important;
+  background: var(--pulso-primary-soft) !important;
+}
+
+.pulso-gv2-pill-button--danger:not(:disabled) {
+  color: var(--pulso-danger-fg) !important;
+}
+
+.pulso-gv2-pill-button--danger:disabled {
+  color: var(--pulso-text-soft) !important;
+  opacity: 0.55;
+}
+
+.pulso-gv2-undo-redo {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.pulso-gv2-undo-redo .pulso-gv2-icon-button:disabled {
+  opacity: 0.42;
+  cursor: default;
+  color: var(--pulso-text-soft) !important;
+}
+
 .pulso-gv2-download-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   min-height: 32px;
+  padding: 5px 10px;
   border-radius: 999px !important;
   border: 1px solid var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
   box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-gv2-save-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: min(280px, 36vw);
+  color: var(--pulso-success-fg);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.pulso-gv2-save-result.is-error {
+  color: var(--pulso-danger-fg);
 }
 
 .pulso-gv2-estilo-trigger {

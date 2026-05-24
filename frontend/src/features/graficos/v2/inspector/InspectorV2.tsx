@@ -149,7 +149,7 @@ export function InspectorV2() {
                 title={
                   disabled
                     ? `Sin opciones en "${label}" para este tipo de slide`
-                    : `${label}${issueN > 0 ? ` · ${issueN} issue(s)` : ""}`
+                    : `${label}${issueN > 0 ? ` · ${issueN} incidencia${issueN === 1 ? "" : "s"}` : ""}`
                 }
                 style={disabled ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
               >

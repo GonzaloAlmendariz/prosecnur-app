@@ -234,7 +234,7 @@ function resolveLucide(name: string): LucideIcon {
 //   - "Modo: por defecto"  → sin overrides (preset puro)
 //   - "Modo: 'compacto'"   → un override reusable aplicado exacto
 //   - "'compacto' + N"     → override aplicado + edits encima
-//   - "Modo custom (N)"    → solo edits, sin override base
+//   - "Manual (N)"         → solo edits, sin override base
 //
 // Acciones:
 //   - Selección de modo predefinido (con confirmación si hay edits).
@@ -301,7 +301,7 @@ function OverrideDropdown({
   let triggerLabel = "Modo: por defecto";
   if (exactMatch) triggerLabel = `Modo: ${exactMatch.nombre}`;
   else if (partialMatch) triggerLabel = `${partialMatch.nombre} + ${editsOverMatch}`;
-  else if (isPureCustom) triggerLabel = `Custom (${customCount})`;
+  else if (isPureCustom) triggerLabel = `Manual (${customCount})`;
 
   const isActive = exactMatch || partialMatch || isPureCustom;
 
@@ -324,7 +324,7 @@ function OverrideDropdown({
 
   function createMode() {
     if (customCount === 0) {
-      window.alert("No hay cambios custom para guardar como modo. Edita algún arg primero.");
+      window.alert("No hay cambios manuales para guardar como modo. Edita algún arg primero.");
       return;
     }
     const nombre = window.prompt(
@@ -351,7 +351,7 @@ function OverrideDropdown({
         aria-haspopup="menu"
         title={
           isPureCustom
-            ? `${customCount} cambio${customCount === 1 ? "" : "s"} custom sobre el preset`
+            ? `${customCount} cambio${customCount === 1 ? "" : "s"} manual sobre el preset`
             : "Cambiar modo de estilo"
         }
         className={`pulso-gv2-mode-trigger ${isActive ? "is-active" : ""}`}
