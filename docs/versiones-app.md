@@ -11,9 +11,10 @@ La fuente de verdad para empaquetado es `api/DESCRIPTION`.
 | 0.2.4 | Checkpoint operativo local | Tag local, no publicado en GitHub | Base previa de mejoras grandes de UI, hojas de ruta y editor; no se usa como instalable publico. |
 | 0.2.5 | Monitoreo y cartografia oficial | Publicada en GitHub | Compatibilidad data/XLSForm, marco INEI 2017 oficial con cartografia/NSE, flujo operativo de hojas de ruta, monitoreo Kobo/SurveyMonkey, exportacion de iconos y bundle web actualizado. |
 | 0.2.6 | Actualizacion visible garantizada | Publicada en GitHub | Parche de escritorio para Windows/macOS: fuerza recarga del frontend servido localmente y evita que Electron reutilice bundles viejos despues de actualizar. |
-| 0.2.7 | Corte instalable de trabajo | Version actual a publicar | Integra las mejoras acumuladas de analitica, monitoreo, hojas de ruta, calculo de muestra, enciclopedia y bundle web actualizado. |
+| 0.2.7 | Corte instalable de trabajo | Publicada en GitHub | Integra las mejoras acumuladas de analitica, monitoreo, hojas de ruta, calculo de muestra, enciclopedia y bundle web actualizado. |
+| 0.2.8 | Graficador avanzado | Version actual a publicar | Normaliza configuracion `graficos/4`, mejora import/export por secciones, agrega editor visual de layout, paletas sugeridas y validacion numerica defensiva. |
 
 ## Version actual
 
-Estamos en `0.2.7`. Esta es la version que debe publicarse como `v0.2.7`
+Estamos en `0.2.8`. Esta es la version que debe publicarse como `v0.2.8`
 para que GitHub Releases genere el instalador y el auto-updater la detecte.
