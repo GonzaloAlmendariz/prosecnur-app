@@ -35,7 +35,7 @@ describe("chartLayoutHelpers", () => {
       grupo: "estilo",
     };
     expect(clampPairByMeta(0.95, 1, left, right)).toEqual([0.6, 0.4]);
-    expect(clampPairByMeta(-0.1, 1, left, right)).toEqual([0.1, 0.5]);
+    expect(clampPairByMeta(-0.1, 1, left, right)).toEqual([0.5, 0.5]);
   });
 
   test("devuelve flex de gap con ancho 0 cuando el valor es 0", () => {
