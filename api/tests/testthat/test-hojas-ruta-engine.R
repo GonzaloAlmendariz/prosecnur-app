@@ -1,3 +1,9 @@
+testthat::skip_if(
+  identical(Sys.getenv("CI"), "true") &&
+    !nzchar(Sys.getenv("PROSECNUR_RUN_HOJAS_RUTA_ENGINE_CI")),
+  "Integracion pesada de hojas de ruta requiere frame/cartografia completa; set PROSECNUR_RUN_HOJAS_RUTA_ENGINE_CI=1 para correrla en CI."
+)
+
 test_that("hojas_ruta_detectar_campos valida columnas canonicas", {
   df <- data.frame(
     UMP = 1,
