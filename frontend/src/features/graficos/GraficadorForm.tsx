@@ -9,6 +9,7 @@ import { graficadorToPresetType } from "./graficadorPresetMap";
 import { usePlanStore } from "./store";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { ArgState } from "./ArgField";
+import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 
 // Formulario dinámico de un graficador con jerarquía de fuentes:
 //
@@ -264,6 +265,32 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
     }
   }
 
+  function handleLayoutPatch(patchIn: Record<string, unknown>) {
+    const nextOverrides = { ...currentOverrides };
+    const patch: Record<string, unknown> = {};
+
+    for (const [name, value] of Object.entries(patchIn)) {
+      if (presetArgNames.has(name)) {
+        const presetVal = presetValues[name];
+        const isSameAsPreset = sameValue(value, presetVal);
+        const isEmptyStringOverride = value === "" && allowsEmptyStringOverride(argsByName[name]);
+        if (value === null || value === undefined || (!isEmptyStringOverride && value === "") || isSameAsPreset) {
+          delete nextOverrides[name];
+        } else {
+          nextOverrides[name] = value;
+        }
+        if (Object.prototype.hasOwnProperty.call(slotArgs, name)) {
+          patch[name] = null;
+        }
+      } else {
+        patch[name] = value;
+      }
+    }
+
+    patch.overrides = nextOverrides;
+    onArgs(patch);
+  }
+
   if (loading) {
     return <LoadingBlock variant="inline" label="Cargando opciones…" />;
   }
@@ -301,6 +328,17 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
           argStates={argStates}
           inheritedValues={inheritedValues}
           onResetArg={(name) => handleChange(name, null)}
+          bodyIntro={normalizeArgGroup(grupo) === "espacio" && hasChartLayoutSpec(presetType, args) ? (
+            <ChartLayoutEditor
+              presetType={presetType}
+              args={args}
+              values={valuesForArgs}
+              inheritedValues={inheritedValues}
+              onChangeArg={handleChange}
+              onChangeArgs={handleLayoutPatch}
+              onResetArg={(name) => handleChange(name, null)}
+            />
+          ) : undefined}
         />
       ))}
     </div>

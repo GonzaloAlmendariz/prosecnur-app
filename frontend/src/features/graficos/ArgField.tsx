@@ -6,6 +6,7 @@ import { downloadUrl } from "../../api/client";
 import VariablePicker from "./VariablePicker";
 import VarsListPicker from "./VarsListPicker";
 import {
+  clampNumber,
   coerceNumber,
   evaluateNumberDraft,
   formatNumberInput,
@@ -494,7 +495,6 @@ function NumberControl({
   value: ArgValue;
   onChange: (v: ArgValue) => void;
 }) {
-  const n = coerceNumber(value);
   const displayAsPercent = isProportionThreshold(meta);
   const displayScale = displayAsPercent ? 100 : 1;
   const step = inferNumberStep(meta, value);
@@ -505,21 +505,84 @@ function NumberControl({
   const displayMin = typeof min === "number" ? min * displayScale : undefined;
   const displayMax = typeof max === "number" ? max * displayScale : undefined;
   const displayUnit = displayAsPercent ? "%" : meta.unidad;
+  const useThreeDecimals = meta.grupo === "espacio" || /^(canvas_|tabla_)/.test(meta.name ?? "") || meta.name === "alto_por_categoria";
   const rangeHint = buildRangeHint(meta);
   const baseHint = [buildNumberHint(meta), rangeHint].filter(Boolean).join(" ");
-  const [draft, setDraft] = useState(formatNumberInput(value, displayScale));
   const [status, setStatus] = useState<FieldStatus>(() => ({
     state: "default",
     message: baseHint,
   }));
   const [isFocused, setIsFocused] = useState(false);
   const statusId = useId();
-  const currentNumeric = n ?? (typeof min === "number" ? min : 0);
-  const hasCurrentValue = Number.isFinite(n);
+  const lastValidValueRef = useRef<number | null>(null);
+
+  const roundToThreeDecimals = (num: number) => Number(num.toFixed(3));
+
+  const formatDecimalDisplay = (candidate: unknown) => {
+    if (!useThreeDecimals) return formatNumberInput(candidate, displayScale);
+    const num = coerceNumber(candidate);
+    if (num === null) return "";
+    return (num * displayScale).toFixed(3);
+  };
+  const [draft, setDraft] = useState(() => formatDecimalDisplay(value));
+
+  const normalizeResultForWrite = (value: number | null) => {
+    if (value === null || !Number.isFinite(value)) return null;
+    if (!useThreeDecimals) return value;
+    return roundToThreeDecimals(value);
+  };
+
+  function evaluateCandidate(candidate: unknown) {
+    const raw = useThreeDecimals ? formatDecimalDisplay(candidate) : formatNumberInput(candidate, displayScale);
+    return evaluateNumberDraft(raw, {
+      min,
+      max,
+      meta,
+      displayScale,
+      displayHint: baseHint,
+      step,
+    });
+  }
+
+  function numberControlFallbackValue(): number {
+    const candidates: unknown[] = [
+      lastValidValueRef.current,
+      value,
+      meta.default,
+      typeof min === "number" ? min : null,
+    ];
+    for (const candidate of candidates) {
+      if (candidate === null || candidate === undefined || candidate === "") continue;
+      const result = evaluateCandidate(candidate);
+      if (result.state === "default" && result.parsedInternal !== null) {
+        return normalizeResultForWrite(result.parsedInternal) ?? result.parsedInternal;
+      }
+    }
+    return 0;
+  }
+
+  function fallbackDraftText(): string {
+    const candidates: unknown[] = [
+      lastValidValueRef.current,
+      meta.default,
+      typeof min === "number" ? min : null,
+    ];
+    for (const candidate of candidates) {
+      if (candidate === null || candidate === undefined || candidate === "") continue;
+      const result = evaluateCandidate(candidate);
+      if (result.state === "default" && result.parsedInternal !== null) {
+        return formatDecimalDisplay(normalizeResultForWrite(result.parsedInternal));
+      }
+    }
+    return "";
+  }
+
+  const currentNumeric = numberControlFallbackValue();
+  const hasCurrentValue = Number.isFinite(currentNumeric);
 
   const applyCandidate = (raw: number | null) => {
     if (raw === null || !Number.isFinite(raw)) {
-      const fallback = formatNumberInput(value, displayScale);
+      const fallback = fallbackDraftText();
       const normalized = evaluateNumberDraft(fallback, {
         min,
         max,
@@ -528,14 +591,16 @@ function NumberControl({
         displayHint: baseHint,
         step,
       });
+      const rounded = normalizeResultForWrite(normalized.parsedInternal);
       setStatus({
         state: normalized.state === "default" ? "default" : normalized.state,
         message: normalized.message || baseHint,
       });
-      setDraft(fallback);
+      setDraft(typeof rounded === "number" ? formatDecimalDisplay(rounded) : fallback);
       return;
     }
-    const result = evaluateNumberDraft(formatNumberInput(raw, displayScale), {
+    const bounded = clampNumber(raw, min, max);
+    const result = evaluateNumberDraft(useThreeDecimals ? formatDecimalDisplay(bounded) : formatNumberInput(bounded, displayScale), {
       min,
       max,
       meta,
@@ -544,22 +609,16 @@ function NumberControl({
       step,
     });
     if (result.parsedInternal === null) {
-      const fallback = evaluateNumberDraft(formatNumberInput(value, displayScale), {
-        min,
-        max,
-        meta,
-        displayScale,
-        displayHint: baseHint,
-        step,
-      });
       setStatus({
-        state: fallback.state === "default" ? "default" : fallback.state,
-        message: fallback.message || baseHint,
+        state: result.state === "default" ? "default" : result.state,
+        message: result.message || baseHint,
       });
       return;
     }
-    setDraft(formatNumberInput(result.parsedInternal, displayScale));
-    onChange(result.parsedInternal);
+    const rounded = normalizeResultForWrite(result.parsedInternal);
+    lastValidValueRef.current = rounded;
+    setDraft(rounded === null ? "" : formatDecimalDisplay(rounded));
+    onChange(rounded ?? result.parsedInternal);
     setStatus({
       state: result.state === "default" ? (isFocused ? "focus" : "default") : result.state,
       message: result.message || baseHint,
@@ -582,20 +641,22 @@ function NumberControl({
       });
       return;
     }
-    setDraft(formatNumberInput(result.parsedInternal, displayScale));
-    onChange(result.parsedInternal);
+    const rounded = normalizeResultForWrite(result.parsedInternal);
+    lastValidValueRef.current = rounded;
+    setDraft(rounded === null ? "" : formatDecimalDisplay(rounded));
+    onChange(rounded ?? result.parsedInternal);
     setStatus({
       state: result.state === "default" ? (isFocused ? "focus" : "default") : result.state,
       message: result.message || baseHint,
     });
   };
 
-  const revertDraft = () => {
-    const next = formatNumberInput(value, displayScale);
+  const revertDraft = (message?: string) => {
+    const next = fallbackDraftText();
     setDraft(next);
     setStatus({
-      state: "default",
-      message: baseHint,
+      state: message ? "error" : "default",
+      message: message || baseHint,
     });
   };
 
@@ -610,11 +671,13 @@ function NumberControl({
       step,
     });
     if (result.state === "error" || result.parsedInternal === null) {
-      revertDraft();
+      revertDraft(result.message || "El valor no está permitido.");
       return;
     }
-    setDraft(formatNumberInput(result.parsedInternal, displayScale));
-    onChange(result.parsedInternal);
+    const rounded = normalizeResultForWrite(result.parsedInternal);
+    lastValidValueRef.current = rounded;
+    setDraft(rounded === null ? "" : formatDecimalDisplay(rounded));
+    onChange(rounded ?? result.parsedInternal);
     setStatus({
       state: result.state === "default" ? "default" : result.state,
       message: result.message || baseHint,
@@ -622,7 +685,7 @@ function NumberControl({
   };
 
   useEffect(() => {
-    const normalized = formatNumberInput(value, displayScale);
+    const normalized = formatDecimalDisplay(value);
     setDraft(normalized);
     const result = evaluateNumberDraft(normalized, {
       min,
@@ -632,6 +695,9 @@ function NumberControl({
       displayHint: baseHint,
       step,
     });
+    if (result.state === "default" && result.parsedInternal !== null) {
+      lastValidValueRef.current = result.parsedInternal;
+    }
     setStatus({
       state: result.state === "default" ? "default" : result.state,
       message: result.message || baseHint,
@@ -742,7 +808,7 @@ function NumberControl({
                   e.preventDefault();
                   applyCandidate(preset.value);
                 }}
-                aria-pressed={hasCurrentValue && n === preset.value}
+                aria-pressed={hasCurrentValue && currentNumeric === preset.value}
                 aria-label={`${meta.label}: ${preset.label}`}
               >
               {preset.label}

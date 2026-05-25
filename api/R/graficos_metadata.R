@@ -2080,7 +2080,80 @@
     ), patch)
   }
 
+  if (identical(as.character(arg$tipo_input %||% ""), "number")) {
+    numeric_patch <- .graf_arg_numeric_defaults(nm)
+    for (key in names(numeric_patch)) {
+      if (is.null(arg[[key]]) && is.null(patch[[key]])) {
+        patch[[key]] <- numeric_patch[[key]]
+      }
+    }
+  }
+
   utils::modifyList(arg, patch)
+}
+
+.graf_arg_numeric_defaults <- function(nm) {
+  # Defaults defensivos para la UI: solo rellenan campos faltantes. Los rangos
+  # explícitos del catálogo y los parches curados de arriba mantienen prioridad.
+  if (nm %in% c("decimales", "tabla_digits")) {
+    return(list(min = 0, max = 4, step = 1, control = "stepper"))
+  }
+  if (identical(nm, "decimales_promedio")) {
+    return(list(min = 0, max = 2, step = 1, control = "stepper"))
+  }
+  if (identical(nm, "angle_x")) {
+    return(list(min = -90, max = 90, step = 5, control = "stepper"))
+  }
+  if (nm %in% c("top_n")) {
+    return(list(min = 1, max = 20, step = 1, control = "stepper"))
+  }
+  if (nm %in% c("radar_min_ejes")) {
+    return(list(min = 3, max = 12, step = 1, control = "stepper"))
+  }
+  if (nm %in% c("cortes_grilla")) {
+    return(list(min = 2, max = 12, step = 1, control = "stepper"))
+  }
+  if (nm %in% c("wrap_ejes")) {
+    return(list(min = 8, max = 80, step = 1, control = "stepper"))
+  }
+  if (nm %in% c("ncol_leyenda_bajo")) {
+    return(list(min = 1, max = 6, step = 1, control = "stepper"))
+  }
+  if (nm %in% c("umbral_rojo_pct")) {
+    return(list(min = 0, max = 100, step = 1, control = "stepper"))
+  }
+  if (nm %in% c("donut_hole")) {
+    return(list(min = 0, max = 0.9, step = 0.01, control = "slider"))
+  }
+  if (nm %in% c("radar_scale", "eje_label_mult")) {
+    return(list(min = 0.1, max = 2, step = 0.05, control = "stepper"))
+  }
+  if (nm %in% c("espacio_entre_barras", "desplazamiento_max_etiquetas_peq")) {
+    return(list(min = 0, max = 1, step = 0.01, control = "stepper"))
+  }
+  if (nm %in% c("tamano_key_cm", "legend_key_spacing_x_cm", "espaciado_vertical_cm")) {
+    return(list(min = 0, max = 2, step = 0.05, control = "stepper"))
+  }
+  if (grepl("^(grosor_|debug_lw$|debug_ph_lwd$|tabla_line_lwd$|size_linea$)", nm)) {
+    return(list(min = 0, max = 5, step = 0.1, control = "stepper"))
+  }
+  if (grepl("^(size_|tabla_(header|body|firstcol)_size$)", nm)) {
+    return(list(min = 1, max = 40, step = 0.5, control = "stepper"))
+  }
+  if (nm %in% c("tabla_padding_mm")) {
+    return(list(min = 0, max = 40, step = 1, control = "stepper"))
+  }
+  if (nm %in% c("tabla_firstcol_wrap")) {
+    return(list(min = 8, max = 80, step = 1, control = "stepper"))
+  }
+  if (grepl("^(tabla_firstcol_frac$|tabla_height_frac$|tabla_ph_|canvas_w_legend_right$)", nm)) {
+    return(list(min = 0, max = 1, step = 0.01, control = "stepper"))
+  }
+  if (grepl("^(canvas_h_|canvas_pad_top$)", nm)) {
+    return(list(min = 0, max = 1.5, step = 0.02, control = "stepper"))
+  }
+
+  list(step = 1, control = "stepper")
 }
 
 .normalize_args_for_ui <- function(args) {

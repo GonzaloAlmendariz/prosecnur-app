@@ -55,8 +55,9 @@ export type CanvasViewport = { x: number; y: number; zoom: number };
 // Config persistida en el backend. Lo que el autosave envía y recibe.
 // Version 2 añadió: paletas, iconos, overrides_reusables, debug_ph.
 // Version 3 añade UI-state del editor v2 (view_mode, inspector_tab, density, canvas_viewport).
+// Version 4 normaliza aliases camel/snake y preserva reglas por alcance.
 export type GraficosConfig = {
-  version: 2 | 3;
+  version: 2 | 3 | 4 | "graficos/4";
   plan: PlanJson;
   presets: Record<string, Record<string, unknown>>;
   w_presets: Record<string, Record<string, unknown>>;
@@ -73,6 +74,11 @@ export type GraficosConfig = {
   inspector_tab?: InspectorTab;
   density?: Density;
   canvas_viewport?: CanvasViewport;
+
+  // Bloque v4: reglas flexibles por alcance. La UI puede ignorarlas; el
+  // backend las conserva y las resuelve para export/render.
+  scope_rules?: Record<string, unknown>;
+  _unknown?: Record<string, unknown>;
 };
 
 // Snapshot del estado persistido — lo que va al undo/redo stack. No

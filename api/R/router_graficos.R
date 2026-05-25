@@ -309,7 +309,7 @@
   user_presets   <- if (!is.null(sid)) session_get(sid, required = FALSE)$graficos_presets_defaults else NULL
   user_overrides <- if (!is.null(sid)) session_get(sid, required = FALSE)$graficos_overrides_defaults else NULL
   list(
-    version = 2L,
+    version = "graficos/4",
     plan = list(slides = list()),
     presets = user_presets %||% .PRESETS_DEFAULT_PULSO,
     w_presets = list(),
@@ -317,17 +317,174 @@
     paletas = list(),
     iconos = list(),
     overrides_reusables = user_overrides %||% .OVERRIDES_DEFAULT_PULSO,
-    debug_ph = list(activo = FALSE, color = "#FF00FF", lwd = 0.6)
+    debug_ph = list(activo = FALSE, color = "#FF00FF", lwd = 0.6),
+    view_mode = "timeline",
+    inspector_tab = "content",
+    density = "comfortable",
+    canvas_viewport = list(x = 0, y = 0, zoom = 1),
+    scope_rules = list()
   )
 }
 
+.graficos_pick_alias <- function(x, canonical, aliases = character()) {
+  if (!is.null(x[[canonical]])) return(x[[canonical]])
+  for (alias in aliases) {
+    if (!is.null(x[[alias]])) return(x[[alias]])
+  }
+  NULL
+}
+
+.graficos_is_obj <- function(x) {
+  is.list(x) && (length(x) == 0L || !is.null(names(x)))
+}
+
+.graficos_unknown_fields <- function(x) {
+  known <- c(
+    "ok", "version", "exported_at", "exportedAt", "imported_at", "importedAt",
+    "config", "plan", "presets", "w_presets", "wPresets",
+    "selected_slide_id", "selectedSlideId", "paletas", "iconos",
+    "overrides_reusables", "overridesReusables", "debug_ph", "debugPh",
+    "view_mode", "viewMode", "inspector_tab", "inspectorTab", "density",
+    "canvas_viewport", "canvasViewport", "scope_rules", "scopeRules",
+    "_unknown"
+  )
+  if (!.graficos_is_obj(x)) return(list())
+  out <- x[setdiff(names(x), known)]
+  if (is.null(out)) list() else out
+}
+
+.graficos_valid_view_mode <- function(x) is.character(x) && length(x) == 1L && x %in% c("timeline", "canvas")
+.graficos_valid_inspector_tab <- function(x) is.character(x) && length(x) == 1L && x %in% c("content", "data", "style", "filters")
+.graficos_valid_density <- function(x) is.character(x) && length(x) == 1L && x %in% c("comfortable", "compact")
+.graficos_valid_viewport <- function(x) {
+  .graficos_is_obj(x) && is.numeric(x$x) && is.numeric(x$y) && is.numeric(x$zoom)
+}
+
+.graficos_deep_merge <- function(base, override) {
+  if (!.graficos_is_obj(base)) base <- list()
+  if (!.graficos_is_obj(override)) return(base)
+  for (nm in names(override)) {
+    if (.graficos_is_obj(base[[nm]]) && .graficos_is_obj(override[[nm]])) {
+      base[[nm]] <- .graficos_deep_merge(base[[nm]], override[[nm]])
+    } else {
+      base[[nm]] <- override[[nm]]
+    }
+  }
+  base
+}
+
+.graficos_normalize_config <- function(input, sid = NULL, include_legacy_aliases = FALSE) {
+  defaults <- .graficos_default_config(sid)
+  envelope <- if (.graficos_is_obj(input)) input else list()
+  src <- if (.graficos_is_obj(envelope$config)) envelope$config else envelope
+
+  cfg <- defaults
+  cfg$version <- "graficos/4"
+
+  plan <- .graficos_pick_alias(src, "plan")
+  cfg$plan <- if (.graficos_is_obj(plan) && is.list(plan$slides)) plan else defaults$plan
+
+  presets <- .graficos_pick_alias(src, "presets")
+  cfg$presets <- if (.graficos_is_obj(presets)) presets else defaults$presets
+
+  w_presets <- .graficos_pick_alias(src, "w_presets", "wPresets")
+  cfg$w_presets <- if (.graficos_is_obj(w_presets)) w_presets else defaults$w_presets
+
+  selected_slide_id <- .graficos_pick_alias(src, "selected_slide_id", "selectedSlideId")
+  cfg$selected_slide_id <- if (is.character(selected_slide_id) && length(selected_slide_id) == 1L) selected_slide_id else NULL
+
+  paletas <- .graficos_pick_alias(src, "paletas")
+  cfg$paletas <- if (.graficos_is_obj(paletas)) paletas else defaults$paletas
+
+  iconos <- .graficos_pick_alias(src, "iconos")
+  cfg$iconos <- if (is.list(iconos) && is.null(names(iconos))) iconos else defaults$iconos
+
+  overrides_reusables <- .graficos_pick_alias(src, "overrides_reusables", "overridesReusables")
+  cfg$overrides_reusables <- if (is.list(overrides_reusables) && is.null(names(overrides_reusables))) overrides_reusables else defaults$overrides_reusables
+
+  debug_ph <- .graficos_pick_alias(src, "debug_ph", "debugPh")
+  cfg$debug_ph <- if (.graficos_is_obj(debug_ph)) .graficos_deep_merge(defaults$debug_ph, debug_ph) else defaults$debug_ph
+
+  view_mode <- .graficos_pick_alias(src, "view_mode", "viewMode")
+  cfg$view_mode <- if (.graficos_valid_view_mode(view_mode)) view_mode else defaults$view_mode
+
+  inspector_tab <- .graficos_pick_alias(src, "inspector_tab", "inspectorTab")
+  cfg$inspector_tab <- if (.graficos_valid_inspector_tab(inspector_tab)) inspector_tab else defaults$inspector_tab
+
+  density <- .graficos_pick_alias(src, "density")
+  cfg$density <- if (.graficos_valid_density(density)) density else defaults$density
+
+  canvas_viewport <- .graficos_pick_alias(src, "canvas_viewport", "canvasViewport")
+  cfg$canvas_viewport <- if (.graficos_valid_viewport(canvas_viewport)) canvas_viewport else defaults$canvas_viewport
+
+  scope_rules <- .graficos_pick_alias(src, "scope_rules", "scopeRules")
+  cfg$scope_rules <- if (.graficos_is_obj(scope_rules)) scope_rules else list(
+    global = list(
+      presets = cfg$presets,
+      paletas = cfg$paletas,
+      overrides_reusables = cfg$overrides_reusables,
+      debug_ph = cfg$debug_ph
+    )
+  )
+
+  unknown <- .graficos_deep_merge(
+    if (.graficos_is_obj(src$`_unknown`)) src$`_unknown` else list(),
+    .graficos_unknown_fields(src)
+  )
+  if (.graficos_is_obj(envelope$config)) {
+    bundle_unknown <- .graficos_unknown_fields(envelope)
+    if (length(bundle_unknown) > 0L) unknown$`__bundle` <- bundle_unknown
+  }
+  if (length(unknown) > 0L) cfg$`_unknown` <- unknown
+
+  if (isTRUE(include_legacy_aliases)) {
+    cfg$wPresets <- cfg$w_presets
+    cfg$selectedSlideId <- cfg$selected_slide_id
+    cfg$overridesReusables <- cfg$overrides_reusables
+    cfg$canvasViewport <- cfg$canvas_viewport
+    cfg$viewMode <- cfg$view_mode
+    cfg$inspectorTab <- cfg$inspector_tab
+    cfg$scopeRules <- cfg$scope_rules
+  }
+
+  cfg
+}
+
+.graficos_resolve_scope_rules <- function(cfg, slide = NULL, grafico = NULL) {
+  cfg <- .graficos_normalize_config(cfg)
+  rules <- cfg$scope_rules
+  if (!.graficos_is_obj(rules)) return(cfg)
+
+  merged <- list()
+  add_rule <- function(rule) {
+    if (.graficos_is_obj(rule)) merged <<- .graficos_deep_merge(merged, rule)
+  }
+
+  add_rule(rules$global)
+
+  lista <- grafico$args$lista %||% grafico$args$list_name %||% grafico$args$variable_lista %||% NULL
+  if (is.character(lista) && .graficos_is_obj(rules$by_list)) add_rule(rules$by_list[[lista]])
+
+  tipo_grafico <- grafico$graficador %||% grafico$tipo %||% NULL
+  if (is.character(tipo_grafico) && .graficos_is_obj(rules$by_chart_type)) add_rule(rules$by_chart_type[[tipo_grafico]])
+
+  tipo_slide <- slide$tipo %||% NULL
+  if (is.character(tipo_slide) && .graficos_is_obj(rules$by_slide_type)) add_rule(rules$by_slide_type[[tipo_slide]])
+
+  slide_id <- slide$id %||% NULL
+  if (is.character(slide_id) && .graficos_is_obj(rules$by_slide_id)) add_rule(rules$by_slide_id[[slide_id]])
+
+  .graficos_deep_merge(cfg, merged)
+}
+
 .graficos_effective_config <- function(sid, override = NULL) {
-  cfg <- session_get(sid, required = FALSE)$graficos_config %||% list()
+  cfg <- .graficos_normalize_config(session_get(sid, required = FALSE)$graficos_config %||% list(), sid = sid)
   override <- .as_json_list(override)
   if (is.list(override) && length(override) > 0L) {
-    cfg[names(override)] <- override
+    override <- if (.graficos_is_obj(override$config)) override$config else override
+    cfg <- .graficos_deep_merge(cfg, override)
   }
-  cfg
+  .graficos_normalize_config(cfg, sid = sid)
 }
 
 # Enriquece la config de presets JSON antes de pasarla a prosecnur con:
@@ -976,7 +1133,7 @@ mount_graficos <- function(pr) {
       # contra POST /config (debounce 2s).
       sid <- session_header(req)
       s <- session_get(sid)
-      cfg <- s$graficos_config %||% .graficos_default_config(sid)
+      cfg <- .graficos_normalize_config(s$graficos_config %||% .graficos_default_config(sid), sid = sid, include_legacy_aliases = TRUE)
       list(ok = TRUE, config = cfg)
     })) |>
     plumber::pr_post("/api/graficos/config", wrap_endpoint(function(req, res, ...) {
@@ -991,8 +1148,7 @@ mount_graficos <- function(pr) {
         jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
-      cfg <- parsed$config
-      if (is.null(cfg)) stop_api(400, "E_NO_CONFIG", "Body debe incluir 'config'.")
+      cfg <- .graficos_normalize_config(parsed$config %||% parsed, sid = sid)
       session_set(sid, "graficos_config", cfg)
       list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
@@ -1003,9 +1159,9 @@ mount_graficos <- function(pr) {
       s <- session_get(sid)
       list(
         ok = TRUE,
-        version = "graficos/1.0",
+        version = "graficos/4",
         exported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-        config = s$graficos_config %||% .graficos_default_config(sid)
+        config = .graficos_normalize_config(s$graficos_config %||% .graficos_default_config(sid), sid = sid, include_legacy_aliases = TRUE)
       )
     })) |>
     plumber::pr_post("/api/graficos/config/import", wrap_endpoint(function(req, res, ...) {
@@ -1017,13 +1173,7 @@ mount_graficos <- function(pr) {
         jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
-      v <- as.character(parsed$version %||% "")
-      if (!startsWith(v, "graficos/")) {
-        stop_api(400, "E_BAD_VERSION",
-          sprintf("JSON no es de gráficos (version='%s'). Se espera 'graficos/1.x'.", v))
-      }
-      cfg <- parsed$config
-      if (is.null(cfg)) stop_api(400, "E_NO_CONFIG", "El JSON no trae 'config'.")
+      cfg <- .graficos_normalize_config(parsed, sid = sid)
       session_set(sid, "graficos_config", cfg)
       list(ok = TRUE, imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>

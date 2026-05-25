@@ -1,11 +1,12 @@
 import { apiGraficosConfigPut } from "../../api/client";
+import { normalizeGraficosConfig } from "../../api/graficosConfigNormalizer";
 import type { GraficosConfig } from "./store";
 import { usePlanStore } from "./store";
 
 export function buildGraficosConfigFromStore(): GraficosConfig {
   const state = usePlanStore.getState();
-  return {
-    version: 3,
+  return normalizeGraficosConfig({
+    version: "graficos/4",
     plan: state.plan,
     presets: state.presets,
     w_presets: state.wPresets,
@@ -18,7 +19,15 @@ export function buildGraficosConfigFromStore(): GraficosConfig {
     inspector_tab: state.inspectorTab,
     density: state.density,
     canvas_viewport: state.canvasViewport,
-  };
+    scope_rules: {
+      global: {
+        presets: state.presets,
+        paletas: state.paletas,
+        overrides_reusables: state.overridesReusables,
+        debug_ph: state.debugPh,
+      },
+    },
+  }) as GraficosConfig;
 }
 
 export async function flushGraficosConfigIfHydrated(): Promise<boolean> {

@@ -1,8 +1,10 @@
 import { useMemo } from "react";
-import { GraficadorRef, Slide } from "../../api/client";
+import { ArgMetadata, GraficadorRef } from "../../api/client";
 import { usePlanStore, PaletaPorLista } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
+import { usePresetsMetadata } from "./usePresetsMetadata";
 import { useVariables } from "./useVariables";
+import { formatNumericRange, hasMeaningfulValue, validateNumericArgValue } from "./numericArgValidation";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -28,7 +30,8 @@ export type ValidationIssue = {
     | "slot-empty"
     | "var-unknown"
     | "icon-unknown"
-    | "paleta-monocromatica";
+    | "paleta-monocromatica"
+    | "numeric-invalid";
   message: string;
   slideId?: string;       // para poder saltar al slide afectado
   slotName?: string;
@@ -44,9 +47,13 @@ export type ValidationSummary = {
 
 export function usePlanValidator(): ValidationSummary {
   const slides = usePlanStore((s) => s.plan.slides);
+  const presets = usePlanStore((s) => s.presets);
+  const wPresets = usePlanStore((s) => s.wPresets);
+  const overridesReusables = usePlanStore((s) => s.overridesReusables);
   const paletas = usePlanStore((s) => s.paletas);
   const iconos = usePlanStore((s) => s.iconos);
   const { slidesById, graficadoresById } = useGraficosRegistry();
+  const { presetsByName } = usePresetsMetadata();
   const { variables, multi } = useVariables();
 
   return useMemo(() => {
@@ -88,6 +95,16 @@ export function usePlanValidator(): ValidationSummary {
             slotName: slot,
           });
         } else {
+          issues.push(...checkNumericArgs(
+            graf.args ?? {},
+            graficadoresById[graf.graficador]?.args ?? [],
+            {
+              scope: `"${slideMeta.titulo_humano}" (${humanizeSlot(slot)})`,
+              slideId: slide.id,
+              slotName: slot,
+            },
+          ));
+
           // Variable desconocida dentro del graficador
           checkVarRefs(graf, varNames).forEach((varName) => {
             issues.push({
@@ -114,9 +131,27 @@ export function usePlanValidator(): ValidationSummary {
         }
       }
     }
-    void graficadoresById; // silencia unused (lo mantenemos por si se amplía)
 
-    // 3) Paletas monocromáticas ---------------------------------------------
+    // 3) Valores numéricos inválidos persistidos en presets, Word y modos ----
+    for (const [presetName, args] of Object.entries(presets)) {
+      issues.push(...checkNumericArgs(args, presetsByName[presetName]?.args ?? [], {
+        scope: `Preset "${presetName}"`,
+      }));
+    }
+
+    for (const override of overridesReusables) {
+      issues.push(...checkNumericArgs(override.args, presetsByName[override.tipo_preset]?.args ?? [], {
+        scope: `Modo "${override.nombre}"`,
+      }));
+    }
+
+    for (const [presetName, args] of Object.entries(wordChartPresets(wPresets))) {
+      issues.push(...checkNumericArgs(args, presetsByName[presetName]?.args ?? [], {
+        scope: `Word "${presetName}"`,
+      }));
+    }
+
+    // 4) Paletas monocromáticas ---------------------------------------------
     for (const [listName, paleta] of Object.entries(paletas)) {
       if (isMonochromaticPalette(paleta)) {
         issues.push({
@@ -136,7 +171,7 @@ export function usePlanValidator(): ValidationSummary {
       warnings,
       canExport: errors.length === 0,
     };
-  }, [slides, paletas, iconos, slidesById, graficadoresById, variables, multi]);
+  }, [slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi]);
 }
 
 // --- Helpers internos --------------------------------------------------
@@ -199,6 +234,42 @@ function collectVarRefs(args: Record<string, unknown>): string[] {
   }
 
   return refs;
+}
+
+function checkNumericArgs(
+  args: Record<string, unknown>,
+  metas: ArgMetadata[],
+  context: { scope: string; slideId?: string; slotName?: string },
+): ValidationIssue[] {
+  const byName = new Map(metas.map((meta) => [meta.name, meta]));
+  const issues: ValidationIssue[] = [];
+
+  for (const [argName, value] of Object.entries(args)) {
+    if (!hasMeaningfulValue(value)) continue;
+    const meta = byName.get(argName);
+    if (!meta || meta.tipo_input !== "number") continue;
+
+    const result = validateNumericArgValue(value, meta);
+    if (result.ok) continue;
+
+    const range = formatNumericRange(meta);
+    issues.push({
+      severity: "error",
+      code: "numeric-invalid",
+      message: `${context.scope}: "${meta.label || argName}" tiene valor inválido "${String(value)}"; ${result.message}.${range ? ` ${range}` : ""}`,
+      slideId: context.slideId,
+      slotName: context.slotName,
+    });
+  }
+
+  return issues;
+}
+
+function wordChartPresets(wPresets: Record<string, Record<string, unknown>>): Record<string, Record<string, unknown>> {
+  const raw = wPresets.chart_presets;
+  return raw && typeof raw === "object" && !Array.isArray(raw)
+    ? raw as Record<string, Record<string, unknown>>
+    : {};
 }
 
 // Heurística: una paleta es "monocromática" si tiene >= 3 colores y

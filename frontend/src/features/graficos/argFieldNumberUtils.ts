@@ -179,16 +179,16 @@ export function evaluateNumberDraft(raw: string, {
 
     if (isOutOfRangeLow) {
       return {
-        state: "warning",
+        state: "error",
         message: `Mínimo permitido: ${minLabel}${displayScale !== 1 ? `% (${min})` : ""}`,
-        parsedInternal: Math.max(parsedInternal, min ?? parsedInternal),
+        parsedInternal: null,
       };
     }
 
     return {
-      state: "warning",
+      state: "error",
       message: `Máximo permitido: ${maxLabel}${displayScale !== 1 ? `% (${max})` : ""}`,
-      parsedInternal: Math.min(parsedInternal, max ?? parsedInternal),
+      parsedInternal: null,
     };
   }
 

@@ -104,20 +104,11 @@ export function WordPresetsEditor() {
   }, [meta]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <section
-        style={{
-          border: "1px solid var(--pulso-border)",
-          borderRadius: 8,
-          background: "white",
-          padding: 14,
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 12,
-        }}
-      >
+    <div className="pulso-gv2-word-presets">
+      <section className="pulso-gv2-word-option-card">
         <button
           type="button"
+          className={`pulso-gv2-word-toggle ${hideDuplicateLabel ? "is-on" : ""}`}
           aria-pressed={hideDuplicateLabel}
           onClick={() => {
             setChartOptions({
@@ -125,46 +116,23 @@ export function WordPresetsEditor() {
               ocultar_etiqueta_si_titulo: !hideDuplicateLabel,
             });
           }}
-          style={{
-            width: 42,
-            height: 24,
-            borderRadius: 999,
-            border: "1px solid",
-            borderColor: hideDuplicateLabel ? "var(--pulso-primary)" : "var(--pulso-border)",
-            background: hideDuplicateLabel ? "var(--pulso-primary)" : "var(--pulso-surface)",
-            padding: 2,
-            cursor: "pointer",
-            display: "flex",
-            justifyContent: hideDuplicateLabel ? "flex-end" : "flex-start",
-            flexShrink: 0,
-          }}
           title="Activar o desactivar esta regla para Word"
         >
-          <span style={{ width: 18, height: 18, borderRadius: 999, background: "white", display: "block" }} />
+          <span />
         </button>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-text)" }}>
+        <div className="pulso-gv2-word-option-copy">
+          <div className="pulso-gv2-word-option-title">
             No repetir el título como etiqueta del eje Y
           </div>
-          <div style={{ marginTop: 3, fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45, maxWidth: 620 }}>
+          <div className="pulso-gv2-word-option-description">
             Cuando Word coloca el título encima del gráfico, las barras apiladas usan ese título y dejan limpia la etiqueta lateral.
             En listas multiapiladas separadas aplica igual: cada gráfico usa su título y no repite la misma pregunta en el eje.
           </div>
         </div>
       </section>
 
-      <div style={{ display: "flex", gap: 16, minHeight: 420 }}>
-        <aside
-          style={{
-            width: 220,
-            flexShrink: 0,
-            borderRight: "1px solid var(--pulso-border)",
-            paddingRight: 12,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
+      <div className="pulso-gv2-word-layout">
+        <aside className="pulso-gv2-word-sidebar">
           {editablePresets.map((p) => {
             const Icon = resolveLucide(p.icono_ui);
             const isActive = p.name === meta.name;
@@ -175,23 +143,10 @@ export function WordPresetsEditor() {
                 key={p.name}
                 type="button"
                 onClick={() => setSelected(p.name)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "7px 9px",
-                  borderRadius: 6,
-                  border: "1px solid transparent",
-                  background: isActive ? "var(--pulso-primary-soft)" : "transparent",
-                  color: isActive ? "var(--pulso-primary)" : "var(--pulso-text)",
-                  fontSize: 12,
-                  fontWeight: isActive ? 600 : 500,
-                  textAlign: "left",
-                  cursor: "pointer",
-                }}
+                className={`pulso-gv2-word-preset ${isActive ? "is-active" : ""}`}
               >
                 <Icon size={14} />
-                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span>
                   {p.titulo_humano}
                 </span>
                 {modified && <Circle size={7} fill="var(--pulso-primary)" color="transparent" aria-label="Modificado" />}
@@ -200,60 +155,27 @@ export function WordPresetsEditor() {
           })}
         </aside>
 
-        <section style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-          <header
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 10,
-              paddingBottom: 10,
-              borderBottom: "1px solid var(--pulso-border)",
-            }}
-          >
-            <span
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 7,
-                background: "var(--pulso-primary-soft)",
-                color: "var(--pulso-primary)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
+        <section className="pulso-gv2-word-detail">
+          <header className="pulso-gv2-word-detail-head">
+            <span className="pulso-gv2-word-detail-icon">
               {(() => {
                 const Icon = resolveLucide(meta.icono_ui);
                 return <Icon size={15} />;
               })()}
             </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h3 style={{ margin: 0, fontSize: 14, lineHeight: 1.3 }}>
+            <div className="pulso-gv2-word-detail-copy">
+              <div className="pulso-gv2-word-title-row">
+                <h3>
                   {meta.titulo_humano}
                 </h3>
                 {hasSelectedChanges && (
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      padding: "2px 8px 2px 7px",
-                      borderRadius: 999,
-                      background: "var(--pulso-primary-soft)",
-                      color: "var(--pulso-primary)",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 5,
-                      border: "1px solid var(--pulso-primary-border)",
-                    }}
-                  >
+                  <span className="pulso-gv2-word-status">
                     <Circle size={6} fill="var(--pulso-primary)" color="transparent" />
                     Ajuste Word
                   </span>
                 )}
               </div>
-              <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5, maxWidth: 620 }}>
+              <p>
                 Parte de los valores del PPT. Cambia solo lo que necesite ser más compacto en Word.
               </p>
             </div>
@@ -261,19 +183,7 @@ export function WordPresetsEditor() {
               <button
                 type="button"
                 onClick={() => resetPreset(meta.name)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  fontSize: 11,
-                  padding: "5px 10px",
-                  border: "1px solid var(--pulso-border)",
-                  borderRadius: 6,
-                  background: "transparent",
-                  color: "var(--pulso-text-soft)",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                }}
+                className="pulso-gv2-word-reset"
               >
                 <RotateCcw size={11} />
                 Usar PPT
@@ -281,18 +191,9 @@ export function WordPresetsEditor() {
             )}
           </header>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 620 }}>
+          <div className="pulso-gv2-word-args">
             {gruposDeArgs.length === 0 ? (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--pulso-text-soft)",
-                  padding: "14px 16px",
-                  borderRadius: 6,
-                  background: "var(--pulso-surface)",
-                  border: "1px solid var(--pulso-border)",
-                }}
-              >
+              <div className="pulso-gv2-word-empty">
                 Este gráfico no tiene ajustes visuales disponibles para Word.
               </div>
             ) : (

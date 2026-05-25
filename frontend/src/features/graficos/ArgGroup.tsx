@@ -1,4 +1,5 @@
 import { Database, Type, Palette, Filter, Gauge, LayoutPanelTop, Table2, BarChart3, Tags, SlidersHorizontal } from "lucide-react";
+import type { ReactNode } from "react";
 import { IconDiagnostic } from "../../lib/icons";
 import { ArgGrupo, ArgMetadata, VarInfo } from "../../api/client";
 import { ArgField, ArgState } from "./ArgField";
@@ -73,6 +74,8 @@ export function ArgGroup({
   argStates,
   inheritedValues,
   onResetArg,
+  headerAction,
+  bodyIntro,
 }: {
   grupo: ArgGrupo;
   args: ArgMetadata[];
@@ -89,6 +92,10 @@ export function ArgGroup({
   inheritedValues?: Record<string, unknown>;
   /** Handler para resetear un arg al valor del preset. */
   onResetArg?: (name: string) => void;
+  /** Acción visual opcional en el header del grupo (ej. editor de layout). */
+  headerAction?: ReactNode;
+  /** Contenido opcional antes de los campos (ej. editor visual del layout). */
+  bodyIntro?: ReactNode;
 }) {
   const normalizedGrupo = normalizeArgGroup(grupo);
   const meta = GRUPO_META[normalizedGrupo];
@@ -139,8 +146,18 @@ export function ArgGroup({
             </span>
           </span>
         </span>
+        {headerAction && (
+          <span className="pulso-gv2-arg-group-actions">
+            {headerAction}
+          </span>
+        )}
       </div>
       <div className="pulso-gv2-arg-body">
+        {bodyIntro && (
+          <div className="pulso-gv2-arg-body-intro">
+            {bodyIntro}
+          </div>
+        )}
         {args.map((a) => (
           <ArgField
             key={a.name}

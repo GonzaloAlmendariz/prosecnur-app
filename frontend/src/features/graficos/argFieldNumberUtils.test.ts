@@ -54,7 +54,7 @@ describe("argFieldNumberUtils", () => {
     expect(inferNumberStep(baseMeta({ unidad: "px", min: 0, max: 2 }), 1)).toBe(0.01);
   });
 
-  test("evalúa texto y clamp visualiza out of range con warning", () => {
+  test("evalúa texto y rechaza out of range como error", () => {
     const meta = baseMeta({ min: 0, max: 1, name: "factor" });
 
     const ok = evaluateNumberDraft("0,75", {
@@ -75,9 +75,51 @@ describe("argFieldNumberUtils", () => {
       displayScale: 1,
       step: 0.01,
     });
-    expect(high.state).toBe("warning");
-    expect(high.parsedInternal).toBe(1);
+    expect(high.state).toBe("error");
+    expect(high.parsedInternal).toBeNull();
     expect(high.message).toContain("Máximo permitido");
+  });
+
+  test("rechaza decimales fuera de rango sin devolver valor parseado", () => {
+    const meta = baseMeta({ name: "decimales", min: 0, max: 4, step: 1 });
+
+    for (const raw of ["-1", "-5", "5"]) {
+      const result = evaluateNumberDraft(raw, {
+        min: 0,
+        max: 4,
+        meta,
+        displayScale: 1,
+        step: 1,
+      });
+      expect(result.state).toBe("error");
+      expect(result.parsedInternal).toBeNull();
+    }
+
+    for (const raw of ["0", "2", "4"]) {
+      const result = evaluateNumberDraft(raw, {
+        min: 0,
+        max: 4,
+        meta,
+        displayScale: 1,
+        step: 1,
+      });
+      expect(result.state).toBe("default");
+      expect(result.parsedInternal).toBe(Number(raw));
+    }
+  });
+
+  test("rechaza decimales de promedio por encima de 2", () => {
+    const meta = baseMeta({ name: "decimales_promedio", min: 0, max: 2, step: 1 });
+    const result = evaluateNumberDraft("3", {
+      min: 0,
+      max: 2,
+      meta,
+      displayScale: 1,
+      step: 1,
+    });
+
+    expect(result.state).toBe("error");
+    expect(result.parsedInternal).toBeNull();
   });
 
   test("evalúa vacíos/parciales como estado por defecto", () => {

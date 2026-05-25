@@ -3792,7 +3792,7 @@ export async function apiGraficosConfigImport(bundle: unknown) {
     await apiFetch("/api/graficos/config/import", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify(bundle),
+      body: JSON.stringify(normalizeGraficosConfigBundle(bundle, { includeLegacyAliases: true })),
     })
   );
 }
@@ -6655,3 +6655,4 @@ export async function apiEnciclopediaComparador(ids: string[]) {
     await apiFetch(`/api/enciclopedia/comparador?${qs}`, { headers: headers() }),
   );
 }
+import { normalizeGraficosConfigBundle } from "./graficosConfigNormalizer";

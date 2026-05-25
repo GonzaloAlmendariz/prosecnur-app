@@ -122,6 +122,36 @@ test_that("metadata principal no expone editores tecnicos JSON", {
   expect_false(any(exposed %in% c("overrides", "filtros", "base_config", "meta")))
 })
 
+test_that("metadata numerica expone limites seguros para la UI", {
+  collect_args <- function(items) {
+    do.call(c, lapply(items, function(item) item$args %||% list()))
+  }
+  all_args <- c(
+    collect_args(.presets_metadata_payload()$presets),
+    collect_args(.graficos_registry_payload()$graficadores)
+  )
+  numeric_args <- Filter(function(arg) identical(as.character(arg$tipo_input %||% ""), "number"), all_args)
+
+  expect_true(length(numeric_args) > 0)
+  expect_false(any(vapply(numeric_args, function(arg) is.null(arg$step), logical(1))))
+
+  decimals <- Filter(function(arg) as.character(arg$name %||% "") %in% c("decimales", "tabla_digits"), numeric_args)
+  expect_true(length(decimals) > 0)
+  for (arg in decimals) {
+    expect_equal(arg$min, 0)
+    expect_equal(arg$max, 4)
+    expect_equal(arg$step, 1)
+  }
+
+  avg_decimals <- Filter(function(arg) identical(as.character(arg$name %||% ""), "decimales_promedio"), numeric_args)
+  expect_true(length(avg_decimals) > 0)
+  for (arg in avg_decimals) {
+    expect_equal(arg$min, 0)
+    expect_equal(arg$max, 2)
+    expect_equal(arg$step, 1)
+  }
+})
+
 test_that("controles expuestos de leyenda llegan a los renderizadores canvas", {
   expect_true("leyenda_posicion" %in% names(formals(graficar_barras_apiladas)))
   expect_true("leyenda_posicion" %in% names(formals(graficar_barras_agrupadas)))

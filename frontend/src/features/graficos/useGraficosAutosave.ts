@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { apiGraficosConfigGet, apiGraficosConfigPut } from "../../api/client";
+import { normalizeGraficosConfig } from "../../api/graficosConfigNormalizer";
 import { DEFAULT_CANVAS_VIEWPORT, DEFAULT_DEBUG_PH, GraficosConfig, usePlanStore } from "./store";
 
 // Autosave del plan de gráficos. Misma mecánica que useAnaliticaAutosave:
@@ -15,7 +16,7 @@ import { DEFAULT_CANVAS_VIEWPORT, DEFAULT_DEBUG_PH, GraficosConfig, usePlanStore
 const DEBOUNCE_MS = 2000;
 
 const DEFAULT_CONFIG: GraficosConfig = {
-  version: 3,
+  version: "graficos/4",
   plan: { slides: [] },
   presets: {},
   w_presets: {},
@@ -28,6 +29,7 @@ const DEFAULT_CONFIG: GraficosConfig = {
   inspector_tab: "content",
   density: "comfortable",
   canvas_viewport: DEFAULT_CANVAS_VIEWPORT,
+  scope_rules: {},
 };
 
 // Migración v1 → v2 → v3: si el backend devuelve un config viejo (sin
@@ -36,7 +38,7 @@ const DEFAULT_CONFIG: GraficosConfig = {
 // autosave lo persiste así.
 function mergeWithDefaults(remote: unknown): GraficosConfig {
   if (!remote || typeof remote !== "object") return DEFAULT_CONFIG;
-  const r = remote as Partial<GraficosConfig>;
+  const r = normalizeGraficosConfig(remote) as Partial<GraficosConfig>;
   const isObj = (x: unknown): x is Record<string, unknown> =>
     !!x && typeof x === "object" && !Array.isArray(x);
   const validViewMode = (m: unknown): m is GraficosConfig["view_mode"] =>
@@ -48,7 +50,7 @@ function mergeWithDefaults(remote: unknown): GraficosConfig {
   const validViewport = (v: unknown): v is GraficosConfig["canvas_viewport"] =>
     isObj(v) && typeof v.x === "number" && typeof v.y === "number" && typeof v.zoom === "number";
   return {
-    version: 3,
+    version: "graficos/4",
     plan: r.plan && typeof r.plan === "object" && Array.isArray(r.plan.slides)
       ? (r.plan as GraficosConfig["plan"])
       : { slides: [] },
@@ -67,6 +69,8 @@ function mergeWithDefaults(remote: unknown): GraficosConfig {
     inspector_tab: validTab(r.inspector_tab) ? r.inspector_tab : "content",
     density: validDensity(r.density) ? r.density : "comfortable",
     canvas_viewport: validViewport(r.canvas_viewport) ? r.canvas_viewport : DEFAULT_CANVAS_VIEWPORT,
+    scope_rules: isObj(r.scope_rules) ? (r.scope_rules as GraficosConfig["scope_rules"]) : {},
+    _unknown: isObj(r._unknown) ? (r._unknown as GraficosConfig["_unknown"]) : undefined,
   };
 }
 
@@ -125,7 +129,7 @@ export function useGraficosAutosave() {
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(async () => {
       const config: GraficosConfig = {
-        version: 3,
+        version: "graficos/4",
         plan,
         presets,
         w_presets: wPresets,
@@ -138,9 +142,12 @@ export function useGraficosAutosave() {
         inspector_tab: inspectorTab,
         density,
         canvas_viewport: canvasViewport,
+        scope_rules: {
+          global: { presets, paletas, overrides_reusables: overridesReusables, debug_ph: debugPh },
+        },
       };
       try {
-        await apiGraficosConfigPut(config);
+        await apiGraficosConfigPut(normalizeGraficosConfig(config, { includeLegacyAliases: true }));
         markClean();
       } catch {
         // Silencioso por ahora; el próximo cambio reintenta.
