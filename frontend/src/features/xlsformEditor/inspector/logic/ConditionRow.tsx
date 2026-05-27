@@ -37,7 +37,7 @@ export function ConditionRow({
     (v) => v.name === condition.variableName,
   );
   const baseType = selectedVar?.baseType ?? "text";
-  const predicates = predicatesForType(baseType);
+  const predicates = predicatesForType(baseType, { includePresence: true });
 
   // Si el predicado actual no es válido para este tipo, lo bajamos al
   // default sin avisar — el usuario puede cambiarlo después.
@@ -49,7 +49,7 @@ export function ConditionRow({
   const handleVarChange = (next: string) => {
     const nextVar = scope.variables.find((v) => v.name === next);
     const nextType = nextVar?.baseType ?? baseType;
-    const nextPreds = predicatesForType(nextType);
+    const nextPreds = predicatesForType(nextType, { includePresence: true });
     const stillValid = nextPreds.some(
       (p) => predicateKey(p) === predicateKey(predicate),
     );
@@ -63,10 +63,12 @@ export function ConditionRow({
   const catalog = selectedVar?.listName
     ? scope.catalogsByListName.get(selectedVar.listName)
     : undefined;
+  const showsValue = predicate.kind !== "presence";
 
   return (
-    <div className="pulso-logic-condition-row">
+    <div className={`pulso-logic-condition-row${showsValue ? "" : " has-presence"}`}>
       <div className="pulso-logic-condition-piece pulso-logic-condition-var">
+        <span className="pulso-logic-condition-label">Pregunta</span>
         <VariablePicker
           variables={scope.variables}
           selected={condition.variableName}
@@ -75,25 +77,37 @@ export function ConditionRow({
         />
       </div>
       <div className="pulso-logic-condition-piece">
+        <span className="pulso-logic-condition-label">Criterio</span>
         <PredicatePicker
           options={predicates}
           value={predicate}
-          onChange={(next) => onChange({ ...condition, predicate: next })}
+          onChange={(next) =>
+            onChange({
+              ...condition,
+              predicate: next,
+              value: next.kind === "presence"
+                ? { kind: "literal", raw: "" }
+                : condition.value,
+            })
+          }
           disabled={disabled || !condition.variableName}
         />
       </div>
-      <div className="pulso-logic-condition-piece pulso-logic-condition-value">
-        <ValueInput
-          baseType={baseType}
-          catalog={catalog}
-          variables={scope.variables.filter(
-            (v) => v.name !== condition.variableName,
-          )}
-          value={condition.value}
-          onChange={(next) => onChange({ ...condition, value: next })}
-          disabled={disabled || !condition.variableName}
-        />
-      </div>
+      {showsValue && (
+        <div className="pulso-logic-condition-piece pulso-logic-condition-value">
+          <span className="pulso-logic-condition-label">Valor</span>
+          <ValueInput
+            baseType={baseType}
+            catalog={catalog}
+            variables={scope.variables.filter(
+              (v) => v.name !== condition.variableName,
+            )}
+            value={condition.value}
+            onChange={(next) => onChange({ ...condition, value: next })}
+            disabled={disabled || !condition.variableName}
+          />
+        </div>
+      )}
       {onRemove && (
         <button
           type="button"

@@ -23,6 +23,7 @@
 
 import type { XlsformEditorWorkbook } from "../types";
 import {
+  apiXlsformEditorStateClear,
   apiXlsformEditorStateSave,
   apiXlsformEditorStateLoad,
   type Hallazgo,
@@ -66,6 +67,73 @@ export type PersistedSnapshot = {
   /** Hallazgos del validador (si vinieron del último import). */
   hallazgos?: Hallazgo[];
 };
+
+type SurveyMonkeyLogic = NonNullable<XlsformEditorWorkbook["surveyMonkeyLogic"]>;
+
+function cloneSurveyMonkeyLogic(logic: XlsformEditorWorkbook["surveyMonkeyLogic"]): SurveyMonkeyLogic | null {
+  if (!logic) return null;
+  const advanced = (logic.advanced_rules ?? logic.rules ?? []).map((rule) => ({ ...rule }));
+  return {
+    rules: advanced.map((rule) => ({ ...rule })),
+    advanced_rules: advanced,
+    visual_rules: (logic.visual_rules ?? []).map((rule) => ({
+      ...rule,
+      choices: (rule.choices ?? []).map((choice) => ({ ...choice, action: { ...choice.action } })),
+    })),
+    choice_order_overrides: Object.fromEntries(
+      Object.entries(logic.choice_order_overrides ?? {}).map(([key, labels]) => [key, [...labels]]),
+    ),
+    choice_code_maps: (logic.choice_code_maps ?? []).map((map) => ({
+      ...map,
+      mappings: (map.mappings ?? []).map((item) => ({ ...item })),
+    })),
+  };
+}
+
+export function workbookHasSurveyMonkeyLogic(workbook: XlsformEditorWorkbook | null | undefined): boolean {
+  const logic = cloneSurveyMonkeyLogic(workbook?.surveyMonkeyLogic);
+  if (!logic) return false;
+  return (
+    logic.advanced_rules.length > 0 ||
+    logic.visual_rules.length > 0 ||
+    Object.keys(logic.choice_order_overrides).length > 0 ||
+    (logic.choice_code_maps ?? []).length > 0
+  );
+}
+
+export function reconcileSnapshotWithBackend(
+  local: PersistedSnapshot | null,
+  remote: PersistedSnapshot | null,
+): PersistedSnapshot | null {
+  if (!local) return remote;
+  if (!remote) return local;
+
+  const localLogic = cloneSurveyMonkeyLogic(local.workbook.surveyMonkeyLogic);
+  const remoteLogic = cloneSurveyMonkeyLogic(remote.workbook.surveyMonkeyLogic);
+  if (!remoteLogic || !workbookHasSurveyMonkeyLogic(remote.workbook)) return local;
+
+  const localHasLogic = workbookHasSurveyMonkeyLogic(local.workbook);
+  const mergedLogic: SurveyMonkeyLogic = localHasLogic && localLogic
+    ? {
+        rules: localLogic.advanced_rules.length ? localLogic.rules ?? localLogic.advanced_rules : remoteLogic.rules ?? remoteLogic.advanced_rules,
+        advanced_rules: localLogic.advanced_rules.length ? localLogic.advanced_rules : remoteLogic.advanced_rules,
+        visual_rules: localLogic.visual_rules.length ? localLogic.visual_rules : remoteLogic.visual_rules,
+        choice_order_overrides: Object.keys(localLogic.choice_order_overrides).length
+          ? localLogic.choice_order_overrides
+          : remoteLogic.choice_order_overrides,
+        choice_code_maps: (localLogic.choice_code_maps ?? []).length ? localLogic.choice_code_maps : remoteLogic.choice_code_maps,
+      }
+    : remoteLogic;
+
+  return {
+    ...local,
+    savedAt: Math.max(local.savedAt, remote.savedAt),
+    workbook: {
+      ...local.workbook,
+      surveyMonkeyLogic: mergedLogic,
+    },
+  };
+}
 
 // -----------------------------------------------------------------------------
 // Save / Load
@@ -167,6 +235,16 @@ export function clearSnapshot(scope: ProjectScope = null): void {
     }
   } catch {
     // ignore
+  }
+}
+
+/** Limpia el snapshot persistido en backend. Se usa cuando el usuario
+ * descarta explícitamente un formulario recuperable. */
+export async function clearSnapshotFromBackend(): Promise<void> {
+  try {
+    await apiXlsformEditorStateClear();
+  } catch {
+    // ignore — limpiar localStorage ya basta para la sesión local.
   }
 }
 

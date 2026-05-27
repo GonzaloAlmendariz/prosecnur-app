@@ -67,6 +67,17 @@ export function tryFlattenCondition(expr: Expr): FlatCondition | null {
   if (expr.kind === "compare" && expr.left.kind === "ref") {
     const variableName = expr.left.name;
     if (expr.right.kind === "literal") {
+      if (expr.right.value === "" && (expr.op === "!=" || expr.op === "=")) {
+        return {
+          variableName,
+          predicate: {
+            kind: "presence",
+            mode: expr.op === "!=" ? "answered" : "empty",
+            label: expr.op === "!=" ? "tiene respuesta" : "está vacía",
+          },
+          value: { kind: "literal", raw: "" },
+        };
+      }
       return {
         variableName,
         predicate: { kind: "compare", op: expr.op, label: opLabel(expr.op) },
@@ -90,6 +101,14 @@ export function tryFlattenCondition(expr: Expr): FlatCondition | null {
  */
 export function expandCondition(cond: FlatCondition): Expr {
   const lhs: Expr = { kind: "ref", name: cond.variableName };
+  if (cond.predicate.kind === "presence") {
+    return {
+      kind: "compare",
+      op: cond.predicate.mode === "answered" ? "!=" : "=",
+      left: lhs,
+      right: { kind: "literal", value: "" },
+    };
+  }
   // Si la pred es selected/not_selected, ignoramos el operador del compare.
   if (cond.predicate.kind === "selected") {
     return {

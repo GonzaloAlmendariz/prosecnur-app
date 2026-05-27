@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
-  Download,
   Loader2,
   RefreshCcw,
   Save,
@@ -19,7 +18,6 @@ import {
   apiV2LimpiezaDecisionDelete,
   apiV2LimpiezaDecisionSave,
   apiV2LimpiezaFinalize,
-  downloadUrl,
   type InstrumentoDrillResult,
 } from "../../../api/client";
 import type {
@@ -28,10 +26,10 @@ import type {
   LimpiezaDecisionActionType,
   LimpiezaQueueItem,
   LimpiezaSummary,
+  ReglaTreatmentScope,
 } from "../types";
 import { EmptyState, LoadingBlock } from "../../../components/States";
 import { useValidacionStore } from "../store";
-import PlotlyView from "../components/PlotlyView";
 import {
   RuleNarrative,
   DecisionStorageBar,
@@ -45,28 +43,21 @@ import type {
 } from "../components/v2";
 
 // =============================================================================
-// Limpieza y normalización
+// Limpieza y transformación
 // =============================================================================
-// Tab de cierre: decide qué hacer con cada inconsistencia (documentar, excluir
-// o corregir valores) y genera la base final + reporte.
+// Tab de cierre: decide qué hacer con cada hallazgo (documentar, excluir
+// o corregir valores) y genera la base final.
 //
-// Tres zonas:
+// Dos zonas:
 //   1. StatusBar: estado del cierre, progreso, CTA de cerrar base.
-//   2. Workbench: cola de inconsistencias + editor de decisión con flujo
+//   2. Workbench: cola de hallazgos + editor de decisión con flujo
 //      "Guardar y siguiente" (Cmd/Ctrl+Enter) que auto-avanza al siguiente
 //      pendiente.
-//   3. Reporte de cambios: colapsado por defecto, muestra impacto simulado,
-//      residual proyectado y entregables cuando ya se cerró la base.
 // =============================================================================
 
 const NEW_DECISION = "__new__";
 
 const numberFormatter = new Intl.NumberFormat("es-PE");
-const percentFormatter = new Intl.NumberFormat("es-PE", {
-  style: "percent",
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
 const dateTimeFormatter = new Intl.DateTimeFormat("es-PE", {
   dateStyle: "medium",
   timeStyle: "short",
@@ -78,12 +69,19 @@ type EditorForm = {
   action_type: LimpiezaDecisionActionType;
   target_variable: string;
   rationale: string;
+  scope_mode: ReglaTreatmentScope;
   use_all_cases: boolean;
   target_case_ids: string[];
   replace_from: string;
   replace_to: string;
   normalize_from: string;
   normalize_to: string;
+  hierarchy_map_json: string;
+  set_value: string;
+  recode_map_json: string;
+  nullify_variables_text: string;
+  sm_add_codes: string;
+  sm_remove_codes: string;
   impute_method: "fixed" | "mode" | "median";
   impute_fixed_value: string;
 };
@@ -94,12 +92,28 @@ type CaseRow = {
   summary: string;
 };
 
+type ChoiceOption = {
+  code: string;
+  label: string;
+  n: number | null;
+};
+
+type DecisionReadiness = {
+  ready: boolean;
+  issues: string[];
+};
+
 const ACTION_OPTIONS: Array<{
   value: LimpiezaDecisionActionType;
   label: string;
 }> = [
-  { value: "ignore_rule", label: "No modificar / documentar" },
-  { value: "replace_value", label: "Corregir valores" },
+  { value: "ignore_rule", label: "Registrar sin cambios" },
+  { value: "replace_value", label: "Corregir valor" },
+  { value: "set_value", label: "Asignar valor" },
+  { value: "recode_map", label: "Recodificar equivalencias" },
+  { value: "complete_select_multiple_hierarchy", label: "Completar selección múltiple" },
+  { value: "adjust_select_multiple", label: "Agregar o quitar opciones" },
+  { value: "nullify_fields", label: "Anular campos" },
   { value: "exclude_cases", label: "Excluir registros" },
 ];
 
@@ -124,17 +138,17 @@ function deriveDecisionCounts(queue: LimpiezaQueueItem[]): DecisionCounts {
   for (const item of queue) {
     const n = item.n_casos ?? 0;
     if (!n) continue;
-    if (item.pending) {
-      counts.pending += n;
-      continue;
-    }
+    const covered = item.n_casos_cubiertos ?? (item.pending ? 0 : n);
+    const pending = item.n_casos_pendientes ?? (item.pending ? n : 0);
+    if (pending > 0) counts.pending += pending;
+    if (covered <= 0) continue;
     // Item tiene decisión lista — inferir kind desde current_action (string
     // legible) o source_type.
     const action = (item.current_action ?? "").toLowerCase();
-    if (isDocumentedActionLabel(action)) counts.ignore += n;
-    else if (action.startsWith("excluir")) counts.exclude += n;
-    else if (isCorrectionActionLabel(action)) counts.change += n;
-    else counts.ignore += n; // fallback conservador si el label no calza
+    if (isDocumentedActionLabel(action)) counts.ignore += covered;
+    else if (action.startsWith("excluir")) counts.exclude += covered;
+    else if (isCorrectionActionLabel(action)) counts.change += covered;
+    else counts.ignore += covered; // fallback conservador si el label no calza
   }
   return counts;
 }
@@ -147,19 +161,38 @@ function isCorrectionActionLabel(action: string) {
   return (
     action.startsWith("corregir") ||
     action.startsWith("reemplazar") ||
+    action.startsWith("asignar") ||
+    action.startsWith("recodificar") ||
+    action.startsWith("anular") ||
+    action.startsWith("ajustar") ||
     action.startsWith("normalizar") ||
-    action.startsWith("imputar")
+    action.startsWith("imputar") ||
+    action.startsWith("completar")
   );
 }
 
-function actionOptionsFor(actionType: LimpiezaDecisionActionType) {
+function actionOptionsFor(actionType: LimpiezaDecisionActionType, item?: LimpiezaQueueItem | null) {
+  const smSuggested = isSelectMultipleItem(item);
+  const values = new Set<LimpiezaDecisionActionType>([
+    "ignore_rule",
+    "replace_value",
+    "set_value",
+    "recode_map",
+    "nullify_fields",
+    "exclude_cases",
+  ]);
+  if (smSuggested || actionType === "complete_select_multiple_hierarchy" || actionType === "adjust_select_multiple") {
+    values.add("complete_select_multiple_hierarchy");
+    values.add("adjust_select_multiple");
+  }
+  const base = ACTION_OPTIONS.filter((option) => values.has(option.value));
   if (actionType === "normalize_value" || actionType === "impute_value") {
     return [
-      ...ACTION_OPTIONS,
+      ...base,
       ...LEGACY_ACTION_OPTIONS.filter((option) => option.value === actionType),
     ];
   }
-  return ACTION_OPTIONS;
+  return base;
 }
 
 // Convierte un LimpiezaQueueItem al shape ReglaLike que consume RuleNarrative.
@@ -175,6 +208,8 @@ function queueItemToRule(
     tipo_observacion: item.tipo_observacion,
     tipo_variable: item.tipo_variable,
     fuente: item.fuente,
+    hallazgo_kind: item.hallazgo_kind ?? null,
+    origen_detalle: item.origen_detalle ?? null,
     severidad: item.severidad,
     categoria_ux: item.categoria_ux,
     objetivo: reglaDrill?.objetivo ?? null,
@@ -233,8 +268,6 @@ export default function LimpiezaTab() {
   const [form, setForm] = useState<EditorForm>(() => emptyEditorForm());
   // Filtro por kind de decisión activado desde DecisionStorageBar. Null = sin filtro.
   const [activeFilterKind, setActiveFilterKind] = useState<DecisionKind | null>(null);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [resumenOpen, setResumenOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const editorRef = useRef<HTMLDivElement | null>(null);
@@ -434,6 +467,10 @@ export default function LimpiezaTab() {
     setActionError("");
     setNotice("");
     try {
+      const coversSelectedHallazgo =
+        form.action_type === "ignore_rule" ||
+        form.use_all_cases ||
+        (caseRows.length > 0 && form.target_case_ids.length >= caseRows.length);
       const payload = buildDecisionPayload({
         form,
         status,
@@ -445,11 +482,17 @@ export default function LimpiezaTab() {
       await loadLimpieza({ quiet: true });
 
       if (status === "ready" && options?.advance) {
+        if (!coversSelectedHallazgo) {
+          setSelectedDecisionId(NEW_DECISION);
+          setNotice("Decisión guardada. Este hallazgo aún tiene registros pendientes.");
+          editorRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
         const nextId = findNextPendingSourceId(selectedSourceId);
         if (nextId) {
           setSelectedSourceId(nextId);
           setSelectedDecisionId(NEW_DECISION);
-          setNotice("Decisión guardada. Siguiente inconsistencia cargada.");
+          setNotice("Decisión guardada. Siguiente hallazgo cargado.");
           editorRef.current?.scrollTo({ top: 0, behavior: "smooth" });
         } else {
           setNotice("Todo listo. Ya puedes cerrar la base.");
@@ -489,8 +532,7 @@ export default function LimpiezaTab() {
     setNotice("");
     try {
       await apiV2LimpiezaFinalize(baseNombre);
-      setNotice("Base limpia, reporte HTML y Excel de decisiones generados.");
-      setReportOpen(true);
+      setNotice("Base limpia generada.");
       await loadLimpieza({ quiet: true });
     } catch (err) {
       setActionError((err as Error).message);
@@ -520,7 +562,7 @@ export default function LimpiezaTab() {
   }, [selectedSourceId, saveBusy, form]);
 
   // ---------- render ----------
-  if (loading) return <LoadingBlock label="Cargando Limpieza y normalización…" />;
+  if (loading) return <LoadingBlock label="Cargando Limpieza y transformación…" />;
 
   if (error) {
     return (
@@ -535,7 +577,6 @@ export default function LimpiezaTab() {
   if (!data) return null;
 
   const auditReady = !!data.progreso.auditoria_corrida;
-  const preview = data.before_after_preview;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -609,22 +650,6 @@ export default function LimpiezaTab() {
           />
         )}
       </Workbench>
-
-      <ReporteCambios
-        open={reportOpen}
-        onToggle={() => setReportOpen((v) => !v)}
-        preview={preview}
-        artifacts={artifacts}
-      />
-
-      {(data.top_reglas || data.top_variables) && (
-        <ResumenVisualDrawer
-          open={resumenOpen}
-          onToggle={() => setResumenOpen((v) => !v)}
-          topReglas={data.top_reglas}
-          topVariables={data.top_variables}
-        />
-      )}
     </div>
   );
 }
@@ -696,12 +721,12 @@ function StatusBar({
         <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--pulso-text)" }}>
-              Limpieza y normalización
+              Limpieza y transformación
             </div>
             <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
               {finalizedAt
                 ? `Último cierre: ${formatDateTime(finalizedAt)}`
-                : "Decisiones sobre las inconsistencias detectadas"}
+                : "Decisiones sobre los hallazgos detectados"}
             </div>
           </div>
           <StatusPill tone={statusTone} label={statusLabel} />
@@ -858,7 +883,7 @@ function Workbench({
         <header style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: "var(--pulso-text)" }}>
-              Cola de inconsistencias
+              Cola de hallazgos
             </div>
             <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
               {filterCat === "all" ? queue.length : `${filteredQueue.length} / ${queue.length}`}
@@ -931,11 +956,11 @@ function Workbench({
           </div>
         ) : queue.length === 0 ? (
           <div style={emptyDashedStyle}>
-            No hay inconsistencias pendientes.
+            No hay hallazgos pendientes.
           </div>
         ) : filteredQueue.length === 0 ? (
           <div style={emptyDashedStyle}>
-            No hay inconsistencias en «{filterCat}».
+            No hay hallazgos en «{filterCat}».
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, overflowY: "auto", paddingRight: 4 }}>
@@ -1092,7 +1117,7 @@ function EditorEmpty({ auditReady }: { auditReady: boolean }) {
   return (
     <div style={{ ...emptyDashedStyle, padding: "40px 20px", textAlign: "center" }}>
       {auditReady
-        ? "Selecciona una inconsistencia de la cola para decidir."
+        ? "Selecciona un hallazgo de la cola para decidir."
         : "Corre la auditoría para poder decidir sobre las reglas."}
     </div>
   );
@@ -1161,6 +1186,23 @@ function EditorPanel({
     () => buildVariableHoverLookup(drill),
     [drill],
   );
+  const choiceOptions = useMemo(
+    () => buildChoiceOptions(drill, form.target_variable),
+    [drill, form.target_variable],
+  );
+  const choiceOptionsByCode = useMemo(
+    () => new Map(choiceOptions.map((option) => [option.code, option])),
+    [choiceOptions],
+  );
+  const readiness = useMemo(
+    () => getDecisionReadiness(form),
+    [form],
+  );
+  const selectedCount = form.use_all_cases ? caseRows.length : form.target_case_ids.length;
+  const coversWholeFinding =
+    form.action_type === "ignore_rule" ||
+    form.use_all_cases ||
+    (caseRows.length > 0 && form.target_case_ids.length >= caseRows.length);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1196,7 +1238,13 @@ function EditorPanel({
               setForm((current) => ({
                 ...current,
                 action_type: nextAction,
+                scope_mode: nextAction === "ignore_rule" ? "all" : current.scope_mode,
                 use_all_cases: nextAction === "ignore_rule" ? true : current.use_all_cases,
+                target_case_ids: nextAction === "ignore_rule"
+                  ? []
+                  : current.scope_mode === "single"
+                    ? current.target_case_ids.slice(0, 1)
+                    : current.target_case_ids,
                 target_variable: actionNeedsVariable(nextAction)
                   ? current.target_variable || variableOptions[0] || ""
                   : "",
@@ -1204,7 +1252,7 @@ function EditorPanel({
             }}
             style={inputStyle}
           >
-            {actionOptionsFor(form.action_type).map((option) => (
+            {actionOptionsFor(form.action_type, item).map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -1235,34 +1283,46 @@ function EditorPanel({
           </FormField>
         )}
 
-        {renderActionSpecificFields(form, setForm)}
+        {renderActionSpecificFields(form, setForm, choiceOptions)}
       </DecisionBlock>
 
       {/* Bloque 2: ¿Sobre qué casos? */}
       {allowsCaseSubset && (
         <DecisionBlock title="¿Sobre qué casos?">
-          <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--pulso-text)" }}>
-            <input
-              type="checkbox"
-              checked={form.use_all_cases}
-              onChange={(event) => {
-                const useAll = event.target.checked;
-                setForm((current) => ({
-                  ...current,
-                  use_all_cases: useAll,
-                  target_case_ids: useAll ? [] : current.target_case_ids,
-                }));
-              }}
-            />
-            Aplicar a todos los casos observados por esta regla
-          </label>
-          {!form.use_all_cases && (
-            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-              Marca arriba los casos a los que aplicar la acción.
-            </div>
-          )}
-        </DecisionBlock>
+          <ScopeModeSelector
+            value={form.scope_mode}
+            totalCases={caseRows.length}
+            selectedCount={selectedCount}
+            onChange={(mode) => {
+              setForm((current) => ({
+                ...current,
+                scope_mode: mode,
+                use_all_cases: mode === "all",
+                target_case_ids: mode === "all"
+                  ? []
+                  : mode === "single"
+                    ? current.target_case_ids.slice(0, 1)
+                    : current.target_case_ids,
+              }));
+            }}
+          />
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+            {form.scope_mode === "all"
+              ? "La acción se aplicará a todos los hallazgos de esta señal."
+              : form.scope_mode === "single"
+                ? "Selecciona un registro. Para resolver otros registros, guarda otra decisión para este mismo hallazgo."
+                : "Selecciona los registros a los que aplicarás esta decisión."}
+          </div>
+      </DecisionBlock>
       )}
+
+          <DecisionApplySummary
+            form={form}
+            readiness={readiness}
+            totalCases={caseRows.length}
+            selectedCount={selectedCount}
+            optionsByCode={choiceOptionsByCode}
+          />
 
           {/* Bloque 3: ¿Por qué? */}
           <DecisionBlock title="¿Por qué?">
@@ -1291,9 +1351,13 @@ function EditorPanel({
               loading={drillLoading}
               error={drillError}
               selectable={selectable}
+              selectionMode={form.scope_mode === "single" ? "single" : "multiple"}
               selectedCaseIds={selectedCaseIdsSet}
               onToggle={(caseId) => {
                 setForm((current) => {
+                  if (current.scope_mode === "single") {
+                    return { ...current, target_case_ids: [caseId] };
+                  }
                   const next = new Set(current.target_case_ids);
                   if (next.has(caseId)) next.delete(caseId);
                   else next.add(caseId);
@@ -1352,6 +1416,8 @@ function EditorPanel({
       {/* Barra de acciones */}
       <ActionBar
         saveBusy={saveBusy}
+        readiness={readiness}
+        coversWholeFinding={coversWholeFinding}
         canDelete={canDelete}
         onSaveDraft={onSaveDraft}
         onSaveAndNext={onSaveAndNext}
@@ -1373,8 +1439,140 @@ function DecisionBlock({ title, children }: { title: string; children: ReactNode
   );
 }
 
+function ScopeModeSelector({
+  value,
+  totalCases,
+  selectedCount,
+  onChange,
+}: {
+  value: ReglaTreatmentScope;
+  totalCases: number;
+  selectedCount: number;
+  onChange: (value: ReglaTreatmentScope) => void;
+}) {
+  const totalLabel = totalCases > 0 ? `${totalCases} caso${totalCases === 1 ? "" : "s"}` : "todos los casos";
+  const selectedLabel = selectedCount > 0
+    ? `${selectedCount} seleccionado${selectedCount === 1 ? "" : "s"}`
+    : "elige casos";
+  const items: Array<{ value: ReglaTreatmentScope; label: string; hint: string }> = [
+    { value: "all", label: "Todos", hint: `Cubrir ${totalLabel}.` },
+    { value: "selected", label: "Selección", hint: selectedLabel },
+    { value: "single", label: "Uno por uno", hint: selectedCount === 1 ? "1 registro elegido" : "elige 1 registro" },
+  ];
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+        gap: 8,
+      }}
+      role="radiogroup"
+      aria-label="Alcance de la decisión"
+    >
+      {items.map((item) => {
+        const active = value === item.value;
+        return (
+          <button
+            key={item.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(item.value)}
+            style={{
+              display: "grid",
+              gap: 3,
+              minHeight: 62,
+              padding: "9px 10px",
+              borderRadius: 10,
+              border: `1px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+              background: active ? "var(--pulso-primary-soft)" : "var(--pulso-surface-2)",
+              color: active ? "var(--pulso-primary)" : "var(--pulso-text)",
+              textAlign: "left",
+              cursor: "pointer",
+            }}
+          >
+            <strong style={{ fontSize: 12, lineHeight: 1.2 }}>{item.label}</strong>
+            <span style={{ fontSize: 10.5, lineHeight: 1.3, color: "var(--pulso-text-soft)" }}>
+              {item.hint}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function DecisionApplySummary({
+  form,
+  readiness,
+  totalCases,
+  selectedCount,
+  optionsByCode,
+}: {
+  form: EditorForm;
+  readiness: DecisionReadiness;
+  totalCases: number;
+  selectedCount: number;
+  optionsByCode: Map<string, ChoiceOption>;
+}) {
+  const action = humanizeAction(form.action_type);
+  const scope =
+    form.action_type === "ignore_rule"
+      ? "El hallazgo quedará registrado sin modificar la base."
+      : form.use_all_cases
+        ? `Cubrirá ${totalCases || "todos los"} caso${totalCases === 1 ? "" : "s"} de este hallazgo.`
+        : form.scope_mode === "single"
+          ? selectedCount === 1
+            ? "Cubrirá solo el registro seleccionado."
+            : "Falta elegir un registro."
+          : selectedCount > 0
+            ? `Cubrirá ${selectedCount} registro${selectedCount === 1 ? "" : "s"} seleccionado${selectedCount === 1 ? "" : "s"}.`
+            : "Falta elegir registros.";
+  const procedure = decisionProcedureText(form, optionsByCode);
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: 8,
+        padding: "10px 12px",
+        borderRadius: 12,
+        border: `1px solid ${readiness.ready ? "var(--pulso-primary-border)" : "var(--pulso-warn-border)"}`,
+        background: readiness.ready ? "var(--pulso-primary-soft)" : "var(--pulso-warn-bg)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <strong style={{ fontSize: 12.5, color: "var(--pulso-text)" }}>Decisión a guardar</strong>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: readiness.ready ? "var(--pulso-primary)" : "var(--pulso-warn-fg)",
+            textTransform: "uppercase",
+            letterSpacing: 0.4,
+          }}
+        >
+          {readiness.ready ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
+          {readiness.ready ? "Lista" : "Incompleta"}
+        </span>
+      </div>
+      <div style={{ display: "grid", gap: 5, fontSize: 11.5, color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>
+        <span><strong style={{ color: "var(--pulso-text)" }}>{action}</strong></span>
+        <span>{scope}</span>
+        {procedure && <span>{procedure}</span>}
+      </div>
+    </div>
+  );
+}
+
 function ActionBar({
   saveBusy,
+  readiness,
+  coversWholeFinding,
   canDelete,
   onSaveDraft,
   onSaveAndNext,
@@ -1382,338 +1580,86 @@ function ActionBar({
   onNav,
 }: {
   saveBusy: boolean;
+  readiness: DecisionReadiness;
+  coversWholeFinding: boolean;
   canDelete: boolean;
   onSaveDraft: () => void;
   onSaveAndNext: () => void;
   onDelete: () => void;
   onNav: (direction: "next" | "prev") => void;
 }) {
+  const primaryDisabled = saveBusy || !readiness.ready;
+  const primaryLabel = coversWholeFinding ? "Guardar y siguiente" : "Guardar decisión parcial";
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 8,
-        flexWrap: "wrap",
-        paddingTop: 10,
-        borderTop: "1px solid var(--pulso-border)",
-      }}
-    >
-      <div style={{ display: "flex", gap: 6 }}>
-        <button type="button" onClick={() => onNav("prev")} style={secondaryButtonStyle} title="Anterior">
-          ← Anterior
-        </button>
-        <button type="button" onClick={() => onNav("next")} style={secondaryButtonStyle} title="Siguiente">
-          Siguiente →
-        </button>
-      </div>
-
-      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-        {canDelete && (
-          <button type="button" onClick={onDelete} disabled={saveBusy} style={dangerButtonStyle}>
-            <Trash2 size={13} />
-            Eliminar
-          </button>
-        )}
-        <button type="button" onClick={onSaveDraft} disabled={saveBusy} style={secondaryButtonStyle}>
-          <Save size={13} />
-          Guardar borrador
-        </button>
-        <button
-          type="button"
-          onClick={onSaveAndNext}
-          disabled={saveBusy}
-          className="pulso-primary"
-          style={primaryButtonStyle}
-          title="Cmd/Ctrl + Enter"
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 10, borderTop: "1px solid var(--pulso-border)" }}>
+      {!readiness.ready && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 10px",
+            borderRadius: 10,
+            border: "1px solid var(--pulso-warn-border)",
+            background: "var(--pulso-warn-bg)",
+            color: "var(--pulso-warn-fg)",
+            fontSize: 11.5,
+            lineHeight: 1.35,
+          }}
         >
-          {saveBusy ? <Loader2 size={13} className="pulso-spin" /> : <ArrowRight size={13} />}
-          Guardar y siguiente
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// =============================================================================
-// Zona 3 — Reporte de cambios (colapsado por defecto)
-// =============================================================================
-function ReporteCambios({
-  open,
-  onToggle,
-  preview,
-  artifacts,
-}: {
-  open: boolean;
-  onToggle: () => void;
-  preview: LimpiezaSummary["before_after_preview"];
-  artifacts: LimpiezaArtifactsBundle | null;
-}) {
-  const listas = preview?.decisions_ready ?? 0;
-  const hasArtifacts = !!artifacts && (artifacts.files?.length ?? 0) > 0;
-
-  return (
-    <section
-      style={{
-        borderRadius: 16,
-        border: "1px solid var(--pulso-border)",
-        background: "white",
-        boxShadow: "var(--pulso-shadow-low)",
-        overflow: "hidden",
-      }}
-    >
-      <button
-        type="button"
-        onClick={onToggle}
+          <AlertTriangle size={14} />
+          <span>{readiness.issues[0]}</span>
+        </div>
+      )}
+      <div
         style={{
-          width: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 12,
-          padding: "14px 18px",
-          background: "white",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
+          gap: 8,
+          flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--pulso-text)" }}>
-              Reporte de cambios
-            </div>
-            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-              {hasArtifacts
-                ? `Entregables generados · ${artifacts?.files.length ?? 0} archivos`
-                : listas > 0
-                  ? `${listas} decisión${listas === 1 ? "" : "es"} lista${listas === 1 ? "" : "s"} · impacto simulado`
-                  : "Aparece al guardar decisiones listas"}
-            </div>
-          </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button type="button" onClick={() => onNav("prev")} style={secondaryButtonStyle} title="Anterior">
+            ← Anterior
+          </button>
+          <button type="button" onClick={() => onNav("next")} style={secondaryButtonStyle} title="Siguiente">
+            Siguiente →
+          </button>
         </div>
-      </button>
 
-      {open && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 18px 18px" }}>
-          <ImpactPreview preview={preview} />
-          {hasArtifacts && <ArtifactGrid artifacts={artifacts!} />}
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          {canDelete && (
+            <button type="button" onClick={onDelete} disabled={saveBusy} style={dangerButtonStyle}>
+              <Trash2 size={13} />
+              Eliminar
+            </button>
+          )}
+          <button type="button" onClick={onSaveDraft} disabled={saveBusy} style={secondaryButtonStyle}>
+            <Save size={13} />
+            Guardar borrador
+          </button>
+          <button
+            type="button"
+            onClick={onSaveAndNext}
+            disabled={primaryDisabled}
+            className="pulso-primary"
+            style={primaryButtonStyle}
+            title={
+              readiness.ready
+                ? coversWholeFinding
+                  ? "Guardar decisión y pasar al siguiente hallazgo"
+                  : "Guardar esta decisión y mantener el hallazgo pendiente"
+                : readiness.issues[0]
+            }
+          >
+            {saveBusy ? <Loader2 size={13} className="pulso-spin" /> : <ArrowRight size={13} />}
+            {primaryLabel}
+          </button>
         </div>
-      )}
-    </section>
-  );
-}
-
-function ImpactPreview({ preview }: { preview: LimpiezaSummary["before_after_preview"] }) {
-  if (!preview) {
-    return (
-      <div style={emptyDashedStyle}>
-        Sin decisiones listas todavía. Al guardar la primera verás el impacto simulado.
-      </div>
-    );
-  }
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: 10,
-        }}
-      >
-        <ImpactChip label="Filas antes" value={formatNumber(preview.before.filas_base)} />
-        <ImpactChip label="Filas después" value={formatNumber(preview.after.filas_base)} />
-        <ImpactChip label="Reglas resueltas" value={formatNumber(preview.impact.rules_resolved)} />
-        <ImpactChip label="Casos excluidos" value={formatNumber(preview.impact.cases_excluded)} />
-        <ImpactChip label="Celdas corregidas" value={formatNumber(preview.impact.cells_changed)} />
-      </div>
-
-      {preview.residual_final && preview.residual_final.length > 0 && (
-        <details>
-          <summary style={summaryStyle}>
-            Residual proyectado ({preview.residual_final.length} reglas con casos)
-          </summary>
-          <ResidualTable rows={preview.residual_final} />
-        </details>
-      )}
-    </div>
-  );
-}
-
-function ArtifactGrid({ artifacts }: { artifacts: LimpiezaArtifactsBundle }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: "var(--pulso-text)" }}>Entregables</div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: 10,
-        }}
-      >
-        {artifacts.files.map((artifact) => (
-          <ArtifactCard
-            key={artifact.file_id}
-            artifact={artifact}
-            recommended={artifact.file_id === artifacts.recommended_file_id}
-          />
-        ))}
       </div>
     </div>
-  );
-}
-
-function ArtifactCard({
-  artifact,
-  recommended,
-}: {
-  artifact: LimpiezaArtifactsBundle["files"][number];
-  recommended: boolean;
-}) {
-  return (
-    <article
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        padding: "14px",
-        borderRadius: 12,
-        border: `1px solid ${recommended ? "var(--pulso-success-border)" : "var(--pulso-border)"}`,
-        background: recommended ? "var(--pulso-success-bg)" : "white",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "var(--pulso-text)" }}>{artifact.label}</div>
-        {recommended && <StatusBadge status="ready" text="Recomendada" />}
-      </div>
-      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{artifact.original_name}</div>
-      <div style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>
-        {formatDateTime(artifact.generated_at)}
-      </div>
-      <a
-        href={downloadUrl(artifact.file_id)}
-        style={{
-          marginTop: 4,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 6,
-          padding: "8px 10px",
-          borderRadius: 8,
-          border: "1px solid var(--pulso-primary-border)",
-          color: "var(--pulso-primary)",
-          background: "white",
-          textDecoration: "none",
-          fontSize: 12,
-          fontWeight: 700,
-        }}
-      >
-        <Download size={13} />
-        Descargar
-      </a>
-    </article>
-  );
-}
-
-function ResidualTable({ rows }: { rows: Array<Record<string, unknown>> }) {
-  if (!rows.length) return null;
-  const columns = Object.keys(rows[0] ?? {}).slice(0, 6);
-  return (
-    <div
-      style={{
-        marginTop: 10,
-        maxHeight: 280,
-        overflow: "auto",
-        borderRadius: 10,
-        border: "1px solid var(--pulso-border)",
-      }}
-    >
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-        <thead>
-          <tr style={{ background: "var(--pulso-surface-2)" }}>
-            {columns.map((column) => (
-              <th key={column} style={tableHeadCell}>
-                {column}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.slice(0, 30).map((row, index) => (
-            <tr key={index} style={{ borderTop: "1px solid var(--pulso-border)" }}>
-              {columns.map((column) => (
-                <td key={`${index}-${column}`} style={tableCell}>
-                  {stringifyCellValue(row[column])}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// =============================================================================
-// Drawer opcional — Resumen visual (top reglas / top variables)
-// =============================================================================
-function ResumenVisualDrawer({
-  open,
-  onToggle,
-  topReglas,
-  topVariables,
-}: {
-  open: boolean;
-  onToggle: () => void;
-  topReglas: LimpiezaSummary["top_reglas"];
-  topVariables: LimpiezaSummary["top_variables"];
-}) {
-  return (
-    <section
-      style={{
-        borderRadius: 16,
-        border: "1px solid var(--pulso-border)",
-        background: "white",
-        boxShadow: "var(--pulso-shadow-low)",
-        overflow: "hidden",
-      }}
-    >
-      <button
-        type="button"
-        onClick={onToggle}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "12px 18px",
-          background: "white",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
-        }}
-      >
-        {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>
-          Ver resumen visual
-        </span>
-      </button>
-      {open && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
-            gap: 14,
-            padding: "0 18px 18px",
-          }}
-        >
-          {topReglas && <PlotlyView view={topReglas} />}
-          {topVariables && <PlotlyView view={topVariables} />}
-        </div>
-      )}
-    </section>
   );
 }
 
@@ -1727,6 +1673,7 @@ function CasesTable({
   loading,
   error,
   selectable,
+  selectionMode,
   selectedCaseIds,
   onToggle,
   onSelectAll,
@@ -1738,6 +1685,7 @@ function CasesTable({
   loading: boolean;
   error: string;
   selectable: boolean;
+  selectionMode: "multiple" | "single";
   selectedCaseIds: Set<string>;
   onToggle: (caseId: string) => void;
   onSelectAll: () => void;
@@ -1772,7 +1720,7 @@ function CasesTable({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {selectable && (
+      {selectable && selectionMode === "multiple" && (
         <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
           <button type="button" onClick={onSelectAll} style={secondaryButtonStyle}>
             Seleccionar todos
@@ -1793,7 +1741,7 @@ function CasesTable({
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ background: "var(--pulso-surface-2)" }}>
-              {selectable && <th style={tableHeadCell}>Incluir</th>}
+              {selectable && <th style={tableHeadCell}>{selectionMode === "single" ? "Elegir" : "Incluir"}</th>}
               <th style={tableHeadCell}>{uuidLabel}</th>
               {columns.map((column) => (
                 <th key={column} style={tableHeadCell}>
@@ -1808,7 +1756,8 @@ function CasesTable({
                 {selectable && (
                   <td style={tableCell}>
                     <input
-                      type="checkbox"
+                      type={selectionMode === "single" ? "radio" : "checkbox"}
+                      name="limpieza-case-selection"
                       checked={selectedCaseIds.has(row.id)}
                       onChange={() => onToggle(row.id)}
                     />
@@ -1867,27 +1816,6 @@ function InlineMessage({
   );
 }
 
-function ImpactChip({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-        padding: "12px 14px",
-        borderRadius: 10,
-        border: "1px solid var(--pulso-border)",
-        background: "var(--pulso-surface-2)",
-      }}
-    >
-      <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)" }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 14, fontWeight: 800, color: "var(--pulso-text)" }}>{value}</div>
-    </div>
-  );
-}
-
 function StatusBadge({
   status,
   text,
@@ -1926,9 +1854,251 @@ function FormField({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
+type HierarchyDecisionRow = {
+  trigger: string;
+  required: string;
+};
+
+function HierarchyDecisionEditor({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: ChoiceOption[];
+}) {
+  const rows = hierarchyRowsFromDecisionText(value);
+  const visibleRows = rows.length ? rows : [{ trigger: "", required: "" }];
+  const hasOptions = options.length > 0;
+  const optionsByCode = useMemo(
+    () => new Map(options.map((option) => [option.code, option])),
+    [options],
+  );
+
+  function commit(nextRows: HierarchyDecisionRow[]) {
+    const map: Record<string, string[]> = {};
+    for (const row of nextRows) {
+      const trigger = row.trigger.trim();
+      const required = parseLineList(row.required).filter((code) => code !== trigger);
+      if (trigger && required.length) map[trigger] = required;
+    }
+    onChange(Object.keys(map).length ? JSON.stringify(map, null, 2) : "");
+  }
+
+  function update(idx: number, patch: Partial<HierarchyDecisionRow>) {
+    commit(visibleRows.map((row, i) => {
+      if (i !== idx) return row;
+      const next = { ...row, ...patch };
+      if (patch.trigger != null) {
+        next.required = parseLineList(next.required).filter((code) => code !== patch.trigger).join("\n");
+      }
+      return next;
+    }));
+  }
+
+  function remove(idx: number) {
+    const next = visibleRows.filter((_, i) => i !== idx);
+    commit(next.length ? next : [{ trigger: "", required: "" }]);
+  }
+
+  function addRow() {
+    const used = new Set(visibleRows.map((row) => row.trigger).filter(Boolean));
+    const nextTrigger = options.find((option) => !used.has(option.code))?.code ?? "";
+    commit([...visibleRows, { trigger: nextTrigger, required: "" }]);
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      {visibleRows.map((row, idx) => (
+        <div
+          key={idx}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(130px, .8fr) minmax(180px, 1.2fr) 32px",
+            gap: 8,
+            alignItems: "start",
+            padding: 10,
+            border: "1px solid var(--pulso-border)",
+            borderRadius: 10,
+            background: "var(--pulso-surface-2)",
+          }}
+        >
+          <FormField label="Cuando aparece">
+            {hasOptions ? (
+              <OptionRadioPicker
+                options={options}
+                value={row.trigger}
+                onChange={(code) => update(idx, { trigger: code })}
+                name={`limpieza-hierarchy-trigger-${idx}`}
+                compact
+              />
+            ) : (
+              <input
+                value={row.trigger}
+                onChange={(event) => update(idx, { trigger: event.target.value })}
+                style={inputStyle}
+                placeholder="Código u opción marcada"
+              />
+            )}
+          </FormField>
+          <FormField label="Completar también con">
+            {hasOptions ? (
+              <OptionChecklist
+                options={options.filter((option) => option.code !== row.trigger)}
+                value={parseLineList(row.required)}
+                onChange={(codes) => update(idx, { required: codes.join("\n") })}
+                compact
+              />
+            ) : (
+              <textarea
+                rows={2}
+                value={row.required}
+                onChange={(event) => update(idx, { required: event.target.value })}
+                style={{ ...inputStyle, resize: "vertical" }}
+                placeholder="Una opción por línea"
+              />
+            )}
+          </FormField>
+          <button
+            type="button"
+            onClick={() => remove(idx)}
+            className="pulso-icon"
+            aria-label="Quitar relación"
+            title="Quitar relación"
+            style={{ width: 30, height: 30, marginTop: 23, background: "white" }}
+          >
+            <Trash2 size={12} />
+          </button>
+          <div
+            style={{
+              gridColumn: "1 / -1",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 6,
+              padding: "7px 9px",
+              borderRadius: 8,
+              background: "white",
+              border: "1px solid var(--pulso-border)",
+              fontSize: 11,
+              color: "var(--pulso-text-soft)",
+            }}
+          >
+            <span>Si aparece</span>
+            <strong style={{ color: "var(--pulso-text)" }}>
+              {choiceOptionLabel(row.trigger, optionsByCode, "opción marcada")}
+            </strong>
+            <span>se completará</span>
+            <strong style={{ color: "var(--pulso-text)" }}>
+              {choiceOptionsLabel(parseLineList(row.required), optionsByCode, "opciones esperadas")}
+            </strong>
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={addRow}
+        style={{ ...secondaryButtonStyle, justifySelf: "start" }}
+      >
+        Agregar relación
+      </button>
+    </div>
+  );
+}
+
+function OptionRadioPicker({
+  options,
+  value,
+  onChange,
+  name,
+  compact = false,
+}: {
+  options: ChoiceOption[];
+  value: string;
+  onChange: (value: string) => void;
+  name: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={`pulso-option-picker${compact ? " is-compact" : ""}`}>
+      <div className="pulso-option-picker-list">
+        {options.map((option) => {
+          const checked = value === option.code;
+          return (
+            <label key={option.code} className={`pulso-option-picker-row${checked ? " is-selected" : ""}`}>
+              <input
+                type="radio"
+                name={name}
+                checked={checked}
+                onChange={() => onChange(option.code)}
+              />
+              <span>
+                <strong>{option.label || option.code}</strong>
+                {option.code !== option.label && <small>{option.code}</small>}
+              </span>
+              {option.n != null && <em>n={option.n}</em>}
+            </label>
+          );
+        })}
+        {!options.length && (
+          <div className="pulso-option-picker-empty">Sin opciones del catálogo.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OptionChecklist({
+  options,
+  value,
+  onChange,
+  compact = false,
+}: {
+  options: ChoiceOption[];
+  value: string[];
+  onChange: (value: string[]) => void;
+  compact?: boolean;
+}) {
+  const selected = new Set(value);
+  function toggle(code: string) {
+    const next = new Set(selected);
+    if (next.has(code)) next.delete(code);
+    else next.add(code);
+    onChange(Array.from(next));
+  }
+
+  return (
+    <div className={`pulso-option-picker${compact ? " is-compact" : ""}`}>
+      <div className="pulso-option-picker-list">
+        {options.map((option) => {
+          const checked = selected.has(option.code);
+          return (
+            <label key={option.code} className={`pulso-option-picker-row${checked ? " is-selected" : ""}`}>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => toggle(option.code)}
+              />
+              <span>
+                <strong>{option.label || option.code}</strong>
+                {option.code !== option.label && <small>{option.code}</small>}
+              </span>
+              {option.n != null && <em>n={option.n}</em>}
+            </label>
+          );
+        })}
+        {!options.length && (
+          <div className="pulso-option-picker-empty">Sin opciones disponibles.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function renderActionSpecificFields(
   form: EditorForm,
   setForm: Dispatch<SetStateAction<EditorForm>>,
+  choiceOptions: ChoiceOption[],
 ) {
   if (form.action_type === "replace_value") {
     return (
@@ -1956,6 +2126,59 @@ function renderActionSpecificFields(
           />
         </FormField>
       </div>
+    );
+  }
+
+  if (form.action_type === "set_value") {
+    return (
+      <FormField label="Valor a asignar">
+        <input
+          value={form.set_value}
+          onChange={(event) => {
+            const setValue = event.target.value;
+            setForm((current) => ({ ...current, set_value: setValue }));
+          }}
+          style={inputStyle}
+          placeholder="Ej. No aplica"
+        />
+      </FormField>
+    );
+  }
+
+  if (form.action_type === "recode_map") {
+    return (
+      <FormField label="Mapa de recodificación">
+        <textarea
+          rows={6}
+          value={form.recode_map_json}
+          onChange={(event) => {
+            const recodeMapJson = event.target.value;
+            setForm((current) => ({ ...current, recode_map_json: recodeMapJson }));
+          }}
+          style={{ ...inputStyle, resize: "vertical", fontFamily: "ui-monospace, monospace" }}
+          placeholder={'{\n  "Sii": "Sí",\n  "N": "No"\n}'}
+        />
+        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+          Usa JSON: cada clave es el valor actual y cada valor es la recodificación.
+        </span>
+      </FormField>
+    );
+  }
+
+  if (form.action_type === "nullify_fields") {
+    return (
+      <FormField label="Variables a anular">
+        <textarea
+          rows={4}
+          value={form.nullify_variables_text}
+          onChange={(event) => {
+            const nullifyVariablesText = event.target.value;
+            setForm((current) => ({ ...current, nullify_variables_text: nullifyVariablesText }));
+          }}
+          style={{ ...inputStyle, resize: "vertical", fontFamily: "ui-monospace, monospace" }}
+          placeholder={`Deja vacío para anular solo la variable objetivo.\nO escribe una variable por línea.`}
+        />
+      </FormField>
     );
   }
 
@@ -2022,12 +2245,235 @@ function renderActionSpecificFields(
     );
   }
 
+  if (form.action_type === "complete_select_multiple_hierarchy") {
+    return (
+      <FormField label="Relación de opciones">
+        <HierarchyDecisionEditor
+          value={form.hierarchy_map_json}
+          options={choiceOptions}
+          onChange={(hierarchyMapJson) => {
+            setForm((current) => ({ ...current, hierarchy_map_json: hierarchyMapJson }));
+          }}
+        />
+        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+          Se lee así: cuando aparece la opción de la izquierda, también deben aparecer las de la derecha.
+        </span>
+      </FormField>
+    );
+  }
+
+  if (form.action_type === "adjust_select_multiple") {
+    const addCodes = parseLineList(form.sm_add_codes);
+    const removeCodes = parseLineList(form.sm_remove_codes);
+    const optionsByCode = new Map(choiceOptions.map((option) => [option.code, option]));
+    if (choiceOptions.length > 0) {
+      return (
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+            <FormField label="Agregar">
+              <OptionChecklist
+                options={choiceOptions.filter((option) => !removeCodes.includes(option.code))}
+                value={addCodes}
+                onChange={(codes) => {
+                  setForm((current) => ({ ...current, sm_add_codes: codes.join("\n") }));
+                }}
+                compact
+              />
+            </FormField>
+            <FormField label="Quitar">
+              <OptionChecklist
+                options={choiceOptions.filter((option) => !addCodes.includes(option.code))}
+                value={removeCodes}
+                onChange={(codes) => {
+                  setForm((current) => ({ ...current, sm_remove_codes: codes.join("\n") }));
+                }}
+                compact
+              />
+            </FormField>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+            {addCodes.length > 0 && (
+              <span>
+                Agregar: <strong style={{ color: "var(--pulso-text)" }}>{choiceOptionsLabel(addCodes, optionsByCode, "opciones")}</strong>.
+              </span>
+            )}
+            {addCodes.length > 0 && removeCodes.length > 0 && <span> </span>}
+            {removeCodes.length > 0 && (
+              <span>
+                Quitar: <strong style={{ color: "var(--pulso-text)" }}>{choiceOptionsLabel(removeCodes, optionsByCode, "opciones")}</strong>.
+              </span>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+        <FormField label="Opciones a agregar">
+          <textarea
+            rows={4}
+            value={form.sm_add_codes}
+            onChange={(event) => {
+              const smAddCodes = event.target.value;
+              setForm((current) => ({ ...current, sm_add_codes: smAddCodes }));
+            }}
+            style={{ ...inputStyle, resize: "vertical", fontFamily: "ui-monospace, monospace" }}
+            placeholder="Una opción por línea"
+          />
+        </FormField>
+        <FormField label="Opciones a quitar">
+          <textarea
+            rows={4}
+            value={form.sm_remove_codes}
+            onChange={(event) => {
+              const smRemoveCodes = event.target.value;
+              setForm((current) => ({ ...current, sm_remove_codes: smRemoveCodes }));
+            }}
+            style={{ ...inputStyle, resize: "vertical", fontFamily: "ui-monospace, monospace" }}
+            placeholder="Una opción por línea"
+          />
+        </FormField>
+      </div>
+    );
+  }
+
   return null;
 }
 
 // =============================================================================
 // Helpers puros
 // =============================================================================
+function buildChoiceOptions(drill: InstrumentoDrillResult | null, variable: string): ChoiceOption[] {
+  if (!drill || !variable) return [];
+  const rawLabels = drill.regla.value_labels?.[variable] ?? null;
+  const counts = countChoiceValues(drill, variable);
+  const options: ChoiceOption[] = [];
+
+  if (rawLabels && typeof rawLabels === "object") {
+    for (const [code, rawLabel] of Object.entries(rawLabels)) {
+      const cleanCode = String(code).trim();
+      if (!cleanCode) continue;
+      const label = String(rawLabel ?? cleanCode).trim() || cleanCode;
+      options.push({ code: cleanCode, label, n: counts.get(cleanCode) ?? null });
+    }
+  }
+
+  if (!options.length) {
+    for (const code of Array.from(counts.keys()).sort(naturalCodeSort)) {
+      options.push({ code, label: code, n: counts.get(code) ?? null });
+    }
+  }
+
+  return options;
+}
+
+function countChoiceValues(drill: InstrumentoDrillResult, variable: string) {
+  const counts = new Map<string, number>();
+  for (const row of drill.casos ?? []) {
+    const value = row[variable];
+    for (const code of tokenizeSelectMultipleValue(value)) {
+      counts.set(code, (counts.get(code) ?? 0) + 1);
+    }
+    const labels = drill.regla.value_labels?.[variable] ?? {};
+    for (const code of Object.keys(labels)) {
+      const dummy = row[`${variable}.${code}`] ?? row[`${variable}_${code}`];
+      if (isTruthyDummy(dummy)) counts.set(code, (counts.get(code) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+function tokenizeSelectMultipleValue(value: unknown) {
+  if (value == null || value === "") return [];
+  if (Array.isArray(value)) return uniqueStrings(value.map((item) => String(item)));
+  return uniqueStrings(String(value).split(/[\s,;|]+/).map((item) => item.trim()));
+}
+
+function isTruthyDummy(value: unknown) {
+  if (value === true) return true;
+  if (typeof value === "number") return value === 1;
+  const text = String(value ?? "").trim().toLowerCase();
+  return ["1", "true", "t", "yes", "y", "si", "sí", "x"].includes(text);
+}
+
+function naturalCodeSort(a: string, b: string) {
+  return a.localeCompare(b, "es", { numeric: true, sensitivity: "base" });
+}
+
+function choiceOptionLabel(code: string, optionsByCode: Map<string, ChoiceOption>, fallback: string) {
+  const clean = code.trim();
+  if (!clean) return fallback;
+  const option = optionsByCode.get(clean);
+  if (!option) return clean;
+  return option.label || option.code;
+}
+
+function choiceOptionsLabel(codes: string[], optionsByCode: Map<string, ChoiceOption>, fallback: string) {
+  const labels = codes
+    .map((code) => choiceOptionLabel(code, optionsByCode, ""))
+    .filter(Boolean);
+  return labels.length ? labels.join(", ") : fallback;
+}
+
+function decisionProcedureText(form: EditorForm, optionsByCode: Map<string, ChoiceOption>) {
+  if (form.action_type === "complete_select_multiple_hierarchy") {
+    const parsed = parseHierarchyMap(form.hierarchy_map_json);
+    if (!parsed.ok || !Object.keys(parsed.value).length) return "Define qué opciones deben completarse.";
+    const bits = Object.entries(parsed.value).map(([trigger, required]) => {
+      const triggerLabel = choiceOptionLabel(trigger, optionsByCode, trigger);
+      const requiredLabel = choiceOptionsLabel(required, optionsByCode, required.join(", "));
+      return `${triggerLabel} → ${requiredLabel}`;
+    });
+    return `Relación: ${bits.join(" · ")}`;
+  }
+  if (form.action_type === "adjust_select_multiple") {
+    const add = parseLineList(form.sm_add_codes);
+    const remove = parseLineList(form.sm_remove_codes);
+    const parts = [];
+    if (add.length) parts.push(`agregar ${choiceOptionsLabel(add, optionsByCode, add.join(", "))}`);
+    if (remove.length) parts.push(`quitar ${choiceOptionsLabel(remove, optionsByCode, remove.join(", "))}`);
+    return parts.length ? `Ajuste: ${parts.join("; ")}.` : "Define opciones para agregar o quitar.";
+  }
+  if (form.action_type === "nullify_fields") return "Los campos quedarán vacíos para los registros cubiertos.";
+  if (form.action_type === "exclude_cases") return "Los registros cubiertos quedarán fuera de la base final.";
+  return "";
+}
+
+function getDecisionReadiness(form: EditorForm): DecisionReadiness {
+  const issues: string[] = [];
+  if (form.action_type !== "ignore_rule" && form.scope_mode === "single" && form.target_case_ids.length !== 1) {
+    issues.push("Selecciona un registro para guardar una decisión uno por uno.");
+  } else if (form.action_type !== "ignore_rule" && !form.use_all_cases && form.target_case_ids.length === 0) {
+    issues.push("Selecciona registros o cambia el alcance a Todos.");
+  }
+  if (actionNeedsVariable(form.action_type) && !form.target_variable) {
+    issues.push("Selecciona una variable objetivo.");
+  }
+  if (form.action_type === "complete_select_multiple_hierarchy") {
+    const parsed = parseHierarchyMap(form.hierarchy_map_json);
+    if (!parsed.ok || Object.keys(parsed.value).length === 0) {
+      issues.push("Define al menos una relación de opciones.");
+    }
+  }
+  if (form.action_type === "adjust_select_multiple" && !parseLineList(form.sm_add_codes).length && !parseLineList(form.sm_remove_codes).length) {
+    issues.push("Define al menos una opción para agregar o quitar.");
+  }
+  if (form.action_type === "replace_value" && !form.replace_to.trim()) {
+    issues.push("Indica el valor corregido.");
+  }
+  if (form.action_type === "set_value" && !form.set_value.trim()) {
+    issues.push("Indica el valor a asignar.");
+  }
+  if (form.action_type === "recode_map") {
+    const parsed = parseJsonObject(form.recode_map_json, "El mapa de recodificación debe ser JSON válido.");
+    if (!parsed.ok || Object.keys(parsed.value).length === 0) issues.push("Define el mapa de recodificación.");
+  }
+  if (!form.rationale.trim()) {
+    issues.push("Escribe una justificación para dejar la decisión lista.");
+  }
+  return { ready: issues.length === 0, issues };
+}
+
 function emptyEditorForm(): EditorForm {
   return {
     id: "",
@@ -2035,12 +2481,19 @@ function emptyEditorForm(): EditorForm {
     action_type: "ignore_rule",
     target_variable: "",
     rationale: "",
+    scope_mode: "all",
     use_all_cases: true,
     target_case_ids: [],
     replace_from: "",
     replace_to: "",
     normalize_from: "",
     normalize_to: "",
+    hierarchy_map_json: "",
+    set_value: "",
+    recode_map_json: "",
+    nullify_variables_text: "",
+    sm_add_codes: "",
+    sm_remove_codes: "",
     impute_method: "fixed",
     impute_fixed_value: "",
   };
@@ -2052,22 +2505,32 @@ function buildEditorForm(
   decision: LimpiezaDecision | null,
   variableOptions: string[],
 ): EditorForm {
-  const actionType = decision?.action_type ?? "ignore_rule";
+  const actionType = decision?.action_type ?? normalizePlannedAction(item?.planned_action_type);
+  const plannedScope = normalizePlannedScope(item?.recommended_scope, actionType);
+  const scopeMode = decision ? decisionScopeMode(decision) : plannedScope;
   const useAllCases = decision
     ? (decision.target_case_ids?.length ?? 0) === 0
-    : actionType !== "exclude_cases";
+    : actionType === "ignore_rule" || scopeMode === "all";
+  const plannedParams = item?.planned_action_params ?? {};
   return {
     id: decision?.id ?? "",
     source_type: decision?.source_type ?? item?.source_type ?? inferSourceType(sourceId),
     action_type: actionType,
     target_variable: decision?.target_variable ?? (actionNeedsVariable(actionType) ? variableOptions[0] ?? "" : ""),
     rationale: decision?.rationale ?? "",
+    scope_mode: actionType === "ignore_rule" ? "all" : scopeMode,
     use_all_cases: actionType === "ignore_rule" ? true : useAllCases,
     target_case_ids: decision?.target_case_ids ?? [],
     replace_from: readActionParam(decision, "from_value"),
     replace_to: readActionParam(decision, "to_value"),
     normalize_from: readActionParam(decision, "from_value"),
     normalize_to: readActionParam(decision, "normalized_value") || readActionParam(decision, "to_value"),
+    hierarchy_map_json: readHierarchyMapParam(decision) || readHierarchyMapParamFromParams(plannedParams),
+    set_value: readActionParam(decision, "value") || readActionParam(decision, "to_value"),
+    recode_map_json: readObjectParam(decision, "recode_map") || readObjectParam(decision, "map") || readObjectFromParams(plannedParams, "recode_map"),
+    nullify_variables_text: readListParam(decision, "target_variables") || readListFromParams(plannedParams, "target_variables"),
+    sm_add_codes: readListParam(decision, "add_codes") || readListFromParams(plannedParams, "add_codes"),
+    sm_remove_codes: readListParam(decision, "remove_codes") || readListFromParams(plannedParams, "remove_codes"),
     impute_method: readImputeMethod(decision),
     impute_fixed_value: readActionParam(decision, "fixed_value") || readActionParam(decision, "value"),
   };
@@ -2096,6 +2559,10 @@ function buildDecisionPayload({
     throw new Error("Selecciona al menos un caso o marca que aplica a todos.");
   }
 
+  if (form.action_type !== "ignore_rule" && form.scope_mode === "single" && form.target_case_ids.length !== 1) {
+    throw new Error("Para revisar uno por uno, selecciona exactamente un registro.");
+  }
+
   const actionParams: Record<string, unknown> = {};
 
   if (form.action_type === "replace_value") {
@@ -2104,6 +2571,27 @@ function buildDecisionPayload({
     }
     if (form.replace_from.trim()) actionParams.from_value = form.replace_from.trim();
     actionParams.to_value = form.replace_to.trim();
+  }
+
+  if (form.action_type === "set_value") {
+    if (!form.set_value.trim()) {
+      throw new Error("Indica el valor a asignar.");
+    }
+    actionParams.value = form.set_value.trim();
+  }
+
+  if (form.action_type === "recode_map") {
+    const parsed = parseJsonObject(form.recode_map_json, "El mapa de recodificación debe ser JSON válido.");
+    if (!parsed.ok) throw new Error(parsed.error);
+    if (Object.keys(parsed.value).length === 0) {
+      throw new Error("Define al menos una recodificación.");
+    }
+    actionParams.recode_map = parsed.value;
+  }
+
+  if (form.action_type === "nullify_fields") {
+    const variables = parseLineList(form.nullify_variables_text);
+    if (variables.length) actionParams.target_variables = variables;
   }
 
   if (form.action_type === "normalize_value") {
@@ -2122,6 +2610,27 @@ function buildDecisionPayload({
       }
       actionParams.fixed_value = form.impute_fixed_value.trim();
     }
+  }
+
+  if (form.action_type === "complete_select_multiple_hierarchy") {
+    const parsed = parseHierarchyMap(form.hierarchy_map_json);
+    if (!parsed.ok) {
+      throw new Error(parsed.error);
+    }
+    if (Object.keys(parsed.value).length === 0) {
+      throw new Error("Define al menos una opción activadora en el mapa manual.");
+    }
+    actionParams.hierarchy_map = parsed.value;
+  }
+
+  if (form.action_type === "adjust_select_multiple") {
+    const addCodes = parseLineList(form.sm_add_codes);
+    const removeCodes = parseLineList(form.sm_remove_codes);
+    if (!addCodes.length && !removeCodes.length) {
+      throw new Error("Define al menos una opción para agregar o quitar.");
+    }
+    if (addCodes.length) actionParams.add_codes = addCodes;
+    if (removeCodes.length) actionParams.remove_codes = removeCodes;
   }
 
   const scope: LimpiezaDecision["scope"] =
@@ -2183,7 +2692,40 @@ function extractArtifacts(value: LimpiezaSummary["artifacts"] | undefined): Limp
 }
 
 function actionNeedsVariable(actionType: LimpiezaDecisionActionType) {
-  return actionType === "replace_value" || actionType === "normalize_value" || actionType === "impute_value";
+  return (
+    actionType === "replace_value" ||
+    actionType === "set_value" ||
+    actionType === "recode_map" ||
+    actionType === "nullify_fields" ||
+    actionType === "normalize_value" ||
+    actionType === "impute_value" ||
+    actionType === "complete_select_multiple_hierarchy" ||
+    actionType === "adjust_select_multiple"
+  );
+}
+
+function normalizePlannedAction(value: unknown): LimpiezaDecisionActionType {
+  const raw = String(value ?? "");
+  return ACTION_OPTIONS.some((option) => option.value === raw)
+    ? (raw as LimpiezaDecisionActionType)
+    : "ignore_rule";
+}
+
+function normalizePlannedScope(
+  value: unknown,
+  actionType: LimpiezaDecisionActionType,
+): ReglaTreatmentScope {
+  if (actionType === "ignore_rule") return "all";
+  const raw = String(value ?? "");
+  if (raw === "all" || raw === "selected" || raw === "single") return raw;
+  return actionType === "exclude_cases" ? "selected" : "all";
+}
+
+function decisionScopeMode(decision: LimpiezaDecision): ReglaTreatmentScope {
+  const n = decision.target_case_ids?.length ?? 0;
+  if (n === 0) return "all";
+  if (n === 1) return "single";
+  return "selected";
 }
 
 function readActionParam(decision: LimpiezaDecision | null, key: string) {
@@ -2191,10 +2733,106 @@ function readActionParam(decision: LimpiezaDecision | null, key: string) {
   return value == null ? "" : String(value);
 }
 
+function readObjectParam(decision: LimpiezaDecision | null, key: string) {
+  const value = decision?.action_params?.[key];
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  return JSON.stringify(value, null, 2);
+}
+
+function readListParam(decision: LimpiezaDecision | null, key: string) {
+  const value = decision?.action_params?.[key];
+  if (Array.isArray(value)) return value.map((item) => String(item)).join("\n");
+  if (typeof value === "string") return value;
+  return "";
+}
+
+function readObjectFromParams(params: Record<string, unknown>, key: string) {
+  const value = params[key];
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  return JSON.stringify(value, null, 2);
+}
+
+function readListFromParams(params: Record<string, unknown>, key: string) {
+  const value = params[key];
+  if (Array.isArray(value)) return value.map((item) => String(item)).join("\n");
+  if (typeof value === "string") return value;
+  return "";
+}
+
 function readImputeMethod(decision: LimpiezaDecision | null): EditorForm["impute_method"] {
   const raw = String(decision?.action_params?.method ?? "fixed");
   if (raw === "mode" || raw === "median") return raw;
   return "fixed";
+}
+
+function readHierarchyMapParam(decision: LimpiezaDecision | null) {
+  const value = decision?.action_params?.hierarchy_map ?? decision?.action_params?.map;
+  if (!value || typeof value !== "object") return "";
+  return JSON.stringify(value, null, 2);
+}
+
+function readHierarchyMapParamFromParams(params: Record<string, unknown>) {
+  const value = params.hierarchy_map ?? params.map;
+  if (!value || typeof value !== "object") return "";
+  return JSON.stringify(value, null, 2);
+}
+
+function hierarchyRowsFromDecisionText(text: string): HierarchyDecisionRow[] {
+  const parsed = parseHierarchyMap(text);
+  if (parsed.ok) {
+    return Object.entries(parsed.value).map(([trigger, values]) => ({
+      trigger,
+      required: values.join("\n"),
+    }));
+  }
+  return [{ trigger: "", required: "" }];
+}
+
+function parseHierarchyMap(text: string): { ok: true; value: Record<string, string[]> } | { ok: false; error: string } {
+  const trimmed = text.trim();
+  if (!trimmed) return { ok: false, error: "Define el mapa manual de jerarquía." };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return { ok: false, error: "El mapa manual debe ser JSON válido." };
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { ok: false, error: "El mapa debe ser un objeto JSON con listas de códigos." };
+  }
+  const out: Record<string, string[]> = {};
+  for (const [trigger, raw] of Object.entries(parsed as Record<string, unknown>)) {
+    const key = trigger.trim();
+    const values = Array.isArray(raw) ? raw : typeof raw === "string" ? raw.split(/[,\s]+/) : [];
+    const clean = values.map((value) => String(value).trim()).filter((value) => value && value !== key);
+    if (key && clean.length) out[key] = Array.from(new Set(clean));
+  }
+  return { ok: true, value: out };
+}
+
+function parseJsonObject(text: string, error: string): { ok: true; value: Record<string, unknown> } | { ok: false; error: string } {
+  const trimmed = text.trim();
+  if (!trimmed) return { ok: true, value: {} };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return { ok: false, error };
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { ok: false, error: "El valor debe ser un objeto JSON." };
+  }
+  return { ok: true, value: parsed as Record<string, unknown> };
+}
+
+function parseLineList(text: string) {
+  return uniqueStrings(text.split(/\r?\n|,/).map((value) => value.trim()));
+}
+
+function isSelectMultipleItem(item?: LimpiezaQueueItem | null) {
+  const tipoRegla = String(item?.tipo_regla ?? item?.tipo_observacion ?? "").toLowerCase();
+  const tipoVariable = String(item?.tipo_variable ?? "").toLowerCase();
+  return tipoRegla.includes("select_multiple") || tipoVariable.includes("select_multiple") || tipoVariable === "sm";
 }
 
 function inferSourceType(sourceId: string): LimpiezaDecision["source_type"] {
@@ -2220,17 +2858,6 @@ function stringifyCellValue(value: unknown) {
   if (typeof value === "number") return Number.isFinite(value) ? numberFormatter.format(value) : String(value);
   if (typeof value === "boolean") return value ? "Sí" : "No";
   return String(value);
-}
-
-function formatNumber(value: number | null | undefined) {
-  if (value == null || Number.isNaN(value)) return "—";
-  return numberFormatter.format(value);
-}
-
-function formatPercent(value: number | null | undefined) {
-  if (value == null || Number.isNaN(value)) return "—";
-  const pct = Math.abs(value) > 1 ? value / 100 : value;
-  return percentFormatter.format(pct);
 }
 
 function formatDateTime(value?: string) {

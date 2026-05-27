@@ -9,26 +9,23 @@
 //
 // Lo nuevo:
 //   - DndContext + SortableContext con `verticalListSortingStrategy`.
-//   - Arrastrar el grip de la izquierda (o cualquier parte de la fila vía
-//     listeners) reorganiza las filas. El bloque begin/end se mueve atómico
+//   - Arrastrar el grip de la izquierda muestra un slot de caída explícito.
+//     El bloque begin/end se mueve atómico
 //     gracias a `computeRowMove` que opera sobre `structure.spans`.
-//   - DragOverlay con el ghost rotado para feedback visual.
-//
-// Animaciones: `@dnd-kit/sortable` aplica `transform` con `transition` a las
-// filas no arrastradas — el efecto es un slide suave de 200ms cuando otras
-// filas se mueven para hacer espacio.
+//   - Overlay fijo propio con ghost alineado al punto real de agarre.
 // =============================================================================
 
-import { useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   DndContext,
-  DragOverlay,
   KeyboardSensor,
   PointerSensor,
-  closestCenter,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
+  type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import {
@@ -47,6 +44,31 @@ import { OutlineRow } from "./OutlineRow";
 import { OutlineDragOverlay } from "./OutlineDragOverlay";
 import type { RowMovePlan } from "./outlineUtils";
 import { computeRowMove } from "./outlineUtils";
+
+type DropPreview = {
+  overRow: number;
+  before: boolean;
+  position: "before" | "after";
+};
+
+type OverlayGeometry = {
+  width: number;
+  height: number;
+  offsetX: number;
+  offsetY: number;
+  point: { x: number; y: number };
+};
+
+function OutlineDropSlot() {
+  return (
+    <div className="pulso-outline-drop-slot" aria-hidden="true">
+      <span className="pulso-outline-drop-slot-rail" />
+      <span className="pulso-outline-drop-slot-copy">
+        <strong>Soltar aquí</strong>
+      </span>
+    </div>
+  );
+}
 
 export type SurveyOutlineProps = {
   structure: BuilderStructure | null;
@@ -70,16 +92,74 @@ export function SurveyOutline({
   canMoveDown,
   onApplyMove,
 }: SurveyOutlineProps) {
+  const outlineContainerRef = useRef<HTMLDivElement | null>(null);
   const [activeRow, setActiveRow] = useState<number | null>(null);
+  const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
+  const [overlayGeometry, setOverlayGeometry] = useState<OverlayGeometry | null>(null);
+
+  useEffect(() => {
+    if (activeRow == null) return;
+    document.body.classList.add("pulso-outline-drag-active");
+
+    function updateOverlayPoint(event: PointerEvent) {
+      setOverlayGeometry((current) =>
+        current
+          ? { ...current, point: { x: event.clientX, y: event.clientY } }
+          : current,
+      );
+    }
+
+    window.addEventListener("pointermove", updateOverlayPoint, { capture: true });
+    return () => {
+      window.removeEventListener("pointermove", updateOverlayPoint, { capture: true });
+      document.body.classList.remove("pulso-outline-drag-active");
+    };
+  }, [activeRow]);
 
   const sensors = useSensors(
-    // Distancia mínima de 4px antes de iniciar el drag — distingue click
-    // de drag pero responde rápido. Antes era 6px, lo que requería un
-    // gesto más amplio del que el usuario esperaba.
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    // Con filas compactas, un umbral pequeño se siente nervioso. Pedimos un
+    // gesto más deliberado y limitamos el drag al handle de cada fila.
+    useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
+  );
+
+  const outlineCollisionDetection = useCallback<CollisionDetection>(
+    ({ collisionRect, droppableRects, droppableContainers, pointerCoordinates }) => {
+      const outlineRect = outlineContainerRef.current?.getBoundingClientRect();
+
+      if (pointerCoordinates && outlineRect) {
+        const pointerInsideOutline =
+          pointerCoordinates.x >= outlineRect.left &&
+          pointerCoordinates.x <= outlineRect.right &&
+          pointerCoordinates.y >= outlineRect.top &&
+          pointerCoordinates.y <= outlineRect.bottom;
+
+        if (!pointerInsideOutline) return [];
+      }
+
+      const probeY =
+        pointerCoordinates?.y ?? collisionRect.top + collisionRect.height / 2;
+
+      return droppableContainers
+        .map((droppableContainer) => {
+          const rect = droppableRects.get(droppableContainer.id);
+          if (!rect) return null;
+          const centerY = rect.top + rect.height / 2;
+          return {
+            id: droppableContainer.id,
+            data: {
+              droppableContainer,
+              position: probeY < centerY ? "before" : "after",
+              value: Math.abs(probeY - centerY),
+            },
+          };
+        })
+        .filter((collision): collision is NonNullable<typeof collision> => collision != null)
+        .sort((a, b) => a.data.value - b.data.value);
+    },
+    [],
   );
 
   if (!structure || !structure.outline.length) {
@@ -96,51 +176,101 @@ export function SurveyOutline({
   const items = structure.outline.map((n) => n.rowIndex);
   const activeNode = activeRow != null ? structure.byRow.get(activeRow) ?? null : null;
 
+  function collisionPosition(
+    collisions: DragOverEvent["collisions"],
+  ): "before" | "after" | null {
+    const position = collisions?.[0]?.data?.position;
+    return position === "before" || position === "after" ? position : null;
+  }
+
+  function deriveDropPreview(
+    fromId: number,
+    overId: number,
+    position: "before" | "after" | null,
+  ): DropPreview | null {
+    if (!structure) return null;
+    if (!Number.isFinite(fromId) || !Number.isFinite(overId)) return null;
+    if (fromId === overId) return null;
+    if (!position) return null;
+    if (items.indexOf(fromId) < 0 || items.indexOf(overId) < 0) return null;
+
+    const before = position === "before";
+    const plan = computeRowMove(structure, fromId, overId, before);
+    if (!plan) return null;
+
+    return {
+      overRow: overId,
+      before,
+      position,
+    };
+  }
+
   function handleDragStart(event: DragStartEvent) {
     const id = Number(event.active.id);
     if (Number.isFinite(id)) setActiveRow(id);
+    setDropPreview(null);
+    const rect =
+      event.active.rect.current.initial ??
+      (Number.isFinite(id) ? outlineRowRect(id) : null);
+    if (!rect) {
+      setOverlayGeometry(null);
+      return;
+    }
+    const point =
+      pointFromActivatorEvent(event.activatorEvent) ?? {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      };
+    setOverlayGeometry({
+      width: rect.width,
+      height: rect.height,
+      offsetX: point.x - rect.left,
+      offsetY: point.y - rect.top,
+      point,
+    });
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const fromId = Number(event.active.id);
+    const overId = event.over ? Number(event.over.id) : NaN;
+    setDropPreview(deriveDropPreview(fromId, overId, collisionPosition(event.collisions)));
   }
 
   function handleDragEnd(event: DragEndEvent) {
     setActiveRow(null);
+    setDropPreview(null);
+    setOverlayGeometry(null);
     const fromId = Number(event.active.id);
     const overId = event.over ? Number(event.over.id) : NaN;
-    if (!Number.isFinite(fromId) || !Number.isFinite(overId)) return;
-    if (fromId === overId) return;
-    // Determinamos si el drop es "antes" o "después" del target en función
-    // de la posición visual: si fromIndex < toIndex, el usuario movió hacia
-    // abajo → soltar después; si no, antes.
-    const fromOutlineIdx = items.indexOf(fromId);
-    const toOutlineIdx = items.indexOf(overId);
-    if (fromOutlineIdx < 0 || toOutlineIdx < 0) return;
-    const before = fromOutlineIdx > toOutlineIdx;
-    const plan = computeRowMove(structure, fromId, overId, before);
+    const preview = deriveDropPreview(fromId, overId, collisionPosition(event.collisions));
+    if (!preview) return;
+    const plan = computeRowMove(structure, fromId, overId, preview.before);
     if (!plan) return;
     onApplyMove(plan);
+  }
+
+  function clearDragState() {
+    setActiveRow(null);
+    setDropPreview(null);
+    setOverlayGeometry(null);
   }
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      autoScroll={false}
+      collisionDetection={outlineCollisionDetection}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => setActiveRow(null)}
+      onDragCancel={clearDragState}
     >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-          maxHeight: 780,
-          overflow: "auto",
-          paddingRight: 4,
-        }}
-      >
+      <div ref={outlineContainerRef} className="pulso-outline-scroll">
         {/* Item especial "Ajustes del formulario" — no participa del dnd. */}
         <div
           role="button"
           tabIndex={0}
+          aria-current={selection?.kind === "settings" ? "true" : undefined}
           onClick={() => onSelect({ kind: "settings" })}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -170,24 +300,73 @@ export function SurveyOutline({
             const active =
               selection?.kind === "survey" && selection.rowIndex === node.rowIndex;
             return (
-              <OutlineRow
-                key={node.rowIndex}
-                node={node}
-                active={active}
-                canMoveUp={active ? canMoveUp : false}
-                canMoveDown={active ? canMoveDown : false}
-                onSelect={() => onSelect({ kind: "survey", rowIndex: node.rowIndex })}
-                onMoveUp={onMoveUp}
-                onMoveDown={onMoveDown}
-              />
+              <Fragment key={node.rowIndex}>
+                {dropPreview?.overRow === node.rowIndex &&
+                dropPreview.position === "before" ? (
+                  <OutlineDropSlot />
+                ) : null}
+                <OutlineRow
+                  node={node}
+                  active={active}
+                  canMoveUp={active ? canMoveUp : false}
+                  canMoveDown={active ? canMoveDown : false}
+                  onSelect={() => onSelect({ kind: "survey", rowIndex: node.rowIndex })}
+                  onMoveUp={onMoveUp}
+                  onMoveDown={onMoveDown}
+                />
+                {dropPreview?.overRow === node.rowIndex &&
+                dropPreview.position === "after" ? (
+                  <OutlineDropSlot />
+                ) : null}
+              </Fragment>
             );
           })}
         </SortableContext>
       </div>
 
-      <DragOverlay dropAnimation={null}>
-        {activeNode ? <OutlineDragOverlay node={activeNode} /> : null}
-      </DragOverlay>
+      {activeNode && overlayGeometry && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="pulso-outline-floating-overlay"
+              style={{
+                position: "fixed",
+                zIndex: 10000,
+                pointerEvents: "none",
+                left: overlayGeometry.point.x - overlayGeometry.offsetX,
+                top: overlayGeometry.point.y - overlayGeometry.offsetY,
+              }}
+            >
+              <OutlineDragOverlay
+                node={activeNode}
+                size={{ width: overlayGeometry.width, height: overlayGeometry.height }}
+              />
+            </div>,
+            document.body,
+          )
+        : null}
     </DndContext>
   );
+}
+
+function pointFromActivatorEvent(event: Event): { x: number; y: number } | null {
+  if ("clientX" in event && "clientY" in event) {
+    const { clientX, clientY } = event as MouseEvent | PointerEvent;
+    if (Number.isFinite(clientX) && Number.isFinite(clientY)) {
+      return { x: clientX, y: clientY };
+    }
+  }
+
+  if ("touches" in event) {
+    const touch = (event as TouchEvent).touches[0] ?? (event as TouchEvent).changedTouches[0];
+    if (touch) return { x: touch.clientX, y: touch.clientY };
+  }
+
+  return null;
+}
+
+function outlineRowRect(rowIndex: number): DOMRect | null {
+  if (typeof document === "undefined") return null;
+  return document
+    .querySelector<HTMLElement>(`[data-outline-row="${rowIndex}"]`)
+    ?.getBoundingClientRect() ?? null;
 }

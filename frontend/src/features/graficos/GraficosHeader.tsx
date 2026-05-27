@@ -27,15 +27,15 @@ type GraficosJsonSectionId =
   | "ui_state";
 
 const GRAFICOS_JSON_SECTIONS: Array<{ id: GraficosJsonSectionId; label: string; help: string }> = [
-  { id: "plan", label: "Plan de slides", help: "Orden, tipos y contenido de cada slide." },
-  { id: "presets", label: "Presets PPT", help: "Estilos globales para gráficos en PowerPoint." },
-  { id: "w_presets", label: "Presets Word", help: "Opciones de gráficos y tablas para Word." },
-  { id: "paletas", label: "Paletas", help: "Colores por lista de respuestas." },
-  { id: "iconos", label: "Íconos", help: "Referencias a íconos subidos al proyecto." },
-  { id: "overrides_reusables", label: "Modos", help: "Overrides reutilizables por tipo de gráfico." },
-  { id: "debug_ph", label: "Debug visual", help: "Bordes de placeholder para revisar layout." },
-  { id: "scope_rules", label: "Reglas por alcance", help: "Global, lista, tipo de gráfico, slide o slide_id." },
-  { id: "ui_state", label: "Vista del editor", help: "Modo, pestaña, densidad y viewport del canvas." },
+  { id: "plan", label: "Slides", help: "La estructura del reporte y el contenido de cada lámina." },
+  { id: "presets", label: "Estilo para PPT", help: "La apariencia base de los gráficos en PowerPoint." },
+  { id: "w_presets", label: "Estilo para Word", help: "Cómo se ven los gráficos y tablas en el documento." },
+  { id: "paletas", label: "Colores", help: "Las paletas usadas para respuestas y categorías." },
+  { id: "iconos", label: "Íconos", help: "Los íconos cargados para láminas de población." },
+  { id: "overrides_reusables", label: "Modos de estilo", help: "Grupos de cambios para un gráfico, como compacto o destacado." },
+  { id: "debug_ph", label: "Guías visuales", help: "Marcas temporales para revisar espacios y posiciones." },
+  { id: "scope_rules", label: "Reglas específicas", help: "Ajustes que aplican solo a una lista, gráfico o slide." },
+  { id: "ui_state", label: "Vista de trabajo", help: "La vista, pestaña y zoom con que dejaste el editor." },
 ];
 
 const DEFAULT_JSON_SECTIONS = Object.fromEntries(
@@ -120,13 +120,14 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     position: "absolute",
     zIndex: 40,
     top: "calc(100% + 8px)",
-    left: 0,
-    width: 430,
-    padding: 12,
-    borderRadius: 16,
+    right: 0,
+    width: 340,
+    maxWidth: "calc(100vw - 32px)",
+    padding: 10,
+    borderRadius: 18,
     border: "1px solid var(--pulso-material-border)",
     background: "var(--pulso-material-bg-strong)",
-    boxShadow: "var(--pulso-shadow-high)",
+    boxShadow: "0 22px 56px rgba(15, 23, 42, 0.18)",
     backdropFilter: "blur(18px)",
   },
   header: {
@@ -134,94 +135,163 @@ const jsonIoStyles: Record<string, CSSProperties> = {
     justifyContent: "space-between",
     gap: 12,
     alignItems: "flex-start",
-    marginBottom: 10,
+    padding: "4px 4px 8px",
+    marginBottom: 2,
+  },
+  headerActions: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    flex: "0 0 auto",
   },
   title: {
     display: "block",
-    fontSize: 13,
+    fontSize: 12.5,
     color: "var(--pulso-text)",
   },
   lead: {
     margin: "3px 0 0",
     color: "var(--pulso-text-soft)",
-    fontSize: 11,
+    fontSize: 10.5,
     lineHeight: 1.4,
   },
   close: {
-    width: 24,
-    height: 24,
+    width: 28,
+    height: 28,
     borderRadius: 999,
     border: "1px solid var(--pulso-border)",
     background: "rgba(255,255,255,0.82)",
     cursor: "pointer",
     lineHeight: 1,
   },
-  quickRow: {
-    display: "flex",
-    gap: 6,
-    marginBottom: 10,
-  },
   smallButton: {
-    fontSize: 10.5,
-    padding: "4px 9px",
+    fontSize: 10,
+    padding: "4px 8px",
     borderRadius: 999,
     border: "1px solid var(--pulso-border)",
     background: "white",
     cursor: "pointer",
   },
   grid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 8,
+    display: "flex",
+    flexDirection: "column",
+    marginTop: 4,
+    borderTop: "1px solid var(--pulso-border)",
+    borderBottom: "1px solid var(--pulso-border)",
+    background: "transparent",
   },
   option: {
     display: "grid",
-    gridTemplateColumns: "16px 1fr",
-    gap: 8,
-    alignItems: "flex-start",
-    minHeight: 58,
-    padding: 9,
-    borderRadius: 12,
-    border: "1px solid var(--pulso-border)",
-    background: "rgba(255,255,255,0.76)",
+    gridTemplateColumns: "1fr 18px",
+    gap: 12,
+    alignItems: "center",
+    minHeight: 0,
+    padding: "10px 4px",
+    borderRadius: 0,
+    border: 0,
+    borderBottom: "1px solid var(--pulso-border)",
+    background: "transparent",
     cursor: "pointer",
+    transition: "background 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 120ms ease",
   },
   optionOn: {
-    borderColor: "var(--pulso-primary-border)",
-    background: "linear-gradient(180deg, rgba(255,255,255,0.96), var(--pulso-primary-soft))",
-    boxShadow: "0 0 0 3px var(--pulso-primary-focus)",
+    background: "transparent",
+    boxShadow: "none",
+  },
+  optionText: {
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 2,
+  },
+  optionTitle: {
+    display: "block",
+    color: "var(--pulso-text)",
+    fontSize: 12,
+    lineHeight: 1.15,
+    fontWeight: 740,
+    letterSpacing: "-0.01em",
+  },
+  optionHelp: {
+    display: "block",
+    color: "var(--pulso-text-soft)",
+    fontSize: 10.4,
+    lineHeight: 1.25,
+    fontWeight: 500,
+    letterSpacing: "-0.005em",
+  },
+  checkDot: {
+    width: 32,
+    height: 18,
+    borderRadius: 999,
+    border: "1px solid var(--pulso-border)",
+    background: "#edf1f7",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    color: "transparent",
+    padding: 1,
+    transition: "background 140ms ease, border-color 140ms ease",
+  },
+  checkDotOn: {
+    borderColor: "var(--pulso-primary)",
+    background: "var(--pulso-primary)",
+    color: "white",
+  },
+  switchKnob: {
+    width: 14,
+    height: 14,
+    borderRadius: 999,
+    background: "white",
+    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.18)",
+    transform: "translateX(0)",
+    transition: "transform 140ms ease",
+  },
+  switchKnobOn: {
+    transform: "translateX(14px)",
+  },
+  hiddenInput: {
+    position: "absolute",
+    opacity: 0,
+    pointerEvents: "none",
   },
   modeBox: {
-    marginTop: 10,
-    padding: 9,
-    borderRadius: 12,
-    background: "var(--pulso-surface-2)",
-    border: "1px solid var(--pulso-border)",
+    marginTop: 0,
+    padding: "12px 4px 4px",
+    borderRadius: 0,
+    background: "transparent",
+    border: 0,
+    borderBottom: "1px solid var(--pulso-border)",
     display: "flex",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     flexWrap: "wrap",
     fontSize: 11,
   },
   modeLabel: {
     color: "var(--pulso-text-soft)",
     fontWeight: 700,
+    flexBasis: "100%",
   },
   radio: {
     display: "inline-flex",
     alignItems: "center",
-    gap: 5,
+    gap: 6,
     cursor: "pointer",
+    padding: 0,
+    borderRadius: 999,
+    background: "transparent",
   },
   actions: {
     display: "flex",
     gap: 8,
-    marginTop: 10,
+    marginTop: 8,
   },
   actionButton: {
     flex: "1 1 0",
     minHeight: 32,
-    borderRadius: 10,
+    borderRadius: 12,
     border: "1px solid var(--pulso-primary-border)",
     background: "white",
     color: "var(--pulso-primary)",
@@ -451,7 +521,7 @@ export function GraficosHeader({
             className="pulso-gv2-pill-button pulso-gv2-toolbar-action"
             aria-expanded={jsonMenuOpen}
           >
-            <SlidersHorizontal size={12} /> JSON avanzado
+            <SlidersHorizontal size={12} /> Compartir
             <span style={jsonIoStyles.count}>{selectedJsonSections().length}/{GRAFICOS_JSON_SECTIONS.length}</span>
           </button>
 
@@ -459,35 +529,46 @@ export function GraficosHeader({
             <div style={jsonIoStyles.popover} role="dialog" aria-label="Exportar o importar JSON de gráficos">
               <div style={jsonIoStyles.header}>
                 <div>
-                  <strong style={jsonIoStyles.title}>Qué incluir</strong>
-                  <p style={jsonIoStyles.lead}>Elige las partes del plan que quieres mover entre proyectos.</p>
+                  <strong style={jsonIoStyles.title}>Partes a compartir</strong>
+                  <p style={jsonIoStyles.lead}>{selectedJsonSections().length} de {GRAFICOS_JSON_SECTIONS.length} secciones activas.</p>
                 </div>
-                <button type="button" onClick={() => setJsonMenuOpen(false)} style={jsonIoStyles.close}>×</button>
-              </div>
-
-              <div style={jsonIoStyles.quickRow}>
-                <button type="button" onClick={() => setAllJsonSections(true)} style={jsonIoStyles.smallButton}>Todo</button>
-                <button type="button" onClick={() => setAllJsonSections(false)} style={jsonIoStyles.smallButton}>Nada</button>
+                <div style={jsonIoStyles.headerActions}>
+                  <button type="button" onClick={() => setAllJsonSections(true)} style={jsonIoStyles.smallButton}>Todo</button>
+                  <button type="button" onClick={() => setAllJsonSections(false)} style={jsonIoStyles.smallButton}>Nada</button>
+                  <button type="button" onClick={() => setJsonMenuOpen(false)} style={jsonIoStyles.close}>×</button>
+                </div>
               </div>
 
               <div style={jsonIoStyles.grid}>
-                {GRAFICOS_JSON_SECTIONS.map((section) => (
-                  <label key={section.id} style={{ ...jsonIoStyles.option, ...(jsonSections[section.id] ? jsonIoStyles.optionOn : {}) }}>
+                {GRAFICOS_JSON_SECTIONS.map((section, index) => (
+                  <label
+                    key={section.id}
+                    title={section.help}
+                    style={{
+                      ...jsonIoStyles.option,
+                      ...(jsonSections[section.id] ? jsonIoStyles.optionOn : {}),
+                      ...(index === GRAFICOS_JSON_SECTIONS.length - 1 ? { borderBottom: 0 } : {}),
+                    }}
+                    >
+                      <span style={jsonIoStyles.optionText}>
+                        <strong style={jsonIoStyles.optionTitle}>{section.label}</strong>
+                        <small style={jsonIoStyles.optionHelp}>{section.help}</small>
+                    </span>
+                    <span style={{ ...jsonIoStyles.checkDot, ...(jsonSections[section.id] ? jsonIoStyles.checkDotOn : {}) }}>
+                      <span style={{ ...jsonIoStyles.switchKnob, ...(jsonSections[section.id] ? jsonIoStyles.switchKnobOn : {}) }} />
+                    </span>
                     <input
                       type="checkbox"
                       checked={jsonSections[section.id]}
                       onChange={(e) => setJsonSections((prev) => ({ ...prev, [section.id]: e.target.checked }))}
+                      style={jsonIoStyles.hiddenInput}
                     />
-                    <span>
-                      <strong>{section.label}</strong>
-                      <small>{section.help}</small>
-                    </span>
                   </label>
                 ))}
               </div>
 
               <div style={jsonIoStyles.modeBox}>
-                <span style={jsonIoStyles.modeLabel}>Al importar</span>
+                <span style={jsonIoStyles.modeLabel}>Importación</span>
                 <label style={jsonIoStyles.radio}>
                   <input type="radio" checked={jsonImportMode === "merge"} onChange={() => setJsonImportMode("merge")} />
                   Fusionar objetos
@@ -500,10 +581,10 @@ export function GraficosHeader({
 
               <div style={jsonIoStyles.actions}>
                 <button type="button" onClick={ioExport} disabled={jsonBusy === "export" || selectedJsonSections().length === 0} style={jsonIoStyles.actionButton}>
-                  <Download size={12} /> {jsonBusy === "export" ? "Exportando…" : "Exportar JSON"}
+                  <Download size={12} /> {jsonBusy === "export" ? "Exportando…" : "Exportar selección"}
                 </button>
                 <label style={{ ...jsonIoStyles.actionButton, cursor: jsonBusy === "import" ? "wait" : "pointer" }}>
-                  <Upload size={12} /> {jsonBusy === "import" ? "Importando…" : "Importar JSON"}
+                  <Upload size={12} /> {jsonBusy === "import" ? "Importando…" : "Importar selección"}
                   <input
                     ref={jsonFileRef}
                     type="file"

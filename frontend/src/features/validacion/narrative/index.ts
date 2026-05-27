@@ -25,6 +25,8 @@ export type ReglaLike = {
   tipo_observacion?: string | null;       // legacy (select_one, constraint, etc.)
   tipo_variable?: string | null;
   fuente?: "instrumento" | "custom" | string | null;
+  origen_detalle?: string | null;
+  hallazgo_kind?: string | null;
   severidad?: string | null;
   categoria_ux?: string | null;
   objetivo?: string | null;
@@ -177,6 +179,8 @@ export function buildExpectationHeadline(
     return `La combinación de variables en ${targetDisplay} no debería repetirse entre casos válidos.`;
   if (tipoRegla === "coherence")
     return `${targetDisplay} debe ser coherente con las variables de contexto.`;
+  if (tipoRegla === "select_multiple_cardinality")
+    return `${targetDisplay} debe cumplir el patrón esperado de selección múltiple.`;
   if (tipoRegla === "pattern")
     return `${targetDisplay} debe respetar el patrón esperado.`;
   if (tipoRegla === "calculate_check" || tipoObs.includes("calculate"))

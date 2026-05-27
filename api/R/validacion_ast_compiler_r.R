@@ -158,69 +158,45 @@ ast_to_r <- function(x) {
 }
 
 .c_selected <- function(var, value) {
-  # ODK selected(var, 'x'): TRUE si 'x' está en la lista de tokens del valor.
-  # El data export suele venir como string con valores separados por espacio.
-  sprintf("(!is.na(%s) & grepl(sprintf('(^| )%%s( |$)', %s), as.character(%s)))",
-          var, .lit_str(as.character(value)), var)
+  sprintf(
+    "get('.vd_sm_contains_all', envir = globalenv())(%s, %s, .__eval_data__)",
+    .lit_str(var),
+    .lit_char_vec(as.character(value))
+  )
 }
 
 .c_any_selected <- function(var, values) {
-  # Vectorizado: alguna de `values` está en la lista del valor.
-  literals <- paste(vapply(values, function(v) {
-    sprintf("grepl(sprintf('(^| )%%s( |$)', %s), as.character(%s))",
-            .lit_str(as.character(v)), var)
-  }, character(1)), collapse = " | ")
-  sprintf("(!is.na(%s) & (%s))", var, literals)
+  sprintf(
+    "get('.vd_sm_contains_any', envir = globalenv())(%s, %s, .__eval_data__)",
+    .lit_str(var),
+    .lit_char_vec(values)
+  )
 }
 
 .c_none_selected <- function(var, values) {
-  literals <- paste(vapply(values, function(v) {
-    sprintf("grepl(sprintf('(^| )%%s( |$)', %s), as.character(%s))",
-            .lit_str(as.character(v)), var)
-  }, character(1)), collapse = " | ")
-  sprintf("(!is.na(%s) & !(%s))", var, literals)
+  sprintf(
+    "get('.vd_sm_contains_none', envir = globalenv())(%s, %s, .__eval_data__)",
+    .lit_str(var),
+    .lit_char_vec(values)
+  )
 }
 
 .c_count_sel_cmp <- function(var, op, n) {
-  # count-selected(.): cuenta tokens separados por espacio.
   sprintf(
-    "(!is.na(%s) & lengths(strsplit(trimws(as.character(%s)), '\\\\s+')) %s %d)",
-    var, var, op, as.integer(n)
+    "(get('.vd_sm_count_selected', envir = globalenv())(%s, .__eval_data__) %s %d)",
+    .lit_str(var),
+    op,
+    as.integer(n)
   )
 }
 
 .c_sm_exclusive <- function(var, exclusive_codes, max_others) {
-  # Violación si:
-  #   (a) algún código exclusivo está seleccionado Y hay más de 1 seleccionado total
-  #   (b) más de 1 exclusivo está seleccionado simultáneamente
-  #   (c) (opcional) max_others excedido
-  parts <- character()
-  count_expr <- sprintf("lengths(strsplit(trimws(as.character(%s)), '\\\\s+'))", var)
-  any_excl <- paste(vapply(exclusive_codes, function(v) {
-    sprintf("grepl(sprintf('(^| )%%s( |$)', %s), as.character(%s))",
-            .lit_str(as.character(v)), var)
-  }, character(1)), collapse = " | ")
-  # (a): si hay exclusivo Y total > 1
-  parts <- c(parts, sprintf("((%s) & %s > 1)", any_excl, count_expr))
-  # (b): >= 2 exclusivos seleccionados
-  if (length(exclusive_codes) >= 2L) {
-    counted_exclusives <- paste(vapply(exclusive_codes, function(v) {
-      sprintf("as.integer(grepl(sprintf('(^| )%%s( |$)', %s), as.character(%s)))",
-              .lit_str(as.character(v)), var)
-    }, character(1)), collapse = " + ")
-    parts <- c(parts, sprintf("((%s) >= 2)", counted_exclusives))
-  }
-  # (c): max_others
-  if (!is.null(max_others) && !is.na(max_others)) {
-    non_excl_count <- sprintf("(%s - (%s))", count_expr,
-      paste(vapply(exclusive_codes, function(v) {
-        sprintf("as.integer(grepl(sprintf('(^| )%%s( |$)', %s), as.character(%s)))",
-                .lit_str(as.character(v)), var)
-      }, character(1)), collapse = " + ")
-    )
-    parts <- c(parts, sprintf("(%s > %d)", non_excl_count, as.integer(max_others)))
-  }
-  sprintf("(!is.na(%s) & (%s))", var, paste(parts, collapse = " | "))
+  sprintf(
+    "get('.vd_sm_exclusive_violation', envir = globalenv())(%s, %s, .__eval_data__, max_others = %s)",
+    .lit_str(var),
+    .lit_char_vec(exclusive_codes),
+    if (is.null(max_others) || is.na(max_others)) "NULL" else as.character(as.integer(max_others))
+  )
 }
 
 .c_any_col_eq <- function(cols, value) {
@@ -322,6 +298,139 @@ ast_to_r <- function(x) {
   # envuelve en backticks para acceso por ` ` syntax.
   if (grepl("^[A-Za-z.][A-Za-z0-9._]*$", var)) var
   else sprintf("`%s`", var)
+}
+
+# -----------------------------------------------------------------------------
+# Select_multiple helpers usados por AST y reglas custom
+# -----------------------------------------------------------------------------
+
+.vd_sm_chr <- function(x) {
+  out <- as.character(x %||% character(0))
+  out <- out[!is.na(out) & nzchar(trimws(out))]
+  unique(trimws(out))
+}
+
+.vd_sm_tokenize_value <- function(x) {
+  if (is.null(x) || length(x) == 0L || is.na(x[1])) return(character(0))
+  x <- trimws(as.character(x[1]))
+  if (!nzchar(x) || identical(toupper(x), "NA")) return(character(0))
+  unique(strsplit(x, "[[:space:],;|]+", perl = TRUE)[[1]])
+}
+
+.vd_sm_dummy_code <- function(col, parent) {
+  esc <- gsub("([][{}()+*^$?.|\\\\])", "\\\\\\1", parent, perl = TRUE)
+  pat <- paste0("^", esc, "([_/.])(.+)$")
+  if (!grepl(pat, col, perl = TRUE)) return(NA_character_)
+  code <- sub(pat, "\\2", col, perl = TRUE)
+  code <- sub("^0+([0-9]+)$", "\\1", code)
+  if (!nzchar(code)) NA_character_ else code
+}
+
+.vd_sm_dummy_columns <- function(var, data) {
+  if (!is.data.frame(data) || !length(names(data))) return(character(0))
+  if (exists(".find_select_multiple_dummies", mode = "function")) {
+    cols <- .find_select_multiple_dummies(var, names(data))
+  } else {
+    esc <- gsub("([][{}()+*^$?.|\\\\])", "\\\\\\1", var, perl = TRUE)
+    cols <- names(data)[grepl(paste0("^", esc, "[_/.][^_/.]+$"), names(data), perl = TRUE)]
+    cols <- cols[!grepl("_(other|specify|otro|texto)$", cols, ignore.case = TRUE)]
+  }
+  codes <- vapply(cols, .vd_sm_dummy_code, character(1), parent = var)
+  ok <- !is.na(codes) & nzchar(codes)
+  stats::setNames(cols[ok], codes[ok])
+}
+
+.vd_sm_is_selected_dummy <- function(x) {
+  if (exists(".dn_is_selected_dummy", mode = "function")) {
+    return(.dn_is_selected_dummy(x))
+  }
+  if (is.logical(x)) return(!is.na(x) & x)
+  if (is.numeric(x)) return(!is.na(x) & x != 0)
+  y <- trimws(as.character(x))
+  y_ascii <- suppressWarnings(iconv(y, from = "", to = "ASCII//TRANSLIT", sub = ""))
+  y_low <- tolower(y_ascii)
+  !is.na(y_low) & y_low %in% c("1", "si", "s", "yes", "y", "true", "verdadero")
+}
+
+.vd_sm_tokens_list <- function(var, data) {
+  if (!is.data.frame(data)) return(vector("list", 0L))
+  var <- as.character(var %||% "")[1]
+  n <- nrow(data)
+  out <- vector("list", n)
+  for (i in seq_len(n)) out[[i]] <- character(0)
+
+  if (nzchar(var) && var %in% names(data)) {
+    for (i in seq_len(n)) out[[i]] <- unique(c(out[[i]], .vd_sm_tokenize_value(data[[var]][i])))
+  }
+
+  dummies <- .vd_sm_dummy_columns(var, data)
+  if (length(dummies)) {
+    for (code in names(dummies)) {
+      col <- unname(dummies[[code]])
+      selected <- .vd_sm_is_selected_dummy(data[[col]])
+      selected[is.na(selected)] <- FALSE
+      for (i in which(selected)) out[[i]] <- unique(c(out[[i]], code))
+    }
+  }
+
+  lapply(out, .vd_sm_chr)
+}
+
+.vd_sm_contains_any <- function(var, values, data) {
+  values <- .vd_sm_chr(values)
+  toks <- .vd_sm_tokens_list(var, data)
+  vapply(toks, function(x) length(intersect(x, values)) > 0L, logical(1))
+}
+
+.vd_sm_contains_all <- function(var, values, data) {
+  values <- .vd_sm_chr(values)
+  toks <- .vd_sm_tokens_list(var, data)
+  vapply(toks, function(x) length(values) > 0L && all(values %in% x), logical(1))
+}
+
+.vd_sm_contains_none <- function(var, values, data) {
+  values <- .vd_sm_chr(values)
+  toks <- .vd_sm_tokens_list(var, data)
+  vapply(toks, function(x) !length(intersect(x, values)), logical(1))
+}
+
+.vd_sm_count_selected <- function(var, data) {
+  toks <- .vd_sm_tokens_list(var, data)
+  as.integer(vapply(toks, length, integer(1)))
+}
+
+.vd_sm_exclusive_violation <- function(var, exclusive_codes, data, max_others = NULL) {
+  exclusive_codes <- .vd_sm_chr(exclusive_codes)
+  toks <- .vd_sm_tokens_list(var, data)
+  vapply(toks, function(x) {
+    if (!length(x) || !length(exclusive_codes)) return(FALSE)
+    n_excl <- length(intersect(x, exclusive_codes))
+    n_total <- length(x)
+    n_other <- n_total - n_excl
+    bad_excl <- (n_excl > 0L && n_total > n_excl) || n_excl > 1L
+    bad_max <- !is.null(max_others) && !is.na(max_others) && n_other > as.integer(max_others)
+    isTRUE(bad_excl || bad_max)
+  }, logical(1))
+}
+
+.vd_sm_cardinality_violation <- function(var, data, min_count = NULL, max_count = NULL) {
+  n <- .vd_sm_count_selected(var, data)
+  bad <- rep(FALSE, length(n))
+  if (!is.null(min_count) && !is.na(min_count)) bad <- bad | n < as.integer(min_count)
+  if (!is.null(max_count) && !is.na(max_count)) bad <- bad | n > as.integer(max_count)
+  bad
+}
+
+.vd_sm_hierarchy_violation <- function(var, hierarchy_map, data) {
+  if (!exists(".transform_normalize_hierarchy_map", mode = "function")) return(rep(FALSE, nrow(data)))
+  map <- .transform_normalize_hierarchy_map(hierarchy_map)
+  toks <- .vd_sm_tokens_list(var, data)
+  vapply(toks, function(x) {
+    triggers <- intersect(names(map), x)
+    if (!length(triggers)) return(FALSE)
+    required <- unique(.vd_sm_chr(unlist(map[triggers], use.names = FALSE)))
+    any(!(required %in% x))
+  }, logical(1))
 }
 
 .c_collection_date_cmp <- function(var, op) {

@@ -39,7 +39,7 @@ const MODE_GROUPS: Record<GraficadorSlotMode, ArgGrupo[]> = {
 };
 
 // Slot names → label humano. Si no mapea, mostramos el name crudo.
-const SLOT_LABELS: Record<string, string> = {
+export const SLOT_LABELS: Record<string, string> = {
   grafico: "Gráfico",
   izquierda: "Izquierda",
   derecha: "Derecha",
@@ -56,6 +56,10 @@ const SLOT_LABELS: Record<string, string> = {
   grafico_inferior_2: "Inferior 2",
   grafico_inferior_3: "Inferior 3",
 };
+
+export function getSlotLabel(slotName: string): string {
+  return SLOT_LABELS[slotName] ?? slotName;
+}
 
 export default function GraficadorSlot({ slideId, slotName, value, mode = "data" }: Props) {
   const setSlot = usePlanStore((s) => s.setSlot);

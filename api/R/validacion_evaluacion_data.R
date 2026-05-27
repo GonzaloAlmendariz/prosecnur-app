@@ -1058,6 +1058,8 @@ evaluar_consistencia <- function(datos,
     }
     rhs2 <- rw$rhs2 %||% pr$rhs
 
+    df_env <- df
+
     data_env <- data_env_cache[[base_key]]
     if (is.null(data_env)) {
       data_env <- .build_alias_env(df)
@@ -1075,6 +1077,7 @@ evaluar_consistencia <- function(datos,
       selected_at = selected_at,
       selected_at_char = selected_at_char,   # NUEVO: reemplazo seguro as.character(selected_at())
       count_selected = count_selected,
+      .__eval_data__ = df_env,
       num = function(z) suppressWarnings(as.numeric(z)),
       # AGG context
       .AGG_CTX = .AGG_prepare(tablas, base_key),
@@ -1083,8 +1086,6 @@ evaluar_consistencia <- function(datos,
       AGG_PASTE = AGG_PASTE,
       REF_VAL   = REF_VAL
     )
-
-    df_env <- df
 
     # Tapones ODK → R
     rhs2 <- gsub("\\bregex\\s*\\(", "grepl(", rhs2)

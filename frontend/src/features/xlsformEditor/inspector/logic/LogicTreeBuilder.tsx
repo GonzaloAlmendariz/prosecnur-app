@@ -180,54 +180,56 @@ function GroupBlock({
 
   return (
     <div className={`pulso-logic-tree-group${isRoot ? " is-root" : ""}`}>
-      {tree.children.length > 1 && (
-        <span
-          className="pulso-logic-tree-connector"
-          role="radiogroup"
-          aria-label="Conector"
-        >
-          <button
-            type="button"
-            role="radio"
-            aria-checked={tree.op === "and"}
-            className={tree.op === "and" ? "is-on" : ""}
-            onClick={() => setOp("and")}
-            title="Todas las condiciones deben cumplirse"
+      <div className="pulso-logic-tree-main">
+        {tree.children.length > 1 && (
+          <span
+            className="pulso-logic-tree-connector"
+            role="radiogroup"
+            aria-label="Conector entre condiciones"
           >
-            Y
-          </button>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={tree.op === "or"}
-            className={tree.op === "or" ? "is-on" : ""}
-            onClick={() => setOp("or")}
-            title="Cualquiera de las condiciones basta"
-          >
-            O
-          </button>
-        </span>
-      )}
-
-      <div className="pulso-logic-tree-children">
-        {tree.children.map((child, i) => (
-          <div key={`child-${i}`} className="pulso-logic-tree-child">
-            <NodeRenderer
-              tree={child}
-              scope={scope}
-              onChange={(next) => updateChild(i, next)}
-            />
             <button
               type="button"
-              className="pulso-logic-tree-remove"
-              onClick={() => removeChild(i)}
-              title="Quitar"
-              aria-label="Quitar"
+              role="radio"
+              aria-checked={tree.op === "and"}
+              className={tree.op === "and" ? "is-on" : ""}
+              onClick={() => setOp("and")}
+              title="Todas las condiciones deben cumplirse"
             >
-              <X size={12} />
+              Todas
             </button>
-          </div>
-        ))}
+            <button
+              type="button"
+              role="radio"
+              aria-checked={tree.op === "or"}
+              className={tree.op === "or" ? "is-on" : ""}
+              onClick={() => setOp("or")}
+              title="Cualquiera de las condiciones basta"
+            >
+              Alguna
+            </button>
+          </span>
+        )}
+
+        <div className="pulso-logic-tree-children">
+          {tree.children.map((child, i) => (
+            <div key={`child-${i}`} className="pulso-logic-tree-child">
+              <NodeRenderer
+                tree={child}
+                scope={scope}
+                onChange={(next) => updateChild(i, next)}
+              />
+              <button
+                type="button"
+                className="pulso-logic-tree-remove"
+                onClick={() => removeChild(i)}
+                title="Quitar"
+                aria-label="Quitar"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="pulso-logic-tree-actions">
@@ -335,7 +337,7 @@ function MultiSelectedPill({
       <span className="pulso-logic-tree-multi-var">
         {variable?.label || match.variableName}
       </span>
-      <span className="pulso-logic-tree-multi-op">incluye</span>
+      <span className="pulso-logic-tree-multi-op">incluye cualquiera de estas opciones</span>
       <span className="pulso-logic-tree-multi-values">
         {match.values.map((raw) => (
           <span key={raw} className="pulso-logic-tree-multi-value">
@@ -366,7 +368,7 @@ function MultiSelectedPill({
         type="button"
         className="pulso-logic-tree-multi-expand"
         onClick={expand}
-        title="Mostrar como condiciones individuales"
+        title="Mostrar una fila por opción"
       >
         <ChevronDown size={11} />
       </button>

@@ -20,7 +20,8 @@
 // =============================================================================
 
 import { useEffect, useState } from "react";
-import { Layers, Paintbrush, Sliders, Workflow } from "lucide-react";
+import { Layers, Paintbrush, Sliders } from "lucide-react";
+import { IconConditionalLogic } from "../../../lib/icons";
 import type { BuilderNode, CatalogSummary } from "../types";
 import type { LogicScope } from "../logic";
 import { iconForType } from "../helpers/icons";
@@ -38,7 +39,7 @@ const TABS: Array<{ id: InspectorTabId; label: string; icon: typeof Layers }> = 
   { id: "basic", label: "Básico", icon: Layers },
   { id: "appearance", label: "Apariencia", icon: Paintbrush },
   { id: "more", label: "Más", icon: Sliders },
-  { id: "logic", label: "Lógica", icon: Workflow },
+  { id: "logic", label: "Lógica", icon: IconConditionalLogic },
 ];
 
 export type InspectorProps = {
@@ -51,7 +52,7 @@ export type InspectorProps = {
   position?: number;
   /** Cuántas preguntas usan el catálogo asignado (incluyendo esta). >1
    *  habilita la action "Crear copia solo para esta pregunta" en
-   *  Avanzado. */
+   *  Datos. */
   catalogUsageCount?: number;
   onFieldChange: (field: string, value: string) => void;
   onTypeChange: (next: string) => void;

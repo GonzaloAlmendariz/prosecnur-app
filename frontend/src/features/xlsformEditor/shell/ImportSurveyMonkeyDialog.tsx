@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   AlertTriangle,
 } from "lucide-react";
-import { IconBranching, IconChecklist } from "../../../lib/icons";
+import { IconConditionalLogic, IconChecklist } from "../../../lib/icons";
 import {
   apiXlsformEditorImportSurveyMonkeyWithLogic,
   apiXlsformEditorSmFetchSurveyInfo,
@@ -661,7 +661,7 @@ export function ImportSurveyMonkeyDialog({
                         fontWeight: 600,
                       }}
                     >
-                      <IconBranching size={12} /> {totalLogicCount} salto{totalLogicCount === 1 ? "" : "s"}
+                      <IconConditionalLogic size={12} /> {totalLogicCount} salto{totalLogicCount === 1 ? "" : "s"}
                     </span>
                   </div>
                 </div>
@@ -918,7 +918,7 @@ function ImportFlowSummary({
       label: "Saltos",
       value: ruleCount > 0 ? `${ruleCount}` : "Opcional",
       done: true,
-      icon: <IconBranching size={13} />,
+      icon: <IconConditionalLogic size={13} />,
     },
   ];
 

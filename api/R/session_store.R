@@ -654,6 +654,17 @@ codif_data_cached <- function(sid, source = NULL) {
   src <- if (is.null(source)) codif_source_active(sid) else source
   cached <- codif_get(sid, "data", source = src)
   if (!is.null(cached)) return(cached)
+
+  s <- session_get(sid)
+  scope_source <- if (identical(src, "default") && is.null(s$estudio)) NULL else src
+  final_scope <- tryCatch(validacion_scope_get(sid, scope_source), error = function(e) NULL)
+  finalized_at <- final_scope$limpieza_artifacts$finalized_at %||% NULL
+  final_data <- final_scope$limpieza_preview$data_final %||% NULL
+  if (!is.null(finalized_at) && nzchar(as.character(finalized_at)) && is.data.frame(final_data)) {
+    codif_set(sid, "data", final_data, source = src)
+    return(final_data)
+  }
+
   meta <- codif_data_meta(sid, src)
   if (is.null(meta)) {
     stop_api(409, "E_NO_DATA",

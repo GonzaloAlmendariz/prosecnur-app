@@ -87,14 +87,14 @@ export function ConstraintBuilder({
     <div className="pulso-logic-builder">
       <header className="pulso-logic-builder-header">
         <span className="pulso-section-eyebrow">{fieldLabel}</span>
-        <span className="pulso-logic-builder-status">Avanzada</span>
+        <span className="pulso-logic-builder-status">Regla técnica</span>
       </header>
       <div className="pulso-logic-builder-raw">
         <pre>{raw}</pre>
         <p className="pulso-logic-builder-rawhint">
-          Esta validación tiene una forma que el editor visual aún no
-          maneja. Se preserva tal cual al exportar; F2-3+ irá cubriendo
-          formas adicionales.
+          Esta validación vino con una forma técnica. Se preserva tal cual al
+          exportar; puedes reemplazarla por una regla guiada si necesitas
+          editarla desde esta vista.
         </p>
         <div className="pulso-logic-builder-rawactions">
           <button
@@ -104,7 +104,7 @@ export function ConstraintBuilder({
               onChange(serializeExpression(expandConstraint(buildEmpty())));
             }}
           >
-            Reemplazar con builder visual
+            Crear regla guiada
           </button>
           <button
             type="button"

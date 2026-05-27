@@ -57,7 +57,8 @@
     after = preview$after,
     impact = preview$impact,
     residual_final = preview$residual_final,
-    decisions_ready = preview$decisions_ready
+    decisions_ready = preview$decisions_ready,
+    preview_error = preview$preview_error %||% NULL
   )
 }
 
@@ -95,6 +96,53 @@
   }
   choices_map <- choices_map[lengths(choices_map) > 0L]
   lapply(choices_map, function(entry) as.list(.drill_named_chr(entry)))
+}
+
+.explorar_complete_catalog_options <- function(tab, var, instrumento) {
+  map_lab <- tryCatch(.explorar_map_choices(var, instrumento), error = function(e) NULL)
+  if (is.null(map_lab) || !length(map_lab)) return(tab)
+
+  tab_use <- tab
+  if (is.null(tab_use) || !nrow(tab_use)) {
+    tab_use <- data.frame(
+      code = character(),
+      label = character(),
+      n = integer(),
+      pct = numeric(),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  tab_use$code <- as.character(tab_use$code)
+  tab_use$label <- as.character(tab_use$label)
+  tab_use$n <- as.integer(tab_use$n %||% 0L)
+  if (!"pct" %in% names(tab_use)) tab_use$pct <- 0
+  tab_use$pct <- suppressWarnings(as.numeric(tab_use$pct))
+  tab_use$pct[is.na(tab_use$pct)] <- 0
+
+  missing <- setdiff(names(map_lab), tab_use$code)
+  if (length(missing)) {
+    extra <- data.frame(
+      code = missing,
+      label = as.character(unname(map_lab[missing])),
+      n = 0L,
+      pct = 0,
+      stringsAsFactors = FALSE
+    )
+    tab_use <- rbind(tab_use, extra)
+  }
+
+  ord <- match(tab_use$code, names(map_lab))
+  missing_ord <- is.na(ord)
+  ord[missing_ord] <- length(map_lab) + seq_len(sum(missing_ord))
+  tab_use <- tab_use[order(ord, tab_use$code), , drop = FALSE]
+  rownames(tab_use) <- NULL
+  tab_use
+}
+
+.drill_data_names <- function(x) {
+  if (is.null(x) || !is.data.frame(x)) return(character(0))
+  names(x)
 }
 
 .drill_norm_label <- function(x) {
@@ -342,8 +390,13 @@
 }
 
 .limpieza_invalidate_outputs <- function(sid, base_nombre = NULL) {
+  scope <- tryCatch(validacion_scope_get(sid, base_nombre), error = function(e) NULL)
+  had_final <- !is.null(scope$limpieza_artifacts$finalized_at %||% NULL)
   validacion_scope_set(sid, base_nombre, "limpieza_preview", NULL)
   validacion_scope_set(sid, base_nombre, "limpieza_artifacts", list())
+  if (isTRUE(had_final)) {
+    .limpieza_invalidate_downstream(sid, base_nombre)
+  }
   invisible(TRUE)
 }
 
@@ -448,7 +501,9 @@ mount_validacion <- function(pr) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
-      limpieza_finalize(sid = sid, base_nombre = base, scope = scope)
+      out <- limpieza_finalize(sid = sid, base_nombre = base, scope = scope)
+      out$before_after_preview <- .limpieza_preview_public(out$before_after_preview)
+      out
     })) |>
 
     # --- Reporte HTML autocontenido (Sprint 5 — stretch) --------------------
@@ -958,7 +1013,7 @@ mount_validacion <- function(pr) {
       }
       value_label_vars <- unique(c(
         vars,
-        names(casos_df %||% data.frame()),
+        .drill_data_names(casos_df),
         .drill_chr_vec(variable_roles$target %||% NULL),
         .drill_chr_vec(variable_roles$drivers %||% NULL),
         .drill_chr_vec(variable_roles$compare %||% NULL),
@@ -1225,6 +1280,7 @@ mount_validacion <- function(pr) {
       } else {
         .explorar_tab_frec_so(df, var, inst)
       }
+      tab <- .explorar_complete_catalog_options(tab, var, inst)
       opciones <- if (!is.null(tab) && nrow(tab)) {
         lapply(seq_len(nrow(tab)), function(i) {
           list(
@@ -1284,7 +1340,12 @@ mount_validacion <- function(pr) {
         variables = as.list(unlist(parsed$variables)),
         params = parsed$params %||% list(),
         mensaje = as.character(parsed$mensaje %||% parsed$nombre %||% new_id),
-        severidad = .regla_severidad(parsed)
+        severidad = .regla_severidad(parsed),
+        hallazgo_kind = as.character(parsed$hallazgo_kind %||% "caso_validar"),
+        planned_action_type = .regla_tratamiento(parsed),
+        recommended_scope = .regla_alcance_tratamiento(parsed),
+        gate_expr = as.character(parsed$gate_expr %||% ""),
+        gate_conditions = parsed$gate_conditions %||% list()
       )
       existing[[length(existing) + 1L]] <- nueva
       validacion_scope_set(sid, base, "reglas_custom", existing)
@@ -1305,8 +1366,6 @@ mount_validacion <- function(pr) {
           jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
           error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
         )
-        # Si viene tipo/variables/params, validar antes.
-        if (!is.null(parsed$tipo)) .validar_regla_custom(parsed)
         scope <- .get_base_scope(sid, base)
         existing <- scope$reglas_custom %||% list()
         idx <- which(vapply(existing, function(r) identical(as.character(r$id), id), logical(1)))
@@ -1315,12 +1374,20 @@ mount_validacion <- function(pr) {
         r <- existing[[idx]]
         # Merge: campos del body pisan los existentes.
         for (campo in c("activa", "nombre", "tipo", "variables", "params",
-                         "mensaje", "severidad")) {
+                         "mensaje", "severidad", "hallazgo_kind",
+                         "planned_action_type", "recommended_scope",
+                         "gate_expr", "gate_conditions")) {
           if (!is.null(parsed[[campo]])) {
             r[[campo]] <- if (campo == "variables") as.list(unlist(parsed[[campo]]))
                           else parsed[[campo]]
           }
         }
+        needs_schema_validation <- any(c("tipo", "variables", "params",
+                                         "planned_action_type", "recommended_scope",
+                                         "gate_expr", "gate_conditions") %in% names(parsed))
+        if (isTRUE(needs_schema_validation)) .validar_regla_custom(r)
+        r$planned_action_type <- .regla_tratamiento(r)
+        r$recommended_scope <- .regla_alcance_tratamiento(r)
         existing[[idx]] <- r
         validacion_scope_set(sid, base, "reglas_custom", existing)
         .limpieza_invalidate_outputs(sid, base)

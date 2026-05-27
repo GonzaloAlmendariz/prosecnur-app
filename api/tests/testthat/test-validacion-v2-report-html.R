@@ -98,3 +98,26 @@ test_that("build_report_html progreso refleja los 3 flags correctamente", {
   html_empty <- build_report_html(list())
   expect_true(grepl("pending", html_empty, fixed = TRUE))
 })
+
+test_that("build_report_html renderiza decisiones con columna status sin crashear", {
+  scope <- list(
+    limpieza_draft = list(
+      list(
+        id = "D1",
+        source_id = "RC_002",
+        source_type = "custom_rule",
+        scope = "variable",
+        target_variable = "p7",
+        target_case_ids = list(),
+        action_type = "complete_select_multiple_hierarchy",
+        action_params = list(hierarchy_map = list(`3` = c("2", "1"))),
+        rationale = "Completar jerarquía",
+        status = "ready"
+      )
+    )
+  )
+
+  html <- build_report_html(scope)
+  expect_true(grepl("RC_002", html, fixed = TRUE))
+  expect_true(grepl("ready", html, fixed = TRUE))
+})

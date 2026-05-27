@@ -7,6 +7,7 @@ import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { usePresetsDefaults, presetArgsEqual } from "./usePresetsDefaults";
+import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 // La edición de presets usa solo controles catalogados. Si un argumento
 // no tiene metadata visual, no se expone como campo editable.
 
@@ -298,6 +299,9 @@ function PresetBody({
   values: Record<string, unknown>;
 }) {
   const setPresetArg = usePlanStore((s) => s.setPresetArg);
+  const replacePreset = usePlanStore((s) => s.replacePreset);
+  const { presets: defaults } = usePresetsDefaults();
+  const presetArgs = meta.args;
 
   // Agrupar args por grupo semántico, manteniendo el orden de GRUPO_META.
   const gruposDeArgs = useMemo(() => {
@@ -311,6 +315,38 @@ function PresetBody({
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
       .map((g) => ({ grupo: g, args: byGrupo[g]! }));
   }, [meta]);
+
+  const currentDefaults = defaults[meta.name] ?? {};
+
+  function sameValue(a: unknown, b: unknown): boolean {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+
+  function handleSetPresetArg(name: string, value: unknown) {
+    if (value === null || value === undefined || value === "") {
+      setPresetArg(meta.name, name, value);
+      return;
+    }
+    const defaultValue = currentDefaults[name];
+    setPresetArg(meta.name, name, sameValue(value, defaultValue) ? null : value);
+  }
+
+  function handleSetPresetPatch(patchIn: Record<string, unknown>) {
+    const next: Record<string, unknown> = { ...values };
+    for (const [name, value] of Object.entries(patchIn)) {
+      if (value === null || value === undefined || value === "") {
+        delete next[name];
+        continue;
+      }
+      const defaultValue = currentDefaults[name];
+      if (sameValue(value, defaultValue)) {
+        delete next[name];
+      } else {
+        next[name] = value;
+      }
+    }
+    replacePreset(meta.name, next);
+  }
 
   return (
     <div className="pulso-gv2-presets-body">
@@ -333,8 +369,19 @@ function PresetBody({
             grupo={grupo}
             args={args}
             values={values}
-            onChangeArg={(name, val) => setPresetArg(meta.name, name, val)}
+            onChangeArg={handleSetPresetArg}
             variables={[]}
+            inheritedValues={currentDefaults}
+            bodyIntro={normalizeArgGroup(grupo) === "espacio" && hasChartLayoutSpec(meta.name, presetArgs) ? (
+              <ChartLayoutEditor
+                presetType={meta.name}
+                args={presetArgs}
+                values={values}
+                inheritedValues={currentDefaults}
+                onChangeArg={handleSetPresetArg}
+                onChangeArgs={handleSetPresetPatch}
+              />
+            ) : undefined}
           />
         ))
       )}

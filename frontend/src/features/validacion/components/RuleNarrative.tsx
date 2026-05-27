@@ -173,7 +173,7 @@ export default function RuleNarrative({
             (min-width: 0 + flex-wrap para que respeten el espacio). */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", minWidth: 0 }}>
-            <SourceBadge fuente={fuente} />
+            <SourceBadge fuente={fuente} label={rule.origen_detalle ?? null} />
             <CategoryBadge categoria_ux={rule.categoria_ux ?? null} />
             <SeverityDot severidad={severidad} />
           </div>
@@ -269,7 +269,7 @@ export default function RuleNarrative({
     >
       {/* Badges row */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <SourceBadge fuente={fuente} />
+        <SourceBadge fuente={fuente} label={rule.origen_detalle ?? null} />
         <CategoryBadge categoria_ux={rule.categoria_ux ?? null} />
         <SeverityBadge severidad={severidad} />
         {typeof nCasos === "number" && (
@@ -431,11 +431,12 @@ function renderWithVariables(
 // Sub-componentes visuales
 // -----------------------------------------------------------------------------
 
-function SourceBadge({ fuente }: { fuente: string }) {
-  const isCustom = fuente === "custom";
+function SourceBadge({ fuente, label }: { fuente: string; label?: string | null }) {
+  const isCustom = fuente === "custom" || fuente.startsWith("custom");
+  const text = label || (isCustom ? "Criterio" : "XLSForm");
   return (
     <span
-      title={isCustom ? "Regla personalizada" : "Regla del instrumento (XLSForm)"}
+      title={isCustom ? "Criterio de revisión" : "Regla del instrumento (XLSForm)"}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -452,7 +453,7 @@ function SourceBadge({ fuente }: { fuente: string }) {
       }}
     >
       {isCustom && <IconCustom size={10} />}
-      {isCustom ? "Personalizada" : "Instrumento"}
+      {text}
     </span>
   );
 }

@@ -106,7 +106,11 @@ export default function EmptyHome({
         ¿Cómo quieres armar tu formulario?
       </h2>
 
-      {/* 2. Las 3 acciones — el camino que el usuario va a tomar. */}
+      {/* 2. Recuperación primero: si hay un formulario guardado, el usuario
+             debe decidir eso antes de abrir otro flujo de entrada. */}
+      {resumeBanner ? <div className="pulso-empty-home-resume">{resumeBanner}</div> : null}
+
+      {/* 3. Las 3 acciones — el camino que el usuario va a tomar. */}
       <div
         className="pulso-empty-home-actions"
         style={{
@@ -119,11 +123,6 @@ export default function EmptyHome({
           <ActionCard key={action.key} action={action} />
         ))}
       </div>
-
-      {/* 3. Banner "continuar editando" — atajo para usuarios recurrentes,
-             debajo de las acciones porque suele cubrirse con el snapshot
-             persistido del workbook anterior. */}
-      {resumeBanner ? <div className="pulso-empty-home-resume">{resumeBanner}</div> : null}
 
       {/* 4. Guía: qué pasa después de elegir uno de los caminos. Esto es
              contexto educativo, no parte del flujo de decisión — por eso

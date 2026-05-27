@@ -40,7 +40,7 @@ export type EditableChoiceListProps = {
   onRenameList?: (nextListName: string) => void;
   /** Clonar el catálogo solo para la pregunta actual. */
   onCloneCatalog?: () => void;
-  /** Abre el editor avanzado de catálogos. */
+  /** Abre el editor de catálogos. */
   onOpenCatalogLens?: () => void;
 };
 
@@ -172,7 +172,7 @@ export function EditableChoiceList({
       </ul>
 
       {/* Footer con el nombre de la lista (editable) + acceso al editor
-          avanzado. El nombre lo establece el usuario para reconocer la
+          de catálogos. El nombre lo establece el usuario para reconocer la
           lista cuando quiera reusarla en otra pregunta. */}
       {listName && (
         <div className="pulso-choices-edit-footer">
@@ -189,7 +189,7 @@ export function EditableChoiceList({
                 e.stopPropagation();
                 onOpenCatalogLens();
               }}
-              title="Abrir el editor avanzado de listas (importar CSV, ver todas, reordenar masivo)"
+              title="Abrir el editor de listas (importar CSV, ver todas, reordenar masivo)"
             >
               <ExternalLink size={11} /> Ver todas las listas
             </button>

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, Check, Database, FileSpreadsheet, Layers, Plus, RefreshCw,
+  ArrowLeft, Check, Database, Download, FileSpreadsheet, Layers, Plus, RefreshCw,
   Trash2, Upload, Pencil, X as XIcon,
 } from "lucide-react";
 import {
+  apiCargaExportNormalized,
   apiEstudioAddBase,
   apiEstudioDowngradeToSingle,
   apiEstudioGet,
@@ -14,6 +15,7 @@ import {
   apiUpload,
   EstudioBase,
   EstudioPayload,
+  downloadUrl,
   uploadKindForDataFile,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
@@ -165,6 +167,18 @@ export function BasesPanel({
       const p = await apiEstudioSetNombre(nuevo);
       await onChanged(p);
       setEditingEstudioNombre(false);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function handleExportBase(nombre: string) {
+    setError(""); setBusy(`Preparando base normalizada de ${nombre}…`);
+    try {
+      const out = await apiCargaExportNormalized("xlsx", nombre);
+      window.location.href = downloadUrl(out.file_id);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -352,6 +366,7 @@ export function BasesPanel({
               onRenameCancel={() => setRenaming(null)}
               onRemove={() => handleRemoveBase(b.nombre)}
               onStartReplace={() => setReplacingFiles(b.nombre)}
+              onExport={() => void handleExportBase(b.nombre)}
               isReplacing={replacingFiles === b.nombre}
               busy={!!busy}
             />
@@ -457,7 +472,7 @@ export function BasesPanel({
 function BaseRow({
   base, isRenaming, renameDraft,
   onStartRename, onRenameChange, onRenameCommit, onRenameCancel,
-  onRemove, onStartReplace, isReplacing, busy,
+  onRemove, onStartReplace, onExport, isReplacing, busy,
 }: {
   base: EstudioBase;
   isRenaming: boolean;
@@ -468,6 +483,7 @@ function BaseRow({
   onRenameCancel: () => void;
   onRemove: () => void;
   onStartReplace: () => void;
+  onExport: () => void;
   isReplacing: boolean;
   busy: boolean;
 }) {
@@ -563,6 +579,25 @@ function BaseRow({
       </div>
 
       <div style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <button
+          type="button"
+          onClick={onExport}
+          disabled={busy}
+          title={`Descargar base normalizada de ${base.nombre}`}
+          aria-label={`Descargar base normalizada de ${base.nombre}`}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            fontSize: 11, fontWeight: 600,
+            padding: "6px 10px", borderRadius: 6,
+            border: "1px solid var(--pulso-primary-border)",
+            background: "white",
+            color: "var(--pulso-primary)",
+            cursor: busy ? "wait" : "pointer",
+          }}
+        >
+          <Download size={11} /> Normalizada
+        </button>
+
         <button
           type="button"
           onClick={onStartReplace}

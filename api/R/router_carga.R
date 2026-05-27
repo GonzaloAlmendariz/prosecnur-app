@@ -458,6 +458,73 @@ estudio_init_default_base <- function(sid) {
   invisible(TRUE)
 }
 
+.carga_resolve_export_files <- function(sid, base_nombre = NULL) {
+  s <- session_get(sid)
+  resolved <- tryCatch(.resolve_base_nombre(s, base_nombre), error = function(e) {
+    stop_api(404, "E_BASE_NOT_FOUND", conditionMessage(e))
+  })
+  if (!is.null(resolved) && nzchar(resolved)) {
+    base <- s$estudio$bases[[resolved]]
+    return(list(
+      base_nombre = resolved,
+      xlsform = get_file(sid, base$xlsform_file_id),
+      data = get_file(sid, base$data_file_id),
+      data_ext = as.character(base$data_ext %||% "")
+    ))
+  }
+
+  files <- s$files %||% list()
+  xls_metas <- Filter(function(f) identical(f$kind, "xlsform"), files)
+  dat_metas <- Filter(function(f) f$kind %in% c("data", "sav"), files)
+  if (!length(xls_metas)) stop_api(409, "E_NO_XLSFORM", "No hay XLSForm cargado.")
+  if (!length(dat_metas)) stop_api(409, "E_NO_DATA", "No hay base de datos cargada.")
+  dat_meta <- dat_metas[[length(dat_metas)]]
+  list(
+    base_nombre = NULL,
+    xlsform = xls_metas[[length(xls_metas)]],
+    data = dat_meta,
+    data_ext = as.character(dat_meta$ext %||% "")
+  )
+}
+
+.carga_normalized_data_for_export <- function(sid, base_nombre = NULL) {
+  files <- .carga_resolve_export_files(sid, base_nombre)
+  inst <- reporte_instrumento(path = files$xlsform$path)
+  df <- .read_data_any_path(files$data$path, files$data_ext %||% files$data$ext)
+  df <- normalize_data_for_xlsform(
+    df,
+    inst,
+    choice_code_maps = .carga_editor_choice_code_maps(sid)
+  )
+  df <- .carga_reorder_data_columns(df, inst)
+  list(data = df, instrumento = inst, base_nombre = files$base_nombre)
+}
+
+.carga_export_normalized_data <- function(sid, base_nombre = NULL, format = "xlsx") {
+  format <- tolower(as.character(format %||% "xlsx")[1])
+  if (!(format %in% c("xlsx", "csv", "sav"))) {
+    stop_api(400, "E_FORMATO_EXPORT", "Formato soportado: xlsx, csv o sav.")
+  }
+  payload <- .carga_normalized_data_for_export(sid, base_nombre)
+  s <- session_get(sid)
+  downloads_dir <- file.path(s$dir, "downloads")
+  dir.create(downloads_dir, showWarnings = FALSE, recursive = TRUE)
+
+  base <- payload$base_nombre %||% base_nombre
+  out_name <- .export_filename(sid, "data_normalizada", format, base = base)
+  out_path <- file.path(downloads_dir, sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
+
+  if (identical(format, "xlsx")) {
+    .bases_write_xlsx(payload$data, payload$data, out_path, valores = "codigos")
+  } else if (identical(format, "csv")) {
+    .bases_write_csv(payload$data, out_path, separador = ",")
+  } else {
+    .bases_export_sav(payload$data, payload$instrumento, out_path)
+  }
+
+  .register_output_file(sid, "data_normalizada", out_path, original_name = out_name)
+}
+
 mount_carga <- function(pr) {
   pr |>
     plumber::pr_post("/api/carga/instrumento", wrap_endpoint(function(req, res, file_id = NULL) {
@@ -553,6 +620,18 @@ mount_carga <- function(pr) {
         confirmed = TRUE,
         n_questions = as.integer(confirmed$n_questions %||% 0L),
         confirmed_at = as.character(confirmed$confirmed_at %||% "")
+      )
+    })) |>
+
+    plumber::pr_get("/api/carga/data/normalized-export", wrap_endpoint(function(req, res, format = "xlsx", base_nombre = NULL) {
+      sid <- session_header(req)
+      meta <- .carga_export_normalized_data(sid, base_nombre = base_nombre, format = format)
+      list(
+        ok = TRUE,
+        file_id = meta$file_id,
+        size = meta$size,
+        original_name = meta$original_name,
+        format = meta$ext
       )
     })) |>
 

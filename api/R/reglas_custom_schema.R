@@ -14,14 +14,30 @@
 #   - duplicados           — tuplas de variables repetidas.
 #   - fuera_catalogo       — valor no en lista `valores`.
 #   - coherencia_2v        — "si x <op> <valor_x> entonces y <op> <valor_y>".
+#   - select_multiple_hierarchy — si una opcion esta marcada, exige otras.
+#   - select_multiple_exclusive — opciones excluyentes no conviven con otras.
+#   - select_multiple_cardinality — min/max de opciones marcadas.
+#   - select_multiple_selection — contiene/no contiene codigos esperados.
 
 .regla_tipos_soportados <- c(
   "no_nulo", "rango_num", "rango_fecha",
   "outliers_iqr", "outliers_z",
-  "duplicados", "fuera_catalogo", "coherencia_2v"
+  "duplicados", "fuera_catalogo", "coherencia_2v",
+  "select_multiple_hierarchy", "select_multiple_exclusive",
+  "select_multiple_cardinality", "select_multiple_selection"
 )
 
 .regla_operadores_basicos <- c("==", "!=", ">", ">=", "<", "<=", "in", "not_in")
+.regla_operadores_gate <- c(
+  .regla_operadores_basicos,
+  "contains", "not_contains", "contains_any", "contains_all", "contains_none"
+)
+.regla_tratamientos <- c(
+  "ignore_rule", "exclude_cases", "replace_value", "set_value",
+  "recode_map", "complete_select_multiple_hierarchy",
+  "adjust_select_multiple", "nullify_fields"
+)
+.regla_alcances_tratamiento <- c("all", "selected", "single")
 
 .validar_regla_custom <- function(r) {
   if (!is.list(r)) stop_api(400, "E_REGLA_INVALIDA", "La regla debe ser un objeto.")
@@ -108,32 +124,97 @@
     if (is.null(params$valor_y)) {
       stop_api(400, "E_REGLA_VALOR_Y", "'coherencia_2v' requiere 'valor_y'.")
     }
+  } else if (tipo == "select_multiple_hierarchy") {
+    map <- .transform_normalize_hierarchy_map(params$hierarchy_map %||% params$map %||% NULL)
+    if (!length(map)) {
+      stop_api(
+        400,
+        "E_REGLA_SM_HIERARCHY_MAP",
+        "'select_multiple_hierarchy' requiere params$hierarchy_map con al menos una opcion."
+      )
+    }
+  } else if (tipo == "select_multiple_exclusive") {
+    codes <- .regla_chr_values(params$exclusive_codes %||% params$codes %||% params$valores %||% list())
+    if (!length(codes)) {
+      stop_api(400, "E_REGLA_SM_EXCLUSIVE_CODES",
+               "'select_multiple_exclusive' requiere codigos excluyentes.")
+    }
+  } else if (tipo == "select_multiple_cardinality") {
+    mn <- .as_num(params$min)
+    mx <- .as_num(params$max)
+    if (is.na(mn) && is.na(mx)) {
+      stop_api(400, "E_REGLA_SM_CARDINALITY",
+               "'select_multiple_cardinality' requiere al menos min o max.")
+    }
+    if (!is.na(mn) && !is.na(mx) && mn > mx) {
+      stop_api(400, "E_REGLA_SM_CARDINALITY_INVERTIDA",
+               "En cardinalidad select_multiple, min no puede ser mayor que max.")
+    }
+  } else if (tipo == "select_multiple_selection") {
+    op <- as.character(params$op %||% params$operator %||% "")
+    if (!(op %in% c("contains", "not_contains", "contains_any", "contains_all", "contains_none"))) {
+      stop_api(400, "E_REGLA_SM_SELECTION_OP",
+               "Operador select_multiple inválido.")
+    }
+    codes <- .regla_chr_values(params$codes %||% params$valores %||% list())
+    if (!length(codes)) {
+      stop_api(400, "E_REGLA_SM_SELECTION_CODES",
+               "'select_multiple_selection' requiere al menos un código.")
+    }
   }
   # `no_nulo` no requiere params adicionales.
+
+  action <- as.character(r$planned_action_type %||% "")
+  if (nzchar(action) && !(action %in% .regla_tratamientos)) {
+    stop_api(400, "E_REGLA_TRATAMIENTO",
+             sprintf("Tratamiento previsto inválido: %s", action))
+  }
+  scope <- as.character(r$recommended_scope %||% "")
+  if (nzchar(scope) && !(scope %in% .regla_alcances_tratamiento)) {
+    stop_api(400, "E_REGLA_ALCANCE",
+             sprintf("Alcance sugerido inválido: %s", scope))
+  }
 
   # ---- Gate condicional opcional ---------------------------------------
   # Una regla custom puede traer `gate_expr` — una expresión ODK que define
   # cuándo se aplica (ej. "${tiene_hijos} = '1'"). Si no se provee, la regla
   # evalúa siempre.
-  if (!is.null(r$gate_expr) && nzchar(as.character(r$gate_expr))) {
-    gate_raw <- as.character(r$gate_expr)
-    # Lazy-load del parser (evita ciclo en source() al cargar este archivo
-    # primero durante initialization).
-    if (exists("odk_parse_to_ast", mode = "function", envir = globalenv())) {
-      parsed <- tryCatch(
-        odk_parse_to_ast(gate_raw, context = "relevant"),
-        error = function(e) list(degraded_to_raw = TRUE, ast = NULL)
-      )
-      if (isTRUE(parsed$degraded_to_raw)) {
-        stop_api(400, "E_REGLA_GATE_INVALIDO",
-                 sprintf("gate_expr no pudo parsearse: '%s'", gate_raw))
+  if (!is.null(r$gate_conditions) && length(r$gate_conditions)) {
+    for (cond in r$gate_conditions) {
+      var <- as.character(cond$variable %||% cond$var %||% "")
+      op <- as.character(cond$op %||% cond$operator %||% "")
+      if (!nzchar(var)) {
+        stop_api(400, "E_REGLA_GATE_VAR", "Cada condición debe incluir variable.")
+      }
+      if (!(op %in% .regla_operadores_gate)) {
+        stop_api(400, "E_REGLA_GATE_OP",
+                 sprintf("Operador de condición inválido: %s", op))
       }
     }
-    # Si el parser AST no está cargado aún (caso edge), se valida sólo
-    # que no venga vacío — el bridge lo re-validará al construir.
+  } else if (!is.null(r$gate_expr) && nzchar(as.character(r$gate_expr))) {
+    gate_raw <- as.character(r$gate_expr)
+    ok_gate <- tryCatch({
+      .regla_gate_expr_to_r(gate_raw)
+      TRUE
+    }, error = function(e) FALSE)
+    if (!isTRUE(ok_gate) && exists("odk_parse_to_ast", mode = "function", envir = globalenv())) {
+      parsed <- tryCatch(odk_parse_to_ast(gate_raw, context = "relevant"),
+                         error = function(e) list(degraded_to_raw = TRUE, ast = NULL))
+      ok_gate <- !isTRUE(parsed$degraded_to_raw)
+    }
+    if (!isTRUE(ok_gate)) {
+      stop_api(400, "E_REGLA_GATE_INVALIDO",
+               sprintf("gate_expr no pudo parsearse: '%s'", gate_raw))
+    }
   }
 
   invisible(TRUE)
+}
+
+.regla_chr_values <- function(x) {
+  out <- as.character(unlist(x %||% list(), use.names = FALSE))
+  out <- out[!is.na(out) & nzchar(trimws(out))]
+  unique(trimws(out))
 }
 
 # Severidad: "error", "advertencia", "info". Default "error".
@@ -141,4 +222,42 @@
   sev <- as.character(r$severidad %||% "error")
   if (!(sev %in% c("error", "advertencia", "info"))) sev <- "error"
   sev
+}
+
+.regla_tratamiento <- function(r) {
+  action <- as.character(r$planned_action_type %||% "")
+  if (!(action %in% .regla_tratamientos)) action <- .regla_tratamiento_default(as.character(r$tipo %||% ""))
+  action
+}
+
+.regla_alcance_tratamiento <- function(r) {
+  scope <- as.character(r$recommended_scope %||% "")
+  if (!(scope %in% .regla_alcances_tratamiento)) scope <- .regla_alcance_default(as.character(r$tipo %||% ""))
+  scope
+}
+
+.regla_tratamiento_default <- function(tipo) {
+  switch(as.character(tipo),
+    select_multiple_hierarchy = "complete_select_multiple_hierarchy",
+    select_multiple_exclusive = "adjust_select_multiple",
+    select_multiple_cardinality = "adjust_select_multiple",
+    select_multiple_selection = "adjust_select_multiple",
+    duplicados = "exclude_cases",
+    fuera_catalogo = "recode_map",
+    no_nulo = "set_value",
+    "ignore_rule"
+  )
+}
+
+.regla_alcance_default <- function(tipo) {
+  switch(as.character(tipo),
+    select_multiple_hierarchy = "all",
+    fuera_catalogo = "all",
+    select_multiple_exclusive = "selected",
+    select_multiple_cardinality = "selected",
+    select_multiple_selection = "selected",
+    duplicados = "selected",
+    no_nulo = "selected",
+    "single"
+  )
 }

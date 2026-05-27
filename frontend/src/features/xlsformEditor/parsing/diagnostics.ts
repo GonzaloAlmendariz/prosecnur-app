@@ -153,7 +153,7 @@ export function buildDiagnostics(
         rowIndex: node.rowIndex,
         title: "Hay un bloque repeat importado",
         detail:
-          "Por ahora el constructor no expone repeats de forma guiada; si necesitas ajustarlo, usa el modo avanzado.",
+          "Por ahora el constructor expone los repeats de forma parcial; si necesitas revisar la fila cruda, usa la vista Hojas.",
       });
     }
   });

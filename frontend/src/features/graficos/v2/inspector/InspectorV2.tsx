@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 import * as Lucide from "lucide-react";
-import { LayoutPanelTop, FileText, Database, Palette, Filter as FilterIcon } from "lucide-react";
-import { ArgGrupo, ArgMetadata } from "../../../../api/client";
+import { ChevronDown, LayoutPanelTop, FileText, Database, Palette, Filter as FilterIcon } from "lucide-react";
+import { ArgGrupo, ArgMetadata, GraficadorRef } from "../../../../api/client";
 import { useSession } from "../../../../lib/SessionContext";
 import { usePlanStore, SLIDE_LABELS, InspectorTab } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { useVariables } from "../../useVariables";
 import { ArgGroup, ARG_GROUP_ORDER, normalizeArgGroup } from "../../ArgGroup";
-import GraficadorSlot from "../../GraficadorSlot";
+import GraficadorSlot, { getSlotLabel } from "../../GraficadorSlot";
 import { SlidePreview } from "../../SlidePreview";
 import { LoadingBlock, EmptyState } from "../../../../components/States";
 import { usePlanValidator } from "../../usePlanValidator";
@@ -40,7 +40,7 @@ export function InspectorV2() {
   const inspectorTab = usePlanStore((s) => s.inspectorTab);
   const setInspectorTab = usePlanStore((s) => s.setInspectorTab);
 
-  const { slidesById, loading } = useGraficosRegistry();
+  const { slidesById, graficadoresById, loading } = useGraficosRegistry();
   const { variables } = useVariables();
   const { issues } = usePlanValidator();
   const prepOk = !!state?.analitica_prep_ok;
@@ -202,6 +202,7 @@ export function InspectorV2() {
             updatePayload={updatePayload}
             variables={variables}
             slotNames={slotNames}
+            graficadoresById={graficadoresById}
           />
         )}
 
@@ -278,12 +279,13 @@ function ContentTabBody({ slide, args, updatePayload, variables }: {
   );
 }
 
-function DataTabBody({ slide, args, updatePayload, variables, slotNames }: {
+function DataTabBody({ slide, args, updatePayload, variables, slotNames, graficadoresById }: {
   slide: { id: string; payload: Record<string, unknown> };
   args: ArgMetadata[];
   updatePayload: (id: string, patch: Record<string, unknown>) => void;
   variables: import("../../../../api/client").VarInfo[];
   slotNames: string[];
+  graficadoresById: ReturnType<typeof useGraficosRegistry>["graficadoresById"];
 }) {
   return (
     <>
@@ -295,15 +297,31 @@ function DataTabBody({ slide, args, updatePayload, variables, slotNames }: {
             Gráficos del slide
           </div>
           <div className="pulso-gv2-slot-stack">
-            {slotNames.map((slotName) => (
-              <GraficadorSlot
-                key={slotName}
-                slideId={slide.id}
-                slotName={slotName}
-                value={(slide.payload as Record<string, unknown>)[slotName] as never}
-                mode="data"
-              />
-            ))}
+            {slotNames.map((slotName) => {
+              const slotValue = (slide.payload as Record<string, unknown>)[slotName] as GraficadorRef | undefined;
+              const slotLabel = getSlotLabel(slotName);
+              const technicalName = slotValue?.graficador ?? "";
+              const humanName = technicalName ? (graficadoresById[technicalName]?.titulo_humano ?? technicalName) : "";
+              return (
+                <details className="pulso-gv2-slot-accordion" key={slotName} open>
+                  <summary className="pulso-gv2-slot-accordion-summary">
+                    <span>
+                      <strong>{slotLabel}</strong>
+                      {technicalName ? ` · ${humanName}` : " · Sin gráfico"}
+                    </span>
+                    <ChevronDown size={13} />
+                  </summary>
+                  <div className="pulso-gv2-slot-accordion-body">
+                    <GraficadorSlot
+                      slideId={slide.id}
+                      slotName={slotName}
+                      value={slotValue as never}
+                      mode="data"
+                    />
+                  </div>
+                </details>
+              );
+            })}
           </div>
         </section>
       )}

@@ -8,7 +8,7 @@
 // =============================================================================
 
 import { ChevronDown, ChevronRight, Folder, Repeat } from "lucide-react";
-import { ConditionalIcon } from "../helpers/icons";
+import { IconConditionalLogic } from "../../../lib/icons";
 import { RichInline } from "../helpers/RichInline";
 
 export type SectionHeaderProps = {
@@ -83,7 +83,7 @@ export function SectionHeader({
         </span>
         {hasRelevant && (
           <span className="pulso-canvas-section-conditional" title="Sección condicional">
-            <ConditionalIcon size={12} weight="bold" /> Condicional
+            <IconConditionalLogic size={12} /> Condicional
           </span>
         )}
         {name && (

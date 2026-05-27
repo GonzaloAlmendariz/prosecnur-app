@@ -35,6 +35,8 @@
   tibble::tibble(
     id_regla = c("R001", "R002", "R003"),
     nombre_regla = c("Regla 1", "Regla 2", "Regla 3"),
+    tabla = "principal",
+    flag = c("flag_r001", "flag_r002", "flag_r003"),
     variable_1 = c("edad", "edad", "ingreso"),
     seccion = c("Demografía", "Demografía", "Económico"),
     n_inconsistencias = c(20L, 5L, 0L)
@@ -103,4 +105,38 @@ test_that("build_limpieza siempre incluye top_reglas y top_variables como listas
   out <- build_limpieza(scope)
   expect_true(is.list(out$top_reglas))
   expect_true(is.list(out$top_variables))
+})
+
+test_that("decision queue distingue cobertura parcial y total de casos", {
+  ev <- list(resumen = .fake_resumen())
+  scope <- list(
+    plan_result = list(plan = .fake_plan(3L)),
+    evaluacion = ev
+  )
+
+  partial <- list(
+    source_id = "R001",
+    source_type = "custom_rule",
+    status = "ready",
+    target_case_ids = as.list("caso_1"),
+    target_variable = "edad",
+    action_type = "replace_value",
+    action_params = list(to_value = "ok"),
+    rationale = "Prueba"
+  )
+  q_partial <- .limpieza_build_decision_queue(scope, list(partial))
+  r_partial <- q_partial[[which(vapply(q_partial, function(x) x$source_id == "R001", logical(1)))[1]]]
+
+  expect_true(r_partial$pending)
+  expect_equal(r_partial$n_casos_cubiertos, 1L)
+  expect_equal(r_partial$n_casos_pendientes, 19L)
+
+  global <- partial
+  global$target_case_ids <- list()
+  q_global <- .limpieza_build_decision_queue(scope, list(global))
+  r_global <- q_global[[which(vapply(q_global, function(x) x$source_id == "R001", logical(1)))[1]]]
+
+  expect_false(r_global$pending)
+  expect_equal(r_global$n_casos_cubiertos, 20L)
+  expect_equal(r_global$n_casos_pendientes, 0L)
 })

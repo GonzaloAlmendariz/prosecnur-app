@@ -120,12 +120,10 @@ export function VariablePicker({
         <span className="pulso-logic-varpicker-text">
           {selected ? (
             <>
+              <strong>
+                {selectedVar?.label || (isOrphan ? "Pregunta no encontrada" : typeLabel(selectedVar?.baseType ?? "text"))}
+              </strong>
               <code>${selected}</code>
-              {selectedVar?.label ? (
-                <em>{selectedVar.label}</em>
-              ) : isOrphan ? (
-                <em>· no existe en este formulario</em>
-              ) : null}
             </>
           ) : (
             <span style={{ color: "var(--pulso-text-soft)" }}>{placeholder}</span>
@@ -180,11 +178,10 @@ export function VariablePicker({
                         <VIcon size={13} />
                       </span>
                       <span className="pulso-logic-varpicker-itemtext">
-                        <code>${variable.name}</code>
                         <em>
-                          {typeLabel(variable.baseType)}
-                          {variable.label ? ` · ${variable.label}` : ""}
+                          {variable.label || typeLabel(variable.baseType)}
                         </em>
+                        <code>${variable.name} · {typeLabel(variable.baseType)}</code>
                       </span>
                     </button>
                   </li>

@@ -125,7 +125,7 @@ export default function DecisionStorageBar({
           }}
         >
           <span>
-            Total inconsistencias: <strong style={{ color: "var(--pulso-text)" }}>{fmt(totals.total)}</strong>
+            Total hallazgos: <strong style={{ color: "var(--pulso-text)" }}>{fmt(totals.total)}</strong>
           </span>
           <span aria-hidden="true">·</span>
           <span>

@@ -46,7 +46,7 @@ export type BasicTabProps = {
   onCatalogCreate: () => void;
   onOpenCatalogLens: (focusListName: string) => void;
   /** Clona el catálogo asignado a un listName nuevo solo para esta
-   *  pregunta. Usado en "Avanzado" cuando el catálogo es compartido. */
+   *  pregunta. Usado cuando el catálogo compartido debe divergir. */
   onCloneCatalog?: () => void;
 };
 
@@ -129,7 +129,7 @@ export function BasicTab({
       {/* Catálogo: solo aparece si el usuario quiere REASIGNAR la pregunta
           a otra lista existente. Las opciones se editan inline en el
           lienzo (canvas/EditableChoiceList) — sería duplicado mostrarlo
-          aquí también. Por eso el chip va dentro de "Avanzado". */}
+          aquí también. */}
 
       {/* Calculate sigue en Básico — la fórmula es su característica principal */}
       {node.kind === "calculate" && (
