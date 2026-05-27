@@ -19,10 +19,10 @@
 // =============================================================================
 
 import { ChevronDown, ChevronRight, ListChecks } from "lucide-react";
+import { IconConditionalLogic } from "../../../lib/icons";
 import type { LaidOutNode } from "./autoLayout";
 import { iconForType } from "../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
-import { ConditionalIcon } from "../helpers/icons";
 
 export type GraphNodeCardProps = {
   laid: LaidOutNode;
@@ -30,8 +30,7 @@ export type GraphNodeCardProps = {
   highlighted: boolean;
   /** Si la sección está expandida (solo aplica si laid.node.kind === "section"). */
   expanded?: boolean;
-  /** True cuando este node tiene `relevant` no vacío — se muestra
-   *  ConditionalIcon en el header. */
+  /** True cuando este node tiene `relevant` no vacío. */
   isConditional: boolean;
   /** Estados auxiliares para el modo edición (drag de edge). */
   markedAsTarget?: boolean;
@@ -346,17 +345,12 @@ export function GraphNodeCard({
                 flexShrink: 0,
               }}
             >
-              <ConditionalIcon
-                size={12}
-                weight={isSection ? "bold" : "thin"}
-                color="currentColor"
-              />
+              <IconConditionalLogic size={12} />
             </span>
           )}
           {/* Indicador de visibilidad HEREDADA de sección padre. Se
-              dibuja con tono soft/diagonal para distinguirlo del
-              ConditionalIcon "directo": la pregunta no tiene relevant
-              propio, pero su sección padre sí. Tooltip explica de
+              dibuja con tono soft/dashed para distinguirlo del relevant
+              directo: la pregunta no tiene relevant propio, pero su sección padre sí. Tooltip explica de
               dónde viene. */}
           {!isConditional && node.inheritedRelevant.length > 0 && (
             <span
@@ -381,7 +375,7 @@ export function GraphNodeCard({
                 letterSpacing: 0.3,
               }}
             >
-              ⤷
+              <IconConditionalLogic size={11} />
             </span>
           )}
         </div>

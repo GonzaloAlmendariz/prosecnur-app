@@ -27,6 +27,7 @@ type DragState = {
   startValues: number[];
   scalePx: number;
   total: number;
+  valueMin: number;
   direction?: 1 | -1;
   lastPatch?: Record<string, unknown>;
 };
@@ -75,6 +76,7 @@ const RADAR_FIELDS: LayoutField[] = [
 ];
 
 const BARS_PRESETS = new Set(["barras_apiladas", "multi_apiladas", "barras_agrupadas"]);
+const PIE_PRESETS = new Set(["pie", "donut"]);
 const RADAR_PRESETS = new Set(["radar_tabla", "dim_radar"]);
 
 export function ChartLayoutEditor({
@@ -125,7 +127,7 @@ export function ChartLayoutEditor({
       } else {
         const name = drag.names[0];
         const direction = drag.direction ?? (kind === "radar" ? -1 : 1);
-        const next = clampByMeta(drag.startValues[0] + delta * direction, argsByName[name]);
+        const next = clampByMeta((drag.startValues[0] - drag.valueMin) + delta * direction + drag.valueMin, argsByName[name]);
         const patch = { [name]: next };
         drag.lastPatch = patch;
         setLiveValues((prev) => ({ ...prev, ...patch }));
@@ -202,7 +204,7 @@ export function ChartLayoutEditor({
   const showTitle = !argsByName.mostrar_titulo || boolValueOf("mostrar_titulo", true);
   const showLegend = legendPosition !== "none" && (!argsByName.mostrar_leyenda || boolValueOf("mostrar_leyenda", true));
 
-  function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, rightName: string) {
+function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, rightName: string) {
     e.preventDefault();
     e.stopPropagation();
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -215,6 +217,7 @@ export function ChartLayoutEditor({
       startValues: [valueOf(leftName), valueOf(rightName)],
       scalePx: getCanvasTrackLength(canvasRef.current, axis),
       total: total > 0 ? total : 1,
+      valueMin: 0,
     };
   }
 
@@ -223,15 +226,31 @@ export function ChartLayoutEditor({
     e.stopPropagation();
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
+    const scalePx = getDragTrackLength(e.currentTarget.parentElement, axis) ?? getCanvasTrackLength(canvasRef.current, axis);
     dragRef.current = {
       axis,
       names: [name],
       startClient: axis === "x" ? e.clientX : e.clientY,
       startValues: [valueOf(name)],
-      scalePx: getCanvasTrackLength(canvasRef.current, axis),
-      total: 1,
+      scalePx,
+      total: Math.max(1e-6, getDragRange(name)),
       direction,
+      valueMin: getDragMin(name),
     };
+  }
+
+  function getDragRange(name: string): number {
+    const meta = argsByName[name];
+    if (!meta) return 1;
+    const min = typeof meta.min === "number" ? meta.min : 0;
+    const max = typeof meta.max === "number" ? meta.max : 1;
+    const range = max - min;
+    return Number.isFinite(range) && range > 0 ? range : 1;
+  }
+
+  function getDragMin(name: string): number {
+    const meta = argsByName[name];
+    return typeof meta?.min === "number" ? meta.min : 0;
   }
 
   function resetAll() {
@@ -313,7 +332,7 @@ export function ChartLayoutEditor({
               />
             )}
             {kind === "vertical" && (
-              hasPieLayout(argsByName) ? (
+              hasPieLayout(argsByName, presetType) ? (
                 <PieLayout
                   argsByName={argsByName}
                   valueOf={valueOf}
@@ -829,8 +848,20 @@ function resolveLayoutKind(presetType: string | null, argsByName: Record<string,
   return null;
 }
 
-function hasPieLayout(argsByName: Record<string, ArgMetadata>): boolean {
-  return Boolean(argsByName.canvas_w_legend_right || argsByName.canvas_h_legend_bottom);
+function hasPieLayout(argsByName: Record<string, ArgMetadata>, presetType: string | null): boolean {
+  if (presetType && PIE_PRESETS.has(presetType)) return true;
+
+  const hasLegendAnchor =
+    Boolean(argsByName.canvas_w_legend_right) ||
+    Boolean(argsByName.canvas_h_legend_bottom) ||
+    Boolean(argsByName.canvas_h_legend);
+  const hasPieMarker = Boolean(argsByName.tipo_pie) || Boolean(argsByName.donat_hole);
+  const hasLegacyPieCore =
+    Boolean(argsByName.canvas_h_title) &&
+    Boolean(argsByName.canvas_h_caption) &&
+    Boolean(argsByName.leyenda_posicion);
+
+  return hasLegendAnchor && (hasPieMarker || hasLegacyPieCore);
 }
 
 function fieldIfPresent(
@@ -1129,4 +1160,12 @@ function getCanvasTrackLength(canvas: HTMLDivElement | null, axis: "x" | "y"): n
   const padY = Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
   const axisLength = axis === "x" ? canvas.clientWidth - padX : canvas.clientHeight - padY;
   return Number.isFinite(axisLength) && axisLength > 1 ? axisLength : 1;
+}
+
+function getDragTrackLength(node: HTMLElement | null, axis: "x" | "y"): number | null {
+  if (!node) return null;
+  const rect = node.getBoundingClientRect();
+  const axisLength = axis === "x" ? rect.width : rect.height;
+  if (!Number.isFinite(axisLength) || axisLength <= 1) return null;
+  return axisLength;
 }

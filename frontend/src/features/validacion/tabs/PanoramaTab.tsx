@@ -126,7 +126,7 @@ export default function PanoramaTab() {
         <ProgresoPill label="Plan construido" on={progreso.plan_construido} />
         <ProgresoPill label="Auditoría corrida" on={progreso.auditoria_corrida} />
         <ProgresoPill
-          label="Reglas personalizadas"
+          label="Criterios de revisión"
           on={progreso.n_reglas_custom > 0}
           counter={progreso.n_reglas_custom}
         />

@@ -173,6 +173,7 @@ test_that("compiler: range_numeric compila y evalúa correctamente", {
 test_that("compiler: any_selected se corresponde con selected(var, x) OR ...", {
   rhs <- ast_to_r(ast_any_selected("IDP01", c("1","2")))
   IDP01 <- c("1", "2 3", "4", "", NA)
+  .__eval_data__ <- data.frame(IDP01 = IDP01, stringsAsFactors = FALSE)
   res <- eval(parse(text = rhs))
   expect_equal(res, c(TRUE, TRUE, FALSE, FALSE, FALSE))
 })

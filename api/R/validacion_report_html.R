@@ -44,6 +44,17 @@
   s
 }
 
+.report_row_values <- function(df, i) {
+  row <- df[i, , drop = FALSE]
+  vapply(row, function(value) {
+    if (!length(value) || is.null(value[[1]]) || is.na(value[[1]])) return("")
+    if (is.list(value[[1]]) || is.data.frame(value[[1]])) {
+      return(as.character(jsonlite::toJSON(value[[1]], auto_unbox = TRUE, null = "null")))
+    }
+    as.character(value[[1]])
+  }, character(1))
+}
+
 # -----------------------------------------------------------------------------
 # Secciones del reporte
 # -----------------------------------------------------------------------------
@@ -185,7 +196,7 @@
   df <- df[, keep, drop = FALSE]
   headers <- paste(sprintf("<th>%s</th>", .report_escape(names(df))), collapse = "")
   rows <- vapply(seq_len(nrow(df)), function(i) {
-    paste0("<tr>", paste(sprintf("<td>%s</td>", .report_escape(df[i, , drop = TRUE])), collapse = ""), "</tr>")
+    paste0("<tr>", paste(sprintf("<td>%s</td>", .report_escape(.report_row_values(df, i))), collapse = ""), "</tr>")
   }, character(1))
   paste0('<table class="tbl"><thead><tr>', headers, '</tr></thead><tbody>',
          paste(rows, collapse = ""), "</tbody></table>")
@@ -200,7 +211,7 @@
   df <- utils::head(df[, keep, drop = FALSE], 30L)
   headers <- paste(sprintf("<th>%s</th>", .report_escape(names(df))), collapse = "")
   rows <- vapply(seq_len(nrow(df)), function(i) {
-    paste0("<tr>", paste(sprintf("<td>%s</td>", .report_escape(df[i, , drop = TRUE])), collapse = ""), "</tr>")
+    paste0("<tr>", paste(sprintf("<td>%s</td>", .report_escape(.report_row_values(df, i))), collapse = ""), "</tr>")
   }, character(1))
   paste0('<table class="tbl"><thead><tr>', headers, '</tr></thead><tbody>',
          paste(rows, collapse = ""), "</tbody></table>")

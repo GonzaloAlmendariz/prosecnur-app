@@ -28,19 +28,27 @@ const CUSTOM_TIPO_TO_AST: Record<ReglaCustomTipo, string> = {
   duplicados: "duplicate",
   fuera_catalogo: "catalog",
   coherencia_2v: "coherence",
+  select_multiple_hierarchy: "select_multiple_cardinality",
+  select_multiple_exclusive: "select_multiple_cardinality",
+  select_multiple_cardinality: "select_multiple_cardinality",
+  select_multiple_selection: "select_multiple_cardinality",
 };
 
 // Label humano del tipo — se usa también como `categoria_ux` y en el chip
 // de la lista.
 export const CUSTOM_TIPO_LABEL: Record<ReglaCustomTipo, string> = {
-  no_nulo: "No vacíos",
-  rango_num: "Rango numérico",
-  rango_fecha: "Rango de fecha",
+  no_nulo: "Respuesta obligatoria",
+  rango_num: "Duración o métrica sospechosa",
+  rango_fecha: "Fecha fuera del operativo",
   outliers_iqr: "Outliers (IQR)",
   outliers_z: "Outliers (Z-score)",
-  duplicados: "Duplicados",
-  fuera_catalogo: "Fuera de catálogo",
-  coherencia_2v: "Coherencia 2v",
+  duplicados: "Duplicados operativos",
+  fuera_catalogo: "Respuesta fuera de lista",
+  coherencia_2v: "Coherencia o plausibilidad",
+  select_multiple_hierarchy: "Jerarquía de selección múltiple",
+  select_multiple_exclusive: "Opciones incompatibles",
+  select_multiple_cardinality: "Cantidad de opciones marcada",
+  select_multiple_selection: "Opciones esperadas o prohibidas",
 };
 
 // Construye una descripción corta a partir de los parámetros — útil cuando
@@ -61,24 +69,37 @@ export function describeCustomParams(
       if (mn && mx) return `Debe estar entre ${mn} y ${mx}.`;
       if (mn) return `Debe ser ≥ ${mn}.`;
       if (mx) return `Debe ser ≤ ${mx}.`;
-      return "Define un rango permitido para el valor numérico.";
+      return "Define el rango esperado para una duración, conteo o métrica operativa.";
     case "rango_fecha":
       if (mn && mx) return `Debe estar entre ${mn} y ${mx}.`;
       if (mn) return `Debe ser desde ${mn}.`;
       if (mx) return `Debe ser hasta ${mx}.`;
-      return "Define el rango de fechas permitido para esta variable.";
+      return "Define el periodo del operativo para esta fecha.";
     case "outliers_iqr":
       return `Se marcan valores fuera del intervalo [Q1 − ${k ?? 1.5}·IQR, Q3 + ${k ?? 1.5}·IQR].`;
     case "outliers_z":
       return `Se marcan valores cuyo |z-score| supere ${k ?? 3}.`;
     case "duplicados":
-      return "Se marcan filas donde esa combinación de variables aparece más de una vez.";
+      return "Se marcan filas donde esa combinación de identificadores operativos aparece más de una vez.";
     case "fuera_catalogo":
       return valores > 0
         ? `Se marcan filas con valores que no están en la lista permitida (${valores} entradas).`
         : "Define la lista de opciones esperadas.";
     case "coherencia_2v":
-      return "Si la primera variable cumple su condición, la segunda debe cumplir también la suya.";
+      return "Si la primera respuesta define un contexto, la segunda debe ser plausible dentro de ese contexto.";
+    case "select_multiple_hierarchy": {
+      const map = params.hierarchy_map;
+      const n = map && typeof map === "object" && !Array.isArray(map) ? Object.keys(map).length : 0;
+      return n > 0
+        ? `Detecta respuestas de selección múltiple que no completan el mapa manual (${n} activador${n === 1 ? "" : "es"}).`
+        : "Define qué opciones deben agregarse cuando una opción superior está marcada.";
+    }
+    case "select_multiple_exclusive":
+      return "Detecta opciones excluyentes marcadas junto con otras respuestas.";
+    case "select_multiple_cardinality":
+      return "Detecta respuestas con menos o más opciones marcadas que el rango esperado.";
+    case "select_multiple_selection":
+      return "Detecta respuestas de selección múltiple que no cumplen el patrón de opciones esperado.";
     default:
       return "";
   }
@@ -87,13 +108,22 @@ export function describeCustomParams(
 // Convierte una ReglaCustom completa (ya guardada) al shape ReglaLike.
 export function customRuleToRule(r: ReglaCustom): ReglaLike {
   const target = r.variables[0] ?? null;
-  const gate = r.tipo === "coherencia_2v" && r.variables[1] ? [r.variables[1]] : null;
+  const gateVars = (r.gate_conditions ?? []).map((c) => c.variable).filter(Boolean);
+  const gate = r.tipo === "coherencia_2v" && r.variables[1]
+    ? [r.variables[1], ...gateVars]
+    : gateVars.length
+      ? gateVars
+      : null;
   return {
     id: r.id,
     nombre: r.nombre,
     tipo_regla: CUSTOM_TIPO_TO_AST[r.tipo] ?? null,
     tipo_observacion: r.tipo,
     fuente: "custom",
+    hallazgo_kind: r.hallazgo_kind ?? "caso_validar",
+    origen_detalle: r.hallazgo_kind === "inconsistencia_usuario"
+      ? "Personalizada: inconsistencia definida"
+      : "Personalizada: caso a validar",
     severidad: r.severidad,
     categoria_ux: CUSTOM_TIPO_LABEL[r.tipo] ?? r.tipo,
     objetivo: r.mensaje || describeCustomParams(r.tipo, r.params) || null,
@@ -116,9 +146,14 @@ export function draftCustomToRule(input: {
 }): ReglaLike | null {
   if (!input.tipo || !input.variables.length) return null;
   const target = input.variables[0] ?? null;
+  const gateVars = Array.isArray((input.params as Record<string, unknown>).gate_conditions)
+    ? ((input.params as Record<string, unknown>).gate_conditions as Array<{ variable?: string }>).map((c) => c.variable ?? "").filter(Boolean)
+    : [];
   const gate =
     input.tipo === "coherencia_2v" && input.variables[1]
-      ? [input.variables[1]]
+      ? [input.variables[1], ...gateVars]
+      : gateVars.length
+        ? gateVars
       : null;
   const objetivo =
     input.mensaje.trim() || describeCustomParams(input.tipo, input.params) || null;
@@ -128,6 +163,8 @@ export function draftCustomToRule(input: {
     tipo_regla: CUSTOM_TIPO_TO_AST[input.tipo] ?? null,
     tipo_observacion: input.tipo,
     fuente: "custom",
+    hallazgo_kind: "caso_validar",
+    origen_detalle: "Personalizada: caso a validar",
     severidad: "error",
     categoria_ux: CUSTOM_TIPO_LABEL[input.tipo],
     objetivo,

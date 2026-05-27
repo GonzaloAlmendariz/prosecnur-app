@@ -57,7 +57,7 @@ export type FormCanvasProps = {
   ) => void;
   /** Listas existentes que el AddBetween ofrece reusar al crear un select. */
   existingLists?: Array<{ listName: string; choicesCount: number; usageCount: number }>;
-  /** Acceso al editor avanzado de catálogos. */
+  /** Acceso al editor de catálogos. */
   onOpenCatalogLens: (listName: string) => void;
 };
 
@@ -94,13 +94,23 @@ export function FormCanvas({
 
   // Cuando cambia la selección desde fuera (ej. click en outline), scroll a
   // la card correspondiente.
+  const canvasRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   useEffect(() => {
     if (selectedRow == null) return;
     const el = cardRefs.current.get(selectedRow);
-    if (el && typeof el.scrollIntoView === "function") {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+    const canvasEl = canvasRef.current;
+    if (!el || !canvasEl) return;
+    const canvasRect = canvasEl.getBoundingClientRect();
+    const cardRect = el.getBoundingClientRect();
+    const centeredOffset =
+      cardRect.top -
+      canvasRect.top -
+      Math.max(0, (canvasRect.height - cardRect.height) / 2);
+    canvasEl.scrollTo({
+      top: Math.max(0, canvasEl.scrollTop + centeredOffset),
+      behavior: "auto",
+    });
   }, [selectedRow]);
 
   // Determinar qué nodos del outline están dentro de una sección colapsada.
@@ -157,14 +167,14 @@ export function FormCanvas({
 
   if (!hasEditableContent) {
     return (
-      <div className="pulso-form-canvas">
+      <div ref={canvasRef} className="pulso-form-canvas">
         <FormCanvasEmptyState onAddSection={() => onAddAfter(null, "section")} />
       </div>
     );
   }
 
   return (
-    <div className="pulso-form-canvas">
+    <div ref={canvasRef} className="pulso-form-canvas">
       {renderItems.map((it, idx) => {
         if (it.kind === "trailing") {
           return (

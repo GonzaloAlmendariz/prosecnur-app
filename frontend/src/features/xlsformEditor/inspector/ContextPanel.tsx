@@ -15,7 +15,8 @@
 // =============================================================================
 
 import { useEffect, useState } from "react";
-import { ExternalLink, Layers, ListChecks, Paintbrush, Users, Workflow } from "lucide-react";
+import { ExternalLink, Layers, ListChecks, Paintbrush, Users } from "lucide-react";
+import { IconConditionalLogic } from "../../../lib/icons";
 import type { BuilderNode, CatalogSummary } from "../types";
 import type { LogicScope } from "../logic";
 import { iconForType } from "../helpers/icons";
@@ -187,7 +188,7 @@ export function ContextPanel({
         title="Lógica y validación"
         hint="Condiciones de visibilidad y reglas de respuesta"
         defaultOpen={hasLogic}
-        icon={<Workflow size={13} />}
+        icon={<IconConditionalLogic size={13} />}
       >
         <LogicTab node={node} scope={logicScope} onFieldChange={onFieldChange} />
       </CollapsibleSection>
@@ -268,7 +269,7 @@ function CatalogInfoBlock({
             <p className="pulso-catalog-info-shared-note">
               Editar las opciones afecta a todas las preguntas de la
               lista. Si esta pregunta necesita opciones distintas, abre
-              "Avanzado" en "Lo esencial" y crea una copia.
+              el bloque de datos y crea una copia.
             </p>
           )}
         </div>

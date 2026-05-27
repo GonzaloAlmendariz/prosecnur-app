@@ -12,8 +12,8 @@
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
-import { Layers3, ListChecks, MoreHorizontal, Workflow } from "lucide-react";
-import { IconBranching } from "../../../lib/icons";
+import { Layers3, ListChecks, MoreHorizontal, type LucideIcon } from "lucide-react";
+import { IconConditionalLogic } from "../../../lib/icons";
 
 export type MoreViewsMenuProps = {
   catalogsCount: number;
@@ -27,7 +27,7 @@ type MenuItem = {
   key: string;
   label: string;
   description: string;
-  icon: typeof Workflow;
+  icon: LucideIcon;
   onClick: () => void;
   badge?: number;
 };
@@ -85,7 +85,7 @@ export function MoreViewsMenu({
       key: "logic-canvas",
       label: "Mapa de lógica",
       description: "Diagrama visual de cómo las preguntas dependen unas de otras.",
-      icon: Workflow,
+      icon: IconConditionalLogic,
       onClick: () => {
         onOpenLogicCanvas();
         setOpen(false);
@@ -95,7 +95,7 @@ export function MoreViewsMenu({
       key: "survey-monkey-logic",
       label: "Lógica de SurveyMonkey",
       description: "Editar, agregar o reutilizar reglas de salto sin regenerar el XLSForm.",
-      icon: IconBranching,
+      icon: IconConditionalLogic,
       onClick: () => {
         onOpenSurveyMonkeyLogic();
         setOpen(false);

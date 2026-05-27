@@ -43,6 +43,25 @@
   paste0("c(", paste(vals, collapse = ", "), ")")
 }
 
+.regla_r_named_list_literal <- function(x) {
+  x <- .transform_normalize_hierarchy_map(x)
+  if (!length(x)) return("list()")
+  values <- vapply(x, .regla_r_list_literal, character(1))
+  names_lit <- .regla_r_list_literal(names(x))
+  paste0("stats::setNames(list(", paste(values, collapse = ", "), "), ", names_lit, ")")
+}
+
+.regla_r_global_call <- function(fn, ...) {
+  args <- paste(c(...), collapse = ", ")
+  sprintf("get('%s', envir = globalenv())(%s)", fn, args)
+}
+
+.regla_param_values <- function(x) {
+  out <- as.character(unlist(x %||% list(), use.names = FALSE))
+  out <- out[!is.na(out) & nzchar(trimws(out))]
+  unique(trimws(out))
+}
+
 # -----------------------------------------------------------------------------
 # Expresiones por tipo de regla
 # -----------------------------------------------------------------------------
@@ -132,7 +151,66 @@
   sprintf("((%s) & !(%s))", fx, fy)
 }
 
+.regla_expr_select_multiple_hierarchy <- function(var, params) {
+  map_lit <- .regla_r_named_list_literal(params$hierarchy_map %||% params$map %||% list())
+  .regla_r_global_call(
+    ".vd_sm_hierarchy_violation",
+    .regla_r_literal(var),
+    map_lit,
+    ".__eval_data__"
+  )
+}
+
+.regla_expr_select_multiple_exclusive <- function(var, params) {
+  codes <- .regla_param_values(params$exclusive_codes %||% params$codes %||% params$valores %||% list())
+  max_others <- suppressWarnings(as.integer(params$max_others %||% NA_integer_))
+  .regla_r_global_call(
+    ".vd_sm_exclusive_violation",
+    .regla_r_literal(var),
+    .regla_r_list_literal(codes),
+    ".__eval_data__",
+    sprintf("max_others = %s", if (is.na(max_others)) "NULL" else as.character(max_others))
+  )
+}
+
+.regla_expr_select_multiple_cardinality <- function(var, params) {
+  mn <- suppressWarnings(as.integer(params$min %||% NA_integer_))
+  mx <- suppressWarnings(as.integer(params$max %||% NA_integer_))
+  .regla_r_global_call(
+    ".vd_sm_cardinality_violation",
+    .regla_r_literal(var),
+    ".__eval_data__",
+    sprintf("min_count = %s", if (is.na(mn)) "NULL" else as.character(mn)),
+    sprintf("max_count = %s", if (is.na(mx)) "NULL" else as.character(mx))
+  )
+}
+
+.regla_expr_select_multiple_selection <- function(var, params) {
+  op <- as.character(params$op %||% params$operator %||% "contains_any")
+  codes <- .regla_param_values(params$codes %||% params$valores %||% list())
+  positive <- switch(op,
+    contains = .regla_r_global_call(".vd_sm_contains_all", .regla_r_literal(var), .regla_r_list_literal(codes), ".__eval_data__"),
+    contains_all = .regla_r_global_call(".vd_sm_contains_all", .regla_r_literal(var), .regla_r_list_literal(codes), ".__eval_data__"),
+    contains_any = .regla_r_global_call(".vd_sm_contains_any", .regla_r_literal(var), .regla_r_list_literal(codes), ".__eval_data__"),
+    not_contains = .regla_r_global_call(".vd_sm_contains_none", .regla_r_literal(var), .regla_r_list_literal(codes), ".__eval_data__"),
+    contains_none = .regla_r_global_call(".vd_sm_contains_none", .regla_r_literal(var), .regla_r_list_literal(codes), ".__eval_data__"),
+    .regla_r_global_call(".vd_sm_contains_any", .regla_r_literal(var), .regla_r_list_literal(codes), ".__eval_data__")
+  )
+  # La regla marca casos que NO cumplen el patrón esperado.
+  sprintf("!(%s)", positive)
+}
+
 .regla_expr_cond <- function(var, op, valor) {
+  if (op %in% c("contains", "contains_all", "contains_any", "not_contains", "contains_none")) {
+    vals <- .regla_param_values(valor)
+    if (op %in% c("contains", "contains_all")) {
+      return(.regla_r_global_call(".vd_sm_contains_all", .regla_r_literal(var), .regla_r_list_literal(vals), ".__eval_data__"))
+    }
+    if (op == "contains_any") {
+      return(.regla_r_global_call(".vd_sm_contains_any", .regla_r_literal(var), .regla_r_list_literal(vals), ".__eval_data__"))
+    }
+    return(.regla_r_global_call(".vd_sm_contains_none", .regla_r_literal(var), .regla_r_list_literal(vals), ".__eval_data__"))
+  }
   if (op == "in" || op == "not_in") {
     vals <- unlist(valor)
     lit <- .regla_r_list_literal(vals)
@@ -149,6 +227,52 @@
   } else {
     sprintf("(as.character(%s) %s %s)", var, op_sym, .regla_r_literal(valor))
   }
+}
+
+.regla_gate_conditions_to_r <- function(conditions) {
+  if (is.null(conditions) || !length(conditions)) return(NULL)
+  parts <- vapply(conditions, function(cond) {
+    var <- as.character(cond$variable %||% cond$var %||% "")
+    op <- as.character(cond$op %||% cond$operator %||% "==")
+    value <- cond$value %||% cond$values %||% list()
+    .regla_expr_cond(var, op, value)
+  }, character(1))
+  parts <- parts[nzchar(parts)]
+  if (!length(parts)) return(NULL)
+  paste0("(", paste(parts, collapse = " & "), ")")
+}
+
+.regla_gate_expr_to_r <- function(gate_expr) {
+  expr <- trimws(as.character(gate_expr %||% ""))
+  if (!nzchar(expr)) return(NULL)
+  atoms <- strsplit(expr, "(?i)\\s+and\\s+|\\s+&&\\s+", perl = TRUE)[[1]]
+  parts <- vapply(atoms, function(atom) {
+    atom <- trimws(atom)
+    atom <- gsub("^\\((.*)\\)$", "\\1", atom)
+    m_not_sel <- regexec("^not\\s*\\(\\s*selected\\s*\\(\\s*\\$?\\{?([A-Za-z0-9_.]+)\\}?\\s*,\\s*['\"]([^'\"]+)['\"]\\s*\\)\\s*\\)$", atom, perl = TRUE)
+    got <- regmatches(atom, m_not_sel)[[1]]
+    if (length(got) == 3L) return(.regla_expr_cond(got[2], "not_contains", got[3]))
+    m_sel <- regexec("^selected\\s*\\(\\s*\\$?\\{?([A-Za-z0-9_.]+)\\}?\\s*,\\s*['\"]([^'\"]+)['\"]\\s*\\)$", atom, perl = TRUE)
+    got <- regmatches(atom, m_sel)[[1]]
+    if (length(got) == 3L) return(.regla_expr_cond(got[2], "contains", got[3]))
+    m_cmp <- regexec("^\\$?\\{?([A-Za-z0-9_.]+)\\}?\\s*(==|=|!=|>=|<=|>|<)\\s*['\"]?([^'\"]+)['\"]?$", atom, perl = TRUE)
+    got <- regmatches(atom, m_cmp)[[1]]
+    if (length(got) == 4L) {
+      op <- if (identical(got[3], "=")) "==" else got[3]
+      return(.regla_expr_cond(got[2], op, got[4]))
+    }
+    stop(sprintf("gate_expr no soportado: %s", atom), call. = FALSE)
+  }, character(1))
+  paste0("(", paste(parts, collapse = " & "), ")")
+}
+
+.regla_apply_gate <- function(expr, r) {
+  gate <- .regla_gate_conditions_to_r(r$gate_conditions %||% list())
+  if (is.null(gate) && !is.null(r$gate_expr) && nzchar(as.character(r$gate_expr))) {
+    gate <- .regla_gate_expr_to_r(r$gate_expr)
+  }
+  if (is.null(gate) || !nzchar(gate)) return(expr)
+  sprintf("((%s) & (%s))", gate, expr)
 }
 
 # -----------------------------------------------------------------------------
@@ -173,8 +297,13 @@
     "duplicados"     = .regla_expr_duplicados(vars),
     "fuera_catalogo" = .regla_expr_fuera_catalogo(vars[1], r$params),
     "coherencia_2v"  = .regla_expr_coherencia_2v(vars, r$params),
+    "select_multiple_hierarchy" = .regla_expr_select_multiple_hierarchy(vars[1], r$params),
+    "select_multiple_exclusive" = .regla_expr_select_multiple_exclusive(vars[1], r$params),
+    "select_multiple_cardinality" = .regla_expr_select_multiple_cardinality(vars[1], r$params),
+    "select_multiple_selection" = .regla_expr_select_multiple_selection(vars[1], r$params),
     stop_api(500, "E_REGLA_TIPO", sprintf("Tipo no mapeado: %s", r$tipo))
   )
+  expr <- .regla_apply_gate(expr, r)
   procesamiento <- sprintf("%s <- %s", nombre_r, expr)
 
   # Etiquetas humanas de las variables (busca en el instrumento si disponible).

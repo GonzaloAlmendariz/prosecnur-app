@@ -52,9 +52,9 @@ const TABS: TabMeta<ValidacionTabId>[] = [
   },
   {
     key: "reglas_custom",
-    label: "Reglas personalizadas",
+    label: "Criterios de revisión",
     icon: PieChart,
-    desc: "Reglas finas definidas por ti",
+    desc: "Señales adicionales",
   },
   {
     key: "limpieza",
@@ -180,7 +180,7 @@ export default function ValidacionPage() {
 
         <main
           id="validacion-panel"
-          className="pulso-validacion-content pulso-content-area"
+          className={`pulso-validacion-content pulso-content-area${activeTab === "reglas_custom" ? " is-contained-scroll" : ""}`}
           role="tabpanel"
           aria-labelledby={`validacion-tab-${activeTab}`}
         >
@@ -273,7 +273,7 @@ function ValidacionModeSidebar({
     <aside className="pulso-validacion-sidebar pulso-sidebar" aria-label="Secciones de validación">
       <div className="pulso-validacion-sidebar-head">
         <span className="pulso-section-eyebrow">Validación</span>
-        <strong>{disabled ? "Pendiente" : "Mesa de revisión"}</strong>
+        <strong>{disabled ? "Pendiente" : "Validación"}</strong>
       </div>
       <div
         role="tablist"

@@ -13,7 +13,7 @@
 # Parsea y evalúa el Procesamiento de una fila de plan sobre un data.frame
 # dado. Devuelve el vector lógico que el evaluador generaría.
 eval_procesamiento <- function(row, df) {
-  env <- list2env(as.list(df), parent = globalenv())
+  env <- list2env(c(as.list(df), list(.__eval_data__ = df)), parent = globalenv())
   expr <- parse(text = as.character(row$Procesamiento))
   eval(expr, envir = env)
   # El Procesamiento asigna `rc_<id> <-` dentro de env; extraemos ese binding.
@@ -217,6 +217,93 @@ test_that("coherencia_2v con op 'in' acepta lista de valores", {
   # Fila 3: pais in {PE,CO}=T, region not_in {Europa,Asia}=F (es Asia) → viol
   # Fila 4: pais in {PE,CO}=T, region not_in {Europa,Asia}=F (es Europa) → viol
   expect_identical(viol, c(FALSE, FALSE, TRUE, TRUE))
+})
+
+# ----- Condiciones y select_multiple ------------------------------------------
+
+test_that("gate_conditions condiciona la evaluación de reglas personalizadas", {
+  r <- list(
+    id = "gate1",
+    tipo = "no_nulo",
+    variables = list("servicios"),
+    gate_conditions = list(list(variable = "frecuencia", op = "==", value = "Solo fui una vez")),
+    params = list(),
+    activa = TRUE
+  )
+  plan <- compile_reglas_custom(list(r))
+  df <- data.frame(
+    frecuencia = c("Solo fui una vez", "Varias veces", "Solo fui una vez", "Varias veces"),
+    servicios = c("", "", "A", ""),
+    stringsAsFactors = FALSE
+  )
+  viol <- eval_procesamiento(plan[1, ], df)
+  expect_identical(viol, c(TRUE, FALSE, FALSE, FALSE))
+})
+
+test_that("select_multiple_cardinality detecta solo dentro del universo aplicable", {
+  r <- list(
+    id = "sm_card",
+    tipo = "select_multiple_cardinality",
+    variables = list("servicios"),
+    gate_conditions = list(list(variable = "frecuencia", op = "==", value = "Solo fui una vez")),
+    params = list(max = 2),
+    activa = TRUE
+  )
+  plan <- compile_reglas_custom(list(r))
+  df <- data.frame(
+    frecuencia = c("Solo fui una vez", "Varias veces", "Solo fui una vez"),
+    servicios = c("1 2 3", "1 2 3 4", "1"),
+    stringsAsFactors = FALSE
+  )
+  viol <- eval_procesamiento(plan[1, ], df)
+  expect_identical(viol, c(TRUE, FALSE, FALSE))
+})
+
+test_that("select_multiple_selection soporta contiene, cualquiera, todos y ninguno", {
+  df <- data.frame(servicios = c("1 2", "2 3", "4", ""), stringsAsFactors = FALSE)
+
+  contiene <- compile_reglas_custom(list(list(
+    id = "sm_contains", tipo = "select_multiple_selection", variables = list("servicios"),
+    params = list(op = "contains", codes = list("1")), activa = TRUE
+  )))
+  expect_identical(eval_procesamiento(contiene[1, ], df), c(FALSE, TRUE, TRUE, TRUE))
+
+  cualquiera <- compile_reglas_custom(list(list(
+    id = "sm_any", tipo = "select_multiple_selection", variables = list("servicios"),
+    params = list(op = "contains_any", codes = list("1", "3")), activa = TRUE
+  )))
+  expect_identical(eval_procesamiento(cualquiera[1, ], df), c(FALSE, FALSE, TRUE, TRUE))
+
+  todos <- compile_reglas_custom(list(list(
+    id = "sm_all", tipo = "select_multiple_selection", variables = list("servicios"),
+    params = list(op = "contains_all", codes = list("1", "2")), activa = TRUE
+  )))
+  expect_identical(eval_procesamiento(todos[1, ], df), c(FALSE, TRUE, TRUE, TRUE))
+
+  ninguno <- compile_reglas_custom(list(list(
+    id = "sm_none", tipo = "select_multiple_selection", variables = list("servicios"),
+    params = list(op = "contains_none", codes = list("4")), activa = TRUE
+  )))
+  expect_identical(eval_procesamiento(ninguno[1, ], df), c(FALSE, FALSE, TRUE, FALSE))
+})
+
+test_that("select_multiple_exclusive funciona con columnas dummy", {
+  r <- list(
+    id = "sm_exclusive",
+    tipo = "select_multiple_exclusive",
+    variables = list("servicios"),
+    params = list(exclusive_codes = list("99")),
+    activa = TRUE
+  )
+  plan <- compile_reglas_custom(list(r))
+  df <- data.frame(
+    servicios.1 = c("Si", "No", "No"),
+    servicios.2 = c("No", "Si", "No"),
+    servicios.99 = c("Si", "No", "Si"),
+    check.names = FALSE
+  )
+  viol <- eval_procesamiento(plan[1, ], df)
+  expect_identical(viol, c(TRUE, FALSE, FALSE))
 })
 
 # ----- Filtro de reglas inactivas --------------------------------------------

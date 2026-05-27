@@ -217,15 +217,50 @@
 build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_override = NULL) {
   decisions <- scope$limpieza_draft %||% list()
   queue <- .limpieza_build_decision_queue(scope, decisions)
+  preview_error <- NULL
   preview <- if (!is.null(preview_override)) {
     preview_override
   } else if (!is.null(sid)) {
-    .limpieza_simulate(sid, base_nombre, scope, decisions)
+    tryCatch(
+      .limpieza_simulate(sid, base_nombre, scope, decisions),
+      error = function(e) {
+        preview_error <<- conditionMessage(e)
+        before <- .limpieza_before_metrics(scope)
+        list(
+          before = before,
+          after = before,
+          impact = list(
+            cases_excluded = 0L,
+            cells_changed = 0L,
+            replacements = 0L,
+            normalizations = 0L,
+            imputations = 0L,
+            transformations = 0L,
+            rules_resolved = 0L
+          ),
+          residual_final = if (!is.null(scope$evaluacion$resumen)) {
+            .plan_rows_preview(utils::head(scope$evaluacion$resumen, 500L), n = 500L)
+          } else {
+            list()
+          },
+          decisions_ready = as.integer(sum(vapply(
+            decisions,
+            function(d) identical(as.character(d$status %||% ""), "ready"),
+            logical(1)
+          ))),
+          preview_error = preview_error
+        )
+      }
+    )
   } else {
     NULL
   }
   module_stats <- .limpieza_build_module_stats(decisions, queue, preview)
   summary <- .limpieza_build_summary(scope, queue, decisions, preview)
+  artifacts <- scope$limpieza_artifacts %||% list()
+  if (!is.null(preview_error) && nzchar(preview_error)) {
+    artifacts$preview_error <- preview_error
+  }
 
   list(
     progreso = list(
@@ -241,6 +276,6 @@ build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_overri
     decision_draft = decisions,
     module_stats = module_stats,
     before_after_preview = preview,
-    artifacts = scope$limpieza_artifacts %||% list()
+    artifacts = artifacts
   )
 }

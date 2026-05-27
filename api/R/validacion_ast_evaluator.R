@@ -69,6 +69,7 @@ evaluate_rules <- function(rules,
   # 2. Preparar entorno de evaluación
   eval_env <- new.env(parent = globalenv())
   for (nm in names(data)) assign(nm, data[[nm]], envir = eval_env)
+  assign(".__eval_data__", data, envir = eval_env)
   assign("__today__", today_vec, envir = eval_env)
   assign("sum", .legacy_safe_sum, envir = eval_env)
   assign("mean", .legacy_safe_mean, envir = eval_env)
@@ -420,6 +421,19 @@ evaluate_rules <- function(rules,
   gate <- .role_missing_subset(roles$gate, data_names)
   drivers <- .role_missing_subset(roles$drivers, data_names)
   all <- unique(c(target, compare, gate, drivers, setdiff(rule$variables %||% character(0), data_names)))
+
+  # Las preguntas select_multiple pueden no existir como variable madre si el
+  # export trae solo dummies (p7.1, p7.2...). En ese caso no son "missing":
+  # los compiladores de selected/count usan helpers que leen esas dummies.
+  dummy_backed <- all[vapply(all, function(v) length(.find_select_multiple_dummies(v, data_names)) > 0L, logical(1))]
+  if (length(dummy_backed)) {
+    target <- setdiff(target, dummy_backed)
+    compare <- setdiff(compare, dummy_backed)
+    gate <- setdiff(gate, dummy_backed)
+    drivers <- setdiff(drivers, dummy_backed)
+    all <- setdiff(all, dummy_backed)
+  }
+
   list(
     target = target,
     compare = compare,

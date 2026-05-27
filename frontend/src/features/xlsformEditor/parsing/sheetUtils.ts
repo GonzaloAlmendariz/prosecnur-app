@@ -55,26 +55,28 @@ export function cloneSheet(sheet: XlsformEditorSheet): XlsformEditorSheet {
 }
 
 export function cloneWorkbook(book: XlsformEditorWorkbook): XlsformEditorWorkbook {
+  const logic = book.surveyMonkeyLogic;
+  const choiceOrderOverrides = logic?.choice_order_overrides ?? {};
   return {
     survey: cloneSheet(book.survey),
     choices: cloneSheet(book.choices),
     settings: cloneSheet(book.settings),
     paper: book.paper ? cloneSheet(book.paper) : makeSheet("paper", PAPER_COLUMNS),
     diagnostico: book.diagnostico ? cloneSheet(book.diagnostico) : null,
-    surveyMonkeyLogic: book.surveyMonkeyLogic
+    surveyMonkeyLogic: logic
       ? {
-          rules: (book.surveyMonkeyLogic.rules ?? book.surveyMonkeyLogic.advanced_rules ?? []).map((rule) => ({ ...rule })),
-          advanced_rules: (book.surveyMonkeyLogic.advanced_rules ?? book.surveyMonkeyLogic.rules ?? []).map((rule) => ({ ...rule })),
-          visual_rules: (book.surveyMonkeyLogic.visual_rules ?? []).map((rule) => ({
+          rules: (logic.rules ?? logic.advanced_rules ?? []).map((rule) => ({ ...rule })),
+          advanced_rules: (logic.advanced_rules ?? logic.rules ?? []).map((rule) => ({ ...rule })),
+          visual_rules: (logic.visual_rules ?? []).map((rule) => ({
             ...rule,
-            choices: rule.choices.map((choice) => ({ ...choice, action: { ...choice.action } })),
+            choices: (rule.choices ?? []).map((choice) => ({ ...choice, action: { ...choice.action } })),
           })),
 	          choice_order_overrides: Object.fromEntries(
-	            Object.entries(book.surveyMonkeyLogic.choice_order_overrides).map(([key, labels]) => [key, [...labels]]),
+	            Object.entries(choiceOrderOverrides).map(([key, labels]) => [key, [...labels]]),
 	          ),
-	          choice_code_maps: (book.surveyMonkeyLogic.choice_code_maps ?? []).map((map) => ({
+	          choice_code_maps: (logic.choice_code_maps ?? []).map((map) => ({
 	            ...map,
-	            mappings: map.mappings.map((item) => ({ ...item })),
+	            mappings: (map.mappings ?? []).map((item) => ({ ...item })),
 	          })),
 	        }
 	      : null,

@@ -50,11 +50,18 @@ export function LogicGroupBlock({
   const add = () => {
     onChangeConditions([...conditions, buildEmptyCondition()]);
   };
+  const connectorSummary =
+    connector === "and"
+      ? "Todas estas reglas deben cumplirse para mostrar la pieza."
+      : "Basta con que una de estas reglas se cumpla para mostrar la pieza.";
 
   return (
     <div className="pulso-logic-group">
       <header className="pulso-logic-group-header">
-        <span className="pulso-logic-group-prompt">{fieldLabel}</span>
+        <div className="pulso-logic-group-copy">
+          <span className="pulso-logic-group-prompt">{fieldLabel}</span>
+          <p>{connectorSummary}</p>
+        </div>
         {conditions.length > 1 && (
           <span
             className="pulso-logic-group-connector"
@@ -69,7 +76,7 @@ export function LogicGroupBlock({
               onClick={() => onChangeConnector("and")}
               title="Todas las condiciones deben cumplirse"
             >
-              y
+              Todas
             </button>
             <button
               type="button"
@@ -79,7 +86,7 @@ export function LogicGroupBlock({
               onClick={() => onChangeConnector("or")}
               title="Cualquiera de las condiciones basta"
             >
-              o
+              Alguna
             </button>
           </span>
         )}
@@ -90,7 +97,7 @@ export function LogicGroupBlock({
           <div className="pulso-logic-group-item" key={idx}>
             {idx > 0 && (
               <span className="pulso-logic-group-sep" aria-hidden="true">
-                {connector}
+                {connector === "and" ? "y" : "o"}
               </span>
             )}
             <ConditionRow

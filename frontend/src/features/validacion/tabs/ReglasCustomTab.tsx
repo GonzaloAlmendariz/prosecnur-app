@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ArrowRight,
   AlertTriangle,
-  Eye,
-  EyeOff,
+  CheckCircle2,
+  CircleOff,
   Pencil,
   PieChart,
   Play,
@@ -42,6 +43,8 @@ import { customRuleToRule } from "../customRuleNarrative";
 export default function ReglasCustomTab() {
   const baseNombre = useValidacionStore((s) => s.baseNombre);
   const version = useValidacionStore((s) => s.version);
+  const bumpVersion = useValidacionStore((s) => s.bumpVersion);
+  const jumpTo = useValidacionStore((s) => s.jumpTo);
 
   const [list, setList] = useState<ReglasCustomList | null>(null);
   const [inv, setInv] = useState<ExploradorVariablesList | null>(null);
@@ -51,6 +54,7 @@ export default function ReglasCustomTab() {
   const [editing, setEditing] = useState<ReglaCustom | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [runSummary, setRunSummary] = useState<{ total: number | null; nCustom: number | null } | null>(null);
 
   const refetch = useCallback(async () => {
     setLoading(true);
@@ -92,6 +96,7 @@ export default function ReglasCustomTab() {
 
   async function handleSubmit(payload: Omit<ReglaCustom, "id" | "created_at"> & { id?: string }) {
     setBusy("Guardando regla…");
+    setRunSummary(null);
     try {
       if (payload.id) {
         await apiV2ReglasCustomUpdate(payload.id, payload, baseNombre);
@@ -107,7 +112,8 @@ export default function ReglasCustomTab() {
   }
 
   async function handleToggle(r: ReglaCustom) {
-    setBusy(r.activa ? "Desactivando…" : "Activando…");
+    setBusy(r.activa ? "Quitando de la ejecución…" : "Incluyendo en la ejecución…");
+    setRunSummary(null);
     try {
       await apiV2ReglasCustomUpdate(r.id, { activa: !r.activa }, baseNombre);
       await refetch();
@@ -121,6 +127,7 @@ export default function ReglasCustomTab() {
   async function handleDelete(r: ReglaCustom) {
     if (!window.confirm(`¿Eliminar la regla "${r.nombre}"? No se puede deshacer.`)) return;
     setBusy("Eliminando…");
+    setRunSummary(null);
     try {
       await apiV2ReglasCustomDelete(r.id, baseNombre);
       await refetch();
@@ -133,9 +140,12 @@ export default function ReglasCustomTab() {
 
   async function handleEjecutar() {
     setBusy("Lanzando ejecución…");
+    setError("");
+    setRunSummary(null);
     try {
       const out = await apiV2ReglasCustomEjecutar(baseNombre);
       setJobId(out.job_id);
+      setRunSummary({ total: null, nCustom: out.n_custom ?? nActivas });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -160,9 +170,10 @@ export default function ReglasCustomTab() {
   // mantener el orden de hooks estable entre renders.)
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className={`pulso-criterios-tab${showEditor ? " is-editing" : ""}`}>
       {/* Header + acciones */}
       <section
+        className="pulso-criterios-toolbar"
         style={{
           padding: "14px 18px",
           background: "white",
@@ -176,15 +187,15 @@ export default function ReglasCustomTab() {
       >
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ fontSize: 13, fontWeight: 700 }}>
-            {reglas.length} regla{reglas.length === 1 ? "" : "s"} personalizada{reglas.length === 1 ? "" : "s"}
+            {reglas.length} criterio{reglas.length === 1 ? "" : "s"} de revisión
             {nActivas !== reglas.length && (
               <span style={{ fontWeight: 400, color: "var(--pulso-text-soft)", marginLeft: 6 }}>
-                · {nActivas} activa{nActivas === 1 ? "" : "s"}
+                · {nActivas} se ejecuta{nActivas === 1 ? "" : "n"}
               </span>
             )}
           </div>
           <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.5 }}>
-            Las reglas activas se corren junto con las del instrumento al ejecutarlas, y aparecen en el resultado del tab Instrumento con id <code>RC_*</code>.
+            Configura señales adicionales sobre la base y envía los registros detectados a Limpieza y transformación.
           </div>
         </div>
         <button
@@ -200,13 +211,13 @@ export default function ReglasCustomTab() {
             padding: "8px 14px",
           }}
         >
-          <Plus size={12} /> Nueva regla
+          <Plus size={12} /> Nuevo criterio
         </button>
         <button
           type="button"
           onClick={() => void handleEjecutar()}
           disabled={!!busy || !!jobId || nActivas === 0}
-          title={nActivas === 0 ? "No hay reglas activas" : undefined}
+          title={nActivas === 0 ? "No hay criterios incluidos para ejecutar" : undefined}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -227,35 +238,68 @@ export default function ReglasCustomTab() {
 
       {jobId && (
         <JobProgress
-          label="Ejecutando reglas personalizadas"
+          label="Ejecutando criterios de revisión"
           jobId={jobId}
-          onDone={() => { setJobId(null); void refetch(); }}
+          onDone={(data: { total_inconsistencias?: number | null }) => {
+            setJobId(null);
+            setRunSummary({
+              total: typeof data?.total_inconsistencias === "number" ? data.total_inconsistencias : null,
+              nCustom: runSummary?.nCustom ?? nActivas,
+            });
+            bumpVersion();
+            void refetch();
+          }}
           onError={(msg) => { setError(msg); setJobId(null); }}
           onCancelled={() => setJobId(null)}
         />
       )}
 
+      {runSummary && !jobId && (
+        <div className="pulso-criterios-run-summary">
+          <div>
+            <strong>Criterios ejecutados.</strong>
+            <span>
+              {runSummary.total == null
+                ? "La revisión terminó y actualizó los hallazgos disponibles."
+                : `${runSummary.total} hallazgo${runSummary.total === 1 ? "" : "s"} disponible${runSummary.total === 1 ? "" : "s"} para revisar en Limpieza y normalización.`}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="pulso-secondary pulso-criterios-summary-action"
+            onClick={() => jumpTo("limpieza", { source: "reglas_custom", at: Date.now() })}
+          >
+            Ver en limpieza <ArrowRight size={13} />
+          </button>
+        </div>
+      )}
+
       {/* Editor inline */}
       {showEditor && (
-        <ReglaEditor
-          inv={inv}
-          inicial={editing}
-          onSubmit={handleSubmit}
-          onCancel={() => { setShowEditor(false); setEditing(null); }}
-        />
+        <div className="pulso-criterios-editor-slot">
+          <ReglaEditor
+            inv={inv}
+            baseNombre={baseNombre}
+            inicial={editing}
+            onSubmit={handleSubmit}
+            onCancel={() => { setShowEditor(false); setEditing(null); }}
+          />
+        </div>
       )}
 
       {/* Lista */}
       {reglas.length === 0 && !showEditor && (
-        <EmptyState
-          icon={<PieChart size={20} />}
-          title="Sin reglas personalizadas todavía"
-          hint="Usa 'Nueva regla' para crear reglas más finas: rangos, outliers, duplicados, coherencia entre variables, valores fuera de catálogo."
-        />
+        <div className="pulso-criterios-empty">
+          <EmptyState
+            icon={<PieChart size={20} />}
+            title="Sin criterios de revisión todavía"
+            hint="Crea señales para duración corta, coherencias de campo, duplicados operativos o patrones de selección múltiple."
+          />
+        </div>
       )}
 
       {reglas.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="pulso-criterios-list">
           {reglas.map((r) => (
             <ReglaRow
               key={r.id}
@@ -310,16 +354,9 @@ function ReglaRow({
   );
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "stretch",
-        gap: 10,
-        opacity: regla.activa ? 1 : 0.62,
-      }}
-    >
+    <div className={`pulso-criterio-row${regla.activa ? " is-included" : " is-omitted"}`}>
       {/* Narrativa ocupa todo lo que pueda */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="pulso-criterio-main">
         <RuleNarrative
           rule={rule}
           variant="compact"
@@ -331,42 +368,36 @@ function ReglaRow({
           // narrativo) cuando se hace click en "Editar".
           disableVariableHover
         />
+        <div className="pulso-criterio-treatment">
+          <span>Tratamiento</span>
+          <strong>{plannedActionLabel(plannedActionValue(regla))}</strong>
+          <em>{plannedScopeLabel(regla.recommended_scope, regla)}</em>
+        </div>
       </div>
 
       {/* Columna lateral: id chip arriba + acciones abajo */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: 8,
-          flexShrink: 0,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            color: "var(--pulso-text-soft)",
-            fontFamily: "ui-monospace, monospace",
-            padding: "3px 8px",
-            background: "var(--pulso-surface-2)",
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 4,
-          }}
-        >
-          {regla.id}
-        </span>
-        <div style={{ display: "flex", gap: 6 }}>
-          <IconBtn
+      <div className="pulso-criterio-side">
+        <div className={`pulso-criterio-state${regla.activa ? " is-active" : " is-muted"}`}>
+          <span className="pulso-criterio-state-icon">
+            {regla.activa ? <CheckCircle2 size={14} /> : <CircleOff size={14} />}
+          </span>
+          <span className="pulso-criterio-state-copy">
+            <strong>{regla.activa ? "Se ejecuta" : "No se ejecuta"}</strong>
+            <small>{regla.activa ? "Incluido al ejecutar" : "Omitido por ahora"}</small>
+          </span>
+          <span className="pulso-criterio-id">{regla.id}</span>
+        </div>
+        <div className="pulso-criterio-actions">
+          <RowActionButton
             onClick={onToggle}
             disabled={busy}
-            icon={regla.activa ? <EyeOff size={12} /> : <Eye size={12} />}
-            title={regla.activa ? "Desactivar" : "Activar"}
+            icon={regla.activa ? <CircleOff size={14} /> : <CheckCircle2 size={14} />}
+            label={regla.activa ? "Omitir de ejecución" : "Incluir en ejecución"}
+            title={regla.activa ? "No ejecutar este criterio" : "Incluir al ejecutar"}
+            tone={regla.activa ? "neutral" : "primary"}
           />
-          <IconBtn onClick={onEdit} disabled={busy} icon={<Pencil size={12} />} title="Editar" />
-          <IconBtn onClick={onDelete} disabled={busy} icon={<Trash2 size={12} />} title="Eliminar" danger />
+          <RowActionButton onClick={onEdit} disabled={busy} icon={<Pencil size={14} />} label="Editar" title="Editar criterio" />
+          <RowActionButton onClick={onDelete} disabled={busy} icon={<Trash2 size={14} />} label="Eliminar" title="Eliminar criterio" tone="danger" />
         </div>
       </div>
     </div>
@@ -390,18 +421,20 @@ function buildVarHoverLookup(
   };
 }
 
-function IconBtn({
+function RowActionButton({
   onClick,
   disabled,
   icon,
+  label,
   title,
-  danger,
+  tone = "neutral",
 }: {
   onClick: () => void;
   disabled: boolean;
   icon: React.ReactNode;
+  label: string;
   title: string;
-  danger?: boolean;
+  tone?: "neutral" | "primary" | "danger";
 }) {
   return (
     <button
@@ -410,35 +443,86 @@ function IconBtn({
       disabled={disabled}
       title={title}
       aria-label={title}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 28,
-        height: 28,
-        borderRadius: 6,
-        border: `1px solid ${danger ? "var(--pulso-border)" : "var(--pulso-border)"}`,
-        background: "white",
-        color: danger ? "var(--pulso-text-soft)" : "var(--pulso-text-soft)",
-        cursor: disabled ? "wait" : "pointer",
-        transition: "background 120ms ease, color 120ms ease",
-      }}
-      onMouseEnter={(e) => {
-        if (disabled) return;
-        if (danger) {
-          (e.currentTarget as HTMLElement).style.background = "var(--pulso-danger-bg)";
-          (e.currentTarget as HTMLElement).style.color = "var(--pulso-danger-fg)";
-        } else {
-          (e.currentTarget as HTMLElement).style.background = "var(--pulso-primary-soft)";
-          (e.currentTarget as HTMLElement).style.color = "var(--pulso-primary)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.background = "white";
-        (e.currentTarget as HTMLElement).style.color = "var(--pulso-text-soft)";
-      }}
+      className={`pulso-criterio-action is-${tone}`}
     >
       {icon}
+      <span>{label}</span>
     </button>
   );
+}
+
+function plannedActionLabel(value: ReglaCustom["planned_action_type"]) {
+  switch (value) {
+    case "replace_value":
+      return "Corregir valor";
+    case "set_value":
+      return "Asignar valor";
+    case "recode_map":
+      return "Recodificar";
+    case "complete_select_multiple_hierarchy":
+      return "Completar selección";
+    case "adjust_select_multiple":
+      return "Ajustar selección";
+    case "nullify_fields":
+      return "Anular campos";
+    case "exclude_cases":
+      return "Excluir registros";
+    case "ignore_rule":
+    default:
+      return "Registrar";
+  }
+}
+
+function plannedActionValue(regla: ReglaCustom): ReglaCustom["planned_action_type"] {
+  if (regla.planned_action_type) return regla.planned_action_type;
+  switch (regla.tipo) {
+    case "select_multiple_hierarchy":
+      return "complete_select_multiple_hierarchy";
+    case "select_multiple_exclusive":
+    case "select_multiple_cardinality":
+    case "select_multiple_selection":
+      return "adjust_select_multiple";
+    case "duplicados":
+      return "exclude_cases";
+    case "fuera_catalogo":
+      return "recode_map";
+    case "no_nulo":
+      return "set_value";
+    default:
+      return "ignore_rule";
+  }
+}
+
+function plannedScopeLabel(value: ReglaCustom["recommended_scope"], regla?: ReglaCustom) {
+  const resolved = value ?? defaultScopeForRule(regla);
+  switch (resolved) {
+    case "all":
+      return "todos";
+    case "selected":
+      return "selección";
+    case "single":
+      return "uno por uno";
+    default:
+      return "definible en Limpieza";
+  }
+}
+
+function defaultScopeForRule(regla?: ReglaCustom): ReglaCustom["recommended_scope"] {
+  switch (regla?.tipo) {
+    case "select_multiple_hierarchy":
+    case "fuera_catalogo":
+      return "all";
+    case "select_multiple_exclusive":
+    case "select_multiple_cardinality":
+    case "select_multiple_selection":
+    case "duplicados":
+    case "no_nulo":
+      return "selected";
+    case "rango_num":
+    case "rango_fecha":
+    case "coherencia_2v":
+      return "single";
+    default:
+      return undefined;
+  }
 }

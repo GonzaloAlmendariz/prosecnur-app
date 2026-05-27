@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight, ArrowRightLeft, CheckCircle2, Database, FileSpreadsheet,
-  Info, ShieldCheck, Trash2, Upload,
+  Download, Info, ShieldCheck, Trash2, Upload,
 } from "lucide-react";
 import {
   apiCargaData,
+  apiCargaExportNormalized,
   apiCargaConfirmChoiceMapping,
   apiCargaInstrumento,
   apiEstudioDowngradeToSingle,
@@ -18,8 +19,10 @@ import {
   ChoiceCodeMap,
   ChoiceCodeMapReview,
   EstudioPayload,
+  NormalizedExportFormat,
   Pregunta,
   Seccion,
+  downloadUrl,
   uploadKindForDataFile,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
@@ -279,6 +282,19 @@ export default function CargaPage() {
       setDataPreview((prev) => markChoiceMappingConfirmed(prev));
       setChoiceMappingReview(null);
       await refresh();
+    } catch (e: unknown) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function onExportNormalized(format: NormalizedExportFormat) {
+    setError("");
+    setBusy(`Preparando base normalizada .${format}…`);
+    try {
+      const out = await apiCargaExportNormalized(format);
+      window.location.href = downloadUrl(out.file_id);
     } catch (e: unknown) {
       setError((e as Error).message);
     } finally {
@@ -550,6 +566,12 @@ export default function CargaPage() {
                       </ul>
                     </details>
                   )}
+                  {dataPreview.normalizacion?.applied && !pendingChoiceMapping && (
+                    <NormalizedExportActions
+                      busy={!!busy}
+                      onExport={(format) => void onExportNormalized(format)}
+                    />
+                  )}
                   {dataPreview.compatibilidad?.applied && (
                     <div className={`pulso-upload-compat ${dataPreview.compatibilidad.ok ? "is-ok" : "is-bad"}`}>
                       {dataPreview.compatibilidad.ok ? "Compatible con XLSForm" : "Incompatible con XLSForm"}
@@ -610,6 +632,57 @@ export default function CargaPage() {
 // `EstudioActivoBanner` (banner genérico multi-base que vivía acá) se
 // reemplazó por `BasesPanel` completo — ahora no solo muestra las bases
 // sino que permite renombrar, quitar y agregar.
+
+function NormalizedExportActions({
+  busy,
+  onExport,
+}: {
+  busy: boolean;
+  onExport: (format: NormalizedExportFormat) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexWrap: "wrap",
+        padding: "9px 10px",
+        borderRadius: 8,
+        border: "1px solid var(--pulso-primary-border)",
+        background: "var(--pulso-primary-soft)",
+      }}
+    >
+      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-primary)" }}>
+        Base normalizada
+      </span>
+      {(["xlsx", "csv", "sav"] as NormalizedExportFormat[]).map((format) => (
+        <button
+          key={format}
+          type="button"
+          disabled={busy}
+          onClick={() => onExport(format)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "5px 8px",
+            borderRadius: 7,
+            border: "1px solid var(--pulso-primary-border)",
+            background: "white",
+            color: "var(--pulso-primary)",
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: busy ? "wait" : "pointer",
+          }}
+        >
+          <Download size={12} />
+          .{format}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function CargaFollowupContent({
   showInspection,

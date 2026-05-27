@@ -29,9 +29,9 @@ import {
   QrCode,
   Type as TypeIcon,
 } from "lucide-react";
-import { IconAI, IconChecklist } from "../../../lib/icons";
+import { IconAI, IconChecklist, IconConditionalLogic } from "../../../lib/icons";
 import type { BuilderNode, ChoiceItem } from "../types";
-import { ConditionalIcon, iconForType } from "../helpers/icons";
+import { iconForType } from "../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
 import { renderMarkdownInline } from "../helpers/markdown";
 import { typeLabel } from "../parsing/parseType";
@@ -76,7 +76,7 @@ export function PreviewQuestionCard({ node, choices, position }: PreviewQuestion
         )}
         {node.relevant && (
           <span className="pulso-canvas-card-conditional" title="Aparece bajo una condición">
-            <ConditionalIcon size={12} weight="thin" /> Condicional
+            <IconConditionalLogic size={12} /> Condicional
           </span>
         )}
       </div>

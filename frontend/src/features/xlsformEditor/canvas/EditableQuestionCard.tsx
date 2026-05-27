@@ -30,9 +30,9 @@ import {
   QrCode,
   Type as TypeIcon,
 } from "lucide-react";
-import { IconAI, IconChecklist } from "../../../lib/icons";
+import { IconAI, IconChecklist, IconConditionalLogic } from "../../../lib/icons";
 import type { BuilderNode, ChoiceItem } from "../types";
-import { ConditionalIcon, iconForType } from "../helpers/icons";
+import { iconForType } from "../helpers/icons";
 import { paletteForType, paletteSoftForType } from "../helpers/paletteForType";
 import { RichInline } from "../helpers/RichInline";
 import { typeLabel } from "../parsing/parseType";
@@ -68,7 +68,7 @@ export type EditableQuestionCardProps = {
   onRenameList?: (nextListName: string) => void;
   /** Opcional: clonar el catálogo solo para esta pregunta. */
   onCloneCatalog?: () => void;
-  /** Acceso al editor avanzado de catálogos. */
+  /** Acceso al editor de catálogos. */
   onOpenCatalogLens?: () => void;
 };
 
@@ -119,7 +119,7 @@ export function EditableQuestionCard({
         )}
         {node.relevant && (
           <span className="pulso-canvas-card-conditional" title="Aparece bajo una condición">
-            <ConditionalIcon size={12} weight="thin" /> Condicional
+            <IconConditionalLogic size={12} /> Condicional
           </span>
         )}
       </div>

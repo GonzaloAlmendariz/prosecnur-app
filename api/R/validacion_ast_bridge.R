@@ -49,21 +49,7 @@ bridge_regla_custom <- function(r) {
   # entre la UI y el motor); si no hay, make_rule deriva uno.
   forced_id <- if (nzchar(id_hint)) id_hint else NULL
 
-  # ---- Parsear gate condicional opcional -----------------------------
-  # Si la regla custom trae gate_expr, lo parseamos a AST. Esto permite
-  # que las reglas custom apliquen solo bajo cierta condición (cerrando
-  # la asimetría histórica con las reglas del instrumento, que siempre
-  # tuvieron gates vía relevant).
-  gate_ast <- NULL
-  if (!is.null(r$gate_expr) && nzchar(as.character(r$gate_expr))) {
-    parsed_gate <- odk_parse_to_ast(as.character(r$gate_expr), context = "relevant")
-    if (!isTRUE(parsed_gate$degraded_to_raw)) {
-      gate_ast <- parsed_gate$ast
-    }
-    # Si no parseó, gate_ast queda NULL y la regla aplica siempre
-    # (comportamiento conservador). El schema validator ya rechazó antes
-    # cualquier gate_expr inválido, así que llegar aquí con raw es raro.
-  }
+  gate_ast <- .regla_custom_gate_ast(r)
 
   rule <- switch(tipo,
     "no_nulo" = rule_required(
@@ -151,6 +137,65 @@ bridge_regla_custom <- function(r) {
         severidad = sev
       )
     },
+    "select_multiple_hierarchy" = .rule_custom_sm_raw(
+      var = vars[1],
+      predicate_expr = .regla_expr_select_multiple_hierarchy(vars[1], params),
+      gate = gate_ast,
+      nombre = nombre,
+      objetivo = objetivo,
+      fuente = "custom",
+      severidad = sev,
+      subtipo = "jerarquia"
+    ),
+    "select_multiple_exclusive" = rule_select_multiple_cardinality(
+      var = vars[1],
+      exclusive_codes = as.character(unlist(params$exclusive_codes %||% params$codes %||% params$valores %||% list())),
+      gate = gate_ast,
+      fuente = "custom",
+      severidad = sev,
+      nombre = nombre,
+      objetivo = objetivo
+    ),
+    "select_multiple_cardinality" = {
+      parts <- list()
+      mn <- suppressWarnings(as.integer(params$min %||% NA_integer_))
+      mx <- suppressWarnings(as.integer(params$max %||% NA_integer_))
+      if (!is.na(mn)) parts[[length(parts) + 1L]] <- ast_count_selected_cmp(vars[1], "<", mn)
+      if (!is.na(mx)) parts[[length(parts) + 1L]] <- ast_count_selected_cmp(vars[1], ">", mx)
+      pred <- if (length(parts) == 1L) parts[[1]] else do.call(ast_or, parts)
+      .rule_custom_sm_predicate(
+        var = vars[1],
+        predicate = pred,
+        gate = gate_ast,
+        nombre = nombre,
+        objetivo = objetivo,
+        fuente = "custom",
+        severidad = sev,
+        subtipo = "cardinalidad"
+      )
+    },
+    "select_multiple_selection" = {
+      op <- as.character(params$op %||% params$operator %||% "contains_any")
+      codes <- as.character(unlist(params$codes %||% params$valores %||% list()))
+      positive <- switch(op,
+        contains = ast_any_selected(vars[1], codes),
+        contains_any = ast_any_selected(vars[1], codes),
+        contains_all = ast_and(lapply(codes, function(code) ast_selected(vars[1], code))),
+        not_contains = ast_none_selected(vars[1], codes),
+        contains_none = ast_none_selected(vars[1], codes),
+        ast_any_selected(vars[1], codes)
+      )
+      .rule_custom_sm_predicate(
+        var = vars[1],
+        predicate = ast_not(positive),
+        gate = gate_ast,
+        nombre = nombre,
+        objetivo = objetivo,
+        fuente = "custom",
+        severidad = sev,
+        subtipo = "seleccion"
+      )
+    },
     stop(sprintf("bridge_regla_custom(): tipo '%s' no soportado.", tipo))
   )
 
@@ -161,13 +206,116 @@ bridge_regla_custom <- function(r) {
 
 .cond_from_legacy <- function(var, op, value) {
   # `op` puede ser: ==, !=, <, <=, >, >=, in, not_in
-  if (op == "in") {
+  if (op %in% c("contains", "contains_any")) {
+    ast_any_selected(var, as.character(unlist(value)))
+  } else if (op == "contains_all") {
+    ast_and(lapply(as.character(unlist(value)), function(v) ast_selected(var, v)))
+  } else if (op %in% c("not_contains", "contains_none")) {
+    ast_none_selected(var, as.character(unlist(value)))
+  } else if (op == "in") {
     ast_in_set(var, as.character(unlist(value)))
   } else if (op == "not_in") {
     ast_not_in_set(var, as.character(unlist(value)))
   } else {
     ast_compare_const(var, op, value)
   }
+}
+
+.regla_custom_gate_ast <- function(r) {
+  conditions <- r$gate_conditions %||% list()
+  if (length(conditions)) {
+    parts <- lapply(conditions, function(cond) {
+      var <- as.character(cond$variable %||% cond$var %||% "")
+      op <- as.character(cond$op %||% cond$operator %||% "==")
+      value <- cond$value %||% cond$values %||% list()
+      .cond_from_legacy(var, op, value)
+    })
+    return(ast_and(parts))
+  }
+  if (!is.null(r$gate_expr) && nzchar(as.character(r$gate_expr))) {
+    parsed <- tryCatch(.regla_custom_gate_expr_ast(as.character(r$gate_expr)),
+                       error = function(e) NULL)
+    if (!is.null(parsed)) return(parsed)
+    parsed_gate <- tryCatch(odk_parse_to_ast(as.character(r$gate_expr), context = "relevant"),
+                            error = function(e) list(degraded_to_raw = TRUE, ast = NULL))
+    if (!isTRUE(parsed_gate$degraded_to_raw)) return(parsed_gate$ast)
+  }
+  NULL
+}
+
+.regla_custom_gate_expr_ast <- function(gate_expr) {
+  expr <- trimws(as.character(gate_expr %||% ""))
+  if (!nzchar(expr)) return(NULL)
+  atoms <- strsplit(expr, "(?i)\\s+and\\s+|\\s+&&\\s+", perl = TRUE)[[1]]
+  parts <- lapply(atoms, function(atom) {
+    atom <- trimws(gsub("^\\((.*)\\)$", "\\1", trimws(atom)))
+    m_not_sel <- regexec("^not\\s*\\(\\s*selected\\s*\\(\\s*\\$?\\{?([A-Za-z0-9_.]+)\\}?\\s*,\\s*['\"]([^'\"]+)['\"]\\s*\\)\\s*\\)$", atom, perl = TRUE)
+    got <- regmatches(atom, m_not_sel)[[1]]
+    if (length(got) == 3L) return(ast_none_selected(got[2], got[3]))
+    m_sel <- regexec("^selected\\s*\\(\\s*\\$?\\{?([A-Za-z0-9_.]+)\\}?\\s*,\\s*['\"]([^'\"]+)['\"]\\s*\\)$", atom, perl = TRUE)
+    got <- regmatches(atom, m_sel)[[1]]
+    if (length(got) == 3L) return(ast_selected(got[2], got[3]))
+    m_cmp <- regexec("^\\$?\\{?([A-Za-z0-9_.]+)\\}?\\s*(==|=|!=|>=|<=|>|<)\\s*['\"]?([^'\"]+)['\"]?$", atom, perl = TRUE)
+    got <- regmatches(atom, m_cmp)[[1]]
+    if (length(got) == 4L) {
+      op <- if (identical(got[3], "=")) "==" else got[3]
+      return(ast_compare_const(got[2], op, got[4]))
+    }
+    stop(sprintf("gate_expr no soportado: %s", atom), call. = FALSE)
+  })
+  ast_and(parts)
+}
+
+.rule_custom_sm_predicate <- function(var,
+                                      predicate,
+                                      gate,
+                                      nombre,
+                                      objetivo,
+                                      fuente,
+                                      severidad,
+                                      subtipo = "cardinalidad") {
+  r <- make_rule(
+    nombre = nombre,
+    tipo_regla = "select_multiple_cardinality",
+    fuente = fuente,
+    predicate = predicate,
+    gate = gate,
+    severidad = severidad,
+    objetivo = objetivo
+  )
+  out <- .rule_apply_metadata(
+    r,
+    primary_var = var,
+    variable_roles = list(
+      target = var,
+      drivers = if (!is.null(gate)) ast_variables(gate) else character(0),
+      compare = character(0),
+      gate = if (!is.null(gate)) ast_variables(gate) else character(0)
+    ),
+    presentation = list(subtipo_semantico = subtipo)
+  )
+  out$variables <- unique(c(var, out$variables %||% character(0)))
+  out
+}
+
+.rule_custom_sm_raw <- function(var,
+                                predicate_expr,
+                                gate,
+                                nombre,
+                                objetivo,
+                                fuente,
+                                severidad,
+                                subtipo = "seleccion") {
+  .rule_custom_sm_predicate(
+    var = var,
+    predicate = ast_odk_raw(predicate_expr, origin = "legacy_r_expr"),
+    gate = gate,
+    nombre = nombre,
+    objetivo = objetivo,
+    fuente = fuente,
+    severidad = severidad,
+    subtipo = subtipo
+  )
 }
 
 #' Convierte una lista de reglas custom a lista de vd_rule (filtrando inactivas).

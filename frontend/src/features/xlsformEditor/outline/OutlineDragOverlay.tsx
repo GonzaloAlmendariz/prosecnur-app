@@ -1,10 +1,9 @@
 // =============================================================================
 // outline/OutlineDragOverlay.tsx — ghost que sigue al cursor durante el drag
 // =============================================================================
-// `@dnd-kit/core` separa el item original (que se queda con `opacity: 0.5`)
-// del overlay que sigue al cursor. Ese overlay es libre de aplicar transform
-// global, sombra, rotación y otros efectos sin interferir con el layout
-// original — fundamental para que el "ghost" se vea al estilo Notion/Linear.
+// El overlay se monta fijo al `body` desde SurveyOutline para poder alinearlo
+// al punto real de agarre. Así el ghost visual coincide con el destino que
+// comunica la barra "Soltar aquí".
 // =============================================================================
 
 import type { BuilderNode } from "../types";
@@ -14,7 +13,13 @@ import { paletteForType } from "../helpers/paletteForType";
 import { typeLabel } from "../parsing/parseType";
 import { previewKindLabel } from "../parsing/buildIndex";
 
-export function OutlineDragOverlay({ node }: { node: BuilderNode }) {
+export function OutlineDragOverlay({
+  node,
+  size,
+}: {
+  node: BuilderNode;
+  size: { width: number; height: number } | null;
+}) {
   const Icon = iconForType(node.typeInfo.base);
   const accent = paletteForType(node.typeInfo.base);
   return (
@@ -22,10 +27,8 @@ export function OutlineDragOverlay({ node }: { node: BuilderNode }) {
       className="pulso-outline-row is-overlay"
       style={{
         cursor: "grabbing",
-        boxShadow: "0 18px 38px rgba(15, 23, 42, 0.28)",
-        transform: "rotate(-1.5deg)",
-        background: "white",
-        borderColor: "var(--pulso-primary)",
+        width: size?.width,
+        minHeight: size?.height,
       }}
     >
       <span className="pulso-outline-grip" aria-hidden="true" style={{ opacity: 1 }}>

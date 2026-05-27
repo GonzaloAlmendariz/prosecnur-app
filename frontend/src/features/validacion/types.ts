@@ -88,9 +88,42 @@ export type ReglaCustomTipo =
   | "outliers_z"
   | "duplicados"
   | "coherencia_2v"
-  | "fuera_catalogo";
+  | "fuera_catalogo"
+  | "select_multiple_hierarchy"
+  | "select_multiple_exclusive"
+  | "select_multiple_cardinality"
+  | "select_multiple_selection";
 
 export type ReglaCustomSeveridad = "error" | "advertencia" | "info";
+export type ReglaCustomHallazgoKind = "caso_validar" | "inconsistencia_usuario";
+export type ReglaTreatmentActionType =
+  | "ignore_rule"
+  | "exclude_cases"
+  | "replace_value"
+  | "set_value"
+  | "recode_map"
+  | "complete_select_multiple_hierarchy"
+  | "adjust_select_multiple"
+  | "nullify_fields";
+export type ReglaTreatmentScope = "all" | "selected" | "single";
+export type ReglaGateCondition = {
+  variable: string;
+  op:
+    | "=="
+    | "!="
+    | ">"
+    | ">="
+    | "<"
+    | "<="
+    | "in"
+    | "not_in"
+    | "contains"
+    | "not_contains"
+    | "contains_any"
+    | "contains_all"
+    | "contains_none";
+  value: string | string[];
+};
 
 export type ReglaCustom = {
   id: string; // "RC_001"
@@ -102,6 +135,11 @@ export type ReglaCustom = {
   params: Record<string, unknown>;
   mensaje: string;
   severidad: ReglaCustomSeveridad;
+  hallazgo_kind?: ReglaCustomHallazgoKind;
+  planned_action_type?: ReglaTreatmentActionType;
+  recommended_scope?: ReglaTreatmentScope;
+  gate_expr?: string;
+  gate_conditions?: ReglaGateCondition[];
 };
 
 // -----------------------------------------------------------------------------
@@ -114,9 +152,7 @@ export type LimpiezaProgreso = {
 };
 
 export type LimpiezaDecisionActionType =
-  | "ignore_rule"
-  | "exclude_cases"
-  | "replace_value"
+  | ReglaTreatmentActionType
   | "normalize_value"
   | "impute_value";
 
@@ -175,6 +211,8 @@ export type LimpiezaQueueItem = {
   categoria_ux: string;       // etiqueta legible ("Completitud", "Saltos…")
   fuente: LimpiezaFuente;
   tipo_variable: string | null;  // tipo ODK de la variable (select_one, etc.)
+  hallazgo_kind?: "inconsistencia_xlsform" | "caso_validar" | "inconsistencia_usuario";
+  origen_detalle?: string;
   // --- Campos legacy (compatibilidad) — preferir los tipados de arriba ---
   /** @deprecated usar `fuente` */
   origen: string;
@@ -186,11 +224,16 @@ export type LimpiezaQueueItem = {
   severidad: string;
   variables: string[];
   n_casos: number;
+  n_casos_cubiertos?: number;
+  n_casos_pendientes?: number;
   porcentaje: number | null;
   decision_count: number;
   current_action: string | null;
   pending: boolean;
   impact_expected: string;
+  planned_action_type?: ReglaTreatmentActionType | null;
+  recommended_scope?: ReglaTreatmentScope | null;
+  planned_action_params?: Record<string, unknown> | null;
 };
 
 export type LimpiezaDecisionSummary = {
@@ -205,6 +248,7 @@ export type LimpiezaDecisionSummary = {
   total_celdas_corregidas: number;
   total_reemplazos: number;
   total_imputaciones: number;
+  total_transformaciones?: number;
   ready_to_finalize: boolean;
 };
 
@@ -227,6 +271,7 @@ export type LimpiezaBeforeAfterPreview = {
     replacements: number;
     normalizations: number;
     imputations: number;
+    transformations?: number;
     rules_resolved: number;
   };
   residual_final: Array<Record<string, unknown>>;
@@ -237,6 +282,7 @@ export type LimpiezaModuleStats = {
   limpieza: { decisiones: number; casos_excluidos: number };
   reemplazo: { decisiones: number; celdas: number };
   imputacion: { decisiones: number; celdas: number };
+  transformacion?: { decisiones: number; celdas: number };
   decision_maker: { pendientes: number; listas: number };
 };
 

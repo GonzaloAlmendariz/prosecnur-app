@@ -6,6 +6,35 @@
   format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 }
 
+.limpieza_invalidate_downstream <- function(sid, base_nombre = NULL) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(invisible(FALSE))
+
+  resolved <- tryCatch(.resolve_base_nombre(s, base_nombre), error = function(e) NULL)
+  if (!is.null(resolved) && nzchar(resolved)) {
+    if (!is.null(s$codif_por_base)) s$codif_por_base[[resolved]] <- list()
+  } else {
+    s$codif_por_base <- list()
+  }
+
+  s$codif_aplicado <- FALSE
+  s$codif_data_adaptada_fid <- NULL
+  s$codif_inst_adaptado_fid <- NULL
+  s$analitica_prep_ok <- FALSE
+  s$analitica_codebook_ok <- FALSE
+  s$analitica_frecuencias_ok <- FALSE
+  s$analitica_cruces_ok <- FALSE
+  s$analitica_spss_ok <- FALSE
+  s$analitica_enumeradores_ok <- FALSE
+  s$analitica_dim_ok <- FALSE
+  s$graficos_ppt_ok <- FALSE
+  s$graficos_word_ok <- FALSE
+
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(TRUE)
+}
+
 .limpieza_register_download <- function(sid, kind, original_name, path, ext = NULL) {
   s <- session_get(sid)
   file_id <- uuid::UUIDgenerate()
@@ -117,7 +146,11 @@
 .limpieza_validate_decision <- function(payload) {
   allowed_source <- c("instrument_rule", "custom_rule")
   allowed_scope <- c("rule", "case_subset", "variable", "cell_subset")
-  allowed_action <- c("ignore_rule", "exclude_cases", "replace_value", "normalize_value", "impute_value")
+  allowed_action <- c(
+    "ignore_rule", "exclude_cases", "replace_value", "normalize_value",
+    "impute_value", "complete_select_multiple_hierarchy",
+    "set_value", "recode_map", "nullify_fields", "adjust_select_multiple"
+  )
   allowed_status <- c("draft", "ready")
 
   source_id <- as.character(payload$source_id %||% "")
@@ -151,9 +184,35 @@
   if (identical(status, "ready") && !nzchar(rationale)) {
     stop_api(400, "E_LIMPIEZA_RATIONALE", "Las decisiones listas requieren justificación.")
   }
-  if (action_type %in% c("replace_value", "normalize_value", "impute_value") &&
+  if (action_type %in% c("replace_value", "normalize_value", "impute_value",
+                         "complete_select_multiple_hierarchy", "set_value",
+                         "recode_map", "nullify_fields", "adjust_select_multiple") &&
       (is.na(target_variable) || !nzchar(target_variable))) {
     stop_api(400, "E_LIMPIEZA_TARGET_VAR", "Esta acción requiere target_variable.")
+  }
+  if (identical(action_type, "complete_select_multiple_hierarchy") &&
+      identical(status, "ready")) {
+    map <- action_params$hierarchy_map %||% action_params$map %||% NULL
+    if (is.null(map) || !length(.transform_normalize_hierarchy_map(map))) {
+      stop_api(
+        400,
+        "E_LIMPIEZA_HIERARCHY_MAP",
+        "La transformación select_multiple requiere un mapa manual no vacío."
+      )
+    }
+  }
+  if (identical(action_type, "recode_map") && identical(status, "ready")) {
+    map <- action_params$recode_map %||% action_params$map %||% NULL
+    if (is.null(map) || !length(map)) {
+      stop_api(400, "E_LIMPIEZA_RECODE_MAP", "La recodificación requiere un mapa no vacío.")
+    }
+  }
+  if (identical(action_type, "adjust_select_multiple") && identical(status, "ready")) {
+    add <- unlist(action_params$add_codes %||% list())
+    rem <- unlist(action_params$remove_codes %||% list())
+    if (!length(add) && !length(rem)) {
+      stop_api(400, "E_LIMPIEZA_SM_ADJUST", "El ajuste select_multiple requiere códigos para agregar o quitar.")
+    }
   }
 
   list(
@@ -260,10 +319,63 @@
   catalog$source_type <- vapply(catalog$id_regla, .limpieza_infer_source_type, character(1))
   catalog$origen <- ifelse(catalog$source_type == "custom_rule", "Personalizada", "Automática")
 
+  custom_ids <- vapply(scope$reglas_custom %||% list(), function(r) as.character(r$id %||% ""), character(1))
   sev_map <- setNames(
     vapply(scope$reglas_custom %||% list(), function(r) as.character(r$severidad %||% "info"), character(1)),
-    vapply(scope$reglas_custom %||% list(), function(r) as.character(r$id %||% ""), character(1))
+    custom_ids
   )
+  kind_map <- setNames(
+    vapply(scope$reglas_custom %||% list(), function(r) as.character(r$hallazgo_kind %||% "caso_validar"), character(1)),
+    custom_ids
+  )
+  action_map <- setNames(
+    vapply(scope$reglas_custom %||% list(), function(r) {
+      if (exists(".regla_tratamiento", mode = "function")) {
+        as.character(.regla_tratamiento(r))
+      } else {
+        as.character(r$planned_action_type %||% r$params$planned_action_type %||% "")
+      }
+    }, character(1)),
+    custom_ids
+  )
+  scope_map <- setNames(
+    vapply(scope$reglas_custom %||% list(), function(r) {
+      if (exists(".regla_alcance_tratamiento", mode = "function")) {
+        as.character(.regla_alcance_tratamiento(r))
+      } else {
+        as.character(r$recommended_scope %||% r$params$recommended_scope %||% "")
+      }
+    }, character(1)),
+    custom_ids
+  )
+  params_map <- setNames(
+    lapply(scope$reglas_custom %||% list(), function(r) r$params %||% list()),
+    custom_ids
+  )
+  catalog$hallazgo_kind <- vapply(catalog$id_regla, function(rid) {
+    rid <- as.character(rid %||% "")
+    if (rid %in% names(kind_map)) unname(kind_map[[rid]]) else "inconsistencia_xlsform"
+  }, character(1))
+  catalog$planned_action_type <- vapply(catalog$id_regla, function(rid) {
+    rid <- as.character(rid %||% "")
+    if (rid %in% names(action_map)) unname(action_map[[rid]]) else ""
+  }, character(1))
+  catalog$recommended_scope <- vapply(catalog$id_regla, function(rid) {
+    rid <- as.character(rid %||% "")
+    if (rid %in% names(scope_map)) unname(scope_map[[rid]]) else ""
+  }, character(1))
+  catalog$planned_action_params <- lapply(catalog$id_regla, function(rid) {
+    rid <- as.character(rid %||% "")
+    if (rid %in% names(params_map)) params_map[[rid]] else list()
+  })
+  catalog$origen_detalle <- ifelse(
+    catalog$source_type == "custom_rule",
+    ifelse(catalog$hallazgo_kind == "caso_validar",
+           "Personalizada: caso a validar",
+           "Personalizada: inconsistencia definida"),
+    "XLSForm"
+  )
+
   catalog$severidad <- vapply(seq_len(nrow(catalog)), function(i) {
     rid <- as.character(catalog$id_regla[i])
     if (rid %in% names(sev_map)) return(unname(sev_map[[rid]]))
@@ -352,6 +464,7 @@
         "duplicados"     = "duplicate",
         "fuera_catalogo" = "catalog",
         "coherencia_2v"  = "coherence",
+        "select_multiple_hierarchy" = "select_multiple_cardinality",
         "coherence"
       ))
     }
@@ -393,11 +506,16 @@
 .limpieza_summarize_decision <- function(decision) {
   if (is.null(decision)) return(NA_character_)
   map <- c(
-    ignore_rule = "No modificar / documentar",
+    ignore_rule = "Registrar sin cambios",
     exclude_cases = "Excluir registros",
     replace_value = "Corregir valor",
     normalize_value = "Corregir valor",
-    impute_value = "Corregir valor"
+    impute_value = "Corregir valor",
+    set_value = "Asignar valor fijo",
+    recode_map = "Recodificar equivalencias",
+    nullify_fields = "Anular campos",
+    complete_select_multiple_hierarchy = "Completar selección múltiple",
+    adjust_select_multiple = "Agregar o quitar opciones"
   )
   label <- unname(map[decision$action_type %||% ""])
   if (is.na(label) || !nzchar(label)) label <- "Decisión"
@@ -406,6 +524,43 @@
   } else {
     label
   }
+}
+
+.limpieza_decision_coverage <- function(scope, source_id, ready_hits, n_casos) {
+  total <- as.integer(n_casos %||% 0L)
+  if (!length(ready_hits) || total <= 0L) {
+    return(list(covered = 0L, pending = max(0L, total), covers_all = FALSE))
+  }
+
+  has_global <- any(vapply(ready_hits, function(d) {
+    ids <- unlist(d$target_case_ids %||% list())
+    !length(ids)
+  }, logical(1)))
+  if (isTRUE(has_global)) {
+    return(list(covered = total, pending = 0L, covers_all = TRUE))
+  }
+
+  explicit_ids <- unique(as.character(unlist(lapply(
+    ready_hits,
+    function(d) d$target_case_ids %||% list()
+  ))))
+  explicit_ids <- explicit_ids[!is.na(explicit_ids) & nzchar(explicit_ids)]
+
+  case_ids <- .limpieza_rule_case_map(scope$evaluacion, source_id)$case_ids
+  case_ids <- unique(as.character(case_ids %||% character(0)))
+  case_ids <- case_ids[!is.na(case_ids) & nzchar(case_ids)]
+
+  covered <- if (length(case_ids)) {
+    sum(case_ids %in% explicit_ids)
+  } else {
+    min(total, length(explicit_ids))
+  }
+  covered <- as.integer(max(0L, min(total, covered)))
+  list(
+    covered = covered,
+    pending = as.integer(max(0L, total - covered)),
+    covers_all = covered >= total
+  )
 }
 
 .limpieza_build_decision_queue <- function(scope, decisions = NULL) {
@@ -425,6 +580,8 @@
     hits <- Filter(function(d) identical(as.character(d$source_id %||% ""), rid), decisions)
     ready_hits <- Filter(function(d) identical(as.character(d$status %||% ""), "ready"), hits)
     current <- if (length(ready_hits)) ready_hits[[length(ready_hits)]] else NULL
+    n_casos <- as.integer(catalog$n_inconsistencias[i] %||% 0L)
+    coverage <- .limpieza_decision_coverage(scope, rid, ready_hits, n_casos)
     vars <- unlist(catalog$variables[[i]] %||% list())
     list(
       # --- Legacy (compatibilidad) ---
@@ -440,19 +597,28 @@
       categoria_ux = as.character(catalog$categoria_ux[i] %||% "Consistencia lógica"),
       fuente = as.character(catalog$fuente[i] %||% "instrumento"),
       tipo_variable = as.character(catalog$tipo_variable[i] %||% NA_character_),
+      hallazgo_kind = as.character(catalog$hallazgo_kind[i] %||% "inconsistencia_xlsform"),
+      origen_detalle = as.character(catalog$origen_detalle[i] %||% catalog$origen[i] %||% "XLSForm"),
       # --- Resto ---
       severidad = as.character(catalog$severidad[i] %||% "info"),
       variables = as.list(vars),
-      n_casos = as.integer(catalog$n_inconsistencias[i] %||% 0L),
+      n_casos = n_casos,
+      n_casos_cubiertos = as.integer(coverage$covered %||% 0L),
+      n_casos_pendientes = as.integer(coverage$pending %||% n_casos),
       porcentaje = as.numeric(catalog$porcentaje[i] %||% NA_real_),
       decision_count = length(hits),
       current_action = if (is.null(current)) NA_character_ else .limpieza_summarize_decision(current),
-      pending = length(ready_hits) == 0L,
+      pending = !isTRUE(coverage$covers_all),
       impact_expected = if (length(ready_hits) == 0L) {
         "Pendiente de decisión final"
+      } else if (!isTRUE(coverage$covers_all)) {
+        sprintf("%d de %d caso(s) con decisión lista", coverage$covered, n_casos)
       } else {
         sprintf("%d decisión(es) lista(s) para aplicar", length(ready_hits))
-      }
+      },
+      planned_action_type = as.character(catalog$planned_action_type[i] %||% ""),
+      recommended_scope = as.character(catalog$recommended_scope[i] %||% ""),
+      planned_action_params = catalog$planned_action_params[[i]] %||% list()
     )
   })
 
@@ -501,15 +667,17 @@
   .limpieza_rule_case_map(scope$evaluacion, decision$source_id)$case_ids
 }
 
-.limpieza_apply_decisions_to_data <- function(df, scope, decisions) {
+.limpieza_apply_decisions_to_data <- function(df, scope, decisions, inst = NULL) {
   if (!is.data.frame(df)) {
     return(list(
       data = df,
       excluded_cases = tibble::tibble(),
       replacements = tibble::tibble(),
       imputations = tibble::tibble(),
+      transformations = tibble::tibble(),
+      warnings = character(0),
       trace = tibble::tibble(),
-      impact = list(cases_excluded = 0L, cells_changed = 0L, replacements = 0L, normalizations = 0L, imputations = 0L)
+      impact = list(cases_excluded = 0L, cells_changed = 0L, replacements = 0L, normalizations = 0L, imputations = 0L, transformations = 0L)
     ))
   }
 
@@ -524,8 +692,10 @@
       excluded_cases = tibble::tibble(),
       replacements = tibble::tibble(),
       imputations = tibble::tibble(),
+      transformations = tibble::tibble(),
+      warnings = character(0),
       trace = tibble::tibble(),
-      impact = list(cases_excluded = 0L, cells_changed = 0L, replacements = 0L, normalizations = 0L, imputations = 0L)
+      impact = list(cases_excluded = 0L, cells_changed = 0L, replacements = 0L, normalizations = 0L, imputations = 0L, transformations = 0L)
     ))
   }
 
@@ -551,22 +721,158 @@
 
   replacements_log <- list()
   imputations_log <- list()
+  transformations_log <- list()
   trace_rows <- list()
+  warning_rows <- character(0)
   changed_replacements <- 0L
   changed_normalizations <- 0L
   changed_imputations <- 0L
+  changed_transformations <- 0L
 
-  mutate_decisions <- Filter(function(d) d$action_type %in% c("replace_value", "normalize_value", "impute_value"), ready)
+  mutate_decisions <- Filter(function(d) d$action_type %in% c(
+    "replace_value", "normalize_value", "impute_value",
+    "complete_select_multiple_hierarchy", "set_value", "recode_map",
+    "nullify_fields", "adjust_select_multiple"
+  ), ready)
   for (d in mutate_decisions) {
     var <- as.character(d$target_variable %||% "")
-    if (!nzchar(var) || !(var %in% names(data_out))) next
+    if (!nzchar(var)) next
 
     target_ids <- .limpieza_target_case_ids(d, scope)
     row_mask <- if (length(target_ids)) data_out$`.__case_id__` %in% target_ids else rep(TRUE, nrow(data_out))
     if (!any(row_mask)) next
 
+    if (identical(d$action_type, "complete_select_multiple_hierarchy")) {
+      hierarchy_map <- d$action_params$hierarchy_map %||% d$action_params$map %||% list()
+      transformed <- complete_select_multiple_hierarchy(
+        data = data_out,
+        target_variable = var,
+        hierarchy_map = hierarchy_map,
+        rows = row_mask,
+        instrumento = inst,
+        case_ids = data_out$`.__case_id__`,
+        decision_id = as.character(d$id %||% ""),
+        source_id = as.character(d$source_id %||% ""),
+        rationale = as.character(d$rationale %||% "")
+      )
+      data_out <- transformed$data
+      trace <- transformed$trace %||% tibble::tibble()
+      if (nrow(trace)) {
+        transformations_log[[length(transformations_log) + 1L]] <- trace
+        trace_rows[[length(trace_rows) + 1L]] <- trace
+      }
+      warning_rows <- c(warning_rows, transformed$warnings %||% character(0))
+      changed_transformations <- changed_transformations + as.integer(transformed$impact$cells_changed %||% 0L)
+      next
+    }
+
+    if (identical(d$action_type, "adjust_select_multiple")) {
+      transformed <- adjust_select_multiple_values(
+        data = data_out,
+        target_variable = var,
+        add_codes = unlist(d$action_params$add_codes %||% list()),
+        remove_codes = unlist(d$action_params$remove_codes %||% list()),
+        rows = row_mask,
+        instrumento = inst,
+        case_ids = data_out$`.__case_id__`,
+        decision_id = as.character(d$id %||% ""),
+        source_id = as.character(d$source_id %||% ""),
+        rationale = as.character(d$rationale %||% "")
+      )
+      data_out <- transformed$data
+      trace <- transformed$trace %||% tibble::tibble()
+      if (nrow(trace)) {
+        transformations_log[[length(transformations_log) + 1L]] <- trace
+        trace_rows[[length(trace_rows) + 1L]] <- trace
+      }
+      warning_rows <- c(warning_rows, transformed$warnings %||% character(0))
+      changed_transformations <- changed_transformations + as.integer(transformed$impact$cells_changed %||% 0L)
+      next
+    }
+
+    if (identical(d$action_type, "nullify_fields")) {
+      vars_to_null <- unique(c(var, as.character(unlist(d$action_params$target_variables %||% list()))))
+      vars_to_null <- vars_to_null[!is.na(vars_to_null) & nzchar(vars_to_null) & vars_to_null %in% names(data_out)]
+      if (!length(vars_to_null)) next
+      log_rows <- list()
+      for (vnull in vars_to_null) {
+        col0 <- data_out[[vnull]]
+        edit_mask <- row_mask & !is.na(col0) & nzchar(as.character(col0))
+        if (!any(edit_mask)) next
+        data_out[[vnull]][edit_mask] <- .limpieza_cast_like(NA, col0)
+        log_rows[[length(log_rows) + 1L]] <- tibble::tibble(
+          decision_id = as.character(d$id %||% ""),
+          source_id = as.character(d$source_id %||% ""),
+          target_variable = vnull,
+          action_type = "nullify_fields",
+          from_value = "VARIOS",
+          to_value = "",
+          n_celdas = as.integer(sum(edit_mask)),
+          rationale = as.character(d$rationale %||% "")
+        )
+        changed_transformations <- changed_transformations + as.integer(sum(edit_mask))
+      }
+      if (length(log_rows)) {
+        rows <- dplyr::bind_rows(log_rows)
+        transformations_log[[length(transformations_log) + 1L]] <- rows
+        trace_rows[[length(trace_rows) + 1L]] <- rows
+      }
+      next
+    }
+
+    if (!(var %in% names(data_out))) next
+
     col <- data_out[[var]]
     current_chr <- as.character(col)
+
+    if (identical(d$action_type, "set_value")) {
+      new_value <- d$action_params$value %||% d$action_params$fixed_value %||% NA
+      if (length(new_value) == 0L || (length(new_value) == 1L && is.na(new_value))) next
+      edit_mask <- row_mask
+      old_values <- current_chr[edit_mask]
+      data_out[[var]][edit_mask] <- .limpieza_cast_like(new_value, col)
+      n_changed <- sum(edit_mask)
+      row <- tibble::tibble(
+        decision_id = as.character(d$id %||% ""),
+        source_id = as.character(d$source_id %||% ""),
+        target_variable = var,
+        action_type = "set_value",
+        from_value = "VARIOS",
+        to_value = as.character(new_value),
+        n_celdas = as.integer(n_changed),
+        rationale = as.character(d$rationale %||% "")
+      )
+      replacements_log[[length(replacements_log) + 1L]] <- row
+      trace_rows[[length(trace_rows) + 1L]] <- row
+      changed_replacements <- changed_replacements + as.integer(n_changed)
+      next
+    }
+
+    if (identical(d$action_type, "recode_map")) {
+      recode_map <- d$action_params$recode_map %||% d$action_params$map %||% list()
+      if (!length(recode_map)) next
+      map_names <- names(recode_map)
+      if (is.null(map_names)) next
+      edit_mask <- row_mask & current_chr %in% map_names
+      if (!any(edit_mask)) next
+      new_values <- vapply(current_chr[edit_mask], function(v) as.character(recode_map[[v]] %||% NA_character_), character(1))
+      data_out[[var]][edit_mask] <- .limpieza_cast_like(new_values, col)
+      n_changed <- sum(edit_mask)
+      row <- tibble::tibble(
+        decision_id = as.character(d$id %||% ""),
+        source_id = as.character(d$source_id %||% ""),
+        target_variable = var,
+        action_type = "recode_map",
+        from_value = paste(map_names, collapse = ", "),
+        to_value = jsonlite::toJSON(recode_map, auto_unbox = TRUE),
+        n_celdas = as.integer(n_changed),
+        rationale = as.character(d$rationale %||% "")
+      )
+      replacements_log[[length(replacements_log) + 1L]] <- row
+      trace_rows[[length(trace_rows) + 1L]] <- row
+      changed_replacements <- changed_replacements + as.integer(n_changed)
+      next
+    }
 
     if (identical(d$action_type, "replace_value") || identical(d$action_type, "normalize_value")) {
       from_value <- as.character(d$action_params$from_value %||% "")
@@ -630,13 +936,16 @@
     excluded_cases = if (length(excluded_cases_df)) excluded_cases_df else tibble::tibble(),
     replacements = if (length(replacements_log)) dplyr::bind_rows(replacements_log) else tibble::tibble(),
     imputations = if (length(imputations_log)) dplyr::bind_rows(imputations_log) else tibble::tibble(),
+    transformations = if (length(transformations_log)) dplyr::bind_rows(transformations_log) else tibble::tibble(),
+    warnings = unique(warning_rows),
     trace = if (length(trace_rows)) dplyr::bind_rows(trace_rows) else tibble::tibble(),
     impact = list(
       cases_excluded = as.integer(length(unique(excluded_case_ids))),
-      cells_changed = as.integer(changed_replacements + changed_normalizations + changed_imputations),
+      cells_changed = as.integer(changed_replacements + changed_normalizations + changed_imputations + changed_transformations),
       replacements = as.integer(changed_replacements),
       normalizations = as.integer(changed_normalizations),
-      imputations = as.integer(changed_imputations)
+      imputations = as.integer(changed_imputations),
+      transformations = as.integer(changed_transformations)
     )
   )
 }
@@ -673,12 +982,24 @@
     return(list(
       before = before,
       after = before,
-      impact = list(cases_excluded = 0L, cells_changed = 0L, replacements = 0L, normalizations = 0L, imputations = 0L, rules_resolved = 0L),
+      impact = list(cases_excluded = 0L, cells_changed = 0L, replacements = 0L, normalizations = 0L, imputations = 0L, transformations = 0L, rules_resolved = 0L),
       residual_final = list(),
       decisions_ready = length(ready),
       data_final = NULL,
       evaluacion_final = NULL,
-      logs = list(excluded_cases = tibble::tibble(), replacements = tibble::tibble(), imputations = tibble::tibble(), trace = tibble::tibble())
+      logs = list(excluded_cases = tibble::tibble(), replacements = tibble::tibble(), imputations = tibble::tibble(), transformations = tibble::tibble(), trace = tibble::tibble(), warnings = character(0))
+    ))
+  }
+  if (!length(ready)) {
+    return(list(
+      before = before,
+      after = before,
+      impact = list(cases_excluded = 0L, cells_changed = 0L, replacements = 0L, normalizations = 0L, imputations = 0L, transformations = 0L, rules_resolved = 0L),
+      residual_final = if (!is.null(scope$evaluacion$resumen)) .plan_rows_preview(utils::head(scope$evaluacion$resumen, 500L), n = 500L) else list(),
+      decisions_ready = 0L,
+      data_final = NULL,
+      evaluacion_final = scope$evaluacion,
+      logs = list(excluded_cases = tibble::tibble(), replacements = tibble::tibble(), imputations = tibble::tibble(), transformations = tibble::tibble(), trace = tibble::tibble(), warnings = character(0))
     ))
   }
 
@@ -689,7 +1010,7 @@
     ext = files$data_ext,
     instrumento = inst
   )$principal
-  apply_out <- .limpieza_apply_decisions_to_data(data_raw, scope, ready)
+  apply_out <- .limpieza_apply_decisions_to_data(data_raw, scope, ready, inst = inst)
   plan_final <- .limpieza_effective_plan(scope, inst = inst, decisions = ready)
 
   ev_after <- if (!is.null(plan_final) && nrow(plan_final) > 0L) {
@@ -737,7 +1058,9 @@
       excluded_cases = apply_out$excluded_cases,
       replacements = apply_out$replacements,
       imputations = apply_out$imputations,
-      trace = apply_out$trace
+      transformations = apply_out$transformations,
+      trace = apply_out$trace,
+      warnings = apply_out$warnings
     )
   )
 }
@@ -753,12 +1076,16 @@
       casos_excluidos = as.integer(preview$impact$cases_excluded %||% 0L)
     ),
     reemplazo = list(
-      decisiones = as.integer(count_action(c("replace_value", "normalize_value"))),
+      decisiones = as.integer(count_action(c("replace_value", "normalize_value", "set_value", "recode_map"))),
       celdas = as.integer((preview$impact$replacements %||% 0L) + (preview$impact$normalizations %||% 0L))
     ),
     imputacion = list(
       decisiones = as.integer(count_action("impute_value")),
       celdas = as.integer(preview$impact$imputations %||% 0L)
+    ),
+    transformacion = list(
+      decisiones = as.integer(count_action(c("complete_select_multiple_hierarchy", "adjust_select_multiple", "nullify_fields"))),
+      celdas = as.integer(preview$impact$transformations %||% 0L)
     ),
     decision_maker = list(
       pendientes = as.integer(sum(vapply(queue %||% list(), function(x) isTRUE(x$pending), logical(1)))),
@@ -784,6 +1111,7 @@
     total_celdas_corregidas = as.integer(preview$impact$cells_changed %||% 0L),
     total_reemplazos = as.integer((preview$impact$replacements %||% 0L) + (preview$impact$normalizations %||% 0L)),
     total_imputaciones = as.integer(preview$impact$imputations %||% 0L),
+    total_transformaciones = as.integer(preview$impact$transformations %||% 0L),
     ready_to_finalize = isTRUE(!is.null(scope$evaluacion) && pending_count == 0L)
   )
 }
@@ -806,6 +1134,8 @@
   write_sheet("Decisiones_reglas", .limpieza_flatten_decisions(decisions))
   write_sheet("Casos_excluidos", preview$logs$excluded_cases %||% tibble::tibble())
   write_sheet("Correcciones", preview$logs$trace %||% tibble::tibble())
+  write_sheet("Transformaciones", preview$logs$transformations %||% tibble::tibble())
+  write_sheet("Advertencias", tibble::tibble(warning = preview$logs$warnings %||% character(0)))
   write_sheet("Trazabilidad", preview$logs$trace %||% tibble::tibble())
   write_sheet("Residual_final", if (!is.null(preview$evaluacion_final) && !is.null(preview$evaluacion_final$resumen)) tibble::as_tibble(preview$evaluacion_final$resumen) else tibble::tibble())
 
@@ -885,6 +1215,10 @@ limpieza_finalize <- function(sid, base_nombre, scope) {
 
   validacion_scope_set(sid, base_nombre, "limpieza_preview", preview)
   validacion_scope_set(sid, base_nombre, "limpieza_artifacts", artifacts)
+  if ((preview$impact$cases_excluded %||% 0L) > 0L ||
+      (preview$impact$cells_changed %||% 0L) > 0L) {
+    .limpieza_invalidate_downstream(sid, base_nombre)
+  }
 
   list(
     ok = TRUE,

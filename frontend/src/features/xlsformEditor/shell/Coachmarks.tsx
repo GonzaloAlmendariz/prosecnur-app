@@ -5,9 +5,9 @@
 // que tiene contenido editable. Tres pasos secuenciales (no todos a la
 // vez) que enseñan los gestos clave del editor:
 //
-//   1. "Hacé clic en cualquier card para editarla aquí mismo."
-//   2. "Los botones + entre tarjetas agregan preguntas o secciones."
-//   3. "Acá a la derecha configurás detalles avanzados."
+//   1. "La pieza seleccionada se edita en el workspace."
+//   2. "El botón + de estructura agrega preguntas o secciones."
+//   3. "El workspace reúne vista y configuración del elemento activo."
 //
 // Controlado por `localStorage.pulso.xlsformEditor.firstUseDone`. Tras
 // cerrar el último coachmark, el flag se setea y no vuelven a aparecer.
@@ -39,24 +39,20 @@ const STEPS: CoachStep[] = [
   {
     selector: ".pulso-canvas-card.is-selected, .pulso-canvas-card",
     placement: "top",
-    title: "Edición en el lienzo",
-    body: "Haz clic en el texto, la pista o las opciones de cada tarjeta para modificarlas. No hace falta abrir un panel.",
+    title: "Edición en foco",
+    body: "La tarjeta activa muestra la pregunta tal como se verá y el panel de configuración queda al lado.",
   },
   {
-    // Apuntamos al botón "+ Agregar elemento" del final del lienzo
-    // (variant trailing = siempre visible). Los `+` entre tarjetas
-    // existen pero solo aparecen en hover — apuntar a uno de ellos
-    // dejaría al spotlight sobre un elemento de opacity:0.
-    selector: ".pulso-canvas-addbetween-trailing .pulso-canvas-addbetween-trigger",
-    placement: "top",
+    selector: ".pulso-xlsform-sidebar-panel button[title='Añadir pieza']",
+    placement: "right",
     title: "Agregar preguntas y secciones",
-    body: "Este botón inserta una pregunta, sección o nota al final. Entre tarjetas aparecen botones + cuando pasas el cursor para insertar en posiciones intermedias.",
+    body: "La estructura manda el foco del constructor y también concentra la creación de piezas nuevas.",
   },
   {
-    selector: ".pulso-context-panel",
+    selector: ".pulso-focus-config-pane",
     placement: "left",
-    title: "Detalles de la pregunta",
-    body: "Tipo, lógica condicional, validación y catálogo. Cada sección se expande al hacer clic en su título.",
+    title: "Configuración en foco",
+    body: "Contenido, respuesta, reglas, presentación y datos viven en segmentos compactos para la pieza seleccionada.",
   },
 ];
 

@@ -62,6 +62,7 @@
     bases_xlsx = "datos",
     bases_xlsx_zip = "datos",
     bases_sav = "datos_spss",
+    data_normalizada = "base_normalizada",
     bases_sav_bundle = "datos_spss",
     spss_bundle = "datos_spss",
     enumeradores = "enumeradores",

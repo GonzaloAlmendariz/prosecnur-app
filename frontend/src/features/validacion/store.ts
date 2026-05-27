@@ -36,6 +36,7 @@ type ValidacionState = {
   setBaseNombre: (nombre: string | null) => void;
   setPrefill: (tab: ValidacionTabId, payload: Record<string, unknown>) => void;
   clearPrefill: (tab: ValidacionTabId) => void;
+  bumpVersion: () => void;
   resetForSession: () => void;
   /** Deep-link: salta a otra pestaña y prefilea su slice de prefill. */
   jumpTo: (tab: ValidacionTabId, payload?: Record<string, unknown>) => void;
@@ -67,6 +68,10 @@ export const useValidacionStore = create<ValidacionState>((set) => ({
       delete copy[tab];
       return { prefill: copy };
     }),
+  bumpVersion: () =>
+    set((s) => ({
+      version: s.version + 1,
+    })),
   resetForSession: () =>
     set((s) => ({
       activeTab: "explorar",

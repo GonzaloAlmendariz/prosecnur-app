@@ -1,5 +1,5 @@
 // =============================================================================
-// inspector/MoreTab.tsx — tercera tab: ajustes secundarios
+// inspector/MoreTab.tsx — ajustes de datos técnicos y salida impresa
 // =============================================================================
 // Campos que no son del día a día pero importan: read-only, repeat_count
 // (para repeats), parámetros y mensajes (constraint_message, required_message).
@@ -138,9 +138,9 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
       )}
 
       <InspectorBlock>
-        <InspectorField
-          label="Parámetros avanzados"
-          hint="Atributos crudos del XLSForm. Solo modifícalo si sabes qué hace."
+            <InspectorField
+              label="Parámetros técnicos"
+              hint="Atributos crudos del XLSForm. Modifícalos solo cuando el formulario lo requiera."
         >
           <input
             type="text"

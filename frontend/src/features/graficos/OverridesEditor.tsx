@@ -6,6 +6,7 @@ import { usePlanStore, OverrideReusable } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
+import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 // Los overrides reutilizables usan solo controles catalogados.
 
 // Overrides reutilizables = mini-presets nombrados (ej. "compacto", "grande")
@@ -241,6 +242,7 @@ function OverrideEditPanel({
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
       .map((g) => ({ grupo: g, args: byGrupo[g]! }));
   }, [tipoMeta]);
+  const layoutArgs = tipoMeta?.args ?? [];
 
   function handleChangeArg(arg: string, value: unknown) {
     const next = { ...override.args };
@@ -366,6 +368,25 @@ function OverrideEditPanel({
               values={override.args}
               onChangeArg={handleChangeArg}
               variables={[]}
+              bodyIntro={normalizeArgGroup(grupo) === "espacio" && hasChartLayoutSpec(override.tipo_preset, layoutArgs) ? (
+                <ChartLayoutEditor
+                  presetType={override.tipo_preset}
+                  args={layoutArgs}
+                  values={override.args}
+                  onChangeArg={handleChangeArg}
+                  onChangeArgs={(patchIn) => {
+                    const next = { ...override.args };
+                    for (const [name, value] of Object.entries(patchIn)) {
+                      if (value === null || value === undefined || value === "") {
+                        delete next[name];
+                      } else {
+                        next[name] = value;
+                      }
+                    }
+                    onUpdate({ args: next });
+                  }}
+                />
+              ) : undefined}
             />
           ))
         )}

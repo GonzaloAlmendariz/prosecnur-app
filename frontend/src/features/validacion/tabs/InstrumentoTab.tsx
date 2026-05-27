@@ -814,7 +814,7 @@ function RuleGroupsSection({
       {groups.noEvaluadas.length > 0 && (
         <RuleSubGroup
           title="Reglas no evaluadas automáticamente"
-          hint="Reglas que el evaluador no pudo correr (constraint en sintaxis ODK avanzada, falta fecha de captura, etc.). Quedan disponibles para revisión manual o promoción a regla personalizada."
+          hint="Reglas que el evaluador no pudo correr (constraint en sintaxis ODK avanzada, falta fecha de captura, etc.). Quedan disponibles para revisión manual o promoción a criterio de revisión."
           countLabel={(n) => `${n} ${n === 1 ? "regla" : "reglas"}`}
           rows={groups.noEvaluadas}
           selectedRuleId={selectedRuleId}
@@ -1021,7 +1021,7 @@ function describeRuleReason(row: CompactRuleRow): { badge: string; explanation: 
       return {
         badge: "Modo experto",
         explanation:
-          "Constraint con sintaxis ODK avanzada que el evaluador no traduce automáticamente. Revísala manualmente o promuévela a regla personalizada.",
+          "Constraint con sintaxis ODK avanzada que el evaluador no traduce automáticamente. Revísala manualmente o promuévela a criterio de revisión.",
       };
     }
     if (row.issueCode === "missing_collection_date") {
@@ -1041,4 +1041,3 @@ function describeRuleReason(row: CompactRuleRow): { badge: string; explanation: 
   }
   return { badge: row.estadoDinamico ?? "—", explanation: row.detalle ?? "" };
 }
-

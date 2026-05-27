@@ -5,34 +5,24 @@ import {
   useReducer,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import {
-  ArrowDown,
-  ArrowUp,
   CalendarDays,
   CheckCircle2,
   ChevronLeft,
   Download,
   FileSpreadsheet,
   FileText,
-  Filter,
-  GitBranch,
-  Hash,
   Layers3,
   ListChecks,
   Plus,
-  Settings2,
-  Table2,
   Trash2,
-  Type,
   Upload,
-  Workflow,
   X,
 } from "lucide-react";
-import { IconHint, IconNew, IconForward, IconEditor } from "../../lib/icons";
+import { IconHint, IconNew, IconForward } from "../../lib/icons";
 import {
   apiSaveEntregable,
   apiUpload,
@@ -63,6 +53,7 @@ import { EmptyState, ErrorBlock, LoadingBlock } from "../../components/States";
 import { ConfigIoButtons } from "../../components/ConfigIoButtons";
 import SaveEntregableButton from "../project/SaveEntregableButton";
 import { sanitizeFilenameStem } from "../project/FilenameInput";
+import { useSession } from "../../lib/SessionContext";
 
 // -----------------------------------------------------------------------------
 // Tipos, parsing y helpers extraídos a submódulos durante el revamp Sub-PR 1.
@@ -74,10 +65,7 @@ import type {
   BuilderNode,
   BuilderSelection,
   BuilderStructure,
-  SectionMeta,
-  SheetKey,
   XlsformEditorWorkbook,
-  XlsformIndex,
 } from "./types";
 import { PAPER_COLUMNS } from "./types";
 import {
@@ -108,7 +96,6 @@ import {
   extractChoiceItems,
   getSiblingRows,
   parseBuilderStructure,
-  previewKindLabel,
   resolveInsertionIndex,
 } from "./parsing/buildIndex";
 import { buildDiagnostics } from "./parsing/diagnostics";
@@ -120,9 +107,11 @@ import {
 } from "./state/editorReducer";
 import {
   clearSnapshot,
+  clearSnapshotFromBackend,
   createPersistenceScheduler,
   loadSnapshot,
   loadSnapshotFromBackend,
+  reconcileSnapshotWithBackend,
   saveSnapshot,
   syncSnapshotToBackend,
 } from "./state/persistence";
@@ -144,14 +133,13 @@ import {
 import { SurveyOutline } from "./outline/SurveyOutline";
 import type { RowMovePlan } from "./outline/outlineUtils";
 import { applyRowMove } from "./outline/outlineUtils";
-import { PreviewCanvas } from "./canvas/PreviewCanvas";
-import { FormCanvas } from "./canvas/FormCanvas";
-import { Inspector } from "./inspector/Inspector";
-import { ContextPanel } from "./inspector/ContextPanel";
+import {
+  FocusedWorkspace,
+  type FocusWorkspaceMode,
+} from "./canvas/FocusedWorkspace";
 import { MoreViewsMenu } from "./shell/MoreViewsMenu";
 import { Coachmarks } from "./shell/Coachmarks";
 import { iconForType } from "./helpers/icons";
-import { renderMarkdownInline, stripMarkdown } from "./helpers/markdown";
 import { paletteForType } from "./helpers/paletteForType";
 import type {
   LogicCatalog,
@@ -160,26 +148,10 @@ import type {
 } from "./logic";
 import { LogicCanvas } from "./canvas-graph/LogicCanvas";
 
-const QUESTION_TYPE_OPTIONS = [
-  { value: "text", label: "Texto corto" },
-  { value: "integer", label: "Número entero" },
-  { value: "decimal", label: "Número decimal" },
-  { value: "date", label: "Fecha" },
-  { value: "select_one", label: "Selección única" },
-  { value: "select_multiple", label: "Selección múltiple" },
-  { value: "note", label: "Texto informativo" },
-  { value: "calculate", label: "Cálculo automático" },
-];
-
-// (parsing/sheetUtils, parsing/parseType, parsing/buildIndex, parsing/diagnostics
-// concentran toda la lógica que antes vivía inline. Mantenemos solo `logicSummary`
-// aquí porque depende de iconos JSX — `parsing/*` es puro TS sin JSX.)
-
 /**
  * Posición 1-indexed de una fila dentro del outline, contando solo
  * preguntas reales (question/note/calculate). Si la fila es una sección o
- * un marcador begin/end, devuelve `undefined`. Útil para el header del
- * Inspector y el Breadcrumb del Canvas — comparten esta misma noción.
+ * un marcador begin/end, devuelve `undefined`.
  */
 function computeQuestionPosition(
   structure: BuilderStructure,
@@ -196,16 +168,6 @@ function computeQuestionPosition(
     }
   }
   return undefined;
-}
-
-function logicSummary(node: BuilderNode | null) {
-  if (!node) return [];
-  const blocks: Array<{ title: string; text: string; icon: ReactNode }> = [];
-  if (node.relevant) blocks.push({ title: "Cuándo se muestra", text: node.relevant, icon: <GitBranch size={14} /> });
-  if (node.constraint) blocks.push({ title: "Qué valida", text: node.constraint, icon: <CheckCircle2 size={14} /> });
-  if (node.choiceFilter) blocks.push({ title: "Cómo filtra opciones", text: node.choiceFilter, icon: <Filter size={14} /> });
-  if (node.calculation) blocks.push({ title: "Cómo se calcula", text: node.calculation, icon: <Hash size={14} /> });
-  return blocks;
 }
 
 function workbookWithSurveyMonkeyLogic(
@@ -476,6 +438,7 @@ export default function XlsformEditorPage() {
   // al directorio del proyecto (vía /api/fs/save-to-project) o usar la
   // descarga clásica del navegador.
   const { project } = useProjectShell();
+  const { sessionId } = useSession();
   // Estado del workbook + dirty + lastSavedAt + history (undo/redo) en un
   // solo reducer para mantener consistencia transaccional. Las acciones
   // disponibles son SET (mutación normal), LOAD (importar/restaurar),
@@ -505,6 +468,8 @@ export default function XlsformEditorPage() {
    *  usuario edita celdas crudas. Cualquier cambio en sheets se refleja
    *  automáticamente en builder porque ambos leen del mismo workbook. */
   const [editorMode, setEditorMode] = useState<"builder" | "sheets">("builder");
+  const [builderWorkspaceMode, setBuilderWorkspaceMode] =
+    useState<FocusWorkspaceMode>("focus");
   /** Si está abierto el overlay del mapa de lógica (canvas Obsidian-style).
    *  Se accede desde el botón "Mapa de lógica" del header del constructor. */
 	  const [logicCanvasOpen, setLogicCanvasOpen] = useState(false);
@@ -545,15 +510,17 @@ export default function XlsformEditorPage() {
   const projectScope = project.status.path ?? null;
 
   // Detectar al montar — y al cambiar de proyecto — si hay un snapshot
-  // persistido para el scope actual. Primero local (localStorage), después
-  // el backend (state del .pulso). El primero gana porque suele ser más
-  // fresco. Si cambiamos de proyecto: descartamos el workbook abierto
-  // (pertenecía al proyecto anterior) y recargamos contra el nuevo scope.
+  // persistido para el scope actual. Para proyectos .pulso esperamos al
+  // backend y reconciliamos ambos snapshots: localStorage puede ser más
+  // fresco, pero el .pulso puede traer metadata crítica como
+  // surveyMonkeyLogic. Si cambiamos de proyecto: descartamos el workbook
+  // abierto (pertenecía al proyecto anterior) y recargamos contra el nuevo scope.
   // Usamos un ref para detectar el primer mount y NO limpiar entonces.
-  const lastScopeRef = useRef<typeof projectScope>(projectScope);
+  const restoreKey = `${sessionId || "no-session"}::${projectScope ?? "no-project"}`;
+  const lastScopeRef = useRef(restoreKey);
   useEffect(() => {
-    const isProjectSwitch = lastScopeRef.current !== projectScope;
-    lastScopeRef.current = projectScope;
+    const isProjectSwitch = lastScopeRef.current !== restoreKey;
+    lastScopeRef.current = restoreKey;
 
     // Si fue un switch de proyecto y había un workbook cargado, lo
     // limpiamos — su snapshot está a salvo en su propio bucket.
@@ -563,21 +530,21 @@ export default function XlsformEditorPage() {
 
     setRestoreOffer(null);
     const local = loadSnapshot(projectScope);
-    if (local) {
+    if (local && !projectScope) {
       setRestoreOffer(local);
-      return;
     }
     let cancelled = false;
     void loadSnapshotFromBackend().then((remote) => {
       if (cancelled) return;
-      if (remote) setRestoreOffer(remote);
+      const reconciled = reconcileSnapshotWithBackend(local, remote);
+      if (reconciled) setRestoreOffer(reconciled);
     });
     return () => {
       cancelled = true;
     };
     // workbookRef intencionalmente no en deps — solo lo consultamos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectScope]);
+  }, [projectScope, restoreKey]);
 
   // Ref que sigue al workbook actual sin disparar el efecto de scope
   // cuando muta. Lo consultamos al detectar switch de proyecto.
@@ -670,11 +637,6 @@ export default function XlsformEditorPage() {
   );
   const structure = xlsformIndex?.structure ?? null;
 
-  const visibleTabs = useMemo<SheetKey[]>(() => {
-    if (!workbook) return [];
-    return ["survey", "choices", "settings", "paper"];
-  }, [workbook]);
-
   const catalogs = xlsformIndex?.catalogs ?? [];
 
   useEffect(() => {
@@ -698,6 +660,11 @@ export default function XlsformEditorPage() {
       }
     }
   }, [selection, structure, workbook]);
+
+  const selectBuilderFocus = useCallback((next: BuilderSelection) => {
+    setSelection(next);
+    setBuilderWorkspaceMode("focus");
+  }, []);
 
   const selectedNode = selection?.kind === "survey"
     ? structure?.byRow.get(selection.rowIndex) ?? null
@@ -904,18 +871,6 @@ export default function XlsformEditorPage() {
     ? usageByCatalog[activeCatalogName] ?? 0
     : 0;
 
-  const uniqueChoiceLists = workbook
-    ? (() => {
-        const listCol = workbook.choices.columns.indexOf("list_name");
-        if (listCol < 0) return 0;
-        return new Set(
-          workbook.choices.rows
-            .map((row) => row[listCol] ?? "")
-            .filter((value) => !!value)
-        ).size;
-      })()
-    : 0;
-
   useEffect(() => {
     if (!selectedTypeInfo?.listName) return;
     setCatalogFocus(selectedTypeInfo.listName);
@@ -929,13 +884,6 @@ export default function XlsformEditorPage() {
     if (catalogFocus && catalogs.some((catalog) => catalog.listName === catalogFocus)) return;
     setCatalogFocus(catalogs[0].listName);
   }, [catalogFocus, catalogs]);
-
-  const summaryCards = workbook ? [
-    { label: "preguntas y elementos", value: xlsformIndex?.stats.nQuestions ?? structure?.outline.length ?? 0, icon: Table2 },
-    { label: "secciones visibles", value: xlsformIndex?.stats.nSections ?? Math.max((structure?.sections.size ?? 1) - 1, 0), icon: Layers3 },
-    { label: "listas de opciones", value: xlsformIndex?.stats.nCatalogs ?? uniqueChoiceLists, icon: ListChecks },
-    { label: "archivo en sesión", value: source?.original_name ? 1 : 0, icon: FileSpreadsheet },
-  ] : [];
 
   function resetMessages() {
     setError("");
@@ -957,6 +905,10 @@ export default function XlsformEditorPage() {
       setArtifact(null);
       setStatus(nextStatus);
       setRestoreOffer(null);
+      setEditorMode("builder");
+      setBuilderWorkspaceMode("focus");
+      setLogicCanvasOpen(false);
+      setQuestionnaireViewOpen(false);
       setSmLogicRules(loadedWorkbook.surveyMonkeyLogic?.advanced_rules ?? loadedWorkbook.surveyMonkeyLogic?.rules ?? []);
       setSmVisualLogicRules(loadedWorkbook.surveyMonkeyLogic?.visual_rules ?? []);
       setSmLogicChoiceOverrides(loadedWorkbook.surveyMonkeyLogic?.choice_order_overrides ?? {});
@@ -988,9 +940,11 @@ export default function XlsformEditorPage() {
   // el bucket del proyecto actual — los snapshots de otros proyectos
   // quedan intactos.
   const dismissRestoreOffer = useCallback(() => {
+    persistence.cancel();
     setRestoreOffer(null);
     clearSnapshot(projectScope);
-  }, [projectScope]);
+    void clearSnapshotFromBackend();
+  }, [persistence, projectScope]);
 
   // Aceptar el snapshot ofrecido y restaurarlo como workbook actual.
   const acceptRestoreOffer = useCallback(() => {
@@ -1003,8 +957,26 @@ export default function XlsformEditorPage() {
     );
   }, [restoreOffer, loadWorkbook]);
 
+  function blockUntilRestoreDecision(actionLabel: string): boolean {
+    if (!restoreOffer || workbook) return false;
+    const detail =
+      "Primero continúa el formulario guardado o descarta ese guardado. Así evitamos abrir otro flujo encima de una recuperación pendiente.";
+    setStatus(detail);
+    toasts.push({
+      kind: "warn",
+      title: `Antes de ${actionLabel}`,
+      detail,
+      durationMs: 7000,
+    });
+    return true;
+  }
+
   async function onImportXls(file?: File) {
     if (!file) return;
+    if (blockUntilRestoreDecision("importar otro XLSForm")) {
+      if (xlsInputRef.current) xlsInputRef.current.value = "";
+      return;
+    }
     resetMessages();
     setBusy(`Importando ${file.name}…`);
     try {
@@ -1034,6 +1006,7 @@ export default function XlsformEditorPage() {
   }
 
   function onImportSurveyMonkey() {
+    if (blockUntilRestoreDecision("traducir SurveyMonkey")) return;
     resetMessages();
     setSmImportDialog({ fileId: null, fileName: "SurveyMonkey API" });
   }
@@ -1319,6 +1292,7 @@ export default function XlsformEditorPage() {
   }
 
   function onNewWorkbook() {
+    if (blockUntilRestoreDecision("empezar otro formulario")) return;
     if (dirty && !window.confirm("Hay cambios sin exportar. ¿Abrimos un constructor nuevo igual?")) return;
     resetMessages();
     loadWorkbook(
@@ -1334,6 +1308,7 @@ export default function XlsformEditorPage() {
    * con `onNewWorkbook` para que el usuario no pierda trabajo por descuido.
    */
   function onPickTemplate(template: TemplateSeed) {
+    if (blockUntilRestoreDecision("cargar una plantilla")) return;
     if (
       dirty &&
       !window.confirm(
@@ -1734,14 +1709,40 @@ export default function XlsformEditorPage() {
    * que el destino sea legal (ver `outline/outlineUtils.ts::computeRowMove`)
    * y trae el rango fuente, count y posición de inserción ajustada.
    */
+  function mapSurveyRowAfterMove(rowIndex: number, plan: RowMovePlan): number {
+    const fromEnd = plan.fromStart + plan.count;
+    if (rowIndex >= plan.fromStart && rowIndex < fromEnd) {
+      return plan.insertAt + (rowIndex - plan.fromStart);
+    }
+
+    if (plan.insertAt < plan.fromStart) {
+      if (rowIndex >= plan.insertAt && rowIndex < plan.fromStart) {
+        return rowIndex + plan.count;
+      }
+      return rowIndex;
+    }
+
+    const rawInsertAt = plan.insertAt + plan.count;
+    if (rowIndex >= fromEnd && rowIndex < rawInsertAt) {
+      return rowIndex - plan.count;
+    }
+    return rowIndex;
+  }
+
   function applyOutlineMove(plan: RowMovePlan) {
     if (!workbook) return;
+    const previousSelection = selection;
     updateWorkbook((draft) => {
       applyRowMove(draft.survey, plan);
     });
-    // Mover la selección al begin del bloque en su nueva posición — feedback
-    // visual de que el item se mantuvo seleccionado.
-    setSelection({ kind: "survey", rowIndex: plan.newStart });
+    // Reordenar no debe navegar el editor. Conservamos la selección actual y
+    // solo remapeamos su índice si el movimiento cambió su posición.
+    if (previousSelection?.kind === "survey") {
+      setSelection({
+        kind: "survey",
+        rowIndex: mapSurveyRowAfterMove(previousSelection.rowIndex, plan),
+      });
+    }
   }
 
   function moveSelection(direction: "up" | "down") {
@@ -1929,9 +1930,8 @@ export default function XlsformEditorPage() {
   }
 
   const settingsRecord = workbook ? rowToRecord(workbook.settings, 0) : null;
-  const selectedLogic = logicSummary(selectedNode);
 
-  // Scope de lógica que el Inspector pasa al LogicBuilder. Variables son
+  // Scope de lógica que el workspace pasa al LogicBuilder. Variables son
   // todas las preguntas del outline excepto la actual (no tiene sentido
   // que una pregunta dependa de sí misma), y excepto secciones/repeats
   // (esos no producen valores comparables). Los catálogos se indexan por
@@ -2042,7 +2042,7 @@ export default function XlsformEditorPage() {
       className="pulso-xlsform-frame"
       resetScrollKey={`${workbook ? "workbook" : "empty"}:${editorMode}`}
       meta={(
-        <div style={{ display: "inline-flex", flexWrap: "wrap", gap: 8 }}>
+        <div className="pulso-xlsform-doc-meta">
           <StatusChip label={workbook ? formatSource(source?.kind ?? null) : "Sin archivo"} tone={workbook ? "info" : "neutral"} />
           <StatusChip
             label={
@@ -2059,13 +2059,13 @@ export default function XlsformEditorPage() {
             }
           />
           {workbook && (canUndo || canRedo) && (
-            <div style={{ display: "inline-flex", gap: 4 }}>
+            <div className="pulso-xlsform-history-controls">
               <button
                 type="button"
                 onClick={() => dispatch({ type: "UNDO" })}
                 disabled={!canUndo}
                 title="Deshacer (⌘Z)"
-                style={undoButtonStyle(canUndo)}
+                className="pulso-xlsform-history-button"
                 aria-label="Deshacer último cambio"
               >
                 ↶ Deshacer
@@ -2075,7 +2075,7 @@ export default function XlsformEditorPage() {
                 onClick={() => dispatch({ type: "REDO" })}
                 disabled={!canRedo}
                 title="Rehacer (⇧⌘Z)"
-                style={undoButtonStyle(canRedo)}
+                className="pulso-xlsform-history-button"
                 aria-label="Rehacer cambio deshecho"
               >
                 ↷ Rehacer
@@ -2084,6 +2084,86 @@ export default function XlsformEditorPage() {
           )}
         </div>
       )}
+      toolbar={workbook ? (
+        <div className="pulso-xlsform-commandbar" aria-label="Comandos del formulario activo">
+          <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--document">
+            <div className="pulso-xlsform-document-strip" aria-label="Resumen del formulario">
+              <span className="pulso-xlsform-document-icon" aria-hidden="true">
+                <FileSpreadsheet size={13} />
+              </span>
+              <span className="pulso-xlsform-commandbar-kicker" title={source?.original_name ?? "Formulario activo"}>
+                {source?.original_name ?? "Formulario activo"}
+              </span>
+              <span className="pulso-xlsform-document-divider" aria-hidden="true" />
+              <DocumentMetric value={structure?.outline.length ?? 0} label="piezas" />
+              <DocumentMetric value={catalogs.length} label="catálogos" />
+            </div>
+          </div>
+
+          <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--modes">
+            <div
+              className="pulso-mode-toggle"
+              role="radiogroup"
+              aria-label="Modo de edición"
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={editorMode === "builder"}
+                className={editorMode === "builder" ? "is-on" : ""}
+                onClick={() => setEditorMode("builder")}
+                title="Editor visual guiado"
+              >
+                Constructor
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={editorMode === "sheets"}
+                className={editorMode === "sheets" ? "is-on" : ""}
+                onClick={() => setEditorMode("sheets")}
+                title="Vista por hojas — edición de celdas crudas"
+              >
+                Hojas
+              </button>
+            </div>
+            <MoreViewsMenu
+              catalogsCount={catalogs.length}
+              onOpenLogicCanvas={() => setLogicCanvasOpen(true)}
+              onOpenSurveyMonkeyLogic={() => setSmLogicDialogOpen(true)}
+              onOpenQuestionnaireView={() => setQuestionnaireViewOpen(true)}
+              onOpenCatalogsLens={() => setCatalogsLensOpen(true)}
+            />
+            <DiagnosticsBadge
+              diagnostics={diagnostics}
+              selection={selection}
+              onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
+              onFocusCatalog={(name) => {
+                setCatalogFocus(name);
+                setCatalogsLensOpen(true);
+              }}
+            />
+          </div>
+
+          <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--actions">
+            <button type="button" onClick={onNewWorkbook} className="pulso-xlsform-toolbar-button">
+              <IconNew size={14} /> Nuevo
+            </button>
+            <button type="button" onClick={() => xlsInputRef.current?.click()} className="pulso-xlsform-toolbar-button">
+              <Upload size={14} /> Importar
+            </button>
+            <button type="button" onClick={onImportSurveyMonkey} className="pulso-xlsform-toolbar-button">
+              <img src={smMonkey} alt="" width={16} height={16} /> SurveyMonkey
+            </button>
+            <button type="button" className="pulso-primary pulso-xlsform-toolbar-button" onClick={onExport} disabled={!!busy}>
+              <Download size={14} /> Exportar .xlsx
+            </button>
+            <button type="button" onClick={onExportPdf} disabled={!!busy} className="pulso-xlsform-toolbar-button">
+              <FileText size={14} /> PDF
+            </button>
+          </div>
+        </div>
+      ) : undefined}
     >
       {/*
         El frame mantiene el header del editor fijo dentro del viewport.
@@ -2110,7 +2190,10 @@ export default function XlsformEditorPage() {
       {!workbook && (
         <EmptyHome
           onNewBlank={onNewWorkbook}
-          onImportXls={() => xlsInputRef.current?.click()}
+          onImportXls={() => {
+            if (blockUntilRestoreDecision("importar otro XLSForm")) return;
+            xlsInputRef.current?.click();
+          }}
           onImportSurveyMonkey={onImportSurveyMonkey}
           onPickTemplate={onPickTemplate}
           resumeBanner={
@@ -2123,45 +2206,6 @@ export default function XlsformEditorPage() {
             ) : null
           }
         />
-      )}
-
-      {/* Con workbook → barra de acciones rápidas + métricas. Los
-          botones de la barra solo tienen sentido cuando hay un
-          formulario abierto: Nuevo abre uno nuevo, Importar reemplaza
-          el actual, Traducir SurveyMonkey importa de otra fuente,
-          Exportar genera el .xlsx. */}
-      {workbook && (
-        <Panel
-          title="Acciones del formulario"
-          hint="Cambia, importa o exporta el formulario activo."
-          actions={(
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button type="button" onClick={onNewWorkbook} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <IconNew size={14} /> Nuevo formulario
-              </button>
-              <button type="button" onClick={() => xlsInputRef.current?.click()} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <Upload size={14} /> Importar XLSForm
-              </button>
-              <button type="button" onClick={onImportSurveyMonkey} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <img src={smMonkey} alt="" width={16} height={16} style={{ objectFit: "contain" }} /> Traducir SurveyMonkey
-              </button>
-              <button type="button" className="pulso-primary" onClick={onExport} disabled={!!busy} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <Download size={14} /> Exportar .xlsx
-              </button>
-              <button type="button" onClick={onExportPdf} disabled={!!busy} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <FileText size={14} /> Exportar PDF
-              </button>
-            </div>
-          )}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", color: "var(--pulso-text-soft)", fontSize: 13 }}>
-            <Pill tone="info">{structure?.outline.length ?? 0} piezas</Pill>
-            <Pill tone="info">{catalogs.length} catálogos</Pill>
-            <Pill tone={diagnostics.some((item) => item.level === "warn") ? "warn" : "success"}>
-              {diagnostics.filter((item) => item.level === "warn").length} advertencias
-            </Pill>
-          </div>
-        </Panel>
       )}
 
       {busy && (
@@ -2210,40 +2254,6 @@ export default function XlsformEditorPage() {
 
       {workbook && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-            {summaryCards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <section
-                  key={card.label}
-                  className="pulso-card"
-                  style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}
-                >
-                  <span
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: "var(--pulso-primary-soft)",
-                      color: "var(--pulso-primary)",
-                      border: "1px solid var(--pulso-primary-border)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={16} />
-                  </span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <strong style={{ fontSize: 24, lineHeight: 1 }}>{card.value}</strong>
-                    <span style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>{card.label}</span>
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-
           {/* Antes acá iba `BuilderToolsDeck` con catálogos + diagnostics +
               índice en una grilla de 3 columnas que competía por ancho con
               el constructor. En el revamp Sub-PR 4b:
@@ -2253,58 +2263,13 @@ export default function XlsformEditorPage() {
                 - Índice → CollapsibleSection abajo, no en columna lateral. */}
 
           <Panel
+            className="pulso-xlsform-workbench-panel"
             title="Espacio de construcción"
             hint={
               editorMode === "sheets"
                 ? "Vista de hojas — edita celdas crudas del XLSForm. Los cambios se reflejan en el constructor automáticamente."
                 : status ||
                   "Trabaja en modo Constructor para diseñar el formulario. La vista por hojas queda como recurso técnico secundario."
-            }
-            actions={
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <div
-                  className="pulso-mode-toggle"
-                  role="radiogroup"
-                  aria-label="Modo de edición"
-                >
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={editorMode === "builder"}
-                    className={editorMode === "builder" ? "is-on" : ""}
-                    onClick={() => setEditorMode("builder")}
-                    title="Editor visual guiado"
-                  >
-                    Constructor
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={editorMode === "sheets"}
-                    className={editorMode === "sheets" ? "is-on" : ""}
-                    onClick={() => setEditorMode("sheets")}
-                    title="Vista por hojas — edición de celdas crudas"
-                  >
-                    Hojas
-                  </button>
-                </div>
-                <MoreViewsMenu
-                  catalogsCount={catalogs.length}
-                  onOpenLogicCanvas={() => setLogicCanvasOpen(true)}
-                  onOpenSurveyMonkeyLogic={() => setSmLogicDialogOpen(true)}
-                  onOpenQuestionnaireView={() => setQuestionnaireViewOpen(true)}
-                  onOpenCatalogsLens={() => setCatalogsLensOpen(true)}
-                />
-                <DiagnosticsBadge
-                  diagnostics={diagnostics}
-                  selection={selection}
-                  onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
-                  onFocusCatalog={(name) => {
-                    setCatalogFocus(name);
-                    setCatalogsLensOpen(true);
-                  }}
-                />
-              </div>
             }
           >
             {editorMode === "sheets" && workbook && (
@@ -2318,22 +2283,10 @@ export default function XlsformEditorPage() {
               />
             )}
             {editorMode === "builder" && (
-            <div
-              className="pulso-builder-grid"
-              style={{
-                display: "grid",
-                /* Outline 290px (cabe `informante_nombre` en una línea)
-                   + centro flex + inspector 340px (cabe el panel sin
-                   apretar el toggle de "Avanzado"). Gap 14px. El centro
-                   tiene min-width 0 para que sus tarjetas se redimensionen
-                   en viewports angostos sin desbordar. */
-                gridTemplateColumns: "290px minmax(0, 1fr) 340px",
-                gap: 14,
-                alignItems: "start",
-              }}
-            >
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div className="pulso-builder-grid">
+                <div className="pulso-xlsform-workbench-column pulso-xlsform-workbench-column--outline">
                   <Panel
+                    className="pulso-xlsform-sidebar-panel"
                     title="Estructura del formulario"
                     hint="Navega por secciones y preguntas. Este panel manda el foco del constructor."
                     actions={(
@@ -2358,7 +2311,7 @@ export default function XlsformEditorPage() {
                     <SurveyOutline
                       structure={structure}
                       selection={selection}
-                      onSelect={setSelection}
+                      onSelect={selectBuilderFocus}
                       onMoveUp={() => moveSelection("up")}
                       onMoveDown={() => moveSelection("down")}
                       canMoveUp={!!movement.prevRow}
@@ -2368,72 +2321,88 @@ export default function XlsformEditorPage() {
                   </Panel>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {/* BuilderHero solo cuando estamos en Settings y hay
-                      contenido editable. Si el form recién se creó (vacío),
-                      el hero es ruido — el lienzo ya muestra el empty state
-                      grande con su CTA. */}
-                  {selection?.kind === "settings" && hasEditableContent && (
-                    <BuilderHero
-                      selection={selection}
-                      node={selectedNode}
-                      section={selectedSection}
-                      settingsRecord={settingsRecord}
-                    />
-                  )}
-
-                  <Panel
-                    title={
-                      selection?.kind === "settings"
-                        ? "Vista del formulario"
-                        : "Tu formulario"
+                <div className="pulso-xlsform-workbench-column pulso-xlsform-workbench-column--workspace">
+                  <FocusedWorkspace
+                    mode={builderWorkspaceMode}
+                    onModeChange={setBuilderWorkspaceMode}
+                    workbook={workbook}
+                    structure={structure}
+                    selection={selection}
+                    node={selectedNode}
+                    section={selectedSection}
+                    settingsRecord={settingsRecord}
+                    selectedChoices={selectedChoices}
+                    selectedPosition={
+                      structure && selectedNode
+                        ? computeQuestionPosition(structure, selectedNode.rowIndex)
+                        : undefined
                     }
-                    hint={
-                      selection?.kind === "settings"
-                        ? "Aquí se resume la identidad del formulario antes de entrar al detalle."
-                        : "Haz clic en una pregunta para editarla. Los botones + entre tarjetas agregan preguntas o secciones nuevas."
+                    catalogUsageCount={
+                      selectedTypeInfo?.listName
+                        ? catalogUsage.get(selectedTypeInfo.listName) ?? 1
+                        : 1
                     }
-                  >
-                    {/* Si la selección es settings PERO el workbook está
-                        completamente vacío (recién creado, sin secciones),
-                        priorizamos el lienzo con su empty state — el
-                        usuario quiere armar preguntas, no configurar la
-                        identidad del archivo. */}
-                    {selection?.kind === "settings" && hasEditableContent ? (
-                      <SettingsCanvas settingsRecord={settingsRecord} />
-                    ) : workbook && structure ? (
-                      <FormCanvas
-                        workbook={workbook}
-                        structure={structure}
-                        selectedRow={selection?.kind === "survey" ? selection.rowIndex : null}
-                        catalogUsage={catalogUsage}
-                        questionsByCatalog={questionsByCatalog}
-                        onSelect={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
-                        onLabelChange={(rowIndex, value) => updateSurveyField(rowIndex, "label", value)}
-                        onHintChange={(rowIndex, value) => updateSurveyField(rowIndex, "hint", value)}
-                        onSectionLabelChange={(rowIndex, value) => updateSurveyField(rowIndex, "label", value)}
-                        onChoiceLabelChange={(_listName, choiceRow, value) => updateChoice(choiceRow, "label", value)}
-                        onChoiceNameChange={(_listName, choiceRow, value) => updateChoice(choiceRow, "name", value)}
-                        onAddChoice={(listName) => addCatalogChoice(listName)}
-                        onRemoveChoice={(_listName, choiceRow) => removeChoice(choiceRow)}
-                        onRenameList={(oldListName, nextListName) => renameCatalog(oldListName, nextListName)}
-                        onCloneCatalog={(questionRowIndex) => cloneCatalogForQuestion(questionRowIndex)}
-                        onAddAfter={handleAddAfter}
-                        existingLists={existingListsForAdd}
-                        onOpenCatalogLens={(listName) => {
-                          if (listName) setCatalogFocus(listName);
-                          setCatalogsLensOpen(true);
-                        }}
-                      />
-                    ) : (
-                      <EmptyState
-                        icon={<IconHint size={18} />}
-                        title="Selecciona un elemento"
-                        hint="Elige una sección o una pregunta para empezar a construirla."
-                        variant="inline"
-                      />
-                    )}
-                  </Panel>
+                    catalogInfo={selectedCatalogInfo}
+                    conditionalContext={conditionalContext}
+                    catalogs={catalogs}
+                    logicScope={logicScope}
+                    canMoveUp={!!movement.prevRow}
+                    canMoveDown={!!movement.nextRow}
+                    onMoveUp={() => moveSelection("up")}
+                    onMoveDown={() => moveSelection("down")}
+                    onDelete={deleteCurrentSelection}
+                    onSettingsChange={updateSettingsField}
+                    onFieldChange={(field, value) => {
+                      if (!selectedNode) return;
+                      updateSurveyField(selectedNode.rowIndex, field, value);
+                    }}
+                    onTypeChange={(value) => {
+                      if (!selectedNode) return;
+                      updateQuestionType(selectedNode.rowIndex, value);
+                    }}
+                    onRequiredChange={(checked) => {
+                      if (!selectedNode) return;
+                      toggleRequired(selectedNode.rowIndex, checked);
+                    }}
+                    onCatalogAssign={(listName) => {
+                      if (!selectedNode) return;
+                      assignCatalogToQuestion(selectedNode.rowIndex, listName);
+                    }}
+                    onCatalogCreate={() => createCatalog(true)}
+                    onOpenCatalogLens={(focusListName) => {
+                      if (focusListName) setCatalogFocus(focusListName);
+                      setCatalogsLensOpen(true);
+                    }}
+                    onCloneCatalog={
+                      selectedNode
+                        ? () => cloneCatalogForQuestion(selectedNode.rowIndex)
+                        : undefined
+                    }
+                    onSelectRow={(rowIndex) => selectBuilderFocus({ kind: "survey", rowIndex })}
+                    formCanvasProps={{
+                      catalogUsage,
+                      questionsByCatalog,
+                      onSelect: (rowIndex) => selectBuilderFocus({ kind: "survey", rowIndex }),
+                      onLabelChange: (rowIndex, value) => updateSurveyField(rowIndex, "label", value),
+                      onHintChange: (rowIndex, value) => updateSurveyField(rowIndex, "hint", value),
+                      onSectionLabelChange: (rowIndex, value) => updateSurveyField(rowIndex, "label", value),
+                      onChoiceLabelChange: (_listName, choiceRow, value) => updateChoice(choiceRow, "label", value),
+                      onChoiceNameChange: (_listName, choiceRow, value) => updateChoice(choiceRow, "name", value),
+                      onAddChoice: (listName) => addCatalogChoice(listName),
+                      onRemoveChoice: (_listName, choiceRow) => removeChoice(choiceRow),
+                      onRenameList: (oldListName, nextListName) => renameCatalog(oldListName, nextListName),
+                      onCloneCatalog: (questionRowIndex) => cloneCatalogForQuestion(questionRowIndex),
+                      onAddAfter: (rowIndex, kind, reuseListName) => {
+                        handleAddAfter(rowIndex, kind, reuseListName);
+                        setBuilderWorkspaceMode("focus");
+                      },
+                      existingLists: existingListsForAdd,
+                      onOpenCatalogLens: (listName) => {
+                        if (listName) setCatalogFocus(listName);
+                        setCatalogsLensOpen(true);
+                      },
+                    }}
+                  />
 
                   {artifact && (
                     <Panel
@@ -2464,102 +2433,6 @@ export default function XlsformEditorPage() {
                       </span>
                     </Panel>
                   )}
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <Panel
-                    title={
-                      selection?.kind === "settings"
-                        ? "Ajustes del formulario"
-                        : selection?.kind === "survey"
-                          ? "Detalles de la pregunta"
-                          : "Inspector"
-                    }
-                    hint={
-                      selection?.kind === "settings"
-                        ? "Título visible, identificador, versión y otros datos del archivo."
-                        : selection?.kind === "survey"
-                          ? "Configura el tipo, validación, lógica y catálogo. El texto de la pregunta y las opciones se editan directamente en el lienzo."
-                          : "Selecciona una pregunta o sección en el lienzo para ver sus detalles aquí."
-                    }
-                    actions={
-                      selection?.kind === "survey"
-                        ? (
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <button type="button" className="pulso-icon" onClick={() => moveSelection("up")} disabled={!movement.prevRow} title="Mover arriba">
-                              <ArrowUp size={14} />
-                            </button>
-                            <button type="button" className="pulso-icon" onClick={() => moveSelection("down")} disabled={!movement.nextRow} title="Mover abajo">
-                              <ArrowDown size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={deleteCurrentSelection}
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 6,
-                                color: "var(--pulso-danger-fg)",
-                                borderColor: "var(--pulso-danger-border)",
-                                background: "var(--pulso-danger-bg)",
-                              }}
-                            >
-                              <Trash2 size={14} /> Eliminar
-                            </button>
-                          </div>
-                        )
-                        : undefined
-                    }
-                  >
-                    {selection?.kind === "settings" ? (
-                      <SettingsInspector
-                        values={settingsRecord}
-                        onChange={updateSettingsField}
-                      />
-                    ) : selectedNode ? (
-                      <ContextPanel
-                        node={selectedNode}
-                        catalogs={catalogs}
-                        logicScope={logicScope}
-                        position={
-                          structure
-                            ? computeQuestionPosition(structure, selectedNode.rowIndex)
-                            : undefined
-                        }
-                        catalogUsageCount={
-                          selectedTypeInfo?.listName
-                            ? catalogUsage.get(selectedTypeInfo.listName) ?? 1
-                            : 1
-                        }
-                        catalogInfo={selectedCatalogInfo}
-                        conditionalContext={conditionalContext}
-                        onSelectRow={(rowIndex) => setSelection({ kind: "survey", rowIndex })}
-                        onFieldChange={(field, value) =>
-                          updateSurveyField(selectedNode.rowIndex, field, value)
-                        }
-                        onTypeChange={(value) => updateQuestionType(selectedNode.rowIndex, value)}
-                        onRequiredChange={(checked) =>
-                          toggleRequired(selectedNode.rowIndex, checked)
-                        }
-                        onCatalogAssign={(listName) =>
-                          assignCatalogToQuestion(selectedNode.rowIndex, listName)
-                        }
-                        onCatalogCreate={() => createCatalog(true)}
-                        onOpenCatalogLens={(focusListName) => {
-                          if (focusListName) setCatalogFocus(focusListName);
-                          setCatalogsLensOpen(true);
-                        }}
-                        onCloneCatalog={() => cloneCatalogForQuestion(selectedNode.rowIndex)}
-                      />
-                    ) : (
-                      <EmptyState
-                        icon={<Settings2 size={18} />}
-                        title="Sin selección activa"
-                        hint="Haz click en una pieza del formulario para editarla desde acá."
-                        variant="inline"
-                      />
-                    )}
-                  </Panel>
                 </div>
               </div>
             )}
@@ -2738,23 +2611,7 @@ function AddElementMenu({
   onClose: () => void;
 }) {
   return (
-    <div
-      style={{
-        position: "absolute",
-        right: 0,
-        top: 38,
-        width: 360,
-        zIndex: 20,
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 12,
-        background: "white",
-        boxShadow: "0 18px 44px rgba(15, 23, 42, 0.18)",
-        padding: 8,
-        display: "grid",
-        gridTemplateColumns: "1fr",
-        gap: 6,
-      }}
-    >
+    <div className="pulso-add-element-menu">
       {items.map((item) => (
         <button
           key={item.key}
@@ -2763,272 +2620,18 @@ function AddElementMenu({
             item.action();
             onClose();
           }}
-          style={{
-            width: "100%",
-            textAlign: "left",
-            display: "flex",
-            gap: 10,
-            alignItems: "flex-start",
-            padding: "10px 12px",
-            borderRadius: 8,
-            border: "1px solid transparent",
-            background: "transparent",
-          }}
+          className="pulso-add-element-menu-item"
         >
-          <span
-            style={{
-              width: 26,
-              height: 26,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 8,
-              background: "var(--pulso-surface-2)",
-              color: "var(--pulso-text-soft)",
-              flexShrink: 0,
-            }}
-          >
+          <span className="pulso-add-element-menu-icon">
             {item.icon}
           </span>
-          <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <strong style={{ fontSize: 13 }}>{item.label}</strong>
-            <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>{item.hint}</span>
+          <span className="pulso-add-element-menu-copy">
+            <strong>{item.label}</strong>
+            <span>{item.hint}</span>
           </span>
         </button>
       ))}
     </div>
-  );
-}
-
-function IndexPanel({ index }: { index: XlsformIndex | null }) {
-  if (!index) return null;
-  const topDependents = Array.from(index.dependentsByName.entries())
-    .sort((a, b) => b[1].length - a[1].length)
-    .slice(0, 4);
-
-  return (
-    <Panel
-      title="Índice del instrumento"
-      hint="Base interna para búsqueda, lógica visual, navegación y validaciones asistidas."
-    >
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
-        <IndexMetric label="Variables" value={index.variablesByName.size} />
-        <IndexMetric label="Dependencias" value={index.stats.nDependencies} />
-        <IndexMetric label="Referencias faltantes" value={index.stats.nMissingReferences} tone={index.stats.nMissingReferences ? "warn" : "success"} />
-        <IndexMetric label="Catálogos usados" value={index.questionsByCatalog.size} />
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-        <span className="pulso-section-eyebrow">Variables más usadas en lógica</span>
-        {topDependents.length ? topDependents.map(([name, deps]) => (
-          <div
-            key={name}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 8,
-              border: "1px solid var(--pulso-border)",
-              borderRadius: 8,
-              padding: "8px 10px",
-              background: "var(--pulso-surface-2)",
-            }}
-          >
-            <code style={{ fontSize: 12 }}>{name}</code>
-            <Pill tone="info">{deps.length} usos</Pill>
-          </div>
-        )) : (
-          <span style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.55 }}>
-            Todavía no hay dependencias de lógica detectadas.
-          </span>
-        )}
-      </div>
-    </Panel>
-  );
-}
-
-function IndexMetric({
-  label,
-  value,
-  tone = "info",
-}: {
-  label: string;
-  value: number;
-  tone?: "info" | "warn" | "success";
-}) {
-  return (
-    <div
-      style={{
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 8,
-        padding: "10px 10px",
-        background: tone === "warn" ? "var(--pulso-warn-bg)" : tone === "success" ? "var(--pulso-success-bg)" : "var(--pulso-surface-2)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-      }}
-    >
-      <strong style={{ fontSize: 20, lineHeight: 1 }}>{value}</strong>
-      <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{label}</span>
-    </div>
-  );
-}
-
-function BuilderHero({
-  selection,
-  node,
-  section,
-  settingsRecord,
-}: {
-  selection: BuilderSelection | null;
-  node: BuilderNode | null;
-  section: SectionMeta | null;
-  settingsRecord: Record<string, string> | null;
-}) {
-  const titleRaw = selection?.kind === "settings"
-    ? (settingsRecord?.form_title || "Configuración del formulario")
-    : (node?.label || "Selecciona un elemento");
-  // El título se muestra renderizado (negritas/itálicas se ven), no
-  // el markdown crudo. La capa técnica (asteriscos) vive en "Hojas".
-  const titleHtml = renderMarkdownInline(titleRaw);
-  const subtitle = selection?.kind === "settings"
-    ? `ID ${settingsRecord?.form_id || "sin definir"} · versión ${settingsRecord?.version || "1"}`
-    : node
-      ? `${previewKindLabel(node)}${node.name ? ` · ${node.name}` : ""}${section && section.kind !== "root" ? ` · dentro de ${stripMarkdown(section.label)}` : ""}`
-      : "Elige una pieza desde la estructura para editarla.";
-
-  return (
-    <section
-      className="pulso-card"
-      style={{
-        padding: "22px 22px 18px",
-        background:
-          "linear-gradient(180deg, rgba(0,36,87,0.05) 0%, rgba(0,36,87,0.02) 100%), white",
-        borderColor: "var(--pulso-primary-border)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
-        <span
-          style={{
-            width: 46,
-            height: 46,
-            borderRadius: 14,
-            background: "white",
-            border: "1px solid var(--pulso-primary-border)",
-            color: "var(--pulso-primary)",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          {selection?.kind === "settings" ? <Settings2 size={20} /> : <IconEditor size={20} />}
-        </span>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 280, flex: 1 }}>
-          <span className="pulso-section-eyebrow">
-            {selection?.kind === "settings" ? "Identidad del formulario" : "Pieza activa"}
-          </span>
-          <h2
-            style={{ margin: 0, fontSize: 28, lineHeight: 1.1, letterSpacing: -0.3, color: "var(--pulso-primary)" }}
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{ __html: titleHtml }}
-          />
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--pulso-text-soft)", maxWidth: 860 }}>
-            {subtitle}
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function SettingsCanvas({ settingsRecord }: { settingsRecord: Record<string, string> | null }) {
-  const items = [
-    { label: "Título visible", value: settingsRecord?.form_title || "Sin título" },
-    { label: "ID interno", value: settingsRecord?.form_id || "Sin ID" },
-    { label: "Versión", value: settingsRecord?.version || "1" },
-    { label: "Idioma por defecto", value: settingsRecord?.default_language || "es" },
-  ];
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-      {items.map((item) => (
-        <article
-          key={item.label}
-          style={{
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 12,
-            padding: "14px 16px",
-            background: "var(--pulso-surface-2)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-          }}
-        >
-          <span className="pulso-section-eyebrow">{item.label}</span>
-          <strong style={{ fontSize: 15, lineHeight: 1.4 }}>{item.value}</strong>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function SettingsInspector({
-  values,
-  onChange,
-}: {
-  values: Record<string, string> | null;
-  onChange: (field: string, value: string) => void;
-}) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <InspectorGroup title="Identidad visible">
-        <Field label="Título del formulario">
-          <input value={values?.form_title ?? ""} onChange={(e) => onChange("form_title", e.target.value)} />
-        </Field>
-        <Field label="ID interno">
-          <input value={values?.form_id ?? ""} onChange={(e) => onChange("form_id", e.target.value)} />
-        </Field>
-      </InspectorGroup>
-
-      <InspectorGroup title="Control de versión">
-        <Field label="Versión">
-          <input value={values?.version ?? ""} onChange={(e) => onChange("version", e.target.value)} />
-        </Field>
-        <Field label="Idioma por defecto">
-          <input value={values?.default_language ?? "es"} onChange={(e) => onChange("default_language", e.target.value)} />
-        </Field>
-      </InspectorGroup>
-    </div>
-  );
-}
-
-function InspectorGroup({
-  title,
-  actions,
-  children,
-}: {
-  title: string;
-  actions?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <span className="pulso-section-eyebrow">{title}</span>
-        {actions}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>
-    </section>
-  );
-}
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, color: "var(--pulso-text-soft)" }}>
-      <span style={{ fontWeight: 600 }}>{label}</span>
-      {children}
-    </label>
   );
 }
 
@@ -3082,29 +2685,19 @@ function StatusChip({
   );
 }
 
-function Pill({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "info" | "warn" | "success" }) {
-  const colors = {
-    neutral: ["var(--pulso-surface-2)", "var(--pulso-border)", "var(--pulso-text-soft)"],
-    info: ["var(--pulso-info-bg)", "var(--pulso-info-border)", "var(--pulso-info-fg)"],
-    warn: ["var(--pulso-warn-bg)", "var(--pulso-warn-border)", "var(--pulso-warn-fg)"],
-    success: ["var(--pulso-success-bg)", "var(--pulso-success-border)", "var(--pulso-success-fg)"],
-  }[tone];
+function DocumentMetric({
+  value,
+  label,
+  tone = "neutral",
+}: {
+  value: number;
+  label: string;
+  tone?: "neutral" | "warn" | "success";
+}) {
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "5px 10px",
-        borderRadius: 999,
-        background: colors[0],
-        border: `1px solid ${colors[1]}`,
-        color: colors[2],
-        fontSize: 11,
-        fontWeight: 700,
-      }}
-    >
-      {children}
+    <span className={`pulso-xlsform-document-metric is-${tone}`}>
+      <strong>{value}</strong>
+      <span>{label}</span>
     </span>
   );
 }
@@ -3136,24 +2729,6 @@ function formatRelativeTime(ts: number): string {
   if (hr < 24) return `hace ${hr} h`;
   const day = Math.floor(hr / 24);
   return `hace ${day} d`;
-}
-
-/** Estilo del par de botones undo/redo en el header. */
-function undoButtonStyle(enabled: boolean): CSSProperties {
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 4,
-    padding: "4px 10px",
-    fontSize: 11,
-    fontWeight: 700,
-    border: "1px solid var(--pulso-border)",
-    background: "white",
-    color: enabled ? "var(--pulso-text)" : "var(--pulso-text-soft)",
-    borderRadius: 6,
-    cursor: enabled ? "pointer" : "not-allowed",
-    opacity: enabled ? 1 : 0.5,
-  };
 }
 
 function SurveyMonkeyLogicPopup({
@@ -3439,44 +3014,96 @@ function RestoreOfferBanner({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 12,
-        padding: "12px 16px",
-        borderRadius: 10,
-        background: "var(--pulso-info-bg)",
-        border: "1px solid var(--pulso-info-border)",
+        gap: 10,
+        padding: 8,
+        borderRadius: 12,
+        background: "color-mix(in srgb, var(--pulso-info-bg) 82%, #ffffff 18%)",
+        border: "1px solid color-mix(in srgb, var(--pulso-info-border) 72%, var(--pulso-border))",
         color: "var(--pulso-text)",
         flexWrap: "wrap",
+        boxShadow: "var(--xls-shadow-hairline, 0 1px 2px rgba(15, 23, 42, 0.06))",
       }}
     >
-      <IconHint size={16} color="var(--pulso-info-fg)" />
-      <div style={{ flex: 1, minWidth: 240 }}>
-        <div style={{ fontSize: 13, fontWeight: 700 }}>
-          Tenías un formulario abierto antes
-        </div>
-        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
-          {/* Defensivo: en localStorage viejo `sourceName` puede haber
-              quedado como objeto en algún caso edge. Solo lo mostramos
-              si es string no vacío. */}
-          {typeof snapshot.sourceName === "string" && snapshot.sourceName
-            ? `Archivo: ${snapshot.sourceName} · `
-            : ""}
-          Guardado automáticamente {formatRelativeTime(snapshot.savedAt)}.
-        </div>
-      </div>
       <button
         type="button"
-        className="pulso-primary"
         onClick={onAccept}
-        style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+        style={{
+          flex: "1 1 420px",
+          minWidth: 280,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "10px 12px",
+          border: "1px solid transparent",
+          borderRadius: 10,
+          background: "rgba(255, 255, 255, 0.72)",
+          color: "inherit",
+          textAlign: "left",
+          cursor: "pointer",
+        }}
       >
-        <IconForward size={14} /> Continuar editando
+        <span
+          aria-hidden="true"
+          style={{
+            width: 32,
+            height: 32,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flex: "0 0 auto",
+            borderRadius: 9,
+            background: "color-mix(in srgb, var(--pulso-info-fg) 10%, #ffffff)",
+            color: "var(--pulso-info-fg)",
+          }}
+        >
+          <IconHint size={16} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 13, fontWeight: 780 }}>
+            Continuar formulario guardado
+          </span>
+          <span style={{ display: "block", fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+            {/* Defensivo: en localStorage viejo `sourceName` puede haber
+                quedado como objeto en algún caso edge. Solo lo mostramos
+                si es string no vacío. */}
+            {typeof snapshot.sourceName === "string" && snapshot.sourceName
+              ? `Archivo: ${snapshot.sourceName} · `
+              : ""}
+            Guardado automáticamente {formatRelativeTime(snapshot.savedAt)}.
+          </span>
+        </span>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            color: "var(--pulso-info-fg)",
+            fontSize: 12,
+            fontWeight: 760,
+            whiteSpace: "nowrap",
+          }}
+        >
+          Entrar <IconForward size={14} />
+        </span>
       </button>
       <button
         type="button"
         onClick={onDismiss}
-        style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          minHeight: 36,
+          padding: "8px 10px",
+          border: "1px solid var(--pulso-border)",
+          borderRadius: 9,
+          background: "#ffffff",
+          color: "var(--pulso-text-soft)",
+          fontSize: 12,
+          fontWeight: 720,
+        }}
       >
-        <Trash2 size={14} /> Empezar de cero
+        <Trash2 size={14} /> Descartar guardado
       </button>
     </div>
   );

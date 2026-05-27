@@ -1460,6 +1460,27 @@ export async function apiCargaConfirmChoiceMapping() {
   );
 }
 
+export type NormalizedExportFormat = "xlsx" | "csv" | "sav";
+
+export async function apiCargaExportNormalized(
+  format: NormalizedExportFormat = "xlsx",
+  baseNombre?: string | null,
+) {
+  const qs = new URLSearchParams({ format });
+  if (baseNombre) qs.set("base_nombre", baseNombre);
+  return handle<{
+    ok: true;
+    file_id: string;
+    size: number;
+    original_name: string;
+    format: string;
+  }>(
+    await apiFetch(`/api/carga/data/normalized-export?${qs.toString()}`, {
+      headers: headers(),
+    }),
+  );
+}
+
 // Limpia el XLSForm cargado + todos los artefactos derivados
 // (rp_inst, rp_data, validación, estudio). Deja la sesión viva pero
 // vacía de insumos — el usuario puede cargar otro XLSForm.

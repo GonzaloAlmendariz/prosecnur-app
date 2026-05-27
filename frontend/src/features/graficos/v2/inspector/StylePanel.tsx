@@ -1,10 +1,11 @@
 import { useMemo } from "react";
-import { Palette, Sliders, RotateCcw, Info, LayoutPanelTop, ArrowRight } from "lucide-react";
+import { Palette, Sliders, RotateCcw, Info, LayoutPanelTop, ArrowRight, ChevronDown } from "lucide-react";
 import { ArgMetadata, GraficadorRef, Slide, VarInfo } from "../../../../api/client";
 import { usePlanStore, SLIDE_GRAF_SLOTS } from "../../store";
 import { graficadorToPresetType } from "../../graficadorPresetMap";
 import { ArgGroup } from "../../ArgGroup";
-import GraficadorSlot from "../../GraficadorSlot";
+import { useGraficosRegistry } from "../../useGraficosRegistry";
+import GraficadorSlot, { getSlotLabel } from "../../GraficadorSlot";
 import { groupArgs } from "./InspectorV2";
 
 // Tab de Estilo. Estructura final acordada con el usuario:
@@ -31,6 +32,7 @@ export type StylePanelProps = {
 export function StylePanel({ slide, args }: StylePanelProps) {
   const overridesReusables = usePlanStore((s) => s.overridesReusables);
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
+  const { graficadoresById } = useGraficosRegistry();
 
   const slotNames = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
 
@@ -225,15 +227,31 @@ export function StylePanel({ slide, args }: StylePanelProps) {
             cuando hace falta, <strong>Manual</strong> para ajustes finos por slot.
           </div>
           <div className="pulso-gv2-slot-stack">
-            {slotNames.map((slotName) => (
-              <GraficadorSlot
-                key={slotName}
-                slideId={slide.id}
-                slotName={slotName}
-                value={(slide.payload as Record<string, unknown>)[slotName] as never}
-                mode="style"
-              />
-            ))}
+            {slotNames.map((slotName) => {
+              const slotValue = (slide.payload as Record<string, unknown>)[slotName] as GraficadorRef | undefined;
+              const slotLabel = getSlotLabel(slotName);
+              const technicalName = slotValue?.graficador ?? "";
+              const humanName = technicalName ? (graficadoresById[technicalName]?.titulo_humano ?? technicalName) : "";
+              return (
+                <details className="pulso-gv2-slot-accordion" key={slotName} open>
+                  <summary className="pulso-gv2-slot-accordion-summary">
+                    <span>
+                      <strong>{slotLabel}</strong>
+                      {technicalName ? ` · ${humanName}` : " · Sin gráfico"}
+                    </span>
+                    <ChevronDown size={13} />
+                  </summary>
+                  <div className="pulso-gv2-slot-accordion-body">
+                    <GraficadorSlot
+                      slideId={slide.id}
+                      slotName={slotName}
+                      value={slotValue as never}
+                      mode="style"
+                    />
+                  </div>
+                </details>
+              );
+            })}
           </div>
         </section>
       )}
