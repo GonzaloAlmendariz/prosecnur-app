@@ -13,7 +13,10 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "electron"
-    ]
+    ],
+    "overrides": {
+      "tmp": "^0.2.6"
+    }
   },
   "devDependencies": {
     "electron": "^39.8.10",
