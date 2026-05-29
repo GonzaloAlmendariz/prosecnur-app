@@ -612,13 +612,13 @@ evaluate_rules <- function(rules,
 # Extraer observaciones (casos específicos que violan cada regla)
 # -----------------------------------------------------------------------------
 #' Retorna un data.frame con las filas donde una regla dio TRUE, junto con
-#' las columnas clave (UUID/index) y las variables de la regla.
+#' las columnas clave (UUID/respondent_id/index) y las variables de la regla.
 #'
 #' @param data data.frame retornado por evaluate_rules (tiene las columnas flag).
 #' @param rule vd_rule correspondiente.
-#' @param key_cols vector de columnas a preservar siempre (`_uuid`, `_index`).
+#' @param key_cols vector de columnas a preservar siempre (`_uuid`, `respondent_id`, `_index`).
 #' @export
-observations_for_rule <- function(data, rule, key_cols = c("_uuid", "_id", "_index")) {
+observations_for_rule <- function(data, rule, key_cols = c("_uuid", "uuid", "respondent_id", "response_id", "_id", "_index")) {
   if (!(rule$flag_name %in% names(data))) return(data[0, ])
   flag <- as.logical(data[[rule$flag_name]])
   # NA tratada como no-violación por default

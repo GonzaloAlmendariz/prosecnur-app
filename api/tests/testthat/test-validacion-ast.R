@@ -727,6 +727,51 @@ test_that("observations_for_rule: extrae filas con UUID y variables", {
   expect_true("edad" %in% names(obs))
 })
 
+test_that("observations_for_rule: conserva respondent_id antes del fallback por indice", {
+  rule <- rule_range("edad", 0, 120)
+  data <- data.frame(
+    respondent_id = c("sm-r1", "sm-r2"),
+    `_index` = c(1, 2),
+    edad = c(30, 150),
+    check.names = FALSE
+  )
+  ev <- evaluate_rules(list(rule), data)
+  obs <- observations_for_rule(ev$data, rule)
+
+  expect_equal(obs$respondent_id, "sm-r2")
+  expect_true("respondent_id" %in% names(obs))
+})
+
+test_that("observaciones_regla: preserva respondent_id para drill de SurveyMonkey", {
+  df <- data.frame(
+    respondent_id = c("sm-r1", "sm-r2"),
+    `_index` = c(1, 2),
+    edad = c(30, 150),
+    flag_r1 = c(FALSE, TRUE),
+    check.names = FALSE
+  )
+  ev <- list(
+    datos_tablas = list(principal = df),
+    datos = df,
+    resumen = tibble::tibble(
+      id_regla = "R1",
+      nombre_regla = "R1",
+      flag = "flag_r1",
+      tabla = "principal"
+    ),
+    reglas_meta = tibble::tibble(
+      id_regla = "R1",
+      variable_1 = "edad",
+      variable_2 = NA_character_,
+      variable_3 = NA_character_
+    )
+  )
+
+  obs <- observaciones_regla(ev, "R1")
+  expect_equal(obs$respondent_id, "sm-r2")
+  expect_true("respondent_id" %in% names(obs))
+})
+
 # =============================================================================
 # Runtime AST-first: import/export, bridge legacy y compatibilidad
 # =============================================================================

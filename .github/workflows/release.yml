@@ -21,8 +21,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version a buildear (sin v, ej. 0.2.1)'
-        required: true
+        description: 'Version a buildear (sin v, ej. 0.2.1). Si se deja vacio, se toma api/DESCRIPTION.'
+        required: false
         type: string
 
 permissions:
@@ -199,8 +199,18 @@ jobs:
       - name: Determine release tag
         id: tag
         run: |
+          APP_VERSION="$(awk -F': *' '/^Version:/ {print $2; exit}' api/DESCRIPTION)"
+          if [ -z "$APP_VERSION" ]; then
+            echo "[release] ERROR: no pude leer Version: de api/DESCRIPTION" >&2
+            exit 1
+          fi
+
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "name=v${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            MANUAL_VERSION="${{ github.event.inputs.version }}"
+            if [ -n "$MANUAL_VERSION" ] && [ "${MANUAL_VERSION#v}" != "$APP_VERSION" ]; then
+              echo "[release] Advertencia: se ignoró workflow input '$MANUAL_VERSION' porque api/DESCRIPTION indica '$APP_VERSION'." >&2
+            fi
+            echo "name=v$APP_VERSION" >> "$GITHUB_OUTPUT"
           else
             echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           fi

@@ -123,7 +123,8 @@
   df
 }
 
-.xlsform_editor_workbook_payload <- function(sheets, source_kind = NA_character_, source_name = NA_character_, warnings = list()) {
+.xlsform_editor_workbook_payload <- function(sheets, source_kind = NA_character_, source_name = NA_character_,
+                                             warnings = list(), source_meta = list()) {
   survey <- sheets$survey %||% .xlsform_editor_empty_df(.xlsform_editor_default_columns("survey"))
   choices <- sheets$choices %||% .xlsform_editor_empty_df(.xlsform_editor_default_columns("choices"))
   settings <- sheets$settings %||% .xlsform_editor_empty_df(.xlsform_editor_default_columns("settings"))
@@ -152,10 +153,10 @@
       paper_rows = as.integer(if (is.null(paper)) 0L else nrow(paper)),
       diagnostico_rows = as.integer(if (is.null(diagnostico)) 0L else nrow(diagnostico))
     ),
-    source = list(
+    source = c(list(
       kind = if (is.null(source_kind) || !nzchar(source_kind)) NA_character_ else as.character(source_kind)[1],
       original_name = if (is.null(source_name) || !nzchar(source_name)) NA_character_ else as.character(source_name)[1]
-    ),
+    ), source_meta %||% list()),
     warnings = warnings %||% list()
   )
 }
@@ -868,12 +869,31 @@ mount_xlsform_editor <- function(pr) {
       parsed <- .xlsform_editor_parse_body(req)
       token <- as.character(parsed$token %||% "")
       if (!nzchar(token)) stop_api(400, "E_MISSING_TOKEN", "Falta 'token' de la API SurveyMonkey.")
+      limit <- suppressWarnings(as.integer(parsed$limit %||% 500L))
+      if (is.na(limit) || limit < 1L) limit <- 500L
+      limit <- min(limit, 1000L)
+      months <- suppressWarnings(as.integer(parsed$months %||% 6L))
+      if (is.na(months) || months < 1L) months <- 6L
 
-      surveys <- tryCatch(
-        sm_api_list_surveys(token),
+      all_surveys <- tryCatch(
+        sm_api_list_surveys(token, per_page = 1000L),
         error = function(e) stop_api(400, "E_SM_API_FAILED", conditionMessage(e))
       )
-      list(ok = TRUE, surveys = surveys, count = length(surveys))
+      cutoff <- as.POSIXct(Sys.Date(), tz = "UTC") - months * 31L * 24L * 60L * 60L
+      surveys <- Filter(function(s) {
+        mod <- .sm_api_parse_time(s$date_modified %||% NA_character_)
+        !is.na(mod) && mod >= cutoff
+      }, all_surveys)
+      total_recent <- length(surveys)
+      if (length(surveys) > limit) surveys <- surveys[seq_len(limit)]
+      list(
+        ok = TRUE,
+        surveys = surveys,
+        count = length(surveys),
+        total_visible = length(all_surveys),
+        total_recent = total_recent,
+        months = months
+      )
     })) |>
     plumber::pr_post("/api/xlsform-editor/sm-fetch-survey-info", wrap_endpoint(function(req, res, ...) {
       # Vía 3: trae estructura del cuestionario desde la API v3 de SurveyMonkey
@@ -1156,7 +1176,12 @@ mount_xlsform_editor <- function(pr) {
           diagnostico = out$diagnostico
         ),
         source_kind = "surveymonkey",
-        source_name = source_name
+        source_name = source_name,
+        source_meta = list(
+          survey_id = survey_id,
+          survey_title = source_name,
+          translated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+        )
       )
       payload$hallazgos <- hallazgos
       payload
@@ -1171,6 +1196,7 @@ mount_xlsform_editor <- function(pr) {
       parsed <- .xlsform_editor_parse_body(req)
       workbook <- parsed$workbook %||% list()
       filename <- as.character(parsed$filename %||% "instrumento_editado.xlsx")
+      source_meta <- parsed$source %||% parsed$source_metadata %||% list()
       if (!grepl("\\.xlsx$", filename, ignore.case = TRUE)) {
         filename <- paste0(filename, ".xlsx")
       }
@@ -1220,6 +1246,13 @@ mount_xlsform_editor <- function(pr) {
       openxlsx::saveWorkbook(wb, tmp, overwrite = TRUE)
       bytes <- readBin(tmp, what = "raw", n = file.info(tmp)$size)
       meta <- save_upload(sid, kind = "xlsform", original_name = filename, raw_bytes = bytes)
+      if (length(source_meta %||% list())) {
+        s <- session_get(sid)
+        s$files[[meta$file_id]]$source <- source_meta
+        s <- .mark_project_dirty(s)
+        .session_env[[sid]] <- s
+        meta <- s$files[[meta$file_id]]
+      }
 
       list(
         ok = TRUE,

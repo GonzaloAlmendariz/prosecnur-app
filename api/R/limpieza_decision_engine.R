@@ -27,6 +27,8 @@
   s$analitica_spss_ok <- FALSE
   s$analitica_enumeradores_ok <- FALSE
   s$analitica_dim_ok <- FALSE
+  s$analitica_multibase_ok <- FALSE
+  s$analitica_multibase_available <- FALSE
   s$graficos_ppt_ok <- FALSE
   s$graficos_word_ok <- FALSE
 
@@ -54,7 +56,7 @@
 }
 
 .limpieza_uuid_candidates <- function() {
-  c("_uuid", "uuid", "_id", "_submission_id", "_submission_uuid", "id_caso", "fila_id")
+  c("_uuid", "uuid", "respondent_id", "response_id", "_id", "_submission_id", "_submission_uuid", "id_caso", "fila_id")
 }
 
 .limpieza_make_case_ids <- function(df, table_key = "principal") {

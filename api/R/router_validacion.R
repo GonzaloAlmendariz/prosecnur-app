@@ -572,6 +572,8 @@ mount_validacion <- function(pr) {
       # ahora se lee en cada construcción y no pasa nada porque el XLSForm
       # no cambia entre builds).
       inst <- leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE)
+      base_meta <- .validacion_mb_base_meta(sid, files$base_nombre %||% base)
+      inst <- .validacion_patch_integrated_instrument(inst, base_meta)
 
       incluir_final <- if (is.null(incluir)) list(
         required = TRUE, other = TRUE, relevant = TRUE,
@@ -586,6 +588,7 @@ mount_validacion <- function(pr) {
         incluir = incluir_final,
         compatibility = compat
       )
+      bundle <- .validacion_patch_integrated_bundle(bundle, base_meta)
       plan <- bundle$plan %||% compile_rules_to_plan(bundle$rules)
       resumen <- tryCatch(
         dplyr::arrange(
@@ -688,10 +691,12 @@ mount_validacion <- function(pr) {
       base_effective <- files$base_nombre
 
       compat <- validation_profile_for_base(base_effective %||% base)
+      base_meta <- .validacion_mb_base_meta(sid, base_effective %||% base)
       bundle_efectivo <- scope$plan_result$bundle %||%
         validation_bundle_from_plan_df(scope$plan_result$plan,
                                        existing_bundle = scope$plan_result$bundle %||% NULL,
                                        compatibility = compat)
+      bundle_efectivo <- .validacion_patch_integrated_bundle(bundle_efectivo, base_meta)
 
       # Filtrar reglas desactivadas (toggle "ignorar") antes de correr.
       desactivadas <- scope$reglas_desactivadas %||% character(0)
@@ -993,7 +998,7 @@ mount_validacion <- function(pr) {
       # Detectar columna UUID: buscar nombres típicos.
       uuid_col <- NULL
       if (!is.null(casos_df) && nrow(casos_df)) {
-        candidatos_uuid <- c("_uuid", "uuid", "_id", "_submission_id",
+        candidatos_uuid <- c("_uuid", "uuid", "respondent_id", "response_id", "_id", "_submission_id",
                               "_submission_uuid", "id_caso", "fila_id")
         for (cname in candidatos_uuid) {
           if (cname %in% names(casos_df)) { uuid_col <- cname; break }
@@ -1450,6 +1455,10 @@ mount_validacion <- function(pr) {
         bundle_final <- bundle_inst
         bundle_final$rules <- .dedup_rules_exact(c(bundle_inst$rules %||% list(), bundle_custom))
         bundle_final$plan <- compile_rules_to_plan(bundle_final$rules)
+        bundle_final <- .validacion_patch_integrated_bundle(
+          bundle_final,
+          .validacion_mb_base_meta(sid, base_effective %||% base)
+        )
 
         api_path <- .app_api_dir()
 

@@ -1175,7 +1175,7 @@ export default function XlsformEditorPage() {
     setBusy("Exportando XLSForm…");
     try {
       const exportableWorkbook = { ...workbook, diagnostico: null };
-      const out = await apiXlsformEditorExport(exportableWorkbook, cleanFilename(source?.original_name));
+      const out = await apiXlsformEditorExport(exportableWorkbook, cleanFilename(source?.original_name), source);
       setArtifact({ file_id: out.file_id, original_name: out.original_name, extension: "xlsx" });
       // Tras un export exitoso el workbook está "guardado" (en disco).
       // Forzamos el flush del autosave también para sellar el snapshot

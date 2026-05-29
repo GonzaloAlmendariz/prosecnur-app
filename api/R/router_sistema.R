@@ -493,6 +493,24 @@ mount_sistema <- function(pr) {
           ext = as.character(meta$ext %||% "")
         )
       }
+      global_adapted_pair_brief <- function() {
+        if (!isTRUE(s$codif_aplicado)) return(NULL)
+        xls <- file_brief(s$codif_inst_adaptado_fid)
+        dat <- file_brief(s$codif_data_adaptada_fid)
+        if (is.null(xls) || is.null(dat)) return(NULL)
+        if (!identical((xls %||% list())$kind, "instrumento_adaptado") ||
+            !identical((dat %||% list())$kind, "data_adaptada")) {
+          return(NULL)
+        }
+        list(xlsform = xls, data = dat)
+      }
+      base_can_use_global_adapted <- function(nombre) {
+        base_names <- names(bases %||% list())
+        if (length(base_names) <= 1L) return(TRUE)
+        active <- as.character(s$codif_source_active %||% "")
+        if (!nzchar(active)) active <- base_names[1]
+        identical(as.character(nombre %||% ""), active)
+      }
       pair_brief <- function(nombre, base, source) {
         if (identical(source, "original")) {
           xls_id <- base$original_xlsform_file_id %||% base$xlsform_file_id
@@ -503,6 +521,16 @@ mount_sistema <- function(pr) {
         }
         xls <- file_brief(xls_id)
         dat <- file_brief(dat_id)
+        if (!identical(source, "original") &&
+            (!identical((xls %||% list())$kind, "instrumento_adaptado") ||
+             !identical((dat %||% list())$kind, "data_adaptada")) &&
+            base_can_use_global_adapted(nombre)) {
+          adapted_pair <- global_adapted_pair_brief()
+          if (!is.null(adapted_pair)) {
+            xls <- adapted_pair$xlsform
+            dat <- adapted_pair$data
+          }
+        }
         if (identical(source, "original") &&
             (identical((xls %||% list())$kind, "instrumento_adaptado") ||
              identical((dat %||% list())$kind, "data_adaptada"))) {
@@ -563,6 +591,9 @@ mount_sistema <- function(pr) {
         analitica_spss_ok = isTRUE(s$analitica_spss_ok),
         analitica_enumeradores_ok = isTRUE(s$analitica_enumeradores_ok),
         analitica_dim_ok = isTRUE(s$analitica_dim_ok),
+        analitica_multibase_available = isTRUE(s$analitica_multibase_available) ||
+          isTRUE(tryCatch(.analitica_multibase_available(sid), error = function(e) FALSE)),
+        analitica_multibase_ok = isTRUE(s$analitica_multibase_ok),
         analitica_fuente = s$analitica_fuente %||% NA_character_,
         analitica_fuente_detalle = list(
           actual = s$analitica_fuente %||% NA_character_,

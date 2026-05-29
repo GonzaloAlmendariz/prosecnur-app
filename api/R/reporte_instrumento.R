@@ -102,21 +102,102 @@ reporte_instrumento <- function(path,
   choices_raw <- readxl::read_excel(path, sheet = sheet_choices)
 
   # ---- Helper: detectar columna de label ----------------------------------
+  label_candidates <- function(x, lang) {
+    if (is.null(x)) return(character(0))
+    nms <- names(x)
+    if (is.null(nms) || !length(nms)) return(character(0))
+    lang <- tolower(trimws(as.character(lang %||% "")))
+    explicit <- c(
+      "label",
+      paste0("label::", lang),
+      paste0("label::", toupper(lang)),
+      paste0("label::", lang, " (", toupper(lang), ")"),
+      paste0("label::", toupper(lang), " (", toupper(lang), ")"),
+      "label::spanish (es)", "label::spanish(es)", "label::spanish_es",
+      "label_spanish_es", "label::spanish", "label::es",
+      "label_spanish", "label_es", "label::espanol (es)", "label::espanol(es)",
+      "label::espanol", "label::español (es)", "label::español(es)", "label::español",
+      "label::es",
+      "label::eS",
+      "label::ES",
+      grep("^label::", nms, value = TRUE, ignore.case = TRUE)
+    )
+    out <- intersect(unique(explicit), nms)
+    extras <- grep("^label(::|_)", nms, ignore.case = TRUE, value = TRUE)
+    unique(c(out, extras))
+  }
+
+  coalesce_label <- function(df, cols) {
+    if (is.null(df)) return(character(0))
+    n <- nrow(df)
+    if (!n || !length(cols)) return(rep("", n))
+    out <- rep("", n)
+    for (col in intersect(cols, names(df))) {
+      v <- as.character(df[[col]])
+      v[is.na(v)] <- ""
+      v <- trimws(v)
+      missing <- !nzchar(out)
+      take <- missing & nzchar(v)
+      if (any(take)) out[take] <- v[take]
+      if (all(nzchar(out))) break
+    }
+    out
+  }
+
   detectar_label_col <- function(x, prefer_label, lang) {
     if (!is.null(prefer_label) && prefer_label %in% names(x)) {
       return(prefer_label)
     }
-    candidatos <- c(
-      paste0("label::", lang),
-      paste0("label::", toupper(lang)),
-      paste0("label::", tolower(lang)),
-      "label"
-    )
-    candidatos <- candidatos[candidatos %in% names(x)]
-    if (length(candidatos) == 0L) {
-      return(NA_character_)
+    nms <- names(x)
+    if (is.null(nms) || !length(nms)) return(NA_character_)
+    nms_l <- tolower(nms)
+    lang <- tolower(trimws(as.character(lang %||% "")))
+
+    non_empty <- function(v) {
+      v <- as.character(v)
+      v[is.na(v)] <- ""
+      v <- trimws(v)
+      as.integer(sum(v != ""))
     }
-    candidatos[1L]
+
+    pick_best_col <- function(cols) {
+      cols <- intersect(cols, nms)
+      if (!length(cols)) return(NA_character_)
+      scores <- vapply(cols, function(col) non_empty(x[[col]]), integer(1), USE.NAMES = FALSE)
+      nz <- which(scores > 0L)
+      if (length(nz)) {
+        return(cols[order(-scores, seq_along(cols))][1])
+      }
+      cols[1L]
+    }
+
+    if ("label" %in% nms && non_empty(x$label) > 0L) {
+      return("label")
+    }
+
+    exact <- label_candidates(x, lang)
+    chosen <- pick_best_col(exact)
+    if (!is.na(chosen) && nzchar(chosen) && non_empty(x[[chosen]]) > 0L) return(chosen)
+
+    if (nzchar(lang)) {
+      hit <- grep(sprintf("^label::%s", gsub("([\\.\\+*?\\[\\]\\^$(){}|])", "\\\\\\1", lang)), nms_l)
+      if (length(hit)) {
+        chosen <- pick_best_col(nms[hit])
+        if (!is.na(chosen) && nzchar(chosen) && non_empty(x[[chosen]]) > 0L) return(chosen)
+      }
+      hit <- grep(sprintf("label::%s\\s*\\(", lang), nms_l)
+      if (length(hit)) {
+        chosen <- pick_best_col(nms[hit])
+        if (!is.na(chosen) && nzchar(chosen) && non_empty(x[[chosen]]) > 0L) return(chosen)
+      }
+    }
+
+    hit <- grep("^label", nms_l)
+    if (length(hit)) {
+      chosen <- pick_best_col(nms[hit])
+      if (!is.na(chosen) && nzchar(chosen)) return(chosen)
+    }
+    NA_character_
   }
 
   survey_label_col  <- detectar_label_col(survey_raw,  prefer_label, lang)
@@ -124,11 +205,15 @@ reporte_instrumento <- function(path,
 
   # ---- Preparar survey ----------------------------------------------------
   survey <- survey_raw
+  survey_label_cands <- label_candidates(survey_raw, lang)
+  survey$label <- if (length(survey_label_cands)) coalesce_label(survey, survey_label_cands) else NA_character_
 
-  if (!is.na(survey_label_col) && survey_label_col %in% names(survey)) {
-    survey$label <- survey[[survey_label_col]]
-  } else {
-    survey$label <- NA_character_
+  if (all(survey$label == "")) {
+    if (!is.na(survey_label_col) && survey_label_col %in% names(survey)) {
+      survey$label <- survey[[survey_label_col]]
+    } else {
+      survey$label <- NA_character_
+    }
   }
 
   if ("type" %in% names(survey)) {
@@ -146,11 +231,15 @@ reporte_instrumento <- function(path,
 
   # ---- Preparar choices ---------------------------------------------------
   choices <- choices_raw
+  choices_label_cands <- label_candidates(choices_raw, lang)
+  choices$label <- if (length(choices_label_cands)) coalesce_label(choices, choices_label_cands) else NA_character_
 
-  if (!is.na(choices_label_col) && choices_label_col %in% names(choices)) {
-    choices$label <- choices[[choices_label_col]]
-  } else {
-    choices$label <- NA_character_
+  if (all(choices$label == "")) {
+    if (!is.na(choices_label_col) && choices_label_col %in% names(choices)) {
+      choices$label <- choices[[choices_label_col]]
+    } else {
+      choices$label <- NA_character_
+    }
   }
 
   if (!"list_name" %in% names(choices)) {
@@ -162,7 +251,7 @@ reporte_instrumento <- function(path,
 
   # ---- Vector de var_labels -----------------------------------------------
   var_labels <- survey %>%
-    dplyr::filter(!is.na(name), name != "", !is.na(label)) %>%
+    dplyr::filter(!is.na(name), name != "", !is.na(label), trimws(as.character(label)) != "") %>%
     dplyr::mutate(label = as.character(label)) %>%
     dplyr::select(name, label) %>%
     tibble::deframe()

@@ -150,6 +150,8 @@ export type SessionState = {
   analitica_spss_ok: boolean;
   analitica_enumeradores_ok: boolean;
   analitica_dim_ok: boolean;
+  analitica_multibase_available: boolean;
+  analitica_multibase_ok: boolean;
   analitica_fuente: string | null;
   analitica_fuente_detalle?: AnaliticaFuenteDetalle | null;
   hojas_ruta_ok: boolean;
@@ -394,6 +396,371 @@ export async function apiUpload(file: File, kind: UploadKind) {
   );
 }
 
+// ============================================================================
+// SurveyMonkey multibase contra XLSForm canonico
+// ============================================================================
+
+export type SurveyMonkeyMultibaseSurveyInput = {
+  survey_id: string;
+  pais?: string;
+  label?: string;
+  data_file_id?: string;
+};
+
+export type SurveyMonkeyMultibaseListItem = {
+  id: string;
+  title: string;
+  nickname: string | null;
+  date_modified: string | null;
+  pais_guess: string | null;
+};
+
+export type SurveyMonkeyMultibaseSurveySummary = {
+  survey_id: string;
+  title: string;
+  pais: string;
+  label: string;
+  n_pages: number;
+  n_questions: number;
+  n_responses: number | null;
+  responses_available: boolean;
+  responses_error: string;
+  data_file_id?: string;
+};
+
+export type SurveyMonkeyMultibaseDiff = {
+  survey_id: string;
+  pos: number;
+  variable: string;
+  severity: "blocking" | "review" | "special";
+  kind: "missing_or_extra" | "structure" | "options" | "wording" | "company_list" | "company_logic" | string;
+  message: string;
+  ref: string;
+  current: string;
+};
+
+export type SurveyMonkeyMultibaseAudit = {
+  ok: boolean;
+  surveys: SurveyMonkeyMultibaseSurveySummary[];
+  ref_survey_id: string;
+  n_blocking: number;
+  n_review: number;
+  n_special: number;
+  company_positions: number[];
+  company_variables: string[];
+  diffs: SurveyMonkeyMultibaseDiff[];
+};
+
+export async function apiSurveyMonkeyMultibaseListSurveys(q = "", limit = 200, months = 6) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/surveymonkey/multibase/surveys", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ q, limit, months }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const arr = Array.isArray(r.surveys) ? (r.surveys as Record<string, unknown>[]) : [];
+  return {
+    ok: true as const,
+    total_visible: Number(r.total_visible ?? arr.length),
+    total_recent: Number(r.total_recent ?? arr.length),
+    months: Number(r.months ?? months),
+    count: Number(r.count ?? arr.length),
+    surveys: arr.map((s): SurveyMonkeyMultibaseListItem => ({
+      id: String(s.id ?? ""),
+      title: String(s.title ?? "(sin título)"),
+      nickname: s.nickname == null || s.nickname === "NA" ? null : String(s.nickname),
+      date_modified: s.date_modified == null || s.date_modified === "NA" ? null : String(s.date_modified),
+      pais_guess: s.pais_guess == null || s.pais_guess === "NA" ? null : String(s.pais_guess),
+    })),
+  };
+}
+
+export async function apiSurveyMonkeyMultibaseAudit(
+  surveys: SurveyMonkeyMultibaseSurveyInput[],
+  canonical_xlsform_file_id = "",
+) {
+  return handle<SurveyMonkeyMultibaseAudit>(
+    await apiFetch("/api/surveymonkey/multibase/audit", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ surveys, canonical_xlsform_file_id }),
+    }),
+  );
+}
+
+export async function apiSurveyMonkeyMultibaseImport(payload: {
+  surveys: SurveyMonkeyMultibaseSurveyInput[];
+  base_name?: string;
+  wording_decisions?: Record<string, string>;
+  canonical_xlsform_file_id?: string;
+}) {
+  return handle<{
+    ok: true;
+    base: EstudioBase;
+    estudio: EstudioPayload;
+    audit: SurveyMonkeyMultibaseAudit;
+    n_filas: number;
+    n_columnas: number;
+  }>(
+    await apiFetch("/api/surveymonkey/multibase/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+// ============================================================================
+// Multi integrado generico: instrumentos hermanos -> una base + XLSForm comun
+// ============================================================================
+
+export type MultiIntegratedOrigin = {
+  source_kind: "manual" | "surveymonkey";
+  key_value: string;
+  label?: string;
+  xlsform_file_id?: string;
+  data_file_id?: string;
+  survey_id?: string;
+};
+
+export type MultiIntegratedDiff = {
+  id: string;
+  origin_id: string;
+  source_kind: "manual" | "surveymonkey" | string;
+  origin_key: string;
+  ref_origin_id?: string;
+  ref_origin_key?: string;
+  variable: string;
+  pos: number | null;
+  kind: string;
+  severity: "info" | "review" | "blocking" | string;
+  message: string;
+  ref: string;
+  current: string;
+  needs_decision: boolean;
+  suggested_name: string;
+  suggested_label: string;
+};
+
+export type MultiIntegratedAudit = {
+  ok: boolean;
+  origin_key_name: string;
+  guide: { file_id: string; original_name: string };
+  origins: Array<MultiIntegratedOrigin & { id: string }>;
+  n_origins: number;
+  n_pending: number;
+  n_blocking: number;
+  n_info: number;
+  company_variables: string[];
+  diffs: MultiIntegratedDiff[];
+};
+
+export type MultiIntegratedDecisions = {
+  resolved_ids?: string[];
+  label_overrides?: Record<string, string>;
+  variant_names?: Record<string, string>;
+};
+
+export type MultiIntegratedDraft = {
+  version?: number;
+  source_mode?: "manual" | "surveymonkey";
+  guide_xlsform_file_id?: string;
+  guide_options?: Array<{ fileId?: string; file_id?: string; label?: string }>;
+  guide_survey_id?: string;
+  origin_key_name?: string;
+  base_name?: string;
+  query?: string;
+  rows?: Array<MultiIntegratedOrigin & {
+    localId?: string;
+    local_id?: string;
+    xlsformFileName?: string;
+    xlsform_file_name?: string;
+    dataFileName?: string;
+    data_file_name?: string;
+    surveyTitle?: string;
+    survey_title?: string;
+  }>;
+  audit?: MultiIntegratedAudit | null;
+  decisions?: MultiIntegratedDecisions;
+  updated_at?: string;
+};
+
+function normalizeMultiIntegratedAudit(raw: unknown): MultiIntegratedAudit {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const diffsRaw = Array.isArray(r.diffs) ? r.diffs as Record<string, unknown>[] : [];
+  const originsRaw = Array.isArray(r.origins) ? r.origins as Record<string, unknown>[] : [];
+  return {
+    ok: Boolean(r.ok),
+    origin_key_name: String(r.origin_key_name ?? "origen"),
+    guide: {
+      file_id: String((r.guide as Record<string, unknown> | undefined)?.file_id ?? ""),
+      original_name: String((r.guide as Record<string, unknown> | undefined)?.original_name ?? ""),
+    },
+    origins: originsRaw.map((o) => ({
+      id: String(o.id ?? ""),
+      source_kind: (String(o.source_kind ?? "manual") as "manual" | "surveymonkey"),
+      key_value: String(o.key_value ?? ""),
+      label: String(o.label ?? ""),
+      xlsform_file_id: String(o.xlsform_file_id ?? ""),
+      data_file_id: String(o.data_file_id ?? ""),
+      survey_id: String(o.survey_id ?? ""),
+    })),
+    n_origins: Number(r.n_origins ?? originsRaw.length),
+    n_pending: Number(r.n_pending ?? 0),
+    n_blocking: Number(r.n_blocking ?? 0),
+    n_info: Number(r.n_info ?? 0),
+    company_variables: Array.isArray(r.company_variables) ? r.company_variables.map(String) : [],
+    diffs: diffsRaw.map((d) => ({
+      id: String(d.id ?? ""),
+      origin_id: String(d.origin_id ?? ""),
+      source_kind: String(d.source_kind ?? ""),
+      origin_key: String(d.origin_key ?? ""),
+      ref_origin_id: String(d.ref_origin_id ?? ""),
+      ref_origin_key: String(d.ref_origin_key ?? ""),
+      variable: String(d.variable ?? ""),
+      pos: d.pos == null ? null : Number(d.pos),
+      kind: String(d.kind ?? ""),
+      severity: String(d.severity ?? "review"),
+      message: String(d.message ?? ""),
+      ref: String(d.ref ?? ""),
+      current: String(d.current ?? ""),
+      needs_decision: Boolean(d.needs_decision),
+      suggested_name: String(d.suggested_name ?? ""),
+      suggested_label: String(d.suggested_label ?? ""),
+    })),
+  };
+}
+
+function normalizeMultiIntegratedDraft(raw: unknown): MultiIntegratedDraft | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const rowsRaw = Array.isArray(r.rows) ? r.rows as Record<string, unknown>[] : [];
+  const guideOptionsRaw = Array.isArray(r.guide_options) ? r.guide_options as Record<string, unknown>[] : [];
+  const audit = r.audit && typeof r.audit === "object" ? normalizeMultiIntegratedAudit(r.audit) : null;
+  const decisionsRaw = (r.decisions ?? {}) as Record<string, unknown>;
+  return {
+    version: Number(r.version ?? 1),
+    source_mode: String(r.source_mode ?? "manual") === "surveymonkey" ? "surveymonkey" : "manual",
+    guide_xlsform_file_id: String(r.guide_xlsform_file_id ?? ""),
+    guide_options: guideOptionsRaw.map((option) => ({
+      fileId: String(option.fileId ?? option.file_id ?? ""),
+      file_id: String(option.file_id ?? option.fileId ?? ""),
+      label: String(option.label ?? ""),
+    })),
+    guide_survey_id: String(r.guide_survey_id ?? ""),
+    origin_key_name: String(r.origin_key_name ?? "origen"),
+    base_name: String(r.base_name ?? "base_integrada"),
+    query: String(r.query ?? ""),
+    rows: rowsRaw.map((row) => ({
+      source_kind: String(row.source_kind ?? "manual") === "surveymonkey" ? "surveymonkey" : "manual",
+      key_value: String(row.key_value ?? ""),
+      label: String(row.label ?? ""),
+      xlsform_file_id: String(row.xlsform_file_id ?? ""),
+      data_file_id: String(row.data_file_id ?? ""),
+      survey_id: String(row.survey_id ?? ""),
+      localId: String(row.localId ?? row.local_id ?? ""),
+      xlsformFileName: String(row.xlsformFileName ?? row.xlsform_file_name ?? ""),
+      dataFileName: String(row.dataFileName ?? row.data_file_name ?? ""),
+      surveyTitle: String(row.surveyTitle ?? row.survey_title ?? ""),
+    })),
+    audit,
+    decisions: {
+      resolved_ids: Array.isArray(decisionsRaw.resolved_ids) ? decisionsRaw.resolved_ids.map(String) : [],
+      label_overrides: (decisionsRaw.label_overrides ?? {}) as Record<string, string>,
+      variant_names: (decisionsRaw.variant_names ?? {}) as Record<string, string>,
+    },
+    updated_at: String(r.updated_at ?? ""),
+  };
+}
+
+export async function apiMultiIntegratedAudit(payload: {
+  guide_xlsform_file_id: string;
+  origin_key_name: string;
+  origins: MultiIntegratedOrigin[];
+}) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/multi/integrated/audit", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  return normalizeMultiIntegratedAudit(raw);
+}
+
+export async function apiMultiIntegratedImport(payload: {
+  guide_xlsform_file_id: string;
+  origin_key_name: string;
+  origins: MultiIntegratedOrigin[];
+  base_name?: string;
+  decisions?: MultiIntegratedDecisions;
+}) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/multi/integrated/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  ) as Record<string, unknown>;
+  return {
+    ok: true as const,
+    base: raw.base as EstudioBase,
+    estudio: raw.estudio as EstudioPayload,
+    audit: normalizeMultiIntegratedAudit(raw.audit),
+    n_filas: Number(raw.n_filas ?? 0),
+    n_columnas: Number(raw.n_columnas ?? 0),
+  };
+}
+
+export async function apiMultiIntegratedDecisionsDocx(payload: {
+  audit: MultiIntegratedAudit;
+  decisions?: MultiIntegratedDecisions;
+}): Promise<Blob> {
+  const res = await apiFetch("/api/multi/integrated/decisions-docx", {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const raw = await res.text().catch(() => "");
+    throw new Error(raw || `Descarga falló (${res.status})`);
+  }
+  return await res.blob();
+}
+
+export async function apiMultiIntegratedDraftGet() {
+  const raw = await handle<{ ok: true; draft?: unknown }>(
+    await apiFetch("/api/multi/integrated/draft", { headers: headers() }),
+  );
+  return normalizeMultiIntegratedDraft(raw.draft);
+}
+
+export async function apiMultiIntegratedDraftSave(draft: MultiIntegratedDraft, persistProject = true) {
+  const raw = await handle<{ ok: true; draft?: unknown; project?: { saved?: boolean; error?: string; reason?: string; saved_at?: string } }>(
+    await apiFetch("/api/multi/integrated/draft", {
+      method: "PUT",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ draft, persist_project: persistProject }),
+    }),
+  );
+  return {
+    ok: true as const,
+    draft: normalizeMultiIntegratedDraft(raw.draft),
+    project: raw.project ?? null,
+  };
+}
+
+export async function apiMultiIntegratedDraftClear(persistProject = true) {
+  return handle<{ ok: true }>(
+    await apiFetch(`/api/multi/integrated/draft?persist_project=${persistProject ? "true" : "false"}`, {
+      method: "DELETE",
+      headers: headers(),
+    }),
+  );
+}
+
 export type XlsformEditorSheet = {
   name?: string | null;
   columns: string[];
@@ -458,6 +825,9 @@ export type XlsformEditorPayload = {
   source: {
     kind: string | null;
     original_name: string | null;
+    survey_id?: string | null;
+    survey_title?: string | null;
+    translated_at?: string | null;
   };
   warnings: string[];
 };
@@ -554,6 +924,9 @@ function normalizeEditorPayload(value: unknown): XlsformEditorPayload {
     source: {
       kind: sourceRaw.kind == null ? null : String(sourceRaw.kind),
       original_name: sourceRaw.original_name == null ? null : String(sourceRaw.original_name),
+      survey_id: sourceRaw.survey_id == null ? null : String(sourceRaw.survey_id),
+      survey_title: sourceRaw.survey_title == null ? null : String(sourceRaw.survey_title),
+      translated_at: sourceRaw.translated_at == null ? null : String(sourceRaw.translated_at),
     },
     warnings: Array.isArray(raw.warnings)
       ? raw.warnings.map((item) => String(item))
@@ -720,16 +1093,19 @@ export type SurveyMonkeyListItem = {
   date_modified: string | null;
 };
 
-export async function apiXlsformEditorSmListSurveys(token: string): Promise<{
+export async function apiXlsformEditorSmListSurveys(token: string, limit = 500, months = 6): Promise<{
   ok: true;
   count: number;
+  total_visible: number;
+  total_recent: number;
+  months: number;
   surveys: SurveyMonkeyListItem[];
 }> {
   const raw = await handle<unknown>(
     await apiFetch("/api/xlsform-editor/sm-list-surveys", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ token, limit, months }),
     }),
   );
   const r = (raw ?? {}) as Record<string, unknown>;
@@ -737,6 +1113,9 @@ export async function apiXlsformEditorSmListSurveys(token: string): Promise<{
   return {
     ok: true,
     count: Number(r.count ?? arr.length),
+    total_visible: Number(r.total_visible ?? arr.length),
+    total_recent: Number(r.total_recent ?? arr.length),
+    months: Number(r.months ?? months),
     surveys: arr.map((s) => ({
       id: String(s.id ?? ""),
       title: String(s.title ?? "(sin título)"),
@@ -1241,7 +1620,11 @@ function normalizeSurveyMonkeyVisualAction(value: unknown): SurveyMonkeyVisualLo
   return { kind: "none" };
 }
 
-export async function apiXlsformEditorExport(workbook: XlsformEditorWorkbook, filename?: string) {
+export async function apiXlsformEditorExport(
+  workbook: XlsformEditorWorkbook,
+  filename?: string,
+  source?: XlsformEditorPayload["source"] | null,
+) {
   return handle<{
     ok: true;
     file_id: string;
@@ -1251,7 +1634,7 @@ export async function apiXlsformEditorExport(workbook: XlsformEditorWorkbook, fi
     await apiFetch("/api/xlsform-editor/export", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ workbook, filename }),
+      body: JSON.stringify({ workbook, filename, source }),
     })
   );
 }
@@ -3128,6 +3511,7 @@ export type OpcionExistente = { codigo: string; etiqueta: string };
 export type RespuestasResponse = {
   ok: true;
   parent: string;
+  parent_label?: string;
   col_efectiva: string;
   tipo: string;
   modo_so: string;
@@ -3372,6 +3756,7 @@ export type BasePerOutput = {
 export type MultiBaseResult = {
   ok: true;
   n_bases: number;
+  fuente?: string;
   // Single-base
   file_id?: string;
   filename?: string;
@@ -3391,6 +3776,33 @@ export async function apiAnaliticaCodebook() {
 export async function apiAnaliticaFrecuencias() {
   return handle<MultiBaseResult>(
     await apiFetch("/api/analitica/frecuencias", { method: "POST", headers: headers() })
+  );
+}
+
+export type AnaliticaMultibaseKey = {
+  value: string;
+  label: string;
+  n: number;
+};
+
+export async function apiAnaliticaMultibaseInfo() {
+  return handle<{
+    ok: true;
+    available: boolean;
+    reason?: string;
+    base_name?: string;
+    origin_key_name?: string;
+    keys?: AnaliticaMultibaseKey[];
+    n_keys?: number;
+    has_metadata?: boolean;
+  }>(
+    await apiFetch("/api/analitica/multibase/info", { headers: headers() })
+  );
+}
+
+export async function apiAnaliticaMultibaseTablas() {
+  return handle<JobStart>(
+    await apiFetch("/api/analitica/multibase/tablas", { method: "POST", headers: headers() })
   );
 }
 
@@ -3431,6 +3843,18 @@ export type BasesXlsxBody = {
   valores?: "codigos" | "etiquetas" | "ambos";
   multi_select?: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
 };
+
+export async function apiAnaliticaBasesData() {
+  return handle<MultiBaseResult>(
+    await apiFetch("/api/analitica/bases/data", { method: "POST", headers: headers() })
+  );
+}
+
+export async function apiAnaliticaBasesInstrumento() {
+  return handle<MultiBaseResult>(
+    await apiFetch("/api/analitica/bases/instrumento", { method: "POST", headers: headers() })
+  );
+}
 
 export async function apiAnaliticaBasesSav(body: BasesSavBody = {}) {
   return handle<MultiBaseResult>(

@@ -7,19 +7,38 @@
 nz      <- function(x) !is.na(x) & nzchar(trimws(as.character(x)))
 
 # -------- utilidades básicas ---------------------------------------------------
+.join_key_has_values <- function(v){
+  if (is.null(v)) return(FALSE)
+  if (is.numeric(v)) {
+    s <- ifelse(is.na(v), NA_character_, format(v, trim = TRUE, scientific = FALSE, digits = 22))
+  } else if (inherits(v, "POSIXct") || inherits(v, "Date")) {
+    s <- as.character(v)
+  } else {
+    s <- as.character(v)
+  }
+  s <- trimws(s)
+  any(!is.na(s) & nzchar(s))
+}
+
 pick_join_key <- function(df){
-  cands <- c("_uuid","uuid","meta_instance_id","instanceid","_id",
+  cands <- c("_uuid","uuid","meta_instance_id","instanceid",
+             "respondent_id","response_id","_id",
              "_index","Codigo pulso","Código pulso","Pulso_code","pulso_code")
-  hit <- cands[cands %in% names(df)]
+  hit <- cands[cands %in% names(df) & vapply(cands, function(k) {
+    if (!k %in% names(df)) return(FALSE)
+    .join_key_has_values(df[[k]])
+  }, logical(1))]
   if (length(hit)) hit[1] else NA_character_
 }
 
 # elige una clave que exista en x e y (en orden de prioridad)
 pick_join_key_pair <- function(x, y){
-  cands <- c("_uuid","uuid","meta_instance_id","instanceid","_id",
+  cands <- c("_uuid","uuid","meta_instance_id","instanceid",
+             "respondent_id","response_id","_id",
              "_index","Codigo pulso","Código pulso","Pulso_code","pulso_code")
   for (k in cands) {
-    if ((k %in% names(x)) && (k %in% names(y))) return(k)
+    if ((k %in% names(x)) && (k %in% names(y)) &&
+        .join_key_has_values(x[[k]]) && .join_key_has_values(y[[k]])) return(k)
   }
   NA_character_
 }
@@ -52,7 +71,7 @@ pick_join_key_pair <- function(x, y){
     keep <- keep[keep %in% names(y)]
     y <- y[, keep, drop = FALSE]
   }
-  dplyr::left_join(x, y, by = key)
+  dplyr::left_join(x, y, by = key, na_matches = "never")
 }
 
 # normalizar valores 0/1/NA (NO nombres de columnas)
@@ -498,11 +517,25 @@ ppra_sm_parent_recod <- function(df, parent, path_instrumento, path_plantilla,
   # matriz clásico desde crudo
   mat <- matrix(NA_integer_, nrow = nrow(df_work), ncol = length(classic))
   colnames(mat) <- classic
+  parent_tokens <- NULL
+  if (parent %in% nms) {
+    parent_tokens <- strsplit(
+      ifelse(is.na(df_work[[parent]]), "", as.character(df_work[[parent]])),
+      "\\s+"
+    )
+  }
   for (code in classic) {
-    raw_col <- paste0(parent, "/", code)
-    if (raw_col %in% nms) {
+    raw_cols <- c(paste0(parent, "/", code), paste0(parent, ".", code), paste0(parent, "_", code))
+    raw_col <- raw_cols[raw_cols %in% nms][1]
+    if (!is.na(raw_col)) {
       v <- .norm01(df_work[[raw_col]])
       mat[, code] <- v
+    } else if (!is.null(parent_tokens)) {
+      mat[, code] <- vapply(
+        parent_tokens,
+        function(tt) as.integer(as.character(code) %in% tt),
+        integer(1)
+      )
     }
   }
 

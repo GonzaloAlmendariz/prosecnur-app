@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, Check, Database, Download, FileSpreadsheet, Layers, Plus, RefreshCw,
+  ArrowLeft, Check, Database, Download, FileSpreadsheet, GitMerge, Layers, Plus, RefreshCw,
   Trash2, Upload, Pencil, X as XIcon,
 } from "lucide-react";
 import {
@@ -19,6 +19,7 @@ import {
   uploadKindForDataFile,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
+import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
 
 // Panel de bases del estudio (multi-base nativo).
 //
@@ -47,6 +48,7 @@ type Props = {
       Útil cuando el usuario llega acá tras un "+ Agregar otra base" en
       la carga simple y queremos evitarle un click extra. */
   autoOpenAdd?: boolean;
+  hasSessionXlsform?: boolean;
   /** Callback que disparamos una vez que consumimos el auto-open, para
       que el parent lo resetee (ej. React.StrictMode no vuelva a abrir). */
   onAutoOpenConsumed?: () => void;
@@ -56,7 +58,7 @@ type Props = {
 };
 
 export function BasesPanel({
-  estudio, onChanged, autoOpenAdd, onAutoOpenConsumed, onDowngraded,
+  estudio, onChanged, autoOpenAdd, hasSessionXlsform, onAutoOpenConsumed, onDowngraded,
 }: Props) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
@@ -66,10 +68,12 @@ export function BasesPanel({
   const [error, setError] = useState<string>("");
   const [editingEstudioNombre, setEditingEstudioNombre] = useState(false);
   const [estudioDraft, setEstudioDraft] = useState("");
+  const [strategy, setStrategy] = useState<"separate" | "integrated">("separate");
 
   // Consumir la señal de auto-open una sola vez al montar/recibir true.
   useEffect(() => {
     if (autoOpenAdd) {
+      setStrategy("separate");
       setAdding(true);
       onAutoOpenConsumed?.();
     }
@@ -77,6 +81,10 @@ export function BasesPanel({
 
   const bases = Object.values(estudio.bases);
   const maxReached = estudio.n_bases >= estudio.max_bases;
+  const canonicalOptions = [
+    ...(hasSessionXlsform ? [{ fileId: "", label: "XLSForm cargado en Carga" }] : []),
+    ...bases.map((base) => ({ fileId: base.xlsform_file_id, label: `${base.nombre} · XLSForm` })),
+  ];
 
   async function handleRemoveBase(nombre: string) {
     if (!window.confirm(
@@ -213,7 +221,7 @@ export function BasesPanel({
         </span>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-primary)" }}>
-            Estudio multi-base
+            Modo multi
           </div>
           {editingEstudioNombre ? (
             <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 2 }}>
@@ -267,8 +275,7 @@ export function BasesPanel({
             </button>
           )}
           <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.4 }}>
-            Cada base tiene su propio XLSForm + datos. Los slides del reporte pueden mezclarlos con la notación{" "}
-            <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 10 }}>fuente$variable</code>.
+            Selecciona la estrategia de carga.
           </div>
         </div>
         <span
@@ -352,6 +359,44 @@ export function BasesPanel({
         )}
       </header>
 
+      <div className="pulso-multi-strategy" role="tablist" aria-label="Estrategia del flujo multi">
+        <button
+          type="button"
+          className={strategy === "separate" ? "is-active" : ""}
+          onClick={() => setStrategy("separate")}
+        >
+          <Layers size={15} />
+          <span>
+            <strong>Mantener bases separadas</strong>
+            <small>Instrumento y data por base.</small>
+          </span>
+        </button>
+        <button
+          type="button"
+          className={strategy === "integrated" ? "is-active" : ""}
+          onClick={() => setStrategy("integrated")}
+        >
+          <GitMerge size={15} />
+          <span>
+            <strong>Integrar instrumentos hermanos</strong>
+            <small>Un XLSForm común y una data final.</small>
+          </span>
+        </button>
+      </div>
+
+      {strategy === "integrated" && (
+        <IntegratedInstrumentsWizard
+          canonicalOptions={canonicalOptions}
+          disabled={!!busy}
+          onImported={async (payload) => {
+            await onChanged(payload);
+            setStrategy("separate");
+          }}
+        />
+      )}
+
+      {strategy === "separate" && (
+        <>
       {/* Lista de bases */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {bases.map((b) => (
@@ -450,6 +495,8 @@ export function BasesPanel({
             ? `Límite de ${estudio.max_bases} bases alcanzado`
             : "Agregar otra base"}
         </button>
+      )}
+        </>
       )}
 
       {busy && (

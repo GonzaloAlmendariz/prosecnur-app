@@ -22,6 +22,66 @@
   )
 }
 
+.codif_key_candidates <- c(
+  "_uuid", "uuid", "meta_instance_id", "instanceid",
+  "respondent_id", "response_id", "_id",
+  "_index", "Codigo pulso", "Código pulso", "Pulso_code", "pulso_code"
+)
+
+.codif_key_has_values <- function(v) {
+  if (is.null(v)) return(FALSE)
+  s <- if (is.numeric(v)) {
+    ifelse(is.na(v), NA_character_, format(v, trim = TRUE, scientific = FALSE, digits = 22))
+  } else if (inherits(v, "POSIXct") || inherits(v, "Date")) {
+    as.character(v)
+  } else {
+    as.character(v)
+  }
+  s <- trimws(s)
+  any(!is.na(s) & nzchar(s))
+}
+
+.codif_prepare_data_for_adapt <- function(data_df) {
+  out <- as.data.frame(data_df, stringsAsFactors = FALSE, check.names = FALSE)
+  for (nm in names(out)) {
+    if (inherits(out[[nm]], "haven_labelled")) {
+      out[[nm]] <- as.vector(out[[nm]])
+    }
+  }
+
+  present <- intersect(.codif_key_candidates, names(out))
+  has_key <- any(vapply(present, function(k) .codif_key_has_values(out[[k]]), logical(1)))
+  if (!has_key) {
+    out[["_index"]] <- seq_len(nrow(out))
+    out <- out[, c("_index", setdiff(names(out), "_index")), drop = FALSE]
+  }
+  out
+}
+
+.codif_switch_analitica_to_adapted <- function(sid) {
+  s <- session_get(sid)
+  cfg <- s$analitica_config %||% list()
+  cfg$fuente_preferida <- "adaptados"
+  s$analitica_config <- cfg
+  s$analitica_prep_ok <- FALSE
+  s$analitica_codebook_ok <- FALSE
+  s$analitica_frecuencias_ok <- FALSE
+  s$analitica_cruces_ok <- FALSE
+  s$analitica_spss_ok <- FALSE
+  s$analitica_enumeradores_ok <- FALSE
+  s$analitica_dim_ok <- FALSE
+  s$analitica_multibase_ok <- FALSE
+  s$analitica_multibase_available <- FALSE
+  s$analitica_rp_inst <- NULL
+  s$analitica_rp_data <- NULL
+  s$analitica_rp_inst_sources <- list()
+  s$analitica_rp_data_sources <- list()
+  s$analitica_fuente <- NULL
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(TRUE)
+}
+
 .export_slug <- function(x, fallback = "Prosecnur") {
   x <- as.character(x %||% fallback)[1]
   if (is.na(x) || !nzchar(trimws(x))) x <- fallback
@@ -62,6 +122,14 @@
     bases_xlsx = "datos",
     bases_xlsx_zip = "datos",
     bases_sav = "datos_spss",
+    bases_data = "data",
+    bases_data_zip = "data",
+    bases_data_codificada = "data_codificada",
+    bases_data_codificada_zip = "data_codificada",
+    bases_instrumento = "instrumento",
+    bases_instrumento_zip = "instrumentos",
+    bases_instrumento_codificado = "instrumento_codificado",
+    bases_instrumento_codificado_zip = "instrumentos_codificados",
     data_normalizada = "base_normalizada",
     bases_sav_bundle = "datos_spss",
     spss_bundle = "datos_spss",
@@ -227,18 +295,144 @@
   )
 }
 
+# Choice helpers used by codificacion. XLSForms translated or integrated from
+# SurveyMonkey can carry both an empty generic `label` column and the real
+# labels in `label::Spanish (ES)` / `label_spanish_es`. Always prefer the first
+# label-like column with actual text.
+.codif_choice_list_norm <- function(x) {
+  x <- trimws(as.character(x %||% ""))
+  x <- tolower(x)
+  x <- iconv(x, from = "", to = "ASCII//TRANSLIT", sub = "")
+  x <- gsub("[^a-z0-9]+", "_", x)
+  gsub("^_+|_+$", "", x)
+}
+
+.codif_var_norm <- function(x) {
+  .codif_choice_list_norm(x)
+}
+
+.codif_label_candidate_cols <- function(df) {
+  if (is.null(df) || !ncol(df)) return(character(0))
+  nms <- names(df)
+  nms_l <- tolower(nms)
+  preferred <- c(
+    "label::spanish (es)", "label::spanish(es)", "label::spanish_es",
+    "label_spanish_es", "label::spanish", "label::es", "label_es",
+    "question_label", "label"
+  )
+  candidates <- match(preferred, nms_l)
+  candidates <- candidates[!is.na(candidates)]
+  extra <- grep("^label($|[:_])|^question_label$", nms_l)
+  nms[unique(c(candidates, extra))]
+}
+
+.codif_var_label_from_df <- function(df, var) {
+  if (is.null(df) || !nrow(df) || !("name" %in% names(df))) return("")
+  var <- trimws(as.character(var %||% "")[1])
+  if (is.na(var) || !nzchar(var)) return("")
+  key_norm <- .codif_var_norm(var)
+  names_raw <- trimws(as.character(df$name %||% ""))
+  hit <- which(names_raw == var | .codif_var_norm(names_raw) == key_norm)
+  if (!length(hit)) return("")
+  i <- hit[1]
+  cols <- .codif_label_candidate_cols(df)
+  fallback <- ""
+  for (col in cols) {
+    val <- trimws(as.character(df[[col]][i] %||% ""))
+    if (is.na(val) || !nzchar(val)) next
+    if (tolower(val) == tolower(var) || .codif_var_norm(val) == key_norm) {
+      if (!nzchar(fallback)) fallback <- val
+      next
+    }
+    Encoding(val) <- "UTF-8"
+    return(val)
+  }
+  fallback
+}
+
+.codif_var_label <- function(inst, var, fallback = NULL) {
+  var <- trimws(as.character(var %||% "")[1])
+  fallback <- trimws(as.character(fallback %||% "")[1])
+  if (is.na(var) || !nzchar(var)) return(fallback)
+
+  for (df in list(inst$survey_raw, inst$survey)) {
+    label <- .codif_var_label_from_df(df, var)
+    if (nzchar(label) && .codif_var_norm(label) != .codif_var_norm(var)) return(label)
+    if (nzchar(label) && !nzchar(fallback)) fallback <- label
+  }
+
+  if (!is.null(inst$var_labels) && length(inst$var_labels)) {
+    key <- names(inst$var_labels)
+    hit <- which(key == var | .codif_var_norm(key) == .codif_var_norm(var))
+    if (length(hit)) {
+      label <- trimws(as.character(inst$var_labels[[hit[1]]] %||% ""))
+      if (nzchar(label) && .codif_var_norm(label) != .codif_var_norm(var)) return(label)
+      if (nzchar(label) && !nzchar(fallback)) fallback <- label
+    }
+  }
+
+  if (nzchar(fallback)) fallback else var
+}
+
+.codif_choice_label_col <- function(ch) {
+  if (is.null(ch) || !ncol(ch)) return(NA_character_)
+  nms <- names(ch)
+  nms_l <- tolower(nms)
+  preferred <- c(
+    "label::spanish (es)", "label::spanish(es)", "label::spanish_es",
+    "label_spanish_es", "label::spanish", "label::es", "label_es",
+    "choice_label", "label"
+  )
+  candidates <- match(preferred, nms_l)
+  candidates <- candidates[!is.na(candidates)]
+  extra <- grep("^label($|[:_])|^choice_label$", nms_l)
+  candidates <- unique(c(candidates, extra))
+  for (idx in candidates) {
+    vals <- as.character(ch[[idx]] %||% "")
+    if (any(nzchar(trimws(vals[!is.na(vals)])))) return(nms[idx])
+  }
+  NA_character_
+}
+
+.codif_choice_labels <- function(ch) {
+  if (is.null(ch) || !nrow(ch)) return(character(0))
+  col <- .codif_choice_label_col(ch)
+  codes <- as.character(ch$name %||% seq_len(nrow(ch)))
+  labels <- if (!is.na(col) && col %in% names(ch)) as.character(ch[[col]]) else codes
+  labels[is.na(labels) | !nzchar(trimws(labels))] <- codes[is.na(labels) | !nzchar(trimws(labels))]
+  Encoding(labels) <- "UTF-8"
+  labels
+}
+
+.codif_choice_rows <- function(inst, list_name) {
+  ch <- inst$choices %||% inst$choices_raw
+  if (is.null(ch)) return(data.frame())
+  target <- as.character(list_name %||% "")[1]
+  if (is.na(target) || !nrow(ch) || !nzchar(target)) return(ch[0, , drop = FALSE])
+  target_norm <- .codif_choice_list_norm(target)
+  hit <- rep(FALSE, nrow(ch))
+  if ("list_name" %in% names(ch)) {
+    raw <- as.character(ch$list_name)
+    hit <- hit | raw == target | .codif_choice_list_norm(raw) == target_norm
+  }
+  if ("list_norm" %in% names(ch)) {
+    raw_norm <- as.character(ch$list_norm)
+    hit <- hit | raw_norm == target | .codif_choice_list_norm(raw_norm) == target_norm
+  }
+  ch[hit, , drop = FALSE]
+}
+
 # For a SM pregunta, return the full list of choice options with their
 # code + label + the dummy column each one corresponds to. Lets the UI
 # show "1 · Presencial, 2 · Telefónica, ..., 99 · Otros" so a non-technical
 # analyst can click the actual "Otros" option instead of guessing which
 # column name ("p7/99"?) is the right dummy.
 .opciones_sm <- function(parent, list_name, inst, data_df) {
-  if (!nzchar(list_name) || is.null(inst$choices)) return(list())
-  ch <- inst$choices[as.character(inst$choices$list_name) == list_name, , drop = FALSE]
+  list_name <- as.character(list_name %||% "")[1]
+  if (is.na(list_name) || !nzchar(list_name)) return(list())
+  ch <- .codif_choice_rows(inst, list_name)
   if (nrow(ch) == 0L) return(list())
-  # Label preference: label from choices (already UTF-8).
-  lbls <- as.character(ch$label %||% ch$name)
-  Encoding(lbls) <- "UTF-8"
+  lbls <- .codif_choice_labels(ch)
   codes <- as.character(ch$name)
   cols_data <- names(data_df)
   # Candidate dummy column patterns (SurveyCTO and ODK variants).
@@ -383,13 +577,12 @@
 # responses with their human label (e.g. 1 → "Hombre"). Returns an empty
 # named list when list_name is empty or not found.
 .choices_lookup <- function(inst, list_name) {
-  if (is.null(inst$choices) || !nzchar(list_name %||% "")) return(character(0))
-  ch <- inst$choices
-  hit <- as.character(ch$list_name) == list_name
-  if (!any(hit)) return(character(0))
-  codes <- as.character(ch$name[hit])
-  labels <- as.character(ch$label[hit])
-  Encoding(labels) <- "UTF-8"
+  list_name <- as.character(list_name %||% "")[1]
+  if (is.na(list_name) || !nzchar(list_name)) return(character(0))
+  ch <- .codif_choice_rows(inst, list_name)
+  if (is.null(ch) || !nrow(ch)) return(character(0))
+  codes <- as.character(ch$name)
+  labels <- .codif_choice_labels(ch)
   names(labels) <- codes
   labels
 }
@@ -404,7 +597,7 @@
   vals <- as.character(vals)
   # Resolve uuid column — prosecnur conventions
   uuid_col <- NULL
-  for (cn in c("_uuid", "uuid", "Pulso_code")) {
+  for (cn in c("_uuid", "uuid", "respondent_id", "response_id", "Pulso_code")) {
     if (cn %in% names(data_df)) { uuid_col <- cn; break }
   }
   uuids <- if (!is.null(uuid_col)) as.character(data_df[[uuid_col]]) else as.character(seq_along(vals))
@@ -452,7 +645,7 @@
 .codigos_col_role <- function(colname) {
   nm <- as.character(colname %||% "")
   if (nm == "") return("pad")
-  if (nm %in% c("_uuid", "_index", "Código pulso", "Codigo pulso")) return("id")
+  if (nm %in% c("_uuid", "uuid", "respondent_id", "response_id", "_index", "Código pulso", "Codigo pulso")) return("id")
   if (grepl("_recod$", nm)) return("recod")
   if (nm %in% c("Control", "Control / notas")) return("control")
   if (nm %in% c("nuevo_codigo", "nueva_etiqueta")) return("aux")
@@ -554,6 +747,14 @@ isTRUE_vec <- function(x) {
 
 # Match a response text to its code, using the same normalization the UI used
 # when building grupos. Returns "" if the text is not covered by any grupo.
+.codif_group_label_or_fallback <- function(etiqueta, codigo) {
+  etiqueta <- as.character(etiqueta %||% "")[1]
+  codigo <- as.character(codigo %||% "")[1]
+  if (!is.na(etiqueta) && nzchar(trimws(etiqueta))) return(etiqueta)
+  if (!is.na(codigo) && nzchar(trimws(codigo))) return("sin etiqueta")
+  "sin etiqueta"
+}
+
 .match_grupos <- function(grupos) {
   text_to_code <- new.env(parent = emptyenv())
   new_codes <- list()  # codigo -> etiqueta, only for origen == "nuevo"
@@ -567,8 +768,8 @@ isTRUE_vec <- function(x) {
       tn <- .normalize_text(as.character(t))[1]
       if (nzchar(tn)) assign(tn, codigo, envir = text_to_code)
     }
-    if (identical(origen, "nuevo") && nzchar(etiqueta)) {
-      new_codes[[codigo]] <- etiqueta
+    if (identical(origen, "nuevo")) {
+      new_codes[[codigo]] <- .codif_group_label_or_fallback(etiqueta, codigo)
     }
   }
   list(text_to_code = text_to_code, new_codes = new_codes)
@@ -618,11 +819,8 @@ isTRUE_vec <- function(x) {
     # Integer: no hay choice list pre-existente, todo código se considera
     # nuevo y debe declararse en el bloque aux para que ppra_adaptar lo
     # acepte. Ignoramos origen acá — el frontend de hecho no lo seteaba
-    # históricamente en IntegerCodificador — y solo requerimos etiqueta
-    # no vacía.
-    if (nzchar(etiqueta)) {
-      new_codes[[codigo]] <- etiqueta
-    }
+    # históricamente en IntegerCodificador.
+    new_codes[[codigo]] <- .codif_group_label_or_fallback(etiqueta, codigo)
   }
   list(rules = out, new_codes = new_codes)
 }
@@ -674,7 +872,7 @@ isTRUE_vec <- function(x) {
 # Shared: resolve the uuid column on the raw dataset. prosecnur accepts
 # multiple naming conventions (ODK, Pulso, internal).
 .resolve_uuid_col <- function(data_df) {
-  for (cn in c("_uuid", "uuid", "Pulso_code")) {
+  for (cn in c("_uuid", "uuid", "respondent_id", "response_id", "Pulso_code")) {
     if (cn %in% names(data_df)) return(cn)
   }
   NA_character_
@@ -829,7 +1027,7 @@ isTRUE_vec <- function(x) {
     origen <- as.character(g$origen %||% "")
     assign(codigo, origen, envir = origen_by_code)
     if (identical(origen, "nuevo")) {
-      etiqueta <- as.character(g$etiqueta %||% codigo)
+      etiqueta <- .codif_group_label_or_fallback(g$etiqueta %||% "", codigo)
       new_code_to_etiqueta[[codigo]] <- etiqueta
     }
   }
@@ -1288,10 +1486,18 @@ mount_codificacion <- function(pr) {
 
       marcadas_set <- codif_get(sid, "marcadas") %||% list()
 
-      preguntas <- lapply(draft$rows, function(r) {
+      rows <- draft$rows %||% list()
+      labels_changed <- FALSE
+      preguntas <- lapply(seq_along(rows), function(.row_idx) {
+        r <- rows[[.row_idx]]
         tipo <- as.character(r$tipo %||% "")
         modo_so <- as.character(r$modo_so %||% "")
         parent <- as.character(r$parent %||% "")
+        parent_label <- .codif_var_label(inst, parent, as.character(r$parent_label %||% ""))
+        if (nzchar(parent_label) && !identical(parent_label, as.character(r$parent_label %||% ""))) {
+          rows[[.row_idx]][["parent_label"]] <<- parent_label
+          labels_changed <<- TRUE
+        }
         use_flag <- isTRUE(r$use)
         stats <- .pregunta_stats(r, data_df)
         subtipo <- if (tipo == "select_one") {
@@ -1346,7 +1552,7 @@ mount_codificacion <- function(pr) {
 
         list(
           parent = parent,
-          parent_label = as.character(r$parent_label %||% ""),
+          parent_label = parent_label,
           tipo = tipo,
           subtipo = subtipo,
           modo_so = modo_so,
@@ -1379,6 +1585,11 @@ mount_codificacion <- function(pr) {
           marcada_auto = !is.null(pareja)
         )
       })
+      if (isTRUE(labels_changed)) {
+        draft$rows <- rows
+        draft$updated_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+        codif_set(sid, "familias_draft", draft)
+      }
       list(ok = TRUE, preguntas = preguntas)
     })) |>
     plumber::pr_post("/api/codificacion/pareja", wrap_endpoint(function(req, res, ...) {
@@ -1467,6 +1678,7 @@ mount_codificacion <- function(pr) {
       # one declared in the instrument; for SO-hijo, the text_col already
       # contains free text so the lookup returns nothing (no harm).
       inst <- codif_inst_cached(sid)
+      parent_label <- .codif_var_label(inst, parent, as.character(row$parent_label %||% ""))
       list_name_for_lookup <- if (tipo %in% c("select_one", "select_multiple")) {
         as.character(row$list_norm %||% "")
       } else ""
@@ -1525,6 +1737,7 @@ mount_codificacion <- function(pr) {
       list(
         ok = TRUE,
         parent = parent,
+        parent_label = parent_label,
         col_efectiva = col,
         tipo = tipo,
         modo_so = modo_so,
@@ -1864,6 +2077,7 @@ mount_codificacion <- function(pr) {
 
       inst <- codif_inst_cached(sid)
       data_df <- codif_data_cached(sid)
+      data_adapt_df <- .codif_prepare_data_for_adapt(data_df)
 
       # 1) Ensure we have a familias draft (auto-generate from suggestion
       # if the analyst never touched Fase 3).
@@ -1899,7 +2113,7 @@ mount_codificacion <- function(pr) {
       # parent_col to point to an actual data column (rows with empty
       # parent_col are silently skipped). For SO/SM/integer this is
       # always the parent name when present in data; we fill it here.
-      data_cols <- names(data_df)
+      data_cols <- names(data_adapt_df)
       for (i in seq_along(draft$rows)) {
         r <- draft$rows[[i]]
         tipo <- as.character(r$tipo %||% "")
@@ -1918,14 +2132,14 @@ mount_codificacion <- function(pr) {
       dir.create(dirname(fam_path), showWarnings = FALSE, recursive = TRUE)
       .familias_draft_to_xlsx(draft, fam_path)
       split <- leer_familias_clasificar(
-        path = fam_path, inst = inst, dat = list(raw = data_df), verbose = FALSE
+        path = fam_path, inst = inst, dat = list(raw = data_adapt_df), verbose = FALSE
       )
       codif_set(sid, "familias_split", split)
       codif_set(sid, "familias_xlsx_path", fam_path)
 
       # 3) Build & export the plantilla xlsx (empty recod columns).
       plantilla <- construir_plantilla_desde_familias(
-        inst = inst, dat = list(raw = data_df), split = split
+        inst = inst, dat = list(raw = data_adapt_df), split = split
       )
       codes_path <- file.path(s$dir, "downloads",
         sprintf("plantilla_codificacion_%s.xlsx", uuid::UUIDgenerate()))
@@ -1974,6 +2188,9 @@ mount_codificacion <- function(pr) {
         sprintf("data_adaptada_%s.xlsx", uuid::UUIDgenerate()))
       inst_out <- file.path(s$dir, "downloads",
         sprintf("instrumento_adaptado_%s.xlsx", uuid::UUIDgenerate()))
+      data_adapt_path <- file.path(s$dir, "downloads",
+        sprintf("data_codificacion_%s.xlsx", uuid::UUIDgenerate()))
+      openxlsx::write.xlsx(data_adapt_df, file = data_adapt_path, overwrite = TRUE)
 
       job_id <- job_submit(
         sid = sid,
@@ -2021,7 +2238,7 @@ mount_codificacion <- function(pr) {
         },
         args = list(
           xls_path = xls$path,
-          data_path = dat$path,
+          data_path = data_adapt_path,
           codes_path = codes_path,
           fam_path = fam_path,
           data_out = data_out,
@@ -2067,6 +2284,7 @@ mount_codificacion <- function(pr) {
           session_set(j$sid, "codif_data_adaptada_fid", data_meta$file_id)
           session_set(j$sid, "codif_inst_adaptado_fid", inst_meta$file_id)
           session_set(j$sid, "codif_aplicado", TRUE)
+          .codif_switch_analitica_to_adapted(j$sid)
           list(
             ok = TRUE,
             data_adaptada = list(file_id = data_meta$file_id, size = data_meta$size),

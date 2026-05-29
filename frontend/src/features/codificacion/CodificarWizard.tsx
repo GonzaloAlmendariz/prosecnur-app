@@ -23,6 +23,23 @@ const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label
   text: { bg: "var(--tipo-text-bg)", border: "var(--tipo-text-border)", fg: "var(--tipo-text-fg)", label: "Texto abierto" },
 };
 
+function questionLabel(p: PreguntaAbierta): string {
+  const label = (p.parent_label ?? "").trim();
+  if (label && label !== p.parent) return label;
+  return p.parent;
+}
+
+function compactQuestionLabel(p?: PreguntaAbierta): string {
+  if (!p) return "";
+  const label = questionLabel(p);
+  return label.length > 54 ? `${label.slice(0, 51)}...` : label;
+}
+
+function sidebarQuestionLabel(label: string): string {
+  const clean = label.replace(/\s+/g, " ").trim();
+  return clean.length > 118 ? `${clean.slice(0, 115)}...` : clean;
+}
+
 export function CodificarWizard({ onBackToOrganizar }: Props) {
   const [data, setData] = useState<PreguntaAbierta[] | null>(null);
   const [error, setError] = useState<string>("");
@@ -215,8 +232,8 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
             canNext={activeIdx < marcadas.length - 1}
             onPrev={gotoPrev}
             onNext={gotoNext}
-            prevLabel={activeIdx > 0 ? marcadas[activeIdx - 1].parent : ""}
-            nextLabel={activeIdx < marcadas.length - 1 ? marcadas[activeIdx + 1].parent : ""}
+            prevLabel={compactQuestionLabel(marcadas[activeIdx - 1])}
+            nextLabel={compactQuestionLabel(marcadas[activeIdx + 1])}
           />
         ) : (
           <EmptyState
@@ -234,26 +251,30 @@ function SidebarItem({ p, active, onClick }: { p: PreguntaAbierta; active: boole
   const ts = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
   const sm = statusMeta(p.status);
   const StatusIcon = sm.Icon;
+  const label = questionLabel(p);
   return (
     <button
       type="button"
       onClick={onClick}
       className={`pulso-codificacion-sidebar-question${active ? " is-active" : ""}`}
+      title={`${label} (${p.parent})`}
     >
       <span className="pulso-codificacion-sidebar-question-accent" style={{ background: ts.border }} />
       <div className="pulso-codificacion-sidebar-question-copy">
-        <span
-          className="pulso-codificacion-sidebar-question-code"
-          style={{ color: active ? "var(--pulso-primary)" : ts.fg }}
-        >
-          {p.parent}
+        <span className="pulso-codificacion-sidebar-question-meta">
+          <span
+            className="pulso-codificacion-sidebar-question-code"
+            style={{ color: active ? "var(--pulso-primary)" : ts.fg, background: ts.bg, borderColor: ts.border }}
+          >
+            {p.parent}
+          </span>
+          <span className="pulso-codificacion-sidebar-question-status">
+            <StatusIcon size={10} color={sm.color} />
+            {sm.label}
+          </span>
         </span>
         <span className="pulso-codificacion-sidebar-question-label">
-          {p.parent_label}
-        </span>
-        <span className="pulso-codificacion-sidebar-question-status">
-          <StatusIcon size={10} color={sm.color} />
-          {sm.label}
+          {sidebarQuestionLabel(label)}
         </span>
       </div>
     </button>
@@ -278,6 +299,7 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
 }) {
   const arq = arquetipoOf(p);
   const ts = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
+  const label = questionLabel(p);
 
   // Todos los arquetipos que codifican valores discretos o texto abierto
   // usan el mismo RespuestasCodificador (agrupar respuestas \u2192 c\u00f3digo).
@@ -311,34 +333,26 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
           {ts.label.slice(0, 2).toUpperCase()}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontSize: 16, lineHeight: 1.3, fontWeight: 700 }}>
-              {p.parent_label}
-            </h2>
+          <div className="pulso-codificacion-coder-meta">
             <code
               title={`ID del XLSForm: ${p.parent}`}
-              style={{
-                fontFamily: "ui-monospace, monospace",
-                fontSize: 11, fontWeight: 600,
-                color: ts.fg, background: ts.bg,
-                padding: "2px 8px", borderRadius: 4,
-                border: `1px solid ${ts.border}`,
-              }}
+              className="pulso-codificacion-coder-code"
+              style={{ color: ts.fg, background: ts.bg, borderColor: ts.border }}
             >
               {p.parent}
             </code>
             <span
-              style={{
-                padding: "2px 8px", borderRadius: 999,
-                background: ts.bg, color: ts.fg,
-                fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3,
-              }}
+              className="pulso-codificacion-coder-type"
+              style={{ background: ts.bg, color: ts.fg }}
             >
               {ts.label}
               {p.modo_so === "hijo" && " · hijo"}
               {p.modo_so === "padre" && " · padre"}
             </span>
           </div>
+          <h2 className="pulso-codificacion-coder-title">
+            {label}
+          </h2>
           {p.section_label && (
             <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4 }}>
               {p.section_label}

@@ -513,3 +513,37 @@ test_that("normalize_data_for_xlsform no toca data ya canonica", {
   out <- normalize_data_for_xlsform(raw, inst)
   expect_identical(out$need, raw$need)
 })
+
+test_that("normalize_data_for_xlsform preserva madre *_recod de select_multiple adaptado", {
+  inst <- list(
+    survey = data.frame(
+      type = c("select_multiple lst_p19", "select_multiple lst_p19_recod", "text"),
+      name = c("p19", "p19_recod", "p19_other"),
+      list_name = c("lst_p19", "lst_p19_recod", ""),
+      label = c("IA usada", "IA usada", "Otra IA"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_p19", "lst_p19", "lst_p19_recod", "lst_p19_recod"),
+      name = c("1", "2", "1", "7"),
+      label = c("IA generativa", "Otra", "IA generativa", "sin etiqueta"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  )
+  raw <- data.frame(
+    p19 = c("1", "1 2"),
+    p19_recod = c("1", "1 7"),
+    p19_other = c("", "herramienta interna"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  out <- normalize_data_for_xlsform(raw, inst)
+  compat <- validate_data_xlsform_compatibility(out, inst)
+
+  expect_true("p19_recod" %in% names(out))
+  expect_identical(out$p19_recod, raw$p19_recod)
+  expect_true(isTRUE(compat$ok))
+})

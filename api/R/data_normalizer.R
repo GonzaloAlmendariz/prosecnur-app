@@ -388,6 +388,15 @@
   prefix_pat <- paste0("^", .dn_escape_regex(parent), "([_/.])(.+)$")
   candidates <- data_names[grepl(prefix_pat, data_names, perl = TRUE)]
   candidates <- candidates[!grepl("([_/.])(other|otro|otra|specify|texto)$", candidates, ignore.case = TRUE)]
+  # En data ya recodificada, `<parent>_recod` es una madre analítica, no
+  # una dummy de opción de `<parent>`. Si la dejamos como candidata, el
+  # normalizador puede usarla como dummy y luego eliminarla.
+  if (length(candidates)) {
+    suffix_probe <- sub(prefix_pat, "\\2", candidates, perl = TRUE)
+    is_recod_output <- tolower(suffix_probe) == "recod" |
+      grepl("_recod$", suffix_probe, ignore.case = TRUE)
+    candidates <- candidates[!is_recod_output]
+  }
   if (!length(candidates)) {
     return(stats::setNames(rep(NA_character_, nrow(choices_sub)), choices_sub$name))
   }

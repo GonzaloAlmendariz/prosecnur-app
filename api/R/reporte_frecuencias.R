@@ -1189,7 +1189,9 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
                            orders_list = NULL,
                            mostrar_todo = FALSE,
                            codigos_solo_si_presentes = NULL,
-                           incluir_titulo = TRUE) {
+                           incluir_titulo = TRUE,
+                           incluir_porcentajes = TRUE,
+                           orden = "original") {
 
   st <- mk_styles_spss()
   fila <- start_row
@@ -1204,7 +1206,8 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
 
   if (isTRUE(incluir_titulo)) {
     openxlsx::writeData(wb, sheet, label_q, startRow = fila, startCol = start_col, colNames = FALSE)
-    openxlsx::mergeCells(wb, sheet, cols = start_col:(start_col + 2), rows = fila:fila)
+    ncols_title <- if (isTRUE(incluir_porcentajes)) 3L else 2L
+    openxlsx::mergeCells(wb, sheet, cols = start_col:(start_col + ncols_title - 1L), rows = fila:fila)
     openxlsx::addStyle(wb, sheet, st$q_title, rows = fila, cols = start_col, gridExpand = TRUE, stack = TRUE)
     openxlsx::setRowHeights(
       wb, sheet, rows = fila,
@@ -1213,9 +1216,9 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     fila <- fila + 1
   }
 
-  header_vec <- c("", "n", "%")
+  header_vec <- if (isTRUE(incluir_porcentajes)) c("", "n", "%") else c("", "n")
   openxlsx::writeData(wb, sheet, t(header_vec), startRow = fila, startCol = start_col, colNames = FALSE)
-  openxlsx::addStyle(wb, sheet, st$header, rows = fila, cols = start_col:(start_col + 2), gridExpand = TRUE, stack = TRUE)
+  openxlsx::addStyle(wb, sheet, st$header, rows = fila, cols = start_col:(start_col + length(header_vec) - 1L), gridExpand = TRUE, stack = TRUE)
   fila <- fila + 1
 
   tab <- freq_table_spss(
@@ -1227,6 +1230,20 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     mostrar_todo  = mostrar_todo,
     codigos_solo_si_presentes = codigos_solo_si_presentes
   )
+
+  if (nrow(tab)) {
+    is_total0 <- tab$Opciones == "Total"
+    body0 <- tab[!is_total0, , drop = FALSE]
+    total0 <- tab[is_total0, , drop = FALSE]
+    orden <- as.character(orden %||% "original")
+    if (orden %in% c("asc", "desc") && nrow(body0) && "n" %in% names(body0)) {
+      body0 <- dplyr::arrange(body0, if (orden == "asc") n else dplyr::desc(n))
+    }
+    tab <- dplyr::bind_rows(body0, total0)
+  }
+  if (!isTRUE(incluir_porcentajes) && "pct" %in% names(tab)) {
+    tab$pct <- NULL
+  }
 
   if (!nrow(tab)) {
     openxlsx::writeData(wb, sheet, "Sin datos", startRow = fila, startCol = start_col)
@@ -1242,9 +1259,11 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     r_ini <- fila
     r_fin <- fila + nrow(body_rows) - 1
 
-    openxlsx::addStyle(wb, sheet, st$body_txt, rows = r_ini:r_fin, cols = start_col,     gridExpand = TRUE)
+    openxlsx::addStyle(wb, sheet, st$body_txt, rows = r_ini:r_fin, cols = start_col, gridExpand = TRUE)
     openxlsx::addStyle(wb, sheet, st$freq_body_int, rows = r_ini:r_fin, cols = start_col + 1, gridExpand = TRUE)
-    openxlsx::addStyle(wb, sheet, st$freq_body_pct, rows = r_ini:r_fin, cols = start_col + 2, gridExpand = TRUE)
+    if (isTRUE(incluir_porcentajes)) {
+      openxlsx::addStyle(wb, sheet, st$freq_body_pct, rows = r_ini:r_fin, cols = start_col + 2, gridExpand = TRUE)
+    }
 
     fila <- r_fin + 1
   }
@@ -1252,17 +1271,21 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
   if (!is.null(total_row) && nrow(total_row)) {
     openxlsx::writeData(wb, sheet, total_row, startRow = fila, startCol = start_col, colNames = FALSE)
 
-    openxlsx::addStyle(wb, sheet, st$total_label, rows = fila, cols = start_col,     gridExpand = TRUE)
+    openxlsx::addStyle(wb, sheet, st$total_label, rows = fila, cols = start_col, gridExpand = TRUE)
     openxlsx::addStyle(wb, sheet, st$freq_total_num, rows = fila, cols = start_col + 1, gridExpand = TRUE)
-    openxlsx::addStyle(wb, sheet, st$freq_total_pct, rows = fila, cols = start_col + 2, gridExpand = TRUE)
+    if (isTRUE(incluir_porcentajes)) {
+      openxlsx::addStyle(wb, sheet, st$freq_total_pct, rows = fila, cols = start_col + 2, gridExpand = TRUE)
+    }
 
-    openxlsx::addStyle(wb, sheet, st$table_end, rows = fila, cols = start_col:(start_col + 2), gridExpand = TRUE, stack = TRUE)
+    end_col <- start_col + if (isTRUE(incluir_porcentajes)) 2L else 1L
+    openxlsx::addStyle(wb, sheet, st$table_end, rows = fila, cols = start_col:end_col, gridExpand = TRUE, stack = TRUE)
     fila <- fila + 1
   } else {
+    end_col <- start_col + if (isTRUE(incluir_porcentajes)) 2L else 1L
     openxlsx::addStyle(
       wb, sheet, st$table_end,
       rows = max(start_row + 1, fila - 1),
-      cols = start_col:(start_col + 2),
+      cols = start_col:end_col,
       gridExpand = TRUE, stack = TRUE
     )
   }
@@ -1276,7 +1299,7 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
 
   openxlsx::setColWidths(wb, sheet, cols = start_col,     widths = 55)
   openxlsx::setColWidths(wb, sheet, cols = start_col + 1, widths = 14)
-  openxlsx::setColWidths(wb, sheet, cols = start_col + 2, widths = 14)
+  if (isTRUE(incluir_porcentajes)) openxlsx::setColWidths(wb, sheet, cols = start_col + 2, widths = 14)
 
   fila + 2
 }
@@ -1401,7 +1424,8 @@ exportar_frecuencias_spss <- function(
     codigos_solo_si_presentes = NULL,
     numericas = NULL,
     incluir_titulos = TRUE,
-    incluir_secciones = TRUE
+    incluir_secciones = TRUE,
+    incluir_porcentajes = TRUE
 ){
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para `exportar_frecuencias_spss()`. ",
@@ -1495,7 +1519,9 @@ exportar_frecuencias_spss <- function(
         orders_list  = orders_list,
         mostrar_todo = mostrar_todo,
         codigos_solo_si_presentes = codigos_solo_si_presentes,
-        incluir_titulo = incluir_titulos
+        incluir_titulo = incluir_titulos,
+        incluir_porcentajes = incluir_porcentajes,
+        orden = orden
       )
     }
 
@@ -1530,7 +1556,8 @@ reporte_frecuencias <- function(data,
                                 codigos_solo_si_presentes = NULL,
                                 numericas = NULL,
                                 incluir_titulos = TRUE,
-                                incluir_secciones = TRUE) {
+                                incluir_secciones = TRUE,
+                                incluir_porcentajes = TRUE) {
 
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para `reporte_frecuencias()`. ",
@@ -1619,7 +1646,8 @@ reporte_frecuencias <- function(data,
     codigos_solo_si_presentes = codigos_solo_si_presentes,
     numericas       = numericas,
     incluir_titulos = incluir_titulos,
-    incluir_secciones = incluir_secciones
+    incluir_secciones = incluir_secciones,
+    incluir_porcentajes = incluir_porcentajes
   )
 
   invisible(normalizePath(path_xlsx, winslash = "/"))

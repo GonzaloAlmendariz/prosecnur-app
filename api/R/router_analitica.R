@@ -1,4 +1,4 @@
-.analitica_fuentes <- function(sid) {
+.analitica_fuentes <- function(sid, cfg = NULL) {
   s <- session_get(sid)
   tiene_adaptados <- isTRUE(s$codif_aplicado) &&
                      !is.null(s$codif_inst_adaptado_fid) &&
@@ -6,7 +6,8 @@
 
   # UI v3: solo hay dos fuentes visibles. `auto` se conserva como legacy
   # y equivale a "codificada si existe; si no, original".
-  pref <- as.character((s$analitica_config %||% list())$fuente_preferida %||% "adaptados")
+  cfg <- cfg %||% s$analitica_config %||% list()
+  pref <- as.character((cfg %||% list())$fuente_preferida %||% "adaptados")
   if (identical(pref, "auto")) pref <- "adaptados"
   if (!pref %in% c("originales", "adaptados")) pref <- "adaptados"
 
@@ -51,7 +52,27 @@
     identical(.analitica_file_kind(dat), "data_adaptada")
 }
 
-.analitica_pair_for_base <- function(s, base_meta, fuente) {
+.analitica_global_adapted_pair <- function(s) {
+  if (!isTRUE(s$codif_aplicado)) return(NULL)
+  xls <- .analitica_file_by_id(s, s$codif_inst_adaptado_fid)
+  dat <- .analitica_file_by_id(s, s$codif_data_adaptada_fid)
+  if (is.null(xls) || is.null(dat)) return(NULL)
+  if (!identical(.analitica_file_kind(xls), "instrumento_adaptado") ||
+      !identical(.analitica_file_kind(dat), "data_adaptada")) {
+    return(NULL)
+  }
+  list(xls = xls, data = dat)
+}
+
+.analitica_base_can_use_global_adapted <- function(s, base_name = NULL) {
+  bases <- names((s$estudio %||% list())$bases %||% list())
+  if (length(bases) <= 1L) return(TRUE)
+  active <- as.character(s$codif_source_active %||% "")
+  if (!nzchar(active)) active <- bases[1]
+  !is.null(base_name) && nzchar(base_name) && identical(base_name, active)
+}
+
+.analitica_pair_for_base <- function(s, base_meta, fuente, base_name = NULL) {
   fuente <- as.character(fuente %||% "adaptados")
   if (identical(fuente, "originales")) {
     xls_id <- as.character(base_meta$original_xlsform_file_id %||% base_meta$xlsform_file_id %||% "")
@@ -62,6 +83,13 @@
   }
   xls <- .analitica_file_by_id(s, xls_id)
   dat <- .analitica_file_by_id(s, data_id)
+  if (!identical(fuente, "originales") &&
+      (!identical(.analitica_file_kind(xls), "instrumento_adaptado") ||
+       !identical(.analitica_file_kind(dat), "data_adaptada")) &&
+      .analitica_base_can_use_global_adapted(s, base_name)) {
+    pair_global <- .analitica_global_adapted_pair(s)
+    if (!is.null(pair_global)) return(pair_global)
+  }
   if (identical(fuente, "originales") &&
       (identical(.analitica_file_kind(xls), "instrumento_adaptado") ||
        identical(.analitica_file_kind(dat), "data_adaptada"))) {
@@ -80,7 +108,8 @@
 
   bases <- (s$estudio %||% list())$bases %||% list()
   has_adapted <- if (length(bases) > 0L) {
-    any(vapply(bases, function(b) .analitica_pair_is_adapted(s, b), logical(1)))
+    any(vapply(bases, function(b) .analitica_pair_is_adapted(s, b), logical(1))) ||
+      !is.null(.analitica_global_adapted_pair(s))
   } else {
     isTRUE(s$codif_aplicado) &&
       !is.null(s$codif_inst_adaptado_fid) &&
@@ -89,18 +118,312 @@
   if (isTRUE(has_adapted)) "adaptados" else "originales"
 }
 
-.analitica_read_pair <- function(pair) {
-  rp_inst <- reporte_instrumento(path = pair$xls$path)
-  dat_raw <- switch(pair$data$ext,
-    xlsx = readxl::read_excel(pair$data$path),
-    xls  = readxl::read_excel(pair$data$path),
-    csv  = utils::read.csv(pair$data$path, stringsAsFactors = FALSE),
-    sav  = haven::read_sav(pair$data$path),
-    stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Ext no soportada: %s", pair$data$ext))
+.analitica_non_data_types <- c(
+  "begin_group", "end_group", "begin_repeat", "end_repeat",
+  "note", "calculate", "start", "end", "today", "deviceid",
+  "subscriberid", "phonenumber", "simserial", "username", "audit"
+)
+
+.analitica_type_base <- function(type) {
+  out <- trimws(sub("\\s+.*$", "", as.character(type %||% "")))
+  out[is.na(out)] <- ""
+  out
+}
+
+.analitica_data_names_for_inst <- function(rp_inst) {
+  sv <- rp_inst$survey %||% NULL
+  if (is.null(sv) || !nrow(sv) || !"name" %in% names(sv)) return(character(0))
+  names0 <- as.character(sv$name)
+  names0[is.na(names0)] <- ""
+  if ("type" %in% names(sv)) {
+    types <- .analitica_type_base(sv$type)
+    keep <- !(types %in% .analitica_non_data_types)
+  } else {
+    keep <- rep(TRUE, length(names0))
+  }
+  unique(names0[keep & nzchar(names0)])
+}
+
+.analitica_structural_names_for_inst <- function(rp_inst) {
+  sv <- rp_inst$survey %||% NULL
+  if (is.null(sv) || !nrow(sv) || !all(c("name", "type") %in% names(sv))) return(character(0))
+  names0 <- as.character(sv$name)
+  names0[is.na(names0)] <- ""
+  types <- .analitica_type_base(sv$type)
+  unique(names0[types %in% .analitica_non_data_types & nzchar(names0)])
+}
+
+.analitica_filter_data_to_inst <- function(data, rp_inst) {
+  if (!is.data.frame(data) || !length(names(data))) return(data)
+  data_names <- names(data)
+  data_vars <- .analitica_data_names_for_inst(rp_inst)
+  structural <- .analitica_structural_names_for_inst(rp_inst)
+  extras <- setdiff(data_names, c(data_vars, structural))
+  extras <- extras[!grepl("^Pag[0-9]+$", extras)]
+  extras <- extras[!grepl("^(nota|note)_", extras, ignore.case = TRUE)]
+  cols <- unique(c(intersect(data_vars, data_names), extras))
+  if (!length(cols)) return(data[, 0, drop = FALSE])
+  out <- data[, cols, drop = FALSE]
+  for (nm in setdiff(names(attributes(data)), c("names", "row.names", "class"))) {
+    attr(out, nm) <- attr(data, nm)
+  }
+  out
+}
+
+.analitica_read_data_file <- function(meta) {
+  ext <- tolower(as.character((meta %||% list())$ext %||% ""))
+  if (!nzchar(ext)) ext <- tolower(tools::file_ext(as.character((meta %||% list())$path %||% "")))
+  switch(ext,
+    xlsx = readxl::read_excel(meta$path),
+    xls  = readxl::read_excel(meta$path),
+    csv  = utils::read.csv(meta$path, stringsAsFactors = FALSE),
+    sav  = haven::read_sav(meta$path),
+    stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Ext no soportada: %s", ext))
   )
+}
+
+.analitica_write_plain_xlsx <- function(df, path) {
+  if (!requireNamespace("openxlsx", quietly = TRUE)) stop("Se requiere openxlsx.", call. = FALSE)
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "datos")
+  openxlsx::writeData(wb, "datos", df, withFilter = TRUE)
+  openxlsx::freezePane(wb, "datos", firstRow = TRUE)
+  if (ncol(df)) openxlsx::setColWidths(wb, "datos", cols = seq_len(ncol(df)), widths = "auto")
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+}
+
+.analitica_scalar <- function(x, fallback = "") {
+  if (is.null(x) || !length(x)) return(fallback)
+  out <- as.character(x[[1]])
+  if (is.na(out) || !nzchar(out)) fallback else out
+}
+
+.analitica_integrated_key_list_name <- function(key_name) {
+  if (exists(".mi_origin_key_list_name", mode = "function")) {
+    return(.mi_origin_key_list_name(key_name))
+  }
+  base <- tolower(iconv(.analitica_scalar(key_name, "origen"), to = "ASCII//TRANSLIT", sub = ""))
+  base <- gsub("[^a-z0-9_]+", "_", base)
+  base <- gsub("^_+|_+$", "", base)
+  if (!nzchar(base)) base <- "origen"
+  paste0(base, "_opciones")
+}
+
+.analitica_integrated_key_spec <- function(base_meta) {
+  mi <- (base_meta %||% list())$multi_integrated %||% NULL
+  if (is.null(mi)) return(NULL)
+  key_name <- .analitica_scalar(mi$origin_key_name, "")
+  if (!nzchar(key_name)) return(NULL)
+  origins <- mi$origins %||% list()
+  if (!length(origins)) return(NULL)
+  values <- vapply(origins, function(origin) {
+    .analitica_scalar(origin$key_value %||% origin$origin %||% origin$pais, "")
+  }, character(1))
+  labels <- vapply(seq_along(origins), function(i) {
+    origin <- origins[[i]]
+    value <- .analitica_scalar(values[[i]], "")
+    .analitica_scalar(origin$key_label %||% origin$key_value %||% value, value)
+  }, character(1))
+  keep <- nzchar(values) & !duplicated(values)
+  values <- values[keep]
+  labels <- labels[keep]
+  if (!length(values)) return(NULL)
+  list(
+    key_name = key_name,
+    key_label = key_name,
+    list_name = .analitica_integrated_key_list_name(key_name),
+    values = values,
+    labels = labels
+  )
+}
+
+.analitica_patch_integrated_key_survey <- function(survey, spec, raw = FALSE) {
+  if (is.null(survey) || !is.data.frame(survey) || is.null(spec)) return(survey)
+  survey <- as.data.frame(survey, stringsAsFactors = FALSE, check.names = FALSE)
+  for (col in c("type", "name", "label")) {
+    if (!col %in% names(survey)) survey[[col]] <- character(nrow(survey))
+  }
+  if (!raw && !"list_name" %in% names(survey)) survey$list_name <- NA_character_
+  idx <- which(as.character(survey$name %||% "") == spec$key_name)
+  if (!length(idx)) {
+    row <- as.data.frame(as.list(stats::setNames(rep(NA_character_, length(names(survey))), names(survey))),
+      stringsAsFactors = FALSE, check.names = FALSE)
+    survey <- rbind(row, survey)
+    idx <- 1L
+  }
+  idx <- idx[1L]
+  if (raw && !"list_name" %in% names(survey)) {
+    survey$type[idx] <- paste("select_one", spec$list_name)
+  } else {
+    survey$type[idx] <- "select_one"
+    survey$list_name[idx] <- spec$list_name
+  }
+  survey$name[idx] <- spec$key_name
+  label_cols <- grep("^label", names(survey), value = TRUE, ignore.case = TRUE)
+  if (!length(label_cols)) label_cols <- "label"
+  for (col in label_cols) {
+    if (!col %in% names(survey)) survey[[col]] <- character(nrow(survey))
+    current <- .analitica_scalar(survey[[col]][idx], "")
+    if (!nzchar(current) || identical(current, spec$key_name)) survey[[col]][idx] <- spec$key_label
+  }
+  if ("measure_sugerida" %in% names(survey)) survey$measure_sugerida[idx] <- "nominal"
+  survey
+}
+
+.analitica_patch_integrated_key_choices <- function(choices, spec) {
+  if (is.null(spec)) return(choices)
+  if (is.null(choices) || !is.data.frame(choices)) choices <- data.frame()
+  choices <- as.data.frame(choices, stringsAsFactors = FALSE, check.names = FALSE)
+  for (col in c("list_name", "name", "label")) {
+    if (!col %in% names(choices)) choices[[col]] <- character(nrow(choices))
+  }
+  choices <- choices[as.character(choices$list_name %||% "") != spec$list_name, , drop = FALSE]
+  label_cols <- grep("^label", names(choices), value = TRUE, ignore.case = TRUE)
+  if (!length(label_cols)) label_cols <- "label"
+  rows <- lapply(seq_along(spec$values), function(i) {
+    row <- as.data.frame(as.list(stats::setNames(rep(NA_character_, length(names(choices))), names(choices))),
+      stringsAsFactors = FALSE, check.names = FALSE)
+    row$list_name[1] <- spec$list_name
+    row$name[1] <- spec$values[[i]]
+    for (col in label_cols) row[[col]][1] <- spec$labels[[i]]
+    row
+  })
+  if (!length(rows)) return(choices)
+  rbind(choices, do.call(rbind, rows))
+}
+
+.analitica_apply_integrated_key <- function(rp_inst, base_meta = NULL) {
+  spec <- .analitica_integrated_key_spec(base_meta)
+  if (is.null(spec) || is.null(rp_inst)) return(rp_inst)
+  rp_inst$survey <- .analitica_patch_integrated_key_survey(rp_inst$survey, spec, raw = FALSE)
+  rp_inst$choices <- .analitica_patch_integrated_key_choices(rp_inst$choices, spec)
+
+  code_to_label <- stats::setNames(as.character(spec$labels), as.character(spec$values))
+  label_to_code <- stats::setNames(as.character(spec$values), as.character(spec$labels))
+  rp_inst$dicc_code_to_label <- rp_inst$dicc_code_to_label %||% list()
+  rp_inst$dicc_label_to_code <- rp_inst$dicc_label_to_code %||% list()
+  rp_inst$dicc_code_to_label[[spec$list_name]] <- code_to_label
+  rp_inst$dicc_label_to_code[[spec$list_name]] <- label_to_code
+
+  rp_inst$orders_list <- rp_inst$orders_list %||% list()
+  rp_inst$orders_list[[spec$key_name]] <- list(
+    names = as.character(spec$values),
+    labels = as.character(spec$labels),
+    label = spec$key_label,
+    var_label = spec$key_label
+  )
+
+  rp_inst$var_labels <- rp_inst$var_labels %||% character(0)
+  rp_inst$var_labels[[spec$key_name]] <- spec$key_label
+
+  mr <- rp_inst$measure_rules %||% data.frame(name = character(), type = character(), list_name = character(), measure_sugerida = character())
+  if (!"name" %in% names(mr)) mr$name <- character(nrow(mr))
+  idx <- which(as.character(mr$name %||% "") == spec$key_name)
+  if (!length(idx)) {
+    row <- as.data.frame(as.list(stats::setNames(rep(NA_character_, length(names(mr))), names(mr))),
+      stringsAsFactors = FALSE, check.names = FALSE)
+    row$name[1] <- spec$key_name
+    mr <- rbind(row, mr)
+    idx <- 1L
+  }
+  for (col in c("type", "list_name", "measure_sugerida")) if (!col %in% names(mr)) mr[[col]] <- NA_character_
+  mr$type[idx[1L]] <- "select_one"
+  mr$list_name[idx[1L]] <- spec$list_name
+  mr$measure_sugerida[idx[1L]] <- "nominal"
+  rp_inst$measure_rules <- mr
+  rp_inst
+}
+
+.analitica_apply_integrated_key_to_data <- function(rp_data, rp_inst, base_meta = NULL) {
+  spec <- .analitica_integrated_key_spec(base_meta)
+  if (is.null(spec) || is.null(rp_data) || !is.data.frame(rp_data)) return(rp_data)
+  if (spec$key_name %in% names(rp_data)) {
+    attr(rp_data[[spec$key_name]], "label") <- spec$key_label
+    attr(rp_data[[spec$key_name]], "labels") <- stats::setNames(
+      as.character(spec$labels),
+      nm = as.character(spec$values)
+    )
+    attr(rp_data[[spec$key_name]], "measure") <- "nominal"
+  }
+  attr(rp_data, "instrumento_reporte") <- rp_inst
+  rp_data
+}
+
+.analitica_single_base_meta <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  bases <- (s$estudio %||% list())$bases %||% list()
+  if (length(bases) == 1L) return(bases[[1L]])
+  active <- .analitica_scalar(s$codif_source_active, "")
+  if (nzchar(active) && !is.null(bases[[active]])) return(bases[[active]])
+  NULL
+}
+
+.analitica_patch_inst_sources_integrated <- function(sid, inst_sources) {
+  if (!length(inst_sources)) return(inst_sources)
+  s <- session_get(sid, required = FALSE)
+  bases <- (s$estudio %||% list())$bases %||% list()
+  for (nombre in names(inst_sources)) {
+    base_meta <- bases[[nombre]] %||% if (length(inst_sources) == 1L) .analitica_single_base_meta(sid) else NULL
+    inst_sources[[nombre]] <- .analitica_apply_integrated_key(inst_sources[[nombre]], base_meta)
+  }
+  inst_sources
+}
+
+.analitica_patch_data_sources_integrated <- function(sid, data_sources, inst_sources) {
+  if (!length(data_sources)) return(data_sources)
+  s <- session_get(sid, required = FALSE)
+  bases <- (s$estudio %||% list())$bases %||% list()
+  for (nombre in names(data_sources)) {
+    base_meta <- bases[[nombre]] %||% if (length(data_sources) == 1L) .analitica_single_base_meta(sid) else NULL
+    data_sources[[nombre]] <- .analitica_apply_integrated_key_to_data(
+      data_sources[[nombre]],
+      inst_sources[[nombre]] %||% NULL,
+      base_meta
+    )
+  }
+  data_sources
+}
+
+.analitica_write_xlsform_frames <- function(survey, choices, settings, path) {
+  if (!requireNamespace("openxlsx", quietly = TRUE)) stop("Se requiere openxlsx.", call. = FALSE)
+  wb <- openxlsx::createWorkbook()
+  for (sheet in c("survey", "choices", "settings")) {
+    df <- switch(sheet, survey = survey, choices = choices, settings = settings)
+    if (is.null(df)) df <- data.frame()
+    openxlsx::addWorksheet(wb, sheet)
+    openxlsx::writeData(wb, sheet, df)
+    openxlsx::freezePane(wb, sheet, firstRow = TRUE)
+    if (ncol(df)) openxlsx::setColWidths(wb, sheet, cols = seq_len(ncol(df)), widths = "auto")
+  }
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+}
+
+.analitica_patch_xlsform_file_for_integrated_key <- function(path_in, path_out, base_meta) {
+  spec <- .analitica_integrated_key_spec(base_meta)
+  if (is.null(spec)) {
+    ok <- file.copy(path_in, path_out, overwrite = TRUE)
+    if (!isTRUE(ok)) stop("No se pudo copiar el XLSForm.", call. = FALSE)
+    return(invisible(path_out))
+  }
+  survey <- readxl::read_excel(path_in, sheet = "survey")
+  choices <- readxl::read_excel(path_in, sheet = "choices")
+  settings <- tryCatch(readxl::read_excel(path_in, sheet = "settings"), error = function(e) data.frame())
+  survey <- .analitica_patch_integrated_key_survey(survey, spec, raw = TRUE)
+  choices <- .analitica_patch_integrated_key_choices(choices, spec)
+  .analitica_write_xlsform_frames(survey, choices, settings, path_out)
+  invisible(path_out)
+}
+
+.analitica_read_pair <- function(pair, base_meta = NULL) {
+  rp_inst <- reporte_instrumento(path = pair$xls$path)
+  rp_inst <- .analitica_apply_integrated_key(rp_inst, base_meta)
+  dat_raw <- .analitica_read_data_file(pair$data)
   dat_raw <- normalize_data_for_xlsform(dat_raw, rp_inst)
+  dat_raw <- .analitica_filter_data_to_inst(dat_raw, rp_inst)
   .carga_assert_data_xlsform_compatible(dat_raw, rp_inst)
-  list(inst = rp_inst, data = reporte_data(dat_raw, instrumento = rp_inst))
+  rp_data <- reporte_data(dat_raw, instrumento = rp_inst)
+  rp_data <- .analitica_apply_integrated_key_to_data(rp_data, rp_inst, base_meta)
+  list(inst = rp_inst, data = rp_data)
 }
 
 .analitica_prepare_context <- function(sid, cfg) {
@@ -112,15 +435,15 @@
     data_sources <- list()
     inst_sources <- list()
     for (nombre in names(bases)) {
-      pair <- .analitica_pair_for_base(s, bases[[nombre]], fuente)
+      pair <- .analitica_pair_for_base(s, bases[[nombre]], fuente, nombre)
       if (is.null(pair) && identical(fuente, "adaptados")) {
-        pair <- .analitica_pair_for_base(s, bases[[nombre]], "originales")
+        pair <- .analitica_pair_for_base(s, bases[[nombre]], "originales", nombre)
       }
       if (is.null(pair)) {
         stop_api(409, "E_ANALITICA_SOURCE_MISSING",
           sprintf("No se pudo resolver el par XLSForm/Data para la base '%s'.", nombre))
       }
-      parsed <- .analitica_read_pair(pair)
+      parsed <- .analitica_read_pair(pair, bases[[nombre]])
       data_sources[[nombre]] <- parsed$data
       inst_sources[[nombre]] <- parsed$inst
     }
@@ -134,17 +457,185 @@
     ))
   }
 
-  src <- .analitica_fuentes(sid)
+  src <- .analitica_fuentes(sid, cfg)
   parsed <- .analitica_read_pair(list(
     xls = list(path = src$inst_path),
     data = src$data_meta
-  ))
+  ), NULL)
   list(
     fuente = src$fuente,
     rp_data = parsed$data,
     rp_inst = parsed$inst,
     data_sources = list(default = parsed$data),
     inst_sources = list(default = parsed$inst)
+  )
+}
+
+.analitica_source_pairs <- function(sid, cfg = NULL) {
+  s <- session_get(sid)
+  cfg <- cfg %||% .analitica_get_config(sid)
+  fuente <- .analitica_effective_source(s, cfg)
+  bases <- (s$estudio %||% list())$bases %||% list()
+
+  if (length(bases) > 0L) {
+    pairs <- list()
+    for (nombre in names(bases)) {
+      pair <- .analitica_pair_for_base(s, bases[[nombre]], fuente, nombre)
+      if (is.null(pair) && identical(fuente, "adaptados")) {
+        pair <- .analitica_pair_for_base(s, bases[[nombre]], "originales", nombre)
+      }
+      if (is.null(pair)) {
+        stop_api(409, "E_ANALITICA_SOURCE_MISSING",
+          sprintf("No se pudo resolver el par XLSForm/Data para la base '%s'.", nombre))
+      }
+      pairs[[nombre]] <- pair
+    }
+    return(list(fuente = fuente, pairs = pairs))
+  }
+
+  src <- .analitica_fuentes(sid, cfg)
+  xls_meta <- if (identical(src$fuente, "adaptados")) {
+    .analitica_file_by_id(s, s$codif_inst_adaptado_fid)
+  } else {
+    .require_xlsform_path(sid)
+  }
+  if (is.null(xls_meta)) {
+    xls_meta <- list(
+      path = src$inst_path,
+      ext = tools::file_ext(src$inst_path),
+      kind = if (identical(src$fuente, "adaptados")) "instrumento_adaptado" else "xlsform"
+    )
+  }
+
+  list(
+    fuente = src$fuente,
+    pairs = list(default = list(xls = xls_meta, data = src$data_meta))
+  )
+}
+
+.analitica_source_file_ext <- function(meta) {
+  ext <- tolower(as.character((meta %||% list())$ext %||% ""))
+  if (!nzchar(ext)) ext <- tolower(tools::file_ext(as.character((meta %||% list())$path %||% "")))
+  if (!nzchar(ext)) "xlsx" else ext
+}
+
+.analitica_source_file_kind <- function(meta, role) {
+  kind <- .analitica_file_kind(meta)
+  role <- as.character(role %||% "data")
+  if (identical(role, "instrumento")) {
+    if (identical(kind, "instrumento_adaptado")) "bases_instrumento_codificado" else "bases_instrumento"
+  } else {
+    if (identical(kind, "data_adaptada")) "bases_data_codificada" else "bases_data"
+  }
+}
+
+.analitica_source_zip_kind <- function(kinds, role) {
+  role <- as.character(role %||% "data")
+  if (identical(role, "instrumento")) {
+    if (all(kinds == "bases_instrumento_codificado")) "bases_instrumento_codificado_zip" else "bases_instrumento_zip"
+  } else {
+    if (all(kinds == "bases_data_codificada")) "bases_data_codificada_zip" else "bases_data_zip"
+  }
+}
+
+.analitica_export_source_files <- function(sid, role = c("data", "instrumento"), cfg = NULL) {
+  role <- match.arg(role)
+  s <- session_get(sid)
+  bases <- (s$estudio %||% list())$bases %||% list()
+  resolved <- .analitica_source_pairs(sid, cfg)
+  pairs <- resolved$pairs
+  if (length(pairs) == 0L) {
+    stop_api(409, "E_ANALITICA_SOURCE_MISSING", "No hay archivos fuente para exportar.")
+  }
+
+  outputs <- list()
+  kinds <- character(0)
+  for (nombre in names(pairs)) {
+    meta_in <- if (identical(role, "instrumento")) pairs[[nombre]]$xls else pairs[[nombre]]$data
+    path_in <- as.character((meta_in %||% list())$path %||% "")
+    if (!nzchar(path_in) || !file.exists(path_in)) {
+      stop_api(409, "E_ANALITICA_SOURCE_MISSING",
+        sprintf("No se encontró el archivo %s para la base '%s'.", role, nombre))
+    }
+
+    kind <- .analitica_source_file_kind(meta_in, role)
+    kinds <- c(kinds, kind)
+    ext <- .analitica_source_file_ext(meta_in)
+    solo_una <- length(pairs) == 1L && nombre %in% c("default", "giz", "generic")
+    fname <- if (solo_una) {
+      .export_filename(sid, kind, ext)
+    } else {
+      .export_filename(sid, kind, ext, base = nombre)
+    }
+    path_out <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), fname))
+    base_meta <- bases[[nombre]] %||% NULL
+    is_integrated_data <- identical(role, "data") &&
+      !is.null((base_meta %||% list())$multi_integrated) &&
+      !identical(kind, "bases_data_codificada")
+    is_integrated_instrument <- identical(role, "instrumento") &&
+      !is.null((base_meta %||% list())$multi_integrated) &&
+      !identical(kind, "bases_instrumento_codificado")
+    if (isTRUE(is_integrated_data)) {
+      rp_inst <- reporte_instrumento(path = pairs[[nombre]]$xls$path)
+      rp_inst <- .analitica_apply_integrated_key(rp_inst, base_meta)
+      data_df <- .analitica_read_data_file(meta_in)
+      data_df <- normalize_data_for_xlsform(data_df, rp_inst)
+      data_df <- .analitica_filter_data_to_inst(data_df, rp_inst)
+      ext <- "xlsx"
+      fname <- sub("\\.[^.]+$", ".xlsx", fname)
+      path_out <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), fname))
+      .analitica_write_plain_xlsx(data_df, path_out)
+    } else if (isTRUE(is_integrated_instrument)) {
+      ext <- "xlsx"
+      fname <- sub("\\.[^.]+$", ".xlsx", fname)
+      path_out <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), fname))
+      .analitica_patch_xlsform_file_for_integrated_key(path_in, path_out, base_meta)
+    } else {
+      copied <- file.copy(path_in, path_out, overwrite = TRUE)
+      if (!isTRUE(copied)) {
+        stop_api(500, "E_EXPORT_COPY_FAILED",
+          sprintf("No se pudo preparar la descarga para la base '%s'.", nombre))
+      }
+    }
+
+    meta_out <- .register_output_file(sid, kind, path_out, original_name = fname)
+    outputs[[length(outputs) + 1L]] <- list(
+      nombre = nombre,
+      file_id = meta_out$file_id,
+      filename = meta_out$original_name,
+      size = meta_out$size,
+      path = path_out
+    )
+  }
+
+  if (length(outputs) == 1L) {
+    o <- outputs[[1]]
+    return(list(
+      ok = TRUE,
+      n_bases = 1L,
+      fuente = resolved$fuente,
+      file_id = o$file_id,
+      filename = o$filename,
+      size = o$size,
+      bases = list(o[setdiff(names(o), "path")])
+    ))
+  }
+
+  zip_kind <- .analitica_source_zip_kind(kinds, role)
+  zip_name <- .export_filename(sid, zip_kind, "zip")
+  zip_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), zip_name))
+  .zip_files(
+    zip_path,
+    files = vapply(outputs, function(o) o$path, character(1)),
+    names_in_zip = vapply(outputs, function(o) o$filename, character(1))
+  )
+  meta_zip <- .register_output_file(sid, zip_kind, zip_path, original_name = zip_name)
+  list(
+    ok = TRUE,
+    n_bases = length(outputs),
+    fuente = resolved$fuente,
+    zip = list(file_id = meta_zip$file_id, filename = meta_zip$original_name, size = meta_zip$size),
+    bases = lapply(outputs, function(o) o[setdiff(names(o), "path")])
   )
 }
 
@@ -347,13 +838,62 @@
   cat$name[cat$categorica]
 }
 
+.analitica_has_structural_cols <- function(data) {
+  if (!is.data.frame(data) || !length(names(data))) return(FALSE)
+  any(grepl("^Pag[0-9]+$", names(data))) ||
+    any(grepl("^(nota|note)_", names(data), ignore.case = TRUE))
+}
+
+.analitica_context_usable <- function(data, inst) {
+  is.data.frame(data) &&
+    ncol(data) > 0L &&
+    length(.variables_desde_instrumento(inst)) > 0L &&
+    !.analitica_has_structural_cols(data)
+}
+
+.analitica_sources_usable <- function(data_sources, inst_sources) {
+  if (!length(data_sources) || !length(inst_sources)) return(FALSE)
+  if (length(setdiff(names(data_sources), names(inst_sources))) > 0L) return(FALSE)
+  all(vapply(names(data_sources), function(nm) {
+    .analitica_context_usable(data_sources[[nm]], inst_sources[[nm]])
+  }, logical(1)))
+}
+
+.analitica_prepare_and_cache <- function(sid) {
+  cfg <- .analitica_get_config(sid)
+  ctx <- .analitica_prepare_context(sid, cfg)
+  session_set(sid, "analitica_rp_inst", ctx$rp_inst)
+  session_set(sid, "analitica_rp_data", ctx$rp_data)
+  session_set(sid, "analitica_rp_inst_sources", ctx$inst_sources)
+  session_set(sid, "analitica_rp_data_sources", ctx$data_sources)
+  session_set(sid, "analitica_prep_ok", TRUE)
+  session_set(sid, "analitica_fuente", ctx$fuente)
+  ctx
+}
+
 .load_rp_data <- function(sid) {
   s <- session_get(sid)
-  if (!is.null(s$analitica_rp_data) && !is.null(s$analitica_rp_inst)) {
-    return(list(rp_inst = s$analitica_rp_inst, rp_data = s$analitica_rp_data))
+  if (!is.null(s$analitica_rp_data) && !is.null(s$analitica_rp_inst) &&
+      .analitica_context_usable(s$analitica_rp_data, s$analitica_rp_inst)) {
+    base_meta <- .analitica_single_base_meta(sid)
+    rp_inst <- .analitica_apply_integrated_key(s$analitica_rp_inst, base_meta)
+    return(list(
+      rp_inst = rp_inst,
+      rp_data = .analitica_apply_integrated_key_to_data(s$analitica_rp_data, rp_inst, base_meta)
+    ))
   }
-  if (!is.null(s$rp_data) && !is.null(s$rp_inst)) {
-    return(list(rp_inst = s$rp_inst, rp_data = s$rp_data))
+  if (!is.null(s$rp_data) && !is.null(s$rp_inst) &&
+      .analitica_context_usable(s$rp_data, s$rp_inst)) {
+    base_meta <- .analitica_single_base_meta(sid)
+    rp_inst <- .analitica_apply_integrated_key(s$rp_inst, base_meta)
+    return(list(
+      rp_inst = rp_inst,
+      rp_data = .analitica_apply_integrated_key_to_data(s$rp_data, rp_inst, base_meta)
+    ))
+  }
+  prepared <- tryCatch(.analitica_prepare_and_cache(sid), error = function(e) NULL)
+  if (!is.null(prepared)) {
+    return(list(rp_inst = prepared$rp_inst, rp_data = prepared$rp_data))
   }
   stop_api(409, "E_ANALITICA_NO_PREP", "Primero corre el Paso 1 (Preparar datos para reporte).")
 }
@@ -370,6 +910,13 @@
   } else {
     estudio_inst_sources(sid)
   }
+  if (!.analitica_sources_usable(data_sources, inst_sources)) {
+    prepared <- tryCatch(.analitica_prepare_and_cache(sid), error = function(e) NULL)
+    if (!is.null(prepared)) {
+      data_sources <- prepared$data_sources
+      inst_sources <- prepared$inst_sources
+    }
+  }
   if (length(data_sources) == 0L) {
     stop_api(409, "E_NO_RP_DATA",
       "El estudio no tiene base analítica preparada. Reingresa a Analítica para preparar la fuente activa.")
@@ -379,7 +926,9 @@
     stop_api(409, "E_NO_RP_INST",
       sprintf("Falta el XLSForm analítico para: %s.", paste(missing_inst, collapse = ", ")))
   }
-  list(data_sources = data_sources, inst_sources = inst_sources[names(data_sources)])
+  inst_sources <- .analitica_patch_inst_sources_integrated(sid, inst_sources[names(data_sources)])
+  data_sources <- .analitica_patch_data_sources_integrated(sid, data_sources, inst_sources)
+  list(data_sources = data_sources, inst_sources = inst_sources)
 }
 
 .zip_files <- function(zip_path, files, names_in_zip = NULL) {
@@ -723,7 +1272,21 @@
   }
 
   cfg_excluidas <- .as_chr_vec(cfg$variables_excluidas)
-  all_names <- unique(c(vapply(vars, function(v) as.character(v$name %||% ""), character(1)), names(data)))
+  known_extra_cols <- c(
+    "survey_id", "collector_id", "respondent_id", "response_id", "case_uid",
+    "source_title", "response_status", "collection_mode", "date_created",
+    "date_modified", "empresa_source_code", "empresa_source_label", "empresa_uid"
+  )
+  var_names <- vapply(vars, function(v) as.character(v$name %||% ""), character(1))
+  data_extra <- setdiff(names(data), c(var_names, names(dummy_lookup)))
+  data_extra <- data_extra[!data_extra %in% known_extra_cols]
+  data_extra <- data_extra[!grepl("^Pag[0-9]+$", data_extra)]
+  data_extra <- data_extra[!grepl("^(nota|note)_", data_extra, ignore.case = TRUE)]
+  data_extra <- data_extra[vapply(data_extra, function(nm) {
+    col <- data[[nm]]
+    any(!is.na(col) & nzchar(as.character(col)))
+  }, logical(1))]
+  all_names <- unique(c(var_names, names(dummy_lookup), data_extra))
   all_names <- all_names[nzchar(all_names)]
   lapply(all_names, function(nm) {
     col <- if (nm %in% names(data)) data[[nm]] else NULL
@@ -763,6 +1326,10 @@
         count = count
       )
     })
+    if (length(opts) > 80L) {
+      opts_present <- Filter(function(opt) isTRUE(as.integer(opt$count %||% 0L) > 0L), opts)
+      opts <- if (length(opts_present) > 0L) opts_present else utils::head(opts, 80L)
+    }
     list(
       name = nm,
       tipo_xlsform = tipo_xlsform,
@@ -952,6 +1519,16 @@
       incluir_titulos = TRUE,
       incluir_secciones = TRUE
     ),
+    multibase = list(
+      global = list(
+        incluir_porcentajes = TRUE,
+        incluir_secciones = TRUE
+      ),
+      origenes = list(
+        incluir_porcentajes = TRUE,
+        incluir_secciones = TRUE
+      )
+    ),
     cruces = list(
       cruces_vars = list(),
       modo = "estandar",
@@ -1018,6 +1595,7 @@ mount_analitica <- function(pr) {
         session_set(sid, "analitica_rp_data", NULL)
         session_set(sid, "analitica_rp_inst_sources", list())
         session_set(sid, "analitica_rp_data_sources", list())
+        session_set(sid, "analitica_multibase_available", FALSE)
       }
       list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
@@ -1133,14 +1711,8 @@ mount_analitica <- function(pr) {
     })) |>
     plumber::pr_post("/api/analitica/preparar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
-      cfg <- .analitica_get_config(sid)
-      ctx <- .analitica_prepare_context(sid, cfg)
-      session_set(sid, "analitica_rp_inst", ctx$rp_inst)
-      session_set(sid, "analitica_rp_data", ctx$rp_data)
-      session_set(sid, "analitica_rp_inst_sources", ctx$inst_sources)
-      session_set(sid, "analitica_rp_data_sources", ctx$data_sources)
-      session_set(sid, "analitica_prep_ok", TRUE)
-      session_set(sid, "analitica_fuente", ctx$fuente)
+      ctx <- .analitica_prepare_and_cache(sid)
+      session_set(sid, "analitica_multibase_available", .analitica_multibase_available(sid))
       list(
         ok = TRUE,
         fuente = ctx$fuente,
@@ -1253,6 +1825,88 @@ mount_analitica <- function(pr) {
       )
       session_set(sid, "analitica_frecuencias_ok", TRUE)
       result
+    })) |>
+    plumber::pr_get("/api/analitica/multibase/info", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      .analitica_multibase_info(sid, .analitica_get_config(sid))
+    })) |>
+    plumber::pr_post("/api/analitica/multibase/tablas", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      cfg <- .analitica_get_config(sid)
+      sources <- .load_rp_sources(sid)
+      if (length(sources$data_sources) != 1L) {
+        stop_api(409, "E_MULTIBASE_INTEGRATED_REQUIRED", "Este reporte requiere una base integrada unica.")
+      }
+      base_name <- names(sources$data_sources)[1]
+      data <- sources$data_sources[[base_name]]
+      inst <- sources$inst_sources[[base_name]]
+      meta <- .amb_base_meta(sid, base_name)
+      data_path <- job_save_rds(sid, "multibase_tablas_data", data)
+      inst_path <- job_save_rds(sid, "multibase_tablas_inst", inst)
+      cfg_path <- job_save_rds(sid, "multibase_tablas_cfg", cfg)
+      meta_path <- job_save_rds(sid, "multibase_tablas_meta", meta)
+      api_path <- .app_api_dir()
+
+      job_id <- job_submit(
+        sid = sid,
+        kind = "analitica.multibase.tablas",
+        func = function(data_path, inst_path, cfg_path, meta_path, base_name, api_path, result_path, progress_path = NULL) {
+          if (requireNamespace("pkgload", quietly = TRUE)) {
+            pkgload::load_all(api_path, quiet = TRUE)
+          } else if (requireNamespace("devtools", quietly = TRUE)) {
+            devtools::load_all(api_path, quiet = TRUE)
+          }
+          report <- if (exists("job_progress_writer", mode = "function")) {
+            job_progress_writer(progress_path)
+          } else {
+            function(...) invisible(NULL)
+          }
+          report("loading", percent = 5, message = "Cargando base integrada y configuración...")
+          data <- readRDS(data_path)
+          inst <- readRDS(inst_path)
+          cfg <- readRDS(cfg_path)
+          meta <- readRDS(meta_path)
+          .analitica_multibase_export_data(
+            data = data,
+            inst = inst,
+            cfg = cfg,
+            meta = meta,
+            path_xlsx = result_path,
+            base_name = base_name
+          )
+          report("export", percent = 99, message = "Archivo XLSX generado.")
+          result_path
+        },
+        args = list(
+          data_path = data_path,
+          inst_path = inst_path,
+          cfg_path = cfg_path,
+          meta_path = meta_path,
+          base_name = base_name,
+          api_path = api_path
+        ),
+        result_filename = .export_filename(sid, "tablas_multibase", "xlsx"),
+        on_complete = function(j) {
+          session_set(j$sid, "analitica_multibase_ok", TRUE)
+          session_set(j$sid, "analitica_multibase_available", TRUE)
+          out_name <- .export_filename(j$sid, "tablas_multibase", "xlsx")
+          meta <- .register_output_file(j$sid, "tablas_multibase", j$result_path, original_name = out_name)
+          list(
+            ok = TRUE,
+            n_bases = 1L,
+            file_id = meta$file_id,
+            filename = meta$original_name,
+            size = meta$size,
+            bases = list(list(
+              nombre = (base_name %||% .analitica_multibase_info(j$sid)$base_name %||% "base_integrada"),
+              file_id = meta$file_id,
+              filename = meta$original_name,
+              size = meta$size
+            ))
+          )
+        }
+      )
+      list(ok = TRUE, job_id = job_id, kind = "analitica.multibase.tablas")
     })) |>
     plumber::pr_post("/api/analitica/cruces", wrap_endpoint(function(req, res, cruces = NULL, modo = "estandar") {
       # Cruces lee del config del store: cruces_vars, modo, show_sig, alpha,
@@ -1488,6 +2142,25 @@ mount_analitica <- function(pr) {
 	      variables <- .bases_metadata_preview(reviewed$data, reviewed$inst)
 	      list(ok = TRUE, variables = variables, overrides = overrides)
 	    })) |>
+    plumber::pr_post("/api/analitica/bases/data", wrap_endpoint(function(req, res, ...) {
+      # Descarga directa del archivo de datos de la fuente activa. Si la
+      # fuente es Codificada, copiamos el output real del adaptador para
+      # preservar hojas, formato y colores de columnas *_recod.
+      sid <- session_header(req)
+      cfg <- .analitica_get_config(sid)
+      result <- .analitica_export_source_files(sid, role = "data", cfg = cfg)
+      session_set(sid, "analitica_bases_data_ok", TRUE)
+      result
+    })) |>
+    plumber::pr_post("/api/analitica/bases/instrumento", wrap_endpoint(function(req, res, ...) {
+      # Descarga directa del XLSForm de la fuente activa. El XLSForm
+      # codificado ya trae los colores del paquete; no lo reescribimos.
+      sid <- session_header(req)
+      cfg <- .analitica_get_config(sid)
+      result <- .analitica_export_source_files(sid, role = "instrumento", cfg = cfg)
+      session_set(sid, "analitica_bases_instrumento_ok", TRUE)
+      result
+    })) |>
     plumber::pr_post("/api/analitica/bases/sav", wrap_endpoint(function(req, res, ...) {
       # Exporta .sav multi-base (v0.2+). Cada base produce su propio
       # datos.sav (+ niveles_medida.sps si incluir_sps=TRUE). Con 1 base

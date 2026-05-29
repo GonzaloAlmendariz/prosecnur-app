@@ -415,6 +415,7 @@ export default function CargaPage() {
             <BasesPanel
               estudio={estudio}
               onChanged={onEstudioChanged}
+              hasSessionXlsform={hasXlsform}
               autoOpenAdd={autoOpenAddBase}
               onAutoOpenConsumed={() => setAutoOpenAddBase(false)}
               onDowngraded={async () => {
@@ -1194,8 +1195,8 @@ function MultiBaseToggle({
   const hint = on
     ? bases > 1
       ? `Tienes ${bases} bases. Para volver a una sola, quita las extras en el panel de abajo.`
-      : "Puedes apagarlo para volver a la carga simple."
-    : "Actívalo si vas a combinar varios cuestionarios o varias muestras (por ejemplo: docentes y estudiantes).";
+      : "Activo: puedes subir varias bases o importar encuestas por API."
+    : "Úsalo cuando el estudio combine varias bases, encuestas o submuestras.";
 
   return (
     <div
@@ -1208,7 +1209,7 @@ function MultiBaseToggle({
           id="multibase-toggle-label"
           className="pulso-multibase-toggle-title"
         >
-          El estudio tiene más de una base
+          Modo multi
         </div>
         <div className="pulso-multibase-toggle-hint">
           {hint}
@@ -1219,7 +1220,7 @@ function MultiBaseToggle({
         type="button"
         role="switch"
         aria-checked={on}
-        aria-label="El estudio tiene más de una base"
+        aria-label="Modo multi"
         onClick={handleClick}
         disabled={effectiveDisabled}
         title={locked ? "Quita las bases extra primero para apagarlo" : undefined}

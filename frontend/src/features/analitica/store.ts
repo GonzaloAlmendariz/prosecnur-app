@@ -31,6 +31,17 @@ export type FrecuenciasConfig = {
   numericas_override?: string[];
 };
 
+export type MultibaseTablasConfig = {
+  global: {
+    incluir_porcentajes: boolean;
+    incluir_secciones: boolean;
+  };
+  origenes: {
+    incluir_porcentajes: boolean;
+    incluir_secciones: boolean;
+  };
+};
+
 export type SemaforoModo = "grupos" | "degradado_automatico" | "degradado_manual";
 
 // Cada variable de cruce puede tener una lista de categorías excluidas
@@ -240,6 +251,7 @@ export type AnaliticaConfig = {
   variables_excluidas: string[];
   codebook: CodebookConfig;
   frecuencias: FrecuenciasConfig;
+  multibase: MultibaseTablasConfig;
   cruces: CrucesConfig;
   enumeradores: EnumeradoresConfig;
   bases: BasesConfig;
@@ -271,6 +283,16 @@ export const DEFAULT_CONFIG: AnaliticaConfig = {
     incluir_titulos: true,
     incluir_secciones: true,
     numericas_override: undefined,
+  },
+  multibase: {
+    global: {
+      incluir_porcentajes: true,
+      incluir_secciones: true,
+    },
+    origenes: {
+      incluir_porcentajes: true,
+      incluir_secciones: true,
+    },
   },
   cruces: {
     cruces_vars: [],
@@ -366,6 +388,7 @@ type AnaliticaStore = {
 
   setCodebook: (patch: Partial<CodebookConfig>) => void;
   setFrecuencias: (patch: Partial<FrecuenciasConfig>) => void;
+  setMultibase: (patch: Partial<MultibaseTablasConfig>) => void;
   setCruces: (patch: Partial<CrucesConfig>) => void;
   setEnumeradores: (patch: Partial<EnumeradoresConfig>) => void;
 
@@ -404,7 +427,7 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
   hydrated: false,
   dirty: false,
 
-  hydrate: (c) => set({ config: c, hydrated: true, dirty: false }),
+  hydrate: (c) => set({ config: normalizeAnaliticaConfig(c), hydrated: true, dirty: false }),
   markClean: () => set({ dirty: false }),
   reset: () => set({ config: DEFAULT_CONFIG, dirty: true }),
 
@@ -516,6 +539,21 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
 
   setFrecuencias: (patch) =>
     set((s) => dirty({ config: { ...s.config, frecuencias: { ...s.config.frecuencias, ...patch } } })),
+
+  setMultibase: (patch) =>
+    set((s) =>
+      dirty({
+        config: {
+          ...s.config,
+          multibase: {
+            ...s.config.multibase,
+            ...patch,
+            global: { ...s.config.multibase.global, ...(patch.global ?? {}) },
+            origenes: { ...s.config.multibase.origenes, ...(patch.origenes ?? {}) },
+          },
+        },
+      }),
+    ),
 
   setCruces: (patch) =>
     set((s) => dirty({ config: { ...s.config, cruces: { ...s.config.cruces, ...patch } } })),
@@ -671,4 +709,42 @@ export function normalizeCrucesVars(raw: unknown): CruceVarConfig[] {
       return null;
     })
     .filter((x): x is CruceVarConfig => !!x && !!x.name);
+}
+
+export function normalizeAnaliticaConfig(raw: AnaliticaConfig): AnaliticaConfig {
+  const c = raw ?? DEFAULT_CONFIG;
+  return {
+    ...DEFAULT_CONFIG,
+    ...c,
+    datos: { ...DEFAULT_CONFIG.datos, ...(c as Partial<AnaliticaConfig>).datos },
+    codebook: { ...DEFAULT_CONFIG.codebook, ...(c as Partial<AnaliticaConfig>).codebook },
+    frecuencias: { ...DEFAULT_CONFIG.frecuencias, ...(c as Partial<AnaliticaConfig>).frecuencias },
+    multibase: {
+      ...DEFAULT_CONFIG.multibase,
+      ...((c as Partial<AnaliticaConfig>).multibase ?? {}),
+      global: {
+        ...DEFAULT_CONFIG.multibase.global,
+        ...((c as Partial<AnaliticaConfig>).multibase?.global ?? {}),
+      },
+      origenes: {
+        ...DEFAULT_CONFIG.multibase.origenes,
+        ...((c as Partial<AnaliticaConfig>).multibase?.origenes ?? {}),
+      },
+    },
+    cruces: {
+      ...DEFAULT_CONFIG.cruces,
+      ...((c as Partial<AnaliticaConfig>).cruces ?? {}),
+      cruces_vars: normalizeCrucesVars(((c as Partial<AnaliticaConfig>).cruces ?? {}).cruces_vars),
+    },
+    enumeradores: { ...DEFAULT_CONFIG.enumeradores, ...((c as Partial<AnaliticaConfig>).enumeradores ?? {}) },
+    bases: {
+      ...DEFAULT_CONFIG.bases,
+      ...((c as Partial<AnaliticaConfig>).bases ?? {}),
+      sav: { ...DEFAULT_CONFIG.bases.sav, ...((c as Partial<AnaliticaConfig>).bases?.sav ?? {}) },
+      csv: { ...DEFAULT_CONFIG.bases.csv, ...((c as Partial<AnaliticaConfig>).bases?.csv ?? {}) },
+      xlsx: { ...DEFAULT_CONFIG.bases.xlsx, ...((c as Partial<AnaliticaConfig>).bases?.xlsx ?? {}) },
+      overrides: ((c as Partial<AnaliticaConfig>).bases?.overrides ?? {}),
+    },
+    dimensiones: { ...DEFAULT_CONFIG.dimensiones, ...((c as Partial<AnaliticaConfig>).dimensiones ?? {}) },
+  };
 }

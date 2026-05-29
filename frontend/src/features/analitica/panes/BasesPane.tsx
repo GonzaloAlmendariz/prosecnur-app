@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { Database, FileText, FileSpreadsheet, Info, Wand2 } from "lucide-react";
+import { useState, type CSSProperties } from "react";
+import { Database, FileCode2, FileText, FileSpreadsheet, Info, Wand2 } from "lucide-react";
 import {
+  apiAnaliticaBasesData,
+  apiAnaliticaBasesInstrumento,
   apiAnaliticaBasesSav,
   apiAnaliticaBasesCsv,
   apiAnaliticaBasesXlsx,
@@ -11,9 +13,9 @@ import { useReporteRun } from "../useReporteRun";
 import { useAnaliticaStore } from "../store";
 import { MetadatosEditor } from "../MetadatosEditor";
 
-// BasesPane. Tres formatos independientes (.sav / .csv / .xlsx), cada
-// uno con su propia sub-config y su propio botón "Generar". El usuario
-// puede re-ejecutar solo lo que cambió sin tocar el resto.
+// BasesPane. Descargas directas de fuente (data + XLSForm) y tres
+// formatos analíticos independientes (.sav / .csv / .xlsx), cada uno con
+// su propia sub-config y su propio botón "Generar".
 //
 // El .sav lleva measure / format.spss / display_width embebidos para
 // que SPSS respete ordinal/scale/nominal al abrir. Por eso el toggle
@@ -29,11 +31,12 @@ export function BasesPane() {
   return (
     <Panel
       eyebrow="Reporte"
-      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Database size={16} /> Bases</span>}
-      hint="Exporta la base de datos preparada en tres formatos: SPSS (.sav) con todos los atributos de medida embebidos, CSV con opciones de codificación, o Excel con hojas paralelas para códigos y etiquetas."
+      title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Database size={16} /> Bases e instrumento</span>}
+      hint="Descarga la data y el XLSForm de la fuente activa, o exporta la base analítica en SPSS, CSV y Excel."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
         <FuenteInfo />
+        <ArchivosFuenteSection />
         <MetadatosSection />
         <SavCard cfg={bases.sav} onChange={setBasesSav} />
         <CsvCard cfg={bases.csv} onChange={setBasesCsv} />
@@ -58,12 +61,120 @@ function FuenteInfo() {
     >
       <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
       <div>
-        Los tres formatos exportan la <strong>misma base analítica</strong> seleccionada en el encabezado: Original o Codificada.
-        Cada formato tiene su propia configuración y su botón "Generar" independiente, así puedes re-ejecutar solo lo que cambió.
+        Todas las descargas usan la <strong>misma fuente activa</strong> seleccionada en el encabezado: Original o Codificada.
+        Los archivos fuente conservan el formato original; los formatos analíticos aplican sus propias opciones de exportación.
       </div>
     </div>
   );
 }
+
+// ---- Archivos fuente ------------------------------------------------------
+
+function ArchivosFuenteSection() {
+  return (
+    <Section
+      title={
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <FileCode2 size={14} /> Archivos fuente
+        </span>
+      }
+      subtitle="Descarga directa de la data y el XLSForm de la fuente activa. En Codificada se entrega el output del adaptador, conservando colores y formato."
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
+        <SourceDataCard />
+        <SourceInstrumentCard />
+      </div>
+    </Section>
+  );
+}
+
+function SourceDataCard() {
+  const run = useReporteRun();
+
+  async function onGenerate() {
+    await run.runSync(apiAnaliticaBasesData);
+  }
+
+  return (
+    <div style={sourceCardStyle}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <span style={sourceIconStyle}>
+          <FileSpreadsheet size={15} />
+        </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <strong style={{ fontSize: 13 }}>Data</strong>
+          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+            Copia el archivo de datos de la fuente activa. Si está codificada, conserva las columnas <code>*_recod</code> y sus colores.
+          </span>
+        </div>
+      </div>
+      <GenerateFooter
+        label="Descargar data"
+        busy={run.busy}
+        fileId={run.fileId}
+        downloadName={run.filename ?? "data_codificada.xlsx"}
+        error={run.error}
+        onGenerate={onGenerate}
+        perBase={run.perBase}
+      />
+    </div>
+  );
+}
+
+function SourceInstrumentCard() {
+  const run = useReporteRun();
+
+  async function onGenerate() {
+    await run.runSync(apiAnaliticaBasesInstrumento);
+  }
+
+  return (
+    <div style={sourceCardStyle}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <span style={sourceIconStyle}>
+          <FileCode2 size={15} />
+        </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <strong style={{ fontSize: 13 }}>XLSForm</strong>
+          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+            Copia el instrumento de la fuente activa. El XLSForm codificado mantiene el coloreado del paquete para las variables recodificadas.
+          </span>
+        </div>
+      </div>
+      <GenerateFooter
+        label="Descargar XLSForm"
+        busy={run.busy}
+        fileId={run.fileId}
+        downloadName={run.filename ?? "instrumento_codificado.xlsx"}
+        error={run.error}
+        onGenerate={onGenerate}
+        perBase={run.perBase}
+      />
+    </div>
+  );
+}
+
+const sourceCardStyle: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 12,
+  padding: "12px",
+  borderRadius: 6,
+  border: "1px solid var(--pulso-border)",
+  background: "var(--pulso-surface)",
+};
+
+const sourceIconStyle: CSSProperties = {
+  width: 28,
+  height: 28,
+  borderRadius: 6,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "var(--pulso-primary)",
+  background: "var(--pulso-primary-soft)",
+  flexShrink: 0,
+};
 
 // ---- Metadatos SPSS (inferencia editable) ---------------------------------
 

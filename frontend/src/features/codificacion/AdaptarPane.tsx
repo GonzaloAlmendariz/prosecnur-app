@@ -12,12 +12,14 @@ import { Alert } from "../../components/Alert";
 import { JobProgress } from "../../components/JobProgress";
 import { Panel } from "../../components/Panel";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
+import { useSession } from "../../lib/SessionContext";
 
 type Props = {
   onBackToCodificar: () => void;
 };
 
 export function AdaptarPane({ onBackToCodificar }: Props) {
+  const { refresh } = useSession();
   const [plan, setPlan] = useState<PlanAdaptacion | null>(null);
   const [loadErr, setLoadErr] = useState<string>("");
   const [busyLoad, setBusyLoad] = useState(false);
@@ -53,6 +55,8 @@ export function AdaptarPane({ onBackToCodificar }: Props) {
   function onJobDone(d: AplicarResult) {
     setOutput({ data: d.data_adaptada.file_id, inst: d.instrumento_adaptado.file_id });
     setJobId(null);
+    void refresh();
+    window.dispatchEvent(new Event("pulso:session-changed"));
   }
   function onJobError(msg: string) { setRunErr(msg); setJobId(null); }
   function onJobCancelled() { setJobId(null); }

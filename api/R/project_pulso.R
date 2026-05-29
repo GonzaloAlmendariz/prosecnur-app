@@ -231,6 +231,40 @@
       out <- c(out, s$dashboard_source$data_file_id)
     }
   }
+  # Borrador del flujo "integrar instrumentos hermanos". Antes de importar,
+  # estos file_id todavía no pertenecen a una base del estudio, pero sí son
+  # insumos reales del proyecto y deben viajar con el .pulso.
+  if (!is.null(s$multi_integrated_draft) && is.list(s$multi_integrated_draft)) {
+    draft <- s$multi_integrated_draft
+    add_fid <- function(x) {
+      x <- as.character(x %||% "")
+      x <- x[nzchar(x)]
+      if (length(x)) out <<- c(out, x)
+    }
+    add_fid(draft$guide_xlsform_file_id)
+    guide_options <- draft$guide_options %||% list()
+    if (is.data.frame(guide_options)) {
+      for (i in seq_len(nrow(guide_options))) {
+        add_fid(guide_options$file_id[i] %||% guide_options$fileId[i])
+      }
+    } else if (length(guide_options)) {
+      for (opt in guide_options) {
+        add_fid(opt$file_id %||% opt$fileId)
+      }
+    }
+    draft_rows <- draft$rows %||% list()
+    if (is.data.frame(draft_rows)) {
+      for (i in seq_len(nrow(draft_rows))) {
+        add_fid(draft_rows$xlsform_file_id[i] %||% draft_rows$xlsformFileId[i])
+        add_fid(draft_rows$data_file_id[i] %||% draft_rows$dataFileId[i])
+      }
+    } else if (length(draft_rows)) {
+      for (row in draft_rows) {
+        add_fid(row$xlsform_file_id %||% row$xlsformFileId)
+        add_fid(row$data_file_id %||% row$dataFileId)
+      }
+    }
+  }
   # Defensivo: si la sesión tiene un xlsform en s$files pero no está
   # referenciado por ninguna base (ej. el user lo cargó pero no llamó a
   # estudio_init_default_base por algún edge case), igual lo incluimos

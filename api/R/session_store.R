@@ -368,6 +368,8 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
   s$analitica_spss_ok <- FALSE
   s$analitica_enumeradores_ok <- FALSE
   s$analitica_dim_ok <- FALSE
+  s$analitica_multibase_ok <- FALSE
+  s$analitica_multibase_available <- FALSE
   s$graficos_ppt_ok <- FALSE
   s$graficos_word_ok <- FALSE
 

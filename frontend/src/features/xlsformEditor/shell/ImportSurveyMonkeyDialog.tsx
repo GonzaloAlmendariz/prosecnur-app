@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Plus,
@@ -58,6 +58,27 @@ type PageEntry = {
 };
 
 const newId = () => Math.random().toString(36).slice(2, 9);
+
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function smSurveyTitle(item: SurveyMonkeyListItem) {
+  return item.nickname || item.title || item.id;
+}
+
+function smSurveyMatchesQuery(item: SurveyMonkeyListItem, query: string) {
+  const tokens = normalizeSearch(query).split(" ").filter(Boolean);
+  if (!tokens.length) return true;
+  const haystack = normalizeSearch([item.id, item.title, item.nickname ?? ""].join(" "));
+  return tokens.every((token) => haystack.includes(token));
+}
 
 // Expande rangos tipo "Q25-Q31" a la lista completa ["Q25","Q26","Q27","Q28","Q29","Q30","Q31"].
 // Reconoce el prefijo (Q/P/q/p) + parte numérica con o sin padding y mantiene
@@ -259,6 +280,7 @@ export function ImportSurveyMonkeyDialog({
   const [smApiError, setSmApiError] = useState<string | null>(null);
   const [smFetchedSurveyId, setSmFetchedSurveyId] = useState<string | null>(null);
   const [smSurveyList, setSmSurveyList] = useState<SurveyMonkeyListItem[] | null>(null);
+  const [smSurveyMeta, setSmSurveyMeta] = useState<{ totalRecent: number; months: number } | null>(null);
   const [smListing, setSmListing] = useState(false);
   const [smTokenStatus, setSmTokenStatus] = useState<SurveyMonkeyTokenInfo | null>(null);
   const [smRememberToken, setSmRememberToken] = useState<boolean>(true);
@@ -298,6 +320,7 @@ export function ImportSurveyMonkeyDialog({
     setSmToken(next);
     setSmTokenStatus(null);
     setSmFetchedSurveyId(null);
+    setSmSurveyMeta(null);
   }
   async function handleTokenBlur() {
     // Al salir del input, persistir si el toggle está on.
@@ -322,6 +345,7 @@ export function ImportSurveyMonkeyDialog({
     setSmToken("");
     setSmTokenStatus(null);
     setSmSurveyList(null);
+    setSmSurveyMeta(null);
     setSmApiSuccess(null);
     setSmApiError(null);
     try {
@@ -350,10 +374,11 @@ export function ImportSurveyMonkeyDialog({
     setSmApiError(null);
     setSmApiSuccess(null);
     try {
-      const result = await apiXlsformEditorSmListSurveys(smToken.trim());
+      const result = await apiXlsformEditorSmListSurveys(smToken.trim(), 500, 6);
       setSmSurveyList(result.surveys);
+      setSmSurveyMeta({ totalRecent: result.total_recent, months: result.months });
       if (result.surveys.length === 0) {
-        setSmApiError("Tu cuenta no tiene surveys (o el token no tiene permiso para listarlos).");
+        setSmApiError(`No encontré encuestas modificadas en los últimos ${result.months} meses.`);
       }
     } catch (e) {
       setSmApiError(String((e as Error)?.message ?? e));
@@ -606,6 +631,7 @@ export function ImportSurveyMonkeyDialog({
                 successMessage={smApiSuccess}
                 errorMessage={smApiError}
                 surveyList={smSurveyList}
+                surveyMeta={smSurveyMeta}
                 tokenStatus={smTokenStatus}
                 rememberToken={smRememberToken}
                 onSurveyIdChange={(next) => {
@@ -975,6 +1001,7 @@ function SmApiSection({
   successMessage,
   errorMessage,
   surveyList,
+  surveyMeta,
   tokenStatus,
   rememberToken,
   onSurveyIdChange,
@@ -994,6 +1021,7 @@ function SmApiSection({
   successMessage: string | null;
   errorMessage: string | null;
   surveyList: SurveyMonkeyListItem[] | null;
+  surveyMeta: { totalRecent: number; months: number } | null;
   tokenStatus: SurveyMonkeyTokenInfo | null;
   rememberToken: boolean;
   onSurveyIdChange: (s: string) => void;
@@ -1010,7 +1038,12 @@ function SmApiSection({
   // el nuevo, no el viejo cacheado.
   const tokenSuffix = token.length > 6 ? `…${token.slice(-6)}` : token;
   const [expanded, setExpanded] = useState(true);
+  const [surveyQuery, setSurveyQuery] = useState("");
   const isReady = Boolean(successMessage && connectedSurveyId);
+  const visibleSurveys = useMemo(
+    () => (surveyList ?? []).filter((item) => smSurveyMatchesQuery(item, surveyQuery)),
+    [surveyList, surveyQuery],
+  );
   return (
     <details
       open={expanded}
@@ -1148,29 +1181,47 @@ function SmApiSection({
         ) : null}
 
         {surveyList && surveyList.length > 0 ? (
-          <div style={{ marginBottom: 8 }}>
-            <label style={{ display: "block", marginBottom: 4, fontSize: 12, color: "#374151", fontWeight: 500 }}>
-              Encuesta encontrada
-            </label>
-            <select
-              value={surveyId}
-              onChange={(e) => onSurveyIdChange(e.target.value)}
-              disabled={fetching}
-              style={{
-                width: "100%",
-                padding: 6,
-                border: "1px solid var(--pulso-border, #e5e7eb)",
-                borderRadius: 4,
-                fontSize: 12,
-              }}
-            >
-              <option value="">Elige la encuesta a importar…</option>
-              {surveyList.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.title} ({s.id}){s.date_modified ? ` · mod ${s.date_modified.slice(0, 10)}` : ""}
-                </option>
-              ))}
-            </select>
+          <div style={{ display: "grid", gap: 8, marginBottom: 10 }}>
+            <div className="pulso-sm-survey-picker">
+              <label className="pulso-sm-search">
+                <Search size={14} />
+                <input
+                  value={surveyQuery}
+                  onChange={(e) => setSurveyQuery(e.target.value)}
+                  placeholder="Filtrar por nombre o ID"
+                  disabled={fetching}
+                />
+              </label>
+              <div className="pulso-sm-list-caption" style={{ justifySelf: "end", marginTop: 0 }}>
+                {visibleSurveys.length} de {surveyMeta?.totalRecent ?? surveyList.length} encuestas modificadas en los últimos {surveyMeta?.months ?? 6} meses
+              </div>
+            </div>
+            <div className="pulso-sm-survey-list" aria-label="Encuestas SurveyMonkey">
+              {visibleSurveys.map((item) => {
+                const selected = item.id === surveyId.trim();
+                const title = smSurveyTitle(item);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`pulso-sm-survey-card${selected ? " is-selected" : ""}`}
+                    onClick={() => onSurveyIdChange(item.id)}
+                    disabled={fetching}
+                    title={title}
+                    aria-pressed={selected}
+                  >
+                    <span>
+                      <strong>{title}</strong>
+                      <small>{item.id}{item.date_modified ? ` · ${item.date_modified.slice(0, 10)}` : ""}</small>
+                    </span>
+                    <em>{selected ? "Seleccionada" : "Seleccionar"}</em>
+                  </button>
+                );
+              })}
+              {!visibleSurveys.length && (
+                <div className="pulso-sm-empty">No hay coincidencias con el filtro actual.</div>
+              )}
+            </div>
           </div>
         ) : null}
 

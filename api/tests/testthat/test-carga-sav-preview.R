@@ -244,6 +244,35 @@ test_that("explorador grafica select_multiple en columna madre y dummies", {
   expect_equal(view_madre$kpis[[2]]$meta$value, 2L)
 })
 
+test_that("explorador usa etiquetas reales de instrumentos integrados", {
+  inst <- list(
+    survey = data.frame(
+      type = "select_one lst_p24",
+      name = "p24_9",
+      label = "Incorporacion de enfoque interseccional",
+      `label::es` = "Incorporacion de enfoque interseccional",
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_p24", "lst_p24", "lst_p24"),
+      name = c("2", "4", "5"),
+      label = c("Poco relevante", "Relevante", "Muy relevante"),
+      `label::es` = c("Poco relevante", "Relevante", "Muy relevante"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  )
+  data <- data.frame(p24_9 = c("2", "4", "4", "5"), stringsAsFactors = FALSE)
+
+  view <- build_view_univariado(data, "p24_9", inst)
+
+  expect_equal(view$label, "Incorporacion de enfoque interseccional")
+  expect_match(view$chart$title, "Incorporacion de enfoque interseccional", fixed = TRUE)
+  trace_names <- vapply(view$chart$plotly$data, `[[`, character(1), "name")
+  expect_equal(trace_names, c("Poco relevante", "Relevante", "Muy relevante"))
+})
+
 test_that("explorador inventaria columnas haven_labelled sin choque de tipos", {
   data <- data.frame(
     q0001 = haven::labelled(c(1, 2, NA), labels = c(Si = 1, No = 2)),

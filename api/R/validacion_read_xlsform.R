@@ -82,27 +82,18 @@
   dplyr::mutate(df, dplyr::across(dplyr::everything(), ~ .trim(.)))
 }
 
-.pick_label_col <- function(cols, lang = "es", prefer_label = NULL) {
-  if (!is.null(prefer_label) && prefer_label %in% cols) return(prefer_label)
-  low <- tolower(cols)
-  exacts <- c(
-    paste0("label::", lang),
-    paste0("label::", lang, " (", toupper(lang), ")"),
-    paste0("label::", toupper(lang), " (", toupper(lang), ")"),
-    "label::spanish (es)", "label::spanish(es)", "label::spanish_es",
-    "label_spanish_es", "label::spanish", "label::es",
-    "label::español (es)", "label::espanol (es)",
-    "label::español", "label::espanol",
-    "label"
-  )
-  for (ex in exacts) {
-    hit <- which(low == tolower(ex))
-    if (length(hit)) return(cols[hit[1]])
+.pick_label_col <- function(df, lang = "es", prefer_label = NULL) {
+  cols <- names(df %||% data.frame())
+  if (is.null(cols) && !is.null(df) && is.character(df)) {
+    cols <- as.character(df)
   }
-  hit <- grep(paste0("^label.*", lang), low)
-  if (length(hit)) return(cols[hit[1]])
-  hit <- grep("^label", low)
-  if (length(hit)) return(cols[hit[1]])
+  if (!length(cols)) return(NA_character_)
+
+  if (!is.null(prefer_label) && nzchar(prefer_label) &&
+      prefer_label %in% cols && prefer_label != "label") {
+    return(NA_character_)
+  }
+  if ("label" %in% cols) return("label")
   NA_character_
 }
 
@@ -572,8 +563,8 @@ leer_xlsform_limpieza <- function(path,
   }
 
   # label columns
-  survey_label_col  <- .pick_label_col(names(survey_raw),  lang = lang, prefer_label = prefer_label)
-  choices_label_col <- .pick_label_col(names(choices_raw), lang = lang, prefer_label = prefer_label)
+  survey_label_col  <- .pick_label_col(survey_raw,  lang = lang, prefer_label = prefer_label)
+  choices_label_col <- .pick_label_col(choices_raw, lang = lang, prefer_label = prefer_label)
 
   parsed <- purrr::map(survey_raw$type, .parse_type_scalar)
 
@@ -1586,4 +1577,3 @@ GraficarPreguntas <- function(inst,
       fill = ggplot2::guide_legend(nrow = 1, byrow = TRUE, title.position = "top")
     )
 }
-

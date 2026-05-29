@@ -107,6 +107,16 @@ test_that("build_limpieza siempre incluye top_reglas y top_variables como listas
   expect_true(is.list(out$top_variables))
 })
 
+test_that("limpieza usa respondent_id como identificador de caso SurveyMonkey", {
+  df <- data.frame(
+    respondent_id = c("sm-r1", "sm-r2"),
+    `_index` = c(10, 11),
+    check.names = FALSE
+  )
+
+  expect_equal(.limpieza_make_case_ids(df, "principal"), c("sm-r1", "sm-r2"))
+})
+
 test_that("decision queue distingue cobertura parcial y total de casos", {
   ev <- list(resumen = .fake_resumen())
   scope <- list(

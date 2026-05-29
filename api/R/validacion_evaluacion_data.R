@@ -1329,15 +1329,16 @@ observaciones_regla <- function(evaluacion,
 
   codigo_alias <- c("Codigo pulso","Código pulso","Codigo_pulso","codigo_pulso","codigo.pulso")
   codigo_col <- codigo_alias[codigo_alias %in% names(df)][1] %||% NULL
+  case_id_cols <- c("_uuid", "uuid", "respondent_id", "response_id", "_id", "_index")
 
   keep <- unique(na.omit(c(
-    "_uuid","_id","_index",
+    case_id_cols,
     codigo_col,
     var1, var2, var3,
     paste0(var1,"_label"), paste0(var2,"_label"), paste0(var3,"_label")
   )))
   keep <- keep[keep %in% names(df)]
-  if (!length(keep)) keep <- intersect(c("_uuid","_id","_index"), names(df))
+  if (!length(keep)) keep <- intersect(case_id_cols, names(df))
   out <- tibble::as_tibble(df[inc, keep, drop = FALSE])
 }
 
@@ -1432,7 +1433,7 @@ total_inconsistencias <- function(evaluacion) {
   if (!length(vars)) return(casos)
 
   # elegir llave común (orden de preferencia)
-  keys <- c("_uuid","_id","_index")
+  keys <- c("_uuid", "uuid", "respondent_id", "response_id", "_id", "_index")
   key  <- keys[keys %in% names(casos) & keys %in% names(base_df)][1] %||% NA_character_
   if (is.na(key)) return(casos)
 
@@ -1657,7 +1658,7 @@ render_bloques_kable <- function(
     max_casos = 10,
     mostrar_aleatorios_si_cero = 0,
     fallback_df = NULL,
-    cols_id = c("_uuid","_index","Pulso_code","Codigo pulso","Código pulso"),
+    cols_id = c("_uuid","uuid","respondent_id","response_id","_index","Pulso_code","Codigo pulso","Código pulso"),
     cols_interes = NULL,
     seed = NULL,
     alto_resumen = "280px",
@@ -1766,7 +1767,7 @@ render_bloques_kable <- function(
     )))
 
     keep <- intersect(desired_cols, names(casos))
-    if (!length(keep)) keep <- intersect(c("_uuid","_id","_index"), names(casos))
+    if (!length(keep)) keep <- intersect(c("_uuid","uuid","respondent_id","response_id","_id","_index"), names(casos))
     if (!length(keep)) keep <- head(names(casos), 6)
 
     casos_show <- casos[, keep, drop = FALSE]

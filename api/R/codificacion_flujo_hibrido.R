@@ -1204,7 +1204,7 @@ find_other_dummy_for_parent <- function(parent_original, name_map){
   out <- as.character(hdr_lab %||% hdr_base)
   tipo_norm <- tolower(as.character(tipo_hoja %||% "text"))
 
-  id_cols <- c("_uuid", "_index", "Código pulso", "Codigo pulso", "pulso_code")
+  id_cols <- c("_uuid", "uuid", "respondent_id", "response_id", "_index", "Código pulso", "Codigo pulso", "pulso_code")
   base_non_recod <- hdr_base[!grepl("_recod$", hdr_base)]
   base_value_cols <- setdiff(base_non_recod, c(id_cols, "Control"))
   base_unpaired <- base_value_cols[!(paste0(base_value_cols, "_recod") %in% hdr_base)]
@@ -1256,7 +1256,7 @@ find_other_dummy_for_parent <- function(parent_original, name_map){
 .codif_sheet_column_roles <- function(hdr_base){
   hdr_base <- as.character(hdr_base)
   roles <- rep("reference", length(hdr_base))
-  roles[hdr_base %in% c("_uuid", "_index", "Código pulso", "Codigo pulso", "pulso_code")] <- "id"
+  roles[hdr_base %in% c("_uuid", "uuid", "respondent_id", "response_id", "_index", "Código pulso", "Codigo pulso", "pulso_code")] <- "id"
   roles[grepl("_recod$", hdr_base)] <- "editable"
   roles[hdr_base %in% c("Recodificación (código)", "Etiqueta nueva categoría")] <- "editable"
   roles[hdr_base == "Control"] <- "control"
@@ -1645,7 +1645,7 @@ find_other_dummy_for_parent <- function(parent_original, name_map){
     base[[text_col]] <- as.character(dat_raw[[text_col]])
   }
 
-  skip_cols <- c("_uuid", "_index", "Código pulso", "Seleccionadas", "Seleccionadas_cod")
+  skip_cols <- c("_uuid", "uuid", "respondent_id", "response_id", "_index", "Código pulso", "Seleccionadas", "Seleccionadas_cod")
   if (nzchar(text_col) && text_col %in% names(base)) skip_cols <- c(skip_cols, text_col)
   for (dc in setdiff(names(base), unique(skip_cols))) {
     base[[paste0(dc, "_recod")]] <- NA_character_
@@ -3119,6 +3119,8 @@ construir_plantilla_desde_familias <- function(inst, dat, split){
       if (!is.null(dat_raw)) dat_raw[["uuid"]] else NULL,
       if (!is.null(dat_raw)) dat_raw[["meta_instance_id"]] else NULL,
       if (!is.null(dat_raw)) dat_raw[["instanceid"]] else NULL,
+      if (!is.null(dat_raw)) dat_raw[["respondent_id"]] else NULL,
+      if (!is.null(dat_raw)) dat_raw[["response_id"]] else NULL,
       if (!is.null(dat_raw)) dat_raw[["_id"]] else NULL
     ), as_chr))
     idx_out  <- as_int(if (!is.null(dat_raw)) dat_raw[["_index"]] else NULL)
@@ -3127,7 +3129,16 @@ construir_plantilla_desde_familias <- function(inst, dat, split){
       if (!is.null(dat_raw)) dat_raw[["Pulso_code"]] else NULL,
       if (!is.null(dat_raw)) dat_raw[["pulso_code"]] else NULL
     ), as_chr))
-    tibble::tibble(`_uuid` = uuid_out, `_index` = idx_out, `Código pulso` = pulso_out)
+    respondent_out <- as_chr(if (!is.null(dat_raw)) dat_raw[["respondent_id"]] else NULL)
+    response_out <- as_chr(if (!is.null(dat_raw)) dat_raw[["response_id"]] else NULL)
+    out <- tibble::tibble(`_uuid` = uuid_out, `_index` = idx_out, `Código pulso` = pulso_out)
+    if (any(!is.na(response_out) & nzchar(trimws(response_out)))) {
+      out <- tibble::add_column(out, response_id = response_out, .after = "_uuid")
+    }
+    if (any(!is.na(respondent_out) & nzchar(trimws(respondent_out)))) {
+      out <- tibble::add_column(out, respondent_id = respondent_out, .after = "_uuid")
+    }
+    out
   }
   dat_raw <- dat$raw
   id_base <- resolve_ids(dat_raw)
@@ -3381,10 +3392,10 @@ construir_plantilla_desde_familias <- function(inst, dat, split){
         dplyr::mutate(!!text_col := text_vec)
 
       # Recods intercalados:
-      #   - NO se recodifica: _uuid, _index, Código pulso
+      #   - NO se recodifica: _uuid/respondent_id, _index, Código pulso
       #   - NO se recodifica: Seleccionadas, Seleccionadas_cod
       #   - NO se recodifica: el texto abierto (text_col)
-      skip_cols <- c("_uuid","_index","Código pulso",
+      skip_cols <- c("_uuid","uuid","respondent_id","response_id","_index","Código pulso",
                      "Seleccionadas","Seleccionadas_cod",
                      text_col)
       skip_cols <- unique(skip_cols[!is.na(skip_cols) & nzchar(skip_cols)])
@@ -3647,7 +3658,7 @@ exportar_plantilla_codificacion_xlsx <- function(plantilla,
       "7. Las hojas select_multiple incluyen a la derecha una columna reservada de ejemplo (<parent>/ejemplo_recod); sirve de referencia y el adaptador la ignora.",
       "8. En hojas select_one e integer, las categorias nuevas se declaran en el bloque auxiliar de la derecha, con dos columnas: nuevo_codigo y nueva_etiqueta.",
       "9. En select_one modo padre, la columna editable recodifica la variable original; en modo hijo, la columna editable recodifica el texto abierto.",
-      "10. Las columnas _uuid, _index, Codigo pulso, Seleccionadas, Seleccionadas_cod, *_label y valores crudos son solo referencia."
+      "10. Las columnas _uuid/respondent_id, _index, Codigo pulso, Seleccionadas, Seleccionadas_cod, *_label y valores crudos son solo referencia."
     ),
     stringsAsFactors = FALSE
   )
@@ -3879,7 +3890,7 @@ exportar_plantilla_codificacion_xlsx <- function(plantilla,
     }
 
     # Fila 1 (crudo/código) según tipo
-    especiales <- c("_uuid","_index","Código pulso","Codigo pulso",
+    especiales <- c("_uuid","uuid","respondent_id","response_id","_index","Código pulso","Codigo pulso",
                     "Seleccionadas","Seleccionadas_cod")
 
     if (identical(tolower(tipo_hoja), "select_multiple")) {
@@ -3927,7 +3938,7 @@ exportar_plantilla_codificacion_xlsx <- function(plantilla,
       parent_col <- nm
 
       map_no_recod <- function(cc){
-        if (cc %in% c("_uuid","_index","Código pulso","Codigo pulso")) return(cc)
+        if (cc %in% c("_uuid","uuid","respondent_id","response_id","_index","Código pulso","Codigo pulso")) return(cc)
         if (cc == "Selección (código)") return(parent_col)
         if (cc == "Selección (label)")  return(paste0(parent_col, "_label"))
         if (cc == "Recodificación (código)") return(paste0(parent_col, "_recod"))
@@ -3946,7 +3957,7 @@ exportar_plantilla_codificacion_xlsx <- function(plantilla,
 
     } else {  # TEXT / INTEGER
       map_no_recod <- function(cc){
-        if (cc %in% c("_uuid","_index","Código pulso","Codigo pulso")) return(cc)
+        if (cc %in% c("_uuid","uuid","respondent_id","response_id","_index","Código pulso","Codigo pulso")) return(cc)
         cc
       }
       hdr_raw <- vapply(hdr_base, function(cc){
@@ -3969,7 +3980,7 @@ exportar_plantilla_codificacion_xlsx <- function(plantilla,
     openxlsx::addStyle(wb, st, style_hdr2, rows = 2, cols = 1:ncol(df), gridExpand = TRUE)
     if (isTRUE(autofiltro)) openxlsx::addFilter(wb, st, rows = 2, cols = 1:ncol(df))
 
-    id_cols <- intersect(c("_uuid","_index","Código pulso","Codigo pulso","pulso_code"), colnames(df))
+    id_cols <- intersect(c("_uuid","uuid","respondent_id","response_id","_index","Código pulso","Codigo pulso","pulso_code"), colnames(df))
     firstActiveCol <- if (length(id_cols)) (max(match(id_cols, colnames(df))) + 1L) else 1L
     if (isTRUE(congelar_encabezado)) openxlsx::freezePane(wb, st, firstActiveRow = 3, firstActiveCol = firstActiveCol)
 
@@ -4116,7 +4127,7 @@ exportar_plantilla_codificacion_xlsx <- function(plantilla,
 #' ### Características principales
 #' - Soporta formularios con *grupos repeat* (identifica correctamente cada hoja).
 #' - Crea una hoja por variable (`parent_col`) con identificadores robustos
-#'   (`_uuid`, `_index`, `Código pulso`).
+#'   (`_uuid`/`respondent_id`, `_index`, `Código pulso`).
 #' - Reconoce y vincula variables hijas con sus familias (soportando `other_dummy_col` y `text_col`).
 #' - Incluye vínculos `_parent_index` y `_submission__uuid` si existen.
 #' - Excluye `text` adoptadas según la lógica de `adopciones` en `fam`.
@@ -4259,7 +4270,7 @@ construir_plantilla_desde_familias_repeat <- function(inst, tabs, fam) {
     as_chr <- function(x){ if (is.null(x)) return(rep(NA_character_, n)); if (is.factor(x)) x <- as.character(x); as.character(x) }
     as_int <- function(x){ if (is.null(x)) return(rep(NA_integer_, n)); suppressWarnings(as.integer(x)) }
 
-    uuid_cands  <- c("_uuid","uuid","_submission__uuid","meta_instance_id","instanceid")
+    uuid_cands  <- c("_uuid","uuid","_submission__uuid","meta_instance_id","instanceid","respondent_id","response_id")
     index_cands <- c("_index","index","_parent_index","parent_index")
     pulso_cands <- c("mand_location_details_pulso_code","Pulso_code","pulso_code","codigo_pulso")
 
@@ -4268,11 +4279,20 @@ construir_plantilla_desde_familias_repeat <- function(inst, tabs, fam) {
       NULL
     }
 
-    tibble::tibble(
+    out <- tibble::tibble(
       `_uuid`        = as_chr(pick_first(uuid_cands)),
       `_index`       = as_int(pick_first(index_cands)),
       `Código pulso` = as_chr(pick_first(pulso_cands))
     )
+    respondent_out <- as_chr(pick_first("respondent_id"))
+    response_out <- as_chr(pick_first("response_id"))
+    if (any(!is.na(response_out) & nzchar(trimws(response_out)))) {
+      out <- tibble::add_column(out, response_id = response_out, .after = "_uuid")
+    }
+    if (any(!is.na(respondent_out) & nzchar(trimws(respondent_out)))) {
+      out <- tibble::add_column(out, respondent_id = respondent_out, .after = "_uuid")
+    }
+    out
   }
 
   # Expansor de dummies SM (lee slash o tokeniza)
@@ -4683,7 +4703,7 @@ construir_plantilla_desde_familias_repeat <- function(inst, tabs, fam) {
       }
 
       # recods intercalados
-      skip_cols <- c("_uuid","_index","Código pulso","Seleccionadas","Seleccionadas_cod")
+      skip_cols <- c("_uuid","uuid","respondent_id","response_id","_index","Código pulso","Seleccionadas","Seleccionadas_cod")
       for (dc in setdiff(names(base), skip_cols)) base[[paste0(dc,"_recod")]] <- NA_character_
       base[["Control"]] <- NA_character_
 

@@ -423,7 +423,7 @@ export function RespuestasCodificador({ parent }: Props) {
         </section>
 
         {/* RIGHT — grupos */}
-        <section style={{ minWidth: 0 }}>
+        <section style={{ minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
           <div style={{
             fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
             color: "var(--pulso-text-soft)", marginBottom: 10,
@@ -442,11 +442,14 @@ export function RespuestasCodificador({ parent }: Props) {
               hint="Crea uno con '+ Nuevo grupo' o marca una respuesta de la izquierda — se crea un grupo vacío automáticamente."
             />
           )}
-          {/* La columna de grupos deja el scroll al panel principal de
-              Codificación para no quedar recortada dentro de otro scroller. */}
+          {/* Mantiene el encabezado visible y desplaza solo la lista larga de grupos. */}
           <div className="pulso-codificacion-grupos-list" style={{
             display: "flex", flexDirection: "column", gap: 10,
-            paddingRight: 0,
+            maxHeight: "min(620px, calc(100vh - 350px))",
+            minHeight: 0,
+            overflowY: "auto",
+            overscrollBehavior: "contain",
+            paddingRight: 4,
             paddingBottom: 14,
             scrollbarWidth: "thin",
             scrollbarColor: "var(--pulso-border) transparent",

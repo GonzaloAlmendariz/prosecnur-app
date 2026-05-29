@@ -143,16 +143,135 @@
   "so"
 }
 
+.explorar_norm_key <- function(x) {
+  x <- trimws(as.character(x %||% ""))
+  x <- tolower(x)
+  x <- iconv(x, from = "", to = "ASCII//TRANSLIT", sub = "")
+  x <- gsub("[^a-z0-9]+", "_", x)
+  gsub("^_+|_+$", "", x)
+}
+
+.explorar_label_cols <- function(df) {
+  if (is.null(df) || !ncol(df)) return(character(0))
+  nms <- names(df)
+  nms_l <- tolower(nms)
+  preferred <- c(
+    "label",
+    "choice_label",
+    "question_label"
+  )
+  pref_idx <- match(preferred, nms_l)
+  pref_cols <- nms[pref_idx[!is.na(pref_idx)]]
+  extra_cols <- c(
+    grep("^label::", nms, ignore.case = TRUE, value = TRUE),
+    grep("^label$", nms, ignore.case = TRUE, value = TRUE)
+  )
+  unique(c(pref_cols, extra_cols))
+}
+
+.explorar_match_row <- function(df, var) {
+  if (is.null(df) || !nrow(df) || !("name" %in% names(df))) return(NA_integer_)
+  var <- trimws(as.character(var %||% "")[1])
+  if (is.na(var) || !nzchar(var)) return(NA_integer_)
+  names_raw <- trimws(as.character(df$name %||% ""))
+  key <- .explorar_norm_key(var)
+  idx <- which(names_raw == var | .explorar_norm_key(names_raw) == key)[1]
+  if (length(idx) && !is.na(idx)) idx else NA_integer_
+}
+
+.explorar_label_from_df <- function(df, var) {
+  idx <- .explorar_match_row(df, var)
+  if (is.na(idx)) return("")
+  key <- .explorar_norm_key(var)
+  fallback <- ""
+  for (col in .explorar_label_cols(df)) {
+    val <- trimws(as.character(df[[col]][idx] %||% ""))
+    if (is.na(val) || !nzchar(val)) next
+    if (.explorar_norm_key(val) == key) next
+    if (!nzchar(fallback)) fallback <- val
+    Encoding(val) <- "UTF-8"
+    return(val)
+  }
+  if (nzchar(fallback) && .explorar_norm_key(fallback) == key) "" else fallback
+}
+
+.explorar_label_var_fallback_base <- function(var, instrumento) {
+  base_var <- sub("([_./-][^_./-]+)$", "", var)
+  if (!nzchar(base_var) || identical(base_var, var)) return("")
+  suffix <- sub("^.*([_./-])", "", var)
+  if (!nzchar(suffix)) return("")
+
+  base_key <- .explorar_norm_key(base_var)
+  base_names <- as.character(instrumento$survey$name %||% character(0))
+  base_match <- if (length(base_names)) {
+    !is.na(base_names) & (
+      (base_names == base_var) | (.explorar_norm_key(base_names) == base_key)
+    )
+  } else logical(0)
+
+  if (!"survey" %in% names(instrumento) || is.null(instrumento$survey) ||
+      !"name" %in% names(instrumento$survey) || !any(base_match, na.rm = TRUE)) {
+    return("")
+  }
+
+  for (surv in list(instrumento$survey_raw %||% NULL, instrumento$survey %||% NULL)) {
+    lab <- .explorar_label_from_df(surv, base_var)
+    if (!nzchar(lab)) next
+    if (.explorar_norm_key(lab) != base_key) return(sprintf("%s (%s)", lab, suffix))
+  }
+
+  if (!is.null(instrumento$var_labels) && length(instrumento$var_labels)) {
+    keys <- names(instrumento$var_labels)
+    idx <- which(keys == base_var | .explorar_norm_key(keys) == base_key)[1]
+    if (!is.na(idx)) {
+      lab <- trimws(as.character(instrumento$var_labels[[idx]] %||% ""))
+      if (nzchar(lab) && .explorar_norm_key(lab) != base_key) {
+        return(sprintf("%s (%s)", lab, suffix))
+      }
+    }
+  }
+  ""
+}
+
+.explorar_list_name_for_var <- function(var, instrumento) {
+  for (surv in list(instrumento$survey %||% NULL, instrumento$survey_raw %||% NULL)) {
+    idx <- .explorar_match_row(surv, var)
+    if (is.na(idx)) next
+    if ("list_name" %in% names(surv)) {
+      ln <- trimws(as.character(surv$list_name[idx] %||% ""))
+      if (nzchar(ln)) return(ln)
+    }
+    if ("type" %in% names(surv)) {
+      type <- trimws(as.character(surv$type[idx] %||% ""))
+      if (grepl("^select_(one|multiple)\\s+", type)) {
+        ln <- trimws(sub("^select_(one|multiple)\\s+", "", type))
+        if (nzchar(ln)) return(ln)
+      }
+    }
+  }
+  ""
+}
+
 # -----------------------------------------------------------------------------
 # Label humano de una variable (label del XLSForm, o el nombre si no hay)
 # -----------------------------------------------------------------------------
 .explorar_label_var <- function(var, instrumento) {
-  surv <- instrumento$survey %||% NULL
-  if (!is.null(surv) && all(c("name", "label") %in% names(surv))) {
-    i <- which(!is.na(surv$name) & as.character(surv$name) == var)[1]
-    if (!is.na(i)) {
-      lab <- as.character(surv$label[i])
-      if (!is.na(lab) && nzchar(lab)) return(lab)
+  var <- trimws(as.character(var %||% "")[1])
+  if (is.na(var) || !nzchar(var)) return("")
+  for (surv in list(instrumento$survey_raw %||% NULL, instrumento$survey %||% NULL)) {
+    lab <- .explorar_label_from_df(surv, var)
+    if (nzchar(lab)) return(lab)
+  }
+
+  lab <- .explorar_label_var_fallback_base(var, instrumento)
+  if (nzchar(lab)) return(lab)
+
+  if (!is.null(instrumento$var_labels) && length(instrumento$var_labels)) {
+    keys <- names(instrumento$var_labels)
+    idx <- which(keys == var | .explorar_norm_key(keys) == .explorar_norm_key(var))[1]
+    if (!is.na(idx)) {
+      lab <- trimws(as.character(instrumento$var_labels[[idx]] %||% ""))
+      if (nzchar(lab) && .explorar_norm_key(lab) != .explorar_norm_key(var)) return(lab)
     }
   }
   var
@@ -164,19 +283,39 @@
 .explorar_map_choices <- function(var, instrumento) {
   surv <- instrumento$survey %||% NULL
   ch   <- instrumento$choices %||% NULL
-  if (is.null(surv) || is.null(ch)) return(NULL)
-  if (!all(c("name", "list_name") %in% names(surv))) return(NULL)
-  if (!all(c("list_name", "name") %in% names(ch))) return(NULL)
-  lbl_col <- if ("label" %in% names(ch)) "label" else
-             if ("label_es" %in% names(ch)) "label_es" else NULL
-  if (is.null(lbl_col)) return(NULL)
-  i <- which(!is.na(surv$name) & as.character(surv$name) == var)[1]
-  if (is.na(i)) return(NULL)
-  ln <- as.character(surv$list_name[i])
+  ln <- .explorar_list_name_for_var(var, instrumento)
   if (is.na(ln) || !nzchar(ln)) return(NULL)
-  rows <- ch[as.character(ch$list_name) == ln, , drop = FALSE]
+  if (!is.null(instrumento$orders_list)) {
+    ord <- instrumento$orders_list[[var]] %||% instrumento$orders_list[[ln]]
+    if (!is.null(ord) && !is.null(ord$names) && !is.null(ord$labels)) {
+      out <- stats::setNames(as.character(ord$labels), as.character(ord$names))
+      out <- out[nzchar(names(out))]
+      if (length(out)) return(out)
+    }
+  }
+  if (!is.null(instrumento$dicc_code_to_label) && !is.null(instrumento$dicc_code_to_label[[ln]])) {
+    out <- instrumento$dicc_code_to_label[[ln]]
+    out <- stats::setNames(as.character(unname(out)), as.character(names(out)))
+    out <- out[nzchar(names(out))]
+    if (length(out)) return(out)
+  }
+  if (is.null(surv) || is.null(ch)) return(NULL)
+  if (!all(c("list_name", "name") %in% names(ch))) return(NULL)
+  label_cols <- .explorar_label_cols(ch)
+  if (!length(label_cols)) return(NULL)
+  rows <- ch[as.character(ch$list_name) == ln |
+               .explorar_norm_key(ch$list_name) == .explorar_norm_key(ln), , drop = FALSE]
   if (!nrow(rows)) return(NULL)
-  stats::setNames(as.character(rows[[lbl_col]]), as.character(rows$name))
+  labels <- rep("", nrow(rows))
+  for (col in label_cols) {
+    vals <- trimws(as.character(rows[[col]] %||% ""))
+    take <- !nzchar(labels) & !is.na(vals) & nzchar(vals)
+    labels[take] <- vals[take]
+  }
+  codes <- as.character(rows$name)
+  labels[is.na(labels) | !nzchar(labels)] <- codes[is.na(labels) | !nzchar(labels)]
+  Encoding(labels) <- "UTF-8"
+  stats::setNames(labels, codes)
 }
 
 # -----------------------------------------------------------------------------
