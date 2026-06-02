@@ -144,3 +144,58 @@ test_that("codificacion rehidrata etiquetas de preguntas desde el XLSForm integr
   expect_equal(.codif_var_label(inst, "p4", "p4"), "Orientacion sexual")
   expect_equal(.codif_var_label(inst, "p13", ""), "Tipo de cargo actual")
 })
+
+test_that("modo hijo legacy sin recod autonoma vuelve a codificar variable original", {
+  sid <- session_create()
+  draft <- list(rows = list(list(
+    use = TRUE,
+    tipo = "select_one",
+    modo_so = "hijo",
+    parent = "p10_mexico",
+    parent_col = "",
+    text_col = "p10_mexico_other"
+  )))
+  data_df <- data.frame(
+    p10_mexico = c("1", "2"),
+    p10_mexico_other = c("", "Sistema de Gestion"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  out <- .codif_normalize_legacy_select_one_modes(sid, draft, data_df)
+
+  expect_equal(out$rows[[1]]$modo_so, "padre")
+  expect_equal(out$rows[[1]]$parent_col, "p10_mexico")
+  expect_equal(out$rows[[1]]$modo_so_migrated_reason, "legacy_default_without_child_recod")
+})
+
+test_that("modo hijo explicito o con recod autonoma no se migra", {
+  sid <- session_create()
+  data_df <- data.frame(
+    p10_mexico = "1",
+    p10_mexico_other = "Sistema de Gestion",
+    p10_mexico_other_recod = "6",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  explicit <- list(rows = list(list(
+    use = TRUE,
+    tipo = "select_one",
+    modo_so = "hijo",
+    modo_so_explicit = TRUE,
+    parent = "p10_mexico",
+    parent_col = "",
+    text_col = "p10_mexico_other"
+  )))
+  materialized <- list(rows = list(list(
+    use = TRUE,
+    tipo = "select_one",
+    modo_so = "hijo",
+    parent = "p10_mexico",
+    parent_col = "",
+    text_col = "p10_mexico_other"
+  )))
+
+  expect_equal(.codif_normalize_legacy_select_one_modes(sid, explicit, data_df)$rows[[1]]$modo_so, "hijo")
+  expect_equal(.codif_normalize_legacy_select_one_modes(sid, materialized, data_df)$rows[[1]]$modo_so, "hijo")
+})

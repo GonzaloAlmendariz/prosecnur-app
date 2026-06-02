@@ -12,6 +12,10 @@ const normalizedBasePath = basePathWithLeadingSlash.endsWith("/")
   : `${basePathWithLeadingSlash}/`;
 
 const isPublicMode = process.env.VITE_PULSO_PUBLIC_MODE === "true";
+const devPort = Number(process.env.VITE_DEV_PORT || "5173");
+const apiProxyTarget =
+  process.env.VITE_API_PROXY_TARGET ||
+  `http://127.0.0.1:${process.env.PULSO_PORT || "8787"}`;
 
 // En modo público (deploy web a HF/Fly), inyectamos `noindex,nofollow`
 // para que crawlers no listen el dashboard. Es la única defensa de
@@ -37,9 +41,9 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port: 5173,
+    port: devPort,
     proxy: {
-      "/api": "http://127.0.0.1:8787",
+      "/api": apiProxyTarget,
     },
   },
 });

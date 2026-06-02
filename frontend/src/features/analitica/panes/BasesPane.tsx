@@ -6,12 +6,14 @@ import {
   apiAnaliticaBasesSav,
   apiAnaliticaBasesCsv,
   apiAnaliticaBasesXlsx,
+  apiAnaliticaBasesXlsxUnificada,
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
 import { Section, Collapsible, GenerateFooter } from "../PaneKit";
 import { useReporteRun } from "../useReporteRun";
 import { useAnaliticaStore } from "../store";
 import { MetadatosEditor } from "../MetadatosEditor";
+import { useSession } from "../../../lib/SessionContext";
 
 // BasesPane. Descargas directas de fuente (data + XLSForm) y tres
 // formatos analíticos independientes (.sav / .csv / .xlsx), cada uno con
@@ -36,6 +38,7 @@ export function BasesPane() {
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
         <FuenteInfo />
+        <UnifiedSiblingsCard cfg={bases.xlsx} />
         <ArchivosFuenteSection />
         <MetadatosSection />
         <SavCard cfg={bases.sav} onChange={setBasesSav} />
@@ -448,6 +451,80 @@ function XlsxCard({
           busy={run.busy}
           fileId={run.fileId}
           downloadName={run.filename ?? "datos.xlsx"}
+          error={run.error}
+          onGenerate={onGenerate}
+          perBase={run.perBase}
+        />
+      </div>
+    </Section>
+  );
+}
+
+function UnifiedSiblingsCard({
+  cfg,
+}: {
+  cfg: {
+    valores: "codigos" | "etiquetas" | "ambos";
+    multi_select: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
+  };
+}) {
+  const run = useReporteRun();
+  const { state } = useSession();
+  const enabled = state?.estudio_processing_mode === "independent_siblings" && (state?.n_bases ?? 0) > 1;
+
+  async function onGenerate() {
+    await run.runSync(() =>
+      apiAnaliticaBasesXlsxUnificada({ valores: cfg.valores, multi_select: cfg.multi_select }),
+    );
+  }
+
+  if (!enabled) return null;
+
+  const summary = run.lastResult?.unified;
+
+  return (
+    <Section
+      title={
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <FileSpreadsheet size={14} /> Data unificada entre bases
+        </span>
+      }
+      subtitle={
+        <>
+          Descarga una sola base con todas las hermanas. Incluye <code>base_hermana</code>{" "}
+          <code>registro_origen_id</code> y <code>registro_unificado_id</code> al inicio
+          para identificar carrera, registro original y fila única global.
+          El libro incluye auditoría de <strong>variables comunes</strong> y <strong>variables no comunes</strong>;
+          los reportes comparativos deben leerse solo sobre las comunes.
+        </>
+      }
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div
+          style={{
+            padding: "10px 12px",
+            borderRadius: 6,
+            border: "1px solid var(--pulso-border)",
+            background: "var(--pulso-surface)",
+            fontSize: 11,
+            color: "var(--pulso-text-soft)",
+            lineHeight: 1.5,
+          }}
+        >
+          Mantiene la independencia de procesamiento: no cambia la base activa, no fusiona estados y no afecta Gráficos.
+          Solo prepara una descarga analítica combinada para exploración en Excel. Cada fila conserva
+          su identificador original cuando existe y suma un identificador único para la tabla unificada.
+          {summary && (
+            <div style={{ marginTop: 6, color: "var(--pulso-text)" }}>
+              {summary.n_filas} filas · {summary.n_columnas} columnas · {summary.n_variables_comunes} comunes · {summary.n_variables_no_comunes} no comunes
+            </div>
+          )}
+        </div>
+        <GenerateFooter
+          label="Exportar data unificada"
+          busy={run.busy}
+          fileId={run.fileId}
+          downloadName={run.filename ?? "bases_unificadas.xlsx"}
           error={run.error}
           onGenerate={onGenerate}
           perBase={run.perBase}

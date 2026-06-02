@@ -911,12 +911,27 @@ ppra_adaptar_instrumento <- function(path_instrumento_in,
       for (cc in child_cols) {
         toks <- .collect_tokens_from_col(path_data_adaptada, cc)
         toks <- toks[nzchar(toks)]
+        known_codes <- character(0)
+        known_label_map <- character(0)
+        if (pv %in% survey$name) {
+          ln_orig <- .extract_listname(as.character(survey$type[match(pv, survey$name)][1]))
+          if (!is.na(ln_orig) && ln_orig %in% choices$list_name) {
+            orig <- choices[choices$list_name == ln_orig, , drop = FALSE]
+            known_codes <- as.character(orig$name)
+            if (lab_col_c %in% names(orig)) {
+              labs <- trimws(as.character(orig[[lab_col_c]]))
+              ok <- nzchar(known_codes) & nzchar(labs)
+              known_label_map <- stats::setNames(labs[ok], known_codes[ok])
+            }
+          }
+        }
+        required_new <- setdiff(unique(toks[nzchar(toks)]), known_codes)
         lab_map <- .collect_aux_code_label_map_from_template(
           path_plantilla = path_plantilla,
           parent = pv,
           target_col = cc,
-          known_codes = character(0),
-          required_codes = unique(toks),
+          known_codes = known_codes,
+          required_codes = required_new,
           context = cc
         )
         if (!length(lab_map)) {
@@ -924,10 +939,11 @@ ppra_adaptar_instrumento <- function(path_instrumento_in,
             path_data_adaptada,
             code_col = cc,
             label_col = paste0(cc, "_label"),
-            known_codes = character(0),
+            known_codes = known_codes,
             context = cc
           )
         }
+        lab_map <- c(known_label_map, lab_map)
 
         # base para la etiqueta: versión sin _recod
         base_child_name <- sub("(?i)_recod$", "", cc, perl = TRUE)

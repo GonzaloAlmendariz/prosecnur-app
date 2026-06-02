@@ -24,6 +24,7 @@ import {
   ArrowRight,
   Asterisk,
   BookOpen,
+  Calculator,
   Check,
   CheckCircle2,
   CheckSquare,
@@ -34,9 +35,11 @@ import {
   FilePen,
   FolderOpen,
   GitBranch,
+  Home,
   LayoutDashboard,
   LayoutTemplate,
   Lightbulb,
+  Library,
   Loader2,
   Map,
   Pencil,
@@ -92,3 +95,6 @@ export const IconDashboard = LayoutDashboard;
 export const IconRoutes = Map;
 export const IconCollector = QrCode;
 export const IconMonitor = Activity;
+export const IconHome = Home;
+export const IconSample = Calculator;
+export const IconEncyclopedia = Library;

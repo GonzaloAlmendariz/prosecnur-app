@@ -11,6 +11,7 @@ import { apiCodifSourceGet, apiCodifSourceSet, CodifSourceState } from "../../ap
 export function useCodifSource(): {
   active: string | null;
   options: string[];
+  processingMode: string | null;
   loading: boolean;
   error: string;
   setActive: (source: string) => Promise<void>;
@@ -40,7 +41,11 @@ export function useCodifSource(): {
   useEffect(() => {
     function onSessionChanged() { void refresh(); }
     window.addEventListener("pulso:session-changed", onSessionChanged);
-    return () => window.removeEventListener("pulso:session-changed", onSessionChanged);
+    window.addEventListener("pulso:active-base-changed", onSessionChanged);
+    return () => {
+      window.removeEventListener("pulso:session-changed", onSessionChanged);
+      window.removeEventListener("pulso:active-base-changed", onSessionChanged);
+    };
   }, [refresh]);
 
   const setActive = useCallback(async (source: string) => {
@@ -48,12 +53,15 @@ export function useCodifSource(): {
     setLoading(true);
     try {
       const r = await apiCodifSourceSet(source);
-      setState((prev) => ({ ...prev, active: r.active }));
+      setState((prev) => ({ ...prev, ...r, active: r.active }));
       setError("");
       // Dispara evento para que hooks de codificación con cache se
       // invaliden (preguntas abiertas, columnas, familias draft, etc.).
       window.dispatchEvent(new CustomEvent("pulso:codif-source-changed", {
         detail: { source: r.active },
+      }));
+      window.dispatchEvent(new CustomEvent("pulso:active-base-changed", {
+        detail: { active: r.active, processing_mode: r.processing_mode },
       }));
     } catch (e) {
       setError((e as Error).message);
@@ -62,5 +70,13 @@ export function useCodifSource(): {
     }
   }, [state.active]);
 
-  return { active: state.active, options: state.options, loading, error, setActive, refresh };
+  return {
+    active: state.active,
+    options: state.options,
+    processingMode: state.processing_mode ?? null,
+    loading,
+    error,
+    setActive,
+    refresh,
+  };
 }

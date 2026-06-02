@@ -583,11 +583,11 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
     }
   }
 
-  async function loadSurveys() {
+  async function loadSurveys(forceRefresh = false) {
     setError("");
-    setBusy("Leyendo encuestas recientes de SurveyMonkey...");
+    setBusy(forceRefresh ? "Actualizando catálogo SurveyMonkey..." : "Leyendo catálogo local SurveyMonkey...");
     try {
-      const result = await apiSurveyMonkeyMultibaseListSurveys("", 500, 6);
+      const result = await apiSurveyMonkeyMultibaseListSurveys("", 500, 6, { forceRefresh });
       setSurveys(result.surveys);
       setSurveyMeta({ totalRecent: result.total_recent, months: result.months });
       if (!result.surveys.length) setError("No encontré encuestas modificadas en los últimos 6 meses.");
@@ -836,7 +836,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, disabled, onImpo
               <Search size={14} />
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filtrar por nombre o ID" />
             </label>
-            <button type="button" className="pulso-sm-secondary" onClick={loadSurveys} disabled={!!busy || disabled}>
+            <button type="button" className="pulso-sm-secondary" onClick={() => loadSurveys(true)} disabled={!!busy || disabled}>
               {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
               Actualizar lista
             </button>

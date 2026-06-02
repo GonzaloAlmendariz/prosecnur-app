@@ -23,10 +23,12 @@ let cache: VariablesBySource | null = null;
 let pending: Promise<VariablesBySource> | null = null;
 
 if (typeof window !== "undefined") {
-  window.addEventListener("pulso:session-changed", () => {
+  const clearCache = () => {
     cache = null;
     pending = null;
-  });
+  };
+  window.addEventListener("pulso:session-changed", clearCache);
+  window.addEventListener("pulso:active-base-changed", clearCache);
 }
 
 export function useVariables(): {
@@ -50,7 +52,11 @@ export function useVariables(): {
       setGen((g) => g + 1);
     }
     window.addEventListener("pulso:session-changed", onSessionChanged);
-    return () => window.removeEventListener("pulso:session-changed", onSessionChanged);
+    window.addEventListener("pulso:active-base-changed", onSessionChanged);
+    return () => {
+      window.removeEventListener("pulso:session-changed", onSessionChanged);
+      window.removeEventListener("pulso:active-base-changed", onSessionChanged);
+    };
   }, []);
 
   useEffect(() => {

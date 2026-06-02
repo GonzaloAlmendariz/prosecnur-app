@@ -52,6 +52,25 @@
   # re-importan vía .dashboard_rebuild_after_load.
   s$dashboard_rp_inst <- NULL
   s$dashboard_rp_data <- NULL
+  # Catálogos externos cacheados durante la sesión. Son metadata regenerable
+  # desde la integración y no deben viajar como contrato persistente del .pulso.
+  s$surveymonkey_survey_catalog <- NULL
+  if (!is.null(s$estudio) && is.list(s$estudio$bases) && length(s$estudio$bases)) {
+    # En proyectos multi/base integrada, estos objetos son caches runtime
+    # derivados de los file_id canónicos de cada base. Persistirlos puede
+    # congelar un XLSForm/data anterior al archivo real que viaja en el .pulso.
+    s$rp_inst <- NULL
+    s$rp_data <- NULL
+    s$rp_inst_sources <- list()
+    s$rp_data_sources <- list()
+    s$data_xlsform_compatibility <- NULL
+    s$analitica_rp_inst <- NULL
+    s$analitica_rp_data <- NULL
+    s$analitica_rp_inst_sources <- list()
+    s$analitica_rp_data_sources <- list()
+    s$analitica_prep_ok <- FALSE
+    s$analitica_multibase_available <- FALSE
+  }
   # Hojas de ruta: los PDFs/ZIP son entregables regenerables desde
   # hojas_ruta_config + marco INEI local; no forman parte del .pulso.
   s$hojas_ruta_ok <- NULL
@@ -90,6 +109,754 @@
   )
 }
 
+.pulso_valid_inst_cache <- function(x) {
+  is.list(x) && !is.null(x$survey) && is.data.frame(x$survey)
+}
+
+.pulso_valid_data_cache <- function(x) {
+  is.data.frame(x)
+}
+
+.pulso_read_data_file <- function(path, ext = NULL) {
+  ext <- tolower(as.character(ext %||% tools::file_ext(path)))
+  if (ext %in% c("xlsx", "xls")) {
+    return(as.data.frame(readxl::read_excel(path), stringsAsFactors = FALSE, check.names = FALSE))
+  }
+  if (identical(ext, "csv")) {
+    return(utils::read.csv(path, stringsAsFactors = FALSE, fileEncoding = "UTF-8", check.names = FALSE))
+  }
+  if (identical(ext, "sav")) {
+    if (!requireNamespace("haven", quietly = TRUE)) stop("haven no está disponible para leer .sav")
+    return(as.data.frame(haven::read_sav(path), stringsAsFactors = FALSE, check.names = FALSE))
+  }
+  stop(sprintf("Extensión no soportada: %s", ext), call. = FALSE)
+}
+
+.pulso_source_cache_candidate <- function(source_map, mirror, base_name, predicate) {
+  hit <- source_map[[base_name]] %||% NULL
+  if (isTRUE(predicate(hit))) return(hit)
+  if (isTRUE(predicate(mirror))) return(mirror)
+  nested <- tryCatch(mirror[[base_name]], error = function(e) NULL)
+  if (isTRUE(predicate(nested))) return(nested)
+  NULL
+}
+
+.pulso_load_choice_maps <- function(sid) {
+  if (!exists(".carga_editor_choice_code_maps", mode = "function")) return(list())
+  tryCatch(.carga_editor_choice_code_maps(sid), error = function(e) list())
+}
+
+# Los .pulso guardados por versiones intermedias podían conservar los archivos
+# canónicos de una base integrada, pero perder o malformar los caches runtime
+# `rp_data_sources` / `rp_inst_sources`. Validación consume esos maps por base,
+# así que al abrir el proyecto los re-derivamos desde los file_id persistidos.
+.pulso_rebuild_estudio_runtime_sources <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s) || is.null(s$estudio) || !length(s$estudio$bases)) return(invisible(FALSE))
+
+  if (is.null(s$rp_data_sources) || !is.list(s$rp_data_sources)) s$rp_data_sources <- list()
+  if (is.null(s$rp_inst_sources) || !is.list(s$rp_inst_sources)) s$rp_inst_sources <- list()
+
+  changed <- FALSE
+  for (base_name in names(s$estudio$bases)) {
+    base <- s$estudio$bases[[base_name]]
+    xls_fid <- as.character(base$xlsform_file_id %||% "")
+    data_fid <- as.character(base$data_file_id %||% "")
+    xls_meta <- if (nzchar(xls_fid)) s$files[[xls_fid]] else NULL
+    data_meta <- if (nzchar(data_fid)) s$files[[data_fid]] else NULL
+
+    inst <- NULL
+    inst_from_file <- FALSE
+    if (!is.null(xls_meta) && !is.null(xls_meta$path) && file.exists(xls_meta$path)) {
+      inst <- tryCatch(reporte_instrumento(path = xls_meta$path), error = function(e) NULL)
+      inst_from_file <- .pulso_valid_inst_cache(inst)
+    }
+    if (!.pulso_valid_inst_cache(inst)) {
+      inst <- .pulso_source_cache_candidate(
+        s$rp_inst_sources, s$rp_inst, base_name, .pulso_valid_inst_cache
+      )
+    }
+    if (.pulso_valid_inst_cache(inst) &&
+        (isTRUE(inst_from_file) || !.pulso_valid_inst_cache(s$rp_inst_sources[[base_name]]))) {
+      s$rp_inst_sources[[base_name]] <- inst
+      changed <- TRUE
+    }
+    if (!.pulso_valid_inst_cache(inst)) next
+
+    data_cache <- NULL
+    data_from_file <- FALSE
+    if (!is.null(data_meta) && !is.null(data_meta$path) && file.exists(data_meta$path)) {
+      raw_df <- tryCatch(
+        .pulso_read_data_file(data_meta$path, data_meta$ext %||% base$data_ext),
+        error = function(e) NULL
+      )
+      if (!is.null(raw_df)) {
+        choice_maps <- .pulso_load_choice_maps(sid)
+        data_norm <- tryCatch(
+          normalize_data_for_xlsform(raw_df, inst, choice_code_maps = choice_maps),
+          error = function(e) raw_df
+        )
+        data_cache <- tryCatch(
+          reporte_data(data_norm, instrumento = inst),
+          error = function(e) data_norm
+        )
+        normalized_attr <- attr(data_norm, "xlsform_normalized", exact = TRUE)
+        if (!is.null(normalized_attr)) {
+          attr(data_cache, "xlsform_normalized") <- normalized_attr
+        }
+        compat <- tryCatch(
+          validate_data_xlsform_compatibility(data_norm, inst),
+          error = function(e) NULL
+        )
+        if (!is.null(compat)) {
+          attr(data_cache, "xlsform_compatibility") <- compat
+          base$compatibilidad <- compat
+        }
+        base$n_filas <- as.integer(nrow(data_norm))
+        base$n_columnas <- as.integer(ncol(data_norm))
+        data_from_file <- .pulso_valid_data_cache(data_cache)
+      }
+    }
+    if (!.pulso_valid_data_cache(data_cache)) {
+      data_cache <- .pulso_source_cache_candidate(
+        s$rp_data_sources, s$rp_data, base_name, .pulso_valid_data_cache
+      )
+    }
+    if (.pulso_valid_data_cache(data_cache) &&
+        (isTRUE(data_from_file) || !.pulso_valid_data_cache(s$rp_data_sources[[base_name]]))) {
+      s$rp_data_sources[[base_name]] <- data_cache
+      changed <- TRUE
+    }
+    s$estudio$bases[[base_name]] <- base
+  }
+
+  first <- names(s$estudio$bases)[1] %||% NA_character_
+  if (!is.na(first) && nzchar(first)) {
+    first_data <- s$rp_data_sources[[first]]
+    first_inst <- s$rp_inst_sources[[first]]
+    if (.pulso_valid_data_cache(first_data)) {
+      s$rp_data <- first_data
+      s$data_xlsform_compatibility <- attr(first_data, "xlsform_compatibility", exact = TRUE)
+      changed <- TRUE
+    }
+    if (.pulso_valid_inst_cache(first_inst)) {
+      s$rp_inst <- first_inst
+      changed <- TRUE
+    }
+  }
+
+  if (isTRUE(changed)) .session_env[[sid]] <- s
+  invisible(isTRUE(changed))
+}
+
+.pulso_xlsform_label_col <- function(df) {
+  nms <- names(df)
+  hit <- which(tolower(nms) %in% c("label", "label::spanish (es)", "label::es", "label_spanish_es"))[1]
+  if (is.na(hit)) NA_character_ else nms[hit]
+}
+
+.pulso_write_xlsform_frames <- function(path, survey, choices, settings = NULL) {
+  if (!requireNamespace("openxlsx", quietly = TRUE)) return(FALSE)
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "survey")
+  openxlsx::writeData(wb, "survey", survey)
+  openxlsx::addWorksheet(wb, "choices")
+  openxlsx::writeData(wb, "choices", choices)
+  if (!is.null(settings) && is.data.frame(settings)) {
+    openxlsx::addWorksheet(wb, "settings")
+    openxlsx::writeData(wb, "settings", settings)
+  }
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  TRUE
+}
+
+.pulso_blank_value <- function(x) {
+  x_chr <- trimws(as.character(x))
+  is.na(x) | is.na(x_chr) | !nzchar(x_chr)
+}
+
+.pulso_list_name_from_survey_row <- function(row) {
+  if ("list_name" %in% names(row)) {
+    ln <- as.character(row$list_name[[1]] %||% "")
+    if (!is.na(ln) && nzchar(ln)) return(ln)
+  }
+  type <- as.character(row$type[[1]] %||% "")
+  ln <- trimws(sub("^\\S+\\s*", "", type))
+  if (!is.na(ln) && nzchar(ln) && !identical(ln, type)) ln else ""
+}
+
+.pulso_norm_label <- function(x) {
+  x <- trimws(as.character(x %||% ""))
+  x <- iconv(x, from = "", to = "ASCII//TRANSLIT", sub = "")
+  tolower(x)
+}
+
+.pulso_next_free_code <- function(used) {
+  used <- unique(as.character(used %||% character(0)))
+  nums <- suppressWarnings(as.integer(used))
+  candidate <- if (any(!is.na(nums))) max(nums[!is.na(nums)], na.rm = TRUE) + 1L else 1L
+  while (as.character(candidate) %in% used) candidate <- candidate + 1L
+  as.character(candidate)
+}
+
+.pulso_repair_parent_recod_df <- function(df, parent, text_col, code_map = NULL) {
+  parent <- as.character(parent %||% "")
+  text_col <- as.character(text_col %||% "")
+  if (!nzchar(parent) || !parent %in% names(df)) return(list(data = df, changed = FALSE))
+  if (!nzchar(text_col)) text_col <- paste0(parent, "_other")
+  other_recod <- paste0(text_col, "_recod")
+  parent_recod <- paste0(parent, "_recod")
+
+  parent_vals <- as.character(df[[parent]])
+  has_other_recod_col <- other_recod %in% names(df)
+  rec_vals <- if (has_other_recod_col) as.character(df[[other_recod]]) else rep(NA_character_, nrow(df))
+  text_vals <- if (text_col %in% names(df)) as.character(df[[text_col]]) else rep("", nrow(df))
+  has_text <- !.pulso_blank_value(text_vals)
+  has_rec <- !.pulso_blank_value(rec_vals)
+
+  if (!is.null(code_map) && length(code_map)) {
+    map <- as.character(code_map)
+    names(map) <- as.character(names(code_map))
+    idx <- has_rec & rec_vals %in% names(map)
+    rec_vals[idx] <- unname(map[rec_vals[idx]])
+  }
+
+  old_names <- names(df)
+  old_vals <- if (parent_recod %in% names(df)) as.character(df[[parent_recod]]) else NULL
+  out_vals <- if (!is.null(old_vals)) old_vals else parent_vals
+  fill_parent <- .pulso_blank_value(out_vals) &
+    (!has_text | !isTRUE(has_other_recod_col)) &
+    !.pulso_blank_value(parent_vals)
+  out_vals[fill_parent] <- parent_vals[fill_parent]
+  if (isTRUE(has_other_recod_col)) out_vals[has_text & !has_rec] <- NA_character_
+  out_vals[has_rec] <- rec_vals[has_rec]
+  out_vals[.pulso_blank_value(out_vals)] <- NA_character_
+
+  df[[parent_recod]] <- out_vals
+  nms <- names(df)
+  nms_no_recod <- nms[nms != parent_recod]
+  parent_pos <- match(parent, nms_no_recod)
+  if (!is.na(parent_pos)) {
+    nms_new <- append(nms_no_recod, parent_recod, after = parent_pos)
+    df <- df[, nms_new, drop = FALSE]
+  }
+  changed_values <- is.null(old_vals) || !identical(old_vals, out_vals)
+  changed_order <- !identical(old_names, names(df))
+  list(data = df, changed = isTRUE(changed_values || changed_order))
+}
+
+.pulso_write_xlsx_sheets <- function(path, sheets_data) {
+  if (!requireNamespace("openxlsx", quietly = TRUE)) return(FALSE)
+  wb <- openxlsx::createWorkbook()
+  for (sheet in names(sheets_data)) {
+    openxlsx::addWorksheet(wb, sheet)
+    openxlsx::writeData(wb, sheet, sheets_data[[sheet]], withFilter = TRUE)
+    openxlsx::freezePane(wb, sheet, firstRow = TRUE)
+    if (ncol(sheets_data[[sheet]])) {
+      openxlsx::setColWidths(wb, sheet, cols = seq_len(ncol(sheets_data[[sheet]])), widths = "auto")
+    }
+  }
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  TRUE
+}
+
+.pulso_repair_parent_recod_xlsform <- function(path, repairs) {
+  if (!length(repairs) || is.null(path) || !file.exists(path)) {
+    return(list(changed = FALSE, repairs = repairs))
+  }
+  sheets <- tryCatch(readxl::excel_sheets(path), error = function(e) character(0))
+  if (!all(c("survey", "choices") %in% sheets)) return(list(changed = FALSE, repairs = repairs))
+  survey <- tryCatch(readxl::read_excel(path, sheet = "survey"), error = function(e) NULL)
+  choices <- tryCatch(readxl::read_excel(path, sheet = "choices"), error = function(e) NULL)
+  settings <- if ("settings" %in% sheets) {
+    tryCatch(readxl::read_excel(path, sheet = "settings"), error = function(e) NULL)
+  } else NULL
+  if (is.null(survey) || is.null(choices) || !"name" %in% names(survey) || !"type" %in% names(survey)) {
+    return(list(changed = FALSE, repairs = repairs))
+  }
+  if (!all(c("list_name", "name") %in% names(choices))) {
+    return(list(changed = FALSE, repairs = repairs))
+  }
+
+  lab_col_s <- .pulso_xlsform_label_col(survey)
+  lab_col_c <- .pulso_xlsform_label_col(choices)
+  if (is.na(lab_col_s)) {
+    survey$label <- NA_character_
+    lab_col_s <- "label"
+  }
+  if (is.na(lab_col_c)) {
+    choices$label <- NA_character_
+    lab_col_c <- "label"
+  }
+
+  changed <- FALSE
+  out_repairs <- list()
+  for (rep in repairs) {
+    parent <- as.character(rep$parent %||% "")
+    text_col <- as.character(rep$text_col %||% "")
+    if (!nzchar(parent)) next
+    parent_recod <- paste0(parent, "_recod")
+    text_recod <- if (nzchar(text_col)) paste0(text_col, "_recod") else paste0(parent, "_other_recod")
+    parent_idx <- which(as.character(survey$name) == parent)[1]
+    if (is.na(parent_idx)) next
+    parent_row <- survey[parent_idx, , drop = FALSE]
+    type_base <- trimws(sub("\\s+.*$", "", as.character(parent_row$type[[1]] %||% "")))
+    if (!type_base %in% c("select_one", "select_multiple")) next
+    parent_list <- .pulso_list_name_from_survey_row(parent_row)
+    if (!nzchar(parent_list)) next
+    recod_list <- paste0(parent_list, "_recod")
+
+    parent_choices <- choices[as.character(choices$list_name) == parent_list, , drop = FALSE]
+    existing_recod <- choices[as.character(choices$list_name) == recod_list, , drop = FALSE]
+    child_idx <- which(as.character(survey$name) == text_recod)[1]
+    child_choices <- choices[0, , drop = FALSE]
+    if (!is.na(child_idx)) {
+      child_list <- .pulso_list_name_from_survey_row(survey[child_idx, , drop = FALSE])
+      if (nzchar(child_list)) {
+        child_choices <- choices[as.character(choices$list_name) == child_list, , drop = FALSE]
+      }
+    }
+
+    parent_codes <- as.character(parent_choices$name %||% character(0))
+    parent_labels <- as.character(parent_choices[[lab_col_c]] %||% rep("", nrow(parent_choices)))
+    names(parent_labels) <- parent_codes
+    parent_label_keys <- .pulso_norm_label(parent_labels)
+    names(parent_label_keys) <- parent_codes
+    code_map <- character(0)
+    used_codes <- unique(c(parent_codes, as.character(existing_recod$name %||% character(0))))
+
+    recod_rows <- parent_choices
+    if (nrow(recod_rows)) recod_rows$list_name <- recod_list
+
+    add_source_rows <- function(src) {
+      if (is.null(src) || !nrow(src)) return()
+      for (i in seq_len(nrow(src))) {
+        raw_code <- as.character(src$name[[i]] %||% "")
+        if (!nzchar(raw_code) || raw_code %in% names(code_map)) next
+        raw_label <- as.character(src[[lab_col_c]][[i]] %||% raw_code)
+        raw_key <- .pulso_norm_label(raw_label)
+
+        same_label_code <- names(parent_label_keys)[parent_label_keys == raw_key][1]
+        if (!is.na(same_label_code) && nzchar(same_label_code)) {
+          target_code <- same_label_code
+          needs_row <- FALSE
+        } else if (raw_code %in% parent_codes) {
+          parent_label <- as.character(parent_labels[[raw_code]] %||% "")
+          if (identical(.pulso_norm_label(parent_label), raw_key)) {
+            target_code <- raw_code
+            needs_row <- FALSE
+          } else {
+            target_code <- .pulso_next_free_code(used_codes)
+            needs_row <- TRUE
+          }
+        } else if (raw_code %in% used_codes) {
+          target_code <- .pulso_next_free_code(used_codes)
+          needs_row <- TRUE
+        } else {
+          target_code <- raw_code
+          needs_row <- TRUE
+        }
+
+        code_map <<- c(code_map, stats::setNames(target_code, raw_code))
+        used_codes <<- unique(c(used_codes, target_code))
+        if (isTRUE(needs_row)) {
+          new_choice <- src[i, names(choices), drop = FALSE]
+          new_choice$list_name <- recod_list
+          new_choice$name <- target_code
+          new_choice[[lab_col_c]] <- raw_label
+          recod_rows <<- rbind(recod_rows, new_choice)
+          parent_label_keys <<- c(parent_label_keys, stats::setNames(raw_key, target_code))
+        }
+      }
+    }
+
+    add_source_rows(child_choices)
+    if (nrow(existing_recod)) {
+      extra_existing <- existing_recod[!as.character(existing_recod$name) %in% parent_codes, , drop = FALSE]
+      add_source_rows(extra_existing)
+    }
+
+    recod_names <- as.character(recod_rows$name %||% character(0))
+    if (length(recod_names)) recod_rows <- recod_rows[!duplicated(recod_names), , drop = FALSE]
+
+    recod_idx <- which(as.character(survey$name) == parent_recod)[1]
+    if (is.na(recod_idx)) {
+      new_row <- parent_row
+      new_row$name <- parent_recod
+      new_row$type <- paste(type_base, recod_list)
+      if ("list_name" %in% names(new_row)) new_row$list_name <- recod_list
+      label <- as.character(new_row[[lab_col_s]][[1]] %||% parent)
+      if (!grepl("recod", label, ignore.case = TRUE)) label <- paste(label, "recodificada")
+      new_row[[lab_col_s]] <- label
+      before <- survey[seq_len(parent_idx), , drop = FALSE]
+      after <- if (parent_idx < nrow(survey)) survey[(parent_idx + 1L):nrow(survey), , drop = FALSE] else survey[0, , drop = FALSE]
+      survey <- rbind(before, new_row[, names(survey), drop = FALSE], after)
+      changed <- TRUE
+    } else {
+      old_type <- as.character(survey$type[[recod_idx]] %||% "")
+      new_type <- paste(type_base, recod_list)
+      if (!identical(old_type, new_type)) {
+        survey$type[[recod_idx]] <- new_type
+        changed <- TRUE
+      }
+      if ("list_name" %in% names(survey) &&
+          !identical(as.character(survey$list_name[[recod_idx]] %||% ""), recod_list)) {
+        survey$list_name[[recod_idx]] <- recod_list
+        changed <- TRUE
+      }
+    }
+
+    old_recod <- choices[as.character(choices$list_name) == recod_list, , drop = FALSE]
+    comparable <- function(df) {
+      if (is.null(df) || !nrow(df)) return(data.frame())
+      as.data.frame(df[, intersect(c("list_name", "name", lab_col_c), names(df)), drop = FALSE],
+                    stringsAsFactors = FALSE, check.names = FALSE)
+    }
+    if (!identical(comparable(old_recod), comparable(recod_rows))) {
+      choices <- choices[as.character(choices$list_name) != recod_list, , drop = FALSE]
+      choices <- rbind(choices, recod_rows[, names(choices), drop = FALSE])
+      changed <- TRUE
+    }
+
+    rep$code_map <- code_map
+    out_repairs[[length(out_repairs) + 1L]] <- rep
+  }
+
+  if (changed) .pulso_write_xlsform_frames(path, survey, choices, settings)
+  list(changed = isTRUE(changed), repairs = out_repairs)
+}
+
+.pulso_parent_recod_repairs <- function(s, base_name) {
+  draft <- ((s$codif_por_base[[base_name]] %||% list())$familias_draft %||% list())$rows %||% list()
+  if (!length(draft)) return(list())
+  out <- list()
+  for (row in draft) {
+    tipo <- tolower(trimws(as.character(row$tipo %||% "")))
+    modo_so <- tolower(trimws(as.character(row$modo_so %||% "")))
+    if (!identical(tipo, "select_one") || !identical(modo_so, "padre")) next
+    parent <- as.character(row$parent_col %||% "")
+    if (!nzchar(parent)) parent <- as.character(row$parent %||% "")
+    text_col <- as.character(row$text_col %||% "")
+    if (!nzchar(parent)) next
+    out[[length(out) + 1L]] <- list(parent = parent, text_col = text_col)
+  }
+  out
+}
+
+.pulso_repair_parent_recod_columns <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s) || is.null(s$estudio) || !length(s$estudio$bases)) return(invisible(FALSE))
+  changed <- FALSE
+
+  for (base_name in names(s$estudio$bases)) {
+    repairs <- .pulso_parent_recod_repairs(s, base_name)
+    if (!length(repairs)) next
+    base <- s$estudio$bases[[base_name]]
+    data_meta <- s$files[[as.character(base$data_file_id %||% "")]]
+    xls_meta <- s$files[[as.character(base$xlsform_file_id %||% "")]]
+    if (is.null(data_meta) || is.null(data_meta$path) || !file.exists(data_meta$path)) next
+    if (!tolower(tools::file_ext(data_meta$path)) %in% c("xlsx", "xls")) next
+
+    if (!is.null(xls_meta) && !is.null(xls_meta$path) && file.exists(xls_meta$path)) {
+      xls_fixed <- .pulso_repair_parent_recod_xlsform(xls_meta$path, repairs)
+      repairs <- xls_fixed$repairs %||% repairs
+      if (isTRUE(xls_fixed$changed)) changed <- TRUE
+    }
+
+    sheets <- tryCatch(readxl::excel_sheets(data_meta$path), error = function(e) character(0))
+    if (!length(sheets)) next
+    sheets_data <- stats::setNames(lapply(sheets, function(sheet) {
+      as.data.frame(readxl::read_excel(data_meta$path, sheet = sheet), stringsAsFactors = FALSE, check.names = FALSE)
+    }), sheets)
+
+    data_changed <- FALSE
+    for (sheet in names(sheets_data)) {
+      df <- sheets_data[[sheet]]
+      for (rep in repairs) {
+        fixed <- .pulso_repair_parent_recod_df(df, rep$parent, rep$text_col, rep$code_map)
+        df <- fixed$data
+        data_changed <- isTRUE(data_changed || fixed$changed)
+      }
+      sheets_data[[sheet]] <- df
+    }
+    if (isTRUE(data_changed) && .pulso_write_xlsx_sheets(data_meta$path, sheets_data)) {
+      changed <- TRUE
+    }
+
+    if (isTRUE(data_changed)) {
+      if (!is.null(s$rp_data_sources[[base_name]])) s$rp_data_sources[[base_name]] <- NULL
+      if (!is.null(s$analitica_rp_data_sources[[base_name]])) s$analitica_rp_data_sources[[base_name]] <- NULL
+    }
+  }
+
+  if (changed) {
+    s$rp_data <- NULL
+    s$rp_inst <- NULL
+    s$analitica_rp_data <- NULL
+    s$analitica_rp_inst <- NULL
+    s$analitica_rp_data_sources <- list()
+    s$analitica_rp_inst_sources <- list()
+    s$analitica_prep_ok <- FALSE
+    s$analitica_multibase_available <- FALSE
+    s$data_xlsform_compatibility <- NULL
+    .session_env[[sid]] <- s
+  }
+  invisible(isTRUE(changed))
+}
+
+.pulso_data_columns <- function(meta) {
+  if (is.null(meta) || is.null(meta$path) || !file.exists(meta$path)) return(character(0))
+  ext <- tolower(as.character(meta$ext %||% tools::file_ext(meta$path)))
+  out <- tryCatch({
+    if (ext %in% c("xlsx", "xls")) {
+      names(readxl::read_excel(meta$path, n_max = 0))
+    } else if (identical(ext, "csv")) {
+      names(utils::read.csv(meta$path, nrows = 0, check.names = FALSE))
+    } else if (identical(ext, "sav")) {
+      names(haven::read_sav(meta$path))
+    } else {
+      character(0)
+    }
+  }, error = function(e) character(0))
+  as.character(out)
+}
+
+.pulso_template_choices <- function(s, base_name) {
+  fid <- as.character(
+    (s$codif_por_base[[base_name]] %||% list())$plantilla_codigos_file_id %||% ""
+  )
+  meta <- if (nzchar(fid)) s$files[[fid]] else NULL
+  if (is.null(meta) || is.null(meta$path) || !file.exists(meta$path)) return(NULL)
+  sheets <- tryCatch(readxl::excel_sheets(meta$path), error = function(e) character(0))
+  if (!"CHOICES" %in% sheets) return(NULL)
+  tryCatch(readxl::read_excel(meta$path, sheet = "CHOICES"), error = function(e) NULL)
+}
+
+.pulso_safe_list_name <- function(x) {
+  out <- tolower(gsub("[^A-Za-z0-9]+", "_", as.character(x)))
+  out <- gsub("^_+|_+$", "", out)
+  if (!nzchar(out)) out <- "lista"
+  paste0(out, "_list")
+}
+
+.pulso_origin_relevant <- function(key_name, key_value) {
+  sprintf("${%s} = '%s'", key_name, gsub("'", "\\\\'", as.character(key_value)))
+}
+
+.pulso_and_relevant <- function(existing, condition) {
+  existing <- trimws(as.character(existing %||% ""))
+  existing[is.na(existing)] <- ""
+  if (!nzchar(condition)) return(existing)
+  if (!nzchar(existing)) return(condition)
+  paste0("(", existing, ") and (", condition, ")")
+}
+
+.pulso_repair_multibase_variant_xlsforms <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s) || is.null(s$estudio) || !length(s$estudio$bases)) return(invisible(FALSE))
+  changed <- FALSE
+
+  for (base_name in names(s$estudio$bases)) {
+    base <- s$estudio$bases[[base_name]]
+    multi <- base$multi_integrated %||% list()
+    variant_map <- multi$variant_map %||% list()
+    if (!length(variant_map)) next
+
+    xls_meta <- s$files[[as.character(base$xlsform_file_id %||% "")]]
+    data_meta <- s$files[[as.character(base$data_file_id %||% "")]]
+    if (is.null(xls_meta) || is.null(data_meta) ||
+        is.null(xls_meta$path) || !file.exists(xls_meta$path)) next
+
+    data_cols <- .pulso_data_columns(data_meta)
+    if (!length(data_cols)) next
+
+    sheets <- tryCatch(readxl::excel_sheets(xls_meta$path), error = function(e) character(0))
+    if (!all(c("survey", "choices") %in% sheets)) next
+    survey <- tryCatch(readxl::read_excel(xls_meta$path, sheet = "survey"), error = function(e) NULL)
+    choices <- tryCatch(readxl::read_excel(xls_meta$path, sheet = "choices"), error = function(e) NULL)
+    settings <- if ("settings" %in% sheets) {
+      tryCatch(readxl::read_excel(xls_meta$path, sheet = "settings"), error = function(e) NULL)
+    } else NULL
+    if (is.null(survey) || is.null(choices) || !"name" %in% names(survey)) next
+
+    template_choices <- .pulso_template_choices(s, base_name)
+    lab_col_s <- .pulso_xlsform_label_col(survey)
+    lab_col_c <- .pulso_xlsform_label_col(choices)
+    if (is.na(lab_col_s)) {
+      survey$label <- NA_character_
+      lab_col_s <- "label"
+    }
+    if (is.na(lab_col_c)) {
+      choices$label <- NA_character_
+      lab_col_c <- "label"
+    }
+
+    key_name <- as.character(multi$origin_key_name %||% "origen")
+    origins <- unique(vapply(variant_map, function(v) as.character(v$origin_key %||% ""), character(1)))
+    origins <- origins[nzchar(origins)]
+    if (nzchar(key_name) && key_name %in% as.character(survey$name)) {
+      key_list <- .pulso_safe_list_name(key_name)
+      key_idx <- which(as.character(survey$name) == key_name)[1]
+      survey$type[key_idx] <- paste("select_one", key_list)
+      if (length(origins)) {
+        old_key_rows <- if ("list_name" %in% names(choices)) as.character(choices$list_name) == key_list else rep(FALSE, nrow(choices))
+        choices <- choices[!old_key_rows, , drop = FALSE]
+        add_key <- choices[0, , drop = FALSE]
+        for (key in origins) {
+          row <- add_key[1, , drop = FALSE]
+          if (!nrow(row)) row <- as.data.frame(as.list(stats::setNames(rep(NA_character_, length(names(choices))), names(choices))), stringsAsFactors = FALSE)
+          row$list_name <- key_list
+          row$name <- key
+          row[[lab_col_c]] <- key
+          add_key <- rbind(add_key, row)
+        }
+        choices <- rbind(choices, add_key)
+      }
+    }
+
+    source_vars <- unique(vapply(variant_map, function(v) as.character(v$from %||% ""), character(1)))
+    source_vars <- source_vars[nzchar(source_vars)]
+    source_to_variants <- lapply(source_vars, function(src) {
+      Filter(function(v) identical(as.character(v$from %||% ""), src), variant_map)
+    })
+    names(source_to_variants) <- source_vars
+
+    survey_names <- as.character(survey$name)
+    repaired_sources <- character(0)
+    added_rows <- survey[0, , drop = FALSE]
+    added_choices <- choices[0, , drop = FALSE]
+
+    for (src in source_vars) {
+      vars <- source_to_variants[[src]]
+      variant_names <- unique(vapply(vars, function(v) as.character(v$to %||% ""), character(1)))
+      variant_names <- variant_names[nzchar(variant_names)]
+      if (!length(variant_names) || !any(variant_names %in% data_cols)) next
+      if (!src %in% survey_names) next
+
+      source_missing <- !src %in% data_cols
+      source_other <- paste0(src, "_other")
+      variant_other_names <- paste0(variant_names, "_other")
+      if (!source_missing && !any(variant_other_names %in% data_cols)) next
+
+      src_idx <- which(survey_names == src)[1]
+      src_row <- survey[src_idx, , drop = FALSE]
+      other_idx <- which(survey_names == source_other)[1]
+      other_row <- if (!is.na(other_idx)) survey[other_idx, , drop = FALSE] else NULL
+
+      for (v in vars) {
+        to <- as.character(v$to %||% "")
+        if (!nzchar(to) || !to %in% data_cols || to %in% survey_names) next
+        origin_key <- as.character(v$origin_key %||% "")
+        condition <- if (nzchar(key_name) && nzchar(origin_key)) .pulso_origin_relevant(key_name, origin_key) else ""
+
+        tpl_rows <- if (!is.null(template_choices) && "parent_col" %in% names(template_choices)) {
+          template_choices[as.character(template_choices$parent_col) == to, , drop = FALSE]
+        } else NULL
+        list_name <- if (!is.null(tpl_rows) && nrow(tpl_rows) && "list_name" %in% names(tpl_rows)) {
+          as.character(tpl_rows$list_name[1])
+        } else {
+          .pulso_safe_list_name(to)
+        }
+
+        row <- src_row
+        row$name <- to
+        row$type <- if (grepl("^select_multiple\\b", as.character(row$type))) {
+          paste("select_multiple", list_name)
+        } else if (grepl("^select_one\\b", as.character(row$type))) {
+          paste("select_one", list_name)
+        } else {
+          as.character(row$type)
+        }
+        row$relevant <- .pulso_and_relevant(row$relevant, condition)
+        label_val <- if (!is.null(tpl_rows) && nrow(tpl_rows) && "variable_label" %in% names(tpl_rows)) {
+          as.character(tpl_rows$variable_label[1])
+        } else {
+          paste(as.character(src_row[[lab_col_s]][1] %||% src), origin_key, sep = " - ")
+        }
+        row[[lab_col_s]] <- label_val
+        added_rows <- rbind(added_rows, row)
+
+        if (!is.null(tpl_rows) && nrow(tpl_rows) && all(c("code", "label") %in% names(tpl_rows))) {
+          old_rows <- if ("list_name" %in% names(choices)) as.character(choices$list_name) == list_name else rep(FALSE, nrow(choices))
+          choices <- choices[!old_rows, , drop = FALSE]
+          for (i in seq_len(nrow(tpl_rows))) {
+            crow <- choices[0, , drop = FALSE]
+            if (!nrow(crow)) {
+              crow <- as.data.frame(as.list(stats::setNames(rep(NA_character_, length(names(choices))), names(choices))), stringsAsFactors = FALSE)
+            } else {
+              crow <- crow[1, , drop = FALSE]
+            }
+            crow$list_name <- list_name
+            crow$name <- as.character(tpl_rows$code[i])
+            crow[[lab_col_c]] <- as.character(tpl_rows$label[i])
+            added_choices <- rbind(added_choices, crow)
+          }
+        }
+
+        to_other <- paste0(to, "_other")
+        if (!is.null(other_row) && to_other %in% data_cols && !to_other %in% survey_names) {
+          orow <- other_row
+          orow$name <- to_other
+          orow$relevant <- gsub(sprintf("\\$\\{%s\\}", src), sprintf("${%s}", to), as.character(orow$relevant %||% ""))
+          orow$relevant <- .pulso_and_relevant(orow$relevant, condition)
+          added_rows <- rbind(added_rows, orow)
+        }
+      }
+      repaired_sources <- c(repaired_sources, src, source_other)
+    }
+
+    if (!nrow(added_rows)) next
+    drop_names <- unique(repaired_sources[nzchar(repaired_sources)])
+    survey <- survey[!as.character(survey$name) %in% drop_names, , drop = FALSE]
+    insert_at <- min(match(source_vars[source_vars %in% survey_names], survey_names), na.rm = TRUE)
+    if (!is.finite(insert_at)) insert_at <- nrow(survey) + 1L
+    before <- survey[seq_len(max(0, min(insert_at - 1L, nrow(survey)))), , drop = FALSE]
+    after <- if (insert_at <= nrow(survey)) survey[insert_at:nrow(survey), , drop = FALSE] else survey[0, , drop = FALSE]
+    survey <- rbind(before, added_rows[, names(survey), drop = FALSE], after)
+    if (nrow(added_choices)) choices <- rbind(choices, added_choices[, names(choices), drop = FALSE])
+
+    if (.pulso_write_xlsform_frames(xls_meta$path, survey, choices, settings)) {
+      inst_new <- tryCatch(reporte_instrumento(path = xls_meta$path), error = function(e) NULL)
+      if (!is.null(inst_new)) {
+        s$rp_inst <- inst_new
+        if (is.null(s$rp_inst_sources)) s$rp_inst_sources <- list()
+        s$rp_inst_sources[[base_name]] <- inst_new
+        if (!is.null(s$analitica_rp_inst)) {
+          s$analitica_rp_inst <- inst_new
+        }
+        if (!is.null(s$analitica_rp_inst_sources[[base_name]])) {
+          s$analitica_rp_inst_sources[[base_name]] <- inst_new
+        }
+      }
+      # El instrumento reparado cambia el contrato data/XLSForm; cualquier
+      # compatibilidad cacheada contra el XLSForm viejo queda inválida.
+      if (!is.null(s$rp_data)) {
+        attr(s$rp_data, "xlsform_compatibility") <- NULL
+      }
+      if (!is.null(s$rp_data_sources[[base_name]])) {
+        attr(s$rp_data_sources[[base_name]], "xlsform_compatibility") <- NULL
+      }
+      if (!is.null(s$analitica_rp_data)) {
+        attr(s$analitica_rp_data, "xlsform_compatibility") <- NULL
+      }
+      if (!is.null(s$analitica_rp_data_sources[[base_name]])) {
+        attr(s$analitica_rp_data_sources[[base_name]], "xlsform_compatibility") <- NULL
+      }
+      s$data_xlsform_compatibility <- NULL
+      if (!is.null(s$estudio$bases[[base_name]])) {
+        s$estudio$bases[[base_name]]$compatibilidad <- NULL
+      }
+      s$analitica_prep_ok <- FALSE
+      changed <- TRUE
+    }
+  }
+
+  if (changed) {
+    .session_env[[sid]] <- s
+  }
+  invisible(changed)
+}
+
 # Re-normaliza la data restaurada de un .pulso viejo. Los .pulso guardados
 # antes de v0.14 cachean `rp_data` (single-base) y `rp_data_sources[[base]]`
 # (multi-base) sin pasar por `normalize_data_for_xlsform` — entonces sus
@@ -109,10 +876,7 @@
 
   renorm_one <- function(data, instrumento) {
     if (is.null(data) || is.null(instrumento)) return(NULL)
-    if (!is.null(attr(data, "xlsform_normalized")) &&
-        !is.null(attr(data, "xlsform_compatibility"))) {
-      return(NULL)
-    }
+    compat_prev <- attr(data, "xlsform_compatibility", exact = TRUE)
     already_normalized <- !is.null(attr(data, "xlsform_normalized"))
     out <- if (already_normalized) {
       data
@@ -132,6 +896,14 @@
       if (!isTRUE(compat$ok)) {
         message("[pulso] data/XLSForm incompatibles tras normalizar .pulso: ", compat$message)
       }
+    }
+    if (already_normalized && !is.null(compat_prev) && !is.null(compat)) {
+      same_ok <- identical(isTRUE(compat_prev$ok), isTRUE(compat$ok))
+      same_missing <- setequal(
+        as.character(compat_prev$missing_columns %||% compat_prev$missing_variables %||% character(0)),
+        as.character(compat$missing_columns %||% compat$missing_variables %||% character(0))
+      )
+      if (isTRUE(same_ok) && isTRUE(same_missing)) return(NULL)
     }
     if (!already_normalized && is.null(attr(out, "xlsform_normalized")) && is.null(compat)) {
       return(NULL)
@@ -198,6 +970,22 @@
       }
       if (!is.null(b$data_file_id) && nzchar(b$data_file_id)) {
         out <- c(out, b$data_file_id)
+      }
+      if (!is.null(b$original_xlsform_file_id) && nzchar(b$original_xlsform_file_id)) {
+        out <- c(out, b$original_xlsform_file_id)
+      }
+      if (!is.null(b$original_data_file_id) && nzchar(b$original_data_file_id)) {
+        out <- c(out, b$original_data_file_id)
+      }
+      multi <- b$multi_integrated %||% list()
+      if (!is.null(multi$guide_xlsform_file_id) && nzchar(multi$guide_xlsform_file_id)) {
+        out <- c(out, multi$guide_xlsform_file_id)
+      }
+      for (origin in (multi$origins %||% list())) {
+        fid_x <- as.character(origin$xlsform_file_id %||% "")
+        fid_d <- as.character(origin$data_file_id %||% "")
+        if (nzchar(fid_x)) out <- c(out, fid_x)
+        if (nzchar(fid_d)) out <- c(out, fid_d)
       }
     }
   }
@@ -381,6 +1169,8 @@ build_pulso <- function(sid, dest_path, project_name = NULL) {
     format_version    = 1L,
     app_version       = app_version,
     project_name      = project_name %||% (s$estudio$nombre %||% NA_character_),
+    processing_mode   = (s$estudio %||% list())$processing_mode %||% "multibase",
+    active_base       = (s$estudio %||% list())$active_base %||% NA_character_,
     n_bases           = n_bases,
     n_files           = length(s$files %||% list()),
     created_at        = format(s$created_at %||% Sys.time(),
@@ -514,6 +1304,9 @@ load_pulso <- function(src_path) {
   # 7) Rebuild de caches dashboard (rp_inst / rp_data) a partir de los
   #    file_ids persistidos en dashboard_source. No falla si no hay fuente.
   .dashboard_rebuild_after_load(new_sid)
+  .pulso_repair_multibase_variant_xlsforms(new_sid)
+  .pulso_repair_parent_recod_columns(new_sid)
+  .pulso_rebuild_estudio_runtime_sources(new_sid)
   .pulso_renormalize_after_load(new_sid)
 
   list(

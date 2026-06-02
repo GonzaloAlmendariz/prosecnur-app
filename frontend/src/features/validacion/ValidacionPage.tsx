@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Activity, CheckCircle2, Compass, Database, ListTree, PieChart, ShieldCheck } from "lucide-react";
 import {
+  apiEstudioActiveBaseSet,
   apiEstudioGet,
   EstudioPayload,
 } from "../../api/client";
@@ -76,8 +78,8 @@ export default function ValidacionPage() {
   const [loadError, setLoadError] = useState<string>("");
   const lastSessionRef = useRef(sessionId);
   const basesSignature = useMemo(
-    () => `${state?.session_id ?? sessionId}|${state?.n_bases ?? 0}|${(state?.bases_nombres ?? []).join("|")}`,
-    [sessionId, state?.session_id, state?.n_bases, state?.bases_nombres],
+    () => `${state?.session_id ?? sessionId}|${state?.n_bases ?? 0}|${state?.active_base ?? ""}|${(state?.bases_nombres ?? []).join("|")}`,
+    [sessionId, state?.session_id, state?.n_bases, state?.active_base, state?.bases_nombres],
   );
 
   useEffect(() => {
@@ -96,18 +98,20 @@ export default function ValidacionPage() {
       .then((p) => {
         if (cancel) return;
         setEstudio(p);
+        const activeFromBackend = p.active_base || state?.active_base || null;
         // Si todavía no hay base seleccionada y el estudio tiene bases,
-        // preseleccionamos la primera. El backend habría hecho el mismo
-        // fallback, pero esto mantiene el store sincronizado.
+        // preseleccionamos la activa del backend o la primera.
         if (!baseNombre && p.n_bases > 0) {
-          const first = Object.keys(p.bases)[0];
+          const first = activeFromBackend || Object.keys(p.bases)[0];
           if (first) setBaseNombre(first);
         }
         // Caso borde: base guardada en store ya no existe en el estudio
         // (puede pasar tras quitar una base en Fase 1).
         if (baseNombre && !p.bases[baseNombre]) {
-          const first = Object.keys(p.bases)[0] ?? null;
+          const first = activeFromBackend || Object.keys(p.bases)[0] || null;
           setBaseNombre(first);
+        } else if (activeFromBackend && activeFromBackend !== baseNombre && p.bases[activeFromBackend]) {
+          setBaseNombre(activeFromBackend);
         }
       })
       .catch((e) => {
@@ -116,13 +120,30 @@ export default function ValidacionPage() {
     return () => {
       cancel = true;
     };
-  }, [baseNombre, setBaseNombre, basesSignature]);
+  }, [baseNombre, setBaseNombre, basesSignature, state?.active_base]);
 
   const prereqsOk = !!state?.xlsform && !!state?.data;
   const activeMeta = TABS.find((tab) => tab.key === activeTab) ?? TABS[0];
   const ActiveIcon = activeMeta.icon;
-  const showBaseSelector = prereqsOk && !!estudio && estudio.n_bases > 1;
-  const displayBaseName = baseNombre && baseNombre !== "default" ? baseNombre : "Base única";
+  const independentSiblings = estudio?.processing_mode === "independent_siblings" || state?.estudio_processing_mode === "independent_siblings";
+  const showBaseSelector = prereqsOk && !!estudio && estudio.n_bases > 1 && !independentSiblings;
+  const selectedBase = baseNombre && estudio?.bases ? estudio.bases[baseNombre] : null;
+  const displayBaseName = selectedBase?.source_alias || selectedBase?.source_title || (baseNombre && baseNombre !== "default" ? baseNombre : "Base única");
+
+  async function handleBaseChange(next: string) {
+    setBaseNombre(next);
+    try {
+      const r = await apiEstudioActiveBaseSet(next);
+      window.dispatchEvent(new CustomEvent("pulso:active-base-changed", {
+        detail: { active: r.active, processing_mode: r.processing_mode },
+      }));
+      window.dispatchEvent(new CustomEvent("pulso:codif-source-changed", {
+        detail: { source: r.active },
+      }));
+    } catch (e) {
+      setLoadError((e as Error).message);
+    }
+  }
 
   return (
     <PageFrame
@@ -154,7 +175,7 @@ export default function ValidacionPage() {
                 <BaseSelector
                   estudio={estudio}
                   selected={baseNombre}
-                  onChange={setBaseNombre}
+                  onChange={(next) => void handleBaseChange(next)}
                 />
               </>
             )}
@@ -189,6 +210,7 @@ export default function ValidacionPage() {
               icon={<Compass size={18} />}
               title="Carga insumos para validar"
               hint="La validación se habilita cuando la sesión tiene un XLSForm y una base cargados."
+              cta={<Link className="pulso-empty-cta" to="/carga">Ir a Carga</Link>}
             />
           ) : (
             <>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Columns3, Database, LayoutDashboard } from "lucide-react";
 import {
   apiDashboardCurationGet,
   apiDashboardCurationPut,
@@ -69,6 +70,46 @@ export function DashboardCurationGate({ onDone }: { onDone: () => void }) {
       0,
     );
   }, [payload]);
+  const curationStats = useMemo(() => {
+    if (!payload) {
+      return {
+        eligibleSections: 0,
+        includedSections: 0,
+        selectedVars: 0,
+        totalVars: 0,
+        nonDashboardVars: 0,
+        percentReady: 0,
+      };
+    }
+    const eligibleSections = payload.secciones.filter((s) =>
+      s.vars.some((v) => v.default_include),
+    ).length;
+    const includedSections = payload.secciones.filter((s) =>
+      s.vars.some((v) => v.default_include && includeVars.has(v.name)),
+    ).length;
+    const selectedVars = payload.secciones.reduce(
+      (acc, s) =>
+        acc +
+        s.vars.filter((v) => v.default_include && includeVars.has(v.name)).length,
+      0,
+    );
+    const totalVars = payload.secciones.reduce((acc, s) => acc + s.vars.length, 0);
+    const nonDashboardVars = payload.secciones.reduce(
+      (acc, s) => acc + s.vars.filter((v) => !v.default_include).length,
+      0,
+    );
+    const percentReady = defaultIncludedCount
+      ? Math.round((selectedVars / defaultIncludedCount) * 100)
+      : 0;
+    return {
+      eligibleSections,
+      includedSections,
+      selectedVars,
+      totalVars,
+      nonDashboardVars,
+      percentReady: Math.min(100, Math.max(0, percentReady)),
+    };
+  }, [defaultIncludedCount, includeVars, payload]);
 
   const toggleSection = (nombre: string) => {
     const section = payload?.secciones.find((s) => s.nombre === nombre);
@@ -151,75 +192,130 @@ export function DashboardCurationGate({ onDone }: { onDone: () => void }) {
         </div>
       </div>
 
-      <div className="dash-curation-summary">
-        <strong>{defaultIncludedCount}</strong> variables marcadas por defecto:
-        select_one y select_multiple. Las variables integer/decimal quedan
-        fuera del tablero.
-      </div>
+      <div className="dash-curation-body">
+        <div className="dash-curation-main">
+          <div className="dash-curation-summary">
+            <Database size={15} aria-hidden="true" />
+            <span>
+              <strong>{defaultIncludedCount}</strong> variables marcadas por defecto:
+              select_one y select_multiple. Las variables integer/decimal quedan
+              fuera del tablero.
+            </span>
+          </div>
 
-      {error && <div className="dash-curation-error">{error}</div>}
+          {error && <div className="dash-curation-error">{error}</div>}
 
-      <div className="dash-curation-list">
-        {payload.secciones.map((section) => {
-          const sectionEligible = section.vars.some((v) => v.default_include);
-          const sectionIncluded = sectionEligible && includeSections.has(section.nombre);
-          return (
-            <section key={section.nombre} className="dash-curation-section">
-              <label className="dash-curation-section-head">
-                <input
-                  type="checkbox"
-                  checked={sectionIncluded}
-                  disabled={!sectionEligible}
-                  onChange={() => toggleSection(section.nombre)}
-                />
-                <span>
-                  <strong>{section.nombre}</strong>
-                  <small>{section.n_vars} variables</small>
-                </span>
-              </label>
+          <div className="dash-curation-list">
+            {payload.secciones.map((section) => {
+              const sectionEligible = section.vars.some((v) => v.default_include);
+              const sectionIncluded = sectionEligible && includeSections.has(section.nombre);
+              return (
+                <section key={section.nombre} className="dash-curation-section">
+                  <label className="dash-curation-section-head">
+                    <input
+                      type="checkbox"
+                      checked={sectionIncluded}
+                      disabled={!sectionEligible}
+                      onChange={() => toggleSection(section.nombre)}
+                    />
+                    <span>
+                      <strong>{section.nombre}</strong>
+                      <small>{section.n_vars} variables</small>
+                    </span>
+                  </label>
 
-              <div className="dash-curation-vars">
-                {section.vars.map((v) => {
-                  const checked =
-                    sectionIncluded && v.default_include && includeVars.has(v.name);
-                  return (
-                    <label
-                      key={v.name}
-                      className={`dash-curation-var ${
-                        v.default_include ? "is-default" : "is-muted"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={!sectionIncluded || !v.default_include}
-                        onChange={() => toggleVar(v.name, v.default_include)}
-                      />
-                      <span>
-                        <span className="dash-curation-var-main">
-                          <strong>{v.label || v.name}</strong>
-                          <code>{v.name}</code>
-                        </span>
-                        {v.reason && <small>{v.reason}</small>}
-                      </span>
-                    </label>
-                  );
-                })}
+                  <div className="dash-curation-vars">
+                    {section.vars.map((v) => {
+                      const checked =
+                        sectionIncluded && v.default_include && includeVars.has(v.name);
+                      return (
+                        <label
+                          key={v.name}
+                          className={`dash-curation-var ${
+                            v.default_include ? "is-default" : "is-muted"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={!sectionIncluded || !v.default_include}
+                            onChange={() => toggleVar(v.name, v.default_include)}
+                          />
+                          <span>
+                            <span className="dash-curation-var-main">
+                              <strong>{v.label || v.name}</strong>
+                              <code>{v.name}</code>
+                            </span>
+                            {v.reason && <small>{v.reason}</small>}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </div>
+
+        <aside className="dash-curation-aside" aria-label="Resumen de curaduría">
+          <div className="dash-curation-panel">
+            <div className="dash-curation-panel-head">
+              <span className="dash-curation-panel-icon" aria-hidden="true">
+                <LayoutDashboard size={18} />
+              </span>
+              <div>
+                <strong>Preparación del dashboard</strong>
+                <small>Selección base para construir las pestañas.</small>
               </div>
-            </section>
-          );
-        })}
-      </div>
+            </div>
 
-      <div className="dash-curation-actions">
-        <button
-          type="button"
-          className="dash-primary-btn"
-          onClick={save}
-          disabled={saving}
-        >
-          {saving ? "Guardando…" : "Confirmar y construir dashboard"}
-        </button>
+            <div className="dash-curation-meter" aria-hidden="true">
+              <span style={{ width: `${curationStats.percentReady}%` }} />
+            </div>
+
+            <div className="dash-curation-stats" aria-label="Estado de selección">
+              <div className="dash-curation-stat">
+                <CheckCircle2 size={14} aria-hidden="true" />
+                <span>{curationStats.selectedVars}</span>
+                <small>incluidas</small>
+              </div>
+              <div className="dash-curation-stat">
+                <Columns3 size={14} aria-hidden="true" />
+                <span>
+                  {curationStats.includedSections}/{curationStats.eligibleSections}
+                </span>
+                <small>secciones</small>
+              </div>
+              <div className="dash-curation-stat">
+                <Database size={14} aria-hidden="true" />
+                <span>{curationStats.totalVars}</span>
+                <small>variables</small>
+              </div>
+              <div className="dash-curation-stat">
+                <LayoutDashboard size={14} aria-hidden="true" />
+                <span>{curationStats.nonDashboardVars}</span>
+                <small>no resumibles</small>
+              </div>
+            </div>
+
+            <p className="dash-curation-note">
+              Esta curaduría define qué entra al resumen, cruces, base tabular y
+              vistas analíticas. Puedes excluir ruido sin modificar la base original.
+            </p>
+
+            <div className="dash-curation-actions">
+              <button
+                type="button"
+                className="dash-primary-btn"
+                onClick={save}
+                disabled={saving}
+              >
+                {saving ? "Guardando…" : "Confirmar y construir dashboard"}
+              </button>
+            </div>
+          </div>
+        </aside>
       </div>
     </section>
   );

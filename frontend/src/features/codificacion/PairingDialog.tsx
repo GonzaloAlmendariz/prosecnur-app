@@ -176,15 +176,15 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
                 value="padre"
                 current={modoSo}
                 onChange={setModoSo}
-                title="Integrar el texto a las opciones originales (recomendado)"
-                description={`Los textos de "${childCol}" se vuelven nuevas opciones de ${pregunta.parent}. Ejemplo: si alguien eligió "Otra" y escribió "Venezolana", esa persona queda con código 2 "Venezolana" en ${pregunta.parent}. Lo no categorizable queda como "Otros".`}
+                title="Codificar variable original"
+                description={`La variable ${pregunta.parent} se convierte en ${pregunta.parent}_recod: conserva sus opciones originales y suma categorías creadas desde "${childCol}". Lo no categorizable queda como "Otros".`}
               />
               <ModoOption
                 value="hijo"
                 current={modoSo}
                 onChange={setModoSo}
-                title="Codificar el texto como campo separado"
-                description={`Los textos de "${childCol}" se codifican en un campo aparte (${childCol}_recod) con sus propias categorías. Las opciones originales de ${pregunta.parent} no cambian. Útil cuando el texto representa otra dimensión distinta.`}
+                title="Codificar texto aparte"
+                description={`Los textos de "${childCol}" se codifican como ${childCol}_recod, una variable independiente. Las opciones originales de ${pregunta.parent} no cambian.`}
               />
             </div>
           </div>

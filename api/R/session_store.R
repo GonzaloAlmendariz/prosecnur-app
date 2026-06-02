@@ -67,6 +67,9 @@ session_set <- function(sid, key, value) {
 session_delete <- function(sid) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) return(FALSE)
+  if (exists("prosecnur_session_secrets_clear_all", mode = "function")) {
+    prosecnur_session_secrets_clear_all(sid)
+  }
   unlink(s$dir, recursive = TRUE, force = TRUE)
   rm(list = sid, envir = .session_env)
   TRUE
@@ -81,7 +84,7 @@ session_header <- function(req) {
 # MODELO DE ESTUDIO — multi-base (v0.2+)
 # ===========================================================================
 #
-# Cada sesión mantiene un "estudio" con 1 a N bases (hasta 8 pragmático).
+# Cada sesión mantiene un "estudio" con 1 a N bases.
 # Cada base es un par (instrumento, data) con un nombre identificador
 # dentro del estudio.
 #
@@ -115,23 +118,360 @@ session_header <- function(req) {
 #   Legacy también: s$analitica_fuente = "<fuente>:<nombre>" sigue siendo
 #   string único; representa la fuente de la PRIMERA base del estudio.
 
-# Tope pragmático de bases por estudio. 8 cubre los casos reales de
-# acreditación (docentes/estudiantes/administrativos) y comparativos
-# ("wave A" / "wave B" / etc.). Si se excede, el endpoint lo rechaza.
-.ESTUDIO_MAX_BASES <- 8L
+# Tope pragmático de bases por estudio. Ingeniería egresados tiene 9
+# hermanos; dejamos margen sin abrir el proyecto a cargas masivas.
+.ESTUDIO_MAX_BASES <- 16L
+.ESTUDIO_INDEPENDENT_SIBLINGS_MAX_BASES <- 10L
+.ESTUDIO_PROCESSING_MODES <- c("multibase", "independent_siblings")
+.ESTUDIO_ANALITICA_STATUS_KEYS <- c(
+  "analitica_prep_ok", "analitica_codebook_ok", "analitica_frecuencias_ok",
+  "analitica_cruces_ok", "analitica_spss_ok", "analitica_enumeradores_ok",
+  "analitica_dim_ok", "analitica_multibase_ok", "analitica_bases_data_ok",
+  "analitica_bases_instrumento_ok", "analitica_bases_sav_ok",
+  "analitica_bases_csv_ok", "analitica_bases_xlsx_ok"
+)
+.ESTUDIO_GRAFICOS_STATUS_KEYS <- c("graficos_ppt_ok", "graficos_word_ok")
+
+.estudio_mode_normalize <- function(mode) {
+  mode <- if (is.null(mode) || !nzchar(as.character(mode))) "multibase" else as.character(mode)
+  if (!(mode %in% .ESTUDIO_PROCESSING_MODES)) {
+    stop_api(400, "E_ESTUDIO_PROCESSING_MODE",
+             sprintf("Modo de procesamiento no soportado: '%s'.", mode))
+  }
+  mode
+}
+
+.estudio_active_base_name <- function(s, fallback_first = TRUE) {
+  bases <- names(s$estudio$bases %||% list())
+  if (length(bases) == 0L) return(NULL)
+  active <- s$estudio$active_base %||% NULL
+  if (!is.null(active) && nzchar(as.character(active)) && active %in% bases) return(active)
+  legacy_active <- s$codif_source_active %||% NULL
+  if (!is.null(legacy_active) && nzchar(as.character(legacy_active)) && legacy_active %in% bases) {
+    return(legacy_active)
+  }
+  if (fallback_first) bases[1] else NULL
+}
+
+.estudio_capture_stage_flags <- function(s, base_nombre) {
+  base_nombre <- as.character(base_nombre %||% "")
+  if (!nzchar(base_nombre)) return(s)
+  if (is.null(s$analitica_status_por_base) || !is.list(s$analitica_status_por_base)) {
+    s$analitica_status_por_base <- list()
+  }
+  if (is.null(s$graficos_status_por_base) || !is.list(s$graficos_status_por_base)) {
+    s$graficos_status_por_base <- list()
+  }
+  ast <- s$analitica_status_por_base[[base_nombre]]
+  gst <- s$graficos_status_por_base[[base_nombre]]
+  if (is.null(ast) || !is.list(ast)) ast <- list()
+  if (is.null(gst) || !is.list(gst)) gst <- list()
+  for (key in .ESTUDIO_ANALITICA_STATUS_KEYS) {
+    if (is.null(ast[[key]]) && !is.null(s[[key]])) ast[[key]] <- isTRUE(s[[key]])
+  }
+  for (key in .ESTUDIO_GRAFICOS_STATUS_KEYS) {
+    if (is.null(gst[[key]]) && !is.null(s[[key]])) gst[[key]] <- isTRUE(s[[key]])
+  }
+  s$analitica_status_por_base[[base_nombre]] <- ast
+  s$graficos_status_por_base[[base_nombre]] <- gst
+  s
+}
+
+.estudio_apply_stage_flags <- function(s, base_nombre) {
+  base_nombre <- as.character(base_nombre %||% "")
+  ast <- if (nzchar(base_nombre) && is.list(s$analitica_status_por_base)) {
+    s$analitica_status_por_base[[base_nombre]] %||% list()
+  } else {
+    list()
+  }
+  gst <- if (nzchar(base_nombre) && is.list(s$graficos_status_por_base)) {
+    s$graficos_status_por_base[[base_nombre]] %||% list()
+  } else {
+    list()
+  }
+  for (key in .ESTUDIO_ANALITICA_STATUS_KEYS) s[[key]] <- isTRUE(ast[[key]])
+  for (key in .ESTUDIO_GRAFICOS_STATUS_KEYS) s[[key]] <- isTRUE(gst[[key]])
+  s
+}
 
 # Init del estudio si no existe. Llama internamente a session_set para
 # persistir.
 estudio_ensure <- function(sid) {
   s <- session_get(sid)
   if (is.null(s$estudio)) {
-    s$estudio <- list(nombre = NULL, bases = list())
+    s$estudio <- list(
+      nombre = NULL,
+      bases = list(),
+      processing_mode = "multibase",
+      active_base = NULL
+    )
     s$rp_data_sources <- list()
     s$rp_inst_sources <- list()
     s <- .mark_project_dirty(s)
     .session_env[[sid]] <- s
+  } else {
+    changed <- FALSE
+    if (is.null(s$estudio$bases)) {
+      s$estudio$bases <- list()
+      changed <- TRUE
+    }
+    if (is.null(s$estudio$processing_mode) || !(as.character(s$estudio$processing_mode) %in% .ESTUDIO_PROCESSING_MODES)) {
+      s$estudio$processing_mode <- "multibase"
+      changed <- TRUE
+    }
+    if (!("active_base" %in% names(s$estudio))) {
+      s$estudio$active_base <- NULL
+      changed <- TRUE
+    }
+    if (is.null(s$rp_data_sources)) {
+      s$rp_data_sources <- list()
+      changed <- TRUE
+    }
+    if (is.null(s$rp_inst_sources)) {
+      s$rp_inst_sources <- list()
+      changed <- TRUE
+    }
+    if (changed) {
+      s <- .mark_project_dirty(s)
+      .session_env[[sid]] <- s
+    }
   }
   invisible(s$estudio)
+}
+
+estudio_processing_mode <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s) || is.null(s$estudio)) return("multibase")
+  mode <- s$estudio$processing_mode %||% "multibase"
+  if (!(as.character(mode) %in% .ESTUDIO_PROCESSING_MODES)) "multibase" else as.character(mode)
+}
+
+estudio_set_processing_mode <- function(sid, mode = "multibase") {
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  mode <- .estudio_mode_normalize(mode)
+  s$estudio$processing_mode <- mode
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(mode)
+}
+
+estudio_promote_independent_siblings <- function(sid,
+                                                 active_base = NULL,
+                                                 nombre_nuevo = NULL,
+                                                 source_alias = NULL,
+                                                 source_title = NULL,
+                                                 survey_id = NULL,
+                                                 source_kind = "existing_project",
+                                                 sibling_family_id = NULL) {
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  bases <- names(s$estudio$bases %||% list())
+  if (!length(bases)) {
+    stop_api(409, "E_NO_ESTUDIO", "Aún no hay bases en el estudio para convertir.")
+  }
+  if (length(bases) > .ESTUDIO_INDEPENDENT_SIBLINGS_MAX_BASES) {
+    stop_api(400, "E_BASE_LIMITE",
+             sprintf("El modo de bases hermanas independientes admite máximo %d bases.",
+                     .ESTUDIO_INDEPENDENT_SIBLINGS_MAX_BASES))
+  }
+
+  active <- as.character(active_base %||% .estudio_active_base_name(s, fallback_first = TRUE) %||% "")
+  if (!nzchar(active) || !(active %in% bases)) {
+    stop_api(404, "E_BASE_NOT_FOUND",
+             sprintf("Base '%s' no existe en el estudio. Disponibles: %s",
+                     active, paste(bases, collapse = ", ")))
+  }
+
+  nuevo <- as.character(nombre_nuevo %||% "")
+  if (nzchar(nuevo) && !identical(nuevo, active)) {
+    estudio_rename_base(sid, active, nuevo)
+    active <- nuevo
+    s <- session_get(sid)
+    bases <- names(s$estudio$bases %||% list())
+  }
+
+  family_id <- as.character(sibling_family_id %||% s$estudio$sibling_family_id %||% "")
+  if (!nzchar(family_id)) family_id <- uuid::UUIDgenerate()
+  promoted_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  source_kind <- as.character(source_kind %||% "existing_project")
+  if (!nzchar(source_kind)) source_kind <- "existing_project"
+  source_alias <- as.character(source_alias %||% source_title %||% "")
+  source_title <- as.character(source_title %||% "")
+  survey_id <- as.character(survey_id %||% "")
+
+  for (b in bases) {
+    meta <- s$estudio$bases[[b]] %||% list(nombre = b)
+    meta$processing_mode <- "independent_siblings"
+    if (is.null(meta$source_kind) || !nzchar(as.character(meta$source_kind))) {
+      meta$source_kind <- source_kind
+    }
+    if (identical(b, active) && nzchar(source_alias)) meta$source_alias <- source_alias
+    if (is.null(meta$source_alias) || !nzchar(as.character(meta$source_alias))) {
+      meta$source_alias <- meta$source_title %||% b
+    }
+    if (identical(b, active) && nzchar(source_title)) meta$source_title <- source_title
+    if (is.null(meta$source_title) || !nzchar(as.character(meta$source_title))) {
+      meta$source_title <- b
+    }
+    if (identical(b, active) && nzchar(survey_id)) meta$survey_id <- survey_id
+    if (is.null(meta$sibling_family_id) || !nzchar(as.character(meta$sibling_family_id))) {
+      meta$sibling_family_id <- family_id
+    }
+    if (is.null(meta$imported_at) || !nzchar(as.character(meta$imported_at))) {
+      meta$imported_at <- promoted_at
+    }
+    if (is.null(meta$response_filter)) {
+      meta$response_filter <- list(kind = "existing_project")
+    }
+    s$estudio$bases[[b]] <- meta
+  }
+
+  s$estudio$processing_mode <- "independent_siblings"
+  s$estudio$active_base <- active
+  s$estudio$sibling_family_id <- family_id
+  s$estudio$independent_siblings <- list(
+    version = 1L,
+    sibling_family_id = family_id,
+    template_base = active,
+    logic_policy = "shared_template",
+    shared_logic = TRUE,
+    status = "promoted_existing_project",
+    updated_at = promoted_at
+  )
+  s$codif_source_active <- active
+  s <- .estudio_capture_stage_flags(s, active)
+  s <- .estudio_apply_stage_flags(s, active)
+  fuente <- as.character(s$analitica_fuente %||% "")
+  if (nzchar(fuente) && !grepl(":", fuente, fixed = TRUE)) {
+    s$analitica_fuente <- paste(fuente, active, sep = ":")
+  }
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(s$estudio)
+}
+
+estudio_independent_family_id <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s) || is.null(s$estudio)) return(NULL)
+  id <- as.character(
+    s$estudio$sibling_family_id %||%
+      (s$estudio$independent_siblings %||% list())$sibling_family_id %||%
+      ""
+  )
+  if (is.na(id) || !nzchar(id)) NULL else id
+}
+
+estudio_mark_independent_shared_logic <- function(sid,
+                                                  template_base = NULL,
+                                                  audit = NULL,
+                                                  status = "ready") {
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  bases <- names(s$estudio$bases %||% list())
+  if (!length(bases)) return(invisible(NULL))
+  template_base <- as.character(template_base %||% s$estudio$active_base %||% bases[1])
+  if (!nzchar(template_base) || !(template_base %in% bases)) template_base <- bases[1]
+  family_id <- estudio_independent_family_id(sid) %||% uuid::UUIDgenerate()
+  now <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  s$estudio$processing_mode <- "independent_siblings"
+  s$estudio$sibling_family_id <- family_id
+  s$estudio$independent_siblings <- list(
+    version = 1L,
+    sibling_family_id = family_id,
+    template_base = template_base,
+    logic_policy = "shared_template",
+    shared_logic = TRUE,
+    status = as.character(status %||% "ready"),
+    audit = audit,
+    updated_at = now
+  )
+  for (b in bases) {
+    meta <- s$estudio$bases[[b]] %||% list(nombre = b)
+    meta$processing_mode <- "independent_siblings"
+    if (is.null(meta$sibling_family_id) || !nzchar(as.character(meta$sibling_family_id))) {
+      meta$sibling_family_id <- family_id
+    }
+    s$estudio$bases[[b]] <- meta
+  }
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(s$estudio$independent_siblings)
+}
+
+estudio_propagate_shared_codif_logic <- function(sid,
+                                                 template_base = NULL,
+                                                 targets = NULL,
+                                                 overwrite = FALSE) {
+  s <- session_get(sid)
+  bases <- names((s$estudio %||% list())$bases %||% list())
+  if (!length(bases)) return(character(0))
+  template_base <- as.character(template_base %||% (s$estudio$independent_siblings %||% list())$template_base %||% s$estudio$active_base %||% bases[1])
+  if (!nzchar(template_base) || !(template_base %in% bases)) template_base <- bases[1]
+  source_state <- (s$codif_por_base %||% list())[[template_base]]
+  if (is.null(source_state) || !is.list(source_state)) return(character(0))
+  targets <- as.character(targets %||% setdiff(bases, template_base))
+  targets <- targets[nzchar(targets) & targets %in% bases]
+  if (!length(targets)) return(character(0))
+  if (is.null(s$codif_por_base) || !is.list(s$codif_por_base)) s$codif_por_base <- list()
+  copied <- character(0)
+  for (target in targets) {
+    if (!isTRUE(overwrite) && !is.null(s$codif_por_base[[target]]) && length(s$codif_por_base[[target]])) {
+      next
+    }
+    cloned <- source_state
+    cloned$inst <- NULL
+    cloned$data <- NULL
+    cloned$familias_split <- NULL
+    cloned$familias_xlsx_path <- NULL
+    cloned$shared_logic_from <- template_base
+    cloned$shared_logic_copied_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    s$codif_por_base[[target]] <- cloned
+    copied <- c(copied, target)
+  }
+  if (length(copied)) {
+    s <- .mark_project_dirty(s)
+    .session_env[[sid]] <- s
+  }
+  copied
+}
+
+estudio_is_independent_siblings <- function(sid) {
+  identical(estudio_processing_mode(sid), "independent_siblings")
+}
+
+estudio_active_base <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s) || is.null(s$estudio)) return(NULL)
+  .estudio_active_base_name(s, fallback_first = TRUE)
+}
+
+estudio_active_base_set <- function(sid, base_nombre) {
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  bases <- names(s$estudio$bases %||% list())
+  if (length(bases) == 0L) {
+    stop_api(409, "E_NO_ESTUDIO", "Aún no hay bases en el estudio (carga una en Fase 1).")
+  }
+  base_nombre <- if (is.null(base_nombre)) "" else as.character(base_nombre)
+  if (!nzchar(base_nombre) || !(base_nombre %in% bases)) {
+    stop_api(404, "E_BASE_NOT_FOUND",
+             sprintf("Base '%s' no existe en el estudio. Disponibles: %s",
+                     base_nombre, paste(bases, collapse = ", ")))
+  }
+  old_active <- .estudio_active_base_name(s, fallback_first = FALSE)
+  if (identical(as.character(s$estudio$processing_mode %||% ""), "independent_siblings") &&
+      !is.null(old_active) && nzchar(as.character(old_active))) {
+    s <- .estudio_capture_stage_flags(s, old_active)
+  }
+  s$estudio$active_base <- base_nombre
+  s$codif_source_active <- base_nombre
+  if (identical(as.character(s$estudio$processing_mode %||% ""), "independent_siblings")) {
+    s <- .estudio_apply_stage_flags(s, base_nombre)
+  }
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(base_nombre)
 }
 
 # Devuelve la lista plana de bases del estudio.
@@ -153,7 +493,8 @@ estudio_list_bases <- function(sid) {
 # Valida tope de bases y nombres únicos.
 estudio_add_base <- function(sid, nombre, xlsform_file_id, data_file_id,
                               data_ext, rp_data, rp_inst,
-                              n_filas = NA_integer_, n_columnas = NA_integer_) {
+                              n_filas = NA_integer_, n_columnas = NA_integer_,
+                              extra_meta = list()) {
   estudio_ensure(sid)
   s <- session_get(sid)
   if (!is.character(nombre) || !nzchar(nombre)) {
@@ -168,12 +509,19 @@ estudio_add_base <- function(sid, nombre, xlsform_file_id, data_file_id,
   if (nombre %in% names(s$estudio$bases)) {
     stop_api(409, "E_BASE_DUP", sprintf("Ya existe una base con nombre '%s' en este estudio.", nombre))
   }
-  if (length(s$estudio$bases) >= .ESTUDIO_MAX_BASES) {
+  base_limit <- .ESTUDIO_MAX_BASES
+  if (identical(as.character(s$estudio$processing_mode %||% ""), "independent_siblings")) {
+    base_limit <- .ESTUDIO_INDEPENDENT_SIBLINGS_MAX_BASES
+  }
+  if (length(s$estudio$bases) >= base_limit) {
     stop_api(400, "E_BASE_LIMITE",
-             sprintf("El estudio llegó al límite de %d bases.", .ESTUDIO_MAX_BASES))
+             sprintf("El estudio llegó al límite de %d bases.", base_limit))
+  }
+  if (!is.null(extra_meta) && !is.list(extra_meta)) {
+    stop_api(400, "E_BASE_META_INVALIDA", "La metadata adicional de la base debe ser una lista.")
   }
 
-  s$estudio$bases[[nombre]] <- list(
+  base_meta <- list(
     nombre          = nombre,
     xlsform_file_id = xlsform_file_id,
     data_file_id    = data_file_id,
@@ -182,6 +530,12 @@ estudio_add_base <- function(sid, nombre, xlsform_file_id, data_file_id,
     n_columnas      = n_columnas,
     added_at        = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   )
+  reserved <- c("nombre", "xlsform_file_id", "data_file_id", "data_ext",
+                "n_filas", "n_columnas", "added_at")
+  for (k in names(extra_meta %||% list())) {
+    if (!(k %in% reserved)) base_meta[[k]] <- extra_meta[[k]]
+  }
+  s$estudio$bases[[nombre]] <- base_meta
   s$rp_data_sources[[nombre]] <- rp_data
   s$rp_inst_sources[[nombre]] <- rp_inst
 
@@ -189,6 +543,11 @@ estudio_add_base <- function(sid, nombre, xlsform_file_id, data_file_id,
   if (length(s$estudio$bases) == 1L) {
     s$rp_data <- rp_data
     s$rp_inst <- rp_inst
+    s$estudio$active_base <- nombre
+    s$codif_source_active <- nombre
+  } else if (is.null(.estudio_active_base_name(s, fallback_first = FALSE))) {
+    s$estudio$active_base <- nombre
+    s$codif_source_active <- nombre
   }
 
   s <- .mark_project_dirty(s)
@@ -206,6 +565,10 @@ estudio_remove_base <- function(sid, nombre) {
   s$estudio$bases[[nombre]] <- NULL
   s$rp_data_sources[[nombre]] <- NULL
   s$rp_inst_sources[[nombre]] <- NULL
+  if (!is.null(s$analitica_config_por_base)) s$analitica_config_por_base[[nombre]] <- NULL
+  if (!is.null(s$analitica_status_por_base)) s$analitica_status_por_base[[nombre]] <- NULL
+  if (!is.null(s$graficos_config_por_base)) s$graficos_config_por_base[[nombre]] <- NULL
+  if (!is.null(s$graficos_status_por_base)) s$graficos_status_por_base[[nombre]] <- NULL
 
   # Re-espejar si quedan bases; sino, limpiar los campos legacy.
   remaining <- names(s$estudio$bases)
@@ -213,9 +576,16 @@ estudio_remove_base <- function(sid, nombre) {
     first <- remaining[1]
     s$rp_data <- s$rp_data_sources[[first]]
     s$rp_inst <- s$rp_inst_sources[[first]]
+    if (identical(s$estudio$active_base %||% NULL, nombre) ||
+        identical(s$codif_source_active %||% NULL, nombre)) {
+      s$estudio$active_base <- first
+      s$codif_source_active <- first
+    }
   } else {
     s$rp_data <- NULL
     s$rp_inst <- NULL
+    s$estudio$active_base <- NULL
+    s$codif_source_active <- NULL
   }
 
   s <- .mark_project_dirty(s)
@@ -253,10 +623,67 @@ estudio_rename_base <- function(sid, nombre_actual, nombre_nuevo) {
   s$estudio$bases[[nombre_nuevo]]$nombre <- nombre_nuevo
   s$rp_data_sources <- rename_key(s$rp_data_sources, nombre_actual, nombre_nuevo)
   s$rp_inst_sources <- rename_key(s$rp_inst_sources, nombre_actual, nombre_nuevo)
+  if (!is.null(s$analitica_rp_data_sources)) {
+    s$analitica_rp_data_sources <- rename_key(s$analitica_rp_data_sources, nombre_actual, nombre_nuevo)
+  }
+  if (!is.null(s$analitica_rp_inst_sources)) {
+    s$analitica_rp_inst_sources <- rename_key(s$analitica_rp_inst_sources, nombre_actual, nombre_nuevo)
+  }
+  if (identical(s$estudio$active_base %||% NULL, nombre_actual)) {
+    s$estudio$active_base <- nombre_nuevo
+  }
+  if (identical(s$codif_source_active %||% NULL, nombre_actual)) {
+    s$codif_source_active <- nombre_nuevo
+  }
+  if (!is.null(s$codif_por_base)) {
+    s$codif_por_base <- rename_key(s$codif_por_base, nombre_actual, nombre_nuevo)
+  }
+  if (!is.null(s$analitica_config_por_base)) {
+    s$analitica_config_por_base <- rename_key(s$analitica_config_por_base, nombre_actual, nombre_nuevo)
+  }
+  if (!is.null(s$analitica_status_por_base)) {
+    s$analitica_status_por_base <- rename_key(s$analitica_status_por_base, nombre_actual, nombre_nuevo)
+  }
+  if (!is.null(s$graficos_config_por_base)) {
+    s$graficos_config_por_base <- rename_key(s$graficos_config_por_base, nombre_actual, nombre_nuevo)
+  }
+  if (!is.null(s$graficos_status_por_base)) {
+    s$graficos_status_por_base <- rename_key(s$graficos_status_por_base, nombre_actual, nombre_nuevo)
+  }
 
   s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
   invisible(TRUE)
+}
+
+estudio_update_base_metadata <- function(sid, nombre, patch = list()) {
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  if (is.null(s$estudio) || is.null(s$estudio$bases[[nombre]])) {
+    stop_api(404, "E_BASE_NOT_FOUND", sprintf("Base '%s' no existe.", nombre))
+  }
+  if (!is.list(patch)) {
+    stop_api(400, "E_BASE_META_INVALIDA", "La metadata de base debe ser un objeto.")
+  }
+  allowed <- c("source_alias", "source_title", "source_kind", "survey_id", "response_filter")
+  meta <- s$estudio$bases[[nombre]]
+  for (key in intersect(names(patch), allowed)) {
+    if (identical(key, "response_filter")) {
+      meta[[key]] <- patch[[key]]
+      next
+    }
+    value <- trimws(as.character(patch[[key]] %||% "")[1])
+    if (is.na(value)) value <- ""
+    if (identical(key, "source_alias") && !nzchar(value)) {
+      stop_api(400, "E_SOURCE_ALIAS_EMPTY", "El alias visible no puede quedar vacío.")
+    }
+    meta[[key]] <- value
+  }
+  meta$metadata_updated_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  s$estudio$bases[[nombre]] <- meta
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(meta)
 }
 
 # Genera el próximo nombre automático libre dentro del estudio. Se usa
@@ -389,7 +816,7 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
 # Resuelve el nombre efectivo de la base. Reglas:
 # - Si viene base_nombre y existe en el estudio, usar ese.
 # - Si viene pero no existe, error.
-# - Si no viene y hay estudio con ≥1 base, usar la primera.
+# - Si no viene y hay estudio con ≥1 base, usar la base activa.
 # - Si no hay estudio pero hay rp_data legacy, retornar NULL (modo legacy).
 # - Si no hay nada, retornar NULL y el caller decide.
 .resolve_base_nombre <- function(s, base_nombre) {
@@ -401,7 +828,7 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
     return(base_nombre)
   }
   if (!is.null(s$estudio) && length(s$estudio$bases) > 0L) {
-    return(names(s$estudio$bases)[1])
+    return(.estudio_active_base_name(s, fallback_first = TRUE))
   }
   NULL  # legacy single-base
 }
@@ -520,6 +947,30 @@ estudio_inst_sources <- function(sid) {
   list()
 }
 
+estudio_processing_filter_sources <- function(sid, data_sources = NULL, inst_sources = NULL) {
+  ds <- data_sources %||% estudio_data_sources(sid)
+  is_ <- inst_sources %||% estudio_inst_sources(sid)
+  if (!estudio_is_independent_siblings(sid)) {
+    return(list(data_sources = ds, inst_sources = is_))
+  }
+  active <- estudio_active_base(sid)
+  if (is.null(active) || !nzchar(active)) {
+    return(list(data_sources = list(), inst_sources = list()))
+  }
+  list(
+    data_sources = if (!is.null(ds[[active]])) stats::setNames(list(ds[[active]]), active) else list(),
+    inst_sources = if (!is.null(is_[[active]])) stats::setNames(list(is_[[active]]), active) else list()
+  )
+}
+
+estudio_processing_data_sources <- function(sid) {
+  estudio_processing_filter_sources(sid)$data_sources
+}
+
+estudio_processing_inst_sources <- function(sid) {
+  estudio_processing_filter_sources(sid)$inst_sources
+}
+
 # ===========================================================================
 # CODIFICACIÓN — state scoped por base (v0.2+)
 # ===========================================================================
@@ -554,34 +1005,14 @@ estudio_inst_sources <- function(sid) {
 codif_source_active <- function(sid) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) return("default")
-  active <- s$codif_source_active
-  if (!is.null(active) && nzchar(active)) {
-    # Validar que siga existiendo en el estudio.
-    bases <- names(s$estudio$bases %||% list())
-    if (active %in% bases) return(active)
-  }
-  # Fallback: primera base del estudio.
-  bases <- names(s$estudio$bases %||% list())
-  if (length(bases) > 0L) return(bases[1])
+  active <- .estudio_active_base_name(s, fallback_first = TRUE)
+  if (!is.null(active) && nzchar(active)) return(active)
   "default"
 }
 
 # Setea la base activa. Valida que exista en el estudio.
 codif_source_set <- function(sid, source) {
-  s <- session_get(sid)
-  bases <- names(s$estudio$bases %||% list())
-  if (length(bases) == 0L) {
-    stop_api(409, "E_NO_ESTUDIO", "Aún no hay bases en el estudio (carga una en Fase 1).")
-  }
-  if (!source %in% bases) {
-    stop_api(404, "E_BASE_NOT_FOUND",
-             sprintf("Base '%s' no existe en el estudio. Disponibles: %s",
-                     source, paste(bases, collapse = ", ")))
-  }
-  s$codif_source_active <- source
-  s <- .mark_project_dirty(s)
-  .session_env[[sid]] <- s
-  invisible(source)
+  estudio_active_base_set(sid, source)
 }
 
 # Lee un campo del state de codificación para la base activa (o la

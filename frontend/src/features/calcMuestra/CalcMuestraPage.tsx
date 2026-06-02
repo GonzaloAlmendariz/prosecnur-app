@@ -1123,6 +1123,11 @@ export default function CalcMuestraPage() {
       }
       resetScrollKey={desk}
     >
+      <span
+        hidden
+        data-audit-ready="calc-muestra"
+        data-audit-desk={desk}
+      />
       <div className="cmv2-workbench">
         <aside className="cmv2-rail">
           <div className="cmv2-rail-title">
@@ -1329,16 +1334,25 @@ function StudyBasics({
       <div className="cmv2-form-grid">
         <label>
           <span>Título</span>
-          <input value={estudio.titulo} onChange={(e) => onTitulo(e.currentTarget.value)} />
+          <input
+            value={estudio.titulo}
+            placeholder="Nombre del estudio o propuesta"
+            onChange={(e) => onTitulo(e.currentTarget.value)}
+          />
         </label>
         <label>
           <span>Cliente</span>
-          <input value={estudio.contexto.cliente} onChange={(e) => onContexto("cliente", e.currentTarget.value)} />
+          <input
+            value={estudio.contexto.cliente}
+            placeholder="Institución o área solicitante"
+            onChange={(e) => onContexto("cliente", e.currentTarget.value)}
+          />
         </label>
         <label>
           <span>Fuente del marco</span>
           <input
             value={workspace.fuente_marco}
+            placeholder="Censo, padrón, listado externo..."
             onChange={(e) => onWorkspace({ ...workspace, fuente_marco: e.currentTarget.value })}
           />
         </label>
@@ -1346,6 +1360,7 @@ function StudyBasics({
           <span>Marco disponible</span>
           <input
             value={workspace.marco_disponible}
+            placeholder="Universo validado o cobertura estimada"
             onChange={(e) => onWorkspace({ ...workspace, marco_disponible: e.currentTarget.value })}
           />
         </label>
@@ -1353,16 +1368,18 @@ function StudyBasics({
           <span>Unidad de observación</span>
           <input
             value={workspace.unidad_observacion}
+            placeholder="Persona, hogar, aula, actor..."
             onChange={(e) => onWorkspace({ ...workspace, unidad_observacion: e.currentTarget.value })}
           />
         </label>
         {!universitario && (
           <label>
             <span>Unidad de muestreo</span>
-            <input
-              value={workspace.unidad_muestreo}
-              onChange={(e) => onWorkspace({ ...workspace, unidad_muestreo: e.currentTarget.value })}
-            />
+              <input
+                value={workspace.unidad_muestreo}
+                placeholder="Unidad seleccionable del marco"
+                onChange={(e) => onWorkspace({ ...workspace, unidad_muestreo: e.currentTarget.value })}
+              />
           </label>
         )}
       </div>

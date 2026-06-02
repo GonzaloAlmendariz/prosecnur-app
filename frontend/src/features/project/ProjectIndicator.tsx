@@ -46,69 +46,40 @@ export default function ProjectIndicator({ project, onRequestStartModal }: Props
 
   if (!status.has_project) {
     return (
-      <button
-        type="button"
-        onClick={onRequestStartModal}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "4px 10px",
-          borderRadius: 999,
-          border: "1px dashed var(--pulso-border)",
-          background: "transparent",
-          color: "var(--pulso-text-soft)",
-          fontSize: 11,
-          cursor: "pointer",
-        }}
-        title="Crear o abrir un proyecto .pulso"
-      >
-        <Circle size={11} /> Sin proyecto
-      </button>
+      <div className="pulso-project-indicator is-empty">
+        <button
+          type="button"
+          onClick={onRequestStartModal}
+          className="pulso-project-chip pulso-project-chip--empty"
+          title="Crear o abrir un proyecto .pulso"
+        >
+          <Circle size={11} /> Sin proyecto
+        </button>
+      </div>
     );
   }
 
   return (
-    <div style={{ position: "relative", display: "inline-block" }}>
+    <div className={`pulso-project-indicator ${open ? "is-open" : ""}`}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         title={projectPath ? `Ruta .pulso: ${projectPath}` : undefined}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "4px 10px",
-          borderRadius: 999,
-          border: `1px solid ${status.dirty ? "var(--pulso-warn-accent)" : "var(--pulso-success-border)"}`,
-          background: status.dirty ? "var(--pulso-warn-bg)" : "var(--pulso-success-bg)",
-          color: status.dirty ? "var(--pulso-warn-fg)" : "var(--pulso-success-fg)",
-          fontSize: 11,
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
+        className={`pulso-project-chip ${status.dirty ? "is-dirty" : "is-saved"}`}
       >
         <Folder size={12} />
-        <span>{status.name}</span>
+        <span className="pulso-project-chip-name">{status.name}</span>
         {pathFile && (
           <>
-            <span style={{ opacity: 0.55 }}>·</span>
+            <span className="pulso-project-chip-separator">·</span>
             <span
-              style={{
-                maxWidth: 170,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                fontFamily: "ui-monospace, monospace",
-                fontWeight: 500,
-                opacity: 0.82,
-              }}
+              className="pulso-project-chip-path"
             >
               {pathFile}
             </span>
           </>
         )}
-        <span style={{ opacity: 0.7 }}>·</span>
+        <span className="pulso-project-chip-separator">·</span>
         {status.dirty ? (
           <>
             <Circle size={9} fill="currentColor" />
@@ -126,42 +97,11 @@ export default function ProjectIndicator({ project, onRequestStartModal }: Props
       {open && (
         <div
           onClick={(e) => e.stopPropagation()}
-          style={{
-            position: "absolute",
-            top: "calc(100% + 6px)",
-            right: 0,
-            minWidth: 220,
-            background: "white",
-            border: "1px solid var(--pulso-border)",
-            borderRadius: 8,
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-            padding: 6,
-            zIndex: 100,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
+          className="pulso-project-menu"
         >
-          <div style={{
-            padding: "8px 10px 9px",
-            borderBottom: "1px solid var(--pulso-border)",
-            marginBottom: 4,
-            display: "grid",
-            gap: 5,
-          }}>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 8,
-            }}>
-              <span style={{
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: 0.3,
-                color: "var(--pulso-text-soft)",
-              }}>
+          <div className="pulso-project-menu-head">
+            <div className="pulso-project-menu-head-row">
+              <span className="pulso-project-menu-label">
                 Ruta .pulso
               </span>
               <button
@@ -178,30 +118,13 @@ export default function ProjectIndicator({ project, onRequestStartModal }: Props
                 }}
                 disabled={!projectPath}
                 title="Copiar ruta .pulso"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  border: "1px solid var(--pulso-border)",
-                  borderRadius: 5,
-                  background: "white",
-                  padding: "3px 6px",
-                  fontSize: 10,
-                  color: "var(--pulso-text-soft)",
-                  cursor: projectPath ? "pointer" : "not-allowed",
-                }}
+                className="pulso-project-menu-copy"
               >
                 <Copy size={10} />
                 {copied ? "Copiada" : "Copiar"}
               </button>
             </div>
-            <div style={{
-              fontSize: 10,
-              fontFamily: "ui-monospace, monospace",
-              color: "var(--pulso-text)",
-              wordBreak: "break-all",
-              lineHeight: 1.45,
-            }}>
+            <div className="pulso-project-menu-path">
               {projectPath}
             </div>
           </div>
@@ -237,10 +160,7 @@ export default function ProjectIndicator({ project, onRequestStartModal }: Props
       {open && (
         <div
           onClick={() => setOpen(false)}
-          style={{
-            position: "fixed", inset: 0,
-            zIndex: 99,
-          }}
+          className="pulso-project-menu-scrim"
         />
       )}
     </div>
@@ -261,31 +181,12 @@ function MenuItem({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "6px 10px",
-        borderRadius: 4,
-        border: "none",
-        background: "transparent",
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.5 : 1,
-        fontSize: 12,
-        color: "var(--pulso-text)",
-        textAlign: "left",
-      }}
-      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = "var(--pulso-surface)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+      className="pulso-project-menu-item"
     >
       {icon}
-      <span style={{ flex: 1 }}>{label}</span>
+      <span className="pulso-project-menu-item-label">{label}</span>
       {shortcut && (
-        <span style={{
-          fontSize: 10,
-          color: "var(--pulso-text-soft)",
-          fontFamily: "ui-monospace, monospace",
-        }}>
+        <span className="pulso-project-menu-shortcut">
           {shortcut}
         </span>
       )}

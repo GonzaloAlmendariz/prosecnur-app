@@ -13,8 +13,10 @@ import {
   type ExplorarBivariadoResult,
   type ExplorarFiltros,
   type ExplorarFuente,
+  type ExplorarTextResponseRow,
   type ExplorarUnivariadoResult,
 } from "../../../api/client";
+import type { ViewDescriptor } from "../types";
 import type { ExploradorVariable, ExploradorVariablesList } from "../types";
 import { useValidacionStore } from "../store";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
@@ -235,7 +237,7 @@ export default function ExplorarTab() {
           Variables · {inv.n_variables}
         </div>
         <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5, marginBottom: 10 }}>
-          Este explorador muestra solo <strong>Selección única</strong>, <strong>Selección múltiple</strong> y <strong>numéricas</strong>.
+          Este explorador muestra <strong>Selección única</strong>, <strong>Selección múltiple</strong>, <strong>numéricas</strong> y <strong>respuestas abiertas</strong>.
         </div>
         <VariablePicker
           secciones={inv.secciones}
@@ -321,27 +323,11 @@ export default function ExplorarTab() {
                 title={`Distribución de ${selected.name}`}
                 tone="self"
               >
-                <PlotlyView view={uni.chart} />
-                {uni.chart.kind === "table" &&
-                  uni.chart.samples &&
-                  uni.chart.samples.length > 0 && (
-                    <div
-                      style={{
-                        marginTop: 10,
-                        fontSize: 11,
-                        color: "var(--pulso-text-soft)",
-                      }}
-                    >
-                      <div style={{ fontWeight: 700, marginBottom: 4 }}>
-                        Muestra de respuestas
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: 16, lineHeight: 1.5 }}>
-                        {uni.chart.samples.slice(0, 12).map((s, i) => (
-                          <li key={i}>{s}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                {uni.chart.kind === "table" && uni.chart.text_rows ? (
+                  <TextResponsesView view={uni.chart} rows={uni.chart.text_rows} />
+                ) : (
+                  <PlotlyView view={uni.chart} />
+                )}
               </ChartPanel>
             )}
           </>
@@ -355,6 +341,173 @@ export default function ExplorarTab() {
         {error && <ErrorBlock label="Error" detail={error} />}
       </main>
     </div>
+  );
+}
+
+function TextResponsesView({
+  view,
+  rows,
+}: {
+  view: ViewDescriptor;
+  rows: ExplorarTextResponseRow[];
+}) {
+  if (!rows.length) {
+    return (
+      <div
+        style={{
+          borderRadius: 14,
+          border: "1px dashed var(--pulso-border)",
+          background: "var(--pulso-surface-2)",
+          padding: "28px 18px",
+          textAlign: "center",
+          color: "var(--pulso-text-soft)",
+          fontSize: 12,
+        }}
+      >
+        No hay respuestas abiertas no vacías para esta variable.
+      </div>
+    );
+  }
+  return (
+    <article
+      style={{
+        borderRadius: 14,
+        border: "1px solid rgba(216, 224, 239, 0.95)",
+        background: "linear-gradient(180deg, rgba(248, 250, 255, 0.92) 0%, #ffffff 100%)",
+        overflow: "hidden",
+      }}
+    >
+      <header
+        style={{
+          padding: "12px 14px",
+          borderBottom: "1px solid var(--pulso-border)",
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "var(--pulso-text)" }}>
+            {view.title}
+          </div>
+          {view.subtitle && (
+            <div style={{ marginTop: 2, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+              {view.subtitle}
+            </div>
+          )}
+        </div>
+        <span
+          style={{
+            flex: "0 0 auto",
+            borderRadius: 999,
+            border: "1px solid var(--pulso-border)",
+            background: "white",
+            color: "var(--pulso-text-soft)",
+            fontSize: 11,
+            fontWeight: 700,
+            padding: "4px 8px",
+          }}
+        >
+          {rows.length} respuesta{rows.length === 1 ? "" : "s"}
+        </span>
+      </header>
+      <div style={{ maxHeight: 360, overflow: "auto" }}>
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "separate",
+            borderSpacing: 0,
+            fontSize: 12,
+          }}
+        >
+          <thead>
+            <tr>
+              <TextHead style={{ width: 72 }}>Caso</TextHead>
+              <TextHead style={{ width: 170 }}>Respondente</TextHead>
+              <TextHead>Respuesta</TextHead>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, idx) => (
+              <tr key={`${row.row}-${idx}`}>
+                <TextCell mono>{row.row}</TextCell>
+                <TextCell mono>{row.respondent_id}</TextCell>
+                <TextCell>{row.response}</TextCell>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {typeof view.meta?.note === "string" && view.meta.note.trim() && (
+        <div
+          style={{
+            padding: "9px 14px",
+            borderTop: "1px solid var(--pulso-border)",
+            color: "var(--pulso-text-soft)",
+            fontSize: 11,
+          }}
+        >
+          {view.meta.note}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function TextHead({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <th
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 1,
+        padding: "8px 10px",
+        background: "#eef3ff",
+        borderBottom: "1px solid var(--pulso-border)",
+        color: "var(--pulso-text-soft)",
+        fontSize: 10,
+        fontWeight: 800,
+        textTransform: "uppercase",
+        letterSpacing: 0.4,
+        textAlign: "left",
+        ...style,
+      }}
+    >
+      {children}
+    </th>
+  );
+}
+
+function TextCell({
+  children,
+  mono = false,
+}: {
+  children: React.ReactNode;
+  mono?: boolean;
+}) {
+  return (
+    <td
+      style={{
+        verticalAlign: "top",
+        padding: "9px 10px",
+        borderBottom: "1px solid rgba(216, 224, 239, 0.7)",
+        color: "var(--pulso-text)",
+        lineHeight: 1.45,
+        fontFamily: mono ? "ui-monospace, SFMono-Regular, Menlo, monospace" : undefined,
+        fontSize: mono ? 11 : 12,
+        whiteSpace: mono ? "nowrap" : "pre-wrap",
+      }}
+    >
+      {children}
+    </td>
   );
 }
 

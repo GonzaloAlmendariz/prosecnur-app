@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export type CreditsDrawerProps = {
   open: boolean;
@@ -7,8 +7,11 @@ export type CreditsDrawerProps = {
 };
 
 export function CreditsDrawer({ open, pulsoName, onClose }: CreditsDrawerProps) {
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+
   useEffect(() => {
     if (!open) return;
+    closeRef.current?.focus();
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
@@ -16,18 +19,19 @@ export function CreditsDrawer({ open, pulsoName, onClose }: CreditsDrawerProps) 
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
+  if (!open) return null;
+
   return (
     <>
       <div
-        className={`home-drawer-backdrop ${open ? "is-open" : ""}`}
+        className="home-drawer-backdrop is-open"
         onClick={onClose}
-        aria-hidden={!open}
+        aria-hidden="true"
       />
       <aside
-        className={`home-drawer ${open ? "is-open" : ""}`}
+        className="home-drawer is-open"
         role="dialog"
         aria-label="Créditos de Prosecnur"
-        aria-hidden={!open}
       >
         <div className="home-drawer-head">
           <div>
@@ -35,6 +39,7 @@ export function CreditsDrawer({ open, pulsoName, onClose }: CreditsDrawerProps) 
             <h3 className="home-drawer-title">Créditos</h3>
           </div>
           <button
+            ref={closeRef}
             type="button"
             className="home-drawer-close"
             onClick={onClose}

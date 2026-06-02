@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, CheckCircle2, Database, FileSpreadsheet, Layers, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
@@ -73,7 +73,7 @@ export default function CodificacionPage() {
               step={step}
             />
 
-            {prereqOk && codifSource.options.length > 1 && (
+            {prereqOk && codifSource.options.length > 1 && state?.estudio_processing_mode !== "independent_siblings" && (
               <>
                 <ContextBarDivider />
                 <BaseSelector source={codifSource} />
@@ -105,6 +105,7 @@ export default function CodificacionPage() {
               icon={<FileSpreadsheet size={20} />}
               title="Carga insumos para codificar"
               hint="La codificación se habilita cuando la sesión tiene un XLSForm y una base de datos cargados."
+              cta={<Link className="pulso-empty-cta" to="/carga">Ir a Carga</Link>}
             />
           ) : (
             <>

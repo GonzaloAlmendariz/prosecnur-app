@@ -63,6 +63,17 @@ mount_proyecto <- function(pr) {
         stop_api(400, "E_NO_PATH", "Pasa 'path' en el body con la ruta al .pulso a abrir.")
       }
       result <- load_pulso(src_path)
+      in_place <- isTRUE(body$in_place) || isTRUE(body$replace_current) || isTRUE(body$into_current)
+      current_sid <- session_header(req)
+      if (isTRUE(in_place) && !is.null(current_sid) && nzchar(current_sid)) {
+        loaded <- session_get(result$session_id, required = FALSE)
+        if (!is.null(loaded)) {
+          loaded$id <- current_sid
+          .session_env[[current_sid]] <- loaded
+          result$session_id <- current_sid
+          result$project_path <- loaded$project_path
+        }
+      }
       # Como load_pulso crea una sesión NUEVA con sid distinto, devolvemos
       # el sid en el header X-Pulso-Session para que el frontend (client.ts
       # `handle()`) lo capture y actualice localStorage.

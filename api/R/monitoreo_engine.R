@@ -40,7 +40,41 @@
   x <- iconv(x, to = "ASCII//TRANSLIT", sub = "")
   x <- gsub("[^a-z0-9]+", "_", x)
   x <- gsub("^_+|_+$", "", x)
-  if (!nzchar(x)) "campo" else x
+  if (is.na(x) || !nzchar(x)) "campo" else x
+}
+
+.monitoreo_source_dimensions <- function(src) {
+  raw <- src$dimensions %||% src$dimensiones %||% list()
+  if (is.data.frame(raw)) raw <- as.list(raw[1, , drop = FALSE])
+  if (!is.list(raw)) raw <- list()
+
+  for (key in c("actor", "servicio", "municipalidad")) {
+    if (is.null(raw[[key]]) && !is.null(src[[key]])) raw[[key]] <- src[[key]]
+  }
+
+  out <- list()
+  nms <- names(raw)
+  if (is.null(nms)) nms <- rep("", length(raw))
+  for (i in seq_along(raw)) {
+    key <- .monitoreo_safe_name(nms[[i]])
+    if (!nzchar(key) || identical(key, "campo")) next
+    value <- .monitoreo_scalar(raw[[i]], "")
+    if (!nzchar(trimws(value))) next
+    out[[key]] <- trimws(value)
+  }
+  out
+}
+
+.monitoreo_dimension_columns <- function(dimensions) {
+  dimensions <- dimensions %||% list()
+  if (!is.list(dimensions) || !length(dimensions)) return(list())
+  out <- list()
+  for (key in names(dimensions)) {
+    value <- .monitoreo_scalar(dimensions[[key]], "")
+    if (!nzchar(trimws(value))) next
+    out[[paste0("dim_", .monitoreo_safe_name(key))]] <- trimws(value)
+  }
+  out
 }
 
 monitoreo_estado_cumplimiento <- function(n_efectivo, n_objetivo) {
@@ -186,6 +220,318 @@ monitoreo_estado_cumplimiento <- function(n_efectivo, n_objetivo) {
     )
   }
   out
+}
+
+.monitoreo_strategy_phases <- function(raw = NULL, cols = character(0)) {
+  if (is.null(raw)) return(list())
+  if (is.data.frame(raw)) {
+    raw <- lapply(seq_len(nrow(raw)), function(i) as.list(raw[i, , drop = FALSE]))
+  }
+  if (!is.list(raw)) return(list())
+
+  allowed_modalities <- c("email", "whatsapp", "sms", "telefono", "presencial", "mixto")
+  allowed_modules <- c(
+    "progress",
+    "distribution",
+    "enumerator_activity",
+    "contact_efficiency",
+    "non_effective_attempts",
+    "delivery",
+    "response_quality"
+  )
+  keep_phase_cols <- function(x) {
+    v <- .monitoreo_chr_vec(x)
+    if (length(cols)) v <- intersect(v, cols)
+    as.list(v)
+  }
+  keep_phase_col <- function(x) {
+    v <- .monitoreo_scalar(x, "")
+    if (length(cols) && nzchar(v) && !v %in% cols) return("")
+    v
+  }
+  out <- list()
+  for (i in seq_along(raw)) {
+    item <- raw[[i]]
+    if (!is.list(item)) next
+
+    modality <- .monitoreo_safe_name(item$modality %||% item$modalidad %||% "mixto")
+    if (!modality %in% allowed_modalities) modality <- "mixto"
+
+    start_week <- .monitoreo_int(item$start_week %||% item$semana_inicio, NA_integer_)
+    end_week <- .monitoreo_int(item$end_week %||% item$semana_fin, start_week)
+    if (!is.finite(start_week) || start_week < 1L) start_week <- NA_integer_
+    if (!is.finite(end_week) || end_week < 1L) end_week <- NA_integer_
+    if (is.finite(start_week) && is.finite(end_week) && end_week < start_week) {
+      end_week <- start_week
+    }
+
+    phase <- list(
+      id = .monitoreo_scalar(item$id, paste0("fase-", i)),
+      stratum = .monitoreo_scalar(item$stratum %||% item$estrato %||% item$corte, ""),
+      modality = modality,
+      start_week = start_week,
+      end_week = end_week,
+      target_rule = .monitoreo_scalar(item$target_rule %||% item$regla_poblacion %||% item$regla, ""),
+      kpi_focus = as.list(.monitoreo_chr_vec(item$kpi_focus %||% item$kpis %||% item$indicadores)),
+      kpi_modules = as.list(intersect(
+        .monitoreo_chr_vec(item$kpi_modules %||% item$modulos_kpi %||% item$modulos),
+        allowed_modules
+      )),
+      breakdown_vars = keep_phase_cols(item$breakdown_vars %||% item$variables_desglose %||% item$desagregaciones),
+      attempts_var = keep_phase_col(item$attempts_var %||% item$variable_intentos),
+      outcome_var = keep_phase_col(item$outcome_var %||% item$variable_resultado)
+    )
+
+    if (
+      !nzchar(phase$stratum) &&
+      !nzchar(phase$target_rule) &&
+      !length(phase$kpi_focus) &&
+      !length(phase$kpi_modules) &&
+      !length(phase$breakdown_vars)
+    ) next
+    out[[length(out) + 1L]] <- phase
+  }
+  out
+}
+
+.monitoreo_operational_model <- function(model = list(), cols = character(0)) {
+  if (is.null(model) || !is.list(model)) model <- list()
+  keep_col <- function(x) {
+    v <- .monitoreo_scalar(x, "")
+    if (length(cols) && nzchar(v) && !v %in% cols) return("")
+    v
+  }
+  keep_cols <- function(x) {
+    v <- .monitoreo_chr_vec(x)
+    if (length(cols)) v <- intersect(v, cols)
+    as.list(v)
+  }
+
+  normalize_list <- function(raw) {
+    if (is.null(raw)) return(list())
+    if (is.data.frame(raw)) {
+      raw <- lapply(seq_len(nrow(raw)), function(i) as.list(raw[i, , drop = FALSE]))
+    }
+    if (!is.list(raw)) return(list())
+    if (!length(raw)) return(list())
+    raw
+  }
+
+  raw_strata <- normalize_list(model$strata %||% model$cortes)
+  strata <- list()
+  for (i in seq_along(raw_strata)) {
+    item <- raw_strata[[i]]
+    if (!is.list(item)) next
+    label <- .monitoreo_scalar(item$label %||% item$nombre, "")
+    variable <- keep_col(item$variable %||% item$var)
+    value <- .monitoreo_scalar(item$value %||% item$valor, "")
+    if (!nzchar(label) && !nzchar(variable) && !nzchar(value)) next
+    strata[[length(strata) + 1L]] <- list(
+      id = .monitoreo_scalar(item$id, paste0("corte-", i)),
+      label = label,
+      source_id = .monitoreo_scalar(item$source_id %||% item$fuente_id, ""),
+      variable = variable,
+      value = value,
+      notes = .monitoreo_scalar(item$notes %||% item$notas, "")
+    )
+  }
+
+  raw_targets <- normalize_list(model$targets %||% model$metas)
+  targets <- list()
+  for (i in seq_along(raw_targets)) {
+    item <- raw_targets[[i]]
+    if (!is.list(item)) next
+    filters <- item$filters %||% item$filtros %||% list()
+    if (!is.list(filters)) filters <- list()
+    filters <- filters[!vapply(filters, is.null, logical(1))]
+    filters <- lapply(filters, function(v) .monitoreo_scalar(v, ""))
+    filters <- filters[vapply(filters, nzchar, logical(1))]
+    meta <- .monitoreo_int(item$meta %||% item$target %||% item$objetivo %||% item$n, NA_integer_)
+    if (!is.finite(meta) || meta < 0L) next
+    targets[[length(targets) + 1L]] <- list(
+      id = .monitoreo_scalar(item$id, paste0("meta-", i)),
+      label = .monitoreo_scalar(item$label %||% item$nombre, ""),
+      stratum_id = .monitoreo_scalar(item$stratum_id %||% item$corte_id, ""),
+      filters = filters,
+      meta = as.integer(meta),
+      notes = .monitoreo_scalar(item$notes %||% item$notas, "")
+    )
+  }
+
+  cases_raw <- model$cases %||% model$personas_o_casos %||% list()
+  if (is.null(cases_raw) || !is.list(cases_raw)) cases_raw <- list()
+  cases <- list(
+    enabled = .monitoreo_bool(cases_raw$enabled %||% cases_raw$habilitado, FALSE),
+    case_id_var = keep_col(cases_raw$case_id_var %||% cases_raw$variable_id_caso),
+    person_label_var = keep_col(cases_raw$person_label_var %||% cases_raw$variable_nombre),
+    status_var = keep_col(cases_raw$status_var %||% cases_raw$variable_estado),
+    contact_vars = keep_cols(cases_raw$contact_vars %||% cases_raw$variables_contacto),
+    sensitive_vars = keep_cols(cases_raw$sensitive_vars %||% cases_raw$variables_sensibles),
+    roster_source = .monitoreo_scalar(cases_raw$roster_source %||% cases_raw$origen_padron, "none"),
+    notes = .monitoreo_scalar(cases_raw$notes %||% cases_raw$notas, "")
+  )
+  if (!cases$roster_source %in% c("none", "uploaded", "responses", "external_local")) {
+    cases$roster_source <- "none"
+  }
+
+  raw_strategies <- normalize_list(model$strategies %||% model$estrategias)
+  strategies <- list()
+  for (i in seq_along(raw_strategies)) {
+    item <- raw_strategies[[i]]
+    if (!is.list(item)) next
+    label <- .monitoreo_scalar(item$label %||% item$nombre, "")
+    objective <- .monitoreo_scalar(item$objective %||% item$objetivo, "")
+    if (!nzchar(label) && !nzchar(objective)) next
+    status <- .monitoreo_scalar(item$status %||% item$estado, "draft")
+    if (!status %in% c("draft", "active", "paused", "closed")) status <- "draft"
+    strategies[[length(strategies) + 1L]] <- list(
+      id = .monitoreo_scalar(item$id, paste0("estrategia-", i)),
+      label = label,
+      objective = objective,
+      owner = .monitoreo_scalar(item$owner %||% item$responsable, ""),
+      status = status
+    )
+  }
+
+  use_to_modality <- function(use) {
+    switch(use,
+      correo_autoaplicado = "email",
+      telefono_asistido = "telefono",
+      presencial_qr = "presencial",
+      sms = "sms",
+      mixto = "mixto",
+      enlace_abierto = "mixto",
+      "mixto"
+    )
+  }
+  raw_link_collectors <- normalize_list(
+    model$link_collectors %||%
+      model$colectores_enlaces %||%
+      model$collectors %||%
+      model$colectores
+  )
+  link_collectors <- list()
+  for (i in seq_along(raw_link_collectors)) {
+    item <- raw_link_collectors[[i]]
+    if (!is.list(item)) next
+    source_id <- .monitoreo_scalar(item$source_id %||% item$fuente_id, "")
+    survey_id <- .monitoreo_scalar(item$survey_id %||% item$surveyId, "")
+    collector_id <- .monitoreo_scalar(item$collector_id %||% item$collectorId, "")
+    if (!nzchar(source_id) && !nzchar(survey_id) && !nzchar(collector_id)) next
+    operational_use <- .monitoreo_safe_name(item$operational_use %||% item$uso_operativo)
+    if (!operational_use %in% c("correo_autoaplicado", "telefono_asistido", "presencial_qr", "enlace_abierto", "sms", "mixto", "sin_clasificar")) {
+      operational_use <- "sin_clasificar"
+    }
+    modality <- .monitoreo_safe_name(item$modality %||% item$modalidad %||% use_to_modality(operational_use))
+    if (!modality %in% c("email", "whatsapp", "sms", "telefono", "presencial", "mixto")) {
+      modality <- use_to_modality(operational_use)
+    }
+    link_collectors[[length(link_collectors) + 1L]] <- list(
+      id = .monitoreo_scalar(item$id, paste(source_id, collector_id, sep = "::")),
+      source_id = source_id,
+      source_label = .monitoreo_scalar(item$source_label %||% item$fuente_label, ""),
+      survey_id = survey_id,
+      collector_id = collector_id,
+      collector_name = .monitoreo_scalar(item$collector_name %||% item$label %||% item$nombre, ""),
+      collector_type = .monitoreo_scalar(item$collector_type %||% item$tipo_colector, ""),
+      operational_use = operational_use,
+      modality = modality,
+      roster_required = .monitoreo_bool(item$roster_required %||% item$requiere_base_casos, identical(operational_use, "telefono_asistido"))
+    )
+  }
+
+  default_events <- list(
+    list(id = "call_no_answer", label = "Llamada no contesta", modality = "telefono", outcome = "no_efectivo", counts_attempt = TRUE, counts_contact = FALSE, counts_complete = FALSE, stop_contact = FALSE),
+    list(id = "call_later", label = "Contactar despues", modality = "telefono", outcome = "pendiente_contacto", counts_attempt = TRUE, counts_contact = FALSE, counts_complete = FALSE, stop_contact = FALSE),
+    list(id = "call_whatsapp_contact", label = "Contactado por WhatsApp", modality = "whatsapp", outcome = "contactado_whatsapp", counts_attempt = TRUE, counts_contact = TRUE, counts_complete = FALSE, stop_contact = FALSE),
+    list(id = "phone_wrong_number", label = "Numero incorrecto", modality = "telefono", outcome = "numero_incorrecto", counts_attempt = TRUE, counts_contact = FALSE, counts_complete = FALSE, stop_contact = TRUE),
+    list(id = "phone_out_of_service", label = "No efectivo / fuera de servicio", modality = "telefono", outcome = "fuera_de_servicio", counts_attempt = TRUE, counts_contact = FALSE, counts_complete = FALSE, stop_contact = TRUE),
+    list(id = "call_completed", label = "Encuesta completa por llamada", modality = "telefono", outcome = "completo", counts_attempt = TRUE, counts_contact = TRUE, counts_complete = TRUE, stop_contact = TRUE),
+    list(id = "email_sent", label = "Correo enviado", modality = "email", outcome = "enviado", counts_attempt = TRUE, counts_contact = FALSE, counts_complete = FALSE, stop_contact = FALSE),
+    list(id = "email_bounced", label = "Correo rebotado", modality = "email", outcome = "rebote", counts_attempt = TRUE, counts_contact = FALSE, counts_complete = FALSE, stop_contact = FALSE)
+  )
+  append_default_items <- function(items, defaults) {
+    items <- normalize_list(items)
+    if (!length(items)) return(defaults)
+    seen <- character(0)
+    for (item in items) {
+      if (!is.list(item)) next
+      id <- .monitoreo_scalar(item$id, "")
+      if (nzchar(id)) seen <- c(seen, id)
+    }
+    out <- items
+    for (item in defaults) {
+      id <- .monitoreo_scalar(item$id, "")
+      if (nzchar(id) && !id %in% seen) out[[length(out) + 1L]] <- item
+    }
+    out
+  }
+  raw_events <- append_default_items(model$events %||% model$eventos %||% list(), default_events)
+  events <- list()
+  for (i in seq_along(raw_events)) {
+    item <- raw_events[[i]]
+    if (!is.list(item)) next
+    label <- .monitoreo_scalar(item$label %||% item$nombre, "")
+    if (!nzchar(label)) next
+    modality <- .monitoreo_safe_name(item$modality %||% item$modalidad %||% "mixto")
+    if (!modality %in% c("email", "whatsapp", "sms", "telefono", "presencial", "mixto")) modality <- "mixto"
+    events[[length(events) + 1L]] <- list(
+      id = .monitoreo_scalar(item$id, paste0("evento-", i)),
+      label = label,
+      modality = modality,
+      outcome = .monitoreo_scalar(item$outcome %||% item$resultado, ""),
+      counts_attempt = .monitoreo_bool(item$counts_attempt %||% item$cuenta_intento, FALSE),
+      counts_contact = .monitoreo_bool(item$counts_contact %||% item$cuenta_contacto, FALSE),
+      counts_complete = .monitoreo_bool(item$counts_complete %||% item$cuenta_completo, FALSE),
+      stop_contact = .monitoreo_bool(item$stop_contact %||% item$detiene_contacto, FALSE)
+    )
+  }
+
+  default_rules <- list(
+    list(id = "valid_complete", label = "Completa valida", final_state = "complete", priority = 10L, outcome_values = c("completed", "complete", "valid", "approved", "aprobado", "efectivo", "completo")),
+    list(id = "operational_pending", label = "Pendiente operativo", final_state = "pending", priority = 15L, outcome_values = c("no_barrido", "contactar_despues", "contactado_whatsapp", "pendiente_contacto")),
+    list(id = "refusal", label = "Rechazo", final_state = "refusal", priority = 20L, outcome_values = c("rejected", "rechazo", "refusal")),
+    list(id = "non_effective_contact", label = "Contacto no efectivo", final_state = "non_effective", priority = 25L, outcome_values = c("no_contesta", "apagado", "colgo_corto", "no_efectivo", "fuera_de_servicio", "numero_incorrecto", "numero_suspendido", "no_existe_numero")),
+    list(id = "not_eligible", label = "No elegible", final_state = "excluded", priority = 30L, outcome_values = c("not_eligible", "no_elegible"))
+  )
+  raw_rules <- append_default_items(model$state_rules %||% model$reglas_de_estado %||% list(), default_rules)
+  state_rules <- list()
+  for (i in seq_along(raw_rules)) {
+    item <- raw_rules[[i]]
+    if (!is.list(item)) next
+    label <- .monitoreo_scalar(item$label %||% item$nombre, "")
+    final_state <- .monitoreo_scalar(item$final_state %||% item$estado_final, "")
+    if (!nzchar(label) && !nzchar(final_state)) next
+    state_rules[[length(state_rules) + 1L]] <- list(
+      id = .monitoreo_scalar(item$id, paste0("regla-", i)),
+      label = label,
+      final_state = final_state,
+      priority = max(1L, .monitoreo_int(item$priority %||% item$prioridad, i)),
+      outcome_values = as.list(.monitoreo_chr_vec(item$outcome_values %||% item$valores_resultado)),
+      stop_contact = .monitoreo_bool(item$stop_contact %||% item$detiene_contacto, FALSE)
+    )
+  }
+
+  privacy_raw <- model$privacy %||% model$privacidad %||% list()
+  privacy <- list(
+    local_sensitive = .monitoreo_bool(privacy_raw$local_sensitive %||% privacy_raw$sensible_local, TRUE),
+    export_policy = .monitoreo_scalar(privacy_raw$export_policy %||% privacy_raw$politica_exportacion, "aggregate_or_redacted")
+  )
+  if (!privacy$export_policy %in% c("aggregate_or_redacted", "aggregate_only", "allow_case_level_local")) {
+    privacy$export_policy <- "aggregate_or_redacted"
+  }
+
+  list(
+    schema_version = "monitoreo_operativo_v1",
+    strata = strata,
+    targets = targets,
+    cases = cases,
+    strategies = strategies,
+    link_collectors = link_collectors,
+    events = events,
+    state_rules = state_rules,
+    privacy = privacy
+  )
 }
 
 .monitoreo_acreditacion_componente <- function(comp = list()) {
@@ -473,6 +819,8 @@ monitoreo_default_config <- function(data = NULL) {
     control_vars = list(),
     critical_vars = list(),
     goals = list(),
+    strategy_phases = list(),
+    operational_model = .monitoreo_operational_model(list(), cols = cols),
     objetivo_total = NA_integer_,
     min_duration_seconds = 60,
     max_duration_seconds = 7200,
@@ -518,6 +866,20 @@ monitoreo_normalize_config <- function(config = list(), data = NULL) {
 
   objetivo_total <- .monitoreo_int(config$objetivo_total %||% config$target_total, defaults$objetivo_total)
   if (!is.finite(objetivo_total) || objetivo_total < 0L) objetivo_total <- NA_integer_
+  strategy_phases <- .monitoreo_strategy_phases(
+    config$strategy_phases %||% config$fases_estrategia %||% defaults$strategy_phases,
+    cols = cols
+  )
+  operational_model_raw <- config$operational_model %||% config$modelo_operativo %||% defaults$operational_model
+  if (is.null(operational_model_raw) || !is.list(operational_model_raw)) operational_model_raw <- list()
+  if ((is.null(operational_model_raw$targets) || !length(operational_model_raw$targets)) &&
+      is.null(operational_model_raw$metas) && length(goals)) {
+    operational_model_raw$targets <- goals
+  }
+  operational_model <- .monitoreo_operational_model(
+    operational_model_raw,
+    cols = cols
+  )
 
   list(
     enumerator_var = keep_col(config$enumerator_var %||% config$col_enumerador, defaults$enumerator_var),
@@ -532,6 +894,8 @@ monitoreo_normalize_config <- function(config = list(), data = NULL) {
     control_vars = keep_cols(config$control_vars %||% config$variables_control),
     critical_vars = keep_cols(config$critical_vars %||% config$campos_criticos),
     goals = goals,
+    strategy_phases = strategy_phases,
+    operational_model = operational_model,
     objetivo_total = objetivo_total,
     min_duration_seconds = max(0, .monitoreo_num(config$min_duration_seconds, defaults$min_duration_seconds)),
     max_duration_seconds = max(0, .monitoreo_num(config$max_duration_seconds, defaults$max_duration_seconds)),
@@ -604,7 +968,7 @@ monitoreo_demo_acreditacion <- function() {
     modo_trabajo = "seguimiento_campo",
     estudio = list(
       id = "demo-acreditacion",
-      titulo = "Acreditacion multi-actor demo",
+      titulo = "Acreditacion multi-corte demo",
       cliente = "PUCP",
       macro_familia = "acreditacion",
       creado_desde_calc_muestra = FALSE
@@ -698,6 +1062,57 @@ monitoreo_demo_config <- function(data = NULL) {
       list(filters = list(distrito = "Centro"), meta = 36L),
       list(filters = list(distrito = "Sur"), meta = 42L)
     ),
+    strategy_phases = list(
+      list(
+        id = "fase-egresados-telefono",
+        stratum = "Egresados",
+        modality = "telefono",
+        start_week = 1L,
+        end_week = 3L,
+        target_rule = "Pendientes contactables con telefono valido",
+        kpi_focus = c("contacto efectivo", "conversion despues de contacto", "maximo de intentos"),
+        kpi_modules = c("progress", "distribution", "enumerator_activity", "contact_efficiency", "non_effective_attempts"),
+        breakdown_vars = c("zona"),
+        outcome_var = "estado"
+      ),
+      list(
+        id = "fase-egresados-correo",
+        stratum = "Egresados",
+        modality = "email",
+        start_week = 4L,
+        end_week = 4L,
+        target_rule = "No respondieron, no rechazaron y tienen correo valido",
+        kpi_focus = c("envios", "rebotes", "respuesta posterior al envio"),
+        kpi_modules = c("progress", "distribution", "delivery"),
+        breakdown_vars = c("distrito")
+      )
+    ),
+    operational_model = list(
+      strata = list(
+        list(id = "corte-norte", label = "Norte", variable = "distrito", value = "Norte", notes = "Meta territorial demo."),
+        list(id = "corte-centro", label = "Centro", variable = "distrito", value = "Centro", notes = "Meta territorial demo."),
+        list(id = "corte-sur", label = "Sur", variable = "distrito", value = "Sur", notes = "Meta territorial demo.")
+      ),
+      cases = list(
+        enabled = TRUE,
+        case_id_var = "response_id",
+        status_var = "estado",
+        contact_vars = c("telefono"),
+        sensitive_vars = c("telefono"),
+        roster_source = "responses",
+        notes = "Demo local con identificadores y telefono simulados."
+      ),
+      strategies = list(
+        list(
+          id = "estrategia-refuerzo-egresados",
+          label = "Refuerzo telefonico y correo",
+          objective = "Cerrar brechas por corte territorial sin exponer datos sensibles en reportes.",
+          owner = "Coordinacion de campo",
+          status = "active"
+        )
+      ),
+      privacy = list(local_sensitive = TRUE, export_policy = "aggregate_or_redacted")
+    ),
     min_duration_seconds = 90,
     max_duration_seconds = 5400,
     supervision_n = 12,
@@ -771,6 +1186,7 @@ monitoreo_normalize_sources <- function(sources = list()) {
       asset_uid = .monitoreo_scalar(src$asset_uid %||% src$assetUid, ""),
       survey_id = .monitoreo_scalar(src$survey_id %||% src$surveyId, ""),
       base_url = .monitoreo_scalar(src$base_url %||% src$baseUrl, if (identical(kind, "kobo")) kobo_api_default_base_url() else "https://api.surveymonkey.com/v3"),
+      dimensions = .monitoreo_source_dimensions(src),
       created_at = .monitoreo_scalar(src$created_at, .monitoreo_now_iso()),
       last_sync_at = .monitoreo_scalar(src$last_sync_at, "")
     )
@@ -790,6 +1206,23 @@ monitoreo_upsert_source <- function(sources, source) {
   current
 }
 
+.monitoreo_add_source_columns <- function(data, source) {
+  if (is.null(data) || !is.data.frame(data)) data <- data.frame()
+  n <- nrow(data)
+  values <- c(
+    list(
+      .source_id = .monitoreo_scalar(source$id, ""),
+      .source_kind = .monitoreo_scalar(source$kind, ""),
+      .source_label = .monitoreo_scalar(source$label, "")
+    ),
+    .monitoreo_dimension_columns(source$dimensions)
+  )
+  for (nm in names(values)) {
+    data[[nm]] <- if (n > 0L) rep(.monitoreo_scalar(values[[nm]], ""), n) else character(0)
+  }
+  data
+}
+
 .monitoreo_bind_rows <- function(dfs) {
   dfs <- Filter(function(x) is.data.frame(x) && nrow(x) > 0L, dfs)
   if (!length(dfs)) return(data.frame())
@@ -806,8 +1239,7 @@ monitoreo_upsert_source <- function(sources, source) {
 monitoreo_sync_source <- function(source, since = NULL, progress = NULL) {
   kind <- .monitoreo_scalar(source$kind, "")
   if (identical(kind, "kobo")) {
-    token <- prosecnur_secret_load("kobo_token")
-    if (is.na(token) || !nzchar(token)) stop("Falta token Kobo guardado.", call. = FALSE)
+    token <- .connections_token_require("kobo")
     payload <- kobo_api_fetch_all_asset_data(
       asset_uid = source$asset_uid,
       token = token,
@@ -816,8 +1248,7 @@ monitoreo_sync_source <- function(source, since = NULL, progress = NULL) {
     )
     data <- kobo_api_flatten_results(payload$results)
   } else if (identical(kind, "surveymonkey")) {
-    token <- prosecnur_secret_load("sm_token")
-    if (is.na(token) || !nzchar(token)) stop("Falta token SurveyMonkey guardado.", call. = FALSE)
+    token <- .connections_token_require("surveymonkey")
     details <- sm_api_fetch_survey_details(source$survey_id, token, base_url = source$base_url %||% "https://api.surveymonkey.com/v3")
     payload <- sm_api_fetch_all_responses_bulk(
       survey_id = source$survey_id,
@@ -830,11 +1261,7 @@ monitoreo_sync_source <- function(source, since = NULL, progress = NULL) {
   } else {
     stop("Tipo de fuente no soportado.", call. = FALSE)
   }
-  if (!nrow(data)) data <- data.frame()
-  data$.source_id <- source$id
-  data$.source_kind <- source$kind
-  data$.source_label <- source$label
-  data
+  .monitoreo_add_source_columns(data, source)
 }
 
 monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progress_path = NULL) {
@@ -995,6 +1422,11 @@ monitoreo_build_dashboard <- function(data, config = list()) {
 
 .monitoreo_progress_table <- function(data, cfg, valid) {
   ctrl <- unlist(cfg$control_vars, use.names = FALSE)
+  ctrl <- ctrl[ctrl %in% names(data)]
+  if (!length(ctrl)) {
+    dim_cols <- sort(grep("^dim_", names(data), value = TRUE))
+    ctrl <- unique(c(dim_cols, intersect(".source_label", names(data))))
+  }
   if (!length(ctrl)) {
     meta <- cfg$objetivo_total
     return(data.frame(

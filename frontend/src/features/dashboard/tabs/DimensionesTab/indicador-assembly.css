@@ -26,6 +26,14 @@
   width: 100%;
 }
 
+.dashboard-scope .dash-assembly.is-compact .dash-assembly-svg {
+  max-height: min(52vh, 520px);
+}
+
+.dashboard-scope .dash-assembly.is-maxed .dash-assembly-svg {
+  max-height: 720px;
+}
+
 /* Stage: capa que se traslada+escala suavemente al seleccionar un
  * conductor — auto-zoom narrativo para no recortar la zona desplegada.
  * Easing tipo Apple — duración generosa para que el flow se sienta

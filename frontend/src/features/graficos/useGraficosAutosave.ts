@@ -91,11 +91,12 @@ export function useGraficosAutosave() {
   const hydrated = usePlanStore((s) => s.hydrated);
   const hydrate = usePlanStore((s) => s.hydrate);
   const markClean = usePlanStore((s) => s.markClean);
+  const timer = useRef<number | null>(null);
 
-  // 1) Hidratación inicial + re-hidratación cuando la sesión cambia
-  // (ej. al cargar otro demo). Sin el listener de `pulso:session-changed`
-  // el store quedaba con plan/presets del demo anterior y el usuario
-  // seguía viendo configuración ajena al estudio nuevo.
+  // 1) Hidratación inicial + re-hidratación cuando la sesión o la base
+  // activa cambian. En independent_siblings el backend devuelve una config
+  // distinta por base, así que cancelar cualquier autosave pendiente evita
+  // que el plan anterior se escriba sobre la base entrante.
   useEffect(() => {
     let cancelled = false;
 
@@ -111,19 +112,22 @@ export function useGraficosAutosave() {
 
     void hydrateFromBackend();
 
-    function onSessionChanged() {
+    function rehydrateScopedConfig() {
+      if (timer.current) window.clearTimeout(timer.current);
       void hydrateFromBackend();
     }
-    window.addEventListener("pulso:session-changed", onSessionChanged);
+    window.addEventListener("pulso:session-changed", rehydrateScopedConfig);
+    window.addEventListener("pulso:active-base-changed", rehydrateScopedConfig);
     return () => {
       cancelled = true;
-      window.removeEventListener("pulso:session-changed", onSessionChanged);
+      if (timer.current) window.clearTimeout(timer.current);
+      window.removeEventListener("pulso:session-changed", rehydrateScopedConfig);
+      window.removeEventListener("pulso:active-base-changed", rehydrateScopedConfig);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 2) Autosave debounced.
-  const timer = useRef<number | null>(null);
   useEffect(() => {
     if (!hydrated || !dirty) return;
     if (timer.current) window.clearTimeout(timer.current);

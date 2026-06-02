@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Check } from "lucide-react";
 
 // Drawer lateral derecho con el historial de release notes. Reemplaza al
@@ -38,8 +38,11 @@ export function ReleaseNotesDrawer({
   notes,
   onClose,
 }: ReleaseNotesDrawerProps) {
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+
   useEffect(() => {
     if (!open) return;
+    closeRef.current?.focus();
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
@@ -47,18 +50,19 @@ export function ReleaseNotesDrawer({
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
+  if (!open) return null;
+
   return (
     <>
       <div
-        className={`home-drawer-backdrop ${open ? "is-open" : ""}`}
+        className="home-drawer-backdrop is-open"
         onClick={onClose}
-        aria-hidden={!open}
+        aria-hidden="true"
       />
       <aside
-        className={`home-drawer ${open ? "is-open" : ""}`}
+        className="home-drawer is-open"
         role="dialog"
         aria-label="Notas de versión"
-        aria-hidden={!open}
       >
         <div className="home-drawer-head">
           <div>
@@ -66,6 +70,7 @@ export function ReleaseNotesDrawer({
             <h3 className="home-drawer-title">Notas de versión</h3>
           </div>
           <button
+            ref={closeRef}
             type="button"
             className="home-drawer-close"
             onClick={onClose}

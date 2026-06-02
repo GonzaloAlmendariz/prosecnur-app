@@ -24,8 +24,8 @@ const TIPO_COLORS: Record<
   so: { bg: "#dbeafe", fg: "#1e40af", label: "SO" },       // azul
   num: { bg: "#ede9fe", fg: "#5b21b6", label: "123" },     // morado
   sm: { bg: "#d1fae5", fg: "#065f46", label: "SM" },       // verde
-  fecha: { bg: "#ffedd5", fg: "#9a3412", label: "📅" },
-  texto: { bg: "#f3f4f6", fg: "#374151", label: "abc" },
+  fecha: { bg: "#ffedd5", fg: "#9a3412", label: "DATE" },
+  texto: { bg: "#f3f4f6", fg: "#374151", label: "TXT" },
   mixto: { bg: "#f3f4f6", fg: "#6b7280", label: "?" },
 };
 

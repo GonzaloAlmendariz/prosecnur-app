@@ -61,7 +61,7 @@ export function VariableSelect({
   );
 
   return (
-    <div ref={rootRef} style={{ position: "relative", minWidth: 260 }}>
+    <div ref={rootRef} style={{ position: "relative", minWidth: 0, width: "100%" }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -91,7 +91,7 @@ export function VariableSelect({
             </span>
           </>
         ) : (
-          <span style={{ flex: 1, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
+          <span style={{ flex: 1, minWidth: 0, color: "var(--pulso-text-soft)", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {placeholder}
           </span>
         )}

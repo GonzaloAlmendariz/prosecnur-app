@@ -12,6 +12,7 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronLeft,
+  Cloud,
   Download,
   FileSpreadsheet,
   FileText,
@@ -46,7 +47,6 @@ import {
   type SurveyMonkeyLogicPackWarning,
 } from "./shell/surveyMonkeyLogicPack";
 import { HallazgosPanel } from "./shell/HallazgosPanel";
-import smMonkey from "../../assets/sm-monkey.png";
 import { Panel } from "../../components/Panel";
 import { PageFrame } from "../../components/PageFrame";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../components/States";
@@ -953,7 +953,7 @@ export default function XlsformEditorPage() {
     loadWorkbook(
       snap.workbook,
       { kind: snap.sourceKind ?? null, original_name: snap.sourceName ?? null },
-      "Restauramos el formulario que tenías abierto antes del cierre.",
+      "Continuamos con el formulario guardado en este proyecto.",
     );
   }, [restoreOffer, loadWorkbook]);
 
@@ -2153,7 +2153,7 @@ export default function XlsformEditorPage() {
               <Upload size={14} /> Importar
             </button>
             <button type="button" onClick={onImportSurveyMonkey} className="pulso-xlsform-toolbar-button">
-              <img src={smMonkey} alt="" width={16} height={16} /> SurveyMonkey
+              <Cloud size={14} /> SurveyMonkey
             </button>
             <button type="button" className="pulso-primary pulso-xlsform-toolbar-button" onClick={onExport} disabled={!!busy}>
               <Download size={14} /> Exportar .xlsx
@@ -2942,7 +2942,6 @@ function SurveyMonkeyLogicPopup({
           ) : null}
           <RuleWizard
             surveyId=""
-            token=""
             workbook={workbook}
             paginas={{}}
             paginasLabels={{}}

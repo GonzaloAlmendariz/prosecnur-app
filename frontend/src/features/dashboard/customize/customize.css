@@ -21,7 +21,9 @@
 }
 
 .dashboard-scope .dash-customize-nav {
-  background: var(--dash-superficie-2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(244, 247, 251, 0.9)),
+    var(--dash-superficie-2);
   border-right: 1px solid var(--dash-divider);
   display: flex;
   flex-direction: column;
@@ -34,7 +36,7 @@
   appearance: none;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--dash-texto-suave);
   cursor: pointer;
   display: inline-flex;
@@ -54,9 +56,10 @@
 }
 
 .dashboard-scope .dash-customize-nav button.is-active {
-  background: color-mix(in srgb, var(--dash-primario) 9%, #fff);
-  border-color: color-mix(in srgb, var(--dash-primario) 18%, var(--dash-borde));
-  box-shadow: var(--dash-shadow-xs);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--dash-primario) 11%, #fff), #fff);
+  border-color: color-mix(in srgb, var(--dash-primario) 22%, var(--dash-borde));
+  box-shadow: var(--dash-shadow-sm);
   color: var(--dash-primario);
 }
 
@@ -109,10 +112,12 @@
 .dashboard-scope .dash-customize-view-list,
 .dashboard-scope .dash-customize-view-editor,
 .dashboard-scope .dash-customize-setting-block {
-  border: 1px solid var(--dash-borde);
-  border-radius: 8px;
-  background: var(--dash-superficie);
-  box-shadow: var(--dash-shadow-xs);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 78%, var(--dash-borde-fuerte));
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(249, 251, 255, 0.92)),
+    var(--dash-superficie);
+  box-shadow: var(--dash-shadow-sm);
 }
 
 .dashboard-scope .dash-customize-view-list {
@@ -124,9 +129,10 @@
 
 .dashboard-scope .dash-customize-view-card {
   appearance: none;
-  background: var(--dash-superficie);
-  border: 1px solid var(--dash-borde);
-  border-radius: 8px;
+  background:
+    linear-gradient(180deg, #fff, var(--dash-superficie-2));
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 80%, var(--dash-borde-fuerte));
+  border-radius: 10px;
   color: inherit;
   cursor: pointer;
   display: grid;
@@ -343,12 +349,20 @@
 
 .dashboard-scope .dash-customize-slider {
   appearance: none;
-  background: var(--dash-borde);
+  background: transparent;
+  border: 0;
   border-radius: 999px;
   cursor: pointer;
-  height: 4px;
+  height: 22px;
   outline: none;
+  padding: 0;
   width: 100%;
+}
+.dashboard-scope .dash-customize-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--dash-borde), color-mix(in srgb, var(--dash-borde) 74%, #fff));
+  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.08);
 }
 .dashboard-scope .dash-customize-slider:disabled {
   cursor: not-allowed;
@@ -357,10 +371,12 @@
 .dashboard-scope .dash-customize-slider::-webkit-slider-thumb {
   appearance: none;
   background: var(--dash-primario);
+  border: 2px solid #fff;
   border-radius: 50%;
   box-shadow: var(--dash-shadow-sm);
-  height: 16px;
-  width: 16px;
+  height: 18px;
+  margin-top: -6px;
+  width: 18px;
   transition: transform var(--dash-dur-press) var(--dash-ease-out);
 }
 .dashboard-scope .dash-customize-slider::-webkit-slider-thumb:active {
@@ -368,7 +384,7 @@
 }
 .dashboard-scope .dash-customize-slider::-moz-range-thumb {
   background: var(--dash-primario);
-  border: 0;
+  border: 2px solid #fff;
   border-radius: 50%;
   box-shadow: var(--dash-shadow-sm);
   height: 16px;
@@ -481,19 +497,33 @@
 }
 
 .dashboard-scope .dash-customize-color-field {
+  align-content: start;
   display: grid;
   gap: 7px;
 }
 
 .dashboard-scope .dash-customize-color-field input[type="color"] {
   appearance: none;
-  background: transparent;
+  background: #fff;
   border: 1px solid var(--dash-borde);
-  border-radius: var(--dash-radius-sm);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    var(--dash-shadow-xs);
   cursor: pointer;
-  height: 30px;
-  padding: 2px;
-  width: 100%;
+  height: 34px;
+  justify-self: start;
+  padding: 3px;
+  width: 54px;
+}
+
+.dashboard-scope .dash-customize-color-field input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.dashboard-scope .dash-customize-color-field input[type="color"]::-webkit-color-swatch {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 5px;
 }
 
 .dashboard-scope .dash-customize-color-field input[type="color"]:disabled {
@@ -614,9 +644,10 @@
 }
 .dashboard-scope .dash-customize-tab-row {
   align-items: center;
-  background: var(--dash-superficie-2);
-  border: 1px solid var(--dash-borde);
-  border-radius: var(--dash-radius-md);
+  background:
+    linear-gradient(180deg, #fff, var(--dash-superficie-2));
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 78%, var(--dash-borde-fuerte));
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   font-size: 13px;
@@ -633,11 +664,14 @@
   opacity: 0.7;
 }
 .dashboard-scope .dash-customize-tab-row input[type="checkbox"] {
-  accent-color: var(--dash-primario);
   cursor: pointer;
   height: 16px;
   margin: 0;
   width: 16px;
+}
+.dashboard-scope .dash-customize-tab-row input[type="checkbox"]:checked {
+  border-color: var(--dash-primario);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--dash-primario) 92%, #477dff), var(--dash-primario));
 }
 .dashboard-scope .dash-customize-tab-row input[type="checkbox"]:disabled {
   cursor: not-allowed;
@@ -655,14 +689,18 @@
 /* ======= Admin toolbar — fuera del Dashboard, arriba centrado ======= */
 .dashboard-scope .dash-admin-toolbar {
   align-items: center;
-  background: color-mix(in srgb, var(--dash-superficie-2) 92%, var(--dash-primario) 8%);
-  border: 1px solid var(--dash-borde);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(246, 248, 252, 0.72)),
+    color-mix(in srgb, var(--dash-superficie) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 76%, var(--dash-primario) 24%);
   border-radius: 999px;
-  box-shadow: var(--dash-shadow-xs);
+  box-shadow: var(--dash-shadow-sm);
   display: inline-flex;
   gap: 4px;
   margin: 0 auto 12px;
   padding: 4px;
+  backdrop-filter: saturate(1.12) blur(16px);
+  -webkit-backdrop-filter: saturate(1.12) blur(16px);
 }
 .dashboard-scope .dash-admin-toolbar-wrap {
   align-items: center;
@@ -703,7 +741,8 @@
   padding: 7px 14px;
   transition:
     background var(--dash-dur-hover) var(--dash-ease-out),
-    color var(--dash-dur-hover) var(--dash-ease-out);
+    color var(--dash-dur-hover) var(--dash-ease-out),
+    transform var(--dash-dur-press) var(--dash-ease-press);
 }
 @media (hover: hover) and (pointer: fine) {
   .dashboard-scope .dash-admin-toolbar button:hover:not(:disabled) {
@@ -713,7 +752,10 @@
 }
 .dashboard-scope .dash-admin-toolbar button:disabled {
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: 0.5;
+}
+.dashboard-scope .dash-admin-toolbar button:active:not(:disabled) {
+  transform: scale(0.975);
 }
 .dashboard-scope .dash-admin-toolbar button.is-active {
   background: var(--dash-primario);
@@ -774,9 +816,10 @@
 .dashboard-scope .dash-customize-theme-card {
   align-items: center;
   appearance: none;
-  background: var(--dash-superficie-2);
-  border: 1px solid var(--dash-borde);
-  border-radius: var(--dash-radius-md);
+  background:
+    linear-gradient(180deg, #fff, var(--dash-superficie-2));
+  border: 1px solid color-mix(in srgb, var(--dash-borde) 78%, var(--dash-borde-fuerte));
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   gap: 10px;

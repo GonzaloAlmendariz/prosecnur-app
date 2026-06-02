@@ -420,6 +420,53 @@
   is.na(x) | is.na(xc) | !nzchar(xc) | xc == "NA"
 }
 
+.explorar_responder_id_col <- function(df) {
+  if (is.null(df) || !length(df)) return(NULL)
+  names_df <- names(df)
+  if (!length(names_df)) return(NULL)
+  norm <- function(x) {
+    x <- tolower(trimws(as.character(x)))
+    x <- gsub("[^a-z0-9]+", "_", x)
+    gsub("^_+|_+$", "", x)
+  }
+  names_norm <- norm(names_df)
+  preferred <- c(
+    "response_id", "respondent_id", "respondent", "submission_id",
+    "uuid", "_uuid", "id", "_id", "case_id", "codigo_pucp", "codigo"
+  )
+  for (candidate in preferred) {
+    hit <- which(names_norm == norm(candidate))[1]
+    if (!is.na(hit)) return(names_df[hit])
+  }
+  NULL
+}
+
+.explorar_text_response_rows <- function(df, var, max_rows = 1000L) {
+  if (is.null(df) || !(var %in% names(df))) return(list())
+  raw <- as.character(df[[var]])
+  keep <- which(!.explorar_is_missing_value(raw))
+  if (!length(keep)) return(list())
+  max_rows <- suppressWarnings(as.integer(max_rows %||% 1000L))
+  if (is.na(max_rows) || max_rows < 1L) max_rows <- 1000L
+  if (length(keep) > max_rows) keep <- keep[seq_len(max_rows)]
+
+  id_col <- .explorar_responder_id_col(df)
+  ids <- if (!is.null(id_col) && id_col %in% names(df)) {
+    as.character(df[[id_col]])
+  } else {
+    sprintf("Fila %s", seq_len(nrow(df)))
+  }
+  ids[is.na(ids) | !nzchar(ids)] <- sprintf("Fila %s", which(is.na(ids) | !nzchar(ids)))
+
+  lapply(keep, function(i) {
+    list(
+      row = as.integer(i),
+      respondent_id = as.character(ids[i] %||% sprintf("Fila %s", i)),
+      response = as.character(raw[i] %||% "")
+    )
+  })
+}
+
 # -----------------------------------------------------------------------------
 # .num_viz_range: devuelve el rango ideal para mostrar una variable numérica.
 #
@@ -844,10 +891,38 @@
     ))
   }
 
+  if (tipo == "texto") {
+    rows <- .explorar_text_response_rows(df, var)
+    n_validos <- length(rows)
+    n_total <- nrow(df)
+    return(list(
+      version = 1L,
+      kind = "table",
+      title = sprintf("Respuestas abiertas de %s", label),
+      subtitle = sprintf("%d respuesta%s abierta%s%s.",
+                          n_validos,
+                          if (n_validos == 1L) "" else "s",
+                          if (n_validos == 1L) "" else "s",
+                          if (n_validos >= 1000L) " mostradas (límite de vista)" else ""),
+      meta = list(
+        var = var,
+        tipo = tipo,
+        n_validos = as.integer(n_validos),
+        n_total = as.integer(n_total),
+        eyebrow = "Respuesta abierta",
+        note = "Vista de lectura: muestra el identificador disponible y la respuesta textual."
+      ),
+      plotly = list(data = list(), layout = list(),
+                    config = pulso_plotly_config_base()),
+      actions = list(),
+      text_rows = rows
+    ))
+  }
+
   vd_bar_h(
     title = titulo, labels = character(), values = numeric(),
     meta = list(var = var, tipo = tipo,
-                empty_hint = "Explorar datos solo soporta selección única, selección múltiple y variables numéricas.")
+                empty_hint = "Explorar datos soporta selección única, selección múltiple, variables numéricas y respuestas abiertas.")
   )
 }
 
@@ -935,7 +1010,7 @@
       seccion = unname(var_seccion[v]) %||% "General"
     )
   })
-  meta_rows <- Filter(function(r) r$tipo %in% c("so", "sm", "num"), meta_rows)
+  meta_rows <- Filter(function(r) r$tipo %in% c("so", "sm", "num", "texto"), meta_rows)
 
   # Agrupar por sección.
   secciones_chr <- vapply(meta_rows, function(r) r$seccion, character(1))

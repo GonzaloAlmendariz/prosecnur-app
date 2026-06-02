@@ -70,7 +70,6 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
             className="pulso-gv2-estilo-close"
             onClick={onClose}
             aria-label="Cerrar"
-            title="Cerrar (Esc)"
           >
             <X size={16} />
           </button>
@@ -85,7 +84,7 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
               aria-selected={tab === key}
               className={`pulso-gv2-estilo-tab ${tab === key ? "is-active" : ""}`}
               onClick={() => setTab(key)}
-              title={hint}
+              aria-label={`${label}. ${hint}`}
             >
               <Icon size={13} />
               {label}

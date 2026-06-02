@@ -61,6 +61,12 @@ outputs/
 # Datos del analista (no van al repo)
 insumos/
 
+# Artefactos internos extraídos de un .pulso en la raíz del repo.
+# Un .pulso real es un zip portable; estos archivos sueltos son staging local.
+/manifest.json
+/state.rds
+/files/
+
 # Build artifacts del paquete R
 prosecnurapp_*.tar.gz
 

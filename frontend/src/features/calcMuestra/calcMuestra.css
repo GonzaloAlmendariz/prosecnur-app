@@ -463,7 +463,7 @@
 
 .cmv2-workbench {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
   gap: 14px;
   min-height: 0;
   height: clamp(640px, calc(100vh - 188px), 900px);
@@ -818,6 +818,24 @@
   outline: none;
 }
 
+.cmv2-form-grid input::placeholder,
+.cmv2-panel textarea::placeholder,
+.cmv2-table input::placeholder {
+  color: color-mix(in srgb, var(--pulso-text-soft) 72%, transparent);
+  font-weight: 650;
+}
+
+.cmv2-form-grid input:focus,
+.cmv2-panel textarea:focus,
+.cmv2-table input:focus,
+.cmv2-table select:focus,
+.cmv2-variable input:focus,
+.cmv2-variable select:focus,
+.cmv2-number-cell input:focus {
+  border-color: var(--pulso-primary-border);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
 .cmv2-form-grid input,
 .cmv2-variable input,
 .cmv2-variable select,
@@ -842,9 +860,28 @@
 }
 
 .cmv2-table-wrap {
+  position: relative;
   overflow: auto;
   border: 1px solid #e4ebf3;
   border-radius: 8px;
+  scrollbar-gutter: stable;
+}
+
+.cmv2-table-wrap::after {
+  content: "Desplaza para ver más";
+  position: sticky;
+  right: 8px;
+  bottom: 8px;
+  float: right;
+  padding: 3px 7px;
+  border: 1px solid #dbe5f0;
+  border-radius: 999px;
+  background: color-mix(in srgb, #ffffff 88%, transparent);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 800;
+  pointer-events: none;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
 }
 
 .cmv2-table {

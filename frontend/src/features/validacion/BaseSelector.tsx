@@ -40,6 +40,7 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
       <div className="pulso-validacion-base-list">
         {bases.map((b) => {
           const active = b.nombre === selected;
+          const label = b.source_alias || b.source_title || b.nombre;
           return (
             <button
               key={b.nombre}
@@ -49,13 +50,13 @@ export default function BaseSelector({ estudio, selected, onChange, disabled, cl
               disabled={disabled || active}
               title={
                 b.n_filas != null
-                  ? `${b.nombre} · ${b.n_filas} filas · ${b.n_columnas} cols`
-                  : b.nombre
+                  ? `${label} · ${b.n_filas} filas · ${b.n_columnas} cols`
+                  : label
               }
               className={`pulso-validacion-base-chip${active ? " is-active" : ""}`}
             >
               <Database size={11} />
-              {b.nombre}
+              {label}
               {b.n_filas != null && (
                 <span>
                   · {b.n_filas}

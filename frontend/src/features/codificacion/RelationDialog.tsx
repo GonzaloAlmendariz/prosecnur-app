@@ -139,15 +139,15 @@ export function RelationDialog({
                 value="padre"
                 current={modoSo}
                 onChange={setModoSo}
-                title="Integrar las respuestas a las opciones originales (recomendado)"
-                description={`Las respuestas de ${childCol} se vuelven nuevas opciones dentro de ${parent.parent}. Útil cuando ${child.parent} contiene variantes/texto libre del mismo concepto.`}
+                title="Codificar variable original"
+                description={`${parent.parent} se convierte en ${parent.parent}_recod: conserva sus opciones originales y suma categorías creadas desde ${childCol}.`}
               />
               <ModoOption
                 value="hijo"
                 current={modoSo}
                 onChange={setModoSo}
-                title="Codificar como campo separado"
-                description={`${childCol} se codifica en un campo aparte (${childCol}_recod). ${parent.parent} queda tal cual. Útil cuando las dos preguntas miden dimensiones distintas.`}
+                title="Codificar texto aparte"
+                description={`${childCol} se codifica como ${childCol}_recod, una variable independiente. ${parent.parent} queda tal cual.`}
               />
             </section>
           )}

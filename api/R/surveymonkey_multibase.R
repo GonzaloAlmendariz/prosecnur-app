@@ -29,7 +29,11 @@
 .sm_mb_norm <- function(x) {
   if (is.null(x) || length(x) == 0L) return(character(0))
   x <- tolower(.sm_mb_trim(x))
-  x <- iconv(x, to = "ASCII//TRANSLIT", sub = "")
+  x <- if (requireNamespace("stringi", quietly = TRUE)) {
+    stringi::stri_trans_general(x, "Latin-ASCII")
+  } else {
+    iconv(x, from = "", to = "ASCII//TRANSLIT", sub = "")
+  }
   x <- gsub("[^a-z0-9]+", " ", x)
   gsub("[[:space:]]+", " ", trimws(x))
 }
@@ -180,21 +184,86 @@
   ""
 }
 
+.sm_mb_char_vector <- function(x) {
+  if (is.null(x)) return(character(0))
+  if (is.list(x)) x <- unlist(x, use.names = FALSE)
+  x <- trimws(as.character(x))
+  x[!is.na(x) & nzchar(x)]
+}
+
+.sm_mb_nullable_bool <- function(x) {
+  if (is.null(x) || length(x) == 0L) return(NULL)
+  isTRUE(x)
+}
+
+.sm_mb_normalize_source_spec <- function(x, fallback = list()) {
+  x <- x %||% list()
+  survey_id <- .sm_mb_scalar(x$survey_id %||% x$id %||% fallback$survey_id, "")
+  if (!nzchar(survey_id)) stop_api(400, "E_SM_SURVEY_ID", "Cada fuente SurveyMonkey necesita survey_id.")
+  collector_ids <- unique(c(
+    .sm_mb_char_vector(x$collector_ids),
+    .sm_mb_char_vector(x$collector_id)
+  ))
+  list(
+    survey_id = survey_id,
+    pais = .sm_mb_trim(x$pais %||% x$country %||% fallback$pais),
+    label = .sm_mb_scalar(x$label %||% x$title %||% fallback$label, ""),
+    source_alias = .sm_mb_scalar(x$source_alias %||% x$alias %||% x$label %||% fallback$source_alias %||% fallback$label, ""),
+    source_title = .sm_mb_scalar(x$source_title %||% x$title %||% fallback$source_title, ""),
+    data_file_id = .sm_mb_scalar(x$data_file_id %||% fallback$data_file_id, ""),
+    response_statuses = .sm_mb_char_vector(x$response_statuses %||% x$statuses %||% x$response_status),
+    keep_missing_status = .sm_mb_nullable_bool(x$keep_missing_status %||% fallback$keep_missing_status),
+    collector_ids = collector_ids,
+    date_modified_gte = .sm_mb_scalar(
+      x$date_modified_gte %||% x$date_modified_min %||% x$modified_after %||% x$since %||%
+        fallback$date_modified_gte,
+      ""
+    ),
+    date_modified_lte = .sm_mb_scalar(
+      x$date_modified_lte %||% x$date_modified_max %||% x$modified_before %||% x$until %||%
+        x$cutoff %||% fallback$date_modified_lte,
+      ""
+    )
+  )
+}
+
 .sm_mb_normalize_survey_specs <- function(items) {
   if (is.null(items) || !length(items)) return(list())
   lapply(seq_along(items), function(i) {
     x <- items[[i]]
     survey_id <- .sm_mb_scalar(x$survey_id %||% x$id, "")
     pais <- .sm_mb_trim(x$pais %||% x$country)
-    label <- .sm_mb_scalar(x$label %||% x$title, "")
+    label <- .sm_mb_scalar(x$label %||% x$alias %||% x$source_alias %||% x$title, "")
+    source_alias <- .sm_mb_scalar(x$source_alias %||% x$alias %||% label, "")
+    source_title <- .sm_mb_scalar(x$source_title %||% x$title, "")
     data_file_id <- .sm_mb_scalar(x$data_file_id, "")
     if (!nzchar(survey_id)) stop_api(400, "E_SM_SURVEY_ID", "Cada encuesta necesita survey_id.")
-    list(
+    spec <- list(
       survey_id = survey_id,
       pais = pais,
       label = label,
-      data_file_id = data_file_id
+      source_alias = source_alias,
+      source_title = source_title,
+      data_file_id = data_file_id,
+      response_statuses = .sm_mb_char_vector(x$response_statuses %||% x$statuses %||% x$response_status),
+      keep_missing_status = .sm_mb_nullable_bool(x$keep_missing_status),
+      collector_ids = unique(c(.sm_mb_char_vector(x$collector_ids), .sm_mb_char_vector(x$collector_id))),
+      date_modified_gte = .sm_mb_scalar(
+        x$date_modified_gte %||% x$date_modified_min %||% x$modified_after %||% x$since,
+        ""
+      ),
+      date_modified_lte = .sm_mb_scalar(
+        x$date_modified_lte %||% x$date_modified_max %||% x$modified_before %||% x$until %||% x$cutoff,
+        ""
+      )
     )
+    source_items <- x$sources %||% x$campaigns %||% list()
+    spec$sources <- if (length(source_items)) {
+      lapply(source_items, .sm_mb_normalize_source_spec, fallback = spec)
+    } else {
+      list(.sm_mb_normalize_source_spec(spec, fallback = spec))
+    }
+    spec
   })
 }
 
@@ -517,6 +586,111 @@ sm_multibase_audit <- function(specs, token, canonical_inst = NULL) {
   )
 }
 
+.sm_mb_preview_rows <- function(df, limit = 5L) {
+  if (is.null(df) || !is.data.frame(df) || !nrow(df)) return(list())
+  limit <- max(1L, min(as.integer(limit %||% 5L), nrow(df)))
+  df <- utils::head(df, limit)
+  lapply(seq_len(nrow(df)), function(i) {
+    row <- as.list(df[i, , drop = FALSE])
+    lapply(row, function(value) {
+      value <- as.character(value)[1]
+      if (is.na(value)) "" else value
+    })
+  })
+}
+
+.sm_mb_preview_columns <- function(df) {
+  if (is.null(df) || !is.data.frame(df) || !length(names(df))) return(list())
+  lapply(names(df), function(nm) {
+    values <- as.character(df[[nm]])
+    values <- values[!is.na(values) & nzchar(values)]
+    list(
+      name = nm,
+      non_empty = as.integer(length(values)),
+      examples = as.list(utils::head(unique(values), 3L))
+    )
+  })
+}
+
+.sm_mb_inspect_questions <- function(tbl, limit = 80L) {
+  if (is.null(tbl) || !is.data.frame(tbl) || !nrow(tbl)) return(list())
+  limit <- max(1L, min(as.integer(limit %||% 80L), nrow(tbl)))
+  tbl <- utils::head(tbl, limit)
+  lapply(seq_len(nrow(tbl)), function(i) {
+    row <- tbl[i, , drop = FALSE]
+    list(
+      pos = as.integer(row$pos),
+      page = as.integer(row$page),
+      qid = .sm_mb_scalar(row$qid, ""),
+      family = .sm_mb_scalar(row$family, ""),
+      subtype = .sm_mb_scalar(row$subtype, ""),
+      heading = .sm_mb_trim(row$heading),
+      n_choices = as.integer(row$n_choices),
+      n_rows = as.integer(row$n_rows),
+      n_cols = as.integer(row$n_cols)
+    )
+  })
+}
+
+.sm_mb_inspect_pages <- function(details) {
+  pages <- sm_api_extract_pages(details, style = .sm_api_default_style())
+  lapply(pages, function(page) {
+    list(
+      page_id = .sm_mb_scalar(page$page_id, ""),
+      title = .sm_mb_trim(page$title %||% page$label %||% ""),
+      range_label = .sm_mb_scalar(page$range_label, ""),
+      question_count = as.integer(page$question_count %||% length(page$questions %||% list()))
+    )
+  })
+}
+
+sm_multibase_inspect_survey <- function(survey_id,
+                                        token,
+                                        base_url = "https://api.surveymonkey.com/v3",
+                                        response_limit = 5L) {
+  survey_id <- .sm_mb_scalar(survey_id, "")
+  if (!nzchar(survey_id)) stop_api(400, "E_SM_SURVEY_ID", "Falta survey_id.")
+  response_limit <- suppressWarnings(as.integer(response_limit %||% 5L))
+  if (is.na(response_limit)) response_limit <- 5L
+  response_limit <- max(1L, min(response_limit, 20L))
+
+  details <- sm_api_fetch_survey_details(survey_id, token, base_url = base_url)
+  summary <- sm_api_summary(details)
+  tbl <- .sm_mb_question_table(details)
+  probe <- tryCatch(
+    sm_api_fetch_responses_bulk(survey_id, token, page = 1L, per_page = response_limit, base_url = base_url),
+    error = function(e) list(total = NA_integer_, data = list(), error = conditionMessage(e))
+  )
+  has_response_scope <- is.null(probe$error)
+  data <- if (has_response_scope) {
+    sm_api_flatten_responses(details, probe$data %||% list())
+  } else {
+    data.frame()
+  }
+  total <- suppressWarnings(as.integer(probe$total %||% NA_integer_))
+
+  list(
+    ok = TRUE,
+    survey_id = survey_id,
+    title = .sm_mb_trim(details$title %||% summary$title %||% survey_id),
+    language = .sm_mb_scalar(summary$language, ""),
+    n_pages = as.integer(summary$n_paginas %||% length(details$pages %||% list())),
+    n_questions = as.integer(summary$n_preguntas %||% nrow(tbl)),
+    n_required = as.integer(summary$n_required %||% 0L),
+    n_validation = as.integer(summary$n_validation %||% 0L),
+    pages = .sm_mb_inspect_pages(details),
+    questions = .sm_mb_inspect_questions(tbl),
+    responses = list(
+      available = has_response_scope,
+      total = if (is.na(total)) NA_integer_ else total,
+      returned = as.integer(nrow(data)),
+      error = .sm_mb_scalar(probe$error, "")
+    ),
+    columns = .sm_mb_preview_columns(data),
+    sample_rows = .sm_mb_preview_rows(data, limit = min(response_limit, 5L))
+  )
+}
+
 .sm_mb_query_aliases <- function(token) {
   token <- .sm_mb_norm(token)
   aliases <- switch(token,
@@ -545,14 +719,75 @@ sm_multibase_audit <- function(specs, token, canonical_inst = NULL) {
   }, logical(1)))
 }
 
-sm_multibase_list_surveys <- function(token, q = "", limit = 200L, months = 6L) {
+.sm_mb_survey_catalog_get <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(NULL)
+  cache <- s$surveymonkey_survey_catalog %||% NULL
+  if (!is.list(cache) || !is.list(cache$surveys)) return(NULL)
+  cache
+}
+
+.sm_mb_survey_catalog_set <- function(sid, surveys) {
+  if (is.null(sid) || !nzchar(as.character(sid))) return(invisible(NULL))
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(invisible(NULL))
+  fetched_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  s$surveymonkey_survey_catalog <- list(
+    version = 1L,
+    source = "surveymonkey",
+    fetched_at = fetched_at,
+    total_visible = as.integer(length(surveys)),
+    surveys = surveys
+  )
+  .session_env[[sid]] <- s
+  invisible(s$surveymonkey_survey_catalog)
+}
+
+.sm_mb_survey_catalog_age_seconds <- function(cache) {
+  fetched_at <- as.character(cache$fetched_at %||% "")
+  if (!nzchar(fetched_at)) return(NA_integer_)
+  dt <- .sm_api_parse_time(fetched_at)
+  if (is.na(dt)) return(NA_integer_)
+  as.integer(max(0, difftime(Sys.time(), dt, units = "secs")))
+}
+
+sm_multibase_list_surveys <- function(token, q = "", limit = 200L, months = 6L,
+                                      sid = NULL, force_refresh = FALSE) {
   limit <- suppressWarnings(as.integer(limit %||% 200L))
   if (is.na(limit) || limit < 1L) limit <- 200L
   limit <- min(limit, 1000L)
   months <- suppressWarnings(as.integer(months %||% 6L))
   if (is.na(months) || months < 1L) months <- 6L
 
-  surveys <- sm_api_list_surveys(token, per_page = 1000L)
+  existing_cache <- if (!is.null(sid)) .sm_mb_survey_catalog_get(sid) else NULL
+  cache <- if (!isTRUE(force_refresh)) existing_cache else NULL
+  from_cache <- !is.null(cache)
+  refresh_error <- ""
+  refresh_failed <- FALSE
+  if (from_cache) {
+    surveys <- cache$surveys
+  } else {
+    fetched <- tryCatch(
+      sm_api_list_surveys(token, per_page = 1000L),
+      error = function(e) {
+        refresh_error <<- conditionMessage(e)
+        refresh_failed <<- TRUE
+        NULL
+      }
+    )
+    if (is.null(fetched)) {
+      if (!is.null(existing_cache)) {
+        cache <- existing_cache
+        surveys <- cache$surveys
+        from_cache <- TRUE
+      } else {
+        stop(refresh_error, call. = FALSE)
+      }
+    } else {
+      surveys <- fetched
+      if (!is.null(sid)) cache <- .sm_mb_survey_catalog_set(sid, surveys)
+    }
+  }
   total <- length(surveys)
   cutoff <- as.POSIXct(Sys.Date(), tz = "UTC") - months * 31L * 24L * 60L * 60L
   surveys <- Filter(function(s) {
@@ -577,6 +812,12 @@ sm_multibase_list_surveys <- function(token, q = "", limit = 200L, months = 6L) 
   })
   list(
     ok = TRUE,
+    from_cache = isTRUE(from_cache),
+    cache_status = if (isTRUE(refresh_failed) && from_cache) "stale_fallback" else if (isTRUE(force_refresh)) "refreshed" else if (from_cache) "hit" else "miss",
+    refresh_error = refresh_error,
+    catalog_fetched_at = as.character((cache %||% list())$fetched_at %||% NA_character_),
+    catalog_age_seconds = .sm_mb_survey_catalog_age_seconds(cache %||% list()),
+    catalog_count = as.integer(total),
     total_visible = as.integer(total),
     total_recent = as.integer(total_recent),
     months = as.integer(months),
@@ -633,34 +874,122 @@ sm_multibase_list_surveys <- function(token, q = "", limit = 200L, months = 6L) 
   specs
 }
 
-.sm_mb_filter_responses_by_status <- function(responses,
-                                              statuses = c("completed"),
-                                              keep_missing = TRUE) {
+.sm_mb_parse_time <- function(x) {
+  x <- .sm_mb_scalar(x, "")
+  if (!nzchar(x)) return(as.POSIXct(NA))
+  candidates <- unique(c(
+    x,
+    sub("Z$", "+0000", x),
+    sub("([+-][0-9]{2}):([0-9]{2})$", "\\1\\2", x, perl = TRUE)
+  ))
+  fmts <- c(
+    "%Y-%m-%dT%H:%M:%OS%z",
+    "%Y-%m-%dT%H:%M:%S%z",
+    "%Y-%m-%dT%H:%M:%OSZ",
+    "%Y-%m-%dT%H:%M:%SZ",
+    "%Y-%m-%d %H:%M:%OS",
+    "%Y-%m-%d %H:%M:%S"
+  )
+  for (candidate in candidates) {
+    for (fmt in fmts) {
+      out <- suppressWarnings(as.POSIXct(candidate, format = fmt, tz = "UTC"))
+      if (!is.na(out)) return(out)
+    }
+  }
+  if (exists(".sm_api_parse_time", mode = "function")) return(.sm_api_parse_time(x))
+  suppressWarnings(as.POSIXct(x, tz = "UTC"))
+}
+
+.sm_mb_response_count_map <- function(responses, field) {
+  responses <- responses %||% list()
+  if (!length(responses)) return(list())
+  values <- vapply(responses, function(resp) {
+    val <- .sm_mb_scalar(resp[[field]], "")
+    if (nzchar(val)) val else "(vacio)"
+  }, character(1))
+  tab <- sort(table(values), decreasing = TRUE)
+  out <- as.list(as.integer(tab))
+  names(out) <- names(tab)
+  out
+}
+
+.sm_mb_filter_responses <- function(responses,
+                                    statuses = c("completed"),
+                                    keep_missing_status = TRUE,
+                                    collector_ids = character(),
+                                    date_modified_gte = "",
+                                    date_modified_lte = "") {
   responses <- responses %||% list()
   original_n <- length(responses)
   statuses <- tolower(trimws(as.character(statuses %||% c("completed"))))
   statuses <- statuses[!is.na(statuses) & nzchar(statuses)]
+  collector_ids <- unique(.sm_mb_char_vector(collector_ids))
+  date_modified_gte <- .sm_mb_scalar(date_modified_gte, "")
+  date_modified_lte <- .sm_mb_scalar(date_modified_lte, "")
+  gte_ts <- .sm_mb_parse_time(date_modified_gte)
+  lte_ts <- .sm_mb_parse_time(date_modified_lte)
   filter_info <- list(
-    kind = "surveymonkey_response_status",
+    kind = "surveymonkey_response_filter",
     statuses = as.list(statuses),
-    keep_missing = isTRUE(keep_missing),
+    keep_missing_status = isTRUE(keep_missing_status),
+    collector_ids = as.list(collector_ids),
+    date_modified_gte = if (nzchar(date_modified_gte)) date_modified_gte else NA_character_,
+    date_modified_lte = if (nzchar(date_modified_lte)) date_modified_lte else NA_character_,
     original_rows = as.integer(original_n),
     kept_rows = as.integer(original_n),
-    excluded_rows = 0L
+    excluded_rows = 0L,
+    original_status_counts = .sm_mb_response_count_map(responses, "response_status"),
+    original_collector_counts = .sm_mb_response_count_map(responses, "collector_id")
   )
-  if (!original_n || !length(statuses) || any(statuses %in% c("all", "*"))) {
+  status_all <- !length(statuses) || any(statuses %in% c("all", "*"))
+  has_collector_filter <- length(collector_ids) > 0L
+  has_gte <- nzchar(date_modified_gte) && !is.na(gte_ts)
+  has_lte <- nzchar(date_modified_lte) && !is.na(lte_ts)
+  if (!original_n || (status_all && !has_collector_filter && !has_gte && !has_lte)) {
+    filter_info$kept_status_counts <- filter_info$original_status_counts
+    filter_info$kept_collector_counts <- filter_info$original_collector_counts
     return(structure(responses, sm_response_filter = filter_info))
   }
 
   keep <- vapply(responses, function(resp) {
     st <- tolower(trimws(.sm_mb_scalar(resp$response_status, "")))
-    if (!nzchar(st)) return(isTRUE(keep_missing))
-    st %in% statuses
+    status_ok <- if (status_all) {
+      TRUE
+    } else if (!nzchar(st)) {
+      isTRUE(keep_missing_status)
+    } else {
+      st %in% statuses
+    }
+    if (!status_ok) return(FALSE)
+    if (has_collector_filter) {
+      collector <- .sm_mb_scalar(resp$collector_id, "")
+      if (!(collector %in% collector_ids)) return(FALSE)
+    }
+    if (has_gte || has_lte) {
+      modified <- .sm_mb_scalar(resp$date_modified %||% resp$date_created, "")
+      modified_ts <- .sm_mb_parse_time(modified)
+      if (is.na(modified_ts)) return(FALSE)
+      if (has_gte && modified_ts < gte_ts) return(FALSE)
+      if (has_lte && modified_ts > lte_ts) return(FALSE)
+    }
+    TRUE
   }, logical(1))
   out <- responses[keep]
   filter_info$kept_rows <- as.integer(length(out))
   filter_info$excluded_rows <- as.integer(original_n - length(out))
+  filter_info$kept_status_counts <- .sm_mb_response_count_map(out, "response_status")
+  filter_info$kept_collector_counts <- .sm_mb_response_count_map(out, "collector_id")
   structure(out, sm_response_filter = filter_info)
+}
+
+.sm_mb_filter_responses_by_status <- function(responses,
+                                              statuses = c("completed"),
+                                              keep_missing = TRUE) {
+  .sm_mb_filter_responses(
+    responses,
+    statuses = statuses,
+    keep_missing_status = keep_missing
+  )
 }
 
 .sm_mb_survey_row <- function(inst, var) {
@@ -798,13 +1127,19 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
                                                          company_vars = character(),
                                                          response_statuses = c("completed"),
                                                          keep_missing_status = TRUE,
+                                                         collector_ids = character(),
+                                                         date_modified_gte = "",
+                                                         date_modified_lte = "",
                                                          variant_map = list()) {
   specs <- .sm_mb_question_specs(details)
   variant_lookup <- .sm_mb_variant_lookup(variant_map)
-  responses <- .sm_mb_filter_responses_by_status(
+  responses <- .sm_mb_filter_responses(
     responses,
     statuses = response_statuses,
-    keep_missing = keep_missing_status
+    keep_missing_status = keep_missing_status,
+    collector_ids = collector_ids,
+    date_modified_gte = date_modified_gte,
+    date_modified_lte = date_modified_lte
   )
   response_filter <- attr(responses, "sm_response_filter", exact = TRUE)
   if (is.null(responses) || !length(responses)) {
@@ -974,6 +1309,23 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   out
 }
 
+.sm_mb_response_filter_total <- function(filters) {
+  filters <- Filter(function(x) is.list(x) && length(x), filters %||% list())
+  if (!length(filters)) return(list())
+  if (length(filters) == 1L) return(filters[[1]])
+  original_rows <- sum(vapply(filters, function(x) as.integer(x$original_rows %||% 0L), integer(1)))
+  kept_rows <- sum(vapply(filters, function(x) as.integer(x$kept_rows %||% 0L), integer(1)))
+  excluded_rows <- sum(vapply(filters, function(x) as.integer(x$excluded_rows %||% 0L), integer(1)))
+  list(
+    kind = "surveymonkey_multi_source_response_filter",
+    source_count = as.integer(length(filters)),
+    original_rows = as.integer(original_rows),
+    kept_rows = as.integer(kept_rows),
+    excluded_rows = as.integer(excluded_rows),
+    sources = filters
+  )
+}
+
 .sm_mb_write_xlsx <- function(df, path) {
   if (!requireNamespace("openxlsx", quietly = TRUE)) stop("Se requiere openxlsx.", call. = FALSE)
   wb <- openxlsx::createWorkbook()
@@ -982,6 +1334,64 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
   openxlsx::freezePane(wb, "datos", firstRow = TRUE)
   if (ncol(df)) openxlsx::setColWidths(wb, "datos", cols = seq_len(ncol(df)), widths = "auto")
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+}
+
+.sm_mb_write_xlsform_model <- function(model, path) {
+  if (exists(".mi_write_xlsform", mode = "function")) {
+    return(.mi_write_xlsform(model, path))
+  }
+  if (!requireNamespace("openxlsx", quietly = TRUE)) stop("Se requiere openxlsx.", call. = FALSE)
+  wb <- openxlsx::createWorkbook()
+  for (sheet in c("survey", "choices", "settings")) {
+    df <- model[[sheet]]
+    if (is.null(df)) df <- data.frame()
+    openxlsx::addWorksheet(wb, sheet)
+    openxlsx::writeData(wb, sheet, df)
+    openxlsx::freezePane(wb, sheet, firstRow = TRUE)
+    if (ncol(df)) openxlsx::setColWidths(wb, sheet, cols = seq_len(ncol(df)), widths = "auto")
+  }
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+}
+
+.sm_mb_unique_base_name <- function(sid, label, fallback = "surveymonkey_base") {
+  nombre <- .sm_mb_slug(label)
+  if (!nzchar(nombre)) nombre <- fallback
+  nombre <- substr(nombre, 1L, 72L)
+  nombre <- gsub("_+$", "", nombre)
+  if (!nzchar(nombre)) nombre <- fallback
+  existing <- names(estudio_list_bases(sid))
+  if (!(nombre %in% existing)) return(nombre)
+  base0 <- nombre
+  idx <- 2L
+  repeat {
+    suffix <- paste0("_", idx)
+    candidate <- paste0(substr(base0, 1L, max(1L, 72L - nchar(suffix))), suffix)
+    if (!(candidate %in% existing)) return(candidate)
+    idx <- idx + 1L
+  }
+}
+
+.sm_mb_summary_lookup <- function(summaries) {
+  ids <- vapply(summaries, function(x) .sm_mb_scalar(x$survey_id, ""), character(1))
+  stats::setNames(summaries, ids)
+}
+
+.sm_mb_independent_base_label <- function(spec, summary) {
+  source_alias <- .sm_mb_trim(spec$source_alias %||% "")
+  if (nzchar(source_alias)) return(source_alias)
+  label <- .sm_mb_trim(spec$label %||% "")
+  if (nzchar(label)) return(label)
+  title <- .sm_mb_trim(summary$title %||% "")
+  if (nzchar(title)) return(title)
+  .sm_mb_scalar(spec$survey_id, "surveymonkey_base")
+}
+
+.sm_mb_response_statuses <- function(x) {
+  if (is.null(x)) return(c("completed"))
+  if (is.list(x)) x <- unlist(x, use.names = FALSE)
+  x <- as.character(x)
+  x <- x[!is.na(x) & nzchar(trimws(x))]
+  if (!length(x)) c("completed") else x
 }
 
 .sm_mb_write_instrument_xlsx <- function(path_in, path_out, company_vars = character(), wording_decisions = list()) {
@@ -1135,12 +1545,276 @@ sm_multibase_import <- function(sid,
 
   list(
     ok = TRUE,
-    base = .estudio_base_payload(base_meta),
+    base = .estudio_base_payload(base_meta, session_get(sid, required = FALSE)),
     estudio = .estudio_payload(sid),
     audit = audit,
     source_filters = source_filters,
     n_filas = as.integer(nrow(data_df)),
     n_columnas = as.integer(ncol(data_df))
+  )
+}
+
+sm_multibase_import_independent <- function(sid,
+                                            specs,
+                                            token,
+                                            response_statuses = c("completed"),
+                                            keep_missing_status = TRUE) {
+  specs <- .sm_mb_normalize_survey_specs(specs)
+  if (!length(specs)) stop_api(400, "E_SM_NO_SURVEYS", "Selecciona al menos una encuesta.")
+
+  existing <- estudio_list_bases(sid)
+  if (length(existing) > 0L && !estudio_is_independent_siblings(sid)) {
+    stop_api(409, "E_ESTUDIO_MODE_CONFLICT",
+             "El estudio ya tiene bases en otro modo. Crea un estudio nuevo o importa sobre uno de bases hermanas independientes.")
+  }
+  existing_names <- names(existing)
+  active_before <- if (length(existing_names)) {
+    tryCatch(estudio_active_base(sid), error = function(e) existing_names[1])
+  } else {
+    NULL
+  }
+  independent_limit <- if (exists(".ESTUDIO_INDEPENDENT_SIBLINGS_MAX_BASES", mode = "any")) {
+    .ESTUDIO_INDEPENDENT_SIBLINGS_MAX_BASES
+  } else {
+    10L
+  }
+  if ((length(existing) + length(specs)) > independent_limit) {
+    stop_api(400, "E_BASE_LIMITE",
+             sprintf("La importacion excede el limite de %d bases hermanas independientes.", independent_limit))
+  }
+
+  audit <- tryCatch(
+    sm_multibase_audit(specs, token, canonical_inst = NULL),
+    error = function(e) list(
+      ok = FALSE,
+      informational_only = TRUE,
+      error = conditionMessage(e),
+      surveys = list(),
+      diffs = list()
+    )
+  )
+  fetched <- .sm_mb_fetch_family(specs, token)
+  summaries_by_id <- .sm_mb_summary_lookup(fetched$summaries)
+  family_id <- if (exists("estudio_independent_family_id", mode = "function")) {
+    estudio_independent_family_id(sid) %||% uuid::UUIDgenerate()
+  } else {
+    uuid::UUIDgenerate()
+  }
+  imported_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  downloads_dir <- file.path(session_get(sid)$dir, "downloads")
+  dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
+
+  prepared <- list()
+  planned_names <- names(existing)
+  for (spec in specs) {
+    details <- fetched$details[[spec$survey_id]]
+    if (is.null(details)) {
+      stop_api(502, "E_SM_SURVEY_DETAILS",
+               sprintf("No se pudo leer la encuesta SurveyMonkey '%s'.", spec$survey_id))
+    }
+    summary <- summaries_by_id[[spec$survey_id]] %||% list()
+    title <- .sm_mb_scalar(summary$title, spec$source_title %||% spec$label %||% spec$survey_id)
+    pais <- .sm_mb_scalar(spec$pais, summary$pais %||% "")
+    label <- .sm_mb_independent_base_label(spec, summary)
+    base_name <- .sm_mb_slug(label)
+    if (!nzchar(base_name)) base_name <- paste0("survey_", spec$survey_id)
+    base_name <- substr(base_name, 1L, 72L)
+    base_name <- gsub("_+$", "", base_name)
+    if (!nzchar(base_name)) base_name <- paste0("survey_", spec$survey_id)
+    base0 <- base_name
+    idx <- 2L
+    while (base_name %in% planned_names) {
+      suffix <- paste0("_", idx)
+      base_name <- paste0(substr(base0, 1L, max(1L, 72L - nchar(suffix))), suffix)
+      idx <- idx + 1L
+    }
+    planned_names <- c(planned_names, base_name)
+
+    xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
+    inst_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_xlsform.xlsx"))
+    .sm_mb_write_xlsform_model(xls_model, inst_path)
+    rp_inst <- reporte_instrumento(path = inst_path)
+
+    source_dfs <- list()
+    source_filters <- list()
+    source_specs <- spec$sources %||% list(spec)
+    for (source_spec in source_specs) {
+      source_id <- .sm_mb_scalar(source_spec$survey_id, spec$survey_id)
+      source_details <- if (identical(source_id, spec$survey_id)) {
+        details
+      } else {
+        sm_api_fetch_survey_details(source_id, token)
+      }
+      source_alias <- .sm_mb_trim(source_spec$source_alias %||% source_spec$label %||% "")
+      source_title <- .sm_mb_trim(source_spec$source_title %||% source_details$title %||% source_spec$label %||% title)
+      if (!nzchar(source_title)) source_title <- if (nzchar(source_alias)) source_alias else title
+      source_pais <- .sm_mb_scalar(source_spec$pais, pais)
+      source_statuses <- .sm_mb_char_vector(source_spec$response_statuses)
+      if (!length(source_statuses)) source_statuses <- .sm_mb_char_vector(spec$response_statuses)
+      if (!length(source_statuses)) source_statuses <- response_statuses
+      source_keep_missing <- source_spec$keep_missing_status
+      if (is.null(source_keep_missing)) source_keep_missing <- spec$keep_missing_status
+      if (is.null(source_keep_missing)) source_keep_missing <- isTRUE(keep_missing_status)
+      source_collectors <- unique(.sm_mb_char_vector(source_spec$collector_ids))
+      source_date_gte <- .sm_mb_scalar(source_spec$date_modified_gte %||% spec$date_modified_gte, "")
+      source_date_lte <- .sm_mb_scalar(source_spec$date_modified_lte %||% spec$date_modified_lte, "")
+      source_data_file_id <- .sm_mb_scalar(source_spec$data_file_id, "")
+
+      if (nzchar(source_data_file_id)) {
+        one_df <- .sm_mb_read_upload_data(
+          sid = sid,
+          file_id = source_data_file_id,
+          details = source_details,
+          inst = rp_inst,
+          survey_id = source_id,
+          pais = source_pais,
+          source_title = source_title,
+          company_vars = character(0)
+        )
+        one_filter <- list(
+          kind = "uploaded_data",
+          survey_id = source_id,
+          source_title = source_title,
+          source_alias = source_alias,
+          original_rows = as.integer(nrow(one_df)),
+          kept_rows = as.integer(nrow(one_df)),
+          excluded_rows = 0L
+        )
+      } else {
+        payload <- sm_api_fetch_all_responses_bulk(source_id, token)
+        one_df <- sm_multibase_api_responses_to_canonical_data(
+          details = source_details,
+          responses = payload$data,
+          inst = rp_inst,
+          survey_id = source_id,
+          pais = source_pais,
+          source_title = source_title,
+          company_vars = character(0),
+          response_statuses = source_statuses,
+          keep_missing_status = isTRUE(source_keep_missing),
+          collector_ids = source_collectors,
+          date_modified_gte = source_date_gte,
+          date_modified_lte = source_date_lte
+        )
+        one_filter <- attr(one_df, "sm_response_filter", exact = TRUE) %||% list()
+        one_filter$survey_id <- source_id
+        one_filter$source_title <- source_title
+        one_filter$source_alias <- source_alias
+      }
+      source_dfs[[length(source_dfs) + 1L]] <- one_df
+      source_filters[[length(source_filters) + 1L]] <- one_filter
+    }
+    data_df <- .sm_mb_bind_rows(source_dfs)
+    response_filter <- .sm_mb_response_filter_total(source_filters)
+
+    if (!is.data.frame(data_df) || !nrow(data_df)) {
+      stop_api(409, "E_SM_NO_RESPONSES",
+               sprintf("La encuesta '%s' (%s) no tiene respuestas completas para importar.", title, spec$survey_id))
+    }
+    data_df <- normalize_data_for_xlsform(data_df, rp_inst)
+    .carga_assert_data_xlsform_compatible(data_df, rp_inst)
+    data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_data.xlsx"))
+    .sm_mb_write_xlsx(data_df, data_path)
+    rp_data <- reporte_data(data_df, instrumento = rp_inst)
+
+    prepared[[length(prepared) + 1L]] <- list(
+      base_name = base_name,
+      title = title,
+      source_alias = label,
+      pais = pais,
+      survey_id = spec$survey_id,
+      inst_path = inst_path,
+      data_path = data_path,
+      rp_inst = rp_inst,
+      rp_data = rp_data,
+      n_filas = as.integer(nrow(data_df)),
+      n_columnas = as.integer(ncol(data_df)),
+      response_filter = response_filter %||% list(),
+      source_kind = if (length(source_specs) > 1L) {
+        "surveymonkey_api_multi_source"
+      } else if (nzchar(spec$data_file_id)) {
+        "surveymonkey_upload"
+      } else {
+        "surveymonkey_api"
+      }
+    )
+  }
+
+  estudio_ensure(sid)
+  estudio_set_processing_mode(sid, "independent_siblings")
+  bases_out <- list()
+  imported_names <- character(0)
+  for (item in prepared) {
+    inst_bytes <- readBin(item$inst_path, what = "raw", n = file.info(item$inst_path)$size)
+    data_bytes <- readBin(item$data_path, what = "raw", n = file.info(item$data_path)$size)
+    inst_meta <- save_upload(sid, "xlsform", paste0(item$base_name, "_xlsform.xlsx"), inst_bytes)
+    data_meta <- save_upload(sid, "data", paste0(item$base_name, "_data.xlsx"), data_bytes)
+    base_meta <- estudio_add_base(
+      sid,
+      nombre = item$base_name,
+      xlsform_file_id = inst_meta$file_id,
+      data_file_id = data_meta$file_id,
+      data_ext = "xlsx",
+      rp_data = item$rp_data,
+      rp_inst = item$rp_inst,
+      n_filas = item$n_filas,
+      n_columnas = item$n_columnas,
+      extra_meta = list(
+        processing_mode = "independent_siblings",
+        source_kind = item$source_kind,
+        survey_id = item$survey_id,
+        source_alias = item$source_alias,
+        source_title = item$title,
+        sibling_family_id = family_id,
+        imported_at = imported_at,
+        response_filter = item$response_filter
+      )
+    )
+    imported_names <- c(imported_names, item$base_name)
+    bases_out[[length(bases_out) + 1L]] <- .estudio_base_payload(base_meta, session_get(sid, required = FALSE))
+  }
+  if (length(imported_names)) {
+    if (!length(existing_names)) {
+      estudio_active_base_set(sid, imported_names[1])
+      active_for_source <- imported_names[1]
+    } else if (!is.null(active_before) && nzchar(as.character(active_before)) &&
+               active_before %in% names(estudio_list_bases(sid))) {
+      estudio_active_base_set(sid, active_before)
+      active_for_source <- active_before
+    } else {
+      active_for_source <- as.character(estudio_active_base(sid) %||% imported_names[1])
+    }
+    if (exists("estudio_mark_independent_shared_logic", mode = "function")) {
+      estudio_mark_independent_shared_logic(
+        sid,
+        template_base = active_for_source,
+        audit = audit,
+        status = "imported_siblings"
+      )
+    }
+    if (exists("estudio_propagate_shared_codif_logic", mode = "function") &&
+        length(existing_names) > 0L) {
+      estudio_propagate_shared_codif_logic(
+        sid,
+        template_base = active_for_source,
+        targets = imported_names,
+        overwrite = FALSE
+      )
+    }
+    session_set(sid, "analitica_prep_ok", TRUE)
+    if (!length(existing_names)) {
+      session_set(sid, "analitica_fuente", sprintf("estudio:%s", as.character(estudio_active_base(sid) %||% active_for_source)))
+    }
+  }
+
+  list(
+    ok = TRUE,
+    processing_mode = "independent_siblings",
+    active_base = as.character(estudio_active_base(sid) %||% NA_character_),
+    bases = bases_out,
+    n_bases = length(estudio_list_bases(sid)),
+    estudio = .estudio_payload(sid),
+    audit = audit
   )
 }
 
@@ -1153,13 +1827,29 @@ mount_surveymonkey_multibase <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      token <- prosecnur_secret_load("sm_token")
-      if (is.na(token) || !nzchar(token)) stop_api(400, "E_SM_TOKEN", "Falta token SurveyMonkey guardado.")
+      token <- .connections_token_require("surveymonkey", sid)
       sm_multibase_list_surveys(
         token,
         q = .sm_mb_scalar(parsed$q, ""),
         limit = suppressWarnings(as.integer(parsed$limit %||% 200L)),
-        months = suppressWarnings(as.integer(parsed$months %||% 6L))
+        months = suppressWarnings(as.integer(parsed$months %||% 6L)),
+        sid = sid,
+        force_refresh = isTRUE(parsed$force_refresh)
+      )
+    })) |>
+    plumber::pr_post("/api/surveymonkey/multibase/inspect", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        sid <- session_create()
+        res$setHeader("X-Pulso-Session", sid)
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      token <- .connections_token_require("surveymonkey", sid)
+      sm_multibase_inspect_survey(
+        survey_id = parsed$survey_id %||% parsed$id,
+        token = token,
+        base_url = .sm_mb_scalar(parsed$base_url, "https://api.surveymonkey.com/v3"),
+        response_limit = suppressWarnings(as.integer(parsed$response_limit %||% 5L))
       )
     })) |>
     plumber::pr_post("/api/surveymonkey/multibase/audit", wrap_endpoint(function(req, res, ...) {
@@ -1169,8 +1859,7 @@ mount_surveymonkey_multibase <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      token <- prosecnur_secret_load("sm_token")
-      if (is.na(token) || !nzchar(token)) stop_api(400, "E_SM_TOKEN", "Falta token SurveyMonkey guardado.")
+      token <- .connections_token_require("surveymonkey", sid)
       canonical_file_id <- .sm_mb_scalar(parsed$canonical_xlsform_file_id, "")
       canon <- tryCatch(.sm_mb_canonical_inst(sid, canonical_file_id), error = function(e) NULL)
       specs <- .sm_mb_normalize_survey_specs(parsed$surveys %||% list())
@@ -1184,8 +1873,7 @@ mount_surveymonkey_multibase <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      token <- prosecnur_secret_load("sm_token")
-      if (is.na(token) || !nzchar(token)) stop_api(400, "E_SM_TOKEN", "Falta token SurveyMonkey guardado.")
+      token <- .connections_token_require("surveymonkey", sid)
       sm_multibase_import(
         sid = sid,
         specs = parsed$surveys %||% list(),
@@ -1193,6 +1881,22 @@ mount_surveymonkey_multibase <- function(pr) {
         canonical_file_id = .sm_mb_scalar(parsed$canonical_xlsform_file_id, ""),
         base_name = .sm_mb_scalar(parsed$base_name, "surveymonkey_multibase"),
         wording_decisions = parsed$wording_decisions %||% list()
+      )
+    })) |>
+    plumber::pr_post("/api/surveymonkey/multibase/import-independent", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        sid <- session_create()
+        res$setHeader("X-Pulso-Session", sid)
+      }
+      parsed <- .xlsform_editor_parse_body(req)
+      token <- .connections_token_require("surveymonkey", sid)
+      sm_multibase_import_independent(
+        sid = sid,
+        specs = parsed$surveys %||% list(),
+        token = token,
+        response_statuses = .sm_mb_response_statuses(parsed$response_statuses),
+        keep_missing_status = if (is.null(parsed$keep_missing_status)) TRUE else isTRUE(parsed$keep_missing_status)
       )
     }))
 }

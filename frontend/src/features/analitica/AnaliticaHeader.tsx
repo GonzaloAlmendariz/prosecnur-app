@@ -1,7 +1,12 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { CheckCircle2, Database, FileSpreadsheet, GitBranch } from "lucide-react";
-import { apiAnaliticaConfigExport, apiAnaliticaConfigImport, apiAnaliticaConfigPut, apiAnaliticaPreparar } from "../../api/client";
+import {
+  apiAnaliticaConfigExport,
+  apiAnaliticaConfigImport,
+  apiAnaliticaConfigPut,
+  apiAnaliticaPreparar,
+} from "../../api/client";
 import type { AnaliticaFuenteBase } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { ConfigIoButtons } from "../../components/ConfigIoButtons";
@@ -16,15 +21,37 @@ import { useAnaliticaStore, type FuentePreferida } from "./store";
 // - Indicador "Autoguardado activo".
 // Aparece como command bar por encima del split view de reportes.
 
+export function analiticaFuenteGuidance({
+  prepBusy,
+  prepError,
+  codificadaDisponible,
+  usandoAdaptados,
+}: {
+  prepBusy: boolean;
+  prepError: string;
+  codificadaDisponible: boolean;
+  usandoAdaptados: boolean;
+}) {
+  if (prepBusy) return "Preparando datos...";
+  if (prepError) return `Error preparando: ${prepError}`;
+  if (!codificadaDisponible) {
+    return "Original: datos e instrumento de Fase 1. Codificada aparece después de aplicar Fase 3.";
+  }
+  if (usandoAdaptados) {
+    return "Codificada: datos e instrumento de Fase 3, con recodificaciones, nuevas variables y categorías.";
+  }
+  return "Original: datos e instrumento de Fase 1, sin recodificaciones de Codificación.";
+}
+
 export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; prepError: string }) {
   const { state, refresh } = useSession();
   const config = useAnaliticaStore((s) => s.config);
   const setFuente = useAnaliticaStore((s) => s.setFuente);
 
   const fuenteActual = state?.analitica_fuente ?? "";
-  const usandoAdaptados = fuenteActual === "adaptados";
+  const usandoAdaptados = fuenteActual.startsWith("adaptados");
   const detalle = state?.analitica_fuente_detalle;
-  const codificadaDisponible = Boolean(detalle?.codificada.available || (!detalle && state?.codif_aplicado));
+  const codificadaDisponible = Boolean(detalle?.codificada.available || state?.codif_aplicado);
   const fuenteActiva: FuentePreferida = usandoAdaptados ? "adaptados" : "originales";
   const [switching, setSwitching] = useState(false);
 
@@ -66,15 +93,12 @@ export function AnaliticaHeader({ prepBusy, prepError }: { prepBusy: boolean; pr
   const activeFirst = activeBases?.find((b) => b.available) ?? activeBases?.[0];
   const activeXls = activeFirst?.xlsform?.filename ?? "XLSForm no resuelto";
   const activeData = activeFirst?.data?.filename ?? "Data no resuelta";
-  const guidance = prepBusy
-    ? "Preparando datos..."
-    : prepError
-    ? `Error preparando: ${prepError}`
-    : !codificadaDisponible
-    ? "No hay codificación aplicada; se usa Original. Codificada se activa después de Fase 3."
-    : usandoAdaptados
-    ? "Recomendada: incluye recodificaciones, nuevas variables y categorías de Fase 3."
-    : "Codificada está disponible y suele ser la opción recomendada para entregables finales.";
+  const guidance = analiticaFuenteGuidance({
+    prepBusy,
+    prepError,
+    codificadaDisponible,
+    usandoAdaptados,
+  });
 
   return (
     <ContextBar

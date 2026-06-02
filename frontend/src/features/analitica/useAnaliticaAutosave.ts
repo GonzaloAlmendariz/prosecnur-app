@@ -98,10 +98,11 @@ export function useAnaliticaAutosave() {
   const hydrated = useAnaliticaStore((s) => s.hydrated);
   const hydrate = useAnaliticaStore((s) => s.hydrate);
   const markClean = useAnaliticaStore((s) => s.markClean);
+  const timer = useRef<number | null>(null);
 
-  // 1) Hidratación inicial + re-hidratación al cambiar de sesión
-  // (ej. cargar otro demo). Sin el listener de `pulso:session-changed`
-  // el store quedaba con config del demo anterior.
+  // 1) Hidratación inicial + re-hidratación al cambiar de sesión o base
+  // activa. En independent_siblings el backend sirve una config distinta
+  // por base; al cambiar cancelamos autosaves pendientes de la base anterior.
   useEffect(() => {
     let cancelled = false;
 
@@ -117,19 +118,22 @@ export function useAnaliticaAutosave() {
 
     void hydrateFromBackend();
 
-    function onSessionChanged() {
+    function rehydrateScopedConfig() {
+      if (timer.current) window.clearTimeout(timer.current);
       void hydrateFromBackend();
     }
-    window.addEventListener("pulso:session-changed", onSessionChanged);
+    window.addEventListener("pulso:session-changed", rehydrateScopedConfig);
+    window.addEventListener("pulso:active-base-changed", rehydrateScopedConfig);
     return () => {
       cancelled = true;
-      window.removeEventListener("pulso:session-changed", onSessionChanged);
+      if (timer.current) window.clearTimeout(timer.current);
+      window.removeEventListener("pulso:session-changed", rehydrateScopedConfig);
+      window.removeEventListener("pulso:active-base-changed", rehydrateScopedConfig);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 2) Autosave debounced.
-  const timer = useRef<number | null>(null);
   const projectSaveChain = useRef<Promise<void>>(Promise.resolve());
 
   const saveActivePulso = useCallback(async () => {

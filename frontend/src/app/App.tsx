@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { SessionProvider } from "../lib/SessionContext";
 import Layout from "./Layout";
@@ -23,12 +23,16 @@ import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import LogsPanel from "../components/LogsPanel";
 import { LoadingBlock } from "../components/States";
 import { install as installLogSink, note as logNote } from "../lib/logSink";
+import { lazyWithReload } from "../lib/lazyWithReload";
 import { isPublicMode } from "../lib/runtime";
 
 // Dashboard — code-split para no arrastrar plotly al bundle principal.
 // Su payload solo se carga cuando el usuario entra a /tablero. La ruta
 // se mantiene como `/tablero` por compatibilidad de URLs.
-const DashboardPage = lazy(() => import("../features/dashboard/DashboardPage"));
+const DashboardPage = lazyWithReload(
+  () => import("../features/dashboard/DashboardPage"),
+  "DashboardPage",
+);
 const ROUTER_BASENAME =
   import.meta.env.BASE_URL && import.meta.env.BASE_URL !== "/"
     ? import.meta.env.BASE_URL.replace(/\/$/, "")

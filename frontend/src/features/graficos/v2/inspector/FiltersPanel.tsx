@@ -285,7 +285,6 @@ function FilterRow({ rule, index, variables, onUpdate, onRemove }: {
         type="button"
         className="pulso-gv2-filter-row-remove"
         onClick={onRemove}
-        title="Eliminar esta regla"
         aria-label="Eliminar regla"
       >
         <X size={12} />

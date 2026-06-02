@@ -90,6 +90,10 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
     () => (manifest?.tabs ?? []).filter((t) => tabsEnabled[t.id] !== false),
     [manifest, tabsEnabled],
   );
+  const unavailableVisibleTabs = useMemo(
+    () => visibleTabs.filter((t) => !t.available),
+    [visibleTabs],
+  );
 
   // Variables con recodificación detectadas. La decisión (original/recod)
   // por variable se configura desde el panel "Datos" — no bloqueamos el
@@ -197,6 +201,14 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
       )}
 
       <DashboardHeader />
+      {manifest && (
+        <span
+          hidden
+          data-audit-ready="dashboard"
+          data-audit-has-data={manifest.estado.tiene_data ? "true" : "false"}
+          data-audit-has-dimensions={manifest.estado.tiene_dim ? "true" : "false"}
+        />
+      )}
 
       {loading && <EmptyState title="Cargando dashboard…" />}
       {error && (
@@ -245,6 +257,16 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
               onSelect={setTabActiva}
             />
           </nav>
+          {unavailableVisibleTabs.length > 0 && !previewMode && !adminHidden && (
+            <div className="dash-tab-blocked-hints" role="status" aria-label="Pestañas pendientes">
+              {unavailableVisibleTabs.map((tab) => (
+                <span key={tab.id}>
+                  <strong>{tab.label}</strong>
+                  {tab.reason ? `: ${tab.reason}` : ": pendiente de configuración."}
+                </span>
+              ))}
+            </div>
+          )}
 
           <TabContent tab={tabActiva} />
         </>
@@ -303,6 +325,9 @@ function TabNav({
           type="button"
           className={`dash-tab ${t.id === activeId ? "is-active" : ""}`}
           disabled={!t.available}
+          aria-label={!t.available && t.reason ? `${t.label}. ${t.reason}` : t.label}
+          data-audit-tab={t.id}
+          data-audit-disabled-reason={!t.available ? t.reason ?? "No disponible" : undefined}
           title={!t.available ? t.reason ?? undefined : t.label}
           onClick={() => onSelect(t.id)}
         >

@@ -1,219 +1,99 @@
-import { useMemo, useState } from "react";
 import {
+  type CSSProperties,
+  type KeyboardEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  ArrowRight,
+  Check,
+  ChevronLeft,
+  ChevronRight,
   FilePlus2,
   FolderOpen,
-  Info,
   Power,
-  Map as MapIcon,
-  Workflow,
-  FilePen,
-  QrCode,
-  LayoutDashboard,
-  Activity,
-  Calculator,
-  Library,
   Folder,
   Clock,
+  Settings2,
 } from "lucide-react";
-import { IconHero } from "../../lib/icons";
+import { useNavigate } from "react-router-dom";
 import { apiShutdown, type SessionState } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
+import {
+  PROSECNUR_MODULES as MODULES,
+  homeModuleVars,
+  type ProsecnurModuleMeta,
+} from "../../lib/modules";
 import { useProjectShell } from "../project/ProjectShell";
 import type { RecentProject } from "../project/types";
 import type { UseProjectReturn } from "../project/useProject";
-import { CreditsDrawer } from "./CreditsDrawer";
 import { ExitDialog } from "./ExitDialog";
-import { ModuleDetail } from "./ModuleDetail";
-import { ModuleTile } from "./ModuleTile";
+import { GlobalSettingsDialog } from "./GlobalSettingsDialog";
 import {
-  ReleaseNotesDrawer,
   type ReleaseNote,
 } from "./ReleaseNotesDrawer";
 
 // Home — menú principal de Prosecnur.
 //
-// Los 6 módulos son herramientas independientes (no fases obligatorias
+// Los 8 módulos son herramientas independientes (no fases obligatorias
 // de un flujo): un usuario puede usar Hojas de Ruta sin haber tocado
 // Procesamiento. El layout y el peso visual reflejan esa independencia.
 //
 // Layout:
-//   1. Hero compacto — logo mini + wordmark + saludo + contexto.
-//   2. ModulesGrid 2×3 — tiles flotantes rounded-square.
+//   1. ProjectBar — proyecto activo + recientes en una consola compacta.
+//   2. ModulesDeck — carrusel cinematográfico con detalle visible.
 //   3. Footer — atribución, notas, cerrar.
 //   4. Drawer lateral derecho — historial completo de release notes.
 //
 // Los estilos viven en `app/theme.css` con prefijo `.home-*`.
 // El motion reusa los tokens centralizados (--motion-dur-*, --motion-ease-out).
 
-// ---- Catálogo de módulos --------------------------------------------
-export type ModuleMeta = {
-  slug: string;
-  title: string;
-  tagline: string;
-  blurb: string;
-  features: string[];
-  icon: typeof Workflow;
-  iconBg: string;
-  iconFg: string;
-  iconBorder: string;
-  to?: string; // con `to` → activo; sin → "próximamente"
+export type ModuleMeta = ProsecnurModuleMeta;
+
+type ModuleMotionDirection = "forward" | "backward";
+type CinemaDensity = "compact" | "standard" | "roomy";
+type CinemaMetrics = {
+  cardWidth: number;
+  cardMinHeight: number;
+  cardStep: number;
+  cardYOffset: number;
+  cardRotate: number;
+  cardTilt: number;
+  scaleDrop: number;
+  minScale: number;
+  hiddenDistance: number;
+  density: CinemaDensity;
 };
 
-const MODULES: ModuleMeta[] = [
-  {
-    slug: "editor-xlsform",
-    title: "Editor de formularios",
-    tagline: "Diseña, importa o traduce tu cuestionario",
-    blurb:
-      "Arma un formulario desde cero, importa uno existente para editarlo, o traduce automáticamente un cuestionario de SurveyMonkey al formato XLSForm.",
-    features: [
-      "Crear desde cero con asistente visual",
-      "Importar XLSX existente y editar celdas",
-      "Traducir cuestionarios de SurveyMonkey",
-      "Wizard de lógica y saltos condicionales",
-      "Diagnósticos del formulario en vivo",
-    ],
-    icon: FilePen,
-    iconBg: "#f5f3ff",
-    iconFg: "#7c3aed",
-    iconBorder: "#ddd6fe",
-    to: "/editor-xlsform",
-  },
-  {
-    slug: "procesamiento",
-    title: "Procesamiento y reportes",
-    tagline: "Pipeline completo en 5 fases",
-    blurb:
-      "Flujo completo de 5 fases: carga de data, validación, codificación de abiertas, preparación analítica y generación de reportes PPT/Word listos para entregar.",
-    features: [
-      "Carga y normalización de data + XLSForm",
-      "Validación con reglas y limpieza personalizada",
-      "Codificación de respuestas abiertas",
-      "Frecuencias, cruces y dimensiones",
-      "Reportes en PowerPoint y Word",
-    ],
-    icon: Workflow,
-    iconBg: "var(--pulso-primary-soft)",
-    iconFg: "var(--pulso-primary)",
-    iconBorder: "var(--pulso-primary-border)",
-    to: "/procesamiento",
-  },
-  {
-    slug: "dashboard",
-    title: "Dashboard interactivo",
-    tagline: "Explora cruces, relaciones y base de datos",
-    blurb:
-      "Dashboard interactivo del cuestionario para entregar a tu cliente: resumen por sección, relaciones (cruces) y base de datos. Personaliza logo, paleta y título.",
-    features: [
-      "Resumen por sección del cuestionario",
-      "Cruces 2D filtrados con semáforo",
-      "Base de datos descargable",
-      "Personaliza logo, paleta y título",
-      "Exporta como HTML autosuficiente (WebR)",
-    ],
-    icon: LayoutDashboard,
-    iconBg: "#eff6ff",
-    iconFg: "#1d4ed8",
-    iconBorder: "#bfdbfe",
-    to: "/tablero",
-  },
-  {
-    slug: "hojas-ruta",
-    title: "Hojas de ruta para campo",
-    tagline: "Cuotas, rutas y mapas para enumeradores",
-    blurb:
-      "Genera hojas de ruta imprimibles para enumeradores: cuotas por conglomerado, rutas de visita y puntos de muestra georeferenciados. Entrega un ZIP listo para impresión.",
-    features: [
-      "Cuotas por conglomerado (UMP)",
-      "Rutas de visita imprimibles",
-      "Puntos de muestra georeferenciados",
-      "Validación de territorio (UBIGEO Lima)",
-      "ZIP con PDFs listos para imprimir",
-    ],
-    icon: MapIcon,
-    iconBg: "#ecfdf5",
-    iconFg: "#059669",
-    iconBorder: "#a7f3d0",
-    to: "/hojas-ruta",
-  },
-  {
-    slug: "calc-muestra",
-    title: "Cálculo de muestra para propuestas",
-    tagline: "Diseño metodológico multi-componente",
-    blurb:
-      "Calcula el diseño muestral de una propuesta: cada actor puede tener su propia técnica, el marco se distingue en tres niveles (bruto, validado, contactable) y el sistema bloquea margen de error cuando el diseño no lo sostiene. Para el seguimiento del trabajo de campo usar el módulo de Monitoreo.",
-    features: [
-      "Cuatro técnicas iniciales: conglomerados multietápico, intención censal, cuotas y listado externo",
-      "Plantilla de acreditación universitaria con reglas por umbral de marco",
-      "Bloqueo automático de margen de error en diseños no inferenciales",
-      "Dos fases: estimación preliminar y diseño validado",
-      "Reporte metodológico generado en Quarto",
-    ],
-    icon: Calculator,
-    iconBg: "#fdf2f8",
-    iconFg: "#be185d",
-    iconBorder: "#fbcfe8",
-    to: "/calc-muestra",
-  },
-  {
-    slug: "enciclopedia",
-    title: "Enciclopedia metodológica",
-    tagline: "Manual técnico de métodos estadísticos de muestreo",
-    blurb:
-      "Catálogo técnico de los métodos estadísticos de muestreo cuantitativo. Cada ficha documenta definición formal, supuestos, fórmulas aplicables, escenarios de uso, decisiones técnicas y trade-offs frente a alternativas. Cross-link bidireccional con el módulo de Cálculo.",
-    features: [
-      "Fichas técnicas por método (probabilísticas · operativas · no probabilísticas)",
-      "Definiciones formales, supuestos y fórmulas con referencias bibliográficas",
-      "Decisiones técnicas a considerar y variantes operativas",
-      "Filtros por naturaleza inferencial, unidad, marco y modalidad",
-      "CTA 'Aplicar esta metodología' que abre el Cálculo configurado",
-    ],
-    icon: Library,
-    iconBg: "#faf5ff",
-    iconFg: "#7e22ce",
-    iconBorder: "#e9d5ff",
-    to: "/enciclopedia",
-  },
-  {
-    slug: "recopiladores",
-    title: "Generador de recopiladores",
-    tagline: "Fichas QR + enlaces a KoboCollect",
-    blurb:
-      "Genera fichas imprimibles con códigos QR y enlaces personalizados a KoboCollect — una por enumerador, conglomerado o punto de muestreo para autenticar la captura.",
-    features: [
-      "Una ficha por enumerador, conglomerado o punto",
-      "QR + enlace personalizado a KoboCollect",
-      "Autenticación de captura en campo",
-      "Layout imprimible y compartible",
-    ],
-    icon: QrCode,
-    iconBg: "#fffbeb",
-    iconFg: "#d97706",
-    iconBorder: "#fde68a",
-    // to: undefined — placeholder "Próximamente"
-  },
-  {
-    slug: "monitoreo",
-    title: "Monitoreo de campo",
-    tagline: "Tablero en vivo del avance de campo",
-    blurb:
-      "Tablero operativo del avance de campo desde Kobo y SurveyMonkey: metas, calidad, produccion y supervision durante la encuesta.",
-    features: [
-      "Sincronizacion con Kobo y SurveyMonkey",
-      "Metas por variables de control",
-      "Inconsistencias y tiempos atipicos",
-      "Muestra para llamadas de supervision",
-    ],
-    icon: Activity,
-    iconBg: "#fef2f2",
-    iconFg: "#b91c1c",
-    iconBorder: "#fecaca",
-    to: "/monitoreo",
-  },
-];
+const DEFAULT_CINEMA_METRICS: CinemaMetrics = {
+  cardWidth: 344,
+  cardMinHeight: 342,
+  cardStep: 220,
+  cardYOffset: 10,
+  cardRotate: 4.5,
+  cardTilt: 10,
+  scaleDrop: 0.105,
+  minScale: 0.72,
+  hiddenDistance: 1,
+  density: "roomy",
+};
 
 // ---- Notas de la versión --------------------------------------------
 const RELEASE_NOTES: ReleaseNote[] = [
+  {
+    version: "0.3",
+    date: "2026-06-02",
+    highlights: [
+      "Arquitectura canonica: guia principal y ADRs para app local, formato .pulso, secretos fuera del proyecto, modulos por dominio, integraciones salientes y auditoria reproducible.",
+      "Auditoria canonica: nuevo proyecto .pulso sintetico, comandos Make y smoke de Electron para diagnosticar regresiones con capturas, sid, puerto y checksum aislados.",
+      "Conexiones: Ajustes centraliza SurveyMonkey y Kobo, guarda claves fuera del .pulso, soporta perfiles SurveyMonkey y solo expone mascaras al frontend.",
+      "Multibase y monitoreo: mejor importacion de familias SurveyMonkey, bases hermanas independientes, sincronizacion de fuentes, seleccion de base activa y motores mas defensivos.",
+      "Home y shell: nuevo deck de modulos, Ajustes con notas/creditos/conexiones, catalogo de modulos compartido y estados de proyecto mas claros.",
+      "Calidad del release: mas pruebas frontend/R para cliente API, carga multibase, codificacion, analitica, persistencia .pulso, secretos y auditoria.",
+    ],
+  },
   {
     version: "0.14",
     date: "2026-05-03",
@@ -338,17 +218,6 @@ function useProcesamientoState(): ModulePhaseState {
   return { done, total: phases.length };
 }
 
-// ---- Saludo según hora del día --------------------------------------
-function useSaludo(): string {
-  return useMemo(() => {
-    const h = new Date().getHours();
-    if (h < 6) return "Buenas madrugadas";
-    if (h < 13) return "Buenos días";
-    if (h < 19) return "Buenas tardes";
-    return "Buenas noches";
-  }, []);
-}
-
 // ---- Mini-estado por módulo (solo cuando aplique) -------------------
 function computeMeta(
   slug: string,
@@ -364,7 +233,7 @@ function computeMeta(
       return state?.xlsform && state?.data ? "Listo para explorar" : null;
     case "hojas-ruta":
       return state?.hojas_ruta_ok ? "Lista generada" : null;
-    case "muestra":
+    case "calc-muestra":
       return null;
     case "recopiladores":
       return "Próximamente";
@@ -383,50 +252,23 @@ export default function HomePage() {
   const { project } = useProjectShell();
   const proc = useProcesamientoState();
   const [exitOpen, setExitOpen] = useState(false);
-  const [notesOpen, setNotesOpen] = useState(false);
-  const [creditsOpen, setCreditsOpen] = useState(false);
-  const [activeSlug, setActiveSlug] = useState<string | null>(null);
-
-  const activeMod = activeSlug
-    ? MODULES.find((m) => m.slug === activeSlug) ?? null
-    : null;
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <div className="home-wrap">
-      <Hero estudioNombre={state?.estudio_nombre ?? null} />
       <ProjectBar project={project} />
-      <ModulesGrid
-        state={state}
-        proc={proc}
-        onOpenModule={(slug) => setActiveSlug(slug)}
-      />
+      <ModulesGrid state={state} proc={proc} />
       <HomeFooter
         version={version}
         onClose={() => setExitOpen(true)}
-        onOpenNotes={() => {
-          setCreditsOpen(false);
-          setNotesOpen(true);
-        }}
-        onOpenCredits={() => {
-          setNotesOpen(false);
-          setCreditsOpen(true);
-        }}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
-      {activeMod && (
-        <ModuleDetail mod={activeMod} onClose={() => setActiveSlug(null)} />
-      )}
-
-      <ReleaseNotesDrawer
-        open={notesOpen}
+      <GlobalSettingsDialog
+        open={settingsOpen}
         notes={RELEASE_NOTES}
-        onClose={() => setNotesOpen(false)}
-      />
-
-      <CreditsDrawer
-        open={creditsOpen}
         pulsoName={PULSO_FULL_NAME}
-        onClose={() => setCreditsOpen(false)}
+        onClose={() => setSettingsOpen(false)}
       />
 
       {exitOpen && (
@@ -450,7 +292,10 @@ function ProjectBar({ project }: { project: UseProjectReturn }) {
   const recents = project.recents.slice(0, 4);
 
   return (
-    <section className="home-projbar" aria-label="Proyecto y recientes">
+    <section
+      className={`home-projbar ${recents.length > 0 ? "has-recents" : ""}`}
+      aria-label="Proyecto y recientes"
+    >
       {hasProject ? (
         <ActiveProjectCard project={project} />
       ) : (
@@ -512,12 +357,12 @@ function StartProjectCard({ project }: { project: UseProjectReturn }) {
   return (
     <div className="home-proj-card is-empty">
       <div className="home-proj-icon home-proj-icon--accent" aria-hidden="true">
-        <IconHero size={22} strokeWidth={1.8} />
+        <FolderOpen size={22} strokeWidth={1.8} />
       </div>
       <div className="home-proj-body">
-        <span className="home-proj-name">¿Empezamos un proyecto?</span>
+        <span className="home-proj-name">Crear o abrir proyecto</span>
         <span className="home-proj-meta">
-          Crea uno nuevo o abre un <code>.pulso</code> existente para arrancar.
+          Trabaja sobre un archivo <code>.pulso</code> nuevo o existente.
         </span>
       </div>
       <div className="home-proj-actions">
@@ -618,48 +463,314 @@ function doShutdown() {
 }
 
 // =====================================================================
-// Hero compacto — saludo + tagline + contexto del estudio.
-// El wordmark y logo viven en el BrandMark del header global; no se
-// repiten aquí.
-// =====================================================================
-function Hero({ estudioNombre }: { estudioNombre: string | null }) {
-  const saludo = useSaludo();
-  return (
-    <header className="home-hero">
-      <h1 className="home-hero-greeting">{saludo}</h1>
-      <p className="home-hero-tagline">Suite analítica para estudios con XLSForm</p>
-      {estudioNombre && (
-        <p className="home-hero-context">
-          Trabajando en <strong>"{estudioNombre}"</strong>
-        </p>
-      )}
-    </header>
-  );
-}
-
-// =====================================================================
-// ModulesGrid — 2×3 de cards medianas (click abre ModuleDetail)
+// ModulesGrid — deck cinematográfico. El click enfoca/mueve tarjetas; el
+// detalle del módulo vive siempre visible para no depender de un modal.
 // =====================================================================
 function ModulesGrid({
   state,
   proc,
-  onOpenModule,
 }: {
   state: SessionState | null;
   proc: ModulePhaseState;
-  onOpenModule: (slug: string) => void;
 }) {
+  const navigate = useNavigate();
+  const [focusIndex, setFocusIndex] = useState(0);
+  const [motionDirection, setMotionDirection] = useState<ModuleMotionDirection>("forward");
+  const { deckRef, metrics } = useAdaptiveCinemaMetrics();
+  const focused = MODULES[focusIndex] ?? MODULES[0];
+  const FocusIcon = focused.icon;
+
+  const focusedStyle = {
+    ...homeModuleVars(focused),
+    "--home-card-width": `${metrics.cardWidth}px`,
+    "--home-card-min-height": `${metrics.cardMinHeight}px`,
+  } as CSSProperties;
+
+  function focusBy(delta: number) {
+    setMotionDirection(delta >= 0 ? "forward" : "backward");
+    setFocusIndex((current) => wrapIndex(current + delta, MODULES.length));
+  }
+
+  function focusModule(index: number) {
+    if (index === focusIndex) return;
+    const offset = circularOffset(index, focusIndex, MODULES.length);
+    setMotionDirection(offset >= 0 ? "forward" : "backward");
+    setFocusIndex(index);
+  }
+
+  function handleDeckKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      focusBy(-1);
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      focusBy(1);
+    }
+    if (event.key === "Enter" && focused.to) {
+      event.preventDefault();
+      navigate(focused.to);
+    }
+  }
+
+  function handleEnterModule() {
+    if (focused.to) navigate(focused.to);
+  }
+
   return (
-    <section aria-label="Módulos de Prosecnur" className="home-modules">
-      {MODULES.map((mod) => (
-        <ModuleTile
-          key={mod.slug}
-          mod={mod}
-          meta={computeMeta(mod.slug, state, proc)}
-          onOpen={() => onOpenModule(mod.slug)}
-        />
-      ))}
+    <section
+      aria-label="Módulos de Prosecnur"
+      className="home-module-stack home-cinema"
+      style={focusedStyle}
+      data-motion={motionDirection}
+      data-density={metrics.density}
+      data-focused-module={focused.slug}
+      onKeyDown={handleDeckKeyDown}
+    >
+      <div className="home-cinema-head">
+        <div className="home-cinema-titleblock">
+          <span className="home-cinema-eyebrow">Suite de herramientas</span>
+          <h2>Explora los módulos de trabajo de Prosecnur</h2>
+        </div>
+      </div>
+
+      <div className="home-cinema-stage">
+        <div className="home-cinema-deck-wrap">
+          <div className="home-cinema-controls" aria-label="Mover tarjetas">
+            <button
+              type="button"
+              className="home-cinema-arrow"
+              onClick={() => focusBy(-1)}
+              aria-label="Módulo anterior"
+            >
+              <ChevronLeft size={18} strokeWidth={2.2} />
+            </button>
+            <button
+              type="button"
+              className="home-cinema-arrow"
+              onClick={() => focusBy(1)}
+              aria-label="Módulo siguiente"
+            >
+              <ChevronRight size={18} strokeWidth={2.2} />
+            </button>
+          </div>
+          <div ref={deckRef} className="home-cinema-deck" aria-live="polite">
+            {MODULES.map((mod, index) => {
+              const Icon = mod.icon;
+              const offset = circularOffset(index, focusIndex, MODULES.length);
+              const distance = Math.abs(offset);
+              const hidden = distance > metrics.hiddenDistance;
+              const meta = computeMeta(mod.slug, state, proc);
+              const cardStyle = {
+                ...homeModuleVars(mod),
+                "--card-x": `${offset * metrics.cardStep}px`,
+                "--card-y": `${distance * metrics.cardYOffset}px`,
+                "--card-rotate": `${offset * -metrics.cardRotate}deg`,
+                "--card-tilt": `${offset * -metrics.cardTilt}deg`,
+                "--card-scale": `${Math.max(metrics.minScale, 1 - distance * metrics.scaleDrop)}`,
+                "--card-opacity": hidden ? "0" : "1",
+                "--card-z": `${80 - distance}`,
+              } as CSSProperties;
+
+              return (
+                <button
+                  key={mod.slug}
+                  type="button"
+                  className={[
+                    "home-cinema-card",
+                    index === focusIndex ? "is-focused" : "",
+                    hidden ? "is-hidden" : "",
+                    mod.to ? "is-active" : "is-soon",
+                  ].filter(Boolean).join(" ")}
+                  style={cardStyle}
+                  onClick={() => focusModule(index)}
+                  aria-pressed={index === focusIndex}
+                  aria-label={`${mod.title}: ${mod.tagline}`}
+                >
+                  <span className="home-cinema-card-glow" aria-hidden="true" />
+                  <span className="home-cinema-card-icon" aria-hidden="true">
+                    <Icon size={40} strokeWidth={1.65} />
+                  </span>
+                  {!mod.to && (
+                    <span className="home-cinema-card-kicker">
+                      Próximamente
+                    </span>
+                  )}
+                  <span className="home-cinema-card-title">{mod.title}</span>
+                  <span className="home-cinema-card-tagline">{mod.tagline}</span>
+                  <span className="home-cinema-card-blurb">{mod.blurb}</span>
+                  {meta && <span className="home-cinema-card-meta">{meta}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <aside
+          key={focused.slug}
+          className="home-cinema-panel"
+          aria-label={`Detalle: ${focused.title}`}
+        >
+          <div className="home-cinema-panel-top">
+            <span className="home-cinema-panel-icon" aria-hidden="true">
+              <FocusIcon size={34} strokeWidth={1.7} />
+            </span>
+            {!focused.to && <span className="home-cinema-panel-soon">Próximamente</span>}
+          </div>
+          <h3>{focused.title}</h3>
+          <p className="home-cinema-panel-tagline">{focused.tagline}</p>
+          <p className="home-cinema-panel-blurb">{focused.blurb}</p>
+          <ul className="home-cinema-feature-list">
+            {focused.features.slice(0, 5).map((feature) => (
+              <li key={feature}>
+                <Check size={13} strokeWidth={2.5} aria-hidden="true" />
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
+          {focused.to ? (
+            <button
+              type="button"
+              className="home-cinema-cta"
+              onClick={handleEnterModule}
+            >
+              Entrar al módulo
+              <ArrowRight size={16} strokeWidth={2.2} />
+            </button>
+          ) : (
+            <div className="home-cinema-soon">
+              <span>Próximamente</span>
+              <strong>Se activará en una próxima versión.</strong>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      <div className="home-cinema-strip" aria-label="Ir a un módulo">
+        {MODULES.map((mod, index) => {
+          const Icon = mod.icon;
+          return (
+            <button
+              key={mod.slug}
+              type="button"
+              className={`home-cinema-dot ${index === focusIndex ? "is-current" : ""}`}
+              style={{
+                ...homeModuleVars(mod),
+              } as CSSProperties}
+              onClick={() => focusModule(index)}
+              aria-label={`Ver ${mod.title}`}
+              aria-current={index === focusIndex ? "true" : undefined}
+            >
+              <Icon size={15} strokeWidth={1.9} aria-hidden="true" />
+              <span>{shortModuleLabel(mod)}</span>
+            </button>
+          );
+        })}
+      </div>
     </section>
+  );
+}
+
+function wrapIndex(index: number, length: number): number {
+  return ((index % length) + length) % length;
+}
+
+function circularOffset(index: number, focusIndex: number, length: number): number {
+  let offset = index - focusIndex;
+  if (offset > length / 2) offset -= length;
+  if (offset < -length / 2) offset += length;
+  return offset;
+}
+
+function shortModuleLabel(mod: ModuleMeta): string {
+  return mod.shortLabel;
+}
+
+function useAdaptiveCinemaMetrics() {
+  const deckRef = useRef<HTMLDivElement | null>(null);
+  const [metrics, setMetrics] = useState<CinemaMetrics>(DEFAULT_CINEMA_METRICS);
+
+  useEffect(() => {
+    const deck = deckRef.current;
+    if (!deck) return;
+
+    let frame = 0;
+    const update = () => {
+      const rect = deck.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      const next = computeCinemaMetrics(rect.width, rect.height);
+      setMetrics((current) => (sameCinemaMetrics(current, next) ? current : next));
+    };
+    const schedule = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("resize", schedule);
+    window.addEventListener("orientationchange", schedule);
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(schedule);
+      observer.observe(deck);
+    }
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("orientationchange", schedule);
+      observer?.disconnect();
+    };
+  }, []);
+
+  return { deckRef, metrics };
+}
+
+function computeCinemaMetrics(width: number, height: number): CinemaMetrics {
+  const crampedHeight = height < 220 && width < 620;
+  const compact = width < 500 || crampedHeight;
+  const roomy = width > 640 && height > 365;
+  const density: CinemaDensity = compact ? "compact" : roomy ? "roomy" : "standard";
+  const cardWidth = Math.round(clamp(width * (compact ? 0.72 : 0.5), compact ? 244 : 276, roomy ? 352 : 326));
+  const cardMinHeight = Math.round(
+    crampedHeight
+      ? clamp(height - 16, 126, 220)
+      : clamp(height - (compact ? 22 : 30), compact ? 258 : 292, roomy ? 350 : 326),
+  );
+  const cardStep = Math.round(clamp(width * (compact ? 0.34 : 0.32), compact ? 116 : 152, roomy ? 224 : 194));
+  const cardYOffset = Math.round(clamp(height * 0.026, compact ? 4 : 7, 12));
+
+  return {
+    cardWidth,
+    cardMinHeight,
+    cardStep,
+    cardYOffset,
+    cardRotate: compact ? 2.8 : roomy ? 4.5 : 3.7,
+    cardTilt: compact ? 5.5 : roomy ? 10 : 7.5,
+    scaleDrop: compact ? 0.085 : roomy ? 0.105 : 0.095,
+    minScale: compact ? 0.78 : 0.72,
+    hiddenDistance: 1,
+    density,
+  };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function sameCinemaMetrics(a: CinemaMetrics, b: CinemaMetrics): boolean {
+  return (
+    a.cardWidth === b.cardWidth &&
+    a.cardMinHeight === b.cardMinHeight &&
+    a.cardStep === b.cardStep &&
+    a.cardYOffset === b.cardYOffset &&
+    a.cardRotate === b.cardRotate &&
+    a.cardTilt === b.cardTilt &&
+    a.scaleDrop === b.scaleDrop &&
+    a.minScale === b.minScale &&
+    a.hiddenDistance === b.hiddenDistance &&
+    a.density === b.density
   );
 }
 
@@ -669,13 +780,11 @@ function ModulesGrid({
 function HomeFooter({
   version,
   onClose,
-  onOpenNotes,
-  onOpenCredits,
+  onOpenSettings,
 }: {
   version: string;
   onClose: () => void;
-  onOpenNotes: () => void;
-  onOpenCredits: () => void;
+  onOpenSettings: () => void;
 }) {
   return (
     <footer className="home-footer">
@@ -687,16 +796,9 @@ function HomeFooter({
         <button
           type="button"
           className="home-footer-notes"
-          onClick={onOpenCredits}
+          onClick={onOpenSettings}
         >
-          <Info size={11} /> Créditos
-        </button>
-        <button
-          type="button"
-          className="home-footer-notes"
-          onClick={onOpenNotes}
-        >
-          Notas de versión
+          <Settings2 size={11} /> Ajustes
         </button>
         <button type="button" className="home-footer-quit" onClick={onClose}>
           <Power size={11} /> Cerrar aplicación

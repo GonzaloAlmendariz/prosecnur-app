@@ -30,12 +30,214 @@ test_that("monitoreo calcula KPIs, metas e inconsistencias", {
   expect_equal(dash$kpis$total, 4L)
   expect_equal(dash$kpis$valid, 3L)
   expect_equal(dash$kpis$target, 10L)
+  expect_equal(length(cfg$operational_model$targets), 2L)
   expect_equal(dash$progress$observado[dash$progress$distrito == "Norte"], 2L)
   expect_true(any(dash$inconsistencies$tipo == "estado_invalido"))
   expect_true(any(dash$inconsistencies$tipo == "campo_critico_vacio"))
   expect_true(any(dash$inconsistencies$tipo == "id_duplicado"))
   expect_true(any(dash$inconsistencies$tipo == "duracion_muy_corta"))
   expect_true(any(dash$inconsistencies$tipo == "duracion_muy_larga"))
+})
+
+test_that("monitoreo usa dimensiones de fuente para avance multiformulario", {
+  source <- monitoreo_normalize_sources(list(list(
+    kind = "surveymonkey",
+    label = "Acreditacion Contabilidad PUCP - Estudiantes",
+    survey_id = "527327742",
+    dimensions = list(actor = "Estudiantes", servicio = "Contabilidad PUCP")
+  )))[[1]]
+  data <- .monitoreo_add_source_columns(
+    data.frame(estado = c("completed", "completed", "rejected"), stringsAsFactors = FALSE),
+    source
+  )
+
+  expect_equal(source$dimensions$actor, "Estudiantes")
+  expect_equal(data$dim_actor, rep("Estudiantes", 3))
+  expect_equal(data$dim_servicio, rep("Contabilidad PUCP", 3))
+
+  dash <- monitoreo_build_dashboard(data, list(
+    status_var = "estado",
+    valid_statuses = "completed",
+    goals = list(list(filters = list(dim_actor = "Estudiantes"), meta = 5L))
+  ))
+
+  expect_true("dim_actor" %in% names(dash$progress))
+  expect_equal(dash$progress$observado[dash$progress$dim_actor == "Estudiantes"], 2L)
+  expect_equal(dash$progress$meta[dash$progress$dim_actor == "Estudiantes"], 5L)
+})
+
+test_that("monitoreo agrupa por dimensiones genericas cuando no hay control vars", {
+  source <- monitoreo_normalize_sources(list(list(
+    kind = "surveymonkey",
+    label = "Encuesta de avance",
+    survey_id = "sm_1",
+    dimensions = list(segmento = "Grupo A", territorio = "Norte")
+  )))[[1]]
+  data <- .monitoreo_add_source_columns(
+    data.frame(estado = c("completed", "rejected"), stringsAsFactors = FALSE),
+    source
+  )
+
+  dash <- monitoreo_build_dashboard(data, list(
+    status_var = "estado",
+    valid_statuses = "completed",
+    goals = list(list(filters = list(dim_segmento = "Grupo A"), meta = 3L))
+  ))
+
+  expect_true("dim_segmento" %in% names(dash$progress))
+  expect_true("dim_territorio" %in% names(dash$progress))
+  expect_equal(dash$progress$observado[dash$progress$dim_segmento == "Grupo A"], 1L)
+  expect_equal(dash$progress$meta[dash$progress$dim_segmento == "Grupo A"], 3L)
+})
+
+test_that("inspeccion SurveyMonkey prepara columnas y filas de muestra", {
+  df <- data.frame(
+    response_id = c("r1", "r2"),
+    p1 = c("Si", ""),
+    p2 = c(NA_character_, "No"),
+    stringsAsFactors = FALSE
+  )
+  columns <- .sm_mb_preview_columns(df)
+  rows <- .sm_mb_preview_rows(df, limit = 1L)
+
+  expect_equal(columns[[1]]$name, "response_id")
+  expect_equal(columns[[2]]$non_empty, 1L)
+  expect_equal(rows[[1]]$response_id, "r1")
+  expect_equal(rows[[1]]$p2, "")
+})
+
+test_that("monitoreo normaliza fases de estrategia operativa", {
+  cfg <- monitoreo_normalize_config(list(
+    strategy_phases = list(
+      list(
+        id = "fase-1",
+        stratum = "Egresados",
+        modality = "telefono",
+        start_week = 3L,
+        end_week = 1L,
+        target_rule = "Pendientes contactables",
+        kpi_focus = c("contacto efectivo", "conversion"),
+        kpi_modules = c("progress", "enumerator_activity", "non_effective_attempts", "no_existe"),
+        breakdown_vars = c("anio_egreso", "tipo_docente"),
+        attempts_var = "intentos",
+        outcome_var = "resultado"
+      ),
+      list(modality = "no-existe", regla = "")
+    )
+  ))
+
+  expect_equal(length(cfg$strategy_phases), 1L)
+  expect_equal(cfg$strategy_phases[[1]]$stratum, "Egresados")
+  expect_equal(cfg$strategy_phases[[1]]$modality, "telefono")
+  expect_equal(cfg$strategy_phases[[1]]$end_week, 3L)
+  expect_equal(cfg$strategy_phases[[1]]$kpi_focus[[1]], "contacto efectivo")
+  expect_equal(cfg$strategy_phases[[1]]$kpi_modules, list("progress", "enumerator_activity", "non_effective_attempts"))
+  expect_equal(cfg$strategy_phases[[1]]$breakdown_vars, list("anio_egreso", "tipo_docente"))
+  expect_equal(cfg$strategy_phases[[1]]$attempts_var, "intentos")
+  expect_equal(cfg$strategy_phases[[1]]$outcome_var, "resultado")
+})
+
+test_that("monitoreo filtra variables de fase contra columnas disponibles", {
+  data <- data.frame(resultado = "no_contesta", anio_egreso = "2020", stringsAsFactors = FALSE)
+  cfg <- monitoreo_normalize_config(list(
+    strategy_phases = list(list(
+      stratum = "Egresados",
+      modality = "telefono",
+      kpi_modules = c("progress", "contact_efficiency"),
+      breakdown_vars = c("anio_egreso", "campo_inexistente"),
+      attempts_var = "intentos",
+      outcome_var = "resultado"
+    ))
+  ), data)
+
+  phase <- cfg$strategy_phases[[1]]
+  expect_equal(phase$breakdown_vars, list("anio_egreso"))
+  expect_equal(phase$attempts_var, "")
+  expect_equal(phase$outcome_var, "resultado")
+})
+
+test_that("monitoreo normaliza modelo operativo local", {
+  cfg <- monitoreo_normalize_config(list())
+
+  expect_equal(cfg$operational_model$schema_version, "monitoreo_operativo_v1")
+  expect_equal(length(cfg$operational_model$targets), 0L)
+  expect_true(length(cfg$operational_model$events) >= 8L)
+  expect_true(length(cfg$operational_model$state_rules) >= 5L)
+  expect_true(isTRUE(cfg$operational_model$privacy$local_sensitive))
+  expect_equal(cfg$operational_model$privacy$export_policy, "aggregate_or_redacted")
+})
+
+test_that("monitoreo completa eventos y reglas base en modelos operativos antiguos", {
+  cfg <- monitoreo_normalize_config(list(
+    operational_model = list(
+      events = list(list(
+        id = "custom_whatsapp",
+        label = "WhatsApp manual",
+        modality = "whatsapp",
+        outcome = "contactado",
+        counts_attempt = TRUE
+      )),
+      state_rules = list(list(
+        id = "custom_complete",
+        label = "Efectiva local",
+        final_state = "complete",
+        outcome_values = c("efectiva")
+      ))
+    )
+  ))
+
+  event_ids <- vapply(cfg$operational_model$events, function(item) item$id, character(1))
+  rule_ids <- vapply(cfg$operational_model$state_rules, function(item) item$id, character(1))
+
+  expect_true("custom_whatsapp" %in% event_ids)
+  expect_true("email_bounced" %in% event_ids)
+  expect_true("custom_complete" %in% rule_ids)
+  expect_true("non_effective_contact" %in% rule_ids)
+})
+
+test_that("monitoreo modelo operativo filtra variables sensibles contra columnas", {
+  data <- data.frame(
+    case_id = "c1",
+    telefono = "999999999",
+    estado = "completed",
+    zona = "Urbano",
+    stringsAsFactors = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    operational_model = list(
+      strata = list(
+        list(label = "Urbano", variable = "zona", value = "Urbano"),
+        list(label = "Invalido", variable = "no_existe", value = "X")
+      ),
+      personas_o_casos = list(
+        enabled = TRUE,
+        case_id_var = "case_id",
+        status_var = "estado",
+        contact_vars = c("telefono", "correo_inexistente"),
+        sensitive_vars = c("telefono", "nombre_inexistente"),
+        roster_source = "responses"
+      ),
+      strategies = list(list(label = "Refuerzo", objective = "Cerrar brecha", status = "active")),
+      eventos = list(list(label = "Llamada efectiva", modality = "telefono", counts_attempt = TRUE, counts_contact = TRUE)),
+      reglas_de_estado = list(list(label = "Completa", final_state = "complete", outcome_values = c("completed"))),
+      privacidad = list(local_sensitive = TRUE, export_policy = "allow_case_level_local")
+    )
+  ), data)
+
+  model <- cfg$operational_model
+  expect_equal(length(model$strata), 2L)
+  expect_equal(model$strata[[1]]$variable, "zona")
+  expect_equal(model$strata[[2]]$variable, "")
+  expect_true(isTRUE(model$cases$enabled))
+  expect_equal(model$cases$case_id_var, "case_id")
+  expect_equal(model$cases$contact_vars, list("telefono"))
+  expect_equal(model$cases$sensitive_vars, list("telefono"))
+  expect_equal(model$cases$roster_source, "responses")
+  expect_equal(model$strategies[[1]]$status, "active")
+  expect_true(isTRUE(model$events[[1]]$counts_attempt))
+  expect_true(isTRUE(model$events[[1]]$counts_contact))
+  expect_equal(model$state_rules[[1]]$outcome_values, list("completed"))
+  expect_equal(model$privacy$export_policy, "allow_case_level_local")
 })
 
 test_that("monitoreo supervision es reproducible", {
@@ -163,7 +365,8 @@ test_that("pulso persiste monitoreo sin tokens", {
     kind = "kobo",
     label = "Campo",
     asset_uid = "asset123",
-    token = "no-debe-persistir"
+    token = "no-debe-persistir",
+    dimensions = list(actor = "Vecinos")
   ))))
   session_set(sid, "monitoreo_config", monitoreo_normalize_config(list(objetivo_total = 10L)))
   dest <- tempfile(fileext = ".pulso")
@@ -175,4 +378,5 @@ test_that("pulso persiste monitoreo sin tokens", {
   saved <- readRDS(file.path(td, "state.rds"))
   expect_false("token" %in% names(saved$monitoreo_sources[[1]]))
   expect_equal(saved$monitoreo_sources[[1]]$asset_uid, "asset123")
+  expect_equal(saved$monitoreo_sources[[1]]$dimensions$actor, "Vecinos")
 })

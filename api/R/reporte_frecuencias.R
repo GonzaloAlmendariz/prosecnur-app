@@ -191,8 +191,24 @@
 }
 
 #' @noRd
-titulo_var <- function(var, dic_vars = NULL, labels_override = NULL,
-                       orders_list = NULL, df = NULL) {
+.clean_recode_title <- function(label) {
+  label <- trimws(as.character(label %||% ""))
+  label <- gsub("[[:space:]]+", " ", label)
+  label <- gsub(
+    "\\s*(\\(|\\[)?\\s*recodificad[ao]s?\\s*(\\)|\\])?\\s*$",
+    "",
+    label,
+    ignore.case = TRUE,
+    perl = TRUE
+  )
+  label <- trimws(label)
+  if (!nzchar(label)) label <- "Variable"
+  paste0(label, " (Recodificada)")
+}
+
+#' @noRd
+.lookup_variable_label <- function(var, dic_vars = NULL, labels_override = NULL,
+                                   orders_list = NULL, df = NULL) {
   if (!is.null(labels_override) && var %in% names(labels_override)) {
     return(as.character(labels_override[[var]]))
   }
@@ -216,6 +232,38 @@ titulo_var <- function(var, dic_vars = NULL, labels_override = NULL,
   if (!is.null(dic_vars) && all(c("name","label") %in% names(dic_vars))) {
     lab <- dic_vars$label[dic_vars$name == var]
     if (length(lab) && !all(is.na(lab))) return(as.character(lab[1]))
+  }
+
+  NULL
+}
+
+#' @noRd
+titulo_var <- function(var, dic_vars = NULL, labels_override = NULL,
+                       orders_list = NULL, df = NULL) {
+  if (grepl("_recod$", var)) {
+    original <- sub("_recod$", "", var)
+    original_label <- .lookup_variable_label(
+      original,
+      dic_vars = dic_vars,
+      labels_override = labels_override,
+      orders_list = orders_list,
+      df = df
+    )
+    if (!is.null(original_label) && nzchar(as.character(original_label))) {
+      return(.clean_recode_title(original_label))
+    }
+  }
+
+  lab <- .lookup_variable_label(
+    var,
+    dic_vars = dic_vars,
+    labels_override = labels_override,
+    orders_list = orders_list,
+    df = df
+  )
+  if (!is.null(lab) && nzchar(as.character(lab))) {
+    if (grepl("_recod$", var)) return(.clean_recode_title(lab))
+    return(as.character(lab))
   }
 
   return(as.character(var))
@@ -1209,6 +1257,13 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     ncols_title <- if (isTRUE(incluir_porcentajes)) 3L else 2L
     openxlsx::mergeCells(wb, sheet, cols = start_col:(start_col + ncols_title - 1L), rows = fila:fila)
     openxlsx::addStyle(wb, sheet, st$q_title, rows = fila, cols = start_col, gridExpand = TRUE, stack = TRUE)
+    openxlsx::addStyle(
+      wb, sheet, st$table_end,
+      rows = fila,
+      cols = start_col:(start_col + ncols_title - 1L),
+      gridExpand = TRUE,
+      stack = TRUE
+    )
     openxlsx::setRowHeights(
       wb, sheet, rows = fila,
       heights = .auto_row_height(label_q, chars_per_line = 70, base = 24, per_line = 16)
@@ -1216,9 +1271,26 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     fila <- fila + 1
   }
 
-  header_vec <- if (isTRUE(incluir_porcentajes)) c("", "n", "%") else c("", "n")
-  openxlsx::writeData(wb, sheet, t(header_vec), startRow = fila, startCol = start_col, colNames = FALSE)
-  openxlsx::addStyle(wb, sheet, st$header, rows = fila, cols = start_col:(start_col + length(header_vec) - 1L), gridExpand = TRUE, stack = TRUE)
+  header_vec <- if (isTRUE(incluir_porcentajes)) c("N", "%") else "N"
+  openxlsx::writeData(wb, sheet, t(header_vec), startRow = fila, startCol = start_col + 1L, colNames = FALSE)
+  if (isTRUE(incluir_titulo)) {
+    openxlsx::addStyle(
+      wb, sheet, st$header,
+      rows = fila,
+      cols = (start_col + 1L):(start_col + length(header_vec)),
+      gridExpand = TRUE,
+      stack = TRUE
+    )
+    openxlsx::addStyle(wb, sheet, st$table_end, rows = fila, cols = start_col, gridExpand = TRUE, stack = TRUE)
+  } else {
+    openxlsx::addStyle(
+      wb, sheet, st$header,
+      rows = fila,
+      cols = start_col:(start_col + length(header_vec)),
+      gridExpand = TRUE,
+      stack = TRUE
+    )
+  }
   fila <- fila + 1
 
   tab <- freq_table_spss(

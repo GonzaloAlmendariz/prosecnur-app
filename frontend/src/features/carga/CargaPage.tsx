@@ -347,11 +347,12 @@ export default function CargaPage() {
                   setAutoOpenAddBase(true);
                 } else {
                   // Todavía no hay archivos — creamos un estudio vacío.
-                  // El BasesPanel renderiza con su form "Agregar base"
-                  // listo para que el usuario suba su primera base.
+                  // En vacío dejamos que el BasesPanel muestre primero
+                  // la estrategia de importación/API; el usuario aún puede
+                  // escoger "Agregar otra base" si quiere carga manual.
                   const p = await apiEstudioInit();
                   setEstudio(p);
-                  setAutoOpenAddBase(true);
+                  setAutoOpenAddBase(false);
                 }
                 await refresh();
               } catch (e) {

@@ -174,7 +174,7 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
             type="button"
             onClick={() => setPickerOpen(true)}
             className="pulso-gv2-pill-button pulso-gv2-slot-action"
-            title="Cambiar por otro tipo de gráfico"
+            aria-label="Cambiar por otro tipo de gráfico"
           >
             <Shuffle size={11} /> Cambiar
           </button>
@@ -185,7 +185,6 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
             onClick={() => setSlot(slideId, slotName, null)}
             className="pulso-icon pulso-icon-danger"
             aria-label="Quitar graficador"
-            title="Quitar graficador"
           >
             <X size={12} />
           </button>
@@ -217,7 +216,7 @@ function SlotLabel({ text, slotName }: { text: string; slotName: string }) {
   return (
     <span
       className="pulso-gv2-slot-label"
-      title={`Slot técnico: ${slotName}`}
+      aria-label={`Slot técnico: ${slotName}`}
     >
       {text}
     </span>
@@ -350,7 +349,7 @@ function OverrideDropdown({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="menu"
-        title={
+        aria-label={
           isPureCustom
             ? "Hay ajustes manuales sobre el estilo base"
             : "Cambiar modo de estilo"

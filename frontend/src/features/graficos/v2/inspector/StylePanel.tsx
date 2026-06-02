@@ -193,7 +193,7 @@ export function StylePanel({ slide, args }: StylePanelProps) {
               className="pulso-gv2-style-reset"
               onClick={resetSlideStyleArgs}
               disabled={!hasSlideCustom}
-              title="Borrar tus cambios y volver al estilo por defecto"
+              aria-label="Borrar tus cambios y volver al estilo por defecto"
             >
               <RotateCcw size={11} /> Restaurar
             </button>

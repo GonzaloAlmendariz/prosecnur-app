@@ -227,9 +227,27 @@
 
   data_sources <- estudio_data_sources(sid)
   inst_sources <- estudio_inst_sources(sid)
+  if ((!length(data_sources) || !length(inst_sources)) &&
+      exists(".pulso_rebuild_estudio_runtime_sources", mode = "function")) {
+    tryCatch(.pulso_rebuild_estudio_runtime_sources(sid), error = function(e) NULL)
+    data_sources <- estudio_data_sources(sid)
+    inst_sources <- estudio_inst_sources(sid)
+  }
   effective_base <- if (!is.null(base_nombre) && nzchar(base_nombre)) base_nombre
                      else if (length(data_sources) > 0L) names(data_sources)[1]
                      else NULL
+  if (is.null(effective_base) ||
+      is.null(data_sources[[effective_base]]) ||
+      is.null(inst_sources[[effective_base]])) {
+    if (exists(".pulso_rebuild_estudio_runtime_sources", mode = "function")) {
+      tryCatch(.pulso_rebuild_estudio_runtime_sources(sid), error = function(e) NULL)
+      data_sources <- estudio_data_sources(sid)
+      inst_sources <- estudio_inst_sources(sid)
+      effective_base <- if (!is.null(base_nombre) && nzchar(base_nombre)) base_nombre
+                         else if (length(data_sources) > 0L) names(data_sources)[1]
+                         else NULL
+    }
+  }
   if (is.null(effective_base) ||
       is.null(data_sources[[effective_base]]) ||
       is.null(inst_sources[[effective_base]])) {

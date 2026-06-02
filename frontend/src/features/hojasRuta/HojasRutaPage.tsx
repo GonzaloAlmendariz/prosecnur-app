@@ -7026,7 +7026,11 @@ export default function HojasRutaPage() {
 
   if (loading || !config) {
     return (
-      <div className="hojas-ruta-module-loading">
+      <div
+        className="hojas-ruta-module-loading"
+        data-audit-route="hojas-ruta"
+        data-audit-state="loading"
+      >
         <LoadingBlock label="Cargando generador de hojas de ruta" />
       </div>
     );
@@ -7188,6 +7192,12 @@ export default function HojasRutaPage() {
         ) : undefined
       }
     >
+      <span
+        hidden
+        data-audit-ready="hojas-ruta"
+        data-audit-stage={currentStage}
+        data-audit-frame-ok={frame?.ok ? "true" : "false"}
+      />
       {!frame?.ok ? (
         <Panel>
           <EmptyState

@@ -93,3 +93,63 @@ prosecnur_secret_clear <- function(name) {
 prosecnur_secret_exists <- function(name) {
   file.exists(.secret_path(name))
 }
+
+# =============================================================================
+# Secretos efímeros por sesión
+#
+# Estos valores viven solo en memoria del proceso R y no forman parte del
+# objeto de sesión que serializa `.pulso`. Sirven para flujos donde el usuario
+# no quiere persistir un token en disco, pero sí usarlo durante la sesión local.
+# =============================================================================
+
+.SESSION_SECRETS <- new.env(parent = emptyenv())
+
+.session_secret_key <- function(sid, name) {
+  sid <- as.character(sid)[1]
+  name <- as.character(name)[1]
+  if (is.na(sid) || !nzchar(sid)) {
+    stop("sid requerido para secreto de sesión.", call. = FALSE)
+  }
+  if (is.na(name) || !grepl("^[a-zA-Z0-9_-]+$", name)) {
+    stop("nombre de secreto de sesión inválido: ", name, call. = FALSE)
+  }
+  paste(sid, name, sep = "::")
+}
+
+prosecnur_session_secret_save <- function(sid, name, plaintext) {
+  if (is.null(plaintext) || length(plaintext) == 0L ||
+      is.na(as.character(plaintext)[1]) || !nzchar(as.character(plaintext)[1])) {
+    return(prosecnur_session_secret_clear(sid, name))
+  }
+  .SESSION_SECRETS[[.session_secret_key(sid, name)]] <- enc2utf8(as.character(plaintext)[1])
+  invisible(TRUE)
+}
+
+prosecnur_session_secret_load <- function(sid, name) {
+  key <- .session_secret_key(sid, name)
+  if (!exists(key, envir = .SESSION_SECRETS, inherits = FALSE)) return(NA_character_)
+  value <- .SESSION_SECRETS[[key]]
+  if (is.null(value)) NA_character_ else value
+}
+
+prosecnur_session_secret_clear <- function(sid, name) {
+  key <- .session_secret_key(sid, name)
+  if (exists(key, envir = .SESSION_SECRETS, inherits = FALSE)) {
+    rm(list = key, envir = .SESSION_SECRETS)
+  }
+  invisible(TRUE)
+}
+
+prosecnur_session_secret_exists <- function(sid, name) {
+  exists(.session_secret_key(sid, name), envir = .SESSION_SECRETS, inherits = FALSE)
+}
+
+prosecnur_session_secrets_clear_all <- function(sid) {
+  sid <- as.character(sid)[1]
+  if (is.na(sid) || !nzchar(sid)) return(invisible(TRUE))
+  prefix <- paste0(sid, "::")
+  keys <- ls(.SESSION_SECRETS, all.names = TRUE)
+  targets <- keys[startsWith(keys, prefix)]
+  if (length(targets)) rm(list = targets, envir = .SESSION_SECRETS)
+  invisible(TRUE)
+}

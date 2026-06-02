@@ -67,6 +67,9 @@
 .analitica_base_can_use_global_adapted <- function(s, base_name = NULL) {
   bases <- names((s$estudio %||% list())$bases %||% list())
   if (length(bases) <= 1L) return(TRUE)
+  if (identical(as.character((s$estudio %||% list())$processing_mode %||% ""), "independent_siblings")) {
+    return(FALSE)
+  }
   active <- as.character(s$codif_source_active %||% "")
   if (!nzchar(active)) active <- bases[1]
   !is.null(base_name) && nzchar(base_name) && identical(base_name, active)
@@ -353,9 +356,27 @@
   s <- session_get(sid, required = FALSE)
   bases <- (s$estudio %||% list())$bases %||% list()
   if (length(bases) == 1L) return(bases[[1L]])
+  active_estudio <- if (exists("estudio_active_base", mode = "function")) estudio_active_base(sid) else NULL
+  if (!is.null(active_estudio) && nzchar(active_estudio) && !is.null(bases[[active_estudio]])) {
+    return(bases[[active_estudio]])
+  }
   active <- .analitica_scalar(s$codif_source_active, "")
   if (nzchar(active) && !is.null(bases[[active]])) return(bases[[active]])
   NULL
+}
+
+.analitica_scope_bases <- function(sid, bases) {
+  bases <- bases %||% list()
+  if (!length(bases) || !exists("estudio_is_independent_siblings", mode = "function") ||
+      !estudio_is_independent_siblings(sid)) {
+    return(bases)
+  }
+  active <- estudio_active_base(sid)
+  if (is.null(active) || !nzchar(active) || is.null(bases[[active]])) {
+    stop_api(409, "E_ACTIVE_BASE_MISSING",
+             "Selecciona una base activa valida para procesar este estudio.")
+  }
+  stats::setNames(list(bases[[active]]), active)
 }
 
 .analitica_patch_inst_sources_integrated <- function(sid, inst_sources) {
@@ -430,6 +451,7 @@
   s <- session_get(sid)
   fuente <- .analitica_effective_source(s, cfg)
   bases <- (s$estudio %||% list())$bases %||% list()
+  bases <- .analitica_scope_bases(sid, bases)
 
   if (length(bases) > 0L) {
     data_sources <- list()
@@ -476,6 +498,7 @@
   cfg <- cfg %||% .analitica_get_config(sid)
   fuente <- .analitica_effective_source(s, cfg)
   bases <- (s$estudio %||% list())$bases %||% list()
+  bases <- .analitica_scope_bases(sid, bases)
 
   if (length(bases) > 0L) {
     pairs <- list()
@@ -636,6 +659,293 @@
     fuente = resolved$fuente,
     zip = list(file_id = meta_zip$file_id, filename = meta_zip$original_name, size = meta_zip$size),
     bases = lapply(outputs, function(o) o[setdiff(names(o), "path")])
+  )
+}
+
+.analitica_base_alias <- function(base_meta, nombre) {
+  value <- base_meta$source_alias %||% base_meta$alias %||%
+    base_meta$source_title %||% base_meta$label %||% nombre
+  value <- trimws(as.character(value %||% nombre)[1])
+  if (is.na(value) || !nzchar(value)) as.character(nombre) else value
+}
+
+.analitica_base_id_slug <- function(value) {
+  value <- tolower(iconv(as.character(value %||% "base"), from = "", to = "ASCII//TRANSLIT", sub = ""))
+  value <- gsub("[^a-z0-9]+", "_", value)
+  value <- gsub("^_+|_+$", "", value)
+  if (!nzchar(value)) "base" else value
+}
+
+.analitica_origin_id_col <- function(df) {
+  if (is.null(df) || !is.data.frame(df) || !length(names(df))) return(NULL)
+  norm <- function(x) {
+    x <- tolower(trimws(as.character(x)))
+    x <- gsub("[^a-z0-9]+", "_", x)
+    gsub("^_+|_+$", "", x)
+  }
+  names_raw <- names(df)
+  names_norm <- norm(names_raw)
+  preferred <- c(
+    "response_id", "respondent_id", "respondent", "survey_response_id",
+    "submission_id", "_submission_id", "case_uid", "case_id",
+    "uuid", "_uuid", "id", "_id", "codigo_pucp", "codigo"
+  )
+  for (candidate in preferred) {
+    hit <- which(names_norm == norm(candidate))[1]
+    if (!is.na(hit)) return(names_raw[hit])
+  }
+  NULL
+}
+
+.analitica_plain_col <- function(x) {
+  if (inherits(x, c("haven_labelled", "haven_labelled_spss"))) {
+    lab <- attr(x, "label", exact = TRUE)
+    x <- unclass(x)
+    attributes(x) <- NULL
+    if (!is.null(lab)) attr(x, "label") <- lab
+    return(x)
+  }
+  if (is.factor(x)) return(as.character(x))
+  if (is.list(x) && !is.data.frame(x)) {
+    return(vapply(x, function(item) {
+      if (is.null(item) || length(item) == 0L) return(NA_character_)
+      paste(as.character(item), collapse = " | ")
+    }, character(1)))
+  }
+  x
+}
+
+.analitica_unified_align <- function(dfs, cols, labels) {
+  lapply(dfs, function(df) {
+    for (col in cols) {
+      if (!(col %in% names(df))) df[[col]] <- NA
+    }
+    df <- df[, cols, drop = FALSE]
+    for (col in names(df)) {
+      df[[col]] <- .analitica_plain_col(df[[col]])
+      lab <- labels[[col]] %||% NULL
+      if (!is.null(lab) && nzchar(as.character(lab))) attr(df[[col]], "label") <- as.character(lab)
+    }
+    df
+  })
+}
+
+.analitica_write_unified_xlsx <- function(df_cod, df_lab, common_df, omitted_df,
+                                          bases_df, path, valores = "ambos") {
+  if (!requireNamespace("openxlsx", quietly = TRUE)) stop("Se requiere openxlsx.", call. = FALSE)
+  wb <- openxlsx::createWorkbook()
+
+  write_data_sheet <- function(sheet_name, data) {
+    openxlsx::addWorksheet(wb, sheet_name)
+    openxlsx::writeData(wb, sheet_name, as.data.frame(as.list(names(data)), stringsAsFactors = FALSE), colNames = FALSE, startRow = 1L)
+    var_labels <- vapply(data, function(c) {
+      l <- attr(c, "label", exact = TRUE)
+      if (is.null(l)) "" else as.character(l)
+    }, character(1))
+    openxlsx::writeData(wb, sheet_name, as.data.frame(as.list(var_labels), stringsAsFactors = FALSE), colNames = FALSE, startRow = 2L)
+    for (v in names(data)) data[[v]] <- .analitica_plain_col(data[[v]])
+    openxlsx::writeData(wb, sheet_name, data, startRow = 3L, colNames = FALSE)
+    header1 <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#E8EAED", halign = "left")
+    header2 <- openxlsx::createStyle(textDecoration = "italic", fontColour = "#5F6368", fgFill = "#F6F7F9")
+    openxlsx::addStyle(wb, sheet_name, header1, rows = 1L, cols = seq_along(data), gridExpand = TRUE)
+    openxlsx::addStyle(wb, sheet_name, header2, rows = 2L, cols = seq_along(data), gridExpand = TRUE)
+    openxlsx::freezePane(wb, sheet_name, firstActiveRow = 3L)
+    openxlsx::setColWidths(wb, sheet_name, cols = seq_along(data), widths = "auto")
+  }
+
+  write_meta_sheet <- function(sheet_name, data) {
+    openxlsx::addWorksheet(wb, sheet_name)
+    openxlsx::writeData(wb, sheet_name, data)
+    header <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#E8EAED")
+    if (ncol(data)) {
+      openxlsx::addStyle(wb, sheet_name, header, rows = 1L, cols = seq_len(ncol(data)), gridExpand = TRUE)
+      openxlsx::setColWidths(wb, sheet_name, cols = seq_len(ncol(data)), widths = "auto")
+      openxlsx::freezePane(wb, sheet_name, firstRow = TRUE)
+    }
+  }
+
+  if (identical(valores, "ambos")) {
+    write_data_sheet("completa_codigos", df_cod)
+    write_data_sheet("completa_etiquetas", df_lab)
+  } else if (identical(valores, "etiquetas")) {
+    write_data_sheet("completa_etiquetas", df_lab)
+  } else {
+    write_data_sheet("completa_codigos", df_cod)
+  }
+  write_meta_sheet("variables_comunes", common_df)
+  write_meta_sheet("variables_no_comunes", omitted_df)
+  write_meta_sheet("bases", bases_df)
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  path
+}
+
+.analitica_unified_independent_xlsx <- function(sid, cfg, valores = "ambos",
+                                                multi_select = "dummy_01") {
+  if (!exists("estudio_is_independent_siblings", mode = "function") ||
+      !estudio_is_independent_siblings(sid)) {
+    stop_api(409, "E_NOT_INDEPENDENT_SIBLINGS",
+             "La base unificada solo esta disponible para bases hermanas independientes.")
+  }
+
+  s <- session_get(sid)
+  bases <- (s$estudio %||% list())$bases %||% list()
+  if (length(bases) < 2L) {
+    stop_api(409, "E_NOT_ENOUGH_BASES",
+             "Se necesitan al menos dos bases hermanas para construir una base unificada.")
+  }
+
+  fuente <- .analitica_effective_source(s, cfg)
+  excluidas <- .as_chr_vec(cfg$variables_excluidas)
+  alias_var <- "base_hermana"
+  origin_id_var <- "registro_origen_id"
+  uid_var <- "registro_unificado_id"
+  dfs_cod <- list()
+  dfs_lab <- list()
+  labels <- list(
+    base_hermana = "Base hermana / carrera",
+    registro_origen_id = "Identificador original del registro en su base",
+    registro_unificado_id = "Identificador único del registro unificado"
+  )
+  labels_by_base <- list()
+  bases_rows <- list()
+
+  for (nombre in names(bases)) {
+    pair <- .analitica_pair_for_base(s, bases[[nombre]], fuente, nombre)
+    if (is.null(pair) && identical(fuente, "adaptados")) {
+      pair <- .analitica_pair_for_base(s, bases[[nombre]], "originales", nombre)
+    }
+    if (is.null(pair)) {
+      stop_api(409, "E_ANALITICA_SOURCE_MISSING",
+        sprintf("No se pudo resolver el par XLSForm/Data para la base '%s'.", nombre))
+    }
+    parsed <- .analitica_read_pair(pair, bases[[nombre]])
+    reviewed <- .analitica_apply_data_review(parsed$data, parsed$inst, cfg)
+    rp_data <- .excluir_cols(reviewed$data, excluidas)
+    rp_inst <- reviewed$inst
+    if (multi_select == "dummy_01") rp_data <- .expand_multiselect(rp_data, rp_inst)
+
+    alias <- .analitica_base_alias(bases[[nombre]], nombre)
+    alias_col <- rep(alias, nrow(rp_data))
+    attr(alias_col, "label") <- "Base hermana / carrera"
+    origin_col_name <- .analitica_origin_id_col(rp_data)
+    origin_col <- if (!is.null(origin_col_name) && origin_col_name %in% names(rp_data)) {
+      as.character(rp_data[[origin_col_name]])
+    } else {
+      rep(NA_character_, nrow(rp_data))
+    }
+    origin_col[is.na(origin_col)] <- ""
+    attr(origin_col, "label") <- "Identificador original del registro en su base"
+    uid_prefix <- .analitica_base_id_slug(nombre)
+    uid_col <- sprintf("%s_%06d", uid_prefix, seq_len(nrow(rp_data)))
+    attr(uid_col, "label") <- "Identificador único del registro unificado"
+    rp_data[[alias_var]] <- alias_col
+    rp_data[[origin_id_var]] <- origin_col
+    rp_data[[uid_var]] <- uid_col
+    rp_data <- rp_data[, c(alias_var, origin_id_var, uid_var, setdiff(names(rp_data), c(alias_var, origin_id_var, uid_var))), drop = FALSE]
+
+    for (col in names(rp_data)) {
+      lab <- attr(rp_data[[col]], "label", exact = TRUE)
+      if (!is.null(lab) && nzchar(as.character(lab)) && is.null(labels[[col]])) {
+        labels[[col]] <- as.character(lab)
+      }
+      current_labels <- labels_by_base[[col]] %||% list()
+      current_labels[[nombre]] <- as.character(lab %||% "")
+      labels_by_base[[col]] <- current_labels
+    }
+
+    df_cod <- .aplicar_etiquetas(rp_data, rp_inst, valores = "codigos", multi_select = multi_select)
+    df_lab <- .aplicar_etiquetas(rp_data, rp_inst, valores = "etiquetas", multi_select = multi_select)
+    dfs_cod[[nombre]] <- df_cod
+    dfs_lab[[nombre]] <- df_lab
+    bases_rows[[length(bases_rows) + 1L]] <- data.frame(
+      base_nombre = nombre,
+      alias = alias,
+      source_title = as.character((bases[[nombre]] %||% list())$source_title %||% ""),
+      n_filas = as.integer(nrow(rp_data)),
+      n_columnas = as.integer(ncol(rp_data)),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  present_cols <- lapply(dfs_cod, names)
+  union_cols <- unique(c(alias_var, origin_id_var, uid_var, unlist(present_cols, use.names = FALSE)))
+  common_cols <- Reduce(intersect, present_cols)
+  common_cols <- setdiff(common_cols, c(alias_var, origin_id_var, uid_var))
+  omitted_cols <- setdiff(union_cols, c(alias_var, origin_id_var, uid_var, common_cols))
+
+  common_df <- if (length(common_cols)) {
+    do.call(rbind, lapply(common_cols, function(col) {
+      labs <- labels_by_base[[col]] %||% list()
+      labs_nonempty <- unique(as.character(unlist(labs, use.names = FALSE)))
+      labs_nonempty <- labs_nonempty[nzchar(labs_nonempty)]
+      data.frame(
+        variable = col,
+        label = as.character(labels[[col]] %||% ""),
+        n_bases = as.integer(length(bases)),
+        label_consistente = length(unique(labs_nonempty)) <= 1L,
+        stringsAsFactors = FALSE
+      )
+    }))
+  } else {
+    data.frame(variable = character(), label = character(), n_bases = integer(),
+               label_consistente = logical(), stringsAsFactors = FALSE)
+  }
+
+  omitted_df <- if (length(omitted_cols)) {
+    do.call(rbind, lapply(omitted_cols, function(col) {
+      present <- names(Filter(function(cols) col %in% cols, present_cols))
+      missing <- setdiff(names(bases), present)
+      data.frame(
+        variable = col,
+        label = as.character(labels[[col]] %||% ""),
+        presente_en = paste(present, collapse = ", "),
+        falta_en = paste(missing, collapse = ", "),
+        n_bases_presentes = as.integer(length(present)),
+        stringsAsFactors = FALSE
+      )
+    }))
+  } else {
+    data.frame(variable = character(), label = character(), presente_en = character(),
+               falta_en = character(), n_bases_presentes = integer(),
+               stringsAsFactors = FALSE)
+  }
+  bases_df <- do.call(rbind, bases_rows)
+
+  aligned_cod <- .analitica_unified_align(dfs_cod, union_cols, labels)
+  aligned_lab <- .analitica_unified_align(dfs_lab, union_cols, labels)
+  df_cod <- do.call(rbind, aligned_cod)
+  df_lab <- do.call(rbind, aligned_lab)
+  rownames(df_cod) <- NULL
+  rownames(df_lab) <- NULL
+  for (col in intersect(names(labels), names(df_cod))) {
+    lab <- labels[[col]] %||% NULL
+    if (!is.null(lab) && nzchar(as.character(lab))) {
+      attr(df_cod[[col]], "label") <- as.character(lab)
+      if (col %in% names(df_lab)) attr(df_lab[[col]], "label") <- as.character(lab)
+    }
+  }
+
+  out_name <- .export_filename(sid, "bases_unificadas", "xlsx")
+  out_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
+  .analitica_write_unified_xlsx(df_cod, df_lab, common_df, omitted_df,
+                                bases_df, out_path, valores = valores)
+  meta <- .register_output_file(sid, "bases_unificadas", out_path, original_name = out_name)
+  list(
+    ok = TRUE,
+    n_bases = length(bases),
+    fuente = fuente,
+    file_id = meta$file_id,
+    filename = meta$original_name,
+    size = meta$size,
+    unified = list(
+      alias_var = alias_var,
+      origin_id_var = origin_id_var,
+      unique_id_var = uid_var,
+      n_filas = as.integer(nrow(df_cod)),
+      n_columnas = as.integer(ncol(df_cod)),
+      n_variables_comunes = as.integer(nrow(common_df)),
+      n_variables_no_comunes = as.integer(nrow(omitted_df))
+    )
   )
 }
 
@@ -812,11 +1122,30 @@
   allowed <- .analitica_allowed_vars(rp_inst, numericas)
   allowed <- setdiff(allowed, .as_chr_vec(excluidas))
   if (length(allowed) == 0L) return(NULL)
+  has_recod <- function(v, allowed_vars) {
+    if (is.na(v) || !nzchar(v)) return(NA_character_)
+    recod <- paste0(v, "_recod")
+    if (recod %in% allowed_vars) return(recod)
+    NA_character_
+  }
   if (is.null(secs) || !is.list(secs) || length(secs) == 0L) {
     secs <- .secciones_desde_instrumento(rp_inst)
   }
   if (is.null(secs) || !is.list(secs) || length(secs) == 0L) return(NULL)
-  secs <- lapply(secs, function(v) intersect(as.character(v), allowed))
+  secs <- lapply(secs, function(v) {
+    vars <- as.character(v)
+    out <- character(0)
+    for (var in vars) {
+      if (is.na(var) || identical(var, "")) next
+      if (var %in% allowed) {
+        out <- c(out, var)
+      } else {
+        recod <- has_recod(var, allowed)
+        if (!is.na(recod)) out <- c(out, recod)
+      }
+    }
+    unique(out)
+  })
   secs <- secs[vapply(secs, length, integer(1)) > 0L]
   if (length(secs) == 0L) return(NULL)
   secs
@@ -845,10 +1174,28 @@
 }
 
 .analitica_context_usable <- function(data, inst) {
-  is.data.frame(data) &&
+  basic_ok <- is.data.frame(data) &&
     ncol(data) > 0L &&
     length(.variables_desde_instrumento(inst)) > 0L &&
     !.analitica_has_structural_cols(data)
+  if (!isTRUE(basic_ok)) return(FALSE)
+
+  compat <- attr(data, "xlsform_compatibility", exact = TRUE)
+  if (!is.null(compat) && !isTRUE(compat$ok)) {
+    missing_prev <- compat$missing_columns %||% compat$missing_variables %||% character(0)
+    if (!.analitica_missing_ok_as_sm_dummies(data, inst, missing_prev)) return(FALSE)
+  }
+
+  compat_now <- tryCatch(
+    validate_data_xlsform_compatibility(data, inst),
+    error = function(e) NULL
+  )
+  if (is.null(compat_now) || isTRUE(compat_now$ok)) return(TRUE)
+  .analitica_missing_ok_as_sm_dummies(
+    data,
+    inst,
+    compat_now$missing_columns %||% compat_now$missing_variables %||% character(0)
+  )
 }
 
 .analitica_sources_usable <- function(data_sources, inst_sources) {
@@ -859,21 +1206,98 @@
   }, logical(1)))
 }
 
+.analitica_missing_ok_as_sm_dummies <- function(data, inst, missing) {
+  missing <- as.character(missing %||% character(0))
+  missing <- missing[!is.na(missing) & nzchar(missing)]
+  if (!length(missing)) return(TRUE)
+  if (!is.data.frame(data) || is.null(inst$survey) || !is.data.frame(inst$survey)) {
+    return(FALSE)
+  }
+  survey <- inst$survey
+  if (!all(c("name", "type") %in% names(survey))) return(FALSE)
+  names_s <- as.character(survey$name %||% character(0))
+  type_base <- .analitica_type_base(survey$type)
+  sm_vars <- names_s[type_base == "select_multiple"]
+  sm_vars <- sm_vars[!is.na(sm_vars) & nzchar(sm_vars)]
+  all(vapply(missing, function(v) {
+    v %in% sm_vars && (
+      any(startsWith(names(data), paste0(v, "/"))) ||
+        any(grepl(paste0("^", gsub("([\\W])", "\\\\\\1", v), "\\.[^\\.]+$"), names(data), perl = TRUE))
+    )
+  }, logical(1)))
+}
+
+.analitica_cached_source_matches <- function(s, fuente) {
+  actual <- as.character((s %||% list())$analitica_fuente %||% "")
+  nzchar(actual) && identical(actual, as.character(fuente %||% ""))
+}
+
+.analitica_source_cache_key <- function(sid, fuente) {
+  key <- as.character(fuente %||% "")
+  if (exists("estudio_is_independent_siblings", mode = "function") &&
+      estudio_is_independent_siblings(sid)) {
+    active <- if (exists("estudio_active_base", mode = "function")) estudio_active_base(sid) else NULL
+    key <- paste(key, as.character(active %||% ""), sep = ":")
+  }
+  key
+}
+
+.analitica_active_export_base <- function(sid) {
+  if (exists("estudio_is_independent_siblings", mode = "function") &&
+      estudio_is_independent_siblings(sid) &&
+      exists("estudio_active_base", mode = "function")) {
+    active <- estudio_active_base(sid)
+    if (!is.null(active) && nzchar(active)) return(active)
+  }
+  NULL
+}
+
+.analitica_export_filename <- function(sid, label, ext, base = NULL) {
+  base <- base %||% .analitica_active_export_base(sid)
+  .export_filename(sid, label, ext, base = base)
+}
+
+.analitica_repair_project_context <- function(sid) {
+  changed <- FALSE
+  if (exists(".pulso_repair_multibase_variant_xlsforms", mode = "function")) {
+    changed <- isTRUE(tryCatch(
+      .pulso_repair_multibase_variant_xlsforms(sid),
+      error = function(e) FALSE
+    ))
+  }
+  if (exists(".pulso_repair_parent_recod_columns", mode = "function")) {
+    changed <- isTRUE(changed || tryCatch(
+      .pulso_repair_parent_recod_columns(sid),
+      error = function(e) FALSE
+    ))
+  }
+  if (isTRUE(changed) && exists(".pulso_renormalize_after_load", mode = "function")) {
+    tryCatch(.pulso_renormalize_after_load(sid), error = function(e) NULL)
+  }
+  invisible(isTRUE(changed))
+}
+
 .analitica_prepare_and_cache <- function(sid) {
+  .analitica_repair_project_context(sid)
   cfg <- .analitica_get_config(sid)
   ctx <- .analitica_prepare_context(sid, cfg)
   session_set(sid, "analitica_rp_inst", ctx$rp_inst)
   session_set(sid, "analitica_rp_data", ctx$rp_data)
   session_set(sid, "analitica_rp_inst_sources", ctx$inst_sources)
   session_set(sid, "analitica_rp_data_sources", ctx$data_sources)
-  session_set(sid, "analitica_prep_ok", TRUE)
-  session_set(sid, "analitica_fuente", ctx$fuente)
+  .analitica_status_set(sid, "analitica_prep_ok", TRUE)
+  session_set(sid, "analitica_fuente", .analitica_source_cache_key(sid, ctx$fuente))
   ctx
 }
 
 .load_rp_data <- function(sid) {
+  .analitica_repair_project_context(sid)
   s <- session_get(sid)
+  cfg <- .analitica_get_config(sid)
+  fuente <- .analitica_effective_source(s, cfg)
+  cache_matches <- .analitica_cached_source_matches(s, .analitica_source_cache_key(sid, fuente))
   if (!is.null(s$analitica_rp_data) && !is.null(s$analitica_rp_inst) &&
+      isTRUE(cache_matches) &&
       .analitica_context_usable(s$analitica_rp_data, s$analitica_rp_inst)) {
     base_meta <- .analitica_single_base_meta(sid)
     rp_inst <- .analitica_apply_integrated_key(s$analitica_rp_inst, base_meta)
@@ -882,7 +1306,10 @@
       rp_data = .analitica_apply_integrated_key_to_data(s$analitica_rp_data, rp_inst, base_meta)
     ))
   }
-  if (!is.null(s$rp_data) && !is.null(s$rp_inst) &&
+  bases <- (s$estudio %||% list())$bases %||% list()
+  can_use_base_cache <- !length(bases) && !isTRUE(s$codif_aplicado)
+  if (isTRUE(can_use_base_cache) &&
+      !is.null(s$rp_data) && !is.null(s$rp_inst) &&
       .analitica_context_usable(s$rp_data, s$rp_inst)) {
     base_meta <- .analitica_single_base_meta(sid)
     rp_inst <- .analitica_apply_integrated_key(s$rp_inst, base_meta)
@@ -899,16 +1326,24 @@
 }
 
 .load_rp_sources <- function(sid) {
+  .analitica_repair_project_context(sid)
   s <- session_get(sid, required = FALSE)
-  data_sources <- if (!is.null(s$analitica_rp_data_sources) && length(s$analitica_rp_data_sources) > 0L) {
+  cfg <- .analitica_get_config(sid)
+  fuente <- .analitica_effective_source(s, cfg)
+  cache_matches <- .analitica_cached_source_matches(s, .analitica_source_cache_key(sid, fuente))
+  data_sources <- if (isTRUE(cache_matches) &&
+                      !is.null(s$analitica_rp_data_sources) &&
+                      length(s$analitica_rp_data_sources) > 0L) {
     s$analitica_rp_data_sources
   } else {
-    estudio_data_sources(sid)
+    list()
   }
-  inst_sources <- if (!is.null(s$analitica_rp_inst_sources) && length(s$analitica_rp_inst_sources) > 0L) {
+  inst_sources <- if (isTRUE(cache_matches) &&
+                      !is.null(s$analitica_rp_inst_sources) &&
+                      length(s$analitica_rp_inst_sources) > 0L) {
     s$analitica_rp_inst_sources
   } else {
-    estudio_inst_sources(sid)
+    list()
   }
   if (!.analitica_sources_usable(data_sources, inst_sources)) {
     prepared <- tryCatch(.analitica_prepare_and_cache(sid), error = function(e) NULL)
@@ -943,13 +1378,71 @@
   zip_path
 }
 
-# Lee la sub-configuración analitica_config de la sesión (store del
-# frontend autosaveado). Devuelve un list vacío si aún no hay config.
-.analitica_get_config <- function(sid) {
+.analitica_scoped_base <- function(sid) {
+  if (exists("estudio_is_independent_siblings", mode = "function") &&
+      estudio_is_independent_siblings(sid) &&
+      exists("estudio_active_base", mode = "function")) {
+    active <- as.character(estudio_active_base(sid) %||% "")
+    if (nzchar(active)) return(active)
+  }
+  ""
+}
+
+.analitica_config_get <- function(sid, s = NULL) {
+  s <- s %||% session_get(sid, required = FALSE)
+  if (is.null(s)) return(.analitica_default_config())
+  active <- .analitica_scoped_base(sid)
+  if (nzchar(active)) {
+    configs <- s$analitica_config_por_base
+    if (is.list(configs) && !is.null(configs[[active]])) {
+      return(configs[[active]])
+    }
+    # Migracion conservadora: si el proyecto tenia una unica config
+    # analitica global, se asigna solo a la base activa inicial.
+    if ((is.null(configs) || length(configs) == 0L) && !is.null(s$analitica_config)) {
+      configs <- list()
+      configs[[active]] <- s$analitica_config
+      session_set(sid, "analitica_config_por_base", configs)
+      return(s$analitica_config)
+    }
+    return(.analitica_default_config())
+  }
+  s$analitica_config %||% .analitica_default_config()
+}
+
+.analitica_config_set <- function(sid, cfg) {
+  active <- .analitica_scoped_base(sid)
+  if (nzchar(active)) {
+    s <- session_get(sid)
+    configs <- s$analitica_config_por_base
+    if (is.null(configs) || !is.list(configs)) configs <- list()
+    configs[[active]] <- cfg
+    session_set(sid, "analitica_config_por_base", configs)
+    return(invisible(cfg))
+  }
+  session_set(sid, "analitica_config", cfg)
+  invisible(cfg)
+}
+
+.analitica_status_set <- function(sid, key, value = TRUE) {
+  session_set(sid, key, value)
+  active <- .analitica_scoped_base(sid)
+  if (!nzchar(active)) return(invisible(value))
   s <- session_get(sid)
-  cfg <- s$analitica_config
-  if (is.null(cfg)) return(list())
-  cfg
+  statuses <- s$analitica_status_por_base
+  if (is.null(statuses) || !is.list(statuses)) statuses <- list()
+  current <- statuses[[active]]
+  if (is.null(current) || !is.list(current)) current <- list()
+  current[[key]] <- value
+  statuses[[active]] <- current
+  session_set(sid, "analitica_status_por_base", statuses)
+  invisible(value)
+}
+
+# Lee la sub-configuracion analitica_config de la sesión (store del
+# frontend autosaveado). En hermanos independientes apunta a la base activa.
+.analitica_get_config <- function(sid) {
+  .analitica_config_get(sid)
 }
 
 # Traduce las secciones del store (lista de {id, nombre, variables,
@@ -1568,7 +2061,7 @@ mount_analitica <- function(pr) {
       # contra POST /config.
       sid <- session_header(req)
       s <- session_get(sid)
-      cfg <- s$analitica_config %||% .analitica_default_config()
+      cfg <- .analitica_config_get(sid, s)
       list(ok = TRUE, config = cfg)
     })) |>
     plumber::pr_post("/api/analitica/config", wrap_endpoint(function(req, res, ...) {
@@ -1586,11 +2079,16 @@ mount_analitica <- function(pr) {
       cfg <- parsed$config
       if (is.null(cfg)) stop_api(400, "E_NO_CONFIG", "Body debe incluir 'config'.")
       s_prev <- session_get(sid)
-      prev_fuente <- as.character((s_prev$analitica_config %||% list())$fuente_preferida %||% "")
+      prev_fuente <- as.character((.analitica_config_get(sid, s_prev) %||% list())$fuente_preferida %||% "")
       next_fuente <- as.character((cfg %||% list())$fuente_preferida %||% "")
-      session_set(sid, "analitica_config", cfg)
+      .analitica_config_set(sid, cfg)
       if (!identical(prev_fuente, next_fuente)) {
-        session_set(sid, "analitica_prep_ok", FALSE)
+        .analitica_status_set(sid, "analitica_prep_ok", FALSE)
+        .analitica_status_set(sid, "analitica_codebook_ok", FALSE)
+        .analitica_status_set(sid, "analitica_frecuencias_ok", FALSE)
+        .analitica_status_set(sid, "analitica_cruces_ok", FALSE)
+        .analitica_status_set(sid, "analitica_spss_ok", FALSE)
+        .analitica_status_set(sid, "analitica_dim_ok", FALSE)
         session_set(sid, "analitica_rp_inst", NULL)
         session_set(sid, "analitica_rp_data", NULL)
         session_set(sid, "analitica_rp_inst_sources", list())
@@ -1609,7 +2107,7 @@ mount_analitica <- function(pr) {
         ok = TRUE,
         version = "analitica/1.0",
         exported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-        config = s$analitica_config %||% .analitica_default_config()
+        config = .analitica_config_get(sid, s)
       )
     })) |>
     plumber::pr_post("/api/analitica/detect-secciones", wrap_endpoint(function(req, res) {
@@ -1706,7 +2204,7 @@ mount_analitica <- function(pr) {
       }
       cfg <- parsed$config
       if (is.null(cfg)) stop_api(400, "E_NO_CONFIG", "El JSON no trae 'config'.")
-      session_set(sid, "analitica_config", cfg)
+      .analitica_config_set(sid, cfg)
       list(ok = TRUE, imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
     plumber::pr_post("/api/analitica/preparar", wrap_endpoint(function(req, res) {
@@ -1764,7 +2262,7 @@ mount_analitica <- function(pr) {
           .analitica_write_final_xlsform(final_inst, out_path)
         }
       )
-      session_set(sid, "analitica_codebook_ok", TRUE)
+      .analitica_status_set(sid, "analitica_codebook_ok", TRUE)
       result$xlsform <- xlsform_result
       result
     })) |>
@@ -1823,7 +2321,7 @@ mount_analitica <- function(pr) {
           )
         }
       )
-      session_set(sid, "analitica_frecuencias_ok", TRUE)
+      .analitica_status_set(sid, "analitica_frecuencias_ok", TRUE)
       result
     })) |>
     plumber::pr_get("/api/analitica/multibase/info", wrap_endpoint(function(req, res) {
@@ -1841,16 +2339,18 @@ mount_analitica <- function(pr) {
       data <- sources$data_sources[[base_name]]
       inst <- sources$inst_sources[[base_name]]
       meta <- .amb_base_meta(sid, base_name)
+      recod_roles <- .amb_recod_roles_for_base(sid, base_name)
       data_path <- job_save_rds(sid, "multibase_tablas_data", data)
       inst_path <- job_save_rds(sid, "multibase_tablas_inst", inst)
       cfg_path <- job_save_rds(sid, "multibase_tablas_cfg", cfg)
       meta_path <- job_save_rds(sid, "multibase_tablas_meta", meta)
+      recod_roles_path <- job_save_rds(sid, "multibase_tablas_recod_roles", recod_roles)
       api_path <- .app_api_dir()
 
       job_id <- job_submit(
         sid = sid,
         kind = "analitica.multibase.tablas",
-        func = function(data_path, inst_path, cfg_path, meta_path, base_name, api_path, result_path, progress_path = NULL) {
+        func = function(data_path, inst_path, cfg_path, meta_path, recod_roles_path, base_name, api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
           } else if (requireNamespace("devtools", quietly = TRUE)) {
@@ -1866,11 +2366,13 @@ mount_analitica <- function(pr) {
           inst <- readRDS(inst_path)
           cfg <- readRDS(cfg_path)
           meta <- readRDS(meta_path)
+          recod_roles <- readRDS(recod_roles_path)
           .analitica_multibase_export_data(
             data = data,
             inst = inst,
             cfg = cfg,
             meta = meta,
+            recod_roles = recod_roles,
             path_xlsx = result_path,
             base_name = base_name
           )
@@ -1882,12 +2384,13 @@ mount_analitica <- function(pr) {
           inst_path = inst_path,
           cfg_path = cfg_path,
           meta_path = meta_path,
+          recod_roles_path = recod_roles_path,
           base_name = base_name,
           api_path = api_path
         ),
         result_filename = .export_filename(sid, "tablas_multibase", "xlsx"),
         on_complete = function(j) {
-          session_set(j$sid, "analitica_multibase_ok", TRUE)
+          .analitica_status_set(j$sid, "analitica_multibase_ok", TRUE)
           session_set(j$sid, "analitica_multibase_available", TRUE)
           out_name <- .export_filename(j$sid, "tablas_multibase", "xlsx")
           meta <- .register_output_file(j$sid, "tablas_multibase", j$result_path, original_name = out_name)
@@ -2106,10 +2609,10 @@ mount_analitica <- function(pr) {
         result_filename = if (length(data_sources) > 1L) {
           .export_filename(sid, "cruces", "zip")
         } else {
-          .export_filename(sid, "cruces", "xlsx")
+          .analitica_export_filename(sid, "cruces", "xlsx", base = names(data_sources)[1])
         },
         on_complete = function(j) {
-          session_set(j$sid, "analitica_cruces_ok", TRUE)
+          .analitica_status_set(j$sid, "analitica_cruces_ok", TRUE)
           if (identical(j$result_data$mode, "multi")) {
             zip_meta <- .register_output_file(j$sid, "cruces_zip", j$result_path)
             return(list(
@@ -2149,7 +2652,7 @@ mount_analitica <- function(pr) {
       sid <- session_header(req)
       cfg <- .analitica_get_config(sid)
       result <- .analitica_export_source_files(sid, role = "data", cfg = cfg)
-      session_set(sid, "analitica_bases_data_ok", TRUE)
+      .analitica_status_set(sid, "analitica_bases_data_ok", TRUE)
       result
     })) |>
     plumber::pr_post("/api/analitica/bases/instrumento", wrap_endpoint(function(req, res, ...) {
@@ -2158,7 +2661,7 @@ mount_analitica <- function(pr) {
       sid <- session_header(req)
       cfg <- .analitica_get_config(sid)
       result <- .analitica_export_source_files(sid, role = "instrumento", cfg = cfg)
-      session_set(sid, "analitica_bases_instrumento_ok", TRUE)
+      .analitica_status_set(sid, "analitica_bases_instrumento_ok", TRUE)
       result
     })) |>
     plumber::pr_post("/api/analitica/bases/sav", wrap_endpoint(function(req, res, ...) {
@@ -2193,11 +2696,11 @@ mount_analitica <- function(pr) {
 
       # Para single-base + sin sps: devuelve el .sav directo (legacy).
       if (length(ds) == 1L && !incluir_sps) {
-        sav_name <- .export_filename(sid, "bases_sav", "sav")
+        sav_name <- .analitica_export_filename(sid, "bases_sav", "sav", base = names(ds)[1])
         sav_path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), sav_name))
         .bases_export_sav(ds[[1]], is_[[1]], sav_path, NULL, overrides = overrides)
         meta <- .register_output_file(sid, "bases_sav", sav_path, original_name = sav_name)
-        session_set(sid, "analitica_bases_sav_ok", TRUE)
+        .analitica_status_set(sid, "analitica_bases_sav_ok", TRUE)
         return(list(ok = TRUE, n_bases = 1L, file_id = meta$file_id,
                     filename = meta$original_name, size = meta$size))
       }
@@ -2210,7 +2713,7 @@ mount_analitica <- function(pr) {
       files_in_zip <- character(0)
       for (nombre in names(ds)) {
         # Prefijo por base si hay más de una; sino, nombres "limpios".
-        prefix <- if (length(ds) > 1L) paste0(nombre, "__") else ""
+        prefix <- if (length(ds) > 1L || !is.null(.analitica_active_export_base(sid))) paste0(nombre, "__") else ""
         sav_path <- file.path(stage, paste0(prefix, "datos.sav"))
         sps_path <- if (incluir_sps) file.path(stage, paste0(prefix, "niveles_medida.sps")) else NULL
         .bases_export_sav(ds[[nombre]], is_[[nombre]], sav_path, sps_path, overrides = overrides)
@@ -2222,13 +2725,18 @@ mount_analitica <- function(pr) {
           sps = if (!is.null(sps_path)) basename(sps_path) else NULL
         )
       }
-      zip_name <- .export_filename(sid, "bases_sav_bundle", "zip")
+      zip_name <- .analitica_export_filename(
+        sid,
+        "bases_sav_bundle",
+        "zip",
+        base = if (length(ds) == 1L) names(ds)[1] else NULL
+      )
       zip_path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), zip_name))
       old_wd <- setwd(stage); on.exit(setwd(old_wd), add = TRUE)
       zip::zip(zip_path, files = files_in_zip)
       setwd(old_wd)
       meta <- .register_output_file(sid, "bases_sav_bundle", zip_path, original_name = zip_name)
-      session_set(sid, "analitica_bases_sav_ok", TRUE)
+      .analitica_status_set(sid, "analitica_bases_sav_ok", TRUE)
       list(ok = TRUE, n_bases = length(ds),
            zip = list(file_id = meta$file_id, filename = meta$original_name,
                       size = meta$size),
@@ -2267,7 +2775,7 @@ mount_analitica <- function(pr) {
           .bases_write_csv(df, out_path, separador = separador)
         }
       )
-      session_set(sid, "analitica_bases_csv_ok", TRUE)
+      .analitica_status_set(sid, "analitica_bases_csv_ok", TRUE)
       result
     })) |>
 	    plumber::pr_post("/api/analitica/bases/xlsx", wrap_endpoint(function(req, res, ...) {
@@ -2303,7 +2811,30 @@ mount_analitica <- function(pr) {
           .bases_write_xlsx(df_cod, df_lab, out_path, valores = valores)
         }
       )
-      session_set(sid, "analitica_bases_xlsx_ok", TRUE)
+      .analitica_status_set(sid, "analitica_bases_xlsx_ok", TRUE)
+      result
+    })) |>
+    plumber::pr_post("/api/analitica/bases/xlsx-unificada", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      cfg <- .analitica_get_config(sid)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      body <- if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+                 error = function(e) list())
+      } else list()
+      valores <- as.character(body$valores %||% "ambos")
+      if (!valores %in% c("codigos","etiquetas","ambos")) valores <- "ambos"
+      multi_select <- as.character(body$multi_select %||% "dummy_01")
+      if (!multi_select %in% c("codigos_crudos","etiquetas_unidas","dummy_01")) multi_select <- "dummy_01"
+
+      result <- .analitica_unified_independent_xlsx(
+        sid = sid,
+        cfg = cfg,
+        valores = valores,
+        multi_select = multi_select
+      )
+      .analitica_status_set(sid, "analitica_bases_xlsx_ok", TRUE)
       result
     })) |>
     plumber::pr_post("/api/analitica/spss", wrap_endpoint(function(req, res) {
@@ -2325,13 +2856,13 @@ mount_analitica <- function(pr) {
       sps_path <- file.path(td, "niveles_medida.sps")
 	      .bases_export_sav(reviewed$data, reviewed$inst, sav_path, sps_path, overrides = overrides)
       dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
-      zip_name <- .export_filename(sid, "spss_bundle", "zip")
+      zip_name <- .analitica_export_filename(sid, "spss_bundle", "zip")
       zip_path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), zip_name))
       old <- getwd(); on.exit({ setwd(old) }, add = TRUE)
       setwd(td)
       zip::zip(zip_path, files = c("datos.sav", "niveles_medida.sps"))
       meta <- .register_output_file(sid, "spss_bundle", zip_path, original_name = zip_name)
-      session_set(sid, "analitica_spss_ok", TRUE)
+      .analitica_status_set(sid, "analitica_spss_ok", TRUE)
       list(ok = TRUE, file_id = meta$file_id, size = meta$size)
     })) |>
     plumber::pr_post("/api/analitica/enumeradores", wrap_endpoint(function(req, res, col_enumerador = NULL) {
@@ -2559,7 +3090,7 @@ mount_analitica <- function(pr) {
           .export_filename(sid, "enumeradores", "pdf")
         },
         on_complete = function(j) {
-          session_set(j$sid, "analitica_enumeradores_ok", TRUE)
+          .analitica_status_set(j$sid, "analitica_enumeradores_ok", TRUE)
           if (identical(j$result_data$mode, "multi")) {
             zip_meta <- .register_output_file(j$sid, "enumeradores_zip", j$result_path)
             return(list(
@@ -2610,7 +3141,7 @@ mount_analitica <- function(pr) {
       out <- .dimensiones_construir(ctx$rp_data, ctx$rp_inst, dim_cfg)
       session_set(sid, "rp_dim", out$data_dim)
       session_set(sid, "rp_dim_config", out$dim_cfg)
-      session_set(sid, "analitica_dim_ok", TRUE)
+      .analitica_status_set(sid, "analitica_dim_ok", TRUE)
       list(
         ok = TRUE,
         n_filas = out$n_filas,

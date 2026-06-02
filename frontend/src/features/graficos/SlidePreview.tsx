@@ -239,7 +239,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
             className="pulso-primary pulso-slide-preview-action"
             onClick={onActionClick}
             disabled={busy}
-            title={
+            aria-label={
               !prepOk
                 ? "Primero prepara los datos en Analítica"
                 : blocked
@@ -270,7 +270,6 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
               className="pulso-gv2-icon-button pulso-slide-preview-refresh"
               onClick={onRefreshClick}
               disabled={busy}
-              title="Actualizar preview del slide"
               aria-label="Actualizar preview del slide"
             >
               <RefreshCw size={14} className={busy ? "pulso-spin" : ""} />

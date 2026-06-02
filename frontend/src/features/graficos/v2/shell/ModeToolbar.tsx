@@ -21,7 +21,7 @@ export function ModeToolbar() {
         type="button"
         className={`pulso-gv2-density-toggle pulso-gv2-pill-button ${density === "compact" ? "is-on" : ""}`}
         onClick={() => setDensity(density === "comfortable" ? "compact" : "comfortable")}
-        title={density === "compact" ? "Cambiar a vista cómoda" : "Cambiar a vista compacta"}
+        aria-label={density === "compact" ? "Cambiar a vista cómoda" : "Cambiar a vista compacta"}
         aria-pressed={density === "compact"}
       >
         {density === "compact" ? <AlignJustify size={12} /> : <Rows3 size={12} />}
@@ -37,7 +37,7 @@ export function ModeToolbar() {
             type="button"
             className={`pulso-gv2-mode-tab ${viewMode === key ? "is-active" : ""}`}
             onClick={() => setViewMode(key)}
-            title={hint}
+            aria-label={`${label}. ${hint}`}
           >
             <Icon size={13} />
             {label}

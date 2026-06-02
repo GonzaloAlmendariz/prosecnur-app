@@ -176,16 +176,17 @@ export function IndicadorAssembly({
   // Lienzo SVG: viewBox cuadrado normalizado para escalar. Coordenadas
   // calculadas a partir del centro.
   const W = 1200;
-  const H = maxed ? 880 : 800;
+  const compact = !maxed;
+  const H = maxed ? 880 : 560;
   const cx = W / 2;
   const cy = H / 2;
-  const R_INDEX = 92;          // radio del nodo central (índice)
-  const R_DIM = 72;            // radio de los conductores (acomoda label + icono + chip)
+  const R_INDEX = compact ? 78 : 92; // radio del nodo central (índice)
+  const R_DIM = compact ? 60 : 72;   // radio de los conductores (acomoda label + icono + chip)
   const SUB_H = 48;            // alto rectángulo subcriterio (acomoda 15px bold)
   const SUB_PAD_X = 16;        // padding horizontal del rect alrededor del texto
   const SUB_CHIP_W = 42;       // ancho del chip semáforo dentro del rect
   // Ancho dinámico: depende del label más largo. Calculado abajo.
-  const D_DIM = Math.min(W, H) * 0.30;  // distancia índice → conductor
+  const D_DIM = Math.min(W, H) * (compact ? 0.26 : 0.30); // distancia índice → conductor
 
   const dimPositions = useMemo(() => {
     const n = dimensiones.length || 1;
@@ -355,7 +356,7 @@ export function IndicadorAssembly({
   }
 
   return (
-    <div className={`dash-assembly ${selected ? "is-focused" : ""}`}>
+    <div className={`dash-assembly ${maxed ? "is-maxed" : "is-compact"} ${selected ? "is-focused" : ""}`}>
       <svg
         className="dash-assembly-svg"
         viewBox={`0 0 ${W} ${H}`}

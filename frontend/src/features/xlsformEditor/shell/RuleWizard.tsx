@@ -283,7 +283,6 @@ function choiceContextFromWorkbook(
 
 export function RuleWizard({
   surveyId,
-  token,
   paginas,
   paginasLabels,
   workbook,
@@ -303,7 +302,6 @@ export function RuleWizard({
   onOverridesChange,
 }: {
   surveyId: string;
-  token: string;
 	  paginas: Record<string, string[]>;
 	  paginasLabels: Record<string, string>;
   workbook?: XlsformEditorWorkbook | null;
@@ -410,7 +408,6 @@ export function RuleWizard({
     try {
       const r = await apiXlsformEditorSmInterpretRule(text.trim(), {
 	        survey_id: surveyId,
-	        token,
 	        workbook: workbook ?? null,
         paginas,
         paginas_labels: paginasLabels,

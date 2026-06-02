@@ -1,9 +1,27 @@
 import { describe, expect, test } from "vitest";
 import {
   shouldShowManualPageQuestionsInput,
+  surveyMonkeyTokenUiState,
   visualPagesFromEntries,
   visualQuestionsFromPages,
 } from "./ImportSurveyMonkeyDialog";
+
+describe("surveyMonkeyTokenUiState", () => {
+  test("muestra máscara de backend sin repoblar el input con texto plano", () => {
+    const ui = surveyMonkeyTokenUiState({
+      ok: true,
+      has_token: true,
+      masked_token: "sm_1...abcdef",
+      persisted: true,
+      ephemeral: false,
+    }, "");
+
+    expect(ui.inputValue).toBe("");
+    expect(ui.hasUsableToken).toBe(true);
+    expect(ui.displayMask).toBe("sm_1...abcdef");
+    expect(ui.storageLabel).toBe("cifrado en este equipo");
+  });
+});
 
 describe("visualQuestionsFromPages", () => {
   test("incluye escalas SurveyMonkey de una sola fila como la variable XLSForm colapsada", () => {

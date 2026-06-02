@@ -193,7 +193,7 @@ export function TimelinePanelV2() {
                     className={`pulso-gv2-cat-chip ${catFilter === c ? "is-on" : ""}`}
                     onClick={() => setCatFilter(c)}
                     aria-pressed={catFilter === c}
-                    title={c === "all" ? "Mostrar todos" : `Filtrar por ${CATEGORY_LABEL[c]}`}
+                    aria-label={c === "all" ? "Mostrar todos los slides" : `Filtrar por ${CATEGORY_LABEL[c]}`}
                     data-cat={c === "all" ? undefined : c}
                   >
                     {c === "all" ? "Todos" : CATEGORY_LABEL[c]}

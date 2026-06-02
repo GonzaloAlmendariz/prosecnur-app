@@ -12,8 +12,12 @@ PACKAGE_NAME := Prosecnur
 DIST_ROOT := $(REPO_ROOT)/dist.nosync
 PACKAGE_DIR := $(DIST_ROOT)/$(PACKAGE_NAME)
 PACKAGE_STAGING := $(DIST_ROOT)/.package-staging/$(PACKAGE_NAME)
+AUDIT_PORT ?= 8799
+AUDIT_CDP_PORT ?= 9334
+AUDIT_RUNS_DIR ?= $(REPO_ROOT)/outputs/audit-runs
+AUDIT_PROJECT ?= $(REPO_ROOT)/api/inst/audit_reference/prosecnur_audit_reference.pulso
 
-.PHONY: help dev-api dev-frontend dev-pulso build build-if-stale clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
+.PHONY: help dev-api dev-frontend dev-pulso audit-reference-build audit-reference-run audit-reference-smoke desktop-audit build build-if-stale clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -26,9 +30,13 @@ help:
 	@echo "  install-frontend Install frontend dependencies (pnpm)"
 	@echo "  install-desktop  Install Electron dependencies (pnpm)"
 	@echo "  dev-api          Run Plumber API (no frontend build, no Electron)"
-	@echo "  dev-frontend     Run Vite dev server (proxies /api to :8787)"
+	@echo "  dev-frontend     Run Vite dev server (proxies /api to VITE_API_PROXY_TARGET or PULSO_PORT)"
 	@echo "  build            Build the frontend into api/inst/www"
 	@echo "  desktop-fast     Run Electron, rebuilding frontend only if stale"
+	@echo "  audit-reference-build Generate the canonical audit .pulso"
+	@echo "  audit-reference-run   Run dev stack with an isolated audit project copy"
+	@echo "  desktop-audit         Run Electron with the audit project + CDP smoke port"
+	@echo "  audit-reference-smoke Capture canonical audit screenshots from Electron"
 	@echo "  package-local    Generate distributable in dist.nosync/Prosecnur/"
 	@echo "  package-windows-self-contained Generate offline Windows bundle ZIP + Setup.exe + latest.yml"
 	@echo "  package-mac-dmg  Generate macOS .dmg (arm64 + x64) + latest-mac.yml"
@@ -69,7 +77,48 @@ dev-frontend:
 dev-pulso:
 	@test -n "$(PULSO)" || (echo "uso: make dev-pulso PULSO=/ruta/al/proyecto.pulso"; exit 1)
 	@test -f "$(PULSO)" || (echo "no existe el archivo: $(PULSO)"; exit 1)
-	PULSO_BOOTSTRAP_PROJECT="$(abspath $(PULSO))" PULSO_OPEN_BROWSER=false $(MAKE) -j2 dev-api dev-frontend
+	PULSO_BOOTSTRAP_PROJECT="$(PULSO)" PULSO_OPEN_BROWSER=false $(MAKE) -j2 dev-api dev-frontend
+
+audit-reference-build:
+	Rscript api/scripts/audit_reference_build.R --out "$(REPO_ROOT)/api/inst/audit_reference" --project "$(AUDIT_PROJECT)"
+
+audit-reference-run: audit-reference-build
+	@RUN_MANIFEST="$$(Rscript api/scripts/audit_reference_prepare_run.R --seed "$(AUDIT_PROJECT)" --root "$(AUDIT_RUNS_DIR)")"; \
+	  PROJECT="$$(Rscript -e 'cat(jsonlite::fromJSON(commandArgs(TRUE)[1])$$project_path)' "$$RUN_MANIFEST")"; \
+	  echo "[audit] run manifest: $$RUN_MANIFEST"; \
+	  echo "[audit] project copy: $$PROJECT"; \
+	  PULSO_PORT="$(AUDIT_PORT)" \
+	  PULSO_BOOTSTRAP_PROJECT="$$PROJECT" \
+	  PULSO_AUDIT_PROJECT="$$PROJECT" \
+	  PULSO_AUDIT_RUN_MANIFEST="$$RUN_MANIFEST" \
+	  PULSO_OPEN_BROWSER=false \
+	  VITE_API_PROXY_TARGET="http://127.0.0.1:$(AUDIT_PORT)" \
+	  $(MAKE) -j2 dev-api dev-frontend
+
+desktop-audit: audit-reference-build build-if-stale
+	@RUN_MANIFEST="$$(Rscript api/scripts/audit_reference_prepare_run.R --seed "$(AUDIT_PROJECT)" --root "$(AUDIT_RUNS_DIR)")"; \
+	  PROJECT="$$(Rscript -e 'cat(jsonlite::fromJSON(commandArgs(TRUE)[1])$$project_path)' "$$RUN_MANIFEST")"; \
+	  echo "[audit] run manifest: $$RUN_MANIFEST"; \
+	  echo "[audit] project copy: $$PROJECT"; \
+	  cd desktop && env -u ELECTRON_RUN_AS_NODE \
+	    PULSO_PORT="$(AUDIT_PORT)" \
+	    PULSO_BOOTSTRAP_PROJECT="$$PROJECT" \
+	    PULSO_AUDIT_PROJECT="$$PROJECT" \
+	    PULSO_AUDIT_RUN_MANIFEST="$$RUN_MANIFEST" \
+	    PULSO_ALLOW_MULTI_INSTANCE=true \
+	    PROSECNUR_USER_DATA_DIR="$$(dirname "$$RUN_MANIFEST")/electron-user-data" \
+	    PROSECNUR_SMOKE_CDP_PORT="$(AUDIT_CDP_PORT)" \
+	    pnpm start
+
+audit-reference-smoke:
+	@RUN_MANIFEST="$${PULSO_AUDIT_RUN_MANIFEST:-$$(ls -t "$(AUDIT_RUNS_DIR)"/*/audit-run.json 2>/dev/null | head -1)}"; \
+	  test -n "$$RUN_MANIFEST" || (echo "No encontre audit-run.json. Abre primero make desktop-audit."; exit 1); \
+	  SCREENSHOT_DIR="$$(dirname "$$RUN_MANIFEST")/screenshots"; \
+	  echo "[audit] smoke manifest: $$RUN_MANIFEST"; \
+	  PULSO_AUDIT_RUN_MANIFEST="$$RUN_MANIFEST" \
+	  PULSO_AUDIT_SCREENSHOT_DIR="$$SCREENSHOT_DIR" \
+	  SMOKE_CDP_URL="$${SMOKE_CDP_URL:-http://127.0.0.1:$(AUDIT_CDP_PORT)/json/list}" \
+	  node desktop/smoke-electron.mjs
 
 build:
 	cd frontend && pnpm build

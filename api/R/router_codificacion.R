@@ -1,5 +1,14 @@
 .require_xlsform_path <- function(sid) {
   s <- session_get(sid)
+  active <- tryCatch(codif_source_active(sid), error = function(e) "")
+  if (nzchar(active) &&
+      !is.null(s$estudio) &&
+      !is.null(s$estudio$bases[[active]])) {
+    base <- s$estudio$bases[[active]]
+    fid <- as.character(base$xlsform_file_id %||% "")
+    meta <- if (nzchar(fid)) s$files[[fid]] else NULL
+    if (!is.null(meta)) return(meta)
+  }
   xls <- Filter(function(f) f$kind == "xlsform", s$files)
   if (length(xls) == 0) stop_api(409, "E_NO_XLSFORM", "Falta cargar el XLSForm en Fase 1.")
   xls[[length(xls)]]
@@ -7,9 +16,47 @@
 
 .require_data_path <- function(sid) {
   s <- session_get(sid)
+  active <- tryCatch(codif_source_active(sid), error = function(e) "")
+  if (nzchar(active) &&
+      !is.null(s$estudio) &&
+      !is.null(s$estudio$bases[[active]])) {
+    base <- s$estudio$bases[[active]]
+    fid <- as.character(base$data_file_id %||% "")
+    meta <- if (nzchar(fid)) s$files[[fid]] else NULL
+    if (!is.null(meta)) return(meta)
+  }
   d <- Filter(function(f) f$kind %in% c("data", "sav"), s$files)
   if (length(d) == 0) stop_api(409, "E_NO_DATA", "Falta cargar la base de datos en Fase 1.")
   d[[length(d)]]
+}
+
+.codif_base_file_meta <- function(sid, slot = c("xlsform", "data"), prefer_original = FALSE) {
+  slot <- match.arg(slot)
+  s <- session_get(sid)
+  active <- tryCatch(codif_source_active(sid), error = function(e) "")
+  if (!nzchar(active) || is.null(s$estudio) || is.null(s$estudio$bases[[active]])) {
+    return(NULL)
+  }
+  base <- s$estudio$bases[[active]]
+  fid_fields <- if (identical(slot, "xlsform")) {
+    c("original_xlsform_file_id", "xlsform_file_id")
+  } else {
+    c("original_data_file_id", "data_file_id")
+  }
+  if (!isTRUE(prefer_original)) fid_fields <- rev(fid_fields)
+  for (field in fid_fields) {
+    fid <- as.character(base[[field]] %||% "")
+    if (!nzchar(fid)) next
+    meta <- s$files[[fid]]
+    if (!is.null(meta)) return(meta)
+  }
+  NULL
+}
+
+.codif_source_pair_for_adapt <- function(sid) {
+  xls <- .codif_base_file_meta(sid, "xlsform", prefer_original = TRUE) %||% .require_xlsform_path(sid)
+  dat <- .codif_base_file_meta(sid, "data", prefer_original = TRUE) %||% .require_data_path(sid)
+  list(xls = xls, data = dat)
 }
 
 .read_data_any <- function(meta) {
@@ -60,9 +107,29 @@
 
 .codif_switch_analitica_to_adapted <- function(sid) {
   s <- session_get(sid)
-  cfg <- s$analitica_config %||% list()
+  active_analitica <- if (exists("estudio_is_independent_siblings", mode = "function") &&
+                          estudio_is_independent_siblings(sid) &&
+                          exists("estudio_active_base", mode = "function")) {
+    as.character(estudio_active_base(sid) %||% "")
+  } else {
+    ""
+  }
+  cfg <- if (nzchar(active_analitica)) {
+    (s$analitica_config_por_base %||% list())[[active_analitica]] %||%
+      s$analitica_config %||%
+      list()
+  } else {
+    s$analitica_config %||% list()
+  }
   cfg$fuente_preferida <- "adaptados"
-  s$analitica_config <- cfg
+  if (nzchar(active_analitica)) {
+    if (is.null(s$analitica_config_por_base) || !is.list(s$analitica_config_por_base)) {
+      s$analitica_config_por_base <- list()
+    }
+    s$analitica_config_por_base[[active_analitica]] <- cfg
+  } else {
+    s$analitica_config <- cfg
+  }
   s$analitica_prep_ok <- FALSE
   s$analitica_codebook_ok <- FALSE
   s$analitica_frecuencias_ok <- FALSE
@@ -72,6 +139,23 @@
   s$analitica_dim_ok <- FALSE
   s$analitica_multibase_ok <- FALSE
   s$analitica_multibase_available <- FALSE
+  if (nzchar(active_analitica)) {
+    if (is.null(s$analitica_status_por_base) || !is.list(s$analitica_status_por_base)) {
+      s$analitica_status_por_base <- list()
+    }
+    status <- s$analitica_status_por_base[[active_analitica]]
+    if (is.null(status) || !is.list(status)) status <- list()
+    for (key in c(
+      "analitica_prep_ok", "analitica_codebook_ok", "analitica_frecuencias_ok",
+      "analitica_cruces_ok", "analitica_spss_ok", "analitica_enumeradores_ok",
+      "analitica_dim_ok", "analitica_multibase_ok", "analitica_bases_data_ok",
+      "analitica_bases_instrumento_ok", "analitica_bases_sav_ok",
+      "analitica_bases_csv_ok", "analitica_bases_xlsx_ok"
+    )) {
+      status[[key]] <- FALSE
+    }
+    s$analitica_status_por_base[[active_analitica]] <- status
+  }
   s$analitica_rp_inst <- NULL
   s$analitica_rp_data <- NULL
   s$analitica_rp_inst_sources <- list()
@@ -212,6 +296,61 @@
     rows[[i]] <- r
   }
   rows
+}
+
+.codif_mark_explicit_modo_so <- function(rows) {
+  if (!length(rows)) return(rows)
+  for (i in seq_along(rows)) {
+    modo <- tolower(trimws(as.character(rows[[i]]$modo_so %||% "")))
+    if (modo %in% c("padre", "hijo")) rows[[i]]$modo_so_explicit <- TRUE
+  }
+  rows
+}
+
+.codif_normalize_legacy_select_one_modes <- function(sid, draft, data_df = NULL) {
+  if (is.null(draft) || !length(draft$rows %||% list())) return(draft)
+  if (is.null(data_df)) {
+    data_df <- tryCatch(codif_data_cached(sid), error = function(e) NULL)
+  }
+  data_cols <- if (is.data.frame(data_df)) names(data_df) else character(0)
+  grupos_map <- codif_get(sid, "grupos_recod") %||% list()
+  recod_map <- codif_get(sid, "respuestas_recod") %||% list()
+  rows <- draft$rows
+  changed <- FALSE
+
+  for (i in seq_along(rows)) {
+    r <- rows[[i]]
+    tipo <- tolower(trimws(as.character(r$tipo %||% "")))
+    modo <- tolower(trimws(as.character(r$modo_so %||% "")))
+    if (!identical(tipo, "select_one") || !identical(modo, "hijo")) next
+    if (isTRUE(r$modo_so_explicit)) next
+
+    parent <- as.character(r$parent %||% "")
+    text_col <- as.character(r$text_col %||% "")
+    if (!nzchar(parent) || !nzchar(text_col)) next
+
+    child_recod_col <- paste0(text_col, "_recod")
+    has_child_recod_col <- child_recod_col %in% data_cols
+    has_groups <- length(grupos_map[[parent]] %||% list()) > 0L
+    has_recoded <- length(recod_map[[parent]] %||% list()) > 0L
+    if (has_child_recod_col || has_groups || has_recoded) next
+
+    rows[[i]]$modo_so <- "padre"
+    if (!nzchar(as.character(rows[[i]]$parent_col %||% "")) && parent %in% data_cols) {
+      rows[[i]]$parent_col <- parent
+    }
+    rows[[i]]$modo_so_migrated_from <- "hijo"
+    rows[[i]]$modo_so_migrated_reason <- "legacy_default_without_child_recod"
+    changed <- TRUE
+  }
+
+  if (isTRUE(changed)) {
+    draft$rows <- rows
+    draft$source <- draft$source %||% "draft"
+    draft$updated_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    codif_set(sid, "familias_draft", draft)
+  }
+  draft
 }
 
 # jsonlite::fromJSON doesn't set Encoding() on character elements. When a
@@ -1232,6 +1371,7 @@ isTRUE_vec <- function(x) {
   data_df <- codif_data_cached(sid)
   marcadas_set <- codif_get(sid, "marcadas") %||% list()
   grupos_map <- codif_get(sid, "grupos_recod") %||% list()
+  draft <- .codif_normalize_legacy_select_one_modes(sid, draft, data_df)
 
   preguntas <- list()
   tot_vars_nuevas <- 0L
@@ -1487,6 +1627,8 @@ mount_codificacion <- function(pr) {
       marcadas_set <- codif_get(sid, "marcadas") %||% list()
 
       rows <- draft$rows %||% list()
+      draft <- .codif_normalize_legacy_select_one_modes(sid, draft, data_df)
+      rows <- draft$rows %||% list()
       labels_changed <- FALSE
       preguntas <- lapply(seq_along(rows), function(.row_idx) {
         r <- rows[[.row_idx]]
@@ -1620,7 +1762,10 @@ mount_codificacion <- function(pr) {
       for (i in seq_along(rows)) {
         if (as.character(rows[[i]]$parent %||% "") == parent) {
           rows[[i]]$text_col <- child_col
-          if (nzchar(modo_so)) rows[[i]]$modo_so <- modo_so
+          if (nzchar(modo_so)) {
+            rows[[i]]$modo_so <- modo_so
+            rows[[i]]$modo_so_explicit <- TRUE
+          }
           if (clear_dummy) {
             rows[[i]]$other_dummy_col <- ""
           } else if (nzchar(dummy_col)) {
@@ -1791,6 +1936,9 @@ mount_codificacion <- function(pr) {
         if (as.character(rows[[i]]$parent %||% "") == parent) {
           rows[[i]]$text_col <- ""
           rows[[i]]$modo_so <- ""
+          rows[[i]]$modo_so_explicit <- FALSE
+          rows[[i]]$modo_so_migrated_from <- ""
+          rows[[i]]$modo_so_migrated_reason <- ""
           rows[[i]]$other_dummy_col <- ""
           hit <- TRUE
           break
@@ -1835,6 +1983,7 @@ mount_codificacion <- function(pr) {
       s <- session_get(sid)
       if (!is.null(codif_get(sid, "familias_draft"))) {
         d <- codif_get(sid, "familias_draft")
+        d <- .codif_normalize_legacy_select_one_modes(sid, d)
         return(list(
           ok = TRUE,
           rows = d$rows,
@@ -1849,9 +1998,10 @@ mount_codificacion <- function(pr) {
         source = "suggestion",
         updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
       )
+      draft <- .codif_normalize_legacy_select_one_modes(sid, draft)
       codif_set(sid, "familias_draft", draft)
       codif_set(sid, "familias_generated", TRUE)
-      list(ok = TRUE, rows = rows, source = "suggestion", updated_at = draft$updated_at)
+      list(ok = TRUE, rows = draft$rows, source = "suggestion", updated_at = draft$updated_at)
     })) |>
     plumber::pr_post("/api/codificacion/familias/draft", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -1866,6 +2016,7 @@ mount_codificacion <- function(pr) {
       rows <- .mark_utf8(parsed$rows)
       if (is.null(rows)) stop_api(400, "E_MISSING_ROWS", "Body debe incluir 'rows' (lista de filas de familias)")
       if (!is.list(rows)) stop_api(400, "E_BAD_ROWS", "'rows' debe ser una lista JSON")
+      rows <- .codif_mark_explicit_modo_so(rows)
       draft <- list(
         rows = rows,
         source = "draft",
@@ -1881,6 +2032,7 @@ mount_codificacion <- function(pr) {
       if (is.null(draft)) stop_api(409, "E_NO_DRAFT", "No hay draft de familias. Genera primero con GET /api/codificacion/familias/draft.")
       inst <- codif_inst_cached(sid)
       data_df <- codif_data_cached(sid)
+      draft <- .codif_normalize_legacy_select_one_modes(sid, draft, data_df)
       dat <- list(raw = data_df)
 
       fam_path <- file.path(s$dir, "downloads", sprintf("familias_draft_%s.xlsx", uuid::UUIDgenerate()))
@@ -2068,15 +2220,17 @@ mount_codificacion <- function(pr) {
     plumber::pr_post("/api/codificacion/aplicar", wrap_endpoint(function(req, res) {
       sid <- session_header(req)
       s <- session_get(sid)
-      xls <- .require_xlsform_path(sid)
-      dat <- .require_data_path(sid)
+      source_pair <- .codif_source_pair_for_adapt(sid)
+      xls <- source_pair$xls
+      dat <- source_pair$data
 
       # The app is the source of truth. On every /aplicar we rebuild the
       # plantilla xlsx from the current in-app state (familias draft +
       # grupos + rules) — no reliance on stale user-edited xlsx files.
 
-      inst <- codif_inst_cached(sid)
-      data_df <- codif_data_cached(sid)
+      inst <- leer_instrumento_xlsform(xls$path)
+      data_df <- .read_data_any(dat)
+      data_df <- normalize_data_for_xlsform(data_df, inst)
       data_adapt_df <- .codif_prepare_data_for_adapt(data_df)
 
       # 1) Ensure we have a familias draft (auto-generate from suggestion
@@ -2107,6 +2261,7 @@ mount_codificacion <- function(pr) {
           }
         }
       }
+      draft <- .codif_normalize_legacy_select_one_modes(sid, draft, data_adapt_df)
 
       # Normalize draft for prosecnur: our UI only tracks pairing at the
       # parent level, but construir_plantilla_desde_familias requires

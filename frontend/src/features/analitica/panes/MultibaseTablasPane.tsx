@@ -136,13 +136,12 @@ export function MultibaseTablasPane() {
               </button>
             ))}
           </div>
-          <div className="analitica-control-grid" style={{ marginTop: 10 }}>
-            <label className={`analitica-control-card ${frec.mostrar_todo ? "is-active" : ""}`} style={{ cursor: "pointer" }}>
+          <div className="analitica-control-grid analitica-control-grid--compact">
+            <label className={`analitica-control-card analitica-option-card ${frec.mostrar_todo ? "is-active" : ""}`}>
               <input
                 type="checkbox"
                 checked={frec.mostrar_todo}
                 onChange={(e) => setFrecuencias({ mostrar_todo: e.target.checked })}
-                style={{ marginTop: 6, accentColor: "var(--pulso-primary)" }}
               />
               <span className="analitica-control-icon">
                 {frec.mostrar_todo ? <CheckCircle2 size={15} /> : <Rows3 size={15} />}
@@ -200,15 +199,15 @@ function OutputScopeCard({
   onSections: (next: boolean) => void;
 }) {
   return (
-    <div className="analitica-control-card" style={{ flexDirection: "column", minHeight: 148 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+    <div className="analitica-control-card analitica-output-card">
+      <div className="analitica-output-card-head">
         <span className="analitica-control-icon">{icon}</span>
         <span>
           <span className="analitica-control-title">{title}</span>
           <span className="analitica-control-copy">{copy}</span>
         </span>
       </div>
-      <div style={{ display: "grid", gap: 8, width: "100%" }}>
+      <div className="analitica-switch-stack">
         <SwitchRow
           label="Mostrar porcentajes"
           icon={<Percent size={13} />}
@@ -238,8 +237,8 @@ function SwitchRow({
   onChange: (next: boolean) => void;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 7, color: "var(--pulso-text)", fontSize: 12, fontWeight: 650 }}>
+    <div className="analitica-switch-row">
+      <span className="analitica-switch-label">
         {icon}
         {label}
       </span>

@@ -61,6 +61,26 @@ function prefersReducedMotion(): boolean {
 function escapeAttr(s: string): string { return s.replace(/"/g, '\\"'); }
 
 type Filter = "todas" | "emparejadas" | "por-codificar" | "codificadas";
+type ModoSo = "padre" | "hijo";
+
+export function defaultModoSoForQuickAdopt(tipo: string): ModoSo | undefined {
+  return tipo === "select_one" ? "padre" : undefined;
+}
+
+export function modoSoOptionsForDisplay(parent: string, childCol: string): Array<{ value: ModoSo; label: string; title: string }> {
+  return [
+    {
+      value: "padre",
+      label: "Codificar variable original",
+      title: `Crear ${parent}_recod con opciones originales y categorías provenientes de ${childCol}`,
+    },
+    {
+      value: "hijo",
+      label: "Codificar texto aparte",
+      title: `Crear ${childCol}_recod como variable independiente`,
+    },
+  ];
+}
 
 const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label: string }> = {
   select_multiple: { bg: "var(--tipo-sm-bg)", border: "var(--tipo-sm-border)", fg: "var(--tipo-sm-fg)", label: "Múltiple" },
@@ -173,7 +193,7 @@ export function PreguntasLanding() {
   async function adoptDirect(padre: PreguntaAbierta, childCol: string, opcionesSm?: OpcionSM[]) {
     setBusyPair(padre.parent);
     try {
-      const modo_so = padre.tipo === "select_one" ? "hijo" : undefined;
+      const modo_so = defaultModoSoForQuickAdopt(padre.tipo);
       const dummy_col = padre.tipo === "select_multiple"
         ? (padre.pareja && typeof padre.pareja === "object" && "dummy_col" in padre.pareja && padre.pareja.dummy_col
             ? padre.pareja.dummy_col
@@ -187,7 +207,7 @@ export function PreguntasLanding() {
       if (padre.tipo === "select_multiple" && !dummy_col) {
         announce(`${childCol} adoptada por ${padre.parent}. Falta indicar cuál opción es "Otros".`);
       } else {
-        announce(`${childCol} adoptada por ${padre.parent}${modo_so ? " en modo hijo" : ""}.`);
+        announce(`${childCol} adoptada por ${padre.parent}${modo_so === "padre" ? " para codificar la variable original" : modo_so === "hijo" ? " como texto aparte" : ""}.`);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -213,6 +233,27 @@ export function PreguntasLanding() {
       }
       await refresh();
       glowCard(padre.parent);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusyPair("");
+    }
+  }
+
+  async function setModoSoForSelectOne(padre: PreguntaAbierta, modo_so: ModoSo) {
+    if (padre.tipo !== "select_one") return;
+    const pj = padre.pareja && typeof padre.pareja === "object" && "child_col" in padre.pareja ? padre.pareja : null;
+    if (!pj?.child_col || padre.modo_so === modo_so) return;
+    setBusyPair(padre.parent);
+    try {
+      await apiCodifPareja(padre.parent, pj.child_col, modo_so, undefined);
+      await refresh();
+      glowCard(padre.parent);
+      announce(
+        modo_so === "padre"
+          ? `${padre.parent} se codifica como variable original en ${padre.parent}_recod.`
+          : `${pj.child_col} se codifica como variable independiente en ${pj.child_col}_recod.`
+      );
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -442,6 +483,7 @@ export function PreguntasLanding() {
           adoptedBy={adoptedBy}
           recentlyAdopted={recentlyAdopted}
           onSetDummy={setDummyForSm}
+          onSetModoSo={setModoSoForSelectOne}
           onScrollToPadre={scrollToPadre}
           onToggleMarcada={onToggleMarcada}
         />
@@ -551,11 +593,12 @@ type SectionProps = {
   adoptedBy: Map<string, PreguntaAbierta>;
   recentlyAdopted: Set<string>;
   onSetDummy: (padre: PreguntaAbierta, dummy_col: string) => void;
+  onSetModoSo: (padre: PreguntaAbierta, modo: ModoSo) => void;
   onScrollToPadre: (parent?: string) => void;
   onToggleMarcada: (parent: string, marcada: boolean) => void;
 };
 
-function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onScrollToPadre, onToggleMarcada }: SectionProps) {
+function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onSetModoSo, onScrollToPadre, onToggleMarcada }: SectionProps) {
   const emparejadas = preguntas.filter((p) => isPaired(p)).length;
   const codificadas = preguntas.filter((p) => p.status === "completo").length;
 
@@ -588,6 +631,7 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
               adoptedBy={adoptedBy}
               recentlyAdopted={recentlyAdopted}
               onSetDummy={onSetDummy}
+              onSetModoSo={onSetModoSo}
               onScrollToPadre={onScrollToPadre}
               onToggleMarcada={(m) => onToggleMarcada(p.parent, m)}
             />
@@ -607,6 +651,7 @@ type CardProps = {
   adoptedBy: Map<string, PreguntaAbierta>;
   recentlyAdopted: Set<string>;
   onSetDummy: (padre: PreguntaAbierta, dummy_col: string) => void;
+  onSetModoSo: (padre: PreguntaAbierta, modo: ModoSo) => void;
   onScrollToPadre: (parent?: string) => void;
   onToggleMarcada: (marcada: boolean) => void;
 };
@@ -650,7 +695,7 @@ function MarcarFooter({ p, arq, busy, onToggleMarcada }: { p: PreguntaAbierta; a
   );
 }
 
-function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onScrollToPadre, onToggleMarcada }: CardProps) {
+function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onSetModoSo, onScrollToPadre, onToggleMarcada }: CardProps) {
   const arq = arquetipoOf(p, adoptedBy);
   const tipoStyle = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
   const marcarFooter = <MarcarFooter p={p} arq={arq} busy={busy} onToggleMarcada={onToggleMarcada} />;
@@ -894,9 +939,9 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     const modoLabel = needsDummy
       ? "Falta opción 'Otros'"
       : p.modo_so === "padre"
-      ? "Texto se integra a las opciones"
+      ? "Variable original codificada"
       : p.modo_so === "hijo"
-      ? "Texto se codifica aparte"
+      ? "Texto codificado aparte"
       : "Emparejada";
     const fresh = recentlyAdopted.has(p.parent);
 
@@ -925,16 +970,26 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         <div style={{ display: "grid", gridTemplateColumns: "1fr 16px 1fr", alignItems: "center", gap: 6, marginTop: 4 }}>
           <PairedSide
             title={p.parent}
-            subtitle={p.modo_so === "padre" ? "recibe nuevas opciones" : p.modo_so === "hijo" ? "queda tal cual" : "pregunta"}
+            subtitle={p.modo_so === "padre" ? "se recodifica con sus opciones" : p.modo_so === "hijo" ? "queda tal cual" : "pregunta"}
             tone="primary"
           />
           <Link2 size={12} color="var(--pulso-primary)" />
           <PairedSide
             title={pareja.child_col}
-            subtitle={p.modo_so === "padre" ? "texto se agrupa en opciones" : p.modo_so === "hijo" ? "se codifica en campo aparte" : "texto asociado"}
+            subtitle={p.modo_so === "padre" ? "aporta nuevas categorías" : p.modo_so === "hijo" ? "se codifica como variable aparte" : "texto asociado"}
             tone="soft"
           />
         </div>
+
+        {p.tipo === "select_one" && (
+          <ModoSoControl
+            parent={p.parent}
+            childCol={pareja.child_col}
+            current={p.modo_so === "hijo" ? "hijo" : "padre"}
+            busy={busy}
+            onChange={(modo) => onSetModoSo(p, modo)}
+          />
+        )}
 
         {/* SM: picker de "Otros, especifique". Siempre visible cuando hay
             pareja y opciones disponibles. La opción actualmente marcada
@@ -1008,6 +1063,64 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         <div style={{ flex: 1 }} />
       </div>
     </article>
+  );
+}
+
+function ModoSoControl({ parent, childCol, current, busy, onChange }: {
+  parent: string;
+  childCol: string;
+  current: ModoSo;
+  busy: boolean;
+  onChange: (modo: ModoSo) => void;
+}) {
+  const options = modoSoOptionsForDisplay(parent, childCol);
+  return (
+    <div
+      role="group"
+      aria-label={`Modo de codificación para ${parent}`}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 4,
+        padding: 4,
+        border: "1px solid var(--pulso-border)",
+        borderRadius: 6,
+        background: "var(--pulso-surface-2)",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {options.map((opt) => {
+        const active = current === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            aria-pressed={active}
+            title={opt.title}
+            disabled={busy}
+            onClick={() => onChange(opt.value)}
+            style={{
+              minHeight: 36,
+              padding: "5px 7px",
+              borderRadius: 4,
+              border: `1px solid ${active ? "var(--pulso-primary)" : "transparent"}`,
+              background: active ? "white" : "transparent",
+              color: active ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
+              fontSize: 11,
+              fontWeight: active ? 700 : 600,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
+              cursor: busy ? "wait" : "pointer",
+            }}
+          >
+            {active && <Check size={12} />}
+            <span style={{ minWidth: 0, lineHeight: 1.15, whiteSpace: "normal", overflowWrap: "anywhere" }}>{opt.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

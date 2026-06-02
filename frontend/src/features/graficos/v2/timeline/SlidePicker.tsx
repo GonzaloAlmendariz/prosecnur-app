@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import * as Lucide from "lucide-react";
 import { Plus, Search, X } from "lucide-react";
 import { SlideType } from "../../../../api/client";
@@ -97,9 +98,9 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
     });
   }, [filter, query, slidesById]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div className="pulso-gv2-picker-backdrop" role="dialog" aria-modal="true" aria-label="Agregar slide">
       <div className="pulso-gv2-picker" ref={rootRef}>
         <div className="pulso-gv2-picker-head">
@@ -112,7 +113,6 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
             className="pulso-gv2-picker-close"
             onClick={onClose}
             aria-label="Cerrar"
-            title="Cerrar (Esc)"
           >
             <X size={16} />
           </button>
@@ -157,7 +157,6 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                 className="pulso-gv2-picker-tile"
                 data-cat={cat}
                 onClick={() => { addSlide(t); onClose(); }}
-                title={meta?.descripcion ?? ""}
               >
                 <span className="pulso-gv2-picker-tile-icon">
                   <Icon size={20} />
@@ -176,7 +175,8 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -187,7 +187,6 @@ export function SlidePickerTrigger({ onOpen }: { onOpen: () => void }) {
       type="button"
       className="pulso-gv2-picker-trigger"
       onClick={onOpen}
-      title="Agregar slide"
     >
       <Plus size={14} />
       <span>Agregar slide</span>

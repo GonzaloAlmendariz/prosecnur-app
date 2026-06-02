@@ -60,6 +60,19 @@ const HOST = "127.0.0.1";
 const MIN_R_PORT = 1024;
 const MAX_R_PORT = 49151;
 const SMOKE_CDP_PORT = process.env.PROSECNUR_SMOKE_CDP_PORT;
+const AUDIT_MANIFEST_PATH = process.env.PULSO_AUDIT_RUN_MANIFEST || "";
+const AUDIT_USER_DATA_DIR =
+  process.env.PROSECNUR_USER_DATA_DIR ||
+  (AUDIT_MANIFEST_PATH ? path.join(path.dirname(AUDIT_MANIFEST_PATH), "electron-user-data") : "");
+const ALLOW_MULTI_INSTANCE =
+  process.env.PULSO_ALLOW_MULTI_INSTANCE === "true" ||
+  process.env.PULSO_ALLOW_MULTI_INSTANCE === "1" ||
+  Boolean(AUDIT_MANIFEST_PATH);
+
+if (AUDIT_USER_DATA_DIR) {
+  fs.mkdirSync(AUDIT_USER_DATA_DIR, { recursive: true });
+  app.setPath("userData", AUDIT_USER_DATA_DIR);
+}
 
 if (SMOKE_CDP_PORT && /^\d+$/.test(SMOKE_CDP_PORT)) {
   app.commandLine.appendSwitch("remote-debugging-port", SMOKE_CDP_PORT);
@@ -1133,7 +1146,7 @@ async function createWindow() {
   }
 }
 
-const gotLock = app.requestSingleInstanceLock();
+const gotLock = ALLOW_MULTI_INSTANCE || app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {

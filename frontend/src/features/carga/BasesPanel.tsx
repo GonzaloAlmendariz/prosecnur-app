@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
-  ArrowLeft, Check, Database, Download, FileSpreadsheet, GitMerge, Layers, Plus, RefreshCw,
+  AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Cloud, Database, Download, FileSpreadsheet, Filter, GitMerge, Layers, Loader2, Plus, RefreshCw,
+  Search, SlidersHorizontal,
   Trash2, Upload, Pencil, X as XIcon,
 } from "lucide-react";
 import {
@@ -8,15 +9,28 @@ import {
   apiEstudioAddBase,
   apiEstudioDowngradeToSingle,
   apiEstudioGet,
+  apiEstudioPromoteIndependentSiblings,
   apiEstudioRemoveBase,
   apiEstudioRenameBase,
   apiEstudioReplaceBaseFiles,
   apiEstudioSetNombre,
+  apiEstudioUpdateBaseMetadata,
+  apiSurveyMonkeyMultibaseAudit,
+  apiSurveyMonkeyMultibaseImportIndependent,
+  apiSurveyMonkeyMultibaseListSurveys,
   apiUpload,
-  EstudioBase,
-  EstudioPayload,
   downloadUrl,
   uploadKindForDataFile,
+} from "../../api/client";
+import type {
+  EstudioBase,
+  EstudioMultiIntegrated,
+  EstudioMultiIntegratedOrigin,
+  EstudioPayload,
+  SurveyMonkeyMultibaseSurveyInput,
+  SurveyMonkeyMultibaseAudit,
+  SurveyMonkeyMultibaseDiff,
+  SurveyMonkeyMultibaseListItem,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
 import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
@@ -68,7 +82,8 @@ export function BasesPanel({
   const [error, setError] = useState<string>("");
   const [editingEstudioNombre, setEditingEstudioNombre] = useState(false);
   const [estudioDraft, setEstudioDraft] = useState("");
-  const [strategy, setStrategy] = useState<"separate" | "integrated">("separate");
+  const [strategy, setStrategy] = useState<"separate" | "integrated" | "independent">("separate");
+  const [showNewIntegration, setShowNewIntegration] = useState(false);
 
   // Consumir la señal de auto-open una sola vez al montar/recibir true.
   useEffect(() => {
@@ -80,11 +95,34 @@ export function BasesPanel({
   }, [autoOpenAdd]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const bases = Object.values(estudio.bases);
+  const integratedBases = bases.filter((base) => !!base.multi_integrated);
+  const integratedSignature = integratedBases
+    .map((base) => `${base.nombre}:${base.multi_integrated?.imported_at ?? ""}:${base.multi_integrated?.origin_key_name ?? ""}`)
+    .join("|");
   const maxReached = estudio.n_bases >= estudio.max_bases;
   const canonicalOptions = [
     ...(hasSessionXlsform ? [{ fileId: "", label: "XLSForm cargado en Carga" }] : []),
     ...bases.map((base) => ({ fileId: base.xlsform_file_id, label: `${base.nombre} · XLSForm` })),
   ];
+
+  useEffect(() => {
+    if (estudio.processing_mode === "independent_siblings") {
+      setStrategy("independent");
+      setShowNewIntegration(false);
+      return;
+    }
+    if (estudio.n_bases === 0 && !autoOpenAdd) {
+      setStrategy("independent");
+      setShowNewIntegration(false);
+      return;
+    }
+    if (integratedBases.length > 0) {
+      setStrategy("integrated");
+      setShowNewIntegration(false);
+    }
+    // Solo reacciona cuando cambia la integración persistida del estudio.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [integratedSignature, estudio.processing_mode]);
 
   async function handleRemoveBase(nombre: string) {
     if (!window.confirm(
@@ -382,15 +420,49 @@ export function BasesPanel({
             <small>Un XLSForm común y una data final.</small>
           </span>
         </button>
+        <button
+          type="button"
+          className={strategy === "independent" ? "is-active" : ""}
+          onClick={() => setStrategy("independent")}
+        >
+          <Cloud size={15} />
+          <span>
+            <strong>Bases hermanas independientes</strong>
+            <small>Un XLSForm, data y entregables por encuesta.</small>
+          </span>
+        </button>
       </div>
 
       {strategy === "integrated" && (
-        <IntegratedInstrumentsWizard
-          canonicalOptions={canonicalOptions}
+        integratedBases.length > 0 && !showNewIntegration ? (
+          <IntegratedHistoryPanel
+            bases={integratedBases}
+            disabled={!!busy}
+            onNewIntegration={() => setShowNewIntegration(true)}
+          />
+        ) : (
+          <IntegratedInstrumentsWizard
+            canonicalOptions={canonicalOptions}
+            disabled={!!busy}
+            onImported={async (payload) => {
+              await onChanged(payload);
+              setStrategy("integrated");
+              setShowNewIntegration(false);
+            }}
+          />
+        )
+      )}
+
+      {strategy === "independent" && (
+        <IndependentSiblingsSurveyMonkeyWizard
+          estudio={estudio}
           disabled={!!busy}
           onImported={async (payload) => {
             await onChanged(payload);
-            setStrategy("separate");
+            window.dispatchEvent(new Event("pulso:session-changed"));
+            window.dispatchEvent(new CustomEvent("pulso:active-base-changed", {
+              detail: { active: payload.active_base, processing_mode: payload.processing_mode },
+            }));
           }}
         />
       )}
@@ -513,6 +585,1453 @@ export function BasesPanel({
   );
 }
 
+function smNormalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function smSurveyTitle(item: SurveyMonkeyMultibaseListItem) {
+  return item.nickname || item.title || item.id;
+}
+
+function smSurveyMatchesQuery(item: SurveyMonkeyMultibaseListItem, query: string) {
+  const q = smNormalizeSearch(query);
+  if (!q) return true;
+  const haystack = smNormalizeSearch([
+    item.id,
+    item.title,
+    item.nickname ?? "",
+    item.pais_guess ?? "",
+  ].join(" "));
+  return q.split(" ").filter(Boolean).every((token) => haystack.includes(token));
+}
+
+function smBaseSlug(value: string) {
+  const slug = smNormalizeSearch(value).replace(/\s+/g, "_").replace(/^_+|_+$/g, "");
+  return slug || "base_1";
+}
+
+function smIndependentBaseTitle(base: EstudioBase | null | undefined, estudio: EstudioPayload) {
+  const raw = [
+    base?.source_alias,
+    base?.source_title,
+    estudio.nombre,
+    base?.xlsform_file_name,
+    base?.data_file_name,
+    base?.nombre,
+  ].find((item) => String(item ?? "").trim() && String(item ?? "").trim() !== "NA");
+  const value = String(raw ?? "").replace(/\.(xlsx|xls|sav|csv)$/i, "");
+  const upper = value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  const careers: Array<[string, string]> = [
+    ["CIVIL", "Ingeniería Civil"],
+    ["INDUSTRIAL", "Ingeniería Industrial"],
+    ["GEOLOGICA", "Ingeniería Geológica"],
+    ["MINAS", "Ingeniería de Minas"],
+    ["ELECTRONICA", "Ingeniería Electrónica"],
+    ["MECANICA", "Ingeniería Mecánica"],
+    ["MECATRONICA", "Ingeniería Mecatrónica"],
+    ["INFORMATICA", "Ingeniería Informática"],
+    ["TELECOM", "Ingeniería de Telecomunicaciones"],
+  ];
+  const match = careers.find(([token]) => upper.includes(token));
+  if (match) return match[1];
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b(instrumento|adaptado|data|base|codificacion|encuesta|egresados)\b/gi, " ")
+    .replace(/\b\d{1,2} \d{1,2} \d{2,4}\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() || "Base existente";
+}
+
+type SmImportScopeFields = {
+  collectorIds: string;
+  dateModifiedGte: string;
+  dateModifiedLte: string;
+  includeCompleted: boolean;
+  includePartial: boolean;
+  keepMissingStatus: boolean;
+};
+
+type SmExtraSourceDraft = SmImportScopeFields & {
+  key: string;
+  surveyId: string;
+  label: string;
+};
+
+type SmImportScopeDraft = SmImportScopeFields & {
+  alias: string;
+  extraSources: SmExtraSourceDraft[];
+};
+
+export const INDEPENDENT_SIBLINGS_MAX_BASES = 10;
+
+export function independentSiblingsCapacity(estudio: Pick<EstudioPayload, "max_bases" | "n_bases">) {
+  const maxBases = Math.min(estudio.max_bases || INDEPENDENT_SIBLINGS_MAX_BASES, INDEPENDENT_SIBLINGS_MAX_BASES);
+  return {
+    maxBases,
+    capacityLeft: Math.max(0, maxBases - estudio.n_bases),
+  };
+}
+
+function smDefaultScopeFields(): SmImportScopeFields {
+  return {
+    collectorIds: "",
+    dateModifiedGte: "",
+    dateModifiedLte: "",
+    includeCompleted: true,
+    includePartial: false,
+    keepMissingStatus: false,
+  };
+}
+
+function smDefaultScopeDraft(): SmImportScopeDraft {
+  return {
+    ...smDefaultScopeFields(),
+    alias: "",
+    extraSources: [],
+  };
+}
+
+function smNewScopeKey() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `source_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+
+function smScopeStatuses(scope: SmImportScopeFields) {
+  const statuses: string[] = [];
+  if (scope.includeCompleted) statuses.push("completed");
+  if (scope.includePartial) statuses.push("partial");
+  return statuses.length ? statuses : ["completed"];
+}
+
+function smSplitScopeList(value: string) {
+  return value
+    .split(/[,\s]+/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function smScopeDate(value: string) {
+  const raw = value.trim();
+  if (!raw) return "";
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw)) return `${raw}:00+00:00`;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(raw)) return `${raw}+00:00`;
+  return raw;
+}
+
+function smHasScopeFilters(scope: SmImportScopeFields) {
+  return (
+    smSplitScopeList(scope.collectorIds).length > 0 ||
+    !!smScopeDate(scope.dateModifiedGte) ||
+    !!smScopeDate(scope.dateModifiedLte) ||
+    scope.keepMissingStatus ||
+    scope.includePartial ||
+    !scope.includeCompleted
+  );
+}
+
+function smDateLabel(value?: string | null) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "Sin fecha";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw.slice(0, 10);
+  return date.toLocaleDateString("es-PE", { year: "numeric", month: "short", day: "2-digit" });
+}
+
+function smCatalogDateLabel(value?: string | null) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "sin refresco registrado";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw;
+  return date.toLocaleString("es-PE", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function smScopeSummary(scope: SmImportScopeFields, nSources: number) {
+  const parts: string[] = [];
+  if (scope.includeCompleted && scope.includePartial) parts.push("Completas y parciales");
+  else if (scope.includePartial) parts.push("Solo parciales");
+  else parts.push("Completas");
+  if (smSplitScopeList(scope.collectorIds).length) parts.push("con collectors");
+  if (smScopeDate(scope.dateModifiedGte) || smScopeDate(scope.dateModifiedLte)) parts.push("con fechas");
+  if (nSources > 1) parts.push(`${nSources} campañas`);
+  return parts.join(" · ");
+}
+
+function smNumberRangeLabel(values: number[], singular: string, plural = `${singular}s`) {
+  const clean = values.filter((value) => Number.isFinite(value));
+  if (!clean.length) return `Sin ${plural}`;
+  const min = Math.min(...clean);
+  const max = Math.max(...clean);
+  const noun = max === 1 ? singular : plural;
+  return min === max ? `${max} ${noun}` : `${min}-${max} ${plural}`;
+}
+
+function smDiffKindLabel(kind: string) {
+  const labels: Record<string, string> = {
+    missing_or_extra: "Variables propias",
+    structure: "Estructura distinta",
+    options: "Opciones distintas",
+    wording: "Fraseo distinto",
+    company_list: "Lista de empresas",
+    company_logic: "Lógica de empresas",
+  };
+  return labels[kind] ?? kind.replace(/_/g, " ");
+}
+
+function smDiffSeverityLabel(severity: SurveyMonkeyMultibaseDiff["severity"]) {
+  if (severity === "blocking") return "Estructura";
+  if (severity === "special") return "Especial";
+  return "Revisión";
+}
+
+function smSurveyAuditLabel(
+  surveyId: string,
+  audit: SurveyMonkeyMultibaseAudit,
+  selectedInputs: SurveyMonkeyMultibaseSurveyInput[],
+) {
+  const input = selectedInputs.find((item) => item.survey_id === surveyId);
+  const summary = audit.surveys.find((item) => item.survey_id === surveyId);
+  return input?.source_alias || input?.label || summary?.label || summary?.title || surveyId;
+}
+
+function smSurveyDefaultAlias(item: SurveyMonkeyMultibaseListItem) {
+  const title = smSurveyTitle(item);
+  const cleaned = title
+    .replace(/\bAcreditaci[oó]n\b/gi, " ")
+    .replace(/\bEncuesta\b/gi, " ")
+    .replace(/\bEgresados?\b/gi, " ")
+    .replace(/\s*[-–—]\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned || title;
+}
+
+function smSurveyAlias(item: SurveyMonkeyMultibaseListItem, draft?: SmImportScopeDraft) {
+  const alias = (draft?.alias ?? smSurveyDefaultAlias(item)).trim();
+  return alias || smSurveyDefaultAlias(item);
+}
+
+function smAliasDraftValue(item: SurveyMonkeyMultibaseListItem, draft?: SmImportScopeDraft) {
+  return draft?.alias ?? smSurveyDefaultAlias(item);
+}
+
+function smSourceInputFromScope(
+  surveyId: string,
+  label: string,
+  scope: SmImportScopeFields,
+  meta?: { sourceAlias?: string; sourceTitle?: string },
+): SurveyMonkeyMultibaseSurveyInput {
+  const input: SurveyMonkeyMultibaseSurveyInput = { survey_id: surveyId };
+  if (label.trim()) input.label = label.trim();
+  if (meta?.sourceAlias?.trim()) input.source_alias = meta.sourceAlias.trim();
+  if (meta?.sourceTitle?.trim()) input.source_title = meta.sourceTitle.trim();
+  const statuses = smScopeStatuses(scope);
+  if (smHasScopeFilters(scope)) input.response_statuses = statuses;
+  const collectors = smSplitScopeList(scope.collectorIds);
+  if (collectors.length) input.collector_ids = collectors;
+  const gte = smScopeDate(scope.dateModifiedGte);
+  const lte = smScopeDate(scope.dateModifiedLte);
+  if (gte) input.date_modified_gte = gte;
+  if (lte) input.date_modified_lte = lte;
+  if (scope.keepMissingStatus) input.keep_missing_status = true;
+  return input;
+}
+
+export function smIndependentSurveyInput(
+  item: SurveyMonkeyMultibaseListItem,
+  draft?: SmImportScopeDraft,
+): SurveyMonkeyMultibaseSurveyInput {
+  const label = smSurveyAlias(item, draft);
+  const sourceTitle = smSurveyTitle(item);
+  const input: SurveyMonkeyMultibaseSurveyInput = {
+    survey_id: item.id,
+    label,
+    source_alias: label,
+    source_title: sourceTitle,
+    pais: item.pais_guess ?? "",
+  };
+  if (!draft) return input;
+
+  const extraSources = draft.extraSources
+    .filter((source) => source.surveyId.trim())
+    .map((source) => smSourceInputFromScope(
+      source.surveyId.trim(),
+      source.label.trim() || label,
+      source,
+      { sourceAlias: source.label.trim() || label },
+    ));
+  if (smHasScopeFilters(draft) || extraSources.length) {
+    input.sources = [
+      smSourceInputFromScope(item.id, label, draft, { sourceAlias: label, sourceTitle }),
+      ...extraSources,
+    ];
+  }
+  return input;
+}
+
+function IndependentSiblingsSurveyMonkeyWizard({
+  estudio,
+  disabled,
+  onImported,
+}: {
+  estudio: EstudioPayload;
+  disabled: boolean;
+  onImported: (payload: EstudioPayload) => Promise<void>;
+}) {
+  const [surveys, setSurveys] = useState<SurveyMonkeyMultibaseListItem[] | null>(null);
+  const [surveyMeta, setSurveyMeta] = useState<{
+    totalRecent: number;
+    months: number;
+    fromCache: boolean;
+    fetchedAt: string | null;
+    catalogCount: number;
+    cacheStatus: string;
+    refreshError: string;
+  } | null>(null);
+  const [query, setQuery] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [scopeDrafts, setScopeDrafts] = useState<Record<string, SmImportScopeDraft>>({});
+  const [audit, setAudit] = useState<SurveyMonkeyMultibaseAudit | null>(null);
+  const [showSurveyCatalog, setShowSurveyCatalog] = useState(estudio.n_bases === 0);
+  const [editingAliasBase, setEditingAliasBase] = useState<string | null>(null);
+  const [editingAliasDraft, setEditingAliasDraft] = useState("");
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const modeConflict = estudio.n_bases > 0 && estudio.processing_mode !== "independent_siblings";
+  const existingBases = Object.values(estudio.bases ?? {});
+  const hasExistingIndependentBases = existingBases.length > 0 && estudio.processing_mode === "independent_siblings";
+  const promotedBase = existingBases.find((base) => base.nombre === estudio.active_base) ?? existingBases[0] ?? null;
+  const promotedTitle = smIndependentBaseTitle(promotedBase, estudio);
+  const promotedName = promotedBase?.nombre === "default" ? smBaseSlug(promotedTitle) : promotedBase?.nombre;
+  const { maxBases: independentMaxBases, capacityLeft } = independentSiblingsCapacity(estudio);
+  const visibleSurveys = (surveys ?? []).filter((item) => smSurveyMatchesQuery(item, query));
+  const selectedSurveys = (surveys ?? []).filter((item) => selectedIds.has(item.id));
+  const selectedInputs = selectedSurveys.map((item) => smIndependentSurveyInput(item, scopeDrafts[item.id]));
+  const selectedTotal = estudio.n_bases + selectedInputs.length;
+  const selectedAliasRows = selectedSurveys.map((item) => {
+    const alias = smAliasDraftValue(item, scopeDrafts[item.id]).trim();
+    return { surveyId: item.id, alias, slug: smBaseSlug(alias) };
+  });
+  const duplicateAliasSlugs = new Set(
+    selectedAliasRows
+      .map((row) => row.slug)
+      .filter((slug, index, slugs) => slugs.indexOf(slug) !== index),
+  );
+  const hasAliasIssues = selectedAliasRows.some((row) => !row.alias) || duplicateAliasSlugs.size > 0;
+  const canImport = selectedInputs.length > 0 && selectedInputs.length <= capacityLeft && !hasAliasIssues && !modeConflict && !busy && !disabled;
+  const overIndependentLimit = selectedInputs.length > capacityLeft;
+
+  async function loadSurveys(forceRefresh = false) {
+    setError("");
+    setBusy(forceRefresh ? "Actualizando catálogo SurveyMonkey..." : "Leyendo catálogo local SurveyMonkey...");
+    try {
+      const result = await apiSurveyMonkeyMultibaseListSurveys("", 500, 6, { forceRefresh });
+      setSurveys(result.surveys);
+      setSurveyMeta({
+        totalRecent: result.total_recent,
+        months: result.months,
+        fromCache: result.from_cache,
+        fetchedAt: result.catalog_fetched_at,
+        catalogCount: result.catalog_count,
+        cacheStatus: result.cache_status,
+        refreshError: result.refresh_error,
+      });
+      if (!result.surveys.length) setError("No encontré encuestas modificadas en los últimos 6 meses.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  function toggleSurvey(item: SurveyMonkeyMultibaseListItem) {
+    setAudit(null);
+    setError("");
+    const wasSelected = selectedIds.has(item.id);
+    if (!wasSelected && selectedIds.size >= capacityLeft) {
+      setError(`Este modo permite máximo ${independentMaxBases} bases hermanas independientes por estudio.`);
+      return;
+    }
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.id)) next.delete(item.id);
+      else next.add(item.id);
+      return next;
+    });
+    if (wasSelected) {
+      setScopeDrafts((prev) => {
+        const next = { ...prev };
+        delete next[item.id];
+        return next;
+      });
+    }
+  }
+
+  function updateScope(id: string, patch: Partial<SmImportScopeDraft>) {
+    setAudit(null);
+    setScopeDrafts((prev) => ({
+      ...prev,
+      [id]: {
+        ...smDefaultScopeDraft(),
+        ...(prev[id] ?? {}),
+        ...patch,
+      },
+    }));
+  }
+
+  function updateAlias(id: string, alias: string) {
+    updateScope(id, { alias });
+  }
+
+  function addExtraSource(id: string) {
+    const current = scopeDrafts[id] ?? smDefaultScopeDraft();
+    updateScope(id, {
+      extraSources: [
+        ...current.extraSources,
+        {
+          ...smDefaultScopeFields(),
+          key: smNewScopeKey(),
+          surveyId: "",
+          label: "",
+        },
+      ],
+    });
+  }
+
+  function updateExtraSource(id: string, key: string, patch: Partial<SmExtraSourceDraft>) {
+    const current = scopeDrafts[id] ?? smDefaultScopeDraft();
+    updateScope(id, {
+      extraSources: current.extraSources.map((source) => (
+        source.key === key ? { ...source, ...patch } : source
+      )),
+    });
+  }
+
+  function removeExtraSource(id: string, key: string) {
+    const current = scopeDrafts[id] ?? smDefaultScopeDraft();
+    updateScope(id, {
+      extraSources: current.extraSources.filter((source) => source.key !== key),
+    });
+  }
+
+  async function runAudit() {
+    if (!selectedInputs.length) return;
+    setError("");
+    setBusy("Auditando familia SurveyMonkey...");
+    try {
+      const result = await apiSurveyMonkeyMultibaseAudit(selectedInputs);
+      setAudit(result);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function runImport() {
+    setError("");
+    setBusy("Importando bases hermanas independientes...");
+    try {
+      const result = await apiSurveyMonkeyMultibaseImportIndependent({ surveys: selectedInputs });
+      setAudit(result.audit);
+      await onImported(result.estudio);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function runPromoteExisting() {
+    if (!promotedBase) return;
+    setError("");
+    setBusy("Convirtiendo el estudio actual a bases hermanas independientes...");
+    try {
+      const result = await apiEstudioPromoteIndependentSiblings({
+        active_base: promotedBase.nombre,
+        nombre_nuevo: promotedName,
+        source_alias: promotedTitle,
+        source_title: promotedTitle,
+        source_kind: "existing_project",
+      });
+      await onImported(result);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  function startEditingExistingAlias(base: EstudioBase) {
+    setError("");
+    setEditingAliasBase(base.nombre);
+    setEditingAliasDraft(String(base.source_alias || base.source_title || base.nombre || "").trim());
+  }
+
+  function cancelEditingExistingAlias() {
+    setEditingAliasBase(null);
+    setEditingAliasDraft("");
+  }
+
+  async function saveExistingAlias(base: EstudioBase) {
+    const nextAlias = editingAliasDraft.trim();
+    if (!nextAlias) {
+      setError("El alias visible no puede quedar vacío.");
+      return;
+    }
+    setError("");
+    setBusy(`Actualizando alias de ${base.nombre}...`);
+    try {
+      const payload = await apiEstudioUpdateBaseMetadata(base.nombre, {
+        source_alias: nextAlias,
+        source_title: base.source_title || nextAlias,
+      });
+      await onImported(payload);
+      cancelEditingExistingAlias();
+      window.dispatchEvent(new Event("pulso:session-changed"));
+      window.dispatchEvent(new CustomEvent("pulso:active-base-changed", {
+        detail: { active: payload.active_base, processing_mode: payload.processing_mode },
+      }));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  useEffect(() => {
+    if (showSurveyCatalog && !surveys) void loadSurveys();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSurveyCatalog]);
+
+  return (
+    <section className="pulso-integrated-panel">
+      <header className="pulso-integrated-head">
+        <span className="pulso-sm-multibase-icon" aria-hidden="true"><Cloud size={18} /></span>
+        <div>
+          <div className="pulso-sm-multibase-kicker">SurveyMonkey</div>
+          <h3>Bases hermanas independientes</h3>
+          <p>Importa cada encuesta con su propio XLSForm, data y estado de procesamiento.</p>
+          <p>
+            Usa el perfil SurveyMonkey activo en Ajustes. Si la clave principal llega al límite,
+            cambia manualmente al perfil secundario y actualiza el catálogo.
+          </p>
+          <div className="pulso-sm-family-meter" aria-label="Resumen de familia independiente">
+            <span><b>{selectedTotal}</b>/{independentMaxBases} bases</span>
+            <span>Lógica compartida</span>
+            <span>Procesamiento por base</span>
+          </div>
+        </div>
+      </header>
+
+      {modeConflict && (
+        <div className="pulso-sm-multibase-warning">
+          <AlertTriangle size={15} />
+          <span>
+            Este estudio ya tiene bases en otro modo. Puedes convertirlo para conservar lo trabajado y sumar hermanos independientes.
+          </span>
+          <button
+            type="button"
+            className="pulso-sm-secondary"
+            onClick={runPromoteExisting}
+            disabled={!promotedBase || !!busy || disabled}
+          >
+            <Layers size={13} />
+            Convertir estudio actual
+          </button>
+        </div>
+      )}
+
+      {hasExistingIndependentBases && (
+        <div className="pulso-sm-family-config">
+          <div className="pulso-sm-family-config-head">
+            <strong>Familia cargada</strong>
+            <span>{estudio.n_bases}/{independentMaxBases} bases · listas para procesar por base activa</span>
+          </div>
+          <div className="pulso-sm-family-table" role="table" aria-label="Bases hermanas independientes cargadas">
+            <div className="pulso-sm-family-row is-head" role="row">
+              <span>#</span>
+              <span>Base visible</span>
+              <span>Fuente original</span>
+              <span>Data</span>
+              <span>Estado</span>
+              <span aria-hidden="true" />
+            </div>
+            {existingBases.map((base, index) => {
+              const alias = String(base.source_alias || base.source_title || base.nombre || "").trim();
+              const title = String(base.source_title || base.xlsform_file_name || base.nombre || "").trim();
+              const sourceKind = String(base.source_kind || "base cargada").replace(/_/g, " ");
+              const importedAt = smCatalogDateLabel(base.imported_at);
+              const isActive = base.nombre === estudio.active_base;
+              return (
+                <div className={`pulso-sm-family-row${isActive ? " is-active" : ""}`} role="row" key={base.nombre}>
+                  <span className="pulso-sm-survey-index">{index + 1}</span>
+                  <div className="pulso-sm-family-base-cell">
+                    {editingAliasBase === base.nombre ? (
+                      <div className="pulso-sm-loaded-alias-editor">
+                        <label className="pulso-sm-alias-field is-main">
+                          <span>Alias visible</span>
+                          <input
+                            value={editingAliasDraft}
+                            disabled={disabled || !!busy}
+                            aria-label={`Editar alias ${base.nombre}`}
+                            onChange={(event) => setEditingAliasDraft(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Escape") cancelEditingExistingAlias();
+                              if (event.key === "Enter") void saveExistingAlias(base);
+                            }}
+                          />
+                        </label>
+                        <div className="pulso-sm-loaded-alias-actions">
+                          <button type="button" onClick={() => void saveExistingAlias(base)} disabled={disabled || !!busy || !editingAliasDraft.trim()}>
+                            <Check size={12} /> Guardar
+                          </button>
+                          <button type="button" className="is-ghost" onClick={cancelEditingExistingAlias} disabled={disabled || !!busy}>
+                            <XIcon size={12} /> Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="pulso-sm-family-base-title">
+                        <strong title={alias}>{alias}</strong>
+                        {isActive && <span>Activa</span>}
+                        <button
+                          type="button"
+                          className="pulso-sm-inline-edit"
+                          onClick={() => startEditingExistingAlias(base)}
+                          disabled={disabled || !!busy}
+                          aria-label={`Editar alias ${alias}`}
+                          title="Editar alias visible"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                      </div>
+                    )}
+                    <small>ID técnico <code>{base.nombre}</code></small>
+                  </div>
+                  <div className="pulso-sm-family-origin-cell">
+                    <strong title={title}>{title}</strong>
+                    <small>{sourceKind}{base.survey_id ? ` · Survey ID ${base.survey_id}` : ""} · {importedAt}</small>
+                  </div>
+                  <div className="pulso-sm-family-data-cell">
+                    <span className="pulso-sm-family-status">
+                      <Database size={12} />
+                      {base.n_filas ?? 0} filas
+                    </span>
+                    <small>{base.n_columnas ?? 0} columnas · XLSForm y data propios</small>
+                  </div>
+                  <div className="pulso-sm-family-data-cell">
+                    <span className="pulso-sm-family-status is-neutral">
+                      <Layers size={12} />
+                      Independiente
+                    </span>
+                    <small>Validación, codificación, analítica y gráficos por base</small>
+                  </div>
+                  <span aria-hidden="true" />
+                </div>
+              );
+            })}
+          </div>
+          <div className="pulso-sm-family-config-head">
+            <span>Para trabajar usa el selector de base activa del lateral. Para sumar otra carrera, abre el catálogo SurveyMonkey.</span>
+            <button
+              type="button"
+              className="pulso-sm-secondary"
+              disabled={disabled || !!busy || capacityLeft <= 0}
+              onClick={() => {
+                setError("");
+                setShowSurveyCatalog(true);
+              }}
+            >
+              <Plus size={13} />
+              {capacityLeft <= 0 ? "Límite alcanzado" : "Agregar desde SurveyMonkey"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showSurveyCatalog && (
+        <div className="pulso-integrated-sm">
+        <div className="pulso-sm-survey-picker">
+          <label className="pulso-sm-search">
+            <Search size={14} />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filtrar por carrera, nombre o ID" />
+          </label>
+          <button type="button" className="pulso-sm-secondary" onClick={() => loadSurveys(true)} disabled={!!busy || disabled}>
+            {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
+            Actualizar lista
+          </button>
+        </div>
+
+        {surveys && (
+          <>
+            <div className="pulso-sm-list-caption">
+              {visibleSurveys.length} de {surveyMeta?.totalRecent ?? surveys.length} encuestas modificadas en los últimos {surveyMeta?.months ?? 6} meses · {selectedInputs.length} por importar · {capacityLeft} cupos disponibles
+              {surveyMeta && (
+                <> · {surveyMeta.cacheStatus === "stale_fallback" ? "refresco falló; usando catálogo local" : surveyMeta.fromCache ? "catálogo local" : "catálogo actualizado"} {smCatalogDateLabel(surveyMeta.fetchedAt)}</>
+              )}
+            </div>
+            <div className="pulso-sm-survey-list" aria-label="Encuestas SurveyMonkey">
+              {visibleSurveys.map((item) => {
+                const selected = selectedIds.has(item.id);
+                const title = smSurveyTitle(item);
+                const scopeDraft = scopeDrafts[item.id];
+                const aliasPreview = smSurveyAlias(item, scopeDraft);
+                const cannotAdd = !selected && selectedIds.size >= capacityLeft;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`pulso-sm-survey-card${selected ? " is-selected" : ""}`}
+                    onClick={() => toggleSurvey(item)}
+                    disabled={disabled || !!busy || cannotAdd}
+                    title={title}
+                  >
+                    <span>
+                      <strong>{title}</strong>
+                      <small>{aliasPreview} · {smDateLabel(item.date_modified)} · ID {item.id}</small>
+                    </span>
+                    <em>{selected ? "En familia" : "Agregar"}</em>
+                  </button>
+                );
+              })}
+              {!visibleSurveys.length && <div className="pulso-sm-empty">No hay coincidencias con el filtro actual.</div>}
+            </div>
+          </>
+        )}
+
+        {selectedSurveys.length > 0 && (
+          <div className="pulso-sm-family-config">
+            <div className="pulso-sm-family-config-head">
+              <strong>Familia por importar</strong>
+              <span>{selectedTotal}/{independentMaxBases} bases configuradas</span>
+            </div>
+            <div className="pulso-sm-family-table" role="table" aria-label="Bases hermanas independientes seleccionadas">
+              <div className="pulso-sm-family-row is-head" role="row">
+                <span>#</span>
+                <span>Base visible</span>
+                <span>Encuesta original</span>
+                <span>Data</span>
+                <span>Filtros y campañas</span>
+                <span aria-hidden="true" />
+              </div>
+              {selectedSurveys.map((item, index) => {
+                const scopeDraft = scopeDrafts[item.id];
+                const scope = scopeDraft ?? smDefaultScopeDraft();
+                const scopedInput = selectedInputs.find((input) => input.survey_id === item.id);
+                const nSources = scopedInput?.sources?.length ?? 1;
+                const aliasValue = smAliasDraftValue(item, scopeDraft);
+                const aliasSlug = smBaseSlug(aliasValue);
+                const aliasInvalid = !aliasValue.trim() || duplicateAliasSlugs.has(aliasSlug);
+                return (
+                  <div className={`pulso-sm-family-row${aliasInvalid ? " is-invalid" : ""}`} role="row" key={item.id}>
+                    <span className="pulso-sm-survey-index">{index + 1}</span>
+                    <div className="pulso-sm-family-base-cell">
+                      <label className={`pulso-sm-alias-field is-main${aliasInvalid ? " is-invalid" : ""}`}>
+                        <span>Alias visible</span>
+                        <input
+                          value={aliasValue}
+                          disabled={disabled || !!busy}
+                          aria-label={`Alias visible ${item.id}`}
+                          onChange={(event) => updateAlias(item.id, event.target.value)}
+                        />
+                      </label>
+                      <small>ID técnico <code>{aliasSlug}</code></small>
+                      {aliasInvalid && (
+                        <em>
+                          <AlertTriangle size={12} />
+                          {!aliasValue.trim()
+                            ? "Falta alias."
+                            : `ID repetido: ${aliasSlug}`}
+                        </em>
+                      )}
+                    </div>
+                    <div className="pulso-sm-family-origin-cell">
+                      <strong title={smSurveyTitle(item)}>{smSurveyTitle(item)}</strong>
+                      <small>SurveyMonkey · {smDateLabel(item.date_modified)} · ID {item.id}</small>
+                    </div>
+                    <div className="pulso-sm-family-data-cell">
+                      <span className="pulso-sm-family-status">
+                        <Database size={12} />
+                        {nSources} fuente{nSources === 1 ? "" : "s"}
+                      </span>
+                      <small>{smScopeSummary(scope, nSources)}</small>
+                    </div>
+                    <details className="pulso-sm-scope-popover">
+                      <summary>
+                        <SlidersHorizontal size={13} />
+                        Alcance
+                      </summary>
+                      <div className="pulso-sm-scope-popover-panel" aria-label={`Alcance de importación de ${smSurveyTitle(item)}`}>
+                        <div className="pulso-sm-scope-head">
+                          <span><Filter size={13} /> Alcance de data</span>
+                          <em>response_filter por base</em>
+                        </div>
+                        <div className="pulso-sm-scope-fields">
+                          <label className="pulso-sm-scope-field">
+                            <span>Estados</span>
+                            <div className="pulso-sm-scope-checks">
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  checked={scope.includeCompleted}
+                                  disabled={disabled || !!busy}
+                                  onChange={(event) => updateScope(item.id, {
+                                    includeCompleted: event.target.checked || !scope.includePartial,
+                                  })}
+                                />
+                                Completas
+                              </label>
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  checked={scope.includePartial}
+                                  disabled={disabled || !!busy}
+                                  onChange={(event) => updateScope(item.id, {
+                                    includePartial: event.target.checked,
+                                    includeCompleted: scope.includeCompleted || !event.target.checked,
+                                  })}
+                                />
+                                Parciales
+                              </label>
+                            </div>
+                          </label>
+                          <label className="pulso-sm-scope-field">
+                            <span>Collector IDs</span>
+                            <input
+                              value={scope.collectorIds}
+                              disabled={disabled || !!busy}
+                              placeholder="campo, recordatorio"
+                              onChange={(event) => updateScope(item.id, { collectorIds: event.target.value })}
+                            />
+                          </label>
+                          <label className="pulso-sm-scope-field">
+                            <span>Desde</span>
+                            <input
+                              value={scope.dateModifiedGte}
+                              disabled={disabled || !!busy}
+                              placeholder="2026-05-01T00:00:00+00:00"
+                              onChange={(event) => updateScope(item.id, { dateModifiedGte: event.target.value })}
+                            />
+                          </label>
+                          <label className="pulso-sm-scope-field">
+                            <span>Hasta</span>
+                            <input
+                              value={scope.dateModifiedLte}
+                              disabled={disabled || !!busy}
+                              placeholder="2026-05-30T01:27:45+00:00"
+                              onChange={(event) => updateScope(item.id, { dateModifiedLte: event.target.value })}
+                            />
+                          </label>
+                        </div>
+
+                        <div className="pulso-sm-extra-sources">
+                          {scope.extraSources.map((source, sourceIndex) => (
+                            <div className="pulso-sm-extra-source" key={source.key}>
+                              <span className="pulso-sm-extra-source-index">Campaña {sourceIndex + 2}</span>
+                              <input
+                                value={source.surveyId}
+                                disabled={disabled || !!busy}
+                                placeholder="Survey ID adicional"
+                                aria-label={`Survey ID adicional ${sourceIndex + 1}`}
+                                onChange={(event) => updateExtraSource(item.id, source.key, { surveyId: event.target.value })}
+                              />
+                              <input
+                                value={source.label}
+                                disabled={disabled || !!busy}
+                                placeholder="Etiqueta opcional"
+                                aria-label={`Etiqueta fuente adicional ${sourceIndex + 1}`}
+                                onChange={(event) => updateExtraSource(item.id, source.key, { label: event.target.value })}
+                              />
+                              <input
+                                value={source.collectorIds}
+                                disabled={disabled || !!busy}
+                                placeholder="Collectors"
+                                aria-label={`Collectors fuente adicional ${sourceIndex + 1}`}
+                                onChange={(event) => updateExtraSource(item.id, source.key, { collectorIds: event.target.value })}
+                              />
+                              <input
+                                value={source.dateModifiedLte}
+                                disabled={disabled || !!busy}
+                                placeholder="Hasta ISO"
+                                aria-label={`Fecha hasta fuente adicional ${sourceIndex + 1}`}
+                                onChange={(event) => updateExtraSource(item.id, source.key, { dateModifiedLte: event.target.value })}
+                              />
+                              <label className="pulso-sm-extra-check">
+                                <input
+                                  type="checkbox"
+                                  checked={source.includePartial}
+                                  disabled={disabled || !!busy}
+                                  onChange={(event) => updateExtraSource(item.id, source.key, { includePartial: event.target.checked })}
+                                />
+                                Parciales
+                              </label>
+                              <button
+                                type="button"
+                                className="pulso-icon pulso-icon-danger"
+                                onClick={() => removeExtraSource(item.id, source.key)}
+                                aria-label={`Quitar fuente adicional ${sourceIndex + 1}`}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            className="pulso-sm-secondary pulso-sm-add-source"
+                            disabled={disabled || !!busy}
+                            onClick={() => addExtraSource(item.id)}
+                          >
+                            <Plus size={13} />
+                            Agregar campaña o fuente
+                          </button>
+                        </div>
+                      </div>
+                    </details>
+                    <button type="button" className="pulso-icon pulso-icon-danger" onClick={() => toggleSurvey(item)} aria-label={`Quitar ${item.id}`}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        </div>
+      )}
+
+      {overIndependentLimit && (
+        <div className="pulso-sm-multibase-warning">
+          <AlertTriangle size={15} />
+          Seleccionaste {selectedInputs.length} encuestas y quedan {capacityLeft} cupos. Este modo admite máximo {independentMaxBases} bases.
+        </div>
+      )}
+
+      <div className="pulso-sm-multibase-actions">
+        <button type="button" className="pulso-sm-secondary" disabled={!selectedInputs.length || !!busy || disabled} onClick={runAudit}>
+          {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
+          Auditar familia
+        </button>
+        <button type="button" className="pulso-sm-primary" disabled={!canImport} onClick={runImport}>
+          <Layers size={14} />
+          Importar como bases hermanas independientes
+        </button>
+      </div>
+
+      {busy && <div className="pulso-sm-status"><Loader2 size={13} className="pulso-spin" /> {busy}</div>}
+      {error && <ErrorBlock label="No se pudo completar la importación" detail={error} />}
+
+      {audit && (() => {
+        const totalResponses = audit.surveys.reduce((sum, item) => sum + (item.n_responses ?? 0), 0);
+        const pageLabel = smNumberRangeLabel(audit.surveys.map((item) => item.n_pages), "página");
+        const questionLabel = smNumberRangeLabel(audit.surveys.map((item) => item.n_questions), "pregunta");
+        const refLabel = smSurveyAuditLabel(audit.ref_survey_id, audit, selectedInputs);
+        return (
+          <div className="pulso-integrated-audit">
+            <div className="pulso-sm-audit-banner is-ok">
+              <CheckCircle2 size={16} />
+              <strong>Familia auditada</strong>
+              <span>
+                {audit.surveys.length} bases · guía: {refLabel}
+              </span>
+            </div>
+            <div className="pulso-sm-family-evidence" aria-label="Puntos comunes de la familia">
+              <span><b>{totalResponses}</b> respuestas visibles</span>
+              <span>{pageLabel}</span>
+              <span>{questionLabel}</span>
+              <span><b>{audit.n_review + audit.n_special + audit.n_blocking}</b> diferencias informativas</span>
+            </div>
+            <div className="pulso-sm-audit-table">
+              {audit.surveys.map((survey) => (
+                <div key={survey.survey_id} className="pulso-sm-audit-survey">
+                  <Database size={14} />
+                  <span>
+                    <strong title={survey.title}>{smSurveyAuditLabel(survey.survey_id, audit, selectedInputs)}</strong>
+                    <span>
+                      {survey.n_responses ?? 0} respuestas · {survey.n_pages} páginas · {survey.n_questions} preguntas
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="pulso-integrated-diff-list">
+              {audit.diffs.slice(0, 12).map((diff, index) => (
+                <div key={`${diff.survey_id}-${diff.pos}-${index}`} className={`pulso-integrated-diff is-${diff.severity}`}>
+                  <div>
+                    <strong>
+                      <span>{smDiffKindLabel(diff.kind)} · {smSurveyAuditLabel(diff.survey_id, audit, selectedInputs)}</span>
+                      <em>{smDiffSeverityLabel(diff.severity)}</em>
+                    </strong>
+                    <span>{diff.message}</span>
+                    <small>
+                      <code>{diff.variable}</code>
+                      {diff.ref && ` · guía: ${diff.ref}`}
+                      {diff.current && ` · base: ${diff.current}`}
+                    </small>
+                  </div>
+                </div>
+              ))}
+              {!audit.diffs.length && <div className="pulso-sm-empty">La auditoría no encontró diferencias relevantes entre las encuestas seleccionadas.</div>}
+            </div>
+          </div>
+        );
+      })()}
+    </section>
+  );
+}
+
+// =====================================================================
+// IntegratedHistoryPanel — bitácora persistida de una integración cerrada
+// =====================================================================
+function fileLabel(fileId?: string, fileName?: string) {
+  const name = String(fileName ?? "").trim();
+  if (name && name !== "NA") return name;
+  const id = String(fileId ?? "").trim();
+  return id || "Sin archivo";
+}
+
+function importedAtLabel(value?: string) {
+  const raw = String(value ?? "").trim();
+  if (!raw || raw === "NA") return "Fecha no registrada";
+  const dt = new Date(raw);
+  if (Number.isNaN(dt.getTime())) return raw;
+  return dt.toLocaleString("es-PE", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function responseFilterLabel(filter?: Record<string, unknown> | null) {
+  if (!filter || typeof filter !== "object") return "";
+  const kind = String(filter.kind ?? "");
+  const kept = filter.kept_rows == null || Number.isNaN(Number(filter.kept_rows))
+    ? null
+    : Number(filter.kept_rows);
+  const sourceCount = filter.source_count == null || Number.isNaN(Number(filter.source_count))
+    ? null
+    : Number(filter.source_count);
+  if (kind === "uploaded_data") return kept == null ? "Data subida" : `Data subida · ${kept} filas`;
+  const parts: string[] = [];
+  if (sourceCount && sourceCount > 1) parts.push(`${sourceCount} fuentes`);
+  if (kept != null) parts.push(`${kept} filtradas`);
+  const statuses = Array.isArray(filter.statuses) ? filter.statuses.map(String).filter(Boolean) : [];
+  if (statuses.length) parts.push(statuses.join("/"));
+  const collectors = Array.isArray(filter.collector_ids) ? filter.collector_ids.map(String).filter(Boolean) : [];
+  if (collectors.length) parts.push(`collector ${collectors.join(", ")}`);
+  const until = String(filter.date_modified_lte ?? "").trim();
+  if (until && until !== "NA") parts.push(`hasta ${until.slice(0, 16).replace("T", " ")}`);
+  return parts.join(" · ");
+}
+
+type HistoryRecord = Record<string, unknown>;
+type LabelOverrideEntry = {
+  key: string;
+  value: string;
+  origin: string;
+  variable: string;
+};
+type LabelOverrideGroup = {
+  origin: string;
+  entries: LabelOverrideEntry[];
+};
+type VariantRow = {
+  from: string;
+  to: string;
+  origin: string;
+  ref: string;
+};
+type VariantGroup = {
+  from: string;
+  rows: VariantRow[];
+};
+
+function asHistoryRecord(value: unknown): HistoryRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as HistoryRecord : {};
+}
+
+export function integratedHistoryArray<T = HistoryRecord>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === "object") return Object.values(value) as T[];
+  return [];
+}
+
+export function integratedLabelOverrideEntries(meta?: EstudioMultiIntegrated | null) {
+  const raw = asHistoryRecord(meta?.label_overrides_by_key);
+  const out: LabelOverrideEntry[] = [];
+  for (const [key, value] of Object.entries(raw)) {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      for (const [nestedKey, nestedValue] of Object.entries(value as HistoryRecord)) {
+        out.push({
+          key: `${key} · ${nestedKey}`,
+          value: String(nestedValue ?? ""),
+          origin: key,
+          variable: nestedKey,
+        });
+      }
+    } else {
+      out.push({
+        key,
+        value: String(value ?? ""),
+        origin: "Común",
+        variable: key,
+      });
+    }
+  }
+  return out.filter((entry) => entry.key && entry.value && entry.value !== "[object Object]");
+}
+
+export function integratedStandardLabelEntries(meta?: EstudioMultiIntegrated | null) {
+  const raw = asHistoryRecord(meta?.label_overrides_standard);
+  return Object.entries(raw)
+    .map(([key, value]) => ({
+      key,
+      value: String(value ?? ""),
+      origin: "Final común",
+      variable: key,
+    }))
+    .filter((entry) => entry.key && entry.value && entry.value !== "[object Object]");
+}
+
+export function integratedLabelOverrideGroups(meta?: EstudioMultiIntegrated | null): LabelOverrideGroup[] {
+  const byOrigin = new Map<string, LabelOverrideEntry[]>();
+  for (const entry of integratedLabelOverrideEntries(meta)) {
+    const origin = entry.origin || "Común";
+    byOrigin.set(origin, [...(byOrigin.get(origin) ?? []), entry]);
+  }
+  return Array.from(byOrigin.entries())
+    .map(([origin, entries]) => ({ origin, entries }))
+    .sort((a, b) => b.entries.length - a.entries.length || a.origin.localeCompare(b.origin));
+}
+
+export function integratedVariantRows(meta?: EstudioMultiIntegrated | null): VariantRow[] {
+  return integratedHistoryArray<HistoryRecord>(meta?.variant_map)
+    .map((item) => ({
+      from: String(item.from ?? ""),
+      to: String(item.to ?? ""),
+      origin: String(item.origin_key ?? ""),
+      ref: String(item.ref_origin_key ?? ""),
+    }))
+    .filter((item) => item.from || item.to || item.origin);
+}
+
+export function integratedVariantGroups(meta?: EstudioMultiIntegrated | null): VariantGroup[] {
+  const bySource = new Map<string, VariantRow[]>();
+  for (const row of integratedVariantRows(meta)) {
+    const source = row.from || "Variable";
+    bySource.set(source, [...(bySource.get(source) ?? []), row]);
+  }
+  return Array.from(bySource.entries())
+    .map(([from, rows]) => ({ from, rows }))
+    .sort((a, b) => b.rows.length - a.rows.length || a.from.localeCompare(b.from));
+}
+
+function IntegratedHistoryPanel({
+  bases,
+  disabled,
+  onNewIntegration,
+}: {
+  bases: EstudioBase[];
+  disabled: boolean;
+  onNewIntegration: () => void;
+}) {
+  return (
+    <section className="pulso-integrated-panel pulso-integrated-history">
+      <header className="pulso-integrated-head pulso-integrated-history-head">
+        <span className="pulso-sm-multibase-icon" aria-hidden="true"><GitMerge size={18} /></span>
+        <div>
+          <div className="pulso-sm-multibase-kicker">Integración realizada</div>
+          <h3>Instrumentos hermanos integrados</h3>
+          <p>Qué archivos quedaron como canónicos y qué decisiones tomó la integración.</p>
+        </div>
+        <button type="button" className="pulso-sm-secondary" onClick={onNewIntegration} disabled={disabled}>
+          <Plus size={13} /> Nueva integración
+        </button>
+      </header>
+
+      {bases.map((base) => {
+        const meta = base.multi_integrated;
+        const origins = integratedHistoryArray<EstudioMultiIntegratedOrigin>(meta?.origins);
+        const standardEntries = integratedStandardLabelEntries(meta);
+        const labelGroups = integratedLabelOverrideGroups(meta);
+        const labelsCount = labelGroups.reduce((sum, group) => sum + group.entries.length, 0);
+        const wordingCount = labelsCount + standardEntries.length;
+        const variantGroups = integratedVariantGroups(meta);
+        const variantsCount = variantGroups.reduce((sum, group) => sum + group.rows.length, 0);
+        const labelEntries = labelGroups.flatMap((group) => group.entries);
+        const technicalLabelEntries = standardEntries.length ? standardEntries : labelEntries;
+        const variantRows = variantGroups.flatMap((group) => group.rows);
+        return (
+          <div className="pulso-integrated-history-base" key={base.nombre}>
+            <div className="pulso-integrated-history-summary">
+              <div className="pulso-integrated-history-summary-main">
+                <CheckCircle2 size={17} />
+                <span>
+                  <strong>{base.nombre}</strong>
+                  <small>
+                    Integrada con llave <code>{meta?.origin_key_name || "origen"}</code> el {importedAtLabel(meta?.imported_at)}
+                  </small>
+                </span>
+              </div>
+              <div className="pulso-integrated-history-metrics" aria-label={`Resumen de integración de ${base.nombre}`}>
+                <HistoryMetric value={origins.length} label="orígenes" />
+                <HistoryMetric value={wordingCount} label="fraseos" />
+                <HistoryMetric value={variantsCount} label="variantes" />
+              </div>
+            </div>
+
+            <div className="pulso-integrated-history-step">
+              <span>1</span>
+              <strong>Archivos canónicos</strong>
+              <small>Estos son los insumos finales que usa el resto del flujo.</small>
+            </div>
+            <div className="pulso-integrated-history-files" aria-label={`Archivos canónicos de ${base.nombre}`}>
+              <HistoryFile
+                icon={<FileSpreadsheet size={14} />}
+                label="XLSForm guía"
+                value={fileLabel(meta?.guide_xlsform_file_id, meta?.guide?.filename)}
+              />
+              <HistoryFile
+                icon={<FileSpreadsheet size={14} />}
+                label="XLSForm integrado"
+                value={fileLabel(base.xlsform_file_id, base.xlsform_file_name)}
+              />
+              <HistoryFile
+                icon={<Database size={14} />}
+                label="Data integrada"
+                value={fileLabel(base.data_file_id, base.data_file_name)}
+              />
+            </div>
+
+            <div className="pulso-integrated-history-step">
+              <span>2</span>
+              <strong>Decisiones de integración</strong>
+              <small>Cómo se reconocen los casos, fraseos y variables que cambiaban por origen.</small>
+            </div>
+            <div className="pulso-integrated-history-grid">
+              <section className="pulso-integrated-history-block">
+                <div className="pulso-integrated-history-block-head">
+                  <span>
+                    <strong>Orígenes importados</strong>
+                    <small>Base de procedencia de cada caso</small>
+                  </span>
+                  <em>{origins.length}</em>
+                </div>
+                <div className="pulso-integrated-history-origin-list">
+                  {origins.map((origin, index) => (
+                    <div className="pulso-integrated-origin-card" key={`${origin.key_value ?? index}-${origin.survey_id ?? index}`}>
+                      <code>{origin.key_value || `origen_${index + 1}`}</code>
+                      <span title={origin.label || ""}>{origin.label || origin.survey_id || "Sin etiqueta"}</span>
+                      <small>
+                        {origin.source_kind === "surveymonkey"
+                          ? `SurveyMonkey ${origin.survey_id || ""}`.trim()
+                          : `${fileLabel(origin.xlsform_file_id, origin.xlsform_file_name)} + ${fileLabel(origin.data_file_id, origin.data_file_name)}`}
+                      </small>
+                    </div>
+                  ))}
+                  {!origins.length && <div className="pulso-sm-empty">Sin orígenes registrados.</div>}
+                </div>
+              </section>
+
+              <section className="pulso-integrated-history-block pulso-integrated-history-block-wide">
+                <div className="pulso-integrated-history-block-head">
+                  <span>
+                    <strong>Fraseos finales y por origen</strong>
+                    <small>Texto común para Global y textos preservados por llave</small>
+                  </span>
+                  <em>{wordingCount}</em>
+                </div>
+                <div className="pulso-integrated-wording-groups">
+                  {standardEntries.length > 0 && (
+                    <div className="pulso-integrated-wording-group is-standard" key="standard-labels">
+                      <div className="pulso-integrated-wording-group-head">
+                        <strong>Final común</strong>
+                        <small>{standardEntries.length} fraseo{standardEntries.length === 1 ? "" : "s"}</small>
+                      </div>
+                      <p title={standardEntries[0].value}>
+                        <code>{standardEntries[0].variable}</code>
+                        <span>{standardEntries[0].value}</span>
+                      </p>
+                      <div className="pulso-integrated-chip-row" aria-label="Variables con fraseo final común">
+                        {standardEntries.slice(0, 5).map((entry) => (
+                          <code key={entry.key}>{entry.variable}</code>
+                        ))}
+                        {standardEntries.length > 5 && <small>+{standardEntries.length - 5}</small>}
+                      </div>
+                    </div>
+                  )}
+                  {labelGroups.slice(0, 4).map((group) => {
+                    const preview = group.entries[0];
+                    return (
+                      <div className="pulso-integrated-wording-group" key={group.origin}>
+                        <div className="pulso-integrated-wording-group-head">
+                          <strong>{group.origin}</strong>
+                          <small>{group.entries.length} fraseo{group.entries.length === 1 ? "" : "s"}</small>
+                        </div>
+                        {preview && (
+                          <p title={preview.value}>
+                            <code>{preview.variable}</code>
+                            <span>{preview.value}</span>
+                          </p>
+                        )}
+                        <div className="pulso-integrated-chip-row" aria-label={`Variables con fraseo adaptado para ${group.origin}`}>
+                          {group.entries.slice(0, 5).map((entry) => (
+                            <code key={entry.key}>{entry.variable}</code>
+                          ))}
+                          {group.entries.length > 5 && <small>+{group.entries.length - 5}</small>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {labelGroups.length > 4 && (
+                    <small className="pulso-integrated-history-more">+{labelGroups.length - 4} origen(es) con fraseos adicionales</small>
+                  )}
+                  {!wordingCount && <div className="pulso-sm-empty">Sin cambios de fraseo.</div>}
+                </div>
+              </section>
+
+              <section className="pulso-integrated-history-block">
+                <div className="pulso-integrated-history-block-head">
+                  <span>
+                    <strong>Variables por origen</strong>
+                    <small>Columnas preservadas para no perder diferencias</small>
+                  </span>
+                  <em>{variantsCount}</em>
+                </div>
+                <div className="pulso-integrated-variant-groups">
+                  {variantGroups.slice(0, 5).map((group) => (
+                    <div className="pulso-integrated-variant-group" key={group.from}>
+                      <div className="pulso-integrated-variant-source">
+                        <code>{group.from}</code>
+                        <ArrowRight size={13} aria-hidden="true" />
+                      </div>
+                      <div className="pulso-integrated-variant-targets">
+                        {group.rows.map((variant, index) => (
+                          <span key={`${variant.to}-${variant.origin}-${index}`} title={variant.origin || variant.ref}>
+                            <code>{variant.to || "sin variante"}</code>
+                            {(variant.origin || variant.ref) && <small>{variant.origin || variant.ref}</small>}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {variantGroups.length > 5 && (
+                    <small className="pulso-integrated-history-more">+{variantGroups.length - 5} variable(s) preservadas</small>
+                  )}
+                  {!variantGroups.length && <div className="pulso-sm-empty">Sin variantes estructurales.</div>}
+                </div>
+              </section>
+            </div>
+
+            <details className="pulso-integrated-history-raw">
+              <summary>Ver bitácora técnica completa</summary>
+              <div className="pulso-integrated-history-grid">
+                <section className="pulso-integrated-history-block">
+                  <div className="pulso-integrated-history-block-head">
+                    <span>
+                      <strong>Orígenes</strong>
+                      <small>Detalle técnico</small>
+                    </span>
+                    <em>{origins.length}</em>
+                  </div>
+                  <div className="pulso-integrated-history-list">
+                    {origins.map((origin, index) => (
+                      <div className="pulso-integrated-history-row" key={`${origin.key_value ?? index}-${origin.survey_id ?? index}`}>
+                        <code>{origin.key_value || `origen_${index + 1}`}</code>
+                        <span title={origin.label || ""}>{origin.label || origin.survey_id || "Sin etiqueta"}</span>
+                        <small>
+                          {origin.source_kind === "surveymonkey"
+                            ? `SurveyMonkey ${origin.survey_id || ""}`.trim()
+                            : `${fileLabel(origin.xlsform_file_id, origin.xlsform_file_name)} + ${fileLabel(origin.data_file_id, origin.data_file_name)}`}
+                        </small>
+                      </div>
+                    ))}
+                    {!origins.length && <div className="pulso-sm-empty">Sin orígenes registrados.</div>}
+                  </div>
+                </section>
+
+                <section className="pulso-integrated-history-block">
+                  <div className="pulso-integrated-history-block-head">
+                    <span>
+                      <strong>Fraseo estándar</strong>
+                      <small>Detalle técnico</small>
+                    </span>
+                    <em>{technicalLabelEntries.length}</em>
+                  </div>
+                  <div className="pulso-integrated-history-list">
+                    {technicalLabelEntries.slice(0, 12).map((entry) => (
+                      <div className="pulso-integrated-history-row" key={entry.key}>
+                        <code>{entry.key}</code>
+                        <span title={entry.value}>{entry.value}</span>
+                      </div>
+                    ))}
+                    {technicalLabelEntries.length > 12 && <small className="pulso-integrated-history-more">+{technicalLabelEntries.length - 12} fraseo(s)</small>}
+                    {!technicalLabelEntries.length && <div className="pulso-sm-empty">Sin cambios de fraseo.</div>}
+                  </div>
+                </section>
+
+                <section className="pulso-integrated-history-block">
+                  <div className="pulso-integrated-history-block-head">
+                    <span>
+                      <strong>Variables preservadas</strong>
+                      <small>Detalle técnico</small>
+                    </span>
+                    <em>{variantsCount}</em>
+                  </div>
+                  <div className="pulso-integrated-history-list">
+                    {variantRows.slice(0, 12).map((variant, index) => (
+                      <div className="pulso-integrated-history-row" key={`${variant.from}-${variant.to}-${index}`}>
+                        <code>{variant.from || "variable"}</code>
+                        <span>{variant.to || "sin variante"}</span>
+                        {(variant.origin || variant.ref) && <small>{variant.origin || variant.ref}</small>}
+                      </div>
+                    ))}
+                    {variantsCount > 12 && <small className="pulso-integrated-history-more">+{variantsCount - 12} variante(s)</small>}
+                    {!variantsCount && <div className="pulso-sm-empty">Sin variantes estructurales.</div>}
+                  </div>
+                </section>
+              </div>
+            </details>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function HistoryMetric({ value, label }: { value: number; label: string }) {
+  return (
+    <span>
+      <strong>{value}</strong>
+      <small>{label}</small>
+    </span>
+  );
+}
+
+function HistoryFile({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="pulso-integrated-history-file">
+      {icon}
+      <span>
+        <small>{label}</small>
+        <strong title={value}>{value}</strong>
+      </span>
+    </div>
+  );
+}
+
 // =====================================================================
 // BaseRow — una base dentro del estudio
 // =====================================================================
@@ -534,6 +2053,11 @@ function BaseRow({
   isReplacing: boolean;
   busy: boolean;
 }) {
+  const filterLabel = responseFilterLabel(base.response_filter);
+  const sourceAlias = String(base.source_alias ?? "").trim();
+  const sourceTitle = String(base.source_title ?? "").trim();
+  const showSourceAlias = !!sourceAlias && sourceAlias !== "NA";
+  const showSourceTitle = !!sourceTitle && sourceTitle !== "NA" && sourceTitle !== sourceAlias;
   return (
     <div
       style={{
@@ -615,6 +2139,21 @@ function BaseRow({
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <FileSpreadsheet size={12} /> XLSForm cargado
           </span>
+          {showSourceAlias && (
+            <span title={sourceAlias} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Cloud size={12} /> {sourceAlias}
+            </span>
+          )}
+          {showSourceTitle && (
+            <span title={sourceTitle} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Cloud size={12} /> SurveyMonkey: {sourceTitle}
+            </span>
+          )}
+          {filterLabel && (
+            <span title={filterLabel} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Filter size={12} /> {filterLabel}
+            </span>
+          )}
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Database size={12} />
             {base.n_filas != null && base.n_columnas != null

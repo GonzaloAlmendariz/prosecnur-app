@@ -391,6 +391,30 @@
   out
 }
 
+.mi_standard_label_overrides <- function(audit, decisions = list()) {
+  diffs <- audit$diffs %||% list()
+  diffs <- Filter(function(diff) {
+    .mi_scalar(diff$kind, "") %in% c("wording", "surveymonkey_wording")
+  }, diffs)
+  out <- list()
+  for (diff in diffs) {
+    if (isTRUE(diff$needs_decision) && !(diff$id %in% .mi_decision_ids(decisions))) next
+    var <- .mi_scalar(diff$suggested_name, .mi_scalar(diff$variable, ""))
+    if (!nzchar(var)) next
+    label <- .mi_decision_label(decisions, var, diff$suggested_label)
+    if (!nzchar(.mi_scalar(label, ""))) next
+    out[[var]] <- label
+  }
+  explicit <- decisions$label_overrides %||% decisions$labelOverrides %||% list()
+  if (is.list(explicit) && length(explicit)) {
+    for (name in names(explicit)) {
+      val <- .mi_scalar(explicit[[name]], "")
+      if (nzchar(name) && nzchar(val)) out[[name]] <- val
+    }
+  }
+  out
+}
+
 .mi_question_label <- function(model, variable, fallback = "") {
   q <- model$questions
   idx <- which(as.character(q$name %||% "") == variable)[1]
@@ -465,8 +489,7 @@
   sm_audit <- NULL
   company_vars <- character(0)
   if (length(sm_origins)) {
-    token <- prosecnur_secret_load("sm_token")
-    if (is.na(token) || !nzchar(token)) stop_api(400, "E_SM_TOKEN", "Falta token SurveyMonkey guardado.")
+    token <- .connections_token_require("surveymonkey", sid)
     sm_specs <- lapply(sm_origins, function(o) list(
       survey_id = o$survey_id,
       pais = o$key_value,
@@ -1064,8 +1087,7 @@ multi_integrated_import <- function(sid,
 
   token <- NA_character_
   if (any(vapply(origins, function(o) identical(o$source_kind, "surveymonkey"), logical(1)))) {
-    token <- prosecnur_secret_load("sm_token")
-    if (is.na(token) || !nzchar(token)) stop_api(400, "E_SM_TOKEN", "Falta token SurveyMonkey guardado.")
+    token <- .connections_token_require("surveymonkey", sid)
   }
 
   built <- .mi_build_instrument(sid, guide_xlsform_file_id, origins, audit, decisions, sm_token = token)
@@ -1144,6 +1166,7 @@ multi_integrated_import <- function(sid,
       guide_xlsform_file_id = guide_xlsform_file_id,
       origins = audit$origins %||% list(),
       variant_map = built$variant_map %||% list(),
+      label_overrides_standard = .mi_standard_label_overrides(audit, decisions),
       label_overrides_by_key = .mi_label_overrides_by_key(audit, decisions),
       imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
     )

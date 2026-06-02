@@ -37,11 +37,13 @@ A partir de v0.2 la app modela ese caso de primera clase.
 
 ## Modelo de datos
 
-Cada sesión contiene **un estudio con 1..8 bases**.
+Cada sesión contiene **un estudio con 1..16 bases**.
 
 ```r
 s$estudio = list(
   nombre = "Acreditación PUCP — AMDT",
+  processing_mode = "multibase",
+  active_base = "docentes",
   bases = list(
     docentes        = list(nombre, xlsform_file_id, data_file_id, data_ext,
                            n_filas, n_columnas, added_at),
@@ -52,6 +54,45 @@ s$estudio = list(
 
 s$rp_data_sources = list(docentes = <df>, estudiantes = <df>, ...)
 s$rp_inst_sources = list(docentes = <rp_inst>, ...)
+```
+
+`processing_mode` define cómo se consume el estudio:
+
+- `multibase`: comportamiento histórico. Las bases se procesan como un
+  conjunto; Analítica empaqueta ZIP cuando hay más de una fuente y
+  Gráficos puede referenciar variables con `fuente$variable`.
+- `independent_siblings`: familia de formularios hermanos, como
+  Ingeniería SurveyMonkey. Cada base conserva XLSForm, data, validación,
+  codificación y entregables propios. La configuración metodológica de
+  Analítica/Gráficos es común, pero se ejecuta sobre `active_base`.
+  Cuando una familia declara `logic_policy = "shared_template"`, el
+  estudio conserva una `template_base` y copia la lógica de codificación
+  compartida a los hermanos nuevos; las diferencias de fraseo/filas quedan
+  como auditoría informativa, no como una integración en una sola base.
+
+Las bases importadas desde SurveyMonkey como hermanas independientes
+guardan metadata de origen:
+
+```r
+source_kind, survey_id, source_title, sibling_family_id,
+imported_at, response_filter
+```
+
+`response_filter` describe el alcance real importado, no un ajuste por
+meta. Puede registrar `response_statuses`, `collector_ids` por fuente,
+cortes por `date_modified_gte`/`date_modified_lte` y, cuando una base hermana agrupa
+varias campañas SurveyMonkey, `kind = "surveymonkey_multi_source_response_filter"`
+con una entrada por fuente. Esto permite casos como Ingeniería Geológica,
+donde una carrera se procesa como un solo hermano aunque sus respuestas
+provengan de más de una campaña.
+
+El estudio puede guardar además:
+
+```r
+estudio$independent_siblings = list(
+  sibling_family_id, template_base, logic_policy,
+  shared_logic, status, audit, updated_at
+)
 ```
 
 La estructura canónica del motor (`prosecnur::reporte_ppt_plan`) ya
@@ -96,8 +137,31 @@ Los helpers `parseVarRef` / `formatVarRef` en
 | `POST /api/estudio/base` | Agregar base (body: `{nombre, xlsform_file_id, data_file_id}`) |
 | `DELETE /api/estudio/base/<nombre>` | Eliminar base |
 | `PATCH /api/estudio/base/<nombre>` | Renombrar base |
+| `GET /api/estudio/active-base` | Base activa común del estudio |
+| `POST /api/estudio/active-base` | Cambiar base activa común |
+| `POST /api/estudio/independent-siblings/promote` | Convertir un estudio existente a `independent_siblings` sin reimportar sus bases |
 | `GET /api/estudio/codif-source` | Base activa para codificación |
-| `POST /api/estudio/codif-source` | Cambiar base activa |
+| `POST /api/estudio/codif-source` | Alias compatible de `active-base` |
+
+### SurveyMonkey
+
+| Endpoint | Descripción |
+|---|---|
+| `POST /api/surveymonkey/multibase/surveys` | Catálogo local de encuestas recientes. Por defecto filtra desde cache de sesión; con `force_refresh = true` vuelve a consultar SurveyMonkey. |
+| `POST /api/surveymonkey/multibase/import` | Flujo integrado: N surveys → 1 base integrada |
+| `POST /api/surveymonkey/multibase/import-independent` | Flujo independiente: N especificaciones de hermano → N bases hermanas; cada especificación puede incluir una o varias fuentes/campañas SurveyMonkey |
+
+El catálogo de encuestas SurveyMonkey es metadata regenerable de sesión:
+`id`, título, nickname, fecha de modificación y país inferido. Sirve para que
+Carga, Monitoreo y los flujos multibase no repitan consultas al API cada vez
+que el usuario cambia de etapa o abre un selector. No guarda tokens, respuestas
+ni XLSForms dentro del `.pulso`; si el usuario necesita nuevas encuestas, la UI
+fuerza un refresco explícito.
+
+En `import-independent`, las diferencias estructurales entre surveys se
+reportan como auditoría informativa. Solo bloquean errores reales de API,
+XLSForm inválido, data incompatible o ausencia de respuestas dentro del
+filtro declarado.
 
 ### Variables por fuente
 
@@ -122,6 +186,12 @@ encapsula la iteración por base + zip. Las funciones del motor
 (`reporte_codebook`, `reporte_frecuencias`, etc.) **no se tocaron**:
 siguen siendo single-base internamente y el wrapper las llama N veces.
 
+En `processing_mode = "independent_siblings"`, Analítica filtra las
+fuentes a `active_base` antes de llamar al helper. Por eso codebook,
+XLSForm final, frecuencias, cruces, CSV, XLSX y SAV salen como archivo
+directo de la base activa, con nombre prefijado por base. El ZIP se
+mantiene para el multibase normal.
+
 Para `cruces` y `enumeradores` (async, worker callr) la iteración vive
 dentro del worker (serializa `rp_data_sources` como RDS lista nombrada).
 
@@ -138,6 +208,10 @@ s$codif_por_base = list(
 )
 s$codif_source_active = "docentes"
 ```
+
+`s$codif_source_active` se mantiene como alias de compatibilidad; el
+selector común persistente es `s$estudio$active_base`. Validación,
+Codificación, Analítica y Gráficos escriben el mismo valor.
 
 Helpers `codif_get(sid, key)` / `codif_set(sid, key, value)` leen y
 escriben al `codif_source_active`. Cambiar la base activa es un
@@ -161,6 +235,11 @@ con cache, y páginas:
 | `pulso:session-lost` | `client.ts` cuando recibe `E_NO_SESSION` | `SessionContext` → banner global "Recargar página" |
 | `pulso:session-changed` | `client.ts` cuando `X-Pulso-Session` header difiere del anterior (nuevo demo cargado) | `SessionContext`, `useVariables`, `useGraficosAutosave`, `useAnaliticaAutosave` — rehidratan |
 | `pulso:codif-source-changed` | `useCodifSource.setActive()` | `CodificacionPage` via `key={active}` remount |
+| `pulso:active-base-changed` | Validación/Codificación/Analítica/Gráficos | Hooks con cache de variables y fuentes activas |
+
+El header del workbench de Procesamiento también escucha
+`pulso:active-base-changed`: muestra el hermano activo, permite cambiarlo
+globalmente y resume estados por base desde `/api/estudio`.
 
 ## Patrones a mantener
 
@@ -179,19 +258,15 @@ con cache, y páginas:
    el selector de base en `CodificacionPage`, y los chips de descarga
    por base en `GenerateFooter`. Con 1 sola base, toda esa UI está
    oculta → flujo idéntico a v0.1.
+5. **`independent_siblings` usa base activa, no batch**. El usuario elige
+   una carrera/base y genera entregables para esa fuente. No existe en v1
+   un ZIP de PPT/Word/codebook para todas las carreras.
 
 ## Qué no cubre la v0.2
 
-- **Fase 2 (Validación)** sigue operando sobre la primera base
-  solamente. El revamp completo de Validación viene en una iteración
-  separada; mientras tanto, no se rompe porque `s$rp_data` legacy
-  apunta a la primera.
-- **`/analitica/bases/metadata`** (editor de measures SPSS) también es
-  single-base. El editor visual por base queda pendiente.
-- **`/analitica/spss`** (endpoint legacy) solo corre en la primera base.
-  Obsoleto — la UI moderna usa `/analitica/bases/sav` que sí es
-  multi-base.
-- **Gestor manual de bases** en Fase 1: hoy solo los demos multi-base
-  cargan N bases de una. Para subir XLSForm+data a mano, la UI sigue
-  siendo single-base (se puede agregar vía `POST /api/estudio/base`
-  desde la API directamente, pero no hay UI).
+- **Batch independiente de entregables**: v1 no genera PPT/Word/Excel para
+  todas las carreras en una sola acción. El usuario trabaja por base
+  activa.
+- **Configuraciones analíticas por base**: `analitica_config` y
+  `graficos_config` siguen siendo compartidas. Si una base no tiene una
+  variable del plan, el error debe nombrar base y variable faltante.

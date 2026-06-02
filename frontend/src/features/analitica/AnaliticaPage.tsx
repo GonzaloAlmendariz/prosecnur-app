@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart2,
   BookOpen,
@@ -56,7 +56,11 @@ export default function AnaliticaPage() {
 
   const prereqOk = !!state?.xlsform && !!state?.data;
   const prepOk = !!state?.analitica_prep_ok;
-  const reportes = REPORTES.filter((r) => r.key !== "multibase" || !!state?.analitica_multibase_available);
+  const independentSiblings = state?.estudio_processing_mode === "independent_siblings";
+  const reportes = REPORTES.filter((r) => {
+    if (r.key === "multibase" && independentSiblings) return false;
+    return r.key !== "multibase" || !!state?.analitica_multibase_available;
+  });
 
   // Preparar auto-on-mount. Antes era un paso manual; ahora se ejecuta
   // silenciosamente al entrar por primera vez si hay prereqs. El banner
@@ -103,7 +107,7 @@ export default function AnaliticaPage() {
       density="compact"
       headerMode="sr-only"
       bodyMode="fill"
-      resetScrollKey={active}
+      resetScrollKey={`${active}:${state?.active_base ?? ""}`}
       toolbar={
         <div className="pulso-analitica-toolbar-stack">
           {!prereqOk && (
@@ -140,6 +144,7 @@ export default function AnaliticaPage() {
               icon={<FileSpreadsheet size={20} />}
               title="Carga insumos para analizar"
               hint="Analítica se habilita cuando la sesión tiene un XLSForm y una base de datos cargados."
+              cta={<Link className="pulso-empty-cta" to="/carga">Ir a Carga</Link>}
             />
           ) : (
             <>

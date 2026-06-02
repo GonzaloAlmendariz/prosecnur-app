@@ -137,6 +137,24 @@ export function DashboardSourceGate({
   const sessionReady =
     (payload?.candidates.session.xlsforms.length ?? 0) > 0 &&
     (payload?.candidates.session.data.length ?? 0) > 0;
+  const projectDisabledReason = projectReady ? "" : "No hay XLSForm y data detectados en el proyecto.";
+  const sessionDisabledReason = sessionReady ? "" : "No hay XLSForm y data detectados en la sesión actual.";
+  const selectedDisabledReason =
+    !selectedXls && !selectedData
+      ? "Selecciona un XLSForm y una base de datos."
+      : !selectedXls
+      ? "Selecciona un XLSForm."
+      : !selectedData
+      ? "Selecciona una base de datos."
+      : "";
+  const uploadDisabledReason =
+    !xlsFile && !dataFile
+      ? "Elige un XLSForm y una base de datos."
+      : !xlsFile
+      ? "Elige un XLSForm."
+      : !dataFile
+      ? "Elige una base de datos."
+      : "";
 
   return (
     <section className={`dash-source dash-cardbox ${compact ? "is-compact" : ""}`}>
@@ -184,6 +202,7 @@ export function DashboardSourceGate({
               type="button"
               className={`dash-source-segment ${group === "project" ? "is-active" : ""}`}
               disabled={!projectReady}
+              title={projectDisabledReason || "Usar archivos del proyecto"}
               onClick={() => switchGroup("project")}
             >
               Proyecto
@@ -192,11 +211,19 @@ export function DashboardSourceGate({
               type="button"
               className={`dash-source-segment ${group === "session" ? "is-active" : ""}`}
               disabled={!sessionReady}
+              title={sessionDisabledReason || "Usar archivos de la sesión actual"}
               onClick={() => switchGroup("session")}
             >
               Sesión
             </button>
           </div>
+
+          {(!projectReady || !sessionReady) && (
+            <div className="dash-source-segment-hints" role="note">
+              {!projectReady && <span>Proyecto: falta XLSForm o data.</span>}
+              {!sessionReady && <span>Sesión: falta XLSForm o data.</span>}
+            </div>
+          )}
 
           {group === "project" && payload?.project_dir && (
             <div className="dash-source-path">{payload.project_dir}</div>
@@ -219,6 +246,7 @@ export function DashboardSourceGate({
             type="button"
             className="dash-primary-btn"
             disabled={saving || !selectedXls || !selectedData}
+            title={selectedDisabledReason || "Cargar fuente seleccionada"}
             onClick={importSelected}
           >
             {saving ? <Loader2 size={13} className="pulso-spin" /> : <FileSpreadsheet size={13} />}
@@ -231,26 +259,29 @@ export function DashboardSourceGate({
             <Upload size={15} />
             <span>Subir archivos</span>
           </div>
-          <label className="dash-source-upload">
-            <span>XLSForm</span>
-            <input
-              type="file"
+          <div className="dash-source-upload-stack">
+            <DashboardUploadSlot
+              label="XLSForm"
+              file={xlsFile}
               accept=".xlsx,.xls"
-              onChange={(e) => setXlsFile(e.target.files?.[0] ?? null)}
+              hint="XLSX o XLS"
+              icon="xlsform"
+              onChange={setXlsFile}
             />
-          </label>
-          <label className="dash-source-upload">
-            <span>Data</span>
-            <input
-              type="file"
+            <DashboardUploadSlot
+              label="Data"
+              file={dataFile}
               accept=".xlsx,.xls,.csv,.sav,application/x-spss-sav,application/octet-stream"
-              onChange={(e) => setDataFile(e.target.files?.[0] ?? null)}
+              hint="XLSX, CSV o SAV"
+              icon="data"
+              onChange={setDataFile}
             />
-          </label>
+          </div>
           <button
             type="button"
             className="dash-primary-btn"
             disabled={saving || !xlsFile || !dataFile}
+            title={uploadDisabledReason || "Subir y cargar archivos"}
             onClick={uploadAndImport}
           >
             {saving ? <Loader2 size={13} className="pulso-spin" /> : <Upload size={13} />}
@@ -264,6 +295,53 @@ export function DashboardSourceGate({
       <VariablesPanel />
     </section>
   );
+}
+
+function DashboardUploadSlot({
+  label,
+  file,
+  accept,
+  hint,
+  icon,
+  onChange,
+}: {
+  label: string;
+  file: File | null;
+  accept: string;
+  hint: string;
+  icon: "xlsform" | "data";
+  onChange: (file: File | null) => void;
+}) {
+  const Icon = icon === "xlsform" ? FileSpreadsheet : Database;
+
+  return (
+    <label className={`dash-source-upload-card${file ? " has-file" : ""}`}>
+      <span className="dash-source-upload-label">{label}</span>
+      <span className="dash-source-upload-main">
+        <span className="dash-source-upload-icon" aria-hidden="true">
+          <Icon size={16} />
+        </span>
+        <span className="dash-source-upload-copy">
+          <strong>{file ? file.name : `Elegir ${label}`}</strong>
+          <small>{file ? formatBytes(file.size) : hint}</small>
+        </span>
+        <Upload size={14} aria-hidden="true" />
+      </span>
+      <input
+        className="dash-source-upload-input"
+        type="file"
+        accept={accept}
+        onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+      />
+    </label>
+  );
+}
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "Archivo seleccionado";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 // Fila editable del panel "Personalizar variables". Tiene state local

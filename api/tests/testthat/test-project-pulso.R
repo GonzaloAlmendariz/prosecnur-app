@@ -14,6 +14,18 @@
   as.raw(c(0x50, 0x4B, 0x03, 0x04, 0x00, 0x00, 0x00))
 }
 
+.xlsx_bytes_from_sheets <- function(sheets) {
+  path <- tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  for (sheet_name in names(sheets)) {
+    openxlsx::addWorksheet(wb, sheet_name)
+    openxlsx::writeData(wb, sheet_name, sheets[[sheet_name]])
+  }
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  on.exit(unlink(path, force = TRUE), add = TRUE)
+  readBin(path, "raw", n = file.info(path)$size)
+}
+
 .fake_session_with_state <- function() {
   sid <- session_create()
   # Subir un input "referenciado" como instrumento de una base — solo
@@ -42,6 +54,167 @@
     list(id = "rc1", nombre = "Rango edad", tipo = "rango_num", activa = TRUE)
   ))
   list(sid = sid, file_id = meta$file_id, data_file_id = data_meta$file_id)
+}
+
+.multibase_variant_repair_session <- function() {
+  sid <- session_create()
+
+  survey <- data.frame(
+    type = c("text", "text", "select_one lst_p10", "text", "text"),
+    name = c("origen", "p1", "p10", "p10_other", "p11"),
+    label = c("origen", "Pregunta 1", "Empresa", "Otra empresa", "Pregunta 11"),
+    relevant = c("", "", "", "${p10} = '999'", ""),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("lst_p10", "lst_p10"),
+    name = c("1", "999"),
+    label = c("Empresa guía", "Otro"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  data_df <- data.frame(
+    origen = c("México", "Perú"),
+    p1 = c("a", "b"),
+    p10_mexico = c("1", NA),
+    p10_mexico_other = c(NA, NA),
+    p10_peru = c(NA, "2"),
+    p10_peru_other = c(NA, "Empresa P"),
+    p11 = c("x", "y"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  template_choices <- data.frame(
+    parent_col = c("p10_mexico", "p10_mexico", "p10_peru", "p10_peru"),
+    list_name = c("p10_mexico_list", "p10_mexico_list", "p10_peru_list", "p10_peru_list"),
+    code = c("1", "999", "2", "999"),
+    label = c("Empresa M", "Otro", "Empresa P", "Otro"),
+    variable_label = c("Empresa - México", "Empresa - México", "Empresa - Perú", "Empresa - Perú"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  xmeta <- save_upload(
+    sid, "xlsform", "instrumento_viejo.xlsx",
+    .xlsx_bytes_from_sheets(list(survey = survey, choices = choices))
+  )
+  dmeta <- save_upload(
+    sid, "data", "data_integrada.xlsx",
+    .xlsx_bytes_from_sheets(list(data = data_df))
+  )
+  tmeta <- save_upload(
+    sid, "data", "plantilla_codificacion.xlsx",
+    .xlsx_bytes_from_sheets(list(CHOICES = template_choices))
+  )
+
+  estudio_ensure(sid)
+  bad_inst <- reporte_instrumento(path = xmeta$path)
+  bad_compat <- structure(
+    list(
+      ok = FALSE,
+      missing_variables = c("p10", "p10_other"),
+      message = "La data normalizada no calza con el XLSForm: faltan p10, p10_other"
+    ),
+    class = "pulso_data_xlsform_compatibility"
+  )
+  attr(data_df, "xlsform_normalized") <- TRUE
+  attr(data_df, "xlsform_compatibility") <- bad_compat
+
+  s <- session_get(sid)
+  s$estudio$base_activa <- "base_integrada"
+  s$estudio$bases[["base_integrada"]] <- list(
+    nombre = "base_integrada",
+    xlsform_file_id = xmeta$file_id,
+    data_file_id = dmeta$file_id,
+    data_ext = "xlsx",
+    compatibilidad = bad_compat,
+    multi_integrated = list(
+      origin_key_name = "origen",
+      variant_map = list(
+        list(from = "p10", to = "p10_mexico", origin_key = "México", replace_source = TRUE),
+        list(from = "p10", to = "p10_peru", origin_key = "Perú", replace_source = FALSE)
+      )
+    )
+  )
+  s$codif_por_base <- list(base_integrada = list(
+    plantilla_codigos_file_id = tmeta$file_id
+  ))
+  s$rp_inst <- bad_inst
+  s$rp_inst_sources <- list(base_integrada = bad_inst)
+  s$rp_data <- data_df
+  s$rp_data_sources <- list(base_integrada = data_df)
+  s$data_xlsform_compatibility <- bad_compat
+  .session_env[[sid]] <- s
+
+  list(sid = sid)
+}
+
+.parent_recod_repair_session <- function() {
+  sid <- session_create()
+
+  survey <- data.frame(
+    type = c("select_one lst_p_area", "text", "select_one lst_p_area_other_recod"),
+    name = c("p_area", "p_area_other", "p_area_other_recod"),
+    label = c("Area", "Otro area", "Otro area recodificada"),
+    list_name = c("lst_p_area", "", "lst_p_area_other_recod"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  choices <- data.frame(
+    list_name = c(
+      rep("lst_p_area", 4),
+      rep("lst_p_area_other_recod", 2)
+    ),
+    name = c("1", "2", "6", "99", "6", "1"),
+    label = c(
+      "Operaciones", "Direccion", "Finanzas", "Otro",
+      "Sistema de Gestion", "Sostenibilidad"
+    ),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  data_df <- data.frame(
+    p_area = c("1", "99", "2", "99", "99", "6"),
+    p_area_other = c("", "Sistema", "", "Sostenibilidad", "Sin clasificar", ""),
+    p_area_other_recod = c(NA, "6", NA, "1", NA, NA),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  xmeta <- save_upload(
+    sid, "xlsform", "instrumento_parent_recod.xlsx",
+    .xlsx_bytes_from_sheets(list(survey = survey, choices = choices))
+  )
+  dmeta <- save_upload(
+    sid, "data", "data_parent_recod.xlsx",
+    .xlsx_bytes_from_sheets(list(data = data_df))
+  )
+
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  s$estudio$base_activa <- "base_integrada"
+  s$estudio$bases[["base_integrada"]] <- list(
+    nombre = "base_integrada",
+    xlsform_file_id = xmeta$file_id,
+    data_file_id = dmeta$file_id,
+    data_ext = "xlsx"
+  )
+  s$codif_por_base <- list(base_integrada = list(
+    familias_draft = list(rows = list(list(
+      use = TRUE,
+      tipo = "select_one",
+      modo_so = "padre",
+      parent = "p_area",
+      parent_col = "p_area",
+      text_col = "p_area_other",
+      parent_label = "Area",
+      list_norm = "lst_p_area"
+    )))
+  ))
+  .session_env[[sid]] <- s
+
+  list(sid = sid, xls_path = xmeta$path, data_path = dmeta$path)
 }
 
 # ----- Round-trip básico ------------------------------------------------------
@@ -88,6 +261,299 @@ test_that("load_pulso restaura los archivos físicos con paths correctos", {
   # Bytes preservados
   bytes <- readBin(meta$path, "raw", n = 100)
   expect_identical(bytes, .tiny_xlsx_bytes())
+})
+
+test_that("load_pulso repara XLSForm multibase viejo con variantes ya integradas", {
+  setup <- .multibase_variant_repair_session()
+  on.exit(session_delete(setup$sid))
+
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit(unlink(tmp, force = TRUE), add = TRUE)
+  build_pulso(setup$sid, tmp)
+
+  res_load <- load_pulso(tmp)
+  on.exit(session_delete(res_load$session_id), add = TRUE)
+  s <- session_get(res_load$session_id)
+  inst <- s$rp_inst_sources$base_integrada %||% s$rp_inst
+  names_after <- as.character(inst$survey$name)
+
+  expect_false("p10" %in% names_after)
+  expect_false("p10_other" %in% names_after)
+  expect_true(all(c(
+    "p10_mexico", "p10_mexico_other",
+    "p10_peru", "p10_peru_other"
+  ) %in% names_after))
+  expect_match(
+    paste(
+      as.character(inst$survey$type[names_after == "origen"][1]),
+      as.character(inst$survey$list_name[names_after == "origen"][1])
+    ),
+    "^select_one\\s+origen_list$"
+  )
+  compat <- s$estudio$bases$base_integrada$compatibilidad
+  expect_true(isTRUE(compat$ok))
+  expect_false(any(c("p10", "p10_other") %in% (compat$missing_variables %||% character(0))))
+})
+
+test_that("load_pulso reconstruye caches runtime por base integrada", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+
+  sid <- session_create()
+  on.exit(session_delete(sid))
+
+  survey <- data.frame(
+    type = c("select_one lista_p1", "integer"),
+    name = c("p1", "p2"),
+    label = c("Pregunta uno", "Pregunta dos"),
+    list_name = c("lista_p1", ""),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("lista_p1", "lista_p1"),
+    name = c("1", "2"),
+    label = c("Si", "No"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  data_df <- data.frame(
+    p1 = c("1", "2"),
+    p2 = c(10, 20),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  xmeta <- save_upload(
+    sid, "xlsform", "instrumento_integrado.xlsx",
+    .xlsx_bytes_from_sheets(list(survey = survey, choices = choices))
+  )
+  dmeta <- save_upload(
+    sid, "data", "data_integrada.xlsx",
+    .xlsx_bytes_from_sheets(list(data = data_df))
+  )
+  inst <- reporte_instrumento(path = xmeta$path)
+
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  s$estudio$bases[["base_integrada"]] <- list(
+    nombre = "base_integrada",
+    xlsform_file_id = xmeta$file_id,
+    data_file_id = dmeta$file_id,
+    data_ext = "xlsx",
+    n_filas = 2L,
+    n_columnas = 2L,
+    added_at = "2026-05-31T10:00:00Z",
+    multi_integrated = list(origin_key_name = "origen")
+  )
+  # Simula proyectos integrados viejos: archivos canónicos presentes, pero
+  # los maps por base que consume Validación quedaron vacíos o malformados.
+  s$rp_data_sources <- list()
+  s$rp_inst_sources <- list()
+  s$rp_data <- list()
+  s$rp_inst <- list(base_integrada = inst)
+  .session_env[[sid]] <- s
+
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit(unlink(tmp, force = TRUE), add = TRUE)
+  build_pulso(sid, tmp)
+
+  loaded <- load_pulso(tmp)
+  on.exit(session_delete(loaded$session_id), add = TRUE)
+
+  data_sources <- estudio_data_sources(loaded$session_id)
+  inst_sources <- estudio_inst_sources(loaded$session_id)
+  expect_true("base_integrada" %in% names(data_sources))
+  expect_true("base_integrada" %in% names(inst_sources))
+  expect_s3_class(data_sources$base_integrada, "data.frame")
+  expect_true(.pulso_valid_inst_cache(inst_sources$base_integrada))
+
+  resolved <- .resolve_explorar_data(loaded$session_id, "base_integrada", "raw")
+  expect_equal(resolved$effective_base, "base_integrada")
+  expect_s3_class(resolved$data, "data.frame")
+  expect_true(.pulso_valid_inst_cache(resolved$instrumento))
+})
+
+test_that("load_pulso prefiere archivos canonicos sobre caches runtime viejos", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+
+  sid <- session_create()
+  on.exit(session_delete(sid))
+
+  survey <- data.frame(
+    type = c("select_one lista_p1", "integer"),
+    name = c("p1", "p2"),
+    label = c("Pregunta uno", "Pregunta dos"),
+    list_name = c("lista_p1", ""),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  choices <- data.frame(
+    list_name = c("lista_p1", "lista_p1"),
+    name = c("1", "2"),
+    label = c("Si", "No"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  data_df <- data.frame(
+    p1 = c("1", "2"),
+    p2 = c(10, 20),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  stale_survey <- survey[1, , drop = FALSE]
+  stale_inst <- reporte_instrumento(path = save_upload(
+    sid, "xlsform", "instrumento_viejo.xlsx",
+    .xlsx_bytes_from_sheets(list(survey = stale_survey, choices = choices))
+  )$path)
+
+  xmeta <- save_upload(
+    sid, "xlsform", "instrumento_canonico.xlsx",
+    .xlsx_bytes_from_sheets(list(survey = survey, choices = choices))
+  )
+  dmeta <- save_upload(
+    sid, "data", "data_canonica.xlsx",
+    .xlsx_bytes_from_sheets(list(data = data_df))
+  )
+
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  s$estudio$bases[["base_integrada"]] <- list(
+    nombre = "base_integrada",
+    xlsform_file_id = xmeta$file_id,
+    data_file_id = dmeta$file_id,
+    data_ext = "xlsx",
+    multi_integrated = list(origin_key_name = "origen")
+  )
+  s$rp_inst <- stale_inst
+  s$rp_data <- data.frame(p1 = c("1", "2"), stringsAsFactors = FALSE, check.names = FALSE)
+  s$rp_inst_sources <- list(base_integrada = stale_inst)
+  s$rp_data_sources <- list(base_integrada = s$rp_data)
+  .session_env[[sid]] <- s
+
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit(unlink(tmp, force = TRUE), add = TRUE)
+  build_pulso(sid, tmp)
+
+  loaded <- load_pulso(tmp)
+  on.exit(session_delete(loaded$session_id), add = TRUE)
+
+  data_sources <- estudio_data_sources(loaded$session_id)
+  inst_sources <- estudio_inst_sources(loaded$session_id)
+  expect_true("p2" %in% names(data_sources$base_integrada))
+  expect_true("p2" %in% as.character(inst_sources$base_integrada$survey$name))
+  compat <- attr(data_sources$base_integrada, "xlsform_compatibility", exact = TRUE)
+  expect_true(isTRUE(compat$ok))
+})
+
+test_that("repair parent recod rebuilds integrated SO recod without code collisions", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+
+  setup <- .parent_recod_repair_session()
+  on.exit(session_delete(setup$sid))
+
+  expect_true(.pulso_repair_parent_recod_columns(setup$sid))
+
+  fixed_data <- as.data.frame(readxl::read_excel(setup$data_path, sheet = "data"),
+                              stringsAsFactors = FALSE, check.names = FALSE)
+  expect_true("p_area_recod" %in% names(fixed_data))
+  expect_equal(as.character(fixed_data$p_area_recod), c("1", "100", "2", "101", NA, "6"))
+
+  fixed_survey <- as.data.frame(readxl::read_excel(setup$xls_path, sheet = "survey"),
+                                stringsAsFactors = FALSE, check.names = FALSE)
+  expect_true("p_area_recod" %in% as.character(fixed_survey$name))
+  recod_row <- fixed_survey[as.character(fixed_survey$name) == "p_area_recod", , drop = FALSE]
+  expect_equal(as.character(recod_row$type[[1]]), "select_one lst_p_area_recod")
+
+  fixed_choices <- as.data.frame(readxl::read_excel(setup$xls_path, sheet = "choices"),
+                                 stringsAsFactors = FALSE, check.names = FALSE)
+  recod_choices <- fixed_choices[as.character(fixed_choices$list_name) == "lst_p_area_recod", , drop = FALSE]
+  expect_true(all(c("1", "2", "6", "99", "100", "101") %in% as.character(recod_choices$name)))
+  labels <- stats::setNames(as.character(recod_choices$label), as.character(recod_choices$name))
+  expect_equal(labels[["100"]], "Sistema de Gestion")
+  expect_equal(labels[["101"]], "Sostenibilidad")
+})
+
+test_that("repair parent recod creates parent copy when child recod is absent", {
+  df <- data.frame(
+    p_area = c("1", "99", "2", NA),
+    p_area_other = c("", "Sistema", "", ""),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  fixed <- .pulso_repair_parent_recod_df(df, "p_area", "p_area_other")
+
+  expect_true(fixed$changed)
+  expect_true("p_area_recod" %in% names(fixed$data))
+  expect_equal(as.character(fixed$data$p_area_recod), c("1", "99", "2", NA))
+  expect_equal(names(fixed$data)[match("p_area", names(fixed$data)) + 1L], "p_area_recod")
+})
+
+test_that("estudio payload exposes integrated-instruments history", {
+  sid <- session_create()
+  on.exit(session_delete(sid))
+
+  guide <- save_upload(sid, "xlsform", "guia_canonica.xlsx", .tiny_xlsx_bytes())
+  xmeta <- save_upload(sid, "xlsform", "instrumento_integrado.xlsx", .tiny_xlsx_bytes())
+  dmeta <- save_upload(sid, "data", "base_integrada.xlsx", .tiny_xlsx_bytes())
+  o_x <- save_upload(sid, "xlsform", "origen_mexico.xlsx", .tiny_xlsx_bytes())
+  o_d <- save_upload(sid, "data", "origen_mexico_data.xlsx", .tiny_xlsx_bytes())
+
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  s$estudio$bases[["base_integrada"]] <- list(
+    nombre = "base_integrada",
+    xlsform_file_id = xmeta$file_id,
+    data_file_id = dmeta$file_id,
+    data_ext = "xlsx",
+    n_filas = 10L,
+    n_columnas = 5L,
+    added_at = "2026-05-31T10:00:00Z",
+    multi_integrated = list(
+      version = 1L,
+      kind = "integrated_instruments",
+      origin_key_name = "pais",
+      guide_xlsform_file_id = guide$file_id,
+      origins = list(mx = list(
+        id = "mx",
+        source_kind = "manual",
+        key_value = "México",
+        label = "México",
+        xlsform_file_id = o_x$file_id,
+        data_file_id = o_d$file_id
+      )),
+      variant_map = list(`mx::p10` = list(from = "p10", to = "p10_mexico", origin_key = "México")),
+      label_overrides_standard = list(p1 = "Fraseo final común"),
+      label_overrides_by_key = list(p1 = "Fraseo estándar"),
+      imported_at = "2026-05-31T11:00:00Z"
+    )
+  )
+  .session_env[[sid]] <- s
+
+  payload <- .estudio_payload(sid)
+  base <- payload$bases$base_integrada
+  expect_equal(base$xlsform_file_name, "instrumento_integrado.xlsx")
+  expect_equal(base$data_file_name, "base_integrada.xlsx")
+  expect_equal(base$multi_integrated$origin_key_name, "pais")
+  expect_equal(base$multi_integrated$guide$filename, "guia_canonica.xlsx")
+  expect_equal(base$multi_integrated$origins[[1]]$xlsform_file_name, "origen_mexico.xlsx")
+  expect_equal(base$multi_integrated$origins[[1]]$data_file_name, "origen_mexico_data.xlsx")
+  expect_equal(base$multi_integrated$label_overrides_standard$p1, "Fraseo final común")
+  expect_equal(base$multi_integrated$label_overrides_by_key$p1, "Fraseo estándar")
+  expect_equal(base$multi_integrated$variant_map[[1]]$to, "p10_mexico")
+  expect_null(names(base$multi_integrated$origins))
+  expect_null(names(base$multi_integrated$variant_map))
+
+  encoded <- jsonlite::toJSON(
+    base$multi_integrated[c("origins", "variant_map")],
+    auto_unbox = TRUE
+  )
+  expect_match(encoded, '"origins":\\[')
+  expect_match(encoded, '"variant_map":\\[')
 })
 
 # ----- Dirty flag -------------------------------------------------------------

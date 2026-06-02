@@ -47,7 +47,7 @@ export function PlanNodeCard({ node, selected, dimmed, issues, onClick, onMouseD
         <span style={{ flex: 1 }} />
         {(errors > 0 || warns > 0) && (
           <span
-            title={`${errors > 0 ? `${errors} error(es)` : ""}${errors > 0 && warns > 0 ? " · " : ""}${warns > 0 ? `${warns} aviso(s)` : ""}`}
+            aria-label={`${errors > 0 ? `${errors} error(es)` : ""}${errors > 0 && warns > 0 ? ". " : ""}${warns > 0 ? `${warns} aviso(s)` : ""}`}
             style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center",
               width: 14, height: 14, borderRadius: 999,
@@ -60,7 +60,7 @@ export function PlanNodeCard({ node, selected, dimmed, issues, onClick, onMouseD
         )}
       </div>
 
-      <div className="pulso-gv2-node-title" title={titulo || (SLIDE_LABELS[node.slide.tipo] ?? node.slide.tipo)}>
+      <div className="pulso-gv2-node-title" aria-label={titulo || (SLIDE_LABELS[node.slide.tipo] ?? node.slide.tipo)}>
         {titulo || (SLIDE_LABELS[node.slide.tipo] ?? node.slide.tipo)}
       </div>
 
@@ -73,17 +73,17 @@ export function PlanNodeCard({ node, selected, dimmed, issues, onClick, onMouseD
       {(node.hasOverride || node.hasIcon || node.hasPalette) && (
         <div className="pulso-gv2-node-badges">
           {node.hasOverride && (
-            <span className="pulso-gv2-node-badge is-override" title="Aplica un modo de estilo">
+            <span className="pulso-gv2-node-badge is-override" aria-label="Aplica un modo de estilo">
               <IconModes size={9} /> Modo
             </span>
           )}
           {node.hasIcon && (
-            <span className="pulso-gv2-node-badge is-icon" title="Usa ícono del catálogo">
+            <span className="pulso-gv2-node-badge is-icon" aria-label="Usa ícono del catálogo">
               <ImageIcon size={9} /> Ícono
             </span>
           )}
           {node.hasPalette && (
-            <span className="pulso-gv2-node-badge is-palette" title="Usa paleta personalizada">
+            <span className="pulso-gv2-node-badge is-palette" aria-label="Usa paleta personalizada">
               <Palette size={9} /> Paleta
             </span>
           )}

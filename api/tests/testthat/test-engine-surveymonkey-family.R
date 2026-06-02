@@ -1089,6 +1089,84 @@ test_that("ppra_adaptar_data e instrumento resuelven select_one modo hijo con bl
   expect_true("lst_mode_detail_recod" %in% choices_out$list_name)
 })
 
+test_that("select_one modo hijo acepta codigos existentes del padre sin bloque auxiliar", {
+  inst <- make_codif_inst(
+    survey = data.frame(
+      type = c("select_one lst_mode", "text"),
+      name = c("mode", "mode_detail"),
+      relevant = c(NA, "${mode} = '96'"),
+      `label::Spanish (ES)` = c("Modo principal", "Detalle modo"),
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_mode", "lst_mode", "lst_mode"),
+      name = c("1", "2", "96"),
+      `label::Spanish (ES)` = c("Presencial", "Virtual", "Otro"),
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+  )
+  dat <- make_codif_dat(data.frame(
+    `_uuid` = c("u1", "u2"),
+    `_index` = c(1, 2),
+    mode = c("96", "1"),
+    mode_detail = c("Virtual escrito como otro", NA),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  ))
+  path_inst <- tempfile(fileext = ".xlsx")
+  path_data <- tempfile(fileext = ".xlsx")
+  path_familias <- tempfile(fileext = ".xlsx")
+  path_tpl <- tempfile(fileext = ".xlsx")
+  path_out_data <- tempfile(fileext = ".xlsx")
+  path_out_inst <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(c(path_inst, path_data, path_familias, path_tpl, path_out_data, path_out_inst)), add = TRUE)
+
+  write_codif_inst_xlsx(inst, path_inst)
+  openxlsx::write.xlsx(list(data = dat$raw), file = path_data, overwrite = TRUE)
+  prosecnurapp::escribir_plantilla_familias(inst, dat, path = path_familias)
+  set_familias_modo_so(path_familias, c(mode = "hijo"))
+  fam <- prosecnurapp::leer_familias_clasificar(path_familias, inst, dat, verbose = FALSE)
+  plantilla <- prosecnurapp::construir_plantilla_desde_familias(inst, dat, fam)
+  prosecnurapp::exportar_plantilla_codificacion_xlsx(plantilla, path_xlsx = path_tpl, inst = inst)
+
+  hdr_mode <- read_sheet_headers(path_tpl, "mode")
+  col_child_recod <- which(as.character(hdr_mode[1, ]) == "mode_detail_recod")
+  wb <- openxlsx::loadWorkbook(path_tpl)
+  openxlsx::writeData(wb, "mode", x = "2", startCol = col_child_recod, startRow = 3, colNames = FALSE)
+  openxlsx::saveWorkbook(wb, path_tpl, overwrite = TRUE)
+
+  expect_error(suppressMessages(prosecnurapp::ppra_adaptar_data(
+    path_instrumento = path_inst,
+    path_datos = path_data,
+    path_plantilla = path_tpl,
+    so_child_vars = "mode",
+    path_familias = path_familias,
+    out_path = path_out_data
+  )), NA)
+
+  out <- readxl::read_excel(path_out_data, sheet = "data")
+  expect_identical(as.character(out$mode_detail_recod[[1]]), "2")
+
+  expect_error(suppressMessages(prosecnurapp::ppra_adaptar_instrumento(
+    path_instrumento_in = path_inst,
+    path_data_adaptada = path_out_data,
+    path_instrumento_out = path_out_inst,
+    path_plantilla = path_tpl,
+    so_child_vars = "mode"
+  )), NA)
+
+  choices_out <- readxl::read_excel(path_out_inst, sheet = "choices")
+  label_col <- names(choices_out)[tolower(names(choices_out)) %in% c("label::spanish (es)", "label_spanish_es", "label")][1]
+  child_choices <- choices_out[choices_out$list_name == "lst_mode_detail_recod", , drop = FALSE]
+  expect_true("2" %in% as.character(child_choices$name))
+  expect_identical(
+    as.character(child_choices[[label_col]][match("2", as.character(child_choices$name))]),
+    "Virtual"
+  )
+})
+
 test_that("ppra_adaptar_data devuelve un error claro si el bloque auxiliar tiene etiquetas inconsistentes", {
   inst <- make_codif_inst(
     survey = data.frame(

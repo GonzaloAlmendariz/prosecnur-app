@@ -156,7 +156,7 @@ export function InspectorV2() {
                 disabled={disabled}
                 onClick={() => setInspectorTab(key)}
                 className={`pulso-gv2-inspector-tab ${inspectorTab === key ? "is-active" : ""}`}
-                title={
+                aria-label={
                   disabled
                     ? `Sin opciones en "${label}" para este tipo de slide`
                     : `${label}${issueN > 0 ? ` · ${issueN} incidencia${issueN === 1 ? "" : "s"}` : ""}`

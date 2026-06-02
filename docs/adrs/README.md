@@ -1,0 +1,34 @@
+# Architecture Decision Records
+
+Este directorio contiene las decisiones arquitectonicas de Prosecnur.
+
+Un ADR se crea cuando una decision afecta estructura, persistencia,
+caracteristicas arquitectonicas, dependencias entre modulos, despliegue,
+seguridad de datos o contratos publicos. Los ADRs no reemplazan la
+documentacion tecnica: explican por que una direccion fue elegida y como se
+verificara que el codigo siga obedeciendola.
+
+## Formato
+
+Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
+
+- contexto;
+- decision;
+- consecuencias;
+- cumplimiento;
+- fecha.
+
+## Indice
+
+| ADR | Estado | Fecha | Decision |
+|---|---|---:|---|
+| [0001](0001-app-local.md) | Aceptado | 2026-05-31 | Prosecnur es una aplicacion local de escritorio |
+| [0002](0002-formato-pulso.md) | Aceptado | 2026-05-31 | El proyecto persistente usa formato `.pulso` |
+| [0003](0003-motor-r-integrado.md) | Aceptado | 2026-05-31 | El motor R vive integrado en `prosecnurapp` |
+| [0004](0004-monolito-modular-microkernel.md) | Aceptado | 2026-05-31 | La arquitectura base es monolito modular con orientacion microkernel |
+| [0005](0005-secretos-fuera-del-proyecto.md) | Aceptado | 2026-05-31 | Los secretos se guardan fuera del proyecto |
+| [0006](0006-modulos-por-dominio.md) | Aceptado | 2026-05-31 | Los modulos se organizan por dominio metodologico |
+| [0007](0007-integraciones-salientes-dashboard-publicable.md) | Aceptado | 2026-05-31 | Prosecnur permite integraciones salientes y dashboard publicable sin dejar de ser local |
+| [0008](0008-proyecto-canonico-auditoria.md) | Aceptado | 2026-05-31 | Prosecnur usa un proyecto canonico de auditoria reproducible |
+
+Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

@@ -175,6 +175,26 @@
   )
 }
 
+.xlsform_editor_mask_secret <- function(token) {
+  .connections_mask_secret(token)
+}
+
+.xlsform_editor_sm_session_token_exists <- function(sid) {
+  .connections_session_token_exists(sid, "surveymonkey")
+}
+
+.xlsform_editor_sm_token_state <- function(sid = NULL) {
+  .connections_token_state("surveymonkey", sid)
+}
+
+.xlsform_editor_sm_token_status <- function(sid = NULL) {
+  .connections_token_status("surveymonkey", sid)
+}
+
+.xlsform_editor_sm_token_require <- function(sid = NULL) {
+  .connections_token_require("surveymonkey", sid)
+}
+
 .xlsform_editor_choice_code_maps <- function(parsed, req = NULL) {
   incoming <- parsed$choice_code_maps %||% NULL
   if (!is.null(incoming) && length(incoming)) return(incoming)
@@ -827,39 +847,26 @@ mount_xlsform_editor <- function(pr) {
       )
     })) |>
     plumber::pr_get("/api/xlsform-editor/sm-token", wrap_endpoint(function(req, res, ...) {
-      # Lee el token cifrado del disco (~/.prosecnurapp/secrets/sm_token.dat).
-      token <- prosecnur_secret_load("sm_token")
-      list(
-        ok = TRUE,
-        has_token = prosecnur_secret_exists("sm_token"),
-        token = if (is.na(token)) "" else token
-      )
+      .xlsform_editor_sm_token_status(session_header(req))
     })) |>
     plumber::pr_post("/api/xlsform-editor/sm-token", wrap_endpoint(function(req, res, ...) {
-      # Guarda el token cifrado en disco. Body: {token: "..."}.
+      # Body: {token: "...", persist: true|false}. Persistido queda cifrado
+      # fuera del proyecto; efímero vive solo en memoria por sid.
       parsed <- .xlsform_editor_parse_body(req)
-      token <- as.character(parsed$token %||% "")
-      prosecnur_secret_save("sm_token", token)
-      list(ok = TRUE, has_token = nzchar(token))
+      .connections_token_save(
+        "surveymonkey",
+        token = parsed$token %||% "",
+        persist = parsed$persist %||% TRUE,
+        sid = session_header(req),
+        res = res
+      )
     })) |>
     plumber::pr_delete("/api/xlsform-editor/sm-token", wrap_endpoint(function(req, res, ...) {
-      prosecnur_secret_clear("sm_token")
-      list(ok = TRUE)
+      .connections_token_clear("surveymonkey", session_header(req))
     })) |>
     plumber::pr_post("/api/xlsform-editor/sm-check-token", wrap_endpoint(function(req, res, ...) {
-      # Verifica que el token sea válido contra GET /users/me. Útil para que
-      # el frontend confirme al cargar (con un token persistido en
-      # localStorage) que sigue funcionando, antes de hacer requests más
-      # caros como listar surveys.
-      parsed <- .xlsform_editor_parse_body(req)
-      token <- as.character(parsed$token %||% "")
-      if (!nzchar(token)) stop_api(400, "E_MISSING_TOKEN", "Falta 'token'.")
-
-      info <- tryCatch(
-        sm_api_check_token(token),
-        error = function(e) list(ok = FALSE, error = conditionMessage(e))
-      )
-      info
+      # Verifica el token guardado en backend contra GET /users/me.
+      .connections_check("surveymonkey", session_header(req))
     })) |>
     plumber::pr_post("/api/xlsform-editor/sm-list-surveys", wrap_endpoint(function(req, res, ...) {
       # Lista los surveys del usuario autenticado por el token, para que
@@ -867,32 +874,23 @@ mount_xlsform_editor <- function(pr) {
       # (las de SurveyMonkey suelen tener tokens encriptados que no
       # exponen el ID numérico real).
       parsed <- .xlsform_editor_parse_body(req)
-      token <- as.character(parsed$token %||% "")
-      if (!nzchar(token)) stop_api(400, "E_MISSING_TOKEN", "Falta 'token' de la API SurveyMonkey.")
+      token <- .xlsform_editor_sm_token_require(session_header(req))
       limit <- suppressWarnings(as.integer(parsed$limit %||% 500L))
       if (is.na(limit) || limit < 1L) limit <- 500L
       limit <- min(limit, 1000L)
       months <- suppressWarnings(as.integer(parsed$months %||% 6L))
       if (is.na(months) || months < 1L) months <- 6L
 
-      all_surveys <- tryCatch(
-        sm_api_list_surveys(token, per_page = 1000L),
+      tryCatch(
+        sm_multibase_list_surveys(
+          token,
+          q = "",
+          limit = limit,
+          months = months,
+          sid = session_header(req),
+          force_refresh = isTRUE(parsed$force_refresh)
+        ),
         error = function(e) stop_api(400, "E_SM_API_FAILED", conditionMessage(e))
-      )
-      cutoff <- as.POSIXct(Sys.Date(), tz = "UTC") - months * 31L * 24L * 60L * 60L
-      surveys <- Filter(function(s) {
-        mod <- .sm_api_parse_time(s$date_modified %||% NA_character_)
-        !is.na(mod) && mod >= cutoff
-      }, all_surveys)
-      total_recent <- length(surveys)
-      if (length(surveys) > limit) surveys <- surveys[seq_len(limit)]
-      list(
-        ok = TRUE,
-        surveys = surveys,
-        count = length(surveys),
-        total_visible = length(all_surveys),
-        total_recent = total_recent,
-        months = months
       )
     })) |>
     plumber::pr_post("/api/xlsform-editor/sm-fetch-survey-info", wrap_endpoint(function(req, res, ...) {
@@ -903,10 +901,9 @@ mount_xlsform_editor <- function(pr) {
       parsed <- .xlsform_editor_parse_body(req)
       file_id <- as.character(parsed$file_id %||% "")
       survey_id <- as.character(parsed$survey_id %||% "")
-      token <- as.character(parsed$token %||% "")
 
       if (!nzchar(survey_id)) stop_api(400, "E_MISSING_SURVEY_ID", "Falta 'survey_id' del survey en SurveyMonkey.")
-      if (!nzchar(token)) stop_api(400, "E_MISSING_TOKEN", "Falta 'token' de la API SurveyMonkey.")
+      token <- .xlsform_editor_sm_token_require(sid)
 
       # Si viene un .sav legacy, detectamos su convención. En el flujo nuevo
       # API-only usamos nombres internos q0001, q0002... como convención estable.
@@ -997,7 +994,7 @@ mount_xlsform_editor <- function(pr) {
       regla <- as.character(parsed$regla %||% "")
       workbook <- parsed$workbook
       survey_id <- as.character(parsed$survey_id %||% "")
-      token <- as.character(parsed$token %||% "")
+      token <- if (nzchar(survey_id)) .xlsform_editor_sm_token_require(session_header(req)) else ""
       paginas_in <- parsed$paginas
 	      paginas_labels_in <- parsed$paginas_labels
 	      overrides_in <- parsed$choice_order_overrides
@@ -1118,11 +1115,11 @@ mount_xlsform_editor <- function(pr) {
 	      overrides_in <- parsed$choice_order_overrides
 	      choice_code_maps <- .xlsform_editor_choice_code_maps(parsed, req)
 	      survey_id <- as.character(parsed$survey_id %||% "")
-      token <- as.character(parsed$token %||% "")
 
-      if (!nzchar(survey_id) || !nzchar(token)) {
-        stop_api(400, "E_MISSING_SURVEYMONKEY_API", "Falta conectar SurveyMonkey con survey_id y token.")
+      if (!nzchar(survey_id)) {
+        stop_api(400, "E_MISSING_SURVEY_ID", "Falta 'survey_id' del survey en SurveyMonkey.")
       }
+      token <- .xlsform_editor_sm_token_require(session_header(req))
 
       # paginas_in viene como JSON: { "16": ["Q24"], "17": ["Q25", ...] }
       paginas <- NULL

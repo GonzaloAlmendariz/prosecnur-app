@@ -163,6 +163,8 @@ export type SessionState = {
       vacío). Distingue "usuario activó multi-base upfront" de
       "todavía no decide". */
   has_estudio: boolean;
+  estudio_processing_mode?: "multibase" | "independent_siblings" | string | null;
+  active_base?: string | null;
   n_bases: number;
   bases_nombres: string[];
 };
@@ -202,21 +204,89 @@ export async function apiSessionState() {
 // ============================================================================
 // Estudio (multi-base, v0.2+)
 // ============================================================================
-// Un "estudio" agrupa 1 a 8 bases (pares XLSForm + data) que se analizan
+// Un "estudio" agrupa 1 a 16 bases (pares XLSForm + data) que se analizan
 // como un todo. La Fase 1 del frontend es el gestor de bases del estudio.
 
 export type EstudioBase = {
   nombre: string;
   xlsform_file_id: string;
+  xlsform_file_name?: string;
   data_file_id: string;
+  data_file_name?: string;
   data_ext: string;
   n_filas: number | null;
   n_columnas: number | null;
   added_at: string;
+  processing_mode?: "multibase" | "independent_siblings" | string | null;
+  source_kind?: string | null;
+  survey_id?: string | null;
+  source_alias?: string | null;
+  source_title?: string | null;
+  sibling_family_id?: string | null;
+  imported_at?: string | null;
+  response_filter?: Record<string, unknown> | null;
+  status?: {
+    imported?: boolean;
+    validacion?: boolean;
+    codificacion?: boolean;
+    codificacion_adaptada?: boolean;
+    analitica?: boolean;
+    graficos?: boolean;
+    shared_logic_from?: string | null;
+  } | null;
+  multi_integrated?: EstudioMultiIntegrated | null;
+};
+
+export type EstudioMultiIntegratedOrigin = {
+  id?: string;
+  source_kind?: "manual" | "surveymonkey" | string;
+  key_value?: string;
+  label?: string;
+  xlsform_file_id?: string;
+  xlsform_file_name?: string;
+  data_file_id?: string;
+  data_file_name?: string;
+  survey_id?: string;
+};
+
+export type EstudioMultiIntegratedVariant = {
+  from?: string;
+  to?: string;
+  origin_key?: string;
+  ref_origin_key?: string;
+  replace_source?: boolean;
+  kind?: string;
+};
+
+export type EstudioMultiIntegratedLabelOverrides = Record<string, string | Record<string, string>>;
+
+export type EstudioMultiIntegrated = {
+  version?: number;
+  kind?: string;
+  origin_key_name?: string;
+  guide_xlsform_file_id?: string;
+  guide?: { file_id?: string; filename?: string; kind?: string };
+  origins?: EstudioMultiIntegratedOrigin[];
+  variant_map?: EstudioMultiIntegratedVariant[];
+  label_overrides_standard?: Record<string, string>;
+  label_overrides_by_key?: EstudioMultiIntegratedLabelOverrides;
+  imported_at?: string;
 };
 
 export type EstudioPayload = {
   nombre: string | null;
+  processing_mode?: "multibase" | "independent_siblings" | string | null;
+  active_base?: string | null;
+  independent_siblings?: {
+    version?: number;
+    sibling_family_id?: string;
+    template_base?: string;
+    logic_policy?: string;
+    shared_logic?: boolean;
+    status?: string;
+    updated_at?: string;
+    audit?: unknown;
+  } | null;
   n_bases: number;
   bases: Record<string, EstudioBase>;
   max_bases: number;
@@ -301,6 +371,25 @@ export async function apiEstudioRenameBase(nombre_actual: string, nombre_nuevo: 
   );
 }
 
+export async function apiEstudioUpdateBaseMetadata(
+  nombre: string,
+  payload: {
+    source_alias?: string;
+    source_title?: string;
+    source_kind?: string;
+    survey_id?: string;
+    response_filter?: Record<string, unknown> | null;
+  },
+) {
+  return handle<EstudioPayload>(
+    await apiFetch(`/api/estudio/base/${encodeURIComponent(nombre)}/metadata`, {
+      method: "PATCH",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
 // Reemplaza el XLSForm y/o la data de una base existente. Cualquiera
 // de los dos file_ids puede ir vacío — al menos uno debe venir.
 // Invalida evaluación y plan_result de la analítica porque la base
@@ -343,14 +432,52 @@ export async function apiEstudioDowngradeToSingle() {
   );
 }
 
+export type EstudioActiveBaseState = {
+  active: string | null;
+  options: string[];
+  processing_mode?: "multibase" | "independent_siblings" | string | null;
+};
+
+export async function apiEstudioActiveBaseGet() {
+  return handle<EstudioActiveBaseState>(
+    await apiFetch("/api/estudio/active-base", { headers: headers() }),
+  );
+}
+
+export async function apiEstudioActiveBaseSet(base_nombre: string) {
+  return handle<{ ok: true } & EstudioActiveBaseState>(
+    await apiFetch("/api/estudio/active-base", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ base_nombre }),
+    }),
+  );
+}
+
+export async function apiEstudioPromoteIndependentSiblings(payload: {
+  active_base?: string;
+  base_nombre?: string;
+  nombre_nuevo?: string;
+  source_alias?: string;
+  source_title?: string;
+  survey_id?: string;
+  source_kind?: string;
+  sibling_family_id?: string;
+}) {
+  return handle<EstudioPayload>(
+    await apiFetch("/api/estudio/independent-siblings/promote", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
 // Base activa para codificación (v0.2+). Devuelve y setea cuál de las
 // bases del estudio está siendo codificada en ese momento. Al cambiar,
 // el backend sirve el estado scoped de esa base (familias, grupos,
 // marcadas, etc. que son independientes entre bases).
-export type CodifSourceState = {
-  active: string | null;
-  options: string[];
-};
+export type CodifSourceState = EstudioActiveBaseState;
 
 export async function apiCodifSourceGet() {
   return handle<CodifSourceState>(
@@ -359,7 +486,7 @@ export async function apiCodifSourceGet() {
 }
 
 export async function apiCodifSourceSet(source: string) {
-  return handle<{ ok: true; active: string }>(
+  return handle<{ ok: true } & CodifSourceState>(
     await apiFetch("/api/estudio/codif-source", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -404,7 +531,17 @@ export type SurveyMonkeyMultibaseSurveyInput = {
   survey_id: string;
   pais?: string;
   label?: string;
+  source_alias?: string;
+  source_title?: string;
   data_file_id?: string;
+  response_statuses?: string[];
+  keep_missing_status?: boolean;
+  collector_id?: string;
+  collector_ids?: string[];
+  date_modified_gte?: string;
+  date_modified_lte?: string;
+  sources?: SurveyMonkeyMultibaseSurveyInput[];
+  campaigns?: SurveyMonkeyMultibaseSurveyInput[];
 };
 
 export type SurveyMonkeyMultibaseListItem = {
@@ -413,6 +550,46 @@ export type SurveyMonkeyMultibaseListItem = {
   nickname: string | null;
   date_modified: string | null;
   pais_guess: string | null;
+};
+
+export type SurveyMonkeyMultibaseInspection = {
+  ok: true;
+  survey_id: string;
+  title: string;
+  language: string;
+  n_pages: number;
+  n_questions: number;
+  n_required: number;
+  n_validation: number;
+  pages: Array<{
+    page_id: string;
+    title: string;
+    range_label: string;
+    question_count: number;
+  }>;
+  questions: Array<{
+    pos: number;
+    page: number;
+    qid: string;
+    family: string;
+    subtype: string;
+    heading: string;
+    n_choices: number;
+    n_rows: number;
+    n_cols: number;
+  }>;
+  responses: {
+    available: boolean;
+    total: number | null;
+    returned: number;
+    error: string;
+  };
+  columns: Array<{
+    name: string;
+    non_empty: number;
+    examples: string[];
+  }>;
+  sample_rows: Array<Record<string, string>>;
 };
 
 export type SurveyMonkeyMultibaseSurveySummary = {
@@ -451,18 +628,31 @@ export type SurveyMonkeyMultibaseAudit = {
   diffs: SurveyMonkeyMultibaseDiff[];
 };
 
-export async function apiSurveyMonkeyMultibaseListSurveys(q = "", limit = 200, months = 6) {
+export async function apiSurveyMonkeyMultibaseListSurveys(
+  q = "",
+  limit = 200,
+  months = 6,
+  options: { forceRefresh?: boolean } = {},
+) {
+  const payload: Record<string, unknown> = { q, limit, months };
+  if (options.forceRefresh) payload.force_refresh = true;
   const raw = await handle<unknown>(
     await apiFetch("/api/surveymonkey/multibase/surveys", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ q, limit, months }),
+      body: JSON.stringify(payload),
     }),
   );
   const r = (raw ?? {}) as Record<string, unknown>;
   const arr = Array.isArray(r.surveys) ? (r.surveys as Record<string, unknown>[]) : [];
   return {
     ok: true as const,
+    from_cache: Boolean(r.from_cache),
+    cache_status: String(r.cache_status ?? ""),
+    refresh_error: String(r.refresh_error ?? ""),
+    catalog_fetched_at: r.catalog_fetched_at == null || r.catalog_fetched_at === "NA" ? null : String(r.catalog_fetched_at),
+    catalog_age_seconds: r.catalog_age_seconds == null || r.catalog_age_seconds === "NA" ? null : Number(r.catalog_age_seconds),
+    catalog_count: Number(r.catalog_count ?? r.total_visible ?? arr.length),
     total_visible: Number(r.total_visible ?? arr.length),
     total_recent: Number(r.total_recent ?? arr.length),
     months: Number(r.months ?? months),
@@ -474,6 +664,67 @@ export async function apiSurveyMonkeyMultibaseListSurveys(q = "", limit = 200, m
       date_modified: s.date_modified == null || s.date_modified === "NA" ? null : String(s.date_modified),
       pais_guess: s.pais_guess == null || s.pais_guess === "NA" ? null : String(s.pais_guess),
     })),
+  };
+}
+
+export async function apiSurveyMonkeyMultibaseInspectSurvey(
+  survey_id: string,
+  response_limit = 5,
+  base_url = "https://api.surveymonkey.com/v3",
+) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/surveymonkey/multibase/inspect", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ survey_id, response_limit, base_url }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const response = (r.responses ?? {}) as Record<string, unknown>;
+  const pages = normalizeRecordArray(r.pages).map((page) => ({
+    page_id: String(page.page_id ?? ""),
+    title: String(page.title ?? ""),
+    range_label: String(page.range_label ?? ""),
+    question_count: Number(page.question_count ?? 0),
+  }));
+  const questions = normalizeRecordArray(r.questions).map((q) => ({
+    pos: Number(q.pos ?? 0),
+    page: Number(q.page ?? 0),
+    qid: String(q.qid ?? ""),
+    family: String(q.family ?? ""),
+    subtype: String(q.subtype ?? ""),
+    heading: String(q.heading ?? ""),
+    n_choices: Number(q.n_choices ?? 0),
+    n_rows: Number(q.n_rows ?? 0),
+    n_cols: Number(q.n_cols ?? 0),
+  }));
+  const columns = normalizeRecordArray(r.columns).map((column) => ({
+    name: String(column.name ?? ""),
+    non_empty: Number(column.non_empty ?? 0),
+    examples: Array.isArray(column.examples) ? column.examples.map(String) : [],
+  }));
+  const sampleRows = normalizeRecordArray(r.sample_rows).map((row) =>
+    Object.fromEntries(Object.entries(row).map(([key, value]) => [key, String(value ?? "")])),
+  );
+  return {
+    ok: true as const,
+    survey_id: String(r.survey_id ?? survey_id),
+    title: String(r.title ?? ""),
+    language: String(r.language ?? ""),
+    n_pages: Number(r.n_pages ?? pages.length),
+    n_questions: Number(r.n_questions ?? questions.length),
+    n_required: Number(r.n_required ?? 0),
+    n_validation: Number(r.n_validation ?? 0),
+    pages,
+    questions,
+    responses: {
+      available: Boolean(response.available),
+      total: response.total == null || response.total === "NA" ? null : Number(response.total),
+      returned: Number(response.returned ?? sampleRows.length),
+      error: String(response.error ?? ""),
+    },
+    columns,
+    sample_rows: sampleRows,
   };
 }
 
@@ -505,6 +756,28 @@ export async function apiSurveyMonkeyMultibaseImport(payload: {
     n_columnas: number;
   }>(
     await apiFetch("/api/surveymonkey/multibase/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiSurveyMonkeyMultibaseImportIndependent(payload: {
+  surveys: SurveyMonkeyMultibaseSurveyInput[];
+  response_statuses?: string[];
+  keep_missing_status?: boolean;
+}) {
+  return handle<{
+    ok: true;
+    processing_mode: "independent_siblings";
+    active_base: string | null;
+    bases: EstudioBase[];
+    n_bases: number;
+    estudio: EstudioPayload;
+    audit: SurveyMonkeyMultibaseAudit;
+  }>(
+    await apiFetch("/api/surveymonkey/multibase/import-independent", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
@@ -1016,13 +1289,161 @@ export type EditorPayloadWithHallazgos = XlsformEditorPayload & {
   hallazgos: Hallazgo[];
 };
 
-// El token se persiste en disco en el backend, cifrado con AES-256-CBC,
-// bajo ~/.prosecnurapp/secrets/sm_token.dat. Frontend solo dispara las
-// operaciones — nunca toca el archivo ni guarda token en localStorage
-// (esto es app desktop, no web).
-export async function apiXlsformEditorSmTokenLoad(): Promise<{ ok: true; has_token: boolean; token: string }> {
+// El token vive en backend: persistido cifrado en disco local o efímero por
+// sesión. El frontend solo muestra estado/máscara y nunca recibe el secreto.
+export type SurveyMonkeyTokenState = {
+  ok: true;
+  has_token: boolean;
+  masked_token: string;
+  persisted: boolean;
+  ephemeral: boolean;
+  active_profile_id?: string;
+  active_profile_alias?: string;
+  profile_count?: number;
+  profiles?: ConnectionProfileState[];
+};
+
+export type ConnectionProvider = "surveymonkey" | "kobo";
+
+export type ConnectionProfileState = {
+  id: string;
+  alias: string;
+  is_default: boolean;
+  has_token: boolean;
+  masked_token: string;
+  updated_at?: string;
+  legacy?: boolean;
+};
+
+export type ConnectionTokenState = SurveyMonkeyTokenState & {
+  provider: ConnectionProvider;
+  label: string;
+};
+
+export type ConnectionCheckResult =
+  | {
+      ok: true;
+      provider?: ConnectionProvider;
+      status_code: number;
+      n_surveys_visible?: number | null;
+      count?: number | null;
+    }
+  | {
+      ok: false;
+      provider?: ConnectionProvider;
+      status_code?: number;
+      error: string;
+    };
+
+function normalizeConnectionProvider(value: unknown): ConnectionProvider {
+  const raw = String(value ?? "").toLowerCase();
+  return raw === "kobo" || raw === "kobotoolbox" ? "kobo" : "surveymonkey";
+}
+
+function normalizeConnectionTokenState(raw: unknown, providerHint: ConnectionProvider): ConnectionTokenState {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const provider = normalizeConnectionProvider(r.provider ?? providerHint);
+  const profiles = Array.isArray(r.profiles) ? r.profiles.map(normalizeConnectionProfileState) : [];
+  return {
+    ok: true,
+    provider,
+    label: String(r.label ?? (provider === "kobo" ? "KoboToolbox" : "SurveyMonkey")),
+    has_token: r.has_token === true,
+    masked_token: String(r.masked_token ?? ""),
+    persisted: r.persisted === true,
+    ephemeral: r.ephemeral === true,
+    active_profile_id: r.active_profile_id == null ? "" : String(r.active_profile_id),
+    active_profile_alias: r.active_profile_alias == null ? "" : String(r.active_profile_alias),
+    profile_count: r.profile_count == null ? profiles.length : Number(r.profile_count),
+    profiles,
+  };
+}
+
+function normalizeConnectionProfileState(raw: unknown): ConnectionProfileState {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    id: String(r.id ?? ""),
+    alias: String(r.alias ?? "Principal"),
+    is_default: r.is_default === true,
+    has_token: r.has_token === true,
+    masked_token: String(r.masked_token ?? ""),
+    updated_at: r.updated_at == null ? "" : String(r.updated_at),
+    legacy: r.legacy === true,
+  };
+}
+
+function normalizeSurveyMonkeyTokenState(raw: unknown): SurveyMonkeyTokenState {
+  const state = normalizeConnectionTokenState(raw, "surveymonkey");
+  return {
+    ok: true,
+    has_token: state.has_token,
+    masked_token: state.masked_token,
+    persisted: state.persisted,
+    ephemeral: state.ephemeral,
+    active_profile_id: state.active_profile_id,
+    active_profile_alias: state.active_profile_alias,
+    profile_count: state.profile_count,
+    profiles: state.profiles,
+  };
+}
+
+export async function apiConnectionsList(): Promise<{ ok: true; connections: ConnectionTokenState[] }> {
   const raw = await handle<unknown>(
-    await apiFetch("/api/xlsform-editor/sm-token", {
+    await apiFetch("/api/connections", {
+      method: "GET",
+      headers: headers(),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const arr = Array.isArray(r.connections) ? r.connections : [];
+  return {
+    ok: true,
+    connections: arr.map((item) =>
+      normalizeConnectionTokenState(item, normalizeConnectionProvider((item as Record<string, unknown> | null)?.provider)),
+    ),
+  };
+}
+
+export async function apiConnectionTokenLoad(provider: ConnectionProvider): Promise<ConnectionTokenState> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/connections/${provider}/token`, {
+      method: "GET",
+      headers: headers(),
+    }),
+  );
+  return normalizeConnectionTokenState(raw, provider);
+}
+
+export async function apiConnectionTokenSave(
+  provider: ConnectionProvider,
+  token: string,
+  options: { persist?: boolean } = {},
+): Promise<ConnectionTokenState> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/connections/${provider}/token`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ token, persist: options.persist !== false }),
+    }),
+  );
+  return normalizeConnectionTokenState(raw, provider);
+}
+
+export async function apiConnectionTokenClear(provider: ConnectionProvider): Promise<ConnectionTokenState> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/connections/${provider}/token`, {
+      method: "DELETE",
+      headers: headers(),
+    }),
+  );
+  return normalizeConnectionTokenState(raw, provider);
+}
+
+export async function apiConnectionProfilesList(
+  provider: ConnectionProvider,
+): Promise<{ ok: true; provider: ConnectionProvider; default_profile_id: string; profiles: ConnectionProfileState[] }> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/connections/${provider}/profiles`, {
       method: "GET",
       headers: headers(),
     }),
@@ -1030,45 +1451,111 @@ export async function apiXlsformEditorSmTokenLoad(): Promise<{ ok: true; has_tok
   const r = (raw ?? {}) as Record<string, unknown>;
   return {
     ok: true,
-    has_token: r.has_token === true,
-    token: String(r.token ?? ""),
+    provider,
+    default_profile_id: String(r.default_profile_id ?? ""),
+    profiles: Array.isArray(r.profiles) ? r.profiles.map(normalizeConnectionProfileState) : [],
   };
 }
 
-export async function apiXlsformEditorSmTokenSave(token: string): Promise<{ ok: true; has_token: boolean }> {
+export async function apiConnectionProfileSave(
+  provider: ConnectionProvider,
+  token: string,
+  options: { alias?: string; profile_id?: string; make_default?: boolean } = {},
+): Promise<ConnectionTokenState> {
   const raw = await handle<unknown>(
-    await apiFetch("/api/xlsform-editor/sm-token", {
+    await apiFetch(`/api/connections/${provider}/profiles`, {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({
+        token,
+        alias: options.alias ?? "",
+        profile_id: options.profile_id ?? "",
+        make_default: options.make_default !== false,
+      }),
     }),
   );
-  const r = (raw ?? {}) as Record<string, unknown>;
-  return { ok: true, has_token: r.has_token === true };
+  return normalizeConnectionTokenState(raw, provider);
 }
 
-export async function apiXlsformEditorSmTokenClear(): Promise<{ ok: true }> {
-  await handle<unknown>(
-    await apiFetch("/api/xlsform-editor/sm-token", {
+export async function apiConnectionProfileSetDefault(
+  provider: ConnectionProvider,
+  profileId: string,
+): Promise<ConnectionTokenState> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/connections/${provider}/profiles/${encodeURIComponent(profileId)}/default`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: "{}",
+    }),
+  );
+  return normalizeConnectionTokenState(raw, provider);
+}
+
+export async function apiConnectionProfileDelete(
+  provider: ConnectionProvider,
+  profileId: string,
+): Promise<ConnectionTokenState> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/connections/${provider}/profiles/${encodeURIComponent(profileId)}`, {
       method: "DELETE",
       headers: headers(),
     }),
   );
-  return { ok: true };
+  return normalizeConnectionTokenState(raw, provider);
+}
+
+export async function apiConnectionCheck(
+  provider: ConnectionProvider,
+  options: { base_url?: string } = {},
+): Promise<ConnectionCheckResult> {
+  const raw = await handle<unknown>(
+    await apiFetch(`/api/connections/${provider}/check`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(options),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  if (r.ok === true) {
+    return {
+      ok: true,
+      provider,
+      status_code: Number(r.status_code ?? 200),
+      n_surveys_visible: r.n_surveys_visible == null || r.n_surveys_visible === "NA"
+        ? null
+        : Number(r.n_surveys_visible),
+      count: r.count == null || r.count === "NA" ? null : Number(r.count),
+    };
+  }
+  return {
+    ok: false,
+    provider,
+    status_code: r.status_code == null ? undefined : Number(r.status_code),
+    error: String(r.error ?? "No se pudo verificar la conexión"),
+  };
+}
+
+export async function apiXlsformEditorSmTokenLoad(): Promise<SurveyMonkeyTokenState> {
+  return normalizeSurveyMonkeyTokenState(await apiConnectionTokenLoad("surveymonkey"));
+}
+
+export async function apiXlsformEditorSmTokenSave(
+  token: string,
+  options: { persist?: boolean } = {},
+): Promise<SurveyMonkeyTokenState> {
+  return normalizeSurveyMonkeyTokenState(await apiConnectionTokenSave("surveymonkey", token, options));
+}
+
+export async function apiXlsformEditorSmTokenClear(): Promise<SurveyMonkeyTokenState> {
+  return normalizeSurveyMonkeyTokenState(await apiConnectionTokenClear("surveymonkey"));
 }
 
 export type SurveyMonkeyTokenInfo =
   | { ok: true; status_code: number; n_surveys_visible: number | null }
   | { ok: false; status_code?: number; error: string };
 
-export async function apiXlsformEditorSmCheckToken(token: string): Promise<SurveyMonkeyTokenInfo> {
-  const raw = await handle<unknown>(
-    await apiFetch("/api/xlsform-editor/sm-check-token", {
-      method: "POST",
-      headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ token }),
-    }),
-  );
+export async function apiXlsformEditorSmCheckToken(): Promise<SurveyMonkeyTokenInfo> {
+  const raw = await apiConnectionCheck("surveymonkey");
   const r = (raw ?? {}) as Record<string, unknown>;
   if (r.ok === true) {
     return {
@@ -1093,19 +1580,31 @@ export type SurveyMonkeyListItem = {
   date_modified: string | null;
 };
 
-export async function apiXlsformEditorSmListSurveys(token: string, limit = 500, months = 6): Promise<{
+export async function apiXlsformEditorSmListSurveys(
+  limit = 500,
+  months = 6,
+  options: { forceRefresh?: boolean } = {},
+): Promise<{
   ok: true;
   count: number;
   total_visible: number;
   total_recent: number;
   months: number;
+  from_cache: boolean;
+  cache_status: string;
+  refresh_error: string;
+  catalog_fetched_at: string | null;
+  catalog_age_seconds: number | null;
+  catalog_count: number;
   surveys: SurveyMonkeyListItem[];
 }> {
+  const payload: Record<string, unknown> = { limit, months };
+  if (options.forceRefresh) payload.force_refresh = true;
   const raw = await handle<unknown>(
     await apiFetch("/api/xlsform-editor/sm-list-surveys", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ token, limit, months }),
+      body: JSON.stringify(payload),
     }),
   );
   const r = (raw ?? {}) as Record<string, unknown>;
@@ -1116,6 +1615,12 @@ export async function apiXlsformEditorSmListSurveys(token: string, limit = 500, 
     total_visible: Number(r.total_visible ?? arr.length),
     total_recent: Number(r.total_recent ?? arr.length),
     months: Number(r.months ?? months),
+    from_cache: Boolean(r.from_cache),
+    cache_status: String(r.cache_status ?? ""),
+    refresh_error: String(r.refresh_error ?? ""),
+    catalog_fetched_at: r.catalog_fetched_at == null || r.catalog_fetched_at === "NA" ? null : String(r.catalog_fetched_at),
+    catalog_age_seconds: r.catalog_age_seconds == null || r.catalog_age_seconds === "NA" ? null : Number(r.catalog_age_seconds),
+    catalog_count: Number(r.catalog_count ?? r.total_visible ?? arr.length),
     surveys: arr.map((s) => ({
       id: String(s.id ?? ""),
       title: String(s.title ?? "(sin título)"),
@@ -1164,13 +1669,12 @@ export type SurveyMonkeyApiInfo = {
 export async function apiXlsformEditorSmFetchSurveyInfo(
   file_id: string | null,
   survey_id: string,
-  token: string,
 ): Promise<SurveyMonkeyApiInfo> {
   const raw = await handle<unknown>(
     await apiFetch("/api/xlsform-editor/sm-fetch-survey-info", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ file_id: file_id ?? "", survey_id, token }),
+      body: JSON.stringify({ file_id: file_id ?? "", survey_id }),
     }),
   );
   const r = (raw ?? {}) as Record<string, unknown>;
@@ -1344,7 +1848,6 @@ export async function apiXlsformEditorSmInterpretRule(
   regla: string,
 	  opts: {
 	    survey_id?: string;
-	    token?: string;
 		    workbook?: XlsformEditorWorkbook | null;
 		    paginas?: Record<string, string[]>;
 		    paginas_labels?: Record<string, string>;
@@ -1360,7 +1863,6 @@ export async function apiXlsformEditorSmInterpretRule(
 	        regla,
 	        workbook: opts.workbook ?? undefined,
 	        survey_id: opts.survey_id ?? "",
-	        token: opts.token ?? "",
 	        paginas: opts.paginas ?? {},
 	        paginas_labels: opts.paginas_labels ?? {},
 	        choice_order_overrides: opts.choice_order_overrides ?? {},
@@ -1475,7 +1977,7 @@ export async function apiXlsformEditorImportSurveyMonkeyWithLogic(
   paginas: Record<string, string[]>,
   paginas_labels: Record<string, string>,
   lang = "es",
-  smApi?: { survey_id: string; token: string },
+  smApi?: { survey_id: string },
   choice_order_overrides?: Record<string, string[]>,
   choice_code_maps: ChoiceCodeMap[] = [],
 ): Promise<EditorPayloadWithHallazgos> {
@@ -1490,7 +1992,6 @@ export async function apiXlsformEditorImportSurveyMonkeyWithLogic(
         paginas_labels,
         lang,
         survey_id: smApi?.survey_id ?? "",
-        token: smApi?.token ?? "",
         choice_order_overrides: choice_order_overrides ?? {},
         choice_code_maps,
       }),
@@ -1993,13 +2494,150 @@ export type MonitoreoSource = {
   asset_uid?: string;
   survey_id?: string;
   base_url?: string;
+  dimensions?: Record<string, string>;
   created_at?: string;
   last_sync_at?: string;
+};
+
+export type MonitoreoKoboAssetItem = {
+  uid: string;
+  name: string;
+  date_modified: string | null;
+  deployment_active: boolean;
 };
 
 export type MonitoreoGoal = {
   filters: Record<string, string>;
   meta: number;
+};
+
+export type MonitoreoStrategyPhase = {
+  id: string;
+  stratum: string;
+  modality: "email" | "whatsapp" | "sms" | "telefono" | "presencial" | "mixto";
+  start_week: number | null;
+  end_week: number | null;
+  target_rule: string;
+  kpi_focus: string[];
+  kpi_modules: string[];
+  breakdown_vars: string[];
+  attempts_var: string;
+  outcome_var: string;
+};
+
+export type MonitoreoOperationalStratum = {
+  id: string;
+  label: string;
+  source_id: string;
+  variable: string;
+  value: string;
+  notes: string;
+};
+
+export type MonitoreoOperationalTarget = {
+  id: string;
+  label: string;
+  stratum_id: string;
+  filters: Record<string, string>;
+  meta: number;
+  notes: string;
+};
+
+export type MonitoreoOperationalCases = {
+  enabled: boolean;
+  case_id_var: string;
+  person_label_var: string;
+  status_var: string;
+  contact_vars: string[];
+  sensitive_vars: string[];
+  roster_source: "none" | "uploaded" | "responses" | "external_local";
+  notes: string;
+};
+
+export type MonitoreoOperationalStrategy = {
+  id: string;
+  label: string;
+  objective: string;
+  owner: string;
+  status: "draft" | "active" | "paused" | "closed";
+};
+
+export type MonitoreoCollectorUse =
+  | "correo_autoaplicado"
+  | "telefono_asistido"
+  | "presencial_qr"
+  | "enlace_abierto"
+  | "sms"
+  | "mixto"
+  | "sin_clasificar";
+
+export type MonitoreoLinkCollector = {
+  id: string;
+  source_id: string;
+  source_label: string;
+  survey_id: string;
+  collector_id: string;
+  collector_name: string;
+  collector_type: string;
+  operational_use: MonitoreoCollectorUse;
+  modality: MonitoreoStrategyPhase["modality"];
+  roster_required: boolean;
+};
+
+export type MonitoreoCollectorRecipientSummary = {
+  available: boolean;
+  total: number;
+  scanned: number;
+  truncated: boolean;
+  personalized_link_count: number;
+  mail_status_counts: Record<string, number>;
+  response_status_counts: Record<string, number>;
+  error?: string;
+};
+
+export type MonitoreoSurveyMonkeyCollector = MonitoreoLinkCollector & {
+  response_count: number;
+  active_response_count: number;
+  recipient_summary: MonitoreoCollectorRecipientSummary;
+  suggested_use: MonitoreoCollectorUse;
+  configured_use: MonitoreoCollectorUse;
+  url_present: boolean;
+  warnings: string[];
+};
+
+export type MonitoreoOperationalEvent = {
+  id: string;
+  label: string;
+  modality: MonitoreoStrategyPhase["modality"];
+  outcome: string;
+  counts_attempt: boolean;
+  counts_contact: boolean;
+  counts_complete: boolean;
+  stop_contact: boolean;
+};
+
+export type MonitoreoStateRule = {
+  id: string;
+  label: string;
+  final_state: string;
+  priority: number;
+  outcome_values: string[];
+  stop_contact: boolean;
+};
+
+export type MonitoreoOperationalModel = {
+  schema_version: string;
+  strata: MonitoreoOperationalStratum[];
+  targets: MonitoreoOperationalTarget[];
+  cases: MonitoreoOperationalCases;
+  strategies: MonitoreoOperationalStrategy[];
+  link_collectors: MonitoreoLinkCollector[];
+  events: MonitoreoOperationalEvent[];
+  state_rules: MonitoreoStateRule[];
+  privacy: {
+    local_sensitive: boolean;
+    export_policy: "aggregate_or_redacted" | "aggregate_only" | "allow_case_level_local";
+  };
 };
 
 export type MonitoreoCumplimientoEstado =
@@ -2133,6 +2771,8 @@ export type MonitoreoConfig = {
   control_vars: string[];
   critical_vars: string[];
   goals: MonitoreoGoal[];
+  strategy_phases: MonitoreoStrategyPhase[];
+  operational_model: MonitoreoOperationalModel;
   objetivo_total: number | null;
   min_duration_seconds: number;
   max_duration_seconds: number;
@@ -2193,6 +2833,7 @@ export type MonitoreoSyncResult = {
 };
 
 export type MonitoreoSourcePayload = {
+  id?: string;
   kind: MonitoreoSourceKind;
   label?: string;
   enabled?: boolean;
@@ -2200,6 +2841,7 @@ export type MonitoreoSourcePayload = {
   asset_uid?: string;
   survey_id?: string;
   base_url?: string;
+  dimensions?: Record<string, string>;
 };
 
 export type MonitoreoAcreditacionSeguimientoPayload = {
@@ -2228,6 +2870,30 @@ export async function apiMonitoreoDemo(options: { seed?: number; n?: number } = 
   );
 }
 
+export async function apiMonitoreoKoboAssets(base_url = "https://kf.kobotoolbox.org", limit = 100) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/monitoreo/kobo/assets", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ base_url, limit }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const arr = Array.isArray(r.assets) ? r.assets as Record<string, unknown>[] : [];
+  return {
+    ok: true as const,
+    count: Number(r.count ?? arr.length),
+    assets: arr
+      .map((item): MonitoreoKoboAssetItem => ({
+        uid: String(item.uid ?? ""),
+        name: String(item.name ?? item.uid ?? ""),
+        date_modified: item.date_modified == null || item.date_modified === "NA" ? null : String(item.date_modified),
+        deployment_active: item.deployment_active === true,
+      }))
+      .filter((item) => item.uid),
+  };
+}
+
 export async function apiMonitoreoSource(payload: MonitoreoSourcePayload) {
   return handle<{ ok: true; source: MonitoreoSource; validation: unknown; state: MonitoreoState }>(
     await apiFetch("/api/monitoreo/source", {
@@ -2244,6 +2910,40 @@ export async function apiMonitoreoConfig(config: Partial<MonitoreoConfig>) {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiMonitoreoSurveyMonkeyCollectors(
+  sourceIds: string[] = [],
+  options: { remote?: boolean; includeRecipients?: boolean; includeDetails?: boolean } = {},
+) {
+  return handle<{
+    ok: true;
+    generated_at: string;
+    mode: "local_snapshot" | "surveymonkey";
+    source_count: number;
+    collectors: MonitoreoSurveyMonkeyCollector[];
+  }>(
+    await apiFetch("/api/monitoreo/surveymonkey/collectors", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        source_ids: sourceIds,
+        remote: Boolean(options.remote),
+        include_recipients: Boolean(options.includeRecipients),
+        include_details: Boolean(options.includeDetails),
+      }),
+    }),
+  );
+}
+
+export async function apiMonitoreoCollectorsConfig(collectors: MonitoreoLinkCollector[]) {
+  return handle<{ ok: true; config: MonitoreoConfig; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/collectors/config", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ collectors }),
     }),
   );
 }
@@ -3765,6 +4465,15 @@ export type MultiBaseResult = {
   zip?: { file_id: string; filename: string; size: number };
   bases?: BasePerOutput[];
   xlsform?: MultiBaseResult;
+  unified?: {
+    alias_var: string;
+    origin_id_var?: string;
+    unique_id_var?: string;
+    n_filas: number;
+    n_columnas: number;
+    n_variables_comunes: number;
+    n_variables_no_comunes: number;
+  };
 };
 
 export async function apiAnaliticaCodebook() {
@@ -3879,6 +4588,16 @@ export async function apiAnaliticaBasesCsv(body: BasesCsvBody = {}) {
 export async function apiAnaliticaBasesXlsx(body: BasesXlsxBody = {}) {
   return handle<MultiBaseResult>(
     await apiFetch("/api/analitica/bases/xlsx", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    })
+  );
+}
+
+export async function apiAnaliticaBasesXlsxUnificada(body: BasesXlsxBody = {}) {
+  return handle<MultiBaseResult>(
+    await apiFetch("/api/analitica/bases/xlsx-unificada", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
@@ -4357,6 +5076,8 @@ export async function apiGraficosPreviewRenderer() {
 export type VariablesBySource = {
   sources: { name: string; variables: VarInfo[] }[];
   multi: boolean;
+  active_base?: string | null;
+  processing_mode?: string | null;
 };
 
 export async function apiGraficosVariables() {
@@ -5926,6 +6647,12 @@ export async function apiV2InstrumentoReglaPatchAtributos(
 export type FiltroRango = { min?: number | string; max?: number | string };
 export type ExplorarFiltros = Record<string, string[] | FiltroRango>;
 
+export type ExplorarTextResponseRow = {
+  row: number;
+  respondent_id: string;
+  response: string;
+};
+
 export type ExplorarUnivariadoResult = {
   ok: true;
   base_nombre: string | null;
@@ -5933,7 +6660,10 @@ export type ExplorarUnivariadoResult = {
   tipo: "so" | "sm" | "num" | "fecha" | "texto" | "mixto";
   label: string;
   kpis: ViewDescriptor[];
-  chart: ViewDescriptor & { samples?: string[] };
+  chart: ViewDescriptor & {
+    samples?: string[];
+    text_rows?: ExplorarTextResponseRow[];
+  };
   n_tras_filtro: number;
   n_total: number;
   filtros_aplicados: number;

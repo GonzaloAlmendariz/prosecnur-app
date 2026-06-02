@@ -8,6 +8,21 @@ máquina del analista, un solo usuario, sesión efímera.
 Arquitectura: **Plumber (R)** en `127.0.0.1:8787` sirve API REST + assets
 estáticos. **React + Vite + TypeScript** como SPA.
 
+La app principal es local. Algunas acciones iniciadas por el usuario pueden
+abrir conexiones salientes controladas, por ejemplo SurveyMonkey/Kobo o la
+publicación de un dashboard en Hugging Face como artefacto separado.
+
+## Arquitectura y decisiones
+
+La guía canónica está en
+[docs/arquitectura-prosecnur.md](docs/arquitectura-prosecnur.md). Define a
+Prosecnur como monolito modular local con orientación microkernel, fija las
+características arquitectónicas críticas y documenta las fronteras entre núcleo
+y módulos metodológicos.
+
+Las decisiones estructurales se registran como ADRs en
+[docs/adrs/README.md](docs/adrs/README.md).
+
 ## Estado
 
 A partir de **v0.2** el motor analítico (antes paquete R externo
@@ -72,6 +87,21 @@ Los recientes (hasta 5) viven en
 `~/Library/Application Support/Prosecnur/recent-projects.json` (macOS) o
 `%APPDATA%/Prosecnur/recent-projects.json` (Windows).
 
+## Auditoria canonica
+
+Para diagnosticar regresiones sin mezclar sesiones, puertos o proyectos,
+Prosecnur trae un `.pulso` sintetico regenerable:
+
+```bash
+make audit-reference-build
+make desktop-audit
+make audit-reference-smoke
+```
+
+La corrida genera `outputs/audit-runs/<timestamp>/audit-run.json` con el
+`sid`, puerto, checksum y capturas asociadas. Ver
+[`docs/auditoria-canonica.md`](docs/auditoria-canonica.md).
+
 ## Dos modos de arranque
 
 El mismo `Prosecnur.app` / `Prosecnur.bat` funciona en dos modos según
@@ -103,7 +133,7 @@ make install-frontend # pnpm install en frontend/
 make install-desktop  # pnpm install en desktop/
 
 make dev-api          # solo API R en :8787 (sin Electron)
-make dev-frontend     # Vite dev server en :5173 (proxy /api → :8787)
+make dev-frontend     # Vite dev server en :5173 (proxy /api → VITE_API_PROXY_TARGET o PULSO_PORT)
 make build            # compilar frontend sin levantar Electron
 ```
 

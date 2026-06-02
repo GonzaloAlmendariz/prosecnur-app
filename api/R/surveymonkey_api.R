@@ -171,6 +171,257 @@ sm_api_list_surveys <- function(token, base_url = "https://api.surveymonkey.com/
   ))
 }
 
+.sm_api_build_url <- function(path, base_url = "https://api.surveymonkey.com/v3", query = list()) {
+  url <- if (grepl("^https?://", path)) {
+    path
+  } else {
+    sprintf("%s/%s", sub("/$", "", base_url), sub("^/", "", path))
+  }
+  query <- query[!vapply(query, is.null, logical(1))]
+  if (length(query)) {
+    qs <- paste(
+      utils::URLencode(names(query), reserved = TRUE),
+      utils::URLencode(vapply(query, function(x) as.character(x)[1], character(1)), reserved = TRUE),
+      sep = "=",
+      collapse = "&"
+    )
+    url <- paste0(url, if (grepl("\\?", url)) "&" else "?", qs)
+  }
+  url
+}
+
+.sm_api_fetch_json <- function(path,
+                               token,
+                               base_url = "https://api.surveymonkey.com/v3",
+                               query = list(),
+                               allow_status = integer()) {
+  token <- as.character(token %||% "")[1]
+  if (!nzchar(token)) stop("Falta el token de la API.", call. = FALSE)
+  if (!requireNamespace("curl", quietly = TRUE)) stop("Paquete 'curl' no instalado.", call. = FALSE)
+  if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Paquete 'jsonlite' no instalado.", call. = FALSE)
+
+  h <- curl::new_handle()
+  curl::handle_setheaders(h,
+    "Authorization" = paste("Bearer", token),
+    "Accept" = "application/json"
+  )
+  res <- curl::curl_fetch_memory(.sm_api_build_url(path, base_url = base_url, query = query), handle = h)
+  body <- rawToChar(res$content)
+  Encoding(body) <- "UTF-8"
+
+  if (res$status_code >= 400L && !res$status_code %in% allow_status) {
+    if (res$status_code == 401L) {
+      stop("Token rechazado por SurveyMonkey (HTTP 401).", call. = FALSE)
+    }
+    stop(sprintf("API SurveyMonkey devolvio HTTP %d: %s", res$status_code, body), call. = FALSE)
+  }
+
+  parsed <- if (nzchar(body)) {
+    tryCatch(jsonlite::fromJSON(body, simplifyVector = FALSE), error = function(e) list())
+  } else {
+    list()
+  }
+  list(ok = res$status_code < 400L, status_code = as.integer(res$status_code), data = parsed, body = body)
+}
+
+.sm_api_count_values <- function(values) {
+  values <- as.character(unlist(values, use.names = FALSE))
+  values <- trimws(values[!is.na(values) & nzchar(trimws(values))])
+  if (!length(values)) return(list())
+  tab <- sort(table(values), decreasing = TRUE)
+  out <- as.list(as.integer(tab))
+  names(out) <- names(tab)
+  out
+}
+
+#' Lista colectores de una encuesta de SurveyMonkey.
+#'
+#' Solo devuelve metadatos de colectores. No expone links de encuestados.
+#' @export
+sm_api_fetch_collectors <- function(survey_id,
+                                    token,
+                                    base_url = "https://api.surveymonkey.com/v3",
+                                    per_page = 100L,
+                                    max_pages = 50L) {
+  survey_id <- trimws(as.character(survey_id %||% "")[1])
+  if (!nzchar(survey_id)) stop("Falta 'survey_id'.", call. = FALSE)
+  per_page <- suppressWarnings(as.integer(per_page %||% 100L))
+  if (!is.finite(per_page)) per_page <- 100L
+  per_page <- min(100L, max(1L, per_page))
+  max_pages <- suppressWarnings(as.integer(max_pages %||% 50L))
+  if (!is.finite(max_pages)) max_pages <- 50L
+  max_pages <- max(1L, max_pages)
+  page <- 1L
+  out <- list()
+  total <- NA_integer_
+  repeat {
+    res <- .sm_api_fetch_json(
+      sprintf("/surveys/%s/collectors", utils::URLencode(survey_id, reserved = TRUE)),
+      token = token,
+      base_url = base_url,
+      query = list(page = page, per_page = per_page)
+    )
+    payload <- res$data %||% list()
+    rows <- payload$data %||% list()
+    if (length(rows)) out <- c(out, rows)
+    total <- suppressWarnings(as.integer(payload$total %||% total))
+    if (length(rows) < per_page || page >= max_pages) break
+    page <- page + 1L
+  }
+  list(ok = TRUE, total = if (is.finite(total)) total else length(out), data = out)
+}
+
+#' Trae detalle agregado de un colector SurveyMonkey.
+#' @export
+sm_api_fetch_collector_detail <- function(collector_id,
+                                          token,
+                                          base_url = "https://api.surveymonkey.com/v3") {
+  collector_id <- trimws(as.character(collector_id %||% "")[1])
+  if (!nzchar(collector_id)) stop("Falta 'collector_id'.", call. = FALSE)
+  res <- .sm_api_fetch_json(
+    sprintf("/collectors/%s", utils::URLencode(collector_id, reserved = TRUE)),
+    token = token,
+    base_url = base_url
+  )
+  res$data %||% list()
+}
+
+#' Lista destinatarios de un colector cuando la API lo permite.
+#' @export
+sm_api_fetch_collector_recipients <- function(collector_id,
+                                              token,
+                                              base_url = "https://api.surveymonkey.com/v3",
+                                              per_page = 100L,
+                                              max_pages = 50L) {
+  collector_id <- trimws(as.character(collector_id %||% "")[1])
+  if (!nzchar(collector_id)) stop("Falta 'collector_id'.", call. = FALSE)
+  per_page <- suppressWarnings(as.integer(per_page %||% 100L))
+  if (!is.finite(per_page)) per_page <- 100L
+  per_page <- min(100L, max(1L, per_page))
+  max_pages <- suppressWarnings(as.integer(max_pages %||% 50L))
+  if (!is.finite(max_pages)) max_pages <- 50L
+  max_pages <- max(1L, max_pages)
+  page <- 1L
+  out <- list()
+  total <- NA_integer_
+  repeat {
+    res <- .sm_api_fetch_json(
+      sprintf("/collectors/%s/recipients", utils::URLencode(collector_id, reserved = TRUE)),
+      token = token,
+      base_url = base_url,
+      query = list(page = page, per_page = per_page),
+      allow_status = c(404L)
+    )
+    if (!isTRUE(res$ok)) {
+      return(list(ok = FALSE, available = FALSE, status_code = res$status_code, total = 0L, data = list()))
+    }
+    payload <- res$data %||% list()
+    rows <- payload$data %||% list()
+    if (length(rows)) out <- c(out, rows)
+    total <- suppressWarnings(as.integer(payload$total %||% total))
+    if (length(rows) < per_page || page >= max_pages) break
+    page <- page + 1L
+  }
+  list(ok = TRUE, available = TRUE, total = if (is.finite(total)) total else length(out), data = out)
+}
+
+sm_api_fetch_collector_recipient_detail <- function(collector_id,
+                                                    recipient_id,
+                                                    token,
+                                                    base_url = "https://api.surveymonkey.com/v3") {
+  collector_id <- trimws(as.character(collector_id %||% "")[1])
+  recipient_id <- trimws(as.character(recipient_id %||% "")[1])
+  if (!nzchar(collector_id) || !nzchar(recipient_id)) return(NULL)
+  res <- .sm_api_fetch_json(
+    sprintf(
+      "/collectors/%s/recipients/%s",
+      utils::URLencode(collector_id, reserved = TRUE),
+      utils::URLencode(recipient_id, reserved = TRUE)
+    ),
+    token = token,
+    base_url = base_url,
+    allow_status = c(404L)
+  )
+  if (!isTRUE(res$ok)) return(NULL)
+  res$data %||% list()
+}
+
+#' Resume destinatarios sin retornar datos personales ni links planos.
+#' @export
+sm_api_collector_recipient_summary <- function(collector_id,
+                                               token,
+                                               base_url = "https://api.surveymonkey.com/v3",
+                                               detail_limit = 0L,
+                                               include_details = FALSE) {
+  recipients <- sm_api_fetch_collector_recipients(collector_id, token, base_url = base_url)
+  if (!isTRUE(recipients$available)) {
+    return(list(
+      available = FALSE,
+      total = 0L,
+      scanned = 0L,
+      truncated = FALSE,
+      personalized_link_count = 0L,
+      mail_status_counts = list(),
+      response_status_counts = list()
+    ))
+  }
+  rows <- recipients$data %||% list()
+  total <- suppressWarnings(as.integer(recipients$total %||% length(rows)))
+  if (!isTRUE(include_details)) {
+    mail_status <- vapply(rows, function(row) as.character(row$mail_status %||% row$status %||% ""), character(1))
+    response_status <- vapply(rows, function(row) as.character(row$survey_response_status %||% row$response_status %||% ""), character(1))
+    direct_links <- vapply(rows, function(row) as.character(row$survey_link %||% ""), character(1))
+    inferred_links <- if (length(rows)) {
+      link_count <- sum(!is.na(direct_links) & nzchar(trimws(direct_links)))
+      if (link_count > 0L) link_count else if (is.finite(total)) total else length(rows)
+    } else {
+      0L
+    }
+    return(list(
+      available = TRUE,
+      total = if (is.finite(total)) as.integer(total) else length(rows),
+      scanned = as.integer(length(rows)),
+      truncated = FALSE,
+      personalized_link_count = as.integer(inferred_links),
+      mail_status_counts = .sm_api_count_values(mail_status),
+      response_status_counts = .sm_api_count_values(response_status)
+    ))
+  }
+  detail_limit <- suppressWarnings(as.integer(detail_limit %||% 500L))
+  if (!is.finite(detail_limit)) detail_limit <- 500L
+  detail_limit <- max(0L, detail_limit)
+  scan_n <- min(length(rows), detail_limit)
+
+  mail_status <- character(0)
+  response_status <- character(0)
+  link_present <- logical(0)
+  if (scan_n > 0L) {
+    for (i in seq_len(scan_n)) {
+      row <- rows[[i]]
+      rid <- row$id %||% row$recipient_id %||% ""
+      detail <- tryCatch(
+        sm_api_fetch_collector_recipient_detail(collector_id, rid, token, base_url = base_url),
+        error = function(e) NULL
+      )
+      src <- if (is.null(detail)) row else detail
+      mail_status <- c(mail_status, as.character(src$mail_status %||% src$status %||% ""))
+      response_status <- c(response_status, as.character(src$survey_response_status %||% src$response_status %||% ""))
+      survey_link <- as.character(src$survey_link %||% "")
+      link_present <- c(link_present, !is.na(survey_link) && nzchar(trimws(survey_link)))
+    }
+  }
+
+  list(
+    available = TRUE,
+    total = if (is.finite(total)) as.integer(total) else length(rows),
+    scanned = as.integer(scan_n),
+    truncated = is.finite(total) && total > scan_n,
+    personalized_link_count = as.integer(sum(link_present, na.rm = TRUE)),
+    mail_status_counts = .sm_api_count_values(mail_status),
+    response_status_counts = .sm_api_count_values(response_status)
+  )
+}
+
 #' Descargar respuestas bulk de SurveyMonkey API v3
 #'
 #' Requiere scope `responses_read_detail`. El filtro `since` se aplica
@@ -224,7 +475,16 @@ sm_api_fetch_responses_bulk <- function(survey_id,
     stop("Token rechazado por SurveyMonkey (HTTP 401).", call. = FALSE)
   }
   if (res$status_code == 403L) {
-    stop("El token no tiene scope 'responses_read_detail' para leer respuestas.", call. = FALSE)
+    stop_api(
+      403,
+      "E_SM_RESPONSES_SCOPE",
+      paste(
+        "El token permite ver la estructura de la encuesta, pero no leer respuestas.",
+        "Activa el permiso \"View Response Details\" (responses_read_detail) en SurveyMonkey",
+        "y vuelve a guardar/probar el token, o sube las respuestas manualmente para esos origenes."
+      ),
+      details = list(scope = "responses_read_detail")
+    )
   }
   if (res$status_code == 402L) {
     stop("SurveyMonkey rechazo el acceso a respuestas por limite del plan.", call. = FALSE)

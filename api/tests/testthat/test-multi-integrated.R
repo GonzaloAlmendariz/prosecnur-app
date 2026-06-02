@@ -84,10 +84,13 @@ test_that("multi integrado audita y apila instrumentos hermanos manuales", {
     origins = origins,
     origin_key_name = "pais",
     base_name = "integrada_test",
-    decisions = list(resolved_ids = vapply(
-      Filter(function(x) isTRUE(x$needs_decision), audit$diffs),
-      `[[`, character(1), "id"
-    ))
+    decisions = list(
+      resolved_ids = vapply(
+        Filter(function(x) isTRUE(x$needs_decision), audit$diffs),
+        `[[`, character(1), "id"
+      ),
+      label_overrides = list(p1 = "Edad estandar final")
+    )
   )
 
   expect_true(result$ok)
@@ -105,6 +108,8 @@ test_that("multi integrado audita y apila instrumentos hermanos manuales", {
   expect_equal(key_row$type[[1]], "select_one")
   expect_true(nzchar(key_row$list_name[[1]]))
   expect_equal(unname(inst_out$dicc_code_to_label[[key_row$list_name[[1]]]]), c("Chile", "Peru"))
+  expect_equal(result$base$multi_integrated$label_overrides_standard$p1, "Edad estandar final")
+  expect_true(any(as.character(inst_out$survey$label) == "Edad estandar final"))
 })
 
 test_that("el .pulso conserva insumos del borrador multi integrado", {

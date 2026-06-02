@@ -81,8 +81,7 @@ export function SlideCard({ slide, index, active, issues, density }: SlideCardPr
           {...attributes}
           {...listeners}
           onClick={(e) => e.stopPropagation()}
-          title={`Arrastrar para reordenar · ${CATEGORY_LABEL[cat]}`}
-          aria-label="Arrastrar para reordenar"
+          aria-label={`Arrastrar para reordenar. ${CATEGORY_LABEL[cat]}`}
         >
           <GripVertical size={12} />
         </span>
@@ -90,7 +89,7 @@ export function SlideCard({ slide, index, active, issues, density }: SlideCardPr
         {(errors > 0 || warns > 0) && (
           <span
             className={`pulso-gv2-slide-card-diag ${errors > 0 ? "is-error" : "is-warn"}`}
-            title={`${errors > 0 ? `${errors} error(es)` : ""}${errors > 0 && warns > 0 ? " · " : ""}${warns > 0 ? `${warns} aviso(s)` : ""}`}
+            aria-label={`${errors > 0 ? `${errors} error(es)` : ""}${errors > 0 && warns > 0 ? ". " : ""}${warns > 0 ? `${warns} aviso(s)` : ""}`}
           >
             {errors > 0 ? <AlertCircle size={10} strokeWidth={3} /> : <AlertTriangle size={10} strokeWidth={3} />}
           </span>
@@ -102,7 +101,7 @@ export function SlideCard({ slide, index, active, issues, density }: SlideCardPr
         <span>{SLIDE_LABELS[slide.tipo] ?? slide.tipo}</span>
       </div>
       {titulo && (
-        <div className="pulso-gv2-slide-card-subtitle" title={titulo}>
+        <div className="pulso-gv2-slide-card-subtitle" aria-label={titulo}>
           {titulo}
         </div>
       )}
@@ -120,7 +119,6 @@ export function SlideCard({ slide, index, active, issues, density }: SlideCardPr
           type="button"
           className="pulso-icon"
           onClick={() => duplicateSlide(slide.id)}
-          title="Duplicar (Cmd+D)"
           aria-label="Duplicar slide"
         >
           <Copy size={11} />
@@ -129,7 +127,6 @@ export function SlideCard({ slide, index, active, issues, density }: SlideCardPr
           type="button"
           className="pulso-icon pulso-icon-danger"
           onClick={() => removeSlide(slide.id)}
-          title="Eliminar"
           aria-label="Eliminar slide"
         >
           <X size={12} />

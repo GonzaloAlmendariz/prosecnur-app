@@ -447,7 +447,7 @@ export function PlanCanvas() {
         type="button"
         className="pulso-gv2-canvas-add-section"
         onClick={addSection}
-        title="Agregar slide separador de sección al final"
+        aria-label="Agregar slide separador de sección al final"
       >
         <Bookmark size={13} />
         Nueva sección
@@ -461,7 +461,7 @@ export function PlanCanvas() {
             type="button"
             className="pulso-gv2-canvas-bulk-btn"
             onClick={bulkDuplicate}
-            title="Duplicar selección"
+            aria-label="Duplicar selección"
           >
             <Copy size={12} /> Duplicar
           </button>
@@ -469,7 +469,7 @@ export function PlanCanvas() {
             type="button"
             className="pulso-gv2-canvas-bulk-btn is-danger"
             onClick={bulkDelete}
-            title="Eliminar selección"
+            aria-label="Eliminar selección"
           >
             <Trash2 size={12} /> Eliminar
           </button>

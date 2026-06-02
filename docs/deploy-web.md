@@ -1,8 +1,9 @@
-# Deploy web del dashboard
+# Publicacion del dashboard en HF
 
-Este flujo publica el dashboard actual como un Hugging Face Space con SDK Docker.
-La app local arma un snapshot temporal del `.pulso`, sube el codigo minimo del
-servidor Plumber + frontend React y deja el Space en modo publico/read-only.
+Este flujo publica el dashboard actual como un artefacto separado en Hugging
+Face Spaces con SDK Docker. La app principal sigue siendo local: Prosecnur arma
+un snapshot temporal del `.pulso`, sube el codigo minimo necesario para servir
+solo el dashboard y deja el Space en modo publico/read-only.
 
 ## Crear token de Hugging Face
 
@@ -54,10 +55,10 @@ Para regenerar, publica de nuevo con el mismo nombre. El endpoint usa
   nombre. El proceso es idempotente: los archivos existentes se sobrescriben.
 - Si el build queda colgado, abre `Settings -> Factory reboot` en el Space.
 - Si HF esta caido o saturado, espera y vuelve a publicar con el mismo nombre.
-  El dashboard web depende del deploy Docker; ya no hay export HTML standalone
-  como fallback.
+  El dashboard publicado depende del deploy Docker; ya no hay export HTML
+  standalone como fallback.
 
-## Seguridad del modo publico
+## Seguridad del artefacto publicado
 
 El contenedor arranca con `PULSO_PUBLIC_MODE=1`. En ese modo Plumber aplica una
 whitelist: solo pasan los endpoints read-only necesarios para tabs, filtros y
@@ -66,3 +67,6 @@ responden `403`.
 
 El frontend se construye con `VITE_PULSO_PUBLIC_MODE=true`, oculta la barra de
 admin y agrega `noindex,nofollow` al HTML.
+
+Este modo no habilita colaboracion remota ni convierte Prosecnur en SaaS. Es
+una publicacion controlada de un dashboard derivado de un proyecto local.

@@ -13,9 +13,11 @@ La fuente de verdad para empaquetado es `api/DESCRIPTION`.
 | 0.2.6 | Actualizacion visible garantizada | Publicada en GitHub | Parche de escritorio para Windows/macOS: fuerza recarga del frontend servido localmente y evita que Electron reutilice bundles viejos despues de actualizar. |
 | 0.2.7 | Corte instalable de trabajo | Publicada en GitHub | Integra las mejoras acumuladas de analitica, monitoreo, hojas de ruta, calculo de muestra, enciclopedia y bundle web actualizado. |
 | 0.2.8 | Graficador avanzado | Publicada en GitHub | Normaliza configuracion `graficos/4`, mejora import/export por secciones, agrega editor visual de layout, paletas sugeridas y validacion numerica defensiva. |
-| 0.2.9 | Validacion y editor reforzados | Version actual a publicar | Agrega motor de transformaciones de limpieza, fortalece reglas custom/AST, mejora persistencia y foco del editor XLSForm, y pule graficador/carga. |
+| 0.2.9 | Validacion y editor reforzados | Publicada en GitHub | Agrega motor de transformaciones de limpieza, fortalece reglas custom/AST, mejora persistencia y foco del editor XLSForm, y pule graficador/carga. |
+| 0.3.0 | Corte 0.3: auditoria, conexiones y multibase | Version actual a publicar | Documenta la arquitectura canonica con ADRs, agrega auditoria reproducible, centraliza conexiones SurveyMonkey/Kobo fuera del `.pulso`, refuerza multibase/monitoreo, rediseña Home y amplia pruebas. |
 
 ## Version actual
 
-Estamos en `0.2.9`. Esta es la version que debe publicarse como `v0.2.9`
-para que GitHub Releases genere el instalador y el auto-updater la detecte.
+Estamos en `0.3.0` (corte `0.3`). Esta es la version que debe publicarse como
+`v0.3.0` para que GitHub Releases genere el instalador y el auto-updater la
+detecte.

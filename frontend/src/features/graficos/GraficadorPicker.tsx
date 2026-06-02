@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import * as Lucide from "lucide-react";
 import { Search, SearchX, X } from "lucide-react";
 import { GraficadorMetadata } from "../../api/client";
@@ -66,80 +67,55 @@ export default function GraficadorPicker({
     })).filter((c) => c.items.length > 0);
   }, [registry, query]);
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div
       onClick={onCancel}
       role="dialog"
       aria-modal="true"
       aria-labelledby="graf-picker-title"
-      style={{
-        position: "fixed", inset: 0,
-        background: "rgba(15, 23, 42, 0.4)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 1000,
-      }}
+      className="pulso-gv2-graf-picker-backdrop"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "white",
-          borderRadius: 10,
-          width: "min(760px, 92vw)",
-          maxHeight: "82vh",
-          overflow: "hidden",
-          display: "flex", flexDirection: "column",
-          boxShadow: "var(--pulso-shadow-high)",
-        }}
+        className="pulso-gv2-graf-picker"
       >
-        {/* Header */}
-        <header
-          style={{
-            padding: "14px 18px",
-            borderBottom: "1px solid var(--pulso-border)",
-            display: "flex", alignItems: "center", gap: 12,
-          }}
-        >
-          <h3 id="graf-picker-title" style={{ margin: 0, fontSize: 15, fontWeight: 700, flex: 1 }}>Elegir graficador</h3>
+        <header className="pulso-gv2-graf-picker-head">
+          <div>
+            <h3 id="graf-picker-title" className="pulso-gv2-graf-picker-title">Elegir graficador</h3>
+            <div className="pulso-gv2-graf-picker-sub">Selecciona el tipo de visualización para este slot.</div>
+          </div>
           <button
             type="button"
             onClick={onCancel}
-            className="pulso-icon"
+            className="pulso-gv2-graf-picker-close"
             aria-label="Cerrar"
-            style={{ minWidth: 28, minHeight: 28 }}
           >
-            <X size={14} />
+            <X size={16} />
           </button>
         </header>
 
-        {/* Search */}
-        <div style={{ padding: "10px 18px", borderBottom: "1px solid var(--pulso-border)" }}>
-          <div
-            style={{
-              display: "flex", alignItems: "center", gap: 7,
-              padding: "7px 10px", borderRadius: 6,
-              border: "1px solid var(--pulso-border)",
-              background: "var(--pulso-surface)",
-            }}
-          >
-            <Search size={13} color="var(--pulso-text-soft)" />
+        <div className="pulso-gv2-graf-picker-search-wrap">
+          <div className="pulso-gv2-graf-picker-search">
+            <Search size={15} className="pulso-gv2-graf-picker-search-icon" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar por nombre o descripción…"
               autoFocus
-              style={{ flex: 1, border: "none", outline: "none", fontSize: 13, background: "transparent" }}
+              aria-label="Buscar graficador"
             />
             {query && (
-              <button type="button" onClick={() => setQuery("")} className="pulso-icon" aria-label="Limpiar">
-                <X size={11} />
+              <button type="button" onClick={() => setQuery("")} className="pulso-gv2-graf-picker-clear" aria-label="Limpiar búsqueda">
+                <X size={13} />
               </button>
             )}
           </div>
         </div>
 
-        {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "14px 18px" }}>
+        <div className="pulso-gv2-graf-picker-body">
           {loading && <LoadingBlock label="Cargando catálogo…" />}
           {error && <ErrorBlock label="Error cargando catálogo" detail={error} />}
 
@@ -160,33 +136,22 @@ export default function GraficadorPicker({
           )}
 
           {categoriasConItems.map((cat) => (
-            <div key={cat.label} style={{ marginBottom: 18 }}>
-              <div
-                style={{
-                  fontSize: 10, fontWeight: 700,
-                  textTransform: "uppercase", letterSpacing: 0.4,
-                  color: "var(--pulso-text-soft)",
-                  marginBottom: 7,
-                }}
-              >
-                {cat.label}
+            <section key={cat.label} className="pulso-gv2-graf-picker-section">
+              <div className="pulso-gv2-graf-picker-section-head">
+                <span>{cat.label}</span>
+                <span>{cat.items.length}</span>
               </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                  gap: 8,
-                }}
-              >
+              <div className="pulso-gv2-graf-picker-grid">
                 {cat.items.map((g) => (
                   <GraficadorCard key={g.name} graf={g} dimOk={dimOk} onPick={onPick} />
                 ))}
               </div>
-            </div>
+            </section>
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -207,69 +172,26 @@ function GraficadorCard({
     <button
       type="button"
       onClick={() => onPick(graf)}
-      style={{
-        textAlign: "left",
-        padding: "10px 12px",
-        borderRadius: 8,
-        border: "1px solid var(--pulso-border)",
-        background: "white",
-        cursor: "pointer",
-        display: "flex", flexDirection: "column", gap: 6,
-        transition: "background 120ms ease, border-color 120ms ease",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = "var(--pulso-primary-soft)";
-        e.currentTarget.style.borderColor = "var(--pulso-primary)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = "white";
-        e.currentTarget.style.borderColor = "var(--pulso-border)";
-      }}
+      className={`pulso-gv2-graf-card ${requiereDim ? "requires-dimensions" : ""}`}
     >
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-        <span
-          style={{
-            width: 30, height: 30, borderRadius: 6,
-            background: "var(--pulso-primary-soft)",
-            color: "var(--pulso-primary)",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <Icon size={16} />
-        </span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--pulso-text)" }}>
+      <span className="pulso-gv2-graf-card-icon">
+        <Icon size={16} />
+      </span>
+      <span className="pulso-gv2-graf-card-copy">
+        <span className="pulso-gv2-graf-card-title">
           {graf.titulo_humano}
         </span>
-      </div>
-      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
-        {graf.descripcion}
-      </div>
+        <span className="pulso-gv2-graf-card-desc">{graf.descripcion}</span>
+      </span>
       {dimReady && (
-        <div
-          style={{
-            fontSize: 9, fontWeight: 700,
-            textTransform: "uppercase", letterSpacing: 0.4,
-            color: "var(--pulso-success-fg, #15803d)",
-            marginTop: 2,
-          }}
-          title="Las dimensiones del proyecto ya están construidas. Este graficador puede usarse directamente."
-        >
-          ✓ Dimensiones listas
-        </div>
+        <span className="pulso-gv2-graf-card-badge is-ready">
+          Dimensiones listas
+        </span>
       )}
       {dimMissing && (
-        <div
-          style={{
-            fontSize: 9, fontWeight: 700,
-            textTransform: "uppercase", letterSpacing: 0.4,
-            color: "var(--tipo-int-fg, #6d28d9)",
-            marginTop: 2,
-          }}
-          title="Construye las dimensiones en Fase 4 → Analítica → tab Dimensiones antes de generar este gráfico."
-        >
+        <span className="pulso-gv2-graf-card-badge">
           Requiere dimensiones · ve a Analítica
-        </div>
+        </span>
       )}
     </button>
   );

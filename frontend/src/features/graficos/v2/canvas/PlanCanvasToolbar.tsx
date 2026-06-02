@@ -20,7 +20,7 @@ export function PlanCanvasToolbar({
         type="button"
         className="pulso-gv2-canvas-toolbar-btn is-on"
         onClick={onClearSelection}
-        title="Limpiar selección (Esc)"
+        aria-label="Limpiar selección"
       >
         <MousePointer2 size={13} />
         <span>{selectedCount} seleccionado{selectedCount === 1 ? "" : "s"}</span>

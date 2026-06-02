@@ -41,6 +41,40 @@ kobo_api_default_base_url <- function() {
   jsonlite::fromJSON(body, simplifyVector = FALSE)
 }
 
+kobo_api_fetch_assets <- function(token,
+                                  base_url = kobo_api_default_base_url(),
+                                  limit = 100L) {
+  limit <- suppressWarnings(as.integer(limit %||% 100L))
+  if (!is.finite(limit) || limit < 1L) limit <- 100L
+  limit <- min(limit, 500L)
+  url <- sprintf(
+    "%s/api/v2/assets/?format=json&limit=%d",
+    .kobo_api_trim_base_url(base_url),
+    limit
+  )
+  payload <- .kobo_api_fetch_json(url, token)
+  rows <- payload$results %||% list()
+  assets <- list()
+  for (i in seq_along(rows)) {
+    item <- rows[[i]]
+    if (!is.list(item)) next
+    uid <- as.character(item$uid %||% item$asset_uid %||% item$id %||% "")[1]
+    name <- as.character(item$name %||% item$label %||% item$title %||% uid)[1]
+    if (!nzchar(uid)) next
+    assets[[length(assets) + 1L]] <- list(
+      uid = uid,
+      name = if (nzchar(name)) name else uid,
+      date_modified = as.character(item$date_modified %||% item$dateModified %||% "")[1],
+      deployment_active = isTRUE(item$deployment__active %||% item$deployment_active %||% FALSE)
+    )
+  }
+  list(
+    ok = TRUE,
+    count = as.integer(payload$count %||% length(assets)),
+    assets = assets
+  )
+}
+
 #' Descargar una pagina de submissions Kobo v2
 #'
 #' @param asset_uid UID del proyecto Kobo.

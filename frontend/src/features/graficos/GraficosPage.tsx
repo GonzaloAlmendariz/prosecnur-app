@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { BarChart2 } from "lucide-react";
 import {
   apiGraficosPpt,
   apiGraficosWord,
@@ -6,6 +8,7 @@ import {
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
+import { EmptyState } from "../../components/States";
 import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { usePlanStore } from "./store";
@@ -47,6 +50,19 @@ export default function GraficosPage() {
 
   const prepOk = !!state?.analitica_prep_ok;
   const canExport = prepOk && plan.slides.length > 0 && hydrated;
+
+  useEffect(() => {
+    function onActiveBaseChanged() {
+      setPptFileId(null);
+      setDocxFileId(null);
+      setPptFilename(null);
+      setDocxFilename(null);
+      setError(null);
+      setWarns([]);
+    }
+    window.addEventListener("pulso:active-base-changed", onActiveBaseChanged);
+    return () => window.removeEventListener("pulso:active-base-changed", onActiveBaseChanged);
+  }, []);
 
   async function onExport(kind: "ppt" | "word") {
     setError(null); setWarns([]); setBusyValidating(`validando ${kind}…`);
@@ -97,6 +113,7 @@ export default function GraficosPage() {
       className="pulso-graficos-frame"
       headerMode="sr-only"
       bodyMode="fill"
+      resetScrollKey={state?.active_base ?? ""}
       toolbar={
         <>
           {!prepOk && (
@@ -163,7 +180,18 @@ export default function GraficosPage() {
         </>
       }
     >
-      <EditorShell />
+      {prepOk ? (
+        <EditorShell />
+      ) : (
+        <div className="pulso-graficos-blocked">
+          <EmptyState
+            icon={<BarChart2 size={20} />}
+            title="Prepara Analítica para generar gráficos"
+            hint="Gráficos se habilita cuando la Fase 4 deja listos rp_data y rp_inst en la sesión."
+            cta={<Link className="pulso-empty-cta" to="/analitica">Ir a Analítica</Link>}
+          />
+        </div>
+      )}
     </PageFrame>
 
       {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}

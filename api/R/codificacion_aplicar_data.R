@@ -840,11 +840,14 @@ ppra_so_child <- function(df, parent, path_plantilla, path_familias = NULL, path
   tmp <- .safe_left_join_by(df_work[, c(kd), drop = FALSE], tpl[, c(kd, src), drop = FALSE], kd)
   val <- trimws(as.character(tmp[[src]])); val[val==""] <- NA_character_
 
+  # En modo hijo la data solo necesita copiar el código elegido para el texto
+  # abierto. Las etiquetas se resuelven al adaptar el instrumento: primero desde
+  # el catálogo del padre y, para códigos realmente nuevos, desde el bloque aux.
   aux_map <- .ppra_collect_aux_codebook(
     aux_df = layout$aux %||% tibble::tibble(),
     sheet_label = layout$sheet %||% parent,
     target_col = src,
-    required_codes = unique(val[!is.na(val)])
+    required_codes = character(0)
   )
   # --- salida: siempre la columna del texto recodificado ---
   out_col <- paste0(text_col, "_recod")

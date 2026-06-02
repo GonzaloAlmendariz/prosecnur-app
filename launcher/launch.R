@@ -41,6 +41,19 @@ Sys.setenv(PULSO_REPO_ROOT = repo_root)
 api_dir <- file.path(repo_root, "api")
 static_dir <- file.path(repo_root, "api", "inst", "www")
 
+port <- as.integer(Sys.getenv("PULSO_PORT", "8787"))
+host <- trimws(Sys.getenv("PULSO_HOST", "127.0.0.1"))
+open_browser <- !tolower(Sys.getenv("PULSO_OPEN_BROWSER", "true")) %in% c("0", "false", "no")
+
+loopback_hosts <- c("127.0.0.1", "localhost", "::1")
+if (!(tolower(host) %in% loopback_hosts)) {
+  stop(sprintf(
+    "[prosecnur-app] PULSO_HOST='%s' no es un host local permitido. ",
+    host
+  ), "La app principal solo escucha en 127.0.0.1, localhost o ::1. ",
+  "Para publicar artefactos del dashboard usa launcher/launch_server.R.")
+}
+
 cat(sprintf("[prosecnur-app] repo_root = %s\n", repo_root))
 
 # Deprecación amable de PULSO_PROSECNUR_DEV: si alguien todavía lo tiene
@@ -80,15 +93,14 @@ local({
   }
 })
 
-port <- as.integer(Sys.getenv("PULSO_PORT", "8787"))
-host <- Sys.getenv("PULSO_HOST", "127.0.0.1")
-open_browser <- !tolower(Sys.getenv("PULSO_OPEN_BROWSER", "true")) %in% c("0", "false", "no")
-
 # Bootstrap opcional: si PULSO_BOOTSTRAP_PROJECT apunta a un .pulso válido,
 # crea una sesión cargando ese proyecto antes de levantar el servidor. Útil
 # para que un agente externo (Claude Code, scripts CI) arranque el stack
 # con datos pre-cargados sin pasar por la UI.
 .bootstrap_path <- Sys.getenv("PULSO_BOOTSTRAP_PROJECT", "")
+if (!nzchar(.bootstrap_path)) {
+  .bootstrap_path <- Sys.getenv("PULSO_AUDIT_PROJECT", "")
+}
 if (nzchar(.bootstrap_path)) {
   if (!file.exists(.bootstrap_path)) {
     stop(sprintf("[bootstrap] PULSO_BOOTSTRAP_PROJECT apunta a un archivo que no existe: %s", .bootstrap_path))
@@ -99,6 +111,33 @@ if (nzchar(.bootstrap_path)) {
   })
   Sys.setenv(PULSO_BOOTSTRAP_SID = .bs$session_id)
   cat(sprintf("[bootstrap] sesión SID=%s cargada desde %s\n", .bs$session_id, .bootstrap_path))
+  .audit_manifest <- Sys.getenv("PULSO_AUDIT_RUN_MANIFEST", "")
+  .audit_writer <- if (exists("audit_reference_write_run_manifest", mode = "function")) {
+    audit_reference_write_run_manifest
+  } else {
+    tryCatch(
+      get("audit_reference_write_run_manifest", envir = asNamespace("prosecnurapp"), inherits = FALSE),
+      error = function(e) NULL
+    )
+  }
+  if (nzchar(.audit_manifest) && is.function(.audit_writer)) {
+    tryCatch(
+      .audit_writer(
+        .audit_manifest,
+        patch = list(
+          status = "bootstrapped",
+          sid = .bs$session_id,
+          host = host,
+          port = port,
+          bootstrap_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+        ),
+        project_path = .bootstrap_path
+      ),
+      error = function(e) {
+        message("[bootstrap] no pude actualizar audit-run.json: ", conditionMessage(e))
+      }
+    )
+  }
 }
 
 run_app(host = host, port = port, static_dir = static_dir, open_browser = open_browser)

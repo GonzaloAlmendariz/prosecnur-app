@@ -2,10 +2,10 @@ import { type CSSProperties, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Check, X } from "lucide-react";
-import type { ModuleMeta } from "./HomePage";
+import { homeModuleVars, type ProsecnurModuleMeta } from "../../lib/modules";
 
 type ModuleDetailProps = {
-  mod: ModuleMeta;
+  mod: ProsecnurModuleMeta;
   onClose: () => void;
 };
 
@@ -16,11 +16,7 @@ export function ModuleDetail({ mod, onClose }: ModuleDetailProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
-  const accentStyle = {
-    "--home-mod-accent": mod.iconFg,
-    "--home-mod-accent-soft": mod.iconBg,
-    "--home-mod-accent-border": mod.iconBorder,
-  } as CSSProperties;
+  const accentStyle = homeModuleVars(mod) as CSSProperties;
 
   // Cierre con ESC + foco inicial al botón cerrar para accesibilidad.
   useEffect(() => {

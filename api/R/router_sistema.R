@@ -617,6 +617,8 @@ mount_sistema <- function(pr) {
         # modo "varias bases" (aunque aún no haya subido ninguna). El
         # frontend usa esto para renderizar el BasesPanel desde vacío.
         has_estudio = !is.null(s$estudio),
+        estudio_processing_mode = if (is.null(s$estudio)) "multibase" else estudio_processing_mode(sid),
+        active_base = if (is.null(s$estudio)) NA_character_ else as.character(estudio_active_base(sid) %||% NA_character_),
         n_bases = length(bases),
         bases_nombres = as.list(names(bases))
       )

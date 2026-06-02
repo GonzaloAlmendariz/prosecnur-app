@@ -234,18 +234,27 @@ sm_compact_to_long <- function(x, id, w) {
 }
 
 label_variable <- function(var, dic_vars = NULL, labels_override = NULL, data = NULL) {
-  if (!is.null(labels_override) && var %in% names(labels_override)) {
-    return(as.character(labels_override[[var]]))
-  }
-  if (!is.null(data) && var %in% names(data)) {
-    vlab <- attr(data[[var]], "label", exact = TRUE)
-    if (!is.null(vlab) && nzchar(as.character(vlab))) {
-      return(as.character(vlab))
+  if (grepl("_recod$", var)) {
+    original <- sub("_recod$", "", var)
+    original_label <- .lookup_variable_label(
+      original,
+      dic_vars = dic_vars,
+      labels_override = labels_override,
+      df = data
+    )
+    if (!is.null(original_label) && nzchar(as.character(original_label))) {
+      return(.clean_recode_title(original_label))
     }
   }
-  if (!is.null(dic_vars) && all(c("name", "label") %in% names(dic_vars))) {
-    lab <- dic_vars$label[dic_vars$name == var]
-    if (length(lab) && !all(is.na(lab))) return(as.character(lab[1]))
+  lab <- .lookup_variable_label(
+    var,
+    dic_vars = dic_vars,
+    labels_override = labels_override,
+    df = data
+  )
+  if (!is.null(lab) && nzchar(as.character(lab))) {
+    if (grepl("_recod$", var)) return(.clean_recode_title(lab))
+    return(as.character(lab))
   }
   as.character(var)
 }

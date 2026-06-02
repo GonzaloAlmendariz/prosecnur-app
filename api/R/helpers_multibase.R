@@ -43,15 +43,28 @@
 #   list(nombre, file_id, filename, size, path)
 run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
   s <- session_get(sid, required = FALSE)
-  ds <- if (!is.null(s$analitica_rp_data_sources) && length(s$analitica_rp_data_sources) > 0L) {
-    s$analitica_rp_data_sources
+  sources <- if (exists(".load_rp_sources", mode = "function")) {
+    tryCatch(.load_rp_sources(sid), error = function(e) NULL)
+  } else NULL
+  if (!is.null(sources)) {
+    ds <- sources$data_sources
+    is_ <- sources$inst_sources
   } else {
-    estudio_data_sources(sid)
+    ds <- if (!is.null(s$analitica_rp_data_sources) && length(s$analitica_rp_data_sources) > 0L) {
+      s$analitica_rp_data_sources
+    } else {
+      estudio_data_sources(sid)
+    }
+    is_ <- if (!is.null(s$analitica_rp_inst_sources) && length(s$analitica_rp_inst_sources) > 0L) {
+      s$analitica_rp_inst_sources
+    } else {
+      estudio_inst_sources(sid)
+    }
   }
-  is_ <- if (!is.null(s$analitica_rp_inst_sources) && length(s$analitica_rp_inst_sources) > 0L) {
-    s$analitica_rp_inst_sources
-  } else {
-    estudio_inst_sources(sid)
+  if (exists("estudio_processing_filter_sources", mode = "function")) {
+    scoped <- estudio_processing_filter_sources(sid, ds, is_)
+    ds <- scoped$data_sources
+    is_ <- scoped$inst_sources
   }
   if (length(ds) == 0L) {
     stop_api(409, "E_NO_RP_DATA",

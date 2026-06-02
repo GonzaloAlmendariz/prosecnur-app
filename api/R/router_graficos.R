@@ -152,7 +152,7 @@
 }
 
 .graficos_icon_registry <- function(sid, cfg = NULL) {
-  cfg <- cfg %||% session_get(sid, required = FALSE)$graficos_config %||% list()
+  cfg <- cfg %||% .graficos_config_get(sid) %||% list()
   iconos <- cfg$iconos %||% list()
   out <- list()
   if (!is.list(iconos) || length(iconos) == 0L) return(out)
@@ -218,13 +218,44 @@
 
 .require_rp_data <- function(sid) {
   s <- session_get(sid)
-  ds <- estudio_data_sources(sid)
-  is_ <- estudio_inst_sources(sid)
+  sources <- .graficos_processing_sources(sid)
+  ds <- sources$data_sources
+  is_ <- sources$inst_sources
   if (length(ds) == 0L || length(is_) == 0L) {
     stop_api(409, "E_NO_RP_DATA",
              "Primero agrega al menos una base al estudio (Fase 1).")
   }
   s
+}
+
+.graficos_processing_sources <- function(sid) {
+  ds <- estudio_data_sources(sid)
+  is_ <- estudio_inst_sources(sid)
+  if (exists("estudio_processing_filter_sources", mode = "function")) {
+    scoped <- estudio_processing_filter_sources(sid, ds, is_)
+    ds <- scoped$data_sources
+    is_ <- scoped$inst_sources
+  }
+  list(data_sources = ds, inst_sources = is_)
+}
+
+.graficos_active_base_name <- function(sid) {
+  if (exists("estudio_is_independent_siblings", mode = "function") &&
+      estudio_is_independent_siblings(sid) &&
+      exists("estudio_active_base", mode = "function")) {
+    return(as.character(estudio_active_base(sid) %||% ""))
+  }
+  ""
+}
+
+.graficos_export_filename <- function(sid, label, ext) {
+  active <- .graficos_active_base_name(sid)
+  if (nzchar(active)) .export_filename(sid, label, ext, base = active) else .export_filename(sid, label, ext)
+}
+
+.graficos_base_error <- function(sid, message) {
+  active <- .graficos_active_base_name(sid)
+  if (nzchar(active)) sprintf("Base '%s': %s", active, message) else message
 }
 
 .rebuild_graf <- function(g) {
@@ -324,6 +355,68 @@
     canvas_viewport = list(x = 0, y = 0, zoom = 1),
     scope_rules = list()
   )
+}
+
+.graficos_scoped_base <- function(sid) {
+  if (exists("estudio_is_independent_siblings", mode = "function") &&
+      estudio_is_independent_siblings(sid) &&
+      exists("estudio_active_base", mode = "function")) {
+    active <- as.character(estudio_active_base(sid) %||% "")
+    if (nzchar(active)) return(active)
+  }
+  ""
+}
+
+.graficos_config_get <- function(sid, s = NULL) {
+  s <- s %||% session_get(sid, required = FALSE)
+  if (is.null(s)) return(.graficos_default_config(sid))
+  active <- .graficos_scoped_base(sid)
+  if (nzchar(active)) {
+    configs <- s$graficos_config_por_base
+    if (is.list(configs) && !is.null(configs[[active]])) {
+      return(configs[[active]])
+    }
+    # Migracion conservadora: una config global legacy se asigna solo a
+    # la base activa inicial. Las demas bases independientes arrancan con
+    # default para no heredar portadas o planes ajenos.
+    if ((is.null(configs) || length(configs) == 0L) && !is.null(s$graficos_config)) {
+      configs <- list()
+      configs[[active]] <- s$graficos_config
+      session_set(sid, "graficos_config_por_base", configs)
+      return(s$graficos_config)
+    }
+    return(.graficos_default_config(sid))
+  }
+  s$graficos_config %||% .graficos_default_config(sid)
+}
+
+.graficos_config_set <- function(sid, cfg) {
+  active <- .graficos_scoped_base(sid)
+  if (nzchar(active)) {
+    s <- session_get(sid)
+    configs <- s$graficos_config_por_base
+    if (is.null(configs) || !is.list(configs)) configs <- list()
+    configs[[active]] <- cfg
+    session_set(sid, "graficos_config_por_base", configs)
+    return(invisible(cfg))
+  }
+  session_set(sid, "graficos_config", cfg)
+  invisible(cfg)
+}
+
+.graficos_status_set <- function(sid, key, value = TRUE) {
+  session_set(sid, key, value)
+  active <- .graficos_scoped_base(sid)
+  if (!nzchar(active)) return(invisible(value))
+  s <- session_get(sid)
+  statuses <- s$graficos_status_por_base
+  if (is.null(statuses) || !is.list(statuses)) statuses <- list()
+  current <- statuses[[active]]
+  if (is.null(current) || !is.list(current)) current <- list()
+  current[[key]] <- value
+  statuses[[active]] <- current
+  session_set(sid, "graficos_status_por_base", statuses)
+  invisible(value)
 }
 
 .graficos_pick_alias <- function(x, canonical, aliases = character()) {
@@ -478,7 +571,7 @@
 }
 
 .graficos_effective_config <- function(sid, override = NULL) {
-  cfg <- .graficos_normalize_config(session_get(sid, required = FALSE)$graficos_config %||% list(), sid = sid)
+  cfg <- .graficos_normalize_config(.graficos_config_get(sid), sid = sid)
   override <- .as_json_list(override)
   if (is.list(override) && length(override) > 0L) {
     override <- if (.graficos_is_obj(override$config)) override$config else override
@@ -1133,7 +1226,7 @@ mount_graficos <- function(pr) {
       # contra POST /config (debounce 2s).
       sid <- session_header(req)
       s <- session_get(sid)
-      cfg <- .graficos_normalize_config(s$graficos_config %||% .graficos_default_config(sid), sid = sid, include_legacy_aliases = TRUE)
+      cfg <- .graficos_normalize_config(.graficos_config_get(sid, s), sid = sid, include_legacy_aliases = TRUE)
       list(ok = TRUE, config = cfg)
     })) |>
     plumber::pr_post("/api/graficos/config", wrap_endpoint(function(req, res, ...) {
@@ -1149,7 +1242,7 @@ mount_graficos <- function(pr) {
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
       cfg <- .graficos_normalize_config(parsed$config %||% parsed, sid = sid)
-      session_set(sid, "graficos_config", cfg)
+      .graficos_config_set(sid, cfg)
       list(ok = TRUE, saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
     plumber::pr_get("/api/graficos/config/export", wrap_endpoint(function(req, res) {
@@ -1161,7 +1254,7 @@ mount_graficos <- function(pr) {
         ok = TRUE,
         version = "graficos/4",
         exported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-        config = .graficos_normalize_config(s$graficos_config %||% .graficos_default_config(sid), sid = sid, include_legacy_aliases = TRUE)
+        config = .graficos_normalize_config(.graficos_config_get(sid, s), sid = sid, include_legacy_aliases = TRUE)
       )
     })) |>
     plumber::pr_post("/api/graficos/config/import", wrap_endpoint(function(req, res, ...) {
@@ -1174,7 +1267,7 @@ mount_graficos <- function(pr) {
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
       cfg <- .graficos_normalize_config(parsed, sid = sid)
-      session_set(sid, "graficos_config", cfg)
+      .graficos_config_set(sid, cfg)
       list(ok = TRUE, imported_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
     })) |>
     plumber::pr_get("/api/graficos/registry", wrap_endpoint(function(req, res) {
@@ -1202,7 +1295,7 @@ mount_graficos <- function(pr) {
       # a usar estos en vez de .PRESETS_DEFAULT_PULSO (de fábrica).
       #
       # Body opcional: { "presets": {...} }. Si viene, usa ese; si no,
-      # usa el s$graficos_config$presets actual.
+      # usa los presets de la config activa actual.
       sid <- session_header(req)
       s <- session_get(sid)
       body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
@@ -1216,7 +1309,7 @@ mount_graficos <- function(pr) {
         presets_new <- parsed$presets
       }
       if (is.null(presets_new)) {
-        presets_new <- s$graficos_config$presets
+        presets_new <- (.graficos_config_get(sid, s) %||% list())$presets
       }
       if (is.null(presets_new)) {
         stop_api(400, "E_NO_PRESETS", "No hay presets en la config actual para guardar como default.")
@@ -1266,7 +1359,7 @@ mount_graficos <- function(pr) {
     plumber::pr_post("/api/graficos/overrides-defaults", wrap_endpoint(function(req, res, ...) {
       # Body: { "overrides": [ {id, nombre, tipo_preset, args}, ... ] }.
       # Si no viene body, toma la lista actual del store del estudio
-      # (`s$graficos_config$overrides_reusables`) — equivalente al
+      # (`overrides_reusables` de la config activa) — equivalente al
       # "Guardar como default" de presets.
       sid <- session_header(req)
       s <- session_get(sid)
@@ -1281,7 +1374,7 @@ mount_graficos <- function(pr) {
         overrides_new <- parsed$overrides
       }
       if (is.null(overrides_new)) {
-        overrides_new <- s$graficos_config$overrides_reusables
+        overrides_new <- (.graficos_config_get(sid, s) %||% list())$overrides_reusables
       }
       if (is.null(overrides_new)) {
         stop_api(400, "E_NO_OVERRIDES",
@@ -1328,7 +1421,8 @@ mount_graficos <- function(pr) {
       # (back-compat visual: sin dropdown de fuente), o el dropdown cuando
       # multi=true.
       sid <- session_header(req)
-      inst_sources <- estudio_inst_sources(sid)
+      sources_scoped <- .graficos_processing_sources(sid)
+      inst_sources <- sources_scoped$inst_sources
       skip <- c("begin_group","end_group","begin_repeat","end_repeat",
                 "start","end","today","deviceid","note","calculate")
       .choices_label_col <- function(choices_tbl) {
@@ -1405,7 +1499,12 @@ mount_graficos <- function(pr) {
       sources <- lapply(names(inst_sources), function(nm) {
         list(name = nm, variables = extract_vars(inst_sources[[nm]]))
       })
-      list(sources = sources, multi = length(sources) > 1L)
+      list(
+        sources = sources,
+        multi = length(sources) > 1L,
+        active_base = as.character(.graficos_active_base_name(sid) %||% NA_character_),
+        processing_mode = if (exists("estudio_processing_mode", mode = "function")) estudio_processing_mode(sid) else "multibase"
+      )
     })) |>
     plumber::pr_get("/api/graficos/paletas-sugeridas", wrap_endpoint(function(req, res) {
       # Devuelve todas las listas de choices del instrumento con sus
@@ -1417,8 +1516,10 @@ mount_graficos <- function(pr) {
       # color asignado (placeholder gris).
       sid <- session_header(req)
       s <- session_get(sid)
-      if (is.null(s$rp_inst)) return(list(listas = list()))
-      choices <- s$rp_inst$choices
+      inst_sources <- .graficos_processing_sources(sid)$inst_sources
+      rp_inst <- if (length(inst_sources)) inst_sources[[1L]] else s$rp_inst
+      if (is.null(rp_inst)) return(list(listas = list()))
+      choices <- rp_inst$choices
       if (is.null(choices) || nrow(choices) == 0L) return(list(listas = list()))
 
       list_names <- unique(as.character(choices$list_name %||% ""))
@@ -1535,6 +1636,7 @@ mount_graficos <- function(pr) {
       icon_registry <- .graficos_icon_registry(sid, cfg)
       preview_cache_key <- digest::digest(list(
         slide = slide,
+        active_base = .graficos_active_base_name(sid),
         preset_hash = digest::digest(
           list(
             presets = cfg$presets %||% list(),
@@ -1640,20 +1742,22 @@ mount_graficos <- function(pr) {
       # error legible si algún arg falta o invalida.
       #
       # `data` e `instrumento` se pasan como listas nombradas (multi-base).
-      # Cuando hay 1 sola base, estudio_data_sources devuelve
+      # Cuando hay 1 sola base, el scoping devuelve
       # `list(<nombre> = df)` y el motor maneja ese caso como single-base.
+      scoped_sources <- .graficos_processing_sources(sid)
       tryCatch({
         slide_r <- rebuild_slide(slide)
         reporte_ppt_plan(
-          data = estudio_data_sources(sid),
-          instrumento = estudio_inst_sources(sid),
+          data = scoped_sources$data_sources,
+          instrumento = scoped_sources$inst_sources,
           path_ppt = out_path,
           presets = build_presets(presets_json),
           plan = do.call(p_plan, list(slides = list(slide_r))),
           mensajes_progreso = FALSE
         )
       }, error = function(e) {
-        stop_api(400, "E_PREVIEW_FAILED", sprintf("No se pudo generar el preview: %s", conditionMessage(e)))
+        stop_api(400, "E_PREVIEW_FAILED",
+                 sprintf("No se pudo generar el preview: %s", .graficos_base_error(sid, conditionMessage(e))))
       })
 
       # Si no hay renderer headless disponible, devolvemos el .pptx y
@@ -1725,8 +1829,10 @@ mount_graficos <- function(pr) {
       # Serializamos las LISTAS NOMBRADAS (multi-base) a RDS para el
       # worker. Cuando hay 1 sola base, la lista tiene 1 sola entrada
       # y el motor la maneja como single-base automáticamente.
-      rp_data_path <- job_save_rds(sid, "rp_data_sources", estudio_data_sources(sid))
-      rp_inst_path <- job_save_rds(sid, "rp_inst_sources", estudio_inst_sources(sid))
+      scoped_sources <- .graficos_processing_sources(sid)
+      rp_data_path <- job_save_rds(sid, "rp_data_sources", scoped_sources$data_sources)
+      rp_inst_path <- job_save_rds(sid, "rp_inst_sources", scoped_sources$inst_sources)
+      active_base_arg <- .graficos_active_base_name(sid)
       # El worker recibe el registry como argumento (serializado desde el
        # main process) — así una única fuente de verdad vive en
        # graficos_metadata.R, y el worker callr no necesita duplicarla.
@@ -1749,6 +1855,7 @@ mount_graficos <- function(pr) {
         func = function(rp_data_path, rp_inst_path, plan, presets,
                         slide_registry, graficador_registry,
                         icon_registry,
+                        active_base,
                         api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
@@ -1762,6 +1869,13 @@ mount_graficos <- function(pr) {
             job_progress_writer(progress_path)
           } else {
             function(...) invisible(NULL)
+          }
+          base_error <- function(msg) {
+            if (!is.null(active_base) && nzchar(as.character(active_base))) {
+              sprintf("Base '%s': %s", as.character(active_base), msg)
+            } else {
+              msg
+            }
           }
           report("loading", percent = 2, message = "Cargando datos y plantilla...")
           as_json_list <- function(x) {
@@ -1816,16 +1930,22 @@ mount_graficos <- function(pr) {
               percent = 5 + round(45 * (i - 1) / max(1, total_slides)),
               message = sprintf("Armando slide %s de %s...", i, total_slides)
             )
-            slides_r[[i]] <- rebuild_slide(plan$slides[[i]])
+            slides_r[[i]] <- tryCatch(
+              rebuild_slide(plan$slides[[i]]),
+              error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
+            )
           }
           report("render", percent = 60, message = "Renderizando presentación...")
-          reporte_ppt_plan(
-            data = readRDS(rp_data_path),
-            instrumento = readRDS(rp_inst_path),
-            path_ppt = result_path,
-            presets = build_presets(presets),
-            plan = do.call(p_plan, list(slides = slides_r)),
-            mensajes_progreso = FALSE
+          tryCatch(
+            reporte_ppt_plan(
+              data = readRDS(rp_data_path),
+              instrumento = readRDS(rp_inst_path),
+              path_ppt = result_path,
+              presets = build_presets(presets),
+              plan = do.call(p_plan, list(slides = slides_r)),
+              mensajes_progreso = FALSE
+            ),
+            error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
           )
           report("export", percent = 96, message = "Guardando PPTX...")
           list(path = result_path, n_slides = length(slides_r))
@@ -1838,12 +1958,13 @@ mount_graficos <- function(pr) {
           slide_registry = slide_registry_arg,
           graficador_registry = graficador_registry_arg,
           icon_registry = icon_registry_arg,
+          active_base = active_base_arg,
           api_path = api_path
         ),
-        result_filename = .export_filename(sid, "reporte_ppt", "pptx"),
+        result_filename = .graficos_export_filename(sid, "reporte_ppt", "pptx"),
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "reporte_ppt", j$result_path)
-          session_set(j$sid, "graficos_ppt_ok", TRUE)
+          .graficos_status_set(j$sid, "graficos_ppt_ok", TRUE)
           list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size, n_slides = j$result_data$n_slides)
         }
       )
@@ -1862,8 +1983,10 @@ mount_graficos <- function(pr) {
       # Serializamos las LISTAS NOMBRADAS (multi-base) a RDS para el
       # worker. Cuando hay 1 sola base, la lista tiene 1 sola entrada
       # y el motor la maneja como single-base automáticamente.
-      rp_data_path <- job_save_rds(sid, "rp_data_sources", estudio_data_sources(sid))
-      rp_inst_path <- job_save_rds(sid, "rp_inst_sources", estudio_inst_sources(sid))
+      scoped_sources <- .graficos_processing_sources(sid)
+      rp_data_path <- job_save_rds(sid, "rp_data_sources", scoped_sources$data_sources)
+      rp_inst_path <- job_save_rds(sid, "rp_inst_sources", scoped_sources$inst_sources)
+      active_base_arg <- .graficos_active_base_name(sid)
       slide_registry_arg <- setNames(
         lapply(.slide_names(), function(nm) list(grafs = setdiff(.slide_slots(nm), "icono"))),
         .slide_names()
@@ -1881,6 +2004,7 @@ mount_graficos <- function(pr) {
         func = function(rp_data_path, rp_inst_path, plan, presets, w_presets,
                         slide_registry, graficador_registry,
                         icon_registry,
+                        active_base,
                         api_path, result_path, progress_path = NULL) {
           if (requireNamespace("pkgload", quietly = TRUE)) {
             pkgload::load_all(api_path, quiet = TRUE)
@@ -1894,6 +2018,13 @@ mount_graficos <- function(pr) {
             job_progress_writer(progress_path)
           } else {
             function(...) invisible(NULL)
+          }
+          base_error <- function(msg) {
+            if (!is.null(active_base) && nzchar(as.character(active_base))) {
+              sprintf("Base '%s': %s", as.character(active_base), msg)
+            } else {
+              msg
+            }
           }
           report("loading", percent = 2, message = "Cargando datos y plantilla...")
           # slide_registry / graficador_registry vienen del main process
@@ -1954,17 +2085,23 @@ mount_graficos <- function(pr) {
               percent = 5 + round(45 * (i - 1) / max(1, total_slides)),
               message = sprintf("Armando seccion %s de %s...", i, total_slides)
             )
-            slides_r[[i]] <- rebuild_slide(plan$slides[[i]])
+            slides_r[[i]] <- tryCatch(
+              rebuild_slide(plan$slides[[i]]),
+              error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
+            )
           }
           report("render", percent = 60, message = "Renderizando documento...")
-          reporte_word_plan(
-            data = readRDS(rp_data_path),
-            instrumento = readRDS(rp_inst_path),
-            path_docx = result_path,
-            presets_ppt = build_presets(presets),
-            presets_word = build_w_presets(w_presets),
-            plan = do.call(p_plan, list(slides = slides_r)),
-            mensajes_progreso = FALSE
+          tryCatch(
+            reporte_word_plan(
+              data = readRDS(rp_data_path),
+              instrumento = readRDS(rp_inst_path),
+              path_docx = result_path,
+              presets_ppt = build_presets(presets),
+              presets_word = build_w_presets(w_presets),
+              plan = do.call(p_plan, list(slides = slides_r)),
+              mensajes_progreso = FALSE
+            ),
+            error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
           )
           report("export", percent = 96, message = "Guardando DOCX...")
           list(path = result_path, n_slides = length(slides_r))
@@ -1978,12 +2115,13 @@ mount_graficos <- function(pr) {
           slide_registry = slide_registry_arg,
           graficador_registry = graficador_registry_arg,
           icon_registry = icon_registry_arg,
+          active_base = active_base_arg,
           api_path = api_path
         ),
-        result_filename = .export_filename(sid, "reporte_word", "docx"),
+        result_filename = .graficos_export_filename(sid, "reporte_word", "docx"),
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "reporte_word", j$result_path)
-          session_set(j$sid, "graficos_word_ok", TRUE)
+          .graficos_status_set(j$sid, "graficos_word_ok", TRUE)
           list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size, n_slides = j$result_data$n_slides)
         }
       )

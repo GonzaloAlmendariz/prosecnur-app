@@ -213,7 +213,7 @@ function Divider() {
 function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
   const arqLabel =
     p.tipo === "select_one" && p.modo_so === "hijo" ? "SO · texto codificado aparte" :
-    p.tipo === "select_one" && p.modo_so === "padre" ? "SO · texto integrado a opciones originales" :
+    p.tipo === "select_one" && p.modo_so === "padre" ? "SO · variable original codificada" :
     p.tipo === "integer" ? "Numérica · rangos" :
     p.tipo === "text" ? "Texto abierto" :
     p.tipo === "select_multiple" ? "Opción múltiple" : p.tipo;

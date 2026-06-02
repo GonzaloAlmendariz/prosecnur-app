@@ -160,9 +160,9 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <section style={panelStyle}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+    <div className="pulso-gv2-multi-builder">
+      <section className="pulso-gv2-multi-panel">
+        <div className="pulso-gv2-multi-head">
           <div>
             <div style={eyebrowStyle}>Constructor de multi-apiladas</div>
             <div style={{ fontSize: 13, color: "var(--pulso-text)", lineHeight: 1.45 }}>
@@ -177,7 +177,7 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
           </StatusPill>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 8, marginTop: 12 }}>
+        <div className="pulso-gv2-multi-intents">
           {INTENTS.map((item) => {
             const active = item.key === intent;
             const disabled = item.requiresMulti && (!multi || sources.length < 2);
@@ -187,20 +187,15 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
                 type="button"
                 onClick={() => setIntent(item.key)}
                 disabled={disabled}
-                style={{
-                  ...intentButtonStyle,
-                  borderColor: active ? "var(--pulso-primary)" : "var(--pulso-border)",
-                  background: active ? "var(--pulso-primary-soft)" : "white",
-                  opacity: disabled ? 0.52 : 1,
-                  cursor: disabled ? "not-allowed" : "pointer",
-                }}
-                title={disabled ? "Requiere que el estudio tenga varias bases cargadas." : item.description}
+                className={`pulso-gv2-multi-intent ${active ? "is-active" : ""}`}
+                aria-pressed={active}
+                aria-label={`${item.title}. ${disabled ? "Requiere que el estudio tenga varias bases cargadas." : item.description}`}
               >
-                <span style={{ display: "flex", alignItems: "center", gap: 7, color: active ? "var(--pulso-primary)" : "var(--pulso-text)" }}>
+                <span className="pulso-gv2-multi-intent-title">
                   <item.Icon size={14} />
                   <strong>{item.title}</strong>
                 </span>
-                <span style={{ fontSize: 11, lineHeight: 1.35, color: "var(--pulso-text-soft)" }}>
+                <span className="pulso-gv2-multi-intent-desc">
                   {disabled ? "Requiere varias bases cargadas." : item.description}
                 </span>
               </button>
@@ -416,9 +411,9 @@ function BlockEditor({
           <option value="preguntas_grupos">Abrir preguntas por grupos</option>
           <option value="publicos_tema" disabled={!multi || sourceCount < 2}>Comparar publicos por tema</option>
         </select>
-        <button type="button" className="pulso-icon" onClick={() => onMove("up")} title="Subir bloque"><ArrowUp size={12} /></button>
-        <button type="button" className="pulso-icon" onClick={() => onMove("down")} title="Bajar bloque"><ArrowDown size={12} /></button>
-        <button type="button" className="pulso-icon pulso-icon-danger" onClick={onRemove} title="Eliminar bloque"><Trash2 size={12} /></button>
+        <button type="button" className="pulso-icon" onClick={() => onMove("up")} aria-label="Subir bloque"><ArrowUp size={12} /></button>
+        <button type="button" className="pulso-icon" onClick={() => onMove("down")} aria-label="Bajar bloque"><ArrowDown size={12} /></button>
+        <button type="button" className="pulso-icon pulso-icon-danger" onClick={onRemove} aria-label="Eliminar bloque"><Trash2 size={12} /></button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px", gap: 8 }}>
@@ -558,11 +553,11 @@ function MultiVarPicker({
         {value.map((ref, index) => {
           const info = findVar(ref, variables, multi);
           return (
-            <span key={`${ref}-${index}`} style={chipStyle} title={info?.label ?? ref}>
+            <span key={`${ref}-${index}`} style={chipStyle} aria-label={info?.label ?? ref}>
               <span style={{ fontFamily: "ui-monospace, monospace" }}>{displayRef(ref, multi)}</span>
-              <button type="button" className="pulso-icon" onClick={() => move(index, -1)} title="Subir"><ArrowUp size={10} /></button>
-              <button type="button" className="pulso-icon" onClick={() => move(index, 1)} title="Bajar"><ArrowDown size={10} /></button>
-              <button type="button" className="pulso-icon pulso-icon-danger" onClick={() => onChange(value.filter((_, i) => i !== index))} title="Quitar"><Trash2 size={10} /></button>
+              <button type="button" className="pulso-icon" onClick={() => move(index, -1)} aria-label="Subir"><ArrowUp size={10} /></button>
+              <button type="button" className="pulso-icon" onClick={() => move(index, 1)} aria-label="Bajar"><ArrowDown size={10} /></button>
+              <button type="button" className="pulso-icon pulso-icon-danger" onClick={() => onChange(value.filter((_, i) => i !== index))} aria-label="Quitar"><Trash2 size={10} /></button>
             </span>
           );
         })}
@@ -654,7 +649,7 @@ function TopicBlocksEditor({
                 style={inputStyle}
               />
             </FieldLabel>
-            <button type="button" className="pulso-icon pulso-icon-danger" onClick={() => onChange(normalized.filter((_, i) => i !== index))} title="Eliminar tema">
+            <button type="button" className="pulso-icon pulso-icon-danger" onClick={() => onChange(normalized.filter((_, i) => i !== index))} aria-label="Eliminar tema">
               <Trash2 size={12} />
             </button>
           </div>
@@ -1062,16 +1057,6 @@ const blockStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: 9,
-};
-
-const intentButtonStyle: React.CSSProperties = {
-  border: "1px solid var(--pulso-border)",
-  borderRadius: 8,
-  padding: 10,
-  display: "flex",
-  flexDirection: "column",
-  gap: 5,
-  textAlign: "left",
 };
 
 const inputStyle: React.CSSProperties = {
