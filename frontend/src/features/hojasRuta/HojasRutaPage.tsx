@@ -4327,11 +4327,11 @@ function SamplingMapExplorer({
                     onClick={() => onOpenZone(row.zona)}
                     aria-label={`Abrir manzanas de zona ${row.zona}`}
                   >
-                    <span>
+                    <span className="hojas-ruta-zone-row-main">
                       <strong>Zona {row.zona}</strong>
                       <small>{formatNumber(row.viviendas)} viviendas · {formatNumber(row.poblacion)} personas</small>
                     </span>
-                    <em className={(row.titulares + row.reemplazos) > 0 ? "is-assigned" : "is-empty"}>
+                    <em className={`hojas-ruta-zone-row-status${(row.titulares + row.reemplazos) > 0 ? " is-assigned" : " is-empty"}`}>
                       <strong>
                         {(row.titulares + row.reemplazos) > 0
                           ? `${formatNumber(row.titulares)} titular${row.titulares === 1 ? "" : "es"}`

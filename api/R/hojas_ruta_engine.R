@@ -8534,7 +8534,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     "ESQUINA / COORDENADA DE INICIO", as.character(esquina),
     "RECORRIDO", as.character(recorrido),
     "CASA / DOMICILIO DE INICIO", as.character(arranque),
-    "CONSTANTE DE SALTO POR CASA / DOMICILIO", constante_label
+    "CONSTANTE DE SALTO POR\nCASA / DOMICILIO", constante_label
   ), ncol = 2, byrow = TRUE)
   grey_c <- matrix(FALSE, nrow(table_c), ncol(table_c))
   grey_c[, 1] <- TRUE
@@ -8543,13 +8543,14 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   font_c <- matrix("plain", nrow(table_c), ncol(table_c))
   font_c[, 1] <- "bold"
   .hojas_ruta_draw_reference_table(
-    table_c, x = 0.215, y = 0.175,
-    col_widths = c(0.34, 0.235),
-    row_heights = rep(0.032, 4),
+    table_c, x = 0.16, y = 0.19,
+    col_widths = c(0.44, 0.24),
+    row_heights = rep(0.029, 4),
     grey_cells = grey_c,
-    font_size = 9.5,
+    font_size = 8.2,
     align = align_c,
-    fontface = font_c
+    fontface = font_c,
+    lineheight = 0.95
   )
 
   # Footer minimalista: linea fina + tres elementos balanceados.

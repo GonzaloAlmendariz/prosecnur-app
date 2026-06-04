@@ -2299,6 +2299,10 @@
   max-height: none;
   overflow-x: auto;
   overflow-y: visible;
+  /* Retiene el paneo horizontal de tablas anchas, pero deja que la rueda vertical
+     siga moviendo el panel de revisión cuando el cursor está sobre la tabla. */
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
 }
 
 .hojas-ruta-review-table-wrap.is-sample-list {
@@ -2735,14 +2739,16 @@
   width: 100%;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(92px, auto);
-  align-items: center;
-  gap: 9px;
-  padding: 9px 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(104px, max-content);
+  align-items: stretch;
+  gap: 10px;
+  min-height: 68px;
+  padding: 10px 12px;
   border: 1px solid #dbe3ea;
   border-radius: 8px;
   background: #fbfdff;
   color: var(--pulso-text);
+  font: inherit;
   text-align: left;
   white-space: normal;
   cursor: pointer;
@@ -2754,20 +2760,35 @@
   box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.18);
 }
 
-.hojas-ruta-sampling-zone-list button strong,
+.hojas-ruta-zone-row-main,
+.hojas-ruta-zone-row-status {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: center;
+  row-gap: 3px;
+}
+
+.hojas-ruta-zone-row-status {
+  justify-items: end;
+  font-style: normal;
+  text-align: right;
+}
+
+.hojas-ruta-zone-row-main strong,
 .hojas-ruta-inspector-block-row strong {
   display: block;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: 12.5px;
+  line-height: 1.18;
   font-weight: 900;
   overflow-wrap: anywhere;
   white-space: normal;
 }
 
-.hojas-ruta-sampling-zone-list button small,
+.hojas-ruta-zone-row-main small,
 .hojas-ruta-inspector-block-row small {
   display: block;
-  margin-top: 2px;
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   line-height: 1.25;
@@ -2775,40 +2796,33 @@
   white-space: normal;
 }
 
-.hojas-ruta-sampling-zone-list button > span {
-  min-width: 0;
-}
-
-.hojas-ruta-sampling-zone-list button em {
-  min-width: 0;
-  font-style: normal;
-  text-align: right;
+.hojas-ruta-zone-row-status strong,
+.hojas-ruta-zone-row-status small {
+  display: block;
+  max-width: 132px;
+  overflow-wrap: anywhere;
   white-space: normal;
 }
 
-.hojas-ruta-sampling-zone-list button em strong,
-.hojas-ruta-sampling-zone-list button em small {
-  display: block;
-}
-
-.hojas-ruta-sampling-zone-list button em strong {
+.hojas-ruta-zone-row-status strong {
   color: #0f766e;
   font-size: 11.5px;
+  line-height: 1.18;
   font-weight: 900;
 }
 
-.hojas-ruta-sampling-zone-list button em small {
-  margin-top: 2px;
+.hojas-ruta-zone-row-status small {
   color: var(--pulso-text-soft);
   font-size: 10px;
+  line-height: 1.22;
   font-weight: 750;
 }
 
-.hojas-ruta-sampling-zone-list button em.is-empty strong {
+.hojas-ruta-zone-row-status.is-empty strong {
   color: #64748b;
 }
 
-.hojas-ruta-sampling-zone-list button em.is-assigned strong {
+.hojas-ruta-zone-row-status.is-assigned strong {
   color: #0f766e;
 }
 
