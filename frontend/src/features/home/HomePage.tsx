@@ -83,6 +83,15 @@ const DEFAULT_CINEMA_METRICS: CinemaMetrics = {
 // ---- Notas de la versión --------------------------------------------
 const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.3.2",
+    date: "2026-06-04",
+    highlights: [
+      "Hojas de ruta: corrige el layout del PDF integrado para que la tabla de recorrido no se corte ni choque con el pie de pagina.",
+      "Revision final: evita que las tablas anchas atrapen el scroll vertical cuando se revisan titulares y reemplazos.",
+      "Inspector de zonas: estabiliza las tarjetas de zonas para que viviendas, personas, estado y accion no se superpongan.",
+    ],
+  },
+  {
     version: "0.3.1",
     date: "2026-06-04",
     highlights: [
