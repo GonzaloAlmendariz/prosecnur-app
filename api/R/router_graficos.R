@@ -216,27 +216,173 @@
   do.call(fn, payload)
 }
 
+.graficos_valid_data_cache <- function(x) {
+  if (exists(".pulso_valid_data_cache", mode = "function")) {
+    return(isTRUE(tryCatch(.pulso_valid_data_cache(x), error = function(e) FALSE)))
+  }
+  is.data.frame(x)
+}
+
+.graficos_valid_inst_cache <- function(x) {
+  if (exists(".pulso_valid_inst_cache", mode = "function")) {
+    return(isTRUE(tryCatch(.pulso_valid_inst_cache(x), error = function(e) FALSE)))
+  }
+  is.list(x) && !is.data.frame(x) && !is.null(x$survey) && is.data.frame(x$survey)
+}
+
+.graficos_named_source_list <- function(x) {
+  if (!is.list(x) || is.data.frame(x) || length(x) == 0L) return(list())
+  nms <- names(x)
+  if (is.null(nms)) nms <- rep("", length(x))
+  nms <- trimws(as.character(nms))
+  if (length(x) == 1L && !nzchar(nms[1])) nms <- "default"
+  keep <- nzchar(nms)
+  x <- x[keep]
+  names(x) <- nms[keep]
+  x
+}
+
+.graficos_filter_valid_sources <- function(data_sources, inst_sources) {
+  ds <- .graficos_named_source_list(data_sources)
+  is_ <- .graficos_named_source_list(inst_sources)
+  common <- intersect(names(ds), names(is_))
+  if (!length(common)) return(list(data_sources = list(), inst_sources = list()))
+
+  keep <- vapply(common, function(nm) {
+    .graficos_valid_data_cache(ds[[nm]]) && .graficos_valid_inst_cache(is_[[nm]])
+  }, logical(1))
+  common <- common[keep]
+
+  list(
+    data_sources = ds[common],
+    inst_sources = is_[common]
+  )
+}
+
+.graficos_sources_usable <- function(data_sources, inst_sources) {
+  valid <- .graficos_filter_valid_sources(data_sources, inst_sources)
+  length(valid$data_sources) > 0L && length(valid$inst_sources) > 0L &&
+    identical(names(valid$data_sources), names(valid$inst_sources))
+}
+
+.graficos_scope_processing_sources <- function(sid, data_sources, inst_sources) {
+  ds <- data_sources
+  is_ <- inst_sources
+  if (exists("estudio_processing_filter_sources", mode = "function")) {
+    scoped <- tryCatch(
+      estudio_processing_filter_sources(sid, ds, is_),
+      error = function(e) NULL
+    )
+    if (is.list(scoped)) {
+      ds <- scoped$data_sources %||% list()
+      is_ <- scoped$inst_sources %||% list()
+    }
+  }
+  list(data_sources = ds, inst_sources = is_)
+}
+
+.graficos_raw_processing_sources <- function(sid) {
+  .graficos_scope_processing_sources(
+    sid,
+    estudio_data_sources(sid),
+    estudio_inst_sources(sid)
+  )
+}
+
+.graficos_can_use_legacy_mirror <- function(sid, s) {
+  bases <- (s$estudio %||% list())$bases %||% list()
+  if (length(bases) > 1L) return(FALSE)
+  if (exists("estudio_is_independent_siblings", mode = "function") &&
+      isTRUE(tryCatch(estudio_is_independent_siblings(sid), error = function(e) FALSE))) {
+    return(FALSE)
+  }
+  TRUE
+}
+
+.graficos_legacy_mirror_sources <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s) || !.graficos_can_use_legacy_mirror(sid, s)) {
+    return(list(data_sources = list(), inst_sources = list()))
+  }
+  if (!.graficos_valid_data_cache(s$rp_data) || !.graficos_valid_inst_cache(s$rp_inst)) {
+    return(list(data_sources = list(), inst_sources = list()))
+  }
+
+  bases <- (s$estudio %||% list())$bases %||% list()
+  nm <- names(bases)[1] %||% "default"
+  if (!nzchar(nm)) nm <- "default"
+  .graficos_scope_processing_sources(
+    sid,
+    stats::setNames(list(s$rp_data), nm),
+    stats::setNames(list(s$rp_inst), nm)
+  )
+}
+
+.graficos_base_files_exist <- function(s, base_name) {
+  base <- ((s$estudio %||% list())$bases %||% list())[[base_name]]
+  if (is.null(base)) return(FALSE)
+  files <- s$files %||% list()
+  xls_fid <- as.character(base$xlsform_file_id %||% "")
+  data_fid <- as.character(base$data_file_id %||% "")
+  xls_meta <- if (nzchar(xls_fid)) files[[xls_fid]] else NULL
+  data_meta <- if (nzchar(data_fid)) files[[data_fid]] else NULL
+  !is.null(xls_meta$path) && file.exists(xls_meta$path) &&
+    !is.null(data_meta$path) && file.exists(data_meta$path)
+}
+
+.graficos_can_rebuild_runtime_sources <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(FALSE)
+  bases <- (s$estudio %||% list())$bases %||% list()
+  if (length(bases) <= 1L) return(TRUE)
+  all(vapply(names(bases), function(nm) {
+    .graficos_base_files_exist(s, nm)
+  }, logical(1)))
+}
+
+.graficos_rebuild_runtime_sources <- function(sid) {
+  if (!exists(".pulso_rebuild_estudio_runtime_sources", mode = "function")) {
+    return(FALSE)
+  }
+  if (!.graficos_can_rebuild_runtime_sources(sid)) return(FALSE)
+  isTRUE(tryCatch(.pulso_rebuild_estudio_runtime_sources(sid), error = function(e) FALSE))
+}
+
 .require_rp_data <- function(sid) {
   s <- session_get(sid)
   sources <- .graficos_processing_sources(sid)
-  ds <- sources$data_sources
-  is_ <- sources$inst_sources
-  if (length(ds) == 0L || length(is_) == 0L) {
-    stop_api(409, "E_NO_RP_DATA",
-             "Primero agrega al menos una base al estudio (Fase 1).")
+  if (!.graficos_sources_usable(sources$data_sources, sources$inst_sources)) {
+    stop_api(
+      409,
+      "E_NO_VALID_RP_DATA",
+      .graficos_base_error(
+        sid,
+        paste(
+          "La fuente procesada para Gráficos no está disponible o quedó incompleta.",
+          "Vuelve a aplicar la codificación o recarga la base desde Fase 1."
+        )
+      )
+    )
   }
   s
 }
 
 .graficos_processing_sources <- function(sid) {
-  ds <- estudio_data_sources(sid)
-  is_ <- estudio_inst_sources(sid)
-  if (exists("estudio_processing_filter_sources", mode = "function")) {
-    scoped <- estudio_processing_filter_sources(sid, ds, is_)
-    ds <- scoped$data_sources
-    is_ <- scoped$inst_sources
+  sources <- .graficos_raw_processing_sources(sid)
+  valid <- .graficos_filter_valid_sources(sources$data_sources, sources$inst_sources)
+  if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(valid)
+
+  if (.graficos_rebuild_runtime_sources(sid)) {
+    sources <- .graficos_raw_processing_sources(sid)
+    valid <- .graficos_filter_valid_sources(sources$data_sources, sources$inst_sources)
+    if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(valid)
   }
-  list(data_sources = ds, inst_sources = is_)
+
+  legacy <- .graficos_legacy_mirror_sources(sid)
+  valid <- .graficos_filter_valid_sources(legacy$data_sources, legacy$inst_sources)
+  if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(valid)
+
+  list(data_sources = list(), inst_sources = list())
 }
 
 .graficos_active_base_name <- function(sid) {

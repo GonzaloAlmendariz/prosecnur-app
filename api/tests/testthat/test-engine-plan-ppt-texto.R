@@ -117,3 +117,99 @@ test_that("reporte_word_plan excluye text_slide del flujo Word", {
   expect_true(all(word_out$log$block_type %in% c("title_doc", "chart")))
   expect_false(any(word_out$log$block_type == "text_slide"))
 })
+
+test_that("reporte_word_plan usa etiqueta de variable como titulo por defecto", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+  skip_if_not_installed("ggplot2")
+
+  label_p2 <- "¿Cuántos años cumplidos tiene usted?"
+  dat <- data.frame(
+    p2 = c("1", "2", "2", "3", "2"),
+    stringsAsFactors = FALSE
+  )
+  inst <- list(
+    survey = data.frame(
+      name = "p2",
+      type = "select_one lst_edad",
+      list_name = "lst_edad",
+      label = label_p2,
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = "lst_edad",
+      name = c("1", "2", "3"),
+      label = c("18 a 29 años", "30 a 59 años", "60 a más"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+  plan <- list(
+    diapo_001 = p_slide_1_grafico(
+      grafico = p_barras_agrupadas("p2")
+    )
+  )
+
+  out_docx <- tempfile(fileext = ".docx")
+  expect_no_error(
+    reporte_word_plan(
+      data = dat,
+      instrumento = inst,
+      plan = plan,
+      presets_ppt = p_presets(),
+      path_docx = out_docx,
+      mensajes_progreso = FALSE
+    )
+  )
+
+  doc_text <- officer::docx_summary(officer::read_docx(out_docx))$text
+  expect_true(any(grepl(paste0("Gráfico Nº 1. ", label_p2), doc_text, fixed = TRUE)))
+  expect_false(any(trimws(doc_text) == "Gráfico Nº 1."))
+})
+
+test_that("render_meta Word limpia titulo inferido desde variables recodificadas", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+  skip_if_not_installed("ggplot2")
+
+  label_p2 <- "¿Cuántos años cumplidos tiene usted?"
+  dat <- data.frame(
+    p2 = c("1", "96", "2", "96"),
+    p2_recod = c("1", "3", "2", "3"),
+    stringsAsFactors = FALSE
+  )
+  inst <- list(
+    survey = data.frame(
+      name = c("p2", "p2_recod"),
+      type = c("select_one lst_edad", "select_one lst_edad_recod"),
+      list_name = c("lst_edad", "lst_edad_recod"),
+      label = c(label_p2, label_p2),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c(rep("lst_edad", 3), rep("lst_edad_recod", 3)),
+      name = c("1", "2", "96", "1", "2", "3"),
+      label = c("18 a 29 años", "30 a 59 años", "Otro", "18 a 29 años", "30 a 59 años", "Otra edad recodificada"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = NULL
+  )
+  plan <- list(
+    diapo_001 = p_slide_1_grafico(
+      grafico = p_barras_agrupadas("p2")
+    )
+  )
+
+  meta <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = plan,
+    presets = p_presets(),
+    solo_lista = TRUE,
+    build_render_meta = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  expect_equal(meta$render_meta[[1]]$title, label_p2)
+  expect_false(grepl("Recodificada", meta$render_meta[[1]]$title, fixed = TRUE))
+})

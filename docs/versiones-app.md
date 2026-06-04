@@ -15,10 +15,10 @@ La fuente de verdad para empaquetado es `api/DESCRIPTION`.
 | 0.2.8 | Graficador avanzado | Publicada en GitHub | Normaliza configuracion `graficos/4`, mejora import/export por secciones, agrega editor visual de layout, paletas sugeridas y validacion numerica defensiva. |
 | 0.2.9 | Validacion y editor reforzados | Publicada en GitHub | Agrega motor de transformaciones de limpieza, fortalece reglas custom/AST, mejora persistencia y foco del editor XLSForm, y pule graficador/carga. |
 | 0.3.0 | Corte 0.3: auditoria, conexiones y multibase | Publicada en GitHub | Documenta la arquitectura canonica con ADRs, agrega auditoria reproducible, centraliza conexiones SurveyMonkey/Kobo fuera del `.pulso`, refuerza multibase/monitoreo, rediseña Home y amplia pruebas. |
-| 0.3.1 | Corte 3.1: multibase, hojas de ruta y validacion por fuente | Version actual a publicar | Aplica logica XLSForm de una base plantilla a hermanas compatibles, soporta importacion SurveyMonkey multifuente con perfiles de exclusion de validacion, separa hojas de ruta piloto/campo real, mejora drilldowns de validacion/Plotly y amplia pruebas R/React. |
+| 0.3.1 | Corte 3.1: multibase, hojas de ruta y validacion por fuente | Version actual publicada en GitHub | Aplica logica XLSForm de una base plantilla a hermanas compatibles, soporta importacion SurveyMonkey multifuente con perfiles de exclusion de validacion, separa hojas de ruta piloto/campo real, mejora drilldowns de validacion/Plotly, recupera fuentes procesadas de Graficos cuando el cache queda incompleto y corrige titulos Word/PPT desde etiquetas XLSForm. |
 
 ## Version actual
 
-Estamos en `0.3.1` (corte `3.1`). Esta es la version que debe publicarse como
+Estamos en `0.3.1` (corte `3.1`). Esta es la version publicada como
 `v0.3.1` para que GitHub Releases genere el instalador y el auto-updater la
 detecte.

@@ -979,13 +979,46 @@ reporte_ppt_plan <- function(
     if (exists("titulo_var", mode = "function", inherits = TRUE)) {
       return(titulo_var(
         ctx$var,
-        dic_vars        = NULL,
+        dic_vars        = ctx$survey,
         labels_override = NULL,
         orders_list     = ctx$orders_list,
         df              = ctx$data
       ))
     }
     ctx$var
+  }
+
+  .word_text_or_null <- function(x) {
+    if (is.null(x)) return(NULL)
+    x <- trimws(as.character(x)[1])
+    if (is.na(x) || !nzchar(x)) NULL else x
+  }
+
+  .word_clean_inferred_title <- function(x) {
+    x <- .word_text_or_null(x)
+    if (is.null(x)) return(NULL)
+    x <- gsub("\\s*\\(\\s*Recodificada\\s*\\)\\s*$", "", x, ignore.case = TRUE, perl = TRUE)
+    .word_text_or_null(x)
+  }
+
+  .word_title_for_element <- function(el, fallback = NULL) {
+    if (is.null(el) || !inherits(el, "ppt_element")) return(.word_text_or_null(fallback))
+
+    title <- .word_text_or_null(el$title_slide %||% (el$overrides %||% list())$titulo %||% NULL)
+    if (!is.null(title)) return(title)
+
+    refs <- c(
+      .extract_ref_values(el$var %||% NULL),
+      .extract_ref_values(el$vars %||% NULL)
+    )
+    refs <- unique(refs[!is.na(refs) & nzchar(trimws(refs))])
+    for (ref in refs) {
+      src <- if (grepl("\\$", ref)) NULL else el$source %||% NULL
+      title <- tryCatch(.word_clean_inferred_title(.title_of_var(ref, source = src)), error = function(e) NULL)
+      if (!is.null(title)) return(title)
+    }
+
+    .word_text_or_null(fallback)
   }
 
   .filter_data <- function(filtros = list(), source = NULL, ref = NULL) {
@@ -1490,6 +1523,7 @@ reporte_ppt_plan <- function(
 
     # Helper: renderiza un sub-bloque multiapiladas y agrega a render_meta
     .push_multi_block <- function(block_data, title_word) {
+      title_word <- .word_text_or_null(title_word) %||% .word_title_for_element(block_data)
       block_clean <- block_data
       block_clean$overrides <- block_clean$overrides %||% list()
       block_clean$overrides$titulo    <- NULL
@@ -1557,7 +1591,7 @@ reporte_ppt_plan <- function(
 
       } else {
         # Modo desconocido: renderizar como bloque unico
-        title_b <- block_data$title_slide %||% block_data$overrides$titulo %||% NULL
+        title_b <- .word_title_for_element(block_data)
         .push_multi_block(block_data, title_b)
       }
     }
@@ -1575,7 +1609,7 @@ reporte_ppt_plan <- function(
     }
 
     # --- ELEMENTO NORMAL ---
-    title <- el$title_slide %||% el$overrides$titulo %||% NULL
+    title <- .word_title_for_element(el)
 
     word_note <- .plot_note_from(plot, el$overrides$nota_pie %||% el$nota_pie %||% NULL)
 

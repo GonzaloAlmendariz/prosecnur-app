@@ -91,6 +91,8 @@ const RELEASE_NOTES: ReleaseNote[] = [
       "Validacion: enmascara reglas por fila/fuente para evitar falsos positivos cuando preguntas administrativas no aplican a fuentes autoadministradas.",
       "Hojas de ruta: separa fases piloto y campo real, refuerza el resumen de fuentes/configuracion y conserva snapshots mas trazables.",
       "Drilldown y visualizacion: mejora la inspeccion de reglas, el panel de detalle y el render Plotly para flujos de validacion mas exigentes.",
+      "Graficos: recupera fuentes procesadas validas cuando el cache queda incompleto y evita que listas invalidas lleguen al motor de reportes.",
+      "Reportes Word/PPT: usa etiquetas XLSForm como titulos por defecto y limpia sufijos de variables recodificadas en el indice Word.",
       "Documentacion y pruebas: agrega ADR 0009, actualiza arquitectura multibase y suma cobertura R/React para los nuevos contratos.",
     ],
   },
