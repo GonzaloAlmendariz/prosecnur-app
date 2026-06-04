@@ -49,7 +49,8 @@ evaluate_rules <- function(rules,
                            collection_date_col = NULL,
                            residual_codes = c("98", "99", "96", "90"),
                            strict = FALSE,
-                           table_name = "principal") {
+                           table_name = "principal",
+                           validation_exclusions = list()) {
   if (!length(rules)) {
     return(list(data = data, resumen = .empty_resumen(), logs = list()))
   }
@@ -95,7 +96,8 @@ evaluate_rules <- function(rules,
       data = data,
       strict = strict,
       collection_date_col = col_name,
-      has_collection_date = has_collection_date
+      has_collection_date = has_collection_date,
+      validation_exclusions = validation_exclusions
     )
     # Si la regla produjo vector booleano, lo pegamos como columna a data
     if (!is.null(row_result$flag_vec)) {
@@ -124,7 +126,8 @@ evaluate_rules <- function(rules,
                                   data,
                                   strict,
                                   collection_date_col = NULL,
-                                  has_collection_date = FALSE) {
+                                  has_collection_date = FALSE,
+                                  validation_exclusions = list()) {
   resumen_base <- list(
     id = rule$id,
     nombre = rule$nombre,
@@ -248,12 +251,130 @@ evaluate_rules <- function(rules,
     return(list(flag_vec = NULL, resumen = resumen_base, logs = list()))
   }
 
+  exclusion <- .validation_exclusion_mask_for_rule(rule, data, validation_exclusions)
+  excluded_n <- sum(exclusion$mask, na.rm = TRUE)
+  if (excluded_n > 0L) {
+    flag_vec[exclusion$mask] <- FALSE
+    note <- sprintf(
+      "%d filas excluidas por perfil %s.",
+      as.integer(excluded_n),
+      paste(exclusion$profiles, collapse = ", ")
+    )
+    if (length(exclusion$vars)) {
+      note <- paste0(note, " Variables: ", paste(exclusion$vars, collapse = ", "), ".")
+    }
+    old_detail <- as.character(resumen_base$detalle %||% "")
+    resumen_base$detalle <- if (nzchar(old_detail) && !is.na(old_detail)) {
+      paste(old_detail, note)
+    } else {
+      note
+    }
+  }
+
   n_total <- nrow(data)
   n_inc <- sum(flag_vec, na.rm = TRUE)
   resumen_base$estado <- "correcta"
   resumen_base$n_inconsistencias <- as.integer(n_inc)
   resumen_base$porcentaje <- if (n_total > 0L) n_inc / n_total else NA_real_
   list(flag_vec = flag_vec, resumen = resumen_base, logs = list())
+}
+
+.validation_chr_vec <- function(x) {
+  if (is.null(x)) return(character(0))
+  if (is.data.frame(x)) x <- as.list(x)
+  if (is.list(x) && is.null(names(x))) {
+    x <- unlist(x, use.names = FALSE)
+  }
+  vals <- trimws(as.character(x %||% character(0)))
+  vals[!is.na(vals) & nzchar(vals)]
+}
+
+.validation_exclusion_records <- function(validation_exclusions) {
+  if (is.null(validation_exclusions)) return(list())
+  if (is.data.frame(validation_exclusions)) {
+    return(lapply(seq_len(nrow(validation_exclusions)), function(i) as.list(validation_exclusions[i, , drop = FALSE])))
+  }
+  if (is.list(validation_exclusions) &&
+      length(validation_exclusions) &&
+      all(vapply(validation_exclusions, function(x) is.list(x) && !is.data.frame(x), logical(1)))) {
+    return(validation_exclusions)
+  }
+  list()
+}
+
+.validation_exclusion_vars <- function(record) {
+  vars <- .validation_chr_vec(record$excluded_validation_vars %||%
+                                record$excluded_vars %||%
+                                record$variables %||%
+                                record$vars)
+  unique(vars)
+}
+
+.validation_rule_target_vars <- function(rule) {
+  roles <- rule$variable_roles %||% list()
+  vars <- .validation_chr_vec(roles$target %||% rule$primary_var %||% rule$variables)
+  unique(vars)
+}
+
+.validation_record_row_mask <- function(record, data) {
+  n <- nrow(data)
+  if (!n) return(logical(0))
+  mask <- rep(TRUE, n)
+  criteria <- 0L
+
+  survey_id <- .validation_chr_vec(record$survey_id)
+  if (length(survey_id) && "survey_id" %in% names(data)) {
+    criteria <- criteria + 1L
+    mask <- mask & as.character(data$survey_id %||% "") %in% survey_id
+  }
+
+  collector_ids <- .validation_chr_vec(record$collector_ids %||% record$collector_id)
+  if (length(collector_ids) && "collector_id" %in% names(data)) {
+    criteria <- criteria + 1L
+    mask <- mask & as.character(data$collector_id %||% "") %in% collector_ids
+  }
+
+  source_titles <- .validation_chr_vec(record$source_title %||% record$source_titles)
+  if (length(source_titles) && "source_title" %in% names(data)) {
+    criteria <- criteria + 1L
+    mask <- mask & as.character(data$source_title %||% "") %in% source_titles
+  }
+
+  source_aliases <- .validation_chr_vec(record$source_alias %||% record$source_aliases)
+  if (length(source_aliases) && "source_alias" %in% names(data)) {
+    criteria <- criteria + 1L
+    mask <- mask & as.character(data$source_alias %||% "") %in% source_aliases
+  }
+
+  if (criteria == 0L) rep(FALSE, n) else mask
+}
+
+.validation_exclusion_mask_for_rule <- function(rule, data, validation_exclusions = list()) {
+  out <- rep(FALSE, nrow(data))
+  target_vars <- .validation_rule_target_vars(rule)
+  if (!length(target_vars) || !nrow(data)) {
+    return(list(mask = out, profiles = character(0), vars = character(0)))
+  }
+
+  profiles <- character(0)
+  vars_hit <- character(0)
+  for (record in .validation_exclusion_records(validation_exclusions)) {
+    excluded_vars <- .validation_exclusion_vars(record)
+    hit_vars <- intersect(target_vars, excluded_vars)
+    if (!length(hit_vars)) next
+    mask <- .validation_record_row_mask(record, data)
+    if (!any(mask, na.rm = TRUE)) next
+    out <- out | mask
+    vars_hit <- unique(c(vars_hit, hit_vars))
+    profile <- as.character(record$validation_exclusion_profile %||% record$profile %||% "exclusion")
+    profile <- profile[!is.na(profile) & nzchar(profile)]
+    profiles <- unique(c(profiles, profile %||% "exclusion"))
+  }
+  list(
+    mask = out,
+    profiles = if (length(profiles)) profiles else character(0),
+    vars = vars_hit
+  )
 }
 
 # -----------------------------------------------------------------------------

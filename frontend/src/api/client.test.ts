@@ -12,6 +12,7 @@ import {
   apiMonitoreoSource,
   apiMonitoreoSync,
   apiEstudioActiveBaseSet,
+  apiEstudioApplyIndependentTemplateLogic,
   apiEstudioPromoteIndependentSiblings,
   apiSurveyMonkeyMultibaseImportIndependent,
   apiSurveyMonkeyMultibaseInspectSurvey,
@@ -491,6 +492,7 @@ describe("Monitoreo client", () => {
           nickname: "",
           date_modified: "2026-05-29T00:56:00",
           pais_guess: "",
+          response_count: 203,
         }],
       });
     });
@@ -504,6 +506,7 @@ describe("Monitoreo client", () => {
     );
     expect(JSON.parse(String(sentInit?.body))).toEqual({ q: "contabilidad", limit: 50, months: 36 });
     expect(result.surveys[0].id).toBe("527327742");
+    expect(result.surveys[0].response_count).toBe(203);
     expect(result.from_cache).toBe(true);
     expect(result.catalog_count).toBe(10);
   });
@@ -610,6 +613,57 @@ describe("Monitoreo client", () => {
     });
     expect(result.processing_mode).toBe("independent_siblings");
     expect(result.active_base).toBe("ingenieria_civil");
+  });
+
+  test("applies template XLSForm logic to independent sibling bases", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        template_base: "ingenieria_civil",
+        targets: ["ingenieria_industrial"],
+        updated_bases: ["ingenieria_industrial"],
+        n_targets: 1,
+        n_updated_bases: 1,
+        results: [{
+          base: "ingenieria_industrial",
+          applied_variables: ["p2"],
+          skipped_missing_variables: [],
+          missing_references: [],
+          n_applied_variables: 1,
+          n_skipped_missing_variables: 0,
+          n_missing_references: 0,
+          changed_cells: 2,
+          logic_columns: ["relevant", "constraint"],
+        }],
+        estudio: {
+          nombre: "AC Ingenierías",
+          processing_mode: "independent_siblings",
+          active_base: "ingenieria_civil",
+          n_bases: 2,
+          bases: {},
+          max_bases: 10,
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiEstudioApplyIndependentTemplateLogic({
+      template_base: "ingenieria_civil",
+      targets: ["ingenieria_industrial"],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/estudio/independent-siblings/apply-template-logic",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      template_base: "ingenieria_civil",
+      targets: ["ingenieria_industrial"],
+    });
+    expect(result.n_updated_bases).toBe(1);
+    expect(result.results?.[0]?.changed_cells).toBe(2);
   });
 
   test("imports SurveyMonkey surveys as independent sibling bases", async () => {

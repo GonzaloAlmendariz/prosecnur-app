@@ -116,6 +116,8 @@ export default function CargaPage() {
   const [busy, setBusy] = useState<string>("");
   const feedbackRef = useRef<HTMLDivElement | null>(null);
   const normalizationDetails = dataPreviewNormalizationDetails(dataPreview);
+  const [forceMultiBase, setForceMultiBase] = useState(false);
+  const [preferredMultiStrategy, setPreferredMultiStrategy] = useState<"separate" | "integrated" | "independent" | undefined>(undefined);
 
   async function onQuitar(kind: "xlsform" | "data") {
     const label = kind === "xlsform" ? "el XLSForm" : "la base de datos";
@@ -207,9 +209,18 @@ export default function CargaPage() {
   // El caso "single-base legacy virtual" (n_bases=1 + nombre=default)
   // se sigue tratando como single-base — aún no hubo intención de
   // multi-base, es solo un mirror del legacy.
+  const hasDefaultStudyBase = !!state
+    && state.has_estudio
+    && state.n_bases === 1
+    && state.bases_nombres[0] === "default";
+  const isIndependentStudy = state?.estudio_processing_mode === "independent_siblings";
   const isMultiBase = !!state
     && state.has_estudio
-    && !(state.n_bases === 1 && state.bases_nombres[0] === "default");
+    && (
+      forceMultiBase ||
+      isIndependentStudy ||
+      !(hasDefaultStudyBase)
+    );
 
   // Payload del estudio — cargamos on-demand cuando entramos a modo
   // multi-base para mostrar el BasesPanel con detalle de cada base.
@@ -230,6 +241,8 @@ export default function CargaPage() {
     setEstructura(null);
     setEstudio(null);
     setAutoOpenAddBase(false);
+    setForceMultiBase(false);
+    setPreferredMultiStrategy(undefined);
     setError("");
     setBusy("");
   }, [sessionId]);
@@ -263,6 +276,12 @@ export default function CargaPage() {
   // instrumento si aplica.
   async function onEstudioChanged(payload: EstudioPayload) {
     setEstudio(payload);
+    if (payload.processing_mode === "independent_siblings" || payload.n_bases > 1) {
+      setForceMultiBase(true);
+    }
+    if (payload.processing_mode === "independent_siblings") {
+      setPreferredMultiStrategy("independent");
+    }
     await refresh();
     if (payload.n_bases > 0) {
       try {
@@ -339,12 +358,20 @@ export default function CargaPage() {
               setError("");
               setBusy("Activando modo de varias bases…");
               try {
-                if (hasXlsform && hasData) {
+                if (state?.has_estudio) {
+                  const p = await apiEstudioGet();
+                  setEstudio(p);
+                  setForceMultiBase(true);
+                  setAutoOpenAddBase(false);
+                  setPreferredMultiStrategy(hasDefaultStudyBase ? "independent" : undefined);
+                } else if (hasXlsform && hasData) {
                   // Hay archivos single-base — los promovemos a base_1.
                   await apiEstudioFromSession();
                   const p = await apiEstudioGet();
                   setEstudio(p);
-                  setAutoOpenAddBase(true);
+                  setForceMultiBase(true);
+                  setPreferredMultiStrategy("independent");
+                  setAutoOpenAddBase(false);
                 } else {
                   // Todavía no hay archivos — creamos un estudio vacío.
                   // En vacío dejamos que el BasesPanel muestre primero
@@ -352,6 +379,8 @@ export default function CargaPage() {
                   // escoger "Agregar otra base" si quiere carga manual.
                   const p = await apiEstudioInit();
                   setEstudio(p);
+                  setForceMultiBase(true);
+                  setPreferredMultiStrategy(undefined);
                   setAutoOpenAddBase(false);
                 }
                 await refresh();
@@ -368,6 +397,8 @@ export default function CargaPage() {
                 await apiEstudioDowngradeToSingle();
                 setEstudio(null);
                 setAutoOpenAddBase(false);
+                setForceMultiBase(false);
+                setPreferredMultiStrategy(undefined);
                 await refresh();
               } catch (e) {
                 setError((e as Error).message);
@@ -419,9 +450,12 @@ export default function CargaPage() {
               hasSessionXlsform={hasXlsform}
               autoOpenAdd={autoOpenAddBase}
               onAutoOpenConsumed={() => setAutoOpenAddBase(false)}
+              initialStrategy={preferredMultiStrategy}
               onDowngraded={async () => {
                 setAutoOpenAddBase(false);
                 setEstudio(null);
+                setForceMultiBase(false);
+                setPreferredMultiStrategy(undefined);
                 await refresh();
               }}
             />

@@ -9,6 +9,8 @@ import {
   integratedStandardLabelEntries,
   integratedVariantRows,
   smIndependentSurveyInput,
+  smSurveyResponseCount,
+  smSurveyResponseLabel,
 } from "./BasesPanel";
 
 describe("BasesPanel integrated history helpers", () => {
@@ -83,6 +85,7 @@ describe("BasesPanel integrated history helpers", () => {
         includeCompleted: true,
         includePartial: false,
         keepMissingStatus: false,
+        collectionStrategy: "campo",
         extraSources: [{
           key: "extra",
           surveyId: "222",
@@ -93,6 +96,7 @@ describe("BasesPanel integrated history helpers", () => {
           includeCompleted: true,
           includePartial: true,
           keepMissingStatus: false,
+          collectionStrategy: "whatsapp_link",
         }],
       },
     );
@@ -103,6 +107,7 @@ describe("BasesPanel integrated history helpers", () => {
       source_alias: "Ingeniería Geológica",
       source_title: "Acreditación Ingeniería Geológica - Encuesta Egresados",
       pais: "",
+      collection_strategy: "campo",
       sources: [
         {
           survey_id: "111",
@@ -112,12 +117,15 @@ describe("BasesPanel integrated history helpers", () => {
           response_statuses: ["completed"],
           collector_ids: ["campo", "recordatorio"],
           date_modified_lte: "2026-05-30T01:27:00+00:00",
+          collection_strategy: "campo",
         },
         {
           survey_id: "222",
           label: "Ingeniería Geológica campaña 2",
           source_alias: "Ingeniería Geológica campaña 2",
           response_statuses: ["completed", "partial"],
+          collection_strategy: "whatsapp_link",
+          validation_exclusion_profile: "admin_autoadministrado",
         },
       ],
     });
@@ -152,6 +160,7 @@ describe("BasesPanel integrated history helpers", () => {
         includeCompleted: true,
         includePartial: false,
         keepMissingStatus: false,
+        collectionStrategy: "campo",
         extraSources: [],
       },
     );
@@ -161,7 +170,15 @@ describe("BasesPanel integrated history helpers", () => {
       label: "Ingeniería de las Telecomunicaciones",
       source_alias: "Ingeniería de las Telecomunicaciones",
       source_title: "Acreditación Ingeniería de las Telecomunicaciones - Encuesta Egresados",
+      collection_strategy: "campo",
     });
     expect(input.sources).toBeUndefined();
+  });
+
+  test("formats SurveyMonkey response counts for the sibling catalog", () => {
+    expect(smSurveyResponseCount({ response_count: 203 })).toBe(203);
+    expect(smSurveyResponseLabel({ response_count: 203 })).toBe("203 respuestas");
+    expect(smSurveyResponseLabel({ response_count: 1 })).toBe("1 respuesta");
+    expect(smSurveyResponseLabel({ response_count: null })).toBe("Conteo no disponible");
   });
 });

@@ -194,6 +194,7 @@ function KpiCard({ view }: { view: ViewDescriptor; onAction?: OnAction }) {
 
 function PlotlyChart({
   view,
+  onAction,
   height,
 }: {
   view: ViewDescriptor;
@@ -209,6 +210,7 @@ function PlotlyChart({
   const config = useMemo(() => buildPlotlyConfig(view), [view]);
   const data = useMemo(() => buildPlotlyData(view), [view]);
   const empty = !hasPlotlyData(view);
+  const nativeSummary = useMemo(() => nativeValidationSummary(view), [view]);
 
   return (
     <article
@@ -246,6 +248,8 @@ function PlotlyChart({
         >
           {empty ? (
             <EmptyChartHint hint={(view.meta?.empty_hint as string) ?? "Sin datos para mostrar."} />
+          ) : nativeSummary ? (
+            <NativeValidationSummary view={view} summary={nativeSummary} onAction={onAction} />
           ) : (
             <SharedPlotlyChart
               data={data as unknown[]}
@@ -266,6 +270,336 @@ function PlotlyChart({
         )}
       </div>
     </article>
+  );
+}
+
+type NativeBarSummary = {
+  kind: "bar";
+  rows: Array<{ label: string; value: number; actionId?: string }>;
+};
+
+type NativeHeatmapSummary = {
+  kind: "heatmap";
+  x: string[];
+  y: string[];
+  z: number[][];
+};
+
+type NativeSummary = NativeBarSummary | NativeHeatmapSummary;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function cleanPlotlyLabel(value: unknown) {
+  return String(value ?? "")
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function nativeValidationSummary(view: ViewDescriptor): NativeSummary | null {
+  const first = view.plotly.data?.[0];
+  if (!isRecord(first)) return null;
+
+  if (view.kind === "bar_h" && /top reglas violadas/i.test(view.title)) {
+    const values = asArray(first.x).map((x) => Number(x)).filter((x) => Number.isFinite(x));
+    const labels = asArray(first.hovertext).length ? asArray(first.hovertext) : asArray(first.y);
+    const ids = asArray(first.customdata);
+    const rows = values.map((value, index) => ({
+      label: cleanPlotlyLabel(labels[index]),
+      value,
+      actionId: ids[index] == null ? undefined : String(ids[index]),
+    }));
+    return rows.length ? { kind: "bar", rows } : null;
+  }
+
+  if (view.kind === "heatmap_semaforo") {
+    const x = asArray(first.x).map(cleanPlotlyLabel).filter(Boolean);
+    const y = asArray(first.y).map(cleanPlotlyLabel).filter(Boolean);
+    const z = asArray(first.z).map((row) =>
+      asArray(row).map((cell) => {
+        const value = Number(cell);
+        return Number.isFinite(value) ? value : 0;
+      }),
+    );
+    if (!x.length || !y.length || !z.length) return null;
+    return { kind: "heatmap", x, y, z };
+  }
+
+  return null;
+}
+
+function NativeValidationSummary({
+  view,
+  summary,
+  onAction,
+}: {
+  view: ViewDescriptor;
+  summary: NativeSummary;
+  onAction?: OnAction;
+}) {
+  if (summary.kind === "bar") {
+    return <NativeBarChart summary={summary} view={view} onAction={onAction} />;
+  }
+  return <NativeHeatmap summary={summary} />;
+}
+
+function NativeBarChart({
+  summary,
+  view,
+  onAction,
+}: {
+  summary: NativeBarSummary;
+  view: ViewDescriptor;
+  onAction?: OnAction;
+}) {
+  const max = Math.max(1, ...summary.rows.map((row) => row.value));
+  const action = view.actions?.[0];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, minHeight: 220 }}>
+      {summary.rows.map((row) => {
+        const width = `${Math.max(8, (row.value / max) * 100)}%`;
+        const clickable = !!(action && row.actionId && onAction);
+        return (
+          <button
+            key={`${row.label}-${row.actionId ?? row.value}`}
+            type="button"
+            disabled={!clickable}
+            onClick={() => {
+              if (!clickable) return;
+              onAction?.({
+                id: action.id,
+                target_tab: action.target_tab,
+                payload: { ...(action.payload ?? {}), id_regla: row.actionId },
+              });
+            }}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(180px, 0.42fr) minmax(160px, 1fr) auto",
+              alignItems: "center",
+              gap: 12,
+              width: "100%",
+              border: 0,
+              padding: "8px 10px",
+              borderRadius: 12,
+              background: clickable ? "rgba(255,255,255,0.72)" : "transparent",
+              color: "inherit",
+              cursor: clickable ? "pointer" : "default",
+              textAlign: "left",
+              font: "inherit",
+            }}
+          >
+            <span
+              title={row.label}
+              style={{
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                fontSize: 12,
+                fontWeight: 750,
+                color: "var(--pulso-text)",
+              }}
+            >
+              {row.label}
+            </span>
+            <span
+              aria-hidden="true"
+              style={{
+                position: "relative",
+                height: 16,
+                borderRadius: 999,
+                background: "rgba(216, 224, 239, 0.72)",
+                overflow: "hidden",
+              }}
+            >
+              <span
+                style={{
+                  display: "block",
+                  width,
+                  height: "100%",
+                  borderRadius: 999,
+                  background: "linear-gradient(90deg, #2457d6 0%, #0f766e 100%)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.35)",
+                }}
+              />
+            </span>
+            <span
+              style={{
+                minWidth: 30,
+                textAlign: "right",
+                fontSize: 12,
+                fontWeight: 850,
+                color: "var(--pulso-primary)",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {row.value}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function heatColor(value: number, max: number) {
+  if (value <= 0) return { bg: "rgba(248,250,252,0.92)", fg: "var(--pulso-text-soft)", border: "rgba(226,232,240,0.9)" };
+  const ratio = value / Math.max(1, max);
+  if (ratio >= 0.66) return { bg: "#dc2626", fg: "#ffffff", border: "#b91c1c" };
+  if (ratio >= 0.34) return { bg: "#f97316", fg: "#ffffff", border: "#ea580c" };
+  return { bg: "#16a34a", fg: "#ffffff", border: "#15803d" };
+}
+
+function NativeHeatmap({ summary }: { summary: NativeHeatmapSummary }) {
+  const max = Math.max(1, ...summary.z.flat());
+  const activeColumns = summary.x
+    .map((label, index) => ({
+      label,
+      index,
+      total: summary.z.reduce((sum, row) => sum + (row[index] ?? 0), 0),
+    }))
+    .filter((col) => col.total > 0);
+  const activeRows = summary.y
+    .map((label, index) => ({
+      label,
+      index,
+      total: (summary.z[index] ?? []).reduce((sum, value) => sum + value, 0),
+    }))
+    .filter((row) => row.total > 0);
+  const columnsShown = activeColumns.length ? activeColumns : summary.x.map((label, index) => ({ label, index, total: 0 }));
+  const rowsShown = activeRows.length ? activeRows : summary.y.map((label, index) => ({ label, index, total: 0 }));
+  const hiddenColumns = Math.max(0, summary.x.length - columnsShown.length);
+  const hiddenRows = Math.max(0, summary.y.length - rowsShown.length);
+  const gridColumns = `minmax(120px, 0.85fr) repeat(${columnsShown.length}, minmax(92px, 1fr))`;
+
+  return (
+    <div style={{ display: "grid", gap: 14, minHeight: 220 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: gridColumns,
+          gap: 8,
+          width: "100%",
+          minWidth: 0,
+        }}
+      >
+        <div />
+        {columnsShown.map((col) => (
+          <div
+            key={col.label}
+            title={col.label}
+            style={{
+              minWidth: 0,
+              padding: "8px 10px",
+              borderRadius: 10,
+              background: "rgba(255,255,255,0.72)",
+              border: "1px solid rgba(216, 224, 239, 0.78)",
+              fontSize: 11,
+              lineHeight: 1.25,
+              fontWeight: 750,
+              color: "var(--pulso-text-soft)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {col.label}
+          </div>
+        ))}
+        {rowsShown.map((row) => (
+          <div key={row.label} style={{ display: "contents" }}>
+            <div
+              title={row.label}
+              style={{
+                minWidth: 0,
+                alignSelf: "center",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                fontSize: 11,
+                fontWeight: 800,
+                color: "var(--pulso-text)",
+              }}
+            >
+              {row.label}
+            </div>
+            {columnsShown.map((col) => {
+              const value = summary.z[row.index]?.[col.index] ?? 0;
+              const color = heatColor(value, max);
+              return (
+                <div
+                  key={`${row.label}-${col.label}`}
+                  title={`${row.label} × ${col.label}: ${value} casos`}
+                  style={{
+                    minHeight: 54,
+                    display: "grid",
+                    placeItems: "center",
+                    borderRadius: 14,
+                    border: `1px solid ${color.border}`,
+                    background: color.bg,
+                    color: color.fg,
+                    fontSize: value > 0 ? 16 : 12,
+                    fontWeight: 850,
+                    fontVariantNumeric: "tabular-nums",
+                    boxShadow: value > 0 ? "0 12px 24px rgba(15, 23, 42, 0.12)" : "none",
+                  }}
+                >
+                  {value > 0 ? value : ""}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      {(hiddenColumns > 0 || hiddenRows > 0) && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            alignItems: "center",
+            color: "var(--pulso-text-soft)",
+            fontSize: 11,
+            lineHeight: 1.4,
+          }}
+        >
+          {hiddenColumns > 0 && (
+            <span
+              style={{
+                padding: "5px 9px",
+                borderRadius: 999,
+                border: "1px solid var(--pulso-border)",
+                background: "rgba(255,255,255,0.72)",
+                fontWeight: 700,
+              }}
+            >
+              {hiddenColumns} secciones sin casos
+            </span>
+          )}
+          {hiddenRows > 0 && (
+            <span
+              style={{
+                padding: "5px 9px",
+                borderRadius: 999,
+                border: "1px solid var(--pulso-border)",
+                background: "rgba(255,255,255,0.72)",
+                fontWeight: 700,
+              }}
+            >
+              {hiddenRows} tipos sin casos
+            </span>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -481,4 +815,3 @@ function EmptyChartHint({ hint }: { hint: string }) {
     </div>
   );
 }
-

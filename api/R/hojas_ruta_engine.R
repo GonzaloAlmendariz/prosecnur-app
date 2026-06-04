@@ -3371,14 +3371,26 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
     zone_allocation = zone_allocation,
     age_ranges = age_ranges,
     sample_size_mode = sample_size_mode,
-    sample_size = sample_size
+    sample_size = sample_size,
+    excluded_titular_ids = as.list(unique(.hojas_ruta_chr_vec(
+      config$excluded_titular_ids %||%
+        config$excludedTitularIds %||%
+        config$manzanas_excluidas_piloto %||%
+        list()
+    )))
   )
 }
 
 .hojas_ruta_filter_frame <- function(config) {
   cfg <- hojas_ruta_integrada_normalize_config(config)
   frame <- hojas_ruta_inei_frame(cfg$frame_source)
-  frame[frame$ubigeo %in% unlist(cfg$territorios, use.names = FALSE), , drop = FALSE]
+  frame <- frame[frame$ubigeo %in% unlist(cfg$territorios, use.names = FALSE), , drop = FALSE]
+  excluded_ids <- unique(as.character(unlist(cfg$excluded_titular_ids %||% list(), use.names = FALSE)))
+  excluded_ids <- excluded_ids[nzchar(excluded_ids)]
+  if (length(excluded_ids) && "id_manzana" %in% names(frame)) {
+    frame <- frame[!as.character(frame$id_manzana) %in% excluded_ids, , drop = FALSE]
+  }
+  frame
 }
 
 .hojas_ruta_allocate_integer <- function(weights, n) {
@@ -5036,9 +5048,31 @@ hojas_ruta_generar_reemplazos_manual_pdf <- function(config = list(), sample = N
 hojas_ruta_sample_preview_integrado <- function(config = list()) {
   cfg <- hojas_ruta_integrada_normalize_config(config)
   quota <- hojas_ruta_quota_preview_integrado(cfg)
+  excluded_titular_ids <- unique(as.character(unlist(cfg$excluded_titular_ids %||% list(), use.names = FALSE)))
+  excluded_titular_ids <- excluded_titular_ids[nzchar(excluded_titular_ids)]
+  pre_exclusion_frame <- NULL
+  if (length(excluded_titular_ids)) {
+    pre_exclusion_cfg <- cfg
+    pre_exclusion_cfg$excluded_titular_ids <- list()
+    pre_exclusion_frame <- .hojas_ruta_filter_frame(pre_exclusion_cfg)
+  }
   frame <- .hojas_ruta_filter_frame(cfg)
   cells <- .hojas_ruta_rows_df(quota$cells)
   alerts <- quota$alerts
+  if (length(excluded_titular_ids) && !is.null(pre_exclusion_frame) && "id_manzana" %in% names(pre_exclusion_frame)) {
+    excluded_in_frame <- intersect(as.character(pre_exclusion_frame$id_manzana), excluded_titular_ids)
+    if (length(excluded_in_frame)) {
+      alerts[[length(alerts) + 1L]] <- list(
+        level = "warn",
+        code = "W_PILOT_EXCLUSION_REDUCED_FRAME",
+        message = sprintf(
+          "Se excluyeron %d manzana(s) titular(es) de la piloto del marco elegible para campo real.",
+          length(excluded_in_frame)
+        ),
+        excluded_titulars = as.integer(length(excluded_in_frame))
+      )
+    }
+  }
 
   if (!nrow(cells)) {
     return(list(

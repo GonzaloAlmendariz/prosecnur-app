@@ -460,6 +460,35 @@ test_that("required hereda gate de grupo padre cuando el grupo hijo no lo tiene"
   expect_equal(row_res$n_inconsistencias[[1]], 1)
 })
 
+test_that("validacion excluye required por fila segun recojo autoadministrado", {
+  rule <- rule_required("p36", nombre = "req_p36_req")
+  datos <- tibble::tibble(
+    survey_id = c("campo", "whatsapp"),
+    source_title = c("Campo", "Campaña WhatsApp"),
+    respondent_id = c("r1", "r2"),
+    p36 = c("", "")
+  )
+
+  ev <- evaluate_rules(
+    rules = list(rule),
+    data = datos,
+    validation_exclusions = list(list(
+      survey_id = "whatsapp",
+      source_title = "Campaña WhatsApp",
+      collection_strategy = "whatsapp_link",
+      validation_exclusion_profile = "admin_autoadministrado",
+      excluded_validation_vars = as.list("p36")
+    ))
+  )
+
+  expect_equal(ev$resumen$n_inconsistencias[[1]], 1L)
+  expect_match(ev$resumen$detalle[[1]], "1 filas excluidas")
+  expect_identical(as.logical(ev$data[[rule$flag_name]]), c(TRUE, FALSE))
+
+  casos <- observations_for_rule(ev$data, rule)
+  expect_equal(casos$respondent_id, "r1")
+})
+
 test_that("evaluar_consistencia no infiere agregacion implicita y diagnostica la regla", {
   skip_if_not_installed("openxlsx")
 

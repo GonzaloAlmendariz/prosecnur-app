@@ -321,6 +321,129 @@ test_that("conversor API escribe categorias variantes en la columna con sufijo",
   expect_equal(out$p4_peru, "ia rrhh")
 })
 
+test_that("conversor API marca opcion sintetica Other cuando SurveyMonkey envia solo texto", {
+  details <- make_sm_mb_details()
+  details$pages[[1]]$questions[[4]]$answers$other <- list(
+    is_answer_choice = TRUE,
+    text = "Other (especificar)"
+  )
+  inst <- make_sm_mb_inst()
+  inst$survey <- rbind(
+    inst$survey,
+    tibble::tibble(
+      type = "text",
+      name = "p4_other",
+      label = "Other (especificar)",
+      relevant = "selected(${p4}, 'other')",
+      constraint = ""
+    )
+  )
+  inst$choices <- rbind(
+    inst$choices,
+    tibble::tibble(
+      list_name = "areas",
+      name = "other",
+      label = "Other (especificar)"
+    )
+  )
+  responses <- list(
+    list(
+      id = "1004",
+      response_status = "completed",
+      pages = list(list(questions = list(
+        list(id = "q4", answers = list(
+          list(text = "Claude")
+        ))
+      )))
+    )
+  )
+
+  out <- sm_multibase_api_responses_to_canonical_data(
+    details = details,
+    responses = responses,
+    inst = inst,
+    survey_id = "survey-b",
+    pais = "Peru",
+    source_title = "Sello Mujer Peru"
+  )
+
+  expect_equal(out$p4, "other")
+  expect_equal(out$p4_other, "Claude")
+})
+
+test_that("conversor API marca Other numerico en select_one cuando SurveyMonkey envia texto", {
+  details <- make_sm_mb_details()
+  details$pages[[1]]$questions[[1]]$answers$other <- list(
+    is_answer_choice = TRUE,
+    text = "Otros"
+  )
+  inst <- make_sm_mb_inst()
+  inst$survey <- rbind(
+    inst$survey,
+    tibble::tibble(
+      type = "text",
+      name = "p1_other",
+      label = "Otros",
+      relevant = "selected(${p1}, '8')",
+      constraint = ""
+    )
+  )
+  inst$choices <- rbind(
+    inst$choices,
+    tibble::tibble(
+      list_name = "yesno",
+      name = "8",
+      label = "Otros"
+    )
+  )
+  responses <- list(
+    list(
+      id = "1005",
+      response_status = "completed",
+      pages = list(list(questions = list(
+        list(id = "q1", answers = list(
+          list(text = "Prefiere no decir")
+        ))
+      )))
+    )
+  )
+
+  out <- sm_multibase_api_responses_to_canonical_data(
+    details = details,
+    responses = responses,
+    inst = inst,
+    survey_id = "survey-b",
+    pais = "Peru",
+    source_title = "Sello Mujer Peru"
+  )
+
+  expect_equal(out$p1, "8")
+  expect_equal(out$p1_other, "Prefiere no decir")
+})
+
+test_that("metadata de recojo WhatsApp infiere perfil y variables administrativas", {
+  specs <- .sm_mb_normalize_survey_specs(list(list(
+    survey_id = "422505144",
+    collection_strategy = "WhatsApp"
+  )))
+  source <- specs[[1]]$sources[[1]]
+  expect_equal(source$collection_strategy, "whatsapp_link")
+  expect_equal(source$validation_exclusion_profile, "admin_autoadministrado")
+
+  inst <- list(
+    survey = tibble::tibble(
+      type = c("text", "select_one carrera", "text", "select_one enum", "text"),
+      name = c("p36", "p37", "p38", "p39", "p40"),
+      label = c("Código Pulso", "Carrera del egresado:", "Celular del egresado", "Enumerador", "Opinion")
+    ),
+    choices = tibble::tibble()
+  )
+  expect_equal(
+    .sm_mb_excluded_validation_vars(source, source$validation_exclusion_profile, inst),
+    c("p36", "p37", "p38", "p39")
+  )
+})
+
 test_that("armado de instrumento copia variante SurveyMonkey con sus categorias", {
   details <- make_sm_mb_details()
   details$pages[[1]]$questions[[4]]$answers$choices[[3]] <- list(

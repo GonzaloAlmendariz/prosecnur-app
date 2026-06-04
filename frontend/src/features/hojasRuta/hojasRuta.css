@@ -325,6 +325,11 @@
   background: #bfdbfe;
 }
 
+.hojas-ruta-map-legend i.is-pilot {
+  border-color: #b45309;
+  background: #fde68a;
+}
+
 .hojas-ruta-map-legend i.is-green-context {
   border-color: rgba(45, 126, 73, 0.72);
   background: rgba(166, 214, 156, 0.64);
@@ -1005,6 +1010,7 @@
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .hojas-ruta-header-pill {
@@ -1039,6 +1045,85 @@
   font-weight: 900;
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
+}
+
+.hojas-ruta-phase-header {
+  min-width: min(100%, 420px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.hojas-ruta-phase-header .hojas-ruta-phase-tabs {
+  border: 0;
+  background: #f8fafc;
+  padding: 2px;
+}
+
+.hojas-ruta-phase-header-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 750;
+  line-height: 1.15;
+}
+
+.hojas-ruta-phase-header-meta strong {
+  max-width: 132px;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hojas-ruta-phase-policy-select {
+  min-width: 146px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hojas-ruta-phase-policy-select span {
+  color: var(--pulso-text-soft);
+  font-size: 9.5px;
+  font-weight: 850;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.hojas-ruta-phase-policy-select select {
+  min-height: 28px;
+  max-width: 170px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: white;
+  color: var(--pulso-text);
+  padding: 0 8px;
+  font-size: 11.5px;
+  font-weight: 850;
+}
+
+.hojas-ruta-phase-locked {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--pulso-success-border);
+  border-radius: 7px;
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .hojas-ruta-stage-shell {
@@ -1343,22 +1428,27 @@
 }
 
 .hojas-ruta-sample-mode-cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  overflow-x: auto;
 }
 
 .hojas-ruta-sample-mode-cards button {
-  min-width: 0;
-  min-height: 92px;
-  padding: 12px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  background: white;
+  flex: 1 1 0;
+  min-width: 150px;
+  min-height: 54px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
   color: var(--pulso-text);
   text-align: left;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
   transition:
     border-color 140ms cubic-bezier(0.23, 1, 0.32, 1),
     background 140ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -1366,8 +1456,7 @@
 }
 
 .hojas-ruta-sample-mode-cards button:hover {
-  border-color: #9ecfc5;
-  background: #f7fcfa;
+  background: white;
 }
 
 .hojas-ruta-sample-mode-cards button:active {
@@ -1375,9 +1464,9 @@
 }
 
 .hojas-ruta-sample-mode-cards button.is-active {
-  border-color: var(--pulso-primary);
-  background: #eef8f5;
-  box-shadow: 0 0 0 1px rgba(0, 48, 103, 0.08), 0 12px 24px rgba(15, 23, 42, 0.06);
+  background: #0f766e;
+  color: white;
+  box-shadow: 0 8px 18px rgba(15, 118, 110, 0.14);
 }
 
 .hojas-ruta-sample-mode-cards strong,
@@ -1386,18 +1475,21 @@
 }
 
 .hojas-ruta-sample-mode-cards strong {
-  color: var(--pulso-text);
-  font-size: 13px;
+  color: inherit;
+  font-size: 12px;
   font-weight: 900;
-  line-height: 1.25;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .hojas-ruta-sample-mode-cards span {
-  margin-top: 5px;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
+  margin-top: 3px;
+  color: color-mix(in srgb, currentColor 74%, transparent);
+  font-size: 10.5px;
   font-weight: 650;
-  line-height: 1.35;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .hojas-ruta-sample-size-shell {
@@ -2323,6 +2415,128 @@
   overscroll-behavior: contain;
 }
 
+.hojas-ruta-phase-bar {
+  border: 1px solid #d7e4e0;
+  border-radius: 8px;
+  background: rgba(248, 251, 250, 0.94);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hojas-ruta-phase-main,
+.hojas-ruta-phase-policy,
+.hojas-ruta-phase-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.hojas-ruta-phase-main {
+  justify-content: space-between;
+}
+
+.hojas-ruta-phase-tabs,
+.hojas-ruta-segmented {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  padding: 3px;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.hojas-ruta-phase-tabs button,
+.hojas-ruta-segmented button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hojas-ruta-phase-tabs button.is-active,
+.hojas-ruta-segmented button.is-active {
+  background: #0f766e;
+  color: white;
+  box-shadow: 0 6px 14px rgba(15, 118, 110, 0.16);
+}
+
+.hojas-ruta-phase-tabs button:disabled,
+.hojas-ruta-segmented button:disabled,
+.hojas-ruta-phase-reset:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.hojas-ruta-phase-summary {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.hojas-ruta-phase-summary strong {
+  max-width: 100%;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hojas-ruta-phase-notice {
+  border: 1px solid #bfdbfe;
+  border-radius: 7px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.hojas-ruta-phase-policy {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.hojas-ruta-phase-policy > span,
+.hojas-ruta-phase-note > span {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.hojas-ruta-phase-reset {
+  min-height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: white;
+  color: var(--pulso-text);
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .hojas-ruta-sampling-map-explorer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);
@@ -2346,6 +2560,7 @@
   flex-direction: column;
   gap: 12px;
   padding: 12px;
+  overflow-x: hidden;
   overflow-y: auto;
   background: white;
 }
@@ -2369,6 +2584,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  min-width: 0;
+}
+
+.hojas-ruta-sampling-inspector-head > div:first-child {
+  min-width: 0;
 }
 
 .hojas-ruta-sampling-map-explorer.is-inspector-collapsed .hojas-ruta-sampling-inspector-head {
@@ -2422,10 +2642,15 @@
   font-size: 14px;
   line-height: 1.2;
   font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hojas-ruta-sampling-inspector-actions {
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
   padding: 9px;
   border: 1px solid #dbe7e3;
   border-radius: 8px;
@@ -2438,6 +2663,7 @@
 }
 
 .hojas-ruta-sampling-inspector-actions button {
+  min-width: 0;
   min-height: 32px;
   display: inline-flex;
   align-items: center;
@@ -2454,10 +2680,13 @@
 }
 
 .hojas-ruta-sampling-inspector-action-copy {
+  min-width: 0;
   color: var(--pulso-text-soft);
   font-size: 11px;
   line-height: 1.35;
   text-align: right;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .hojas-ruta-sampling-inspector-action-copy strong,
@@ -2487,21 +2716,35 @@
 
 .hojas-ruta-sampling-zone-list {
   max-height: min(330px, 36vh);
+  overflow-x: hidden;
   overflow-y: auto;
   padding-right: 2px;
 }
 
+.hojas-ruta-sampling-inspector .hojas-ruta-section-title {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 2px;
+}
+
+.hojas-ruta-sampling-inspector .hojas-ruta-section-title span {
+  font-size: 11px;
+}
+
 .hojas-ruta-sampling-zone-list button {
-  display: flex;
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(92px, auto);
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 10px;
+  gap: 9px;
+  padding: 9px 10px;
   border: 1px solid #dbe3ea;
   border-radius: 8px;
   background: #fbfdff;
   color: var(--pulso-text);
   text-align: left;
+  white-space: normal;
   cursor: pointer;
 }
 
@@ -2517,6 +2760,8 @@
   color: var(--pulso-text);
   font-size: 12px;
   font-weight: 900;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .hojas-ruta-sampling-zone-list button small,
@@ -2526,13 +2771,19 @@
   color: var(--pulso-text-soft);
   font-size: 10.5px;
   line-height: 1.25;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.hojas-ruta-sampling-zone-list button > span {
+  min-width: 0;
 }
 
 .hojas-ruta-sampling-zone-list button em {
-  flex: 0 0 auto;
+  min-width: 0;
   font-style: normal;
   text-align: right;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .hojas-ruta-sampling-zone-list button em strong,
@@ -2572,7 +2823,12 @@
   background: #f8fafc;
 }
 
+.hojas-ruta-inspector-block-row > span {
+  min-width: 0;
+}
+
 .hojas-ruta-inspector-block-row em {
+  flex: 0 0 auto;
   color: var(--pulso-primary);
   font-style: normal;
   font-size: 15px;
@@ -3047,6 +3303,41 @@
   .hojas-ruta-side {
     height: auto;
     min-height: auto;
+  }
+
+  .hojas-ruta-phase-main,
+  .hojas-ruta-phase-policy,
+  .hojas-ruta-phase-note {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hojas-ruta-phase-summary {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .hojas-ruta-phase-header {
+    width: 100%;
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .hojas-ruta-phase-header .hojas-ruta-phase-tabs {
+    flex: 1 1 220px;
+  }
+
+  .hojas-ruta-phase-header .hojas-ruta-phase-tabs button {
+    flex: 1 1 0;
+  }
+
+  .hojas-ruta-phase-policy-select {
+    flex: 1 1 180px;
+  }
+
+  .hojas-ruta-phase-policy-select select {
+    width: 100%;
+    max-width: none;
   }
 
   .hojas-ruta-map-explorer {
@@ -3837,23 +4128,31 @@
 
 .hojas-ruta-method-selector {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  gap: 10px;
 }
 
 .hojas-ruta-method-selector button {
   min-width: 0;
-  min-height: 132px;
+  min-height: 154px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 11px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 14px 13px;
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: white;
   color: var(--pulso-text);
-  text-align: left;
+  text-align: center;
+  white-space: normal;
   cursor: pointer;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    background var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
 .hojas-ruta-method-selector button.is-active {
@@ -3862,19 +4161,30 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--method-accent) 28%, transparent);
 }
 
+.hojas-ruta-method-selector svg {
+  flex: 0 0 auto;
+  width: min(138px, 100%) !important;
+}
+
 .hojas-ruta-method-selector strong {
   display: block;
+  max-width: 100%;
   color: var(--pulso-text);
-  font-size: 12px;
-  line-height: 1.15;
+  font-size: 13px;
+  line-height: 1.18;
   font-weight: 900;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .hojas-ruta-method-selector span {
   display: block;
+  max-width: 27ch;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: 11.5px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .hojas-ruta-route-load-grid {

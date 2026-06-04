@@ -138,7 +138,7 @@ sm_api_list_surveys <- function(token, base_url = "https://api.surveymonkey.com/
   # tope. El default 20 cubre el uso típico (escoger un survey activo); si
   # alguien necesita más, llama con per_page distinto.
   url <- sprintf(
-    "%s/surveys?per_page=%d&sort_by=date_modified&sort_order=DESC&include=date_modified,nickname",
+    "%s/surveys?per_page=%d&sort_by=date_modified&sort_order=DESC&include=date_modified,nickname,response_count",
     sub("/$", "", base_url), as.integer(per_page)
   )
   h <- curl::new_handle()
@@ -167,7 +167,8 @@ sm_api_list_surveys <- function(token, base_url = "https://api.surveymonkey.com/
     title = .sm_or(s$title, NA_character_),
     nickname = .sm_or(s$nickname, NA_character_),
     href = .sm_or(s$href, NA_character_),
-    date_modified = .sm_or(s$date_modified, NA_character_)
+    date_modified = .sm_or(s$date_modified, NA_character_),
+    response_count = .sm_or(s$response_count, NA_integer_)
   ))
 }
 

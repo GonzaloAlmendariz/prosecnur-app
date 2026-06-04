@@ -83,21 +83,272 @@
   )
 }
 
+.hojas_ruta_list_get <- function(x = list(), name) {
+  if (is.null(x) || !is.list(x) || !name %in% names(x)) return(NULL)
+  x[[name]]
+}
+
 .hojas_ruta_workspace_outputs_normalize <- function(outputs = list()) {
   if (is.null(outputs) || !is.list(outputs)) outputs <- list()
   out <- list(
-    population = outputs$population %||% outputs$population_preview %||% outputs$populationPreview %||% NULL,
-    sample_size_preview = outputs$sample_size_preview %||% outputs$sampleSizePreview %||% NULL,
-    quota = outputs$quota %||% outputs$quota_preview %||% outputs$quotaPreview %||% NULL,
-    sample = outputs$sample %||% outputs$sample_preview %||% outputs$samplePreview %||% NULL
+    population = .hojas_ruta_list_get(outputs, "population") %||%
+      .hojas_ruta_list_get(outputs, "population_preview") %||%
+      .hojas_ruta_list_get(outputs, "populationPreview") %||% NULL,
+    sample_size_preview = .hojas_ruta_list_get(outputs, "sample_size_preview") %||%
+      .hojas_ruta_list_get(outputs, "sampleSizePreview") %||% NULL,
+    quota = .hojas_ruta_list_get(outputs, "quota") %||%
+      .hojas_ruta_list_get(outputs, "quota_preview") %||%
+      .hojas_ruta_list_get(outputs, "quotaPreview") %||% NULL,
+    sample = .hojas_ruta_list_get(outputs, "sample") %||%
+      .hojas_ruta_list_get(outputs, "sample_preview") %||%
+      .hojas_ruta_list_get(outputs, "samplePreview") %||% NULL
   )
   Filter(Negate(is.null), out)
 }
 
-.hojas_ruta_workspace_outputs_update <- function(sid, patch = list(), clear = character()) {
-  current <- .hojas_ruta_workspace_outputs_normalize(
-    session_get(sid)$hojas_ruta_workspace_outputs %||% list()
+.hojas_ruta_phase_normalize <- function(phase = NULL, default = "field") {
+  phase <- .hojas_ruta_scalar(phase, default)
+  phase <- tolower(trimws(phase))
+  phase <- switch(
+    phase,
+    piloto = "pilot",
+    pilot = "pilot",
+    real = "field",
+    campo = "field",
+    campo_real = "field",
+    field = "field",
+    default
   )
+  if (!phase %in% c("pilot", "field")) phase <- default
+  phase
+}
+
+.hojas_ruta_pilot_exclusion_mode_normalize <- function(mode = NULL, default = "exclude_titulars") {
+  mode <- .hojas_ruta_scalar(mode, default)
+  mode <- tolower(trimws(mode))
+  mode <- switch(
+    mode,
+    excluir = "exclude_titulars",
+    excluir_titulares = "exclude_titulars",
+    exclude = "exclude_titulars",
+    exclude_pilot = "exclude_titulars",
+    exclude_titulars = "exclude_titulars",
+    ignorar = "ignore",
+    ignore = "ignore",
+    default
+  )
+  if (!mode %in% c("exclude_titulars", "ignore")) mode <- default
+  mode
+}
+
+.hojas_ruta_workspace_outputs_for_field_from_pilot <- function(outputs = list()) {
+  out <- .hojas_ruta_workspace_outputs_normalize(outputs)
+  out$sample_size_preview <- NULL
+  out$quota <- NULL
+  out$sample <- NULL
+  out
+}
+
+.hojas_ruta_field_ui_from_pilot <- function(ui = list()) {
+  out <- ui
+  if (out$active_stage %in% c("muestra", "manzanas", "entrega")) out$active_stage <- "muestra"
+  out
+}
+
+.hojas_ruta_field_config_from_pilot <- function(config = list()) {
+  cfg <- hojas_ruta_integrada_normalize_config(config)
+  defaults <- hojas_ruta_integrada_normalize_config(list())
+  cfg$n_objetivo <- defaults$n_objetivo
+  cfg$n_mode <- defaults$n_mode
+  cfg$n_por_distrito <- defaults$n_por_distrito
+  cfg$sample_size_mode <- defaults$sample_size_mode
+  cfg
+}
+
+.hojas_ruta_workspace_output <- function(outputs = list(), name) {
+  .hojas_ruta_list_get(outputs, name)
+}
+
+.hojas_ruta_sample_titular_ids <- function(sample = NULL) {
+  if (is.null(sample) || !is.list(sample)) return(character(0))
+  blocks <- tryCatch(.hojas_ruta_rows_df(sample$blocks %||% list()), error = function(e) data.frame())
+  if (!nrow(blocks) || !"id_manzana" %in% names(blocks)) return(character(0))
+  ids <- unique(as.character(blocks$id_manzana))
+  ids[nzchar(ids)]
+}
+
+.hojas_ruta_run_normalize <- function(run = list(), role = "field",
+                                      fallback_config = list(),
+                                      fallback_ui_state = list(),
+                                      fallback_outputs = list()) {
+  if (is.null(run) || !is.list(run)) run <- list()
+  role <- .hojas_ruta_phase_normalize(role, default = "field")
+  cfg <- hojas_ruta_integrada_normalize_config(run$config %||% fallback_config %||% list())
+  ui <- .hojas_ruta_ui_state_normalize(run$ui_state %||% run$uiState %||% fallback_ui_state %||% list(), cfg)
+  outputs <- .hojas_ruta_workspace_outputs_normalize(
+    run$workspace_outputs %||% run$workspaceOutputs %||% run$outputs %||% fallback_outputs %||% list()
+  )
+  out <- list(
+    config = cfg,
+    ui_state = ui,
+    workspace_outputs = outputs,
+    locked = if (identical(role, "pilot")) TRUE else isTRUE(run$locked),
+    role = role
+  )
+  if (identical(role, "field")) {
+    out$pilot_exclusion_mode <- .hojas_ruta_pilot_exclusion_mode_normalize(
+      run$pilot_exclusion_mode %||% run$pilotExclusionMode,
+      "exclude_titulars"
+    )
+  }
+  out
+}
+
+.hojas_ruta_store_runs <- function(sid, runs, active_phase = "field", notice = NULL) {
+  active_phase <- .hojas_ruta_phase_normalize(active_phase, default = "field")
+  if (is.null(runs[[active_phase]])) active_phase <- "field"
+  if (is.null(runs[[active_phase]])) active_phase <- names(runs)[[1]]
+  active <- runs[[active_phase]]
+  s <- session_get(sid)
+  s$hojas_ruta_runs <- runs
+  s$hojas_ruta_active_phase <- active_phase
+  if (!is.null(notice)) s$hojas_ruta_phase_notice <- notice
+  s$hojas_ruta_config <- active$config
+  s$hojas_ruta_ui_state <- active$ui_state
+  s$hojas_ruta_workspace_outputs <- active$workspace_outputs
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(s)
+}
+
+.hojas_ruta_ensure_runs <- function(sid) {
+  s <- session_get(sid)
+  legacy_cfg <- s$hojas_ruta_config %||% list()
+  legacy_ui <- s$hojas_ruta_ui_state %||% list()
+  legacy_outputs <- .hojas_ruta_workspace_outputs_normalize(s$hojas_ruta_workspace_outputs %||% list())
+  active_phase <- .hojas_ruta_phase_normalize(s$hojas_ruta_active_phase %||% "field", default = "field")
+  notice <- NULL
+  changed <- FALSE
+
+  if (is.list(s$hojas_ruta_runs) && length(s$hojas_ruta_runs)) {
+    runs <- list()
+    if (!is.null(s$hojas_ruta_runs$pilot)) {
+      runs$pilot <- .hojas_ruta_run_normalize(s$hojas_ruta_runs$pilot, "pilot")
+    }
+    if (!is.null(s$hojas_ruta_runs$field)) {
+      runs$field <- .hojas_ruta_run_normalize(s$hojas_ruta_runs$field, "field")
+    }
+    if (is.null(runs$field)) {
+      runs$field <- .hojas_ruta_run_normalize(list(), "field", legacy_cfg, legacy_ui, legacy_outputs)
+      changed <- TRUE
+    }
+  } else if (!is.null(.hojas_ruta_workspace_output(legacy_outputs, "sample"))) {
+    legacy_sample <- .hojas_ruta_workspace_output(legacy_outputs, "sample")
+    pilot_cfg <- hojas_ruta_integrada_normalize_config(legacy_cfg)
+    pilot_ui <- .hojas_ruta_ui_state_normalize(legacy_ui, pilot_cfg)
+    field_cfg <- .hojas_ruta_field_config_from_pilot(pilot_cfg)
+    field_ui <- .hojas_ruta_field_ui_from_pilot(pilot_ui)
+    runs <- list(
+      pilot = .hojas_ruta_run_normalize(
+        list(locked = TRUE),
+        "pilot",
+        pilot_cfg,
+        pilot_ui,
+        legacy_outputs
+      ),
+      field = .hojas_ruta_run_normalize(
+        list(pilot_exclusion_mode = "exclude_titulars"),
+        "field",
+        field_cfg,
+        field_ui,
+        .hojas_ruta_workspace_outputs_for_field_from_pilot(legacy_outputs)
+      )
+    )
+    active_phase <- "field"
+    changed <- TRUE
+    notice <- list(
+      kind = "legacy_sample_migrated",
+      message = "La corrida de 30 entrevistas quedó guardada como Piloto.",
+      migrated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+      pilot_total_entrevistas = as.integer(legacy_sample$total_entrevistas %||% 0L),
+      pilot_titulars = as.integer(length(.hojas_ruta_sample_titular_ids(legacy_sample)))
+    )
+  } else {
+    runs <- list(
+      field = .hojas_ruta_run_normalize(
+        list(pilot_exclusion_mode = "ignore"),
+        "field",
+        legacy_cfg,
+        legacy_ui,
+        legacy_outputs
+      )
+    )
+    active_phase <- "field"
+    changed <- TRUE
+  }
+
+  if (isTRUE(changed)) {
+    .hojas_ruta_store_runs(sid, runs, active_phase, notice)
+    return(session_get(sid))
+  }
+  s
+}
+
+.hojas_ruta_active_run <- function(sid, phase = NULL) {
+  s <- .hojas_ruta_ensure_runs(sid)
+  phase <- .hojas_ruta_phase_normalize(phase %||% s$hojas_ruta_active_phase %||% "field", default = "field")
+  if (is.null(s$hojas_ruta_runs[[phase]])) phase <- "field"
+  list(
+    session = s,
+    phase = phase,
+    run = s$hojas_ruta_runs[[phase]]
+  )
+}
+
+.hojas_ruta_save_run <- function(sid, phase, config = NULL, ui_state = NULL,
+                                 workspace_outputs = NULL,
+                                 pilot_exclusion_mode = NULL) {
+  current <- .hojas_ruta_active_run(sid, phase)
+  runs <- current$session$hojas_ruta_runs
+  phase <- current$phase
+  run <- current$run
+  if (!is.null(config) && !(identical(phase, "pilot") && isTRUE(run$locked))) {
+    run$config <- hojas_ruta_integrada_normalize_config(config)
+  }
+  if (!is.null(ui_state)) {
+    run$ui_state <- .hojas_ruta_ui_state_normalize(ui_state, run$config)
+  }
+  if (!is.null(workspace_outputs) && !(identical(phase, "pilot") && isTRUE(run$locked))) {
+    run$workspace_outputs <- .hojas_ruta_workspace_outputs_normalize(workspace_outputs)
+  }
+  if (identical(phase, "field")) {
+    run$pilot_exclusion_mode <- .hojas_ruta_pilot_exclusion_mode_normalize(
+      pilot_exclusion_mode %||% run$pilot_exclusion_mode,
+      "exclude_titulars"
+    )
+  }
+  runs[[phase]] <- .hojas_ruta_run_normalize(run, phase)
+  .hojas_ruta_store_runs(sid, runs, phase)
+  runs[[phase]]
+}
+
+.hojas_ruta_effective_config_for_phase <- function(sid, config, phase = NULL) {
+  current <- .hojas_ruta_active_run(sid, phase)
+  cfg <- hojas_ruta_integrada_normalize_config(config)
+  cfg$excluded_titular_ids <- list()
+  if (!identical(current$phase, "field")) return(cfg)
+  mode <- .hojas_ruta_pilot_exclusion_mode_normalize(current$run$pilot_exclusion_mode, "exclude_titulars")
+  if (!identical(mode, "exclude_titulars")) return(cfg)
+  pilot <- current$session$hojas_ruta_runs$pilot %||% NULL
+  if (is.null(pilot)) return(cfg)
+  ids <- .hojas_ruta_sample_titular_ids(.hojas_ruta_workspace_output(pilot$workspace_outputs, "sample"))
+  cfg$excluded_titular_ids <- as.list(ids)
+  cfg
+}
+
+.hojas_ruta_workspace_outputs_update <- function(sid, patch = list(), clear = character()) {
+  active <- .hojas_ruta_active_run(sid)
+  current <- .hojas_ruta_workspace_outputs_normalize(active$run$workspace_outputs %||% list())
   if (length(clear)) {
     current[intersect(names(current), clear)] <- NULL
   }
@@ -107,17 +358,18 @@
     }
   }
   current <- .hojas_ruta_workspace_outputs_normalize(current)
-  session_set(sid, "hojas_ruta_workspace_outputs", current)
+  .hojas_ruta_save_run(sid, active$phase, workspace_outputs = current)
   current
 }
 
 .hojas_ruta_state_payload <- function(sid) {
   data <- tryCatch(.hojas_ruta_data_activa(sid), error = function(e) NULL)
-  s <- session_get(sid)
-  legacy_cfg <- hojas_ruta_normalize_config(s$hojas_ruta_config %||% list())
-  cfg <- hojas_ruta_integrada_normalize_config(s$hojas_ruta_config %||% list())
-  ui_state <- .hojas_ruta_ui_state_normalize(s$hojas_ruta_ui_state %||% list(), cfg)
-  workspace_outputs <- .hojas_ruta_workspace_outputs_normalize(s$hojas_ruta_workspace_outputs %||% list())
+  active <- .hojas_ruta_active_run(sid)
+  s <- active$session
+  legacy_cfg <- hojas_ruta_normalize_config(active$run$config %||% list())
+  cfg <- hojas_ruta_integrada_normalize_config(active$run$config %||% list())
+  ui_state <- .hojas_ruta_ui_state_normalize(active$run$ui_state %||% list(), cfg)
+  workspace_outputs <- .hojas_ruta_workspace_outputs_normalize(active$run$workspace_outputs %||% list())
   reporte_meta_raw <- s$hojas_ruta_reporte_decisional %||% list(disponible = FALSE)
   reporte_meta <- list(
     disponible   = isTRUE(reporte_meta_raw$disponible),
@@ -138,6 +390,9 @@
       integrated_config = cfg,
       ui_state = ui_state,
       workspace_outputs = workspace_outputs,
+      runs = s$hojas_ruta_runs %||% list(),
+      active_phase = active$phase,
+      phase_notice = s$hojas_ruta_phase_notice %||% NULL,
       frame_meta = frame_meta,
       territories = territories,
       campos = NULL,
@@ -155,6 +410,9 @@
     integrated_config = cfg,
     ui_state = ui_state,
     workspace_outputs = workspace_outputs,
+    runs = s$hojas_ruta_runs %||% list(),
+    active_phase = active$phase,
+    phase_notice = s$hojas_ruta_phase_notice %||% NULL,
     frame_meta = frame_meta,
     territories = territories,
     campos = campos,
@@ -174,13 +432,21 @@ mount_hojas_ruta <- function(pr) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_normalize_config(parsed$config %||% parsed)
-      session_set(sid, "hojas_ruta_config", cfg)
+      active <- .hojas_ruta_active_run(sid)
+      .hojas_ruta_save_run(sid, active$phase, config = cfg)
       list(ok = TRUE, config = cfg)
     })) |>
     plumber::pr_post("/api/hojas-ruta/workspace", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
-      current <- session_get(sid)$hojas_ruta_config %||% list()
+      phase_raw <- parsed$phase %||% parsed$active_phase %||% parsed$activePhase %||% NULL
+      phase <- if (is.null(phase_raw)) {
+        .hojas_ruta_active_run(sid)$phase
+      } else {
+        .hojas_ruta_phase_normalize(phase_raw, "field")
+      }
+      active <- .hojas_ruta_active_run(sid, phase)
+      current <- active$run$config %||% list()
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% current)
       ui_state <- .hojas_ruta_ui_state_normalize(
         parsed$ui_state %||% parsed$uiState %||% list(),
@@ -193,27 +459,71 @@ mount_hojas_ruta <- function(pr) {
         )
       } else {
         .hojas_ruta_workspace_outputs_normalize(
-          session_get(sid)$hojas_ruta_workspace_outputs %||% list()
+          active$run$workspace_outputs %||% list()
         )
       }
-      session_set(sid, "hojas_ruta_config", cfg)
-      session_set(sid, "hojas_ruta_ui_state", ui_state)
-      session_set(sid, "hojas_ruta_workspace_outputs", workspace_outputs)
-      list(ok = TRUE, integrated_config = cfg, ui_state = ui_state, workspace_outputs = workspace_outputs)
+      run <- .hojas_ruta_save_run(
+        sid,
+        active$phase,
+        config = cfg,
+        ui_state = ui_state,
+        workspace_outputs = workspace_outputs,
+        pilot_exclusion_mode = parsed$pilot_exclusion_mode %||% parsed$pilotExclusionMode
+      )
+      list(
+        ok = TRUE,
+        integrated_config = run$config,
+        ui_state = run$ui_state,
+        workspace_outputs = run$workspace_outputs,
+        active_phase = active$phase,
+        runs = session_get(sid)$hojas_ruta_runs %||% list()
+      )
+    })) |>
+    plumber::pr_post("/api/hojas-ruta/phase", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .hojas_ruta_parse_body(req)
+      current <- .hojas_ruta_active_run(sid, parsed$phase %||% parsed$active_phase %||% parsed$activePhase)
+      .hojas_ruta_store_runs(sid, current$session$hojas_ruta_runs, current$phase)
+      .hojas_ruta_state_payload(sid)
+    })) |>
+    plumber::pr_post("/api/hojas-ruta/field/from-pilot", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      parsed <- .hojas_ruta_parse_body(req)
+      current <- .hojas_ruta_active_run(sid)
+      runs <- current$session$hojas_ruta_runs
+      pilot <- runs$pilot %||% NULL
+      if (is.null(pilot)) {
+        stop_api(409, "E_NO_PILOT_RUN", "No hay una piloto historica desde la cual crear campo real.")
+      }
+      mode <- .hojas_ruta_pilot_exclusion_mode_normalize(
+        parsed$pilot_exclusion_mode %||% parsed$pilotExclusionMode,
+        "exclude_titulars"
+      )
+      runs$field <- .hojas_ruta_run_normalize(
+        list(pilot_exclusion_mode = mode),
+        "field",
+        .hojas_ruta_field_config_from_pilot(pilot$config),
+        .hojas_ruta_field_ui_from_pilot(pilot$ui_state),
+        .hojas_ruta_workspace_outputs_for_field_from_pilot(pilot$workspace_outputs)
+      )
+      .hojas_ruta_store_runs(sid, runs, "field")
+      .hojas_ruta_state_payload(sid)
     })) |>
     plumber::pr_post("/api/hojas-ruta/preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_normalize_config(parsed$config %||% parsed)
       data <- .hojas_ruta_data_activa(sid)
-      session_set(sid, "hojas_ruta_config", cfg)
+      active <- .hojas_ruta_active_run(sid)
+      .hojas_ruta_save_run(sid, active$phase, config = cfg)
       hojas_ruta_preview(data, cfg)
     })) |>
     plumber::pr_post("/api/hojas-ruta/population-preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
-      session_set(sid, "hojas_ruta_config", cfg)
+      active <- .hojas_ruta_active_run(sid)
+      .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_population_preview_integrado(cfg)
       .hojas_ruta_workspace_outputs_update(
         sid,
@@ -226,7 +536,8 @@ mount_hojas_ruta <- function(pr) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
-      session_set(sid, "hojas_ruta_config", cfg)
+      active <- .hojas_ruta_active_run(sid)
+      .hojas_ruta_save_run(sid, active$phase, config = cfg)
       out_path <- tempfile(fileext = ".xlsx")
       summary <- hojas_ruta_exportar_matriz_poblacional(cfg, out_path)
       out_name <- .export_filename(sid, "hojas_ruta_population_matrix", "xlsx")
@@ -245,7 +556,8 @@ mount_hojas_ruta <- function(pr) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
-      session_set(sid, "hojas_ruta_config", cfg)
+      active <- .hojas_ruta_active_run(sid)
+      .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_quota_preview_integrado(cfg)
       .hojas_ruta_workspace_outputs_update(
         sid,
@@ -258,7 +570,8 @@ mount_hojas_ruta <- function(pr) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
-      session_set(sid, "hojas_ruta_config", cfg)
+      active <- .hojas_ruta_active_run(sid)
+      .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_sample_size_preview(cfg)
       .hojas_ruta_workspace_outputs_update(
         sid,
@@ -271,8 +584,10 @@ mount_hojas_ruta <- function(pr) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
-      session_set(sid, "hojas_ruta_config", cfg)
-      result <- hojas_ruta_sample_preview_integrado(cfg)
+      active <- .hojas_ruta_active_run(sid)
+      .hojas_ruta_save_run(sid, active$phase, config = cfg)
+      effective_cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
+      result <- hojas_ruta_sample_preview_integrado(effective_cfg)
       .hojas_ruta_workspace_outputs_update(sid, patch = list(sample = result))
       result
     })) |>
@@ -290,7 +605,9 @@ mount_hojas_ruta <- function(pr) {
       )
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
       cfg$random_preference <- random_preference
-      session_set(sid, "hojas_ruta_config", cfg)
+      active <- .hojas_ruta_active_run(sid)
+      .hojas_ruta_save_run(sid, active$phase, config = cfg)
+      cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
       out_path <- tempfile(fileext = ".pdf")
       summary <- hojas_ruta_generar_pdf_aleatorio_integrado(cfg, out_path)
       out_name <- sprintf(
@@ -372,9 +689,11 @@ mount_hojas_ruta <- function(pr) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
-      session_set(sid, "hojas_ruta_config", cfg)
+      active <- .hojas_ruta_active_run(sid)
+      .hojas_ruta_save_run(sid, active$phase, config = cfg)
+      cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
       outputs <- .hojas_ruta_workspace_outputs_normalize(
-        session_get(sid)$hojas_ruta_workspace_outputs %||% list()
+        .hojas_ruta_active_run(sid, active$phase)$run$workspace_outputs %||% list()
       )
       sample_override <- parsed$sample %||% parsed$sample_snapshot %||% parsed$sampleSnapshot %||% outputs$sample %||% NULL
       if (is.null(sample_override) || !is.list(sample_override)) {
@@ -457,7 +776,9 @@ mount_hojas_ruta <- function(pr) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
-      session_set(sid, "hojas_ruta_config", cfg)
+      active <- .hojas_ruta_active_run(sid)
+      .hojas_ruta_save_run(sid, active$phase, config = cfg)
+      cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
       sample_override <- parsed$sample %||% parsed$sample_snapshot %||% parsed$sampleSnapshot %||% NULL
 
       cfg_path <- job_save_rds(sid, "hojas_ruta_config", cfg)
@@ -527,10 +848,10 @@ mount_hojas_ruta <- function(pr) {
         stop_api(400, "E_FORMATO_INVALIDO",
                  "formato debe ser 'html' o 'pdf'.")
       }
-      s <- session_get(sid)
-      cfg <- hojas_ruta_integrada_normalize_config(s$hojas_ruta_config %||% list())
+      active <- .hojas_ruta_active_run(sid)
+      cfg <- hojas_ruta_integrada_normalize_config(active$run$config %||% list())
       outputs <- .hojas_ruta_workspace_outputs_normalize(
-        s$hojas_ruta_workspace_outputs %||% list()
+        active$run$workspace_outputs %||% list()
       )
       # Validacion minima: necesitamos al menos sample_size_preview para
       # que el reporte tenga contenido util.

@@ -6,6 +6,31 @@
 # - reporte_ppt_plan() recolecta diapo_### o recibe plan explicito y exporta
 # =============================================================================
 
+#' @noRd
+.reporte_plan_regex_escape <- function(x) {
+  gsub("([][{}()+*^$.|?\\\\])", "\\\\\\1", as.character(x), perl = TRUE)
+}
+
+#' @noRd
+.reporte_plan_has_var_or_dummies <- function(data, var) {
+  if (!is.data.frame(data)) return(FALSE)
+  var <- if (is.null(var)) "" else as.character(var)[1]
+  if (!nzchar(trimws(var))) return(FALSE)
+  if (var %in% names(data)) return(TRUE)
+
+  esc <- .reporte_plan_regex_escape(var)
+  any(grepl(paste0("^", esc, "([/]|\\.)"), names(data), perl = TRUE))
+}
+
+#' @noRd
+.reporte_plan_resolve_recod_var <- function(var, data) {
+  var <- if (is.null(var)) "" else as.character(var)[1]
+  if (!nzchar(trimws(var)) || grepl("_recod$", var)) return(var)
+
+  recod <- paste0(var, "_recod")
+  if (.reporte_plan_has_var_or_dummies(data, recod)) recod else var
+}
+
 #' @title Reporte PowerPoint basado en "plan" (p_* + diapo_###)
 #'
 #' @description
@@ -789,7 +814,9 @@ reporte_ppt_plan <- function(
       stop("`", arg_name, "` debe ser character(1) no vacio.", call. = FALSE)
     }
     ctx <- .source_ctx(.resolve_source_name(source = source, ref = ref, arg_name = arg_name))
-    ctx$var <- ref_info$var
+    ctx$var_requested <- ref_info$var
+    ctx$var <- .reporte_plan_resolve_recod_var(ref_info$var, ctx$data)
+    ctx$recod_redirected <- !identical(ctx$var, ctx$var_requested)
     ctx$qualified <- isTRUE(ref_info$qualified)
     ctx$raw_ref <- ref_info$raw
     ctx

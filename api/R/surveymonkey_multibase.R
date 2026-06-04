@@ -196,6 +196,40 @@
   isTRUE(x)
 }
 
+.sm_mb_collection_strategy <- function(x, fallback = "") {
+  raw <- .sm_mb_scalar(
+    x$collection_strategy %||% x$collectionStrategy %||% x$recojo %||% x$collection_mode_label %||% fallback,
+    ""
+  )
+  norm <- gsub("[^a-z0-9]+", "_", .sm_mb_norm(raw))
+  norm <- gsub("^_+|_+$", "", norm)
+  if (!nzchar(norm)) return("")
+  aliases <- c(
+    campo = "campo",
+    field = "campo",
+    presencial = "campo",
+    whatsapp = "whatsapp_link",
+    whatsapp_link = "whatsapp_link",
+    link_whatsapp = "whatsapp_link",
+    web = "web_link",
+    web_link = "web_link",
+    weblink = "web_link",
+    enlace_web = "web_link",
+    email = "email",
+    correo = "email",
+    correo_electronico = "email",
+    otro = "otro",
+    other = "otro"
+  )
+  aliases[[norm]] %||% norm
+}
+
+.sm_mb_validation_exclusion_profile <- function(x, collection_strategy = "") {
+  raw <- .sm_mb_scalar(x$validation_exclusion_profile %||% x$exclusion_profile %||% "", "")
+  if (nzchar(raw)) return(raw)
+  if (identical(collection_strategy, "whatsapp_link")) "admin_autoadministrado" else ""
+}
+
 .sm_mb_normalize_source_spec <- function(x, fallback = list()) {
   x <- x %||% list()
   survey_id <- .sm_mb_scalar(x$survey_id %||% x$id %||% fallback$survey_id, "")
@@ -204,6 +238,14 @@
     .sm_mb_char_vector(x$collector_ids),
     .sm_mb_char_vector(x$collector_id)
   ))
+  collection_strategy <- .sm_mb_collection_strategy(x, fallback$collection_strategy %||% "")
+  validation_exclusion_profile <- .sm_mb_scalar(
+    x$validation_exclusion_profile %||% x$exclusion_profile %||% fallback$validation_exclusion_profile,
+    ""
+  )
+  if (!nzchar(validation_exclusion_profile)) {
+    validation_exclusion_profile <- .sm_mb_validation_exclusion_profile(x, collection_strategy)
+  }
   list(
     survey_id = survey_id,
     pais = .sm_mb_trim(x$pais %||% x$country %||% fallback$pais),
@@ -211,6 +253,9 @@
     source_alias = .sm_mb_scalar(x$source_alias %||% x$alias %||% x$label %||% fallback$source_alias %||% fallback$label, ""),
     source_title = .sm_mb_scalar(x$source_title %||% x$title %||% fallback$source_title, ""),
     data_file_id = .sm_mb_scalar(x$data_file_id %||% fallback$data_file_id, ""),
+    collection_strategy = collection_strategy,
+    validation_exclusion_profile = validation_exclusion_profile,
+    excluded_validation_vars = as.list(.sm_mb_char_vector(x$excluded_validation_vars %||% x$excluded_vars)),
     response_statuses = .sm_mb_char_vector(x$response_statuses %||% x$statuses %||% x$response_status),
     keep_missing_status = .sm_mb_nullable_bool(x$keep_missing_status %||% fallback$keep_missing_status),
     collector_ids = collector_ids,
@@ -237,6 +282,8 @@
     source_alias <- .sm_mb_scalar(x$source_alias %||% x$alias %||% label, "")
     source_title <- .sm_mb_scalar(x$source_title %||% x$title, "")
     data_file_id <- .sm_mb_scalar(x$data_file_id, "")
+    collection_strategy <- .sm_mb_collection_strategy(x)
+    validation_exclusion_profile <- .sm_mb_validation_exclusion_profile(x, collection_strategy)
     if (!nzchar(survey_id)) stop_api(400, "E_SM_SURVEY_ID", "Cada encuesta necesita survey_id.")
     spec <- list(
       survey_id = survey_id,
@@ -245,6 +292,9 @@
       source_alias = source_alias,
       source_title = source_title,
       data_file_id = data_file_id,
+      collection_strategy = collection_strategy,
+      validation_exclusion_profile = validation_exclusion_profile,
+      excluded_validation_vars = as.list(.sm_mb_char_vector(x$excluded_validation_vars %||% x$excluded_vars)),
       response_statuses = .sm_mb_char_vector(x$response_statuses %||% x$statuses %||% x$response_status),
       keep_missing_status = .sm_mb_nullable_bool(x$keep_missing_status),
       collector_ids = unique(c(.sm_mb_char_vector(x$collector_ids), .sm_mb_char_vector(x$collector_id))),
@@ -1031,6 +1081,45 @@ sm_multibase_list_surveys <- function(token, q = "", limit = 200L, months = 6L,
   .sm_mb_scalar(label, "")
 }
 
+.sm_mb_is_other_label <- function(x) {
+  norm <- .sm_mb_norm(x)
+  grepl("^(otro|otra|otros|otras|other)(\\b|$)", norm, perl = TRUE)
+}
+
+.sm_mb_other_code_for_var <- function(inst, var) {
+  choices <- .sm_mb_choices_for_var(inst, var)
+  if (!nrow(choices) || !"name" %in% names(choices)) return("")
+  labels <- if ("label" %in% names(choices)) choices$label else choices$name
+  hit <- which(.sm_mb_is_other_label(labels) | .sm_mb_is_other_label(choices$name))[1]
+  if (is.na(hit)) "" else .sm_mb_scalar(choices$name[hit], "")
+}
+
+.sm_mb_admin_autoadmin_vars <- function(inst) {
+  survey <- (inst %||% list())$survey
+  if (is.null(survey) || !is.data.frame(survey) || !nrow(survey) || !"name" %in% names(survey)) {
+    return(character(0))
+  }
+  lab_col <- .sm_mb_label_col(survey)
+  labels <- if (!is.na(lab_col)) as.character(survey[[lab_col]]) else as.character(survey$name)
+  names_raw <- as.character(survey$name)
+  targets <- c(
+    "codigo pulso",
+    "carrera del egresado",
+    "celular del egresado",
+    "enumerador"
+  )
+  norm <- .sm_mb_norm(labels)
+  hit <- which(norm %in% targets)
+  unique(names_raw[hit[!is.na(hit)]])
+}
+
+.sm_mb_excluded_validation_vars <- function(source_spec, profile, inst) {
+  explicit <- .sm_mb_char_vector(source_spec$excluded_validation_vars %||% source_spec$excluded_vars)
+  if (length(explicit)) return(unique(explicit))
+  if (identical(profile, "admin_autoadministrado")) return(.sm_mb_admin_autoadmin_vars(inst))
+  character(0)
+}
+
 .sm_mb_named_lookup <- function(x, key, fallback = "") {
   key <- .sm_mb_scalar(key, "")
   if (!nzchar(key) || is.null(x) || !length(x)) return(fallback)
@@ -1190,14 +1279,26 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
             lc <- .sm_mb_answer_label_code(ans, spec)
             if (!nzchar(lc$code) && nzchar(lc$label)) {
               other_var <- paste0(parent, "_other")
-              if (.sm_mb_var_exists(inst, other_var)) row <- .sm_mb_set_value(row, other_var, lc$label)
+              if (.sm_mb_var_exists(inst, other_var)) {
+                row <- .sm_mb_set_value(row, other_var, lc$label)
+                other_code <- .sm_mb_other_code_for_var(inst, parent)
+                if (nzchar(other_code)) {
+                  multi_tokens[[parent]] <- unique(c(multi_tokens[[parent]] %||% character(0), other_code))
+                }
+              }
               next
             }
             code <- .sm_mb_code_for_label(inst, parent, lc$label, lc$code)
             if (nzchar(code)) multi_tokens[[parent]] <- unique(c(multi_tokens[[parent]] %||% character(0), code))
             if (!is.null(ans$text) && nzchar(.sm_mb_trim(ans$text))) {
               other_var <- paste0(parent, "_other")
-              if (.sm_mb_var_exists(inst, other_var)) row <- .sm_mb_set_value(row, other_var, .sm_mb_trim(ans$text))
+              if (.sm_mb_var_exists(inst, other_var)) {
+                row <- .sm_mb_set_value(row, other_var, .sm_mb_trim(ans$text))
+                other_code <- .sm_mb_other_code_for_var(inst, parent)
+                if (nzchar(other_code)) {
+                  multi_tokens[[parent]] <- unique(c(multi_tokens[[parent]] %||% character(0), other_code))
+                }
+              }
             }
           } else {
             lc <- .sm_mb_answer_label_code(ans, spec)
@@ -1208,11 +1309,21 @@ sm_multibase_api_responses_to_canonical_data <- function(details,
               row <- .sm_mb_set_value(row, "empresa_source_label", label)
               row <- .sm_mb_set_value(row, "empresa_uid", paste(.sm_mb_scalar(pais, ""), .sm_mb_slug(label), sep = ":"))
             } else {
-              code <- .sm_mb_code_for_label(inst, parent, lc$label, lc$code)
+              other_text <- .sm_mb_trim(ans$text %||% "")
+              other_var <- paste0(parent, "_other")
+              other_code <- if (nzchar(other_text) && .sm_mb_var_exists(inst, other_var)) {
+                .sm_mb_other_code_for_var(inst, parent)
+              } else {
+                ""
+              }
+              code <- if (nzchar(other_code)) {
+                other_code
+              } else {
+                .sm_mb_code_for_label(inst, parent, lc$label, lc$code)
+              }
               row <- .sm_mb_set_value(row, parent, code)
-              if (!is.null(ans$text) && nzchar(.sm_mb_trim(ans$text))) {
-                other_var <- paste0(parent, "_other")
-                if (.sm_mb_var_exists(inst, other_var)) row <- .sm_mb_set_value(row, other_var, .sm_mb_trim(ans$text))
+              if (nzchar(other_text) && .sm_mb_var_exists(inst, other_var)) {
+                row <- .sm_mb_set_value(row, other_var, other_text)
               }
             }
           }
@@ -1659,6 +1770,9 @@ sm_multibase_import_independent <- function(sid,
       source_date_gte <- .sm_mb_scalar(source_spec$date_modified_gte %||% spec$date_modified_gte, "")
       source_date_lte <- .sm_mb_scalar(source_spec$date_modified_lte %||% spec$date_modified_lte, "")
       source_data_file_id <- .sm_mb_scalar(source_spec$data_file_id, "")
+      source_collection_strategy <- .sm_mb_collection_strategy(source_spec, spec$collection_strategy %||% "")
+      source_validation_profile <- .sm_mb_validation_exclusion_profile(source_spec, source_collection_strategy)
+      source_excluded_vars <- .sm_mb_excluded_validation_vars(source_spec, source_validation_profile, rp_inst)
 
       if (nzchar(source_data_file_id)) {
         one_df <- .sm_mb_read_upload_data(
@@ -1676,6 +1790,9 @@ sm_multibase_import_independent <- function(sid,
           survey_id = source_id,
           source_title = source_title,
           source_alias = source_alias,
+          collection_strategy = source_collection_strategy,
+          validation_exclusion_profile = source_validation_profile,
+          excluded_validation_vars = as.list(source_excluded_vars),
           original_rows = as.integer(nrow(one_df)),
           kept_rows = as.integer(nrow(one_df)),
           excluded_rows = 0L
@@ -1700,6 +1817,9 @@ sm_multibase_import_independent <- function(sid,
         one_filter$survey_id <- source_id
         one_filter$source_title <- source_title
         one_filter$source_alias <- source_alias
+        one_filter$collection_strategy <- source_collection_strategy
+        one_filter$validation_exclusion_profile <- source_validation_profile
+        one_filter$excluded_validation_vars <- as.list(source_excluded_vars)
       }
       source_dfs[[length(source_dfs) + 1L]] <- one_df
       source_filters[[length(source_filters) + 1L]] <- one_filter
@@ -1774,6 +1894,7 @@ sm_multibase_import_independent <- function(sid,
     bases_out[[length(bases_out) + 1L]] <- .estudio_base_payload(base_meta, session_get(sid, required = FALSE))
   }
   if (length(imported_names)) {
+    xlsform_logic_sync <- NULL
     if (!length(existing_names)) {
       estudio_active_base_set(sid, imported_names[1])
       active_for_source <- imported_names[1]
@@ -1801,10 +1922,36 @@ sm_multibase_import_independent <- function(sid,
         overwrite = FALSE
       )
     }
+    if (length(existing_names) > 0L &&
+        exists("estudio_apply_template_xlsform_logic", mode = "function")) {
+      xlsform_logic_sync <- tryCatch(
+        estudio_apply_template_xlsform_logic(
+          sid,
+          template_base = active_for_source,
+          targets = imported_names,
+          clear_target_logic = FALSE
+        ),
+        error = function(e) list(
+          ok = FALSE,
+          template_base = active_for_source,
+          targets = as.list(imported_names),
+          error = conditionMessage(e)
+        )
+      )
+    }
     session_set(sid, "analitica_prep_ok", TRUE)
     if (!length(existing_names)) {
       session_set(sid, "analitica_fuente", sprintf("estudio:%s", as.character(estudio_active_base(sid) %||% active_for_source)))
     }
+  } else {
+    xlsform_logic_sync <- NULL
+  }
+  if (length(imported_names)) {
+    current_bases <- estudio_list_bases(sid)
+    current_session <- session_get(sid, required = FALSE)
+    bases_out <- unname(lapply(imported_names, function(name) {
+      .estudio_base_payload(current_bases[[name]], current_session)
+    }))
   }
 
   list(
@@ -1814,7 +1961,8 @@ sm_multibase_import_independent <- function(sid,
     bases = bases_out,
     n_bases = length(estudio_list_bases(sid)),
     estudio = .estudio_payload(sid),
-    audit = audit
+    audit = audit,
+    xlsform_logic_sync = xlsform_logic_sync
   )
 }
 

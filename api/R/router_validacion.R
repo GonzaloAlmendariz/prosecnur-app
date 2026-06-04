@@ -710,6 +710,7 @@ mount_validacion <- function(pr) {
 
       compat <- validation_profile_for_base(base_effective %||% base)
       base_meta <- .validacion_mb_base_meta(sid, base_effective %||% base)
+      validation_exclusions <- .validacion_mb_collection_exclusions(base_meta)
       bundle_efectivo <- scope$plan_result$bundle %||%
         validation_bundle_from_plan_df(scope$plan_result$plan,
                                        existing_bundle = scope$plan_result$bundle %||% NULL,
@@ -729,7 +730,7 @@ mount_validacion <- function(pr) {
       job_id <- job_submit(
         sid = sid,
         kind = "validacion.v2.auditoria",
-        func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, progress_path = NULL) {
+        func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, validation_exclusions = list(), progress_path = NULL) {
           # Locale UTF-8 para que `pkgload::load_all()` pueda parsear
           # archivos .R con caracteres acentuados (el subprocess callr
           # no hereda las opciones locale del main process).
@@ -763,7 +764,8 @@ mount_validacion <- function(pr) {
             bundle = bundle,
             data_input = datos,
             compatibility = validation_profile_for_base(base_name),
-            strict = FALSE
+            strict = FALSE,
+            validation_exclusions = validation_exclusions
           )
           report("export", percent = 92, message = "Preparando resumen de auditoria...")
           total_raw <- tryCatch(total_inconsistencias(ev), error = function(e) NULL)
@@ -781,7 +783,8 @@ mount_validacion <- function(pr) {
           xlsform_path = files$xlsform$path,
           bundle = bundle_efectivo,
           base_name = base_effective %||% base,
-          api_path = api_path
+          api_path = api_path,
+          validation_exclusions = validation_exclusions
         ),
         on_complete = function(j) {
           raw <- j$result_data
@@ -1477,13 +1480,14 @@ mount_validacion <- function(pr) {
           bundle_final,
           .validacion_mb_base_meta(sid, base_effective %||% base)
         )
+        validation_exclusions <- .validacion_mb_collection_exclusions_for_base(sid, base_effective %||% base)
 
         api_path <- .app_api_dir()
 
         job_id <- job_submit(
           sid = sid,
           kind = "validacion.v2.reglas_custom.ejecutar",
-          func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, progress_path = NULL) {
+          func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, validation_exclusions = list(), progress_path = NULL) {
             tryCatch(Sys.setlocale("LC_ALL", "en_US.UTF-8"),
                      warning = function(w) NULL, error = function(e) NULL)
             options(encoding = "UTF-8")
@@ -1509,7 +1513,8 @@ mount_validacion <- function(pr) {
               bundle = bundle,
               data_input = datos,
               compatibility = validation_profile_for_base(base_name),
-              strict = FALSE
+              strict = FALSE,
+              validation_exclusions = validation_exclusions
             )
             report("export", percent = 92, message = "Preparando resultados...")
             total_raw <- tryCatch(total_inconsistencias(ev), error = function(e) NULL)
@@ -1527,7 +1532,8 @@ mount_validacion <- function(pr) {
             xlsform_path = files$xlsform$path,
             bundle = bundle_final,
             base_name = base_effective %||% base,
-            api_path = api_path
+            api_path = api_path,
+            validation_exclusions = validation_exclusions
           ),
           on_complete = function(j) {
             raw <- j$result_data

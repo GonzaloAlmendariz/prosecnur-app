@@ -83,7 +83,19 @@ const DEFAULT_CINEMA_METRICS: CinemaMetrics = {
 // ---- Notas de la versión --------------------------------------------
 const RELEASE_NOTES: ReleaseNote[] = [
   {
-    version: "0.3",
+    version: "0.3.1",
+    date: "2026-06-04",
+    highlights: [
+      "Carga multibase: aplica la logica XLSForm de una base plantilla a hermanas compatibles, incluyendo relevant, constraint, required, choice_filter y calculation.",
+      "SurveyMonkey multibase: importa hermanas independientes desde una o varias campañas, con estrategia de recoleccion y exclusiones de validacion por fuente.",
+      "Validacion: enmascara reglas por fila/fuente para evitar falsos positivos cuando preguntas administrativas no aplican a fuentes autoadministradas.",
+      "Hojas de ruta: separa fases piloto y campo real, refuerza el resumen de fuentes/configuracion y conserva snapshots mas trazables.",
+      "Drilldown y visualizacion: mejora la inspeccion de reglas, el panel de detalle y el render Plotly para flujos de validacion mas exigentes.",
+      "Documentacion y pruebas: agrega ADR 0009, actualiza arquitectura multibase y suma cobertura R/React para los nuevos contratos.",
+    ],
+  },
+  {
+    version: "0.3.0",
     date: "2026-06-02",
     highlights: [
       "Arquitectura canonica: guia principal y ADRs para app local, formato .pulso, secretos fuera del proyecto, modulos por dominio, integraciones salientes y auditoria reproducible.",

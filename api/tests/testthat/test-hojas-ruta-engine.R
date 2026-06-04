@@ -1024,6 +1024,115 @@ test_that("hojas_ruta_sample_preview_integrado permite cero reemplazos", {
   )
 })
 
+test_that("hojas_ruta migra una corrida legacy a piloto bloqueada y campo real", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  pilot_sample <- hojas_ruta_sample_preview_integrado(list(
+    n_objetivo = 24,
+    territorios = c("150110", "070106"),
+    sampling_method = "pps",
+    entrevistas_por_manzana = 6,
+    seed = 99,
+    replacements_per_titular = 1
+  ))
+  expect_true(pilot_sample$ok)
+
+  session_set(sid, "hojas_ruta_config", pilot_sample$config)
+  session_set(sid, "hojas_ruta_ui_state", list(active_stage = "entrega"))
+  session_set(sid, "hojas_ruta_workspace_outputs", list(
+    population = list(ok = TRUE, reusable = TRUE),
+    sample_size_preview = list(ok = TRUE, n_objetivo = 24),
+    quota = list(ok = TRUE, total_asignado = 24),
+    sample = pilot_sample
+  ))
+
+  state <- .hojas_ruta_ensure_runs(sid)
+  expect_equal(state$hojas_ruta_active_phase, "field")
+  expect_true(isTRUE(state$hojas_ruta_runs$pilot$locked))
+  expect_equal(state$hojas_ruta_runs$pilot$role, "pilot")
+  expect_equal(state$hojas_ruta_runs$field$role, "field")
+  expect_equal(state$hojas_ruta_runs$field$pilot_exclusion_mode, "exclude_titulars")
+  expect_equal(state$hojas_ruta_runs$field$ui_state$active_stage, "muestra")
+  expect_equal(state$hojas_ruta_runs$field$config$n_objetivo, hojas_ruta_integrada_normalize_config(list())$n_objetivo)
+  expect_equal(state$hojas_ruta_runs$pilot$workspace_outputs$sample$total_entrevistas, 24L)
+  expect_false("sample_size_preview" %in% names(state$hojas_ruta_runs$field$workspace_outputs))
+  expect_false("quota" %in% names(state$hojas_ruta_runs$field$workspace_outputs))
+  expect_false("sample" %in% names(state$hojas_ruta_runs$field$workspace_outputs))
+  expect_true(isTRUE(state$hojas_ruta_runs$field$workspace_outputs$population$reusable))
+  expect_equal(session_get(sid)$hojas_ruta_workspace_outputs, state$hojas_ruta_runs$field$workspace_outputs)
+})
+
+test_that("campo real puede excluir titulares piloto sin bloquear reemplazos historicos", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  pilot_sample <- hojas_ruta_sample_preview_integrado(list(
+    n_objetivo = 24,
+    territorios = c("150110", "070106"),
+    sampling_method = "pps",
+    entrevistas_por_manzana = 6,
+    seed = 99,
+    replacements_per_titular = 1
+  ))
+  expect_true(pilot_sample$ok)
+  session_set(sid, "hojas_ruta_config", pilot_sample$config)
+  session_set(sid, "hojas_ruta_workspace_outputs", list(sample = pilot_sample))
+  .hojas_ruta_ensure_runs(sid)
+
+  pilot_titular_ids <- .hojas_ruta_sample_titular_ids(pilot_sample)
+  pilot_replacement_ids <- .hojas_ruta_sample_titular_ids(list(blocks = pilot_sample$replacement_blocks))
+  expect_gt(length(pilot_titular_ids), 0L)
+  expect_gt(length(pilot_replacement_ids), 0L)
+
+  field_cfg <- .hojas_ruta_effective_config_for_phase(sid, pilot_sample$config, "field")
+  expect_setequal(unlist(field_cfg$excluded_titular_ids, use.names = FALSE), pilot_titular_ids)
+  expect_length(intersect(unlist(field_cfg$excluded_titular_ids, use.names = FALSE), pilot_replacement_ids), 0L)
+
+  field_sample <- hojas_ruta_sample_preview_integrado(field_cfg)
+  expect_true(field_sample$ok)
+  field_blocks <- .hojas_ruta_rows_df(field_sample$blocks)
+  field_replacements <- .hojas_ruta_rows_df(field_sample$replacement_blocks)
+  expect_length(intersect(field_blocks$id_manzana, pilot_titular_ids), 0L)
+  expect_length(intersect(field_replacements$id_manzana, pilot_titular_ids), 0L)
+  expect_true(any(vapply(field_sample$alerts, function(x) identical(x$code, "W_PILOT_EXCLUSION_REDUCED_FRAME"), logical(1))))
+})
+
+test_that("campo real puede ignorar piloto y recalcular sin modificar la piloto", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  pilot_sample <- hojas_ruta_sample_preview_integrado(list(
+    n_objetivo = 24,
+    territorios = c("150110", "070106"),
+    sampling_method = "pps",
+    entrevistas_por_manzana = 6,
+    seed = 99,
+    replacements_per_titular = 1
+  ))
+  expect_true(pilot_sample$ok)
+  session_set(sid, "hojas_ruta_config", pilot_sample$config)
+  session_set(sid, "hojas_ruta_workspace_outputs", list(sample = pilot_sample))
+  .hojas_ruta_ensure_runs(sid)
+  .hojas_ruta_save_run(sid, "field", pilot_exclusion_mode = "ignore")
+
+  field_cfg <- .hojas_ruta_effective_config_for_phase(sid, pilot_sample$config, "field")
+  expect_length(unlist(field_cfg$excluded_titular_ids, use.names = FALSE), 0L)
+  ignored_sample <- hojas_ruta_sample_preview_integrado(field_cfg)
+  expect_true(ignored_sample$ok)
+  expect_setequal(
+    vapply(ignored_sample$blocks, `[[`, character(1), "id_manzana"),
+    vapply(pilot_sample$blocks, `[[`, character(1), "id_manzana")
+  )
+
+  .hojas_ruta_workspace_outputs_update(
+    sid,
+    patch = list(quota = list(ok = TRUE, total_asignado = 30)),
+    clear = "sample"
+  )
+  state <- session_get(sid)
+  expect_equal(state$hojas_ruta_runs$pilot$workspace_outputs$sample$total_entrevistas, 24L)
+  expect_false("sample" %in% names(state$hojas_ruta_runs$field$workspace_outputs))
+  expect_equal(state$hojas_ruta_runs$field$workspace_outputs$quota$total_asignado, 30)
+})
+
 test_that("validacion integral rechaza reemplazos ausentes o fuera de zona", {
   cfg <- hojas_ruta_integrada_normalize_config(list(
     n_objetivo = 12,

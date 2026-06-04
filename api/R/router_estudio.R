@@ -159,6 +159,9 @@
     source_title    = as.character(meta$source_title %||% NA_character_),
     sibling_family_id = as.character(meta$sibling_family_id %||% NA_character_),
     imported_at     = as.character(meta$imported_at %||% NA_character_),
+    logic_template_base = as.character(meta$logic_template_base %||% NA_character_),
+    logic_template_applied_at = as.character(meta$logic_template_applied_at %||% NA_character_),
+    logic_template_status = as.character(meta$logic_template_status %||% NA_character_),
     response_filter = meta$response_filter %||% NA_character_,
     status          = .estudio_base_status_payload(meta, s),
     multi_integrated = if (is.null(multi_payload)) NA else multi_payload
@@ -188,6 +191,451 @@
     n_bases  = length(bases),
     bases    = lapply(bases, .estudio_base_payload, s = s),
     max_bases = max_bases
+  )
+}
+
+.estudio_xlsform_read_sheets <- function(path) {
+  sheets <- tryCatch(readxl::excel_sheets(path), error = function(e) character())
+  read_sheet <- function(name) {
+    if (!(name %in% sheets)) return(data.frame())
+    as.data.frame(
+      readxl::read_excel(path, sheet = name, .name_repair = "minimal"),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  }
+  list(
+    survey = read_sheet("survey"),
+    choices = read_sheet("choices"),
+    settings = read_sheet("settings"),
+    paper = read_sheet("paper"),
+    diagnostico = read_sheet("diagnostico")
+  )
+}
+
+.estudio_xlsform_write_sheets <- function(sheets, path) {
+  if (!requireNamespace("openxlsx", quietly = TRUE)) {
+    stop_api(500, "E_NO_OPENXLSX", "openxlsx no está disponible para escribir XLSForm.")
+  }
+  wb <- openxlsx::createWorkbook()
+  for (sheet_name in c("survey", "choices", "settings", "paper", "diagnostico")) {
+    df <- sheets[[sheet_name]]
+    if (is.null(df) || (!nrow(df) && !ncol(df) && !(sheet_name %in% c("survey", "choices", "settings")))) next
+    df <- as.data.frame(df, stringsAsFactors = FALSE, check.names = FALSE)
+    openxlsx::addWorksheet(wb, sheet_name)
+    openxlsx::writeData(wb, sheet_name, df)
+    openxlsx::freezePane(wb, sheet_name, firstActiveRow = 2)
+    if (ncol(df)) openxlsx::setColWidths(wb, sheet_name, cols = seq_len(ncol(df)), widths = "auto")
+  }
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  invisible(path)
+}
+
+.estudio_logic_columns <- function(survey_a, survey_b) {
+  candidates <- c(
+    "relevant", "constraint", "constraint_message",
+    "required", "required_message", "readonly",
+    "calculation", "calculate", "choice_filter",
+    "default", "trigger"
+  )
+  cols <- unique(c(names(survey_a %||% data.frame()), names(survey_b %||% data.frame())))
+  cols[grepl("^(relevant|constraint|constraint_message|required|required_message|readonly|calculation|calculate|choice_filter|default|trigger)$",
+             cols, ignore.case = FALSE) | cols %in% candidates]
+}
+
+.estudio_cell_chr <- function(x) {
+  out <- as.character(x %||% "")
+  out[is.na(out)] <- ""
+  out
+}
+
+.estudio_label_col <- function(df) {
+  if (!is.data.frame(df) || !ncol(df)) return(NULL)
+  hits <- c(intersect(c("label", "label::es"), names(df)), grep("^label", names(df), value = TRUE))
+  hits <- unique(hits)
+  if (length(hits)) hits[[1]] else NULL
+}
+
+.estudio_select_list_for_var <- function(survey, var) {
+  if (!is.data.frame(survey) || !all(c("type", "name") %in% names(survey))) return("")
+  idx <- which(.estudio_cell_chr(survey$name) == as.character(var))[1]
+  if (is.na(idx)) return("")
+  type <- .estudio_cell_chr(survey$type[idx])
+  if (!grepl("^select_(one|multiple)\\s+", type, perl = TRUE)) return("")
+  out <- sub("^select_(one|multiple)\\s+", "", type, perl = TRUE)
+  sub("\\s+.*$", "", out, perl = TRUE)
+}
+
+.estudio_norm_choice_label <- function(x) {
+  x <- .estudio_cell_chr(x)
+  x <- tolower(x)
+  x_ascii <- iconv(x, from = "", to = "ASCII//TRANSLIT")
+  x <- ifelse(is.na(x_ascii), x, x_ascii)
+  x <- gsub("[[:punct:]]+", " ", x, perl = TRUE)
+  x <- gsub("\\s+", " ", x, perl = TRUE)
+  trimws(x)
+}
+
+.estudio_choice_label_for_code <- function(choices, list_name, code) {
+  label_col <- .estudio_label_col(choices)
+  if (!is.data.frame(choices) || is.null(label_col) ||
+      !all(c("list_name", "name") %in% names(choices))) {
+    return("")
+  }
+  idx <- which(.estudio_cell_chr(choices$list_name) == as.character(list_name) &
+                 .estudio_cell_chr(choices$name) == as.character(code))[1]
+  if (is.na(idx)) "" else .estudio_cell_chr(choices[[label_col]][idx])
+}
+
+.estudio_choice_code_for_label <- function(choices, list_name, label) {
+  label_col <- .estudio_label_col(choices)
+  if (!is.data.frame(choices) || is.null(label_col) ||
+      !all(c("list_name", "name") %in% names(choices))) {
+    return("")
+  }
+  rows <- choices[.estudio_cell_chr(choices$list_name) == as.character(list_name), , drop = FALSE]
+  if (!nrow(rows)) return("")
+  target <- .estudio_norm_choice_label(label)
+  labels <- .estudio_norm_choice_label(rows[[label_col]])
+  idx <- which(labels == target)[1]
+  if (is.na(idx)) "" else .estudio_cell_chr(rows$name[idx])
+}
+
+.estudio_remap_choice_code <- function(var, code,
+                                       template_survey, template_choices,
+                                       target_survey, target_choices) {
+  var <- as.character(var %||% "")
+  code <- as.character(code %||% "")
+  if (!nzchar(var) || !nzchar(code)) {
+    return(list(code = code, label = "", changed = FALSE))
+  }
+  template_list <- .estudio_select_list_for_var(template_survey, var)
+  target_list <- .estudio_select_list_for_var(target_survey, var)
+  if (!nzchar(template_list) || !nzchar(target_list)) {
+    return(list(code = code, label = "", changed = FALSE))
+  }
+  label <- .estudio_choice_label_for_code(template_choices, template_list, code)
+  if (!nzchar(label)) return(list(code = code, label = "", changed = FALSE))
+  mapped <- .estudio_choice_code_for_label(target_choices, target_list, label)
+  if (!nzchar(mapped)) return(list(code = code, label = label, changed = FALSE))
+  list(code = mapped, label = label, changed = !identical(as.character(mapped), as.character(code)))
+}
+
+.estudio_replace_logic_matches <- function(expr, pattern, rebuild,
+                                           template_survey, template_choices,
+                                           target_survey, target_choices) {
+  matches <- gregexpr(pattern, expr, perl = TRUE)
+  starts <- matches[[1]]
+  if (!length(starts) || starts[[1]] < 0L) return(list(expression = expr, remaps = list()))
+  lens <- attr(matches[[1]], "match.length")
+  cap_starts <- attr(matches[[1]], "capture.start")
+  cap_lens <- attr(matches[[1]], "capture.length")
+  original <- expr
+  out <- expr
+  offset <- 0L
+  remaps <- list()
+  for (k in seq_along(starts)) {
+    caps <- vapply(seq_len(ncol(cap_starts)), function(c) {
+      st <- cap_starts[k, c]
+      ln <- cap_lens[k, c]
+      if (is.na(st) || st < 0L || is.na(ln) || ln < 0L) "" else substr(original, st, st + ln - 1L)
+    }, character(1))
+    repl <- rebuild(caps, template_survey, template_choices, target_survey, target_choices)
+    if (!is.null(repl$remap) && isTRUE(repl$remap$changed)) {
+      remaps[[length(remaps) + 1L]] <- repl$remap
+    }
+    start <- starts[k] + offset
+    end <- start + lens[k] - 1L
+    out <- paste0(substr(out, 1L, start - 1L), repl$text, substr(out, end + 1L, nchar(out)))
+    offset <- offset + nchar(repl$text) - lens[k]
+  }
+  list(expression = out, remaps = remaps)
+}
+
+.estudio_remap_logic_expression <- function(expr,
+                                            template_survey, template_choices,
+                                            target_survey, target_choices) {
+  expr <- .estudio_cell_chr(expr)
+  if (!nzchar(expr) || is.null(template_choices) || is.null(target_choices)) {
+    return(list(expression = expr, remaps = data.frame(
+      reference = character(), from = character(), to = character(), label = character(),
+      stringsAsFactors = FALSE
+    )))
+  }
+  selected_pattern <- "selected\\(\\s*\\$\\{([^}]+)\\}\\s*,\\s*(['\"])([^'\"]+)\\2\\s*\\)"
+  selected <- .estudio_replace_logic_matches(
+    expr,
+    selected_pattern,
+    function(caps, template_survey, template_choices, target_survey, target_choices) {
+      var <- caps[[1]]
+      quote <- caps[[2]]
+      old_code <- caps[[3]]
+      mapped <- .estudio_remap_choice_code(var, old_code, template_survey, template_choices, target_survey, target_choices)
+      list(
+        text = sprintf("selected(${%s}, %s%s%s)", var, quote, mapped$code, quote),
+        remap = list(reference = var, from = old_code, to = mapped$code, label = mapped$label, changed = mapped$changed)
+      )
+    },
+    template_survey, template_choices, target_survey, target_choices
+  )
+  expr <- selected$expression
+
+  compare_pattern <- "(\\$\\{([^}]+)\\}\\s*(?:!?=|==)\\s*)(['\"])([^'\"]+)\\3"
+  compared <- .estudio_replace_logic_matches(
+    expr,
+    compare_pattern,
+    function(caps, template_survey, template_choices, target_survey, target_choices) {
+      prefix <- caps[[1]]
+      var <- caps[[2]]
+      quote <- caps[[3]]
+      old_code <- caps[[4]]
+      mapped <- .estudio_remap_choice_code(var, old_code, template_survey, template_choices, target_survey, target_choices)
+      list(
+        text = paste0(prefix, quote, mapped$code, quote),
+        remap = list(reference = var, from = old_code, to = mapped$code, label = mapped$label, changed = mapped$changed)
+      )
+    },
+    template_survey, template_choices, target_survey, target_choices
+  )
+  remaps <- c(selected$remaps, compared$remaps)
+  remaps_df <- if (length(remaps)) {
+    do.call(rbind, lapply(remaps, function(x) data.frame(
+      reference = as.character(x$reference %||% ""),
+      from = as.character(x$from %||% ""),
+      to = as.character(x$to %||% ""),
+      label = as.character(x$label %||% ""),
+      stringsAsFactors = FALSE
+    )))
+  } else {
+    data.frame(reference = character(), from = character(), to = character(), label = character(), stringsAsFactors = FALSE)
+  }
+  list(expression = compared$expression, remaps = remaps_df)
+}
+
+.estudio_apply_template_logic_survey <- function(template_survey, target_survey,
+                                                 template_choices = NULL,
+                                                 target_choices = NULL,
+                                                 clear_target_logic = FALSE) {
+  if (!is.data.frame(template_survey) || !is.data.frame(target_survey) ||
+      !"name" %in% names(template_survey) || !"name" %in% names(target_survey)) {
+    stop_api(400, "E_XLSFORM_SURVEY_INVALIDO",
+             "Los XLSForms deben tener hoja survey con columna 'name'.")
+  }
+  logic_cols <- .estudio_logic_columns(template_survey, target_survey)
+  if (!length(logic_cols)) {
+    return(list(
+      survey = target_survey,
+      logic_columns = character(),
+      applied_variables = character(),
+      skipped_missing_variables = character(),
+      changed_cells = 0L,
+      missing_references = data.frame(variable = character(), reference = character(), stringsAsFactors = FALSE),
+      remapped_choices = data.frame(variable = character(), column = character(), reference = character(), from = character(), to = character(), label = character(), stringsAsFactors = FALSE)
+    ))
+  }
+  for (col in logic_cols) {
+    if (!(col %in% names(template_survey))) template_survey[[col]] <- ""
+    if (!(col %in% names(target_survey))) target_survey[[col]] <- ""
+  }
+
+  template_names <- .estudio_cell_chr(template_survey$name)
+  target_names <- .estudio_cell_chr(target_survey$name)
+  template_logic <- template_survey[, logic_cols, drop = FALSE]
+  has_logic <- apply(template_logic, 1L, function(row) any(nzchar(.estudio_cell_chr(row))))
+  candidate_idx <- which(nzchar(template_names) & (has_logic | isTRUE(clear_target_logic)))
+  applied <- character()
+  skipped <- character()
+  changed <- 0L
+  missing_refs <- list()
+  remapped_choices <- list()
+
+  target_name_set <- unique(target_names[nzchar(target_names)])
+  for (i in candidate_idx) {
+    var <- template_names[[i]]
+    j <- which(target_names == var)[1]
+    if (is.na(j)) {
+      if (isTRUE(has_logic[[i]])) skipped <- c(skipped, var)
+      next
+    }
+    row_changed <- FALSE
+    expr_values <- character()
+    for (col in logic_cols) {
+      before <- .estudio_cell_chr(target_survey[[col]][j])
+      after <- .estudio_cell_chr(template_survey[[col]][i])
+      remapped <- .estudio_remap_logic_expression(
+        after,
+        template_survey = template_survey,
+        template_choices = template_choices,
+        target_survey = target_survey,
+        target_choices = target_choices
+      )
+      after <- remapped$expression
+      if (nrow(remapped$remaps)) {
+        tmp <- remapped$remaps
+        tmp$variable <- var
+        tmp$column <- col
+        remapped_choices[[length(remapped_choices) + 1L]] <- tmp[, c("variable", "column", "reference", "from", "to", "label"), drop = FALSE]
+      }
+      if (!identical(before, after)) {
+        target_survey[[col]][j] <- after
+        changed <- changed + 1L
+        row_changed <- TRUE
+      }
+      if (nzchar(after)) expr_values <- c(expr_values, after)
+    }
+    if (isTRUE(has_logic[[i]])) applied <- c(applied, var)
+    refs <- unique(unlist(regmatches(expr_values, gregexpr("\\$\\{[^}]+\\}", expr_values, perl = TRUE)), use.names = FALSE))
+    refs <- gsub("^\\$\\{|\\}$", "", refs)
+    refs <- refs[nzchar(refs) & !(refs %in% target_name_set)]
+    if (length(refs)) {
+      missing_refs[[length(missing_refs) + 1L]] <- data.frame(
+        variable = rep(var, length(refs)),
+        reference = refs,
+        stringsAsFactors = FALSE
+      )
+    }
+    if (!row_changed) next
+  }
+
+  list(
+    survey = target_survey,
+    logic_columns = logic_cols,
+    applied_variables = unique(applied),
+    skipped_missing_variables = unique(skipped),
+    changed_cells = as.integer(changed),
+    missing_references = if (length(missing_refs)) do.call(rbind, missing_refs) else data.frame(variable = character(), reference = character(), stringsAsFactors = FALSE),
+    remapped_choices = if (length(remapped_choices)) do.call(rbind, remapped_choices) else data.frame(variable = character(), column = character(), reference = character(), from = character(), to = character(), label = character(), stringsAsFactors = FALSE)
+  )
+}
+
+estudio_apply_template_xlsform_logic <- function(sid,
+                                                 template_base = NULL,
+                                                 targets = NULL,
+                                                 clear_target_logic = FALSE) {
+  if (!estudio_is_independent_siblings(sid)) {
+    stop_api(409, "E_NOT_INDEPENDENT_SIBLINGS",
+             "Esta acción solo está disponible para bases hermanas independientes.")
+  }
+  s <- session_get(sid)
+  bases <- s$estudio$bases %||% list()
+  base_names <- names(bases)
+  if (length(base_names) < 2L) {
+    stop_api(409, "E_NOT_ENOUGH_BASES",
+             "Se necesitan al menos dos bases hermanas para aplicar lógica compartida.")
+  }
+  template_base <- as.character(template_base %||%
+                                  (s$estudio$independent_siblings %||% list())$template_base %||%
+                                  s$estudio$active_base %||% base_names[1])
+  if (!nzchar(template_base) || !(template_base %in% base_names)) {
+    stop_api(404, "E_TEMPLATE_BASE_NOT_FOUND", "No encontré la base plantilla indicada.")
+  }
+  targets <- as.character(targets %||% setdiff(base_names, template_base))
+  targets <- targets[nzchar(targets) & targets %in% base_names & targets != template_base]
+  if (!length(targets)) {
+    stop_api(400, "E_NO_TARGETS", "No hay bases hermanas destino para aplicar la lógica.")
+  }
+
+  template_meta <- get_file(sid, bases[[template_base]]$xlsform_file_id)
+  template_sheets <- .estudio_xlsform_read_sheets(template_meta$path)
+  template_survey <- template_sheets$survey
+  if (!is.data.frame(template_survey) || !"name" %in% names(template_survey)) {
+    stop_api(400, "E_TEMPLATE_XLSFORM_INVALIDO", "La base plantilla no tiene una hoja survey válida.")
+  }
+
+  now <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  rows <- list()
+  updated <- character()
+  for (target in targets) {
+    target_base <- bases[[target]]
+    target_meta <- get_file(sid, target_base$xlsform_file_id)
+    target_sheets <- .estudio_xlsform_read_sheets(target_meta$path)
+    applied <- .estudio_apply_template_logic_survey(
+      template_survey = template_survey,
+      target_survey = target_sheets$survey,
+      template_choices = template_sheets$choices,
+      target_choices = target_sheets$choices,
+      clear_target_logic = isTRUE(clear_target_logic)
+    )
+    rows[[length(rows) + 1L]] <- list(
+      base = target,
+      applied_variables = as.list(applied$applied_variables),
+      skipped_missing_variables = as.list(applied$skipped_missing_variables),
+      missing_references = .estudio_records_payload(applied$missing_references),
+      n_applied_variables = as.integer(length(applied$applied_variables)),
+      n_skipped_missing_variables = as.integer(length(applied$skipped_missing_variables)),
+      n_missing_references = as.integer(nrow(applied$missing_references)),
+      changed_cells = as.integer(applied$changed_cells),
+      logic_columns = as.list(applied$logic_columns),
+      remapped_choices = .estudio_records_payload(applied$remapped_choices),
+      n_remapped_choices = as.integer(nrow(applied$remapped_choices))
+    )
+    if (applied$changed_cells <= 0L) next
+
+    target_sheets$survey <- applied$survey
+    out_path <- tempfile(sprintf("%s_logic_", target), fileext = ".xlsx")
+    on.exit(unlink(out_path), add = TRUE)
+    .estudio_xlsform_write_sheets(target_sheets, out_path)
+    raw <- readBin(out_path, what = "raw", n = file.info(out_path)$size)
+    original_name <- sprintf("%s_xlsform_logica_%s.xlsx", target, format(Sys.time(), "%Y%m%d_%H%M%S", tz = "UTC"))
+    new_meta <- save_upload(sid, "xlsform", original_name, raw)
+    new_inst <- reporte_instrumento(path = new_meta$path)
+
+    data_meta <- get_file(sid, target_base$data_file_id)
+    data_df <- .read_data_from_path(data_meta$path, data_meta$ext)
+    data_df <- normalize_data_for_xlsform(data_df, new_inst)
+    .carga_assert_data_xlsform_compatible(data_df, new_inst)
+    new_rp_data <- reporte_data(data_df, instrumento = new_inst)
+
+    estudio_preserve_original_base_files(sid, target)
+    estudio_replace_base_files(
+      sid,
+      target,
+      xlsform_file_id = new_meta$file_id,
+      rp_inst = new_inst,
+      rp_data = new_rp_data,
+      n_filas = as.integer(nrow(data_df)),
+      n_columnas = as.integer(ncol(data_df))
+    )
+    updated <- c(updated, target)
+  }
+
+  s <- session_get(sid)
+  family <- s$estudio$independent_siblings %||% list()
+  family$template_base <- template_base
+  family$logic_policy <- "shared_template"
+  family$shared_logic <- TRUE
+  family$status <- "xlsform_logic_applied"
+  family$logic_applied_at <- now
+  family$logic_sync <- list(
+    kind = "xlsform_logic",
+    template_base = template_base,
+    targets = as.list(targets),
+    updated_bases = as.list(updated),
+    clear_target_logic = isTRUE(clear_target_logic),
+    applied_at = now,
+    results = rows
+  )
+  family$updated_at <- now
+  s$estudio$independent_siblings <- family
+  for (target in targets) {
+    meta <- s$estudio$bases[[target]]
+    meta$logic_template_base <- template_base
+    meta$logic_template_applied_at <- now
+    meta$logic_template_status <- if (target %in% updated) "updated" else "unchanged"
+    s$estudio$bases[[target]] <- meta
+  }
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+
+  list(
+    ok = TRUE,
+    template_base = template_base,
+    targets = as.list(targets),
+    updated_bases = as.list(updated),
+    n_targets = as.integer(length(targets)),
+    n_updated_bases = as.integer(length(updated)),
+    results = rows,
+    estudio = .estudio_payload(sid)
   )
 }
 
@@ -431,6 +879,22 @@ mount_estudio <- function(pr) {
         sibling_family_id = parsed$sibling_family_id
       )
       .estudio_payload(sid)
+    })) |>
+    plumber::pr_post("/api/estudio/independent-siblings/apply-template-logic", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      if (is.null(session_get(sid, required = FALSE))) stop_api(404, "E_NO_SESSION", "Sin sesión.")
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "{}")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      estudio_apply_template_xlsform_logic(
+        sid,
+        template_base = parsed$template_base %||% parsed$base_plantilla,
+        targets = parsed$targets %||% parsed$bases_destino,
+        clear_target_logic = isTRUE(parsed$clear_target_logic)
+      )
     })) |>
     plumber::pr_get("/api/estudio/codif-source", wrap_endpoint(function(req, res) {
       # Devuelve la base actualmente activa para codificación + las

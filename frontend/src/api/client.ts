@@ -224,6 +224,9 @@ export type EstudioBase = {
   source_title?: string | null;
   sibling_family_id?: string | null;
   imported_at?: string | null;
+  logic_template_base?: string | null;
+  logic_template_applied_at?: string | null;
+  logic_template_status?: "updated" | "unchanged" | string | null;
   response_filter?: Record<string, unknown> | null;
   status?: {
     imported?: boolean;
@@ -285,11 +288,35 @@ export type EstudioPayload = {
     shared_logic?: boolean;
     status?: string;
     updated_at?: string;
+    logic_applied_at?: string;
+    logic_sync?: EstudioLogicSyncResult | null;
     audit?: unknown;
   } | null;
   n_bases: number;
   bases: Record<string, EstudioBase>;
   max_bases: number;
+};
+
+export type EstudioLogicSyncResult = {
+  ok: boolean;
+  template_base: string;
+  targets: string[];
+  updated_bases: string[];
+  n_targets: number;
+  n_updated_bases: number;
+  error?: string;
+  results?: Array<{
+    base: string;
+    applied_variables: string[];
+    skipped_missing_variables: string[];
+    missing_references: Array<{ variable: string; reference: string }>;
+    n_applied_variables: number;
+    n_skipped_missing_variables: number;
+    n_missing_references: number;
+    changed_cells: number;
+    logic_columns: string[];
+  }>;
+  estudio?: EstudioPayload;
 };
 
 export async function apiEstudioGet() {
@@ -473,6 +500,20 @@ export async function apiEstudioPromoteIndependentSiblings(payload: {
   );
 }
 
+export async function apiEstudioApplyIndependentTemplateLogic(payload: {
+  template_base?: string;
+  targets?: string[];
+  clear_target_logic?: boolean;
+} = {}) {
+  return handle<EstudioLogicSyncResult>(
+    await apiFetch("/api/estudio/independent-siblings/apply-template-logic", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
 // Base activa para codificación (v0.2+). Devuelve y setea cuál de las
 // bases del estudio está siendo codificada en ese momento. Al cambiar,
 // el backend sirve el estado scoped de esa base (familias, grupos,
@@ -540,6 +581,9 @@ export type SurveyMonkeyMultibaseSurveyInput = {
   collector_ids?: string[];
   date_modified_gte?: string;
   date_modified_lte?: string;
+  collection_strategy?: "campo" | "whatsapp_link" | "web_link" | "email" | "otro" | string;
+  validation_exclusion_profile?: string;
+  excluded_validation_vars?: string[];
   sources?: SurveyMonkeyMultibaseSurveyInput[];
   campaigns?: SurveyMonkeyMultibaseSurveyInput[];
 };
@@ -550,6 +594,7 @@ export type SurveyMonkeyMultibaseListItem = {
   nickname: string | null;
   date_modified: string | null;
   pais_guess: string | null;
+  response_count?: number | null;
 };
 
 export type SurveyMonkeyMultibaseInspection = {
@@ -663,6 +708,7 @@ export async function apiSurveyMonkeyMultibaseListSurveys(
       nickname: s.nickname == null || s.nickname === "NA" ? null : String(s.nickname),
       date_modified: s.date_modified == null || s.date_modified === "NA" ? null : String(s.date_modified),
       pais_guess: s.pais_guess == null || s.pais_guess === "NA" ? null : String(s.pais_guess),
+      response_count: s.response_count == null || s.response_count === "NA" ? null : Number(s.response_count),
     })),
   };
 }
@@ -776,6 +822,7 @@ export async function apiSurveyMonkeyMultibaseImportIndependent(payload: {
     n_bases: number;
     estudio: EstudioPayload;
     audit: SurveyMonkeyMultibaseAudit;
+    xlsform_logic_sync?: EstudioLogicSyncResult | null;
   }>(
     await apiFetch("/api/surveymonkey/multibase/import-independent", {
       method: "POST",
@@ -3101,6 +3148,7 @@ export type HojasRutaIntegratedConfig = {
   age_ranges: HojasRutaAgeRange[];
   sample_size_mode: SampleSizeMode;
   sample_size: HojasRutaSampleSizeConfig;
+  excluded_titular_ids?: string[];
   random_preference?: HojasRutaRandomPreference;
 };
 
@@ -3527,6 +3575,26 @@ export type HojasRutaWorkspaceOutputs = {
   sample?: HojasRutaSamplePreview | null;
 };
 
+export type HojasRutaPhase = "pilot" | "field";
+export type HojasRutaPilotExclusionMode = "exclude_titulars" | "ignore";
+
+export type HojasRutaRun = {
+  config: HojasRutaIntegratedConfig;
+  ui_state: HojasRutaUiState;
+  workspace_outputs: HojasRutaWorkspaceOutputs;
+  locked?: boolean;
+  role: HojasRutaPhase;
+  pilot_exclusion_mode?: HojasRutaPilotExclusionMode;
+};
+
+export type HojasRutaPhaseNotice = {
+  kind: string;
+  message?: string;
+  migrated_at?: string;
+  pilot_total_entrevistas?: number;
+  pilot_titulars?: number;
+};
+
 export type HojasRutaRouteDistrictSummary = {
   ubigeo: string;
   distrito: string;
@@ -3693,6 +3761,9 @@ export type HojasRutaState = {
   integrated_config: HojasRutaIntegratedConfig;
   ui_state: HojasRutaUiState;
   workspace_outputs?: HojasRutaWorkspaceOutputs;
+  runs?: Partial<Record<HojasRutaPhase, HojasRutaRun>>;
+  active_phase?: HojasRutaPhase;
+  phase_notice?: HojasRutaPhaseNotice | null;
   frame_meta: TerritorialFrameMeta;
   territories: HojasRutaTerritory[];
   campos: HojasRutaCampos | null;
@@ -3767,12 +3838,40 @@ export async function apiHojasRutaPersistWorkspace(
   config: Partial<HojasRutaIntegratedConfig>,
   uiState: Partial<HojasRutaUiState>,
   outputs?: Partial<HojasRutaWorkspaceOutputs>,
+  phase?: HojasRutaPhase,
+  pilotExclusionMode?: HojasRutaPilotExclusionMode,
 ) {
-  return handle<{ ok: true; integrated_config: HojasRutaIntegratedConfig; ui_state: HojasRutaUiState; workspace_outputs?: HojasRutaWorkspaceOutputs }>(
+  return handle<{ ok: true; integrated_config: HojasRutaIntegratedConfig; ui_state: HojasRutaUiState; workspace_outputs?: HojasRutaWorkspaceOutputs; active_phase?: HojasRutaPhase; runs?: Partial<Record<HojasRutaPhase, HojasRutaRun>> }>(
     await apiFetch("/api/hojas-ruta/workspace", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ config, ui_state: uiState, workspace_outputs: outputs ?? {} }),
+      body: JSON.stringify({
+        config,
+        ui_state: uiState,
+        workspace_outputs: outputs ?? {},
+        ...(phase ? { phase } : {}),
+        ...(pilotExclusionMode ? { pilot_exclusion_mode: pilotExclusionMode } : {}),
+      }),
+    }),
+  );
+}
+
+export async function apiHojasRutaSetPhase(phase: HojasRutaPhase) {
+  return handle<HojasRutaState>(
+    await apiFetch("/api/hojas-ruta/phase", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ phase }),
+    }),
+  );
+}
+
+export async function apiHojasRutaCreateFieldFromPilot(pilotExclusionMode: HojasRutaPilotExclusionMode = "exclude_titulars") {
+  return handle<HojasRutaState>(
+    await apiFetch("/api/hojas-ruta/field/from-pilot", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ pilot_exclusion_mode: pilotExclusionMode }),
     }),
   );
 }

@@ -221,6 +221,12 @@ export default function ReglaDrillPanel({
   const plainReading = buildPlainRuleReading(regla, targetDisplay, targetItem, activationSections, compareSection);
   const heroText = plainReading.headline || buildExpectationHeadline(regla, targetDisplay);
   const technicalVariables = orderedAllVariables.length ? orderedAllVariables : uniqueStrings(regla.variables);
+  const subtipoSemantico = (regla.presentation?.subtipo_semantico ?? "").toLowerCase();
+  const tipoObservacion = (regla.tipo_observacion ?? "").toLowerCase();
+  const hasRouteLogicSummary =
+    !!targetItem &&
+    filteredCasos.length > 0 &&
+    (tipoObservacion.includes("skip") || subtipoSemantico === "nodebe" || subtipoSemantico === "debe");
 
   const selectedQuickValues = useMemo(
     () => (focusedVariable ? distinctByCol[focusedVariable] ?? [] : []),
@@ -365,11 +371,31 @@ export default function ReglaDrillPanel({
           }
           .pulso-variable-block {
             transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
+            white-space: normal;
+          }
+          .pulso-variable-block > * {
+            min-width: 0;
+            max-width: 100%;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: normal;
+          }
+          .pulso-vars-used-layout {
+            display: grid;
+            grid-template-columns: minmax(260px, 0.9fr) minmax(360px, 1.35fr);
+            gap: 12px;
+            margin-top: 8px;
+            align-items: start;
           }
           .pulso-variable-block:hover,
           .pulso-variable-block:focus-visible {
             transform: translateY(-1px);
             box-shadow: var(--pulso-shadow-low);
+          }
+          @media (max-width: 980px) {
+            .pulso-vars-used-layout {
+              grid-template-columns: minmax(0, 1fr);
+            }
           }
           @media (prefers-reduced-motion: reduce) {
             .pulso-rule-flow-item,
@@ -542,30 +568,31 @@ export default function ReglaDrillPanel({
 
       <div style={bandStyle}>
         <SectionHeading
-          title="Variables usadas"
-          subtitle="Estas preguntas ayudan a decidir si la respuesta era esperada o no."
+          title={hasRouteLogicSummary ? "Ruta lógica y casos detectados" : "Variables usadas"}
+          subtitle={
+            hasRouteLogicSummary
+              ? "Condición que activa u omite la sección, variables que la deciden y evidencia encontrada."
+              : "Estas preguntas ayudan a decidir si la respuesta era esperada o no."
+          }
         />
 
-        {roleSections.length > 0 && (
-          <div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 10,
-                marginTop: 8,
-              }}
-            >
-              {roleSections.map((section) => (
-                <RolePanel
-                  key={section.key}
-                  section={section}
-                  focusedVariable={focusedVariable}
-                  onFocusVariable={handleVariableFocus}
-                />
-              ))}
-            </div>
-          </div>
+        {hasRouteLogicSummary && (
+          <CaseLogicSummary
+            regla={regla}
+            casos={filteredCasos}
+            targetItem={targetItem}
+            activationSections={activationSections}
+          />
+        )}
+
+        {roleSections.length > 0 && !hasRouteLogicSummary && (
+          <VariablesUsedLayout
+            targetSection={targetSection}
+            activationSections={activationSections}
+            compareSection={compareSection}
+            focusedVariable={focusedVariable}
+            onFocusVariable={handleVariableFocus}
+          />
         )}
       </div>
 
@@ -947,6 +974,87 @@ const techVariableChipStyle: React.CSSProperties = {
   fontFamily: "ui-monospace, monospace",
 };
 
+const logicPillStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 5,
+  minWidth: 0,
+  maxWidth: "100%",
+  padding: "5px 8px",
+  borderRadius: 999,
+  border: "1px solid var(--pulso-border)",
+  background: "white",
+  color: "var(--pulso-text)",
+  fontSize: 11,
+  lineHeight: 1.3,
+  overflowWrap: "anywhere",
+  whiteSpace: "normal",
+};
+
+const logicStepHeadingStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  minWidth: 0,
+  fontSize: 11,
+  fontWeight: 800,
+  color: "var(--pulso-text)",
+  textTransform: "uppercase",
+  letterSpacing: 0.7,
+};
+
+const logicStepNumberStyle: React.CSSProperties = {
+  width: 20,
+  height: 20,
+  borderRadius: 999,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "white",
+  color: "var(--pulso-primary)",
+  border: "1px solid var(--pulso-border)",
+  fontSize: 11,
+  fontWeight: 850,
+};
+
+const logicCardStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "auto minmax(0, 1fr)",
+  gap: 10,
+  alignItems: "start",
+  minWidth: 0,
+  padding: "9px 10px",
+  borderRadius: 8,
+  border: "1px solid var(--pulso-border)",
+  background: "white",
+};
+
+const logicCodeStyle: React.CSSProperties = {
+  fontFamily: "ui-monospace, monospace",
+  fontSize: 11,
+  fontWeight: 850,
+  color: "var(--pulso-primary)",
+  paddingTop: 1,
+};
+
+const logicQuestionStyle: React.CSSProperties = {
+  minWidth: 0,
+  fontSize: 12,
+  fontWeight: 750,
+  color: "var(--pulso-text)",
+  lineHeight: 1.35,
+  overflowWrap: "anywhere",
+};
+
+const logicMutedStyle: React.CSSProperties = {
+  marginTop: 3,
+  minWidth: 0,
+  fontSize: 11,
+  color: "var(--pulso-text-soft)",
+  lineHeight: 1.35,
+  overflowWrap: "anywhere",
+};
+
 function SectionHeading({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div style={{ marginBottom: 12 }}>
@@ -1020,14 +1128,277 @@ function PlainRuleSteps({ reading }: { reading: PlainRuleReading }) {
   );
 }
 
+function CaseLogicSummary({
+  regla,
+  casos,
+  targetItem,
+  activationSections,
+}: {
+  regla: ReglaInstrumento;
+  casos: Array<Record<string, unknown>>;
+  targetItem: RoleItem | null;
+  activationSections: RoleSection[];
+}) {
+  if (!targetItem || !casos.length) return null;
+
+  const tipo = (regla.tipo_observacion ?? "").toLowerCase();
+  const subtipo = (regla.presentation?.subtipo_semantico ?? "").toLowerCase();
+  const isSkip = tipo.includes("skip") || subtipo === "nodebe" || subtipo === "debe";
+  if (!isSkip) return null;
+
+  const driverItems = uniqueRoleItems(activationSections.flatMap((section) => section.items))
+    .filter((item) => item.key !== targetItem.key)
+    .slice(0, 4);
+  const routeComparisons = extractRouteComparisons(regla.procesamiento ?? "", driverItems, regla.value_labels);
+  const targetSummary = summarizeObservedValues(targetItem.key, casos, regla.value_labels);
+  const failedComparisons = routeComparisons.filter((comparison) =>
+    comparisonObservedState(comparison, casos, regla.value_labels).some((state) => !state.matches),
+  );
+  const driverSummaries = driverItems
+    .map((item) => ({ item, summary: summarizeObservedValues(item.key, casos, regla.value_labels) }))
+    .filter(({ summary }) => summary.nonEmpty > 0);
+
+  const n = casos.length;
+  const nText = `${n} caso${n === 1 ? "" : "s"}`;
+  const sectionLabel = regla.seccion ?? "esta sección";
+  const targetLabel = targetItem.label ? shortRuleLabel(targetItem.label, 92) : targetItem.key;
+  const targetValue = targetSummary.text || "con dato registrado";
+  const failedText = failedComparisons.length
+    ? humanList(failedComparisons.map((comparison) => comparison.key))
+    : "la ruta de entrada";
+  const routeIntro = subtipo === "nodebe"
+    ? `Regla aplicada: «${targetLabel}» esta dentro de ${sectionLabel}. Esa pregunta solo se puede responder si todas las condiciones de entrada de la sección se cumplen.`
+    : `Regla aplicada: «${targetLabel}» esta dentro de ${sectionLabel}. Esa pregunta debe responderse cuando todas las condiciones de entrada de la sección se cumplen.`;
+  const resultText = subtipo === "nodebe"
+    ? `Con los valores observados, ${failedText} cierra ${sectionLabel}. Por eso ${targetItem.key} debia quedar vacio. Valor registrado: ${targetValue}.`
+    : `Con los valores observados, ${sectionLabel} queda abierta. Por eso ${targetItem.key} debia tener respuesta. Valor registrado: vacio.`;
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: 14,
+        padding: "14px 15px",
+        borderRadius: 8,
+        border: "1px solid var(--pulso-warn-border)",
+        background: "color-mix(in srgb, var(--pulso-warn-bg) 52%, white 48%)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <GitBranch size={14} color="var(--pulso-warn-fg)" />
+        <span style={sectionMiniTitleStyle}>Ruta lógica del salto</span>
+      </div>
+      <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--pulso-text)" }}>{routeIntro}</div>
+
+      {routeComparisons.length > 0 && (
+        <div style={{ display: "grid", gap: 8 }}>
+          <div style={logicStepHeadingStyle}>
+            <span style={logicStepNumberStyle}>1</span>
+            <span>Condición para que la sección se muestre</span>
+          </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {routeComparisons.map((comparison) => (
+              <RouteConditionCard
+                key={`route-condition-${comparison.key}-${comparison.op}-${comparison.expectedRaw}`}
+                comparison={comparison}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "grid", gap: 8 }}>
+        <div style={logicStepHeadingStyle}>
+          <span style={logicStepNumberStyle}>2</span>
+          <span>Qué ocurrió en los casos detectados</span>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+          Se detectaron {nText} con esta combinación de respuestas.
+        </div>
+        {routeComparisons.length > 0 ? (
+          <div style={{ display: "grid", gap: 8 }}>
+            {routeComparisons.map((comparison) => {
+              const states = comparisonObservedState(comparison, casos, regla.value_labels);
+              const matches = states.every((state) => state.matches);
+              return (
+                <RouteObservedCard
+                  key={`route-observed-${comparison.key}-${comparison.op}-${comparison.expectedRaw}`}
+                  comparison={comparison}
+                  observed={summarizeObservedValues(comparison.key, casos, regla.value_labels).text}
+                  matches={matches}
+                  sectionLabel={sectionLabel}
+                />
+              );
+            })}
+          </div>
+        ) : driverSummaries.length > 0 ? (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {driverSummaries.map(({ item, summary }) => (
+              <span key={`case-summary-${item.key}`} style={logicPillStyle} title={item.label ?? item.key}>
+                <code style={{ fontFamily: "ui-monospace, monospace" }}>{item.key}</code>
+                <span>=</span>
+                <strong>{summary.text}</strong>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
+            No se pudo reconstruir la condición legible desde la expresión técnica.
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gap: 8 }}>
+        <div style={logicStepHeadingStyle}>
+          <span style={logicStepNumberStyle}>3</span>
+          <span>Resultado de validación</span>
+        </div>
+        <div
+          style={{
+            padding: "10px 11px",
+            borderRadius: 8,
+            background: "white",
+            border: "1px solid var(--pulso-warn-border)",
+            fontSize: 12,
+            lineHeight: 1.5,
+            color: "var(--pulso-text)",
+            fontWeight: 650,
+          }}
+        >
+          {resultText}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RouteConditionCard({ comparison }: { comparison: RouteComparison }) {
+  return (
+    <div
+      style={{
+        ...logicCardStyle,
+        background: "var(--pulso-success-bg)",
+        borderColor: "color-mix(in srgb, var(--pulso-success-fg) 28%, var(--pulso-border) 72%)",
+      }}
+    >
+      <code style={logicCodeStyle}>{comparison.key}</code>
+      <div style={{ minWidth: 0 }}>
+        <div style={logicQuestionStyle}>{comparison.label || comparison.key}</div>
+        <div style={{ ...logicMutedStyle, color: "var(--pulso-success-fg)" }}>
+          Para mostrar la sección: {conditionPhrase(comparison)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RouteObservedCard({
+  comparison,
+  observed,
+  matches,
+  sectionLabel,
+}: {
+  comparison: RouteComparison;
+  observed: string;
+  matches: boolean;
+  sectionLabel: string;
+}) {
+  return (
+    <div
+      style={{
+        ...logicCardStyle,
+        borderColor: matches ? "var(--pulso-border)" : "var(--pulso-warn-border)",
+        background: matches ? "var(--pulso-success-bg)" : "var(--pulso-warn-bg)",
+      }}
+    >
+      <code style={logicCodeStyle}>{comparison.key}</code>
+      <div style={{ minWidth: 0 }}>
+        <div style={logicQuestionStyle}>{comparison.label || comparison.key}</div>
+        <div style={logicMutedStyle}>Observado: {observed || "sin dato"}</div>
+        <div style={{ ...logicMutedStyle, color: matches ? "var(--pulso-success-fg)" : "var(--pulso-warn-fg)" }}>
+          {matches ? `Permite continuar hacia ${sectionLabel}.` : `Impide llegar a ${sectionLabel}.`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VariablesUsedLayout({
+  targetSection,
+  activationSections,
+  compareSection,
+  focusedVariable,
+  onFocusVariable,
+}: {
+  targetSection: RoleSection | null;
+  activationSections: RoleSection[];
+  compareSection: RoleSection | null;
+  focusedVariable: string | null;
+  onFocusVariable: (key: string) => void;
+}) {
+  const drivers = activationSections.find((section) => section.key === "drivers") ?? null;
+  const gate = activationSections.find((section) => section.key === "gate") ?? null;
+
+  return (
+    <div
+      className="pulso-vars-used-layout"
+      style={{
+        minWidth: 0,
+      }}
+    >
+      <div style={{ display: "grid", gap: 12, minWidth: 0 }}>
+        {targetSection && (
+          <RolePanel
+            section={targetSection}
+            focusedVariable={focusedVariable}
+            onFocusVariable={onFocusVariable}
+            density="featured"
+          />
+        )}
+        {compareSection && (
+          <RolePanel
+            section={compareSection}
+            focusedVariable={focusedVariable}
+            onFocusVariable={onFocusVariable}
+            density="compact"
+          />
+        )}
+      </div>
+      <div style={{ display: "grid", gap: 10, minWidth: 0 }}>
+        {drivers && (
+          <RolePanel
+            section={drivers}
+            focusedVariable={focusedVariable}
+            onFocusVariable={onFocusVariable}
+            density="compact"
+          />
+        )}
+        {gate && (
+          <RolePanel
+            section={gate}
+            focusedVariable={focusedVariable}
+            onFocusVariable={onFocusVariable}
+            density="compact"
+            nested
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function RolePanel({
   section,
   focusedVariable,
   onFocusVariable,
+  density = "compact",
+  nested = false,
 }: {
   section: RoleSection;
   focusedVariable: string | null;
   onFocusVariable: (key: string) => void;
+  density?: "compact" | "featured";
+  nested?: boolean;
 }) {
   const colors = ROLE_TONES[section.tone];
   const { Icon } = section;
@@ -1035,23 +1406,35 @@ function RolePanel({
     <div
       style={{
         display: "grid",
-        gap: 10,
-        padding: "12px 13px",
+        gap: nested ? 8 : 10,
+        padding: nested ? "10px 11px" : "12px 13px",
         borderRadius: 8,
         border: `1px solid ${colors.border}`,
-        background: "white",
+        background: nested ? "rgba(248,250,252,0.78)" : "white",
+        minWidth: 0,
+        overflow: "hidden",
       }}
     >
-      <div style={{ display: "grid", gap: 6 }}>
+      <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
           <Icon size={13} color={colors.fg} />
           <span style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text)" }}>{section.title}</span>
           <InfoHint text={section.hint} />
         </div>
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>{section.description}</div>
+        <div
+          style={{
+            minWidth: 0,
+            fontSize: 11,
+            color: "var(--pulso-text-soft)",
+            lineHeight: 1.5,
+            overflowWrap: "anywhere",
+          }}
+        >
+          {section.description}
+        </div>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div style={{ display: "grid", gap: density === "featured" ? 8 : 7, minWidth: 0 }}>
         {section.items.map((item) => (
           <VariableBlock
             key={`${section.key}-panel-${item.key}`}
@@ -1059,6 +1442,7 @@ function RolePanel({
             tone={section.tone}
             active={focusedVariable === item.key}
             onClick={() => onFocusVariable(item.key)}
+            density={density}
           />
         ))}
       </div>
@@ -1071,11 +1455,13 @@ function VariableBlock({
   tone,
   active,
   onClick,
+  density,
 }: {
   item: RoleItem;
   tone: RoleTone;
   active: boolean;
   onClick: () => void;
+  density: "compact" | "featured";
 }) {
   const colors = ROLE_TONES[tone];
   return (
@@ -1084,30 +1470,75 @@ function VariableBlock({
       onClick={onClick}
       className="pulso-variable-block"
       style={{
-        display: "inline-grid",
-        gap: 3,
-        padding: "8px 10px",
-        minWidth: 116,
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr)",
+        gap: 6,
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "100%",
+        padding: density === "featured" ? "10px 12px" : "9px 10px",
         textAlign: "left",
-        borderRadius: 8,
+        borderRadius: 10,
         border: `1px solid ${active ? colors.fg : colors.border}`,
         background: active ? "white" : colors.bg,
         color: "var(--pulso-text)",
         cursor: "pointer",
+        justifyItems: "start",
+        justifyContent: "stretch",
+        alignItems: "start",
+        alignContent: "start",
+        whiteSpace: "normal",
+        overflow: "hidden",
       }}
       title={item.label ? `${item.key} - ${item.label}` : item.key}
       aria-pressed={active}
     >
-      <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 11, color: colors.fg }}>
+      <code
+        style={{
+          minWidth: 0,
+          display: "block",
+          width: "100%",
+          fontFamily: "ui-monospace, monospace",
+          fontSize: 11,
+          color: colors.fg,
+          overflowWrap: "anywhere",
+          whiteSpace: "normal",
+        }}
+      >
         {item.key}
       </code>
       {item.label && (
-        <span style={{ fontSize: 11, lineHeight: 1.35, color: "var(--pulso-text-soft)" }}>
+        <span
+          style={{
+            minWidth: 0,
+            display: "block",
+            width: "100%",
+            fontSize: 11,
+            lineHeight: 1.38,
+            color: "var(--pulso-text-soft)",
+            overflowWrap: "anywhere",
+            wordBreak: "normal",
+            whiteSpace: "normal",
+            textAlign: "left",
+          }}
+        >
           {item.label}
         </span>
       )}
       {item.table && item.table !== "principal" && (
-        <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>Tabla {item.table}</span>
+        <span
+          style={{
+            minWidth: 0,
+            display: "block",
+            width: "100%",
+            fontSize: 10,
+            color: "var(--pulso-text-soft)",
+            overflowWrap: "anywhere",
+            whiteSpace: "normal",
+          }}
+        >
+          Tabla {item.table}
+        </span>
       )}
     </button>
   );
@@ -1183,6 +1614,179 @@ function uniqueStrings(values: Array<string | null | undefined>): string[] {
     out.push(value);
   }
   return out;
+}
+
+function uniqueRoleItems(items: RoleItem[]): RoleItem[] {
+  const out: RoleItem[] = [];
+  const seen = new Set<string>();
+  for (const item of items) {
+    if (!item.key || seen.has(item.key)) continue;
+    seen.add(item.key);
+    out.push(item);
+  }
+  return out;
+}
+
+function summarizeObservedValues(
+  key: string,
+  rows: Array<Record<string, unknown>>,
+  valueLabels?: Record<string, Record<string, string | null> | null> | null,
+): { text: string; nonEmpty: number } {
+  const counts = new Map<string, number>();
+  let nonEmpty = 0;
+  for (const row of rows) {
+    const raw = row[key];
+    if (raw === null || raw === undefined || raw === "") continue;
+    const formatted = formatDisplayValue(key, raw, valueLabels).display.trim();
+    if (!formatted || formatted === "—") continue;
+    nonEmpty += 1;
+    counts.set(formatted, (counts.get(formatted) ?? 0) + 1);
+  }
+  const parts = Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 3)
+    .map(([label, count]) => `${shortRuleLabel(label, 54)}${count > 1 ? ` en ${count} casos` : ""}`);
+  const remaining = Math.max(0, counts.size - parts.length);
+  const suffix = remaining > 0 ? ` y ${remaining} mas` : "";
+  return { text: `${parts.join(", ")}${suffix}`, nonEmpty };
+}
+
+type RouteComparison = {
+  key: string;
+  label: string | null;
+  op: "==" | "!=" | "<" | ">" | "<=" | ">=";
+  expectedRaw: string;
+  expectedDisplay: string;
+};
+
+function extractRouteComparisons(
+  expression: string,
+  items: RoleItem[],
+  valueLabels?: Record<string, Record<string, string | null> | null> | null,
+): RouteComparison[] {
+  const itemByKey = new Map(items.map((item) => [item.key, item]));
+  const keys = new Set(items.map((item) => item.key));
+  if (!expression || !keys.size) return [];
+  const out: RouteComparison[] = [];
+  const seen = new Set<string>();
+  const patterns = [
+    /\$\{([A-Za-z_][\w.]*)\}\s*(==|!=|<=|>=|<|>)\s*['"]?([^'")\]&|]+)['"]?/g,
+    /as\.character\(([A-Za-z_][\w.]*)\)\s*(==|!=|<=|>=|<|>)\s*['"]?([^'")\]&|]+)['"]?/g,
+    /as\.numeric\(([A-Za-z_][\w.]*)\)\)\s*(==|!=|<=|>=|<|>)\s*([0-9.+-]+)/g,
+    /\b([A-Za-z_][\w.]*)\b\s*(==|!=|<=|>=|<|>)\s*['"]?([^'")\]&|]+)['"]?/g,
+  ];
+
+  for (const pattern of patterns) {
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(expression)) !== null) {
+      const key = match[1] ?? "";
+      const op = match[2] as RouteComparison["op"];
+      const expectedRaw = cleanComparisonValue(match[3] ?? "");
+      if (!keys.has(key) || !isMeaningfulRouteValue(expectedRaw)) continue;
+      if ((op === "==" || op === "!=") && expectedRaw === "") continue;
+      const id = `${key}|${op}|${expectedRaw}`;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push({
+        key,
+        label: itemByKey.get(key)?.label ?? null,
+        op,
+        expectedRaw,
+        expectedDisplay: formatDisplayValue(key, expectedRaw, valueLabels).display,
+      });
+    }
+  }
+  return out;
+}
+
+function isMeaningfulRouteValue(value: string): boolean {
+  const normalized = value.trim().replace(/^['"]|['"]$/g, "");
+  if (!normalized) return false;
+  if (normalized.toUpperCase() === "NA") return false;
+  if (normalized.toLowerCase() === "nan") return false;
+  return true;
+}
+
+function cleanComparisonValue(value: string): string {
+  return value
+    .replace(/[`'"]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function conditionPhrase(comparison: RouteComparison): string {
+  const value = `«${shortRuleLabel(comparison.expectedDisplay || comparison.expectedRaw, 48)}»`;
+  switch (comparison.op) {
+    case "==":
+      return `igual a ${value}`;
+    case "!=":
+      return `distinto de ${value}`;
+    case "<":
+      return `menor que ${value}`;
+    case ">":
+      return `mayor que ${value}`;
+    case "<=":
+      return `menor o igual que ${value}`;
+    case ">=":
+      return `mayor o igual que ${value}`;
+    default:
+      return value;
+  }
+}
+
+function comparisonObservedState(
+  comparison: RouteComparison,
+  rows: Array<Record<string, unknown>>,
+  valueLabels?: Record<string, Record<string, string | null> | null> | null,
+) {
+  const seen = new Map<string, { label: string; matches: boolean }>();
+  for (const row of rows) {
+    const raw = row[comparison.key];
+    if (raw === null || raw === undefined || raw === "") continue;
+    const rawText = String(raw).trim();
+    if (!rawText) continue;
+    const label = formatDisplayValue(comparison.key, rawText, valueLabels).display;
+    const matches = comparisonMatches(comparison, rawText, valueLabels);
+    const id = `${rawText}|${matches}`;
+    if (!seen.has(id)) {
+      seen.set(id, { label, matches });
+    }
+  }
+  return Array.from(seen.values());
+}
+
+function comparisonMatches(
+  comparison: RouteComparison,
+  rawValue: string,
+  valueLabels?: Record<string, Record<string, string | null> | null> | null,
+): boolean {
+  const observed = rawValue.trim();
+  const expected = comparison.expectedRaw.trim();
+  if (comparison.op === "==" || comparison.op === "!=") {
+    const tokens = observed.split(/\s+/).filter(Boolean);
+    const observedDisplay = formatDisplayValue(comparison.key, observed, valueLabels).display.trim();
+    const expectedDisplay = comparison.expectedDisplay.trim();
+    const equal =
+      observed === expected ||
+      tokens.includes(expected) ||
+      Boolean(observedDisplay && expectedDisplay && observedDisplay === expectedDisplay);
+    return comparison.op === "==" ? equal : !equal;
+  }
+  const observedNum = Number(observed);
+  const expectedNum = Number(expected);
+  if (!Number.isFinite(observedNum) || !Number.isFinite(expectedNum)) return true;
+  switch (comparison.op) {
+    case "<":
+      return observedNum < expectedNum;
+    case ">":
+      return observedNum > expectedNum;
+    case "<=":
+      return observedNum <= expectedNum;
+    case ">=":
+      return observedNum >= expectedNum;
+    default:
+      return true;
+  }
 }
 
 function humanList(values: string[]): string {

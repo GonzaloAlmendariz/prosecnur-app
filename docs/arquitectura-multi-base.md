@@ -66,9 +66,12 @@ s$rp_inst_sources = list(docentes = <rp_inst>, ...)
   codificación y entregables propios. La configuración metodológica de
   Analítica/Gráficos es común, pero se ejecuta sobre `active_base`.
   Cuando una familia declara `logic_policy = "shared_template"`, el
-  estudio conserva una `template_base` y copia la lógica de codificación
-  compartida a los hermanos nuevos; las diferencias de fraseo/filas quedan
-  como auditoría informativa, no como una integración en una sola base.
+  estudio conserva una `template_base` y copia la lógica compartida a los
+  hermanos nuevos: tanto estado de codificación como columnas XLSForm de
+  reglas (`relevant`, `constraint`, `required`, `choice_filter`,
+  `calculation`, etc.) cuando la variable existe por nombre en la base
+  destino. Las diferencias de fraseo/filas quedan como auditoría
+  informativa, no como una integración en una sola base.
 
 Las bases importadas desde SurveyMonkey como hermanas independientes
 guardan metadata de origen:
@@ -82,9 +85,18 @@ imported_at, response_filter
 meta. Puede registrar `response_statuses`, `collector_ids` por fuente,
 cortes por `date_modified_gte`/`date_modified_lte` y, cuando una base hermana agrupa
 varias campañas SurveyMonkey, `kind = "surveymonkey_multi_source_response_filter"`
-con una entrada por fuente. Esto permite casos como Ingeniería Geológica,
+con una entrada por fuente. Cada fuente puede declarar además
+`collection_strategy`, `validation_exclusion_profile` y
+`excluded_validation_vars`. Esto permite casos como Ingeniería Geológica,
 donde una carrera se procesa como un solo hermano aunque sus respuestas
-provengan de más de una campaña.
+provengan de más de una campaña y una de ellas haya sido WhatsApp/link
+autoadministrado sin preguntas administrativas de campo.
+
+En `validation_exclusion_profile = "admin_autoadministrado"`, Validación
+enmascara por fila las reglas cuyo objetivo está en `excluded_validation_vars`;
+la regla sigue existiendo para las filas de campo, pero no genera falsos
+positivos en fuentes donde esas preguntas no aplicaban por modalidad de
+recojo.
 
 El estudio puede guardar además:
 
@@ -140,6 +152,7 @@ Los helpers `parseVarRef` / `formatVarRef` en
 | `GET /api/estudio/active-base` | Base activa común del estudio |
 | `POST /api/estudio/active-base` | Cambiar base activa común |
 | `POST /api/estudio/independent-siblings/promote` | Convertir un estudio existente a `independent_siblings` sin reimportar sus bases |
+| `POST /api/estudio/independent-siblings/apply-template-logic` | Aplicar la lógica XLSForm de la `template_base` a bases hermanas compatibles ya cargadas |
 | `GET /api/estudio/codif-source` | Base activa para codificación |
 | `POST /api/estudio/codif-source` | Alias compatible de `active-base` |
 
@@ -149,7 +162,7 @@ Los helpers `parseVarRef` / `formatVarRef` en
 |---|---|
 | `POST /api/surveymonkey/multibase/surveys` | Catálogo local de encuestas recientes. Por defecto filtra desde cache de sesión; con `force_refresh = true` vuelve a consultar SurveyMonkey. |
 | `POST /api/surveymonkey/multibase/import` | Flujo integrado: N surveys → 1 base integrada |
-| `POST /api/surveymonkey/multibase/import-independent` | Flujo independiente: N especificaciones de hermano → N bases hermanas; cada especificación puede incluir una o varias fuentes/campañas SurveyMonkey |
+| `POST /api/surveymonkey/multibase/import-independent` | Flujo independiente: N especificaciones de hermano → N bases hermanas; cada especificación puede incluir una o varias fuentes/campañas SurveyMonkey, con `collection_strategy` y perfil de exclusión de validación por fuente |
 
 El catálogo de encuestas SurveyMonkey es metadata regenerable de sesión:
 `id`, título, nickname, fecha de modificación y país inferido. Sirve para que
@@ -162,6 +175,16 @@ En `import-independent`, las diferencias estructurales entre surveys se
 reportan como auditoría informativa. Solo bloquean errores reales de API,
 XLSForm inválido, data incompatible o ausencia de respuestas dentro del
 filtro declarado.
+
+Si el estudio ya tiene una base independiente existente, esa base puede
+funcionar como plantilla. Al importar hermanas nuevas, el importador
+intenta sincronizar automáticamente las reglas XLSForm compatibles desde
+la plantilla hacia los XLSForms recién creados y reporta variables
+omitidas o referencias huérfanas. El usuario también puede re-ejecutar
+esa sincronización desde Carga mediante
+`/api/estudio/independent-siblings/apply-template-logic`, útil cuando una
+base ya tenía XLSForm, data normalizada y procesos iniciados antes de
+sumar más hermanas.
 
 ### Variables por fuente
 

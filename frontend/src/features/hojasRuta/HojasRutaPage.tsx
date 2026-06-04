@@ -13,6 +13,7 @@ import {
   apiHojasRutaRandomPdf,
   apiHojasRutaSampleSizePreview,
   apiHojasRutaSamplePreview,
+  apiHojasRutaSetPhase,
   apiHojasRutaState,
   apiHojasRutaStreetMap,
   apiHojasRutaZoneMap,
@@ -29,6 +30,8 @@ import {
   HojasRutaIntegratedConfig,
   HojasRutaJobResult,
   HojasRutaManualReplacementResult,
+  HojasRutaPhase,
+  HojasRutaPilotExclusionMode,
   HojasRutaPopulationExportResult,
   HojasRutaRandomPdfResult,
   HojasRutaRandomPreference,
@@ -40,6 +43,7 @@ import {
   HojasRutaSampleSizePreview,
   HojasRutaSamplePreview,
   HojasRutaState,
+  HojasRutaRun,
   HojasRutaStreetMap,
   HojasRutaStreetMapFeature,
   HojasRutaUiState,
@@ -121,6 +125,8 @@ const MAP_GEOMETRY_STYLE = {
   selectedStroke: "#064e3b",
   replacementFill: "#bfdbfe",
   replacementStroke: "#1d4ed8",
+  pilotFill: "#fde68a",
+  pilotStroke: "#b45309",
   hoverStroke: "#022c22",
   inspectedFill: "rgba(15,118,110,0.2)",
 } as const;
@@ -136,6 +142,7 @@ function contextMapCacheKey(ubigeo: string) {
 function geometryVisualState({
   selected = false,
   replacement = false,
+  pilot = false,
   focused = false,
   hovered = false,
   muted = false,
@@ -143,6 +150,7 @@ function geometryVisualState({
 }: {
   selected?: boolean;
   replacement?: boolean;
+  pilot?: boolean;
   focused?: boolean;
   hovered?: boolean;
   muted?: boolean;
@@ -161,6 +169,14 @@ function geometryVisualState({
       fill: MAP_GEOMETRY_STYLE.replacementFill,
       stroke: hovered ? MAP_GEOMETRY_STYLE.hoverStroke : MAP_GEOMETRY_STYLE.replacementStroke,
       strokeWidth: hovered ? 1.35 : 1.05,
+      opacity: 1,
+    };
+  }
+  if (pilot) {
+    return {
+      fill: MAP_GEOMETRY_STYLE.pilotFill,
+      stroke: hovered ? MAP_GEOMETRY_STYLE.hoverStroke : MAP_GEOMETRY_STYLE.pilotStroke,
+      strokeWidth: hovered ? 1.35 : 0.95,
       opacity: 1,
     };
   }
@@ -520,6 +536,7 @@ function normalizeHojasRutaConfig(config: HojasRutaIntegratedConfig): HojasRutaI
     route_start_corner: normalizeRouteStartCorner(config.route_start_corner),
     route_jump_mode: normalizeRouteJumpMode(config.route_jump_mode),
     route_jump_manual: normalizeRouteJumpManual(config.route_jump_manual),
+    excluded_titular_ids: Array.from(new Set((config.excluded_titular_ids ?? []).map(String).filter(Boolean))),
   };
 }
 
@@ -819,6 +836,75 @@ function HeaderSummaryPill({ label, value }: { label: string; value: string }) {
       <small>{label}</small>
       <strong>{value}</strong>
     </span>
+  );
+}
+
+function PhaseHeaderControl({
+  activePhase,
+  pilotRun,
+  pilotSample,
+  pilotTitularCount,
+  pilotExclusionMode,
+  busy,
+  onPhaseChange,
+  onPilotExclusionModeChange,
+}: {
+  activePhase: HojasRutaPhase;
+  pilotRun: HojasRutaRun | null;
+  pilotSample: HojasRutaSamplePreview | null;
+  pilotTitularCount: number;
+  pilotExclusionMode: HojasRutaPilotExclusionMode;
+  busy: string;
+  onPhaseChange: (phase: HojasRutaPhase) => void;
+  onPilotExclusionModeChange: (mode: HojasRutaPilotExclusionMode) => void;
+}) {
+  return (
+    <div className="hojas-ruta-phase-header" aria-label="Fase de aplicación">
+      <div className="hojas-ruta-phase-tabs" role="tablist" aria-label="Fase de aplicación de campo">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activePhase === "pilot"}
+          className={activePhase === "pilot" ? "is-active" : ""}
+          onClick={() => onPhaseChange("pilot")}
+          disabled={!pilotRun || busy.startsWith("phase-")}
+        >
+          Piloto
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activePhase === "field"}
+          className={activePhase === "field" ? "is-active" : ""}
+          onClick={() => onPhaseChange("field")}
+          disabled={busy.startsWith("phase-")}
+        >
+          Campo real
+        </button>
+      </div>
+      {pilotRun ? (
+        <div className="hojas-ruta-phase-header-meta">
+          <strong>Piloto: {formatNumber(pilotSample?.total_entrevistas ?? 0)} entrevistas</strong>
+          <span>{formatNumber(pilotTitularCount)} titulares excluibles</span>
+        </div>
+      ) : null}
+      {activePhase === "field" && pilotRun ? (
+        <label className="hojas-ruta-phase-policy-select">
+          <span>Uso de piloto</span>
+          <select
+            value={pilotExclusionMode}
+            onChange={(event) => onPilotExclusionModeChange(event.target.value as HojasRutaPilotExclusionMode)}
+            disabled={busy === "pilot-exclusion"}
+            title="Define si Campo real bloquea las manzanas titulares de la piloto."
+          >
+            <option value="exclude_titulars">Excluir titulares piloto</option>
+            <option value="ignore">Ignorar piloto</option>
+          </select>
+        </label>
+      ) : activePhase === "pilot" ? (
+        <span className="hojas-ruta-phase-locked">Histórica</span>
+      ) : null}
+    </div>
   );
 }
 
@@ -2403,6 +2489,7 @@ function BlockCanvasMap({
   zoneOutlines,
   selectedSet,
   replacementSet,
+  pilotSet,
   activeZone,
   layerMode,
   hoveredId,
@@ -2420,6 +2507,7 @@ function BlockCanvasMap({
   zoneOutlines: ReturnType<typeof buildProjectedZoneOutlinesForBlocks>;
   selectedSet: Set<string>;
   replacementSet: Set<string>;
+  pilotSet: Set<string>;
   activeZone?: string;
   layerMode: HojasRutaBlockLayerMode;
   hoveredId: string | null;
@@ -2596,12 +2684,13 @@ function BlockCanvasMap({
       if (selectedSet.has(feature.id) || replacementSet.has(feature.id)) continue;
       const isFocus = Boolean(activeZone && feature.zona === activeZone);
       const noPopulation = projectedBlockHasNoPopulation(feature);
+      const pilot = pilotSet.has(feature.id);
       const visual = layerMode === "nse"
         ? nseVisualState(feature.nseNivel, {
           muted: Boolean(activeZone && !isFocus),
           noPopulation,
         })
-        : geometryVisualState({ focused: isFocus, noPopulation });
+        : geometryVisualState({ pilot, focused: isFocus, noPopulation });
       const path = new Path2D(feature.d);
       ctx.strokeStyle = visual.stroke;
       ctx.fillStyle = visual.fill;
@@ -2644,7 +2733,7 @@ function BlockCanvasMap({
       const focused = projected.find((feature) => feature.id === focusedId);
       if (focused) {
         const path = new Path2D(focused.d);
-        if (!selectedSet.has(focused.id) && !replacementSet.has(focused.id)) {
+        if (!selectedSet.has(focused.id) && !replacementSet.has(focused.id) && !pilotSet.has(focused.id)) {
           ctx.fillStyle = MAP_GEOMETRY_STYLE.inspectedFill;
           ctx.fill(path);
         }
@@ -2667,7 +2756,7 @@ function BlockCanvasMap({
       ctx.fillText(boundary.label, boundary.labelX, boundary.labelY);
     }
     ctx.restore();
-  }, [activeZone, boundaries, hoveredId, inspectedId, layerMode, pan, projected, projectedContext, projectedStreets, replacementSet, selectedSet, zoom, zoneOutlines]);
+  }, [activeZone, boundaries, hoveredId, inspectedId, layerMode, pan, pilotSet, projected, projectedContext, projectedStreets, replacementSet, selectedSet, zoom, zoneOutlines]);
 
   return (
     <div style={{ position: "relative", height: "100%" }}>
@@ -2932,6 +3021,7 @@ function BlockGeometryMap({
   streetMap,
   selectedBlocks,
   replacementBlocks = [],
+  pilotTitularIds = [],
   activeZone,
   layerMode = "field",
 }: {
@@ -2941,6 +3031,7 @@ function BlockGeometryMap({
   streetMap?: HojasRutaStreetMap | null;
   selectedBlocks: HojasRutaSamplePreview["blocks"];
   replacementBlocks?: HojasRutaSamplePreview["replacement_blocks"];
+  pilotTitularIds?: string[];
   activeZone?: string;
   layerMode?: HojasRutaBlockLayerMode;
 }) {
@@ -2981,6 +3072,7 @@ function BlockGeometryMap({
   const replacementBlockById = useMemo(() => new Map(replacementBlocks.map((block) => [block.id_manzana, block])), [replacementBlocks]);
   const selectedSet = useMemo(() => new Set(selectedBlocks.map((block) => block.id_manzana)), [selectedBlocks]);
   const replacementSet = useMemo(() => new Set(replacementBlocks.map((block) => block.id_manzana)), [replacementBlocks]);
+  const pilotSet = useMemo(() => new Set(pilotTitularIds.filter(Boolean)), [pilotTitularIds]);
   const hoveredFeature = hovered ? projected.find((f) => f.id === hovered) : null;
   const inspectedFeature = inspected ? projected.find((f) => f.id === inspected) : null;
   const detailFeature = inspectedFeature ?? hoveredFeature;
@@ -3037,6 +3129,7 @@ function BlockGeometryMap({
           zoneOutlines={zoneOutlines}
           selectedSet={selectedSet}
           replacementSet={replacementSet}
+          pilotSet={pilotSet}
           activeZone={activeZone}
           layerMode={layerMode}
           hoveredId={hovered}
@@ -3110,11 +3203,12 @@ function BlockGeometryMap({
             {projected.filter((feature) => !selectedSet.has(feature.id) && !replacementSet.has(feature.id)).map((feature) => {
               const selected = selectedSet.has(feature.id);
               const replacement = replacementSet.has(feature.id);
+              const pilot = pilotSet.has(feature.id);
               const hoveredFeaturePath = hovered === feature.id;
               const focused = Boolean(activeZone && feature.zona === activeZone);
               const interactive = blockIsInteractive(feature, activeZone);
               const noPopulation = projectedBlockHasNoPopulation(feature);
-              const visual = geometryVisualState({ selected, replacement, focused, hovered: hoveredFeaturePath, noPopulation });
+              const visual = geometryVisualState({ selected, replacement, pilot, focused, hovered: hoveredFeaturePath, noPopulation });
               return (
                 <path
                   key={feature.key}
@@ -3313,7 +3407,7 @@ function BlockGeometryMap({
                 />
               );
             })}
-            {detailFeature && !selectedSet.has(detailFeature.id) && !replacementSet.has(detailFeature.id) ? (
+            {detailFeature && !selectedSet.has(detailFeature.id) && !replacementSet.has(detailFeature.id) && !pilotSet.has(detailFeature.id) ? (
               <path
                 key={`${detailFeature.key}:focused`}
                 d={detailFeature.d}
@@ -3359,7 +3453,15 @@ function BlockGeometryMap({
           ))}
           <span><i className="is-empty" /> Sin dato / sin población</span>
         </div>
-      ) : null}
+      ) : (
+        <div className="hojas-ruta-map-legend" aria-hidden="true">
+          <span><i /> Contexto</span>
+          <span><i className="is-focus" /> En foco</span>
+          <span><i className="is-selected" /> Titular</span>
+          <span><i className="is-replacement" /> Reemplazo</span>
+          {pilotSet.size > 0 ? <span><i className="is-pilot" /> Piloto</span> : null}
+        </div>
+      )}
       {streetMap?.ok ? <div className="hojas-ruta-osm-attribution">{streetAttribution}</div> : null}
       {detailFeature && (
         <div className="hojas-ruta-block-popup">
@@ -3370,6 +3472,7 @@ function BlockGeometryMap({
             </div>
             {selectedSet.has(detailFeature.id) ? <StatusPill ok text="Titular" /> : null}
             {replacementSet.has(detailFeature.id) ? <StatusPill ok text="Reemplazo" /> : null}
+            {pilotSet.has(detailFeature.id) ? <StatusPill ok={false} text="Piloto" /> : null}
           </div>
           {(detailFeature.viviendas != null || detailFeature.poblacion != null) ? (
             <div className="hojas-ruta-block-popup-stats">
@@ -3955,6 +4058,7 @@ function SamplingMapExplorer({
   inspectorCollapsed,
   selectedBlocks,
   replacementBlocks = [],
+  pilotTitularIds = [],
   onFocus,
   onOpenZone,
   onBackToZones,
@@ -3978,6 +4082,7 @@ function SamplingMapExplorer({
   inspectorCollapsed: boolean;
   selectedBlocks: HojasRutaSamplePreview["blocks"];
   replacementBlocks?: HojasRutaSamplePreview["replacement_blocks"];
+  pilotTitularIds?: string[];
   onFocus: (ubigeo: string) => void;
   onOpenZone: (zona: string) => void;
   onBackToZones: () => void;
@@ -4110,6 +4215,7 @@ function SamplingMapExplorer({
                 streetMap={streetMap}
                 selectedBlocks={selectedBlocks}
                 replacementBlocks={replacementBlocks}
+                pilotTitularIds={pilotTitularIds}
                 activeZone={activeZona}
                 layerMode={layerMode}
               />
@@ -6097,6 +6203,9 @@ export default function HojasRutaPage() {
       return resolved ? normalizeHojasRutaConfig(resolved) : resolved;
     });
   }, []);
+  const [activePhase, setActivePhase] = useState<HojasRutaPhase>("field");
+  const [runs, setRuns] = useState<Partial<Record<HojasRutaPhase, HojasRutaRun>>>({});
+  const [phaseNotice, setPhaseNotice] = useState<HojasRutaState["phase_notice"]>(null);
   const [activeStage, setActiveStage] = useState<HojasRutaStage>("territorio");
   const [population, setPopulation] = useState<PopulationPlan | null>(null);
   const [populationExport, setPopulationExport] = useState<HojasRutaPopulationExportResult | null>(null);
@@ -6143,7 +6252,7 @@ export default function HojasRutaPage() {
   const streetMapCacheRef = useRef<Map<string, HojasRutaStreetMap>>(new Map());
   const hydratingRef = useRef(true);
   const persistTimerRef = useRef<number | null>(null);
-  const latestWorkspaceRef = useRef<{ config: HojasRutaIntegratedConfig; uiState: HojasRutaUiState; outputs: HojasRutaWorkspaceOutputs } | null>(null);
+  const latestWorkspaceRef = useRef<{ phase: HojasRutaPhase; config: HojasRutaIntegratedConfig; uiState: HojasRutaUiState; outputs: HojasRutaWorkspaceOutputs; pilotExclusionMode?: HojasRutaPilotExclusionMode } | null>(null);
 
   const loadState = useCallback(async () => {
     hydratingRef.current = true;
@@ -6152,33 +6261,43 @@ export default function HojasRutaPage() {
     setError("");
     try {
       const s = await apiHojasRutaState();
+      const nextActivePhase = s.active_phase ?? "field";
+      const nextRuns = s.runs ?? {};
+      const activeRun = nextRuns[nextActivePhase] ?? null;
+      const sourceConfig = activeRun?.config ?? s.integrated_config;
+      const sourceUiState = activeRun?.ui_state ?? s.ui_state;
+      const sourceOutputs = activeRun?.workspace_outputs ?? s.workspace_outputs ?? {};
       const restoredConfig = {
-        ...s.integrated_config,
-        n_mode: s.integrated_config.n_mode ?? "total",
-        n_por_distrito: s.integrated_config.n_por_distrito ?? {},
-        replacement_routes_per_district: s.integrated_config.replacement_routes_per_district ?? {},
-        replacement_policy: normalizeReplacementPolicy(s.integrated_config.replacement_policy),
-        replacements_per_titular: s.integrated_config.replacements_per_titular ?? 1,
-        age_range_mode: s.integrated_config.age_range_mode ?? "manual",
-        age_range_scope: s.integrated_config.age_range_scope ?? "selected",
-        zone_allocation: s.integrated_config.zone_allocation ?? "proportional",
-        sample_size_mode: s.integrated_config.sample_size_mode ?? "calculator",
-        sample_size: normalizeSampleSizeSettings(s.integrated_config.sample_size),
+        ...sourceConfig,
+        n_mode: sourceConfig.n_mode ?? "total",
+        n_por_distrito: sourceConfig.n_por_distrito ?? {},
+        replacement_routes_per_district: sourceConfig.replacement_routes_per_district ?? {},
+        replacement_policy: normalizeReplacementPolicy(sourceConfig.replacement_policy),
+        replacements_per_titular: sourceConfig.replacements_per_titular ?? 1,
+        age_range_mode: sourceConfig.age_range_mode ?? "manual",
+        age_range_scope: sourceConfig.age_range_scope ?? "selected",
+        zone_allocation: sourceConfig.zone_allocation ?? "proportional",
+        sample_size_mode: sourceConfig.sample_size_mode ?? "calculator",
+        sample_size: normalizeSampleSizeSettings(sourceConfig.sample_size),
       };
-      const uiState = normalizeHojasRutaUiState(s.ui_state, restoredConfig.territorios ?? []);
+      const uiState = normalizeHojasRutaUiState(sourceUiState, restoredConfig.territorios ?? []);
       const restoreMapLevel = uiState.active_stage === "manzanas" ? "distritos" : uiState.map_level;
       const restoreMapZona = uiState.active_stage === "manzanas" ? "" : uiState.map_zona;
       const shouldRestoreLocalMap = uiState.active_stage !== "manzanas" && Boolean(uiState.map_ubigeo);
-      const savedOutputs = s.workspace_outputs ?? {};
+      const savedOutputs = sourceOutputs;
       let restoredPopulation = savedOutputs.population ?? null;
       let restoredSampleSizePreview = savedOutputs.sample_size_preview ?? null;
       let restoredQuota = savedOutputs.quota ?? null;
       let restoredSample = savedOutputs.sample ?? null;
       const restoreDepth = HOJAS_RUTA_STAGE_ORDER[uiState.active_stage] ?? 0;
+      const fieldNeedsFreshSamplePlan = nextActivePhase === "field"
+        && Boolean(nextRuns.pilot)
+        && !savedOutputs.sample_size_preview
+        && uiState.active_stage === "muestra";
       if (!restoredPopulation && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.poblacion && (restoredConfig.territorios ?? []).length > 0) {
         restoredPopulation = await apiHojasRutaPopulationPreview(restoredConfig).catch(() => null);
       }
-      if (!restoredSampleSizePreview && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.muestra && (restoredConfig.territorios ?? []).length > 0) {
+      if (!fieldNeedsFreshSamplePlan && !restoredSampleSizePreview && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.muestra && (restoredConfig.territorios ?? []).length > 0) {
         restoredSampleSizePreview = await apiHojasRutaSampleSizePreview(restoredConfig).catch(() => null);
       }
       if (!restoredQuota && restoreDepth >= HOJAS_RUTA_STAGE_ORDER.manzanas && restoredSampleSizePreview?.ok) {
@@ -6188,6 +6307,9 @@ export default function HojasRutaPage() {
         restoredSample = await apiHojasRutaSamplePreview(restoredConfig).catch(() => null);
       }
       setState(s);
+      setRuns(nextRuns);
+      setActivePhase(nextActivePhase);
+      setPhaseNotice(s.phase_notice ?? null);
       setConfig(restoredConfig);
       setConfirmedAgeSignature(ageRangesSignature(restoredConfig));
       setActiveStage(uiState.active_stage);
@@ -6262,6 +6384,18 @@ export default function HojasRutaPage() {
   }, [loadState, sessionId]);
 
   const selectedTerritories = config?.territorios ?? [];
+  const pilotRun = runs.pilot ?? null;
+  const fieldRun = runs.field ?? null;
+  const activeRunMeta = runs[activePhase] ?? null;
+  const pilotExclusionMode = fieldRun?.pilot_exclusion_mode ?? "exclude_titulars";
+  const pilotSample = pilotRun?.workspace_outputs?.sample ?? null;
+  const pilotTitularIds = useMemo(() => {
+    const ids = new Set((pilotSample?.blocks ?? []).map((block) => block.id_manzana).filter(Boolean));
+    return Array.from(ids);
+  }, [pilotSample]);
+  const isPilotPhase = activePhase === "pilot";
+  const isFieldPhase = activePhase === "field";
+  const isLockedPhase = isPilotPhase || activeRunMeta?.locked === true;
   const draftChanged = useMemo(() => {
     const confirmed = new Set(selectedTerritories);
     if (confirmed.size !== draftTerritories.length) return true;
@@ -6305,10 +6439,10 @@ export default function HojasRutaPage() {
     && config.age_range_mode === ageDraftMode
     && (!ageDraftUsesCuts || (config.age_range_scope ?? "selected") === ageDraftScope);
   const ageRangesConfirmed = !!config && currentAgeSignature === confirmedAgeSignature && ageDraftMatchesConfig;
-  const canConfigureAgeRanges = !!config && selectedTerritories.length > 0;
-  const canPopulation = !!config && selectedTerritories.length > 0 && ageRangesConfirmed;
-  const canQuota = !!config && effectiveQuotaN > 0 && selectedTerritories.length > 0 && !!population?.ok && !!sampleSizePreview && routeStatus.ok;
-  const canSample = !!quota?.ok && !!config;
+  const canConfigureAgeRanges = !!config && !isLockedPhase && selectedTerritories.length > 0;
+  const canPopulation = !!config && !isLockedPhase && selectedTerritories.length > 0 && ageRangesConfirmed;
+  const canQuota = !!config && !isLockedPhase && effectiveQuotaN > 0 && selectedTerritories.length > 0 && !!population?.ok && !!sampleSizePreview && routeStatus.ok;
+  const canSample = !!quota?.ok && !!config && !isLockedPhase;
   const hasBlockingSampleAlerts = Boolean(sample?.alerts?.some((alert) => alert.level === "error"));
   const canGenerate = !!sample?.ok && !hasBlockingSampleAlerts && !jobId && !manualReplacementJobId;
   const selectedBlocks = useMemo(() => sample?.blocks ?? [], [sample]);
@@ -6370,19 +6504,23 @@ export default function HojasRutaPage() {
 
   useEffect(() => {
     if (!config || hydratingRef.current) return undefined;
-    latestWorkspaceRef.current = { config, uiState: hojasRutaUiState, outputs: hojasRutaWorkspaceOutputs };
-    setHojasRutaWorkspaceSnapshot(config, hojasRutaUiState, hojasRutaWorkspaceOutputs);
+    latestWorkspaceRef.current = { phase: activePhase, config, uiState: hojasRutaUiState, outputs: hojasRutaWorkspaceOutputs, pilotExclusionMode };
+    setHojasRutaWorkspaceSnapshot(config, hojasRutaUiState, hojasRutaWorkspaceOutputs, activePhase, pilotExclusionMode);
 
     const timer = window.setTimeout(() => {
       if (persistTimerRef.current === timer) persistTimerRef.current = null;
-      void apiHojasRutaPersistWorkspace(config, hojasRutaUiState, hojasRutaWorkspaceOutputs).catch(() => undefined);
+      void apiHojasRutaPersistWorkspace(config, hojasRutaUiState, hojasRutaWorkspaceOutputs, activePhase, pilotExclusionMode)
+        .then((saved) => {
+          if (saved.runs) setRuns(saved.runs);
+        })
+        .catch(() => undefined);
     }, 600);
     persistTimerRef.current = timer;
     return () => {
       window.clearTimeout(timer);
       if (persistTimerRef.current === timer) persistTimerRef.current = null;
     };
-  }, [config, hojasRutaUiState, hojasRutaWorkspaceOutputs]);
+  }, [activePhase, config, hojasRutaUiState, hojasRutaWorkspaceOutputs, pilotExclusionMode]);
 
   useEffect(() => {
     return () => {
@@ -6392,13 +6530,14 @@ export default function HojasRutaPage() {
       }
       const latest = latestWorkspaceRef.current;
       if (latest) {
-        void apiHojasRutaPersistWorkspace(latest.config, latest.uiState, latest.outputs).catch(() => undefined);
+        void apiHojasRutaPersistWorkspace(latest.config, latest.uiState, latest.outputs, latest.phase, latest.pilotExclusionMode).catch(() => undefined);
       }
       clearHojasRutaWorkspaceSnapshot();
     };
   }, []);
 
   function patchConfig(patch: Partial<HojasRutaIntegratedConfig>) {
+    if (isLockedPhase) return;
     setConfig((prev) => prev ? { ...prev, ...patch } : prev);
     const invalidatesPopulation = ["territorios", "row_var", "subquota_var", "age_ranges", "age_range_mode", "age_range_scope"].some((key) => key in patch);
     const invalidatesSampleSize = invalidatesPopulation || ["n_objetivo", "n_mode", "n_por_distrito", "sample_size", "sample_size_mode", "entrevistas_por_manzana"].some((key) => key in patch);
@@ -6509,8 +6648,48 @@ export default function HojasRutaPage() {
     setStreetMap(null);
   }
 
+  async function changePhase(phase: HojasRutaPhase) {
+    if (phase === activePhase || busy) return;
+    setBusy(`phase-${phase}`);
+    setError("");
+    try {
+      await apiHojasRutaSetPhase(phase);
+      await loadState();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function setPilotExclusionMode(mode: HojasRutaPilotExclusionMode) {
+    if (!config || !isFieldPhase) return;
+    setBusy("pilot-exclusion");
+    setError("");
+    setSample(null);
+    setManualReplacementResult(null);
+    setManualReplacementSelectedIds([]);
+    setResult(null);
+    setRandomPdf(null);
+    try {
+      const saved = await apiHojasRutaPersistWorkspace(
+        config,
+        hojasRutaUiState,
+        { ...hojasRutaWorkspaceOutputs, sample: null },
+        "field",
+        mode,
+      );
+      if (saved.runs) setRuns(saved.runs);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function previewPopulation() {
     if (!config) return;
+    if (isLockedPhase) return;
     if (!ageRangesConfirmed) {
       setError("Confirma los rangos de edad antes de calcular la matriz poblacional.");
       return;
@@ -6534,6 +6713,7 @@ export default function HojasRutaPage() {
 
   async function confirmAgeRanges() {
     if (!config) return;
+    if (isLockedPhase) return;
     setError("");
     if (ageDraftMode !== "manual") {
       const scope = ageDraftScope ?? "selected";
@@ -6543,7 +6723,7 @@ export default function HojasRutaPage() {
       setResult(null);
       setRandomPdf(null);
       try {
-        const saved = await apiHojasRutaPersistWorkspace(nextConfig, hojasRutaUiState, hojasRutaWorkspaceOutputs);
+        const saved = await apiHojasRutaPersistWorkspace(nextConfig, hojasRutaUiState, hojasRutaWorkspaceOutputs, activePhase, pilotExclusionMode);
         const confirmedConfig = {
           ...saved.integrated_config,
           age_range_scope: saved.integrated_config.age_range_scope ?? scope,
@@ -6628,6 +6808,7 @@ export default function HojasRutaPage() {
 
   async function previewSampleSize() {
     if (!config) return;
+    if (isLockedPhase) return;
     setBusy("sample-size");
       setError("");
       try {
@@ -6643,6 +6824,7 @@ export default function HojasRutaPage() {
 
   async function previewQuota() {
     if (!config) return;
+    if (isLockedPhase) return;
     setBusy("quota");
     setError("");
     setResult(null);
@@ -6673,6 +6855,7 @@ export default function HojasRutaPage() {
 
   async function previewSample() {
     if (!config) return;
+    if (isLockedPhase) return;
     setBusy("sample");
     setError("");
     setResult(null);
@@ -7153,6 +7336,16 @@ export default function HojasRutaPage() {
           <HeaderSummaryPill label="Distritos" value={formatNumber(selectedTerritories.length)} />
           <HeaderSummaryPill label="Población" value={selectedPopulation > 0 ? formatNumber(selectedPopulation) : formatNumber(frame?.poblacion ?? 0)} />
           <HeaderSummaryPill label="Manzanas" value={selectedManzanas > 0 ? formatNumber(selectedManzanas) : formatNumber(frame?.n_manzanas ?? 0)} />
+          <PhaseHeaderControl
+            activePhase={activePhase}
+            pilotRun={pilotRun}
+            pilotSample={pilotSample}
+            pilotTitularCount={pilotTitularIds.length}
+            pilotExclusionMode={pilotExclusionMode}
+            busy={busy}
+            onPhaseChange={(phase) => void changePhase(phase)}
+            onPilotExclusionModeChange={(mode) => void setPilotExclusionMode(mode)}
+          />
         </div>
       )}
       toolbar={
@@ -7162,6 +7355,11 @@ export default function HojasRutaPage() {
             {frame?.pilot && (
               <Alert kind="warn">
                 {frame.note}
+              </Alert>
+            )}
+            {phaseNotice?.message && (
+              <Alert kind="info">
+                {phaseNotice.message}
               </Alert>
             )}
             {frame?.ok && (
@@ -7540,6 +7738,7 @@ export default function HojasRutaPage() {
                     inspectorCollapsed={samplingInspectorCollapsed}
                     selectedBlocks={selectedBlocks}
                     replacementBlocks={replacementBlocks}
+                    pilotTitularIds={isFieldPhase && pilotExclusionMode === "exclude_titulars" ? pilotTitularIds : []}
                     onFocus={focusDistrict}
                     onOpenZone={inspectSamplingZone}
                     onBackToZones={backToZones}

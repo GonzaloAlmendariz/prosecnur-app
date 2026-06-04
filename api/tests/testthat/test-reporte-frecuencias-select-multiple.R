@@ -32,6 +32,40 @@ test_that("freq_table_spss desagrega madres select_multiple con tokens separados
   expect_false(any(body$Opciones %in% c("1 2", "2 5", "3 4", "3 5")))
 })
 
+test_that("plan PPT prefiere variables recodificadas cuando existen en la base procesada", {
+  if (!exists(".reporte_plan_resolve_recod_var", mode = "function", envir = globalenv())) {
+    sys.source(file.path("../../R", "reporte_plan_ppt.R"), envir = globalenv())
+  }
+
+  data <- data.frame(
+    modo = c("1", "96", "1"),
+    modo_recod = c("1", "3", "1"),
+    need.1 = c(1, 1, 0),
+    need.other = c(0, 1, 0),
+    need_recod.1 = c(1, 1, 0),
+    need_recod.99 = c(0, 1, 0),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  expect_equal(
+    .reporte_plan_resolve_recod_var("modo", data),
+    "modo_recod"
+  )
+  expect_equal(
+    .reporte_plan_resolve_recod_var("need", data),
+    "need_recod"
+  )
+  expect_equal(
+    .reporte_plan_resolve_recod_var("modo_recod", data),
+    "modo_recod"
+  )
+  expect_equal(
+    .reporte_plan_resolve_recod_var("otra_var", data),
+    "otra_var"
+  )
+})
+
 test_that("estilos de frecuencias centran columnas n y porcentaje", {
   st <- mk_styles_spss()
 

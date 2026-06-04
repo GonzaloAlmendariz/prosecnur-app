@@ -18,6 +18,44 @@
   NULL
 }
 
+.validacion_mb_chr_vec <- function(x) {
+  if (is.null(x)) return(character(0))
+  vals <- trimws(as.character(unlist(x, use.names = FALSE)))
+  vals[!is.na(vals) & nzchar(vals)]
+}
+
+.validacion_mb_collection_exclusions <- function(base_meta = NULL) {
+  rf <- (base_meta %||% list())$response_filter %||% NULL
+  if (is.null(rf) || !is.list(rf)) return(list())
+  sources <- rf$sources %||% list(rf)
+  if (!length(sources)) return(list())
+
+  out <- list()
+  for (source in sources) {
+    if (!is.list(source)) next
+    vars <- .validacion_mb_chr_vec(source$excluded_validation_vars %||%
+                                     source$excluded_vars %||%
+                                     source$validation_excluded_vars)
+    if (!length(vars)) next
+    profile <- .validacion_mb_scalar(source$validation_exclusion_profile %||% source$profile, "")
+    if (!nzchar(profile)) profile <- "exclusion"
+    out[[length(out) + 1L]] <- list(
+      survey_id = .validacion_mb_scalar(source$survey_id, ""),
+      collector_ids = as.list(.validacion_mb_chr_vec(source$collector_ids %||% source$collector_id)),
+      source_title = .validacion_mb_scalar(source$source_title, ""),
+      source_alias = .validacion_mb_scalar(source$source_alias, ""),
+      collection_strategy = .validacion_mb_scalar(source$collection_strategy, ""),
+      validation_exclusion_profile = profile,
+      excluded_validation_vars = as.list(unique(vars))
+    )
+  }
+  out
+}
+
+.validacion_mb_collection_exclusions_for_base <- function(sid, base_name = NULL) {
+  .validacion_mb_collection_exclusions(.validacion_mb_base_meta(sid, base_name))
+}
+
 .validacion_mb_variants <- function(base_meta) {
   mi <- (base_meta %||% list())$multi_integrated %||% NULL
   if (is.null(mi)) return(data.frame())

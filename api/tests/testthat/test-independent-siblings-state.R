@@ -269,3 +269,133 @@ test_that("independent sibling specs can group multiple SurveyMonkey campaigns",
   expect_equal(specs[[1]]$sources[[2]]$response_statuses, c("completed", "partial"))
   expect_length(specs[[1]]$sources[[2]]$collector_ids, 0)
 })
+
+test_that("template XLSForm logic can be applied to siblings added later", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+
+  write_xlsform <- function(path, survey, choices) {
+    wb <- openxlsx::createWorkbook()
+    openxlsx::addWorksheet(wb, "survey")
+    openxlsx::writeData(wb, "survey", survey)
+    openxlsx::addWorksheet(wb, "choices")
+    openxlsx::writeData(wb, "choices", choices)
+    openxlsx::addWorksheet(wb, "settings")
+    openxlsx::writeData(wb, "settings", data.frame(form_title = "Ingenieria", form_id = "ing", stringsAsFactors = FALSE))
+    openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  }
+  write_data <- function(path, df) {
+    wb <- openxlsx::createWorkbook()
+    openxlsx::addWorksheet(wb, "data")
+    openxlsx::writeData(wb, "data", df)
+    openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  }
+  save_local <- function(sid, kind, name, path) {
+    save_upload(sid, kind, name, readBin(path, "raw", n = file.info(path)$size))
+  }
+
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  template_survey <- data.frame(
+    type = c("select_one yesno", "text", "text", "select_multiple work", "text"),
+    name = c("p1", "p2", "p3", "p27", "p27_other"),
+    label = c("Continuar", "Comentario", "Solo Civil", "Actividad", "Otros"),
+    relevant = c("", "${p1} = '1'", "${missing_var} = '1'", "", "selected(${p27}, '9')"),
+    constraint = c("", "string-length(${p2}) > 0", "", "", ""),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  target_survey <- data.frame(
+    type = c("select_one yesno", "text", "select_multiple work", "text"),
+    name = c("p1", "p2", "p27", "p27_other"),
+    label = c("Continuar", "Comentario", "Actividad", "Otros"),
+    relevant = c("", "", "", ""),
+    constraint = c("", "", "", ""),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  template_choices <- data.frame(
+    list_name = c("yesno", "yesno", "work", "work"),
+    name = c("1", "0", "8", "9"),
+    label = c("Si", "No", "No trabaja", "Otros"),
+    stringsAsFactors = FALSE
+  )
+  target_choices <- data.frame(
+    list_name = c("yesno", "yesno", "work", "work"),
+    name = c("1", "0", "8", "9"),
+    label = c("Si", "No", "Otros", "No trabaja"),
+    stringsAsFactors = FALSE
+  )
+  data_df <- data.frame(p1 = "1", p2 = "ok", p27 = "8", p27_other = "docente", stringsAsFactors = FALSE)
+
+  template_xlsx <- tempfile(fileext = ".xlsx")
+  target_xlsx <- tempfile(fileext = ".xlsx")
+  data_xlsx <- tempfile(fileext = ".xlsx")
+  write_xlsform(template_xlsx, template_survey, template_choices)
+  write_xlsform(target_xlsx, target_survey, target_choices)
+  write_data(data_xlsx, data_df)
+
+  template_xmeta <- save_local(sid, "xlsform", "civil.xlsx", template_xlsx)
+  target_xmeta <- save_local(sid, "xlsform", "industrial.xlsx", target_xlsx)
+  template_dmeta <- save_local(sid, "data", "civil_data.xlsx", data_xlsx)
+  target_dmeta <- save_local(sid, "data", "industrial_data.xlsx", data_xlsx)
+  template_inst <- reporte_instrumento(path = template_xmeta$path)
+  target_inst <- reporte_instrumento(path = target_xmeta$path)
+  template_data <- normalize_data_for_xlsform(data_df, template_inst)
+  target_data <- normalize_data_for_xlsform(data_df, target_inst)
+
+  estudio_set_processing_mode(sid, "independent_siblings")
+  estudio_add_base(
+    sid,
+    nombre = "ingenieria_civil",
+    xlsform_file_id = template_xmeta$file_id,
+    data_file_id = template_dmeta$file_id,
+    data_ext = "xlsx",
+    rp_data = reporte_data(template_data, instrumento = template_inst),
+    rp_inst = template_inst,
+    n_filas = nrow(template_data),
+    n_columnas = ncol(template_data),
+    extra_meta = list(processing_mode = "independent_siblings", source_alias = "Ingenieria Civil")
+  )
+  estudio_add_base(
+    sid,
+    nombre = "ingenieria_industrial",
+    xlsform_file_id = target_xmeta$file_id,
+    data_file_id = target_dmeta$file_id,
+    data_ext = "xlsx",
+    rp_data = reporte_data(target_data, instrumento = target_inst),
+    rp_inst = target_inst,
+    n_filas = nrow(target_data),
+    n_columnas = ncol(target_data),
+    extra_meta = list(processing_mode = "independent_siblings", source_alias = "Ingenieria Industrial")
+  )
+  estudio_mark_independent_shared_logic(sid, template_base = "ingenieria_civil", status = "template_ready")
+
+  result <- estudio_apply_template_xlsform_logic(
+    sid,
+    template_base = "ingenieria_civil",
+    targets = "ingenieria_industrial"
+  )
+
+  expect_true(result$ok)
+  expect_equal(result$template_base, "ingenieria_civil")
+  expect_equal(result$n_updated_bases, 1L)
+  expect_equal(result$results[[1]]$n_applied_variables, 2L)
+  expect_equal(result$results[[1]]$skipped_missing_variables[[1]], "p3")
+  expect_equal(result$results[[1]]$n_remapped_choices, 1L)
+
+  s <- session_get(sid)
+  target_meta <- s$estudio$bases$ingenieria_industrial
+  expect_false(identical(target_meta$xlsform_file_id, target_xmeta$file_id))
+  expect_equal(target_meta$data_file_id, target_dmeta$file_id)
+  expect_equal(target_meta$logic_template_base, "ingenieria_civil")
+  expect_equal(s$estudio$independent_siblings$logic_sync$kind, "xlsform_logic")
+
+  updated_meta <- get_file(sid, target_meta$xlsform_file_id)
+  updated_survey <- as.data.frame(readxl::read_excel(updated_meta$path, sheet = "survey", .name_repair = "minimal"), stringsAsFactors = FALSE)
+  expect_equal(updated_survey$relevant[updated_survey$name == "p2"], "${p1} = '1'")
+  expect_equal(updated_survey$constraint[updated_survey$name == "p2"], "string-length(${p2}) > 0")
+  expect_equal(updated_survey$relevant[updated_survey$name == "p27_other"], "selected(${p27}, '8')")
+  expect_false("p3" %in% updated_survey$name)
+})

@@ -888,7 +888,8 @@ evaluate_validation_bundle <- function(bundle,
                                        data_input,
                                        compatibility = NULL,
                                        collection_date_col = NULL,
-                                       strict = FALSE) {
+                                       strict = FALSE,
+                                       validation_exclusions = list()) {
   stopifnot(is.list(bundle), length(bundle$rules %||% list()) >= 0)
   rules <- bundle$rules %||% list()
   if (!length(rules)) {
@@ -949,7 +950,8 @@ evaluate_validation_bundle <- function(bundle,
       data_multi = tables,
       collection_date_col = collection_date_col,
       strict = strict,
-      table_name = tbl
+      table_name = tbl,
+      validation_exclusions = validation_exclusions
     )
     tables_out[[tbl]] <- ev_tbl$data
     resumen_parts[[length(resumen_parts) + 1L]] <- ev_tbl$resumen

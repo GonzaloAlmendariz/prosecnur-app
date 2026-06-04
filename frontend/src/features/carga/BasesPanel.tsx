@@ -6,7 +6,10 @@ import {
 } from "lucide-react";
 import {
   apiCargaExportNormalized,
+  apiConnectionProfileSetDefault,
+  apiConnectionTokenLoad,
   apiEstudioAddBase,
+  apiEstudioApplyIndependentTemplateLogic,
   apiEstudioDowngradeToSingle,
   apiEstudioGet,
   apiEstudioPromoteIndependentSiblings,
@@ -23,7 +26,9 @@ import {
   uploadKindForDataFile,
 } from "../../api/client";
 import type {
+  ConnectionTokenState,
   EstudioBase,
+  EstudioLogicSyncResult,
   EstudioMultiIntegrated,
   EstudioMultiIntegratedOrigin,
   EstudioPayload,
@@ -69,10 +74,11 @@ type Props = {
   /** Callback tras degradar multi-base → single-base. El parent debe
       refrescar el state de sesión y limpiar la referencia al estudio. */
   onDowngraded?: () => Promise<void>;
+  initialStrategy?: "separate" | "integrated" | "independent";
 };
 
 export function BasesPanel({
-  estudio, onChanged, autoOpenAdd, hasSessionXlsform, onAutoOpenConsumed, onDowngraded,
+  estudio, onChanged, autoOpenAdd, hasSessionXlsform, onAutoOpenConsumed, onDowngraded, initialStrategy,
 }: Props) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
@@ -82,7 +88,7 @@ export function BasesPanel({
   const [error, setError] = useState<string>("");
   const [editingEstudioNombre, setEditingEstudioNombre] = useState(false);
   const [estudioDraft, setEstudioDraft] = useState("");
-  const [strategy, setStrategy] = useState<"separate" | "integrated" | "independent">("separate");
+  const [strategy, setStrategy] = useState<"separate" | "integrated" | "independent">(initialStrategy ?? "separate");
   const [showNewIntegration, setShowNewIntegration] = useState(false);
 
   // Consumir la señal de auto-open una sola vez al montar/recibir true.
@@ -93,6 +99,13 @@ export function BasesPanel({
       onAutoOpenConsumed?.();
     }
   }, [autoOpenAdd]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!initialStrategy) return;
+    setStrategy(initialStrategy);
+    setAdding(false);
+    setShowNewIntegration(false);
+  }, [initialStrategy]);
 
   const bases = Object.values(estudio.bases);
   const integratedBases = bases.filter((base) => !!base.multi_integrated);
@@ -655,12 +668,14 @@ type SmImportScopeFields = {
   includeCompleted: boolean;
   includePartial: boolean;
   keepMissingStatus: boolean;
+  collectionStrategy: "campo" | "whatsapp_link" | "web_link" | "email" | "otro";
 };
 
 type SmExtraSourceDraft = SmImportScopeFields & {
   key: string;
   surveyId: string;
   label: string;
+  query?: string;
 };
 
 type SmImportScopeDraft = SmImportScopeFields & {
@@ -686,6 +701,7 @@ function smDefaultScopeFields(): SmImportScopeFields {
     includeCompleted: true,
     includePartial: false,
     keepMissingStatus: false,
+    collectionStrategy: "campo",
   };
 }
 
@@ -724,6 +740,10 @@ function smScopeDate(value: string) {
   return raw;
 }
 
+function smValidationProfileForStrategy(strategy: SmImportScopeFields["collectionStrategy"]) {
+  return strategy === "whatsapp_link" ? "admin_autoadministrado" : "";
+}
+
 function smHasScopeFilters(scope: SmImportScopeFields) {
   return (
     smSplitScopeList(scope.collectorIds).length > 0 ||
@@ -741,6 +761,18 @@ function smDateLabel(value?: string | null) {
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return raw.slice(0, 10);
   return date.toLocaleDateString("es-PE", { year: "numeric", month: "short", day: "2-digit" });
+}
+
+export function smSurveyResponseCount(item: Pick<SurveyMonkeyMultibaseListItem, "response_count">) {
+  if (item.response_count == null) return null;
+  const value = Number(item.response_count);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+export function smSurveyResponseLabel(item: Pick<SurveyMonkeyMultibaseListItem, "response_count">) {
+  const count = smSurveyResponseCount(item);
+  if (count == null) return "Conteo no disponible";
+  return `${count.toLocaleString("es-PE")} respuesta${count === 1 ? "" : "s"}`;
 }
 
 function smCatalogDateLabel(value?: string | null) {
@@ -765,6 +797,72 @@ function smScopeSummary(scope: SmImportScopeFields, nSources: number) {
   if (smScopeDate(scope.dateModifiedGte) || smScopeDate(scope.dateModifiedLte)) parts.push("con fechas");
   if (nSources > 1) parts.push(`${nSources} campañas`);
   return parts.join(" · ");
+}
+
+function smSurveyById(surveys: SurveyMonkeyMultibaseListItem[] | null | undefined, id: string) {
+  const clean = id.trim();
+  if (!clean) return null;
+  return (surveys ?? []).find((item) => item.id === clean) ?? null;
+}
+
+function smKnownSourceCount(
+  main: SurveyMonkeyMultibaseListItem,
+  scope: SmImportScopeDraft,
+  surveys: SurveyMonkeyMultibaseListItem[] | null,
+) {
+  const counts = [
+    smSurveyResponseCount(main),
+    ...scope.extraSources
+      .filter((source) => source.surveyId.trim())
+      .map((source) => smSurveyResponseCount(smSurveyById(surveys, source.surveyId) ?? { response_count: null })),
+  ];
+  if (counts.some((count) => count == null)) return null;
+  return counts.reduce<number>((sum, count) => sum + Number(count), 0);
+}
+
+function smSourceCountLabel(count: number | null) {
+  if (count == null) return "conteo parcial/no disponible";
+  return `${count.toLocaleString("es-PE")} respuesta${count === 1 ? "" : "s"}`;
+}
+
+function smExtraSourceCandidates(
+  surveys: SurveyMonkeyMultibaseListItem[] | null,
+  query: string,
+  excludeIds: Set<string>,
+  context?: SurveyMonkeyMultibaseListItem,
+) {
+  const q = query.trim() || smExtraSourceDefaultQuery(context);
+  return (surveys ?? [])
+    .filter((item) => !excludeIds.has(item.id))
+    .filter((item) => smSurveyMatchesQuery(item, q))
+    .sort((a, b) => {
+      const countDelta = (smSurveyResponseCount(b) ?? -1) - (smSurveyResponseCount(a) ?? -1);
+      if (countDelta !== 0) return countDelta;
+      return smSurveyTitle(a).localeCompare(smSurveyTitle(b), "es");
+    })
+    .slice(0, 6);
+}
+
+function smExtraSourceDefaultQuery(item?: SurveyMonkeyMultibaseListItem) {
+  if (!item) return "";
+  const alias = smSurveyDefaultAlias(item);
+  const normalized = smNormalizeSearch(alias || smSurveyTitle(item));
+  const stop = new Set([
+    "acreditacion",
+    "encuesta",
+    "egresado",
+    "egresados",
+    "ingenieria",
+    "de",
+    "del",
+    "la",
+    "las",
+    "los",
+    "a",
+    "pucp",
+  ]);
+  const tokens = normalized.split(" ").filter((token) => token.length > 2 && !stop.has(token));
+  return tokens.slice(0, 3).join(" ");
 }
 
 function smNumberRangeLabel(values: number[], singular: string, plural = `${singular}s`) {
@@ -844,6 +942,9 @@ function smSourceInputFromScope(
   if (gte) input.date_modified_gte = gte;
   if (lte) input.date_modified_lte = lte;
   if (scope.keepMissingStatus) input.keep_missing_status = true;
+  input.collection_strategy = scope.collectionStrategy;
+  const validationProfile = smValidationProfileForStrategy(scope.collectionStrategy);
+  if (validationProfile) input.validation_exclusion_profile = validationProfile;
   return input;
 }
 
@@ -860,6 +961,10 @@ export function smIndependentSurveyInput(
     source_title: sourceTitle,
     pais: item.pais_guess ?? "",
   };
+  const baseScope = draft ?? smDefaultScopeDraft();
+  input.collection_strategy = baseScope.collectionStrategy;
+  const validationProfile = smValidationProfileForStrategy(baseScope.collectionStrategy);
+  if (validationProfile) input.validation_exclusion_profile = validationProfile;
   if (!draft) return input;
 
   const extraSources = draft.extraSources
@@ -902,6 +1007,8 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [scopeDrafts, setScopeDrafts] = useState<Record<string, SmImportScopeDraft>>({});
   const [audit, setAudit] = useState<SurveyMonkeyMultibaseAudit | null>(null);
+  const [logicSync, setLogicSync] = useState<EstudioLogicSyncResult | null>(null);
+  const [smConnection, setSmConnection] = useState<ConnectionTokenState | null>(null);
   const [showSurveyCatalog, setShowSurveyCatalog] = useState(estudio.n_bases === 0);
   const [editingAliasBase, setEditingAliasBase] = useState<string | null>(null);
   const [editingAliasDraft, setEditingAliasDraft] = useState("");
@@ -931,10 +1038,36 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const canImport = selectedInputs.length > 0 && selectedInputs.length <= capacityLeft && !hasAliasIssues && !modeConflict && !busy && !disabled;
   const overIndependentLimit = selectedInputs.length > capacityLeft;
 
+  async function refreshSurveyMonkeyConnection() {
+    try {
+      setSmConnection(await apiConnectionTokenLoad("surveymonkey"));
+    } catch {
+      setSmConnection(null);
+    }
+  }
+
+  async function switchSurveyMonkeyProfile(profileId: string) {
+    if (!profileId) return;
+    setError("");
+    setBusy("Cambiando perfil SurveyMonkey...");
+    try {
+      const next = await apiConnectionProfileSetDefault("surveymonkey", profileId);
+      setSmConnection(next);
+      setSurveys(null);
+      setSurveyMeta(null);
+      setAudit(null);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function loadSurveys(forceRefresh = false) {
     setError("");
     setBusy(forceRefresh ? "Actualizando catálogo SurveyMonkey..." : "Leyendo catálogo local SurveyMonkey...");
     try {
+      await refreshSurveyMonkeyConnection();
       const result = await apiSurveyMonkeyMultibaseListSurveys("", 500, 6, { forceRefresh });
       setSurveys(result.surveys);
       setSurveyMeta({
@@ -949,6 +1082,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
       if (!result.surveys.length) setError("No encontré encuestas modificadas en los últimos 6 meses.");
     } catch (e) {
       setError((e as Error).message);
+      void refreshSurveyMonkeyConnection();
     } finally {
       setBusy("");
     }
@@ -1000,9 +1134,11 @@ function IndependentSiblingsSurveyMonkeyWizard({
         ...current.extraSources,
         {
           ...smDefaultScopeFields(),
+          collectionStrategy: "whatsapp_link",
           key: smNewScopeKey(),
           surveyId: "",
           label: "",
+          query: "",
         },
       ],
     });
@@ -1014,6 +1150,14 @@ function IndependentSiblingsSurveyMonkeyWizard({
       extraSources: current.extraSources.map((source) => (
         source.key === key ? { ...source, ...patch } : source
       )),
+    });
+  }
+
+  function selectExtraSource(id: string, key: string, survey: SurveyMonkeyMultibaseListItem) {
+    updateExtraSource(id, key, {
+      surveyId: survey.id,
+      label: smSurveyDefaultAlias(survey),
+      query: "",
     });
   }
 
@@ -1040,10 +1184,12 @@ function IndependentSiblingsSurveyMonkeyWizard({
 
   async function runImport() {
     setError("");
+    setLogicSync(null);
     setBusy("Importando bases hermanas independientes...");
     try {
       const result = await apiSurveyMonkeyMultibaseImportIndependent({ surveys: selectedInputs });
       setAudit(result.audit);
+      if (result.xlsform_logic_sync) setLogicSync(result.xlsform_logic_sync);
       await onImported(result.estudio);
     } catch (e) {
       setError((e as Error).message);
@@ -1055,6 +1201,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
   async function runPromoteExisting() {
     if (!promotedBase) return;
     setError("");
+    setLogicSync(null);
     setBusy("Convirtiendo el estudio actual a bases hermanas independientes...");
     try {
       const result = await apiEstudioPromoteIndependentSiblings({
@@ -1065,6 +1212,30 @@ function IndependentSiblingsSurveyMonkeyWizard({
         source_kind: "existing_project",
       });
       await onImported(result);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function runTemplateLogicSync() {
+    const templateBase = String(estudio.independent_siblings?.template_base || estudio.active_base || "").trim();
+    setError("");
+    setLogicSync(null);
+    setBusy("Aplicando lógica XLSForm de la base plantilla...");
+    try {
+      const result = await apiEstudioApplyIndependentTemplateLogic({
+        template_base: templateBase || undefined,
+      });
+      setLogicSync(result);
+      if (result.estudio) {
+        await onImported(result.estudio);
+        window.dispatchEvent(new Event("pulso:session-changed"));
+        window.dispatchEvent(new CustomEvent("pulso:active-base-changed", {
+          detail: { active: result.estudio.active_base, processing_mode: result.estudio.processing_mode },
+        }));
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -1114,6 +1285,11 @@ function IndependentSiblingsSurveyMonkeyWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showSurveyCatalog]);
 
+  useEffect(() => {
+    if (!showSurveyCatalog) return;
+    void refreshSurveyMonkeyConnection();
+  }, [showSurveyCatalog]);
+
   return (
     <section className="pulso-integrated-panel">
       <header className="pulso-integrated-head">
@@ -1125,6 +1301,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
           <p>
             Usa el perfil SurveyMonkey activo en Ajustes. Si la clave principal llega al límite,
             cambia manualmente al perfil secundario y actualiza el catálogo.
+            Si ya tenías una base trabajada, esa base puede actuar como plantilla para heredar reglas XLSForm compatibles.
           </p>
           <div className="pulso-sm-family-meter" aria-label="Resumen de familia independiente">
             <span><b>{selectedTotal}</b>/{independentMaxBases} bases</span>
@@ -1138,7 +1315,8 @@ function IndependentSiblingsSurveyMonkeyWizard({
         <div className="pulso-sm-multibase-warning">
           <AlertTriangle size={15} />
           <span>
-            Este estudio ya tiene bases en otro modo. Puedes convertirlo para conservar lo trabajado y sumar hermanos independientes.
+            Este estudio ya tiene una base normalizada o en proceso. Puedes convertirla en plantilla,
+            conservar lo trabajado y sumar hermanas independientes después.
           </span>
           <button
             type="button"
@@ -1243,25 +1421,64 @@ function IndependentSiblingsSurveyMonkeyWizard({
             })}
           </div>
           <div className="pulso-sm-family-config-head">
-            <span>Para trabajar usa el selector de base activa del lateral. Para sumar otra carrera, abre el catálogo SurveyMonkey.</span>
-            <button
-              type="button"
-              className="pulso-sm-secondary"
-              disabled={disabled || !!busy || capacityLeft <= 0}
-              onClick={() => {
-                setError("");
-                setShowSurveyCatalog(true);
-              }}
-            >
-              <Plus size={13} />
-              {capacityLeft <= 0 ? "Límite alcanzado" : "Agregar desde SurveyMonkey"}
-            </button>
+            <span>Para trabajar usa el selector de base activa del lateral. La base plantilla comparte reglas con hermanas compatibles.</span>
+            <div className="pulso-sm-family-actions">
+              <button
+                type="button"
+                className="pulso-sm-secondary"
+                disabled={disabled || !!busy || estudio.n_bases < 2}
+                onClick={runTemplateLogicSync}
+              >
+                <GitMerge size={13} />
+                Aplicar lógica de plantilla
+              </button>
+              <button
+                type="button"
+                className="pulso-sm-secondary"
+                disabled={disabled || !!busy || capacityLeft <= 0}
+                onClick={() => {
+                  setError("");
+                  setShowSurveyCatalog(true);
+                }}
+              >
+                <Plus size={13} />
+                {capacityLeft <= 0 ? "Límite alcanzado" : "Agregar desde SurveyMonkey"}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {showSurveyCatalog && (
         <div className="pulso-integrated-sm">
+        <div className="pulso-sm-token-strip">
+          <div className="pulso-sm-token-strip-main">
+            <Database size={14} />
+            <span>
+              <strong>SurveyMonkey</strong>
+              {smConnection?.has_token
+                ? `Perfil activo: ${smConnection.active_profile_alias || smConnection.active_profile_id || "Principal"}`
+                : "Sin token activo"}
+            </span>
+            {smConnection?.masked_token && <code>{smConnection.masked_token}</code>}
+          </div>
+          {!!smConnection?.profiles?.length && (
+            <div className="pulso-sm-token-profiles" aria-label="Perfiles SurveyMonkey">
+              {smConnection.profiles.map((profile) => (
+                <button
+                  key={profile.id}
+                  type="button"
+                  className={profile.is_default ? "is-active" : ""}
+                  disabled={disabled || !!busy || profile.is_default || !profile.has_token}
+                  onClick={() => void switchSurveyMonkeyProfile(profile.id)}
+                  title={profile.has_token ? `Usar ${profile.alias}` : `${profile.alias} no tiene token guardado`}
+                >
+                  {profile.alias}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="pulso-sm-survey-picker">
           <label className="pulso-sm-search">
             <Search size={14} />
@@ -1288,6 +1505,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                 const scopeDraft = scopeDrafts[item.id];
                 const aliasPreview = smSurveyAlias(item, scopeDraft);
                 const cannotAdd = !selected && selectedIds.size >= capacityLeft;
+                const responses = smSurveyResponseLabel(item);
                 return (
                   <button
                     key={item.id}
@@ -1297,9 +1515,14 @@ function IndependentSiblingsSurveyMonkeyWizard({
                     disabled={disabled || !!busy || cannotAdd}
                     title={title}
                   >
-                    <span>
+                    <span className="pulso-sm-survey-card-copy">
                       <strong>{title}</strong>
-                      <small>{aliasPreview} · {smDateLabel(item.date_modified)} · ID {item.id}</small>
+                      <small>{aliasPreview}</small>
+                      <span className="pulso-sm-survey-card-meta">
+                        <b><Database size={11} /> {responses}</b>
+                        <i>{smDateLabel(item.date_modified)}</i>
+                        <i>ID {item.id}</i>
+                      </span>
                     </span>
                     <em>{selected ? "En familia" : "Agregar"}</em>
                   </button>
@@ -1330,6 +1553,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                 const scope = scopeDraft ?? smDefaultScopeDraft();
                 const scopedInput = selectedInputs.find((input) => input.survey_id === item.id);
                 const nSources = scopedInput?.sources?.length ?? 1;
+                const totalSourceResponses = smKnownSourceCount(item, scope, surveys);
                 const aliasValue = smAliasDraftValue(item, scopeDraft);
                 const aliasSlug = smBaseSlug(aliasValue);
                 const aliasInvalid = !aliasValue.trim() || duplicateAliasSlugs.has(aliasSlug);
@@ -1358,14 +1582,16 @@ function IndependentSiblingsSurveyMonkeyWizard({
                     </div>
                     <div className="pulso-sm-family-origin-cell">
                       <strong title={smSurveyTitle(item)}>{smSurveyTitle(item)}</strong>
-                      <small>SurveyMonkey · {smDateLabel(item.date_modified)} · ID {item.id}</small>
+                      <small>
+                        SurveyMonkey · {smDateLabel(item.date_modified)} · {smSurveyResponseLabel(item)} · ID {item.id}
+                      </small>
                     </div>
                     <div className="pulso-sm-family-data-cell">
                       <span className="pulso-sm-family-status">
                         <Database size={12} />
                         {nSources} fuente{nSources === 1 ? "" : "s"}
                       </span>
-                      <small>{smScopeSummary(scope, nSources)}</small>
+                      <small>{smSourceCountLabel(totalSourceResponses)} · {smScopeSummary(scope, nSources)}</small>
                     </div>
                     <details className="pulso-sm-scope-popover">
                       <summary>
@@ -1407,6 +1633,22 @@ function IndependentSiblingsSurveyMonkeyWizard({
                             </div>
                           </label>
                           <label className="pulso-sm-scope-field">
+                            <span>Tipo de recojo</span>
+                            <select
+                              value={scope.collectionStrategy}
+                              disabled={disabled || !!busy}
+                              onChange={(event) => updateScope(item.id, {
+                                collectionStrategy: event.target.value as SmImportScopeFields["collectionStrategy"],
+                              })}
+                            >
+                              <option value="campo">Campo</option>
+                              <option value="whatsapp_link">WhatsApp / link autoadministrado</option>
+                              <option value="web_link">Enlace web</option>
+                              <option value="email">Correo</option>
+                              <option value="otro">Otro</option>
+                            </select>
+                          </label>
+                          <label className="pulso-sm-scope-field">
                             <span>Collector IDs</span>
                             <input
                               value={scope.collectorIds}
@@ -1436,56 +1678,144 @@ function IndependentSiblingsSurveyMonkeyWizard({
                         </div>
 
                         <div className="pulso-sm-extra-sources">
-                          {scope.extraSources.map((source, sourceIndex) => (
-                            <div className="pulso-sm-extra-source" key={source.key}>
-                              <span className="pulso-sm-extra-source-index">Campaña {sourceIndex + 2}</span>
-                              <input
-                                value={source.surveyId}
-                                disabled={disabled || !!busy}
-                                placeholder="Survey ID adicional"
-                                aria-label={`Survey ID adicional ${sourceIndex + 1}`}
-                                onChange={(event) => updateExtraSource(item.id, source.key, { surveyId: event.target.value })}
-                              />
-                              <input
-                                value={source.label}
-                                disabled={disabled || !!busy}
-                                placeholder="Etiqueta opcional"
-                                aria-label={`Etiqueta fuente adicional ${sourceIndex + 1}`}
-                                onChange={(event) => updateExtraSource(item.id, source.key, { label: event.target.value })}
-                              />
-                              <input
-                                value={source.collectorIds}
-                                disabled={disabled || !!busy}
-                                placeholder="Collectors"
-                                aria-label={`Collectors fuente adicional ${sourceIndex + 1}`}
-                                onChange={(event) => updateExtraSource(item.id, source.key, { collectorIds: event.target.value })}
-                              />
-                              <input
-                                value={source.dateModifiedLte}
-                                disabled={disabled || !!busy}
-                                placeholder="Hasta ISO"
-                                aria-label={`Fecha hasta fuente adicional ${sourceIndex + 1}`}
-                                onChange={(event) => updateExtraSource(item.id, source.key, { dateModifiedLte: event.target.value })}
-                              />
-                              <label className="pulso-sm-extra-check">
-                                <input
-                                  type="checkbox"
-                                  checked={source.includePartial}
-                                  disabled={disabled || !!busy}
-                                  onChange={(event) => updateExtraSource(item.id, source.key, { includePartial: event.target.checked })}
-                                />
-                                Parciales
-                              </label>
-                              <button
-                                type="button"
-                                className="pulso-icon pulso-icon-danger"
-                                onClick={() => removeExtraSource(item.id, source.key)}
-                                aria-label={`Quitar fuente adicional ${sourceIndex + 1}`}
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          ))}
+                          {scope.extraSources.map((source, sourceIndex) => {
+                            const pickedSurvey = smSurveyById(surveys, source.surveyId);
+                            const excludeIds = new Set([
+                              ...Array.from(selectedIds),
+                              ...scope.extraSources
+                                .filter((other) => other.key !== source.key)
+                                .map((other) => other.surveyId.trim())
+                                .filter(Boolean),
+                            ]);
+                            const sourceQuery = source.query ?? "";
+                            const candidates = smExtraSourceCandidates(surveys, sourceQuery || source.surveyId, excludeIds, item);
+                            return (
+                              <div className="pulso-sm-extra-source" key={source.key}>
+                                <div className="pulso-sm-extra-source-top">
+                                  <span className="pulso-sm-extra-source-index">Campaña {sourceIndex + 2}</span>
+                                  <button
+                                    type="button"
+                                    className="pulso-icon pulso-icon-danger"
+                                    onClick={() => removeExtraSource(item.id, source.key)}
+                                    aria-label={`Quitar fuente adicional ${sourceIndex + 1}`}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                                <label className="pulso-sm-extra-search">
+                                  <span>Buscar encuesta o pegar ID</span>
+                                  <div>
+                                    <Search size={14} />
+                                    <input
+                                      value={source.query ?? source.surveyId}
+                                      disabled={disabled || !!busy}
+                                      placeholder="Busca por carrera, campaña, fecha o ID"
+                                      aria-label={`Buscar campaña adicional ${sourceIndex + 1}`}
+                                      onChange={(event) => updateExtraSource(item.id, source.key, {
+                                        query: event.target.value,
+                                        surveyId: /^\d+$/.test(event.target.value.trim()) ? event.target.value.trim() : "",
+                                      })}
+                                    />
+                                  </div>
+                                </label>
+                                <div className="pulso-sm-extra-results" aria-label={`Resultados campaña adicional ${sourceIndex + 1}`}>
+                                  {pickedSurvey && (
+                                    <div className="pulso-sm-extra-picked">
+                                      <Database size={13} />
+                                      <span>
+                                        <strong>{smSurveyTitle(pickedSurvey)}</strong>
+                                        <small>{smSurveyResponseLabel(pickedSurvey)} · {smDateLabel(pickedSurvey.date_modified)} · ID {pickedSurvey.id}</small>
+                                      </span>
+                                    </div>
+                                  )}
+                                  {candidates.length > 0 ? candidates.map((candidate) => (
+                                    <button
+                                      key={candidate.id}
+                                      type="button"
+                                      disabled={disabled || !!busy}
+                                      onClick={() => selectExtraSource(item.id, source.key, candidate)}
+                                    >
+                                      <span className="pulso-sm-extra-result-copy">
+                                        <strong>{smSurveyTitle(candidate)}</strong>
+                                        <small>{smSurveyDefaultAlias(candidate)} · {smDateLabel(candidate.date_modified)} · ID {candidate.id}</small>
+                                      </span>
+                                      <em>{smSurveyResponseLabel(candidate)}</em>
+                                    </button>
+                                  )) : (
+                                    <small className="pulso-sm-extra-empty">Sin coincidencias en el catálogo local. Puedes pegar un ID manualmente.</small>
+                                  )}
+                                </div>
+                                <div className="pulso-sm-extra-advanced">
+                                  <label>
+                                    <span>Etiqueta</span>
+                                    <input
+                                      value={source.label}
+                                      disabled={disabled || !!busy}
+                                      placeholder={pickedSurvey ? smSurveyDefaultAlias(pickedSurvey) : "Etiqueta opcional"}
+                                      aria-label={`Etiqueta fuente adicional ${sourceIndex + 1}`}
+                                      onChange={(event) => updateExtraSource(item.id, source.key, { label: event.target.value })}
+                                    />
+                                  </label>
+                                  <label>
+                                    <span>Collectors</span>
+                                    <input
+                                      value={source.collectorIds}
+                                      disabled={disabled || !!busy}
+                                      placeholder="campo, recordatorio"
+                                      aria-label={`Collectors fuente adicional ${sourceIndex + 1}`}
+                                      onChange={(event) => updateExtraSource(item.id, source.key, { collectorIds: event.target.value })}
+                                    />
+                                  </label>
+                                  <label>
+                                    <span>Recojo</span>
+                                    <select
+                                      value={source.collectionStrategy}
+                                      disabled={disabled || !!busy}
+                                      aria-label={`Tipo de recojo fuente adicional ${sourceIndex + 1}`}
+                                      onChange={(event) => updateExtraSource(item.id, source.key, {
+                                        collectionStrategy: event.target.value as SmImportScopeFields["collectionStrategy"],
+                                      })}
+                                    >
+                                      <option value="campo">Campo</option>
+                                      <option value="whatsapp_link">WhatsApp / link</option>
+                                      <option value="web_link">Enlace web</option>
+                                      <option value="email">Correo</option>
+                                      <option value="otro">Otro</option>
+                                    </select>
+                                  </label>
+                                  <label>
+                                    <span>Desde</span>
+                                    <input
+                                      value={source.dateModifiedGte}
+                                      disabled={disabled || !!busy}
+                                      placeholder="2026-05-01T00:00"
+                                      aria-label={`Fecha desde fuente adicional ${sourceIndex + 1}`}
+                                      onChange={(event) => updateExtraSource(item.id, source.key, { dateModifiedGte: event.target.value })}
+                                    />
+                                  </label>
+                                  <label>
+                                    <span>Hasta</span>
+                                    <input
+                                      value={source.dateModifiedLte}
+                                      disabled={disabled || !!busy}
+                                      placeholder="2026-05-30T01:27"
+                                      aria-label={`Fecha hasta fuente adicional ${sourceIndex + 1}`}
+                                      onChange={(event) => updateExtraSource(item.id, source.key, { dateModifiedLte: event.target.value })}
+                                    />
+                                  </label>
+                                  <label className="pulso-sm-extra-check">
+                                    <input
+                                      type="checkbox"
+                                      checked={source.includePartial}
+                                      disabled={disabled || !!busy}
+                                      onChange={(event) => updateExtraSource(item.id, source.key, { includePartial: event.target.checked })}
+                                    />
+                                    Parciales
+                                  </label>
+                                </div>
+                              </div>
+                            );
+                          })}
                           <button
                             type="button"
                             className="pulso-sm-secondary pulso-sm-add-source"
@@ -1530,6 +1860,35 @@ function IndependentSiblingsSurveyMonkeyWizard({
 
       {busy && <div className="pulso-sm-status"><Loader2 size={13} className="pulso-spin" /> {busy}</div>}
       {error && <ErrorBlock label="No se pudo completar la importación" detail={error} />}
+
+      {logicSync && (
+        <div className={`pulso-sm-logic-sync${logicSync.ok === false ? " is-warning" : ""}`}>
+          <div className="pulso-sm-logic-sync-head">
+            {logicSync.ok === false ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
+            <strong>{logicSync.ok === false ? "Importación hecha; lógica pendiente" : "Lógica de plantilla aplicada"}</strong>
+            <span>
+              Plantilla <code>{logicSync.template_base}</code> · {logicSync.n_updated_bases ?? 0}/{logicSync.n_targets ?? 0} bases actualizadas
+            </span>
+          </div>
+          {logicSync.error && <p>{logicSync.error}</p>}
+          {!!logicSync.results?.length && (
+            <div className="pulso-sm-logic-sync-grid">
+              {logicSync.results.slice(0, 6).map((row) => (
+                <div key={row.base} className="pulso-sm-logic-sync-row">
+                  <strong>{row.base}</strong>
+                  <span>{row.n_applied_variables} variables · {row.changed_cells} celdas</span>
+                  <small>
+                    {row.n_skipped_missing_variables
+                      ? `${row.n_skipped_missing_variables} variables no existen en esta base`
+                      : "Sin variables faltantes"}
+                    {row.n_missing_references ? ` · ${row.n_missing_references} referencias huérfanas` : ""}
+                  </small>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {audit && (() => {
         const totalResponses = audit.surveys.reduce((sum, item) => sum + (item.n_responses ?? 0), 0);
