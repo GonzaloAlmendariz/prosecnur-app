@@ -55,6 +55,14 @@ describe("slideAutoTitle", () => {
     });
   });
 
+  test("normaliza titulos manuales no-string sin romper el render", () => {
+    expect(resolveSlideTitle(oneChartSlide({ titulo: { label: "Titulo desde objeto" } }), variables)).toEqual({
+      title: "Titulo desde objeto",
+      source: "manual",
+    });
+    expect(slideDisplayTitle(oneChartSlide({ titulo: {} }), variables, "Un grafico")).toBe("Un grafico");
+  });
+
   test("infiera el titulo desde el label de la variable en slides de un grafico", () => {
     const slide = oneChartSlide({
       titulo: "",

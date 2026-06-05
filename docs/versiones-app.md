@@ -16,10 +16,11 @@ La fuente de verdad para empaquetado es `api/DESCRIPTION`.
 | 0.2.9 | Validacion y editor reforzados | Publicada en GitHub | Agrega motor de transformaciones de limpieza, fortalece reglas custom/AST, mejora persistencia y foco del editor XLSForm, y pule graficador/carga. |
 | 0.3.0 | Corte 0.3: auditoria, conexiones y multibase | Publicada en GitHub | Documenta la arquitectura canonica con ADRs, agrega auditoria reproducible, centraliza conexiones SurveyMonkey/Kobo fuera del `.pulso`, refuerza multibase/monitoreo, rediseña Home y amplia pruebas. |
 | 0.3.1 | Corte 3.1: multibase, hojas de ruta y validacion por fuente | Publicada en GitHub | Aplica logica XLSForm de una base plantilla a hermanas compatibles, soporta importacion SurveyMonkey multifuente con perfiles de exclusion de validacion, separa hojas de ruta piloto/campo real, mejora drilldowns de validacion/Plotly, recupera fuentes procesadas de Graficos cuando el cache queda incompleto y corrige titulos Word/PPT desde etiquetas XLSForm. |
-| 0.3.2 | Corte 3.2: hotfix de hojas de ruta | Version actual para deploy | Corrige layout del PDF integrado de hojas de ruta, evita que las tablas de revision final atrapen el scroll vertical y estabiliza las tarjetas del inspector de zonas. |
+| 0.3.2 | Corte 3.2: hotfix de hojas de ruta | Publicada en GitHub | Corrige layout del PDF integrado de hojas de ruta, evita que las tablas de revision final atrapen el scroll vertical y estabiliza las tarjetas del inspector de zonas. |
+| 3.3.1 | Corte 3.3.1: graficos, iconos y estabilidad | Version actual para deploy | Expone el selector de PNG en Contenido para slides con icono, evita crashes por etiquetas/titulos malformados al volver a Graficos y conserva las mejoras de titulos, canvas dinamico, paletas por lista y export PPT/Word del corte 3.3. |
 
 ## Version actual
 
-Estamos en `0.3.2` (corte `3.2`). Esta es la version publicada como
-`v0.3.2` para que GitHub Releases genere el instalador y el auto-updater la
+Estamos en `3.3.1` (corte `3.3.1`). Esta es la version publicada como
+`v3.3.1` para que GitHub Releases genere el instalador y el auto-updater la
 detecte.

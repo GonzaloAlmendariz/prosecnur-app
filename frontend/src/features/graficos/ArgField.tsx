@@ -5,6 +5,7 @@ import { usePlanStore } from "./store";
 import { downloadUrl } from "../../api/client";
 import VariablePicker from "./VariablePicker";
 import VarsListPicker from "./VarsListPicker";
+import { safeText, safeTrimmedText } from "./safeText";
 import {
   clampNumber,
   coerceNumber,
@@ -146,13 +147,14 @@ function FieldHeader({
   labelId: string;
   descriptionId?: string;
 }) {
+  const label = safeText(meta.label, safeText(meta.name, "Campo"));
   const isCustom = argState === "custom";
   const stateMeta = fieldStateMeta(argState);
 
   return (
     <>
       <span className="pulso-gv2-field-copy">
-        <span id={labelId} className="pulso-gv2-field-title">{meta.label}</span>
+        <span id={labelId} className="pulso-gv2-field-title">{label}</span>
         {description && (
           <span id={descriptionId} className="pulso-gv2-field-description">
             {description}
@@ -262,7 +264,7 @@ function FieldControl({
       return (
         <TextControl
           meta={meta}
-          value={(shownValue as string) ?? ""}
+          value={safeText(shownValue)}
           placeholder={placeholder}
           onChange={onChange}
         />
@@ -272,7 +274,7 @@ function FieldControl({
       return (
         <TextControl
           meta={meta}
-          value={(shownValue as string) ?? ""}
+          value={safeText(shownValue)}
           placeholder={placeholder}
           onChange={onChange}
           multiline
@@ -287,7 +289,7 @@ function FieldControl({
       return <BoolToggle value={!!shownValue} onChange={onChange} />;
 
     case "choice":
-      return <ChoicePills meta={meta} value={shownValue as string} onChange={onChange} />;
+      return <ChoicePills meta={meta} value={safeText(shownValue)} onChange={onChange} />;
 
     case "codigos_list":
       return <CodigosList value={(shownValue as (string | number)[]) ?? []} onChange={onChange} />;
@@ -330,7 +332,7 @@ function FieldControl({
       return <CriteriaConfigField value={shownValue} onChange={onChange} />;
 
     case "icono":
-      return <IconoSelect value={shownValue as string | null} onChange={onChange} />;
+      return <IconoSelect value={safeTrimmedText(shownValue) || null} onChange={onChange} />;
 
     case "overrides":
     case "filtros":
@@ -367,6 +369,8 @@ function TextControl({
   multiline?: boolean;
   rows?: number;
 }) {
+  const label = safeText(meta.label, safeText(meta.name, "campo"));
+  const hasDescription = safeTrimmedText(meta.descripcion).length > 0;
   const presets = quickStringPresetsFor(meta.name);
   const baseHint = buildTextHint(meta);
   const [draft, setDraft] = useState(value);
@@ -416,7 +420,7 @@ function TextControl({
               setIsFocused(false);
               evaluate(draft);
             }}
-            placeholder={placeholder ?? (meta.descripcion ? undefined : "(opcional)")}
+            placeholder={placeholder ?? (hasDescription ? undefined : "(opcional)")}
             style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
             className={`pulso-gv2-text-input-control is-${statusRowState}`}
             aria-describedby={statusId}
@@ -438,7 +442,7 @@ function TextControl({
                 setIsFocused(false);
                 evaluate(draft);
               }}
-              placeholder={placeholder ?? (meta.descripcion ? undefined : "(opcional)")}
+              placeholder={placeholder ?? (hasDescription ? undefined : "(opcional)")}
               style={inputStyle}
               className={`pulso-gv2-text-input-control is-${statusRowState}`}
               aria-describedby={statusId}
@@ -454,7 +458,7 @@ function TextControl({
                   evaluate("");
                   onChange("");
                 }}
-                aria-label={`Limpiar ${meta.label}`}
+                aria-label={`Limpiar ${label}`}
                 title="Limpiar"
               >
                 <XIcon size={12} />
@@ -465,7 +469,7 @@ function TextControl({
       </div>
 
       {presets.length > 0 && (
-        <div className="pulso-gv2-quick-presets" aria-label={`Atajos para ${meta.label}`}>
+        <div className="pulso-gv2-quick-presets" aria-label={`Atajos para ${label}`}>
           {presets.map((preset) => (
             <button
               key={`${meta.name}-${preset.label}`}
@@ -506,6 +510,7 @@ function NumberControl({
   value: ArgValue;
   onChange: (v: ArgValue) => void;
 }) {
+  const label = safeText(meta.label, safeText(meta.name, "campo"));
   const displayAsPercent = isProportionThreshold(meta);
   const displayScale = displayAsPercent ? 100 : 1;
   const step = inferNumberStep(meta, value);
@@ -729,7 +734,7 @@ function NumberControl({
               e.preventDefault();
               applyCandidate(currentNumeric - step);
             }}
-            aria-label={`Disminuir ${meta.label}`}
+            aria-label={`Disminuir ${label}`}
             style={stepButtonStyle}
         >
           −
@@ -787,7 +792,7 @@ function NumberControl({
               e.preventDefault();
               applyCandidate(currentNumeric + step);
             }}
-            aria-label={`Aumentar ${meta.label}`}
+            aria-label={`Aumentar ${label}`}
             style={stepButtonStyle}
         >
           +
@@ -803,13 +808,13 @@ function NumberControl({
           max={displayMax}
           step={displayStep}
           onChange={(e) => applyCandidate(Number(e.target.value) / displayScale)}
-          aria-label={`${meta.label} fino`}
+          aria-label={`${label} fino`}
           style={{ width: "100%", accentColor: "var(--pulso-primary)" }}
         />
       )}
 
       {quickPresetsFor(meta.name).length > 0 && (
-        <div className="pulso-gv2-quick-presets" aria-label={`Atajos para ${meta.label}`}>
+        <div className="pulso-gv2-quick-presets" aria-label={`Atajos para ${label}`}>
           {quickPresetsFor(meta.name).map((preset) => (
               <button
                 key={`${preset.label}-${preset.value}`}
@@ -820,7 +825,7 @@ function NumberControl({
                   applyCandidate(preset.value);
                 }}
                 aria-pressed={hasCurrentValue && currentNumeric === preset.value}
-                aria-label={`${meta.label}: ${preset.label}`}
+                aria-label={`${label}: ${preset.label}`}
               >
               {preset.label}
             </button>
@@ -1174,15 +1179,16 @@ function resolveGeneralHintByName(key: string): string {
 }
 
 function buildTextualLabelHint(meta: ArgMetadata): string {
-  const normalizedLabel = normalizeArgKey(meta.label);
+  const label = safeText(meta.label, safeText(meta.name, ""));
+  const normalizedLabel = normalizeArgKey(label);
   if (meta.tipo_input === "number") {
-    const displayLabel = meta.label || normalizedLabel || "este parámetro";
+    const displayLabel = label || normalizedLabel || "este parámetro";
     const withUnit = meta.unidad ? ` y la unidad ${meta.unidad}` : "";
     return `Ajusta el valor numérico para controlar ${displayLabel}${withUnit}.`;
   }
   const fallback = resolveTextHintByName(normalizedLabel) || resolveGeneralHintByName(normalizedLabel);
   if (fallback) return fallback;
-  return `Ajusta el contenido de texto de ${meta.label || "este campo"} para mejorar la lectura visual.`;
+  return `Ajusta el contenido de texto de ${label || "este campo"} para mejorar la lectura visual.`;
 }
 
 function buildTypeHint(meta: ArgMetadata, options: { forText?: boolean; forNumber?: boolean } = {}): string {
@@ -1266,8 +1272,8 @@ export function resolveArgumentDescription(meta: ArgMetadata, options: {
   forNumber?: boolean;
 } = {}): string {
   const source =
-    meta.efecto?.trim() ||
-    meta.descripcion?.trim();
+    safeTrimmedText(meta.efecto) ||
+    safeTrimmedText(meta.descripcion);
   if (source) return source;
 
   const rangeHint = options.forNumber ? buildRangeHint(meta) : "";
@@ -1479,14 +1485,16 @@ function ChoicePills({
   return (
     <div className="pulso-gv2-choice-pills">
       {choices.map((c) => {
-        const active = value === c.value;
+        const choiceValue = safeText(c.value);
+        const choiceLabel = safeText(c.label, choiceValue);
+        const active = value === choiceValue;
         return (
           <button
-            key={c.value}
+            key={choiceValue}
             type="button"
             className={`pulso-gv2-choice-pill ${active ? "is-active" : ""}`}
-            onClick={() => onChange(c.value)}
-            title={c.hint}
+            onClick={() => onChange(choiceValue)}
+            title={safeText(c.hint)}
             style={{
               padding: "5px 10px", borderRadius: 999,
               border: `1px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
@@ -1497,7 +1505,7 @@ function ChoicePills({
               transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
             }}
           >
-            {c.label}
+            {choiceLabel}
           </button>
         );
       })}
@@ -1808,7 +1816,7 @@ function normalizeCriteriaItem(raw: unknown, fallbackTitle: string): CriteriaCon
   }
   if (typeof raw === "object") {
     const obj = raw as Record<string, unknown>;
-    const titulo = String(obj.titulo ?? obj.title ?? obj.label ?? fallbackTitle).trim();
+    const titulo = safeTrimmedText(obj.titulo, safeTrimmedText(obj.title, safeTrimmedText(obj.label, fallbackTitle)));
     const varsRaw = obj.vars ?? obj.variables ?? [];
     const vars = Array.isArray(varsRaw) ? varsRaw.map(String).filter(Boolean) : [];
     return {
@@ -1863,11 +1871,14 @@ function IconoSelect({
         style={{ ...inputStyle, padding: "5px 8px" }}
       >
         <option value="">(ninguno)</option>
-        {iconos.map((ic) => (
-          <option key={ic.id} value={ic.id}>
-            {ic.nombre}
-          </option>
-        ))}
+        {iconos.map((ic) => {
+          const nombre = safeText(ic.nombre, "Icono");
+          return (
+            <option key={ic.id} value={ic.id}>
+              {nombre}
+            </option>
+          );
+        })}
       </select>
       {selected && (
         <div
@@ -1881,10 +1892,10 @@ function IconoSelect({
         >
           <img
             src={downloadUrl(selected.file_id)}
-            alt={selected.nombre}
+            alt={safeText(selected.nombre, "Icono")}
             style={{ width: 34, height: 34, objectFit: "contain" }}
           />
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{selected.nombre}</span>
+          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>{safeText(selected.nombre, "Icono")}</span>
         </div>
       )}
     </div>
@@ -1965,15 +1976,17 @@ function MultiFlag({
   return (
     <div className="pulso-gv2-multiflag">
       {opciones.map((opt) => {
-        const on = set.has(opt.value);
+        const optionValue = safeText(opt.value);
+        const optionLabel = safeText(opt.label, optionValue);
+        const on = set.has(optionValue);
         return (
           <button
-            key={opt.value}
+            key={optionValue}
             type="button"
             role="switch"
             aria-checked={on}
-            title={opt.hint}
-            onClick={() => toggle(opt.value)}
+            title={safeText(opt.hint)}
+            onClick={() => toggle(optionValue)}
             className={`pulso-gv2-multiflag-chip ${on ? "is-on" : ""}`}
           >
             {on && (
@@ -1982,7 +1995,7 @@ function MultiFlag({
                 className="pulso-gv2-multiflag-dot"
               />
             )}
-            {opt.label}
+            {optionLabel}
           </button>
         );
       })}

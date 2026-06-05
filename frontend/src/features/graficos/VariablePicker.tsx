@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useVariables, parseVarRef, formatVarRef } from "./useVariables";
+import { safeText } from "./safeText";
 
 type Props = {
   value: string | null | undefined;
@@ -53,7 +54,7 @@ export default function VariablePicker({
   const q = query.trim().toLowerCase();
   if (q) {
     filtered = filtered.filter((v) =>
-      v.name.toLowerCase().includes(q) || v.label.toLowerCase().includes(q),
+      safeText(v.name).toLowerCase().includes(q) || safeText(v.label).toLowerCase().includes(q),
     );
   }
   filtered = filtered.slice(0, 200);
@@ -117,11 +118,15 @@ export default function VariablePicker({
           style={{ fontSize: 13, padding: "3px 6px", flex: 1, minWidth: 140 }}
         >
           <option value="">{allowEmpty ? "— (ninguna) —" : placeholder}</option>
-          {filtered.map((v) => (
-            <option key={v.name} value={v.name} title={v.label}>
-              {v.name} {v.label && v.label !== v.name ? `· ${v.label.slice(0, 40)}${v.label.length > 40 ? "…" : ""}` : ""}
-            </option>
-          ))}
+          {filtered.map((v) => {
+            const name = safeText(v.name);
+            const label = safeText(v.label, name);
+            return (
+              <option key={name} value={name} title={label}>
+                {name} {label && label !== name ? `· ${label.slice(0, 40)}${label.length > 40 ? "…" : ""}` : ""}
+              </option>
+            );
+          })}
         </select>
         <input
           placeholder="Buscar…"

@@ -1,4 +1,5 @@
 import { useVariables, parseVarRef, formatVarRef } from "./useVariables";
+import { safeText } from "./safeText";
 
 type Props = {
   value: string[] | null | undefined;
@@ -64,8 +65,10 @@ export default function VarsListPicker({ value, onChange }: Props) {
       >
         <option value="">+ Agregar variable…</option>
         {variables.map((v) => {
-          const ref = formatVarRef(v.source, v.name, multi);
-          return { ...v, ref };
+          const name = safeText(v.name);
+          const label = safeText(v.label, name);
+          const ref = formatVarRef(v.source, name, multi);
+          return { ...v, name, label, ref };
         }).filter((v) => !selected.has(v.ref)).slice(0, 200).map((v) => (
           <option key={`${v.source}:${v.name}`} value={v.ref} title={v.label}>
             {multi ? `${v.source}$` : ""}{v.name} · {v.label.slice(0, 40)}{v.label.length > 40 ? "…" : ""}

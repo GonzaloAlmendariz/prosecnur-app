@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiGraficosRegistry, Registry, SlideMetadata, GraficadorMetadata } from "../../api/client";
+import { normalizeGraficosRegistry } from "./metadataSanitizers";
 
 // Hook que carga y cachea el registry de slides + graficadores. Los
 // datos son inmutables para una misma versión de prosecnur, así que
@@ -24,9 +25,10 @@ export function useGraficosRegistry(): {
     if (cache) return;
     if (!pending) {
       pending = apiGraficosRegistry().then((r) => {
-        cache = r;
+        const normalized = normalizeGraficosRegistry(r);
+        cache = normalized;
         pending = null;
-        return r;
+        return normalized;
       });
     }
     pending

@@ -1,4 +1,5 @@
 import { GraficadorRef, Slide } from "../../api/client";
+import { safeText, safeTrimmedText } from "./safeText";
 import {
   BarChart3,
   BarChartHorizontal,
@@ -42,9 +43,10 @@ function SlotBox({ slot, label }: { slot: GraficadorRef | null | undefined; labe
       </div>
     );
   }
-  const varStr = (slot.args?.var as string) ?? (Array.isArray(slot.args?.vars) ? `[${(slot.args!.vars as string[]).join(", ")}]` : "—");
-  const cruces = (slot.args?.cruces as string) ?? (slot.args?.cruce as string) ?? "";
-  const titulo = (slot.args?.titulo as string) ?? "";
+  const graficador = safeText(slot.graficador, "grafico");
+  const varStr = safeTrimmedText(slot.args?.var, safeTrimmedText(slot.args?.vars, "-"));
+  const cruces = safeTrimmedText(slot.args?.cruces, safeTrimmedText(slot.args?.cruce));
+  const titulo = safeTrimmedText(slot.args?.titulo);
   return (
     <div style={{
       border: "1px solid var(--pulso-primary-border)", borderRadius: 6,
@@ -53,11 +55,11 @@ function SlotBox({ slot, label }: { slot: GraficadorRef | null | undefined; labe
       color: "var(--pulso-primary)",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <GrafIcon name={slot.graficador} size={18} />
+        <GrafIcon name={graficador} size={18} />
         {label && <span style={{ fontSize: 9, color: "var(--pulso-primary)", fontFamily: "ui-monospace,monospace" }}>{label}</span>}
       </div>
       <div style={{ fontSize: 10, fontWeight: 600, fontFamily: "ui-monospace,monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {slot.graficador.replace("p_", "")}
+        {graficador.replace("p_", "")}
       </div>
       {titulo && <div style={{ fontSize: 10, color: "var(--pulso-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{titulo}</div>}
       <div style={{ fontSize: 9, color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>var: <code>{varStr}</code></div>
@@ -75,7 +77,11 @@ function SlideFrame({ children, aspect = 16 / 9 }: { children: React.ReactNode; 
 }
 
 function SlideTitleMockup({ slide }: { slide: Slide }) {
-  const p = slide.payload as Record<string, string>;
+  const p = slide.payload as Record<string, unknown>;
+  const titulo = safeTrimmedText(p.titulo, "(sin título)");
+  const subtitulo = safeTrimmedText(p.subtitulo);
+  const fecha = safeTrimmedText(p.fecha);
+  const subtexto = safeTrimmedText(p.subtexto);
   return (
     <SlideFrame>
       <div style={{
@@ -83,43 +89,51 @@ function SlideTitleMockup({ slide }: { slide: Slide }) {
         textAlign: "center", gap: 8, color: "#fff", margin: -10, padding: 20,
         background: "linear-gradient(135deg, var(--pulso-primary) 0%, #013371 100%)",
       }}>
-        <div style={{ fontSize: 22, fontWeight: 700 }}>{p.titulo || "(sin título)"}</div>
-        {p.subtitulo && <div style={{ fontSize: 14, color: "rgba(255,255,255,0.78)" }}>{p.subtitulo}</div>}
-        {p.fecha && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 12 }}>{p.fecha}</div>}
-        {p.subtexto && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>{p.subtexto}</div>}
+        <div style={{ fontSize: 22, fontWeight: 700 }}>{titulo}</div>
+        {subtitulo && <div style={{ fontSize: 14, color: "rgba(255,255,255,0.78)" }}>{subtitulo}</div>}
+        {fecha && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 12 }}>{fecha}</div>}
+        {subtexto && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>{subtexto}</div>}
       </div>
     </SlideFrame>
   );
 }
 
 function SlideSectionMockup({ slide }: { slide: Slide }) {
-  const p = slide.payload as Record<string, string>;
+  const p = slide.payload as Record<string, unknown>;
+  const titulo = safeTrimmedText(p.titulo, "(sin título)");
+  const subtitulo = safeTrimmedText(p.subtitulo);
+  const introduccionWord = safeTrimmedText(p.introduccion_word);
+  const texto = safeTrimmedText(p.texto);
   return (
     <SlideFrame>
       <div style={{ flex: 1, borderLeft: "6px solid var(--pulso-primary)", padding: "0.5rem 0.75rem", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: "var(--pulso-primary)" }}>{p.titulo || "(sin título)"}</div>
-        {p.subtitulo && <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginTop: 4 }}>{p.subtitulo}</div>}
-        {p.introduccion_word && <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 8, fontStyle: "italic" }}>{p.introduccion_word}</div>}
-        {p.texto && <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 8 }}>{p.texto.slice(0, 90)}{p.texto.length > 90 ? "…" : ""}</div>}
+        <div style={{ fontSize: 18, fontWeight: 700, color: "var(--pulso-primary)" }}>{titulo}</div>
+        {subtitulo && <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginTop: 4 }}>{subtitulo}</div>}
+        {introduccionWord && <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 8, fontStyle: "italic" }}>{introduccionWord}</div>}
+        {texto && <div style={{ fontSize: 10, color: "var(--pulso-text-soft)", marginTop: 8 }}>{texto.slice(0, 90)}{texto.length > 90 ? "…" : ""}</div>}
       </div>
     </SlideFrame>
   );
 }
 
-function HeaderFooter({ p, children }: { p: Record<string, string>; children: React.ReactNode }) {
+function HeaderFooter({ p, children }: { p: Record<string, unknown>; children: React.ReactNode }) {
+  const titulo = safeTrimmedText(p.titulo);
+  const base = safeTrimmedText(p.base);
+  const pie = safeTrimmedText(p.pie);
   return (
     <SlideFrame>
-      {p.titulo && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-primary)", marginBottom: 6 }}>{p.titulo}</div>}
+      {titulo && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pulso-primary)", marginBottom: 6 }}>{titulo}</div>}
       <div style={{ flex: 1, minHeight: 0 }}>{children}</div>
-      {p.base && <div style={{ fontSize: 9, color: "var(--pulso-text-soft)", marginTop: 4, fontStyle: "italic" }}>{p.base}</div>}
-      {p.pie && <div style={{ fontSize: 9, color: "var(--pulso-text-soft)" }}>{p.pie}</div>}
+      {base && <div style={{ fontSize: 9, color: "var(--pulso-text-soft)", marginTop: 4, fontStyle: "italic" }}>{base}</div>}
+      {pie && <div style={{ fontSize: 9, color: "var(--pulso-text-soft)" }}>{pie}</div>}
     </SlideFrame>
   );
 }
 
 function SlideContenidoMockup({ slide, layout }: { slide: Slide; layout: "1" | "2" | "text_l" | "text_r" | "2_alt" }) {
-  const p = slide.payload as Record<string, string>;
+  const p = slide.payload as Record<string, unknown>;
   const payloadMap = slide.payload as Record<string, GraficadorRef | null | undefined>;
+  const texto = safeTrimmedText(p.texto, "(texto)");
   let body: React.ReactNode;
   switch (layout) {
     case "1":
@@ -140,7 +154,7 @@ function SlideContenidoMockup({ slide, layout }: { slide: Slide; layout: "1" | "
     case "text_l":
       body = <div style={{ display: "grid", gridTemplateColumns: "0.8fr 1fr", gap: 6, height: "100%" }}>
         <div style={{ border: "1px dashed var(--pulso-border)", borderRadius: 6, padding: 6, fontSize: 10, color: "var(--pulso-text-soft)", overflow: "hidden", whiteSpace: "pre-wrap" }}>
-          {p.texto || "(texto)"}
+          {texto}
         </div>
         <SlotBox slot={payloadMap.grafico} label="gráfico" />
       </div>;
@@ -149,7 +163,7 @@ function SlideContenidoMockup({ slide, layout }: { slide: Slide; layout: "1" | "
       body = <div style={{ display: "grid", gridTemplateColumns: "1fr 0.8fr", gap: 6, height: "100%" }}>
         <SlotBox slot={payloadMap.grafico} label="gráfico" />
         <div style={{ border: "1px dashed var(--pulso-border)", borderRadius: 6, padding: 6, fontSize: 10, color: "var(--pulso-text-soft)", overflow: "hidden", whiteSpace: "pre-wrap" }}>
-          {p.texto || "(texto)"}
+          {texto}
         </div>
       </div>;
       break;
@@ -158,8 +172,9 @@ function SlideContenidoMockup({ slide, layout }: { slide: Slide; layout: "1" | "
 }
 
 function SlidePoblacionMockup({ slide, slots, layout }: { slide: Slide; slots: string[]; layout: "row2" | "grid4" | "row5" | "row6" }) {
-  const p = slide.payload as Record<string, string>;
+  const p = slide.payload as Record<string, unknown>;
   const payloadMap = slide.payload as Record<string, GraficadorRef | null | undefined>;
+  const etiqueta = safeTrimmedText(p.etiqueta);
   const grid: React.CSSProperties = {
     display: "grid", gap: 6, height: "100%",
     gridTemplateColumns: layout === "row2" ? "1fr 1fr" : layout === "grid4" ? "1fr 1fr" : layout === "row5" ? "repeat(5, 1fr)" : "repeat(3, 1fr)",
@@ -167,7 +182,7 @@ function SlidePoblacionMockup({ slide, slots, layout }: { slide: Slide; slots: s
   };
   return (
     <HeaderFooter p={p}>
-      {p.etiqueta && <div style={{ fontSize: 10, color: "var(--pulso-primary)", fontWeight: 600, marginBottom: 4 }}>{p.etiqueta}</div>}
+      {etiqueta && <div style={{ fontSize: 10, color: "var(--pulso-primary)", fontWeight: 600, marginBottom: 4 }}>{etiqueta}</div>}
       <div style={grid}>
         {slots.map((s) => <SlotBox key={s} slot={payloadMap[s]} label={s.replace(/_/g, " ")} />)}
       </div>

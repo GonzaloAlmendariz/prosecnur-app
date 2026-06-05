@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiGraficosVariables, VarInfo, VariablesBySource } from "../../api/client";
+import { safeText } from "./safeText";
 
 // Hook de variables del estudio (multi-base, v0.2+).
 //
@@ -83,7 +84,13 @@ export function useVariables(): {
       });
   }, [gen]);
 
-  const sources = data?.sources ?? [];
+  const sources = (data?.sources ?? []).map((source) => {
+    const sourceName = safeText(source.name, "default");
+    return {
+      name: sourceName,
+      variables: (source.variables ?? []).map((variable) => normalizeVarInfo(variable)),
+    };
+  });
   const multi = data?.multi ?? false;
   const variables: VarWithSource[] = [];
   for (const s of sources) {
@@ -116,4 +123,15 @@ export function formatVarRef(source: string | null, name: string, multi: boolean
   if (!name) return "";
   if (!multi || !source) return name;
   return `${source}$${name}`;
+}
+
+function normalizeVarInfo(variable: VarInfo): VarInfo {
+  const name = safeText(variable.name);
+  return {
+    ...variable,
+    name,
+    label: safeText(variable.label, name),
+    tipo: safeText(variable.tipo),
+    seccion: safeText(variable.seccion),
+  };
 }

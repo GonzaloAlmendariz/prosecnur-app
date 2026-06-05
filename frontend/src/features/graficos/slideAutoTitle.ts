@@ -1,6 +1,7 @@
 import type { GraficadorRef, Slide, VarInfo } from "../../api/client";
 import { SLIDE_GRAF_SLOTS } from "./store";
 import { parseVarRef } from "./useVariables";
+import { textOrNull } from "./safeText";
 
 type VarLike = VarInfo & { source?: string };
 
@@ -9,12 +10,6 @@ export type SlideTitleResolution = {
   source: "manual" | "variable" | "none";
   variableRef?: string;
 };
-
-function textOrNull(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const text = value.trim();
-  return text ? text : null;
-}
 
 export function cleanInferredVariableTitle(value: unknown): string | null {
   const text = textOrNull(value);

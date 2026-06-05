@@ -83,9 +83,11 @@ const DEFAULT_CINEMA_METRICS: CinemaMetrics = {
 // ---- Notas de la versión --------------------------------------------
 const RELEASE_NOTES: ReleaseNote[] = [
   {
-    version: "0.3.3",
+    version: "3.3.1",
     date: "2026-06-05",
     highlights: [
+      "Graficos: muestra el selector de iconos en Contenido para los slides con icono y toma los PNG subidos en Configuracion global.",
+      "Graficos: evita que etiquetas o titulos guardados como objetos vacios rompan la pantalla al volver a /graficos.",
       "Graficos: estabiliza titulos automaticos y manuales para que el titulo del grafico se mantenga en preview, PPT y Word.",
       "Editor visual: corrige la X del canvas dinamico para que no compita con separadores ni cambie de icono al hacer click.",
       "Paletas: aplica colores por lista en preview/export y muestra listas de todas las fuentes en proyectos multibase.",

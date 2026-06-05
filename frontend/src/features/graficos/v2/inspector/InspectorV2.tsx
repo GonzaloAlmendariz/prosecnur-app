@@ -59,6 +59,10 @@ export function InspectorV2() {
     const slotSet = new Set(slotNames);
     for (const arg of slideMeta.args) {
       if (slotSet.has(arg.name)) continue;
+      if (arg.name === "icono" || arg.tipo_input === "icono") {
+        result.content.push(arg);
+        continue;
+      }
       const grupo = normalizeArgGroup((arg.grupo as ArgGrupo) ?? "estilo");
       const tab = TABS.find((t) => t.grupos.map(normalizeArgGroup).includes(grupo));
       if (tab) result[tab.key].push(arg);

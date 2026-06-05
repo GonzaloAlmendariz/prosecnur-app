@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiGraficosPresetsMetadata, PresetsRegistry, PresetMetadata } from "../../api/client";
+import { normalizePresetsRegistry } from "./metadataSanitizers";
 
 // Mismo patrón que `useGraficosRegistry`: cache a nivel módulo porque
 // el catálogo es inmutable para una versión dada del backend. Todos los
@@ -22,9 +23,10 @@ export function usePresetsMetadata(): {
     if (cache) return;
     if (!pending) {
       pending = apiGraficosPresetsMetadata().then((r) => {
-        cache = r;
+        const normalized = normalizePresetsRegistry(r);
+        cache = normalized;
         pending = null;
-        return r;
+        return normalized;
       });
     }
     pending
