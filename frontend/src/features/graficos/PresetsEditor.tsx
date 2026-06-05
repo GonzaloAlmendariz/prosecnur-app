@@ -31,6 +31,15 @@ function resolveLucide(name: string | undefined): LucideIcon {
   return (name && registry[name]) || registry["Sliders"] || registry["Square"];
 }
 
+function clarifyPresetGraphTitleArg(arg: ArgMetadata): ArgMetadata {
+  if (arg.name !== "titulo") return arg;
+  return {
+    ...arg,
+    label: "Título del gráfico",
+    descripcion: "Texto que se muestra como título propio del gráfico.",
+  };
+}
+
 export function PresetsEditor() {
   const { presets, loading, error } = usePresetsMetadata();
   const { presets: defaults } = usePresetsDefaults();
@@ -301,12 +310,12 @@ function PresetBody({
   const setPresetArg = usePlanStore((s) => s.setPresetArg);
   const replacePreset = usePlanStore((s) => s.replacePreset);
   const { presets: defaults } = usePresetsDefaults();
-  const presetArgs = meta.args;
+  const presetArgs = useMemo(() => meta.args.map(clarifyPresetGraphTitleArg), [meta.args]);
 
   // Agrupar args por grupo semántico, manteniendo el orden de GRUPO_META.
   const gruposDeArgs = useMemo(() => {
     const byGrupo: Partial<Record<ArgGrupo, ArgMetadata[]>> = {};
-    for (const a of meta.args) {
+    for (const a of presetArgs) {
       const g = normalizeArgGroup(a.grupo as ArgGrupo);
       (byGrupo[g] ??= []).push(a);
     }
@@ -314,7 +323,7 @@ function PresetBody({
       .filter((g) => byGrupo[g] && byGrupo[g]!.length > 0)
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
       .map((g) => ({ grupo: g, args: byGrupo[g]! }));
-  }, [meta]);
+  }, [presetArgs]);
 
   const currentDefaults = defaults[meta.name] ?? {};
 

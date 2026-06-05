@@ -60,6 +60,7 @@ export function ArgField({
   variables,
   argState = "inherited",
   inheritedValue,
+  placeholder,
   onReset,
 }: {
   meta: ArgMetadata;
@@ -72,6 +73,7 @@ export function ArgField({
    *  `value` es undefined/null/"", el control muestra `inheritedValue`
    *  con styling apagado para indicar que es heredado. */
   inheritedValue?: ArgValue;
+  placeholder?: string;
   /** Si se provee y `argState !== "inherited"`, muestra un botón ↺ que
    *  llama a esta función para resetear el arg al valor base. */
   onReset?: () => void;
@@ -114,6 +116,7 @@ export function ArgField({
           displayValue={displayValue}
           hasOwnValue={hasOwnValue}
           inheritedValue={inheritedValue}
+          placeholder={placeholder}
           onChange={onChange}
           variables={variables}
         />
@@ -230,6 +233,7 @@ function FieldControl({
   displayValue,
   hasOwnValue,
   inheritedValue,
+  placeholder,
   onChange,
   variables,
 }: {
@@ -238,6 +242,7 @@ function FieldControl({
   displayValue: ArgValue;
   hasOwnValue: boolean;
   inheritedValue?: ArgValue;
+  placeholder?: string;
   onChange: (v: ArgValue) => void;
   variables: VarInfo[];
 }) {
@@ -258,6 +263,7 @@ function FieldControl({
         <TextControl
           meta={meta}
           value={(shownValue as string) ?? ""}
+          placeholder={placeholder}
           onChange={onChange}
         />
       );
@@ -267,6 +273,7 @@ function FieldControl({
         <TextControl
           meta={meta}
           value={(shownValue as string) ?? ""}
+          placeholder={placeholder}
           onChange={onChange}
           multiline
           rows={3}
@@ -348,12 +355,14 @@ const inputStyle: React.CSSProperties = {
 function TextControl({
   meta,
   value,
+  placeholder,
   onChange,
   multiline = false,
   rows = 1,
 }: {
   meta: ArgMetadata;
   value: string;
+  placeholder?: string;
   onChange: (v: ArgValue) => void;
   multiline?: boolean;
   rows?: number;
@@ -366,6 +375,7 @@ function TextControl({
     message: buildTextStatusMessage({
       value,
       metaName: meta.name,
+      placeholder,
       baseHint,
     }),
   });
@@ -373,9 +383,10 @@ function TextControl({
   const statusId = useId();
 
   function evaluate(next: string) {
-    const message = buildTextStatusMessage({ value: next, metaName: meta.name, baseHint });
+    const message = buildTextStatusMessage({ value: next, metaName: meta.name, placeholder, baseHint });
+    const hasAutomaticText = !!placeholder && next.trim() === "";
     setStatus({
-      state: isCriticalTextField(meta.name) && next.trim() === "" ? "warning" : "default",
+      state: isCriticalTextField(meta.name) && next.trim() === "" && !hasAutomaticText ? "warning" : "default",
       message,
     });
   }
@@ -405,7 +416,7 @@ function TextControl({
               setIsFocused(false);
               evaluate(draft);
             }}
-            placeholder={meta.descripcion ? undefined : "(opcional)"}
+            placeholder={placeholder ?? (meta.descripcion ? undefined : "(opcional)")}
             style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
             className={`pulso-gv2-text-input-control is-${statusRowState}`}
             aria-describedby={statusId}
@@ -427,7 +438,7 @@ function TextControl({
                 setIsFocused(false);
                 evaluate(draft);
               }}
-              placeholder={meta.descripcion ? undefined : "(opcional)"}
+              placeholder={placeholder ?? (meta.descripcion ? undefined : "(opcional)")}
               style={inputStyle}
               className={`pulso-gv2-text-input-control is-${statusRowState}`}
               aria-describedby={statusId}
@@ -1272,13 +1283,18 @@ export function resolveArgumentDescription(meta: ArgMetadata, options: {
 function buildTextStatusMessage({
   value,
   metaName,
+  placeholder,
   baseHint,
 }: {
   value: string | undefined;
   metaName: string;
+  placeholder?: string;
   baseHint: string;
 }): string {
   const trimmed = (value ?? "").trim();
+  if (trimmed.length === 0 && placeholder) {
+    return "Si lo dejas vacio, Prosecnur usara el titulo automatico de la variable.";
+  }
   if (isCriticalTextField(metaName) && trimmed.length === 0) {
     return "Este texto es clave para la lectura del gráfico.";
   }

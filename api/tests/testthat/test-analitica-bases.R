@@ -32,6 +32,34 @@ if (!exists("%||%")) {
   `%||%` <- function(x, y) if (is.null(x)) y else x
 }
 
+.pyreadstat_metadata <- function(path) {
+  py <- .bases_pyreadstat_python()
+  if (!nzchar(py)) skip("pyreadstat no disponible en python3")
+  script <- tempfile(fileext = ".py")
+  out <- tempfile(fileext = ".json")
+  on.exit(unlink(c(script, out), force = TRUE), add = TRUE)
+  writeLines(c(
+    "import json, sys",
+    "import pyreadstat",
+    "_, meta = pyreadstat.read_sav(sys.argv[1], metadataonly=True)",
+    "payload = {",
+    "  'variable_measure': meta.variable_measure,",
+    "  'original_variable_types': meta.original_variable_types,",
+    "  'variable_display_width': meta.variable_display_width,",
+    "  'column_names_to_labels': meta.column_names_to_labels,",
+    "  'value_label_counts': {k: len(v) for k, v in meta.variable_value_labels.items()},",
+    "}",
+    "with open(sys.argv[2], 'w', encoding='utf-8') as fh:",
+    "  json.dump(payload, fh, ensure_ascii=False)"
+  ), script, useBytes = TRUE)
+  res <- suppressWarnings(system2(py, c(script, path, out), stdout = TRUE, stderr = TRUE))
+  status <- attr(res, "status")
+  if (!is.null(status) && status != 0L) {
+    fail(paste(res, collapse = "\n"))
+  }
+  jsonlite::read_json(out, simplifyVector = FALSE)
+}
+
 # Helper: construir un rp_inst mínimo con survey + choices + choices_raw
 .fixture_inst <- function() {
   survey <- data.frame(
@@ -105,6 +133,18 @@ test_that(".infer_measure clasifica por tipo de XLSForm", {
                         c("Totalmente en desacuerdo","En desacuerdo","Neutral",
                           "De acuerdo","Totalmente de acuerdo")))
   expect_equal(.infer_measure("nivel_acuerdo", likert, survey), "ordinal")
+
+  # Un código especial no sustantivo (75 = Prefiero no responder) no debe
+  # impedir que una escala Likert 1..4 sea ordinal.
+  likert_con_missing <- structure(
+    c("1", "2", "3", "4", "75"),
+    labels = stats::setNames(
+      c("1", "2", "3", "4", "75"),
+      c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo",
+        "Totalmente de acuerdo", "Prefiero no responder")
+    )
+  )
+  expect_equal(.infer_measure("nivel_acuerdo", likert_con_missing, survey), "ordinal")
 })
 
 test_that(".infer_spss_format infiere anchos y formatos correctos", {
@@ -192,6 +232,7 @@ test_that(".bases_export_sav escribe un .sav legible con measure embebido", {
 
   sav_path <- tempfile(fileext = ".sav")
   on.exit(unlink(sav_path), add = TRUE)
+  writeBin(charToRaw("archivo viejo"), sav_path)
 
   .bases_export_sav(df, inst, sav_path, NULL)
 
@@ -217,6 +258,14 @@ test_that(".bases_export_sav escribe un .sav legible con measure embebido", {
 
   # Variable labels preservados
   expect_equal(attr(re$edad, "label", exact = TRUE), "Edad")
+
+  meta <- .pyreadstat_metadata(sav_path)
+  expect_equal(meta$variable_measure$sexo, "nominal")
+  expect_equal(meta$variable_measure$nivel_acuerdo, "ordinal")
+  expect_equal(meta$variable_measure$edad, "scale")
+  expect_equal(meta$variable_measure$comentario, "nominal")
+  expect_equal(meta$value_label_counts$sexo, 2)
+  expect_equal(meta$value_label_counts$nivel_acuerdo, 5)
 })
 
 test_that(".bases_export_sav con path_sps genera syntax de respaldo", {
@@ -380,6 +429,28 @@ test_that(".bases_apply_overrides pisa la inferencia sin afectar otras vars", {
                attr(df$nivel_acuerdo, "measure", exact = TRUE))
 })
 
+test_that(".bases_coerce_spss_types respeta tipos numericos/texto del XLSForm", {
+  inst <- list(survey = data.frame(
+    name = c("edad_txt", "texto_vacio"),
+    type = c("integer", "text"),
+    stringsAsFactors = FALSE
+  ))
+  df <- data.frame(
+    edad_txt = I(c("29", "34", NA)),
+    texto_vacio = c(NA_real_, NA_real_, NA_real_)
+  )
+  attr(df$edad_txt, "label") <- "Edad"
+  attr(df$texto_vacio, "label") <- "Texto vacio"
+
+  out <- .bases_coerce_spss_types(df, inst)
+
+  expect_true(is.numeric(out$edad_txt))
+  expect_equal(out$edad_txt[1:2], c(29, 34))
+  expect_true(is.character(out$texto_vacio))
+  expect_equal(attr(out$edad_txt, "label", exact = TRUE), "Edad")
+  expect_equal(attr(out$texto_vacio, "label", exact = TRUE), "Texto vacio")
+})
+
 test_that(".bases_export_sav aplica overrides en roundtrip", {
   if (!requireNamespace("haven", quietly = TRUE)) skip("haven no disponible")
 
@@ -404,4 +475,7 @@ test_that(".bases_export_sav aplica overrides en roundtrip", {
     # archivo se escribió OK
     expect_true(file.exists(sav_path))
   }
+
+  meta <- .pyreadstat_metadata(sav_path)
+  expect_equal(meta$variable_measure$sexo, "ordinal")
 })

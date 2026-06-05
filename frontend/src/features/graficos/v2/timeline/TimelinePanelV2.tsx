@@ -20,6 +20,8 @@ import { usePlanValidator } from "../../usePlanValidator";
 import { SlideCard } from "./SlideCard";
 import { SlidePicker, SlidePickerTrigger } from "./SlidePicker";
 import { categoryOf, CATEGORY_LABEL, SlideCategory } from "./categoryOf";
+import { slideDisplayTitle } from "../../slideAutoTitle";
+import { useVariables } from "../../useVariables";
 
 // Timeline V2: cards sortables con @dnd-kit. Drag & drop reordena via
 // `moveSlideTo` (extensión de moveSlide que acepta posición arbitraria).
@@ -31,6 +33,7 @@ export function TimelinePanelV2() {
   const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
   const moveSlideTo = usePlanStore((s) => s.moveSlideTo);
   const density = usePlanStore((s) => s.density);
+  const { variables } = useVariables();
 
   const [query, setQuery] = useState("");
   const [catFilter, setCatFilter] = useState<"all" | SlideCategory>("all");
@@ -72,16 +75,14 @@ export function TimelinePanelV2() {
         if (catFilter !== "all" && categoryOf(slide.tipo) !== catFilter) return false;
         if (!q) return true;
         const label = (SLIDE_LABELS[slide.tipo] ?? slide.tipo).toLowerCase();
-        const titulo = typeof slide.payload.titulo === "string"
-          ? (slide.payload.titulo as string).toLowerCase()
-          : "";
+        const titulo = slideDisplayTitle(slide, variables).toLowerCase();
         return (
           label.includes(q) ||
           titulo.includes(q) ||
           slide.tipo.toLowerCase().includes(q)
         );
       });
-  }, [slides, query, catFilter]);
+  }, [slides, query, catFilter, variables]);
 
   // Conteo por categoría para los chips
   const catCounts = useMemo(() => {
@@ -242,6 +243,7 @@ export function TimelinePanelV2() {
                   active={selectedSlideId === slide.id}
                   issues={issuesBySlide[slide.id] ?? []}
                   density={density}
+                  variables={variables}
                 />
               ))}
             </div>

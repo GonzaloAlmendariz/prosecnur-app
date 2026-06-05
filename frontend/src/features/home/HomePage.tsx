@@ -83,6 +83,17 @@ const DEFAULT_CINEMA_METRICS: CinemaMetrics = {
 // ---- Notas de la versión --------------------------------------------
 const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.3.3",
+    date: "2026-06-05",
+    highlights: [
+      "Graficos: estabiliza titulos automaticos y manuales para que el titulo del grafico se mantenga en preview, PPT y Word.",
+      "Editor visual: corrige la X del canvas dinamico para que no compita con separadores ni cambie de icono al hacer click.",
+      "Paletas: aplica colores por lista en preview/export y muestra listas de todas las fuentes en proyectos multibase.",
+      "Word/PPT: refuerza presets, leyendas y composicion de graficos apilados, agrupados, numericos, pie, radar y reportes Word.",
+      "Analitica multibase: mejora la seleccion y recuperacion de bases procesadas para reducir estados incompletos.",
+    ],
+  },
+  {
     version: "0.3.2",
     date: "2026-06-04",
     highlights: [

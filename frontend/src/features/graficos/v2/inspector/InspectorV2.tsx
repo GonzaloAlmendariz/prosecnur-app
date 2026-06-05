@@ -13,6 +13,7 @@ import { LoadingBlock, EmptyState } from "../../../../components/States";
 import { usePlanValidator } from "../../usePlanValidator";
 import { StylePanel } from "./StylePanel";
 import { FiltersPanel } from "./FiltersPanel";
+import { inferSlideVariableTitle } from "../../slideAutoTitle";
 
 // Inspector V3: tabs Contenido | Datos | Estilo | Filtros (sin Avanzado,
 // sin editor JSON crudo).
@@ -106,6 +107,7 @@ export function InspectorV2() {
 
   const activeTab = TABS.find((t) => t.key === inspectorTab) ?? TABS[0];
   const argsInActiveTab = argsByTab[activeTab.key] ?? [];
+  const autoTitle = inferSlideVariableTitle(slide, variables).title;
 
   return (
     <div className="pulso-gv2-inspector">
@@ -191,7 +193,7 @@ export function InspectorV2() {
 
         {/* Tab Contenido: solo args de textos */}
         {activeTab.key === "content" && (
-          <ContentTabBody slide={slide} args={argsInActiveTab} updatePayload={updatePayload} variables={variables} />
+          <ContentTabBody slide={slide} args={argsInActiveTab} updatePayload={updatePayload} variables={variables} autoTitle={autoTitle} />
         )}
 
         {/* Tab Datos: args de datos + slots de graficador */}
@@ -247,11 +249,12 @@ function groupArgs(args: ArgMetadata[]): { grupo: ArgGrupo; args: ArgMetadata[] 
 
 // --- Sub-componentes de tabs simples (Contenido + Datos) -------------------
 
-function ContentTabBody({ slide, args, updatePayload, variables }: {
+function ContentTabBody({ slide, args, updatePayload, variables, autoTitle }: {
   slide: { id: string; payload: Record<string, unknown> };
   args: ArgMetadata[];
   updatePayload: (id: string, patch: Record<string, unknown>) => void;
   variables: import("../../../../api/client").VarInfo[];
+  autoTitle?: string;
 }) {
   if (args.length === 0) {
     return (
@@ -271,6 +274,7 @@ function ContentTabBody({ slide, args, updatePayload, variables }: {
           grupo={grupo}
           args={gargs}
           values={slide.payload}
+          placeholders={autoTitle ? { titulo: autoTitle } : undefined}
           onChangeArg={(name, value) => updatePayload(slide.id, { [name]: value })}
           variables={variables}
         />

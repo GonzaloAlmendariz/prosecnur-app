@@ -1957,7 +1957,7 @@
 
 .pulso-gv2-text-input-wrap input {
   width: 100%;
-  padding-right: 34px !important;
+  padding-right: 42px !important;
 }
 
 .pulso-gv2-text-input-control,
@@ -1995,12 +1995,12 @@
 .pulso-gv2-field-clear {
   position: absolute;
   top: 50%;
-  right: 5px;
+  right: 4px;
   transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
   padding: 0;
   border-radius: 999px;
   border: none;
@@ -3379,9 +3379,16 @@
 }
 
 .pulso-gv2-slot-head .pulso-icon {
-  min-width: 30px;
-  min-height: 30px;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
   border-radius: 999px;
+}
+
+.pulso-gv2-slot-remove {
+  flex: 0 0 auto;
 }
 
 .pulso-gv2-slot-empty-card,
@@ -3754,8 +3761,8 @@
 }
 
 .pulso-gv2-filter-row-remove {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4241,24 +4248,25 @@
 .pulso-gv2-estilo-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(8px) saturate(1.04);
+  -webkit-backdrop-filter: blur(8px) saturate(1.04);
   z-index: 1100;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 32px;
+  padding: clamp(18px, 5vh, 42px) 24px 24px;
   animation: pulso-gv2-fade-in-up 200ms ease-out;
 }
 
 .pulso-gv2-estilo-dialog {
-  width: 100%;
-  max-width: min(1480px, calc(100vw - 48px));
-  height: min(820px, calc(100vh - 64px));
+  width: min(1320px, calc(100vw - 40px));
+  max-width: 1320px;
+  height: min(760px, calc(100vh - clamp(52px, 10vh, 96px)));
+  min-height: min(560px, calc(100vh - 52px));
   background: var(--pulso-surface);
   border: 1px solid var(--pulso-border);
-  border-radius: 14px;
+  border-radius: 16px;
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.22), var(--pulso-shadow-high);
   display: flex;
   flex-direction: column;
@@ -4272,17 +4280,19 @@
   align-items: flex-start;
   padding: 18px 22px 14px;
   border-bottom: 1px solid var(--pulso-border);
-  background: var(--pulso-surface-2);
+  background: color-mix(in srgb, var(--pulso-surface-2) 88%, white);
+  backdrop-filter: blur(12px) saturate(1.05);
+  -webkit-backdrop-filter: blur(12px) saturate(1.05);
 }
 .pulso-gv2-estilo-title { font-size: 16px; font-weight: 700; color: var(--pulso-text); }
 .pulso-gv2-estilo-sub   { font-size: 12px; color: var(--pulso-text-soft); margin-top: 2px; max-width: 600px; line-height: 1.45; }
 
 .pulso-gv2-estilo-close {
-  width: 28px; height: 28px;
+  width: 36px; height: 36px;
   display: inline-flex; align-items: center; justify-content: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 9px;
   color: var(--pulso-text-soft);
   cursor: pointer;
   flex-shrink: 0;
@@ -4326,9 +4336,83 @@
 .pulso-gv2-estilo-body {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 22px 24px 24px;
   background: white;
   min-width: 0;
+}
+
+.pulso-gv2-estilo-body.is-paletas {
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pulso-gv2-paletas-editor {
+  display: flex;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+  min-height: 340px;
+}
+
+.pulso-gv2-estilo-body.is-paletas .pulso-gv2-paletas-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.pulso-gv2-paletas-sidebar {
+  width: 220px;
+  flex: 0 0 220px;
+  min-height: 0;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 12px 12px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  overflow: hidden;
+}
+
+.pulso-gv2-paletas-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+}
+
+.pulso-gv2-paletas-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.pulso-gv2-paletas-list::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--pulso-border) 78%, var(--pulso-text-soft));
+  border: 2px solid white;
+  border-radius: 999px;
+}
+
+.pulso-gv2-paletas-detail {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  padding: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .pulso-gv2-presets-editor {
@@ -4408,6 +4492,7 @@
 
 .pulso-gv2-command-row--exports {
   display: flex !important;
+  flex-wrap: wrap !important;
 }
 
 .pulso-gv2-header-note {
@@ -4769,6 +4854,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  max-width: 100%;
+  min-width: 0;
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 600;
@@ -4783,12 +4870,20 @@
     color var(--motion-dur-fast) ease,
     transform var(--motion-dur-press) var(--gv2-press-ease);
 }
-.pulso-gv2-estilo-trigger:hover {
+.pulso-gv2-estilo-trigger:hover,
+.pulso-gv2-estilo-trigger.is-open {
   border-color: var(--pulso-primary);
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
 }
+.pulso-gv2-estilo-trigger.is-open {
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
 .pulso-gv2-estilo-trigger-meta {
+  max-width: min(180px, 32vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 10px;
   color: var(--pulso-text-soft);
   font-weight: 500;
@@ -7551,27 +7646,41 @@
 /* Editable layout values and zero action. */
 .pulso-gv2-layout-zero {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 7px;
+  right: 7px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
   padding: 0;
   border: 1px solid rgba(31, 41, 55, 0.10);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.92);
   color: #8a93a0;
-  opacity: 0;
+  opacity: 0.72;
   box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
   transition: opacity 0.14s ease, color 0.14s ease, border-color 0.14s ease, background 0.14s ease;
-  z-index: 9;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  z-index: 40;
 }
 
 .pulso-gv2-layout-frame:hover .pulso-gv2-layout-zero,
+.pulso-gv2-layout-canvas.is-zero-interacting .pulso-gv2-layout-zero,
 .pulso-gv2-layout-zero:focus-visible {
   opacity: 1;
+}
+
+.pulso-gv2-layout-canvas.is-zero-interacting .pulso-gv2-layout-handle {
+  pointer-events: none;
+}
+
+.pulso-gv2-layout-canvas.is-zero-interacting .pulso-gv2-layout-handle::before {
+  opacity: 0;
 }
 
 .pulso-gv2-layout-zero:hover {

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { apiGraficosConfigGet, apiGraficosConfigPut } from "../../api/client";
-import { normalizeGraficosConfig } from "../../api/graficosConfigNormalizer";
+import { createDefaultWordPresets, normalizeGraficosConfig, normalizeWordPresets } from "../../api/graficosConfigNormalizer";
 import { DEFAULT_CANVAS_VIEWPORT, DEFAULT_DEBUG_PH, GraficosConfig, usePlanStore } from "./store";
 
 // Autosave del plan de gráficos. Misma mecánica que useAnaliticaAutosave:
@@ -19,7 +19,7 @@ const DEFAULT_CONFIG: GraficosConfig = {
   version: "graficos/4",
   plan: { slides: [] },
   presets: {},
-  w_presets: {},
+  w_presets: createDefaultWordPresets(),
   selected_slide_id: null,
   paletas: {},
   iconos: [],
@@ -55,7 +55,7 @@ function mergeWithDefaults(remote: unknown): GraficosConfig {
       ? (r.plan as GraficosConfig["plan"])
       : { slides: [] },
     presets: isObj(r.presets) ? (r.presets as GraficosConfig["presets"]) : {},
-    w_presets: isObj(r.w_presets) ? (r.w_presets as GraficosConfig["w_presets"]) : {},
+    w_presets: normalizeWordPresets(r.w_presets) as GraficosConfig["w_presets"],
     selected_slide_id: typeof r.selected_slide_id === "string" ? r.selected_slide_id : null,
     paletas: isObj(r.paletas) ? (r.paletas as GraficosConfig["paletas"]) : {},
     iconos: Array.isArray(r.iconos) ? (r.iconos as GraficosConfig["iconos"]) : [],

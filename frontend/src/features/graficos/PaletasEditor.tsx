@@ -219,22 +219,9 @@ export function PaletasEditor() {
   const paletaActiva = (activeListName && paletas[activeListName]) || {};
 
   return (
-    <div style={{ display: "flex", gap: 14, minHeight: 340 }}>
+    <div className="pulso-gv2-paletas-editor">
       {/* Columna izquierda: lista de list_names */}
-      <div style={{
-        width: 220,
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        paddingRight: 12,
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 10,
-        background: "white",
-        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.03)",
-        paddingTop: 12,
-        paddingBottom: 12,
-        paddingLeft: 12,
-      }}>
+      <div className="pulso-gv2-paletas-sidebar">
         <SectionEyebrow
           label="Listas del instrumento"
           hint="Cada lista de respuestas puede tener su paleta. Si no le asignas colores, prosecnur usa su paleta azul por defecto."
@@ -264,7 +251,7 @@ export function PaletasEditor() {
           )}
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div className="pulso-gv2-paletas-list">
           {listasFiltradas.map((l) => {
             const active = l.list_name === activeListName;
             const tienePaleta = !!paletas[l.list_name] && Object.keys(paletas[l.list_name] ?? {}).length > 0;
@@ -326,18 +313,7 @@ export function PaletasEditor() {
       </div>
 
       {/* Columna derecha: editor de colores de la lista activa */}
-      <div style={{
-        flex: 1,
-        minWidth: 0,
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 10,
-        background: "white",
-        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.03)",
-        padding: 12,
-      }}>
+      <div className="pulso-gv2-paletas-detail">
         {!activaData ? (
           <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
             Elige una lista a la izquierda para editar su paleta.

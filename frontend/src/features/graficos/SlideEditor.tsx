@@ -10,6 +10,7 @@ import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgG
 import GraficadorSlot from "./GraficadorSlot";
 import { SlidePreview } from "./SlidePreview";
 import { LoadingBlock, EmptyState, SectionEyebrow } from "../../components/States";
+import { inferSlideVariableTitle } from "./slideAutoTitle";
 
 // Editor de slide rediseñado. Reemplaza el switch/case + mapas hardcoded
 // por un renderer dinámico que lee el metadata del registry:
@@ -72,6 +73,7 @@ export default function SlideEditor() {
 
   const humanTitle = SLIDE_LABELS[slide.tipo] ?? slide.tipo;
   const SlideIcon = slideMeta ? resolveLucide(slideMeta.icono_ui) : Lucide.FileText;
+  const autoTitle = inferSlideVariableTitle(slide, variables).title;
 
   const payloadMap = slide.payload as Record<string, GraficadorRef | null | undefined>;
 
@@ -115,6 +117,7 @@ export default function SlideEditor() {
               grupo={grupo}
               args={args}
               values={slide.payload}
+              placeholders={autoTitle ? { titulo: autoTitle } : undefined}
               onChangeArg={(name, value) => updatePayload(slide.id, { [name]: value })}
               variables={variables}
             />

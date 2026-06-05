@@ -2,6 +2,61 @@
 # PRESETS WORD
 # =============================================================================
 
+.WORD_CHART_PRESETS_DEFAULT_PULSO <- list(
+  barras_apiladas = list(
+    mostrar_barra_extra      = FALSE,
+    barra_extra_preset       = "ninguno",
+    prefijo_barra_extra      = "",
+    titulo_barra_extra       = "",
+
+    canvas_w_etiquetas       = 0.18,
+    canvas_w_buf_etq_bars    = 0,
+    canvas_w_bars            = 0.82,
+    canvas_w_buf_bars_extra  = 0,
+    canvas_w_extra           = 0,
+
+    canvas_h_toprow_in       = 0,
+    canvas_h_legend_in       = 0.42,
+    canvas_h_caption_in      = 0.45,
+    canvas_h_panel_in_min    = 1.1,
+    alto_por_categoria       = 0.55,
+
+    grosor_barras_mult       = 1.5,
+    ancho_max_eje_y          = 36,
+    size_ejes                = 7,
+    size_texto_barras        = 2.8,
+
+    leyenda_posicion         = "abajo",
+    mostrar_leyenda          = TRUE,
+    legend_key_cm            = 0.15,
+    legend_espaciado         = 0,
+    legend_n_por_fila        = 10,
+    size_leyenda             = 6,
+    centro_cowplot           = 0.5
+  )
+)
+
+.WORD_PRESETS_DEFAULT_PULSO <- list(
+  chart_options = list(ocultar_etiqueta_si_titulo = TRUE),
+  chart_presets = .WORD_CHART_PRESETS_DEFAULT_PULSO
+)
+
+.word_chart_presets_merge_defaults <- function(chart_presets = NULL) {
+  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  out <- .WORD_CHART_PRESETS_DEFAULT_PULSO
+  if (is.null(chart_presets)) return(out)
+  if (!is.list(chart_presets)) return(out)
+
+  for (nm in names(chart_presets)) {
+    patch <- chart_presets[[nm]]
+    if (is.null(patch) || !is.list(patch)) next
+    if (!is.null(patch$args) && is.list(patch$args)) patch <- patch$args
+    out[[nm]] <- utils::modifyList(out[[nm]] %||% list(), patch)
+  }
+
+  out
+}
+
 #' @title Definir presets para Word (imagen + estilos de párrafo)
 #' @family reporte
 #' @export
@@ -18,7 +73,7 @@ w_presets <- function(
     pagebreak_after_title = TRUE,
     toc                  = list(enabled = FALSE, title = NULL),
     chart_options        = list(ocultar_etiqueta_si_titulo = TRUE),
-    chart_presets        = list()
+    chart_presets        = NULL
 ) {
   `%||%` <- function(x, y) if (!is.null(x)) x else y
   image$width_in  <- as.numeric(image$width_in  %||% 6.6)
@@ -39,7 +94,7 @@ w_presets <- function(
     pagebreak_after_title = isTRUE(pagebreak_after_title),
     toc                   = toc,
     chart_options         = chart_options %||% list(),
-    chart_presets         = chart_presets %||% list()
+    chart_presets         = .word_chart_presets_merge_defaults(chart_presets)
   )
   class(out) <- c("word_presets", "list")
   out
@@ -62,7 +117,7 @@ w_presets <- function(
 
   for (nm in c("base", "barras_apiladas", "multi_apiladas", "barras_agrupadas",
                "barras_numericas", "boxplot", "pie", "donut", "radar_tabla",
-               "dim_heatmap", "dim_heatmap_criterios", "dim_radar",
+               "media_rango", "dim_heatmap", "dim_heatmap_criterios", "dim_radar",
                "dim_comparativo_radarbar", "dim_foda", "debug")) {
     presets_ppt[[nm]] <- ensure_block(presets_ppt[[nm]])
   }
@@ -75,9 +130,9 @@ w_presets <- function(
       presets_ppt[[nm]]$args$word_ocultar_etiqueta_categoria %||% ocultar_dup
   }
 
-  # Ajuste de fábrica para Word: que las barras apiladas se vean un poco más
-  # gruesas por defecto sin afectar otros destinos (PPT). Se permite override
-  # explícito desde `chart_presets`.
+  # Fallback legacy: antes de los defaults Word completos, solo existía un
+  # ajuste de grosor. Se conserva por si un preset Word antiguo llega sin
+  # `chart_presets$barras_apiladas`.
   if (is.null(presets_ppt$barras_apiladas$args$grosor_barras_mult)) {
     presets_ppt$barras_apiladas$args$grosor_barras_mult <- 1.2
   }

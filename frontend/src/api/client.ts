@@ -4715,7 +4715,7 @@ export type BasesMetadataVariable = {
   label: string;
   tipo_xlsform: string | null;
   inferred_measure: MeasureSpss;
-  inferred_format_spss: string;  // "auto" significa que haven lo infiere al escribir
+  inferred_format_spss: string;  // "auto" significa que el escritor SAV lo infiere al exportar
   has_labels: boolean;
 };
 
@@ -4724,11 +4724,20 @@ export type BasesMetadataOverride = {
   format_spss?: string;
 };
 
+export type BasesSavWriterInfo = {
+  engine: "pyreadstat" | "haven";
+  ok: boolean;
+  python?: string | null;
+  fallback?: boolean;
+  message?: string;
+};
+
 export async function apiAnaliticaBasesMetadata() {
   return handle<{
     ok: true;
     variables: BasesMetadataVariable[];
     overrides: Record<string, BasesMetadataOverride>;
+    sav_writer?: BasesSavWriterInfo;
   }>(
     await apiFetch("/api/analitica/bases/metadata", { headers: headers() })
   );

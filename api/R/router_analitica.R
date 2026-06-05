@@ -2643,7 +2643,19 @@ mount_analitica <- function(pr) {
 	      overrides <- .bases_overrides_parse((cfg$bases %||% list())$overrides)
 	      reviewed <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
 	      variables <- .bases_metadata_preview(reviewed$data, reviewed$inst)
-	      list(ok = TRUE, variables = variables, overrides = overrides)
+	      py <- .bases_pyreadstat_python()
+	      writer <- if (nzchar(py)) {
+	        list(engine = "pyreadstat", ok = TRUE, python = py, fallback = FALSE)
+	      } else {
+	        list(
+	          engine = "haven",
+	          ok = FALSE,
+	          python = NULL,
+	          fallback = TRUE,
+	          message = "pyreadstat no disponible; se usara haven como fallback."
+	        )
+	      }
+	      list(ok = TRUE, variables = variables, overrides = overrides, sav_writer = writer)
 	    })) |>
     plumber::pr_post("/api/analitica/bases/data", wrap_endpoint(function(req, res, ...) {
       # Descarga directa del archivo de datos de la fuente activa. Si la

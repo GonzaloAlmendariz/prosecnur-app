@@ -2767,6 +2767,8 @@ reporte_ppt_plan <- function(
     )
 
     etiquetas_series <- c(pct = "Porcentaje")
+    ln <- .list_name_of_var(var)
+    colores_categorias <- .paleta_auto(ln, env_diapos)
 
     # Detectar si la variable es select_multiple → agregar subtitulo en cursiva
     if (is.null(overrides$subtitulo)) {
@@ -2785,14 +2787,15 @@ reporte_ppt_plan <- function(
     }
 
     base_args <- list(
-      data             = df_long,
-      var_categoria    = "categoria",
-      var_n            = "N",
-      cols_porcentaje  = "pct",
-      etiquetas_series = etiquetas_series,
-      titulo           = NULL,
-      subtitulo        = NULL,
-      nota_pie         = NULL
+      data                = df_long,
+      var_categoria       = "categoria",
+      var_n               = "N",
+      cols_porcentaje     = "pct",
+      etiquetas_series    = etiquetas_series,
+      colores_categorias  = colores_categorias,
+      titulo              = NULL,
+      subtitulo           = NULL,
+      nota_pie            = NULL
     )
 
     preset_args <- preset_args %||% list()
@@ -3373,19 +3376,27 @@ reporte_ppt_plan <- function(
       return(.blank_canvas(preset_args, overrides))
     }
 
+    list_name_use <- if (!is.null(ctx_cruce)) {
+      .list_name_from_ctx(ctx_cruce)
+    } else {
+      .list_name_from_ctx(ctx_var)
+    }
+    colores_cat <- .paleta_auto(list_name_use, env_diapos)
+
     base_args <- list(
-      data             = df_wide,
-      var_categoria    = "categoria",
-      var_n            = "N",
-      vars_valor       = nombre_serie,
-      etiquetas_series = stats::setNames(etiqueta_serie, nombre_serie),
+      data                = df_wide,
+      var_categoria       = "categoria",
+      var_n               = "N",
+      vars_valor          = nombre_serie,
+      etiquetas_series    = stats::setNames(etiqueta_serie, nombre_serie),
+      colores_categorias  = colores_cat,
 
-      titulo           = NULL,
-      subtitulo        = NULL,
-      nota_pie         = NULL,
+      titulo              = NULL,
+      subtitulo           = NULL,
+      nota_pie            = NULL,
 
-      usar_canvas      = TRUE,
-      exportar         = "rplot"
+      usar_canvas         = TRUE,
+      exportar            = "rplot"
     )
 
     for (k in c("titulo","subtitulo","nota_pie","title","subtitle","caption","main","sub")) {
@@ -5620,6 +5631,7 @@ reporte_ppt_plan <- function(
 #' @param barras_agrupadas Lista de parametros por defecto para `graficar_barras_agrupadas()`.
 #' @param barras_numericas Lista de parametros por defecto para `graficar_barras_numericas()`.
 #' @param boxplot Lista de parametros por defecto para `graficar_boxplot()`.
+#' @param media_rango Lista de parametros por defecto para `graficar_media_rango()`.
 #' @param pie Lista de parametros por defecto para `graficar_pie(tipo_pie="pie")`.
 #' @param donut Lista de parametros por defecto para `graficar_pie(tipo_pie="donut")`.
 #' @param radar_tabla Lista de parametros por defecto para `graficar_radar()`.
@@ -5642,6 +5654,7 @@ p_presets <- function(
     barras_agrupadas = list(),
     barras_numericas = list(),
     boxplot          = list(),
+    media_rango      = list(),
     pie              = list(),
     donut            = list(),
     radar_tabla      = list(),
@@ -5683,6 +5696,7 @@ p_presets <- function(
     barras_agrupadas = normalize_block(barras_agrupadas),
     barras_numericas = normalize_block(barras_numericas),
     boxplot          = normalize_block(boxplot),
+    media_rango      = normalize_block(media_rango),
     pie              = normalize_block(pie),
     donut            = normalize_block(donut),
     radar_tabla      = normalize_block(radar_tabla),

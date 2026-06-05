@@ -3,6 +3,8 @@ import { ChevronUp, ChevronDown, X, Plus, Copy, Search, LayoutPanelTop } from "l
 import { SlideType } from "../../api/client";
 import { usePlanStore, SLIDE_LABELS } from "./store";
 import { EmptyState } from "../../components/States";
+import { slideDisplayTitle } from "./slideAutoTitle";
+import { useVariables } from "./useVariables";
 
 // Grupos del picker "Agregar slide" — siguen la categorización humana
 // del registry (`graficos_metadata.R`). El Bloque 3 los reemplazará
@@ -55,6 +57,7 @@ const SLIDE_GROUPS: { label: string; items: SlideType[] }[] = [
 
 export default function TimelinePanel() {
   const { plan, selectedSlideId, addSlide, removeSlide, duplicateSlide, moveSlide, select } = usePlanStore();
+  const { variables } = useVariables();
   const [query, setQuery] = useState("");
 
   // Filtro de slides por título o tipo. Preserva el número real del
@@ -67,12 +70,10 @@ export default function TimelinePanel() {
       .map((s, i) => ({ slide: s, index: i }))
       .filter(({ slide }) => {
         const label = (SLIDE_LABELS[slide.tipo] ?? slide.tipo).toLowerCase();
-        const titulo = typeof slide.payload.titulo === "string"
-          ? (slide.payload.titulo as string).toLowerCase()
-          : "";
+        const titulo = slideDisplayTitle(slide, variables).toLowerCase();
         return label.includes(q) || titulo.includes(q) || slide.tipo.toLowerCase().includes(q);
       });
-  }, [plan.slides, query]);
+  }, [plan.slides, query, variables]);
 
   return (
     <aside style={{ width: 260, borderRight: "1px solid var(--pulso-border)", padding: "14px 12px", overflowY: "auto", background: "var(--pulso-surface-2)" }}>
@@ -144,6 +145,7 @@ export default function TimelinePanel() {
         )}
         {filtered.map(({ slide: s, index: i }) => {
           const active = selectedSlideId === s.id;
+          const titulo = slideDisplayTitle(s, variables);
           return (
             <div
               key={s.id}
@@ -187,9 +189,9 @@ export default function TimelinePanel() {
                 </div>
               </div>
               <div style={{ fontWeight: 600, color: "var(--pulso-text)" }}>{SLIDE_LABELS[s.tipo] ?? s.tipo}</div>
-              {typeof s.payload.titulo === "string" && s.payload.titulo && (
+              {titulo && (
                 <div style={{ color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {s.payload.titulo as string}
+                  {titulo}
                 </div>
               )}
             </div>

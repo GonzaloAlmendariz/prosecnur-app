@@ -6,12 +6,15 @@ import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { SLIDE_LABELS } from "../../store";
 import SlidePreviewMockup from "../../SlidePreviewMockup";
 import { ValidationIssue } from "../../usePlanValidator";
+import { VarInfo } from "../../../../api/client";
+import { slideDisplayTitle } from "../../slideAutoTitle";
 
 export type PlanNodeCardProps = {
   node: PlanGraphNode;
   selected: boolean;
   dimmed: boolean;
   issues: ValidationIssue[];
+  variables: VarInfo[];
   onClick: (e: React.MouseEvent) => void;
   onMouseDown: (e: React.MouseEvent) => void;
 };
@@ -26,11 +29,11 @@ function resolveIcon(name: string | undefined): LucideIcon {
   return (name && reg[name]) || reg["FileText"] || reg["Square"];
 }
 
-export function PlanNodeCard({ node, selected, dimmed, issues, onClick, onMouseDown }: PlanNodeCardProps) {
+export function PlanNodeCard({ node, selected, dimmed, issues, variables, onClick, onMouseDown }: PlanNodeCardProps) {
   const { slidesById } = useGraficosRegistry();
   const meta = slidesById[node.slide.tipo];
   const Icon = resolveIcon(meta?.icono_ui);
-  const titulo = typeof node.slide.payload.titulo === "string" ? node.slide.payload.titulo : "";
+  const titulo = slideDisplayTitle(node.slide, variables, SLIDE_LABELS[node.slide.tipo] ?? node.slide.tipo);
   const errors = issues.filter((i) => i.severity === "error").length;
   const warns = issues.filter((i) => i.severity === "warning").length;
 

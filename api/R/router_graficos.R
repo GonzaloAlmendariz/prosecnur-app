@@ -50,6 +50,32 @@
 
 .clean_rebuild_args <- function(args, fn) {
   args <- as.list(args %||% list())
+  if ("titulo" %in% names(args) && "overrides" %in% names(formals(fn))) {
+    title_value <- args$titulo
+    has_title <- !(
+      is.null(title_value) ||
+        length(title_value) == 0L ||
+        (length(title_value) == 1L && is.list(title_value) && is.null(title_value[[1]])) ||
+        (length(title_value) == 1L && is.atomic(title_value) && is.na(title_value)) ||
+        (length(title_value) == 1L && is.character(title_value) && !nzchar(trimws(title_value)))
+    )
+    if (isTRUE(has_title)) {
+      overrides <- .as_json_list(args$overrides) %||% list()
+      override_title <- overrides$titulo %||% NULL
+      has_override_title <- !(
+        is.null(override_title) ||
+          length(override_title) == 0L ||
+          (length(override_title) == 1L && is.list(override_title) && is.null(override_title[[1]])) ||
+          (length(override_title) == 1L && is.atomic(override_title) && is.na(override_title)) ||
+          (length(override_title) == 1L && is.character(override_title) && !nzchar(trimws(override_title)))
+      )
+      if (!isTRUE(has_override_title)) {
+        overrides$titulo <- as.character(title_value)[1]
+      }
+      args$overrides <- overrides
+      args$titulo <- NULL
+    }
+  }
   args <- args[names(args) %in% names(formals(fn))]
   args[!vapply(args, function(v) {
     is.null(v) ||
@@ -444,8 +470,8 @@
 
 .build_w_presets <- function(w_json) {
   if (is.null(w_json) || length(w_json) == 0) return(NULL)
-  args <- lapply(w_json, as.list)
-  do.call(w_presets, args)
+  args <- as.list(w_json)
+  do.call(get("w_presets", mode = "function", inherits = TRUE), args)
 }
 
 .validar_plan_json <- function(plan_json) {
@@ -489,7 +515,7 @@
     version = "graficos/4",
     plan = list(slides = list()),
     presets = user_presets %||% .PRESETS_DEFAULT_PULSO,
-    w_presets = list(),
+    w_presets = .WORD_PRESETS_DEFAULT_PULSO,
     selected_slide_id = NULL,
     paletas = list(),
     iconos = list(),
@@ -577,6 +603,44 @@
   is.list(x) && (length(x) == 0L || !is.null(names(x)))
 }
 
+.graficos_normalize_paleta_map <- function(palette) {
+  if (is.null(palette)) return(NULL)
+  if (is.atomic(palette)) {
+    values <- as.character(palette)
+    nms <- names(palette)
+  } else if (is.list(palette) && !is.data.frame(palette)) {
+    values <- vapply(palette, function(v) {
+      x <- as.character(v %||% "")
+      if (!length(x)) "" else x[1]
+    }, character(1))
+    nms <- names(palette)
+  } else {
+    return(NULL)
+  }
+
+  if (is.null(nms)) return(NULL)
+  nms <- trimws(as.character(nms))
+  values <- trimws(as.character(values))
+  keep <- !is.na(nms) & nzchar(nms) & !is.na(values) & nzchar(values)
+  if (!any(keep)) return(NULL)
+  out <- as.list(values[keep])
+  names(out) <- nms[keep]
+  out[!duplicated(names(out))]
+}
+
+.graficos_normalize_paletas <- function(paletas) {
+  if (!.graficos_is_obj(paletas)) return(list())
+  out <- list()
+  for (list_name in names(paletas)) {
+    ln <- trimws(as.character(list_name %||% "")[1])
+    if (!nzchar(ln)) next
+    pal <- .graficos_normalize_paleta_map(paletas[[list_name]])
+    if (is.null(pal) || !length(pal)) next
+    out[[ln]] <- pal
+  }
+  out
+}
+
 .graficos_unknown_fields <- function(x) {
   known <- c(
     "ok", "version", "exported_at", "exportedAt", "imported_at", "importedAt",
@@ -627,13 +691,21 @@
   cfg$presets <- if (.graficos_is_obj(presets)) presets else defaults$presets
 
   w_presets <- .graficos_pick_alias(src, "w_presets", "wPresets")
-  cfg$w_presets <- if (.graficos_is_obj(w_presets)) w_presets else defaults$w_presets
+  cfg$w_presets <- if (.graficos_is_obj(w_presets)) {
+    .graficos_deep_merge(defaults$w_presets, w_presets)
+  } else {
+    defaults$w_presets
+  }
 
   selected_slide_id <- .graficos_pick_alias(src, "selected_slide_id", "selectedSlideId")
   cfg$selected_slide_id <- if (is.character(selected_slide_id) && length(selected_slide_id) == 1L) selected_slide_id else NULL
 
   paletas <- .graficos_pick_alias(src, "paletas")
-  cfg$paletas <- if (.graficos_is_obj(paletas)) paletas else defaults$paletas
+  cfg$paletas <- if (.graficos_is_obj(paletas)) {
+    .graficos_normalize_paletas(paletas)
+  } else {
+    defaults$paletas
+  }
 
   iconos <- .graficos_pick_alias(src, "iconos")
   cfg$iconos <- if (is.list(iconos) && is.null(names(iconos))) iconos else defaults$iconos
@@ -724,6 +796,106 @@
     cfg <- .graficos_deep_merge(cfg, override)
   }
   .graficos_normalize_config(cfg, sid = sid)
+}
+
+.graficos_palette_vector <- function(palette) {
+  if (is.null(palette)) return(NULL)
+  if (is.atomic(palette)) {
+    values <- as.character(palette)
+    nms <- names(palette)
+  } else if (is.list(palette)) {
+    nms <- names(palette)
+    values <- vapply(palette, function(v) {
+      x <- as.character(v %||% "")
+      if (!length(x)) "" else x[1]
+    }, character(1))
+  } else {
+    return(NULL)
+  }
+
+  if (is.null(nms)) return(NULL)
+  nms <- trimws(as.character(nms))
+  values <- trimws(as.character(values))
+  keep <- !is.na(nms) & nzchar(nms) & !is.na(values) & nzchar(values)
+  if (!any(keep)) return(NULL)
+  out <- values[keep]
+  names(out) <- nms[keep]
+  out[!duplicated(names(out))]
+}
+
+.graficos_palette_env <- function(paletas, parent = parent.frame()) {
+  env <- new.env(parent = parent)
+  if (!is.list(paletas) || !length(paletas)) return(env)
+
+  for (list_name in names(paletas)) {
+    ln <- trimws(as.character(list_name %||% "")[1])
+    if (!nzchar(ln)) next
+    pal <- .graficos_palette_vector(paletas[[list_name]])
+    if (is.null(pal) || !length(pal)) next
+    assign(paste0("paleta_", ln), pal, envir = env)
+  }
+
+  env
+}
+
+.graficos_collect_palette_lists <- function(inst_sources) {
+  if (is.null(inst_sources)) return(list())
+  if (!is.list(inst_sources) || is.data.frame(inst_sources)) return(list())
+  if (!is.null(inst_sources$choices) && is.data.frame(inst_sources$choices)) {
+    inst_sources <- list(inst_sources)
+  }
+
+  out <- list()
+  order <- character(0)
+
+  choice_label_col <- function(choices) {
+    candidates <- c("label", "label::es")
+    hit <- candidates[candidates %in% names(choices)][1]
+    if (length(hit) && !is.na(hit)) return(hit)
+    extras <- setdiff(names(choices), c("list_name", "name", "value"))
+    hit <- extras[1]
+    if (length(hit) && !is.na(hit)) hit else NA_character_
+  }
+
+  for (inst in inst_sources) {
+    if (is.null(inst) || !is.list(inst)) next
+    choices <- inst$choices
+    if (is.null(choices) || !is.data.frame(choices) || nrow(choices) == 0L) next
+    if (!("list_name" %in% names(choices)) || !("name" %in% names(choices))) next
+
+    label_col <- choice_label_col(choices)
+    list_names <- unique(trimws(as.character(choices$list_name %||% "")))
+    list_names <- list_names[!is.na(list_names) & nzchar(list_names)]
+
+    for (ln in list_names) {
+      rows <- choices[trimws(as.character(choices$list_name)) == ln, , drop = FALSE]
+      if (!nrow(rows)) next
+      if (is.null(out[[ln]])) {
+        out[[ln]] <- list(list_name = ln, choices = list(), .seen = character(0))
+        order <- c(order, ln)
+      }
+      for (i in seq_len(nrow(rows))) {
+        code <- trimws(as.character(rows$name[i] %||% ""))
+        label <- if (!is.na(label_col) && label_col %in% names(rows)) {
+          as.character(rows[[label_col]][i] %||% code)
+        } else {
+          code
+        }
+        label <- trimws(label)
+        if (!nzchar(label)) label <- code
+        key <- paste(code, label, sep = "\r")
+        if (key %in% out[[ln]]$.seen) next
+        out[[ln]]$choices[[length(out[[ln]]$choices) + 1L]] <- list(name = code, label = label)
+        out[[ln]]$.seen <- c(out[[ln]]$.seen, key)
+      }
+    }
+  }
+
+  lapply(order, function(ln) {
+    x <- out[[ln]]
+    x$.seen <- NULL
+    x
+  })
 }
 
 # Enriquece la config de presets JSON antes de pasarla a prosecnur con:
@@ -1663,27 +1835,8 @@ mount_graficos <- function(pr) {
       sid <- session_header(req)
       s <- session_get(sid)
       inst_sources <- .graficos_processing_sources(sid)$inst_sources
-      rp_inst <- if (length(inst_sources)) inst_sources[[1L]] else s$rp_inst
-      if (is.null(rp_inst)) return(list(listas = list()))
-      choices <- rp_inst$choices
-      if (is.null(choices) || nrow(choices) == 0L) return(list(listas = list()))
-
-      list_names <- unique(as.character(choices$list_name %||% ""))
-      list_names <- list_names[nzchar(list_names)]
-
-      listas <- lapply(list_names, function(ln) {
-        rows <- choices[as.character(choices$list_name) == ln, , drop = FALSE]
-        if (nrow(rows) == 0L) return(NULL)
-        items <- lapply(seq_len(nrow(rows)), function(i) {
-          list(
-            name  = as.character(rows$name[i]  %||% ""),
-            label = as.character(rows$label[i] %||% rows$name[i])
-          )
-        })
-        list(list_name = ln, choices = items)
-      })
-      listas <- Filter(Negate(is.null), listas)
-      list(listas = listas)
+      if (!length(inst_sources) && !is.null(s$rp_inst)) inst_sources <- list(default = s$rp_inst)
+      list(listas = .graficos_collect_palette_lists(inst_sources))
     })) |>
     plumber::pr_post("/api/graficos/icons/upload", wrap_endpoint(function(req, res, ...) {
       # Recibe un PNG codificado en base64 (plus nombre humano) y lo
@@ -1780,6 +1933,7 @@ mount_graficos <- function(pr) {
       cfg <- .graficos_effective_config(sid, parsed$config %||% parsed$graficos_config)
       presets_json <- .enriquecer_presets(cfg$presets %||% list(), cfg$debug_ph)
       icon_registry <- .graficos_icon_registry(sid, cfg)
+      palette_env <- .graficos_palette_env(cfg$paletas %||% list(), parent = parent.frame())
       preview_cache_key <- digest::digest(list(
         slide = slide,
         active_base = .graficos_active_base_name(sid),
@@ -1787,7 +1941,8 @@ mount_graficos <- function(pr) {
           list(
             presets = cfg$presets %||% list(),
             debug_ph = cfg$debug_ph %||% list(),
-            iconos = cfg$iconos %||% list()
+            iconos = cfg$iconos %||% list(),
+            paletas = cfg$paletas %||% list()
           ),
           algo = "xxhash64"
         ),
@@ -1840,11 +1995,37 @@ mount_graficos <- function(pr) {
       )
       graficador_registry <- .graf_names()
 
+      promote_graph_title <- function(args, fn) {
+        args <- as.list(args %||% list())
+        if (!("titulo" %in% names(args)) || !("overrides" %in% names(formals(fn)))) return(args)
+        title_value <- args$titulo
+        has_title <- !(
+          is.null(title_value) ||
+            length(title_value) == 0L ||
+            (length(title_value) == 1L && is.list(title_value) && is.null(title_value[[1]])) ||
+            (length(title_value) == 1L && is.atomic(title_value) && is.na(title_value)) ||
+            (length(title_value) == 1L && is.character(title_value) && !nzchar(trimws(title_value)))
+        )
+        if (!isTRUE(has_title)) return(args)
+        overrides <- as_list_shallow(args$overrides) %||% list()
+        override_title <- overrides$titulo %||% NULL
+        has_override_title <- !(
+          is.null(override_title) ||
+            length(override_title) == 0L ||
+            (length(override_title) == 1L && is.list(override_title) && is.null(override_title[[1]])) ||
+            (length(override_title) == 1L && is.atomic(override_title) && is.na(override_title)) ||
+            (length(override_title) == 1L && is.character(override_title) && !nzchar(trimws(override_title)))
+        )
+        if (!isTRUE(has_override_title)) overrides$titulo <- as.character(title_value)[1]
+        args$overrides <- overrides
+        args$titulo <- NULL
+        args
+      }
       rebuild_graf <- function(g) {
         if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
         if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
         fn <- getExportedValue("prosecnurapp", g$graficador)
-        args <- as.list(g$args %||% list())
+        args <- promote_graph_title(g$args, fn)
         args <- args[names(args) %in% names(formals(fn))]
         args <- args[!vapply(args, function(v) {
           is.null(v) ||
@@ -1899,6 +2080,7 @@ mount_graficos <- function(pr) {
           path_ppt = out_path,
           presets = build_presets(presets_json),
           plan = do.call(p_plan, list(slides = list(slide_r))),
+          env_diapos = palette_env,
           mensajes_progreso = FALSE
         )
       }, error = function(e) {
@@ -1988,6 +2170,7 @@ mount_graficos <- function(pr) {
       )
       graficador_registry_arg <- .graf_names()
       icon_registry_arg <- .graficos_icon_registry(sid, cfg)
+      paletas_arg <- cfg$paletas %||% list()
 
       # El worker hereda nada del main process (callr::r_bg). Necesitamos
       # cargar el paquete prosecnurapp en el subproceso para que resuelva
@@ -1998,7 +2181,7 @@ mount_graficos <- function(pr) {
       job_id <- job_submit(
         sid = sid,
         kind = "graficos.ppt",
-        func = function(rp_data_path, rp_inst_path, plan, presets,
+        func = function(rp_data_path, rp_inst_path, plan, presets, paletas,
                         slide_registry, graficador_registry,
                         icon_registry,
                         active_base,
@@ -2030,11 +2213,37 @@ mount_graficos <- function(pr) {
             if (is.list(x)) return(x)
             as.list(x)
           }
+          promote_graph_title <- function(args, fn) {
+            args <- as.list(args %||% list())
+            if (!("titulo" %in% names(args)) || !("overrides" %in% names(formals(fn)))) return(args)
+            title_value <- args$titulo
+            has_title <- !(
+              is.null(title_value) ||
+                length(title_value) == 0L ||
+                (length(title_value) == 1L && is.list(title_value) && is.null(title_value[[1]])) ||
+                (length(title_value) == 1L && is.atomic(title_value) && is.na(title_value)) ||
+                (length(title_value) == 1L && is.character(title_value) && !nzchar(trimws(title_value)))
+            )
+            if (!isTRUE(has_title)) return(args)
+            overrides <- as_json_list(args$overrides) %||% list()
+            override_title <- overrides$titulo %||% NULL
+            has_override_title <- !(
+              is.null(override_title) ||
+                length(override_title) == 0L ||
+                (length(override_title) == 1L && is.list(override_title) && is.null(override_title[[1]])) ||
+                (length(override_title) == 1L && is.atomic(override_title) && is.na(override_title)) ||
+                (length(override_title) == 1L && is.character(override_title) && !nzchar(trimws(override_title)))
+            )
+            if (!isTRUE(has_override_title)) overrides$titulo <- as.character(title_value)[1]
+            args$overrides <- overrides
+            args$titulo <- NULL
+            args
+          }
           rebuild_graf <- function(g) {
             if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
             if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
             fn <- getExportedValue("prosecnurapp", g$graficador)
-            args <- as.list(g$args %||% list())
+            args <- promote_graph_title(g$args, fn)
             args <- args[names(args) %in% names(formals(fn))]
             args <- args[!vapply(args, function(v) {
               is.null(v) ||
@@ -2066,6 +2275,7 @@ mount_graficos <- function(pr) {
             if (is.null(presets_json) || length(presets_json) == 0) return(NULL)
             do.call(p_presets, lapply(presets_json, as.list))
           }
+          palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
           total_slides <- length(plan$slides)
           slides_r <- vector("list", total_slides)
           for (i in seq_len(total_slides)) {
@@ -2089,6 +2299,7 @@ mount_graficos <- function(pr) {
               path_ppt = result_path,
               presets = build_presets(presets),
               plan = do.call(p_plan, list(slides = slides_r)),
+              env_diapos = palette_env,
               mensajes_progreso = FALSE
             ),
             error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
@@ -2101,6 +2312,7 @@ mount_graficos <- function(pr) {
           rp_inst_path = rp_inst_path,
           plan = plan,
           presets = presets,
+          paletas = paletas_arg,
           slide_registry = slide_registry_arg,
           graficador_registry = graficador_registry_arg,
           icon_registry = icon_registry_arg,
@@ -2139,6 +2351,7 @@ mount_graficos <- function(pr) {
       )
       graficador_registry_arg <- .graf_names()
       icon_registry_arg <- .graficos_icon_registry(sid, cfg)
+      paletas_arg <- cfg$paletas %||% list()
 
       # Ver comentario en /ppt: el worker necesita cargar prosecnurapp
       # (el motor ya vive dentro del paquete de la app).
@@ -2147,7 +2360,7 @@ mount_graficos <- function(pr) {
       job_id <- job_submit(
         sid = sid,
         kind = "graficos.word",
-        func = function(rp_data_path, rp_inst_path, plan, presets, w_presets,
+        func = function(rp_data_path, rp_inst_path, plan, presets, w_presets, paletas,
                         slide_registry, graficador_registry,
                         icon_registry,
                         active_base,
@@ -2181,11 +2394,37 @@ mount_graficos <- function(pr) {
             if (is.list(x)) return(x)
             as.list(x)
           }
+          promote_graph_title <- function(args, fn) {
+            args <- as.list(args %||% list())
+            if (!("titulo" %in% names(args)) || !("overrides" %in% names(formals(fn)))) return(args)
+            title_value <- args$titulo
+            has_title <- !(
+              is.null(title_value) ||
+                length(title_value) == 0L ||
+                (length(title_value) == 1L && is.list(title_value) && is.null(title_value[[1]])) ||
+                (length(title_value) == 1L && is.atomic(title_value) && is.na(title_value)) ||
+                (length(title_value) == 1L && is.character(title_value) && !nzchar(trimws(title_value)))
+            )
+            if (!isTRUE(has_title)) return(args)
+            overrides <- as_json_list(args$overrides) %||% list()
+            override_title <- overrides$titulo %||% NULL
+            has_override_title <- !(
+              is.null(override_title) ||
+                length(override_title) == 0L ||
+                (length(override_title) == 1L && is.list(override_title) && is.null(override_title[[1]])) ||
+                (length(override_title) == 1L && is.atomic(override_title) && is.na(override_title)) ||
+                (length(override_title) == 1L && is.character(override_title) && !nzchar(trimws(override_title)))
+            )
+            if (!isTRUE(has_override_title)) overrides$titulo <- as.character(title_value)[1]
+            args$overrides <- overrides
+            args$titulo <- NULL
+            args
+          }
           rebuild_graf <- function(g) {
             if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
             if (!(g$graficador %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
             fn <- getExportedValue("prosecnurapp", g$graficador)
-            args <- as.list(g$args %||% list())
+            args <- promote_graph_title(g$args, fn)
             args <- args[names(args) %in% names(formals(fn))]
             args <- args[!vapply(args, function(v) {
               is.null(v) ||
@@ -2219,8 +2458,9 @@ mount_graficos <- function(pr) {
           }
           build_w_presets <- function(w_json) {
             if (is.null(w_json) || length(w_json) == 0) return(NULL)
-            do.call(w_presets, lapply(w_json, as.list))
+            do.call(getExportedValue("prosecnurapp", "w_presets"), as.list(w_json))
           }
+          palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
           total_slides <- length(plan$slides)
           slides_r <- vector("list", total_slides)
           for (i in seq_len(total_slides)) {
@@ -2245,6 +2485,7 @@ mount_graficos <- function(pr) {
               presets_ppt = build_presets(presets),
               presets_word = build_w_presets(w_presets),
               plan = do.call(p_plan, list(slides = slides_r)),
+              env_diapos = palette_env,
               mensajes_progreso = FALSE
             ),
             error = function(e) stop(base_error(conditionMessage(e)), call. = FALSE)
@@ -2258,6 +2499,7 @@ mount_graficos <- function(pr) {
           plan = plan,
           presets = presets,
           w_presets = w_presets,
+          paletas = paletas_arg,
           slide_registry = slide_registry_arg,
           graficador_registry = graficador_registry_arg,
           icon_registry = icon_registry_arg,

@@ -2,6 +2,42 @@ type Dict = Record<string, unknown>;
 
 const DEFAULT_DEBUG_PH = { activo: false, color: "#FF00FF", lwd: 0.6 };
 const DEFAULT_CANVAS_VIEWPORT = { x: 0, y: 0, zoom: 1 };
+export const DEFAULT_WORD_PRESETS: Record<string, Record<string, unknown>> = {
+  chart_options: { ocultar_etiqueta_si_titulo: true },
+  chart_presets: {
+    barras_apiladas: {
+      mostrar_barra_extra: false,
+      barra_extra_preset: "ninguno",
+      prefijo_barra_extra: "",
+      titulo_barra_extra: "",
+
+      canvas_w_etiquetas: 0.18,
+      canvas_w_buf_etq_bars: 0,
+      canvas_w_bars: 0.82,
+      canvas_w_buf_bars_extra: 0,
+      canvas_w_extra: 0,
+
+      canvas_h_toprow_in: 0,
+      canvas_h_legend_in: 0.42,
+      canvas_h_caption_in: 0.45,
+      canvas_h_panel_in_min: 1.1,
+      alto_por_categoria: 0.55,
+
+      grosor_barras_mult: 1.5,
+      ancho_max_eje_y: 36,
+      size_ejes: 7,
+      size_texto_barras: 2.8,
+
+      leyenda_posicion: "abajo",
+      mostrar_leyenda: true,
+      legend_key_cm: 0.15,
+      legend_espaciado: 0,
+      legend_n_por_fila: 10,
+      size_leyenda: 6,
+      centro_cowplot: 0.5,
+    },
+  },
+};
 
 const KNOWN_KEYS = new Set([
   "ok",
@@ -37,6 +73,30 @@ const KNOWN_KEYS = new Set([
 
 function isObj(x: unknown): x is Dict {
   return !!x && typeof x === "object" && !Array.isArray(x);
+}
+
+function cloneValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function deepMerge(base: Dict, override: Dict): Dict {
+  const out: Dict = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    const prev = out[key];
+    out[key] = isObj(prev) && isObj(value) ? deepMerge(prev, value) : value;
+  }
+  return out;
+}
+
+export function createDefaultWordPresets(): Record<string, Record<string, unknown>> {
+  return cloneValue(DEFAULT_WORD_PRESETS);
+}
+
+export function normalizeWordPresets(input: unknown): Record<string, Record<string, unknown>> {
+  const defaults = createDefaultWordPresets();
+  return isObj(input)
+    ? deepMerge(defaults as Dict, input) as Record<string, Record<string, unknown>>
+    : defaults;
 }
 
 function pick(source: Dict, canonical: string, aliases: string[] = []): unknown {
@@ -93,7 +153,7 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
     version: "graficos/4",
     plan: isObj(plan) && Array.isArray(plan.slides) ? plan : { slides: [] },
     presets: isObj(presets) ? presets : {},
-    w_presets: isObj(wPresets) ? wPresets : {},
+    w_presets: normalizeWordPresets(wPresets),
     selected_slide_id: typeof selectedSlideId === "string" ? selectedSlideId : null,
     paletas: isObj(paletas) ? paletas : {},
     iconos: Array.isArray(iconos) ? iconos : [],

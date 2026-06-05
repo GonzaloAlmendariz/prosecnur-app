@@ -36,6 +36,9 @@
 #' @param separador_decimales Separador decimal para el formateo numerico.
 #' @param colores_series Vector nombrado de colores por serie (opcional). Los nombres deben
 #'   corresponder a las etiquetas finales (las de `etiquetas_series`).
+#' @param colores_categorias Vector nombrado de colores por categoria (opcional).
+#'   En distribuciones numericas con una sola serie, los nombres deben coincidir
+#'   con las etiquetas de `var_categoria`.
 #'
 #' @param mostrar_valores Si `TRUE`, agrega etiquetas con el valor de cada barra.
 #' @param umbral_etiqueta Umbral minimo para etiquetar (en la misma escala de `vars_valor`).
@@ -131,6 +134,7 @@ graficar_barras_numericas <- function(
     separador_miles      = ".",
     separador_decimales  = ",",
     colores_series       = NULL,
+    colores_categorias   = NULL,
 
     # Etiquetas de VALOR (dentro/arriba)
     mostrar_valores      = TRUE,
@@ -311,6 +315,14 @@ graficar_barras_numericas <- function(
   }
   if (invertir_barras) cat_lvls <- rev(cat_lvls)
   df_long[[var_categoria]] <- factor(cat_vec, levels = cat_lvls)
+  usar_color_categorias <- !is.null(colores_categorias) &&
+    length(vars_valor) == 1L &&
+    is.null(colores_series)
+  if (isTRUE(usar_color_categorias)) {
+    df_long$.fill_key <- factor(as.character(df_long[[var_categoria]]), levels = as.character(cat_lvls))
+  } else {
+    df_long$.fill_key <- df_long$.serie
+  }
 
   max_valor <- max(df_long$.valor, na.rm = TRUE)
   if (!is.finite(max_valor) || max_valor <= 0) max_valor <- 1
@@ -334,7 +346,7 @@ graficar_barras_numericas <- function(
 
   p <- ggplot2::ggplot(
     df_long,
-    ggplot2::aes_string(x = var_categoria, y = ".valor", fill = ".serie")
+    ggplot2::aes(x = .data[[var_categoria]], y = .data$.valor, fill = .data$.fill_key)
   ) +
     ggplot2::geom_col(
       position = ggplot2::position_dodge(width = grupo_ancho),
@@ -385,11 +397,11 @@ graficar_barras_numericas <- function(
         p <- p +
           ggplot2::geom_text(
             data        = df_in,
-            mapping     = ggplot2::aes_string(
-              x     = var_categoria,
-              y     = ".valor / 2",
-              label = "lab",
-              group = ".serie"
+            mapping     = ggplot2::aes(
+              x     = .data[[var_categoria]],
+              y     = .data$.valor / 2,
+              label = .data$lab,
+              group = .data$.serie
             ),
             inherit.aes = FALSE,
             position    = ggplot2::position_dodge(width = grupo_ancho),
@@ -409,11 +421,11 @@ graficar_barras_numericas <- function(
         p <- p +
           ggplot2::geom_text(
             data        = df_out,
-            mapping     = ggplot2::aes_string(
-              x     = var_categoria,
-              y     = "valor_label",
-              label = "lab",
-              group = ".serie"
+            mapping     = ggplot2::aes(
+              x     = .data[[var_categoria]],
+              y     = .data$valor_label,
+              label = .data$lab,
+              group = .data$.serie
             ),
             inherit.aes = FALSE,
             position    = ggplot2::position_dodge(width = grupo_ancho),
@@ -434,11 +446,11 @@ graficar_barras_numericas <- function(
         p <- p +
           ggplot2::geom_text(
             data        = df_in,
-            mapping     = ggplot2::aes_string(
-              x     = var_categoria,
-              y     = ".valor / 2",
-              label = "lab",
-              group = ".serie"
+            mapping     = ggplot2::aes(
+              x     = .data[[var_categoria]],
+              y     = .data$.valor / 2,
+              label = .data$lab,
+              group = .data$.serie
             ),
             inherit.aes = FALSE,
             position    = ggplot2::position_dodge(width = grupo_ancho),
@@ -458,11 +470,11 @@ graficar_barras_numericas <- function(
         p <- p +
           ggplot2::geom_text(
             data        = df_out,
-            mapping     = ggplot2::aes_string(
-              x     = var_categoria,
-              y     = "valor_label",
-              label = "lab",
-              group = ".serie"
+            mapping     = ggplot2::aes(
+              x     = .data[[var_categoria]],
+              y     = .data$valor_label,
+              label = .data$lab,
+              group = .data$.serie
             ),
             inherit.aes = FALSE,
             position    = ggplot2::position_dodge(width = grupo_ancho),
@@ -505,11 +517,11 @@ graficar_barras_numericas <- function(
     p <- p +
       ggplot2::geom_text(
         data        = df_top,
-        mapping     = ggplot2::aes_string(
-          x     = var_categoria,
-          y     = "y_n",
-          label = "lab_n",
-          group = ".serie"
+        mapping     = ggplot2::aes(
+          x     = .data[[var_categoria]],
+          y     = .data$y_n,
+          label = .data$lab_n,
+          group = .data$.serie
         ),
         inherit.aes = FALSE,
         position    = ggplot2::position_dodge(width = ancho_barras + 0.1),
@@ -522,7 +534,9 @@ graficar_barras_numericas <- function(
   }
 
   # Colores
-  if (!is.null(colores_series)) {
+  if (isTRUE(usar_color_categorias)) {
+    p <- p + ggplot2::scale_fill_manual(values = colores_categorias)
+  } else if (!is.null(colores_series)) {
     p <- p + ggplot2::scale_fill_manual(values = colores_series)
   }
 
@@ -600,7 +614,7 @@ graficar_barras_numericas <- function(
   }
 
   # Leyenda: filas
-  n_items_leyenda <- length(levels(df_long$.serie))
+  n_items_leyenda <- length(levels(df_long$.fill_key))
   n_por_fila_use  <- suppressWarnings(as.integer(legend_n_por_fila)[1])
   n_por_fila_use  <- if (!is.na(n_por_fila_use) && n_por_fila_use >= 1L) n_por_fila_use else 5L
   n_filas_leyenda <- max(1L, ceiling(n_items_leyenda / n_por_fila_use))

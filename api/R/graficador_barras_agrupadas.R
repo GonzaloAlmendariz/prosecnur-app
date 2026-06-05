@@ -32,6 +32,9 @@
 #'   Si `usar_canvas = TRUE`, solo se admite `"horizontal"`.
 #' @param colores_series Vector nombrado de colores por serie (opcional). Los nombres
 #'   deben coincidir con las etiquetas finales de la serie (las de `etiquetas_series`).
+#' @param colores_categorias Vector nombrado de colores por categoria (opcional).
+#'   En distribuciones simples con una sola serie, los nombres deben coincidir con
+#'   las etiquetas de `var_categoria`.
 #'
 #' @param mostrar_valores Si `TRUE`, agrega etiquetas de porcentaje sobre las barras.
 #' @param decimales Numero de decimales para etiquetas no enteras.
@@ -153,6 +156,7 @@ graficar_barras_agrupadas <- function(
     escala_valor              = c("proporcion_1", "proporcion_100"),
     orientacion               = c("horizontal", "vertical"),
     colores_series            = NULL,
+    colores_categorias        = NULL,
     mostrar_valores           = TRUE,
     decimales                 = 1,
     umbral_etiqueta           = 0.03,
@@ -351,6 +355,14 @@ graficar_barras_agrupadas <- function(
   if (invertir_barras) cat_lvls <- rev(cat_lvls)
   df_long[[var_categoria]] <- factor(cat_chr, levels = cat_lvls)
   n_categorias <- length(cat_lvls)
+  usar_color_categorias <- !is.null(colores_categorias) &&
+    length(cols_porcentaje) == 1L &&
+    is.null(colores_series)
+  if (isTRUE(usar_color_categorias)) {
+    df_long$.fill_key <- factor(as.character(df_long[[var_categoria]]), levels = cat_lvls)
+  } else {
+    df_long$.fill_key <- df_long$.serie
+  }
 
   # tamanos texto %
   n_series <- length(levels(df_long$.serie))
@@ -380,7 +392,7 @@ graficar_barras_agrupadas <- function(
     ggplot2::aes(
       x    = .data[[var_categoria]],
       y    = .data$.valor_plot,
-      fill = .data$.serie
+      fill = .data$.fill_key
     )
   ) +
     ggplot2::geom_col(
@@ -456,7 +468,11 @@ graficar_barras_agrupadas <- function(
   # ---------------------------------------------------------------------------
   # 4) Colores + wrap
   # ---------------------------------------------------------------------------
-  if (!is.null(colores_series)) p <- p + ggplot2::scale_fill_manual(values = colores_series)
+  if (isTRUE(usar_color_categorias)) {
+    p <- p + ggplot2::scale_fill_manual(values = colores_categorias)
+  } else if (!is.null(colores_series)) {
+    p <- p + ggplot2::scale_fill_manual(values = colores_series)
+  }
 
   if (!is.null(ancho_max_eje_y)) {
     if (!requireNamespace("stringr", quietly = TRUE)) stop("Para `ancho_max_eje_y` se requiere stringr.", call. = FALSE)
@@ -578,7 +594,7 @@ graficar_barras_agrupadas <- function(
   # ---------------------------------------------------------------------------
   # 7) Tema + orientacion + leyenda
   # ---------------------------------------------------------------------------
-  n_items_ley <- length(levels(df_long$.serie))
+  n_items_ley <- length(levels(df_long$.fill_key))
   n_filas_ley <- max(1L, ceiling(n_items_ley / 5))
 
   if (isTRUE(mostrar_leyenda)) {
@@ -722,7 +738,7 @@ graficar_barras_agrupadas <- function(
       )
     )
 
-  has_legend <- isTRUE(mostrar_leyenda) && n_series > 0
+  has_legend <- isTRUE(mostrar_leyenda) && n_items_ley > 0
   leg_grob <- NULL
   if (has_legend) {
     leg_grob <- cowplot::get_legend(

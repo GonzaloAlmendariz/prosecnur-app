@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import * as Lucide from "lucide-react";
 import { Circle, RotateCcw } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
+import { createDefaultWordPresets } from "../../api/graficosConfigNormalizer";
 import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, ARG_GROUP_ORDER, GRUPO_META, normalizeArgGroup } from "./ArgGroup";
@@ -47,12 +48,13 @@ export function WordPresetsEditor() {
 
   const chartPresets = wordChartPresets(wPresets);
   const chartOptions = wordChartOptions(wPresets);
+  const defaultChartPresets = wordChartPresets(createDefaultWordPresets());
   const hideDuplicateLabel = chartOptions.ocultar_etiqueta_si_titulo !== false;
   const editablePresets = presets.filter((p) => p.name !== "base" && p.name !== "debug");
   const meta = editablePresets.find((p) => p.name === selected) ?? editablePresets[0];
   if (!meta) return null;
 
-  const selectedPatch = chartPresets[meta.name] ?? {};
+  const selectedPatch = chartPresets[meta.name] ?? defaultChartPresets[meta.name] ?? {};
   const inherited = pptPresets[meta.name] ?? {};
   const hasSelectedChanges = Object.keys(selectedPatch).some((k) => hasValue(selectedPatch[k]));
 
@@ -69,7 +71,12 @@ export function WordPresetsEditor() {
       [presetName]: { ...(chartPresets[presetName] ?? {}) },
     };
     if (value === null || value === undefined || value === "") {
-      delete nextChartPresets[presetName][argName];
+      const defaultPatch = defaultChartPresets[presetName] ?? {};
+      if (Object.prototype.hasOwnProperty.call(defaultPatch, argName)) {
+        nextChartPresets[presetName][argName] = defaultPatch[argName];
+      } else {
+        delete nextChartPresets[presetName][argName];
+      }
     } else {
       nextChartPresets[presetName][argName] = value;
     }
@@ -84,7 +91,12 @@ export function WordPresetsEditor() {
 
   function resetPreset(presetName: string) {
     const nextChartPresets = { ...chartPresets };
-    delete nextChartPresets[presetName];
+    const defaultPatch = defaultChartPresets[presetName] ?? {};
+    if (Object.keys(defaultPatch).length > 0) {
+      nextChartPresets[presetName] = { ...defaultPatch };
+    } else {
+      delete nextChartPresets[presetName];
+    }
     setWPresets({
       ...wPresets,
       chart_presets: nextChartPresets,
@@ -186,7 +198,7 @@ export function WordPresetsEditor() {
                 className="pulso-gv2-word-reset"
               >
                 <RotateCcw size={11} />
-                Usar PPT
+                Default Word
               </button>
             )}
           </header>

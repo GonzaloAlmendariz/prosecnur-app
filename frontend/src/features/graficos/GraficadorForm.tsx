@@ -51,6 +51,15 @@ function sameValue(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+function clarifyGraphTitleArg(arg: ArgMetadata): ArgMetadata {
+  if (arg.name !== "titulo") return arg;
+  return {
+    ...arg,
+    label: "Título del gráfico",
+    descripcion: "Texto que se muestra como título propio del gráfico.",
+  };
+}
+
 export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = false }: Props) {
   const { graficadoresById, loading, error } = useGraficosRegistry();
   const { presetsByName } = usePresetsMetadata();
@@ -62,6 +71,11 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
   const meta = graficadoresById[graf.graficador];
   const presetType = graficadorToPresetType(graf.graficador);
   const presetMeta = presetType ? presetsByName[presetType] : undefined;
+  const isStyleContext = useMemo(() => {
+    if (!groupFilter?.length) return false;
+    const groups = new Set(groupFilter.map((g) => normalizeArgGroup(g)));
+    return groups.has("lectura") && !groups.has("datos");
+  }, [groupFilter]);
 
   // Valor "preset" efectivo para cada arg del preset:
   //   userPresets[presetType] ?? presetsDefaults[presetType] ?? presetMeta.args[].default
@@ -92,7 +106,7 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
     for (const a of meta.args) {
       if (a.tipo_input === "overrides") continue;
       if (hideLegacyWrapY && a.name === "wrap_y") continue;
-      result.push(a);
+      result.push(isStyleContext ? clarifyGraphTitleArg(a) : a);
       seen.add(a.name);
     }
     if (presetMeta) {
@@ -103,11 +117,16 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
       }
     }
     return result;
-  }, [graf.graficador, meta, presetMeta]);
+  }, [graf.graficador, isStyleContext, meta, presetMeta]);
 
   const presetArgNames = useMemo(() => {
     return new Set(presetMeta?.args.map((a) => a.name) ?? []);
   }, [presetMeta]);
+  const overrideArgNames = useMemo(() => {
+    const names = new Set(presetArgNames);
+    if (isStyleContext) names.add("titulo");
+    return names;
+  }, [isStyleContext, presetArgNames]);
 
   const argsByName = useMemo(() => {
     const map: Record<string, ArgMetadata> = {};
@@ -125,8 +144,8 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
     return raw;
   }, [argsByName, slotArgs]);
 
-  // argState por arg: para args del preset, calculamos según overrides
-  // y appliedMode. Para args propios del graficador (no overrides), los
+  // argState por arg: para args visuales guardados como overrides,
+  // calculamos según overrides y appliedMode. Para args propios del graficador,
   // marcamos custom si tienen valor (comportamiento legacy).
   const currentOverrides = useMemo<Record<string, unknown>>(() => {
     const merged: Record<string, unknown> = {};
@@ -140,16 +159,16 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
     // args de preset directamente en el slot. Los tratamos como overrides
     // efectivos para no perderlos al reabrir, y el siguiente cambio los
     // vuelve a escribir en `args.overrides` (forma canónica del motor).
-    for (const name of presetArgNames) {
+    for (const name of overrideArgNames) {
       if (name in merged) continue;
       const topLevelValue = slotArgs[name];
       if (!hasArgValue(topLevelValue) && !(topLevelValue === "" && allowsEmptyStringOverride(argsByName[name]))) continue;
-      if (sameValue(topLevelValue, presetValues[name])) continue;
+      if (presetArgNames.has(name) && sameValue(topLevelValue, presetValues[name])) continue;
       merged[name] = topLevelValue;
     }
 
     return merged;
-  }, [argsByName, presetArgNames, presetValues, slotArgs]);
+  }, [argsByName, overrideArgNames, presetArgNames, presetValues, slotArgs]);
 
   const appliedMode = useMemo(() => {
     if (!presetType) return null;
@@ -180,7 +199,7 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
         Object.prototype.hasOwnProperty.call(rawOverrideArgs, a.name) &&
         sameValue(rawOverrideArgs[a.name], appliedMode.args[a.name])
       );
-      if (presetArgNames.has(a.name)) {
+      if (overrideArgNames.has(a.name)) {
         // Arg del preset
         if (comesFromAppliedMode) {
           map[a.name] = "from-mode";
@@ -199,7 +218,7 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
       }
     }
     return map;
-  }, [expandedArgs, presetArgNames, currentOverrides, appliedMode, rawOverrideArgs, slotArgs]);
+  }, [expandedArgs, overrideArgNames, currentOverrides, appliedMode, rawOverrideArgs, slotArgs]);
 
   // inheritedValues: para args del preset, el valor del preset (gris).
   // Para args propios del graficador, undefined (no hay heredado).
@@ -241,12 +260,12 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
   }, [expandedArgs, groupFilter]);
 
   function handleChange(name: string, value: unknown) {
-    if (presetArgNames.has(name)) {
+    if (overrideArgNames.has(name)) {
       const prev = currentOverrides;
       const next = { ...prev };
       // Si el valor coincide con el del preset, lo borramos (vuelve a heredado)
       const presetVal = presetValues[name];
-      const isSameAsPreset = sameValue(value, presetVal);
+      const isSameAsPreset = presetArgNames.has(name) && sameValue(value, presetVal);
       const isEmptyStringOverride = value === "" && allowsEmptyStringOverride(argsByName[name]);
       if (value === null || value === undefined || (!isEmptyStringOverride && value === "") || isSameAsPreset) {
         delete next[name];
@@ -270,9 +289,9 @@ export default function GraficadorForm({ graf, onArgs, groupFilter, flatten = fa
     const patch: Record<string, unknown> = {};
 
     for (const [name, value] of Object.entries(patchIn)) {
-      if (presetArgNames.has(name)) {
+      if (overrideArgNames.has(name)) {
         const presetVal = presetValues[name];
-        const isSameAsPreset = sameValue(value, presetVal);
+        const isSameAsPreset = presetArgNames.has(name) && sameValue(value, presetVal);
         const isEmptyStringOverride = value === "" && allowsEmptyStringOverride(argsByName[name]);
         if (value === null || value === undefined || (!isEmptyStringOverride && value === "") || isSameAsPreset) {
           delete nextOverrides[name];

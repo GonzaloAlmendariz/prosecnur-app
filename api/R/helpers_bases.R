@@ -22,7 +22,7 @@
 #   - date / time / datetime → "scale"
 #   - text / geopoint / image / audio / video → "nominal"
 .infer_measure <- function(name, col, survey) {
-  row <- survey[survey$name %in% name, , drop = FALSE]
+  row <- .bases_survey_row(survey, name)
   tipo <- if (nrow(row) > 0L) as.character(row$type[1]) else ""
   base <- sub("\\s.*$", "", tipo)
 
@@ -47,22 +47,30 @@
 # tienen alguna pista de gradación ("Nada", "Poco", "Mucho", o números
 # al inicio como "1- Nada"). Conservador: si duda, cae en "nominal".
 .is_ordinal_choice_list <- function(col) {
-  labs <- attr(col, "labels", exact = TRUE)
-  if (is.null(labs) || length(labs) < 3L) return(FALSE)
-  codigos <- suppressWarnings(as.numeric(labs))
+  pairs <- .bases_label_pairs(attr(col, "labels", exact = TRUE))
+  if (nrow(pairs) < 3L) return(FALSE)
+
+  # Códigos tipo "Prefiero no responder" no deben romper una escala
+  # ordinal 1..4/1..5. Se preservan como value-labels, pero no se usan
+  # para decidir si la lista es ordenada.
+  keep <- !.bases_is_missingish_label(pairs$label)
+  pairs_ord <- pairs[keep, , drop = FALSE]
+  if (nrow(pairs_ord) < 3L) return(FALSE)
+
+  codigos <- suppressWarnings(as.numeric(pairs_ord$code))
   if (any(is.na(codigos))) return(FALSE)
-  # Secuencia ordenada
-  sorted <- sort(codigos)
-  if (!all(sorted == codigos) && !all(rev(sorted) == codigos)) return(FALSE)
+  if (is.unsorted(codigos, strictly = TRUE)) return(FALSE)
+
   # Etiquetas: buscar palabras de gradación
-  textos <- tolower(as.character(names(labs)))
+  textos <- tolower(as.character(pairs_ord$label))
+  textos <- chartr("áéíóúüñ", "aeiouun", textos)
   pistas <- enc2utf8(c(
     "nada", "poco", "algo", "mucho", "muy", "muchisim", "muchisima",
     "totalmente", "siempre", "nunca", "a veces", "rara vez",
     "bajo", "medio", "alto", "acuerdo", "desacuerdo",
     "satisfech", "insatisfech",
     "malo", "bueno", "regular", "excelente", "pesimo",
-    "nivel"
+    "nivel", "anos", "edad", "a mas", "menor", "mayor"
   ))
   # Forzar UTF-8 en `textos` también para evitar "regular expression is
   # invalid UTF-8" cuando el locale es C/POSIX y hay strings con
@@ -74,6 +82,45 @@
   # Códigos prefijados en labels ("1- Nada", "2) Algo", etc.)
   if (all(grepl("^[0-9]+\\s*[\\-\\.\\)]", textos))) return(TRUE)
   FALSE
+}
+
+.bases_survey_row <- function(survey, name) {
+  if (is.null(survey) || !is.data.frame(survey) || !"name" %in% names(survey)) {
+    return(data.frame())
+  }
+  nms <- as.character(survey$name)
+  idx <- which(!is.na(nms) & nms == name)
+  if (!length(idx)) return(data.frame())
+  survey[idx[1L], , drop = FALSE]
+}
+
+.bases_label_pairs <- function(labs) {
+  if (is.null(labs) || length(labs) == 0L) {
+    return(data.frame(code = character(0), label = character(0), stringsAsFactors = FALSE))
+  }
+  nms <- names(labs)
+  if (is.null(nms)) nms <- rep("", length(labs))
+  names_are_codes <- suppressWarnings(!any(is.na(as.numeric(nms))))
+  if (names_are_codes) {
+    code <- as.character(nms)
+    label <- as.character(unname(labs))
+  } else {
+    code <- as.character(unname(labs))
+    label <- as.character(nms)
+  }
+  out <- data.frame(code = code, label = enc2utf8(label), stringsAsFactors = FALSE)
+  out <- out[!is.na(out$code) & nzchar(out$code), , drop = FALSE]
+  out[!duplicated(out$code), , drop = FALSE]
+}
+
+.bases_is_missingish_label <- function(x) {
+  z <- tolower(enc2utf8(as.character(x)))
+  z <- chartr("áéíóúüñ", "aeiouun", z)
+  grepl(
+    "prefiero no responder|no responde|no sabe|no aplica|sin respuesta|rechaza",
+    z,
+    perl = TRUE
+  )
 }
 
 # Formato SPSS: F<w>.<d> para numéricos, DATE/TIME para fechas. Para
@@ -119,7 +166,13 @@
 
   for (v in names(df)) {
     col <- df[[v]]
-    if (is.null(attr(col, "measure", exact = TRUE))) {
+    row <- .bases_survey_row(survey, v)
+    # Si la variable existe en el instrumento, la inferencia actual del
+    # XLSForm/lista gana sobre attrs heredados del data frame. Esos attrs
+    # suelen venir de `measure_sugerida` y pueden estar desactualizados.
+    # Los overrides del usuario se aplican después y siguen teniendo la
+    # última palabra.
+    if (nrow(row) > 0L || is.null(attr(col, "measure", exact = TRUE))) {
       attr(df[[v]], "measure") <- .infer_measure(v, col, survey)
     }
     if (is.null(attr(col, "format.spss", exact = TRUE))) {
@@ -132,6 +185,68 @@
       attr(df[[v]], "display_width") <- .infer_width(col)
     }
   }
+  df
+}
+
+.bases_xlsform_base_type <- function(type) {
+  type <- as.character(type %||% "")
+  if (!length(type) || is.na(type[1L]) || !nzchar(type[1L])) return("")
+  sub("\\s.*$", "", type[1L])
+}
+
+.bases_restore_core_attrs <- function(x, label, labels, measure, format_spss, display_width) {
+  if (!is.null(label)) attr(x, "label") <- label
+  if (!is.null(labels)) attr(x, "labels") <- labels
+  if (!is.null(measure)) attr(x, "measure") <- measure
+  if (!is.null(format_spss)) attr(x, "format.spss") <- format_spss
+  if (!is.null(display_width)) attr(x, "display_width") <- display_width
+  x
+}
+
+# Antes de escribir SPSS, ajusta el tipo físico según el XLSForm cuando
+# la fuente llegó con tipos ambiguos (por ejemplo, edad como character, o
+# columnas text vacías importadas como numeric). Esto evita que SPSS marque
+# textos/IDs como escala o continuas como A<w>.
+.bases_coerce_spss_types <- function(df, rp_inst) {
+  survey <- rp_inst$survey
+  if (is.null(survey)) survey <- data.frame(name = character(0), type = character(0), stringsAsFactors = FALSE)
+  numeric_types <- c("integer", "decimal", "range")
+  text_types <- c(
+    "text", "note", "begin_group", "end_group", "hidden", "geopoint",
+    "image", "audio", "video", "file", "barcode", "username", "email",
+    "deviceid", "simserial", "phonenumber"
+  )
+
+  for (v in names(df)) {
+    row <- .bases_survey_row(survey, v)
+    base <- if (nrow(row) > 0L && "type" %in% names(row)) {
+      .bases_xlsform_base_type(row$type[1L])
+    } else {
+      ""
+    }
+    if (!nzchar(base)) next
+
+    col <- df[[v]]
+    label <- attr(col, "label", exact = TRUE)
+    labels <- attr(col, "labels", exact = TRUE)
+    measure <- attr(col, "measure", exact = TRUE)
+    format_spss <- attr(col, "format.spss", exact = TRUE)
+    display_width <- attr(col, "display_width", exact = TRUE)
+
+    if (base %in% numeric_types && !is.numeric(col)) {
+      raw <- trimws(as.character(col))
+      non_empty <- !is.na(raw) & nzchar(raw)
+      parsed <- suppressWarnings(as.numeric(raw))
+      if (!any(non_empty) || all(!is.na(parsed[non_empty]))) {
+        df[[v]] <- .bases_restore_core_attrs(parsed, label, labels, measure, format_spss, display_width)
+      }
+    } else if (base %in% text_types && !is.character(col) && !is.factor(col)) {
+      txt <- as.character(col)
+      txt[is.na(col)] <- NA_character_
+      df[[v]] <- .bases_restore_core_attrs(txt, label, labels, measure, format_spss, display_width)
+    }
+  }
+
   df
 }
 
@@ -500,6 +615,220 @@
   df
 }
 
+.bases_pyreadstat_python <- function() {
+  candidates <- unique(c(
+    Sys.getenv("PROSECNUR_PYREADSTAT_PYTHON", unset = ""),
+    Sys.which("python3"),
+    Sys.which("python")
+  ))
+  candidates <- candidates[nzchar(candidates)]
+  if (!length(candidates)) return("")
+
+  probe <- "import pandas, pyreadstat"
+  for (py in candidates) {
+    ok <- suppressWarnings(system2(py, c("-c", shQuote(probe)),
+                                   stdout = FALSE, stderr = FALSE))
+    if (identical(ok, 0L)) return(py)
+  }
+  ""
+}
+
+.bases_pyreadstat_available <- function() {
+  nzchar(.bases_pyreadstat_python())
+}
+
+.bases_sav_storage_kind <- function(x) {
+  if (inherits(x, c("haven_labelled", "haven_labelled_spss"))) return("numeric")
+  if (is.numeric(x) || is.integer(x) || is.logical(x)) return("numeric")
+  if (inherits(x, c("Date", "POSIXct", "POSIXt"))) return("string")
+  "string"
+}
+
+.bases_sav_plain_data <- function(df) {
+  out <- as.data.frame(df, check.names = FALSE, stringsAsFactors = FALSE)
+  for (v in names(out)) {
+    x <- out[[v]]
+    if (inherits(x, c("haven_labelled", "haven_labelled_spss"))) {
+      x <- suppressWarnings(as.numeric(x))
+    } else if (is.factor(x)) {
+      x <- as.character(x)
+    } else if (inherits(x, "Date")) {
+      x <- format(x, "%Y-%m-%d")
+    } else if (inherits(x, c("POSIXct", "POSIXt"))) {
+      x <- format(x, "%Y-%m-%d %H:%M:%S")
+    } else if (is.logical(x)) {
+      x <- as.integer(x)
+    }
+    out[[v]] <- x
+  }
+  out
+}
+
+.bases_sav_value_labels <- function(x, storage) {
+  pairs <- .bases_label_pairs(attr(x, "labels", exact = TRUE))
+  if (!nrow(pairs)) return(list())
+  out <- lapply(seq_len(nrow(pairs)), function(i) {
+    code <- pairs$code[[i]]
+    if (identical(storage, "numeric")) {
+      code_num <- suppressWarnings(as.numeric(code))
+      if (is.na(code_num)) return(NULL)
+      code <- code_num
+    }
+    list(code = code, label = pairs$label[[i]])
+  })
+  Filter(Negate(is.null), out)
+}
+
+.bases_sav_missing_ranges <- function(x, storage) {
+  vals <- attr(x, "na_values", exact = TRUE) %||% attr(x, "missing_values", exact = TRUE)
+  rng <- attr(x, "na_range", exact = TRUE)
+  out <- list()
+  if (!is.null(vals) && length(vals)) {
+    vals <- as.vector(vals)
+    vals <- vals[!is.na(vals)]
+    if (length(vals)) {
+      if (identical(storage, "numeric")) vals <- suppressWarnings(as.numeric(vals))
+      out <- c(out, as.list(vals))
+    }
+  }
+  if (!is.null(rng) && length(rng) >= 2L && identical(storage, "numeric")) {
+    rng <- suppressWarnings(as.numeric(rng[1:2]))
+    if (!any(is.na(rng))) out <- c(out, list(list(lo = min(rng), hi = max(rng))))
+  }
+  out
+}
+
+.bases_write_sav_pyreadstat <- function(df, path_sav) {
+  py <- .bases_pyreadstat_python()
+  if (!nzchar(py)) {
+    stop("pyreadstat no disponible en python3.", call. = FALSE)
+  }
+
+  plain <- .bases_sav_plain_data(df)
+  data_path <- tempfile(fileext = ".csv")
+  meta_path <- tempfile(fileext = ".json")
+  script_path <- tempfile(fileext = ".py")
+  out_tmp <- tempfile(fileext = ".sav")
+  on.exit(unlink(c(data_path, meta_path, script_path, out_tmp), force = TRUE), add = TRUE)
+
+  columns <- lapply(names(df), function(v) {
+    x <- df[[v]]
+    storage <- .bases_sav_storage_kind(plain[[v]])
+    label <- attr(x, "label", exact = TRUE) %||% ""
+    if (!is.character(label) || !length(label) || is.na(label[1L]) || !nzchar(label[1L])) {
+      label <- v
+    }
+    list(
+      name = v,
+      storage = storage,
+      label = label[1L],
+      measure = attr(x, "measure", exact = TRUE) %||% "unknown",
+      format = attr(x, "format.spss", exact = TRUE) %||% "",
+      display_width = attr(x, "display_width", exact = TRUE) %||% NA_integer_,
+      value_labels = .bases_sav_value_labels(x, storage),
+      missing_ranges = .bases_sav_missing_ranges(x, storage)
+    )
+  })
+  names(columns) <- names(df)
+
+  readr::write_csv(plain, data_path, na = "")
+  jsonlite::write_json(
+    list(columns = columns),
+    meta_path,
+    auto_unbox = TRUE,
+    null = "null",
+    pretty = FALSE
+  )
+
+  py_code <- c(
+    "import json, sys",
+    "import pandas as pd",
+    "import pyreadstat",
+    "",
+    "csv_path, meta_path, out_path = sys.argv[1:4]",
+    "with open(meta_path, 'r', encoding='utf-8') as fh:",
+    "    meta = json.load(fh)",
+    "df = pd.read_csv(csv_path, dtype=str, keep_default_na=False, na_filter=False)",
+    "columns = meta.get('columns', {})",
+    "column_labels = {}",
+    "variable_measure = {}",
+    "variable_format = {}",
+    "variable_display_width = {}",
+    "variable_value_labels = {}",
+    "missing_ranges = {}",
+    "",
+    "def numeric_key(value):",
+    "    try:",
+    "        x = float(value)",
+    "    except Exception:",
+    "        return value",
+    "    return int(x) if x.is_integer() else x",
+    "",
+    "for name, spec in columns.items():",
+    "    storage = spec.get('storage', 'string')",
+    "    if name not in df.columns:",
+    "        continue",
+    "    if storage == 'numeric':",
+    "        df[name] = pd.to_numeric(df[name].replace('', pd.NA), errors='coerce')",
+    "    else:",
+    "        df[name] = df[name].astype(object)",
+    "    label = spec.get('label') or ''",
+    "    if label:",
+    "        column_labels[name] = label",
+    "    measure = spec.get('measure') or 'unknown'",
+    "    if measure in ('nominal', 'ordinal', 'scale', 'unknown'):",
+    "        variable_measure[name] = measure",
+    "    fmt = spec.get('format') or ''",
+    "    if fmt:",
+    "        variable_format[name] = fmt",
+    "    width = spec.get('display_width')",
+    "    if isinstance(width, int) and width > 0:",
+    "        variable_display_width[name] = width",
+    "    labs = spec.get('value_labels') or []",
+    "    if labs:",
+    "        variable_value_labels[name] = {",
+    "            (numeric_key(item.get('code')) if storage == 'numeric' else str(item.get('code'))): item.get('label', '')",
+    "            for item in labs",
+    "        }",
+    "    miss = spec.get('missing_ranges') or []",
+    "    if miss:",
+    "        missing_ranges[name] = miss",
+    "",
+    "kwargs = dict(",
+    "    column_labels=column_labels or None,",
+    "    variable_value_labels=variable_value_labels or None,",
+    "    variable_display_width=variable_display_width or None,",
+    "    variable_measure=variable_measure or None,",
+    "    variable_format=variable_format or None,",
+    "    missing_ranges=missing_ranges or None,",
+    "    row_compress=True,",
+    ")",
+    "kwargs = {k: v for k, v in kwargs.items() if v is not None}",
+    "pyreadstat.write_sav(df, out_path, **kwargs)"
+  )
+  writeLines(py_code, script_path, useBytes = TRUE)
+
+  if (file.exists(path_sav)) unlink(path_sav, force = TRUE)
+  res <- suppressWarnings(system2(py, c(script_path, data_path, meta_path, out_tmp),
+                                  stdout = TRUE, stderr = TRUE))
+  status <- attr(res, "status")
+  if (!is.null(status) && status != 0L) {
+    stop(
+      "pyreadstat no pudo escribir el SAV: ",
+      paste(res, collapse = "\n"),
+      call. = FALSE
+    )
+  }
+  if (!file.exists(out_tmp) || file.info(out_tmp)$size <= 0L) {
+    stop("pyreadstat no produjo un SAV valido.", call. = FALSE)
+  }
+  ok <- file.copy(out_tmp, path_sav, overwrite = TRUE)
+  if (!isTRUE(ok) || !file.exists(path_sav) || file.info(path_sav)$size <= 0L) {
+    stop("No se pudo copiar el SAV generado al destino final.", call. = FALSE)
+  }
+  invisible(path_sav)
+}
+
 # ---- Metadatos: preview + overrides --------------------------------------
 
 # Devuelve una lista de variables con la inferencia completa (tipo XLSForm,
@@ -590,7 +919,7 @@
   #    el post-procesamiento de reporte_spss vía attrs — aplica
   #    la misma conversión pero sin correr ese wrapper (que escribe a
   #    disco).
-  df2 <- df
+  df2 <- .bases_coerce_spss_types(df, rp_inst)
   for (v in names(df2)) {
     x <- df2[[v]]
     labs <- attr(x, "labels", exact = TRUE)
@@ -668,8 +997,15 @@
   #    string to the requested encoding" al releer el .sav).
   df2 <- .bases_enforce_utf8(df2)
 
-  # 6) Escribir
-  haven::write_sav(data = df2, path = path_sav, compress = TRUE)
+  # 6) Escribir. pyreadstat permite pasar variable_measure de manera
+  # explícita; haven/readstat no siempre embebe ese metadata de forma
+  # recuperable por SPSS/pyreadstat.
+  writer <- Sys.getenv("PROSECNUR_SAV_WRITER", unset = "pyreadstat")
+  if (identical(tolower(writer), "pyreadstat") && .bases_pyreadstat_available()) {
+    .bases_write_sav_pyreadstat(df2, path_sav)
+  } else {
+    haven::write_sav(data = df2, path = path_sav, compress = TRUE)
+  }
 
   if (!is.null(path_sps)) .bases_generar_sps(df2, path_sps)
 

@@ -1024,6 +1024,17 @@ function fallbackValue(name: string): number {
   return 0.3;
 }
 
+function setZeroInteraction(button: HTMLElement, active: boolean) {
+  button.closest(".pulso-gv2-layout-canvas")?.classList.toggle("is-zero-interacting", active);
+}
+
+function releaseZeroInteraction(button: HTMLElement) {
+  const canvas = button.closest(".pulso-gv2-layout-canvas");
+  window.requestAnimationFrame(() => {
+    canvas?.classList.remove("is-zero-interacting");
+  });
+}
+
 function ZeroButton({
   field,
   onSetArgValue,
@@ -1031,6 +1042,8 @@ function ZeroButton({
   field: LayoutField & { synthetic?: boolean };
   onSetArgValue: (name: string, value: number) => void;
 }) {
+  const pointerCommitRef = useRef(false);
+
   if (field.synthetic || field.role === "plot" || field.role === "panel") return null;
   return (
     <button
@@ -1038,17 +1051,57 @@ function ZeroButton({
       className="pulso-gv2-layout-zero"
       aria-label={`Poner ${field.label} en cero`}
       title={`Poner ${field.label} en 0`}
+      onPointerEnter={(event) => {
+        setZeroInteraction(event.currentTarget, true);
+      }}
+      onPointerLeave={(event) => {
+        if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+          releaseZeroInteraction(event.currentTarget);
+        }
+      }}
       onPointerDown={(event) => {
         event.preventDefault();
         event.stopPropagation();
+        pointerCommitRef.current = false;
+        setZeroInteraction(event.currentTarget, true);
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={(event) => {
+        event.stopPropagation();
+      }}
+      onPointerUp={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        pointerCommitRef.current = true;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        onSetArgValue(field.name, 0);
+        releaseZeroInteraction(event.currentTarget);
+      }}
+      onPointerCancel={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        pointerCommitRef.current = false;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        releaseZeroInteraction(event.currentTarget);
+      }}
+      onBlur={(event) => {
+        releaseZeroInteraction(event.currentTarget);
       }}
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
+        if (pointerCommitRef.current) {
+          pointerCommitRef.current = false;
+          return;
+        }
         onSetArgValue(field.name, 0);
       }}
     >
-      <X size={10} strokeWidth={2.4} />
+      <X size={13} strokeWidth={2.4} />
     </button>
   );
 }

@@ -2,12 +2,13 @@ import * as Lucide from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Copy, GripVertical, X, AlertCircle, AlertTriangle } from "lucide-react";
-import { Slide } from "../../../../api/client";
+import { Slide, VarInfo } from "../../../../api/client";
 import { usePlanStore, SLIDE_LABELS } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { ValidationIssue } from "../../usePlanValidator";
 import SlidePreviewMockup from "../../SlidePreviewMockup";
 import { categoryOf, CATEGORY_LABEL } from "./categoryOf";
+import { slideDisplayTitle } from "../../slideAutoTitle";
 
 type LucideIcon = (props: { size?: number }) => JSX.Element;
 function resolveIcon(name: string | undefined): LucideIcon {
@@ -21,6 +22,7 @@ export type SlideCardProps = {
   active: boolean;
   issues: ValidationIssue[];
   density: "comfortable" | "compact";
+  variables: VarInfo[];
 };
 
 // Card de slide en el timeline V2. Es draggable (handle al inicio + grab
@@ -28,7 +30,7 @@ export type SlideCardProps = {
 // chips de override/icono compartidos, badge de diagnostics. Color-coded
 // por categoría en el borde izquierdo.
 
-export function SlideCard({ slide, index, active, issues, density }: SlideCardProps) {
+export function SlideCard({ slide, index, active, issues, density, variables }: SlideCardProps) {
   const select = usePlanStore((s) => s.select);
   const removeSlide = usePlanStore((s) => s.removeSlide);
   const duplicateSlide = usePlanStore((s) => s.duplicateSlide);
@@ -54,7 +56,7 @@ export function SlideCard({ slide, index, active, issues, density }: SlideCardPr
   const errors = issues.filter((i) => i.severity === "error").length;
   const warns = issues.filter((i) => i.severity === "warning").length;
   const cat = categoryOf(slide.tipo);
-  const titulo = typeof slide.payload.titulo === "string" ? slide.payload.titulo : "";
+  const titulo = slideDisplayTitle(slide, variables);
 
   const isSeparator = slide.tipo === "p_slide_seccion";
 

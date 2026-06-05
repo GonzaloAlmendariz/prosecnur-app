@@ -1,12 +1,14 @@
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Database, FileCode2, FileText, FileSpreadsheet, Info, Wand2 } from "lucide-react";
 import {
   apiAnaliticaBasesData,
   apiAnaliticaBasesInstrumento,
   apiAnaliticaBasesSav,
+  apiAnaliticaBasesMetadata,
   apiAnaliticaBasesCsv,
   apiAnaliticaBasesXlsx,
   apiAnaliticaBasesXlsxUnificada,
+  type BasesSavWriterInfo,
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
 import { Section, Collapsible, GenerateFooter } from "../PaneKit";
@@ -20,9 +22,8 @@ import { useSession } from "../../../lib/SessionContext";
 // su propia sub-config y su propio botón "Generar".
 //
 // El .sav lleva measure / format.spss / display_width embebidos para
-// que SPSS respete ordinal/scale/nominal al abrir. Por eso el toggle
-// "Incluir .sps de respaldo" está OFF por defecto — solo se activa
-// como red de seguridad para versiones de SPSS que pierdan atributos.
+// que SPSS respete ordinal/scale/nominal al abrir. El .sps queda como
+// respaldo opcional, no como ruta principal.
 
 export function BasesPane() {
   const bases = useAnaliticaStore((s) => s.config.bases);
@@ -228,6 +229,20 @@ function SavCard({
   onChange: (patch: Partial<{ incluir_sps: boolean }>) => void;
 }) {
   const run = useReporteRun();
+  const [writer, setWriter] = useState<BasesSavWriterInfo | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await apiAnaliticaBasesMetadata();
+        if (!cancelled) setWriter(r.sav_writer ?? null);
+      } catch {
+        if (!cancelled) setWriter(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   async function onGenerate() {
     await run.runSync(() => apiAnaliticaBasesSav({ incluir_sps: cfg.incluir_sps }));
@@ -265,6 +280,7 @@ function SavCard({
             Se infiere automáticamente <code>measure</code> (editable arriba), <code>format.spss</code> y <code>display_width</code> por columna a partir del tipo XLSForm (<code>select_one</code> likert → ordinal; <code>integer/decimal</code> → scale; texto → nominal).
           </div>
         </div>
+        <SavWriterStatus writer={writer} />
 
         <Collapsible title="Avanzado" summary={cfg.incluir_sps ? ".sps incluido" : "Sin .sps"} defaultOpen={false}>
           <label
@@ -282,7 +298,7 @@ function SavCard({
             <span>
               <strong>Incluir <code>niveles_medida.sps</code> de respaldo</strong>
               <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.5 }}>
-                Syntax con <code>VARIABLE LEVEL</code> + <code>FORMATS</code> por si tu versión de SPSS pierde los measures al abrir el .sav. Si el .sav te abre bien, no lo necesitas. Al activarlo, el output pasa a ser un <code>.zip</code> con ambos archivos.
+                Syntax con <code>VARIABLE LEVEL</code> + <code>FORMATS</code> como respaldo auditable. Con el escritor actual el <code>.sav</code> ya incorpora los metadatos; al activarlo, el output pasa a ser un <code>.zip</code> con ambos archivos.
               </div>
             </span>
           </label>
@@ -299,6 +315,42 @@ function SavCard({
         />
       </div>
     </Section>
+  );
+}
+
+function SavWriterStatus({ writer }: { writer: BasesSavWriterInfo | null }) {
+  const ok = writer?.engine === "pyreadstat" && writer.ok !== false;
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexWrap: "wrap",
+        fontSize: 11,
+        color: ok ? "var(--tipo-int-fg)" : "var(--pulso-text-soft)",
+      }}
+    >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "4px 8px",
+          borderRadius: 999,
+          border: `1px solid ${ok ? "var(--tipo-int-border)" : "var(--pulso-border)"}`,
+          background: ok ? "var(--tipo-int-bg)" : "var(--pulso-surface)",
+          fontWeight: 700,
+        }}
+      >
+        {ok ? "pyreadstat activo" : "fallback SAV"}
+      </span>
+      <span>
+        {ok
+          ? "Metadatos SPSS embebidos en el .sav."
+          : writer?.message ?? "Si el motor cae a fallback, conserva el .sps como respaldo."}
+      </span>
+    </div>
   );
 }
 

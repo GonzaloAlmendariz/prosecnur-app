@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { GraficadorRef, PlanJson, Slide, SlideType } from "../../api/client";
+import { createDefaultWordPresets, normalizeWordPresets } from "../../api/graficosConfigNormalizer";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -285,7 +286,7 @@ function dirty<T extends object>(state: PlanStore, partial: T): T & {
 export const usePlanStore = create<PlanStore>((set) => ({
   plan: { slides: [] },
   presets: {},
-  wPresets: {},
+  wPresets: createDefaultWordPresets(),
   selectedSlideId: null,
   paletas: {},
   iconos: [],
@@ -338,7 +339,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   hydrate: (cfg) => set({
     plan: cfg.plan ?? { slides: [] },
     presets: cfg.presets ?? {},
-    wPresets: cfg.w_presets ?? {},
+    wPresets: normalizeWordPresets(cfg.w_presets),
     selectedSlideId: cfg.selected_slide_id ?? null,
     paletas: cfg.paletas ?? {},
     iconos: cfg.iconos ?? [],
@@ -497,7 +498,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   })),
 
   reset: () => set((state) => dirty(state, {
-    plan: { slides: [] }, selectedSlideId: null, presets: {}, wPresets: {},
+    plan: { slides: [] }, selectedSlideId: null, presets: {}, wPresets: createDefaultWordPresets(),
     paletas: {}, iconos: [], overridesReusables: [],
     debugPh: DEFAULT_DEBUG_PH,
   })),

@@ -623,7 +623,9 @@ export function GraficosHeader({
         <button
           type="button"
           onClick={() => setEstiloOpen(true)}
-          className="pulso-gv2-estilo-trigger pulso-gv2-pill-button"
+          className={`pulso-gv2-estilo-trigger pulso-gv2-pill-button ${estiloOpen ? "is-open" : ""}`}
+          aria-haspopup="dialog"
+          aria-expanded={estiloOpen}
           title="Configurar presets, paletas, íconos y modos para todos los slides"
         >
           <Settings2 size={13} /> Estilo global

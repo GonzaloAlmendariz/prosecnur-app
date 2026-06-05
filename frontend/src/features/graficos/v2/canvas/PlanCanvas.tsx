@@ -14,6 +14,7 @@ import {
 } from "./planAutoLayout";
 import { PlanNodeCard } from "./PlanNodeCard";
 import { PlanCanvasToolbar } from "./PlanCanvasToolbar";
+import { useVariables } from "../../useVariables";
 
 // Lienzo V2: grilla determinística 6×N organizada por secciones. Sin
 // SVG, sin edges. Todo el render en HTML/CSS para tener animaciones
@@ -48,6 +49,7 @@ export function PlanCanvas() {
   const duplicateSlide = usePlanStore((s) => s.duplicateSlide);
   const removeSlide = usePlanStore((s) => s.removeSlide);
   const density = usePlanStore((s) => s.density);
+  const { variables } = useVariables();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [canvasWidth, setCanvasWidth] = useState(0);
@@ -434,6 +436,7 @@ export function PlanCanvas() {
                 selected={isSelected}
                 dimmed={false}
                 issues={issuesBySlide[node.id] ?? []}
+                variables={variables}
                 onClick={(e) => onSlideClick(node.id, e)}
                 onMouseDown={(e) => onSlideMouseDown(node.id, e)}
               />

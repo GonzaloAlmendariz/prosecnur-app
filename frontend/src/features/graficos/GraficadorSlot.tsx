@@ -182,9 +182,18 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
         {mode === "data" && (
           <button
             type="button"
-            onClick={() => setSlot(slideId, slotName, null)}
-            className="pulso-icon pulso-icon-danger"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setSlot(slideId, slotName, null);
+            }}
+            className="pulso-icon pulso-icon-danger pulso-gv2-slot-remove"
             aria-label="Quitar graficador"
+            title="Quitar graficador"
           >
             <X size={12} />
           </button>

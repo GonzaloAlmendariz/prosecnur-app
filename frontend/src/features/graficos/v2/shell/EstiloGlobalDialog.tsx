@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Sliders, FileText, Palette, Image as ImageIcon } from "lucide-react";
 import { IconModes } from "../../../../lib/icons";
 import { PaletasEditor } from "../../PaletasEditor";
@@ -38,6 +39,17 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
   // Reset tab al abrir
   useEffect(() => { if (open) setTab(initialTab); }, [open, initialTab]);
 
+  // El diálogo se monta en un portal para no quedar atrapado por el header
+  // ni por contenedores con stacking/overflow propios.
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   // Esc + click outside
   useEffect(() => {
     if (!open) return;
@@ -53,9 +65,9 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div className="pulso-gv2-estilo-backdrop" role="dialog" aria-modal="true" aria-label="Estilo global">
       <div className="pulso-gv2-estilo-dialog" ref={dialogRef}>
         <header className="pulso-gv2-estilo-head">
@@ -68,8 +80,17 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
           <button
             type="button"
             className="pulso-gv2-estilo-close"
-            onClick={onClose}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
             aria-label="Cerrar"
+            title="Cerrar"
           >
             <X size={16} />
           </button>
@@ -92,7 +113,7 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
           ))}
         </nav>
 
-        <div className="pulso-gv2-estilo-body">
+        <div className={`pulso-gv2-estilo-body is-${tab}`}>
           {tab === "ppt" && <PresetsEditor />}
           {tab === "word" && <WordTabContent onClose={onClose} />}
           {tab === "paletas" && <PaletasEditor />}
@@ -100,7 +121,8 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
           {tab === "modos" && <OverridesEditor />}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

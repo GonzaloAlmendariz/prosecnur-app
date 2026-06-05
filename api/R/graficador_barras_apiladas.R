@@ -316,6 +316,9 @@
 #' @param cols_porcentaje Vector con los nombres de columnas de porcentajes (segmentos apilados).
 #' @param etiquetas_grupos Vector nombrado que mapea `cols_porcentaje` → etiqueta visible de cada segmento.
 #'   Sus `names()` deben coincidir con `cols_porcentaje`.
+#' @param etiquetas_leyenda Vector opcional con etiquetas visibles solo para la
+#'   leyenda. Puede venir nombrado por las etiquetas finales de
+#'   `etiquetas_grupos` o tener el mismo largo y orden que la escala.
 #'
 #' @param escala_valor Indica la escala de los porcentajes en `cols_porcentaje`:
 #'   `"proporcion_1"` para `0–1` o `"proporcion_100"` para `0–100`.
@@ -447,6 +450,7 @@ graficar_barras_apiladas <- function(
     var_n,
     cols_porcentaje,
     etiquetas_grupos,
+    etiquetas_leyenda     = NULL,
     escala_valor          = c("proporcion_1", "proporcion_100"),
     colores_grupos        = NULL,
     mostrar_valores       = TRUE,
@@ -779,6 +783,30 @@ graficar_barras_apiladas <- function(
   niveles_originales <- unname(etiquetas_grupos)
   niveles_stack      <- if (invertir_segmentos) niveles_originales else rev(niveles_originales)
   niveles_leyenda    <- if (invertir_leyenda)  rev(niveles_originales) else niveles_originales
+  etiquetas_leyenda_resueltas <- niveles_leyenda
+  if (!is.null(etiquetas_leyenda)) {
+    etiquetas_leyenda_names <- names(etiquetas_leyenda)
+    etiquetas_leyenda <- if (is.list(etiquetas_leyenda) && !is.data.frame(etiquetas_leyenda)) {
+      unlist(etiquetas_leyenda, use.names = FALSE)
+    } else {
+      as.character(etiquetas_leyenda)
+    }
+    etiquetas_leyenda <- as.character(etiquetas_leyenda)
+    if (!is.null(etiquetas_leyenda_names) &&
+        length(etiquetas_leyenda_names) == length(etiquetas_leyenda)) {
+      names(etiquetas_leyenda) <- etiquetas_leyenda_names
+    }
+    etiquetas_leyenda[is.na(etiquetas_leyenda)] <- ""
+    if (!is.null(names(etiquetas_leyenda)) && any(nzchar(names(etiquetas_leyenda)))) {
+      hit <- etiquetas_leyenda[niveles_leyenda]
+      ok <- !is.na(hit) & nzchar(trimws(hit))
+      etiquetas_leyenda_resueltas[ok] <- unname(hit[ok])
+    } else if (length(etiquetas_leyenda) == length(niveles_originales)) {
+      vals <- if (invertir_leyenda) rev(etiquetas_leyenda) else etiquetas_leyenda
+      ok <- nzchar(trimws(vals))
+      etiquetas_leyenda_resueltas[ok] <- vals[ok]
+    }
+  }
   df_long$.grupo     <- factor(df_long$.grupo, levels = niveles_stack)
 
   # ---------------------------------------------------------------------------
@@ -1110,21 +1138,26 @@ graficar_barras_apiladas <- function(
   # ---------------------------------------------------------------------------
   wrap_fun <- NULL
   if (requireNamespace("stringr", quietly = TRUE)) wrap_fun <- function(x) stringr::str_wrap(x, width = 40)
+  labels_leyenda <- etiquetas_leyenda_resueltas
+  if (!is.null(wrap_fun)) labels_leyenda <- wrap_fun(labels_leyenda)
+  labels_leyenda <- stats::setNames(labels_leyenda, niveles_leyenda)
+  colores_leyenda_manual <- NULL
 
   if (!is.null(colores_grupos)) {
     if (is.null(names(colores_grupos))) colores_grupos <- stats::setNames(colores_grupos, niveles_originales)
     valores_leyenda <- colores_grupos[niveles_leyenda]
+    colores_leyenda_manual <- unname(valores_leyenda)
     p_bars <- p_bars +
       ggplot2::scale_fill_manual(
         breaks = niveles_leyenda,
         values = valores_leyenda,
-        labels = if (!is.null(wrap_fun)) wrap_fun else ggplot2::waiver()
+        labels = labels_leyenda
       )
   } else {
     p_bars <- p_bars +
       ggplot2::scale_fill_discrete(
         breaks = niveles_leyenda,
-        labels = if (!is.null(wrap_fun)) wrap_fun else ggplot2::waiver()
+        labels = labels_leyenda
       )
   }
 
@@ -1443,8 +1476,13 @@ graficar_barras_apiladas <- function(
   y_main0 <- y_panel0
 
   # leyenda grob
+  usar_leyenda_manual <- has_legend &&
+    !legend_is_side &&
+    !is.null(colores_leyenda_manual) &&
+    length(colores_leyenda_manual) == length(niveles_leyenda) &&
+    all(!is.na(colores_leyenda_manual) & nzchar(colores_leyenda_manual))
   leg_grob <- NULL
-  if (has_legend) {
+  if (has_legend && !usar_leyenda_manual) {
     leg_grob <- cowplot::get_legend(
       p_for_legend + ggplot2::theme(
         legend.position  = if (legend_is_side) "right" else "bottom",
@@ -1676,7 +1714,7 @@ graficar_barras_apiladas <- function(
   # ============================================================
   # LEYENDA: centrada + desplazamiento
   # ============================================================
-  if (has_legend && !is.null(leg_grob)) {
+  if (has_legend && (usar_leyenda_manual || !is.null(leg_grob))) {
 
     dy_leg <- leyenda_desplazamiento_in / h_total_in
     if (legend_is_side) {
@@ -1690,21 +1728,76 @@ graficar_barras_apiladas <- function(
         vjust  = 0.5
       )
       if (debug_ph_bordes) canvas <- canvas + .ph_border(x_legend_side0, y_main0, w_legend_side, main_h)
+    } else if (usar_leyenda_manual) {
+      labels_manual <- unname(labels_leyenda)
+      fills_manual <- unname(colores_leyenda_manual)
+      n_items <- length(labels_manual)
+      n_per_row <- min(max(1L, n_por_fila), n_items)
+      n_rows <- ceiling(n_items / n_per_row)
+      row_ids <- ceiling(seq_len(n_items) / n_per_row)
+      row_h <- legend_h / max(1, n_rows)
+      key_w <- min(0.014, max(0.008, 0.06 / max(1, n_per_row)))
+      key_h <- min(row_h * 0.32, key_w * 1.35)
+      key_gap <- 0.004
+      item_gap <- suppressWarnings(as.numeric(legend_espaciado)[1])
+      if (!is.finite(item_gap) || is.na(item_gap) || item_gap < 0) item_gap <- 0
+      item_gap <- 0.014 + min(item_gap, 20) * 0.0008
+      label_w_est <- function(x) {
+        chars <- nchar(as.character(x), type = "width", allowNA = FALSE, keepNA = FALSE)
+        pmax(chars * size_leyenda * 0.00125, 0.020)
+      }
+      fontface_ley <- if ("leyenda" %in% textos_negrita) "bold" else "plain"
+
+      for (r in seq_len(n_rows)) {
+        idx_row <- which(row_ids == r)
+        n_row <- length(idx_row)
+        if (!n_row) next
+        widths_row <- key_w + key_gap + label_w_est(labels_manual[idx_row])
+        gap_row <- if (n_row > 1L) item_gap else 0
+        total_w <- sum(widths_row) + gap_row * max(0, n_row - 1L)
+        if (total_w > 0.96 && n_row > 1L) {
+          gap_row <- max(0.006, (0.96 - sum(widths_row)) / (n_row - 1L))
+          total_w <- sum(widths_row) + gap_row * (n_row - 1L)
+        }
+        x_cursor <- max(0.02, (1 - min(total_w, 0.96)) * 0.5)
+        y_row <- y_legend0 + legend_h - ((r - 0.5) * row_h) + dy_leg
+        for (j in seq_along(idx_row)) {
+          idx <- idx_row[j]
+          x_left <- x_cursor
+          canvas <- canvas + ggplot2::annotate(
+            "rect",
+            xmin = x_left,
+            xmax = x_left + key_w,
+            ymin = y_row - (key_h * 0.5),
+            ymax = y_row + (key_h * 0.5),
+            fill = fills_manual[idx],
+            colour = NA
+          )
+          canvas <- canvas + cowplot::draw_text(
+            labels_manual[idx],
+            x = x_left + key_w + key_gap,
+            y = y_row,
+            size = size_leyenda,
+            color = color_leyenda,
+            fontface = fontface_ley,
+            hjust = 0,
+            vjust = 0.5
+          )
+          x_cursor <- x_cursor + widths_row[j] + gap_row
+        }
+      }
+      if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_legend0, 1, legend_h)
     } else {
-      # centro del placeholder de barras
-      pos_leyenda_x <- x_bars0 + (w_bars * 0.5)
+      pos_leyenda_x <- 0.5
       if (!is.na(centro_cowplot) && is.finite(centro_cowplot)) pos_leyenda_x <- centro_cowplot
 
       y_legend_center <- y_legend0 + (legend_h * 0.5)
-
-      leg_w_npc <- grid::convertWidth(sum(leg_grob$widths), "npc", valueOnly = TRUE)
-      if (!is.finite(leg_w_npc) || leg_w_npc <= 0) leg_w_npc <- 1
 
       canvas <- canvas + cowplot::draw_grob(
         leg_grob,
         x = pos_leyenda_x,
         y = y_legend_center + dy_leg,
-        width  = leg_w_npc,
+        width  = 1,
         height = legend_h,
         hjust  = 0.5,
         vjust  = 0.5

@@ -9,14 +9,21 @@
   )
 }
 
-.render_apiladas_args_ui <- function(df, path, ..., mostrar_leyenda = FALSE, color_ejes = "#111111", size_ejes = 9) {
+.render_apiladas_args_ui <- function(
+    df,
+    path,
+    ...,
+    mostrar_leyenda = FALSE,
+    color_ejes = "#111111",
+    size_ejes = 9,
+    colores_grupos = c("Nada util 1" = "#5E97F6", "2" = "#00B839", "3" = "#F8766D")) {
   graficar_barras_apiladas(
     data = df,
     var_categoria = "categoria",
     var_n = "N",
     cols_porcentaje = c("pct_1", "pct_2", "pct_3"),
     etiquetas_grupos = c(pct_1 = "Nada util 1", pct_2 = "2", pct_3 = "3"),
-    colores_grupos = c("Nada util 1" = "#5E97F6", "2" = "#00B839", "3" = "#F8766D"),
+    colores_grupos = colores_grupos,
     usar_canvas = TRUE,
     mostrar_leyenda = mostrar_leyenda,
     mostrar_valores = FALSE,
@@ -25,6 +32,68 @@
     canvas_w_extra = 0,
     color_ejes = color_ejes,
     size_ejes = size_ejes,
+    ancho = 8,
+    alto = 4,
+    dpi = 150,
+    exportar = "png",
+    path_salida = path,
+    ...
+  )
+}
+
+.fixture_agrupadas_args_ui <- function() {
+  data.frame(
+    categoria = c("Nada util 1", "2", "3"),
+    N = c(4, 4, 4),
+    pct = c(0.25, 0.25, 0.50),
+    stringsAsFactors = FALSE
+  )
+}
+
+.render_agrupadas_args_ui <- function(df, path, ..., colores_categorias = NULL) {
+  graficar_barras_agrupadas(
+    data = df,
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = "pct",
+    etiquetas_series = c(pct = "Porcentaje"),
+    colores_categorias = colores_categorias,
+    usar_canvas = TRUE,
+    mostrar_leyenda = FALSE,
+    mostrar_valores = FALSE,
+    mostrar_barra_extra = FALSE,
+    canvas_w_bars = 0.60,
+    canvas_w_extra = 0,
+    ancho = 8,
+    alto = 4,
+    dpi = 150,
+    exportar = "png",
+    path_salida = path,
+    ...
+  )
+}
+
+.fixture_numericas_args_ui <- function() {
+  data.frame(
+    categoria = c("Grupo A", "Grupo B", "Grupo C"),
+    N = c(10, 12, 9),
+    media = c(1.5, 2.4, 3.2),
+    stringsAsFactors = FALSE
+  )
+}
+
+.render_numericas_args_ui <- function(df, path, ..., colores_categorias = NULL) {
+  graficar_barras_numericas(
+    data = df,
+    var_categoria = "categoria",
+    var_n = "N",
+    vars_valor = "media",
+    etiquetas_series = c(media = "Media"),
+    colores_categorias = colores_categorias,
+    usar_canvas = FALSE,
+    mostrar_leyenda = FALSE,
+    mostrar_valores = FALSE,
+    mostrar_n_sobre_barras = FALSE,
     ancho = 8,
     alto = 4,
     dpi = 150,
@@ -44,6 +113,16 @@
   min(xs)
 }
 
+.count_near_color_pixels <- function(img, hex, tolerance = 0.035) {
+  rgb <- img[, , 1:3, drop = FALSE]
+  target <- as.numeric(grDevices::col2rgb(hex)) / 255
+  mask <-
+    abs(rgb[, , 1] - target[1]) <= tolerance &
+    abs(rgb[, , 2] - target[2]) <= tolerance &
+    abs(rgb[, , 3] - target[3]) <= tolerance
+  sum(mask)
+}
+
 test_that("metadata de graficadores expone controles claros y sin duplicados", {
   payload <- .presets_metadata_payload()
   presets <- stats::setNames(payload$presets, vapply(payload$presets, `[[`, character(1), "name"))
@@ -61,10 +140,125 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_match(by_name$leyenda_posicion$label, "leyenda")
 })
 
-test_that("Word mantiene un grosor apilado mayor por defecto y respeta overrides", {
+test_that("paletas configuradas llegan al ambiente y pintan barras apiladas", {
+  skip_if_not_installed("png")
+
+  palette_env <- .graficos_palette_env(list(
+    lst_respuesta = list(
+      "Nada util 1" = "#C1121F",
+      "2" = "#2A9D8F",
+      "3" = "#F4A261"
+    ),
+    lst_vacia = list("Sin color" = "")
+  ), parent = emptyenv())
+
+  expect_true(exists("paleta_lst_respuesta", envir = palette_env, inherits = FALSE))
+  expect_false(exists("paleta_lst_vacia", envir = palette_env, inherits = FALSE))
+
+  paleta <- get("paleta_lst_respuesta", envir = palette_env, inherits = FALSE)
+  expect_equal(names(paleta), c("Nada util 1", "2", "3"))
+  expect_equal(unname(paleta), c("#C1121F", "#2A9D8F", "#F4A261"))
+
+  out <- tempfile(fileext = ".png")
+  .render_apiladas_args_ui(
+    .fixture_apiladas_args_ui(),
+    out,
+    colores_grupos = paleta,
+    canvas_w_etiquetas = 0.28
+  )
+
+  img <- png::readPNG(out)
+  expect_gt(.count_near_color_pixels(img, "#C1121F"), 100)
+  expect_gt(.count_near_color_pixels(img, "#2A9D8F"), 100)
+  expect_gt(.count_near_color_pixels(img, "#F4A261"), 100)
+})
+
+test_that("paletas sugeridas incluyen listas de todas las fuentes", {
+  inst_a <- list(
+    choices = data.frame(
+      list_name = c("lst_a", "lst_a", "lst_compartida"),
+      name = c("1", "2", "1"),
+      label = c("A uno", "A dos", "Compartida uno"),
+      stringsAsFactors = FALSE
+    )
+  )
+  inst_b <- list(
+    choices = data.frame(
+      list_name = c("lst_b", "lst_b", "lst_compartida"),
+      name = c("1", "2", "1"),
+      label = c("B uno", "B dos", "Compartida uno"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  listas <- .graficos_collect_palette_lists(list(base_a = inst_a, base_b = inst_b))
+  by_name <- stats::setNames(listas, vapply(listas, `[[`, character(1), "list_name"))
+
+  expect_true(all(c("lst_a", "lst_b", "lst_compartida") %in% names(by_name)))
+  expect_equal(vapply(by_name$lst_b$choices, `[[`, character(1), "label"), c("B uno", "B dos"))
+  expect_equal(length(by_name$lst_compartida$choices), 1L)
+})
+
+test_that("paletas configuradas pintan barras agrupadas simples por categoria", {
+  skip_if_not_installed("png")
+
+  paleta <- c(
+    "Nada util 1" = "#C1121F",
+    "2" = "#2A9D8F",
+    "3" = "#F4A261"
+  )
+
+  out <- tempfile(fileext = ".png")
+  .render_agrupadas_args_ui(
+    .fixture_agrupadas_args_ui(),
+    out,
+    colores_categorias = paleta,
+    canvas_w_etiquetas = 0.28
+  )
+
+  img <- png::readPNG(out)
+  expect_gt(.count_near_color_pixels(img, "#C1121F"), 100)
+  expect_gt(.count_near_color_pixels(img, "#2A9D8F"), 100)
+  expect_gt(.count_near_color_pixels(img, "#F4A261"), 100)
+})
+
+test_that("paletas configuradas pintan barras numericas simples por categoria", {
+  skip_if_not_installed("png")
+
+  paleta <- c(
+    "Grupo A" = "#C1121F",
+    "Grupo B" = "#2A9D8F",
+    "Grupo C" = "#F4A261"
+  )
+
+  out <- tempfile(fileext = ".png")
+  .render_numericas_args_ui(
+    .fixture_numericas_args_ui(),
+    out,
+    colores_categorias = paleta
+  )
+
+  img <- png::readPNG(out)
+  expect_gt(.count_near_color_pixels(img, "#C1121F"), 100)
+  expect_gt(.count_near_color_pixels(img, "#2A9D8F"), 100)
+  expect_gt(.count_near_color_pixels(img, "#F4A261"), 100)
+})
+
+test_that("Word aplica el preset apilado institucional por defecto", {
   wp <- w_presets()
   applied <- .apply_word_chart_presets(NULL, wp)
-  expect_equal(as.numeric(applied$barras_apiladas$args$grosor_barras_mult), 1.2)
+  apiladas <- applied$barras_apiladas$args
+
+  expect_equal(as.numeric(apiladas$grosor_barras_mult), 1.5)
+  expect_false(isTRUE(apiladas$mostrar_barra_extra))
+  expect_equal(as.numeric(apiladas$canvas_w_extra), 0)
+  expect_equal(as.numeric(apiladas$canvas_w_bars), 0.82)
+  expect_equal(as.numeric(apiladas$legend_key_cm), 0.15)
+  expect_equal(as.integer(apiladas$legend_n_por_fila), 10L)
+  expect_equal(as.numeric(apiladas$legend_espaciado), 0)
+  expect_equal(as.numeric(apiladas$size_leyenda), 6)
+  expect_equal(as.numeric(apiladas$canvas_h_legend_in), 0.42)
+  expect_equal(as.numeric(apiladas$centro_cowplot), 0.5)
 
   applied_with_override <- .apply_word_chart_presets(
     presets_ppt = list(
@@ -77,7 +271,7 @@ test_that("Word mantiene un grosor apilado mayor por defecto y respeta overrides
     ),
     presets_word = wp
   )
-  expect_equal(applied_with_override$barras_apiladas$args$grosor_barras_mult, 0.72)
+  expect_equal(applied_with_override$barras_apiladas$args$grosor_barras_mult, 1.5)
   expect_equal(applied_with_override$barras_apiladas$args$grosor_modo, "manual")
 
   applied_with_chart_preset <- .apply_word_chart_presets(
@@ -90,6 +284,72 @@ test_that("Word mantiene un grosor apilado mayor por defecto y respeta overrides
     applied_with_chart_preset$barras_apiladas$args$grosor_barras_mult,
     1.25
   )
+  expect_equal(
+    applied_with_chart_preset$barras_apiladas$args$legend_n_por_fila,
+    10
+  )
+})
+
+test_that("build_w_presets resuelve la funcion aunque exista un objeto con el mismo nombre", {
+  w_presets <- list(image = list(width_in = 9))
+  built <- .build_w_presets(list(image = list(width_in = 7.25)))
+
+  expect_s3_class(built, "word_presets")
+  expect_equal(built$image$width_in, 7.25)
+  expect_equal(built$image$height_in, 3.9)
+  expect_equal(built$chart_presets$barras_apiladas$legend_n_por_fila, 10)
+})
+
+test_that("config de graficos expone defaults Word aunque w_presets venga vacio", {
+  cfg <- .graficos_normalize_config(list(w_presets = list()))
+
+  expect_equal(cfg$w_presets$chart_options$ocultar_etiqueta_si_titulo, TRUE)
+  expect_equal(cfg$w_presets$chart_presets$barras_apiladas$legend_n_por_fila, 10)
+  expect_equal(cfg$w_presets$chart_presets$barras_apiladas$canvas_w_bars, 0.82)
+  expect_equal(cfg$w_presets$chart_presets$barras_apiladas$legend_key_cm, 0.15)
+  expect_false(isTRUE(cfg$w_presets$chart_presets$barras_apiladas$mostrar_barra_extra))
+
+  custom <- .graficos_normalize_config(list(
+    w_presets = list(chart_presets = list(
+      barras_apiladas = list(size_leyenda = 7.5)
+    ))
+  ))
+  expect_equal(custom$w_presets$chart_presets$barras_apiladas$size_leyenda, 7.5)
+  expect_equal(custom$w_presets$chart_presets$barras_apiladas$legend_n_por_fila, 10)
+})
+
+test_that("config de graficos serializa paletas como mapas por etiqueta", {
+  cfg <- .graficos_normalize_config(list(
+    paletas = list(
+      acuerdo = c(
+        "Totalmente en desacuerdo" = "#C0392B",
+        "En desacuerdo" = "#E67E22"
+      )
+    )
+  ))
+
+  expect_type(cfg$paletas$acuerdo, "list")
+  expect_equal(cfg$paletas$acuerdo[["Totalmente en desacuerdo"]], "#C0392B")
+  json <- jsonlite::toJSON(list(paletas = cfg$paletas), auto_unbox = TRUE)
+  expect_match(as.character(json), '"Totalmente en desacuerdo":"#C0392B"', fixed = TRUE)
+})
+
+test_that("p_presets acepta media_rango y Word preserva sus overrides", {
+  expect_warning(
+    presets <- p_presets(media_rango = list(size_media = 4)),
+    NA
+  )
+  expect_equal(presets$media_rango$args$size_media, 4)
+
+  applied <- .apply_word_chart_presets(
+    presets_ppt = presets,
+    presets_word = w_presets(chart_presets = list(
+      media_rango = list(size_delta = 2.5)
+    ))
+  )
+
+  expect_equal(applied$media_rango$args$size_media, 4)
+  expect_equal(applied$media_rango$args$size_delta, 2.5)
 })
 
 test_that("preset Pulso deja la barra extra configurable y con defaults neutros", {

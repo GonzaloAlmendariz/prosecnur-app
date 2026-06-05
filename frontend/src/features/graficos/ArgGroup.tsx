@@ -73,6 +73,7 @@ export function ArgGroup({
   flatten = false,
   argStates,
   inheritedValues,
+  placeholders,
   onResetArg,
   headerAction,
   bodyIntro,
@@ -90,6 +91,7 @@ export function ArgGroup({
   /** Map name → valor del preset (o del modo) que el ArgField muestra
    *  cuando el arg está en estado "inherited" sin valor propio. */
   inheritedValues?: Record<string, unknown>;
+  placeholders?: Record<string, string | undefined>;
   /** Handler para resetear un arg al valor del preset. */
   onResetArg?: (name: string) => void;
   /** Acción visual opcional en el header del grupo (ej. editor de layout). */
@@ -116,6 +118,7 @@ export function ArgGroup({
             variables={variables}
             argState={argStates?.[a.name] ?? "inherited"}
             inheritedValue={inheritedValues?.[a.name]}
+            placeholder={placeholders?.[a.name]}
             onReset={onResetArg ? () => onResetArg(a.name) : undefined}
           />
         ))}
@@ -167,6 +170,7 @@ export function ArgGroup({
             variables={variables}
             argState={argStates?.[a.name] ?? "inherited"}
             inheritedValue={inheritedValues?.[a.name]}
+            placeholder={placeholders?.[a.name]}
             onReset={onResetArg ? () => onResetArg(a.name) : undefined}
           />
         ))}
