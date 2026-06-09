@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import * as Lucide from "lucide-react";
 import { Circle, RotateCcw } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { createDefaultWordPresets } from "../../api/graficosConfigNormalizer";
@@ -7,13 +6,7 @@ import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, ARG_GROUP_ORDER, GRUPO_META, normalizeArgGroup } from "./ArgGroup";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
-
-type LucideIcon = (props: { size?: number; color?: string }) => JSX.Element;
-
-function resolveLucide(name: string | undefined): LucideIcon {
-  const registry = Lucide as unknown as Record<string, LucideIcon>;
-  return (name && registry[name]) || registry["Sliders"] || registry["Square"];
-}
+import { resolveGraphLucideIcon } from "./lucideRegistry";
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -146,7 +139,7 @@ export function WordPresetsEditor() {
       <div className="pulso-gv2-word-layout">
         <aside className="pulso-gv2-word-sidebar">
           {editablePresets.map((p) => {
-            const Icon = resolveLucide(p.icono_ui);
+            const Icon = resolveGraphLucideIcon(p.icono_ui, "Sliders");
             const isActive = p.name === meta.name;
             const patch = chartPresets[p.name] ?? {};
             const modified = Object.keys(patch).some((k) => hasValue(patch[k]));
@@ -171,7 +164,7 @@ export function WordPresetsEditor() {
           <header className="pulso-gv2-word-detail-head">
             <span className="pulso-gv2-word-detail-icon">
               {(() => {
-                const Icon = resolveLucide(meta.icono_ui);
+                const Icon = resolveGraphLucideIcon(meta.icono_ui, "Sliders");
                 return <Icon size={15} />;
               })()}
             </span>

@@ -40,6 +40,9 @@
 #' @param decimales Numero de decimales para etiquetas no enteras.
 #' @param umbral_etiqueta Umbral minimo (en escala 0-1) para mostrar una etiqueta.
 #'   Valores menores se ocultan.
+#' @param mostrar_ceros Si `TRUE`, conserva categorias con porcentaje 0 y
+#'   muestra su etiqueta `0%` cerca del origen. Es util cuando se requiere que
+#'   todas las opciones formales del instrumento aparezcan en el grafico.
 #' @param umbral_posicion Umbral (en escala 0-1) para decidir si la etiqueta se coloca
 #'   dentro de la barra (mitad de la altura) o fuera (por encima).
 #' @param sufijo_etiqueta Texto adicional al final de cada etiqueta (por ejemplo, `" pp"`).
@@ -81,6 +84,9 @@
 #'   ese ancho (requiere `stringr`).
 #'
 #' @param mostrar_leyenda Si `FALSE`, oculta la leyenda.
+#' @param orden_barras Criterio para ordenar categorias: `"instrumento"`
+#'   mantiene el orden recibido; `"mayor_menor"` y `"menor_mayor"` ordenan por
+#'   el valor porcentual agregado de cada categoria.
 #' @param invertir_leyenda Si `TRUE`, invierte el orden de la leyenda.
 #' @param invertir_barras Si `TRUE`, invierte el orden de las categorias.
 #' @param invertir_series Si `TRUE`, invierte el orden de las series.
@@ -160,6 +166,7 @@ graficar_barras_agrupadas <- function(
     mostrar_valores           = TRUE,
     decimales                 = 1,
     umbral_etiqueta           = 0.03,
+    mostrar_ceros             = FALSE,
     umbral_barra              = 0.01,   # proporcion minima para dibujar una barra
     umbral_posicion           = 0.15,
     sufijo_etiqueta           = "",
@@ -198,11 +205,12 @@ graficar_barras_agrupadas <- function(
     espacio_izquierda_rel     = 0.05,
     ancho_max_eje_y           = NULL,
 
-    mostrar_leyenda           = TRUE,
-    leyenda_posicion          = c("abajo", "arriba", "derecha", "izquierda", "ninguna"),
-    invertir_leyenda          = FALSE,
-    invertir_barras           = FALSE,
-    invertir_series           = FALSE,
+	    mostrar_leyenda           = TRUE,
+	    leyenda_posicion          = c("abajo", "arriba", "derecha", "izquierda", "ninguna"),
+	    orden_barras              = c("instrumento", "mayor_menor", "menor_mayor"),
+	    invertir_leyenda          = FALSE,
+	    invertir_barras           = FALSE,
+	    invertir_series           = FALSE,
     textos_negrita            = NULL,
 
     # ==========================
@@ -263,11 +271,12 @@ graficar_barras_agrupadas <- function(
   if (!requireNamespace("scales", quietly = TRUE)) stop("Requiere scales.", call. = FALSE)
 
   escala_valor <- match.arg(escala_valor)
-  orientacion  <- match.arg(orientacion)
-  exportar     <- match.arg(exportar)
-  pos_titulo   <- match.arg(pos_titulo)
-  pos_nota_pie <- match.arg(pos_nota_pie)
-  leyenda_posicion <- match.arg(leyenda_posicion)
+	  orientacion  <- match.arg(orientacion)
+	  exportar     <- match.arg(exportar)
+	  pos_titulo   <- match.arg(pos_titulo)
+	  pos_nota_pie <- match.arg(pos_nota_pie)
+	  leyenda_posicion <- match.arg(leyenda_posicion)
+	  orden_barras <- match.arg(orden_barras)
   if (identical(leyenda_posicion, "ninguna")) mostrar_leyenda <- FALSE
   legend_pos_gg <- switch(
     leyenda_posicion,
@@ -291,6 +300,7 @@ graficar_barras_agrupadas <- function(
   }
   hjust_titulo    <- hjust_from_pos(pos_titulo)
   hjust_caption   <- hjust_from_pos(pos_nota_pie)
+  mostrar_ceros   <- isTRUE(mostrar_ceros)
 
   # canvas: solo horizontal (por diseno de placeholders por filas)
   if (isTRUE(usar_canvas) && orientacion != "horizontal") {
@@ -328,9 +338,11 @@ graficar_barras_agrupadas <- function(
   df_long$.valor_plot[is.na(df_long$.valor_plot) | !is.finite(df_long$.valor_plot)] <- 0
   df_long$.valor_plot <- pmax(0, df_long$.valor_plot)
 
-  # Suprimir barras por debajo de umbral_barra (se ponen a NA → geom_col no las dibuja)
+  # Suprimir barras por debajo de umbral_barra. Cuando `mostrar_ceros = TRUE`,
+  # los ceros se conservan para mantener la opcion visible en el eje.
   if (!is.null(umbral_barra) && is.numeric(umbral_barra) && is.finite(umbral_barra) && umbral_barra > 0) {
     mask_baja <- !is.na(df_long$.valor_plot) & df_long$.valor_plot < umbral_barra
+    if (mostrar_ceros) mask_baja <- mask_baja & df_long$.valor_plot > 0
     df_long$.valor_plot[mask_baja] <- NA_real_
 
     cats_keep <- df_long |>
@@ -349,10 +361,24 @@ graficar_barras_agrupadas <- function(
   if (invertir_series) niveles_series <- rev(niveles_series)
   df_long$.serie <- factor(df_long$.serie, levels = niveles_series)
 
-  # orden categorias (FIJO)
-  cat_chr  <- as.character(df_long[[var_categoria]])
-  cat_lvls <- unique(cat_chr)
-  if (invertir_barras) cat_lvls <- rev(cat_lvls)
+	  # orden categorias (FIJO)
+	  cat_chr  <- as.character(df_long[[var_categoria]])
+	  cat_lvls <- unique(cat_chr)
+	  if (!identical(orden_barras, "instrumento")) {
+	    ord_vals <- tapply(df_long$.valor_plot, cat_chr, sum, na.rm = TRUE)
+	    ord_df <- data.frame(
+	      categoria = names(ord_vals),
+	      valor = as.numeric(ord_vals),
+	      pos = match(names(ord_vals), cat_lvls),
+	      stringsAsFactors = FALSE
+	    )
+	    ord_df <- ord_df[order(
+	      if (identical(orden_barras, "mayor_menor")) -ord_df$valor else ord_df$valor,
+	      ord_df$pos
+	    ), , drop = FALSE]
+	    cat_lvls <- ord_df$categoria
+	  }
+	  if (invertir_barras) cat_lvls <- rev(cat_lvls)
   df_long[[var_categoria]] <- factor(cat_chr, levels = cat_lvls)
   n_categorias <- length(cat_lvls)
   usar_color_categorias <- !is.null(colores_categorias) &&
@@ -420,8 +446,13 @@ graficar_barras_agrupadas <- function(
     lab_base[es_entero]  <- sprintf("%d%%", round(pct_num[es_entero]))
     lab_base[!es_entero] <- sprintf(fmt_no_entero, pct_num[!es_entero])
 
-    lab_base[!is.na(df_lab$.valor_plot) & df_lab$.valor_plot <= 0]             <- NA_character_
-    lab_base[!is.na(df_lab$.valor_plot) & df_lab$.valor_plot < umbral_etiqueta] <- NA_character_
+    mask_zero <- !is.na(df_lab$.valor_plot) & df_lab$.valor_plot <= 0
+    if (mostrar_ceros) {
+      lab_base[mask_zero] <- "0%"
+    } else {
+      lab_base[mask_zero] <- NA_character_
+    }
+    lab_base[!mask_zero & !is.na(df_lab$.valor_plot) & df_lab$.valor_plot < umbral_etiqueta] <- NA_character_
     lab_base[is.na(df_lab$.valor_plot)]                                         <- NA_character_
 
     df_lab$lab <- ifelse(!is.na(lab_base), paste0(lab_base, sufijo_etiqueta), "")
@@ -438,6 +469,8 @@ graficar_barras_agrupadas <- function(
       df_lab$.valor_plot[df_lab$inside & !is.na(df_lab$inside)] / 2
     mask_outside <- !is.na(df_lab$.valor_plot) & !is.na(df_lab$inside) & !df_lab$inside & df_lab$.valor_plot > 0
     df_lab$valor_label[mask_outside] <- df_lab$.valor_plot[mask_outside] + offset_lab
+    mask_zero_label <- mostrar_ceros & !is.na(df_lab$.valor_plot) & df_lab$.valor_plot <= 0 & df_lab$lab != ""
+    df_lab$valor_label[mask_zero_label] <- offset_lab
 
     df_lab$hjust_label <- ifelse(df_lab$inside, 0.5, 0)
     if (orientacion == "vertical") df_lab$hjust_label <- 0.5
@@ -776,18 +809,38 @@ graficar_barras_agrupadas <- function(
 
   # alturas en pulgadas
   alto_por_cat_eff <- alto_por_categoria %||% 0.42
+  if (length(etiquetas_vec)) {
+    lineas_etq <- vapply(
+      strsplit(as.character(etiquetas_vec), "\n", fixed = TRUE),
+      length,
+      integer(1)
+    )
+    max_lineas_etq <- suppressWarnings(max(lineas_etq, na.rm = TRUE))
+    if (is.finite(max_lineas_etq) && max_lineas_etq > 1) {
+      alto_min_etq <- (size_ejes / 72) * max_lineas_etq * 1.45 + 0.08
+      if (is.finite(alto_min_etq) && alto_min_etq > 0) {
+        alto_por_cat_eff <- max(alto_por_cat_eff, alto_min_etq)
+      }
+    }
+  }
   h_panel_in <- if (!is.null(canvas_h_panel_in) && is.finite(canvas_h_panel_in) && canvas_h_panel_in > 0) {
     canvas_h_panel_in
   } else {
     max(1L, n_categorias) * alto_por_cat_eff
   }
 
-  has_header  <- (!is.null(titulo) && nzchar(titulo)) || (!is.null(subtitulo) && nzchar(subtitulo))
-  has_caption <- !is.null(caption_text) && nzchar(caption_text)
+	  has_header  <- (!is.null(titulo) && nzchar(titulo)) || (!is.null(subtitulo) && nzchar(subtitulo))
+	  has_caption <- !is.null(caption_text) && nzchar(caption_text)
 
-  h_header_in  <- if (has_header)  canvas_h_header_in  else 0
-  h_legend_in  <- if (has_legend && !legend_is_side)  canvas_h_legend_in  else 0
-  h_caption_in <- if (has_caption) canvas_h_caption_in else 0
+	  h_header_in  <- if (has_header)  {
+	    has_t <- !is.null(titulo) && nzchar(titulo)
+	    has_s <- !is.null(subtitulo) && nzchar(subtitulo)
+	    min_header <- if (has_t && has_s) 0.44 else if (has_s) 0.32 else 0.26
+	    h_in <- suppressWarnings(as.numeric(canvas_h_header_in %||% NA_real_)[1])
+	    if (!is.finite(h_in) || h_in <= 0) min_header else max(h_in, min_header)
+	  } else 0
+	  h_legend_in  <- if (has_legend && !legend_is_side)  canvas_h_legend_in  else 0
+	  h_caption_in <- if (has_caption) canvas_h_caption_in else 0
 
   h_total_in <- h_header_in + h_panel_in + h_legend_in + h_caption_in
   if (h_total_in <= 0) h_total_in <- 1

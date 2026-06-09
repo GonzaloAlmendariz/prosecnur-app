@@ -1,5 +1,4 @@
 import { useMemo, useRef, useEffect, useState } from "react";
-import * as Lucide from "lucide-react";
 import { Plus, Shuffle, X, Wand2, Check, ImagePlus, Save, RotateCcw } from "lucide-react";
 import { GraficadorMetadata, GraficadorRef } from "../../api/client";
 import { usePlanStore } from "./store";
@@ -8,6 +7,7 @@ import GraficadorPicker from "./GraficadorPicker";
 import GraficadorForm from "./GraficadorForm";
 import MultiApiladasBuilder from "./MultiApiladasBuilder";
 import { graficadorToPresetType } from "./graficadorPresetMap";
+import { GraphSquareIcon, resolveGraphLucideIcon } from "./lucideRegistry";
 
 // Card que representa un slot de graficador dentro de un slide. Dos
 // estados:
@@ -139,7 +139,7 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
 
   // --- Slot con graficador ---
   const meta = graficadoresById[value.graficador];
-  const Icon = meta ? resolveLucide(meta.icono_ui) : Lucide.Square;
+  const Icon = meta ? resolveGraphLucideIcon(meta.icono_ui, "BarChart") : GraphSquareIcon;
   const titulo = meta?.titulo_humano ?? value.graficador;
 
   return (
@@ -230,12 +230,6 @@ function SlotLabel({ text, slotName }: { text: string; slotName: string }) {
       {text}
     </span>
   );
-}
-
-type LucideIcon = (props: { size?: number; color?: string }) => JSX.Element;
-function resolveLucide(name: string): LucideIcon {
-  const registry = Lucide as unknown as Record<string, LucideIcon>;
-  return registry[name] ?? registry["BarChart"] ?? registry["Square"];
 }
 
 // Dropdown de "Modo" (concepto = override reusable). El usuario lo

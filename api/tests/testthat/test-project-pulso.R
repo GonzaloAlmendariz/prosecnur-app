@@ -217,6 +217,83 @@
   list(sid = sid, xls_path = xmeta$path, data_path = dmeta$path)
 }
 
+.parent_recod_groups_repair_session <- function() {
+  sid <- session_create()
+
+  survey <- data.frame(
+    type = c("select_one lst_p_area", "select_one lst_p_area_recod", "text"),
+    name = c("p_area", "p_area_recod", "p_area_other"),
+    label = c("Area", "Area recodificada", "Otro area"),
+    list_name = c("lst_p_area", "lst_p_area_recod", ""),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  choices <- data.frame(
+    list_name = c(rep("lst_p_area", 3), rep("lst_p_area_recod", 3)),
+    name = c("1", "2", "99", "1", "2", "99"),
+    label = c("Operaciones", "Direccion", "Otro", "Operaciones", "Direccion", "Otro"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  data_df <- data.frame(
+    p_area = c("99", "1", "99", "2"),
+    p_area_recod = c("Sistema", "1", "Sostenibilidad", "2"),
+    p_area_other = c("Sistema", "", "Sostenibilidad", ""),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  xmeta <- save_upload(
+    sid, "xlsform", "instrumento_parent_recod_groups.xlsx",
+    .xlsx_bytes_from_sheets(list(survey = survey, choices = choices))
+  )
+  dmeta <- save_upload(
+    sid, "data", "data_parent_recod_groups.xlsx",
+    .xlsx_bytes_from_sheets(list(data = data_df))
+  )
+
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  s$estudio$base_activa <- "base_integrada"
+  s$estudio$bases[["base_integrada"]] <- list(
+    nombre = "base_integrada",
+    xlsform_file_id = xmeta$file_id,
+    data_file_id = dmeta$file_id,
+    data_ext = "xlsx"
+  )
+  s$codif_por_base <- list(base_integrada = list(
+    familias_draft = list(rows = list(list(
+      use = TRUE,
+      tipo = "select_one",
+      modo_so = "padre",
+      parent = "p_area",
+      parent_col = "p_area",
+      text_col = "p_area_other",
+      parent_label = "Area",
+      list_norm = "lst_p_area"
+    ))),
+    grupos_recod = list(
+      p_area_other = list(
+        list(
+          codigo = "1",
+          etiqueta = "Sistema de Gestion",
+          origen = "nuevo",
+          respuestas = list("Sistema")
+        ),
+        list(
+          codigo = "2",
+          etiqueta = "Sostenibilidad",
+          origen = "nuevo",
+          respuestas = list("Sostenibilidad")
+        )
+      )
+    )
+  ))
+  .session_env[[sid]] <- s
+
+  list(sid = sid, xls_path = xmeta$path, data_path = dmeta$path)
+}
+
 # ----- Round-trip básico ------------------------------------------------------
 
 test_that("build_pulso + load_pulso preservan estado simple", {
@@ -491,6 +568,56 @@ test_that("repair parent recod creates parent copy when child recod is absent", 
   expect_true("p_area_recod" %in% names(fixed$data))
   expect_equal(as.character(fixed$data$p_area_recod), c("1", "99", "2", NA))
   expect_equal(names(fixed$data)[match("p_area", names(fixed$data)) + 1L], "p_area_recod")
+})
+
+test_that("repair parent recod uses saved groups keyed by adopted text column", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+
+  setup <- .parent_recod_groups_repair_session()
+  on.exit(session_delete(setup$sid))
+
+  expect_true(.pulso_repair_parent_recod_columns(setup$sid))
+
+  fixed_data <- as.data.frame(readxl::read_excel(setup$data_path, sheet = "data"),
+                              stringsAsFactors = FALSE, check.names = FALSE)
+  expect_equal(as.character(fixed_data$p_area_recod), c("100", "1", "101", "2"))
+
+  fixed_choices <- as.data.frame(readxl::read_excel(setup$xls_path, sheet = "choices"),
+                                 stringsAsFactors = FALSE, check.names = FALSE)
+  recod_choices <- fixed_choices[as.character(fixed_choices$list_name) == "lst_p_area_recod", , drop = FALSE]
+  labels <- stats::setNames(as.character(recod_choices$label), as.character(recod_choices$name))
+  expect_equal(labels[["100"]], "Sistema de Gestion")
+  expect_equal(labels[["101"]], "Sostenibilidad")
+})
+
+test_that("repair parent recod matches saved groups accent-insensitively", {
+  df <- data.frame(
+    p_area = c("99", "99"),
+    p_area_other = c(
+      "Centrum PUCP y Pontificia Universidad Católica de Chile",
+      "Salcantay Mining Diseño de minas subterraneos, !costos y presupuestos y gestio) INARQ"
+    ),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  groups <- list(
+    list(
+      codigo = "100",
+      etiqueta = "CENTRUM",
+      respuestas = list("centrum pucp y pontificia universidad catolica de chile")
+    ),
+    list(
+      codigo = "101",
+      etiqueta = "Otros",
+      respuestas = list("salcantay mining diseno de minas subterraneos, !costos y presupuestos y gestio) inarq")
+    )
+  )
+
+  fixed <- .pulso_repair_parent_recod_df(df, "p_area", "p_area_other", groups = groups)
+
+  expect_true(fixed$changed)
+  expect_equal(as.character(fixed$data$p_area_recod), c("100", "101"))
 })
 
 test_that("estudio payload exposes integrated-instruments history", {

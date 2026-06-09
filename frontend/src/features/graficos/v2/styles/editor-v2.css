@@ -259,12 +259,14 @@
 }
 
 .pulso-gv2-shell-body.is-timeline {
+  --gv2-timeline-nav-min: 220px;
+  --gv2-timeline-nav-max: 246px;
   display: grid;
-  grid-template-columns: minmax(220px, 246px) minmax(0, 1fr);
+  grid-template-columns: minmax(var(--gv2-timeline-nav-min), var(--gv2-timeline-nav-max)) minmax(0, 1fr);
 }
 
 .pulso-gv2-shell.is-compact .pulso-gv2-shell-body.is-timeline {
-  grid-template-columns: minmax(208px, 226px) minmax(0, 1fr);
+  grid-template-columns: minmax(var(--gv2-timeline-nav-min), var(--gv2-timeline-nav-max)) minmax(0, 1fr);
 }
 
 .pulso-gv2-shell-body.is-canvas {
@@ -283,15 +285,20 @@
 /* ── Timeline V2 ───────────────────────────────────────────────────────── */
 
 .pulso-gv2-timeline {
-  width: 240px;
+  width: var(--gv2-timeline-nav-max, 246px);
   flex-shrink: 0;
+  box-sizing: border-box;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   border-right: 1px solid var(--pulso-border);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface-2) 82%, transparent), var(--pulso-surface-2)),
     var(--pulso-surface-2);
-  overflow-y: auto;
-  padding: 8px;
+  overflow: hidden;
+  padding: 7px 7px var(--pulso-active-base-footer-reserve, 96px);
   scrollbar-gutter: stable;
+  scroll-padding-bottom: var(--pulso-active-base-footer-reserve, 96px);
 }
 
 .pulso-gv2-shell-body.is-timeline .pulso-gv2-timeline {
@@ -299,17 +306,28 @@
   min-width: 0;
 }
 
-.pulso-gv2-timeline.is-compact { width: 218px; padding: 7px; }
+.pulso-gv2-timeline.is-compact {
+  width: var(--gv2-timeline-nav-max, 246px);
+  padding: 6px 6px var(--pulso-active-base-footer-reserve, 96px);
+}
 
 .pulso-gv2-shell-body.is-timeline .pulso-gv2-timeline.is-compact {
   width: auto;
 }
 
 .pulso-gv2-timeline-list {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 14px;
+  gap: 5px;
+  margin-bottom: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 2px 2px 0;
+  scroll-padding-bottom: 10px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .pulso-gv2-timeline-title-row {
@@ -317,8 +335,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
-  min-height: 22px;
+  margin-bottom: 6px;
+  min-height: 20px;
   font-size: 10px;
   font-weight: 750;
   text-transform: uppercase;
@@ -340,7 +358,7 @@
 
 .pulso-gv2-timeline-search {
   position: relative;
-  margin-bottom: 8px;
+  margin-bottom: 7px;
 }
 
 .pulso-gv2-timeline-search-icon {
@@ -354,13 +372,13 @@
 
 .pulso-gv2-timeline-search input {
   width: 100%;
-  min-height: 31px;
+  min-height: 30px;
   padding: 6px 30px 6px 28px;
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
   background: var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: 11.5px;
   outline: none;
   transition:
     background var(--motion-dur-fast) ease,
@@ -408,14 +426,15 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 .pulso-gv2-cat-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 7px;
-  font-size: 10px;
+  min-height: 26px;
+  padding: 2px 7px;
+  font-size: 9.5px;
   font-weight: 600;
   color: var(--pulso-text-soft);
   background: var(--pulso-surface);
@@ -522,12 +541,12 @@
 }
 .pulso-gv2-timeline-summary--top {
   margin-top: 0;
-  margin-bottom: 10px;
-  padding: 8px 6px;
+  margin-bottom: 8px;
+  padding: 6px 5px;
   border-top: none;
   border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
-  border-radius: var(--pulso-radius);
+  border-radius: 9px;
   border: 1px solid var(--gv2-glass-border);
   box-shadow: var(--pulso-shadow-low);
 }
@@ -538,16 +557,17 @@
   flex: 1;
 }
 .pulso-gv2-summary-num {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--pulso-primary);
   line-height: 1.1;
 }
 .pulso-gv2-summary-label {
-  font-size: 8.5px;
+  font-size: 7.8px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.45px;
   margin-top: 2px;
+  white-space: nowrap;
 }
 
 /* ── Style Panel ───────────────────────────────────────────────────────── */
@@ -3800,8 +3820,8 @@
 .pulso-gv2-slide-card {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 8px;
+  gap: 3px;
+  padding: 6px;
   background: var(--pulso-surface);
   border: 1px solid var(--pulso-border);
   border-left: 3px solid var(--pulso-border);
@@ -3842,7 +3862,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  font-size: 10px;
+  font-size: 9.5px;
   font-family: ui-monospace, monospace;
   color: var(--pulso-text-soft);
 }
@@ -3867,7 +3887,7 @@
   align-items: flex-start;
   gap: 5px;
   min-width: 0;
-  font-size: 12px;
+  font-size: 11.3px;
   font-weight: 600;
   color: var(--pulso-text);
   line-height: 1.3;
@@ -3882,7 +3902,7 @@
 }
 
 .pulso-gv2-slide-card-subtitle {
-  font-size: 11px;
+  font-size: 10.2px;
   color: var(--pulso-text-soft);
   line-height: 1.28;
   overflow: visible;
@@ -3896,8 +3916,9 @@
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
   overflow: hidden;
-  aspect-ratio: 16/8;
-  max-height: 88px;
+  height: 66px;
+  aspect-ratio: auto;
+  max-height: 66px;
   position: relative;
 }
 
@@ -3910,8 +3931,8 @@
   display: none;
   gap: 2px;
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 5px;
+  right: 5px;
 }
 
 .pulso-gv2-slide-card:hover .pulso-gv2-slide-card-actions { display: inline-flex; }
@@ -3967,24 +3988,35 @@
   justify-content: center;
   gap: 6px;
   width: 100%;
-  padding: 10px 12px;
-  margin-bottom: 12px;
-  background-color: var(--pulso-primary);
-  color: white !important;
-  border: none;
+  min-height: 34px;
+  padding: 6px 11px;
+  margin-bottom: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pulso-primary-soft) 82%, #fff), #fff);
+  color: var(--pulso-primary) !important;
+  border: 1px solid var(--pulso-primary-border);
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11.8px;
+  font-weight: 750;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 36, 87, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 4px 12px rgba(0, 36, 87, 0.06);
   transition:
     transform var(--motion-dur-press) var(--gv2-press-ease),
     box-shadow var(--motion-dur-fast) var(--gv2-press-ease),
-    background-color var(--motion-dur-fast) ease;
+    background var(--motion-dur-fast) ease,
+    border-color var(--motion-dur-fast) ease,
+    color var(--motion-dur-fast) ease;
+}
+.pulso-gv2-picker-trigger svg,
+.pulso-gv2-picker-trigger span {
+  color: inherit !important;
 }
 .pulso-gv2-picker-trigger:hover {
   transform: translateY(-1px);
-  background-color: #013371;
+  background: var(--pulso-primary);
+  border-color: var(--pulso-primary);
   box-shadow: var(--pulso-shadow-soft);
   color: white !important;
 }
@@ -4335,11 +4367,20 @@
 
 .pulso-gv2-estilo-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 22px 24px 24px;
   background: white;
   min-width: 0;
+}
+
+.pulso-gv2-estilo-body.is-ppt,
+.pulso-gv2-estilo-body.is-word,
+.pulso-gv2-estilo-body.is-modos {
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .pulso-gv2-estilo-body.is-paletas {
@@ -4418,26 +4459,88 @@
 .pulso-gv2-presets-editor {
   display: flex;
   gap: 24px;
-  min-height: 540px;
+  flex: 1;
+  min-height: 0;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .pulso-gv2-presets-sidebar {
   width: 260px;
   flex-shrink: 0;
+  min-height: 0;
+  max-height: 100%;
   border-right: 1px solid var(--pulso-border);
   padding-right: 14px;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .pulso-gv2-presets-detail {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+}
+
+.pulso-gv2-overrides-editor {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.pulso-gv2-overrides-sidebar {
+  width: 240px;
+  flex: 0 0 240px;
+  min-height: 0;
+  max-height: 100%;
+  border-right: 1px solid var(--pulso-border);
+  padding-right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.pulso-gv2-overrides-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.pulso-gv2-overrides-detail {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
 }
 
 .pulso-gv2-presets-body {
@@ -5376,12 +5479,37 @@
 
   .pulso-gv2-presets-sidebar {
     width: 100%;
+    flex: 0 0 auto;
     max-height: 30vh;
     overflow: auto;
     border-right: 0;
     border-bottom: 1px solid var(--pulso-border);
     padding-right: 0;
     padding-bottom: 10px;
+  }
+
+  .pulso-gv2-presets-detail {
+    flex: 1;
+  }
+
+  .pulso-gv2-overrides-editor {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .pulso-gv2-overrides-sidebar {
+    width: 100%;
+    flex: 0 0 auto;
+    max-height: 30vh;
+    overflow: hidden;
+    border-right: 0;
+    border-bottom: 1px solid var(--pulso-border);
+    padding-right: 0;
+    padding-bottom: 10px;
+  }
+
+  .pulso-gv2-overrides-detail {
+    flex: 1;
   }
 
   .pulso-gv2-mode-toolbar {
@@ -7913,11 +8041,14 @@
 
 /* Word presets editor: scoped inspector layout for Estilo global > Word. */
 .pulso-gv2-word-presets {
+  flex: 1;
   width: 100%;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  overflow: hidden;
 }
 
 .pulso-gv2-word-option-card {
@@ -7994,13 +8125,15 @@
 }
 
 .pulso-gv2-word-layout {
+  flex: 1;
   display: grid;
   grid-template-columns: 224px minmax(0, 1fr);
   gap: 16px;
   width: 100%;
   min-width: 0;
-  min-height: 420px;
-  align-items: start;
+  min-height: 0;
+  align-items: stretch;
+  overflow: hidden;
 }
 
 .pulso-gv2-word-sidebar {
@@ -8009,8 +8142,13 @@
   gap: 3px;
   width: 100%;
   min-width: 0;
+  min-height: 0;
+  max-height: 100%;
   padding: 4px 12px 4px 0;
   border-right: 1px solid var(--pulso-border);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .pulso-gv2-word-preset {
@@ -8056,10 +8194,15 @@
 .pulso-gv2-word-detail {
   width: 100%;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
 }
 
 .pulso-gv2-word-detail-head {
@@ -8337,11 +8480,11 @@
 @media (max-width: 920px) {
   .pulso-gv2-word-layout {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .pulso-gv2-word-sidebar {
     max-height: 184px;
-    overflow: auto;
     padding: 0 0 10px;
     border-right: 0;
     border-bottom: 1px solid var(--pulso-border);

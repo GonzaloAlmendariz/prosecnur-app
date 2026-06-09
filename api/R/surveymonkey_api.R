@@ -347,6 +347,151 @@ sm_api_fetch_collector_recipient_detail <- function(collector_id,
   res$data %||% list()
 }
 
+.sm_api_recipient_scalar <- function(x, ...) {
+  fields <- c(...)
+  for (field in fields) {
+    value <- x[[field]]
+    if (is.null(value) || length(value) == 0L) next
+    if (is.list(value)) next
+    value <- trimws(as.character(value[[1]] %||% ""))
+    if (!is.na(value) && nzchar(value)) return(value)
+  }
+  ""
+}
+
+.sm_api_recipient_custom_pairs <- function(x) {
+  out <- list()
+  append_pair <- function(name, value) {
+    name <- trimws(as.character(name %||% "")[1])
+    if (!nzchar(name)) return(invisible(NULL))
+    value <- trimws(as.character(value %||% "")[1])
+    if (is.na(value) || !nzchar(value)) return(invisible(NULL))
+    out[[.sm_api_safe_name(name)]] <<- value
+    invisible(NULL)
+  }
+  custom_variables <- x$custom_variables %||% x$customVariables %||% list()
+  if (is.list(custom_variables) && length(custom_variables)) {
+    for (nm in names(custom_variables)) append_pair(nm, custom_variables[[nm]])
+  }
+  custom_fields <- x$custom_fields %||% x$customFields %||% list()
+  if (is.list(custom_fields) && length(custom_fields)) {
+    for (item in custom_fields) {
+      if (!is.list(item)) next
+      append_pair(
+        item$name %||% item$key %||% item$field_name %||% item$fieldName,
+        item$value %||% item$field_value %||% item$fieldValue
+      )
+    }
+  }
+  out
+}
+
+.sm_api_recipient_row <- function(x) {
+  if (is.null(x) || !is.list(x)) return(list())
+  out <- list(
+    recipient_id = .sm_api_recipient_scalar(x, "id", "recipient_id"),
+    recipient_email = .sm_api_recipient_scalar(x, "email", "email_address", "emailAddress"),
+    recipient_first_name = .sm_api_recipient_scalar(x, "first_name", "firstName"),
+    recipient_last_name = .sm_api_recipient_scalar(x, "last_name", "lastName"),
+    recipient_custom_value = .sm_api_recipient_scalar(x, "custom_value", "customValue", "custom_id", "customId"),
+    recipient_status = .sm_api_recipient_scalar(x, "status", "mail_status"),
+    recipient_response_status = .sm_api_recipient_scalar(x, "survey_response_status", "response_status")
+  )
+  custom_pairs <- .sm_api_recipient_custom_pairs(x)
+  for (nm in names(custom_pairs)) {
+    out[[paste0("recipient_cv_", nm)]] <- custom_pairs[[nm]]
+  }
+  out
+}
+
+sm_api_fetch_collector_recipient_rows <- function(collector_id,
+                                                  token,
+                                                  base_url = "https://api.surveymonkey.com/v3",
+                                                  recipient_ids = NULL,
+                                                  include_details = TRUE,
+                                                  max_details = 1000L) {
+  recipients <- sm_api_fetch_collector_recipients(collector_id, token, base_url = base_url)
+  if (!isTRUE(recipients$available)) return(data.frame())
+  rows <- recipients$data %||% list()
+  wanted <- unique(trimws(as.character(recipient_ids %||% character(0))))
+  wanted <- wanted[nzchar(wanted)]
+  if (length(wanted)) {
+    rows <- Filter(function(row) {
+      rid <- trimws(as.character(row$id %||% row$recipient_id %||% ""))
+      nzchar(rid) && rid %in% wanted
+    }, rows)
+  }
+  max_details <- suppressWarnings(as.integer(max_details %||% 1000L))
+  if (!is.finite(max_details)) max_details <- 1000L
+  max_details <- max(0L, max_details)
+  out <- list()
+  for (i in seq_along(rows)) {
+    row <- rows[[i]]
+    rid <- trimws(as.character(row$id %||% row$recipient_id %||% ""))
+    src <- row
+    if (isTRUE(include_details) && nzchar(rid) && i <= max_details) {
+      detail <- tryCatch(
+        sm_api_fetch_collector_recipient_detail(collector_id, rid, token, base_url = base_url),
+        error = function(e) NULL
+      )
+      if (is.list(detail) && length(detail)) src <- utils::modifyList(row, detail)
+    }
+    out[[length(out) + 1L]] <- .sm_api_recipient_row(src)
+  }
+  if (!length(out)) return(data.frame())
+  cols <- unique(unlist(lapply(out, names), use.names = FALSE))
+  df <- do.call(rbind, lapply(out, function(row) {
+    values <- lapply(cols, function(nm) {
+      value <- row[[nm]]
+      if (is.null(value) || !length(value)) return(NA_character_)
+      as.character(value[[1]])[1]
+    })
+    names(values) <- cols
+    as.data.frame(values, stringsAsFactors = FALSE, optional = TRUE)
+  }))
+  rownames(df) <- NULL
+  df
+}
+
+sm_api_enrich_response_recipients <- function(data,
+                                              token,
+                                              base_url = "https://api.surveymonkey.com/v3",
+                                              include_details = TRUE) {
+  if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(data)
+  if (!all(c("collector_id", "recipient_id") %in% names(data))) return(data)
+  collector_ids <- unique(trimws(as.character(data$collector_id)))
+  collector_ids <- collector_ids[nzchar(collector_ids) & !is.na(collector_ids)]
+  if (!length(collector_ids)) return(data)
+  enriched <- data
+  for (collector_id in collector_ids) {
+    idx <- which(trimws(as.character(enriched$collector_id)) == collector_id)
+    recipient_ids <- unique(trimws(as.character(enriched$recipient_id[idx])))
+    recipient_ids <- recipient_ids[nzchar(recipient_ids) & !is.na(recipient_ids)]
+    if (!length(recipient_ids)) next
+    recipient_rows <- tryCatch(
+      sm_api_fetch_collector_recipient_rows(
+        collector_id,
+        token,
+        base_url = base_url,
+        recipient_ids = recipient_ids,
+        include_details = include_details
+      ),
+      error = function(e) data.frame()
+    )
+    if (!is.data.frame(recipient_rows) || !nrow(recipient_rows) || !"recipient_id" %in% names(recipient_rows)) next
+    for (col in setdiff(names(recipient_rows), "recipient_id")) {
+      if (!col %in% names(enriched)) enriched[[col]] <- NA_character_
+    }
+    match_pos <- match(trimws(as.character(enriched$recipient_id[idx])), trimws(as.character(recipient_rows$recipient_id)))
+    has_match <- which(!is.na(match_pos))
+    if (!length(has_match)) next
+    for (col in setdiff(names(recipient_rows), "recipient_id")) {
+      enriched[[col]][idx[has_match]] <- as.character(recipient_rows[[col]][match_pos[has_match]])
+    }
+  }
+  enriched
+}
+
 #' Resume destinatarios sin retornar datos personales ni links planos.
 #' @export
 sm_api_collector_recipient_summary <- function(collector_id,
@@ -626,6 +771,13 @@ sm_api_flatten_responses <- function(details, responses, style = .sm_api_default
   }))
   names(df) <- cols
   rownames(df) <- NULL
+  variable_labels <- .sm_api_response_variable_labels(qmap, names(df))
+  if (length(variable_labels)) {
+    attr(df, "variable_labels") <- variable_labels
+    for (nm in intersect(names(variable_labels), names(df))) {
+      attr(df[[nm]], "label") <- unname(variable_labels[[nm]])
+    }
+  }
   df
 }
 
@@ -694,6 +846,21 @@ sm_api_flatten_responses <- function(details, responses, style = .sm_api_default
     }
   }
   list(questions = questions, choices = choices, rows = rows, cols = cols)
+}
+
+.sm_api_response_variable_labels <- function(qmap, data_names = character()) {
+  questions <- qmap$questions %||% list()
+  if (!length(questions)) return(character(0))
+  data_names <- as.character(data_names %||% character(0))
+  out <- character(0)
+  for (spec in questions) {
+    nm <- as.character(spec$name %||% "")[1]
+    label <- as.character(spec$heading %||% "")[1]
+    if (is.na(nm) || !nzchar(nm) || is.na(label) || !nzchar(label)) next
+    if (length(data_names) && !(nm %in% data_names)) next
+    out[[nm]] <- label
+  }
+  out
 }
 
 .sm_api_answer_value <- function(ans, qmap) {

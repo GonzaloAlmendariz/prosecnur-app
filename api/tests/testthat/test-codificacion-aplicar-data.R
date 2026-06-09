@@ -99,6 +99,61 @@ test_that("new codification groups with blank labels get an auxiliary fallback l
   expect_equal(unname(lookup$new_codes[["15"]]), "sin etiqueta")
 })
 
+test_that("new codification groups avoid reserved code collisions", {
+  lookup <- .match_grupos(
+    list(
+      list(
+        codigo = "2",
+        etiqueta = "CENTRUM",
+        origen = "nuevo",
+        respuestas = list("centrum")
+      ),
+      list(
+        codigo = "3",
+        etiqueta = "UNI",
+        origen = "nuevo",
+        respuestas = list("codea uni")
+      )
+    ),
+    reserved_codes = c("1", "2", "3")
+  )
+
+  expect_true(exists("centrum", envir = lookup$text_to_code, inherits = FALSE))
+  expect_equal(get("centrum", envir = lookup$text_to_code), "4")
+  expect_equal(get("codea uni", envir = lookup$text_to_code), "5")
+  expect_equal(unname(unlist(lookup$new_codes)), c("CENTRUM", "UNI"))
+  expect_equal(names(lookup$new_codes), c("4", "5"))
+})
+
+test_that("codificacion resolves adopted text groups to their owner variable", {
+  rows <- list(
+    list(tipo = "select_one", modo_so = "padre", parent = "p12", parent_col = "p12", text_col = "p12_other"),
+    list(tipo = "text", parent = "p12_other", parent_col = "p12_other", text_col = "p12_other"),
+    list(tipo = "text", parent = "p21", parent_col = "p21", text_col = "p21")
+  )
+
+  idx <- .codif_group_row_indexes(rows)
+
+  expect_equal(.codif_group_owner_row("p12_other", idx)$parent, "p12")
+  expect_equal(.codif_group_owner_row("p21", idx)$parent, "p21")
+})
+
+test_that("adaptation variable filter keeps parent when groups are stored by text_col", {
+  split_select_one <- data.frame(
+    parent = "p12",
+    parent_col = "p12",
+    text_col = "p12_other",
+    modo_so = "padre",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  expect_equal(
+    .codif_vars_from_split(split_select_one, group_keys = "p12_other", modo = "padre"),
+    "p12"
+  )
+})
+
 test_that("codificacion usa etiquetas reales de choices aunque label generico venga vacio", {
   inst <- list(
     choices = data.frame(

@@ -31,6 +31,246 @@
   if (.reporte_plan_has_var_or_dummies(data, recod)) recod else var
 }
 
+#' @noRd
+.reporte_plan_clean_chr <- function(x) {
+  x <- as.character(x)
+  x[is.na(x)] <- ""
+  trimws(x)
+}
+
+#' @noRd
+.reporte_plan_ascii_lower <- function(x) {
+  x <- .reporte_plan_clean_chr(x)
+  out <- iconv(x, from = "", to = "ASCII//TRANSLIT")
+  out[is.na(out)] <- x[is.na(out)]
+  tolower(out)
+}
+
+#' @noRd
+.reporte_plan_clean_other_label_es <- function(x) {
+  y <- .reporte_plan_clean_chr(x)
+  if (!length(y)) return(y)
+
+  norm <- .reporte_plan_ascii_lower(y)
+  norm <- gsub("\\s+", " ", norm, perl = TRUE)
+  norm <- trimws(norm)
+  stripped <- gsub("\\s*\\([^)]*(especific|specif|please)[^)]*\\)\\s*:?", "", norm, perl = TRUE)
+  stripped <- gsub("\\s*,?\\s*(por favor\\s+)?(especificar|especifique|especifica|specify|please specify)\\s*:?", "", stripped, perl = TRUE)
+  stripped <- trimws(gsub("\\s+", " ", stripped, perl = TRUE))
+
+  is_other <- (
+    grepl("\\b(other|otro|otra|otros|otras)\\b", norm, perl = TRUE) &
+      grepl("\\b(especific|specif|please|por favor)\\b", norm, perl = TRUE)
+  ) | grepl("^\\s*(other|otro|otra|otros|otras)\\b", norm, perl = TRUE) |
+    stripped %in% c("other", "otro", "otra", "otros", "otras")
+
+  y[is_other] <- "Otros"
+  y
+}
+
+#' @noRd
+.reporte_plan_prepare_freq_options <- function(tab, incluir_sin_n = FALSE) {
+  if (is.null(tab) || !is.data.frame(tab) || !nrow(tab)) return(tab)
+  if (!all(c("Opciones", "n") %in% names(tab))) return(tab)
+
+  opts <- .reporte_plan_clean_chr(tab$Opciones)
+  n_vals <- suppressWarnings(as.numeric(tab$n))
+  keep <- opts != "Total" & !is.na(n_vals)
+  if (!isTRUE(incluir_sin_n)) keep <- keep & n_vals > 0
+
+  out <- data.frame(
+    Opciones = opts[keep],
+    n = n_vals[keep],
+    stringsAsFactors = FALSE
+  )
+  if (!nrow(out)) return(out)
+
+  out$Opciones <- .reporte_plan_clean_other_label_es(out$Opciones)
+  out <- out[nzchar(out$Opciones), , drop = FALSE]
+  if (!nrow(out)) return(out)
+
+  if (anyDuplicated(out$Opciones)) {
+    keys <- unique(out$Opciones)
+    out <- data.frame(
+      Opciones = keys,
+      n = vapply(keys, function(k) sum(out$n[out$Opciones == k], na.rm = TRUE), numeric(1)),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  out
+}
+
+#' @noRd
+.reporte_plan_choice_label_col <- function(choices_tbl) {
+  if (is.null(choices_tbl) || !is.data.frame(choices_tbl)) return(NA_character_)
+  if (!length(names(choices_tbl))) return(NA_character_)
+
+  nms <- names(choices_tbl)
+  nms_lower <- tolower(nms)
+
+  preferred <- c(
+    "label",
+    "label::es",
+    "label::spanish (es)",
+    "label::spanish(es)",
+    "label_spanish_es",
+    "label::spanish",
+    "label::español",
+    "label::espanol",
+    "label_es"
+  )
+  preferred_hits <- nms[nms_lower %in% preferred]
+  label_hits <- nms[grepl("^label(::|_)", nms, ignore.case = TRUE)]
+  candidates <- unique(c(preferred_hits, label_hits))
+
+  for (col in candidates) {
+    vals <- .reporte_plan_clean_chr(choices_tbl[[col]])
+    if (any(nzchar(vals))) return(col)
+  }
+
+  extras <- setdiff(nms, c("list_name", "name", "value"))
+  for (col in extras) {
+    vals <- .reporte_plan_clean_chr(choices_tbl[[col]])
+    if (any(nzchar(vals))) return(col)
+  }
+
+  NA_character_
+}
+
+#' @noRd
+.reporte_plan_choice_levels_for_list <- function(list_name, choices_use) {
+  ln <- .reporte_plan_clean_chr(list_name)[1]
+  if (is.na(ln) || !nzchar(ln) ||
+      is.null(choices_use) || !is.data.frame(choices_use) ||
+      !all(c("list_name", "name") %in% names(choices_use))) {
+    return(data.frame(code = character(0), label = character(0), stringsAsFactors = FALSE))
+  }
+
+  sub <- choices_use[.reporte_plan_clean_chr(choices_use$list_name) == ln, , drop = FALSE]
+  if (!nrow(sub)) {
+    return(data.frame(code = character(0), label = character(0), stringsAsFactors = FALSE))
+  }
+
+  codes <- .reporte_plan_clean_chr(sub$name)
+  lab_col <- .reporte_plan_choice_label_col(sub)
+  labels <- if (!is.na(lab_col) && lab_col %in% names(sub)) {
+    .reporte_plan_clean_chr(sub[[lab_col]])
+  } else {
+    codes
+  }
+  labels[!nzchar(labels)] <- codes[!nzchar(labels)]
+
+  keep <- nzchar(codes) | nzchar(labels)
+  data.frame(
+    code = codes[keep],
+    label = labels[keep],
+    stringsAsFactors = FALSE
+  )
+}
+
+#' @noRd
+.reporte_plan_ordered_stack_levels <- function(list_name,
+                                               observed_opts,
+                                               choices_use = NULL,
+                                               palette_names = NULL) {
+  observed_opts <- unique(.reporte_plan_clean_chr(observed_opts))
+  observed_opts <- observed_opts[nzchar(observed_opts)]
+  if (!length(observed_opts)) return(character(0))
+
+  choices_levels <- .reporte_plan_choice_levels_for_list(list_name, choices_use)
+  if (nrow(choices_levels)) {
+    ordered <- character(0)
+    for (i in seq_len(nrow(choices_levels))) {
+      candidates <- unique(.reporte_plan_clean_chr(c(
+        choices_levels$label[i],
+        choices_levels$code[i]
+      )))
+      candidates <- candidates[nzchar(candidates)]
+      hit <- observed_opts[match(candidates, observed_opts, nomatch = 0L)]
+      hit <- hit[nzchar(hit)]
+      hit <- setdiff(hit, ordered)
+      if (length(hit)) ordered <- c(ordered, hit[1])
+    }
+    extras <- setdiff(observed_opts, ordered)
+    return(c(ordered, extras))
+  }
+
+  palette_names <- unique(.reporte_plan_clean_chr(palette_names))
+  palette_names <- palette_names[nzchar(palette_names)]
+  if (length(palette_names)) {
+    ordered <- intersect(palette_names, observed_opts)
+    extras <- setdiff(observed_opts, ordered)
+    return(c(ordered, extras))
+  }
+
+  observed_opts
+}
+
+#' @noRd
+.reporte_plan_palette_for_levels <- function(list_name,
+                                             levels,
+                                             choices_use = NULL,
+                                             palette = NULL) {
+  if (is.null(palette) || !length(palette)) return(palette)
+
+  pal <- palette
+  if (is.list(pal) && !is.data.frame(pal)) {
+    pal <- unlist(pal, use.names = TRUE)
+  }
+  if (!is.atomic(pal) || !length(pal)) return(palette)
+
+  pal <- as.character(pal)
+  ok_color <- !is.na(pal) & nzchar(trimws(pal))
+  pal <- pal[ok_color]
+  if (!length(pal)) return(NULL)
+
+  levels <- .reporte_plan_clean_chr(levels)
+  levels <- levels[nzchar(levels)]
+  if (!length(levels)) return(pal)
+
+  pal_names <- .reporte_plan_clean_chr(names(pal))
+  if (!length(pal_names) || !any(nzchar(pal_names))) {
+    n <- min(length(levels), length(pal))
+    return(stats::setNames(unname(pal[seq_len(n)]), levels[seq_len(n)]))
+  }
+
+  names(pal) <- pal_names
+  pal <- pal[nzchar(names(pal))]
+  pal <- pal[!duplicated(names(pal))]
+
+  choices_levels <- .reporte_plan_choice_levels_for_list(list_name, choices_use)
+  out <- rep(NA_character_, length(levels))
+  names(out) <- levels
+
+  for (level in levels) {
+    candidates <- level
+    if (nrow(choices_levels)) {
+      idx <- which(choices_levels$label == level | choices_levels$code == level)
+      if (length(idx)) {
+        candidates <- c(candidates, choices_levels$label[idx], choices_levels$code[idx])
+      }
+    }
+    candidates <- unique(.reporte_plan_clean_chr(candidates))
+    candidates <- candidates[nzchar(candidates)]
+    hit <- pal[candidates]
+    hit <- hit[!is.na(hit) & nzchar(trimws(hit))]
+    if (length(hit)) out[level] <- unname(hit[1])
+  }
+
+  missing <- is.na(out) | !nzchar(trimws(out))
+  if (any(missing)) {
+    fallback <- unname(pal)
+    n <- min(length(fallback), length(out))
+    if (n > 0L) {
+      positional <- stats::setNames(fallback[seq_len(n)], names(out)[seq_len(n)])
+      out[missing] <- positional[names(out)[missing]]
+    }
+  }
+
+  out[!is.na(out) & nzchar(trimws(out))]
+}
+
 #' @title Reporte PowerPoint basado en "plan" (p_* + diapo_###)
 #'
 #' @description
@@ -910,14 +1150,7 @@ reporte_ppt_plan <- function(
   }
 
   .choices_label_col <- function(choices_tbl) {
-    if (is.null(choices_tbl) || !is.data.frame(choices_tbl)) return(NA_character_)
-    candidates <- c("label", "label::es")
-    hit <- candidates[candidates %in% names(choices_tbl)][1]
-    if (!length(hit) || is.na(hit)) {
-      extras <- setdiff(names(choices_tbl), c("list_name", "name", "value"))
-      hit <- extras[1]
-    }
-    if (!length(hit) || is.na(hit)) NA_character_ else hit
+    .reporte_plan_choice_label_col(choices_tbl)
   }
 
   .choice_signature_from_ctx <- function(ctx) {
@@ -1001,6 +1234,49 @@ reporte_ppt_plan <- function(
     .word_text_or_null(x)
   }
 
+  .plain_text_for_rule <- function(x) {
+    x <- paste(as.character(x %||% ""), collapse = " ")
+    x <- iconv(x, from = "", to = "ASCII//TRANSLIT")
+    x <- tolower(x)
+    trimws(gsub("\\s+", " ", x, perl = TRUE))
+  }
+
+  .is_company_name_catalog <- function(var, tab = NULL, source = NULL) {
+    title <- tryCatch(.title_of_var(var, source = source), error = function(e) var)
+    ln <- tryCatch(.list_name_of_var(var, source = source), error = function(e) "")
+    txt <- .plain_text_for_rule(c(var, ln, title))
+
+    n_opts <- NA_integer_
+    if (is.data.frame(tab) && "Opciones" %in% names(tab)) {
+      n_opts <- sum(as.character(tab$Opciones) != "Total", na.rm = TRUE)
+    }
+
+    explicit_company_name <- grepl("nombre\\s+de\\s+la\\s+empresa", txt, perl = TRUE) ||
+      grepl("empresa\\s+para\\s+la\\s+cual\\s+.*trabaj", txt, perl = TRUE) ||
+      grepl("empresa\\s+en\\s+la\\s+que\\s+.*trabaj", txt, perl = TRUE)
+
+    huge_company_catalog <- is.finite(n_opts) && n_opts > 40L &&
+      grepl("\\bempresa\\b|razon\\s+social|organizacion", txt, perl = TRUE)
+
+    explicit_company_name || huge_company_catalog
+  }
+
+  .should_show_zero_options <- function(var, tab = NULL, preset_args = list(), overrides = list(), source = NULL,
+                                        word_render = FALSE) {
+    explicit <- !is.null(overrides$mostrar_ceros)
+    show <- if (explicit) {
+      isTRUE(overrides$mostrar_ceros)
+    } else if (isTRUE(word_render)) {
+      TRUE
+    } else {
+      isTRUE(preset_args$mostrar_ceros %||% FALSE)
+    }
+    if (show && !explicit && .is_company_name_catalog(var, tab = tab, source = source)) {
+      show <- FALSE
+    }
+    show
+  }
+
   .word_title_for_element <- function(el, fallback = NULL) {
     if (is.null(el) || !inherits(el, "ppt_element")) return(.word_text_or_null(fallback))
 
@@ -1058,7 +1334,7 @@ reporte_ppt_plan <- function(
       survey        = ctx$survey,
       sm_vars_force = NULL,
       orders_list   = ctx$orders_list,
-      mostrar_todo  = FALSE
+      mostrar_todo  = TRUE
     )
   }
 
@@ -1845,12 +2121,11 @@ reporte_ppt_plan <- function(
       if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
     }
 
-    tab <- tab |>
-      dplyr::filter(.data$Opciones != "Total") |>
-      dplyr::filter(!is.na(.data$n) & .data$n > 0)
+    tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = TRUE)
 
     if (!nrow(tab)) return(.blank_canvas(preset_args, overrides))
     if (!is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+    if (!is.finite(N_total) || N_total <= 0) return(.blank_canvas(preset_args, overrides))
 
     pct_int  <- .pct_enteros_100(tab$n)
     cols_pct <- paste0("pct_", seq_len(nrow(tab)))
@@ -1871,6 +2146,13 @@ reporte_ppt_plan <- function(
     # paleta auto (paleta_<listname>)
     ln <- .list_name_of_var(var)
     colores_grupos <- .paleta_auto(ln, env_diapos)
+    ctx_paleta <- .resolve_ref(var, arg_name = "var")
+    colores_grupos <- .reporte_plan_palette_for_levels(
+      ln,
+      as.character(tab$Opciones),
+      choices_use = ctx_paleta$choices,
+      palette = colores_grupos
+    )
 
     if (!exists("graficar_barras_apiladas", mode = "function", inherits = TRUE)) {
       stop("No existe `graficar_barras_apiladas()` en el entorno/paquete.", call. = FALSE)
@@ -1913,6 +2195,7 @@ reporte_ppt_plan <- function(
     preset_args_multi  <- preset_args_multi  %||% list()
     preset_args_single <- preset_args_single %||% list()
     overrides          <- el$overrides %||% list()
+    incluir_sin_n <- TRUE
     wrap_y_eff <- overrides$ancho_max_eje_y %||%
       overrides$wrap_y %||%
       preset_args_multi$ancho_max_eje_y %||%
@@ -1940,28 +2223,12 @@ reporte_ppt_plan <- function(
                                       observed_opts,
                                       choices_use = NULL,
                                       palette_names = NULL) {
-      observed_opts <- unique(.clean_chr(observed_opts))
-      observed_opts <- observed_opts[nzchar(observed_opts)]
-      if (!length(observed_opts)) return(character(0))
-
-      niveles_formales <- character(0)
-      if (!is.null(palette_names) && length(palette_names)) {
-        niveles_formales <- palette_names
-      } else if (!is.null(choices_use) &&
-                 "list_name" %in% names(choices_use) &&
-                 "label" %in% names(choices_use)) {
-        niveles_formales <- as.character(choices_use$label[choices_use$list_name == list_name])
-      }
-      niveles_formales <- .clean_chr(niveles_formales)
-      niveles_formales <- niveles_formales[nzchar(niveles_formales)]
-
-      if (length(niveles_formales)) {
-        ordered <- intersect(niveles_formales, observed_opts)
-        extras <- setdiff(observed_opts, ordered)
-        return(c(ordered, extras))
-      }
-
-      observed_opts
+      .reporte_plan_ordered_stack_levels(
+        list_name = list_name,
+        observed_opts = observed_opts,
+        choices_use = choices_use,
+        palette_names = palette_names
+      )
     }
 
     .apply_top2box_alias <- function(base_args) {
@@ -2189,12 +2456,11 @@ reporte_ppt_plan <- function(
           if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
         }
 
-        tab <- tab |>
-          dplyr::filter(.data$Opciones != "Total") |>
-          dplyr::filter(!is.na(.data$n) & .data$n > 0)
+        tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n)
 
         if (!nrow(tab)) next
         if (!is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+        if (!is.finite(N_total) || N_total <= 0) next
 
         tabs_by_v[[v]] <- tab
         N_by_v[v] <- N_total
@@ -2209,6 +2475,12 @@ reporte_ppt_plan <- function(
         all_opts,
         choices_use = choices_use,
         palette_names = names(colores_grupos %||% NULL)
+      )
+      colores_grupos <- .reporte_plan_palette_for_levels(
+        ln,
+        all_opts,
+        choices_use = choices_use,
+        palette = colores_grupos
       )
 
       cols_pct <- paste0("pct_", seq_along(all_opts))
@@ -2330,9 +2602,7 @@ reporte_ppt_plan <- function(
       tab_total <- .tab_freq(var, filtros = filtros)
       if (is.null(tab_total) || !nrow(tab_total)) return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
 
-      tab_total <- tab_total |>
-        dplyr::filter(.data$Opciones != "Total") |>
-        dplyr::filter(!is.na(.data$n) & .data$n > 0)
+      tab_total <- .reporte_plan_prepare_freq_options(tab_total, incluir_sin_n = incluir_sin_n)
 
       if (!nrow(tab_total)) return(.blank_canvas(preset_args_multi, el$overrides %||% list()))
 
@@ -2343,6 +2613,12 @@ reporte_ppt_plan <- function(
         all_opts,
         choices_use = ctx_var$choices,
         palette_names = names(colores_grupos %||% NULL)
+      )
+      colores_grupos <- .reporte_plan_palette_for_levels(
+        ln_var,
+        all_opts,
+        choices_use = ctx_var$choices,
+        palette = colores_grupos
       )
 
       cols_pct <- paste0("pct_", seq_along(all_opts))
@@ -2369,7 +2645,7 @@ reporte_ppt_plan <- function(
           survey        = ctx_var$survey,
           sm_vars_force = NULL,
           orders_list   = ctx_var$orders_list,
-          mostrar_todo  = FALSE
+          mostrar_todo  = TRUE
         )
 
         if (is.null(tab) || !nrow(tab)) next
@@ -2381,12 +2657,11 @@ reporte_ppt_plan <- function(
           if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
         }
 
-        tab <- tab |>
-          dplyr::filter(.data$Opciones != "Total") |>
-          dplyr::filter(!is.na(.data$n) & .data$n > 0)
+        tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n)
 
         if (!nrow(tab)) next
         if (!is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
+        if (!is.finite(N_total) || N_total <= 0) next
 
         # pct enteros a 100 dentro del grupo
         pct_int <- .pct_enteros_100(tab$n)
@@ -2472,9 +2747,7 @@ reporte_ppt_plan <- function(
             tab_total <- .tab_freq(ref, filtros = filtros)
             if (is.null(tab_total) || !nrow(tab_total)) next
 
-            tab_total <- tab_total |>
-              dplyr::filter(.data$Opciones != "Total") |>
-              dplyr::filter(!is.na(.data$n) & .data$n > 0)
+            tab_total <- .reporte_plan_prepare_freq_options(tab_total, incluir_sin_n = incluir_sin_n)
 
             if (!nrow(tab_total)) next
             valid_refs[[group_id]][[ref]] <- .resolve_ref(ref, arg_name = "vars")
@@ -2495,6 +2768,12 @@ reporte_ppt_plan <- function(
           all_opts,
           choices_use = choices_use,
           palette_names = names(colores_grupos %||% NULL)
+        )
+        colores_grupos <- .reporte_plan_palette_for_levels(
+          ln,
+          all_opts,
+          choices_use = choices_use,
+          palette = colores_grupos
         )
         cols_pct <- paste0("pct_", seq_along(all_opts))
         etiquetas_grupos <- stats::setNames(all_opts, cols_pct)
@@ -2523,9 +2802,7 @@ reporte_ppt_plan <- function(
               if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
             }
 
-            tab <- tab |>
-              dplyr::filter(.data$Opciones != "Total") |>
-              dplyr::filter(!is.na(.data$n) & .data$n > 0)
+            tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n)
 
             if (!nrow(tab)) next
             if (!is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
@@ -2595,9 +2872,7 @@ reporte_ppt_plan <- function(
           tab_total <- .tab_freq(v, filtros = filtros)
           if (is.null(tab_total) || !nrow(tab_total)) next
 
-          tab_total <- tab_total |>
-            dplyr::filter(.data$Opciones != "Total") |>
-            dplyr::filter(!is.na(.data$n) & .data$n > 0)
+          tab_total <- .reporte_plan_prepare_freq_options(tab_total, incluir_sin_n = incluir_sin_n)
 
           if (!nrow(tab_total)) next
           vars_con_datos[[v]] <- ctx_vars[[i]]
@@ -2613,6 +2888,12 @@ reporte_ppt_plan <- function(
           all_opts,
           choices_use = scale_spec$choices,
           palette_names = names(colores_grupos %||% NULL)
+        )
+        colores_grupos <- .reporte_plan_palette_for_levels(
+          ln,
+          all_opts,
+          choices_use = scale_spec$choices,
+          palette = colores_grupos
         )
         cols_pct <- paste0("pct_", seq_along(all_opts))
         etiquetas_grupos <- stats::setNames(all_opts, cols_pct)
@@ -2649,7 +2930,7 @@ reporte_ppt_plan <- function(
               survey        = ctx_v$survey,
               sm_vars_force = NULL,
               orders_list   = ctx_v$orders_list,
-              mostrar_todo  = FALSE
+              mostrar_todo  = TRUE
             )
 
             if (is.null(tab) || !nrow(tab)) next
@@ -2660,9 +2941,7 @@ reporte_ppt_plan <- function(
               if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
             }
 
-            tab <- tab |>
-              dplyr::filter(.data$Opciones != "Total") |>
-              dplyr::filter(!is.na(.data$n) & .data$n > 0)
+            tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = incluir_sin_n)
 
             if (!nrow(tab)) next
             if (!is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
@@ -2737,6 +3016,9 @@ reporte_ppt_plan <- function(
     var <- el$var
     filtros <- el$filtros %||% list()
     overrides <- el$overrides %||% list()
+    if (!is.null(el$mostrar_ceros)) {
+      overrides$mostrar_ceros <- isTRUE(el$mostrar_ceros)
+    }
     tab <- .tab_freq(var, filtros = filtros)
     if (is.null(tab) || !nrow(tab)) return(.blank_canvas(preset_args, overrides))
 
@@ -2747,9 +3029,16 @@ reporte_ppt_plan <- function(
       if (length(idx_tot)) N_total <- suppressWarnings(as.numeric(tab$n[idx_tot[1]]))
     }
 
-    tab <- tab |>
-      dplyr::filter(.data$Opciones != "Total") |>
-      dplyr::filter(!is.na(.data$n) & .data$n > 0)
+    mostrar_ceros <- .should_show_zero_options(
+      var,
+      tab = tab,
+      preset_args = preset_args,
+      overrides = overrides,
+      source = el$source %||% NULL,
+      word_render = isTRUE(el$.word_render)
+    )
+
+    tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = mostrar_ceros)
 
     if (!nrow(tab)) return(.blank_canvas(preset_args, overrides))
 
@@ -2793,12 +3082,16 @@ reporte_ppt_plan <- function(
       cols_porcentaje     = "pct",
       etiquetas_series    = etiquetas_series,
       colores_categorias  = colores_categorias,
+      mostrar_ceros       = mostrar_ceros,
+      umbral_barra        = 0,
       titulo              = NULL,
       subtitulo           = NULL,
       nota_pie            = NULL
     )
 
     preset_args <- preset_args %||% list()
+    preset_args$mostrar_ceros <- NULL
+    overrides$mostrar_ceros <- NULL
     # limpiar cosas que NO aplican a agrupadas (por si vienen de presets genericos)
     preset_args$var_grupo      <- NULL
     preset_args$colores_grupos <- NULL
@@ -2822,9 +3115,7 @@ reporte_ppt_plan <- function(
     tab <- .tab_freq(var, filtros = filtros)
     if (is.null(tab) || !nrow(tab)) return(.blank_canvas(preset_args, overrides))
 
-    tab <- tab |>
-      dplyr::filter(.data$Opciones != "Total") |>
-      dplyr::filter(!is.na(.data$n) & .data$n > 0)
+    tab <- .reporte_plan_prepare_freq_options(tab, incluir_sin_n = FALSE)
 
     if (!nrow(tab)) return(.blank_canvas(preset_args, overrides))
 

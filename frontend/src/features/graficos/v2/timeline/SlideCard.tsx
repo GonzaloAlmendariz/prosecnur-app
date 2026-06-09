@@ -1,4 +1,3 @@
-import * as Lucide from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Copy, GripVertical, X, AlertCircle, AlertTriangle } from "lucide-react";
@@ -7,14 +6,9 @@ import { usePlanStore, SLIDE_LABELS } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { ValidationIssue } from "../../usePlanValidator";
 import SlidePreviewMockup from "../../SlidePreviewMockup";
+import { SlideTypeIcon } from "../../SlideTypeIcon";
 import { categoryOf, CATEGORY_LABEL } from "./categoryOf";
 import { slideDisplayTitle } from "../../slideAutoTitle";
-
-type LucideIcon = (props: { size?: number }) => JSX.Element;
-function resolveIcon(name: string | undefined): LucideIcon {
-  const reg = Lucide as unknown as Record<string, LucideIcon>;
-  return (name && reg[name]) || reg["FileText"] || reg["Square"];
-}
 
 export type SlideCardProps = {
   slide: Slide;
@@ -36,7 +30,6 @@ export function SlideCard({ slide, index, active, issues, density, variables }: 
   const duplicateSlide = usePlanStore((s) => s.duplicateSlide);
   const { slidesById } = useGraficosRegistry();
   const meta = slidesById[slide.tipo];
-  const TypeIcon = resolveIcon(meta?.icono_ui);
 
   const {
     attributes,
@@ -99,7 +92,7 @@ export function SlideCard({ slide, index, active, issues, density, variables }: 
       </div>
 
       <div className="pulso-gv2-slide-card-title">
-        <TypeIcon size={11} />
+        <SlideTypeIcon tipo={slide.tipo} iconoUi={meta?.icono_ui} size={11} />
         <span>{SLIDE_LABELS[slide.tipo] ?? slide.tipo}</span>
       </div>
       {titulo && (
@@ -111,7 +104,7 @@ export function SlideCard({ slide, index, active, issues, density, variables }: 
       {density === "comfortable" && (
         <div className="pulso-gv2-slide-card-thumb" aria-hidden="true">
           <div className="pulso-gv2-slide-card-thumb-mock">
-            <SlidePreviewMockup slide={slide} />
+            <SlidePreviewMockup slide={slide} compact />
           </div>
         </div>
       )}

@@ -372,14 +372,22 @@
   if (length(s) == 0) return(character(0))
   x <- as.character(s)
   x[is.na(x)] <- ""
-  x <- tolower(trimws(x))
+  x <- trimws(x)
   x <- gsub("\\s+", " ", x)
-  # strip accents via iconv to ASCII//TRANSLIT fallback
-  x <- iconv(x, from = "UTF-8", to = "ASCII//TRANSLIT", sub = "byte")
+  # strip accents; stringi is more stable than platform iconv transliteration
+  # (macOS can turn "ó" into "o'" and "ñ" into "~n").
+  x <- if (requireNamespace("stringi", quietly = TRUE)) {
+    stringi::stri_trans_general(x, "Latin-ASCII")
+  } else {
+    iconv(x, from = "", to = "ASCII//TRANSLIT", sub = "byte")
+  }
+  x[is.na(x)] <- ""
+  x <- tolower(x)
   # TRANSLIT may leave byte-sequences like <U+00BF> for chars it can't map;
   # drop them together with other non-printable residues.
   x <- gsub("<[^>]+>", "", x)
-  x
+  x <- gsub("['`^~\"]", "", x)
+  trimws(gsub("\\s+", " ", x))
 }
 
 # Walk inst$survey and build a per-question map of {section, section_label,
@@ -726,6 +734,29 @@
   labels
 }
 
+.codif_list_name_for_var <- function(inst, var) {
+  var <- trimws(as.character(var %||% "")[1])
+  if (is.na(var) || !nzchar(var)) return("")
+  survey <- inst$survey %||% inst$survey_raw
+  if (is.null(survey) || !is.data.frame(survey) || !"name" %in% names(survey)) return("")
+  hit <- which(as.character(survey$name) == var)[1]
+  if (is.na(hit)) return("")
+  if ("list_name" %in% names(survey)) {
+    ln <- trimws(as.character(survey$list_name[[hit]] %||% ""))
+    if (!is.na(ln) && nzchar(ln)) return(ln)
+  }
+  type <- trimws(as.character(survey$type[[hit]] %||% ""))
+  ln <- trimws(sub("^\\S+\\s*", "", type))
+  if (!is.na(ln) && nzchar(ln) && !identical(ln, type)) ln else ""
+}
+
+.codif_choice_codes_for_var <- function(inst, var) {
+  ln <- .codif_list_name_for_var(inst, var)
+  ch <- .codif_choice_rows(inst, ln)
+  if (is.null(ch) || !nrow(ch) || !"name" %in% names(ch)) return(character(0))
+  unique(as.character(ch$name))
+}
+
 # Given a parent/child_col pair, enumerate unique responses in data with
 # frequency + uuids (for audit). Used by the detail view of text / SO-hijo
 # to let the analyst group responses into coded families.
@@ -894,21 +925,39 @@ isTRUE_vec <- function(x) {
   "sin etiqueta"
 }
 
-.match_grupos <- function(grupos) {
+.codif_next_free_code <- function(used) {
+  used <- unique(as.character(used %||% character(0)))
+  nums <- suppressWarnings(as.integer(used))
+  candidate <- if (any(!is.na(nums))) max(nums[!is.na(nums)], na.rm = TRUE) + 1L else 1L
+  while (as.character(candidate) %in% used) candidate <- candidate + 1L
+  as.character(candidate)
+}
+
+.match_grupos <- function(grupos, reserved_codes = character(0)) {
   text_to_code <- new.env(parent = emptyenv())
   new_codes <- list()  # codigo -> etiqueta, only for origen == "nuevo"
+  used_codes <- unique(as.character(reserved_codes %||% character(0)))
   for (g in grupos) {
     codigo <- as.character(g$codigo %||% "")
     if (!nzchar(codigo)) next
     etiqueta <- as.character(g$etiqueta %||% "")
     origen <- as.character(g$origen %||% "")
+    codigo_final <- codigo
+    if (identical(origen, "nuevo")) {
+      if (codigo_final %in% used_codes || codigo_final %in% names(new_codes)) {
+        codigo_final <- .codif_next_free_code(c(used_codes, names(new_codes)))
+      }
+      used_codes <- unique(c(used_codes, codigo_final))
+    } else if (nzchar(codigo_final)) {
+      used_codes <- unique(c(used_codes, codigo_final))
+    }
     resps <- g$respuestas %||% list()
     for (t in resps) {
       tn <- .normalize_text(as.character(t))[1]
-      if (nzchar(tn)) assign(tn, codigo, envir = text_to_code)
+      if (nzchar(tn)) assign(tn, codigo_final, envir = text_to_code)
     }
     if (identical(origen, "nuevo")) {
-      new_codes[[codigo]] <- .codif_group_label_or_fallback(etiqueta, codigo)
+      new_codes[[codigo_final]] <- .codif_group_label_or_fallback(etiqueta, codigo)
     }
   }
   list(text_to_code = text_to_code, new_codes = new_codes)
@@ -1064,7 +1113,8 @@ isTRUE_vec <- function(x) {
 # algún grupo → recod = grupo.codigo. Si no, recod = <parent> original
 # (las opciones originales se mantienen). Los códigos nuevos (origen="nuevo")
 # se declaran en el bloque aux.
-.patch_so_padre_sheet <- function(wb, sheet, parent_col, text_col, grupos, data_df) {
+.patch_so_padre_sheet <- function(wb, sheet, parent_col, text_col, grupos, data_df,
+                                  reserved_codes = character(0)) {
   h <- .read_sheet_headers(wb, sheet)
   if (is.null(h)) return(invisible(FALSE))
   recod_col <- paste0(parent_col, "_recod")
@@ -1074,7 +1124,7 @@ isTRUE_vec <- function(x) {
   uuid_col_data <- .resolve_uuid_col(data_df)
   if (is.na(uuid_col_data) || !parent_col %in% names(data_df)) return(invisible(FALSE))
 
-  lookup <- .match_grupos(grupos)
+  lookup <- .match_grupos(grupos, reserved_codes = reserved_codes)
   text_to_code <- lookup$text_to_code
 
   uuid_to_parent <- setNames(as.character(data_df[[parent_col]]),
@@ -1155,21 +1205,9 @@ isTRUE_vec <- function(x) {
   # nuevas). Buscamos la última no-vacía.
   last_col <- max(which(nzchar(tech_row)), 0L, na.rm = TRUE)
 
-  lookup <- .match_grupos(grupos)
+  lookup <- .match_grupos(grupos, reserved_codes = names(existing_code_to_col))
   text_to_code <- lookup$text_to_code
-  # Para SM necesitamos saber si un codigo es "nuevo" o "existente".
-  origen_by_code <- new.env(parent = emptyenv())
-  new_code_to_etiqueta <- list()
-  for (g in grupos) {
-    codigo <- as.character(g$codigo %||% "")
-    if (!nzchar(codigo)) next
-    origen <- as.character(g$origen %||% "")
-    assign(codigo, origen, envir = origen_by_code)
-    if (identical(origen, "nuevo")) {
-      etiqueta <- .codif_group_label_or_fallback(g$etiqueta %||% "", codigo)
-      new_code_to_etiqueta[[codigo]] <- etiqueta
-    }
-  }
+  new_code_to_etiqueta <- lookup$new_codes
 
   # Reservamos columnas nuevas a la derecha por cada código nuevo.
   new_code_to_col <- list()
@@ -1272,6 +1310,56 @@ isTRUE_vec <- function(x) {
   invisible(TRUE)
 }
 
+.codif_group_row_indexes <- function(rows) {
+  by_parent <- list()
+  by_text_col <- list()
+  for (r in (rows %||% list())) {
+    parent <- as.character(r$parent %||% "")
+    text_col <- as.character(r$text_col %||% "")
+    tipo <- as.character(r$tipo %||% "")
+    if (nzchar(parent)) by_parent[[parent]] <- r
+    if (nzchar(text_col) && tipo %in% c("select_one", "select_multiple")) {
+      by_text_col[[text_col]] <- r
+    }
+  }
+  list(by_parent = by_parent, by_text_col = by_text_col)
+}
+
+.codif_group_owner_row <- function(group_key, indexes) {
+  group_key <- as.character(group_key %||% "")[1]
+  if (is.na(group_key) || !nzchar(group_key)) return(NULL)
+  direct <- indexes$by_parent[[group_key]] %||% NULL
+  adopted <- indexes$by_text_col[[group_key]] %||% NULL
+  if (!is.null(adopted)) {
+    direct_tipo <- as.character((direct %||% list())$tipo %||% "")
+    if (is.null(direct) || identical(direct_tipo, "text")) return(adopted)
+  }
+  direct %||% adopted
+}
+
+.codif_vars_from_split <- function(sub, group_keys, modo = NULL) {
+  if (is.null(sub) || !nrow(sub)) return(character(0))
+  x <- if (!is.null(modo)) sub[sub$modo_so == modo, , drop = FALSE] else sub
+  if (!nrow(x)) return(character(0))
+  group_keys <- unique(as.character(group_keys %||% character(0)))
+  group_keys <- group_keys[!is.na(group_keys) & nzchar(group_keys)]
+  if (!length(group_keys)) return(character(0))
+  col_or_empty <- function(nm) {
+    if (nm %in% names(x)) as.character(x[[nm]]) else rep("", nrow(x))
+  }
+  keep <- col_or_empty("parent") %in% group_keys |
+    col_or_empty("parent_col") %in% group_keys |
+    col_or_empty("text_col") %in% group_keys |
+    col_or_empty("text_col_eff") %in% group_keys
+  x <- x[keep, , drop = FALSE]
+  if (!nrow(x)) return(character(0))
+  out <- if ("parent_col" %in% names(x)) as.character(x$parent_col) else as.character(x$parent)
+  parent <- if ("parent" %in% names(x)) as.character(x$parent) else character(length(out))
+  out[is.na(out) | !nzchar(out)] <- parent[is.na(out) | !nzchar(out)]
+  out <- out[!is.na(out) & nzchar(out)]
+  unique(out)
+}
+
 # Main bridge entry point. Loads the plantilla xlsx from session, walks
 # every pregunta with codified grupos, patches the sheet, saves.
 # Returns a list of per-parent outcome tags for telemetry/debug.
@@ -1286,28 +1374,24 @@ isTRUE_vec <- function(x) {
   meta <- get_file(sid, fid)
   draft <- codif_get(sid, "familias_draft")
   data_df <- codif_data_cached(sid)
-
-  # Index draft rows by parent for O(1) lookup.
-  rows_by_parent <- list()
-  for (r in (draft$rows %||% list())) {
-    p <- as.character(r$parent %||% "")
-    if (nzchar(p)) rows_by_parent[[p]] <- r
-  }
+  inst <- codif_inst_cached(sid)
+  row_indexes <- .codif_group_row_indexes(draft$rows %||% list())
 
   wb <- openxlsx::loadWorkbook(meta$path)
   patched <- character(0)
   skipped <- character(0)
 
-  for (parent in names(grupos_map)) {
-    grupos <- grupos_map[[parent]]
-    if (length(grupos) == 0L) { skipped <- c(skipped, parent); next }
-    row <- rows_by_parent[[parent]]
-    if (is.null(row)) { skipped <- c(skipped, parent); next }
+  for (group_key in names(grupos_map)) {
+    grupos <- grupos_map[[group_key]]
+    if (length(grupos) == 0L) { skipped <- c(skipped, group_key); next }
+    row <- .codif_group_owner_row(group_key, row_indexes)
+    if (is.null(row)) { skipped <- c(skipped, group_key); next }
 
     tipo <- as.character(row$tipo %||% "")
     modo_so <- as.character(row$modo_so %||% "")
     text_col <- as.character(row$text_col %||% "")
     parent_col <- as.character(row$parent_col %||% "")
+    parent <- as.character(row$parent %||% group_key)
 
     # Dispatch per arquetipo.
     if (tipo == "text") {
@@ -1328,8 +1412,9 @@ isTRUE_vec <- function(x) {
       # SO padre: mezcla opciones originales + nuevas del texto "Otros".
       sheet <- parent
       pc <- if (nzchar(parent_col)) parent_col else parent
-      ok <- .patch_so_padre_sheet(wb, sheet, pc, text_col, grupos, data_df)
-      if (isTRUE(ok)) patched <- c(patched, parent) else skipped <- c(skipped, parent)
+      reserved <- .codif_choice_codes_for_var(inst, pc)
+      ok <- .patch_so_padre_sheet(wb, sheet, pc, text_col, grupos, data_df, reserved_codes = reserved)
+      if (isTRUE(ok)) patched <- c(patched, group_key) else skipped <- c(skipped, group_key)
     } else if (tipo == "integer") {
       # Integer: valor original → match de regla (between/gte/lte) → código.
       sheet <- parent
@@ -1377,6 +1462,12 @@ isTRUE_vec <- function(x) {
   tot_vars_nuevas <- 0L
   tot_codigos_nuevos <- 0L
   tot_codigos_reuso <- 0L
+  adopted_text_cols <- unique(vapply(draft$rows %||% list(), function(r) {
+    tipo <- as.character(r$tipo %||% "")
+    text_col <- as.character(r$text_col %||% "")
+    if (tipo %in% c("select_one", "select_multiple") && nzchar(text_col)) text_col else ""
+  }, character(1)))
+  adopted_text_cols <- adopted_text_cols[nzchar(adopted_text_cols)]
 
   for (r in (draft$rows %||% list())) {
     parent <- as.character(r$parent %||% "")
@@ -1384,13 +1475,19 @@ isTRUE_vec <- function(x) {
     tipo <- as.character(r$tipo %||% "")
     modo_so <- as.character(r$modo_so %||% "")
     text_col <- as.character(r$text_col %||% "")
+    parent_col <- as.character(r$parent_col %||% "")
+
+    if (identical(tipo, "text") && parent %in% adopted_text_cols) next
 
     use_flag <- isTRUE(r$use)
     is_marcada <- !is.null(r$text_col) && nzchar(text_col)
     is_manual <- isTRUE(marcadas_set[[parent]])
     if (!use_flag && !is_manual && !is_marcada) next
 
-    grupos <- grupos_map[[parent]] %||% list()
+    grupos <- grupos_map[[parent]] %||%
+      grupos_map[[parent_col]] %||%
+      grupos_map[[text_col]] %||%
+      list()
     if (length(grupos) == 0L) next
 
     nueva_var <- if (tipo == "select_one" && modo_so == "hijo" && nzchar(text_col)) {
@@ -1402,7 +1499,7 @@ isTRUE_vec <- function(x) {
     } else if (tipo == "text") {
       paste0(if (nzchar(text_col)) text_col else parent, "_recod")
     } else if (tipo == "select_multiple") {
-      paste0(parent, "/*_recod")
+      paste0(if (nzchar(parent_col)) parent_col else parent, "/*_recod")
     } else ""
 
     int_counts <- if (tipo == "integer" && parent %in% names(data_df)) {
@@ -2313,7 +2410,9 @@ mount_codificacion <- function(pr) {
       # analista realmente codificó (tienen entries en grupos_map). Sin este
       # filtro, el motor itera sobre TODAS las parents elegibles del split
       # y crea columnas `_recod` vacías para preguntas que el analista ni
-      # tocó — ensuciando el dataset de salida.
+      # tocó — ensuciando el dataset de salida. En SO/SM adoptadas, la UI
+      # puede guardar los grupos bajo `text_col`; esa clave debe activar la
+      # variable padre para respetar la ruta "integrar a variable original".
       grupos_map <- codif_get(sid, "grupos_recod") %||% list()
       parents_con_grupos <- names(grupos_map)[vapply(
         grupos_map,
@@ -2321,23 +2420,11 @@ mount_codificacion <- function(pr) {
         logical(1)
       )]
 
-      .vars_from_split <- function(sub, modo = NULL) {
-        if (is.null(sub) || !nrow(sub)) return(character(0))
-        x <- if (!is.null(modo)) sub[sub$modo_so == modo, , drop = FALSE] else sub
-        # Conservar solo las filas cuyo parent tiene grupos codificados.
-        # `parent` es el nombre lógico; `parent_col` es la columna en data
-        # (pueden diferir en casos raros tipo select_one hijo).
-        keep <- as.character(x$parent) %in% parents_con_grupos
-        x <- x[keep, , drop = FALSE]
-        out <- as.character(x$parent_col %||% x$parent)
-        out <- out[!is.na(out) & nzchar(out)]
-        unique(out)
-      }
-      so_parent_vars <- .vars_from_split(split$select_one, modo = "padre")
-      so_child_vars  <- .vars_from_split(split$select_one, modo = "hijo")
-      sm_vars        <- .vars_from_split(split$select_multiple)
-      int_vars       <- .vars_from_split(split$integer)
-      text_vars      <- .vars_from_split(split$text)
+      so_parent_vars <- .codif_vars_from_split(split$select_one, parents_con_grupos, modo = "padre")
+      so_child_vars  <- .codif_vars_from_split(split$select_one, parents_con_grupos, modo = "hijo")
+      sm_vars        <- .codif_vars_from_split(split$select_multiple, parents_con_grupos)
+      int_vars       <- .codif_vars_from_split(split$integer, parents_con_grupos)
+      text_vars      <- .codif_vars_from_split(split$text, parents_con_grupos)
 
       data_out <- file.path(s$dir, "downloads",
         sprintf("data_adaptada_%s.xlsx", uuid::UUIDgenerate()))

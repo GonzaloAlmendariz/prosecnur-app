@@ -1739,31 +1739,18 @@ graficar_barras_apiladas <- function(
       key_w <- min(0.014, max(0.008, 0.06 / max(1, n_per_row)))
       key_h <- min(row_h * 0.32, key_w * 1.35)
       key_gap <- 0.004
-      item_gap <- suppressWarnings(as.numeric(legend_espaciado)[1])
-      if (!is.finite(item_gap) || is.na(item_gap) || item_gap < 0) item_gap <- 0
-      item_gap <- 0.014 + min(item_gap, 20) * 0.0008
-      label_w_est <- function(x) {
-        chars <- nchar(as.character(x), type = "width", allowNA = FALSE, keepNA = FALSE)
-        pmax(chars * size_leyenda * 0.00125, 0.020)
-      }
       fontface_ley <- if ("leyenda" %in% textos_negrita) "bold" else "plain"
 
       for (r in seq_len(n_rows)) {
         idx_row <- which(row_ids == r)
         n_row <- length(idx_row)
         if (!n_row) next
-        widths_row <- key_w + key_gap + label_w_est(labels_manual[idx_row])
-        gap_row <- if (n_row > 1L) item_gap else 0
-        total_w <- sum(widths_row) + gap_row * max(0, n_row - 1L)
-        if (total_w > 0.96 && n_row > 1L) {
-          gap_row <- max(0.006, (0.96 - sum(widths_row)) / (n_row - 1L))
-          total_w <- sum(widths_row) + gap_row * (n_row - 1L)
-        }
-        x_cursor <- max(0.02, (1 - min(total_w, 0.96)) * 0.5)
+        slot_w <- 0.96 / max(1L, n_row)
+        x_origin <- 0.02
         y_row <- y_legend0 + legend_h - ((r - 0.5) * row_h) + dy_leg
         for (j in seq_along(idx_row)) {
           idx <- idx_row[j]
-          x_left <- x_cursor
+          x_left <- x_origin + (j - 1L) * slot_w
           canvas <- canvas + ggplot2::annotate(
             "rect",
             xmin = x_left,
@@ -1783,7 +1770,6 @@ graficar_barras_apiladas <- function(
             hjust = 0,
             vjust = 0.5
           )
-          x_cursor <- x_cursor + widths_row[j] + gap_row
         }
       }
       if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_legend0, 1, legend_h)

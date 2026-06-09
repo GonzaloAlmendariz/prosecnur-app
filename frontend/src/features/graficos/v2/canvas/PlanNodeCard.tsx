@@ -1,10 +1,10 @@
-import * as Lucide from "lucide-react";
 import { Image as ImageIcon, Palette, AlertCircle, AlertTriangle } from "lucide-react";
 import { IconModes } from "../../../../lib/icons";
 import { PlanGraphNode } from "./buildPlanGraph";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { SLIDE_LABELS } from "../../store";
 import SlidePreviewMockup from "../../SlidePreviewMockup";
+import { SlideTypeIcon } from "../../SlideTypeIcon";
 import { ValidationIssue } from "../../usePlanValidator";
 import { VarInfo } from "../../../../api/client";
 import { slideDisplayTitle } from "../../slideAutoTitle";
@@ -23,16 +23,9 @@ export type PlanNodeCardProps = {
 // índice del slide, label humano, mini-mockup, badges (override/icon/
 // palette/diag).
 
-type LucideIcon = (props: { size?: number }) => JSX.Element;
-function resolveIcon(name: string | undefined): LucideIcon {
-  const reg = Lucide as unknown as Record<string, LucideIcon>;
-  return (name && reg[name]) || reg["FileText"] || reg["Square"];
-}
-
 export function PlanNodeCard({ node, selected, dimmed, issues, variables, onClick, onMouseDown }: PlanNodeCardProps) {
   const { slidesById } = useGraficosRegistry();
   const meta = slidesById[node.slide.tipo];
-  const Icon = resolveIcon(meta?.icono_ui);
   const titulo = slideDisplayTitle(node.slide, variables, SLIDE_LABELS[node.slide.tipo] ?? node.slide.tipo);
   const errors = issues.filter((i) => i.severity === "error").length;
   const warns = issues.filter((i) => i.severity === "warning").length;
@@ -45,7 +38,7 @@ export function PlanNodeCard({ node, selected, dimmed, issues, variables, onClic
       onMouseDown={onMouseDown}
     >
       <div className="pulso-gv2-node-head">
-        <Icon size={12} />
+        <SlideTypeIcon tipo={node.slide.tipo} iconoUi={meta?.icono_ui} size={12} />
         <span>#{node.index + 1}</span>
         <span style={{ flex: 1 }} />
         {(errors > 0 || warns > 0) && (

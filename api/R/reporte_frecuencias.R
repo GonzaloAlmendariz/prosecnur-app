@@ -288,6 +288,127 @@ tipo_pregunta_spss <- function(var, survey, sm_vars_force = NULL) {
 }
 
 #' @noRd
+.freq_norm_key <- function(x) {
+  y <- as.character(x)
+  y[is.na(y)] <- ""
+  y <- trimws(y)
+  out <- iconv(y, from = "", to = "ASCII//TRANSLIT")
+  out[is.na(out)] <- y[is.na(out)]
+  out <- tolower(out)
+  out <- gsub("[^a-z0-9]+", " ", out, perl = TRUE)
+  trimws(gsub("\\s+", " ", out, perl = TRUE))
+}
+
+#' @noRd
+.freq_blank_value <- function(x) {
+  y <- as.character(x)
+  is.na(y) | !nzchar(trimws(y)) | trimws(y) %in% c("NA", "NaN")
+}
+
+#' @noRd
+.freq_is_other_option_label <- function(x) {
+  y <- .freq_norm_key(x)
+  nzchar(y) & (
+    grepl("\\b(other|otro|otra|otros|otras)\\b", y, perl = TRUE) |
+      grepl("\\b(especificar|especifique|especifica|specify|please specify)\\b", y, perl = TRUE)
+  )
+}
+
+#' @noRd
+.freq_other_text_col_for_var <- function(var, survey = NULL, data = NULL) {
+  var <- as.character(var %||% "")[1]
+  if (!nzchar(var)) return(NA_character_)
+
+  base_var <- sub("_recod$", "", var)
+  candidates <- unique(c(paste0(var, "_other"), paste0(base_var, "_other")))
+  if (!is.null(data) && is.data.frame(data)) {
+    hit <- candidates[candidates %in% names(data)][1]
+    if (!is.na(hit) && nzchar(hit)) return(hit)
+  }
+
+  if (!is.null(survey) && is.data.frame(survey) && all(c("name", "type") %in% names(survey))) {
+    s_names <- as.character(survey$name)
+    s_types <- as.character(survey$type)
+    rel <- if ("relevant" %in% names(survey)) as.character(survey$relevant) else rep("", nrow(survey))
+    text_rows <- grepl("^text\\b", s_types, ignore.case = TRUE)
+    hit <- which(text_rows & s_names %in% candidates)
+    if (length(hit)) return(s_names[hit[1]])
+
+    ref_pat <- paste0("\\$\\{", gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", base_var), "\\}")
+    hit <- which(text_rows & grepl(ref_pat, rel, perl = TRUE))
+    if (length(hit)) return(s_names[hit[1]])
+  }
+
+  NA_character_
+}
+
+#' @noRd
+.freq_select_one_other_spec <- function(var, data = NULL, survey = NULL, orders_list = NULL) {
+  codes <- labels <- character(0)
+
+  ord <- tryCatch(orders_list[[var]], error = function(e) NULL)
+  if (!is.null(ord)) {
+    codes <- as.character(ord$names %||% character(0))
+    labels <- as.character(ord$labels %||% character(0))
+  }
+
+  if ((!length(codes) || !length(labels)) &&
+      !is.null(data) && is.data.frame(data) && var %in% names(data)) {
+    lab_attr <- attr(data[[var]], "labels", exact = TRUE)
+    if (!is.null(lab_attr) && length(lab_attr)) {
+      codes <- as.character(names(lab_attr))
+      labels <- as.character(unname(lab_attr))
+    }
+  }
+
+  n <- max(length(codes), length(labels))
+  if (!n) return(NULL)
+  length(codes) <- n
+  length(labels) <- n
+  codes[is.na(codes)] <- ""
+  labels[is.na(labels)] <- ""
+
+  other_idx <- which(.freq_is_other_option_label(labels) | .freq_is_other_option_label(codes))
+  if (!length(other_idx)) return(NULL)
+
+  other_code <- codes[other_idx[1]]
+  if (!nzchar(other_code)) other_code <- labels[other_idx[1]]
+  if (!nzchar(other_code)) return(NULL)
+
+  text_col <- .freq_other_text_col_for_var(var, survey = survey, data = data)
+  if (is.na(text_col) || !nzchar(text_col) || is.null(data) || !(text_col %in% names(data))) {
+    return(NULL)
+  }
+
+  valid <- unique(c(codes, labels))
+  valid <- valid[!is.na(valid) & nzchar(trimws(valid))]
+  list(
+    valid = valid,
+    other_code = other_code,
+    text_col = text_col
+  )
+}
+
+#' @noRd
+.freq_collapse_select_one_other_text <- function(values, data, var, survey = NULL, orders_list = NULL) {
+  spec <- .freq_select_one_other_spec(var, data = data, survey = survey, orders_list = orders_list)
+  if (is.null(spec)) return(as.character(values))
+
+  x <- as.character(values)
+  valid_norm <- .freq_norm_key(spec$valid)
+  valid_norm <- valid_norm[nzchar(valid_norm)]
+  text_has_value <- !.freq_blank_value(data[[spec$text_col]])
+  x_norm <- .freq_norm_key(x)
+
+  collapse <- !.freq_blank_value(x) &
+    text_has_value &
+    nzchar(x_norm) &
+    !(x_norm %in% valid_norm)
+  x[collapse] <- spec$other_code
+  x
+}
+
+#' @noRd
 split_sm_tokens <- function(x) {
   x <- as.character(x)
 
@@ -429,6 +550,7 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
     orders_list = orders_list,
     df = data
   )
+  label_q <- .freq_clean_other_title_es(label_q)
 
   # Título (merge 2 cols: Estadístico / Valor)
   openxlsx::writeData(wb, sheet, label_q, startRow = fila, startCol = start_col, colNames = FALSE)
@@ -851,6 +973,104 @@ mk_styles_spss <- function() {
   )
 }
 
+#' @noRd
+.freq_clean_other_label_es <- function(x) {
+  y <- as.character(x)
+  y[is.na(y)] <- ""
+  y <- trimws(y)
+  if (!length(y)) return(y)
+
+  norm <- iconv(y, from = "", to = "ASCII//TRANSLIT")
+  norm[is.na(norm)] <- y[is.na(norm)]
+  norm <- tolower(trimws(gsub("\\s+", " ", norm, perl = TRUE)))
+  stripped <- gsub("\\s*\\([^)]*(especific|specif|please)[^)]*\\)\\s*:?", "", norm, perl = TRUE)
+  stripped <- gsub("\\s*,?\\s*(por favor\\s+)?(especificar|especifique|especifica|specify|please specify)\\s*:?", "", stripped, perl = TRUE)
+  stripped <- trimws(gsub("\\s+", " ", stripped, perl = TRUE))
+
+  is_other <- (
+    grepl("\\b(other|otro|otra|otros|otras)\\b", norm, perl = TRUE) &
+      grepl("\\b(especific|specif|please|por favor)\\b", norm, perl = TRUE)
+  ) | grepl("^\\s*(other|otro|otra|otros|otras)\\b", norm, perl = TRUE) |
+    stripped %in% c("other", "otro", "otra", "otros", "otras")
+
+  y[is_other] <- "Otros"
+  y
+}
+
+#' @noRd
+.freq_clean_other_title_es <- function(x) {
+  y <- as.character(x)
+  y[is.na(y)] <- ""
+  y <- trimws(y)
+  if (!length(y)) return(y)
+
+  y <- gsub(
+    "\\bOther\\s*\\([^)]*(especific|specif|please)[^)]*\\)\\s*:?",
+    "Otros",
+    y,
+    ignore.case = TRUE,
+    perl = TRUE
+  )
+  y <- gsub(
+    "\\bOther\\s*,?\\s*(please\\s+)?(specify|specificar|especificar|especifique|especifica)\\s*:?",
+    "Otros",
+    y,
+    ignore.case = TRUE,
+    perl = TRUE
+  )
+  y <- gsub(
+    "\\bOtro(s|a|as)?\\s*\\([^)]*(especific|specif|please)[^)]*\\)\\s*:?",
+    "Otros",
+    y,
+    ignore.case = TRUE,
+    perl = TRUE
+  )
+  y <- gsub(
+    "\\bOtro(s|a|as)?\\s*,?\\s*(por favor\\s+)?(especificar|especifique|especifica)\\s*:?",
+    "Otros",
+    y,
+    ignore.case = TRUE,
+    perl = TRUE
+  )
+
+  trimws(gsub("\\s+", " ", y, perl = TRUE))
+}
+
+#' @noRd
+.freq_clean_section_label_for_export <- function(x) {
+  y <- .freq_clean_other_title_es(x)
+  y <- gsub("_OTHER\\b", "_OTROS", y, ignore.case = TRUE, perl = TRUE)
+  y <- gsub("\\bOTHER\\b", "OTROS", y, ignore.case = TRUE, perl = TRUE)
+  trimws(gsub("\\s+", " ", y, perl = TRUE))
+}
+
+#' @noRd
+.freq_clean_option_labels_for_export <- function(tab) {
+  if (is.null(tab) || !is.data.frame(tab) || !nrow(tab) || !"Opciones" %in% names(tab)) {
+    return(tab)
+  }
+
+  is_total <- as.character(tab$Opciones) == "Total"
+  total <- tab[is_total, , drop = FALSE]
+  body <- tab[!is_total, , drop = FALSE]
+  if (!nrow(body)) return(tab)
+
+  body$Opciones <- .freq_clean_other_label_es(body$Opciones)
+  if (anyDuplicated(body$Opciones) && "n" %in% names(body)) {
+    has_pct <- "pct" %in% names(body)
+    body <- body |>
+      dplyr::group_by(.data$Opciones) |>
+      dplyr::summarise(
+        n = sum(.data$n, na.rm = TRUE),
+        pct = if (has_pct) sum(.data$pct, na.rm = TRUE) else NA_real_,
+        .groups = "drop"
+      )
+    if (!has_pct) body$pct <- NULL
+  }
+
+  dplyr::bind_rows(body, total)
+}
+
 
 
 # =============================================================================
@@ -1035,7 +1255,16 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
   }
 
   tib <- data |>
-    dplyr::transmute(.op = as.character(.data[[var]]), peso = w) |>
+    dplyr::transmute(
+      .op = .freq_collapse_select_one_other_text(
+        .data[[var]],
+        data = data,
+        var = var,
+        survey = survey,
+        orders_list = orders_list
+      ),
+      peso = w
+    ) |>
     dplyr::filter(!is.na(.op) & nzchar(.op) & .op != "NA")
 
   if (!nrow(tib)) {
@@ -1251,6 +1480,7 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     orders_list = orders_list,
     df = data
   )
+  label_q <- .freq_clean_other_title_es(label_q)
 
   if (isTRUE(incluir_titulo)) {
     openxlsx::writeData(wb, sheet, label_q, startRow = fila, startCol = start_col, colNames = FALSE)
@@ -1302,6 +1532,7 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
     mostrar_todo  = mostrar_todo,
     codigos_solo_si_presentes = codigos_solo_si_presentes
   )
+  tab <- .freq_clean_option_labels_for_export(tab)
 
   if (nrow(tab)) {
     is_total0 <- tab$Opciones == "Total"
@@ -1394,6 +1625,7 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
     orders_list = orders_list,
     df = data
   )
+  label_q <- .freq_clean_other_title_es(label_q)
 
   if (isTRUE(incluir_titulo)) {
     openxlsx::writeData(wb, sheet, label_q, startRow = fila, startCol = start_col, colNames = FALSE)
@@ -1522,7 +1754,8 @@ exportar_frecuencias_spss <- function(
     if (!length(vars_sec)) next
 
     if (isTRUE(incluir_secciones)) {
-      openxlsx::writeData(wb, sheet, toupper(sec), startRow = fila, startCol = 1)
+      sec_label <- toupper(.freq_clean_section_label_for_export(sec))
+      openxlsx::writeData(wb, sheet, sec_label, startRow = fila, startCol = 1)
 
       # Merge depende de si habrá tablas numéricas en la sección
       ncols_sec <- if (any(vars_sec %in% numericas)) 2 else 3
@@ -1531,7 +1764,7 @@ exportar_frecuencias_spss <- function(
       openxlsx::addStyle(wb, sheet, st$sec_title, rows = fila, cols = 1, gridExpand = TRUE, stack = TRUE)
       openxlsx::setRowHeights(
         wb, sheet, rows = fila,
-        heights = .auto_row_height(toupper(sec), chars_per_line = 70, base = 28, per_line = 18)
+        heights = .auto_row_height(sec_label, chars_per_line = 70, base = 28, per_line = 18)
       )
       fila <- fila + 2
     }

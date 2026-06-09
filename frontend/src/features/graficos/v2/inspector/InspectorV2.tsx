@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import * as Lucide from "lucide-react";
 import { ChevronDown, LayoutPanelTop, FileText, Database, Palette, Filter as FilterIcon } from "lucide-react";
 import { ArgGrupo, ArgMetadata, GraficadorRef } from "../../../../api/client";
 import { useSession } from "../../../../lib/SessionContext";
@@ -14,6 +13,7 @@ import { usePlanValidator } from "../../usePlanValidator";
 import { StylePanel } from "./StylePanel";
 import { FiltersPanel } from "./FiltersPanel";
 import { inferSlideVariableTitle } from "../../slideAutoTitle";
+import { SlideTypeIcon } from "../../SlideTypeIcon";
 
 // Inspector V3: tabs Contenido | Datos | Estilo | Filtros (sin Avanzado,
 // sin editor JSON crudo).
@@ -91,7 +91,6 @@ export function InspectorV2() {
   }
 
   const humanTitle = SLIDE_LABELS[slide.tipo] ?? slide.tipo;
-  const SlideIcon = slideMeta ? resolveLucide(slideMeta.icono_ui) : Lucide.FileText;
 
   // Cuenta args por tab para badges
   const tabArgCounts: Record<InspectorTab, number> = {
@@ -121,7 +120,7 @@ export function InspectorV2() {
             <div className="pulso-gv2-inspector-title-row">
               <div className="pulso-gv2-inspector-title-cluster">
                 <span className="pulso-gv2-inspector-icon">
-                  <SlideIcon size={16} />
+                  <SlideTypeIcon tipo={slide.tipo} iconoUi={slideMeta?.icono_ui} size={16} />
                 </span>
                 <div className="pulso-gv2-inspector-title-copy">
                   <h2 className="pulso-gv2-inspector-title">{humanTitle}</h2>
@@ -232,12 +231,6 @@ export function InspectorV2() {
       </div>
     </div>
   );
-}
-
-type LucideIcon = (props: { size?: number }) => JSX.Element;
-function resolveLucide(name: string): LucideIcon {
-  const reg = Lucide as unknown as Record<string, LucideIcon>;
-  return reg[name] ?? reg["FileText"] ?? reg["Square"];
 }
 
 function groupArgs(args: ArgMetadata[]): { grupo: ArgGrupo; args: ArgMetadata[] }[] {

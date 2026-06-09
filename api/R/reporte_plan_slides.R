@@ -973,11 +973,13 @@ p_slide_6_graficos_poblacion <- function(
 #' @title Barras agrupadas (1 variable)
 #' @param filtros Lista nombrada de filtros por igualdad/inclusion,
 #'   por ejemplo `list(region = "Lima", sexo = c("Mujer", "Otro"))`.
+#' @param mostrar_ceros Si `TRUE`, conserva opciones del instrumento con
+#'   `n = 0`; si `FALSE`/`NULL`, se grafican solo categorias con casos.
 #' @examples
 #' p_barras_agrupadas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
-p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list()) {
+p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), mostrar_ceros = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     stop("`var` debe ser character(1) no vacio.", call. = FALSE)
   }
@@ -994,6 +996,10 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
 
   if (!is.list(overrides)) stop("`overrides` debe ser lista.", call. = FALSE)
   if (!is.list(base)) stop("`base` debe ser lista.", call. = FALSE)
+  if (!is.null(mostrar_ceros) &&
+      (!is.logical(mostrar_ceros) || length(mostrar_ceros) != 1L || is.na(mostrar_ceros))) {
+    stop("`mostrar_ceros` debe ser NULL o logical(1).", call. = FALSE)
+  }
   filtros <- .ppt_norm_filters(filtros)
 
   el <- list(
@@ -1001,6 +1007,7 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
     var           = var,
     title_slide   = titulo,
     cruces        = cruces,
+    mostrar_ceros = mostrar_ceros,
     overrides     = overrides,
     base          = base,
     filtros       = filtros

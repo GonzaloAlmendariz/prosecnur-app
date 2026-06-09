@@ -286,9 +286,18 @@
 }
 
 .pulso_norm_label <- function(x) {
-  x <- trimws(as.character(x %||% ""))
-  x <- iconv(x, from = "", to = "ASCII//TRANSLIT", sub = "")
-  tolower(x)
+  x <- as.character(x %||% "")
+  x[is.na(x)] <- ""
+  x <- trimws(x)
+  x <- if (requireNamespace("stringi", quietly = TRUE)) {
+    stringi::stri_trans_general(x, "Latin-ASCII")
+  } else {
+    iconv(x, from = "", to = "ASCII//TRANSLIT", sub = "")
+  }
+  x[is.na(x)] <- ""
+  x <- tolower(x)
+  x <- gsub("['`^~\"]", "", x)
+  trimws(gsub("\\s+", " ", x))
 }
 
 .pulso_next_free_code <- function(used) {
@@ -299,7 +308,7 @@
   as.character(candidate)
 }
 
-.pulso_repair_parent_recod_df <- function(df, parent, text_col, code_map = NULL) {
+.pulso_repair_parent_recod_df <- function(df, parent, text_col, code_map = NULL, groups = NULL) {
   parent <- as.character(parent %||% "")
   text_col <- as.character(text_col %||% "")
   if (!nzchar(parent) || !parent %in% names(df)) return(list(data = df, changed = FALSE))
@@ -321,6 +330,31 @@
     rec_vals[idx] <- unname(map[rec_vals[idx]])
   }
 
+  group_vals <- rep(NA_character_, nrow(df))
+  has_group_vals <- rep(FALSE, nrow(df))
+  if (!is.null(groups) && length(groups) && text_col %in% names(df)) {
+    lookup <- new.env(parent = emptyenv())
+    for (g in groups) {
+      code <- as.character(g$codigo %||% "")
+      if (!nzchar(code)) next
+      if (!is.null(code_map) && length(code_map) && code %in% names(code_map)) {
+        code <- as.character(code_map[[code]])
+      }
+      for (resp in (g$respuestas %||% list())) {
+        key <- .pulso_norm_label(resp)
+        if (nzchar(key)) assign(key, code, envir = lookup)
+      }
+    }
+    for (i in seq_along(text_vals)) {
+      if (!has_text[i]) next
+      key <- .pulso_norm_label(text_vals[[i]])
+      if (nzchar(key) && exists(key, envir = lookup, inherits = FALSE)) {
+        group_vals[[i]] <- get(key, envir = lookup, inherits = FALSE)
+        has_group_vals[[i]] <- !.pulso_blank_value(group_vals[[i]])
+      }
+    }
+  }
+
   old_names <- names(df)
   old_vals <- if (parent_recod %in% names(df)) as.character(df[[parent_recod]]) else NULL
   out_vals <- if (!is.null(old_vals)) old_vals else parent_vals
@@ -329,6 +363,10 @@
     !.pulso_blank_value(parent_vals)
   out_vals[fill_parent] <- parent_vals[fill_parent]
   if (isTRUE(has_other_recod_col)) out_vals[has_text & !has_rec] <- NA_character_
+  if (any(has_group_vals)) {
+    out_vals[has_text] <- NA_character_
+    out_vals[has_group_vals] <- group_vals[has_group_vals]
+  }
   out_vals[has_rec] <- rec_vals[has_rec]
   out_vals[.pulso_blank_value(out_vals)] <- NA_character_
 
@@ -471,6 +509,35 @@
     }
 
     add_source_rows(child_choices)
+    group_choices <- choices[0, , drop = FALSE]
+    groups <- rep$groups %||% list()
+    if (length(groups)) {
+      for (g in groups) {
+        code <- as.character(g$codigo %||% "")
+        if (!nzchar(code)) next
+        label <- as.character(g$etiqueta %||% "")
+        if (is.na(label) || !nzchar(trimws(label))) label <- code
+        if (identical(as.character(g$origen %||% ""), "existente")) {
+          code_map <- c(code_map, stats::setNames(code, code))
+          next
+        }
+        row <- choices[0, , drop = FALSE]
+        if (!nrow(row)) {
+          row <- as.data.frame(
+            as.list(stats::setNames(rep(NA_character_, length(names(choices))), names(choices))),
+            stringsAsFactors = FALSE,
+            check.names = FALSE
+          )
+        } else {
+          row <- row[1, , drop = FALSE]
+        }
+        row$list_name <- recod_list
+        row$name <- code
+        row[[lab_col_c]] <- label
+        group_choices <- rbind(group_choices, row[, names(group_choices), drop = FALSE])
+      }
+      add_source_rows(group_choices)
+    }
     if (nrow(existing_recod)) {
       extra_existing <- existing_recod[!as.character(existing_recod$name) %in% parent_codes, , drop = FALSE]
       add_source_rows(extra_existing)
@@ -527,7 +594,9 @@
 }
 
 .pulso_parent_recod_repairs <- function(s, base_name) {
-  draft <- ((s$codif_por_base[[base_name]] %||% list())$familias_draft %||% list())$rows %||% list()
+  codif_state <- s$codif_por_base[[base_name]] %||% list()
+  draft <- (codif_state$familias_draft %||% list())$rows %||% list()
+  groups_map <- codif_state$grupos_recod %||% list()
   if (!length(draft)) return(list())
   out <- list()
   for (row in draft) {
@@ -538,7 +607,11 @@
     if (!nzchar(parent)) parent <- as.character(row$parent %||% "")
     text_col <- as.character(row$text_col %||% "")
     if (!nzchar(parent)) next
-    out[[length(out) + 1L]] <- list(parent = parent, text_col = text_col)
+    groups <- groups_map[[parent]] %||%
+      groups_map[[as.character(row$parent %||% "")]] %||%
+      groups_map[[text_col]] %||%
+      list()
+    out[[length(out) + 1L]] <- list(parent = parent, text_col = text_col, groups = groups)
   }
   out
 }
@@ -573,7 +646,7 @@
     for (sheet in names(sheets_data)) {
       df <- sheets_data[[sheet]]
       for (rep in repairs) {
-        fixed <- .pulso_repair_parent_recod_df(df, rep$parent, rep$text_col, rep$code_map)
+        fixed <- .pulso_repair_parent_recod_df(df, rep$parent, rep$text_col, rep$code_map, rep$groups)
         df <- fixed$data
         data_changed <- isTRUE(data_changed || fixed$changed)
       }

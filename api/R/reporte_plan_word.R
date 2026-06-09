@@ -251,12 +251,12 @@ reporte_word_plan <- function(
   }
 
   # Párrafo con fpar — sin style forzado para que fp_p tenga pleno efecto
-  .add_par_w <- function(doc, text, st, align = "left", style = NULL) {
+  .add_par_w <- function(doc, text, st, align = "left", style = NULL, keep_with_next = FALSE) {
     if (is.null(text) || !nzchar(trimws(as.character(text)[1]))) return(doc)
     text <- trimws(as.character(text)[1])
     fpar <- officer::fpar(
       officer::ftext(text, prop = .fp_w(st)),
-      fp_p = officer::fp_par(text.align = align)
+      fp_p = officer::fp_par(text.align = align, keep_with_next = isTRUE(keep_with_next))
     )
     officer::body_add_fpar(doc, value = fpar, style = style)
   }
@@ -305,6 +305,14 @@ reporte_word_plan <- function(
         trimws(as.character(fuente)[1])
     )
     if (!length(parts)) NULL else paste(parts, collapse = " ")
+  }
+
+  .is_company_name_title <- function(x) {
+    txt <- paste(as.character(x %||% ""), collapse = " ")
+    txt <- iconv(txt, from = "", to = "ASCII//TRANSLIT")
+    txt <- tolower(txt)
+    txt <- trimws(gsub("\\s+", " ", txt, perl = TRUE))
+    grepl("nombre\\s+de\\s+la\\s+empresa|empresa\\s+para\\s+la\\s+cual", txt, perl = TRUE)
   }
 
   # -------------------------------------------------------------------------
@@ -399,7 +407,10 @@ reporte_word_plan <- function(
         toc_inserted <- TRUE
         doc <- officer::body_add_break(doc)
       }
-      doc <- .add_par_w(doc, title_txt, presets_word$title_style, align = "center", style = "Normal")
+      if (g_i > 1L && !isTRUE(presets_word$pagebreak_between) && .is_company_name_title(title_txt)) {
+        doc <- officer::body_add_break(doc)
+      }
+      doc <- .add_par_w(doc, title_txt, presets_word$title_style, align = "center", style = "Normal", keep_with_next = TRUE)
       doc <- officer::body_add_gg(doc, value = p, width = w, height = h, res = img_dpi)
       if (!is.null(pie_txt))
         doc <- .add_par_w(doc, pie_txt, presets_word$base_style, align = "center")

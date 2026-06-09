@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import * as Lucide from "lucide-react";
 import { Search, SearchX, X } from "lucide-react";
 import { GraficadorMetadata } from "../../api/client";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { useSession } from "../../lib/SessionContext";
+import { GraficadorTypeIcon } from "./GraficadorTypeIcon";
 
 // Picker visual de graficador. En vez de una lista textual, mostramos
 // cada graficador como card con icono + titulo_humano + descripción,
@@ -29,7 +29,7 @@ const CATEGORIAS: Categoria[] = [
   },
   {
     label: "Comparación multi-variable",
-    predicate: (g) => ["p_radar_tabla"].includes(g.name),
+    predicate: (g) => ["p_radar", "p_tabla", "p_radar_tabla"].includes(g.name),
   },
   {
     label: "Dimensiones e índices",
@@ -52,20 +52,23 @@ export default function GraficadorPicker({
   const categoriasConItems = useMemo(() => {
     if (!registry) return [];
     const q = query.trim().toLowerCase();
-    return CATEGORIAS.map((cat) => ({
-      label: cat.label,
-      items: registry.graficadores
-        .filter(cat.predicate)
-        .filter((g) => {
-          if (!q) return true;
-          return (
-            g.name.toLowerCase().includes(q) ||
-            g.titulo_humano.toLowerCase().includes(q) ||
-            g.descripcion.toLowerCase().includes(q)
-          );
-        }),
-    })).filter((c) => c.items.length > 0);
-  }, [registry, query]);
+    return CATEGORIAS
+      .filter((cat) => dimOk || cat.label !== "Dimensiones e índices")
+      .map((cat) => ({
+        label: cat.label,
+        items: registry.graficadores
+          .filter(cat.predicate)
+          .filter((g) => {
+            if (!q) return true;
+            return (
+              g.name.toLowerCase().includes(q) ||
+              g.titulo_humano.toLowerCase().includes(q) ||
+              g.descripcion.toLowerCase().includes(q)
+            );
+          }),
+      }))
+      .filter((c) => c.items.length > 0);
+  }, [registry, query, dimOk]);
 
   if (typeof document === "undefined") return null;
 
@@ -164,7 +167,6 @@ function GraficadorCard({
   dimOk: boolean;
   onPick: (g: GraficadorMetadata) => void;
 }) {
-  const Icon = resolveLucide(graf.icono_ui);
   const requiereDim = graf.requisito === "dimensiones";
   const dimReady = requiereDim && dimOk;
   const dimMissing = requiereDim && !dimOk;
@@ -175,7 +177,7 @@ function GraficadorCard({
       className={`pulso-gv2-graf-card ${requiereDim ? "requires-dimensions" : ""}`}
     >
       <span className="pulso-gv2-graf-card-icon">
-        <Icon size={16} />
+        <GraficadorTypeIcon name={graf.name} iconoUi={graf.icono_ui} size={25} />
       </span>
       <span className="pulso-gv2-graf-card-copy">
         <span className="pulso-gv2-graf-card-title">
@@ -195,12 +197,4 @@ function GraficadorCard({
       )}
     </button>
   );
-}
-
-// Resuelve el nombre de un ícono lucide al componente real. Si no
-// existe, fallback al BarChart.
-type LucideIcon = (props: { size?: number; color?: string }) => JSX.Element;
-function resolveLucide(name: string): LucideIcon {
-  const registry = Lucide as unknown as Record<string, LucideIcon>;
-  return registry[name] ?? registry["BarChart"] ?? registry["Square"];
 }

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import * as Lucide from "lucide-react";
 import { Plus, Search, X } from "lucide-react";
 import { SlideType } from "../../../../api/client";
 import { usePlanStore, SLIDE_LABELS } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
+import { SlideTypeIcon } from "../../SlideTypeIcon";
 import { categoryOf, CATEGORY_LABEL, SlideCategory } from "./categoryOf";
 
 // SlidePicker — popup elegante para añadir slides.
@@ -41,12 +41,6 @@ const CAT_LABEL_WITH_ALL: Record<"all" | SlideCategory, string> = {
   all: "Todos",
   ...CATEGORY_LABEL,
 };
-
-type LucideIcon = (props: { size?: number }) => JSX.Element;
-function resolveIcon(name: string | undefined): LucideIcon {
-  const reg = Lucide as unknown as Record<string, LucideIcon>;
-  return (name && reg[name]) || reg["FileText"] || reg["Square"];
-}
 
 export type SlidePickerProps = {
   open: boolean;
@@ -148,7 +142,6 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
         <div className="pulso-gv2-picker-grid">
           {filtered.map((t) => {
             const meta = slidesById[t];
-            const Icon = resolveIcon(meta?.icono_ui);
             const cat = categoryOf(t);
             return (
               <button
@@ -159,7 +152,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
                 onClick={() => { addSlide(t); onClose(); }}
               >
                 <span className="pulso-gv2-picker-tile-icon">
-                  <Icon size={20} />
+                  <SlideTypeIcon tipo={t} iconoUi={meta?.icono_ui} size={23} />
                 </span>
                 <span className="pulso-gv2-picker-tile-label">{SLIDE_LABELS[t]}</span>
                 {meta?.descripcion && (

@@ -267,7 +267,7 @@
   p_slide_grafico_texto_izquierda = list(
     titulo_humano = "Gráfico + texto a la izquierda",
     descripcion   = "Texto a la izquierda, gráfico a la derecha. Útil cuando quieres que el mensaje se lea antes del gráfico.",
-    icono_ui      = "LayoutPanelTop",
+    icono_ui      = "LayoutPanelLeft",
     categoria     = "1grafico",
     slots         = "grafico",
     args = c(list(
@@ -300,7 +300,7 @@
   p_slide_2_graficos_texto_izquierda = list(
     titulo_humano = "Dos gráficos + texto izquierda",
     descripcion   = "Los dos gráficos a la derecha y un bloque de texto a la izquierda.",
-    icono_ui      = "LayoutPanelTop",
+    icono_ui      = "LayoutPanelLeft",
     categoria     = "2graficos",
     slots         = c("grafico_1", "grafico_2"),
     args = c(list(
@@ -387,7 +387,10 @@
       list(name = "var",    label = "Variable",   tipo_input = "variable",     grupo = "datos",
            descripcion = "La pregunta que quieres graficar."),
       list(name = "cruces", label = "Dividir por",tipo_input = "variable_opt", grupo = "datos",
-           descripcion = "Segunda variable para segmentar (ej. sexo, región). Si la dejas vacía, muestra una serie única.")
+           descripcion = "Segunda variable para segmentar (ej. sexo, región). Si la dejas vacía, muestra una serie única."),
+      list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "estilo",
+           default = FALSE,
+           descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N.")
     ), .args_graf_comunes())
   ),
 
@@ -1001,13 +1004,23 @@
              list(value = "izquierda",label = "Izquierda"),
              list(value = "ninguna",label = "Ocultar")
            )),
-      list(name = "colores_series",       label = "Colores por serie",     tipo_input = "series_colors", grupo = "estilo",
-           descripcion = "Asigna un color a cada serie que aparece en la leyenda."),
-      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo"),
+	      list(name = "colores_series",       label = "Colores por serie",     tipo_input = "series_colors", grupo = "estilo",
+	           descripcion = "Asigna un color a cada serie que aparece en la leyenda."),
+	      list(name = "orden_barras",         label = "Orden de barras",       tipo_input = "choice", grupo = "estilo",
+	           default = "instrumento",
+	           choices = list(
+	             list(value = "instrumento", label = "Instrumento"),
+	             list(value = "mayor_menor", label = "Mayor a menor"),
+	             list(value = "menor_mayor", label = "Menor a mayor")
+	           )),
+	      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo"),
       list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo"),
 
       # --- Valores y cálculo ---------------------------------------------
       list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo"),
+      list(name = "mostrar_ceros",        label = "Mostrar opciones 0%",   tipo_input = "bool",   grupo = "estilo",
+           default = FALSE,
+           descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
       list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro"),
       list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro",
            default = 0.001),
@@ -1558,6 +1571,7 @@
     ancho_max_eje_y          = 30,
 
     mostrar_valores          = TRUE,
+    mostrar_ceros            = TRUE,
     decimales                = 0,
 
     legend_key_cm            = 0.35,
@@ -1569,21 +1583,22 @@
   ),
 
   barras_agrupadas = list(
-    canvas_w_etiquetas       = 0.22,
-    canvas_w_buf_etq_bars    = 0.02,
-    canvas_w_bars            = 0.58,
-    canvas_w_buf_bars_extra  = 0.02,
-    canvas_w_extra           = 0.15,
+	    canvas_w_etiquetas       = 0.36,
+	    canvas_w_buf_etq_bars    = 0.03,
+	    canvas_w_bars            = 0.61,
+	    canvas_w_buf_bars_extra  = 0,
+	    canvas_w_extra           = 0,
 
     canvas_h_toprow_in       = 0.10,
     canvas_h_header_in       = 0.70,
     canvas_h_legend_in       = 0.00,
     canvas_h_caption_in      = 0.00,
 
-    alto_por_categoria       = 0.48,
+	    alto_por_categoria       = 0.35,
     ancho_max_eje_y          = 30,
 
     mostrar_valores          = TRUE,
+    mostrar_ceros            = FALSE,
     decimales                = 0,
     umbral_etiqueta          = 0.001,
     umbral_posicion          = 0.07,
@@ -1591,8 +1606,9 @@
     mostrar_barra_extra      = FALSE,
     prefijo_barra_extra      = "",
 
-    mostrar_leyenda          = FALSE,
-    invertir_barras          = TRUE,
+	    mostrar_leyenda          = FALSE,
+	    orden_barras             = "instrumento",
+	    invertir_barras          = TRUE,
 
     size_barra_extra         = 9,
     colores_series           = list(Porcentaje = "#39588B")
@@ -2026,6 +2042,11 @@
       max = 40,
       step = 1,
       control = "stepper"
+    ),
+    mostrar_ceros = list(
+      label = "Mostrar opciones 0%",
+      descripcion = "Incluye categorías definidas en el instrumento aunque no tengan casos. Desactívalo para dejar solo categorías con N.",
+      efecto = "En barras agrupadas, oculta o conserva barras de 0%."
     ),
     canvas_h_header_in = list(
       label = "Alto del encabezado",

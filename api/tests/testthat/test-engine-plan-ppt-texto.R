@@ -213,3 +213,141 @@ test_that("render_meta Word limpia titulo inferido desde variables recodificadas
   expect_equal(meta$render_meta[[1]]$title, label_p2)
   expect_false(grepl("Recodificada", meta$render_meta[[1]]$title, fixed = TRUE))
 })
+
+test_that("barras agrupadas Word conservan opciones sin casos", {
+  skip_if_not_installed("ggplot2")
+
+  dat <- data.frame(
+    p2 = c("1", "2", "2", "1"),
+    stringsAsFactors = FALSE
+  )
+  inst <- list(
+    survey = data.frame(
+      name = "p2",
+      type = "select_one lst_test",
+      list_name = "lst_test",
+      label = "Pregunta de prueba",
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = "lst_test",
+      name = c("1", "2", "3"),
+      label = c("Uno", "Dos", "Tres sin casos"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = list(
+      p2 = list(
+        names = c("1", "2", "3"),
+        labels = c("Uno", "Dos", "Tres sin casos"),
+        label = "Pregunta de prueba"
+      )
+    )
+  )
+
+  tab <- freq_table_spss(
+    dat,
+    "p2",
+    survey = inst$survey,
+    orders_list = inst$orders_list,
+    mostrar_todo = TRUE
+  )
+  expect_equal(tab$n[tab$Opciones == "Tres sin casos"], 0)
+
+  out <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(
+      diapo_001 = p_slide_1_grafico(
+        grafico = p_barras_agrupadas("p2")
+      )
+    ),
+    presets = p_presets(),
+    solo_lista = TRUE,
+    build_render_meta = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  labels_word <- unlist(lapply(
+    ggplot2::ggplot_build(out$render_meta[[1]]$plot_word)$data,
+    function(d) if ("label" %in% names(d)) as.character(d$label) else character(0)
+  ), use.names = FALSE)
+  expect_true("Tres sin casos" %in% labels_word)
+
+  p_direct <- graficar_barras_agrupadas(
+    data = data.frame(
+      categoria = c("Uno", "Dos", "Tres sin casos"),
+      N = 4,
+      pct = c(0.5, 0.5, 0),
+      stringsAsFactors = FALSE
+    ),
+    var_categoria = "categoria",
+    var_n = "N",
+    cols_porcentaje = "pct",
+    etiquetas_series = c(pct = "Porcentaje"),
+    mostrar_ceros = TRUE,
+    umbral_barra = 0,
+    mostrar_barra_extra = FALSE,
+    usar_canvas = FALSE,
+    exportar = "rplot"
+  )
+  labels_direct <- unlist(lapply(
+    ggplot2::ggplot_build(p_direct)$data,
+    function(d) if ("label" %in% names(d)) as.character(d$label) else character(0)
+  ), use.names = FALSE)
+  expect_true("0%" %in% labels_direct)
+})
+
+test_that("barras agrupadas Word no expanden ceros en catalogos de empresa", {
+  skip_if_not_installed("ggplot2")
+
+  codes <- as.character(seq_len(45))
+  labels <- c("Empresa A", "Empresa B", paste("Empresa sin casos", 3:45))
+  dat <- data.frame(
+    empresa = c("1", "2", "1", "2"),
+    stringsAsFactors = FALSE
+  )
+  inst <- list(
+    survey = data.frame(
+      name = "empresa",
+      type = "select_one lst_empresas",
+      list_name = "lst_empresas",
+      label = "Por favor, seleccione de la siguiente lista el nombre de la empresa para la cual usted trabaja.",
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = "lst_empresas",
+      name = codes,
+      label = labels,
+      stringsAsFactors = FALSE
+    ),
+    orders_list = list(
+      empresa = list(
+        names = codes,
+        labels = labels,
+        label = "Por favor, seleccione de la siguiente lista el nombre de la empresa para la cual usted trabaja."
+      )
+    )
+  )
+
+  out <- reporte_ppt_plan(
+    data = dat,
+    instrumento = inst,
+    plan = list(
+      diapo_001 = p_slide_1_grafico(
+        grafico = p_barras_agrupadas("empresa")
+      )
+    ),
+    presets = p_presets(),
+    solo_lista = TRUE,
+    build_render_meta = TRUE,
+    mensajes_progreso = FALSE
+  )
+
+  labels_word <- unlist(lapply(
+    ggplot2::ggplot_build(out$render_meta[[1]]$plot_word)$data,
+    function(d) if ("label" %in% names(d)) as.character(d$label) else character(0)
+  ), use.names = FALSE)
+  expect_true("Empresa A" %in% labels_word)
+  expect_false(any(grepl("Empresa sin casos", labels_word, fixed = TRUE)))
+  expect_false("0%" %in% labels_word)
+})

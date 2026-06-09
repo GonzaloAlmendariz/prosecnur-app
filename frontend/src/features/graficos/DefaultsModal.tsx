@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import * as Lucide from "lucide-react";
 import { X, Save, Factory, Check, Circle, Plus, Trash2, Layers3, AlertCircle } from "lucide-react";
 import {
   ArgGrupo, ArgMetadata,
@@ -14,6 +13,7 @@ import { usePresetsDefaults, presetArgsEqual } from "./usePresetsDefaults";
 import { useOverridesDefaults } from "./useOverridesDefaults";
 import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { LoadingBlock, EmptyState } from "../../components/States";
+import { GraphSettingsIcon, resolveGraphLucideIcon } from "./lucideRegistry";
 
 // Modal "Gestionar defaults". Dos modos según cómo se abrió:
 //   - mode="presets": edita los defaults de presets (lo que sirve de
@@ -28,12 +28,6 @@ import { LoadingBlock, EmptyState } from "../../components/States";
 // "Restaurar fábrica" borra el default del usuario en el backend (DELETE
 // /presets-defaults) y cierra el modal — el próximo fetch del hook
 // trae los valores factory (.PRESETS_DEFAULT_PULSO).
-
-type LucideIcon = (props: { size?: number; color?: string }) => JSX.Element;
-function resolveLucide(name: string | undefined): LucideIcon {
-  const registry = Lucide as unknown as Record<string, LucideIcon>;
-  return (name && registry[name]) || registry["Sliders"] || registry["Square"];
-}
 
 export function DefaultsModal({
   mode,
@@ -72,7 +66,7 @@ export function DefaultsModal({
             display: "flex", alignItems: "center", gap: 10,
           }}
         >
-          <Lucide.Settings2 size={16} color="var(--pulso-primary)" />
+          <GraphSettingsIcon size={16} color="var(--pulso-primary)" />
           <div style={{ flex: 1 }}>
             <h2 style={{ margin: 0, fontSize: 14 }}>
               {mode === "presets" ? "Defaults de presets" : "Defaults de overrides"}
@@ -248,7 +242,7 @@ function PresetsDefaultsEditor() {
               draft[p.name] ?? {},
               backendDefaults[p.name] ?? {},
             );
-            const Icon = resolveLucide(p.icono_ui);
+            const Icon = resolveGraphLucideIcon(p.icono_ui, "Sliders");
             return (
               <button
                 key={p.name}
@@ -501,7 +495,7 @@ function OverridesDefaultsEditor() {
           <div style={{ display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
             {draft.map((o) => {
               const tipoMeta = presetsByName[o.tipo_preset];
-              const Icon = resolveLucide(tipoMeta?.icono_ui);
+              const Icon = resolveGraphLucideIcon(tipoMeta?.icono_ui, "Sliders");
               const isActive = o.id === selectedId;
               // Dirty = este override difiere del backend (o no existe
               // en backend = nuevo en el draft).

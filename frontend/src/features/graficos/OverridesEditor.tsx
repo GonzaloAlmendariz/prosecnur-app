@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import * as Lucide from "lucide-react";
 import { Plus, Copy, Trash2, Circle, Layers3 } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore, OverrideReusable } from "./store";
@@ -7,6 +6,7 @@ import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
+import { resolveGraphLucideIcon } from "./lucideRegistry";
 // Los overrides reutilizables usan solo controles catalogados.
 
 // Overrides reutilizables = mini-presets nombrados (ej. "compacto", "grande")
@@ -32,13 +32,6 @@ import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 // los overrides compatibles con el tipo del graficador actual (via
 // graficadorToPresetType). Al aplicar, copia los args al campo
 // `overrides` del GraficadorRef.
-
-type LucideIcon = (props: { size?: number; color?: string }) => JSX.Element;
-
-function resolveLucide(name: string | undefined): LucideIcon {
-  const registry = Lucide as unknown as Record<string, LucideIcon>;
-  return (name && registry[name]) || registry["Sliders"] || registry["Square"];
-}
 
 function newId() {
   return `ov-${Math.random().toString(36).slice(2, 10)}`;
@@ -104,16 +97,9 @@ export function OverridesEditor() {
   }
 
   return (
-    <div style={{ display: "flex", gap: 16, minHeight: 420 }}>
+    <div className="pulso-gv2-overrides-editor">
       {/* Sidebar */}
-      <aside
-        style={{
-          width: 240, flexShrink: 0,
-          borderRight: "1px solid var(--pulso-border)",
-          paddingRight: 12,
-          display: "flex", flexDirection: "column", gap: 6,
-        }}
-      >
+      <aside className="pulso-gv2-overrides-sidebar">
         <button
           type="button"
           className="pulso-primary"
@@ -134,10 +120,10 @@ export function OverridesEditor() {
             hint="Crea uno y aplícalo desde cualquier slot de gráfico."
           />
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
+          <div className="pulso-gv2-overrides-list">
             {overrides.map((o) => {
               const tipoMeta = presetsByName[o.tipo_preset];
-              const Icon = resolveLucide(tipoMeta?.icono_ui);
+              const Icon = resolveGraphLucideIcon(tipoMeta?.icono_ui, "Sliders");
               const isActive = o.id === selectedId;
               const hasArgs = Object.keys(o.args).length > 0;
               return (
@@ -171,7 +157,7 @@ export function OverridesEditor() {
       </aside>
 
       {/* Editor */}
-      <section style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+      <section className="pulso-gv2-overrides-detail">
         {selected ? (
           <OverrideEditPanel
             override={selected}
@@ -228,7 +214,7 @@ function OverrideEditPanel({
   onDelete: () => void;
 }) {
   const tipoMeta = presetsByName[override.tipo_preset];
-  const Icon = resolveLucide(tipoMeta?.icono_ui);
+  const Icon = resolveGraphLucideIcon(tipoMeta?.icono_ui, "Sliders");
 
   const gruposDeArgs = useMemo(() => {
     if (!tipoMeta) return [];

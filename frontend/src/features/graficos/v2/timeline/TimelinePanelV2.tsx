@@ -134,7 +134,7 @@ export function TimelinePanelV2() {
             <span className="pulso-gv2-summary-num">
               {slides.filter((s) => categoryOf(s.tipo) !== "estructural").length}
             </span>
-            <span className="pulso-gv2-summary-label">con gráficos</span>
+            <span className="pulso-gv2-summary-label">gráficos</span>
           </div>
         </div>
       )}

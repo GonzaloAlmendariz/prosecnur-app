@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import * as Lucide from "lucide-react";
 import { LayoutGrid, LayoutPanelTop } from "lucide-react";
 import { ArgGrupo, GraficadorRef } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
@@ -11,6 +10,7 @@ import GraficadorSlot from "./GraficadorSlot";
 import { SlidePreview } from "./SlidePreview";
 import { LoadingBlock, EmptyState, SectionEyebrow } from "../../components/States";
 import { inferSlideVariableTitle } from "./slideAutoTitle";
+import { SlideTypeIcon } from "./SlideTypeIcon";
 
 // Editor de slide rediseñado. Reemplaza el switch/case + mapas hardcoded
 // por un renderer dinámico que lee el metadata del registry:
@@ -72,7 +72,6 @@ export default function SlideEditor() {
   }
 
   const humanTitle = SLIDE_LABELS[slide.tipo] ?? slide.tipo;
-  const SlideIcon = slideMeta ? resolveLucide(slideMeta.icono_ui) : Lucide.FileText;
   const autoTitle = inferSlideVariableTitle(slide, variables).title;
 
   const payloadMap = slide.payload as Record<string, GraficadorRef | null | undefined>;
@@ -90,7 +89,7 @@ export default function SlideEditor() {
               display: "inline-flex", alignItems: "center", justifyContent: "center",
             }}
           >
-            <SlideIcon size={16} />
+            <SlideTypeIcon tipo={slide.tipo} iconoUi={slideMeta?.icono_ui} size={16} />
           </span>
           <span>
             <h2 style={{ margin: 0, fontSize: 16, lineHeight: 1.2 }}>{humanTitle}</h2>
@@ -162,10 +161,4 @@ export default function SlideEditor() {
       </div>
     </div>
   );
-}
-
-type LucideIcon = (props: { size?: number; color?: string }) => JSX.Element;
-function resolveLucide(name: string): LucideIcon {
-  const registry = Lucide as unknown as Record<string, LucideIcon>;
-  return registry[name] ?? registry["FileText"] ?? registry["Square"];
 }

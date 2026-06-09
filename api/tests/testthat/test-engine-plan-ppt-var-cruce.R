@@ -443,6 +443,75 @@ test_that("modos existentes siguen renderizando sin error", {
   )
 })
 
+test_that("barras agrupadas oculta opciones 0 por defecto y permite mostrarlas", {
+  skip_if_not_installed("officer")
+  skip_if_not_installed("rvg")
+
+  dat <- data.frame(
+    q1 = c("A", "A", "B"),
+    stringsAsFactors = FALSE
+  )
+  attr(dat$q1, "label") <- "Pregunta agrupada"
+
+  inst <- list(
+    survey = data.frame(
+      name = "q1",
+      type = "select_one lst_q",
+      list_name = "lst_q",
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = rep("lst_q", 3),
+      name = c("A", "B", "C"),
+      label = c("A", "B", "C"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = list(
+      q1 = list(
+        names = c("A", "B", "C"),
+        labels = c("A", "B", "C"),
+        label = "Pregunta agrupada"
+      )
+    )
+  )
+
+  render_labels <- function(mostrar_ceros = NULL) {
+    plan <- list(
+      diapo_001 = p_slide_1_grafico(
+        grafico = p_barras_agrupadas("q1", mostrar_ceros = mostrar_ceros)
+      )
+    )
+    p <- reporte_ppt_plan(
+      data = dat,
+      instrumento = inst,
+      plan = plan,
+      presets = p_presets(
+        barras_agrupadas = list(
+          usar_canvas = TRUE,
+          mostrar_leyenda = FALSE
+        )
+      ),
+      solo_lista = TRUE,
+      mensajes_progreso = FALSE
+    )$rendered[[1]]
+
+    unique(unlist(lapply(p$layers, function(layer) {
+      if (is.data.frame(layer$data) && "text" %in% names(layer$data)) {
+        as.character(layer$data$text)
+      } else {
+        character(0)
+      }
+    })))
+  }
+
+  labels_default <- render_labels()
+  labels_with_zero <- render_labels(TRUE)
+
+  expect_true(all(c("A", "B") %in% labels_default))
+  expect_false("C" %in% labels_default)
+  expect_true("C" %in% labels_with_zero)
+})
+
 test_that("reporte_ppt_plan acepta referencias fuente$var en graficos simples", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")

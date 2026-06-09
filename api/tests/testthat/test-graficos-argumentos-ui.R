@@ -138,6 +138,20 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name$ancho_max_eje_y$label, "Ancho de texto de etiquetas")
   expect_equal(by_name$leyenda_posicion$grupo, "leyenda")
   expect_match(by_name$leyenda_posicion$label, "leyenda")
+
+  agrupadas <- presets$barras_agrupadas$args
+	  by_name_agr <- stats::setNames(agrupadas, vapply(agrupadas, `[[`, character(1), "name"))
+	  expect_equal(by_name_agr$mostrar_ceros$tipo_input, "bool")
+	  expect_false(isTRUE(by_name_agr$mostrar_ceros$default))
+	  expect_equal(by_name_agr$orden_barras$tipo_input, "choice")
+	  expect_equal(by_name_agr$orden_barras$default, "instrumento")
+
+  registry <- .graficos_registry_payload()
+  grafs <- stats::setNames(registry$graficadores, vapply(registry$graficadores, `[[`, character(1), "name"))
+  args_agr <- grafs$p_barras_agrupadas$args
+  by_name_graf_agr <- stats::setNames(args_agr, vapply(args_agr, `[[`, character(1), "name"))
+  expect_equal(by_name_graf_agr$mostrar_ceros$tipo_input, "bool")
+  expect_false(isTRUE(by_name_graf_agr$mostrar_ceros$default))
 })
 
 test_that("paletas configuradas llegan al ambiente y pintan barras apiladas", {
@@ -369,7 +383,8 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
 
   expect_identical(.PRESETS_DEFAULT_PULSO$barras_apiladas$prefijo_barra_extra, "")
   expect_identical(.PRESETS_DEFAULT_PULSO$barras_agrupadas$prefijo_barra_extra, "")
-  expect_equal(.PRESETS_DEFAULT_PULSO$barras_agrupadas$canvas_w_etiquetas, 0.22)
+	  expect_equal(.PRESETS_DEFAULT_PULSO$barras_agrupadas$canvas_w_etiquetas, 0.36)
+  expect_false(isTRUE(.PRESETS_DEFAULT_PULSO$barras_agrupadas$mostrar_ceros))
   expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$titulo_tabla, "TOP 2 BOX")
 })
 
@@ -413,9 +428,10 @@ test_that("metadata numerica expone limites seguros para la UI", {
 })
 
 test_that("controles expuestos de leyenda llegan a los renderizadores canvas", {
-  expect_true("leyenda_posicion" %in% names(formals(graficar_barras_apiladas)))
-  expect_true("leyenda_posicion" %in% names(formals(graficar_barras_agrupadas)))
-  expect_true("leyenda_posicion" %in% names(formals(graficar_barras_numericas)))
+	  expect_true("leyenda_posicion" %in% names(formals(graficar_barras_apiladas)))
+	  expect_true("leyenda_posicion" %in% names(formals(graficar_barras_agrupadas)))
+	  expect_true("orden_barras" %in% names(formals(graficar_barras_agrupadas)))
+	  expect_true("leyenda_posicion" %in% names(formals(graficar_barras_numericas)))
 })
 
 test_that("canvas_w_etiquetas desplaza visualmente el inicio de barras", {

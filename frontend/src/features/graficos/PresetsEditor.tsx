@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { useState } from "react";
-import * as Lucide from "lucide-react";
 import { RotateCcw, Circle } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore } from "./store";
@@ -8,6 +7,7 @@ import { usePresetsMetadata } from "./usePresetsMetadata";
 import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { usePresetsDefaults, presetArgsEqual } from "./usePresetsDefaults";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
+import { resolveGraphLucideIcon } from "./lucideRegistry";
 // La edición de presets usa solo controles catalogados. Si un argumento
 // no tiene metadata visual, no se expone como campo editable.
 
@@ -23,13 +23,6 @@ import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 //
 // La fuente de verdad del catálogo es `/api/graficos/presets-metadata`;
 // la fuente de verdad del estado persistido es el store (`presets`).
-
-type LucideIcon = (props: { size?: number; color?: string }) => JSX.Element;
-
-function resolveLucide(name: string | undefined): LucideIcon {
-  const registry = Lucide as unknown as Record<string, LucideIcon>;
-  return (name && registry[name]) || registry["Sliders"] || registry["Square"];
-}
 
 function clarifyPresetGraphTitleArg(arg: ArgMetadata): ArgMetadata {
   if (arg.name !== "titulo") return arg;
@@ -102,7 +95,7 @@ export function PresetsEditor() {
               defaults[p.name] ?? {},
             );
             const isActive = p.name === selected;
-            const Icon = resolveLucide(p.icono_ui);
+            const Icon = resolveGraphLucideIcon(p.icono_ui, "Sliders");
             return (
               <button
                 key={p.name}
@@ -213,7 +206,7 @@ function PresetHeader({
   hasChanges: boolean;
   onReset: () => void;
 }) {
-  const Icon = resolveLucide(meta.icono_ui);
+  const Icon = resolveGraphLucideIcon(meta.icono_ui, "Sliders");
   return (
     <header
       style={{
