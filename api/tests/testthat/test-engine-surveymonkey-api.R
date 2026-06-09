@@ -78,6 +78,33 @@ test_that("sm_api_summary cuenta preguntas excluyendo presentation y reporta req
   expect_equal(s$n_validation, 1L)
 })
 
+test_that("sm_api_flatten_responses expone labels de variables sin decorar columnas", {
+  details <- list(
+    pages = list(list(questions = list(list(
+      id = "101",
+      family = "single_choice",
+      headings = list(list(heading = "Distrito")),
+      answers = list(choices = list(
+        list(id = "1", text = "Norte"),
+        list(id = "2", text = "Sur")
+      ))
+    ))))
+  )
+  responses <- list(list(
+    id = "r1",
+    pages = list(list(questions = list(list(
+      id = "101",
+      answers = list(list(choice_id = "1"))
+    ))))
+  ))
+
+  out <- sm_api_flatten_responses(details, responses)
+
+  expect_equal(out$q0001, "Norte")
+  expect_equal(attr(out, "variable_labels")[["q0001"]], "Distrito")
+  expect_null(attr(out$q0001, "label", exact = TRUE))
+})
+
 test_that("sm_api_extract_choice_labels trae labels por posición de pregunta", {
   details <- list(
     pages = list(

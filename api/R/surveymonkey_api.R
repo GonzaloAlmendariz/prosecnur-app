@@ -774,9 +774,6 @@ sm_api_flatten_responses <- function(details, responses, style = .sm_api_default
   variable_labels <- .sm_api_response_variable_labels(qmap, names(df))
   if (length(variable_labels)) {
     attr(df, "variable_labels") <- variable_labels
-    for (nm in intersect(names(variable_labels), names(df))) {
-      attr(df[[nm]], "label") <- unname(variable_labels[[nm]])
-    }
   }
   df
 }
