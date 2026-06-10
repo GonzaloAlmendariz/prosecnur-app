@@ -162,6 +162,13 @@ reporte_data <- function(data,
             call. = FALSE)
   }
 
+  if (exists(".bases_clean_report_instrument", mode = "function")) {
+    instrumento <- .bases_clean_report_instrument(instrumento)
+  }
+  if (exists(".bases_normalize_other_selects", mode = "function")) {
+    data <- .bases_normalize_other_selects(data, instrumento)
+  }
+
   survey             <- instrumento$survey
   choices            <- instrumento$choices
   var_labels         <- instrumento$var_labels
@@ -533,6 +540,12 @@ reporte_data <- function(data,
               call. = FALSE)
     }
     attr(data, "var_peso") <- var_peso
+  }
+
+  if (exists(".bases_normalize_report_context", mode = "function")) {
+    ctx <- .bases_normalize_report_context(data, instrumento, normalize_other = FALSE)
+    data <- ctx$data
+    instrumento <- ctx$inst
   }
 
   attr(data, "vars_fecha")    <- instrumento$vars_fecha

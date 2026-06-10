@@ -367,5 +367,8 @@ reporte_instrumento <- function(path,
   )
 
   class(res) <- c("prosecnur_instrumento", "list")
+  if (exists(".bases_clean_report_instrument", mode = "function")) {
+    res <- .bases_clean_report_instrument(res)
+  }
   res
 }

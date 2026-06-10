@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   apiCreateSession,
   apiHealth,
@@ -30,6 +30,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<SessionState | null>(null);
   const [error, setError] = useState<string>("");
   const [sessionLost, setSessionLost] = useState<boolean>(false);
+  const recoveringRef = useRef(false);
 
   const refresh = useCallback(async () => {
     if (!sessionId) return;
@@ -56,33 +57,35 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const negotiateSession = useCallback(async (fresh = false) => {
+    const h = await apiHealth();
+    setVersion(`app v${h.version} · prosecnur v${h.prosecnur_version}`);
+    if (!fresh) {
+      const bs = await apiSystemBootstrap().catch(() => ({ sid: null }));
+      // jsonlite (R) serializa `NULL` dentro de un objeto como `{}`, no
+      // como `null`. Sin la guarda de string, `if (bs.sid)` daba truthy
+      // para `{}` y `setSessionIdSafe` rechazaba el valor.
+      if (typeof bs.sid === "string" && bs.sid.length > 0) {
+        localStorage.setItem("pulso.sessionId", bs.sid);
+        setSessionIdSafe("bootstrap", bs.sid);
+        setSessionLost(false);
+        return;
+      }
+    }
+    const s = await apiCreateSession({ fresh });
+    setSessionIdSafe(fresh ? "recover" : "create", s.session_id);
+    setSessionLost(false);
+  }, [setSessionIdSafe]);
+
   useEffect(() => {
     (async () => {
       try {
-        const h = await apiHealth();
-        setVersion(`app v${h.version} · prosecnur v${h.prosecnur_version}`);
-        // Bootstrap: si el backend arrancó con PULSO_BOOTSTRAP_PROJECT,
-        // adoptamos su sid en vez de crear una sesión efímera. El backend
-        // lo "consume" una sola vez (recargas posteriores reciben null).
-        const bs = await apiSystemBootstrap().catch(() => ({ sid: null }));
-        // jsonlite (R) serializa `NULL` dentro de un objeto como `{}`, no
-        // como `null`. Sin la guarda de string, `if (bs.sid)` daba truthy
-        // para `{}` y `setSessionIdSafe` rechazaba el valor; se quedaba
-        // sin sid y la app no podía hablar con el backend.
-        if (typeof bs.sid === "string" && bs.sid.length > 0) {
-          localStorage.setItem("pulso.sessionId", bs.sid);
-          setSessionIdSafe("bootstrap", bs.sid);
-          setSessionLost(false);
-          return;
-        }
-        const s = await apiCreateSession();
-        setSessionIdSafe("create", s.session_id);
-        setSessionLost(false);
+        await negotiateSession(false);
       } catch (e: unknown) {
         setError((e as Error).message);
       }
     })();
-  }, [setSessionIdSafe]);
+  }, [negotiateSession]);
 
   useEffect(() => {
     if (sessionId) void refresh();
@@ -94,10 +97,20 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     function onLost() {
       setSessionLost(true);
+      if (recoveringRef.current) return;
+      recoveringRef.current = true;
+      localStorage.removeItem("pulso.sessionId");
+      void negotiateSession(true)
+        .catch((e: unknown) => {
+          setError((e as Error).message);
+        })
+        .finally(() => {
+          recoveringRef.current = false;
+        });
     }
     window.addEventListener("pulso:session-lost", onLost);
     return () => window.removeEventListener("pulso:session-lost", onLost);
-  }, []);
+  }, [negotiateSession]);
 
   // Backend cambió el sid (ej. al cargar un demo → session_create fresh).
   // Actualizamos el state → gatillamos refresh() via el useEffect anterior,

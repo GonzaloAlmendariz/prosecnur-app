@@ -984,11 +984,32 @@
     out
   }
 
+  normalize_pair <- function(data, instrumento) {
+    if (is.null(data) || is.null(instrumento)) return(NULL)
+    out_data <- renorm_one(data, instrumento)
+    if (is.null(out_data)) out_data <- data
+    out_inst <- instrumento
+    if (exists(".bases_normalize_report_context", mode = "function")) {
+      ctx <- tryCatch(
+        .bases_normalize_report_context(out_data, out_inst),
+        error = function(e) NULL
+      )
+      if (!is.null(ctx)) {
+        out_data <- ctx$data
+        out_inst <- ctx$inst
+      }
+    }
+    if (identical(out_data, data) && identical(out_inst, instrumento)) return(NULL)
+    list(data = out_data, inst = out_inst)
+  }
+
   if (!is.null(s$rp_data) && !is.null(inst)) {
-    new_rp <- renorm_one(s$rp_data, inst)
+    new_rp <- normalize_pair(s$rp_data, inst)
     if (!is.null(new_rp)) {
-      s$rp_data <- new_rp
-      s$data_xlsform_compatibility <- attr(new_rp, "xlsform_compatibility", exact = TRUE)
+      s$rp_data <- new_rp$data
+      s$rp_inst <- new_rp$inst
+      inst <- new_rp$inst
+      s$data_xlsform_compatibility <- attr(new_rp$data, "xlsform_compatibility", exact = TRUE)
       changed <- TRUE
     }
   }
@@ -998,14 +1019,50 @@
     for (b in names(s$rp_data_sources)) {
       base_inst <- s$rp_inst_sources[[b]] %||% inst
       if (is.null(base_inst)) next
-      new_b <- renorm_one(s$rp_data_sources[[b]], base_inst)
+      old_b <- s$rp_data_sources[[b]]
+      new_b <- normalize_pair(old_b, base_inst)
       if (!is.null(new_b)) {
-        s$rp_data_sources[[b]] <- new_b
+        was_primary <- identical(s$rp_data, old_b) || identical(s$rp_inst, base_inst)
+        s$rp_data_sources[[b]] <- new_b$data
+        s$rp_inst_sources[[b]] <- new_b$inst
+        if (isTRUE(was_primary)) {
+          s$rp_data <- new_b$data
+          s$rp_inst <- new_b$inst
+        }
         if (!is.null(s$estudio$bases[[b]])) {
-          s$estudio$bases[[b]]$compatibilidad <- attr(new_b, "xlsform_compatibility", exact = TRUE)
+          s$estudio$bases[[b]]$compatibilidad <- attr(new_b$data, "xlsform_compatibility", exact = TRUE)
         }
         changed <- TRUE
       }
+    }
+  }
+
+  if (!is.null(s$analitica_rp_data) && !is.null(s$analitica_rp_inst)) {
+    new_an <- normalize_pair(s$analitica_rp_data, s$analitica_rp_inst)
+    if (!is.null(new_an)) {
+      s$analitica_rp_data <- new_an$data
+      s$analitica_rp_inst <- new_an$inst
+      changed <- TRUE
+    }
+  }
+
+  if (length(s$analitica_rp_data_sources) && length(s$analitica_rp_inst_sources)) {
+    for (b in intersect(names(s$analitica_rp_data_sources), names(s$analitica_rp_inst_sources))) {
+      new_b <- normalize_pair(s$analitica_rp_data_sources[[b]], s$analitica_rp_inst_sources[[b]])
+      if (!is.null(new_b)) {
+        s$analitica_rp_data_sources[[b]] <- new_b$data
+        s$analitica_rp_inst_sources[[b]] <- new_b$inst
+        changed <- TRUE
+      }
+    }
+  }
+
+  if (!is.null(s$dashboard_rp_data) && !is.null(s$dashboard_rp_inst)) {
+    new_dash <- normalize_pair(s$dashboard_rp_data, s$dashboard_rp_inst)
+    if (!is.null(new_dash)) {
+      s$dashboard_rp_data <- new_dash$data
+      s$dashboard_rp_inst <- new_dash$inst
+      changed <- TRUE
     }
   }
 

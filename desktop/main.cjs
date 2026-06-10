@@ -57,6 +57,8 @@ const { bootstrapMacRuntime } = require("./mac-bootstrap.cjs");
 
 const APP_NAME = "Prosecnur";
 const HOST = "127.0.0.1";
+const ELECTRON_DEV = process.env.PROSECNUR_ELECTRON_DEV === "1";
+const DEFAULT_VITE_URL = "http://localhost:5173";
 const MIN_R_PORT = 1024;
 const MAX_R_PORT = 49151;
 const SMOKE_CDP_PORT = process.env.PROSECNUR_SMOKE_CDP_PORT;
@@ -654,8 +656,7 @@ async function showBackendError(message) {
     showLoading();
     try {
       const port = await startBackend();
-      await clearRendererCaches();
-      await mainWindow.loadURL(appUrl(port));
+      await loadRenderer(port);
     } catch (error) {
       showBackendError(error.message || String(error));
     }
@@ -708,6 +709,49 @@ function healthUrl(port) {
 function appUrl(port) {
   const version = encodeURIComponent(app.getVersion());
   return `http://${HOST}:${port}/?appVersion=${version}`;
+}
+
+function isLoopbackHostname(hostname) {
+  const normalized = String(hostname || "").toLowerCase();
+  return normalized === "localhost" ||
+    normalized === "127.0.0.1" ||
+    normalized === "::1" ||
+    normalized === "[::1]";
+}
+
+function devRendererUrlObject() {
+  const raw = process.env.PROSECNUR_VITE_URL || DEFAULT_VITE_URL;
+  let url;
+  try {
+    url = new URL(raw);
+  } catch (_error) {
+    throw new Error(`PROSECNUR_VITE_URL invalida: ${raw}`);
+  }
+  if (url.protocol !== "http:") {
+    throw new Error(`PROSECNUR_VITE_URL debe usar http:// en desarrollo: ${raw}`);
+  }
+  if (!isLoopbackHostname(url.hostname)) {
+    throw new Error(`PROSECNUR_VITE_URL debe apuntar a localhost/127.0.0.1: ${raw}`);
+  }
+  return url;
+}
+
+function rendererUrl(port) {
+  if (!ELECTRON_DEV) return appUrl(port);
+  const url = devRendererUrlObject();
+  url.searchParams.set("appVersion", app.getVersion());
+  return url.toString();
+}
+
+function rendererOrigins() {
+  const origins = new Set();
+  if (backendPort) origins.add(`http://${HOST}:${backendPort}`);
+  if (ELECTRON_DEV) origins.add(devRendererUrlObject().origin);
+  return Array.from(origins);
+}
+
+function wsOriginFor(httpOrigin) {
+  return httpOrigin.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
 }
 
 async function clearRendererCaches() {
@@ -767,6 +811,34 @@ async function waitForBackend(port, timeoutMs = 90000) {
   }
 
   throw new Error(`El backend no respondió a tiempo. Último error: ${lastError ? lastError.message : "sin respuesta"}`);
+}
+
+async function waitForDevRenderer(timeoutMs = 30000) {
+  if (!ELECTRON_DEV) return;
+  const url = devRendererUrlObject().toString();
+  const startedAt = Date.now();
+  let lastError = null;
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      await requestJson(url, { method: "GET", timeout: 1200 });
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+  }
+
+  throw new Error(
+    `Vite no respondió en ${url}. Abre o espera el servidor Vite antes de usar PROSECNUR_ELECTRON_DEV=1. ` +
+    `Último error: ${lastError ? lastError.message : "sin respuesta"}`
+  );
+}
+
+async function loadRenderer(port) {
+  await waitForDevRenderer();
+  await clearRendererCaches();
+  await mainWindow.loadURL(rendererUrl(port));
 }
 
 // Patterns que R/plumber/httpuv imprimen cuando falla al bindear el
@@ -854,13 +926,29 @@ async function startBackend() {
   configurePptxPreviewRenderer(root);
   const launchScript = path.join(root, "launcher", "launch.R");
   const rscript = process.env.PULSO_RSCRIPT || "Rscript";
-  const requestedPort = Number(process.env.PULSO_PORT || 0);
+  const requestedPort = Number(process.env.PULSO_PORT || (ELECTRON_DEV ? "8787" : "0"));
   const triedPorts = new Set();
+
+  if (ELECTRON_DEV) {
+    if (!Number.isInteger(requestedPort) ||
+        requestedPort < MIN_R_PORT ||
+        requestedPort > MAX_R_PORT) {
+      throw new Error(
+        `PULSO_PORT debe ser un puerto local valido en modo Electron+Vite. Recibido: ${process.env.PULSO_PORT || "(vacio)"}`
+      );
+    }
+    if (!(await canUsePort(requestedPort))) {
+      throw new Error(
+        `PULSO_PORT=${requestedPort} ya esta ocupado. En modo Electron+Vite no se cambia de puerto automaticamente ` +
+        `porque Vite proxya /api a ese puerto. Cierra el proceso que lo usa o elige otro PULSO_PORT.`
+      );
+    }
+  }
 
   // Hasta 3 intentos: si el spawn falla por bind (TOCTOU entre canUsePort
   // y el listen real de R), buscamos otro puerto y reintentamos. Si es
   // un error de otro tipo, propaga en el primer intento.
-  const MAX_ATTEMPTS = 3;
+  const MAX_ATTEMPTS = ELECTRON_DEV ? 1 : 3;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     let port;
     if (attempt === 1 && requestedPort >= MIN_R_PORT && requestedPort <= MAX_R_PORT) {
@@ -875,6 +963,12 @@ async function startBackend() {
 
     const result = await spawnBackendOnce(rscript, launchScript, root, port);
     if (result.bound) return result.port;
+
+    if (ELECTRON_DEV) {
+      throw new Error(
+        `PULSO_PORT=${port} no pudo usarse. En modo Electron+Vite no se reintenta con otro puerto.`
+      );
+    }
 
     // bind falló por puerto ocupado. Si quedan intentos, loguear y seguir.
     if (attempt < MAX_ATTEMPTS) {
@@ -979,7 +1073,7 @@ function createMenu() {
         {
           label: "Abrir en navegador",
           click: () => {
-            if (backendPort) shell.openExternal(appUrl(backendPort));
+            if (backendPort) shell.openExternal(rendererUrl(backendPort));
           }
         },
         { type: "separator" },
@@ -1050,16 +1144,25 @@ function createMenu() {
 // webPreferences hardened del main, lo cual es una puerta que
 // preferimos cerrar de una vez.
 function hardenWindowNavigation(win) {
-  // 1) Bloquear navegación a orígenes distintos al backend local.
-  //    La URL que carga el renderer es http://127.0.0.1:<port>/ —
-  //    cualquier otra URL la delegamos al navegador externo del SO.
+  // 1) Bloquear navegación a orígenes distintos al renderer permitido.
+  //    En producción es el backend local; en desarrollo visual puede ser Vite.
   win.webContents.on("will-navigate", (event, url) => {
-    const target = new URL(url);
-    const expected = `${HOST}:${String(backendPort ?? "")}`;
-    if (target.host !== expected) {
+    let target;
+    try {
+      target = new URL(url);
+    } catch (_error) {
+      event.preventDefault();
+      return;
+    }
+    if (target.protocol === "data:" || rendererOrigins().includes(target.origin)) {
+      return;
+    }
+    if (target.protocol === "http:" || target.protocol === "https:") {
       event.preventDefault();
       shell.openExternal(url);
+      return;
     }
+    event.preventDefault();
   });
 
   // 2) Intercepta window.open / target="_blank": siempre abrir en el
@@ -1077,17 +1180,20 @@ function hardenWindowNavigation(win) {
 function installCsp() {
   const { session } = require("electron");
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const expectedHost = `${HOST}:${String(backendPort ?? "")}`;
+    const httpSources = rendererOrigins();
+    const wsSources = httpSources.map(wsOriginFor);
+    const sourceList = httpSources.join(" ");
+    const connectList = [...httpSources, ...wsSources].join(" ");
     const csp = [
-      `default-src 'self' http://${expectedHost}`,
+      `default-src 'self'${sourceList ? ` ${sourceList}` : ""}`,
       // 'unsafe-inline' y 'unsafe-eval' son concesiones al bundle de
       // Vite/React + plotly.js que los requiere. Si en algún momento
       // migramos a CSP estricta (hash-based), acá se endurece.
-      `script-src 'self' 'unsafe-inline' 'unsafe-eval' http://${expectedHost}`,
-      `style-src 'self' 'unsafe-inline' http://${expectedHost}`,
-      `img-src 'self' data: blob: http://${expectedHost}`,
-      `font-src 'self' data: http://${expectedHost}`,
-      `connect-src 'self' http://${expectedHost} ws://${expectedHost}`,
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval'${sourceList ? ` ${sourceList}` : ""}`,
+      `style-src 'self' 'unsafe-inline'${sourceList ? ` ${sourceList}` : ""}`,
+      `img-src 'self' data: blob:${sourceList ? ` ${sourceList}` : ""}`,
+      `font-src 'self' data:${sourceList ? ` ${sourceList}` : ""}`,
+      `connect-src 'self'${connectList ? ` ${connectList}` : ""}`,
       "object-src 'none'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
@@ -1136,8 +1242,7 @@ async function createWindow() {
     // corriendo, el setInterval sobrescribiría la app real con la
     // pantalla de loading 5s después.
     stopLoadingUpdates();
-    await clearRendererCaches();
-    await mainWindow.loadURL(appUrl(port));
+    await loadRenderer(port);
   } catch (error) {
     stopLoadingUpdates();
     // Dialog con botones Reintentar / Ver logs / Salir en vez del

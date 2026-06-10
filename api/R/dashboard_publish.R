@@ -54,14 +54,18 @@
     "(^|/)\\.DS_Store$",
     "(^|/)\\.env(\\..*)?$",
     "(^|/)\\.Renviron$",
-    "(^|/)inst/www(/|$)",
+    "(^|/)inst/audit_reference(/|$)", # fixtures/test data — no runtime público
+    "(^|/)inst/hojas_ruta(/|$)",      # cartografia/binarios — endpoints bloqueados en modo público
+    "(^|/)inst/manuales_qmd(/|$)",    # documentacion fuente, no requerida por el Space
+    "(^|/)inst/www(/|$)",             # bundle local viejo; Docker lo recompila
     "(^|/)inst/samples(/|$)",     # binarios .sav/.xlsx — HF rechaza sin LFS
     "(^|/)inst/plantillas(/|$)",   # .pptx — solo se usan en exports PPT (bloqueados en modo público)
     "(^|/)inst/extdata(/|$)",      # otros binarios potenciales
+    "(^|/)tests(/|$)",
     "(^|/)dist(/|$)",
     "(^|/)coverage(/|$)",
     "(^|/)\\.Rproj\\.user(/|$)",
-    "\\.(pptx|xlsx|xls|sav|rds|RData|rda)$"  # cualquier binario residual
+    "\\.(pptx|xlsx|xls|sav|rds|RData|rda|pulso|gz|zip|pdf)$"  # cualquier binario residual
   ), collapse = "|")
   entries <- entries[!grepl(skip_rx, entries)]
   for (from in entries) {
@@ -293,23 +297,44 @@
   invisible(TRUE)
 }
 
+.hf_token_username <- function(token) {
+  .dashboard_publish_require_curl()
+  h <- curl::new_handle()
+  do.call(curl::handle_setheaders, c(list(handle = h), as.list(.hf_headers(token))))
+  res <- curl::curl_fetch_memory("https://huggingface.co/api/whoami-v2", handle = h)
+  if (res$status_code < 200L || res$status_code >= 300L) return("hf_user")
+  parsed <- tryCatch(jsonlite::fromJSON(rawToChar(res$content %||% raw())), error = function(e) NULL)
+  name <- as.character(parsed$name %||% "")[1]
+  if (nzchar(name)) name else "hf_user"
+}
+
+.hf_git_askpass <- function() {
+  path <- tempfile("hf_askpass_")
+  writeLines(c(
+    "#!/bin/sh",
+    "case \"$1\" in",
+    "  *Username*) printf '%s\\n' \"${HF_GIT_USERNAME:-hf_user}\" ;;",
+    "  *Password*) printf '%s\\n' \"$HF_TOKEN\" ;;",
+    "  *) printf '%s\\n' \"$HF_TOKEN\" ;;",
+    "esac"
+  ), path, useBytes = TRUE)
+  Sys.chmod(path, mode = "0700")
+  path
+}
+
 .hf_push_space_git <- function(prepared, repo_id, token) {
   .hf_check_lfs()
   remote <- sprintf("https://huggingface.co/spaces/%s", repo_id)
-  .git_run(c("init", "-b", "main"), prepared$stage)
-  # Authorization header en .git/config local: aplica a TODAS las
-  # requests HTTP del repo, incluyendo las que git-lfs dispara para el
-  # batch endpoint y los uploads a storage. Es la forma que HF documenta
-  # oficialmente y la que huggingface_hub usa internamente. El
-  # GIT_ASKPASS solo (approach previo) no se propagaba consistentemente
-  # a git-lfs, lo que producía "Authorization error" en el batch aunque
-  # el push regular funcionara. El stage se borra al final del flujo
-  # (on.exit en dashboard_publish_space), así el token no persiste.
-  .git_run(
-    c("config", "--local", "http.extraHeader",
-      sprintf("Authorization: Bearer %s", token)),
-    prepared$stage
+  askpass <- .hf_git_askpass()
+  on.exit(unlink(askpass, force = TRUE), add = TRUE)
+  auth_env <- c(
+    sprintf("GIT_ASKPASS=%s", askpass),
+    "GIT_TERMINAL_PROMPT=0",
+    sprintf("HF_GIT_USERNAME=%s", .hf_token_username(token)),
+    sprintf("HF_TOKEN=%s", token)
   )
+  .git_run(c("init", "-b", "main"), prepared$stage)
+  .git_run(c("config", "--local", "credential.helper", ""), prepared$stage)
   # LFS: trackeamos los binarios que sí necesitamos subir (data/*.pulso)
   # y por las dudas otros binarios que pudieran colarse (pptx/xlsx/sav).
   # `git lfs install --local` instala los hooks en este repo solo.
@@ -323,7 +348,8 @@
   .git_run(c("-c", "user.name=Prosecnur", "-c", "user.email=deploy@prosecnur.local",
              "commit", "-m", "Deploy dashboard"), prepared$stage)
   .git_run(c("remote", "add", "origin", remote), prepared$stage)
-  .git_run(c("push", "--force", "origin", "main"), prepared$stage, code = "E_HF_PUSH_FAILED")
+  .git_run(c("push", "--force", "origin", "main"), prepared$stage,
+           env = auth_env, code = "E_HF_PUSH_FAILED")
   invisible(TRUE)
 }
 

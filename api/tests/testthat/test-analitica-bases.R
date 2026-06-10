@@ -184,6 +184,118 @@ test_that(".expand_multiselect crea dummies 0/1 por opción", {
   # Columnas NO select_multiple quedan intactas
   expect_true("sexo" %in% names(out))
   expect_true("edad" %in% names(out))
+
+  # Las dummies quedan en la posición de la pregunta madre, no al final.
+  expect_equal(
+    names(out),
+    c(
+      "sexo", "edad", "nivel_acuerdo",
+      "intereses___a", "intereses___b", "intereses___c",
+      "comentario"
+    )
+  )
+})
+
+test_that(".bases_normalize_other_selects separa codigo madre y texto other", {
+  inst <- list(
+    survey = data.frame(
+      name = c("p12", "p12_other", "p27", "p27_other"),
+      type = c("select_one", "text", "select_multiple", "text"),
+      list_name = c("lst_p12", NA, "lst_p27", NA),
+      label = c("Institucion", "Otra institucion", "Beneficios", "Otro beneficio"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_p12", "lst_p12", "lst_p12", "lst_p27", "lst_p27", "lst_p27"),
+      name = c("1", "4", "14", "1", "2", "99"),
+      label = c(
+        "PUCP", "Universidad de Lima (UL)", "Otra institucion:",
+        "Mentoria", "Financiamiento", "Otro, especificar"
+      ),
+      stringsAsFactors = FALSE
+    )
+  )
+  df <- data.frame(
+    p12 = c("1", "convenio externo", "", "Otra institucion:", "Universidad de Lima (UL)"),
+    p12_other = c("", "convenio externo", "sin valor madre", "texto abierto", ""),
+    p27 = c("1 2", "texto libre", "1 texto libre", "", "2"),
+    p27_other = c("", "texto libre", "texto libre", "solo otro", ""),
+    stringsAsFactors = FALSE
+  )
+  attr(df$p12, "label") <- "Institucion"
+
+  out <- .bases_normalize_other_selects(df, inst)
+
+  expect_equal(as.character(out$p12), c("1", "14", "14", "14", "4"))
+  expect_equal(out$p12_other, df$p12_other)
+  expect_equal(as.character(out$p27), c("1 2", "99", "1 99", "99", "2"))
+  expect_equal(attr(out$p12, "label", exact = TRUE), "Institucion")
+})
+
+test_that("export unificado ordena variantes y dummies por pregunta", {
+  skip_if_not(exists(".analitica_unified_order_cols", mode = "function"))
+
+  cols <- c(
+    "base_hermana", "registro_origen_id", "registro_unificado_id",
+    "p1", "p8", "p7___2", "p7___1", "p14_1", "p13_1",
+    "p27___9", "p13_5", "p27___3", "p14_5", "p19_other", "p19___1"
+  )
+
+  expect_equal(
+    .analitica_unified_order_cols(
+      cols,
+      c("base_hermana", "registro_origen_id", "registro_unificado_id")
+    ),
+    c(
+      "base_hermana", "registro_origen_id", "registro_unificado_id",
+      "p1", "p7___1", "p7___2", "p8", "p13_1", "p13_5",
+      "p14_1", "p14_5", "p19___1", "p19_other", "p27___3", "p27___9"
+    )
+  )
+})
+
+test_that("export unificado omite metadatos operativos e identificadores directos", {
+  skip_if_not(exists(".analitica_unified_exclusions", mode = "function"))
+
+  inst <- list(
+    survey = data.frame(
+      name = c("p1", "p3", "p4", "p5", "p21", "p25", "p26_3", "p31", "p39"),
+      type = rep("text", 9),
+      label = c(
+        "Edad",
+        "Correo electrónico que más utiliza (no laboral):",
+        "Código PUCP:",
+        "Número de celular:",
+        "¿Cuál es el nombre legal de la empresa en la que se encuentra trabajando?",
+        "¿Sería posible que nos brinde los datos de su jefe directo?",
+        "Cargo",
+        "¿Cuál es su ingreso mensual aproximado? (en soles)",
+        "Enumerador"
+      ),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame()
+  )
+  df <- data.frame(
+    response_id = "r1",
+    source_title = "Encuesta",
+    p1 = 25,
+    p3 = "a@b.com",
+    p4 = "123",
+    p5 = "999",
+    p21 = "Empresa SAC",
+    p25 = "Sí",
+    p26_3 = "Gerente",
+    p31 = 5000,
+    p39 = "Enum 1",
+    stringsAsFactors = FALSE
+  )
+
+  excl <- .analitica_unified_exclusions(df, inst)
+
+  expect_true(all(c("response_id", "source_title", "p3", "p4", "p5", "p21", "p25", "p26_3", "p39") %in% excl))
+  expect_false("p1" %in% excl)
+  expect_false("p31" %in% excl)
 })
 
 # ============================================================================
@@ -199,6 +311,124 @@ test_that(".aplicar_etiquetas mapea códigos a labels en select_one", {
 
   # Variables sin labels quedan igual (edad numérica, comentario texto).
   expect_equal(out$edad, df$edad)
+})
+
+test_that(".aplicar_etiquetas limpia codigos redundantes en etiquetas de escala", {
+  inst <- .fixture_inst()
+  escala <- c("1", "2", "3", "4")
+  attr(escala, "labels") <- stats::setNames(
+    c("1", "2", "3", "4"),
+    c("Nada competente 1", "2", "3", "Totalmente competente 4")
+  )
+  attr(escala, "label") <- "Competencia"
+  df <- data.frame(competencia = I(escala), stringsAsFactors = FALSE)
+
+  out <- .aplicar_etiquetas(df, inst, valores = "etiquetas", multi_select = "codigos_crudos")
+
+  expect_equal(as.character(out$competencia), c("Nada competente", "2", "3", "Totalmente competente"))
+  expect_equal(attr(out$competencia, "label", exact = TRUE), "Competencia")
+})
+
+test_that(".bases_clean_choice_labels no altera categorias nominales con numeros", {
+  labels <- c("Plan piloto 1", "Proyecto fase 2", "Canal externo 3")
+  expect_equal(.bases_clean_choice_labels(c("1", "2", "3"), labels), labels)
+})
+
+test_that("reporte_data, frecuencias y review usan labels limpios en el .pulso", {
+  skip_if_not(exists("reporte_data", mode = "function"))
+  skip_if_not(exists("freq_table_spss", mode = "function"))
+
+  inst <- list(
+    survey = data.frame(
+      name = c("p12", "p12_other", "p14_2"),
+      type = c("select_one", "text", "select_one"),
+      list_name = c("lst_p12", NA, "lst_p14"),
+      label = c("Institucion", "Otra institucion", "Competencia"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("lst_p12", "lst_p12", "lst_p14", "lst_p14", "lst_p14", "lst_p14"),
+      name = c("1", "14", "1", "2", "3", "4"),
+      label = c(
+        "PUCP", "Otra institucion:",
+        "Nada competente 1", "2", "3", "Totalmente competente 4"
+      ),
+      stringsAsFactors = FALSE
+    ),
+    choices_raw = data.frame(
+      list_name = c("lst_p12", "lst_p12", "lst_p14", "lst_p14", "lst_p14", "lst_p14"),
+      name = c("1", "14", "1", "2", "3", "4"),
+      `label::es` = c(
+        "PUCP", "Otra institucion:",
+        "Nada competente 1", "2", "3", "Totalmente competente 4"
+      ),
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    ),
+    var_labels = c(p12 = "Institucion", p12_other = "Otra institucion", p14_2 = "Competencia"),
+    measure_rules = data.frame(
+      name = c("p12", "p12_other", "p14_2"),
+      type = c("select_one", "text", "select_one"),
+      list_name = c("lst_p12", NA, "lst_p14"),
+      measure_sugerida = c("nominal", "nominal", "ordinal"),
+      stringsAsFactors = FALSE
+    ),
+    dicc_label_to_code = list(
+      lst_p12 = stats::setNames(c("1", "14"), c("PUCP", "Otra institucion:")),
+      lst_p14 = stats::setNames(c("1", "2", "3", "4"), c("Nada competente 1", "2", "3", "Totalmente competente 4"))
+    ),
+    dicc_code_to_label = list(
+      lst_p12 = stats::setNames(c("PUCP", "Otra institucion:"), c("1", "14")),
+      lst_p14 = stats::setNames(c("Nada competente 1", "2", "3", "Totalmente competente 4"), c("1", "2", "3", "4"))
+    ),
+    orders_list = list(
+      p12 = list(names = c("1", "14"), labels = c("PUCP", "Otra institucion:"), label = "Institucion"),
+      p14_2 = list(
+        names = c("1", "2", "3", "4"),
+        labels = c("Nada competente 1", "2", "3", "Totalmente competente 4"),
+        label = "Competencia"
+      )
+    )
+  )
+  class(inst) <- c("prosecnur_instrumento", "list")
+
+  df <- data.frame(
+    p12 = c("PUCP", "convenio externo", "Otra institucion:", "PUCP", "", "PUCP"),
+    p12_other = c("", "convenio externo", "texto abierto", "", "", ""),
+    p14_2 = c("1", "2", "3", "4", "4", "1"),
+    stringsAsFactors = FALSE
+  )
+
+  rp <- reporte_data(df, inst)
+  rp_inst <- attr(rp, "instrumento_reporte")
+
+  expect_equal(as.character(rp$p12), c("1", "14", "14", "1", NA, "1"))
+  expect_equal(
+    unname(attr(rp$p14_2, "labels", exact = TRUE)),
+    c("Nada competente", "2", "3", "Totalmente competente")
+  )
+  expect_equal(rp_inst$orders_list$p14_2$labels, c("Nada competente", "2", "3", "Totalmente competente"))
+
+  tab <- freq_table_spss(
+    rp,
+    "p14_2",
+    survey = rp_inst$survey,
+    orders_list = rp_inst$orders_list,
+    mostrar_todo = TRUE
+  )
+  expect_true("Totalmente competente" %in% tab$Opciones)
+  expect_true("Nada competente" %in% tab$Opciones)
+  expect_false(any(tab$Opciones %in% c("Totalmente competente 4", "Nada competente 1")))
+
+  if (exists(".analitica_apply_data_review", mode = "function")) {
+    reviewed <- .analitica_apply_data_review(rp, rp_inst, list(datos = list()))
+    expect_equal(
+      reviewed$inst$orders_list$p14_2$labels,
+      c("Nada competente", "2", "3", "Totalmente competente")
+    )
+    expect_false(any(unname(attr(reviewed$data$p14_2, "labels", exact = TRUE)) %in%
+      c("Totalmente competente 4", "Nada competente 1")))
+  }
 })
 
 test_that(".aplicar_etiquetas en modo 'etiquetas_unidas' join multi-select con ' | '", {

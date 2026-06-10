@@ -697,6 +697,107 @@
   NULL
 }
 
+.analitica_unified_norm_text <- function(x) {
+  out <- as.character(x %||% "")
+  out <- chartr("áéíóúÁÉÍÓÚüÜñÑ", "aeiouAEIOUuUnN", out)
+  out <- iconv(out, from = "", to = "ASCII//TRANSLIT", sub = "")
+  out <- tolower(out)
+  out <- gsub("[^a-z0-9]+", " ", out)
+  out <- trimws(out)
+  gsub("\\s+", " ", out)
+}
+
+.analitica_unified_operational_metadata_cols <- function() {
+  c(
+    "pais", "survey_id", "collector_id", "respondent_id", "response_id",
+    "case_uid", "source_title", "response_status", "collection_mode",
+    "date_created", "date_modified", "empresa_source_code",
+    "empresa_source_label", "empresa_uid"
+  )
+}
+
+.analitica_unified_direct_identifier_cols <- function(data, rp_inst) {
+  if (is.null(data) || !is.data.frame(data) || !length(names(data))) return(character(0))
+  cols <- names(data)
+  out <- character(0)
+
+  for (col in cols) {
+    col_norm <- .analitica_unified_norm_text(col)
+    label <- attr(data[[col]], "label", exact = TRUE) %||% ""
+    if (!nzchar(as.character(label))) label <- .analitica_var_label(rp_inst, col)
+    label_norm <- .analitica_unified_norm_text(label)
+    text <- trimws(paste(col_norm, label_norm))
+
+    is_identifier <- grepl("\\b(correo|email|e mail|mail)\\b", text, perl = TRUE) ||
+      grepl("\\b(telefono|celular|whatsapp)\\b", text, perl = TRUE) ||
+      grepl("\\b(codigo\\s+(pucp|pulso)|dni|documento|ruc)\\b", text, perl = TRUE) ||
+      grepl("\\b(nombre\\s+legal\\s+de\\s+la\\s+empresa|nombre\\s+del\\s+emprendimiento)\\b", text, perl = TRUE) ||
+      grepl("\\b(jefe\\s+directo|datos\\s+de\\s+su\\s+jefe|datos\\s+de\\s+contacto|correo\\s+de\\s+contacto|numero\\s+de\\s+contacto)\\b", text, perl = TRUE) ||
+      identical(label_norm, "nombre") ||
+      identical(label_norm, "apellidos") ||
+      identical(label_norm, "cargo") ||
+      identical(label_norm, "anexo") ||
+      identical(label_norm, "enumerador")
+
+    if (isTRUE(is_identifier)) out <- c(out, col)
+  }
+
+  unique(out)
+}
+
+.analitica_unified_exclusions <- function(data, rp_inst, cfg_excluidas = character(0),
+                                          omitir_identificadores_directos = TRUE,
+                                          omitir_metadatos_operativos = TRUE) {
+  out <- .as_chr_vec(cfg_excluidas)
+  if (isTRUE(omitir_metadatos_operativos)) {
+    out <- c(out, intersect(.analitica_unified_operational_metadata_cols(), names(data)))
+  }
+  if (isTRUE(omitir_identificadores_directos)) {
+    out <- c(out, .analitica_unified_direct_identifier_cols(data, rp_inst))
+  }
+  unique(out[nzchar(out)])
+}
+
+.analitica_unified_col_question_rank <- function(col) {
+  col <- as.character(col %||% "")
+  if (!grepl("^p[0-9]+", col, perl = TRUE)) return(Inf)
+  suppressWarnings(as.numeric(sub("^p([0-9]+).*$", "\\1", col, perl = TRUE)))
+}
+
+.analitica_unified_col_suffix_rank <- function(col) {
+  col <- as.character(col %||% "")
+  if (!grepl("^p[0-9]+", col, perl = TRUE)) return(0)
+  parent <- sub("^(p[0-9]+).*$", "\\1", col, perl = TRUE)
+  suffix <- sub(paste0("^", parent), "", col, perl = TRUE)
+  if (!nzchar(suffix)) return(0)
+  if (identical(suffix, "_other")) return(9000)
+  if (grepl("^_[0-9]+$", suffix, perl = TRUE)) {
+    return(1000 + suppressWarnings(as.numeric(sub("^_", "", suffix))))
+  }
+  if (grepl("^(___|\\.|/)", suffix, perl = TRUE)) {
+    code <- sub("^(___|\\.|/)", "", suffix, perl = TRUE)
+    n <- suppressWarnings(as.numeric(code))
+    if (!is.na(n)) return(2000 + n)
+    return(3000)
+  }
+  8000
+}
+
+.analitica_unified_order_cols <- function(cols, key_cols = character(0)) {
+  cols <- unique(as.character(cols))
+  cols <- cols[nzchar(cols)]
+  key_cols <- intersect(as.character(key_cols), cols)
+  rest <- setdiff(cols, key_cols)
+  original <- seq_along(rest)
+  ord <- order(
+    vapply(rest, .analitica_unified_col_question_rank, numeric(1)),
+    vapply(rest, .analitica_unified_col_suffix_rank, numeric(1)),
+    original,
+    na.last = TRUE
+  )
+  c(key_cols, rest[ord])
+}
+
 .analitica_plain_col <- function(x) {
   if (inherits(x, c("haven_labelled", "haven_labelled_spss"))) {
     lab <- attr(x, "label", exact = TRUE)
@@ -780,7 +881,9 @@
 }
 
 .analitica_unified_independent_xlsx <- function(sid, cfg, valores = "ambos",
-                                                multi_select = "dummy_01") {
+                                                multi_select = "dummy_01",
+                                                omitir_identificadores_directos = TRUE,
+                                                omitir_metadatos_operativos = TRUE) {
   if (!exists("estudio_is_independent_siblings", mode = "function") ||
       !estudio_is_independent_siblings(sid)) {
     stop_api(409, "E_NOT_INDEPENDENT_SIBLINGS",
@@ -795,10 +898,11 @@
   }
 
   fuente <- .analitica_effective_source(s, cfg)
-  excluidas <- .as_chr_vec(cfg$variables_excluidas)
+  cfg_excluidas <- .as_chr_vec(cfg$variables_excluidas)
   alias_var <- "base_hermana"
   origin_id_var <- "registro_origen_id"
   uid_var <- "registro_unificado_id"
+  key_cols <- c(alias_var, origin_id_var, uid_var)
   dfs_cod <- list()
   dfs_lab <- list()
   labels <- list(
@@ -820,20 +924,30 @@
     }
     parsed <- .analitica_read_pair(pair, bases[[nombre]])
     reviewed <- .analitica_apply_data_review(parsed$data, parsed$inst, cfg)
-    rp_data <- .excluir_cols(reviewed$data, excluidas)
     rp_inst <- reviewed$inst
+    reviewed$data <- .bases_normalize_other_selects(reviewed$data, rp_inst)
+
+    origin_col_name <- .analitica_origin_id_col(reviewed$data)
+    origin_col <- if (!is.null(origin_col_name) && origin_col_name %in% names(reviewed$data)) {
+      as.character(reviewed$data[[origin_col_name]])
+    } else {
+      rep(NA_character_, nrow(reviewed$data))
+    }
+    origin_col[is.na(origin_col)] <- ""
+
+    excluidas <- .analitica_unified_exclusions(
+      reviewed$data,
+      rp_inst,
+      cfg_excluidas = cfg_excluidas,
+      omitir_identificadores_directos = omitir_identificadores_directos,
+      omitir_metadatos_operativos = omitir_metadatos_operativos
+    )
+    rp_data <- .excluir_cols(reviewed$data, excluidas)
     if (multi_select == "dummy_01") rp_data <- .expand_multiselect(rp_data, rp_inst)
 
     alias <- .analitica_base_alias(bases[[nombre]], nombre)
     alias_col <- rep(alias, nrow(rp_data))
     attr(alias_col, "label") <- "Base hermana / carrera"
-    origin_col_name <- .analitica_origin_id_col(rp_data)
-    origin_col <- if (!is.null(origin_col_name) && origin_col_name %in% names(rp_data)) {
-      as.character(rp_data[[origin_col_name]])
-    } else {
-      rep(NA_character_, nrow(rp_data))
-    }
-    origin_col[is.na(origin_col)] <- ""
     attr(origin_col, "label") <- "Identificador original del registro en su base"
     uid_prefix <- .analitica_base_id_slug(nombre)
     uid_col <- sprintf("%s_%06d", uid_prefix, seq_len(nrow(rp_data)))
@@ -841,7 +955,8 @@
     rp_data[[alias_var]] <- alias_col
     rp_data[[origin_id_var]] <- origin_col
     rp_data[[uid_var]] <- uid_col
-    rp_data <- rp_data[, c(alias_var, origin_id_var, uid_var, setdiff(names(rp_data), c(alias_var, origin_id_var, uid_var))), drop = FALSE]
+    ordered_base_cols <- .analitica_unified_order_cols(names(rp_data), key_cols)
+    rp_data <- rp_data[, ordered_base_cols, drop = FALSE]
 
     for (col in names(rp_data)) {
       lab <- attr(rp_data[[col]], "label", exact = TRUE)
@@ -868,10 +983,18 @@
   }
 
   present_cols <- lapply(dfs_cod, names)
-  union_cols <- unique(c(alias_var, origin_id_var, uid_var, unlist(present_cols, use.names = FALSE)))
-  common_cols <- Reduce(intersect, present_cols)
-  common_cols <- setdiff(common_cols, c(alias_var, origin_id_var, uid_var))
-  omitted_cols <- setdiff(union_cols, c(alias_var, origin_id_var, uid_var, common_cols))
+  union_cols <- .analitica_unified_order_cols(
+    unique(c(key_cols, unlist(present_cols, use.names = FALSE))),
+    key_cols
+  )
+  common_cols <- .analitica_unified_order_cols(
+    setdiff(Reduce(intersect, present_cols), key_cols),
+    character(0)
+  )
+  omitted_cols <- .analitica_unified_order_cols(
+    setdiff(union_cols, c(key_cols, common_cols)),
+    character(0)
+  )
 
   common_df <- if (length(common_cols)) {
     do.call(rbind, lapply(common_cols, function(col) {
@@ -1281,6 +1404,16 @@
   .analitica_repair_project_context(sid)
   cfg <- .analitica_get_config(sid)
   ctx <- .analitica_prepare_context(sid, cfg)
+  if (exists(".bases_normalize_source_contexts", mode = "function")) {
+    normalized <- .bases_normalize_source_contexts(ctx$data_sources, ctx$inst_sources)
+    ctx$data_sources <- normalized$data_sources
+    ctx$inst_sources <- normalized$inst_sources
+    first <- names(ctx$data_sources)[1] %||% NA_character_
+    if (!is.na(first) && nzchar(first) && first %in% names(ctx$inst_sources)) {
+      ctx$rp_data <- ctx$data_sources[[first]]
+      ctx$rp_inst <- ctx$inst_sources[[first]]
+    }
+  }
   session_set(sid, "analitica_rp_inst", ctx$rp_inst)
   session_set(sid, "analitica_rp_data", ctx$rp_data)
   session_set(sid, "analitica_rp_inst_sources", ctx$inst_sources)
@@ -1301,9 +1434,15 @@
       .analitica_context_usable(s$analitica_rp_data, s$analitica_rp_inst)) {
     base_meta <- .analitica_single_base_meta(sid)
     rp_inst <- .analitica_apply_integrated_key(s$analitica_rp_inst, base_meta)
+    rp_data <- .analitica_apply_integrated_key_to_data(s$analitica_rp_data, rp_inst, base_meta)
+    if (exists(".bases_normalize_report_context", mode = "function")) {
+      ctx_norm <- .bases_normalize_report_context(rp_data, rp_inst)
+      rp_data <- ctx_norm$data
+      rp_inst <- ctx_norm$inst
+    }
     return(list(
       rp_inst = rp_inst,
-      rp_data = .analitica_apply_integrated_key_to_data(s$analitica_rp_data, rp_inst, base_meta)
+      rp_data = rp_data
     ))
   }
   bases <- (s$estudio %||% list())$bases %||% list()
@@ -1313,9 +1452,15 @@
       .analitica_context_usable(s$rp_data, s$rp_inst)) {
     base_meta <- .analitica_single_base_meta(sid)
     rp_inst <- .analitica_apply_integrated_key(s$rp_inst, base_meta)
+    rp_data <- .analitica_apply_integrated_key_to_data(s$rp_data, rp_inst, base_meta)
+    if (exists(".bases_normalize_report_context", mode = "function")) {
+      ctx_norm <- .bases_normalize_report_context(rp_data, rp_inst)
+      rp_data <- ctx_norm$data
+      rp_inst <- ctx_norm$inst
+    }
     return(list(
       rp_inst = rp_inst,
-      rp_data = .analitica_apply_integrated_key_to_data(s$rp_data, rp_inst, base_meta)
+      rp_data = rp_data
     ))
   }
   prepared <- tryCatch(.analitica_prepare_and_cache(sid), error = function(e) NULL)
@@ -1363,6 +1508,11 @@
   }
   inst_sources <- .analitica_patch_inst_sources_integrated(sid, inst_sources[names(data_sources)])
   data_sources <- .analitica_patch_data_sources_integrated(sid, data_sources, inst_sources)
+  if (exists(".bases_normalize_source_contexts", mode = "function")) {
+    normalized <- .bases_normalize_source_contexts(data_sources, inst_sources)
+    data_sources <- normalized$data_sources
+    inst_sources <- normalized$inst_sources
+  }
   list(data_sources = data_sources, inst_sources = inst_sources)
 }
 
@@ -1570,6 +1720,11 @@
   datos <- .analitica_datos_config(cfg)
   data <- rp_data
   inst <- rp_inst
+  if (exists(".bases_normalize_report_context", mode = "function")) {
+    ctx <- .bases_normalize_report_context(data, inst)
+    data <- ctx$data
+    inst <- ctx$inst
+  }
 
   for (var in names(datos$variable_labels)) {
     label <- datos$variable_labels[[var]]
@@ -1649,6 +1804,12 @@
       opt_label <- as.character(meta$dummy_option_label %||% "")
       if (nzchar(opt_label)) attr(data[[col]], "label") <- opt_label
     }
+  }
+
+  if (exists(".bases_normalize_report_context", mode = "function")) {
+    ctx <- .bases_normalize_report_context(data, inst)
+    data <- ctx$data
+    inst <- ctx$inst
   }
 
   list(data = data, inst = inst)
@@ -2696,12 +2857,13 @@ mount_analitica <- function(pr) {
 	      ds <- sources$data_sources
 	      is_ <- sources$inst_sources
 	      if (length(ds) == 0L) stop_api(409, "E_NO_RP_DATA", "Estudio sin bases.")
-	      excluidas <- .as_chr_vec(cfg$variables_excluidas)
-	      for (nombre in names(ds)) {
-	        reviewed <- .analitica_apply_data_review(ds[[nombre]], is_[[nombre]], cfg)
-	        ds[[nombre]] <- .excluir_cols(reviewed$data, excluidas)
-	        is_[[nombre]] <- reviewed$inst
-	      }
+		      excluidas <- .as_chr_vec(cfg$variables_excluidas)
+		      for (nombre in names(ds)) {
+		        reviewed <- .analitica_apply_data_review(ds[[nombre]], is_[[nombre]], cfg)
+		        reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
+		        ds[[nombre]] <- .excluir_cols(reviewed$data, excluidas)
+		        is_[[nombre]] <- reviewed$inst
+		      }
 
       s <- session_get(sid)
       dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
@@ -2777,11 +2939,12 @@ mount_analitica <- function(pr) {
         ext           = "csv",
 	        kind_single   = "bases_csv",
 	        kind_multi    = "bases_csv_zip",
-	        fn = function(rp_data, rp_inst, out_path) {
-	          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
-	          rp_data <- .excluir_cols(reviewed$data, .as_chr_vec(cfg$variables_excluidas))
-	          rp_inst <- reviewed$inst
-	          df <- rp_data
+		        fn = function(rp_data, rp_inst, out_path) {
+		          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
+		          reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
+		          rp_data <- .excluir_cols(reviewed$data, .as_chr_vec(cfg$variables_excluidas))
+		          rp_inst <- reviewed$inst
+		          df <- rp_data
 	          if (multi_select == "dummy_01") df <- .expand_multiselect(df, rp_inst)
           df <- .aplicar_etiquetas(df, rp_inst, valores = valores, multi_select = multi_select)
           .bases_write_csv(df, out_path, separador = separador)
@@ -2811,11 +2974,12 @@ mount_analitica <- function(pr) {
         ext           = "xlsx",
 	        kind_single   = "bases_xlsx",
 	        kind_multi    = "bases_xlsx_zip",
-	        fn = function(rp_data, rp_inst, out_path) {
-	          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
-	          rp_data <- .excluir_cols(reviewed$data, .as_chr_vec(cfg$variables_excluidas))
-	          rp_inst <- reviewed$inst
-	          df_base <- rp_data
+		        fn = function(rp_data, rp_inst, out_path) {
+		          reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
+		          reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
+		          rp_data <- .excluir_cols(reviewed$data, .as_chr_vec(cfg$variables_excluidas))
+		          rp_inst <- reviewed$inst
+		          df_base <- rp_data
           if (multi_select == "dummy_01") df_base <- .expand_multiselect(df_base, rp_inst)
           df_cod <- .aplicar_etiquetas(df_base, rp_inst, valores = "codigos", multi_select = multi_select)
           df_lab <- if (valores == "codigos") df_cod
@@ -2839,12 +3003,16 @@ mount_analitica <- function(pr) {
       if (!valores %in% c("codigos","etiquetas","ambos")) valores <- "ambos"
       multi_select <- as.character(body$multi_select %||% "dummy_01")
       if (!multi_select %in% c("codigos_crudos","etiquetas_unidas","dummy_01")) multi_select <- "dummy_01"
+      omitir_identificadores_directos <- !identical(body$omitir_identificadores_directos, FALSE)
+      omitir_metadatos_operativos <- !identical(body$omitir_metadatos_operativos, FALSE)
 
       result <- .analitica_unified_independent_xlsx(
         sid = sid,
         cfg = cfg,
         valores = valores,
-        multi_select = multi_select
+        multi_select = multi_select,
+        omitir_identificadores_directos = omitir_identificadores_directos,
+        omitir_metadatos_operativos = omitir_metadatos_operativos
       )
       .analitica_status_set(sid, "analitica_bases_xlsx_ok", TRUE)
       result
@@ -2857,11 +3025,12 @@ mount_analitica <- function(pr) {
       sid <- session_header(req)
       s <- session_get(sid)
 	      ctx <- .load_rp_data(sid)
-	      cfg <- .analitica_get_config(sid)
-	      overrides <- .bases_overrides_parse((cfg$bases %||% list())$overrides)
-	      reviewed <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
-	      reviewed$data <- .excluir_cols(reviewed$data, .as_chr_vec(cfg$variables_excluidas))
-	      td <- tempfile()
+		      cfg <- .analitica_get_config(sid)
+		      overrides <- .bases_overrides_parse((cfg$bases %||% list())$overrides)
+		      reviewed <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
+		      reviewed$data <- .bases_normalize_other_selects(reviewed$data, reviewed$inst)
+		      reviewed$data <- .excluir_cols(reviewed$data, .as_chr_vec(cfg$variables_excluidas))
+		      td <- tempfile()
       dir.create(td)
       on.exit(unlink(td, recursive = TRUE), add = TRUE)
       sav_path <- file.path(td, "datos.sav")

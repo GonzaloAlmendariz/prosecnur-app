@@ -288,8 +288,6 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
     ["Gráf", statusOn(s.graficos)],
   ] as const;
   const done = steps.filter(([, ok]) => ok).length;
-  const template = estudio.independent_siblings?.template_base;
-  const shared = template && activeBase?.nombre !== template;
 
   async function changeActive(next: string) {
     if (!next || next === active || switching) return;
@@ -331,20 +329,11 @@ function SiblingWorkbenchSelector({ visible }: { visible: boolean }) {
           </span>
           <span className="pulso-sibling-trigger-copy">
             <strong>{siblingLabel(activeBase)}</strong>
-            <small>{activeBase?.nombre || "Base activa"}</small>
           </span>
           <Select.Icon asChild>
             <ChevronDown size={14} aria-hidden="true" />
           </Select.Icon>
         </Select.Trigger>
-        <div className="pulso-sibling-switcher-status" aria-label="Estado de procesamiento de la base activa">
-          {steps.map(([label, ok]) => (
-            <span key={label} className={ok ? "is-done" : ""} title={label}>
-              {label}
-            </span>
-          ))}
-          {shared && <em title={`Lógica compartida desde ${template}`}>Compartida</em>}
-        </div>
       </div>
       <Select.Portal>
         <Select.Content

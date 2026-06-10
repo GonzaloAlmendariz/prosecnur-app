@@ -17,6 +17,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import StartModal from "./StartModal";
@@ -41,6 +42,7 @@ export function useProjectShell(): ProjectShellCtx {
 export default function ProjectShell({ children }: { children: React.ReactNode }) {
   const { sessionId } = useSession();
   const project = useProject(sessionId);
+  const devOpenAttemptRef = useRef("");
   useAutosave(project);
   // Resetea stores Zustand globales al cambiar de proyecto (sid). Sin
   // esto, configuración del proyecto anterior persistía en dashboard /
@@ -54,6 +56,47 @@ export default function ProjectShell({ children }: { children: React.ReactNode }
   const [showStart, setShowStart] = useState(false);
 
   const openStartModal = useCallback(() => setShowStart(true), []);
+
+  // Dev-only: permite validar una pantalla web con un .pulso abierto sin
+  // depender del modal de path manual ni del clipboard del navegador embebido.
+  // Ejemplo: /monitoreo?devPulso=/Users/.../Proyecto.pulso
+  useEffect(() => {
+    if (!import.meta.env.DEV || !sessionId || project.busy) return;
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const rawPath =
+      url.searchParams.get("devPulso") ??
+      url.searchParams.get("devProject") ??
+      url.searchParams.get("pulso");
+    const projectPath = rawPath?.trim() ?? "";
+    if (!projectPath) return;
+    url.searchParams.delete("devPulso");
+    url.searchParams.delete("devProject");
+    url.searchParams.delete("pulso");
+    const nextSearch = url.searchParams.toString();
+    const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
+    const activePath = project.status.path?.trim() ?? "";
+    if (project.status.has_project && activePath === projectPath) {
+      window.history.replaceState(window.history.state, "", nextUrl);
+      return;
+    }
+    const attemptKey = `${activePath}->${projectPath}`;
+    if (devOpenAttemptRef.current === attemptKey) return;
+    devOpenAttemptRef.current = attemptKey;
+
+    let cancelled = false;
+    void (async () => {
+      const r = await project.open(projectPath);
+      if (cancelled || !r) return;
+      window.history.replaceState(window.history.state, "", nextUrl);
+      setShowStart(false);
+      window.location.replace(nextUrl);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, project.status.has_project, project.status.path, project.busy, project.open]);
 
   // Si el proyecto se abre exitosamente desde otro flujo (ej. menú nativo,
   // bootstrap del .pulso preload), aseguramos que el modal quede cerrado.

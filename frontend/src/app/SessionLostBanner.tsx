@@ -8,9 +8,8 @@ import { useSession } from "../lib/SessionContext";
 // sigue mandando el sid viejo.
 //
 // Visualmente ocupa todo el ancho arriba de la app, con un botón de
-// "Recargar página" prominente. Recargar ejecuta `apiCreateSession()`
-// de cero, lo que le da un sid nuevo — el usuario tendrá que re-subir
-// XLSForm + data desde Fase 1, pero al menos la app vuelve a responder.
+// "Recargar página" prominente como salida manual, mientras
+// SessionProvider intenta negociar una sesión nueva automáticamente.
 //
 // No cerrable: mientras la sesión siga inválida, cualquier request
 // falla, no tiene sentido ocultar el banner.
@@ -51,9 +50,9 @@ export function SessionLostBanner() {
       <AlertTriangle size={16} style={{ flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0, fontSize: 12, lineHeight: 1.5 }}>
         <strong>Tu sesión se reinició.</strong>{" "}
-        El backend no reconoce el identificador de tu sesión actual (quizá se
-        reinició el servidor, o la sesión expiró). Recarga la página y vuelve
-        a cargar XLSForm + data en la Fase 1 para continuar.
+        El backend no reconoce el identificador actual. Prosecnur está intentando
+        reconectar la app; si el aviso permanece, recarga la ventana y vuelve a abrir
+        el proyecto desde recientes.
       </div>
       <button
         type="button"

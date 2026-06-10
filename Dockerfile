@@ -13,9 +13,9 @@
 # --------------------------------------------------------------------
 # Stage 1 — Frontend bundle (modo público)
 # --------------------------------------------------------------------
-FROM node:20-bookworm-slim AS frontend
+FROM node:22-bookworm-slim AS frontend
 WORKDIR /build
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 # Cachear deps: solo package.json + lockfile primero.
 COPY frontend/package.json frontend/pnpm-lock.yaml ./frontend/

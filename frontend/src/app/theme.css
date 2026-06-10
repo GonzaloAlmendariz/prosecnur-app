@@ -178,6 +178,7 @@
   --pulso-control-height-sm: 28px;
   --pulso-control-height-md: 32px;
   --pulso-control-height-lg: 36px;
+  --pulso-active-base-footer-reserve: 12px;
   --pulso-material-bg: color-mix(in srgb, var(--pulso-surface) 82%, transparent);
   --pulso-material-bg-strong: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
   --pulso-material-bg-chrome: color-mix(in srgb, #ffffff 74%, transparent);
@@ -1315,13 +1316,13 @@ a { color: var(--pulso-primary); }
   left: 20px;
   bottom: 18px;
   z-index: 62;
-  width: min(231px, calc(100vw - 40px));
+  width: min(222px, calc(100vw - 40px));
   min-width: 0;
   display: grid;
-  gap: 7px;
-  padding: 9px;
+  gap: 5px;
+  padding: 7px;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, var(--pulso-primary-border) 18%);
-  border-radius: 16px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 253, 0.9)),
     var(--pulso-material-bg-chrome);
@@ -1340,9 +1341,9 @@ a { color: var(--pulso-primary); }
 }
 .pulso-sibling-switcher-top {
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1355,12 +1356,13 @@ a { color: var(--pulso-primary); }
   width: 100%;
   min-width: 0;
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) 18px;
+  grid-template-columns: 26px minmax(0, 1fr) 16px;
   align-items: center;
-  gap: 9px;
-  padding: 8px;
+  gap: 7px;
+  min-height: 40px;
+  padding: 6px 7px;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 88%, var(--pulso-primary-border) 12%);
-  border-radius: 12px;
+  border-radius: 11px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.92));
   color: var(--pulso-text);
@@ -1392,13 +1394,13 @@ a { color: var(--pulso-primary); }
   opacity: 0.68;
 }
 .pulso-sibling-trigger-icon {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid color-mix(in srgb, var(--pulso-primary-border) 55%, #fff);
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
 }
@@ -1408,6 +1410,9 @@ a { color: var(--pulso-primary); }
   display: grid;
   gap: 2px;
 }
+.pulso-sibling-trigger-copy {
+  display: block;
+}
 .pulso-sibling-trigger-copy strong,
 .pulso-sibling-option-copy strong {
   color: var(--pulso-text);
@@ -1416,6 +1421,13 @@ a { color: var(--pulso-primary); }
   font-weight: 820;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+.pulso-sibling-trigger-copy strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
 }
 .pulso-sibling-trigger-copy small,
 .pulso-sibling-option-copy small {
@@ -1489,39 +1501,37 @@ a { color: var(--pulso-primary); }
 .pulso-main--processing .pulso-sibling-switcher {
   left: 20px;
   bottom: 16px;
-  width: min(218px, calc(100vw - 40px));
-  gap: 6px;
-  padding: 8px;
+  width: min(214px, calc(100vw - 40px));
+  gap: 5px;
+  padding: 7px;
   border-radius: 14px;
 }
 .pulso-main--processing .pulso-sibling-switcher-top {
   font-size: 9.5px;
 }
 .pulso-main--processing .pulso-sibling-trigger {
-  grid-template-columns: 28px minmax(0, 1fr) 16px;
+  grid-template-columns: 26px minmax(0, 1fr) 16px;
   gap: 7px;
-  padding: 7px;
+  min-height: 38px;
+  padding: 6px 7px;
   border-radius: 11px;
 }
 .pulso-main--processing .pulso-sibling-trigger-icon {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 9px;
 }
 .pulso-main--processing .pulso-sibling-trigger-copy strong {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow-wrap: normal;
-  font-size: 12px;
-  line-height: 1.15;
-}
-.pulso-main--processing .pulso-sibling-trigger-copy small {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
+  overflow-wrap: normal;
+  font-size: 12.5px;
+  line-height: 1.15;
+}
+.pulso-main--processing .pulso-sibling-trigger-copy small {
+  display: none;
 }
 .pulso-main--processing .pulso-sibling-switcher-status {
   display: grid;
@@ -1815,8 +1825,13 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-main--processing {
+  --pulso-active-base-footer-reserve: 12px;
   max-width: none;
   padding: 0.5rem 0.625rem 0.625rem;
+}
+
+.pulso-main--processing:has(.pulso-sibling-switcher) {
+  --pulso-active-base-footer-reserve: 96px;
 }
 
 .pulso-main-inner {
@@ -4807,6 +4822,10 @@ a { color: var(--pulso-primary); }
 }
 
 @media (max-width: 620px) {
+  .pulso-main--processing:has(.pulso-sibling-switcher) {
+    --pulso-active-base-footer-reserve: 104px;
+  }
+
   .pulso-sibling-switcher {
     left: 10px;
     right: 10px;
@@ -5191,7 +5210,7 @@ h1.pulso-page-title {
   --carga-rail-pad: clamp(8px, 1.1vw, 10px);
   --carga-stage-gap: clamp(6px, 0.8vw, 10px);
   padding: var(--carga-rail-pad);
-  padding-bottom: 154px;
+  padding-bottom: var(--pulso-active-base-footer-reserve);
   display: flex;
   flex-direction: column;
   gap: var(--carga-stage-gap);
@@ -5299,7 +5318,7 @@ h1.pulso-page-title {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 2px;
+  margin-top: auto;
   padding: 7px 8px;
   border-radius: 8px;
   border: 1px dashed var(--pulso-border);
@@ -9172,6 +9191,16 @@ h1.pulso-page-title {
 /* Procesamiento · navegación legible sin puntos suspensivos.
    Aplica solo a rails/sidebars de fases; tablas y listas densas conservan
    sus reglas locales de truncado. */
+.pulso-main--processing :is(
+  .pulso-carga-stage-rail,
+  .pulso-validacion-sidebar,
+  .pulso-codificacion-sidebar,
+  .pulso-analitica-sidebar
+) {
+  padding-bottom: var(--pulso-active-base-footer-reserve);
+  scroll-padding-bottom: var(--pulso-active-base-footer-reserve);
+}
+
 .pulso-main--processing :is(
   .pulso-carga-stage-item,
   .pulso-validacion-nav-item,
@@ -16441,7 +16470,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   position: fixed;
   top: 50%;
   left: 50%;
-  width: min(860px, calc(100vw - 32px));
+  width: min(1120px, calc(100vw - 32px));
   max-height: min(760px, calc(100vh - 32px));
   transform: translate(-50%, -50%);
   display: grid;
@@ -16595,9 +16624,19 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   margin: 0;
 }
 
+.home-settings-panel-copy strong,
+.home-settings-panel-copy span {
+  display: inline;
+}
+
+.home-settings-panel-copy strong {
+  color: var(--pulso-text);
+  font-weight: 780;
+}
+
 .home-connection-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -16605,6 +16644,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
   padding: 14px;
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
@@ -16633,6 +16673,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 
 .home-connection-title h4 {
   margin: 0 0 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--pulso-text);
   font-size: 14px;
   font-weight: 750;
@@ -16651,6 +16694,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  max-width: 100%;
   min-height: 22px;
   padding: 2px 7px;
   border-radius: 999px;
@@ -16671,6 +16715,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   display: flex;
   align-items: center;
   gap: 7px;
+  min-width: 0;
   padding: 7px 8px;
   border-radius: 8px;
   background: var(--pulso-surface-2);
@@ -16679,7 +16724,19 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   font-size: 11px;
 }
 
+.home-connection-mask span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .home-connection-mask code {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--pulso-text);
   font-size: 11px;
@@ -16699,7 +16756,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 
 .home-connection-form input[type="password"],
-.home-connection-form input[type="text"] {
+.home-connection-form input[type="text"],
+.home-connection-form select,
+.home-connection-form textarea {
   width: 100%;
   min-height: 32px;
   border: 1px solid var(--pulso-border);
@@ -16710,8 +16769,16 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+.home-connection-form textarea {
+  min-height: 86px;
+  resize: vertical;
+  line-height: 1.35;
+}
+
 .home-connection-form input[type="password"]:focus,
-.home-connection-form input[type="text"]:focus {
+.home-connection-form input[type="text"]:focus,
+.home-connection-form select:focus,
+.home-connection-form textarea:focus {
   outline: 2px solid var(--pulso-primary-focus);
   border-color: var(--pulso-primary-border);
 }
@@ -16719,6 +16786,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .home-connection-profiles {
   display: grid;
   gap: 8px;
+  min-width: 0;
   padding: 9px;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 84%, #fff 16%);
   border-radius: 10px;
@@ -16752,10 +16820,12 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .home-connection-profile-list {
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .home-connection-profile {
   min-height: 42px;
+  min-width: 0;
   padding: 7px 8px;
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
@@ -16767,10 +16837,15 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   background: color-mix(in srgb, var(--pulso-primary-soft) 58%, #fff 42%);
 }
 
+.home-connection-profile-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .home-connection-profile strong,
 .home-connection-profile small {
   display: block;
-  max-width: 220px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -16792,6 +16867,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 .home-connection-profile-actions {
   display: inline-flex;
   gap: 5px;
+  max-width: 45%;
   flex-shrink: 0;
 }
 
@@ -16891,6 +16967,16 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   color: var(--pulso-danger-fg);
   background: var(--pulso-danger-bg);
   border: 1px solid var(--pulso-danger-border);
+}
+
+@media (max-width: 1040px) {
+  .home-settings-dialog {
+    width: min(860px, calc(100vw - 32px));
+  }
+
+  .home-connection-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {

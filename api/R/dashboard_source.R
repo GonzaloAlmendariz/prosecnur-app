@@ -230,7 +230,7 @@
   rp_inst <- reporte_instrumento(path = xls_meta$path)
   data_df <- .read_data_any_path(dat_meta$path, dat_meta$ext)
   data_df <- normalize_data_for_xlsform(data_df, rp_inst)
-  .carga_assert_data_xlsform_compatible(data_df, rp_inst)
+  compat <- validate_data_xlsform_compatibility(data_df, rp_inst)
   rp_data <- reporte_data(data_df, instrumento = rp_inst)
 
   source <- list(
@@ -243,6 +243,14 @@
     data_ext = dat_meta$ext,
     n_filas = as.integer(nrow(data_df)),
     n_columnas = as.integer(ncol(data_df)),
+    compatibility = list(
+      ok = isTRUE(compat$ok),
+      status = as.character(compat$status %||% ""),
+      missing_columns = as.list(as.character(compat$missing_columns %||% character(0))),
+      n_missing = as.integer(compat$n_missing %||% 0L),
+      n_extra = as.integer(compat$n_extra %||% 0L),
+      message = as.character(compat$message %||% "")
+    ),
     loaded_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   )
 

@@ -526,7 +526,12 @@ function UnifiedSiblingsCard({
 
   async function onGenerate() {
     await run.runSync(() =>
-      apiAnaliticaBasesXlsxUnificada({ valores: cfg.valores, multi_select: cfg.multi_select }),
+      apiAnaliticaBasesXlsxUnificada({
+        valores: cfg.valores,
+        multi_select: cfg.multi_select,
+        omitir_identificadores_directos: true,
+        omitir_metadatos_operativos: true,
+      }),
     );
   }
 
@@ -545,7 +550,8 @@ function UnifiedSiblingsCard({
         <>
           Descarga una sola base con todas las hermanas. Incluye <code>base_hermana</code>{" "}
           <code>registro_origen_id</code> y <code>registro_unificado_id</code> al inicio
-          para identificar carrera, registro original y fila única global.
+          para identificar carrera, registro original y fila única global, omitiendo identificadores directos
+          y metadatos operativos.
           El libro incluye auditoría de <strong>variables comunes</strong> y <strong>variables no comunes</strong>;
           los reportes comparativos deben leerse solo sobre las comunes.
         </>
@@ -564,7 +570,7 @@ function UnifiedSiblingsCard({
           }}
         >
           Mantiene la independencia de procesamiento: no cambia la base activa, no fusiona estados y no afecta Gráficos.
-          Solo prepara una descarga analítica combinada para exploración en Excel. Cada fila conserva
+          Solo prepara una descarga analítica combinada para exploración preliminar en Excel. Cada fila conserva
           su identificador original cuando existe y suma un identificador único para la tabla unificada.
           {summary && (
             <div style={{ marginTop: 6, color: "var(--pulso-text)" }}>

@@ -394,19 +394,27 @@
 }
 
 .graficos_processing_sources <- function(sid) {
+  normalize_sources <- function(src) {
+    if (exists(".bases_normalize_source_contexts", mode = "function")) {
+      .bases_normalize_source_contexts(src$data_sources, src$inst_sources)
+    } else {
+      src
+    }
+  }
+
   sources <- .graficos_raw_processing_sources(sid)
   valid <- .graficos_filter_valid_sources(sources$data_sources, sources$inst_sources)
-  if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(valid)
+  if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(normalize_sources(valid))
 
   if (.graficos_rebuild_runtime_sources(sid)) {
     sources <- .graficos_raw_processing_sources(sid)
     valid <- .graficos_filter_valid_sources(sources$data_sources, sources$inst_sources)
-    if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(valid)
+    if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(normalize_sources(valid))
   }
 
   legacy <- .graficos_legacy_mirror_sources(sid)
   valid <- .graficos_filter_valid_sources(legacy$data_sources, legacy$inst_sources)
-  if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(valid)
+  if (.graficos_sources_usable(valid$data_sources, valid$inst_sources)) return(normalize_sources(valid))
 
   list(data_sources = list(), inst_sources = list())
 }

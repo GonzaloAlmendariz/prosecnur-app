@@ -94,6 +94,83 @@
   survey[idx[1L], , drop = FALSE]
 }
 
+.bases_escape_regex <- function(x) {
+  gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", as.character(x), perl = TRUE)
+}
+
+.bases_has_letters <- function(x) {
+  grepl("[A-Za-zÁÉÍÓÚáéíóúÑñÜü]", enc2utf8(as.character(x)), perl = TRUE)
+}
+
+.bases_strip_redundant_choice_code <- function(label, code) {
+  raw <- trimws(enc2utf8(as.character(label %||% "")))
+  code <- trimws(as.character(code %||% ""))
+  raw[is.na(raw)] <- ""
+  code[is.na(code)] <- ""
+  if (!nzchar(raw) || !nzchar(code)) return(raw)
+  if (is.na(suppressWarnings(as.numeric(code)))) return(raw)
+
+  code_re <- .bases_escape_regex(code)
+  cleaned <- sub(paste0("\\s*(?:[\\(\\[]\\s*", code_re, "\\s*[\\)\\]]|[-–—:]?\\s+", code_re, ")\\s*$"),
+                 "", raw, perl = TRUE)
+  cleaned <- sub(paste0("^\\s*(?:[\\(\\[]\\s*", code_re, "\\s*[\\)\\]]|", code_re, "\\s*[-–—:]?)\\s+"),
+                 "", cleaned, perl = TRUE)
+  cleaned <- trimws(cleaned)
+  n_words <- if (nzchar(cleaned)) length(strsplit(cleaned, "\\s+", perl = TRUE)[[1]]) else 0L
+  if (!identical(cleaned, raw) && .bases_has_letters(cleaned) && n_words >= 2L) cleaned else raw
+}
+
+.bases_choice_labels_have_ordinal_cues <- function(labels) {
+  textos <- tolower(enc2utf8(as.character(labels %||% "")))
+  textos[is.na(textos)] <- ""
+  textos <- chartr("áéíóúüñ", "aeiouun", textos)
+  pistas <- enc2utf8(c(
+    "nada", "poco", "algo", "mucho", "muy", "totalmente",
+    "util", "competente", "acuerdo", "desacuerdo",
+    "satisfech", "insatisfech", "probable", "improbable",
+    "importante", "relevante", "facil", "dificil",
+    "bajo", "medio", "alto", "malo", "bueno", "excelente",
+    "nunca", "siempre", "rara vez", "a veces"
+  ))
+  any(vapply(pistas, function(p) any(grepl(p, textos, fixed = TRUE)), logical(1)))
+}
+
+.bases_choice_labels_should_strip_codes <- function(codes, labels) {
+  codes <- trimws(as.character(codes %||% ""))
+  labels <- as.character(labels %||% "")
+  codes[is.na(codes)] <- ""
+  labels[is.na(labels)] <- ""
+  if (length(codes) < 3L || length(labels) < 3L) return(FALSE)
+
+  keep <- !.bases_is_missingish_label(labels)
+  if (sum(keep) < 3L) return(FALSE)
+  nums <- suppressWarnings(as.numeric(codes[keep]))
+  if (any(is.na(nums))) return(FALSE)
+  unique_nums <- sort(unique(nums))
+  if (length(unique_nums) < 3L || any(diff(unique_nums) != 1)) return(FALSE)
+  if (!.bases_choice_labels_have_ordinal_cues(labels[keep])) return(FALSE)
+
+  cleaned <- mapply(
+    .bases_strip_redundant_choice_code,
+    label = labels,
+    code = codes,
+    SIMPLIFY = TRUE,
+    USE.NAMES = FALSE
+  )
+  any(!identical(cleaned, labels) & cleaned != labels)
+}
+
+.bases_clean_choice_labels <- function(codes, labels) {
+  labels <- as.character(labels %||% "")
+  labels[is.na(labels)] <- ""
+  if (!.bases_choice_labels_should_strip_codes(codes, labels)) return(enc2utf8(labels))
+  mapply(.bases_strip_redundant_choice_code,
+         label = labels,
+         code = codes,
+         SIMPLIFY = TRUE,
+         USE.NAMES = FALSE)
+}
+
 .bases_label_pairs <- function(labs) {
   if (is.null(labs) || length(labs) == 0L) {
     return(data.frame(code = character(0), label = character(0), stringsAsFactors = FALSE))
@@ -108,6 +185,7 @@
     code <- as.character(unname(labs))
     label <- as.character(nms)
   }
+  label <- .bases_clean_choice_labels(code, label)
   out <- data.frame(code = code, label = enc2utf8(label), stringsAsFactors = FALSE)
   out <- out[!is.na(out$code) & nzchar(out$code), , drop = FALSE]
   out[!duplicated(out$code), , drop = FALSE]
@@ -291,6 +369,7 @@
         } else NULL
       } else NULL
       lb <- if (!is.null(lab_col) && length(lab_col) == length(nm)) lab_col else as.character(sel$label %||% "")
+      lb <- .bases_clean_choice_labels(nm, lb)
       Encoding(lb) <- "UTF-8"
       return(data.frame(name = nm, label = lb, stringsAsFactors = FALSE))
     }
@@ -299,14 +378,298 @@
   if (!is.null(fallback_col)) {
     labs <- attr(fallback_col, "labels", exact = TRUE)
     if (!is.null(labs) && length(labs) > 0L) {
+      pairs <- .bases_label_pairs(labs)
       return(data.frame(
-        name = as.character(labs),
-        label = as.character(names(labs)),
+        name = pairs$code,
+        label = pairs$label,
         stringsAsFactors = FALSE
       ))
     }
   }
   data.frame(name = character(0), label = character(0), stringsAsFactors = FALSE)
+}
+
+.bases_norm_text <- function(x) {
+  out <- as.character(x %||% "")
+  out <- chartr("áéíóúÁÉÍÓÚüÜñÑ", "aeiouAEIOUuUnN", out)
+  out <- iconv(out, from = "", to = "ASCII//TRANSLIT", sub = "")
+  out <- tolower(out)
+  out <- gsub("[^a-z0-9]+", " ", out)
+  out <- trimws(out)
+  gsub("\\s+", " ", out)
+}
+
+.bases_survey_list_name <- function(row) {
+  if (is.null(row) || !is.data.frame(row) || !nrow(row)) return("")
+  if ("list_name" %in% names(row)) {
+    list_name <- as.character(row$list_name[1] %||% "")
+    if (!is.na(list_name) && nzchar(trimws(list_name))) return(trimws(list_name))
+  }
+  type <- as.character(row$type[1] %||% "")
+  if (is.na(type) || !nzchar(type)) return("")
+  parts <- strsplit(trimws(type), "\\s+", perl = TRUE)[[1]]
+  if (length(parts) >= 2L) parts[2] else ""
+}
+
+.bases_choice_pairs_for_var <- function(df, rp_inst, var) {
+  sv <- rp_inst$survey
+  if (is.null(sv) || !is.data.frame(sv) || !"name" %in% names(sv)) {
+    return(data.frame(name = character(0), label = character(0), stringsAsFactors = FALSE))
+  }
+  survey_names <- as.character(sv$name)
+  row <- sv[!is.na(survey_names) & survey_names == var, , drop = FALSE]
+  if (!nrow(row)) {
+    return(data.frame(name = character(0), label = character(0), stringsAsFactors = FALSE))
+  }
+  choices <- .choices_desde_instrumento(
+    rp_inst,
+    .bases_survey_list_name(row[1, , drop = FALSE]),
+    fallback_col = df[[var]]
+  )
+  if (!nrow(choices)) {
+    return(data.frame(name = character(0), label = character(0), stringsAsFactors = FALSE))
+  }
+  choices$name <- as.character(choices$name)
+  choices$label <- as.character(choices$label)
+  choices <- choices[!is.na(choices$name) & nzchar(choices$name), , drop = FALSE]
+  choices[!duplicated(choices$name), , drop = FALSE]
+}
+
+.bases_other_text_col <- function(df, var) {
+  candidates <- c(
+    paste0(var, "_other"),
+    paste0(var, "_otro"),
+    paste0(var, "_otros"),
+    paste0(var, "_specify"),
+    paste0(var, "_other_text")
+  )
+  hit <- intersect(candidates, names(df))
+  if (length(hit)) hit[1] else NULL
+}
+
+.bases_other_choice_code <- function(choices) {
+  if (is.null(choices) || !nrow(choices)) return(NA_character_)
+  text <- .bases_norm_text(paste(choices$name, choices$label))
+  idx <- which(grepl("\\b(otro|otra|otros|otras|other)\\b|especific", text, perl = TRUE))
+  if (!length(idx)) return(NA_character_)
+  as.character(choices$name[idx[1]])
+}
+
+.bases_code_from_value <- function(value, choices) {
+  raw <- trimws(as.character(value %||% ""))
+  if (is.na(raw) || !nzchar(raw)) return(NA_character_)
+  codes <- as.character(choices$name)
+  if (raw %in% codes) return(raw)
+  raw_norm <- .bases_norm_text(raw)
+  labels_norm <- .bases_norm_text(choices$label)
+  idx <- which(labels_norm == raw_norm)[1]
+  if (!is.na(idx)) return(as.character(choices$name[idx]))
+  NA_character_
+}
+
+.bases_normalize_select_one_other <- function(parent, other, choices, other_code) {
+  raw <- as.character(parent)
+  other_txt <- trimws(as.character(other))
+  other_txt[is.na(other_txt)] <- ""
+  out <- vapply(raw, .bases_code_from_value, character(1), choices = choices)
+  raw_txt <- trimws(raw)
+  raw_txt[is.na(raw_txt)] <- ""
+  has_other <- nzchar(other_txt)
+  same_as_other <- has_other & .bases_norm_text(raw_txt) == .bases_norm_text(other_txt)
+  needs_other <- has_other & (!nzchar(raw_txt) | is.na(out) | same_as_other)
+  if (!is.na(other_code) && nzchar(other_code)) {
+    out[needs_other] <- other_code
+  } else {
+    out[needs_other] <- NA_character_
+  }
+  keep_raw <- is.na(out) & nzchar(raw_txt)
+  out[keep_raw] <- raw_txt[keep_raw]
+  out[!nzchar(raw_txt) & !needs_other] <- NA_character_
+  out
+}
+
+.bases_normalize_select_multiple_other <- function(parent, other, choices, other_code) {
+  raw <- as.character(parent)
+  other_txt <- trimws(as.character(other))
+  other_txt[is.na(other_txt)] <- ""
+  codes <- as.character(choices$name)
+  vapply(seq_along(raw), function(i) {
+    raw_i <- trimws(raw[[i]] %||% "")
+    if (is.na(raw_i)) raw_i <- ""
+    other_i <- other_txt[[i]] %||% ""
+    has_other <- nzchar(other_i)
+    if (!nzchar(raw_i) && !has_other) return(NA_character_)
+
+    direct <- .bases_code_from_value(raw_i, choices)
+    selected <- if (!is.na(direct)) direct else character(0)
+    if (!length(selected) && nzchar(raw_i)) {
+      toks <- strsplit(raw_i, "[\\s;,]+", perl = TRUE)[[1]]
+      toks <- toks[nzchar(toks)]
+      selected <- toks[toks %in% codes]
+    }
+    unknown_text <- nzchar(raw_i) && !identical(.bases_norm_text(raw_i), paste(.bases_norm_text(selected), collapse = " "))
+    if (has_other && (unknown_text || !length(selected)) && !is.na(other_code) && nzchar(other_code)) {
+      selected <- c(selected, other_code)
+    }
+    selected <- unique(selected[nzchar(selected)])
+    if (length(selected)) paste(selected, collapse = " ") else if (nzchar(raw_i)) raw_i else NA_character_
+  }, character(1), USE.NAMES = FALSE)
+}
+
+.bases_restore_vector_attrs <- function(x, template) {
+  attrs <- attributes(template)
+  for (nm in setdiff(names(attrs), c("names", "dim", "dimnames"))) {
+    attr(x, nm) <- attrs[[nm]]
+  }
+  x
+}
+
+# SurveyMonkey puede entregar el texto libre de "Otro" duplicado: en el campo
+# select madre y tambien en la columna `<var>_other`. Para los exports, el
+# campo madre debe conservar solo codigos validos del XLSForm; el texto libre
+# queda en su columna companion.
+.bases_normalize_other_selects <- function(df, rp_inst) {
+  if (!is.data.frame(df) || !length(names(df))) return(df)
+  sv <- rp_inst$survey
+  if (is.null(sv) || !is.data.frame(sv) || !all(c("name", "type") %in% names(sv))) return(df)
+
+  for (var in intersect(as.character(sv$name), names(df))) {
+    survey_names <- as.character(sv$name)
+    row <- sv[!is.na(survey_names) & survey_names == var, , drop = FALSE]
+    base <- .bases_xlsform_base_type(row$type[1])
+    if (!base %in% c("select_one", "select_multiple")) next
+    other_col <- .bases_other_text_col(df, var)
+    if (is.null(other_col)) next
+    choices <- .bases_choice_pairs_for_var(df, rp_inst, var)
+    if (!nrow(choices)) next
+    other_code <- .bases_other_choice_code(choices)
+
+    parent <- df[[var]]
+    normalized <- if (identical(base, "select_multiple")) {
+      .bases_normalize_select_multiple_other(parent, df[[other_col]], choices, other_code)
+    } else {
+      .bases_normalize_select_one_other(parent, df[[other_col]], choices, other_code)
+    }
+    df[[var]] <- .bases_restore_vector_attrs(normalized, parent)
+  }
+
+  df
+}
+
+.bases_clean_choice_df <- function(df) {
+  if (is.null(df) || !is.data.frame(df) || !nrow(df)) return(df)
+  label_cols <- grep("^label", names(df), value = TRUE, ignore.case = TRUE)
+  if (!length(label_cols)) return(df)
+  codes <- if ("name" %in% names(df)) {
+    as.character(df$name)
+  } else if ("value" %in% names(df)) {
+    as.character(df$value)
+  } else {
+    rep("", nrow(df))
+  }
+  groups <- if ("list_name" %in% names(df)) {
+    split(seq_len(nrow(df)), as.character(df$list_name))
+  } else {
+    list(seq_len(nrow(df)))
+  }
+  for (col in label_cols) {
+    for (idx in groups) {
+      df[[col]][idx] <- .bases_clean_choice_labels(codes[idx], df[[col]][idx])
+    }
+  }
+  df
+}
+
+.bases_clean_report_instrument <- function(inst) {
+  if (is.null(inst) || !is.list(inst)) return(inst)
+  original_class <- class(inst)
+
+  inst$choices <- .bases_clean_choice_df(inst$choices)
+  inst$choices_raw <- .bases_clean_choice_df(inst$choices_raw)
+
+  ch <- inst$choices
+  if (!is.null(ch) && is.data.frame(ch) && all(c("list_name", "name") %in% names(ch))) {
+    label_col <- if ("label" %in% names(ch)) {
+      "label"
+    } else {
+      grep("^label", names(ch), value = TRUE, ignore.case = TRUE)[1]
+    }
+    if (!is.na(label_col) && nzchar(label_col)) {
+      keep <- !is.na(ch$list_name) & nzchar(as.character(ch$list_name)) &
+        !is.na(ch$name) & nzchar(as.character(ch$name)) &
+        !is.na(ch[[label_col]])
+      ch_valid <- ch[keep, , drop = FALSE]
+      if (nrow(ch_valid)) {
+        by_list <- split(ch_valid, as.character(ch_valid$list_name))
+        inst$dicc_code_to_label <- lapply(by_list, function(x) {
+          stats::setNames(as.character(x[[label_col]]), as.character(x$name))
+        })
+        inst$dicc_label_to_code <- lapply(by_list, function(x) {
+          stats::setNames(as.character(x$name), as.character(x[[label_col]]))
+        })
+
+        if (!is.null(inst$orders_list) && length(inst$orders_list) &&
+            !is.null(inst$survey) && is.data.frame(inst$survey) &&
+            all(c("name", "type") %in% names(inst$survey))) {
+          survey_names <- as.character(inst$survey$name)
+          for (var in names(inst$orders_list)) {
+            row <- inst$survey[!is.na(survey_names) & survey_names == var, , drop = FALSE]
+            if (!nrow(row)) next
+            ln <- .bases_survey_list_name(row[1, , drop = FALSE])
+            if (!nzchar(ln) || is.null(inst$dicc_code_to_label[[ln]])) next
+            codes_labels <- inst$dicc_code_to_label[[ln]]
+            inst$orders_list[[var]]$names <- names(codes_labels)
+            inst$orders_list[[var]]$labels <- unname(codes_labels)
+          }
+        }
+      }
+    }
+  }
+
+  if (!is.null(original_class)) class(inst) <- original_class
+  inst
+}
+
+.bases_clean_report_data_labels <- function(data) {
+  if (!is.data.frame(data) || !length(names(data))) return(data)
+  for (v in names(data)) {
+    labs <- attr(data[[v]], "labels", exact = TRUE)
+    if (is.null(labs) || !length(labs)) next
+    pairs <- .bases_label_pairs(labs)
+    if (!nrow(pairs)) next
+    attr(data[[v]], "labels") <- stats::setNames(as.character(pairs$label), as.character(pairs$code))
+  }
+  data
+}
+
+.bases_normalize_report_context <- function(data, inst, normalize_other = TRUE) {
+  inst <- .bases_clean_report_instrument(inst)
+  if (isTRUE(normalize_other)) {
+    data <- .bases_normalize_other_selects(data, inst)
+  }
+  data <- .bases_clean_report_data_labels(data)
+  list(data = data, inst = inst)
+}
+
+.bases_normalize_source_contexts <- function(data_sources, inst_sources, normalize_other = TRUE) {
+  if (!is.list(data_sources) || is.data.frame(data_sources) ||
+      !is.list(inst_sources) || is.data.frame(inst_sources)) {
+    return(list(data_sources = data_sources, inst_sources = inst_sources))
+  }
+  common <- intersect(names(data_sources), names(inst_sources))
+  if (!length(common)) {
+    return(list(data_sources = data_sources, inst_sources = inst_sources))
+  }
+  for (nm in common) {
+    ctx <- .bases_normalize_report_context(
+      data_sources[[nm]],
+      inst_sources[[nm]],
+      normalize_other = normalize_other
+    )
+    data_sources[[nm]] <- ctx$data
+    inst_sources[[nm]] <- ctx$inst
+  }
+  list(data_sources = data_sources, inst_sources = inst_sources)
 }
 
 # Slug-ifica un string para usarlo como sufijo de columna (ASCII, sin
@@ -333,17 +696,22 @@
   top_attrs <- attributes(df)
   keep_attrs <- setdiff(names(top_attrs), c("names", "row.names", "class"))
 
-  keep_cols <- setdiff(names(df), names(ms))
-  out <- df[, keep_cols, drop = FALSE]
+  out <- df[, 0, drop = FALSE]
 
-  for (v in names(ms)) {
+  for (v in names(df)) {
+    if (!v %in% names(ms)) {
+      out[[v]] <- df[[v]]
+      next
+    }
+
     col <- df[[v]]
     choices <- .choices_desde_instrumento(rp_inst, ms[[v]], fallback_col = col)
     if (nrow(choices) == 0L) {
-      # No podemos expandir: devolvemos la columna original intacta.
+      # No podemos expandir: devolvemos la columna original en su posición.
       out[[v]] <- col
       next
     }
+
     # Normalizar respuestas: split por espacio o punto y coma, tomar no-vacíos.
     raw <- as.character(col)
     raw[is.na(raw)] <- ""
@@ -356,6 +724,9 @@
       # Evitar colisión si ya existe
       if (new_name %in% names(out)) {
         new_name <- sprintf("%s___c%s", v, .slug_code(code))
+      }
+      while (new_name %in% names(out)) {
+        new_name <- paste0(new_name, "_")
       }
       hit <- vapply(tokens_per_row, function(t) any(t == code), logical(1))
       dummy <- as.integer(hit)
@@ -401,17 +772,9 @@
     labs <- attr(col, "labels", exact = TRUE)
     if (is.null(labs) || length(labs) == 0L) next
 
-    # Para haven_labelled, names(labs)=etiqueta, labs[]=código (numérico)
-    # En reporte_data de prosecnur a veces están al revés. Detectamos:
-    # si names son numéricos, entonces names=códigos y values=labels.
-    codigos_en_names <- suppressWarnings(!any(is.na(as.numeric(names(labs)))))
-    if (codigos_en_names) {
-      # names = códigos, labs[] = etiquetas
-      map_cod_to_lab <- stats::setNames(as.character(labs), names(labs))
-    } else {
-      # names = etiquetas, labs[] = códigos
-      map_cod_to_lab <- stats::setNames(names(labs), as.character(labs))
-    }
+    pairs <- .bases_label_pairs(labs)
+    if (!nrow(pairs)) next
+    map_cod_to_lab <- stats::setNames(pairs$label, pairs$code)
 
     is_multi <- v %in% ms_cols
     raw <- as.character(col)
@@ -915,6 +1278,8 @@
 # `overrides` es opcional: lista `name -> list(measure?, format_spss?)`.
 .bases_export_sav <- function(df, rp_inst, path_sav, path_sps = NULL,
                               overrides = list()) {
+  df <- .bases_normalize_other_selects(df, rp_inst)
+
   # 1) Convertir columnas con value-labels a haven_labelled_spss. Reusa
   #    el post-procesamiento de reporte_spss vía attrs — aplica
   #    la misma conversión pero sin correr ese wrapper (que escribe a
@@ -929,14 +1294,9 @@
     dw <- attr(x, "display_width", exact = TRUE)
 
     if (!is.null(labs) && length(labs) > 0L) {
-      codigos_en_names <- suppressWarnings(!any(is.na(as.numeric(names(labs)))))
-      if (codigos_en_names) {
-        codigos <- suppressWarnings(as.numeric(names(labs)))
-        textos <- as.character(unname(labs))
-      } else {
-        codigos <- suppressWarnings(as.numeric(labs))
-        textos <- as.character(names(labs))
-      }
+      pairs <- .bases_label_pairs(labs)
+      codigos <- suppressWarnings(as.numeric(pairs$code))
+      textos <- as.character(pairs$label)
       ok <- !is.na(codigos)
       codigos <- codigos[ok]
       textos <- textos[ok]
