@@ -32,6 +32,8 @@
       "output": "../dist.nosync/mac-builder-output",
       "buildResources": "../packaging/macos/build-resources"
     },
+    "beforePack": "scripts/clean-mac-xattrs.cjs",
+    "afterPack": "scripts/clean-mac-xattrs.cjs",
     "files": [
       "main.cjs",
       "preload.cjs",
@@ -73,6 +75,7 @@
         { "target": "dmg", "arch": ["arm64", "x64"] }
       ],
       "icon": "../packaging/macos/build-resources/icon.icns",
+      "identity": null,
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
       "darkModeSupport": false,

@@ -2368,11 +2368,15 @@
 .mon-territorial-validation-tabbody--summary > .mon-territorial-observation-list {
   min-height: 0;
   height: 100%;
+  grid-template-rows: auto minmax(0, 1fr) 6px;
+  gap: 8px;
+  padding: 10px;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-observation-scroll {
   min-height: 0;
-  height: 100%;
+  height: auto;
+  max-height: 100%;
 }
 
 .mon-territorial-validation-grid .mon-territorial-audit-card {
@@ -3683,14 +3687,14 @@
   text-transform: uppercase;
 }
 
-.mon-territorial-observation-table th:nth-child(1) { width: 14%; }
-.mon-territorial-observation-table th:nth-child(2) { width: 14%; }
+.mon-territorial-observation-table th:nth-child(1) { width: 16%; }
+.mon-territorial-observation-table th:nth-child(2) { width: 13%; }
 .mon-territorial-observation-table th:nth-child(3) { width: 17%; }
-.mon-territorial-observation-table th:nth-child(4) { width: 10%; }
-.mon-territorial-observation-table th:nth-child(5) { width: 10%; }
-.mon-territorial-observation-table th:nth-child(6) { width: 18%; }
-.mon-territorial-observation-table th:nth-child(7) { width: 9%; }
-.mon-territorial-observation-table th:nth-child(8) { width: 8%; }
+.mon-territorial-observation-table th:nth-child(4) { width: 9%; }
+.mon-territorial-observation-table th:nth-child(5) { width: 9%; }
+.mon-territorial-observation-table th:nth-child(6) { width: 19%; }
+.mon-territorial-observation-table th:nth-child(7) { width: 8%; }
+.mon-territorial-observation-table th:nth-child(8) { width: 9%; }
 
 .mon-territorial-observation-table th:first-child,
 .mon-territorial-observation-table td:first-child {
@@ -3750,6 +3754,22 @@
   display: block;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.mon-territorial-observation-table td:first-child strong,
+.mon-territorial-observation-table td:nth-child(3) strong {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.15;
+}
+
+.mon-territorial-observation-table td:first-child small,
+.mon-territorial-observation-table td:nth-child(3) small {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.18;
 }
 
 .mon-territorial-observation-table td > strong {
@@ -6851,38 +6871,48 @@
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  gap: 6px;
+  gap: 8px;
   padding: 10px;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-audit-card--state {
   grid-template-rows: auto minmax(0, 1fr) auto;
-  align-content: start;
+  align-content: stretch;
 }
 
-.mon-territorial-validation-tabbody--summary .mon-territorial-audit-card--geo,
+.mon-territorial-validation-tabbody--summary .mon-territorial-audit-card--geo {
+  grid-template-rows: auto minmax(0, auto) minmax(0, 1fr);
+  align-content: stretch;
+}
+
 .mon-territorial-validation-tabbody--summary .mon-territorial-audit-card--duration {
-  grid-template-rows: auto minmax(0, 1fr);
-  align-content: start;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: stretch;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-state-board {
   min-height: 0;
-  grid-template-columns: 62px minmax(0, 1fr);
-  gap: 8px;
-  padding: 7px;
+  height: 100%;
+  grid-template-columns: 108px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-score-ring {
-  width: 58px;
+  width: 94px;
+  height: 94px;
+  flex: 0 0 94px;
+  align-self: center;
+  justify-self: center;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-score-ring::before {
-  inset: 7px;
+  inset: 11px;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-score-ring strong {
-  font-size: 16px;
+  font-size: 22px;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-score-ring em {
@@ -6890,7 +6920,10 @@
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-state-summary {
-  gap: 5px;
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+  gap: 8px;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-state-headline {
@@ -6898,7 +6931,7 @@
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-state-headline strong {
-  font-size: 21px;
+  font-size: 23px;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-state-headline span {
@@ -6911,36 +6944,39 @@
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-segment-strip {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
-}
-
-.mon-territorial-validation-tabbody--summary .mon-territorial-segment-strip span {
-  min-height: 30px;
-  padding: 5px 6px 6px;
-  gap: 1px 5px;
-}
-
-.mon-territorial-validation-tabbody--summary .mon-territorial-segment-strip strong {
-  font-size: 13px;
-}
-
-.mon-territorial-validation-tabbody--summary .mon-territorial-segment-strip em {
-  font-size: 9px;
-}
-
-.mon-territorial-validation-tabbody--summary .mon-territorial-decision-matrix {
-  align-self: start;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  height: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(4, minmax(0, 1fr));
   gap: 6px;
 }
 
+.mon-territorial-validation-tabbody--summary .mon-territorial-segment-strip span {
+  min-height: 0;
+  padding: 7px 8px 8px;
+  gap: 1px 6px;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-segment-strip strong {
+  font-size: 15px;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-segment-strip em {
+  font-size: 9.5px;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-decision-matrix {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  align-self: end;
+}
+
 .mon-territorial-validation-tabbody--summary .mon-territorial-decision-matrix span {
-  min-height: 36px;
+  min-height: 44px;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     "value"
     "label";
+  align-content: center;
   justify-items: center;
   gap: 1px;
   padding: 5px;
@@ -6960,26 +6996,27 @@
   text-align: center;
 }
 
-.mon-territorial-validation-tabbody--summary .mon-territorial-geo-stage,
-.mon-territorial-validation-tabbody--summary .mon-territorial-duration-hero,
-.mon-territorial-validation-tabbody--summary .mon-territorial-focus-list {
+.mon-territorial-validation-tabbody--summary .mon-territorial-geo-stage {
   display: none;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-geo-bars {
   min-height: 0;
-  gap: 5px;
+  gap: 6px;
   align-content: start;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-geo-bars article {
-  min-height: 22px;
-  padding: 4px 7px;
+  min-height: 28px;
+  padding: 5px 8px;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-geo-bars span {
-  font-size: 9.5px;
-  white-space: nowrap;
+  font-size: 10px;
+  line-height: 1.12;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-geo-bars b {
@@ -6987,15 +7024,90 @@
   text-align: right;
 }
 
-.mon-territorial-validation-tabbody--summary .mon-territorial-duration-lanes article {
-  min-height: 29px;
-  padding: 5px 8px 6px;
+.mon-territorial-validation-tabbody--summary .mon-territorial-focus-list {
+  min-height: 0;
+  overflow: auto;
+  padding-top: 8px;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-focus-list header {
+  gap: 6px;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-focus-list article {
+  min-height: 32px;
+  padding: 5px 7px;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-focus-list article strong {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.08;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-duration-hero {
+  min-height: 0;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-duration-dial {
+  width: 66px;
+  height: 66px;
+  flex: 0 0 66px;
+  align-self: center;
+  justify-self: center;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-duration-dial::before {
+  inset: 8px;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-duration-dial strong {
+  font-size: 17px;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-duration-dial em {
+  font-size: 7.5px;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-duration-copy {
+  gap: 6px;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-duration-copy span {
+  min-height: 50px;
+  padding: 6px;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-duration-copy strong {
+  overflow: visible;
+  font-size: 12px;
+  line-height: 1.08;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-duration-copy em {
+  overflow: visible;
+  font-size: 8px;
+  line-height: 1.08;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-duration-lanes {
   min-height: 0;
-  gap: 5px;
-  align-content: start;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  align-content: stretch;
+}
+
+.mon-territorial-validation-tabbody--summary .mon-territorial-duration-lanes article {
+  min-height: 0;
+  padding: 5px 8px 6px;
 }
 
 .mon-territorial-validation-tabbody--summary .mon-territorial-duration-lanes strong {

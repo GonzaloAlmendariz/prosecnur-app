@@ -77,7 +77,7 @@ if [ ! -s "$ICON_ICNS" ] || [ "$ICON_SVG" -nt "$ICON_ICNS" ]; then
 fi
 
 # ----- 3. sincronizar version en desktop/package.json -----------------------
-node -e "const fs=require('fs'); const p='$ROOT/desktop/package.json'; const j=JSON.parse(fs.readFileSync(p)); j.version='$APP_VERSION'; fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');"
+node -e "const fs=require('fs'); const p='$ROOT/desktop/package.json'; const version='$APP_VERSION'; const raw=fs.readFileSync(p,'utf8'); const j=JSON.parse(raw); if (j.version !== version) { j.version=version; fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n'); }"
 
 # ----- 4. instalar deps de desktop ------------------------------------------
 echo "[Prosecnur] pnpm install en desktop/..."
@@ -92,6 +92,17 @@ arch_cran_for() {
     x64)   echo "x86_64" ;;
     *) echo "arch desconocida: $1" >&2; exit 1 ;;
   esac
+}
+
+clean_macos_xattrs() {
+  if ! command -v xattr >/dev/null 2>&1; then
+    return
+  fi
+  for target in "$@"; do
+    if [ -e "$target" ]; then
+      xattr -cr "$target"
+    fi
+  done
 }
 
 build_for_arch() {
@@ -128,6 +139,15 @@ build_for_arch() {
   cp "$pkgs_cache/"*.tgz "$RUNTIME_DIR/r-packages/" 2>/dev/null || true
   cp "$pkgs_cache/manifest.csv" "$RUNTIME_DIR/r-packages/manifest.csv" 2>/dev/null || true
   cp packaging/macos/install-r-deps-offline.R "$RUNTIME_DIR/install-r-deps-offline.R"
+
+  echo "[Prosecnur] Limpiando atributos extendidos macOS..."
+  clean_macos_xattrs \
+    "$ROOT/desktop/node_modules/electron/dist" \
+    "$ROOT/api" \
+    "$ROOT/launcher" \
+    "$RUNTIME_DIR" \
+    "$ROOT/packaging/LEEME_PRIMERO.md" \
+    "$ROOT/LICENSE"
 
   # 5d. correr electron-builder. --publish=never genera el dmg + latest-mac.yml
   # localmente sin subir nada; el `gh release create` aparte se encarga de eso.
