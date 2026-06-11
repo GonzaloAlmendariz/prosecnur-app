@@ -18,10 +18,11 @@ La fuente de verdad para empaquetado es `api/DESCRIPTION`.
 | 0.3.1 | Corte 3.1: multibase, hojas de ruta y validacion por fuente | Publicada en GitHub | Aplica logica XLSForm de una base plantilla a hermanas compatibles, soporta importacion SurveyMonkey multifuente con perfiles de exclusion de validacion, separa hojas de ruta piloto/campo real, mejora drilldowns de validacion/Plotly, recupera fuentes procesadas de Graficos cuando el cache queda incompleto y corrige titulos Word/PPT desde etiquetas XLSForm. |
 | 0.3.2 | Corte 3.2: hotfix de hojas de ruta | Publicada en GitHub | Corrige layout del PDF integrado de hojas de ruta, evita que las tablas de revision final atrapen el scroll vertical y estabiliza las tarjetas del inspector de zonas. |
 | 3.3.1 | Corte 3.3.1: graficos, iconos y estabilidad | Publicada en GitHub | Expone el selector de PNG en Contenido para slides con icono, evita crashes por etiquetas/titulos malformados al volver a Graficos y conserva las mejoras de titulos, canvas dinamico, paletas por lista y export PPT/Word del corte 3.3. |
-| 3.3.2 | Corte 3.3.2: procesamiento y graficos | Version actual para deploy | Mejora recodificacion y persistencia de codificacion, limpia opciones Otros en frecuencias/reportes, ordena paletas y categorias segun instrumento, permite controlar ceros en barras agrupadas, conserva labels de SurveyMonkey y refuerza pruebas de PPT/Word. No incluye las mejoras de Monitoreo que siguen en desarrollo. |
+| 3.3.2 | Corte 3.3.2: procesamiento y graficos | Publicada en GitHub | Mejora recodificacion y persistencia de codificacion, limpia opciones Otros en frecuencias/reportes, ordena paletas y categorias segun instrumento, permite controlar ceros en barras agrupadas, conserva labels de SurveyMonkey y refuerza pruebas de PPT/Word. No incluye las mejoras de Monitoreo que siguen en desarrollo. |
+| 3.3.3 | Corte 3.3.3: SurveyMonkey y monitoreo operativo | Version actual para deploy | Agrega actualizacion incremental SurveyMonkey multibase con campanas/canales persistidos, registros validos bajo consentimiento y recodificacion; suma centro operativo de Monitoreo con Google Sheets controlado y consultas internas. |
 
 ## Version actual
 
-Estamos en `3.3.2` (corte `3.3.2`). Esta es la version publicada como
-`v3.3.2` para que GitHub Releases genere el instalador y el auto-updater la
+Estamos en `3.3.3` (corte `3.3.3`). Esta es la version publicada como
+`v3.3.3` para que GitHub Releases genere el instalador y el auto-updater la
 detecte.

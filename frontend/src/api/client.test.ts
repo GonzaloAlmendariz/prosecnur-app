@@ -1,15 +1,22 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
   apiConnectionCheck,
+  apiConnectionGoogleSheetsConnect,
   apiConnectionProfileSave,
   apiConnectionProfileSetDefault,
   apiConnectionTokenClear,
   apiConnectionTokenLoad,
   apiConnectionTokenSave,
   apiConnectionsList,
+  apiMonitoreoClientReportPdf,
+  apiMonitoreoClientReportSheetsPublish,
   apiMonitoreoConfig,
   apiMonitoreoDemo,
+  apiMonitoreoKoboAssets,
+  apiMonitoreoState,
   apiMonitoreoSource,
+  apiMonitoreoSheetsPublish,
+  apiMonitoreoSheetsSource,
   apiMonitoreoSync,
   apiEstudioActiveBaseSet,
   apiEstudioApplyIndependentTemplateLogic,
@@ -17,6 +24,8 @@ import {
   apiSurveyMonkeyMultibaseImportIndependent,
   apiSurveyMonkeyMultibaseInspectSurvey,
   apiSurveyMonkeyMultibaseListSurveys,
+  apiSurveyMonkeyMultibaseRefresh,
+  apiSurveyMonkeyMultibaseRefreshPlan,
   apiGraficosPpt,
   apiGraficosPreviewSlide,
   apiAnaliticaConfigPut,
@@ -259,8 +268,31 @@ describe("Connections client", () => {
             ok: true,
             provider: "kobo",
             label: "KoboToolbox",
-            has_token: false,
-            masked_token: "",
+            has_token: true,
+            masked_token: "kobo...secret",
+            active_profile_id: "kobo_unhcr",
+            active_profile_alias: "Kobo UNHCR",
+            active_profile_base_url: "https://kobo.unhcr.org",
+            active_profile_server_label: "UNHCR",
+            profiles: [
+              {
+                id: "kobo_unhcr",
+                alias: "Kobo UNHCR",
+                is_default: true,
+                has_token: true,
+                masked_token: "kobo...secret",
+                base_url: "https://kobo.unhcr.org",
+                server_label: "UNHCR",
+              },
+            ],
+          },
+          {
+            ok: true,
+            provider: "google_sheets",
+            label: "Google Sheets",
+            has_token: true,
+            masked_token: "ya29...token",
+            persisted: true,
           },
         ],
       }),
@@ -282,12 +314,68 @@ describe("Connections client", () => {
       ok: true,
       provider: "kobo",
       label: "KoboToolbox",
-      has_token: false,
-      masked_token: "",
+      has_token: true,
+      masked_token: "kobo...secret",
       persisted: false,
+      ephemeral: false,
+      active_profile_id: "kobo_unhcr",
+      active_profile_base_url: "https://kobo.unhcr.org",
+    });
+    expect(result.connections[1].profiles?.[0]).toMatchObject({
+      id: "kobo_unhcr",
+      base_url: "https://kobo.unhcr.org",
+      server_label: "UNHCR",
+    });
+    expect(result.connections[2]).toMatchObject({
+      ok: true,
+      provider: "google_sheets",
+      label: "Google Sheets",
+      has_token: true,
+      masked_token: "ya29...token",
+      persisted: true,
       ephemeral: false,
     });
     expect(result.connections[0] as Record<string, unknown>).not.toHaveProperty("token");
+  });
+
+  test("starts Google Sheets OAuth through global connections", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        provider: "google_sheets",
+        authorization_required: true,
+        auth_url: "https://accounts.google.com/o/oauth2/auth",
+        redirect_uri: "http://127.0.0.1:8787/api/connections/google_sheets/oauth/callback",
+        scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+        status: {
+          ok: true,
+          provider: "google_sheets",
+          label: "Google Sheets",
+          has_token: false,
+          masked_token: "",
+          persisted: false,
+          ephemeral: false,
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiConnectionGoogleSheetsConnect(
+      { installed: { client_id: "client", client_secret: "secret" } },
+      "http://127.0.0.1:8787/api/connections/google_sheets/oauth/callback",
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/connections/google_sheets/oauth",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      oauth: { installed: { client_id: "client", client_secret: "secret" } },
+      redirect_uri: "http://127.0.0.1:8787/api/connections/google_sheets/oauth/callback",
+    });
+    expect(result).toMatchObject({ provider: "google_sheets", authorization_required: true });
   });
 
   test("sends plaintext only when saving a shared credential", async () => {
@@ -306,7 +394,7 @@ describe("Connections client", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await apiConnectionTokenSave("kobo", "plain-kobo-secret");
-    await apiConnectionCheck("kobo");
+    await apiConnectionCheck("kobo", { profile_id: "kobo_unhcr", base_url: "https://kobo.unhcr.org" });
     await apiConnectionTokenClear("kobo");
     await apiConnectionTokenLoad("kobo");
 
@@ -314,7 +402,62 @@ describe("Connections client", () => {
       url: "/api/connections/kobo/token",
       body: { token: "plain-kobo-secret", persist: true },
     });
+    expect(calls[1]).toEqual({
+      url: "/api/connections/kobo/check",
+      body: { profile_id: "kobo_unhcr", base_url: "https://kobo.unhcr.org" },
+    });
     expect(calls.slice(1).every((call) => !("token" in call.body))).toBe(true);
+  });
+
+  test("supports Kobo profiles with server metadata", async () => {
+    const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(input), body: JSON.parse(String(init?.body ?? "{}")) });
+      return jsonResponse({
+        ok: true,
+        provider: "kobo",
+        label: "KoboToolbox",
+        has_token: true,
+        masked_token: "kobo...123456",
+        persisted: true,
+        active_profile_id: "kobo_unhcr",
+        active_profile_alias: "Kobo UNHCR",
+        active_profile_base_url: "https://kobo.unhcr.org",
+        active_profile_server_label: "UNHCR",
+        profiles: [
+          {
+            id: "kobo_unhcr",
+            alias: "Kobo UNHCR",
+            is_default: true,
+            has_token: true,
+            masked_token: "kobo...123456",
+            base_url: "https://kobo.unhcr.org",
+            server_label: "UNHCR",
+          },
+        ],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const saved = await apiConnectionProfileSave("kobo", "plain-kobo-secret", {
+      alias: "Kobo UNHCR",
+      profile_id: "kobo_unhcr",
+      base_url: "https://kobo.unhcr.org",
+      make_default: true,
+    });
+
+    expect(calls[0]).toEqual({
+      url: "/api/connections/kobo/profiles",
+      body: {
+        token: "plain-kobo-secret",
+        alias: "Kobo UNHCR",
+        profile_id: "kobo_unhcr",
+        make_default: true,
+        base_url: "https://kobo.unhcr.org",
+      },
+    });
+    expect(saved.active_profile_base_url).toBe("https://kobo.unhcr.org");
+    expect(saved.profiles?.[0]).toMatchObject({ server_label: "UNHCR" });
   });
 
   test("supports manual SurveyMonkey primary and secondary profiles", async () => {
@@ -388,6 +531,68 @@ describe("Monitoreo client", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  test("can request lightweight and full monitoring state", async () => {
+    const urls: string[] = [];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      urls.push(String(input));
+      return jsonResponse({
+        ok: true,
+        sources: [],
+        config: {},
+        has_snapshot: false,
+        synced_at: "",
+        n_rows: 0,
+        variables: [],
+        dashboard: null,
+        errors: [],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiMonitoreoState();
+    await apiMonitoreoState({ includeReports: false });
+    await apiMonitoreoState({ includeReports: true });
+
+    expect(urls).toEqual([
+      "/api/monitoreo/state",
+      "/api/monitoreo/state?include_reports=0",
+      "/api/monitoreo/state?include_reports=1",
+    ]);
+  });
+
+  test("lists Kobo assets with selected connection profile", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        count: 1,
+        assets: [
+          {
+            uid: "asset_unhcr",
+            name: "UNHCR demo",
+            date_modified: "2026-06-04T20:10:21Z",
+            deployment_active: true,
+          },
+        ],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoKoboAssets("https://kobo.unhcr.org", 50, { profile_id: "kobo_unhcr" });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/kobo/assets",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      base_url: "https://kobo.unhcr.org",
+      limit: 50,
+      profile_id: "kobo_unhcr",
+    });
+    expect(result.assets[0]).toMatchObject({ uid: "asset_unhcr", deployment_active: true });
   });
 
   test("saves a SurveyMonkey source without forcing a second token flow", async () => {
@@ -468,6 +673,153 @@ describe("Monitoreo client", () => {
       survey_id: "123",
       label: "SM Demo",
       dimensions: { actor: "Estudiantes" },
+    });
+  });
+
+  test("registers a Google Sheets source with role, mode and binding", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        source: {
+          id: "google_sheets_sheet_123_barrido",
+          kind: "google_sheets",
+          label: "Barrido",
+          enabled: true,
+          role: "barrido",
+          integration_mode: "connected_read",
+          sheet_binding: {
+            spreadsheet_id: "sheet_123",
+            sheet_name: "Barrido",
+            header_row: 1,
+            range: "",
+            last_read_at: "",
+            snapshot_hash: "",
+          },
+        },
+        validation: { ok: true },
+        state: {
+          ok: true,
+          sources: [],
+          config: {},
+          has_snapshot: false,
+          synced_at: "",
+          n_rows: 0,
+          variables: [],
+          dashboard: null,
+          errors: [],
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiMonitoreoSheetsSource({
+      kind: "google_sheets",
+      label: "Barrido",
+      role: "barrido",
+      integration_mode: "connected_read",
+      sheet_binding: {
+        spreadsheet_id: "sheet_123",
+        sheet_name: "Barrido",
+        header_row: 1,
+      },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/sheets/source",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      kind: "google_sheets",
+      label: "Barrido",
+      role: "barrido",
+      integration_mode: "connected_read",
+      sheet_binding: {
+        spreadsheet_id: "sheet_123",
+        sheet_name: "Barrido",
+        header_row: 1,
+      },
+    });
+  });
+
+  test("publishes controlled Prosecnur tabs to Sheets", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        spreadsheet_id: "sheet_out",
+        controlled_tabs: ["Prosecnur - Resumen", "Prosecnur - Alertas"],
+        updated_at: "2026-06-06T12:00:00Z",
+        mode: "controlled_write",
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiMonitoreoSheetsPublish("sheet_out", { objetivo_total: 10 } as Partial<MonitoreoConfig>);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/sheets/publish",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      spreadsheet_id: "sheet_out",
+      config: { objetivo_total: 10 },
+    });
+  });
+
+  test("publishes client report tabs to Sheets with optional targets", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        spreadsheet_id: "sheet_client",
+        controlled_tabs: ["Reporte", "Avance por actor"],
+        updated_at: "2026-06-08T12:00:00Z",
+        mode: "controlled_write",
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiMonitoreoClientReportSheetsPublish("sheet_client", {
+      includeTargets: true,
+      config: { objetivo_total: 10 } as Partial<MonitoreoConfig>,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/client-report/sheets/publish",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      spreadsheet_id: "sheet_client",
+      include_targets: true,
+      config: { objetivo_total: 10 },
+    });
+  });
+
+  test("starts client report PDF job", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        job_id: "job-client-report",
+        kind: "monitoreo.client_report_pdf",
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiMonitoreoClientReportPdf({ includeTargets: false });
+
+    expect(result.job_id).toBe("job-client-report");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/monitoreo/client-report/pdf",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      include_targets: false,
     });
   });
 
@@ -696,7 +1048,7 @@ describe("Monitoreo client", () => {
         date_modified_lte: "2026-05-30T01:27:45+00:00",
         sources: [
           { survey_id: "1", collector_ids: ["campo"] },
-          { survey_id: "2", label: "Ingeniería Geológica campaña 2", response_statuses: ["completed", "partial"] },
+          { survey_id: "2", label: "Ingeniería Geológica campaña 2", response_statuses: ["completed", "partial"], channel: "WhatsApp", source_channel: "WhatsApp" },
         ],
       }],
     });
@@ -712,11 +1064,119 @@ describe("Monitoreo client", () => {
         date_modified_lte: "2026-05-30T01:27:45+00:00",
         sources: [
           { survey_id: "1", collector_ids: ["campo"] },
-          { survey_id: "2", label: "Ingeniería Geológica campaña 2", response_statuses: ["completed", "partial"] },
+          { survey_id: "2", label: "Ingeniería Geológica campaña 2", response_statuses: ["completed", "partial"], channel: "WhatsApp", source_channel: "WhatsApp" },
         ],
       }],
     });
     expect(result.estudio.processing_mode).toBe("independent_siblings");
+  });
+
+  test("builds SurveyMonkey refresh plan payloads with selected campaigns", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        bases: [{
+          base_name: "ingenieria_civil",
+          source_alias: "Ingeniería Civil",
+          survey_id: "111",
+          source_count: 2,
+          campaign_suggestions: [{
+            survey_id: "222",
+            title: "Acreditación Ingeniería Civil - Encuesta a Egresados",
+            score: 0.91,
+            preselected: true,
+          }],
+          current_rows: 100,
+          remote_rows: 120,
+          new_rows: 20,
+          edited_rows: 2,
+          structure: { ok: true, n_blocking: 0, n_review: 0, diffs: [] },
+          codificacion: { has_state: true },
+          ok: true,
+          updateable: true,
+        }],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiSurveyMonkeyMultibaseRefreshPlan({
+      months: 12,
+      bases: [{
+        base_name: "ingenieria_civil",
+        campaigns: [{ survey_id: "222", label: "Civil a Egresados", channel: "Correo", source_channel: "Correo" }],
+      }],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/surveymonkey/multibase/refresh-plan",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      months: 12,
+      bases: [{
+        base_name: "ingenieria_civil",
+        campaigns: [{ survey_id: "222", label: "Civil a Egresados", channel: "Correo", source_channel: "Correo" }],
+      }],
+    });
+    expect(result.bases[0].campaign_suggestions?.[0]?.preselected).toBe(true);
+    expect(result.bases[0].new_rows).toBe(20);
+  });
+
+  test("refreshes SurveyMonkey sibling bases and preserves recode intent", async () => {
+    let sentInit: RequestInit | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      sentInit = init;
+      return jsonResponse({
+        ok: true,
+        results: [{
+          base_name: "ingenieria_civil",
+          ok: true,
+          skipped: false,
+          n_new: 20,
+          rows_after: 120,
+          edited_rows_reported: 2,
+          source_count: 2,
+          codificacion_job: { ok: true, job_id: "job-recode", kind: "codificacion.reaplicar_surveymonkey", base_name: "ingenieria_civil" },
+        }],
+        codificacion_jobs: [{ ok: true, job_id: "job-recode", kind: "codificacion.reaplicar_surveymonkey", base_name: "ingenieria_civil" }],
+        plan: { ok: true, bases: [] },
+        estudio: {
+          nombre: "AC Ingenierías",
+          processing_mode: "independent_siblings",
+          active_base: "ingenieria_civil",
+          n_bases: 1,
+          bases: {},
+          max_bases: 10,
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiSurveyMonkeyMultibaseRefresh({
+      months: 12,
+      reapply_codificacion: true,
+      bases: [{
+        base_name: "ingenieria_civil",
+        campaigns: [{ survey_id: "222", label: "Civil a Egresados", channel: "Correo", source_channel: "Correo" }],
+      }],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/surveymonkey/multibase/refresh",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(String(sentInit?.body))).toEqual({
+      months: 12,
+      reapply_codificacion: true,
+      bases: [{
+        base_name: "ingenieria_civil",
+        campaigns: [{ survey_id: "222", label: "Civil a Egresados", channel: "Correo", source_channel: "Correo" }],
+      }],
+    });
+    expect(result.results[0].n_new).toBe(20);
+    expect(result.codificacion_jobs?.[0]?.job_id).toBe("job-recode");
   });
 
   test("inspects SurveyMonkey survey structure and response preview", async () => {

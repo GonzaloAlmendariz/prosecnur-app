@@ -5,6 +5,7 @@ import {
   Cloud,
   Database,
   KeyRound,
+  Link2,
   Loader2,
   RefreshCw,
   Settings2,
@@ -14,12 +15,14 @@ import {
 } from "lucide-react";
 import {
   apiConnectionCheck,
+  apiConnectionGoogleSheetsConnect,
   apiConnectionProfileDelete,
   apiConnectionProfileSave,
   apiConnectionProfileSetDefault,
   apiConnectionTokenClear,
   apiConnectionTokenSave,
   apiConnectionsList,
+  apiPath,
   type ConnectionCheckResult,
   type ConnectionProfileState,
   type ConnectionProvider,
@@ -41,6 +44,7 @@ type ProviderMeta = {
   title: string;
   subtitle: string;
   Icon: typeof Cloud;
+  credentialKind: "token" | "oauth";
 };
 
 const PROVIDERS: ProviderMeta[] = [
@@ -49,13 +53,29 @@ const PROVIDERS: ProviderMeta[] = [
     title: "SurveyMonkey",
     subtitle: "Editor XLSForm, importación multibase y Monitoreo.",
     Icon: Cloud,
+    credentialKind: "token",
   },
   {
     provider: "kobo",
     title: "KoboToolbox",
     subtitle: "Monitoreo de campo y conexiones de captura.",
     Icon: Database,
+    credentialKind: "token",
   },
+  {
+    provider: "google_sheets",
+    title: "Google Sheets",
+    subtitle: "Hojas vivas de campo y publicación controlada de salidas Prosecnur.",
+    Icon: Database,
+    credentialKind: "oauth",
+  },
+];
+
+const KOBO_DEFAULT_BASE_URL = "https://kf.kobotoolbox.org";
+const KOBO_SERVER_OPTIONS = [
+  { label: "Global", value: KOBO_DEFAULT_BASE_URL },
+  { label: "EU", value: "https://eu.kobotoolbox.org" },
+  { label: "UNHCR", value: "https://kobo.unhcr.org" },
 ];
 
 const EMPTY_CONNECTIONS: Record<ConnectionProvider, ConnectionTokenState> = {
@@ -69,6 +89,8 @@ const EMPTY_CONNECTIONS: Record<ConnectionProvider, ConnectionTokenState> = {
     ephemeral: false,
     active_profile_id: "",
     active_profile_alias: "",
+    active_profile_base_url: "",
+    active_profile_server_label: "",
     profile_count: 0,
     profiles: [],
   },
@@ -82,6 +104,23 @@ const EMPTY_CONNECTIONS: Record<ConnectionProvider, ConnectionTokenState> = {
     ephemeral: false,
     active_profile_id: "",
     active_profile_alias: "",
+    active_profile_base_url: "",
+    active_profile_server_label: "",
+    profile_count: 0,
+    profiles: [],
+  },
+  google_sheets: {
+    ok: true,
+    provider: "google_sheets",
+    label: "Google Sheets",
+    has_token: false,
+    masked_token: "",
+    persisted: false,
+    ephemeral: false,
+    active_profile_id: "",
+    active_profile_alias: "",
+    active_profile_base_url: "",
+    active_profile_server_label: "",
     profile_count: 0,
     profiles: [],
   },
@@ -120,17 +159,43 @@ function checkMessage(provider: ConnectionProvider, result: ConnectionCheckResul
     const n = result.n_surveys_visible;
     return n == null ? "Conexión verificada." : `Conexión verificada · ${n} encuestas visibles.`;
   }
+  if (provider === "google_sheets") {
+    return "Conexión verificada · Google Sheets responde con la cuenta autorizada.";
+  }
   const count = result.count;
-  return count == null ? "Conexión verificada." : `Conexión verificada · ${count} assets visibles.`;
+  const server = result.base_url ? ` · ${result.base_url}` : "";
+  return count == null ? `Conexión verificada.${server}` : `Conexión verificada · ${count} assets visibles${server}.`;
+}
+
+function koboBaseUrlFromConnection(state: ConnectionTokenState): string {
+  return (
+    state.active_profile_base_url ||
+    state.profiles?.find((profile) => profile.is_default)?.base_url ||
+    state.profiles?.find((profile) => profile.base_url)?.base_url ||
+    KOBO_DEFAULT_BASE_URL
+  );
+}
+
+function parseTokenInput(value: string): string {
+  const text = value.trim();
+  if (!text.startsWith("{")) return text;
+  try {
+    const parsed = JSON.parse(text) as { token?: unknown; api_key?: unknown; key?: unknown };
+    return String(parsed.token ?? parsed.api_key ?? parsed.key ?? text).trim();
+  } catch {
+    return text;
+  }
 }
 
 export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: GlobalSettingsDialogProps) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const [activeTab, setActiveTab] = useState<SettingsTab>("connections");
   const [connections, setConnections] = useState<Record<ConnectionProvider, ConnectionTokenState>>(EMPTY_CONNECTIONS);
-  const [inputs, setInputs] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: "" });
-  const [aliases, setAliases] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: "" });
-  const [remember, setRemember] = useState<Record<ConnectionProvider, boolean>>({ surveymonkey: true, kobo: true });
+  const [inputs, setInputs] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: "", google_sheets: "" });
+  const [aliases, setAliases] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: "", google_sheets: "" });
+  const [baseUrls, setBaseUrls] = useState<Record<ConnectionProvider, string>>({ surveymonkey: "", kobo: KOBO_DEFAULT_BASE_URL, google_sheets: "" });
+  const [remember, setRemember] = useState<Record<ConnectionProvider, boolean>>({ surveymonkey: true, kobo: true, google_sheets: true });
+  const [authUrls, setAuthUrls] = useState<Partial<Record<ConnectionProvider, string>>>({});
   const [busy, setBusy] = useState<Partial<Record<ConnectionProvider, "save" | "check" | "clear">>>({});
   const [loadingConnections, setLoadingConnections] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -158,7 +223,12 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
         setRemember({
           surveymonkey: next.surveymonkey.persisted || !next.surveymonkey.has_token,
           kobo: true,
+          google_sheets: true,
         });
+        setBaseUrls((current) => ({
+          ...current,
+          kobo: koboBaseUrlFromConnection(next.kobo),
+        }));
       })
       .catch((error: unknown) => {
         if (!cancelled) setLoadError(String((error as Error)?.message ?? error));
@@ -191,25 +261,42 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
   }
 
   async function saveProvider(provider: ConnectionProvider) {
-    const token = inputs[provider].trim();
+    const token = provider === "google_sheets" ? inputs[provider].trim() : parseTokenInput(inputs[provider]);
     if (!token) {
-      setProviderMessage(provider, "error", "Pega una clave API nueva para actualizarla.");
+      setProviderMessage(provider, "error", provider === "google_sheets" ? "Pega el JSON cliente OAuth descargado de Google Cloud." : "Pega una clave API nueva para actualizarla.");
       return;
     }
     setProviderBusy(provider, "save");
     try {
       const aliasInput = aliases[provider].trim();
-      const next = provider === "surveymonkey" && remember[provider]
+      const next = provider === "google_sheets"
+        ? await authorizeGoogleSheets(token)
+        : provider === "kobo"
+        ? await apiConnectionProfileSave(provider, token, {
+            alias: aliasInput || connections[provider].active_profile_alias || "Kobo",
+            profile_id: aliasInput ? undefined : connections[provider].active_profile_id || undefined,
+            make_default: true,
+            base_url: baseUrls[provider] || KOBO_DEFAULT_BASE_URL,
+          })
+        : provider === "surveymonkey" && remember[provider]
         ? await apiConnectionProfileSave(provider, token, {
             alias: aliasInput || connections[provider].active_profile_alias || "Principal",
             profile_id: aliasInput ? undefined : connections[provider].active_profile_id || undefined,
             make_default: true,
           })
         : await apiConnectionTokenSave(provider, token, { persist: remember[provider] });
-      mergeConnection(next);
-      setInputs((current) => ({ ...current, [provider]: "" }));
-      setAliases((current) => ({ ...current, [provider]: "" }));
-      setProviderMessage(provider, "ok", "Clave actualizada.");
+      if ("authorization_required" in next && next.authorization_required) {
+        setAuthUrls((current) => ({ ...current, [provider]: next.auth_url }));
+        mergeConnection(next.status as ConnectionTokenState);
+        setProviderMessage(provider, "ok", "Abre Google, autoriza Prosecnur y vuelve a esta pantalla.");
+        window.open(next.auth_url, "_blank", "noopener,noreferrer");
+      } else {
+        mergeConnection(next as ConnectionTokenState);
+        setInputs((current) => ({ ...current, [provider]: "" }));
+        setAliases((current) => ({ ...current, [provider]: "" }));
+        setAuthUrls((current) => ({ ...current, [provider]: "" }));
+        setProviderMessage(provider, "ok", provider === "google_sheets" ? "Google Sheets autorizado." : "Clave actualizada.");
+      }
     } catch (error) {
       setProviderMessage(provider, "error", String((error as Error)?.message ?? error));
     } finally {
@@ -217,10 +304,21 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
     }
   }
 
+  async function authorizeGoogleSheets(text: string) {
+    const oauth = text.startsWith("{") ? JSON.parse(text) : { access_token: text };
+    const callbackUrl = new URL(apiPath("/api/connections/google_sheets/oauth/callback"), window.location.origin).toString();
+    return apiConnectionGoogleSheetsConnect(oauth, callbackUrl);
+  }
+
   async function checkProvider(provider: ConnectionProvider) {
     setProviderBusy(provider, "check");
     try {
-      const result = await apiConnectionCheck(provider);
+      const result = await apiConnectionCheck(provider, provider === "kobo"
+        ? {
+            base_url: baseUrls.kobo || koboBaseUrlFromConnection(connections.kobo),
+            profile_id: connections.kobo.active_profile_id || undefined,
+          }
+        : {});
       setProviderMessage(provider, result.ok ? "ok" : "error", checkMessage(provider, result));
     } catch (error) {
       setProviderMessage(provider, "error", String((error as Error)?.message ?? error));
@@ -234,7 +332,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
     try {
       const next = await apiConnectionTokenClear(provider);
       mergeConnection(next);
-      setProviderMessage(provider, "ok", "Clave quitada.");
+      setProviderMessage(provider, "ok", provider === "google_sheets" ? "Autorización OAuth quitada." : "Clave quitada.");
     } catch (error) {
       setProviderMessage(provider, "error", String((error as Error)?.message ?? error));
     } finally {
@@ -247,6 +345,9 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
     try {
       const next = await apiConnectionProfileSetDefault(provider, profile.id);
       mergeConnection(next);
+      if (provider === "kobo" && profile.base_url) {
+        setBaseUrls((current) => ({ ...current, kobo: profile.base_url || KOBO_DEFAULT_BASE_URL }));
+      }
       setProviderMessage(provider, "ok", `Perfil activo: ${profile.alias}.`);
     } catch (error) {
       setProviderMessage(provider, "error", String((error as Error)?.message ?? error));
@@ -278,7 +379,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
           </span>
           <div>
             <span className="home-settings-eyebrow">Prosecnur</span>
-            <h3 id="home-settings-title">Ajustes</h3>
+            <h3 id="home-settings-title">Configuración</h3>
           </div>
           <button
             ref={closeRef}
@@ -294,7 +395,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
         <nav className="home-settings-tabs" role="tablist" aria-label="Secciones de ajustes">
           <button type="button" className={activeTab === "connections" ? "is-active" : ""} onClick={() => setActiveTab("connections")}>
             Conexiones
-            <span>{configuredCount}/2</span>
+            <span>{configuredCount}/{PROVIDERS.length}</span>
           </button>
           <button type="button" className={activeTab === "notes" ? "is-active" : ""} onClick={() => setActiveTab("notes")}>
             Notas
@@ -310,7 +411,10 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
             <div className="home-settings-panel" role="tabpanel">
               <div className="home-settings-panel-copy">
                 <KeyRound size={15} aria-hidden="true" />
-                <p>Las claves quedan cifradas en este equipo y no viajan dentro del archivo .pulso.</p>
+                <p>
+                  <strong>Suite de conexiones globales.</strong>
+                  <span> API keys, OAuth y tokens viven aquí porque trascienden a los proyectos de Pulso. Cada proyecto .pulso guarda fuentes, mapeos y snapshots; nunca credenciales.</span>
+                </p>
               </div>
               {loadError && (
                 <div className="home-settings-alert is-error">
@@ -326,17 +430,21 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
                     state={connections[meta.provider]}
                     input={inputs[meta.provider]}
                     alias={aliases[meta.provider]}
+                    baseUrl={baseUrls[meta.provider]}
                     remember={remember[meta.provider]}
                     busy={busy[meta.provider] ?? null}
                     message={messages[meta.provider] ?? null}
                     onInputChange={(value) => setInputs((current) => ({ ...current, [meta.provider]: value }))}
                     onAliasChange={(value) => setAliases((current) => ({ ...current, [meta.provider]: value }))}
+                    onBaseUrlChange={(value) => setBaseUrls((current) => ({ ...current, [meta.provider]: value }))}
                     onRememberChange={(value) => setRemember((current) => ({ ...current, [meta.provider]: value }))}
                     onSave={() => void saveProvider(meta.provider)}
                     onCheck={() => void checkProvider(meta.provider)}
                     onClear={() => void clearProvider(meta.provider)}
                     onSetDefault={(profile) => void setDefaultProfile(meta.provider, profile)}
                     onDeleteProfile={(profile) => void deleteProfile(meta.provider, profile)}
+                    authUrl={authUrls[meta.provider] ?? ""}
+                    onOpenAuth={() => authUrls[meta.provider] && window.open(authUrls[meta.provider], "_blank", "noopener,noreferrer")}
                   />
                 ))}
               </div>
@@ -404,41 +512,55 @@ function ConnectionCard({
   state,
   input,
   alias,
+  baseUrl,
   remember,
   busy,
   message,
   onInputChange,
   onAliasChange,
+  onBaseUrlChange,
   onRememberChange,
   onSave,
   onCheck,
   onClear,
   onSetDefault,
   onDeleteProfile,
+  authUrl,
+  onOpenAuth,
 }: {
   meta: ProviderMeta;
   state: ConnectionTokenState;
   input: string;
   alias: string;
+  baseUrl: string;
   remember: boolean;
   busy: "save" | "check" | "clear" | null;
   message: { kind: "ok" | "error"; text: string } | null;
   onInputChange: (value: string) => void;
   onAliasChange: (value: string) => void;
+  onBaseUrlChange: (value: string) => void;
   onRememberChange: (value: boolean) => void;
   onSave: () => void;
   onCheck: () => void;
   onClear: () => void;
   onSetDefault: (profile: ConnectionProfileState) => void;
   onDeleteProfile: (profile: ConnectionProfileState) => void;
+  authUrl: string;
+  onOpenAuth: () => void;
 }) {
   const Icon = meta.Icon;
   const hasInput = input.trim().length > 0;
   const canCheck = state.has_token && busy == null;
   const canClear = state.has_token && busy == null;
   const supportsSession = meta.provider === "surveymonkey";
-  const profiles = supportsSession ? state.profiles ?? [] : [];
-  const saveLabel = supportsSession && remember
+  const supportsProfiles = meta.provider === "surveymonkey" || meta.provider === "kobo";
+  const isKobo = meta.provider === "kobo";
+  const isOAuth = meta.credentialKind === "oauth";
+  const profiles = supportsProfiles ? state.profiles ?? [] : [];
+  const koboServerSelectValue = KOBO_SERVER_OPTIONS.some((option) => option.value === baseUrl) ? baseUrl : "custom";
+  const saveLabel = isOAuth
+    ? "Autorizar"
+    : supportsProfiles && (!supportsSession || remember)
     ? alias.trim()
       ? "Guardar perfil"
       : "Actualizar activo"
@@ -462,13 +584,19 @@ function ConnectionCard({
 
       {state.has_token && (
         <div className="home-connection-mask">
-          <span>{supportsSession && state.active_profile_alias ? `Perfil activo · ${state.active_profile_alias}` : "Clave activa"}</span>
+          <span>
+            {isOAuth
+              ? "OAuth activo"
+              : supportsProfiles && state.active_profile_alias
+                ? `Perfil activo · ${state.active_profile_alias}${isKobo && state.active_profile_server_label ? ` · ${state.active_profile_server_label}` : ""}`
+                : "Clave activa"}
+          </span>
           <code>{state.masked_token}</code>
         </div>
       )}
 
-      {supportsSession && profiles.length > 0 && (
-        <div className="home-connection-profiles" aria-label="Perfiles SurveyMonkey">
+      {supportsProfiles && profiles.length > 0 && (
+        <div className="home-connection-profiles" aria-label={`Perfiles ${meta.title}`}>
           <div className="home-connection-profiles-head">
             <span>Perfiles guardados</span>
             <small>{profiles.length} {profiles.length === 1 ? "perfil" : "perfiles"}</small>
@@ -476,11 +604,13 @@ function ConnectionCard({
           <div className="home-connection-profile-list">
             {profiles.map((profile) => (
               <div key={profile.id} className={`home-connection-profile ${profile.is_default ? "is-default" : ""}`}>
-                <div>
+                <div className="home-connection-profile-copy">
                   <strong>{profile.alias}</strong>
                   <small>
                     {profile.is_default ? "Predeterminado" : "Disponible"}
+                    {profile.server_label ? ` · ${profile.server_label}` : ""}
                     {profile.masked_token ? ` · ${profile.masked_token}` : ""}
+                    {profile.base_url ? ` · ${profile.base_url}` : ""}
                   </small>
                 </div>
                 <div className="home-connection-profile-actions">
@@ -496,12 +626,16 @@ function ConnectionCard({
               </div>
             ))}
           </div>
-          <p>El cambio de perfil es manual. Prosecnur no rota tokens automáticamente para sortear límites de la API.</p>
+          <p>
+            {isKobo
+              ? "Cada perfil Kobo fija servidor y token; Prosecnur usa el perfil elegido al leer assets y respuestas."
+              : "El cambio de perfil es manual. Prosecnur no rota tokens automáticamente para sortear límites de la API."}
+          </p>
         </div>
       )}
 
       <div className="home-connection-form">
-        {supportsSession && remember && (
+        {supportsProfiles && (!supportsSession || remember) && (
           <label>
             <span>Alias del perfil</span>
             <input
@@ -513,15 +647,57 @@ function ConnectionCard({
             />
           </label>
         )}
+        {isKobo && (
+          <>
+            <label>
+              <span>Servidor Kobo</span>
+              <select
+                value={koboServerSelectValue}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  onBaseUrlChange(value === "custom" ? baseUrl || KOBO_DEFAULT_BASE_URL : value);
+                }}
+                disabled={busy != null}
+              >
+                {KOBO_SERVER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            {koboServerSelectValue === "custom" && (
+              <label>
+                <span>URL del servidor</span>
+                <input
+                  type="text"
+                  value={baseUrl}
+                  onChange={(event) => onBaseUrlChange(event.target.value)}
+                  placeholder="https://kobo.example.org"
+                  disabled={busy != null}
+                />
+              </label>
+            )}
+          </>
+        )}
         <label>
-          <span>Nueva clave API</span>
-          <input
-            type="password"
-            value={input}
-            onChange={(event) => onInputChange(event.target.value)}
-            placeholder={state.has_token ? "Pegar para reemplazar o crear perfil" : "Pegar clave API"}
-            disabled={busy != null}
-          />
+          <span>{isOAuth ? "JSON cliente OAuth local" : "Nueva clave API"}</span>
+          {isOAuth ? (
+            <textarea
+              value={input}
+              onChange={(event) => onInputChange(event.target.value)}
+              placeholder="Pegar JSON descargado de Google Cloud"
+              rows={4}
+              disabled={busy != null}
+            />
+          ) : (
+            <input
+              type="password"
+              value={input}
+              onChange={(event) => onInputChange(event.target.value)}
+              placeholder={state.has_token ? "Pegar para reemplazar o crear perfil" : "Pegar clave API"}
+              disabled={busy != null}
+            />
+          )}
         </label>
         {supportsSession && (
           <label className="home-connection-check">
@@ -541,6 +717,12 @@ function ConnectionCard({
           {busy === "save" ? <Loader2 size={13} className="pulso-spin" /> : <KeyRound size={13} />}
           {saveLabel}
         </button>
+        {isOAuth && (
+          <button type="button" onClick={onOpenAuth} disabled={!authUrl || busy != null}>
+            <Link2 size={13} />
+            Abrir Google
+          </button>
+        )}
         <button type="button" onClick={onCheck} disabled={!canCheck}>
           {busy === "check" ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
           Probar

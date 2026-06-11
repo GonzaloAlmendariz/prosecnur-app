@@ -1616,6 +1616,229 @@ isTRUE_vec <- function(x) {
   )
 }
 
+.codif_apply_has_user_state <- function(sid, source = NULL) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(FALSE)
+  src <- if (is.null(source)) codif_source_active(sid) else as.character(source)[1]
+  st <- (s$codif_por_base %||% list())[[src]] %||% list()
+  has_groups <- is.list(st$grupos_recod) && any(vapply(st$grupos_recod, function(g) {
+    is.list(g) && length(g) > 0L
+  }, logical(1)))
+  has_responses <- is.list(st$respuestas_recod) && length(st$respuestas_recod) > 0L
+  has_marked <- is.list(st$marcadas) && any(vapply(st$marcadas, isTRUE, logical(1)))
+  isTRUE(has_groups || has_responses || has_marked || !is.null(st$plantilla_codigos_file_id))
+}
+
+.codif_with_base_active <- function(sid, base_name = NULL, expr) {
+  base_name <- as.character(base_name %||% "")[1]
+  old_active <- tryCatch(as.character(estudio_active_base(sid) %||% ""), error = function(e) "")
+  changed <- FALSE
+  if (nzchar(base_name)) {
+    estudio_active_base_set(sid, base_name)
+    changed <- TRUE
+  }
+  on.exit({
+    if (isTRUE(changed) && nzchar(old_active)) {
+      current <- tryCatch(names(estudio_list_bases(sid)), error = function(e) character(0))
+      if (old_active %in% current) {
+        tryCatch(estudio_active_base_set(sid, old_active), error = function(e) NULL)
+      }
+    }
+  }, add = TRUE)
+  force(expr)
+}
+
+.codif_apply_complete <- function(sid, base_name, paths) {
+  data_meta <- .register_output_file(sid, "data_adaptada", paths$data_out)
+  inst_meta <- .register_output_file(sid, "instrumento_adaptado", paths$inst_out)
+  inst_adaptado <- reporte_instrumento(path = inst_meta$path)
+  data_adaptada <- .read_data_any(data_meta)
+  data_adaptada <- normalize_data_for_xlsform(data_adaptada, inst_adaptado)
+  rp_data_adaptada <- reporte_data(data_adaptada, instrumento = inst_adaptado)
+
+  s_now <- session_get(sid)
+  target_base <- as.character(base_name %||% codif_source_active(sid) %||% "")
+  if (nzchar(target_base) && !is.null(s_now$estudio) && !is.null(s_now$estudio$bases[[target_base]])) {
+    estudio_preserve_original_base_files(sid, target_base)
+    estudio_replace_base_files(
+      sid = sid,
+      nombre = target_base,
+      xlsform_file_id = inst_meta$file_id,
+      data_file_id = data_meta$file_id,
+      data_ext = data_meta$ext,
+      rp_data = rp_data_adaptada,
+      rp_inst = inst_adaptado,
+      n_filas = nrow(rp_data_adaptada),
+      n_columnas = ncol(rp_data_adaptada)
+    )
+  } else {
+    session_set(sid, "rp_inst", inst_adaptado)
+    session_set(sid, "rp_data", rp_data_adaptada)
+  }
+  session_set(sid, "codif_data_adaptada_fid", data_meta$file_id)
+  session_set(sid, "codif_inst_adaptado_fid", inst_meta$file_id)
+  session_set(sid, "codif_aplicado", TRUE)
+  .codif_with_base_active(sid, target_base, .codif_switch_analitica_to_adapted(sid))
+  list(
+    ok = TRUE,
+    data_adaptada = list(file_id = data_meta$file_id, size = data_meta$size),
+    instrumento_adaptado = list(file_id = inst_meta$file_id, size = inst_meta$size)
+  )
+}
+
+.codif_start_apply_job <- function(sid, base_name = NULL, kind = "codificacion.aplicar") {
+  .codif_with_base_active(sid, base_name, {
+    s <- session_get(sid)
+    source_pair <- .codif_source_pair_for_adapt(sid)
+    xls <- source_pair$xls
+    dat <- source_pair$data
+
+    inst <- leer_instrumento_xlsform(xls$path)
+    data_df <- .read_data_any(dat)
+    data_df <- normalize_data_for_xlsform(data_df, inst)
+    data_adapt_df <- .codif_prepare_data_for_adapt(data_df)
+
+    draft <- codif_get(sid, "familias_draft")
+    if (is.null(draft)) {
+      df <- .familias_suggest_tibble(sid)
+      rows <- .familias_rows_from_df(df)
+      draft <- list(
+        rows = rows,
+        source = "suggestion",
+        updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+      )
+      codif_set(sid, "familias_draft", draft)
+    }
+
+    marcadas_set <- codif_get(sid, "marcadas") %||% list()
+    if (length(marcadas_set) > 0L) {
+      for (i in seq_along(draft$rows)) {
+        p <- as.character(draft$rows[[i]]$parent %||% "")
+        if (nzchar(p) && isTRUE(marcadas_set[[p]])) {
+          draft$rows[[i]]$use <- TRUE
+        }
+      }
+    }
+    draft <- .codif_normalize_legacy_select_one_modes(sid, draft, data_adapt_df)
+
+    data_cols <- names(data_adapt_df)
+    for (i in seq_along(draft$rows)) {
+      r <- draft$rows[[i]]
+      tipo <- as.character(r$tipo %||% "")
+      parent <- as.character(r$parent %||% "")
+      pcol <- as.character(r$parent_col %||% "")
+      if (!nzchar(pcol) &&
+          tipo %in% c("select_one","select_multiple","integer","text") &&
+          nzchar(parent) && parent %in% data_cols) {
+        draft$rows[[i]]$parent_col <- parent
+      }
+    }
+
+    fam_path <- file.path(s$dir, "downloads",
+      sprintf("familias_draft_%s.xlsx", uuid::UUIDgenerate()))
+    dir.create(dirname(fam_path), showWarnings = FALSE, recursive = TRUE)
+    .familias_draft_to_xlsx(draft, fam_path)
+    split <- leer_familias_clasificar(
+      path = fam_path, inst = inst, dat = list(raw = data_adapt_df), verbose = FALSE
+    )
+    codif_set(sid, "familias_split", split)
+    codif_set(sid, "familias_xlsx_path", fam_path)
+
+    plantilla <- construir_plantilla_desde_familias(
+      inst = inst, dat = list(raw = data_adapt_df), split = split
+    )
+    codes_path <- file.path(s$dir, "downloads",
+      sprintf("plantilla_codificacion_%s.xlsx", uuid::UUIDgenerate()))
+    exportar_plantilla_codificacion_xlsx(
+      plantilla, path_xlsx = codes_path, inst = inst
+    )
+    codes_meta <- .register_output_file(sid, "plantilla_codif_template", codes_path)
+    codif_set(sid, "plantilla_codigos_file_id", codes_meta$file_id)
+
+    .bridge_grupos_to_plantilla(sid)
+
+    grupos_map <- codif_get(sid, "grupos_recod") %||% list()
+    parents_con_grupos <- names(grupos_map)[vapply(
+      grupos_map,
+      function(g) is.list(g) && length(g) > 0L,
+      logical(1)
+    )]
+
+    so_parent_vars <- .codif_vars_from_split(split$select_one, parents_con_grupos, modo = "padre")
+    so_child_vars  <- .codif_vars_from_split(split$select_one, parents_con_grupos, modo = "hijo")
+    sm_vars        <- .codif_vars_from_split(split$select_multiple, parents_con_grupos)
+    int_vars       <- .codif_vars_from_split(split$integer, parents_con_grupos)
+    text_vars      <- .codif_vars_from_split(split$text, parents_con_grupos)
+
+    data_out <- file.path(s$dir, "downloads",
+      sprintf("data_adaptada_%s.xlsx", uuid::UUIDgenerate()))
+    inst_out <- file.path(s$dir, "downloads",
+      sprintf("instrumento_adaptado_%s.xlsx", uuid::UUIDgenerate()))
+    data_adapt_path <- file.path(s$dir, "downloads",
+      sprintf("data_codificacion_%s.xlsx", uuid::UUIDgenerate()))
+    openxlsx::write.xlsx(data_adapt_df, file = data_adapt_path, overwrite = TRUE)
+
+    target_base <- as.character(base_name %||% codif_source_active(sid) %||% "")
+    job_id <- job_submit(
+      sid = sid,
+      kind = kind,
+      func = function(xls_path, data_path, codes_path, fam_path, data_out, inst_out,
+                      sm_vars, so_parent_vars, so_child_vars, int_vars, text_vars,
+                      progress_path = NULL) {
+        report <- if (exists("job_progress_writer", mode = "function")) {
+          job_progress_writer(progress_path)
+        } else {
+          function(...) invisible(NULL)
+        }
+        report("adapt", percent = 12, message = "Adaptando base de datos...")
+        ppra_adaptar_data(
+          path_instrumento = xls_path,
+          path_datos       = data_path,
+          path_plantilla   = codes_path,
+          sm_vars          = sm_vars,
+          so_parent_vars   = so_parent_vars,
+          so_child_vars    = so_child_vars,
+          text_vars        = text_vars,
+          int_vars         = int_vars,
+          out_path         = data_out,
+          path_familias    = fam_path
+        )
+        report("adapt", percent = 62, message = "Adaptando instrumento...")
+        ppra_adaptar_instrumento(
+          path_instrumento_in  = xls_path,
+          path_data_adaptada   = data_out,
+          path_instrumento_out = inst_out,
+          path_plantilla       = codes_path,
+          sm_vars              = sm_vars,
+          so_parent_vars       = so_parent_vars,
+          so_child_vars        = so_child_vars,
+          text_vars            = text_vars,
+          integer_vars         = int_vars
+        )
+        report("export", percent = 94, message = "Guardando archivos adaptados...")
+        list(data_out = data_out, inst_out = inst_out)
+      },
+      args = list(
+        xls_path = xls$path,
+        data_path = data_adapt_path,
+        codes_path = codes_path,
+        fam_path = fam_path,
+        data_out = data_out,
+        inst_out = inst_out,
+        sm_vars = sm_vars,
+        so_parent_vars = so_parent_vars,
+        so_child_vars = so_child_vars,
+        text_vars = text_vars,
+        int_vars = int_vars
+      ),
+      on_complete = function(j) {
+        .codif_apply_complete(j$sid, target_base, j$result_data)
+      }
+    )
+    list(ok = TRUE, job_id = job_id, kind = kind, base_name = target_base)
+  })
+}
+
 mount_codificacion <- function(pr) {
   pr |>
     plumber::pr_post("/api/codificacion/plantilla-familias", wrap_endpoint(function(req, res) {

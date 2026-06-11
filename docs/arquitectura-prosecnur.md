@@ -1,6 +1,6 @@
 # Arquitectura de Prosecnur
 
-Actualizado: 2026-05-31
+Actualizado: 2026-06-06
 
 ## Proposito
 
@@ -22,9 +22,10 @@ portable del trabajo.
 
 "Local" no significa aislado de internet. Prosecnur puede hacer conexiones
 salientes cuando el usuario las configura y las dispara: importar desde
-SurveyMonkey/Kobo con tokens del usuario o publicar un dashboard en Hugging
-Face. Lo que permanece local es la aplicacion principal, el control del
-proyecto y la sesion de trabajo.
+SurveyMonkey/Kobo con tokens del usuario, leer o publicar pestanas controladas
+en Google Sheets, o publicar un dashboard en Hugging Face. Lo que permanece
+local es la aplicacion principal, el control del proyecto y la sesion de
+trabajo.
 
 ## Decision Arquitectonica Principal
 
@@ -39,7 +40,8 @@ formularios, SurveyMonkey/Kobo, validacion, limpieza, codificacion, analitica,
 reportes, graficos, dashboards, rutas, muestra y monitoreo.
 
 Las integraciones web son bordes del sistema, no el centro de ejecucion:
-SurveyMonkey/Kobo entran como conectores salientes y Hugging Face recibe un
+SurveyMonkey/Kobo entran como conectores salientes, Google Sheets puede operar
+como superficie externa de campo para Monitoreo, y Hugging Face recibe un
 artefacto dashboard publicado desde un snapshot del proyecto.
 
 La orientacion microkernel no significa que cada modulo sea instalable por
@@ -57,12 +59,14 @@ flowchart LR
   app["Prosecnur local"]
   fs["Sistema de archivos local"]
   sm["SurveyMonkey/Kobo"]
+  sheets["Google Sheets"]
   entregables["Entregables: XLSX, SAV, HTML, PDF, PPT, Word"]
   exportable["Dashboard publicable en HF"]
 
   analista -->|"opera"| app
   app -->|"lee y escribe"| fs
   app -->|"importa cuando el usuario lo solicita"| sm
+  app -->|"lee snapshots y publica pestanas propias"| sheets
   app -->|"genera"| entregables
   app -->|"publica artefacto si el usuario lo solicita"| exportable
 ```
@@ -125,6 +129,7 @@ flowchart LR
 | Archivos y entregables | Subir inputs, descargar outputs y guardar entregables junto al proyecto | Metadatos de archivos en sesion, rutas temporales o elegidas por el usuario | `/api/files/upload`, `/api/files/<file_id>/download`, `/api/fs/save-to-project` | IO local, validacion de nombres, estado de sesion | Escribir fuera de rutas solicitadas sin confirmacion del usuario |
 | Jobs | Ejecutar trabajos largos sin bloquear la interfaz | Registro de jobs, estado, resultado, cancelacion | [`api/R/jobs.R`](../api/R/jobs.R), [`api/R/router_jobs.R`](../api/R/router_jobs.R), `/api/jobs/*` | `callr`, `later`, `ps`, funciones del modulo que encola | Mutar estado de otros modulos sin contrato de resultado |
 | Secretos | Guardar tokens fuera del proyecto | Archivos cifrados en `~/.prosecnurapp/secrets/` y secretos efimeros por `sid` en memoria | [`api/R/secrets.R`](../api/R/secrets.R) | `openssl`, permisos de usuario local, session store | Guardar tokens en `.pulso`, logs, fixtures o exports |
+| Configuracion y conexiones | Administrar autorizaciones globales que trascienden proyectos `.pulso` | Estado enmascarado de SurveyMonkey, Kobo, Google Sheets y futuros conectores; secretos fuera del proyecto | `/api/connections/*`; [`api/R/router_connections.R`](../api/R/router_connections.R); UI de Configuracion global | Secretos, clientes HTTP de conectores, OAuth local | Pedir credenciales desde modulos de dominio, devolver tokens completos al frontend |
 | Errores y contratos API | Respuestas consistentes para la SPA | Codigos de error, mensajes, status HTTP | [`api/R/errors.R`](../api/R/errors.R), `wrap_endpoint()` | Routers Plumber, tipos simples serializables | Errores crudos no normalizados en rutas de usuario |
 
 ## Modulos De Dominio
@@ -149,7 +154,7 @@ la evolucion del codigo.
 | Rutas | Preparar hojas de ruta, mapas, cuotas y reportes decisionales | Configuracion territorial, previews, entregables de campo | `/api/hojas-ruta/*`; [`frontend/src/features/hojasRuta`](../frontend/src/features/hojasRuta) | Archivos, datos cartograficos locales, jobs, reportes | Depender de analitica salvo contrato explicito de fuente |
 | Enciclopedia metodologica | Exponer catalogos, glosario, tipos de estudio y comparadores metodologicos de consulta | Catalogos read-only versionados con la app; sin estado mutable de proyecto | `/api/enciclopedia/*`; [`frontend/src/features/enciclopedia`](../frontend/src/features/enciclopedia) | Nucleo API, catalogos metodologicos locales, modulo de muestra como consumidor | Mutar proyectos `.pulso`, guardar decisiones de limpieza o depender de credenciales externas |
 | Muestra | Calcular componentes muestrales, recomendar tecnicas y exportar reporte | Estudio muestral, componentes, resultados, modo de trabajo | `/api/calc-muestra/*`; [`frontend/src/features/calcMuestra`](../frontend/src/features/calcMuestra) | Motor de calculo, enciclopedia metodologica, jobs | Mutar bases de encuesta o decisiones de limpieza |
-| Monitoreo | Consolidar seguimiento operativo y supervision | Fuente de monitoreo, configuracion, sincronizaciones, exports | `/api/monitoreo/*`; [`frontend/src/features/monitoreo`](../frontend/src/features/monitoreo) | Carga, calc-muestra cuando importa, archivos, reportes | Reemplazar el estado del estudio sin accion explicita |
+| Monitoreo | Centro de control operativo local: fuentes, snapshots, casos, cruces, metas, alertas, auditoria, perfiles y exportaciones | `monitoreo_sources`, `monitoreo_config`, `monitoreo_profile`, `monitoreo_snapshot`, eventos de sincronizacion; persiste en `.pulso` sin credenciales | `/api/monitoreo/*`, `/api/monitoreo/sheets/*`; [`frontend/src/features/monitoreo`](../frontend/src/features/monitoreo) | Carga, calc-muestra cuando importa, archivos, reportes, conexiones globales SurveyMonkey/Kobo/Google Sheets, hojas de ruta segun perfil | Reemplazar el estado del estudio sin accion explicita, pedir o guardar credenciales, usar Sheets como backend canonico, modificar pestanas vivas de campo |
 
 ## Caracteristicas Arquitectonicas Criticas
 
@@ -178,6 +183,7 @@ la evolucion del codigo.
 | `.pulso` portable en vez de base de datos persistente | Archivo unico, facil de compartir, inspeccionable como zip, compatible con trabajo local | Menos concurrencia, migraciones manuales, riesgo de crecimiento si se guardan caches | ADR 0002, caches excluidos, entregables fuera del proyecto |
 | Estado de sesion en memoria en vez de backend persistente | Flujo rapido, menos infraestructura, aislamiento por proceso local | Reinicio pierde sesiones efimeras, necesita `.pulso` para continuidad | Banners de sesion perdida, autoguardado del proyecto |
 | Dashboard publicable desde una app siempre local | Permite compartir resultados en HF sin convertir Prosecnur en SaaS | Superficie de seguridad adicional del artefacto hospedado, dependencia de proveedor externo | Rutas read-only controladas para el artefacto; Prosecnur sigue ejecutandose localmente |
+| Google Sheets como superficie de Monitoreo | Supervisores y campo pueden seguir trabajando en hojas vivas mientras Prosecnur audita y reporta | Permisos OAuth globales, cambios de encabezado y latencia de red deben manejarse explicitamente | ADR 0010; autorizacion en Configuracion; lectura como snapshot local; escritura solo en pestanas propias Prosecnur |
 
 ## Reglas De Modularidad
 

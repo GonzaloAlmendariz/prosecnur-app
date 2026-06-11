@@ -18,7 +18,7 @@ import {
   Clock,
   Settings2,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { apiShutdown, type SessionState } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import {
@@ -83,6 +83,18 @@ const DEFAULT_CINEMA_METRICS: CinemaMetrics = {
 // ---- Notas de la versión --------------------------------------------
 const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "3.3.3",
+    date: "2026-06-11",
+    highlights: [
+      "Carga: actualiza respuestas SurveyMonkey de bases ya trabajadas sin reemplazar datos locales y reporta registros validos nuevos.",
+      "SurveyMonkey multibase: permite agregar campanas/canales a una base existente, persistirlas y refrescarlas junto con la fuente principal.",
+      "Consentimiento: muestra la pregunta y opcion aprobatoria que definen los registros validos en Carga/Bases.",
+      "Codificacion: conserva el avance y relanza la reaplicacion cuando entran respuestas nuevas.",
+      "Monitoreo: incorpora Google Sheets como superficie operativa controlada para publicar salidas Prosecnur sin modificar la hoja viva de campo.",
+      "Monitoreo: refuerza taxonomia de estados, consultas internas, fuentes multiples y documentacion arquitectonica del centro operativo.",
+    ],
+  },
+  {
     version: "3.3.1",
     date: "2026-06-05",
     highlights: [
@@ -124,7 +136,7 @@ const RELEASE_NOTES: ReleaseNote[] = [
     highlights: [
       "Arquitectura canonica: guia principal y ADRs para app local, formato .pulso, secretos fuera del proyecto, modulos por dominio, integraciones salientes y auditoria reproducible.",
       "Auditoria canonica: nuevo proyecto .pulso sintetico, comandos Make y smoke de Electron para diagnosticar regresiones con capturas, sid, puerto y checksum aislados.",
-      "Conexiones: Ajustes centraliza SurveyMonkey y Kobo, guarda claves fuera del .pulso, soporta perfiles SurveyMonkey y solo expone mascaras al frontend.",
+      "Conexiones: Configuracion centraliza SurveyMonkey, Kobo y Google Sheets, guarda credenciales fuera del .pulso, soporta perfiles SurveyMonkey y solo expone mascaras al frontend.",
       "Multibase y monitoreo: mejor importacion de familias SurveyMonkey, bases hermanas independientes, sincronizacion de fuentes, seleccion de base activa y motores mas defensivos.",
       "Home y shell: nuevo deck de modulos, Ajustes con notas/creditos/conexiones, catalogo de modulos compartido y estados de proyecto mas claros.",
       "Calidad del release: mas pruebas frontend/R para cliente API, carga multibase, codificacion, analitica, persistencia .pulso, secretos y auditoria.",
@@ -286,9 +298,17 @@ function computeMeta(
 export default function HomePage() {
   const { state, version } = useSession();
   const { project } = useProjectShell();
+  const location = useLocation();
   const proc = useProcesamientoState();
   const [exitOpen, setExitOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("settings") === "connections" || params.get("settings") === "configuracion") {
+      setSettingsOpen(true);
+    }
+  }, [location.search]);
 
   return (
     <div className="home-wrap">
@@ -834,7 +854,7 @@ function HomeFooter({
           className="home-footer-notes"
           onClick={onOpenSettings}
         >
-          <Settings2 size={11} /> Ajustes
+          <Settings2 size={11} /> Configuración
         </button>
         <button type="button" className="home-footer-quit" onClick={onClose}>
           <Power size={11} /> Cerrar aplicación

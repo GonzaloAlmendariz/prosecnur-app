@@ -52,6 +52,10 @@
   # re-importan vía .dashboard_rebuild_after_load.
   s$dashboard_rp_inst <- NULL
   s$dashboard_rp_data <- NULL
+  s$monitoreo_dashboard_cache <- NULL
+  s$monitoreo_dashboard_cache_token <- NULL
+  s$monitoreo_dashboard_light_cache <- NULL
+  s$monitoreo_dashboard_light_cache_token <- NULL
   # Catálogos externos cacheados durante la sesión. Son metadata regenerable
   # desde la integración y no deben viajar como contrato persistente del .pulso.
   s$surveymonkey_survey_catalog <- NULL

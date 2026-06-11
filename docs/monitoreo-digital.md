@@ -1,306 +1,255 @@
-# Plan de monitoreo digital
+# Monitoreo como centro de control operativo
 
-Este modulo usa datos sincronizados desde KoboToolbox y SurveyMonkey. No depende de hojas de ruta: las cuotas, variables de control, reglas de calidad y supervision viven en la configuracion propia de monitoreo.
+Monitoreo es el modulo local que consolida seguimiento operativo, supervision,
+auditoria y reportes desde superficies de campo existentes. No exige que
+supervisores o enumeradores instalen Prosecnur: pueden seguir trabajando en
+Google Sheets, SurveyMonkey, Kobo, Excel local u hojas de ruta. Prosecnur lee
+esas superficies como snapshots, aplica reglas versionadas y publica salidas
+controladas.
 
-El plan actual queda integrado con una segunda capa de trabajo: monitoreo transversal para cualquier estudio y monitoreo multi-componente para acreditaciones u otros estudios con actores, metas y disenos diferenciados.
+Monitoreo no depende obligatoriamente de hojas de ruta. Segun el perfil, puede
+consumir hojas de ruta, Google Sheets, Excel local, SurveyMonkey o Kobo.
+Prosecnur sigue siendo la app local y el proyecto `.pulso` sigue siendo el
+snapshot reproducible. Sheets es una superficie operativa externa, no el
+backend canonico.
 
-## Alcance transversal actual
+## Contrato del modulo
 
-Monitoreo mantiene el flujo operativo general:
+### Core
 
-- Fuentes: KoboToolbox y SurveyMonkey.
-- Configuracion: metas, cuotas, variables de control, campos criticos, estados validos y reglas de calidad.
-- Tablero: KPIs, avance de metas, produccion, inconsistencias y muestra de supervision.
-- Persistencia: fuentes normalizadas, snapshot de datos y configuracion dentro del proyecto; tokens cifrados fuera del `.pulso`.
-- Exportacion: reporte XLSX de seguimiento y supervision.
+El nucleo transversal de Monitoreo contiene:
 
-Esta capa sirve para cualquier levantamiento, aun cuando no venga del calculador de muestra.
+- fuentes normalizadas;
+- snapshot reproducible de datos leidos;
+- casos operativos;
+- cruces entre universo, barrido, respuestas y avances;
+- metas y minimos;
+- alertas y auditoria;
+- exportaciones XLSX/reportes;
+- eventos de sincronizacion.
 
-## Capa multi-componente para acreditaciones
+Estado persistido en `.pulso`:
 
-La capa de acreditaciones se activa cuando el estudio viene de `/calc-muestra` o cuando la configuracion de monitoreo declara componentes por actor. No reemplaza el monitoreo transversal: lo extiende con metas, estados de cumplimiento, benchmarks y cierre metodologico.
+- `monitoreo_sources`;
+- `monitoreo_config`;
+- `monitoreo_profile`;
+- `monitoreo_snapshot`;
+- IDs de hojas, nombres de pestanas, rangos, mapeos y hashes de snapshot.
 
-Flujo canonico:
+Estado prohibido en `.pulso`:
 
-```text
-1. /calc-muestra: estimacion_preliminar
-2. /calc-muestra: diseno_validado
-3. /monitoreo:    seguimiento_campo
-4. /monitoreo:    cierre_campo
-```
+- access tokens OAuth;
+- refresh tokens;
+- tokens SurveyMonkey/Kobo;
+- secretos, claves o credenciales.
 
-`estimacion_preliminar` y `diseno_validado` pertenecen al calculador. `seguimiento_campo` y `cierre_campo` pertenecen a Monitoreo.
+### Profiles
 
-### Integracion con calc-muestra
+Los perfiles son especializaciones del motor, no modulos separados:
 
-El estudio validado del calculador debe importarse a Monitoreo con su `id`, titulo, contexto y componentes. Cada componente conserva su diseno original y aporta su meta final como denominador del seguimiento.
+- `acreditacion`: v1 implementable de punta a punta.
+- `territorial`: activo para Kobo + Hojas de Ruta.
+- `telefonico`: planificado como perfil especializado.
+- `digital_general`: planificado como tablero general.
 
-La importacion debe portar la accion del evaluador de muestra. Monitoreo no debe asumir que todos los estudios llegan con una muestra estadistica calculada: algunos llegan con marco de cobertura por actor, otros con cuotas operativas y otros con componentes mixtos. Los casos que ya traen base/listado/muestra/meta cerrada no pasan por el calculador de propuestas. La referencia canonica esta en `docs/tipos-estudio-2024-2026.md` y en `api/inst/catalogos/catalogo_tipos_estudio.json`.
+`config.acreditacion` se mantiene como vista de compatibilidad, pero el modelo
+canonico nuevo es `monitoreo_profile`.
 
-Monitoreo agrega, sin modificar el diseno original:
+Cada proyecto `.pulso` tiene una sola ruta de monitoreo. La UI inicia en un hub
+de decision donde el usuario elige `acreditacion`, `territorial`, `telefonico`
+o `digital_general`. `acreditacion` y `territorial` tienen flujo activo; las
+otras rutas quedan visibles como planificadas. Una vez seleccionada una ruta,
+el flujo posterior queda gobernado por ese perfil y cambiarlo implica crear un
+proyecto nuevo o reiniciar el monitoreo, porque fuentes, reglas, reportes y
+snapshot pertenecen a ese tipo unico.
 
-- `modo_trabajo`: `seguimiento_campo` o `cierre_campo`.
-- `seguimiento_por_componente`: avance operativo por componente.
-- `n_efectivo`, fecha de actualizacion y notas de campo.
-- Intentos por canal y tasa de contacto efectiva.
-- Estado de cumplimiento y brechas.
-- Bolsa operativa para conglomerados.
-- Progreso de subcuotas para disenos por cuotas.
+### Surfaces
 
-UI esperada:
+Las superficies soportadas o planificadas son:
 
-- Desde `/calc-muestra`, en modo `diseno_validado`, CTA `Iniciar seguimiento en Monitoreo`.
-- Desde `/monitoreo`, enlace inverso `Ver diseno metodologico` cuando el estudio fue creado desde el calculador.
+- Google Sheets;
+- Excel local;
+- SurveyMonkey;
+- KoboToolbox;
+- hojas de ruta.
 
-### Datos requeridos por componente
+Cada fuente declara:
 
-Cuando hay marco, Monitoreo debe pedir estos campos al iniciar el seguimiento:
-
-| Campo | Definicion |
+| Campo | Valores |
 |---|---|
-| `universo_bruto` | Todos los registros declarados o recibidos. |
-| `marco_actualizado` | Registros elegibles despues de limpieza y rol unico. |
-| `marco_contactable` | Subconjunto con canal util, como telefono o correo. |
-| `meta_efectiva` | Casos objetivo segun el diseno validado. |
-| `tasa_respuesta_esperada` | Tasa esperada por canal y actor. |
-
-El reporte debe indicar sobre cual nivel del marco se calculo la meta.
-
-### Estados de cumplimiento
-
-Monitoreo debe portar la regla del calculador como `monitoreo_estado_cumplimiento(n_efectivo, n_objetivo)`:
-
-| Estado | Condicion | Comportamiento |
-|---|---|---|
-| `sin_objetivo` | Meta ausente o menor/igual a cero. | No bloquear; exigir completar meta antes del cierre metodologico. |
-| `cumple_meta` | `n_efectivo >= n_objetivo`. | Reportar cobertura lograda y permitir cierre normal. |
-| `brecha_menor_documentada` | Brecha porcentual menor a 5%. | Permitir cierre con justificacion y advertencia metodologica. |
-| `brecha_relevante` | Incumplimiento mayor o actor critico sin cobertura. | Exigir plan de refuerzo o aprobacion metodologica antes de cerrar. |
-
-Minimos transversales:
-
-- `n >= 30` para analisis estadistico valido.
-- `n >= 30` por grupo para cruces.
-- Si `N < 30` y no hay cobertura total, clasificar como sondeo.
-
-Estos minimos deben disparar alertas cuando un actor o grupo cae bajo umbral.
-
-### Benchmarks internos de acreditacion
-
-Los benchmarks historicos de acreditacion son referencia interna para alertas y no deben exponerse en reportes publicos.
-
-| Actor | Rango observado | Promedio | Mediana | Lectura operativa |
-|---|---:|---:|---:|---|
-| Estudiantes | 58% a 97% | 71.3% | 69% | Meta 60% realista; puede caer en bases grandes o campos complejos. |
-| Docentes | 66% a 100% | 89.3% | 98.5% | Regla 60% o 150 validada; pocas brechas. |
-| Egresados | 62% a 75% | 68.2% | 67% | Regla 50% o 150 conservadora; canal telefonico puede superar metas. |
-| Administrativos | 64% a 100% | 94.6% | 97% | Meta 80% razonable; alerta si la carrera no moviliza respuestas. |
-
-Alerta sugerida: comparar la cobertura actual contra la mediana historica del actor y marcar desviaciones relevantes, por ejemplo 15 puntos porcentuales por debajo.
-
-### Cuadro maestro por actor y umbral
-
-Monitoreo debe reutilizar el preset `acreditacion_pucp` para saber que tipo de seguimiento corresponde por actor.
-
-| Actor | Umbral | Tecnica | Variable de control | Habilita margen |
-|---|---:|---|---|---|
-| Administrativos | Todos | Intencion censal | Condicion laboral | No |
-| Docentes | <=250 | Intencion censal | Dedicacion docente | No |
-| Docentes | >=251 | Cuotas, minimo 150 | Dedicacion docente | No |
-| Estudiantes | <=3000 | Intencion censal | Nivel curricular | No |
-| Estudiantes | >=3001 | Conglomerados | Nivel curricular/ciclo | Si, si hay cursos-horario |
-| Egresados | <=300 | Intencion censal | Ciclo de egreso | No |
-| Egresados | >=301 | Cuotas, minimo 150 | Ciclo de egreso | No |
-
-### Multi-canal y bolsa operativa
-
-El seguimiento debe permitir fases multi-canal secuenciales:
-
-```text
-correo -> recordatorio correo -> WhatsApp/SMS -> llamada -> presencial
-```
-
-Por unidad se debe registrar canal, intentos, resultado y fecha. El tablero debe reportar tasa de contacto por canal y tasa de respuesta efectiva.
-
-Para conglomerados, la bolsa operativa distingue unidades `M1` titulares de reemplazos `M2..Mn`. Activar un reemplazo es una decision operativa y debe registrarse con fecha y motivo. Esto no debe mezclarse con sobremuestra estadistica.
-
-## Vista de producto
-
-La pagina `Monitoreo de campo` debe conservar el tablero transversal y agregar una vista o tab `Acreditacion multi-actor` cuando existan componentes.
-
-Vista global del estudio:
-
-- Cards por actor con `n_efectivo / n_objetivo`, barra de progreso, estado, cobertura versus benchmark interno y ultima actualizacion.
-- Banner de alertas de bloqueo para actores criticos sin cobertura o brechas relevantes.
-- Accion `Marcar cierre de campo`, habilitada solo cuando no hay brechas relevantes sin plan de refuerzo.
-
-Vista por componente:
-
-- Encabezado con tecnica, marco de tres niveles, meta y estado.
-- Tabla multi-canal con intentos y tasa de respuesta efectiva por canal.
-- Bitacora de campo con notas y timestamp.
-- Bolsa operativa para conglomerados.
-- Subcuotas para disenos por cuotas.
-- Modal `Registrar avance` con `n_efectivo`, intentos por canal y notas.
-
-## API y motor
-
-Endpoints actuales:
-
-- `GET /api/monitoreo/state`
-- `POST /api/monitoreo/demo`
-- `POST /api/monitoreo/source`
-- `POST /api/monitoreo/config`
-- `POST /api/monitoreo/sync`
-- `POST /api/monitoreo/supervision/sample`
-- `POST /api/monitoreo/export`
-
-Extensiones propuestas:
-
-- `POST /api/monitoreo/import-from-calc-muestra`: crea o abre un estudio de monitoreo desde un diseno validado.
-- `POST /api/monitoreo/acreditacion/seguimiento`: actualiza `n_efectivo`, intentos por canal y notas por componente.
-- `POST /api/monitoreo/cierre`: transiciona a `cierre_campo` y bloquea si hay brechas relevantes sin plan de refuerzo.
-
-Motor R:
-
-- Portar `calc_muestra_estado_cumplimiento()` a `monitoreo_engine.R` como `monitoreo_estado_cumplimiento()`.
-- Normalizar `seguimiento_por_componente` dentro de la configuracion de monitoreo.
-- Construir alertas de minimo estadistico, brecha de meta y desviacion contra benchmark interno.
-- Mantener compatibilidad con tableros transversales sin componentes.
-
-## Reporte de cierre
-
-El cierre de campo debe generar un reporte Quarto con:
-
-1. Cumplimiento por actor.
-2. Notas de campo agregadas.
-3. Acciones recomendadas por estado.
-4. Brechas documentadas y justificacion.
-5. Confidencialidad, anonimizacion y restricciones de uso.
-
-La plantilla anterior `api/inst/plantillas/calc_muestra/reporte_cierre.qmd` fue retirada del calculador porque pertenece a Monitoreo. Para implementarla, recuperar el contenido desde el historial git anterior al refactor del 2026-05-17 y adaptarlo al namespace `monitoreo_*`.
-
-## Probar sin API
-
-1. Abrir `Monitoreo de campo`.
-2. Presionar `Cargar demo`.
-3. Revisar KPIs, avance de metas, produccion, inconsistencias y muestra de supervision.
-4. Ajustar variables/metas si se quiere probar otra configuracion.
-5. Exportar el reporte para validar el XLSX de salida.
-
-La demo crea datos ficticios con dos fuentes simuladas, campos criticos vacios, duplicados, estados invalidos y duraciones atipicas. No usa internet, tokens ni credenciales reales.
-
-Cuando se agregue la capa multi-componente, la demo debe incluir al menos un estudio de acreditacion con administrativos, docentes, estudiantes y egresados.
+| `kind` | `google_sheets`, `surveymonkey`, `kobo` |
+| `role` | `universo`, `barrido`, `respuestas`, `avance_interno`, `reporte_cliente`, `hoja_ruta` |
+| `integration_mode` | `file`, `connected_read`, `controlled_write` |
+| `sheet_binding` | spreadsheet id, pestana, fila de encabezado, rango opcional, ultima lectura y hash |
 
 ## KoboToolbox
 
-1. En Kobo, abrir el proyecto/formulario publicado.
-2. Copiar el `asset_uid` desde la URL o desde la configuracion del proyecto.
-3. Crear o copiar el token de API de la cuenta Kobo.
-4. En Prosecnur, abrir `Monitoreo de campo`.
-5. Elegir `KoboToolbox`.
-6. Pegar `Asset UID`, `Token` y `Base URL`.
-7. Usar `https://kf.kobotoolbox.org` salvo que la organizacion use otro servidor Kobo.
-8. Guardar la fuente.
-9. Presionar `Sincronizar`.
-10. Mapear enumerador, fecha, estado, duracion, ID, contacto, variables de control y campos criticos.
+KoboToolbox se configura desde la Configuracion global de Prosecnur como
+perfiles de conexion. Cada perfil combina alias, servidor KPI y token local:
+por ejemplo `Kobo EU` con `https://eu.kobotoolbox.org` o `Kobo UNHCR` con
+`https://kobo.unhcr.org`. El token se guarda fuera del `.pulso`; las fuentes de
+Monitoreo solo guardan `base_url`, `asset_uid` y `connection_profile_id`.
 
-Notas:
+Endpoints:
 
-- La app consume Kobo API v2: `/api/v2/assets/{uid}/data/`.
-- El token se guarda cifrado en secrets y no se guarda dentro del `.pulso`.
-- El snapshot normalizado y la configuracion si se guardan en `.pulso`.
+- `POST /api/connections/kobo/profiles`: guarda un perfil Kobo con
+  `token`, `alias`, `base_url`, `profile_id` y `make_default`.
+- `GET /api/connections/kobo/profiles`: lista perfiles con token enmascarado y
+  servidor, sin exponer secretos.
+- `POST /api/monitoreo/kobo/assets`: lista proyectos visibles para el perfil y
+  servidor seleccionados.
 
-## SurveyMonkey
+Reglas:
 
-1. Primero guardar el token en el editor XLSForm si aun no existe.
-2. Confirmar que el token/app tiene scope `responses_read_detail`.
-3. Copiar el `Survey ID` desde SurveyMonkey o desde el listado de surveys del editor XLSForm.
-4. En Prosecnur, abrir `Monitoreo de campo`.
-5. Elegir `SurveyMonkey`.
-6. Pegar el `Survey ID`.
-7. Dejar el token vacio si ya fue guardado en el editor XLSForm.
-8. Guardar la fuente.
-9. Si aparece aviso de scope, regenerar o autorizar el token con acceso a respuestas.
-10. Presionar `Sincronizar`.
-11. Mapear variables de control, campos criticos, estados validos y metas.
+- El token antiguo `kobo_token` se expone como perfil legado para no romper
+  instalaciones previas.
+- Al sincronizar una fuente Kobo, Prosecnur resuelve el token por
+  `connection_profile_id`; si no existe, usa el perfil predeterminado.
+- `connection_profile_id` y `base_url` pueden viajar en `.pulso`; el token no.
 
-Notas:
+## Google Sheets
 
-- Monitoreo reutiliza el `sm_token` cifrado existente del editor XLSForm.
-- La estructura del survey se usa para aplanar respuestas a columnas monitoreables.
-- La descarga usa SurveyMonkey API v3: `GET /surveys/{id}/responses/bulk`.
+Google Sheets se trata como integracion saliente fuerte. El usuario autoriza
+la conexion localmente desde la Configuracion global de Prosecnur. Monitoreo
+solo consume el estado de esa conexion para inspeccionar, registrar y
+sincronizar fuentes. El material OAuth se guarda fuera del proyecto usando los
+helpers de secretos definidos por ADR 0005.
 
-## Variables sugeridas
+Endpoints:
 
-- Enumerador: usuario, entrevistador, encuestador o metadata equivalente.
-- Fecha: fecha de envio, modificacion o finalizacion.
-- Estado: campo de validacion o estado de respuesta.
-- Duracion: segundos totales o diferencia entre inicio y fin.
-- ID: uuid, response id o submission id.
-- Contacto: telefono o campo usado para supervision.
-- Variables de control: distrito, zona, sexo, edad, cuota u otra dimension de meta.
-- Campos criticos: consentimiento, telefono, identificadores, filtros principales.
+- `GET /api/connections`: estado global de SurveyMonkey, Kobo y Google
+  Sheets, siempre enmascarado.
+- `POST /api/connections/google_sheets/oauth`: inicia la autorizacion OAuth
+  local y guarda secretos fuera de `.pulso`.
+- `GET /api/monitoreo/sheets/status`: compatibilidad para que Monitoreo
+  consulte si Google Sheets ya esta autorizado.
+- `POST /api/monitoreo/sheets/list`: lista hojas autorizadas cuando existe
+  credencial.
+- `POST /api/monitoreo/sheets/inspect`: lee metadatos de pestanas y
+  encabezados.
+- `POST /api/monitoreo/sheets/source`: registra una pestana como fuente.
+- `POST /api/monitoreo/sheets/sync`: lee la fuente como snapshot local.
+- `POST /api/monitoreo/sheets/publish`: publica solo pestanas Prosecnur.
 
-Para acreditacion multi-componente, agregar:
+Reglas de escritura:
 
-- Actor/componente: administrativos, docentes, estudiantes, egresados u otro actor definido.
-- Nivel de marco: universo bruto, marco actualizado y marco contactable.
-- Meta efectiva y tasa de respuesta esperada.
-- Canal operativo: correo, WhatsApp/SMS, telefono o presencial.
-- Estado de bolsa operativa cuando aplique.
-- Celda de subcuota cuando aplique.
+- Prosecnur nunca modifica la pestana viva de campo.
+- Solo crea o reemplaza pestanas propias con prefijo `Prosecnur - `.
+- Las pestanas controladas v1 son `Prosecnur - Resumen`,
+  `Prosecnur - Alertas`, `Prosecnur - Auditoria` y
+  `Prosecnur - Reporte`.
 
-## Calidad y supervision
+## Perfil `acreditacion`
 
-El tablero marca:
+El perfil `acreditacion` tiene dos variantes canónicas.
 
-- Estados invalidos.
-- Duraciones demasiado cortas o largas.
-- Campos criticos vacios.
-- IDs duplicados.
+### `multi_actor`
 
-La muestra de supervision usa una seleccion aleatoria reproducible con semilla. Las entrevistas con mas riesgo tienen mayor probabilidad de entrar en la muestra.
+Inspirada en `Code.gs`. Representa estudios con actores activos como
+Administrativos, Docentes, Egresados y Estudiantes. Cada actor puede tener su
+universo, una o mas fuentes de respuestas y variables de control. Las unidades
+de reporte pueden ser actores, segmentos o grupos.
 
-Para acreditaciones, el tablero tambien debe marcar:
+Reglas principales:
 
-- Brechas relevantes por actor.
-- Brechas menores que requieren justificacion.
-- Actores bajo minimo estadistico.
-- Subcuotas vacias o parciales.
-- Reemplazos activados sin motivo documentado.
-- Cobertura muy por debajo del benchmark interno.
+- cruce universo-respuestas por llaves normalizadas;
+- deduplicacion por prioridad `Completa > Parcial > Rechazo > Sin respuesta`;
+- rechazo por reglas de consentimiento o autorizacion;
+- avance por unidad y detalle por variables de control;
+- alertas de coherencia entre barrido, campo y plataforma.
 
-## Fases de implementacion
+### `segmentada_por_carrera`
 
-Fase A, MVP:
+Inspirada en `Code_Ingenieria.gs`. Representa un actor principal, usualmente
+Egresados, abierto por carrera/programa. Cada segmento tiene valor de universo,
+pestana de barrido y minimo operativo. El reporte muestra avance contra minimo
+y avance contra universo total.
 
-- Portar `monitoreo_estado_cumplimiento()`.
-- Agregar importacion desde calc-muestra.
-- Agregar endpoint de seguimiento por componente.
-- Crear tab `Acreditacion multi-actor` con cards, barras y badges.
-- Agregar CTA desde `/calc-muestra` a `/monitoreo`.
+Reglas principales:
 
-Fase B, enriquecimiento:
+- dimension principal, por ejemplo `Carrera`;
+- segmentos activos y grupos de segmentos;
+- minimos por segmento;
+- puente universo-barrido para mapear codigo institucional a `CodPulso`;
+- validacion de encuestas por segmento y canal;
+- alerta cuando hay respuestas en correo y telefonico para el mismo caso.
 
-- Registrar intentos por canal y tasas efectivas.
-- Agregar bolsa operativa para conglomerados.
-- Agregar subcuotas para disenos por cuotas.
-- Mostrar benchmark interno comparado en cada actor.
+## Alertas canónicas de acreditacion
 
-Fase C, cierre:
+Monitoreo debe producir alertas equivalentes a las reglas operativas de los
+Apps Script, pero expresadas como salida del motor:
 
-- Agregar endpoint de cierre con bloqueo metodologico.
-- Restaurar plantilla Quarto de cierre en Monitoreo.
-- Registrar plan de refuerzo y aprobacion metodologica.
+- llave faltante en barrido;
+- llave duplicada en barrido;
+- enlace con id distinto a la llave del caso;
+- campo reporta efectiva pero plataforma no confirma;
+- plataforma confirma efectiva pero campo no la marca;
+- respuesta de plataforma sin llave;
+- respuesta de plataforma inexistente en barrido;
+- caso con respuesta en doble canal;
+- caso sin puente universo-barrido;
+- responsable con muchos no barridos;
+- casos sin responsable asignado;
+- no contesta con pocos intentos;
+- diferencias de efectivas por dia entre campo y plataforma.
 
-## Casos de uso de referencia
+## Casos de aceptación basados en Apps Script
 
-| Codigo | Estudio | Necesidad de monitoreo |
-|---|---|---|
-| ACR-DER-2025 | Acreditacion Derecho | Cuatro actores con tecnicas distintas; requiere tablero multi-actor. |
-| ACR-EDU-2025 | Acreditacion Educacion | Intencion censal multi-actor con cuotas. |
-| ACR-ING-2026 | Acreditacion Ingenieria | Alertas por brecha de egresados y seguimiento por canal. |
-| HSVG-PUCP-2024/2026 | HSVG anual | Conglomerados con bolsa operativa de aulas y reemplazos. |
-| ACN-PDM-2024, ACN-CBI-2024 | Series ACNUR | Listado externo con meta fija y multi-canal telefonico. |
-| ECHO-PADF-2024 | Medicion recurrente | Comparacion entre olas y ajuste de meta por ola. |
+Los archivos `Code.gs` y `Code_Ingenieria.gs` son referencias de dominio, no
+codigo a copiar. No se incorporan sus URLs reales, IDs reales ni tokens.
+
+Fixture `acreditacion_multi_actor`:
+
+- contiene cuatro actores;
+- mezcla respuestas completas, parciales y rechazos;
+- usa varias llaves de cruce;
+- permite fallback por nombre si el perfil lo declara;
+- genera resumen por actor y alertas de barrido.
+
+Fixture `acreditacion_segmentada_por_carrera`:
+
+- contiene actor principal `Egresados`;
+- abre la dimension `Carrera`;
+- define minimos por segmento;
+- usa puente universo-barrido;
+- detecta doble canal y casos sin puente.
+
+## UI v1
+
+La pantalla `Monitoreo operativo` debe:
+
+- abrir con un hub inicial de rutas: `Acreditacion`, `Territorial`,
+  `Telefonico`, `General`;
+- indicar que cada proyecto tiene un tipo unico de monitoreo;
+- habilitar completo `Acreditacion` y `Territorial`, y mostrar las otras rutas
+  como planificadas;
+- bloquear la mesa posterior a la ruta elegida y mostrar la ruta activa como
+  insignia, no como selector editable;
+- indicar que campo edita en Sheets y Prosecnur audita y reporta;
+- no pedir credenciales ni tokens dentro de Monitoreo;
+- ofrecer un acceso claro a Configuracion global para autorizar APIs;
+- reemplazar el card deshabilitado de Google Sheets por un flujo real de
+  seleccion de conexion autorizada, inspeccion, registro de fuente y
+  publicacion controlada.
+
+En el perfil `territorial`, `Avance territorial` mide avance operativo:
+respuestas que pasan el filtro de consentimiento o aptitud contra la meta de
+Hojas de Ruta. La pestana `Validacion` concentra auditoria y tiene tres
+subpestanas: `Resumen`, `Geolocalizacion` y `Duracion de tiempo`. Las
+respuestas con GPS ausente/lejos o duracion fuera de umbral quedan `En
+observacion`; un visto bueno auditado puede aprobar la observacion sin cambiar
+el total de avance operativo.
+
+## Pruebas
+
+Cobertura minima:
+
+- normalizacion de `google_sheets`, `role`, `integration_mode` y
+  `sheet_binding`;
+- persistencia `.pulso` sin tokens OAuth;
+- perfil `acreditacion` multi-actor y segmentado por carrera;
+- deduplicacion, rechazo, minimos y alertas;
+- endpoints `/api/monitoreo/sheets/*`;
+- tipos TypeScript y envio de payloads de Sheets desde frontend;
+- perfil `territorial`: avance operativo separado de observaciones GPS/tiempo
+  y visto bueno persistido en `config.territorial.validation_decisions`.

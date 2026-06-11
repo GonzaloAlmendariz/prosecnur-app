@@ -32,27 +32,42 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  CircleDot,
   FilePen,
   FolderOpen,
   GitBranch,
   Home,
+  Layers3,
   LayoutDashboard,
   LayoutTemplate,
   Lightbulb,
   Library,
   Loader2,
   Map,
+  MapPin,
+  MapPinned,
+  Maximize2,
+  MousePointer2,
   Pencil,
   Plus,
   QrCode,
+  RefreshCw,
+  Route,
+  Ruler,
   Search,
+  ShieldAlert,
+  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  Target,
+  TriangleAlert,
   Trash2,
   UserPen,
   Wand2,
   Workflow,
   X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 
 // ── Acciones ────────────────────────────────────────────────────────────
@@ -98,3 +113,22 @@ export const IconMonitor = Activity;
 export const IconHome = Home;
 export const IconSample = Calculator;
 export const IconEncyclopedia = Library;
+
+// ── Monitoreo territorial / auditoría cartográfica ─────────────────────
+export const IconMapZoomIn = ZoomIn;
+export const IconMapZoomOut = ZoomOut;
+export const IconMapFit = Maximize2;
+export const IconMapLocate = MapPinned;
+export const IconMapPointer = MousePointer2;
+export const IconMapLayers = Layers3;
+export const IconMapDistance = Ruler;
+export const IconKoboPoint = CircleDot;
+export const IconRoutePath = Route;
+export const IconDistrict = Map;
+export const IconZone = Target;
+export const IconGpsValid = ShieldCheck;
+export const IconGpsReview = TriangleAlert;
+export const IconOutOfRoute = ShieldAlert;
+export const IconRefreshData = RefreshCw;
+export const IconConfigureLayers = SlidersHorizontal;
+export const IconDeclaredLocation = MapPin;

@@ -79,6 +79,7 @@ async function handle<T>(res: Response): Promise<T> {
     // SessionContext captura para mostrar un banner claro al usuario
     // en vez de dejar el error crudo contaminando los pickers.
     if (code === "E_NO_SESSION" && typeof window !== "undefined") {
+      localStorage.removeItem(SESSION_KEY);
       window.dispatchEvent(new CustomEvent("pulso:session-lost"));
     }
     throw new Error(`[${code}] ${message}`);
@@ -1481,11 +1482,13 @@ export type SurveyMonkeyTokenState = {
   ephemeral: boolean;
   active_profile_id?: string;
   active_profile_alias?: string;
+  active_profile_base_url?: string;
+  active_profile_server_label?: string;
   profile_count?: number;
   profiles?: ConnectionProfileState[];
 };
 
-export type ConnectionProvider = "surveymonkey" | "kobo";
+export type ConnectionProvider = "surveymonkey" | "kobo" | "google_sheets";
 
 export type ConnectionProfileState = {
   id: string;
@@ -1493,6 +1496,8 @@ export type ConnectionProfileState = {
   is_default: boolean;
   has_token: boolean;
   masked_token: string;
+  base_url?: string;
+  server_label?: string;
   updated_at?: string;
   legacy?: boolean;
 };
@@ -1509,6 +1514,8 @@ export type ConnectionCheckResult =
       status_code: number;
       n_surveys_visible?: number | null;
       count?: number | null;
+      base_url?: string;
+      profile_id?: string;
     }
   | {
       ok: false;
@@ -1519,7 +1526,9 @@ export type ConnectionCheckResult =
 
 function normalizeConnectionProvider(value: unknown): ConnectionProvider {
   const raw = String(value ?? "").toLowerCase();
-  return raw === "kobo" || raw === "kobotoolbox" ? "kobo" : "surveymonkey";
+  if (raw === "kobo" || raw === "kobotoolbox") return "kobo";
+  if (raw === "google_sheets" || raw === "googlesheets" || raw === "sheets" || raw === "google") return "google_sheets";
+  return "surveymonkey";
 }
 
 function normalizeConnectionTokenState(raw: unknown, providerHint: ConnectionProvider): ConnectionTokenState {
@@ -1529,13 +1538,15 @@ function normalizeConnectionTokenState(raw: unknown, providerHint: ConnectionPro
   return {
     ok: true,
     provider,
-    label: String(r.label ?? (provider === "kobo" ? "KoboToolbox" : "SurveyMonkey")),
+    label: String(r.label ?? (provider === "kobo" ? "KoboToolbox" : provider === "google_sheets" ? "Google Sheets" : "SurveyMonkey")),
     has_token: r.has_token === true,
     masked_token: String(r.masked_token ?? ""),
     persisted: r.persisted === true,
     ephemeral: r.ephemeral === true,
     active_profile_id: r.active_profile_id == null ? "" : String(r.active_profile_id),
     active_profile_alias: r.active_profile_alias == null ? "" : String(r.active_profile_alias),
+    active_profile_base_url: r.active_profile_base_url == null ? "" : String(r.active_profile_base_url),
+    active_profile_server_label: r.active_profile_server_label == null ? "" : String(r.active_profile_server_label),
     profile_count: r.profile_count == null ? profiles.length : Number(r.profile_count),
     profiles,
   };
@@ -1549,6 +1560,8 @@ function normalizeConnectionProfileState(raw: unknown): ConnectionProfileState {
     is_default: r.is_default === true,
     has_token: r.has_token === true,
     masked_token: String(r.masked_token ?? ""),
+    base_url: r.base_url == null ? "" : String(r.base_url),
+    server_label: r.server_label == null ? "" : String(r.server_label),
     updated_at: r.updated_at == null ? "" : String(r.updated_at),
     legacy: r.legacy === true,
   };
@@ -1564,6 +1577,8 @@ function normalizeSurveyMonkeyTokenState(raw: unknown): SurveyMonkeyTokenState {
     ephemeral: state.ephemeral,
     active_profile_id: state.active_profile_id,
     active_profile_alias: state.active_profile_alias,
+    active_profile_base_url: state.active_profile_base_url,
+    active_profile_server_label: state.active_profile_server_label,
     profile_count: state.profile_count,
     profiles: state.profiles,
   };
@@ -1611,6 +1626,16 @@ export async function apiConnectionTokenSave(
   return normalizeConnectionTokenState(raw, provider);
 }
 
+export async function apiConnectionGoogleSheetsConnect(oauth: unknown, redirectUri?: string) {
+  return handle<MonitoreoSheetsConnectResult>(
+    await apiFetch("/api/connections/google_sheets/oauth", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ oauth, redirect_uri: redirectUri }),
+    }),
+  );
+}
+
 export async function apiConnectionTokenClear(provider: ConnectionProvider): Promise<ConnectionTokenState> {
   const raw = await handle<unknown>(
     await apiFetch(`/api/connections/${provider}/token`, {
@@ -1642,18 +1667,21 @@ export async function apiConnectionProfilesList(
 export async function apiConnectionProfileSave(
   provider: ConnectionProvider,
   token: string,
-  options: { alias?: string; profile_id?: string; make_default?: boolean } = {},
+  options: { alias?: string; profile_id?: string; make_default?: boolean; base_url?: string; server_label?: string } = {},
 ): Promise<ConnectionTokenState> {
+  const body: Record<string, unknown> = {
+    token,
+    alias: options.alias ?? "",
+    profile_id: options.profile_id ?? "",
+    make_default: options.make_default !== false,
+  };
+  if (options.base_url != null) body.base_url = options.base_url;
+  if (options.server_label != null) body.server_label = options.server_label;
   const raw = await handle<unknown>(
     await apiFetch(`/api/connections/${provider}/profiles`, {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        token,
-        alias: options.alias ?? "",
-        profile_id: options.profile_id ?? "",
-        make_default: options.make_default !== false,
-      }),
+      body: JSON.stringify(body),
     }),
   );
   return normalizeConnectionTokenState(raw, provider);
@@ -1688,7 +1716,7 @@ export async function apiConnectionProfileDelete(
 
 export async function apiConnectionCheck(
   provider: ConnectionProvider,
-  options: { base_url?: string } = {},
+  options: { base_url?: string; profile_id?: string } = {},
 ): Promise<ConnectionCheckResult> {
   const raw = await handle<unknown>(
     await apiFetch(`/api/connections/${provider}/check`, {
@@ -1707,6 +1735,8 @@ export async function apiConnectionCheck(
         ? null
         : Number(r.n_surveys_visible),
       count: r.count == null || r.count === "NA" ? null : Number(r.count),
+      base_url: r.base_url == null ? "" : String(r.base_url),
+      profile_id: r.profile_id == null ? "" : String(r.profile_id),
     };
   }
   return {
@@ -2666,16 +2696,40 @@ export function jobResultUrl(id: string) {
 
 // ---------- Monitoreo digital ----------
 
-export type MonitoreoSourceKind = "kobo" | "surveymonkey";
+export type MonitoreoSourceKind = "kobo" | "surveymonkey" | "google_sheets";
+
+export type MonitoreoSourceRole =
+  | "universo"
+  | "barrido"
+  | "respuestas"
+  | "avance_interno"
+  | "reporte_cliente"
+  | "hoja_ruta";
+
+export type MonitoreoIntegrationMode = "file" | "connected_read" | "controlled_write";
+
+export type MonitoreoSheetBinding = {
+  spreadsheet_id: string;
+  sheet_name: string;
+  header_row: number;
+  range: string;
+  last_read_at: string;
+  snapshot_hash: string;
+};
 
 export type MonitoreoSource = {
   id: string;
   kind: MonitoreoSourceKind;
   label: string;
   enabled: boolean;
+  role?: MonitoreoSourceRole;
+  integration_mode?: MonitoreoIntegrationMode;
+  sheet_binding?: MonitoreoSheetBinding;
   asset_uid?: string;
   survey_id?: string;
+  survey_title?: string;
   base_url?: string;
+  connection_profile_id?: string;
   dimensions?: Record<string, string>;
   created_at?: string;
   last_sync_at?: string;
@@ -2691,6 +2745,7 @@ export type MonitoreoKoboAssetItem = {
 export type MonitoreoGoal = {
   filters: Record<string, string>;
   meta: number;
+  meta_pct?: number | null;
 };
 
 export type MonitoreoStrategyPhase = {
@@ -2940,6 +2995,44 @@ export type MonitoreoAcreditacion = {
   };
 };
 
+export type MonitoreoTerritorialConfig = {
+  schema_version: string;
+  active_route_phase: "pilot" | "field";
+  asset_uid: string;
+  kobo_version_id: string;
+  kobo_asset_name: string;
+  source_id: string;
+  inspected_at: string;
+  snapshot_hash: string;
+  district_var: string;
+  gps_var: string;
+  consent_var: string;
+  age_var: string;
+  status_var: string;
+  id_var: string;
+  submitted_by_var: string;
+  submission_time_var: string;
+  start_var: string;
+  end_var: string;
+  duration_var: string;
+  platform_effective_var: string;
+  platform_effective_values: string[];
+  valid_statuses: string[];
+  district_crosswalk: Array<{ kobo_code: string; kobo_label: string; ubigeo: string; distrito: string }>;
+  geo_thresholds_m: { cerca: number; revision: number };
+  min_duration_seconds: number;
+  max_duration_seconds: number;
+  high_age_review: number;
+  count_review_in_official_progress: boolean;
+  validation_decisions: MonitoreoTerritorialValidationDecisions;
+};
+
+export type MonitoreoTerritorialValidationDecisions = {
+  approved_response_ids: string[];
+  approval_reasons?: Record<string, string>;
+  approved_at?: Record<string, string>;
+};
+
 export type MonitoreoConfig = {
   enumerator_var: string;
   date_var: string;
@@ -2960,14 +3053,45 @@ export type MonitoreoConfig = {
   max_duration_seconds: number;
   supervision_n: number;
   supervision_seed: number;
+  monitoreo_profile: MonitoreoProfile;
   acreditacion: MonitoreoAcreditacion;
+  territorial: MonitoreoTerritorialConfig;
+};
+
+export type MonitoreoProfile = {
+  family: "acreditacion" | "territorial" | "telefonico" | "digital_general";
+  variant: "multi_actor" | "segmentada_por_carrera";
+  status: "active" | "planned" | string;
+  route_selected?: boolean;
+  locked_at?: string;
+  units: Array<Record<string, unknown>>;
+  segments: Array<Record<string, unknown>>;
+  groups: Array<Record<string, unknown>>;
+  minimums: Record<string, number>;
+  rejection_rules: Array<Record<string, unknown>>;
+  key_rules: {
+    universe_fields: string[];
+    response_fields: string[];
+    use_name_fallback: boolean;
+    automatic_detection: boolean;
+  };
+  deduplication: {
+    priority: string[];
+  };
+  alerts: Record<string, number>;
+  reconciliation_decisions?: {
+    include_response_ids?: string[];
+    exclude_response_ids?: string[];
+  };
 };
 
 export type MonitoreoVariable = {
   name: string;
+  label?: string;
   tipo: string;
   n_missing: number;
   n_unique: number;
+  values?: string[];
 };
 
 export type MonitoreoKpis = {
@@ -2982,7 +3106,355 @@ export type MonitoreoKpis = {
   inconsistencies: number;
 };
 
+export type MonitoreoTerritorialUpdateHistoryEntry = {
+  id: string;
+  type: "inspect" | "sync" | string;
+  asset_uid: string;
+  asset_name: string;
+  version_id: string;
+  source_id: string;
+  response_count: number;
+  status: "ok" | "warning" | "error" | string;
+  message: string;
+  created_at: string;
+};
+
 export type MonitoreoRow = Record<string, string | number | boolean | null>;
+
+export type MonitoreoReportBlock = {
+  id: string;
+  title: string;
+  columns: string[];
+  rows: MonitoreoRow[];
+  note?: string;
+};
+
+export type MonitoreoReportSheet = {
+  id: string;
+  title: string;
+  description: string;
+  scope: "interno" | "cliente" | string;
+  blocks: MonitoreoReportBlock[];
+};
+
+export type MonitoreoClientReport = {
+  schema: string;
+  generated_at: string;
+  title: string;
+  summary: MonitoreoRow[];
+  actors: MonitoreoRow[];
+  daily_general: MonitoreoRow[];
+  daily_actor: MonitoreoRow[];
+  sources: MonitoreoRow[];
+  controls?: MonitoreoRow[];
+  has_targets: boolean;
+  sheets?: MonitoreoReportSheet[];
+};
+
+export type MonitoreoInternalQueryCase = {
+  actor: string;
+  person_label: string;
+  case_key: string;
+  response_id: string;
+  date: string;
+  source_id: string;
+  source_label: string;
+  channel: string;
+  collector_id: string;
+  collector_name: string;
+  platform_state: string;
+  base_result: string;
+  base_record: string;
+  base_source: string;
+  base_status: string;
+  decision: string;
+  decision_reason: string;
+  advancement: "effective" | "partial" | "refusal" | "pending" | "included_review" | "excluded" | string;
+  issue_type: string;
+  rule: string;
+  pending_exit: boolean | string;
+  recovery_collector: boolean | string;
+  response_row: number;
+  duplicate_count: number;
+};
+
+export type MonitoreoInternalQueryTotal = {
+  actor?: string;
+  date?: string;
+  channel?: string;
+  source?: string;
+  collector?: string;
+  total: number;
+  efectivas: number;
+  parciales: number;
+  rechazos: number;
+  pendientes: number;
+  revision: number;
+  salen_de_pendientes: number;
+};
+
+export type MonitoreoInternalQueryIssue = {
+  issue_type: string;
+  label: string;
+  severity: string;
+  actor: string;
+  case_key: string;
+  response_id: string;
+  count: number;
+  detail: string;
+};
+
+export type MonitoreoInternalQueryFlow = {
+  nodes: Array<{ id: string; label: string }>;
+  links: Array<{ source: string; target: string; value: number }>;
+};
+
+export type MonitoreoInternalQueries = {
+  schema: string;
+  cases: MonitoreoInternalQueryCase[];
+  totals: {
+    actor: MonitoreoInternalQueryTotal[];
+    date: MonitoreoInternalQueryTotal[];
+    channel: MonitoreoInternalQueryTotal[];
+    source: MonitoreoInternalQueryTotal[];
+    collector: MonitoreoInternalQueryTotal[];
+  };
+  pending_exit: MonitoreoInternalQueryCase[];
+  issues: MonitoreoInternalQueryIssue[];
+  flow: MonitoreoInternalQueryFlow;
+};
+
+export type MonitoreoAcreditacionReports = {
+  schema: string;
+  generated_at: string;
+  reference_tabs: string[];
+  internal_queries?: MonitoreoInternalQueries | null;
+  client_report?: MonitoreoClientReport | null;
+  sheets: MonitoreoReportSheet[];
+};
+
+export type TerritorialDistrictProgress = {
+  ubigeo: string;
+  distrito: string;
+  meta: number | null;
+  total: number;
+  validas: number;
+  revision: number;
+  no_defendibles: number;
+  avance_pct: number | null;
+  brecha: number | null;
+};
+
+export type TerritorialBlockProgress = {
+  id_manzana: string;
+  ubigeo: string;
+  distrito: string;
+  zona: string;
+  manzana: string;
+  tipo_manzana: string;
+  departamento?: string;
+  provincia?: string;
+  viviendas?: number | null;
+  poblacion?: number | null;
+  territorio_muestral?: string;
+  metodo?: string;
+  orden_seleccion?: number | null;
+  hoja_num?: number | null;
+  rango_inicio?: number | null;
+  rango_fin?: number | null;
+  entrevistas?: number | null;
+  medida_tamano?: number | null;
+  lat?: number | null;
+  lon?: number | null;
+  ump?: string;
+  replacement_policy?: string;
+  replacement_order?: number | null;
+  replacement_total?: number | null;
+  titular_id_manzana?: string;
+  titular_orden_seleccion?: number | null;
+  titular_ubigeo?: string;
+  titular_zona?: string;
+  titular_hoja_num?: number | null;
+  titular_rango_inicio?: number | null;
+  titular_rango_fin?: number | null;
+  replacement_label?: string;
+  replacement_fallback?: string | boolean | null;
+  esquina_codigo?: number | null;
+  esquina_inicio?: string;
+  esquina_coordenada?: string;
+  sentido_recorrido?: string;
+  vivienda_inicio?: number | null;
+  domicilio_inicio?: number | null;
+  constante_salto?: number | null;
+  constante_salto_unidad?: string;
+  constante_salto_modo?: string;
+  modo_seleccion_vivienda?: string;
+  nse_codigo?: string | number | null;
+  nse_nivel?: string | null;
+  meta: number | null;
+  validas: number;
+  revision: number;
+  no_defendibles: number;
+  avance_pct: number | null;
+  brecha: number | null;
+};
+
+export type TerritorialResponseAuditRow = {
+  row_index: number;
+  response_id: string;
+  district_code: string;
+  distrito: string;
+  ubigeo: string;
+  consent: string;
+  age: number | null;
+  status: string;
+  submitted_by: string;
+  submission_time: string;
+  submission_date_iso?: string;
+  submission_date?: string;
+  submission_hour?: string;
+  submission_datetime?: string;
+  duration_seconds: number | null;
+  duration_status?: "sin_dato" | "muy_corta" | "corta" | "esperada" | "larga" | "extrema" | string;
+  duration_source?: string;
+  duration_source_type?: "duration_field" | "start_end" | "missing" | string;
+  lat: number | null;
+  lon: number | null;
+  gps_parseable: boolean;
+  geo_estado: "geo_ok" | "geo_cerca" | "geo_revision" | "geo_no_defendible" | "geo_sin_gps" | string;
+  distance_m: number | null;
+  nearest_block_id: string;
+  nearest_block_type: string;
+  geometry_match?: string;
+  advance_valid?: boolean;
+  advance_status?: "validada" | "revision" | "no_defendible" | string;
+  advance_date?: string;
+  observation_status?: "sin_observacion" | "en_observacion" | "aprobada" | "no_valida" | string;
+  observation_reasons?: string;
+  validation_decision?: "visto_bueno" | string;
+  validation_decision_reason?: string;
+  validation_decision_at?: string;
+  validation_status: "validada" | "revision" | "no_defendible" | string;
+  issues: string;
+};
+
+export type TerritorialMapPayload = {
+  phase: "pilot" | "field" | string;
+  blocks: TerritorialBlockProgress[];
+  points: Array<Pick<TerritorialResponseAuditRow, "response_id" | "submitted_by" | "submission_date" | "submission_hour" | "submission_datetime" | "ubigeo" | "distrito" | "lat" | "lon" | "geo_estado" | "distance_m" | "nearest_block_id" | "advance_valid" | "observation_status" | "observation_reasons" | "validation_status" | "issues">>;
+  alerts: Array<{ severity: string; code: string; message: string }>;
+  legend: Array<{ key: string; label: string }>;
+};
+
+export type MonitoreoTerritorialDashboard = {
+  schema: string;
+  generated_at: string;
+  active_route_phase: "pilot" | "field" | string;
+  phase_note: string;
+  kpis: {
+    total_respuestas: number;
+    consentidas: number;
+    validas: number;
+    revision: number;
+    no_defendibles: number;
+    meta: number | null;
+    avance_pct: number | null;
+    gps_crossable: number;
+    geo_ok: number;
+    geo_cerca: number;
+    geo_revision: number;
+    geo_no_defendible: number;
+    geo_sin_cruce: number;
+    duration_median: number | null;
+    duration_p95: number | null;
+  };
+  advance?: {
+    total_respuestas: number;
+    validas: number;
+    observacion: number;
+    observacion_aprobada: number;
+    no_validas: number;
+    meta: number | null;
+    avance_pct: number | null;
+    brecha: number | null;
+    district_progress: TerritorialDistrictProgress[];
+    block_progress: TerritorialBlockProgress[];
+    daily: Array<{ date: string; date_label?: string; total: number; validas: number; revision: number }>;
+  };
+  source_coherence: {
+    asset_uid: string;
+    asset_name: string;
+    version_id: string;
+    date_modified?: string;
+    deployment_active: boolean | null;
+    survey_count?: number;
+    choices_count?: number;
+    district_field: string;
+    district_list_name: string;
+    district_choices: Array<{ name: string; label: string }>;
+    survey_fields?: Array<{ name: string; xpath: string; type: string; list_name: string; label: string }>;
+    choices_by_list?: Record<string, Array<{ name: string; label: string }>>;
+    detected_fields: Record<string, { name: string; present: boolean }>;
+    drift: Array<{ severity: string; code: string; message: string }>;
+  };
+  source_validity: {
+    field: string;
+    field_label?: string;
+    values: string[];
+    effective_count: number | null;
+    non_effective_count: number | null;
+    missing_count: number | null;
+    total_responses: number;
+    options: Array<{ value: string; label: string; count?: number }>;
+  };
+  route_overview?: {
+    phase: string;
+    route_count: number;
+    operational_block_count: number;
+    replacement_count: number;
+    replacement_per_route: number | null;
+    district_count: number;
+    blocks_by_district: Array<{ distrito: string; blocks: number }>;
+    responsible_count: number;
+    total_entrevistas: number | null;
+    total_replacement_interviews: number | null;
+  };
+  responsible_summary?: {
+    field: string;
+    field_label?: string;
+    configured: boolean;
+    distinct_count: number;
+    total_with_value: number;
+    top: Array<{ value: string; label: string; count: number }>;
+  };
+  route_blocks?: TerritorialBlockProgress[];
+  selected_block_context?: { default_block_id?: string };
+  route_population?: {
+    cells: Record<string, string | number | null>[];
+    table: Record<string, string | number | null>[];
+    total_poblacion?: number | null;
+    n_cells?: number;
+    alerts?: Array<Record<string, unknown>>;
+  };
+  route_quota?: {
+    cells: Record<string, string | number | null>[];
+    table: Record<string, string | number | null>[];
+    total_poblacion?: number | null;
+    n_cells?: number;
+    alerts?: Array<Record<string, unknown>>;
+  };
+  district_progress: TerritorialDistrictProgress[];
+  block_progress: TerritorialBlockProgress[];
+  response_audit: TerritorialResponseAuditRow[];
+  team: Array<{ submitted_by: string; total: number; validas: number; revision: number; no_defendibles: number; duration_median: number | null }>;
+  daily: Array<{ date: string; date_label?: string; total: number; validas: number; revision: number }>;
+  map: TerritorialMapPayload;
+  internal_queries: {
+    incomplete_blocks: TerritorialBlockProgress[];
+    far_gps: TerritorialMapPayload["points"];
+    lagging_districts: TerritorialDistrictProgress[];
+  };
+};
 
 export type MonitoreoDashboard = {
   ok: boolean;
@@ -2990,17 +3462,21 @@ export type MonitoreoDashboard = {
   progress: MonitoreoRow[];
   production: MonitoreoRow[];
   inconsistencies: MonitoreoRow[];
+  acreditacion_reports?: MonitoreoAcreditacionReports | null;
+  territorial_reports?: MonitoreoTerritorialDashboard | null;
 };
 
 export type MonitoreoState = {
   ok: true;
   sources: MonitoreoSource[];
   config: MonitoreoConfig;
+  monitoreo_profile?: MonitoreoProfile;
   has_snapshot: boolean;
   synced_at: string;
   n_rows: number;
   variables: MonitoreoVariable[];
   dashboard: MonitoreoDashboard | null;
+  territorial_update_history?: MonitoreoTerritorialUpdateHistoryEntry[];
   acreditacion: MonitoreoAcreditacion;
   errors: { source_id?: string; source_label?: string; message: string }[];
 };
@@ -3019,11 +3495,66 @@ export type MonitoreoSourcePayload = {
   kind: MonitoreoSourceKind;
   label?: string;
   enabled?: boolean;
-  token?: string;
+  role?: MonitoreoSourceRole;
+  integration_mode?: MonitoreoIntegrationMode;
+  sheet_binding?: Partial<MonitoreoSheetBinding>;
   asset_uid?: string;
   survey_id?: string;
+  survey_title?: string;
   base_url?: string;
+  connection_profile_id?: string;
   dimensions?: Record<string, string>;
+};
+
+export type MonitoreoSheetsStatus = {
+  ok: true;
+  provider: "google_sheets";
+  label: string;
+  has_token: boolean;
+  masked_token: string;
+  persisted: boolean;
+  ephemeral: boolean;
+};
+
+export type MonitoreoSheetsConnectResult =
+  | MonitoreoSheetsStatus
+  | {
+      ok: true;
+      provider: "google_sheets";
+      authorization_required: true;
+      auth_url: string;
+      redirect_uri: string;
+      scopes: string[];
+      status: MonitoreoSheetsStatus;
+    };
+
+export type MonitoreoSheetsInspectResult = {
+  ok: true;
+  spreadsheet_id: string;
+  title: string;
+  sheets: Array<{ sheet_id: number; title: string; row_count: number; column_count: number }>;
+  headers: string[];
+};
+
+export type MonitoreoSheetsListResult = {
+  ok: true;
+  spreadsheets: Array<{ id: string; name: string; modifiedTime?: string; webViewLink?: string }>;
+};
+
+export type MonitoreoSheetsSyncResult = {
+  ok: true;
+  synced_at: string;
+  n_rows: number;
+  n_sources: number;
+  state: MonitoreoState;
+};
+
+export type MonitoreoSheetsPublishResult = {
+  ok: true;
+  spreadsheet_id: string;
+  controlled_tabs: string[];
+  updated_at: string;
+  mode: "controlled_write";
 };
 
 export type MonitoreoAcreditacionSeguimientoPayload = {
@@ -3036,10 +3567,110 @@ export type MonitoreoAcreditacionSeguimientoPayload = {
   bolsa_operativa?: MonitoreoAcreditacionBolsa[];
 };
 
-export async function apiMonitoreoState() {
+export async function apiMonitoreoState(options: { includeReports?: boolean } = {}) {
+  const path = options.includeReports == null
+    ? "/api/monitoreo/state"
+    : `/api/monitoreo/state?include_reports=${options.includeReports ? "1" : "0"}`;
   return handle<MonitoreoState>(
-    await apiFetch("/api/monitoreo/state", { headers: headers() }),
+    await apiFetch(path, { headers: headers() }),
   );
+}
+
+export async function apiMonitoreoSheetsStatus() {
+  return handle<MonitoreoSheetsStatus>(
+    await apiFetch("/api/monitoreo/sheets/status", { headers: headers() }),
+  );
+}
+
+export async function apiMonitoreoSheetsList(limit = 50) {
+  return handle<MonitoreoSheetsListResult>(
+    await apiFetch("/api/monitoreo/sheets/list", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ limit }),
+    }),
+  );
+}
+
+export async function apiMonitoreoSheetsInspect(binding: Partial<MonitoreoSheetBinding>) {
+  return handle<MonitoreoSheetsInspectResult>(
+    await apiFetch("/api/monitoreo/sheets/inspect", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ sheet_binding: binding }),
+    }),
+  );
+}
+
+export async function apiMonitoreoSheetsSource(payload: MonitoreoSourcePayload) {
+  return handle<{ ok: true; source: MonitoreoSource; validation: unknown; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/sheets/source", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoSheetsSync(sourceIds: string[] = []) {
+  return handle<MonitoreoSheetsSyncResult>(
+    await apiFetch("/api/monitoreo/sheets/sync", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ source_ids: sourceIds }),
+    }),
+  );
+}
+
+export async function apiMonitoreoSheetsPublish(spreadsheetId: string, config?: Partial<MonitoreoConfig>) {
+  return handle<MonitoreoSheetsPublishResult>(
+    await apiFetch("/api/monitoreo/sheets/publish", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ spreadsheet_id: spreadsheetId, ...(config ? { config } : {}) }),
+    }),
+  );
+}
+
+export async function apiMonitoreoClientReportSheetsPublish(
+  spreadsheetId: string,
+  options: { includeTargets?: boolean; config?: Partial<MonitoreoConfig> } = {},
+) {
+  return handle<MonitoreoSheetsPublishResult>(
+    await apiFetch("/api/monitoreo/client-report/sheets/publish", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        spreadsheet_id: spreadsheetId,
+        include_targets: !!options.includeTargets,
+        ...(options.config ? { config: options.config } : {}),
+      }),
+    }),
+  );
+}
+
+export async function apiMonitoreoClientReportPdf(
+  options: { includeTargets?: boolean; config?: Partial<MonitoreoConfig> } = {},
+) {
+  return handle<JobStart>(
+    await apiFetch("/api/monitoreo/client-report/pdf", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        include_targets: !!options.includeTargets,
+        ...(options.config ? { config: options.config } : {}),
+      }),
+    }),
+  );
+}
+
+export function monitoreoClientReportPdfDownloadUrl(opts: { inline?: boolean } = {}): string {
+  const sid = localStorage.getItem(SESSION_KEY);
+  const params = new URLSearchParams();
+  if (sid) params.set("sid", sid);
+  if (opts.inline) params.set("inline", "1");
+  const qs = params.toString();
+  return apiPath(`/api/monitoreo/client-report/pdf/download${qs ? `?${qs}` : ""}`);
 }
 
 export async function apiMonitoreoDemo(options: { seed?: number; n?: number } = {}) {
@@ -3052,12 +3683,20 @@ export async function apiMonitoreoDemo(options: { seed?: number; n?: number } = 
   );
 }
 
-export async function apiMonitoreoKoboAssets(base_url = "https://kf.kobotoolbox.org", limit = 100) {
+export async function apiMonitoreoKoboAssets(
+  base_url = "https://kf.kobotoolbox.org",
+  limit = 100,
+  options: { profile_id?: string; connection_profile_id?: string } = {},
+) {
   const raw = await handle<unknown>(
     await apiFetch("/api/monitoreo/kobo/assets", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ base_url, limit }),
+      body: JSON.stringify({
+        base_url,
+        limit,
+        profile_id: options.profile_id ?? options.connection_profile_id ?? "",
+      }),
     }),
   );
   const r = (raw ?? {}) as Record<string, unknown>;
@@ -3076,12 +3715,82 @@ export async function apiMonitoreoKoboAssets(base_url = "https://kf.kobotoolbox.
   };
 }
 
+export type MonitoreoTerritorialKoboInspection = {
+  ok: true;
+  schema: {
+    asset_uid: string;
+    name: string;
+    version_id: string;
+    date_modified: string;
+    deployment_active: boolean;
+    survey_count: number;
+    choices_count: number;
+    district_field: string;
+    district_list_name: string;
+    district_choices: Array<{ name: string; label: string }>;
+    survey_fields?: Array<{ name: string; xpath: string; type: string; list_name: string; label: string }>;
+    choices_by_list?: Record<string, Array<{ name: string; label: string }>>;
+    district_crosswalk: Array<{ kobo_code: string; kobo_label: string; ubigeo: string; distrito: string; present_in_kobo: boolean }>;
+    assertions: { district_field: boolean; has_sjm: boolean; has_vmt: boolean; kobo_is_canonical: boolean };
+    inspected_at: string;
+    base_url: string;
+  };
+  config: MonitoreoConfig;
+  state: MonitoreoState;
+};
+
+export async function apiMonitoreoTerritorialInspectKobo(payload: {
+  source_id?: string;
+  asset_uid?: string;
+  base_url?: string;
+  connection_profile_id?: string;
+  config?: Partial<MonitoreoConfig>;
+} = {}) {
+  return handle<MonitoreoTerritorialKoboInspection>(
+    await apiFetch("/api/monitoreo/territorial/inspect-kobo", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialConfig(territorial: Partial<MonitoreoTerritorialConfig>) {
+  return handle<{ ok: true; config: MonitoreoConfig; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/territorial/config", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ territorial }),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialMap(options: { phase?: "pilot" | "field"; ubigeo?: string } = {}) {
+  const params = new URLSearchParams();
+  if (options.phase) params.set("phase", options.phase);
+  if (options.ubigeo) params.set("ubigeo", options.ubigeo);
+  const qs = params.toString();
+  return handle<{ ok: true; payload: TerritorialMapPayload }>(
+    await apiFetch(`/api/monitoreo/territorial/map${qs ? `?${qs}` : ""}`, { headers: headers() }),
+  );
+}
+
 export async function apiMonitoreoSource(payload: MonitoreoSourcePayload) {
   return handle<{ ok: true; source: MonitoreoSource; validation: unknown; state: MonitoreoState }>(
     await apiFetch("/api/monitoreo/source", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoSources(sources: MonitoreoSourcePayload[]) {
+  return handle<{ ok: true; sources: MonitoreoSource[]; validations: Record<string, unknown>; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/sources", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ sources }),
     }),
   );
 }
@@ -4785,6 +5494,8 @@ export type BasesCsvBody = {
 export type BasesXlsxBody = {
   valores?: "codigos" | "etiquetas" | "ambos";
   multi_select?: "codigos_crudos" | "etiquetas_unidas" | "dummy_01";
+  omitir_identificadores_directos?: boolean;
+  omitir_metadatos_operativos?: boolean;
 };
 
 export async function apiAnaliticaBasesData() {

@@ -16,8 +16,14 @@ AUDIT_PORT ?= 8799
 AUDIT_CDP_PORT ?= 9334
 AUDIT_RUNS_DIR ?= $(REPO_ROOT)/outputs/audit-runs
 AUDIT_PROJECT ?= $(REPO_ROOT)/api/inst/audit_reference/prosecnur_audit_reference.pulso
+PULSO_PORT ?= 8787
+VITE_DEV_PORT ?= 5173
+PROSECNUR_VITE_URL ?= http://localhost:$(VITE_DEV_PORT)
+QA_URL ?= http://localhost:5173/
+QA_API ?= auto
+QA_OUT ?= $(REPO_ROOT)/outputs/visual-qa/$(shell date +%Y%m%d-%H%M%S)
 
-.PHONY: help dev-api dev-frontend dev-pulso audit-reference-build audit-reference-run audit-reference-smoke desktop-audit build build-if-stale clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
+.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite visual-qa monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit build build-if-stale clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -31,6 +37,9 @@ help:
 	@echo "  install-desktop  Install Electron dependencies (pnpm)"
 	@echo "  dev-api          Run Plumber API (no frontend build, no Electron)"
 	@echo "  dev-frontend     Run Vite dev server (proxies /api to VITE_API_PROXY_TARGET or PULSO_PORT)"
+	@echo "  dev-electron-vite Run Electron against Vite HMR; optional PULSO=/path/project.pulso"
+	@echo "  visual-qa        Run reusable Playwright visual QA against a route/project"
+	@echo "  monitoreo-qa     Run visual QA for /monitoreo with a .pulso project"
 	@echo "  build            Build the frontend into api/inst/www"
 	@echo "  desktop-fast     Run Electron, rebuilding frontend only if stale"
 	@echo "  audit-reference-build Generate the canonical audit .pulso"
@@ -78,6 +87,55 @@ dev-pulso:
 	@test -n "$(PULSO)" || (echo "uso: make dev-pulso PULSO=/ruta/al/proyecto.pulso"; exit 1)
 	@test -f "$(PULSO)" || (echo "no existe el archivo: $(PULSO)"; exit 1)
 	PULSO_BOOTSTRAP_PROJECT="$(PULSO)" PULSO_OPEN_BROWSER=false $(MAKE) -j2 dev-api dev-frontend
+
+dev-electron-vite:
+	@if [ -n "$(PULSO)" ] && [ ! -f "$(PULSO)" ]; then \
+	  echo "no existe el archivo: $(PULSO)"; \
+	  exit 1; \
+	fi
+	@set -e; \
+	  echo "[Prosecnur] Vite: $(PROSECNUR_VITE_URL) -> API http://127.0.0.1:$(PULSO_PORT)"; \
+	  cd "$(REPO_ROOT)/frontend"; \
+	  VITE_DEV_PORT="$(VITE_DEV_PORT)" \
+	  PULSO_PORT="$(PULSO_PORT)" \
+	  VITE_API_PROXY_TARGET="http://127.0.0.1:$(PULSO_PORT)" \
+	  pnpm dev -- --host 127.0.0.1 & \
+	  vite_pid=$$!; \
+	  cleanup() { \
+	    kill $$vite_pid 2>/dev/null || true; \
+	    wait $$vite_pid 2>/dev/null || true; \
+	  }; \
+	  trap cleanup EXIT INT TERM; \
+	  sleep 1; \
+	  if ! kill -0 $$vite_pid 2>/dev/null; then \
+	    wait $$vite_pid; \
+	  fi; \
+	  if [ -n "$(PULSO)" ]; then \
+	    export PULSO_BOOTSTRAP_PROJECT="$(PULSO)"; \
+	  fi; \
+	  cd "$(REPO_ROOT)/desktop"; \
+	  env -u ELECTRON_RUN_AS_NODE \
+	    PROSECNUR_ELECTRON_DEV=1 \
+	    PROSECNUR_VITE_URL="$(PROSECNUR_VITE_URL)" \
+	    PULSO_PORT="$(PULSO_PORT)" \
+	    PULSO_BOOTSTRAP_PROJECT="$${PULSO_BOOTSTRAP_PROJECT:-}" \
+	    pnpm start
+
+visual-qa:
+	@node scripts/visual-qa.mjs \
+	  --url "$(QA_URL)" \
+	  --api "$(QA_API)" \
+	  --out "$(QA_OUT)" \
+	  $(if $(PULSO),--project "$(PULSO)",) \
+	  $(QA_ARGS)
+
+monitoreo-qa:
+	@test -n "$(PULSO)" || (echo "uso: make monitoreo-qa PULSO=/ruta/al/proyecto.pulso [QA_API=auto]"; exit 1)
+	@$(MAKE) visual-qa \
+	  QA_URL="http://localhost:5173/monitoreo" \
+	  QA_API="$(QA_API)" \
+	  PULSO="$(PULSO)" \
+	  QA_ARGS='--wait-selector [data-audit-ready="monitoreo"] $(QA_ARGS)'
 
 audit-reference-build:
 	Rscript api/scripts/audit_reference_build.R --out "$(REPO_ROOT)/api/inst/audit_reference" --project "$(AUDIT_PROJECT)"
