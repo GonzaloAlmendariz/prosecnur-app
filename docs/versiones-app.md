@@ -19,10 +19,11 @@ La fuente de verdad para empaquetado es `api/DESCRIPTION`.
 | 0.3.2 | Corte 3.2: hotfix de hojas de ruta | Publicada en GitHub | Corrige layout del PDF integrado de hojas de ruta, evita que las tablas de revision final atrapen el scroll vertical y estabiliza las tarjetas del inspector de zonas. |
 | 3.3.1 | Corte 3.3.1: graficos, iconos y estabilidad | Publicada en GitHub | Expone el selector de PNG en Contenido para slides con icono, evita crashes por etiquetas/titulos malformados al volver a Graficos y conserva las mejoras de titulos, canvas dinamico, paletas por lista y export PPT/Word del corte 3.3. |
 | 3.3.2 | Corte 3.3.2: procesamiento y graficos | Publicada en GitHub | Mejora recodificacion y persistencia de codificacion, limpia opciones Otros en frecuencias/reportes, ordena paletas y categorias segun instrumento, permite controlar ceros en barras agrupadas, conserva labels de SurveyMonkey y refuerza pruebas de PPT/Word. No incluye las mejoras de Monitoreo que siguen en desarrollo. |
-| 3.3.3 | Corte 3.3.3: SurveyMonkey y monitoreo operativo | Version actual para deploy | Agrega actualizacion incremental SurveyMonkey multibase con campanas/canales persistidos, registros validos bajo consentimiento y recodificacion; suma centro operativo de Monitoreo con Google Sheets controlado y consultas internas. |
+| 3.3.3 | Corte 3.3.3: SurveyMonkey y monitoreo operativo | Publicada en GitHub | Agrega actualizacion incremental SurveyMonkey multibase con campanas/canales persistidos, registros validos bajo consentimiento y recodificacion; suma centro operativo de Monitoreo con Google Sheets controlado y consultas internas. |
+| 3.3.4 | Corte 3.3.4: deploy final SurveyMonkey y monitoreo | Version actual para deploy | Mantiene el flujo SurveyMonkey multibase/campanas, suma pulido final de Monitoreo territorial con nomenclatura de registros validos/no validos y estabiliza el empaquetado macOS sin firma automatica local. |
 
 ## Version actual
 
-Estamos en `3.3.3` (corte `3.3.3`). Esta es la version publicada como
-`v3.3.3` para que GitHub Releases genere el instalador y el auto-updater la
+Estamos en `3.3.4` (corte `3.3.4`). Esta es la version publicada como
+`v3.3.4` para que GitHub Releases genere el instalador y el auto-updater la
 detecte.

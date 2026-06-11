@@ -545,7 +545,7 @@ const MONITOREO_ROUTES: Array<{
     eyebrow: "Disponible en v1",
     title: "Territorial",
     summary: "Kobo como fuente canónica de respuestas y Hojas de Ruta como marco canónico de territorio.",
-    details: ["Kobo API", "Hojas de Ruta", "Manzanas", "GPS defendible"],
+    details: ["Kobo API", "Hojas de Ruta", "Manzanas", "GPS válido"],
     sourceRoles: [
       { label: "Kobo", detail: "Instrumento vivo y respuestas de campo" },
       { label: "Hojas de ruta", detail: "Distritos, metas y manzanas titulares/reemplazos" },
@@ -701,7 +701,7 @@ const INTERNAL_QUERY_MODES: Array<{
   desc: string;
   icon: typeof BarChart3;
 }> = [
-  { key: "efectivas", label: "Efectivas", desc: "Primero: total defendible", icon: CheckCircle2 },
+  { key: "efectivas", label: "Efectivas", desc: "Primero: total válido", icon: CheckCircle2 },
   { key: "casos", label: "Casos", desc: "Quiénes son y con qué llave", icon: Search },
   { key: "faltantes", label: "Faltantes", desc: "Quién deja de estar pendiente", icon: Route },
   { key: "duplicados", label: "Duplicados", desc: "Evitar doble conteo", icon: Link2 },
@@ -2443,9 +2443,9 @@ function workbenchClarityItems({
         { label: "P95", value: formatDurationLabel(kpis?.duration_p95 ?? null), hint: "outliers visibles", tone: (kpis?.duration_p95 ?? 0) > config.territorial.max_duration_seconds ? "warning" : "base", icon: Activity },
       ],
       calidad: [
-        { label: "GPS defendible", value: formatMetric((kpis?.geo_ok ?? 0) + (kpis?.geo_cerca ?? 0)), hint: "dentro o <=150 m", tone: "effective", icon: MapPin },
+        { label: "GPS válido", value: formatMetric((kpis?.geo_ok ?? 0) + (kpis?.geo_cerca ?? 0)), hint: "dentro o <=150 m", tone: "effective", icon: MapPin },
         { label: "GPS revisión", value: formatMetric(geoReview), hint: "150 m+, lejos o sin cruce", tone: geoReview ? "warning" : "ready", icon: ShieldAlert },
-        { label: "Visto bueno", value: formatMetric(advance?.observacion_aprobada ?? 0), hint: "observaciones aprobadas", tone: advance?.observacion_aprobada ? "ready" : "base", icon: FileCheck2 },
+        { label: "Validadas", value: formatMetric(advance?.observacion_aprobada ?? 0), hint: "revisadas válidas", tone: advance?.observacion_aprobada ? "ready" : "base", icon: FileCheck2 },
       ],
     };
     return byView[activeView];
@@ -2756,7 +2756,7 @@ function TerritorialQualityChart({ reports }: { reports: MonitoreoTerritorialDas
   const values = [
     { key: "validada", label: "Validadas", value: k.validas, className: "is-validada" },
     { key: "revision", label: "Revisión", value: k.revision, className: "is-revision" },
-    { key: "no_defendible", label: "No defendibles", value: k.no_defendibles, className: "is-no_defendible" },
+    { key: "no_defendible", label: "No válidas", value: k.no_defendibles, className: "is-no_defendible" },
   ];
   const total = Math.max(1, values.reduce((sum, item) => sum + item.value, 0));
   let offset = 0;
@@ -2773,7 +2773,7 @@ function TerritorialQualityChart({ reports }: { reports: MonitoreoTerritorialDas
         <strong>{formatMetric(k.total_respuestas)} respuestas</strong>
       </header>
       <div className="mon-territorial-donut-row">
-        <svg className="mon-territorial-donut" viewBox="0 0 42 42" role="img" aria-label={`${formatMetric(k.validas)} válidas, ${formatMetric(k.revision)} en revisión, ${formatMetric(k.no_defendibles)} no defendibles`}>
+        <svg className="mon-territorial-donut" viewBox="0 0 42 42" role="img" aria-label={`${formatMetric(k.validas)} válidas, ${formatMetric(k.revision)} en revisión, ${formatMetric(k.no_defendibles)} no válidas`}>
           <circle cx="21" cy="21" r="15.9" className="is-base" />
           {segments.map((item) => (
             <circle
@@ -2800,7 +2800,7 @@ function TerritorialQualityChart({ reports }: { reports: MonitoreoTerritorialDas
           <span className="is-gps">
             <i />
             <strong>{formatMetric(k.geo_ok + k.geo_cerca)}</strong>
-            <em>GPS defendible</em>
+            <em>GPS válido</em>
           </span>
         </div>
       </div>
@@ -4679,7 +4679,7 @@ function TerritorialRoutePhaseSummary({ reports }: { reports: MonitoreoTerritori
 type TerritorialValidationTab = "resumen" | "geolocalizacion" | "duracion";
 
 const TERRITORIAL_VALIDATION_TABS: Array<{ key: TerritorialValidationTab; label: string; desc: string; icon: typeof ShieldAlert }> = [
-  { key: "resumen", label: "Resumen", desc: "Avance y observaciones", icon: ShieldAlert },
+  { key: "resumen", label: "Resumen", desc: "Válidas y revisión", icon: ShieldAlert },
   { key: "geolocalizacion", label: "Geolocalización", desc: "GPS y manzanas", icon: MapPin },
   { key: "duracion", label: "Duración de tiempo", desc: "Mediana, P95 y outliers", icon: Clock },
 ];
@@ -4711,7 +4711,7 @@ function TerritorialValidationView({
   const durationRows = observationRows.filter((row) => territorialRowHasDurationObservation(row, config));
   const tabs = TERRITORIAL_VALIDATION_TABS.map((tab) => ({
     ...tab,
-    count: tab.key === "geolocalizacion" ? geoRows.length : tab.key === "duracion" ? durationRows.length : observationRows.length,
+    count: tab.key === "geolocalizacion" ? rows.length : tab.key === "duracion" ? durationRows.length : observationRows.length,
   }));
 
   async function setObservationApproval(row: TerritorialResponseAuditRow, reason: TerritorialValidationTab) {
@@ -4746,11 +4746,11 @@ function TerritorialValidationView({
 
   return (
     <div className="mon-stage mon-stage--calidad">
-      <Panel className="mon-territorial-panel" eyebrow="Validación" title={<span className="mon-title-icon"><ShieldAlert size={16} /> Respuestas defendibles</span>}>
+      <Panel className="mon-territorial-panel" eyebrow="Validación" title={<span className="mon-title-icon"><ShieldAlert size={16} /> Respuestas válidas</span>}>
         <div className="mon-territorial-source-grid">
-          <AdvanceMetric label="Avance operativo" value={formatMetric(advance.validas)} hint="pasa filtro" tone="ready" />
-          <AdvanceMetric label="Para revisar" value={formatMetric(advance.observacion)} hint="no bloquea avance" tone={advance.observacion ? "warning" : "ready"} />
-          <AdvanceMetric label="Geolocalización" value={formatMetric(geoRows.length)} hint="GPS o distancia" tone={geoRows.length ? "warning" : "ready"} />
+          <AdvanceMetric label="Válidas" value={formatMetric(advance.validas)} hint="incluye revisión" tone="ready" />
+          <AdvanceMetric label="Por revisar" value={formatMetric(advance.observacion)} hint="dentro de válidas" tone={advance.observacion ? "warning" : "ready"} />
+          <AdvanceMetric label="Geolocalización" value={formatMetric(reports.kpis.gps_crossable)} hint="casos con GPS" tone={reports.kpis.geo_revision || reports.kpis.geo_no_defendible ? "warning" : "ready"} />
           <AdvanceMetric label="Duración" value={formatMetric(durationRows.length)} hint="cortas o muy cortas" tone={durationRows.length ? "warning" : "ready"} />
         </div>
 
@@ -4801,21 +4801,12 @@ function TerritorialValidationView({
 
         {activeTab === "geolocalizacion" && (
           <div className="mon-territorial-validation-tabbody">
-            <div className="mon-territorial-grid mon-territorial-grid--map-first">
-              <TerritorialMapPanel reports={reports} selectedResponseId={selectedResponseId} onSelectResponse={onSelectResponse} />
-              <TerritorialObservationList
-                title="Casos con geolocalización por revisar"
-                icon={MapPin}
-                rows={geoRows}
-                config={config}
-                saving={saving}
-                reason="geolocalizacion"
-                onApprove={setObservationApproval}
-                selectedResponseId={selectedResponseId}
-                onSelectResponse={onSelectResponse}
-                compact
-              />
-            </div>
+            <TerritorialValidationGeoWorkbench
+              reports={reports}
+              rows={rows}
+              selectedResponseId={selectedResponseId}
+              onSelectResponse={onSelectResponse}
+            />
           </div>
         )}
 
@@ -4890,7 +4881,7 @@ function observationReasonLabel(value: string) {
 }
 
 function observationStatusLabel(value: string | undefined) {
-  if (value === "aprobada") return "Aprobada";
+  if (value === "aprobada") return "Validada";
   if (value === "en_observacion") return "En observación";
   if (value === "no_valida") return "No válida";
   return "Sin observación";
@@ -4921,6 +4912,37 @@ function territorialDistanceBand(row: TerritorialResponseAuditRow) {
   if (row.geo_estado === "geo_no_defendible") return { key: "geo_no_defendible", label: "Lejos", detail: distance == null ? ">300 m" : formatDistanceLabel(distance) };
   if (row.geo_estado === "geo_sin_gps") return { key: "geo_sin_gps", label: "Sin GPS", detail: "sin cruce" };
   return { key: "geo_sin_gps", label: "S/D", detail: "sin dato" };
+}
+
+function territorialResponseHasGps(row: TerritorialResponseAuditRow) {
+  const lat = numberOrNull(row.lat);
+  const lon = numberOrNull(row.lon);
+  return Boolean(row.gps_parseable) || (lat != null && lon != null);
+}
+
+function territorialKoboMapPoints(reports: MonitoreoTerritorialDashboard): TerritorialKoboMapPoint[] {
+  return reports.map.points
+    .map((point) => ({
+      ...point,
+      latValue: typeof point.lat === "number" ? point.lat : Number(point.lat),
+      lonValue: typeof point.lon === "number" ? point.lon : Number(point.lon),
+    }))
+    .filter((point) => point.lat != null && point.lon != null && Number.isFinite(point.latValue) && Number.isFinite(point.lonValue));
+}
+
+function territorialGeoSummary(rows: TerritorialResponseAuditRow[]) {
+  const counts = {
+    geo_ok: 0,
+    geo_cerca: 0,
+    geo_revision: 0,
+    geo_no_defendible: 0,
+    geo_sin_gps: 0,
+  };
+  rows.forEach((row) => {
+    const key = row.geo_estado in counts ? row.geo_estado as keyof typeof counts : "geo_sin_gps";
+    counts[key] += 1;
+  });
+  return counts;
 }
 
 function territorialDurationStatusFromSeconds(seconds: number | null, config: MonitoreoConfig) {
@@ -5118,6 +5140,537 @@ function TerritorialObservationList({
   );
 }
 
+function TerritorialValidationGeoWorkbench({
+  reports,
+  rows,
+  selectedResponseId,
+  onSelectResponse,
+}: {
+  reports: MonitoreoTerritorialDashboard;
+  rows: TerritorialResponseAuditRow[];
+  selectedResponseId?: string;
+  onSelectResponse?: (responseId: string) => void;
+}) {
+  const gpsRows = useMemo(() => rows.filter(territorialResponseHasGps), [rows]);
+  const selectedRow = useMemo(() => (
+    selectedResponseId ? rows.find((row) => row.response_id === selectedResponseId) ?? null : null
+  ), [rows, selectedResponseId]);
+  return (
+    <div className="mon-territorial-validation-geo-workbench">
+      <TerritorialValidationGeoRouteMap
+        reports={reports}
+        rows={rows}
+        selectedResponseId={selectedResponseId}
+        onSelectResponse={onSelectResponse}
+      />
+      <TerritorialGeoCaseList
+        rows={rows}
+        gpsRows={gpsRows}
+        selectedRow={selectedRow}
+        selectedResponseId={selectedResponseId}
+        onSelectResponse={onSelectResponse}
+      />
+    </div>
+  );
+}
+
+function TerritorialValidationGeoRouteMap({
+  reports,
+  rows,
+  selectedResponseId,
+  onSelectResponse,
+}: {
+  reports: MonitoreoTerritorialDashboard;
+  rows: TerritorialResponseAuditRow[];
+  selectedResponseId?: string;
+  onSelectResponse?: (responseId: string) => void;
+}) {
+  const points = useMemo(() => territorialKoboMapPoints(reports), [reports]);
+  const rowsById = useMemo(() => new Map(rows.map((row) => [row.response_id, row])), [rows]);
+  const blocks = reports.map.blocks.length ? reports.map.blocks : reports.block_progress;
+  const selectedPoint = selectedResponseId ? points.find((point) => point.response_id === selectedResponseId) ?? null : null;
+  const activePoint = selectedPoint ?? points[0] ?? null;
+  const activeRow = selectedResponseId
+    ? rowsById.get(selectedResponseId) ?? null
+    : activePoint?.response_id
+      ? rowsById.get(activePoint.response_id) ?? null
+      : null;
+  const activeNearestBlockId = normalizeTerritorialBlockCode(activeRow?.nearest_block_id || activePoint?.nearest_block_id);
+  const activeRouteBlock = activeNearestBlockId
+    ? blocks.find((block) => territorialBlockMatchesNormalizedId(block, activeNearestBlockId)) ?? null
+    : null;
+  const activeSpatialDistrict = activePoint
+    ? TERRITORIAL_LIMA_DISTRICT_FEATURES.find((feature) => territorialPointInDistrictFeature(activePoint.lonValue, activePoint.latValue, feature)) ?? null
+    : null;
+  const selectedUbigeo = normalizeTerritorialBlockCode(
+    activeRouteBlock?.ubigeo
+      || activeSpatialDistrict?.properties.ubigeo
+      || activePoint?.ubigeo
+      || activeRow?.ubigeo
+      || blocks[0]?.ubigeo,
+  );
+  const [blockMap, setBlockMap] = useState<HojasRutaBlockMap | null>(null);
+  const [neighborBlockMaps, setNeighborBlockMaps] = useState<Record<string, HojasRutaBlockMap | null>>({});
+  const [zoneMap, setZoneMap] = useState<HojasRutaZoneMap | null>(null);
+  const [streetMap, setStreetMap] = useState<HojasRutaStreetMap | null>(null);
+  const [contextMap, setContextMap] = useState<HojasRutaContextMap | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [mapError, setMapError] = useState("");
+  const navigation = useTerritorialMapNavigation(
+    TERRITORIAL_LIMA_MAP_WIDTH,
+    TERRITORIAL_LIMA_MAP_HEIGHT,
+    TERRITORIAL_ROUTE_MIN_ZOOM,
+    TERRITORIAL_LIMA_MAP_MAX_ZOOM,
+    TERRITORIAL_ROUTE_AUTO_ZOOM,
+  );
+  const routeDistrictUbigeos = useMemo(() => (
+    Array.from(new Set(blocks.map((block) => normalizeTerritorialBlockCode(block.ubigeo)).filter(Boolean))).slice(0, 12)
+  ), [blocks]);
+  const routeDistrictUbigeosKey = routeDistrictUbigeos.join("|");
+
+  useEffect(() => {
+    if (!selectedUbigeo) {
+      setBlockMap(null);
+      setNeighborBlockMaps({});
+      setZoneMap(null);
+      setStreetMap(null);
+      setContextMap(null);
+      setLoading(false);
+      setMapError("");
+      return;
+    }
+    let cancelled = false;
+    const cached = TERRITORIAL_ROUTE_CARTOGRAPHY_CACHE.get(selectedUbigeo);
+    if (cached) {
+      setBlockMap(cached.blockMap);
+      setZoneMap(cached.zoneMap);
+      setStreetMap(cached.streetMap);
+      setContextMap(cached.contextMap);
+      setLoading(false);
+      setMapError(cached.partial ? "No se pudo cargar toda la cartografía contextual para el caso seleccionado." : "");
+      return () => { cancelled = true; };
+    }
+    setLoading(true);
+    setMapError("");
+    setBlockMap(null);
+    setZoneMap(null);
+    setStreetMap(null);
+    setContextMap(null);
+    loadTerritorialRouteCartography(selectedUbigeo).then((bundle) => {
+      if (cancelled) return;
+      setBlockMap(bundle.blockMap);
+      setZoneMap(bundle.zoneMap);
+      setStreetMap(bundle.streetMap);
+      setContextMap(bundle.contextMap);
+      setMapError(bundle.partial ? "No se pudo cargar toda la cartografía contextual para el caso seleccionado." : "");
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [selectedUbigeo]);
+
+  useEffect(() => {
+    if (!routeDistrictUbigeos.length) return undefined;
+    let cancelled = false;
+    const timers: number[] = [];
+    const startTimer = window.setTimeout(() => {
+      routeDistrictUbigeos.forEach((ubigeo, index) => {
+        if (!ubigeo || ubigeo === selectedUbigeo) return;
+        const timer = window.setTimeout(() => {
+          if (!cancelled) void loadTerritorialRouteCartography(ubigeo);
+        }, index * 140);
+        timers.push(timer);
+      });
+    }, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(startTimer);
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [routeDistrictUbigeos, routeDistrictUbigeosKey, selectedUbigeo]);
+
+  const districtBlocks = useMemo(() => (
+    selectedUbigeo ? blocks.filter((block) => normalizeTerritorialBlockCode(block.ubigeo) === selectedUbigeo) : blocks
+  ), [blocks, selectedUbigeo]);
+  const blockFeatures = blockMap?.geojson?.features ?? [];
+  const routeFeatures = useMemo(() => selectTerritorialMapFeatures(blockFeatures, districtBlocks), [blockFeatures, districtBlocks]);
+  const activeBlockStableKey = activeRouteBlock ? territorialBlockStableKey(activeRouteBlock) : "";
+  const selectedFeature = useMemo(() => (
+    activeBlockStableKey
+      ? routeFeatures.find((item) => territorialBlockStableKey(item.block) === activeBlockStableKey) ?? null
+      : null
+  ), [activeBlockStableKey, routeFeatures]);
+  const zoneFeatures = zoneMap?.geojson?.features ?? [];
+  const activeSpatialZone = activePoint
+    ? zoneFeatures.find((feature) => (
+      normalizeTerritorialBlockCode(feature.properties.ubigeo) === selectedUbigeo
+      && territorialPointInZoneFeature(activePoint.lonValue, activePoint.latValue, feature)
+    )) ?? null
+    : null;
+  const selectedZoneKey = selectedFeature
+    ? territorialBlockZoneKey(selectedFeature.block)
+    : activeSpatialZone
+      ? territorialZoneFeatureKey(activeSpatialZone)
+      : "";
+  const selectedZoneFeature = selectedZoneKey
+    ? zoneFeatures.find((feature) => territorialZoneFeatureKey(feature) === selectedZoneKey) ?? null
+    : null;
+  const activeZoneRouteFeatures = routeFeatures.filter((item) => territorialBlockZoneKey(item.block) === selectedZoneKey);
+  const routeZoneKeys = useMemo(() => new Set(districtBlocks.map((block) => territorialBlockZoneKey(block)).filter(Boolean)), [districtBlocks]);
+  const routeZoneFeatures = useMemo(() => (
+    zoneFeatures.filter((feature) => routeZoneKeys.has(territorialZoneFeatureKey(feature)))
+  ), [routeZoneKeys, zoneFeatures]);
+  const districtFeature = selectedUbigeo
+    ? TERRITORIAL_LIMA_DISTRICT_FEATURES.find((feature) => feature.properties.ubigeo === selectedUbigeo) ?? null
+    : null;
+  const activeAnchor = selectedFeature?.centroid
+    ?? (activePoint ? { lon: activePoint.lonValue, lat: activePoint.latValue } : null)
+    ?? (selectedZoneFeature ? territorialZoneCentroid(selectedZoneFeature) : null)
+    ?? (districtFeature ? territorialDistrictCentroid(districtFeature) : null);
+  const neighborDistrictFeatures = useMemo(() => {
+    if (!districtFeature || !activeAnchor) return [];
+    const ranked = TERRITORIAL_LIMA_DISTRICT_FEATURES
+      .filter((feature) => feature.properties.ubigeo !== selectedUbigeo)
+      .map((feature) => ({
+        feature,
+        distance: territorialDistrictDistanceToAnchor(feature, activeAnchor),
+      }))
+      .filter((item): item is { feature: TerritorialDistrictFeature; distance: number } => Number.isFinite(item.distance))
+      .sort((a, b) => a.distance - b.distance);
+    const nearby = ranked.filter((item) => (
+      item.distance <= TERRITORIAL_ROUTE_CONTEXT_RADIUS_M + TERRITORIAL_ROUTE_NEIGHBOR_DISTRICT_BUFFER_M
+    ));
+    return (nearby.length ? nearby : ranked.slice(0, 8))
+      .slice(0, TERRITORIAL_ROUTE_NEIGHBOR_DISTRICT_LIMIT)
+      .map((item) => item.feature);
+  }, [activeAnchor, districtFeature, selectedUbigeo]);
+  const neighborDistrictUbigeos = useMemo(() => (
+    neighborDistrictFeatures
+      .map((feature) => feature.properties.ubigeo)
+      .filter((ubigeo) => ubigeo && ubigeo !== selectedUbigeo)
+      .slice(0, TERRITORIAL_ROUTE_NEIGHBOR_DISTRICT_LIMIT)
+  ), [neighborDistrictFeatures, selectedUbigeo]);
+  const externalContextUbigeos = useMemo(() => (
+    Array.from(new Set([...neighborDistrictUbigeos, ...routeDistrictUbigeos]))
+      .filter((ubigeo) => ubigeo && ubigeo !== selectedUbigeo)
+      .slice(0, TERRITORIAL_ROUTE_NEIGHBOR_DISTRICT_LIMIT)
+  ), [neighborDistrictUbigeos, routeDistrictUbigeos, selectedUbigeo]);
+  const externalContextUbigeosKey = externalContextUbigeos.join("|");
+
+  useEffect(() => {
+    if (!selectedUbigeo || !externalContextUbigeos.length) {
+      setNeighborBlockMaps({});
+      return;
+    }
+    let cancelled = false;
+    const requestedUbigeos = [...externalContextUbigeos];
+    setNeighborBlockMaps((previous) => requestedUbigeos.reduce<Record<string, HojasRutaBlockMap | null>>((next, ubigeo) => {
+      if (previous[ubigeo]) next[ubigeo] = previous[ubigeo];
+      return next;
+    }, {}));
+    Promise.all(requestedUbigeos.map((ubigeo) => loadTerritorialRouteCartography(ubigeo)
+      .then((bundle) => [ubigeo, bundle.blockMap] as const)
+      .catch(() => [ubigeo, null] as const)))
+      .then((entries) => {
+        if (cancelled) return;
+        setNeighborBlockMaps(Object.fromEntries(entries));
+      });
+    return () => { cancelled = true; };
+  }, [externalContextUbigeosKey, selectedUbigeo]);
+
+  const routeFeatureKeys = useMemo(() => (
+    new Set(routeFeatures.map((item) => territorialFeatureStableKey(item.feature)))
+  ), [routeFeatures]);
+  const districtContextFeatures = useMemo(() => (
+    blockFeatures.filter((feature) => !routeFeatureKeys.has(territorialFeatureStableKey(feature)))
+  ), [blockFeatures, routeFeatureKeys]);
+  const externalDistrictContextFeatures = useMemo(() => (
+    externalContextUbigeos.flatMap((ubigeo) => neighborBlockMaps[ubigeo]?.geojson?.features ?? [])
+  ), [externalContextUbigeos, neighborBlockMaps]);
+  const nearbyContextFeatures = useMemo(() => selectTerritorialRouteRadialContext({
+    sameDistrictFeatures: districtContextFeatures,
+    externalDistrictFeatures: externalDistrictContextFeatures,
+    routeFeatures,
+    selectedFeature,
+    selectedZoneKey,
+    anchorPoint: activeAnchor,
+  }), [activeAnchor, districtContextFeatures, externalDistrictContextFeatures, routeFeatures, selectedFeature, selectedZoneKey]);
+  const visibleStreetFeatures = useMemo(() => sampleTerritorialStreetFeatures(streetMap?.geojson?.features ?? []), [streetMap]);
+  const visibleContextFeatures = useMemo(() => sampleTerritorialContextFeatures(contextMap?.geojson?.features ?? []), [contextMap]);
+  const mapPoints = useMemo(() => (
+    points.filter((point) => {
+      if (!selectedUbigeo) return true;
+      if (activePoint?.response_id && point.response_id === activePoint.response_id) return true;
+      const declaredUbigeo = normalizeTerritorialBlockCode(point.ubigeo);
+      if (declaredUbigeo === selectedUbigeo) return true;
+      return Boolean(districtFeature && territorialPointInDistrictFeature(point.lonValue, point.latValue, districtFeature));
+    })
+  ), [activePoint?.response_id, districtFeature, points, selectedUbigeo]);
+  const projectionFeatures = useMemo(() => {
+    if (selectedFeature) return [
+      selectedFeature.feature,
+      ...activeZoneRouteFeatures.map((item) => item.feature),
+      ...nearbyContextFeatures.projectionFeatures,
+    ];
+    if (nearbyContextFeatures.projectionFeatures.length) return nearbyContextFeatures.projectionFeatures;
+    if (activeZoneRouteFeatures.length) return activeZoneRouteFeatures.map((item) => item.feature);
+    if (selectedZoneKey) return blockFeatures.filter((feature) => territorialFeatureZoneKey(feature) === selectedZoneKey).slice(0, 96);
+    return blockFeatures.slice(0, 96);
+  }, [activeZoneRouteFeatures, blockFeatures, nearbyContextFeatures.projectionFeatures, selectedFeature, selectedZoneKey]);
+  const projectionZones = useMemo(() => (
+    selectedZoneFeature
+      ? [selectedZoneFeature]
+      : routeZoneFeatures
+  ), [routeZoneFeatures, selectedZoneFeature]);
+  const projectionDistricts = !selectedFeature && !selectedZoneFeature && districtFeature ? [districtFeature] : [];
+  const projectionPoints = activePoint ? [activePoint] : mapPoints.slice(0, 1);
+  const projection = useMemo(() => buildTerritorialMapProjection(
+    projectionPoints,
+    projectionDistricts,
+    projectionFeatures,
+    projectionZones,
+  ), [projectionDistricts, projectionFeatures, projectionPoints, projectionZones]);
+  const autoFocusKeyRef = useRef("");
+  const autoFocusDistrictRef = useRef("");
+  useEffect(() => {
+    const autoFocusKey = [
+      selectedResponseId || activePoint?.response_id || "sin-caso",
+      selectedUbigeo || "sin-distrito",
+      selectedFeature?.key || "sin-manzana",
+      projection.hasGeometry ? "geom" : "no-geom",
+    ].join("|");
+    if (autoFocusKeyRef.current === autoFocusKey) return;
+    autoFocusKeyRef.current = autoFocusKey;
+    const centerPoint = selectedFeature?.centroid
+      ? projection.project(selectedFeature.centroid.lon, selectedFeature.centroid.lat)
+      : activePoint
+        ? projection.project(activePoint.lonValue, activePoint.latValue)
+        : activeAnchor
+          ? projection.project(activeAnchor.lon, activeAnchor.lat)
+          : null;
+    if (!projection.hasGeometry || !centerPoint) {
+      autoFocusDistrictRef.current = selectedUbigeo || "";
+      navigation.reset();
+      return;
+    }
+    const sameDistrict = Boolean(autoFocusDistrictRef.current && autoFocusDistrictRef.current === selectedUbigeo);
+    autoFocusDistrictRef.current = selectedUbigeo || "";
+    navigation.zoomTo(TERRITORIAL_ROUTE_AUTO_ZOOM, centerPoint.x, centerPoint.y, { animate: sameDistrict, durationMs: 420 });
+  }, [
+    activeAnchor,
+    activePoint,
+    navigation.reset,
+    navigation.zoomTo,
+    projection,
+    selectedFeature?.centroid,
+    selectedResponseId,
+    selectedUbigeo,
+  ]);
+  const selectedFeatureKey = selectedFeature?.key ?? "";
+  const zoomClass = navigation.zoom >= 2.2 ? "is-zoom-blocks" : navigation.zoom >= 1.55 ? "is-zoom-detail" : "is-zoom-general";
+  const pointScale = 1 / Math.max(1, navigation.zoom);
+  const geoSummary = territorialGeoSummary(rows);
+  const activeTitle = activeRow
+    ? `${activeRow.distrito || activeRow.district_code || activeSpatialDistrict?.properties.distrito || "Sin distrito"} · ${geoStatusLabel(activeRow.geo_estado)}`
+    : activePoint
+      ? `${activePoint.distrito || activeSpatialDistrict?.properties.distrito || "Sin distrito"} · ${geoStatusLabel(activePoint.geo_estado)}`
+      : "Sin punto GPS";
+  const zoomFromControl = (factor: number) => {
+    navigation.setZoom(navigation.zoom * factor);
+  };
+
+  return (
+    <Tooltip.Provider delayDuration={280} skipDelayDuration={120}>
+      <section className="mon-territorial-route-map-card mon-territorial-validation-geo-map-card" aria-label="Mapa de geolocalización territorial">
+        <header>
+          <span>Mapa GPS y manzanas</span>
+          <strong>{activeTitle}</strong>
+        </header>
+        {loading && !blockMap ? (
+          <LoadingBlock label="Cargando cartografía de Hojas de Ruta..." minHeight={520} />
+        ) : projection.hasGeometry ? (
+          <div
+            ref={(node) => { navigation.wheelHostRef.current = node; }}
+            className="mon-territorial-map-viewport mon-territorial-route-map-viewport mon-territorial-validation-geo-map-viewport"
+            {...navigation.handlers}
+          >
+            <div
+              className="mon-territorial-map-tools"
+              aria-label="Controles del mapa"
+              onPointerDown={(event) => event.stopPropagation()}
+              onPointerMove={(event) => event.stopPropagation()}
+              onPointerUp={(event) => event.stopPropagation()}
+            >
+              <TerritorialMapToolButton label="Acercar mapa" onClick={() => zoomFromControl(1.6)}>
+                <Plus size={13} />
+              </TerritorialMapToolButton>
+              <TerritorialMapToolButton label="Alejar mapa" onClick={() => zoomFromControl(0.625)}>
+                <Minus size={13} />
+              </TerritorialMapToolButton>
+              <TerritorialMapToolButton label="Restablecer vista" onClick={navigation.reset}>
+                <Maximize2 size={13} />
+              </TerritorialMapToolButton>
+              <span className="mon-territorial-map-zoom-readout" aria-label={`Zoom ${navigation.zoom.toFixed(1)}x`}>
+                {navigation.zoom.toFixed(1)}x
+              </span>
+            </div>
+            <TerritorialZoneCanvasLayer
+              projection={projection}
+              zoom={navigation.zoom}
+              pan={navigation.pan}
+              contextFeatures={visibleContextFeatures}
+              streetFeatures={visibleStreetFeatures}
+              districtFeatures={TERRITORIAL_LIMA_DISTRICT_FEATURES}
+              activeDistrictUbigeo={selectedUbigeo}
+              zoneFeatures={zoneFeatures}
+              routeZoneKeys={routeZoneKeys}
+              activeZoneKey={selectedZoneKey}
+              neighborFeatures={nearbyContextFeatures.sameDistrictFeatures}
+              focusZoneFeatures={nearbyContextFeatures.activeZoneFeatures}
+              externalNeighborFeatures={nearbyContextFeatures.externalDistrictFeatures}
+              selectedFeatures={routeFeatures}
+              selectedBlockKey={selectedFeatureKey}
+              routeMapLabels={[]}
+              mode="route"
+            />
+            <svg
+              className={`is-lima-map is-level-zone ${zoomClass}`}
+              viewBox={`0 0 ${TERRITORIAL_LIMA_MAP_WIDTH} ${TERRITORIAL_LIMA_MAP_HEIGHT}`}
+              preserveAspectRatio="none"
+              role="img"
+              aria-label="Mapa de Hojas de Ruta con puntos GPS de Kobo"
+            >
+              <g transform={navigation.transform}>
+                <g className="mon-territorial-map-points" aria-label="Puntos de encuestas Kobo">
+                  {mapPoints.map((point, index) => {
+                    const { x, y } = projection.project(point.lonValue, point.latValue);
+                    const selected = (selectedPoint?.response_id || (!selectedResponseId ? activePoint?.response_id : "")) === point.response_id;
+                    const coreRadius = selected ? 3.8 : point.geo_estado === "geo_ok" ? 2.6 : 2.9;
+                    return (
+                      <g
+                        key={`${point.response_id || "gps"}-${index}`}
+                        className={`mon-territorial-map-point-node ${territorialGeoClass(point.geo_estado)}${selected ? " is-selected" : ""}`}
+                        transform={`translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${pointScale.toFixed(6)})`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Caso Kobo ${point.response_id || index}, ${geoStatusLabel(point.geo_estado)}`}
+                        onPointerDown={(event) => event.stopPropagation()}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (navigation.suppressClick()) return;
+                          if (point.response_id) onSelectResponse?.(point.response_id);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            if (point.response_id) onSelectResponse?.(point.response_id);
+                          }
+                        }}
+                      >
+                        <circle className="mon-territorial-map-point-hit" r="6.4" />
+                        {selected && <circle className="mon-territorial-map-point-focus" r="6.2" />}
+                        <circle className="mon-territorial-map-point-core" r={coreRadius} />
+                        <title>{`${shortenMiddle(point.response_id || "sin id", 28)} · ${geoStatusLabel(point.geo_estado)} · ${point.latValue.toFixed(6)}, ${point.lonValue.toFixed(6)} · ${formatDistanceLabel(point.distance_m)}`}</title>
+                      </g>
+                    );
+                  })}
+                </g>
+              </g>
+              <text className="mon-territorial-map-caption" x="18" y={TERRITORIAL_LIMA_MAP_HEIGHT - 18}>
+                {`${selectedUbigeo ? activeTitle : "GPS y manzanas"} · ${formatMetric(mapPoints.length)} puntos visibles · ${formatMetric(points.length)} puntos Kobo`}
+              </text>
+            </svg>
+          </div>
+        ) : (
+          <EmptyState icon={<MapPin size={18} />} title="Sin puntos GPS para mapear" hint="La lista mantiene todos los casos; selecciona un caso con GPS para centrar el mapa." />
+        )}
+        {mapError ? <div className="mon-territorial-map-error">{mapError}</div> : null}
+        <div className="mon-territorial-validation-geo-map-footer" aria-label="Resumen GPS y manzanas">
+          <span className="is-geo_ok"><strong>{formatMetric(geoSummary.geo_ok)}</strong><em>Dentro</em></span>
+          <span className="is-geo_cerca"><strong>{formatMetric(geoSummary.geo_cerca)}</strong><em>Cerca</em></span>
+          <span className="is-geo_revision"><strong>{formatMetric(geoSummary.geo_revision)}</strong><em>Revisión</em></span>
+          <span className="is-geo_no_defendible"><strong>{formatMetric(geoSummary.geo_no_defendible)}</strong><em>Fuera</em></span>
+          <span className="is-geo_sin_gps"><strong>{formatMetric(geoSummary.geo_sin_gps)}</strong><em>Sin GPS</em></span>
+        </div>
+      </section>
+    </Tooltip.Provider>
+  );
+}
+
+function TerritorialGeoCaseList({
+  rows,
+  gpsRows,
+  selectedRow,
+  selectedResponseId,
+  onSelectResponse,
+}: {
+  rows: TerritorialResponseAuditRow[];
+  gpsRows: TerritorialResponseAuditRow[];
+  selectedRow: TerritorialResponseAuditRow | null;
+  selectedResponseId?: string;
+  onSelectResponse?: (responseId: string) => void;
+}) {
+  const ordered = useMemo(() => [...rows].sort((a, b) => {
+    const aGps = territorialResponseHasGps(a) ? 0 : 1;
+    const bGps = territorialResponseHasGps(b) ? 0 : 1;
+    if (aGps !== bGps) return aGps - bGps;
+    return (a.row_index ?? 0) - (b.row_index ?? 0);
+  }), [rows]);
+  return (
+    <section className="mon-territorial-geo-case-list" aria-label="Todos los casos geolocalizados">
+      <header>
+        <div>
+          <span><MapPin size={14} /> Todos los casos</span>
+          <p>Selecciona una encuesta para centrar el mapa en su GPS y revisar distancia a manzana.</p>
+        </div>
+        <strong>{formatMetric(gpsRows.length)} GPS · {formatMetric(rows.length)} casos</strong>
+      </header>
+      {selectedRow ? (
+        <div className="mon-territorial-geo-selected-case">
+          <span className={`mon-territorial-band is-${territorialDistanceBand(selectedRow).key}`}>
+            {geoStatusLabel(selectedRow.geo_estado)}
+          </span>
+          <strong title={selectedRow.response_id}>{shortenMiddle(selectedRow.response_id || `Fila ${selectedRow.row_index}`, 30)}</strong>
+          <dl>
+            <div><dt>Distrito</dt><dd>{selectedRow.distrito || selectedRow.ubigeo || "Sin distrito"}</dd></div>
+            <div><dt>Distancia</dt><dd>{formatDistanceLabel(selectedRow.distance_m)}</dd></div>
+            <div><dt>Fecha</dt><dd>{formatTerritorialSubmissionStamp(selectedRow) || "S/D"}</dd></div>
+            <div><dt>GPS</dt><dd>{territorialResponseHasGps(selectedRow) ? `${Number(selectedRow.lat).toFixed(5)}, ${Number(selectedRow.lon).toFixed(5)}` : "Sin punto"}</dd></div>
+          </dl>
+        </div>
+      ) : null}
+      <div className="mon-territorial-geo-case-scroll">
+        {ordered.map((row) => {
+          const responseId = row.response_id || `row-${row.row_index}`;
+          const selected = selectedResponseId && selectedResponseId === row.response_id;
+          const hasGps = territorialResponseHasGps(row);
+          const band = territorialDistanceBand(row);
+          return (
+            <button
+              key={`${row.row_index}-${responseId}`}
+              type="button"
+              className={`mon-territorial-geo-case-row${selected ? " is-selected" : ""}${hasGps ? "" : " is-no-gps"}`}
+              onClick={() => { if (row.response_id) onSelectResponse?.(row.response_id); }}
+            >
+              <span className={`mon-territorial-geo-case-dot ${territorialGeoClass(row.geo_estado)}`} aria-hidden="true" />
+              <span className="mon-territorial-geo-case-main">
+                <strong title={responseId}>{shortenMiddle(responseId, 26)}</strong>
+                <em>{row.distrito || row.ubigeo || "Sin distrito"} · {territorialInterviewerLabel(row.submitted_by)}</em>
+              </span>
+              <span className="mon-territorial-geo-case-meta">
+                <b>{geoStatusLabel(row.geo_estado)}</b>
+                <small>{hasGps ? formatDistanceLabel(row.distance_m) : "sin punto"}</small>
+              </span>
+              <span className="mon-territorial-geo-case-date">{formatTerritorialSubmissionStamp(row) || `Fila ${formatMetric(row.row_index)}`}</span>
+              <span className={`mon-territorial-band is-${band.key}`}>{band.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function TerritorialValidationChart({
   reports,
   advance,
@@ -5140,34 +5693,34 @@ function TerritorialValidationChart({
   const progressPct = safePercent(advance.validas, total) ?? 0;
   const defensiblePct = safePercent(cleanAdvance + advance.observacion_aprobada, advance.validas) ?? 0;
   const segments = [
-    { key: "validada", label: "Limpias", value: cleanAdvance, hint: formatPercentLabel(safePercent(cleanAdvance, total)) },
-    { key: "revision", label: "Revisión", value: advance.observacion, hint: formatPercentLabel(safePercent(advance.observacion, total)) },
-    { key: "aprobada", label: "Aprobadas", value: advance.observacion_aprobada, hint: formatPercentLabel(safePercent(advance.observacion_aprobada, total)) },
+    { key: "validada", label: "Sin revisión", value: cleanAdvance, hint: formatPercentLabel(safePercent(cleanAdvance, total)) },
+    { key: "revision", label: "Por revisar", value: advance.observacion, hint: formatPercentLabel(safePercent(advance.observacion, total)) },
+    { key: "aprobada", label: "Validadas", value: advance.observacion_aprobada, hint: formatPercentLabel(safePercent(advance.observacion_aprobada, total)) },
     { key: "no_defendible", label: "No válidas", value: advance.no_validas, hint: formatPercentLabel(safePercent(advance.no_validas, total)) },
   ];
   return (
     <section className="mon-territorial-audit-card mon-territorial-audit-card--state" aria-label="Distribución de validación">
       <header>
         <span><ShieldAlert size={14} /> Estado de respuestas</span>
-        <strong>{formatMetric(advance.validas)} avanzan</strong>
+        <strong>{formatMetric(advance.validas)} válidas</strong>
       </header>
       <div className="mon-territorial-state-board">
         <div
           className="mon-territorial-score-ring"
           style={{ "--score": `${progressPct}%`, "--clean": `${defensiblePct}%` } as CSSProperties}
           role="img"
-          aria-label={`${formatPercentLabel(progressPct)} de respuestas cuentan para avance`}
+          aria-label={`${formatPercentLabel(progressPct)} de registros válidos`}
         >
           <span>
             <strong>{formatPercentLabel(progressPct)}</strong>
-            <em>avance</em>
+            <em>válidas</em>
           </span>
         </div>
         <div className="mon-territorial-state-summary">
           <div className="mon-territorial-state-headline">
             <strong>{formatMetric(cleanAdvance + advance.observacion_aprobada)}</strong>
-            <span>defendibles hoy</span>
-            <em>{formatPercentLabel(defensiblePct)} de las que avanzan</em>
+            <span>válidas sin revisión</span>
+            <em>{formatPercentLabel(defensiblePct)} de válidas</em>
           </div>
           <div className="mon-territorial-segment-strip" role="img" aria-label="Composición de validación territorial">
             {segments.map((item) => (
@@ -5186,7 +5739,7 @@ function TerritorialValidationChart({
         </div>
       </div>
       <div className="mon-territorial-decision-matrix" aria-label="Matriz de revisión territorial">
-        <span className="is-ready"><CheckCircle2 size={15} /><strong>{formatMetric(cleanAdvance)}</strong><em>Limpias</em></span>
+        <span className="is-ready"><CheckCircle2 size={15} /><strong>{formatMetric(cleanAdvance)}</strong><em>Sin revisión</em></span>
         <span className={reviewOnlyGeo ? "is-warning" : "is-ready"}><MapPin size={15} /><strong>{formatMetric(reviewOnlyGeo)}</strong><em>GPS</em></span>
         <span className={reviewOnlyDuration ? "is-warning" : "is-ready"}><Clock size={15} /><strong>{formatMetric(reviewOnlyDuration)}</strong><em>Tiempo</em></span>
         <span className={bothCases ? "is-warning" : "is-ready"}><ShieldAlert size={15} /><strong>{formatMetric(bothCases)}</strong><em>GPS+T</em></span>
@@ -5255,7 +5808,7 @@ function TerritorialGeoBreakdown({ reports, rows }: { reports: MonitoreoTerritor
       </div>
       <div className="mon-territorial-geo-bars" aria-label="Distribución GPS compacta">
         {items.map((item) => (
-          <article key={item.key}>
+          <article key={item.key} className={`is-${item.key}`}>
             <span>{item.label} · {item.range}</span>
             <b>{formatMetric(item.value)}</b>
             <i className={`is-${item.key}`} style={{ width: `${Math.max(4, safePercent(item.value, totalGeo) ?? 0)}%` }} />
@@ -5292,6 +5845,9 @@ function TerritorialDurationBreakdown({
   const inRange = counts.esperada + counts.larga + counts.extrema;
   const priority = counts.corta + counts.muy_corta;
   const totalDuration = Math.max(1, inRange + priority + counts.sin_dato);
+  const shortPct = safePercent(counts.corta, totalDuration) ?? 0;
+  const veryShortPct = safePercent(counts.muy_corta, totalDuration) ?? 0;
+  const reviewPct = shortPct + veryShortPct;
   const shortThreshold = territorialShortDurationSeconds(config);
   const items = [
     { key: "esperada", label: "En rango", detail: "sin alerta", value: inRange, className: "is-duration-esperada" },
@@ -5308,13 +5864,16 @@ function TerritorialDurationBreakdown({
       <div className="mon-territorial-duration-hero">
         <div
           className="mon-territorial-duration-dial"
-          style={{ "--priority": `${safePercent(priority, totalDuration) ?? 0}%` } as CSSProperties}
+          style={{
+            "--duration-short": `${shortPct}%`,
+            "--duration-review": `${reviewPct}%`,
+          } as CSSProperties}
           role="img"
           aria-label={`${formatMetric(priority)} encuestas con duración corta o muy corta`}
         >
           <span>
             <strong>{formatMetric(priority)}</strong>
-            <em>prioridad</em>
+            <em>revisión</em>
           </span>
         </div>
         <div className="mon-territorial-duration-copy">
@@ -6933,7 +7492,7 @@ function TerritorialMapInspectorContent({
       ["Meta", formatMetric(selectedBlock.block.meta)],
       ["Válidas", formatMetric(selectedBlock.block.validas)],
       ["Revisión", formatMetric(selectedBlock.block.revision)],
-      ["No defendibles", formatMetric(selectedBlock.block.no_defendibles)],
+      ["No válidas", formatMetric(selectedBlock.block.no_defendibles)],
       ["Brecha", formatMetric(selectedBlock.block.brecha)],
       ["Avance", `${formatMetric(selectedBlock.block.avance_pct)}%`],
     ];
@@ -7483,14 +8042,17 @@ function selectTerritorialRouteRadialContext({
   routeFeatures,
   selectedFeature,
   selectedZoneKey,
+  anchorPoint,
 }: {
   sameDistrictFeatures: HojasRutaBlockMapFeature[];
   externalDistrictFeatures: HojasRutaBlockMapFeature[];
   routeFeatures: TerritorialSelectedMapFeature[];
   selectedFeature: TerritorialSelectedMapFeature | null;
   selectedZoneKey: string;
+  anchorPoint?: { lon: number; lat: number } | null;
 }): TerritorialRouteRadialContext {
   const anchor = selectedFeature?.centroid
+    ?? anchorPoint
     ?? routeFeatures.flatMap((item) => item.centroid ? [item.centroid] : [])[0]
     ?? null;
   const routeKeys = new Set(routeFeatures.map((item) => territorialFeatureStableKey(item.feature)));
@@ -8342,7 +8904,7 @@ function territorialRouteMembershipLabel(value: TerritorialRouteMembership) {
     selected_zone: "Zona seleccionada",
     selected_district: "Distrito seleccionado",
     out_of_route: "Fuera de ruta",
-    unresolved: "Sin GPS defendible",
+    unresolved: "Sin GPS válido",
   };
   return labels[value] || value;
 }
@@ -8521,7 +9083,7 @@ function TerritorialTeamTable({ rows }: { rows: MonitoreoTerritorialDashboard["t
   return (
     <div className="mon-advance-daily-table-wrap mon-territorial-table-wrap">
       <table className="mon-advance-daily-table" aria-label="Producción por enumerador">
-        <thead><tr><th>Enumerador</th><th>Total</th><th>Válidas</th><th>Revisión</th><th>No defendibles</th><th>Mediana</th></tr></thead>
+        <thead><tr><th>Enumerador</th><th>Total</th><th>Válidas</th><th>Revisión</th><th>No válidas</th><th>Mediana</th></tr></thead>
         <tbody>{rows.map((row) => <tr key={row.submitted_by}><td><strong>{row.submitted_by}</strong></td><td>{formatMetric(row.total)}</td><td>{formatMetric(row.validas)}</td><td>{formatMetric(row.revision)}</td><td>{formatMetric(row.no_defendibles)}</td><td>{formatDurationLabel(row.duration_median)}</td></tr>)}</tbody>
       </table>
     </div>
@@ -18222,7 +18784,7 @@ function InternalQueryOrientation({
       <div className="mon-query-orientation-grid">
         <span>
           <em>Qué validas primero</em>
-          <strong>{formatMetric(summary.effective)} efectivas defendibles</strong>
+          <strong>{formatMetric(summary.effective)} efectivas válidas</strong>
           <small>Completa válida, sin rechazo y en base o con decisión auditada.</small>
         </span>
         <span>

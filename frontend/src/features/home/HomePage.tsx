@@ -83,6 +83,17 @@ const DEFAULT_CINEMA_METRICS: CinemaMetrics = {
 // ---- Notas de la versión --------------------------------------------
 const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "3.3.4",
+    date: "2026-06-11",
+    highlights: [
+      "Carga: mantiene la actualizacion incremental SurveyMonkey por fuente principal y campanas/canales persistidos.",
+      "Consentimiento: conserva el conteo de registros validos bajo pregunta y opcion aprobatoria.",
+      "Monitoreo: ajusta la nomenclatura territorial a registros validos, no validos y casos por revisar.",
+      "Monitoreo: pule visualmente los indicadores GPS, duracion y resumen territorial.",
+      "Deploy: estabiliza el empaquetado macOS local sin firma/notarizacion automatica.",
+    ],
+  },
+  {
     version: "3.3.3",
     date: "2026-06-11",
     highlights: [
