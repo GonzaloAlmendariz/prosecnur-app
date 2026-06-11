@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from "react";
 import {
-  AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Cloud, Database, Download, FileSpreadsheet, Filter, GitMerge, Layers, Loader2, Plus, RefreshCw,
-  Search, SlidersHorizontal,
+  AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Cloud, Database, Download, FileSpreadsheet, Filter, GitMerge, Layers, Loader2, Mail,
+  MessageCircle, PhoneCall, Plus, QrCode, RefreshCw, Route, Search, SlidersHorizontal,
   Trash2, Upload, Pencil, X as XIcon,
 } from "lucide-react";
 import {
@@ -21,6 +21,8 @@ import {
   apiSurveyMonkeyMultibaseAudit,
   apiSurveyMonkeyMultibaseImportIndependent,
   apiSurveyMonkeyMultibaseListSurveys,
+  apiSurveyMonkeyMultibaseRefresh,
+  apiSurveyMonkeyMultibaseRefreshPlan,
   apiUpload,
   downloadUrl,
   uploadKindForDataFile,
@@ -36,6 +38,9 @@ import type {
   SurveyMonkeyMultibaseAudit,
   SurveyMonkeyMultibaseDiff,
   SurveyMonkeyMultibaseListItem,
+  SurveyMonkeyRefreshBasePlan,
+  SurveyMonkeyRefreshPlan,
+  SurveyMonkeyRefreshResult,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
 import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
@@ -624,6 +629,64 @@ function smSurveyMatchesQuery(item: SurveyMonkeyMultibaseListItem, query: string
   return q.split(" ").filter(Boolean).every((token) => haystack.includes(token));
 }
 
+function smSurveyIdsFromSpec(spec?: SurveyMonkeyMultibaseSurveyInput | null): string[] {
+  if (!spec) return [];
+  const sources = spec.sources ?? spec.campaigns ?? [];
+  return [
+    String(spec.survey_id || "").trim(),
+    ...sources.flatMap((source) => smSurveyIdsFromSpec(source)),
+  ].filter(Boolean);
+}
+
+function smSurveyIdsFromFilter(value: unknown): string[] {
+  if (!value || typeof value !== "object") return [];
+  const record = value as Record<string, unknown>;
+  const direct = String(record.survey_id ?? record.id ?? "").trim();
+  const sources = Array.isArray(record.sources) ? record.sources : [];
+  return [
+    direct,
+    ...sources.flatMap((source) => smSurveyIdsFromFilter(source)),
+  ].filter(Boolean);
+}
+
+function smSurveyIdsFromBase(base: EstudioBase) {
+  return Array.from(new Set([
+    String(base.survey_id || "").trim(),
+    ...smSurveyIdsFromSpec(base.surveymonkey_source_spec),
+    ...smSurveyIdsFromFilter(base.response_filter),
+  ].filter(Boolean)));
+}
+
+export function smSurveyCatalogAvailability(
+  surveys: SurveyMonkeyMultibaseListItem[] | null | undefined,
+  query: string,
+  existingSurveyIds: Iterable<string>,
+  selectedSurveyIds: Iterable<string>,
+) {
+  const existing = new Set(Array.from(existingSurveyIds).map((id) => String(id).trim()).filter(Boolean));
+  const selected = new Set(Array.from(selectedSurveyIds).map((id) => String(id).trim()).filter(Boolean));
+  const matched = (surveys ?? []).filter((item) => smSurveyMatchesQuery(item, query));
+  const duplicates = matched.filter((item) => existing.has(item.id) || selected.has(item.id));
+  const available = matched.filter((item) => !existing.has(item.id) && !selected.has(item.id));
+  return { matched, available, duplicates };
+}
+
+function smDuplicateSurveyAlert(
+  duplicates: SurveyMonkeyMultibaseListItem[],
+  existingSurveyIds: Set<string>,
+  selectedSurveyIds: Set<string>,
+) {
+  if (!duplicates.length) return "";
+  const loaded = duplicates.filter((item) => existingSurveyIds.has(item.id)).length;
+  const selected = duplicates.filter((item) => selectedSurveyIds.has(item.id)).length;
+  const parts = [
+    loaded ? `${loaded} ya ${loaded === 1 ? "está cargada" : "están cargadas"}` : "",
+    selected ? `${selected} ya ${selected === 1 ? "está seleccionada" : "están seleccionadas"}` : "",
+  ].filter(Boolean);
+  const examples = duplicates.slice(0, 3).map((item) => smSurveyTitle(item)).join(" · ");
+  return `Se ocultaron ${duplicates.length} coincidencia${duplicates.length === 1 ? "" : "s"} repetida${duplicates.length === 1 ? "" : "s"} (${parts.join("; ")}). ${examples}`;
+}
+
 function smBaseSlug(value: string) {
   const slug = smNormalizeSearch(value).replace(/\s+/g, "_").replace(/^_+|_+$/g, "");
   return slug || "base_1";
@@ -661,6 +724,83 @@ function smIndependentBaseTitle(base: EstudioBase | null | undefined, estudio: E
     .trim() || "Base existente";
 }
 
+function smExistingBaseLabel(base: EstudioBase) {
+  return String(base.source_alias || base.source_title || base.nombre || "").trim() || base.nombre;
+}
+
+function smCompactSurveyLikeLabel(value: string) {
+  const cleaned = String(value || "")
+    .replace(/_/g, " ")
+    .replace(/\bAcreditaci[oó]n\b/gi, " ")
+    .replace(/\bEncuesta\s+a\s+(?:E|A)gresados?\b/gi, " ")
+    .replace(/\bEncuesta\b/gi, " ")
+    .replace(/\b(?:E|A)gresados?\b/gi, " ")
+    .replace(/\s*[-–—]\s*/g, " ")
+    .replace(/\s+\ba\b\s*$/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned || String(value || "").trim();
+}
+
+function smExistingBaseTargetLabel(base: EstudioBase) {
+  return smCompactSurveyLikeLabel(smExistingBaseLabel(base));
+}
+
+function smMeaningfulTokens(value: string) {
+  const stop = new Set([
+    "acreditacion",
+    "encuesta",
+    "encuestas",
+    "egresado",
+    "egresados",
+    "agresado",
+    "agresados",
+    "ingenieria",
+    "ingenierias",
+    "base",
+    "data",
+    "de",
+    "del",
+    "la",
+    "las",
+    "los",
+    "a",
+    "y",
+    "pucp",
+  ]);
+  return smNormalizeSearch(value)
+    .split(" ")
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2 && !stop.has(token));
+}
+
+function smExistingBaseTargetScore(item: SurveyMonkeyMultibaseListItem, base: EstudioBase) {
+  const surveyAlias = smNormalizeSearch(smSurveyDefaultAlias(item));
+  const surveyTitle = smNormalizeSearch(smSurveyTitle(item));
+  const baseLabel = smNormalizeSearch(smExistingBaseLabel(base));
+  const baseTitle = smNormalizeSearch(String(base.source_title || base.xlsform_file_name || base.data_file_name || base.nombre || ""));
+  const candidates = [baseLabel, baseTitle, smNormalizeSearch(base.nombre)].filter(Boolean);
+  if (!surveyAlias || !candidates.length) return 0;
+  if (candidates.some((candidate) => candidate === surveyAlias)) return 1.5;
+  if (candidates.some((candidate) => candidate.includes(surveyAlias) || surveyAlias.includes(candidate))) return 1.2;
+  if (candidates.some((candidate) => surveyTitle.includes(candidate))) return 1.05;
+
+  const surveyTokens = new Set(smMeaningfulTokens(`${surveyAlias} ${surveyTitle}`));
+  const baseTokens = new Set(smMeaningfulTokens(candidates.join(" ")));
+  if (!surveyTokens.size || !baseTokens.size) return 0;
+  const overlap = Array.from(surveyTokens).filter((token) => baseTokens.has(token)).length;
+  return overlap / Math.max(1, Math.min(surveyTokens.size, baseTokens.size));
+}
+
+export function smBestExistingBaseTarget(item: SurveyMonkeyMultibaseListItem, bases: EstudioBase[]) {
+  let best = { baseName: "", score: 0 };
+  for (const base of bases) {
+    const score = smExistingBaseTargetScore(item, base);
+    if (score > best.score) best = { baseName: base.nombre, score };
+  }
+  return best.score >= 0.58 ? best.baseName : "";
+}
+
 type SmImportScopeFields = {
   collectorIds: string;
   dateModifiedGte: string;
@@ -669,6 +809,7 @@ type SmImportScopeFields = {
   includePartial: boolean;
   keepMissingStatus: boolean;
   collectionStrategy: "campo" | "whatsapp_link" | "web_link" | "email" | "otro";
+  channel: string;
 };
 
 type SmExtraSourceDraft = SmImportScopeFields & {
@@ -680,10 +821,12 @@ type SmExtraSourceDraft = SmImportScopeFields & {
 
 type SmImportScopeDraft = SmImportScopeFields & {
   alias: string;
+  targetBaseName?: string;
   extraSources: SmExtraSourceDraft[];
 };
 
 export const INDEPENDENT_SIBLINGS_MAX_BASES = 10;
+const SM_CHANNEL_OPTIONS = ["Correo", "Telefónico", "WhatsApp", "Ficha QR", "SMS", "Mixto"] as const;
 
 export function independentSiblingsCapacity(estudio: Pick<EstudioPayload, "max_bases" | "n_bases">) {
   const maxBases = Math.min(estudio.max_bases || INDEPENDENT_SIBLINGS_MAX_BASES, INDEPENDENT_SIBLINGS_MAX_BASES);
@@ -702,6 +845,7 @@ function smDefaultScopeFields(): SmImportScopeFields {
     includePartial: false,
     keepMissingStatus: false,
     collectionStrategy: "campo",
+    channel: "",
   };
 }
 
@@ -713,16 +857,431 @@ function smDefaultScopeDraft(): SmImportScopeDraft {
   };
 }
 
+function smChannelKey(value: string) {
+  const normalized = smNormalizeSearch(value);
+  if (normalized.includes("telefon")) return "telefono";
+  if (normalized.includes("whatsapp")) return "whatsapp";
+  if (normalized.includes("sms")) return "sms";
+  if (normalized.includes("presencial") || normalized.includes("qr") || normalized.includes("ficha")) return "presencial";
+  if (normalized.includes("correo") || normalized.includes("email") || normalized.includes("mail")) return "correo";
+  if (normalized.includes("web") || normalized.includes("online") || normalized.includes("link") || normalized.includes("enlace")) return "correo";
+  if (normalized.includes("mixto") || normalized.includes("multicanal")) return "mixto";
+  return normalized ? "mixto" : "";
+}
+
+function smChannelLabel(value: string) {
+  const key = smChannelKey(value);
+  if (key === "correo") return "Correo";
+  if (key === "telefono") return "Telefónico";
+  if (key === "whatsapp") return "WhatsApp";
+  if (key === "presencial") return "Ficha QR";
+  if (key === "sms") return "SMS";
+  if (key === "mixto") return "Mixto";
+  return "";
+}
+
+function smChannelOptions(value?: string | null) {
+  const label = smChannelLabel(String(value ?? ""));
+  const options = [...SM_CHANNEL_OPTIONS];
+  return label && !options.includes(label as (typeof SM_CHANNEL_OPTIONS)[number])
+    ? [label, ...options]
+    : options;
+}
+
+function smInferChannelFromText(value: string) {
+  const normalized = smNormalizeSearch(value);
+  if (normalized.includes("telefon")) return "Telefónico";
+  if (normalized.includes("whatsapp")) return "WhatsApp";
+  if (normalized.includes("sms")) return "SMS";
+  if (normalized.includes("presencial") || normalized.includes("qr")) return "Ficha QR";
+  if (normalized.includes("correo") || normalized.includes("email") || normalized.includes("mail")) return "Correo";
+  if (normalized.includes("web") || normalized.includes("online") || normalized.includes("link")) return "Correo";
+  return "";
+}
+
+function smSurveyDefaultChannel(item: SurveyMonkeyMultibaseListItem) {
+  return smInferChannelFromText(`${item.title} ${item.nickname ?? ""}`);
+}
+
+function smChannelFromSpec(spec?: SurveyMonkeyMultibaseSurveyInput | null) {
+  if (!spec) return "";
+  const direct = smChannelLabel(String(spec.channel || spec.source_channel || spec.canal || ""));
+  if (direct) return direct;
+  const sources = spec.sources ?? spec.campaigns ?? [];
+  for (const source of sources) {
+    const label = smChannelLabel(String(source.channel || source.source_channel || source.canal || ""));
+    if (label) return label;
+  }
+  return "";
+}
+
+function smBaseChannel(base: EstudioBase) {
+  return smChannelLabel(String(base.source_channel || "")) || smChannelFromSpec(base.surveymonkey_source_spec) || "";
+}
+
+type SmSourceSummary = {
+  surveyId: string;
+  title: string;
+  channel: string;
+  consentVar: string;
+  collectionStrategy: string;
+  validRecords: number | null;
+  originalRecords: number | null;
+  excludedRecords: number | null;
+};
+
+function smSpecConsentVar(spec?: SurveyMonkeyMultibaseSurveyInput | null) {
+  if (!spec) return "";
+  return String(spec.consent_var || spec.consentimiento_var || "").trim();
+}
+
+function smNumberFromRecord(value: unknown) {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function smChannelFromStrategy(value: string) {
+  const key = smNormalizeSearch(value);
+  if (key === "email" || key.includes("correo")) return "Correo";
+  if (key.includes("web") || key.includes("link") || key.includes("online")) return "Correo";
+  if (key.includes("whatsapp")) return "WhatsApp";
+  if (key.includes("sms")) return "SMS";
+  if (key.includes("campo") || key.includes("telefon")) return "Telefónico";
+  return "";
+}
+
+function smSourceSummaryFromRecord(record: Record<string, unknown>, fallback: Partial<SmSourceSummary> = {}): SmSourceSummary {
+  const surveyId = String(record.survey_id ?? record.id ?? fallback.surveyId ?? "").trim();
+  const title = String(
+    record.source_title ?? record.source_alias ?? record.label ?? record.title ?? fallback.title ?? surveyId,
+  ).trim();
+  const collectionStrategy = String(record.collection_strategy ?? fallback.collectionStrategy ?? "").trim();
+  const explicitChannel = smChannelLabel(String(record.source_channel ?? record.channel ?? record.canal ?? fallback.channel ?? ""));
+  const channel = explicitChannel || smChannelFromStrategy(collectionStrategy);
+  const consentVar = String(
+    record.consent_var ?? record.consentimiento_var ?? record.consent_question ?? fallback.consentVar ?? "",
+  ).trim();
+  return {
+    surveyId,
+    title: title || surveyId || "Fuente SurveyMonkey",
+    channel,
+    consentVar,
+    collectionStrategy,
+    validRecords: smNumberFromRecord(record.kept_rows ?? record.valid_records ?? fallback.validRecords),
+    originalRecords: smNumberFromRecord(record.original_rows ?? fallback.originalRecords),
+    excludedRecords: smNumberFromRecord(record.excluded_rows ?? fallback.excludedRecords),
+  };
+}
+
+function smSourceSummariesFromSpec(spec?: SurveyMonkeyMultibaseSurveyInput | null): SmSourceSummary[] {
+  if (!spec) return [];
+  const fallback = smSourceSummaryFromRecord(spec as unknown as Record<string, unknown>);
+  const sources = spec.sources ?? spec.campaigns ?? [];
+  const rows = sources.length
+    ? sources.map((source) => smSourceSummaryFromRecord(source as unknown as Record<string, unknown>, fallback))
+    : [fallback];
+  return rows.filter((row) => row.surveyId || row.title);
+}
+
+function smSourceSummariesFromFilter(value: unknown): SmSourceSummary[] {
+  if (!value || typeof value !== "object") return [];
+  const record = value as Record<string, unknown>;
+  const sources = Array.isArray(record.sources) ? record.sources : [];
+  if (sources.length) {
+    return sources.map((source) => smSourceSummaryFromRecord(source as Record<string, unknown>));
+  }
+  return [smSourceSummaryFromRecord(record)];
+}
+
+export function smSourceSummariesFromBase(base: EstudioBase): SmSourceSummary[] {
+  const fromSpec = smSourceSummariesFromSpec(base.surveymonkey_source_spec);
+  const fromFilter = smSourceSummariesFromFilter(base.response_filter);
+  if (fromSpec.length) {
+    const filterById = new Map(fromFilter.map((source) => [source.surveyId, source]));
+    return fromSpec.map((source) => {
+      const filter = filterById.get(source.surveyId);
+      if (!filter) return source;
+      return {
+        ...source,
+        channel: source.channel || filter.channel,
+        consentVar: source.consentVar || filter.consentVar,
+        collectionStrategy: source.collectionStrategy || filter.collectionStrategy,
+        validRecords: source.validRecords ?? filter.validRecords,
+        originalRecords: source.originalRecords ?? filter.originalRecords,
+        excludedRecords: source.excludedRecords ?? filter.excludedRecords,
+      };
+    });
+  }
+  if (fromFilter.length) return fromFilter;
+  return [smSourceSummaryFromRecord({
+    survey_id: base.survey_id,
+    source_title: base.source_title,
+    source_alias: base.source_alias,
+    source_channel: base.source_channel,
+    consent_var: base.consent_var,
+  })];
+}
+
+function smSpecWithPrimaryChannel(spec: SurveyMonkeyMultibaseSurveyInput | null | undefined, channel: string) {
+  if (!spec) return null;
+  const next: SurveyMonkeyMultibaseSurveyInput = {
+    ...spec,
+    channel,
+    source_channel: channel,
+  };
+  const sourceItems = spec.sources ?? spec.campaigns;
+  if (sourceItems?.length) {
+    next.sources = sourceItems.map((source, index) => (
+      index === 0 ? { ...source, channel, source_channel: channel } : { ...source }
+    ));
+    delete next.campaigns;
+  }
+  return next;
+}
+
+export function smSpecWithConsentVar(spec: SurveyMonkeyMultibaseSurveyInput | null | undefined, consentVar: string) {
+  if (!spec) return null;
+  const nextValue = consentVar.trim();
+  const next: SurveyMonkeyMultibaseSurveyInput = { ...spec };
+  if (nextValue) next.consent_var = nextValue;
+  else delete next.consent_var;
+  const sourceItems = spec.sources ?? spec.campaigns;
+  if (sourceItems?.length) {
+    next.sources = sourceItems.map((source) => {
+      const copy: SurveyMonkeyMultibaseSurveyInput = { ...source };
+      if (nextValue) copy.consent_var = nextValue;
+      else delete copy.consent_var;
+      return copy;
+    });
+    delete next.campaigns;
+  }
+  return next;
+}
+
+function smBaseConsentVar(base: EstudioBase) {
+  const direct = String(base.consent_var || "").trim();
+  if (direct) return direct;
+  const specDirect = smSpecConsentVar(base.surveymonkey_source_spec);
+  if (specDirect) return specDirect;
+  return smSourceSummariesFromBase(base).find((source) => source.consentVar)?.consentVar || "";
+}
+
+type SmConsentOption = {
+  name: string;
+  label: string;
+  type: string;
+  positiveChoices: Array<{ name: string; label: string }>;
+};
+
+function smShortQuestionLabel(label: string, max = 62) {
+  const clean = label.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max - 1).trim()}…`;
+}
+
+function smConsentOptions(base: EstudioBase) {
+  const variables = base.xlsform_variables ?? [];
+  const byName = new Map<string, SmConsentOption>();
+  for (const item of variables) {
+    const name = String(item.name || "").trim();
+    if (!name) continue;
+    byName.set(name, {
+      name,
+      label: String(item.label || "").trim(),
+      type: String(item.type || "").trim(),
+      positiveChoices: (item.positive_choices ?? []).map((choice) => ({
+        name: String(choice.name || "").trim(),
+        label: String(choice.label || "").trim(),
+      })).filter((choice) => choice.name || choice.label),
+    });
+  }
+  for (const name of base.consent_candidates ?? []) {
+    const key = String(name || "").trim();
+    if (key && !byName.has(key)) byName.set(key, { name: key, label: "", type: "", positiveChoices: [] });
+  }
+  const current = smBaseConsentVar(base);
+  if (current && !byName.has(current)) byName.set(current, { name: current, label: "", type: "", positiveChoices: [] });
+  const candidateSet = new Set((base.consent_candidates ?? []).map((name) => String(name || "").trim()).filter(Boolean));
+  return Array.from(byName.values()).sort((a, b) => {
+    const aCandidate = candidateSet.has(a.name) || a.name === current;
+    const bCandidate = candidateSet.has(b.name) || b.name === current;
+    if (aCandidate !== bCandidate) return aCandidate ? -1 : 1;
+    return a.name.localeCompare(b.name, "es");
+  });
+}
+
+function smConsentFilterInfo(base: EstudioBase) {
+  const value = smBaseConsentVar(base);
+  const option = smConsentOptions(base).find((item) => item.name === value);
+  const approved = option?.positiveChoices?.length ? option.positiveChoices : [{ name: "1", label: "Sí" }];
+  return {
+    value,
+    label: option?.label || "",
+    approved,
+  };
+}
+
+function smIndependentTemplateBase(estudio: EstudioPayload, bases: EstudioBase[]) {
+  const available = new Set(bases.map((base) => base.nombre));
+  const candidates = [
+    String(estudio.independent_siblings?.template_base || ""),
+    String(estudio.active_base || ""),
+    bases[0]?.nombre || "",
+  ];
+  return candidates.find((candidate) => candidate && available.has(candidate)) || "";
+}
+
+function SmChannelBadge({ channel }: { channel: string }) {
+  const label = smChannelLabel(channel) || "Sin canal";
+  const key = smChannelKey(label);
+  const Icon = smChannelIcon(key);
+  return (
+    <span className={`pulso-sm-channel-badge is-${key || "unset"}`}>
+      <Icon size={12} />
+      {label}
+    </span>
+  );
+}
+
+function SmChannelSelect({
+  value,
+  disabled,
+  onChange,
+  label = "Canal",
+}: {
+  value: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+  label?: string;
+}) {
+  const displayValue = smChannelLabel(value);
+  const key = smChannelKey(displayValue);
+  const Icon = smChannelIcon(key);
+  return (
+    <label className="pulso-sm-channel-select">
+      <span>{label}</span>
+      <div className={`pulso-sm-channel-select-control is-${key || "unset"}`}>
+        <Icon size={14} />
+        <select value={displayValue} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
+          <option value="">Definir canal</option>
+          {smChannelOptions(displayValue).map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      </div>
+    </label>
+  );
+}
+
+function SmConsentSelect({
+  base,
+  disabled,
+  onChange,
+}: {
+  base: EstudioBase;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const value = smBaseConsentVar(base);
+  const options = smConsentOptions(base);
+  const filter = smConsentFilterInfo(base);
+  return (
+    <label className="pulso-sm-channel-select pulso-sm-consent-select">
+      <span>Filtro de registros válidos</span>
+      <div className="pulso-sm-channel-select-control is-consent">
+        <Filter size={14} />
+        <select
+          value={value}
+          disabled={disabled || !options.length}
+          onChange={(event) => onChange(event.target.value)}
+          aria-label={`Variable de consentimiento para ${base.nombre}`}
+        >
+          <option value="">Autodetectar</option>
+          {options.map((option) => (
+            <option key={option.name} value={option.name}>
+              {option.name}{option.label ? ` · ${smShortQuestionLabel(option.label)}` : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="pulso-sm-consent-summary">
+        <strong>{filter.value || "Autodetectar"}</strong>
+        {filter.label ? <span>{filter.label}</span> : null}
+        <em>
+          Aprueba: {filter.approved.map((choice) => (
+            choice.name && choice.label ? `${choice.name} · ${choice.label}` : choice.label || choice.name
+          )).join(", ")}
+        </em>
+      </div>
+    </label>
+  );
+}
+
+function SmSourceSummaryBlock({ sources }: { sources: SmSourceSummary[] }) {
+  const count = sources.length;
+  if (count <= 1) {
+    const source = sources[0];
+    return (
+      <span className="pulso-sm-source-chip is-single">
+        <GitMerge size={12} />
+        1 fuente{source?.channel ? ` · ${source.channel}` : ""}{source?.surveyId ? ` · ID ${source.surveyId}` : ""}
+      </span>
+    );
+  }
+  return (
+    <details className="pulso-sm-source-details">
+      <summary>
+        <span className="pulso-sm-source-chip">
+          <GitMerge size={12} />
+          {count} fuentes/campañas
+        </span>
+      </summary>
+      <div className="pulso-sm-source-list">
+        {sources.map((source, index) => (
+          <div key={`${source.surveyId || source.title}-${index}`} className="pulso-sm-source-item">
+            <strong>{index + 1}. {source.title}</strong>
+            <div className="pulso-sm-source-item-meta">
+              {source.channel ? <SmChannelBadge channel={source.channel} /> : null}
+              {source.validRecords != null ? (
+                <span>{source.validRecords} registros válidos</span>
+              ) : null}
+              {source.originalRecords != null && source.excludedRecords != null ? (
+                <span>{source.excludedRecords} fuera del filtro</span>
+              ) : null}
+              {source.surveyId ? <span>ID {source.surveyId}</span> : null}
+              {source.consentVar ? <span>filtro {source.consentVar}</span> : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function smChannelIcon(key: string) {
+  if (key === "correo") return Mail;
+  if (key === "telefono") return PhoneCall;
+  if (key === "whatsapp" || key === "sms") return MessageCircle;
+  if (key === "presencial") return QrCode;
+  return Route;
+}
+
 function smNewScopeKey() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
   return `source_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
 
-function smScopeStatuses(scope: SmImportScopeFields) {
-  const statuses: string[] = [];
-  if (scope.includeCompleted) statuses.push("completed");
-  if (scope.includePartial) statuses.push("partial");
-  return statuses.length ? statuses : ["completed"];
+function smTextShortcutGuard(event: KeyboardEvent<HTMLInputElement>) {
+  if (event.metaKey || event.ctrlKey) event.stopPropagation();
+}
+
+function smClipboardGuard(event: ClipboardEvent<HTMLInputElement>) {
+  event.stopPropagation();
+}
+
+function smScopeStatuses(_scope?: SmImportScopeFields) {
+  return ["completed"];
 }
 
 function smSplitScopeList(value: string) {
@@ -744,15 +1303,8 @@ function smValidationProfileForStrategy(strategy: SmImportScopeFields["collectio
   return strategy === "whatsapp_link" ? "admin_autoadministrado" : "";
 }
 
-function smHasScopeFilters(scope: SmImportScopeFields) {
-  return (
-    smSplitScopeList(scope.collectorIds).length > 0 ||
-    !!smScopeDate(scope.dateModifiedGte) ||
-    !!smScopeDate(scope.dateModifiedLte) ||
-    scope.keepMissingStatus ||
-    scope.includePartial ||
-    !scope.includeCompleted
-  );
+function smHasScopeFilters(_scope: SmImportScopeFields) {
+  return false;
 }
 
 function smDateLabel(value?: string | null) {
@@ -790,11 +1342,9 @@ function smCatalogDateLabel(value?: string | null) {
 
 function smScopeSummary(scope: SmImportScopeFields, nSources: number) {
   const parts: string[] = [];
-  if (scope.includeCompleted && scope.includePartial) parts.push("Completas y parciales");
-  else if (scope.includePartial) parts.push("Solo parciales");
-  else parts.push("Completas");
-  if (smSplitScopeList(scope.collectorIds).length) parts.push("con collectors");
-  if (smScopeDate(scope.dateModifiedGte) || smScopeDate(scope.dateModifiedLte)) parts.push("con fechas");
+  parts.push("Completas");
+  const channel = smChannelLabel(scope.channel);
+  if (channel) parts.push(channel);
   if (nSources > 1) parts.push(`${nSources} campañas`);
   return parts.join(" · ");
 }
@@ -882,8 +1432,75 @@ function smDiffKindLabel(kind: string) {
     wording: "Fraseo distinto",
     company_list: "Lista de empresas",
     company_logic: "Lógica de empresas",
+    metadata_optional: "Metadata opcional",
   };
   return labels[kind] ?? kind.replace(/_/g, " ");
+}
+
+function smRefreshAction(row: SurveyMonkeyRefreshBasePlan): string {
+  if (row.refresh_action) return row.refresh_action;
+  return row.updateable ? "update" : "blocked";
+}
+
+function smRefreshIsNoop(row: SurveyMonkeyRefreshBasePlan): boolean {
+  const action = smRefreshAction(row);
+  return action === "noop" || action === "noop_structure_warning";
+}
+
+function smRefreshStructureDetail(row: SurveyMonkeyRefreshBasePlan): { label: string; title: string } | null {
+  const diffs = row.structure?.diffs ?? [];
+  const blocking = diffs.filter((diff) => diff.severity === "blocking");
+  const warningOnly = smRefreshAction(row) === "noop_structure_warning" || row.structure_warning_only === true;
+  if (blocking.length) {
+    const vars = blocking
+      .map((diff) => diff.variable || `pos. ${diff.pos}`)
+      .filter(Boolean);
+    const visible = vars.slice(0, 4).join(", ");
+    return {
+      label: warningOnly
+        ? `Revisar si llegan nuevas: ${visible}${vars.length > 4 ? ` +${vars.length - 4}` : ""}`
+        : `Bloqueos en ${visible}${vars.length > 4 ? ` +${vars.length - 4}` : ""}`,
+      title: blocking
+        .map((diff) => `${diff.variable || `pos. ${diff.pos}`}: ${smDiffKindLabel(diff.kind)} - ${diff.message}`)
+        .join(" · "),
+    };
+  }
+  if (row.issues?.length) {
+    return {
+      label: row.issues.join(" · "),
+      title: row.issues.join(" · "),
+    };
+  }
+  const review = diffs.filter((diff) => diff.severity === "review");
+  if (review.length) {
+    const metadataReview = review.filter((diff) => diff.kind === "metadata_optional");
+    const substantiveReview = review.filter((diff) => diff.kind !== "metadata_optional");
+    const vars = (substantiveReview.length ? substantiveReview : metadataReview)
+      .map((diff) => diff.variable || `pos. ${diff.pos}`)
+      .filter(Boolean);
+    const metadataVars = metadataReview
+      .map((diff) => diff.variable || `pos. ${diff.pos}`)
+      .filter(Boolean);
+    const optionalMetadata = !substantiveReview.length && metadataReview.length > 0;
+    const metadataSuffix = metadataReview.length && substantiveReview.length
+      ? ` · metadata opcional ${metadataVars.slice(0, 3).join(", ")}${metadataVars.length > 3 ? ` +${metadataVars.length - 3}` : ""}`
+      : "";
+    return {
+      label: `${optionalMetadata ? "Metadata opcional" : "Revisar"} ${vars.slice(0, 3).join(", ")}${vars.length > 3 ? ` +${vars.length - 3}` : ""}${metadataSuffix}`,
+      title: review
+        .map((diff) => `${diff.variable || `pos. ${diff.pos}`}: ${smDiffKindLabel(diff.kind)} - ${diff.message}`)
+        .join(" · "),
+    };
+  }
+  return null;
+}
+
+function smRefreshRowStatusText(row: SurveyMonkeyRefreshBasePlan): string {
+  const action = smRefreshAction(row);
+  if (action === "noop_structure_warning") return "Sin nuevas; se conserva la base actual";
+  if (action === "noop") return "Sin nuevas; ya está al día";
+  if (row.updateable) return "Se actualizarán respuestas actuales";
+  return "No se actualizará esta base";
 }
 
 function smDiffSeverityLabel(severity: SurveyMonkeyMultibaseDiff["severity"]) {
@@ -903,15 +1520,7 @@ function smSurveyAuditLabel(
 }
 
 function smSurveyDefaultAlias(item: SurveyMonkeyMultibaseListItem) {
-  const title = smSurveyTitle(item);
-  const cleaned = title
-    .replace(/\bAcreditaci[oó]n\b/gi, " ")
-    .replace(/\bEncuesta\b/gi, " ")
-    .replace(/\bEgresados?\b/gi, " ")
-    .replace(/\s*[-–—]\s*/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return cleaned || title;
+  return smCompactSurveyLikeLabel(smSurveyTitle(item));
 }
 
 function smSurveyAlias(item: SurveyMonkeyMultibaseListItem, draft?: SmImportScopeDraft) {
@@ -933,16 +1542,14 @@ function smSourceInputFromScope(
   if (label.trim()) input.label = label.trim();
   if (meta?.sourceAlias?.trim()) input.source_alias = meta.sourceAlias.trim();
   if (meta?.sourceTitle?.trim()) input.source_title = meta.sourceTitle.trim();
-  const statuses = smScopeStatuses(scope);
-  if (smHasScopeFilters(scope)) input.response_statuses = statuses;
-  const collectors = smSplitScopeList(scope.collectorIds);
-  if (collectors.length) input.collector_ids = collectors;
-  const gte = smScopeDate(scope.dateModifiedGte);
-  const lte = smScopeDate(scope.dateModifiedLte);
-  if (gte) input.date_modified_gte = gte;
-  if (lte) input.date_modified_lte = lte;
-  if (scope.keepMissingStatus) input.keep_missing_status = true;
+  input.response_statuses = smScopeStatuses(scope);
+  input.keep_missing_status = false;
   input.collection_strategy = scope.collectionStrategy;
+  const channel = smChannelLabel(scope.channel);
+  if (channel) {
+    input.channel = channel;
+    input.source_channel = channel;
+  }
   const validationProfile = smValidationProfileForStrategy(scope.collectionStrategy);
   if (validationProfile) input.validation_exclusion_profile = validationProfile;
   return input;
@@ -960,9 +1567,16 @@ export function smIndependentSurveyInput(
     source_alias: label,
     source_title: sourceTitle,
     pais: item.pais_guess ?? "",
+    response_statuses: ["completed"],
+    keep_missing_status: false,
   };
   const baseScope = draft ?? smDefaultScopeDraft();
   input.collection_strategy = baseScope.collectionStrategy;
+  const baseChannel = smChannelLabel(baseScope.channel);
+  if (baseChannel) {
+    input.channel = baseChannel;
+    input.source_channel = baseChannel;
+  }
   const validationProfile = smValidationProfileForStrategy(baseScope.collectionStrategy);
   if (validationProfile) input.validation_exclusion_profile = validationProfile;
   if (!draft) return input;
@@ -982,6 +1596,47 @@ export function smIndependentSurveyInput(
     ];
   }
   return input;
+}
+
+export function smCampaignInputFromSurvey(
+  item: SurveyMonkeyMultibaseListItem,
+  draft?: SmImportScopeFields & { alias?: string },
+): SurveyMonkeyMultibaseSurveyInput {
+  const scope = draft ?? smDefaultScopeDraft();
+  const label = (draft?.alias ?? smSurveyDefaultAlias(item)).trim() || smSurveyDefaultAlias(item);
+  return smSourceInputFromScope(
+    item.id,
+    label,
+    scope,
+    { sourceAlias: label, sourceTitle: smSurveyTitle(item) },
+  );
+}
+
+function smSelectedCampaignInputs(
+  item: SurveyMonkeyMultibaseListItem,
+  draft: SmImportScopeDraft,
+  surveys: SurveyMonkeyMultibaseListItem[] | null,
+) {
+  const inputs = [smCampaignInputFromSurvey(item, draft)];
+  for (const source of draft.extraSources) {
+    const sourceId = source.surveyId.trim();
+    if (!sourceId) continue;
+    const picked = smSurveyById(surveys, sourceId);
+    const fallbackItem: SurveyMonkeyMultibaseListItem = {
+      id: sourceId,
+      title: source.label || sourceId,
+      nickname: "",
+      date_modified: "",
+      pais_guess: "",
+      response_count: null,
+    };
+    const sourceItem = picked ?? fallbackItem;
+    inputs.push(smCampaignInputFromSurvey(sourceItem, {
+      ...source,
+      alias: source.label.trim() || smSurveyDefaultAlias(sourceItem),
+    }));
+  }
+  return inputs;
 }
 
 function IndependentSiblingsSurveyMonkeyWizard({
@@ -1010,6 +1665,8 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const [logicSync, setLogicSync] = useState<EstudioLogicSyncResult | null>(null);
   const [smConnection, setSmConnection] = useState<ConnectionTokenState | null>(null);
   const [showSurveyCatalog, setShowSurveyCatalog] = useState(estudio.n_bases === 0);
+  const [refreshPlan, setRefreshPlan] = useState<SurveyMonkeyRefreshPlan | null>(null);
+  const [refreshResult, setRefreshResult] = useState<SurveyMonkeyRefreshResult | null>(null);
   const [editingAliasBase, setEditingAliasBase] = useState<string | null>(null);
   const [editingAliasDraft, setEditingAliasDraft] = useState("");
   const [busy, setBusy] = useState("");
@@ -1017,15 +1674,29 @@ function IndependentSiblingsSurveyMonkeyWizard({
   const modeConflict = estudio.n_bases > 0 && estudio.processing_mode !== "independent_siblings";
   const existingBases = Object.values(estudio.bases ?? {});
   const hasExistingIndependentBases = existingBases.length > 0 && estudio.processing_mode === "independent_siblings";
+  const templateSyncBase = smIndependentTemplateBase(estudio, existingBases);
   const promotedBase = existingBases.find((base) => base.nombre === estudio.active_base) ?? existingBases[0] ?? null;
   const promotedTitle = smIndependentBaseTitle(promotedBase, estudio);
   const promotedName = promotedBase?.nombre === "default" ? smBaseSlug(promotedTitle) : promotedBase?.nombre;
   const { maxBases: independentMaxBases, capacityLeft } = independentSiblingsCapacity(estudio);
-  const visibleSurveys = (surveys ?? []).filter((item) => smSurveyMatchesQuery(item, query));
+  const existingSurveyIds = new Set(existingBases.flatMap(smSurveyIdsFromBase));
+  const selectedSurveyIds = selectedIds;
+  const blockedSurveyIds = new Set([...Array.from(existingSurveyIds), ...Array.from(selectedSurveyIds)]);
+  const surveyAvailability = smSurveyCatalogAvailability(surveys, query, existingSurveyIds, selectedSurveyIds);
+  const visibleSurveys = surveyAvailability.available;
+  const hiddenDuplicateSurveys = surveyAvailability.duplicates;
+  const duplicateSurveyAlert = smDuplicateSurveyAlert(hiddenDuplicateSurveys, existingSurveyIds, selectedSurveyIds);
+  const existingBaseByName = new Map(existingBases.map((base) => [base.nombre, base] as const));
   const selectedSurveys = (surveys ?? []).filter((item) => selectedIds.has(item.id));
-  const selectedInputs = selectedSurveys.map((item) => smIndependentSurveyInput(item, scopeDrafts[item.id]));
+  const selectedNewSurveys = selectedSurveys.filter((item) => !scopeDrafts[item.id]?.targetBaseName);
+  const selectedMergeSurveys = selectedSurveys.filter((item) => !!scopeDrafts[item.id]?.targetBaseName);
+  const selectedInputs = selectedNewSurveys.map((item) => smIndependentSurveyInput(item, scopeDrafts[item.id]));
+  const selectedMergeCampaignCount = selectedMergeSurveys.reduce((total, item) => {
+    const scope = scopeDrafts[item.id] ?? smDefaultScopeDraft();
+    return total + smSelectedCampaignInputs(item, scope, surveys).length;
+  }, 0);
   const selectedTotal = estudio.n_bases + selectedInputs.length;
-  const selectedAliasRows = selectedSurveys.map((item) => {
+  const selectedAliasRows = selectedNewSurveys.map((item) => {
     const alias = smAliasDraftValue(item, scopeDrafts[item.id]).trim();
     return { surveyId: item.id, alias, slug: smBaseSlug(alias) };
   });
@@ -1035,7 +1706,9 @@ function IndependentSiblingsSurveyMonkeyWizard({
       .filter((slug, index, slugs) => slugs.indexOf(slug) !== index),
   );
   const hasAliasIssues = selectedAliasRows.some((row) => !row.alias) || duplicateAliasSlugs.size > 0;
-  const canImport = selectedInputs.length > 0 && selectedInputs.length <= capacityLeft && !hasAliasIssues && !modeConflict && !busy && !disabled;
+  const hasMergeTargetIssues = selectedMergeSurveys.some((item) => !existingBaseByName.has(scopeDrafts[item.id]?.targetBaseName || ""));
+  const hasSelectedWork = selectedInputs.length > 0 || selectedMergeCampaignCount > 0;
+  const canImport = hasSelectedWork && selectedInputs.length <= capacityLeft && !hasAliasIssues && !hasMergeTargetIssues && !modeConflict && !busy && !disabled;
   const overIndependentLimit = selectedInputs.length > capacityLeft;
 
   async function refreshSurveyMonkeyConnection() {
@@ -1092,7 +1765,14 @@ function IndependentSiblingsSurveyMonkeyWizard({
     setAudit(null);
     setError("");
     const wasSelected = selectedIds.has(item.id);
-    if (!wasSelected && selectedIds.size >= capacityLeft) {
+    const inferredTarget = hasExistingIndependentBases
+      ? smBestExistingBaseTarget(item, existingBases)
+      : "";
+    if (!wasSelected && existingSurveyIds.has(item.id)) {
+      setError(`La encuesta ${item.id} ya está cargada en esta familia y no se puede agregar otra vez.`);
+      return;
+    }
+    if (!wasSelected && !hasExistingIndependentBases && selectedInputs.length >= capacityLeft) {
       setError(`Este modo permite máximo ${independentMaxBases} bases hermanas independientes por estudio.`);
       return;
     }
@@ -1108,6 +1788,17 @@ function IndependentSiblingsSurveyMonkeyWizard({
         delete next[item.id];
         return next;
       });
+    } else {
+      setScopeDrafts((prev) => ({
+        ...prev,
+        [item.id]: {
+          ...smDefaultScopeDraft(),
+          ...(prev[item.id] ?? {}),
+          alias: prev[item.id]?.alias?.trim() ? prev[item.id].alias : smSurveyDefaultAlias(item),
+          channel: prev[item.id]?.channel || smSurveyDefaultChannel(item),
+          targetBaseName: prev[item.id]?.targetBaseName ?? inferredTarget,
+        },
+      }));
     }
   }
 
@@ -1135,6 +1826,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
         {
           ...smDefaultScopeFields(),
           collectionStrategy: "whatsapp_link",
+          channel: current.channel || "",
           key: smNewScopeKey(),
           surveyId: "",
           label: "",
@@ -1154,9 +1846,14 @@ function IndependentSiblingsSurveyMonkeyWizard({
   }
 
   function selectExtraSource(id: string, key: string, survey: SurveyMonkeyMultibaseListItem) {
+    if (blockedSurveyIds.has(survey.id)) {
+      setError(`La encuesta ${survey.id} ya está cargada o seleccionada en esta familia.`);
+      return;
+    }
     updateExtraSource(id, key, {
       surveyId: survey.id,
       label: smSurveyDefaultAlias(survey),
+      channel: smSurveyDefaultChannel(survey),
       query: "",
     });
   }
@@ -1166,6 +1863,19 @@ function IndependentSiblingsSurveyMonkeyWizard({
     updateScope(id, {
       extraSources: current.extraSources.filter((source) => source.key !== key),
     });
+  }
+
+  function selectedMergePayload() {
+    const grouped = new Map<string, SurveyMonkeyMultibaseSurveyInput[]>();
+    for (const item of selectedMergeSurveys) {
+      const scope = scopeDrafts[item.id] ?? smDefaultScopeDraft();
+      const baseName = scope.targetBaseName || "";
+      if (!baseName || !existingBaseByName.has(baseName)) continue;
+      const current = grouped.get(baseName) ?? [];
+      current.push(...smSelectedCampaignInputs(item, scope, surveys));
+      grouped.set(baseName, current);
+    }
+    return Array.from(grouped.entries()).map(([base_name, campaigns]) => ({ base_name, campaigns }));
   }
 
   async function runAudit() {
@@ -1185,12 +1895,38 @@ function IndependentSiblingsSurveyMonkeyWizard({
   async function runImport() {
     setError("");
     setLogicSync(null);
-    setBusy("Importando bases hermanas independientes...");
+    setRefreshResult(null);
+    const mergePayload = selectedMergePayload();
+    const hasNewBases = selectedInputs.length > 0;
+    const hasMergeCampaigns = mergePayload.some((row) => row.campaigns.length > 0);
+    setBusy(hasNewBases && hasMergeCampaigns
+      ? "Importando bases nuevas y fusionando campañas..."
+      : hasMergeCampaigns
+        ? "Agregando campañas a bases existentes..."
+        : "Importando bases hermanas independientes...");
     try {
-      const result = await apiSurveyMonkeyMultibaseImportIndependent({ surveys: selectedInputs });
-      setAudit(result.audit);
-      if (result.xlsform_logic_sync) setLogicSync(result.xlsform_logic_sync);
-      await onImported(result.estudio);
+      let latestEstudio: EstudioPayload | null = null;
+      if (hasNewBases) {
+        const result = await apiSurveyMonkeyMultibaseImportIndependent({
+          surveys: selectedInputs,
+          response_statuses: ["completed"],
+          keep_missing_status: false,
+        });
+        setAudit(result.audit);
+        if (result.xlsform_logic_sync) setLogicSync(result.xlsform_logic_sync);
+        latestEstudio = result.estudio;
+      }
+      if (hasMergeCampaigns) {
+        const result = await apiSurveyMonkeyMultibaseRefresh({
+          bases: mergePayload,
+          months: 12,
+          reapply_codificacion: true,
+        });
+        setRefreshResult(result);
+        setRefreshPlan(result.plan);
+        latestEstudio = result.estudio;
+      }
+      if (latestEstudio) await onImported(latestEstudio);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -1220,10 +1956,10 @@ function IndependentSiblingsSurveyMonkeyWizard({
   }
 
   async function runTemplateLogicSync() {
-    const templateBase = String(estudio.independent_siblings?.template_base || estudio.active_base || "").trim();
+    const templateBase = smIndependentTemplateBase(estudio, existingBases);
     setError("");
     setLogicSync(null);
-    setBusy("Aplicando lógica XLSForm de la base plantilla...");
+    setBusy("Sincronizando lógica XLSForm entre bases compatibles...");
     try {
       const result = await apiEstudioApplyIndependentTemplateLogic({
         template_base: templateBase || undefined,
@@ -1236,6 +1972,49 @@ function IndependentSiblingsSurveyMonkeyWizard({
           detail: { active: result.estudio.active_base, processing_mode: result.estudio.processing_mode },
         }));
       }
+    } catch (e) {
+      const message = (e as Error).message;
+      setError(message.includes("E_TEMPLATE_BASE_NOT_FOUND")
+        ? "No hay una base de referencia válida. Selecciona una base activa de la familia o vuelve a cargar la familia."
+        : message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function loadRefreshPlan(forceRefresh = false) {
+    setError("");
+    setRefreshResult(null);
+    setBusy(forceRefresh ? "Actualizando catálogo y diagnosticando fuentes..." : "Diagnosticando fuentes SurveyMonkey...");
+    try {
+      const plan = await apiSurveyMonkeyMultibaseRefreshPlan({ months: 12, force_refresh: forceRefresh });
+      setRefreshPlan(plan);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function runRefreshSurveyMonkey() {
+    if (!refreshPlan) return;
+    setError("");
+    setRefreshResult(null);
+    setBusy("Actualizando respuestas SurveyMonkey...");
+    try {
+      const result = await apiSurveyMonkeyMultibaseRefresh({
+        bases: (refreshPlan.bases ?? []).map((row) => ({ base_name: row.base_name })),
+        months: 12,
+        reapply_codificacion: true,
+      });
+      setRefreshResult(result);
+      await onImported(result.estudio);
+      window.dispatchEvent(new Event("pulso:session-changed"));
+      window.dispatchEvent(new CustomEvent("pulso:active-base-changed", {
+        detail: { active: result.estudio.active_base, processing_mode: result.estudio.processing_mode },
+      }));
+      const updatedPlan = await apiSurveyMonkeyMultibaseRefreshPlan({ months: 12, force_refresh: false });
+      setRefreshPlan(updatedPlan);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -1280,6 +2059,42 @@ function IndependentSiblingsSurveyMonkeyWizard({
     }
   }
 
+  async function saveExistingChannel(base: EstudioBase, channel: string) {
+    const nextChannel = smChannelLabel(channel);
+    setError("");
+    setBusy(`Actualizando canal de ${base.nombre}...`);
+    try {
+      const payload = await apiEstudioUpdateBaseMetadata(base.nombre, {
+        source_channel: nextChannel,
+        surveymonkey_source_spec: smSpecWithPrimaryChannel(base.surveymonkey_source_spec, nextChannel),
+      });
+      await onImported(payload);
+      window.dispatchEvent(new Event("pulso:session-changed"));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function saveExistingConsentVar(base: EstudioBase, consentVar: string) {
+    const nextConsentVar = consentVar.trim();
+    setError("");
+    setBusy(`Actualizando consentimiento de ${base.nombre}...`);
+    try {
+      const payload = await apiEstudioUpdateBaseMetadata(base.nombre, {
+        consent_var: nextConsentVar,
+        surveymonkey_source_spec: smSpecWithConsentVar(base.surveymonkey_source_spec, nextConsentVar),
+      });
+      await onImported(payload);
+      window.dispatchEvent(new Event("pulso:session-changed"));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   useEffect(() => {
     if (showSurveyCatalog && !surveys) void loadSurveys();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1301,7 +2116,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
           <p>
             Usa el perfil SurveyMonkey activo en Ajustes. Si la clave principal llega al límite,
             cambia manualmente al perfil secundario y actualiza el catálogo.
-            Si ya tenías una base trabajada, esa base puede actuar como plantilla para heredar reglas XLSForm compatibles.
+            Si ya tenías una base trabajada, esa base puede actuar como referencia para sincronizar reglas XLSForm compatibles.
           </p>
           <div className="pulso-sm-family-meter" aria-label="Resumen de familia independiente">
             <span><b>{selectedTotal}</b>/{independentMaxBases} bases</span>
@@ -1343,7 +2158,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
               <span>Fuente original</span>
               <span>Data</span>
               <span>Estado</span>
-              <span aria-hidden="true" />
+              <span>Canal</span>
             </div>
             {existingBases.map((base, index) => {
               const alias = String(base.source_alias || base.source_title || base.nombre || "").trim();
@@ -1351,6 +2166,8 @@ function IndependentSiblingsSurveyMonkeyWizard({
               const sourceKind = String(base.source_kind || "base cargada").replace(/_/g, " ");
               const importedAt = smCatalogDateLabel(base.imported_at);
               const isActive = base.nombre === estudio.active_base;
+              const channel = smBaseChannel(base);
+              const sourceSummaries = smSourceSummariesFromBase(base);
               return (
                 <div className={`pulso-sm-family-row${isActive ? " is-active" : ""}`} role="row" key={base.nombre}>
                   <span className="pulso-sm-survey-index">{index + 1}</span>
@@ -1400,13 +2217,14 @@ function IndependentSiblingsSurveyMonkeyWizard({
                   <div className="pulso-sm-family-origin-cell">
                     <strong title={title}>{title}</strong>
                     <small>{sourceKind}{base.survey_id ? ` · Survey ID ${base.survey_id}` : ""} · {importedAt}</small>
+                    <SmSourceSummaryBlock sources={sourceSummaries} />
                   </div>
                   <div className="pulso-sm-family-data-cell">
                     <span className="pulso-sm-family-status">
                       <Database size={12} />
-                      {base.n_filas ?? 0} filas
+                      {base.n_filas ?? 0} registros válidos
                     </span>
-                    <small>{base.n_columnas ?? 0} columnas · XLSForm y data propios</small>
+                    <small>{base.n_columnas ?? 0} columnas · completos + consentimiento aprobado</small>
                   </div>
                   <div className="pulso-sm-family-data-cell">
                     <span className="pulso-sm-family-status is-neutral">
@@ -1415,34 +2233,149 @@ function IndependentSiblingsSurveyMonkeyWizard({
                     </span>
                     <small>Validación, codificación, analítica y gráficos por base</small>
                   </div>
-                  <span aria-hidden="true" />
+                  <div className="pulso-sm-family-data-cell">
+                    <SmChannelSelect
+                      value={channel}
+                      disabled={disabled || !!busy}
+                      onChange={(value) => void saveExistingChannel(base, value)}
+                    />
+                    <SmConsentSelect
+                      base={base}
+                      disabled={disabled || !!busy}
+                      onChange={(value) => void saveExistingConsentVar(base, value)}
+                    />
+                  </div>
                 </div>
               );
             })}
           </div>
+          {refreshPlan && (
+            <div className="pulso-sm-family-config" aria-label="Diagnóstico de actualización SurveyMonkey">
+              <div className="pulso-sm-family-config-head">
+                <strong>Actualización SurveyMonkey</strong>
+                <span>
+                  {(refreshPlan.bases ?? []).filter((row) => row.updateable).length}/{refreshPlan.bases?.length ?? 0} bases procesables
+                  {(refreshPlan.bases ?? []).filter((row) => smRefreshAction(row) === "noop_structure_warning").length
+                    ? ` · ${(refreshPlan.bases ?? []).filter((row) => smRefreshAction(row) === "noop_structure_warning").length} sin nuevas con alerta estructural`
+                    : ""}
+                  {refreshPlan.catalog?.cache_status ? ` · catálogo ${refreshPlan.catalog.cache_status}` : ""}
+                </span>
+              </div>
+              <div className="pulso-sm-refresh-explain">
+                <RefreshCw size={14} />
+                <span>Actualiza solo las fuentes ya guardadas en cada base y reporta registros válidos nuevos por SurveyMonkey. Para sumar campañas o canales usa Agregar desde SurveyMonkey.</span>
+              </div>
+              <div className="pulso-sm-family-table is-refresh" role="table" aria-label="Diagnóstico de fuentes SurveyMonkey">
+                <div className="pulso-sm-family-row is-head is-refresh-row" role="row">
+                  <span>Fuente</span>
+                  <span>Data</span>
+                  <span>Estructura</span>
+                  <span>Resultado</span>
+                </div>
+                {(refreshPlan.bases ?? []).map((row: SurveyMonkeyRefreshBasePlan) => {
+                  const blocking = row.structure?.n_blocking ?? 0;
+                  const action = smRefreshAction(row);
+                  const noop = smRefreshIsNoop(row);
+                  const warningOnly = action === "noop_structure_warning";
+                  const structureDetail = smRefreshStructureDetail(row);
+                  return (
+                    <div className={`pulso-sm-family-row is-refresh-row${row.updateable ? "" : " is-invalid"}${warningOnly ? " is-warning" : ""}`} role="row" key={row.base_name}>
+                      <div className="pulso-sm-family-origin-cell">
+                        <strong>{row.source_alias || row.base_name}</strong>
+                        <small>
+                          <code>{row.base_name}</code> · Survey ID {row.survey_id || "S/D"} · {row.source_count ?? 1} fuente{(row.source_count ?? 1) === 1 ? "" : "s"} actual{(row.source_count ?? 1) === 1 ? "" : "es"}
+                        </small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className="pulso-sm-family-status">
+                          <Database size={12} />
+                          {row.new_rows ?? "S/D"} nuevas
+                        </span>
+                        <small>{row.current_rows ?? "S/D"} actuales · {row.edited_rows ?? 0} editadas reportadas</small>
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className={`pulso-sm-family-status${blocking ? " is-warning" : " is-neutral"}`}>
+                          {blocking ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
+                          {blocking
+                            ? `${blocking} ${warningOnly ? "alerta" : "bloqueo"}${blocking === 1 ? "" : "s"}`
+                            : "Compatible"}
+                        </span>
+                        {structureDetail && <small title={structureDetail.title}>{structureDetail.label}</small>}
+                      </div>
+                      <div className="pulso-sm-family-data-cell">
+                        <span className="pulso-sm-family-status is-neutral">
+                          <Layers size={12} />
+                          {noop ? "Sin cambios" : row.codificacion?.has_state ? "Se reaplica" : "Sin avance"}
+                        </span>
+                        <small>{smRefreshRowStatusText(row)}</small>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="pulso-sm-family-config-head">
+                <span>Agrega solo `response_id` nuevos; las editadas se reportan sin reemplazar datos locales.</span>
+                <div className="pulso-sm-family-actions">
+                  <button type="button" className="pulso-sm-secondary" disabled={disabled || !!busy} onClick={() => loadRefreshPlan(true)}>
+                    <RefreshCw size={13} />
+                    Releer diagnóstico
+                  </button>
+                  <button
+                    type="button"
+                    disabled={disabled || !!busy || !(refreshPlan.bases ?? []).some((row) => row.updateable)}
+                    onClick={runRefreshSurveyMonkey}
+                  >
+                    {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
+                    Actualizar respuestas
+                  </button>
+                </div>
+              </div>
+              {refreshResult && (
+                <div className="pulso-sm-multibase-warning">
+                  <CheckCircle2 size={15} />
+                  <span>
+                    Actualizadas {refreshResult.results.filter((row) => row.ok && !row.skipped).length} bases · {" "}
+                    {refreshResult.results.filter((row) => row.ok && row.noop).length} sin cambios · {" "}
+                    {refreshResult.results.reduce((sum, row) => sum + Number(row.n_new ?? 0), 0)} registros válidos nuevos · {" "}
+                    {(refreshResult.codificacion_jobs ?? []).filter((job) => job.ok && job.job_id).length} jobs de recodificación lanzados.
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
           <div className="pulso-sm-family-config-head">
-            <span>Para trabajar usa el selector de base activa del lateral. La base plantilla comparte reglas con hermanas compatibles.</span>
+            <span>Para trabajar usa el selector de base activa del lateral. La base de referencia puede sincronizar reglas XLSForm con hermanas compatibles.</span>
             <div className="pulso-sm-family-actions">
               <button
                 type="button"
                 className="pulso-sm-secondary"
-                disabled={disabled || !!busy || estudio.n_bases < 2}
-                onClick={runTemplateLogicSync}
+                disabled={disabled || !!busy}
+                onClick={() => loadRefreshPlan(false)}
               >
-                <GitMerge size={13} />
-                Aplicar lógica de plantilla
+                <RefreshCw size={13} />
+                Actualizar respuestas SurveyMonkey
               </button>
               <button
                 type="button"
                 className="pulso-sm-secondary"
-                disabled={disabled || !!busy || capacityLeft <= 0}
+                disabled={disabled || !!busy || estudio.n_bases < 2 || !templateSyncBase}
+                onClick={runTemplateLogicSync}
+                title={templateSyncBase ? `Usar ${templateSyncBase} como referencia XLSForm` : "Primero debe existir una base de referencia en la familia"}
+              >
+                <GitMerge size={13} />
+                Sincronizar lógica XLSForm
+              </button>
+              <button
+                type="button"
+                className="pulso-sm-secondary"
+                disabled={disabled || !!busy || (capacityLeft <= 0 && !hasExistingIndependentBases)}
                 onClick={() => {
                   setError("");
                   setShowSurveyCatalog(true);
                 }}
               >
                 <Plus size={13} />
-                {capacityLeft <= 0 ? "Límite alcanzado" : "Agregar desde SurveyMonkey"}
+                {capacityLeft <= 0 && hasExistingIndependentBases ? "Agregar campaña SurveyMonkey" : capacityLeft <= 0 ? "Límite alcanzado" : "Agregar desde SurveyMonkey"}
               </button>
             </div>
           </div>
@@ -1493,56 +2426,76 @@ function IndependentSiblingsSurveyMonkeyWizard({
         {surveys && (
           <>
             <div className="pulso-sm-list-caption">
-              {visibleSurveys.length} de {surveyMeta?.totalRecent ?? surveys.length} encuestas modificadas en los últimos {surveyMeta?.months ?? 6} meses · {selectedInputs.length} por importar · {capacityLeft} cupos disponibles
+              {visibleSurveys.length} disponibles de {surveyMeta?.totalRecent ?? surveys.length} encuestas modificadas en los últimos {surveyMeta?.months ?? 6} meses · {selectedInputs.length} bases nuevas · {selectedMergeCampaignCount} campañas/canales · {capacityLeft} cupos para bases nuevas
+              {hiddenDuplicateSurveys.length ? ` · ${hiddenDuplicateSurveys.length} ocultas por repetidas` : ""}
               {surveyMeta && (
                 <> · {surveyMeta.cacheStatus === "stale_fallback" ? "refresco falló; usando catálogo local" : surveyMeta.fromCache ? "catálogo local" : "catálogo actualizado"} {smCatalogDateLabel(surveyMeta.fetchedAt)}</>
               )}
             </div>
+            {duplicateSurveyAlert && (
+              <div className="pulso-sm-duplicate-alert" role="status">
+                <AlertTriangle size={14} />
+                <span>{duplicateSurveyAlert}</span>
+              </div>
+            )}
             <div className="pulso-sm-survey-list" aria-label="Encuestas SurveyMonkey">
               {visibleSurveys.map((item) => {
-                const selected = selectedIds.has(item.id);
                 const title = smSurveyTitle(item);
                 const scopeDraft = scopeDrafts[item.id];
                 const aliasPreview = smSurveyAlias(item, scopeDraft);
-                const cannotAdd = !selected && selectedIds.size >= capacityLeft;
+                const suggestedTargetName = hasExistingIndependentBases ? smBestExistingBaseTarget(item, existingBases) : "";
+                const suggestedTarget = suggestedTargetName ? existingBaseByName.get(suggestedTargetName) : null;
+                const cannotAdd = capacityLeft <= 0 && !hasExistingIndependentBases;
                 const responses = smSurveyResponseLabel(item);
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    className={`pulso-sm-survey-card${selected ? " is-selected" : ""}`}
+                    className="pulso-sm-survey-card"
                     onClick={() => toggleSurvey(item)}
                     disabled={disabled || !!busy || cannotAdd}
                     title={title}
                   >
                     <span className="pulso-sm-survey-card-copy">
                       <strong>{title}</strong>
-                      <small>{aliasPreview}</small>
+                      <small>
+                        {aliasPreview}
+                        {suggestedTarget ? ` · sugerido: agregar a ${smExistingBaseTargetLabel(suggestedTarget)}` : ""}
+                      </small>
                       <span className="pulso-sm-survey-card-meta">
                         <b><Database size={11} /> {responses}</b>
                         <i>{smDateLabel(item.date_modified)}</i>
                         <i>ID {item.id}</i>
                       </span>
                     </span>
-                    <em>{selected ? "En familia" : "Agregar"}</em>
+                    <em>{suggestedTarget ? "Elegir destino" : "Agregar"}</em>
                   </button>
                 );
               })}
-              {!visibleSurveys.length && <div className="pulso-sm-empty">No hay coincidencias con el filtro actual.</div>}
+              {!visibleSurveys.length && (
+                <div className="pulso-sm-empty">
+                  {hiddenDuplicateSurveys.length
+                    ? "Todas las coincidencias ya están cargadas o seleccionadas."
+                    : "No hay coincidencias con el filtro actual."}
+                </div>
+              )}
             </div>
           </>
         )}
 
         {selectedSurveys.length > 0 && (
-          <div className="pulso-sm-family-config">
-            <div className="pulso-sm-family-config-head">
-              <strong>Familia por importar</strong>
-              <span>{selectedTotal}/{independentMaxBases} bases configuradas</span>
+            <div className="pulso-sm-family-config">
+              <div className="pulso-sm-family-config-head">
+              <strong>Selección SurveyMonkey</strong>
+              <span>
+                {selectedTotal}/{independentMaxBases} bases configuradas
+                {selectedMergeCampaignCount ? ` · ${selectedMergeCampaignCount} campaña${selectedMergeCampaignCount === 1 ? "" : "s"} a bases existentes` : ""}
+              </span>
             </div>
             <div className="pulso-sm-family-table" role="table" aria-label="Bases hermanas independientes seleccionadas">
               <div className="pulso-sm-family-row is-head" role="row">
                 <span>#</span>
-                <span>Base visible</span>
+                <span>Destino</span>
                 <span>Encuesta original</span>
                 <span>Data</span>
                 <span>Filtros y campañas</span>
@@ -1551,32 +2504,69 @@ function IndependentSiblingsSurveyMonkeyWizard({
               {selectedSurveys.map((item, index) => {
                 const scopeDraft = scopeDrafts[item.id];
                 const scope = scopeDraft ?? smDefaultScopeDraft();
-                const scopedInput = selectedInputs.find((input) => input.survey_id === item.id);
-                const nSources = scopedInput?.sources?.length ?? 1;
+                const targetBaseName = scope.targetBaseName || "";
+                const targetBase = targetBaseName ? existingBaseByName.get(targetBaseName) : null;
+                const isMergeTarget = !!targetBaseName;
+                const nSources = 1 + scope.extraSources.filter((source) => source.surveyId.trim()).length;
                 const totalSourceResponses = smKnownSourceCount(item, scope, surveys);
                 const aliasValue = smAliasDraftValue(item, scopeDraft);
                 const aliasSlug = smBaseSlug(aliasValue);
-                const aliasInvalid = !aliasValue.trim() || duplicateAliasSlugs.has(aliasSlug);
+                const aliasInvalid = !isMergeTarget && (!aliasValue.trim() || duplicateAliasSlugs.has(aliasSlug));
+                const targetInvalid = isMergeTarget && !targetBase;
+                const rowInvalid = aliasInvalid || targetInvalid;
                 return (
-                  <div className={`pulso-sm-family-row${aliasInvalid ? " is-invalid" : ""}`} role="row" key={item.id}>
+                  <div className={`pulso-sm-family-row${rowInvalid ? " is-invalid" : ""}`} role="row" key={item.id}>
                     <span className="pulso-sm-survey-index">{index + 1}</span>
                     <div className="pulso-sm-family-base-cell">
+                      {hasExistingIndependentBases && (
+                        <label className={`pulso-sm-target-field${targetInvalid ? " is-invalid" : ""}`}>
+                          <span>Destino</span>
+                          <select
+                            value={targetBaseName}
+                            disabled={disabled || !!busy}
+                            aria-label={`Destino para ${item.id}`}
+                            onChange={(event) => updateScope(item.id, { targetBaseName: event.target.value })}
+                          >
+                            <option value="" disabled={capacityLeft <= 0}>
+                              Nueva base independiente{capacityLeft <= 0 ? " (sin cupos)" : ""}
+                            </option>
+                            {existingBases.map((base) => (
+                              <option key={base.nombre} value={base.nombre}>
+                                Agregar a {smExistingBaseTargetLabel(base)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
                       <label className={`pulso-sm-alias-field is-main${aliasInvalid ? " is-invalid" : ""}`}>
-                        <span>Alias visible</span>
+                        <span>{isMergeTarget ? "Etiqueta de campaña" : "Alias visible"}</span>
                         <input
                           value={aliasValue}
                           disabled={disabled || !!busy}
                           aria-label={`Alias visible ${item.id}`}
                           onChange={(event) => updateAlias(item.id, event.target.value)}
+                          onKeyDown={smTextShortcutGuard}
+                          onCopy={smClipboardGuard}
+                          onCut={smClipboardGuard}
+                          onPaste={smClipboardGuard}
                         />
                       </label>
-                      <small>ID técnico <code>{aliasSlug}</code></small>
-                      {aliasInvalid && (
+                      {isMergeTarget && targetBase ? (
+                        <small className="pulso-sm-target-note">
+                          <GitMerge size={11} />
+                          Se agregará a <code>{smExistingBaseTargetLabel(targetBase)}</code> como fuente adicional
+                        </small>
+                      ) : (
+                        <small>ID técnico <code>{aliasSlug}</code></small>
+                      )}
+                      {(aliasInvalid || targetInvalid) && (
                         <em>
                           <AlertTriangle size={12} />
-                          {!aliasValue.trim()
-                            ? "Falta alias."
-                            : `ID repetido: ${aliasSlug}`}
+                          {targetInvalid
+                            ? "Elige una carrera destino."
+                            : !aliasValue.trim()
+                              ? "Falta alias."
+                              : `ID repetido: ${aliasSlug}`}
                         </em>
                       )}
                     </div>
@@ -1592,6 +2582,7 @@ function IndependentSiblingsSurveyMonkeyWizard({
                         {nSources} fuente{nSources === 1 ? "" : "s"}
                       </span>
                       <small>{smSourceCountLabel(totalSourceResponses)} · {smScopeSummary(scope, nSources)}</small>
+                      {scope.channel && <SmChannelBadge channel={scope.channel} />}
                     </div>
                     <details className="pulso-sm-scope-popover">
                       <summary>
@@ -1601,37 +2592,26 @@ function IndependentSiblingsSurveyMonkeyWizard({
                       <div className="pulso-sm-scope-popover-panel" aria-label={`Alcance de importación de ${smSurveyTitle(item)}`}>
                         <div className="pulso-sm-scope-head">
                           <span><Filter size={13} /> Alcance de data</span>
-                          <em>response_filter por base</em>
+                          <em>SurveyMonkey</em>
                         </div>
-                        <div className="pulso-sm-scope-fields">
-                          <label className="pulso-sm-scope-field">
-                            <span>Estados</span>
-                            <div className="pulso-sm-scope-checks">
-                              <label>
-                                <input
-                                  type="checkbox"
-                                  checked={scope.includeCompleted}
-                                  disabled={disabled || !!busy}
-                                  onChange={(event) => updateScope(item.id, {
-                                    includeCompleted: event.target.checked || !scope.includePartial,
-                                  })}
-                                />
-                                Completas
-                              </label>
-                              <label>
-                                <input
-                                  type="checkbox"
-                                  checked={scope.includePartial}
-                                  disabled={disabled || !!busy}
-                                  onChange={(event) => updateScope(item.id, {
-                                    includePartial: event.target.checked,
-                                    includeCompleted: scope.includeCompleted || !event.target.checked,
-                                  })}
-                                />
-                                Parciales
-                              </label>
-                            </div>
-                          </label>
+                        <div className="pulso-sm-scope-fixed" aria-label="Alcance aplicado">
+                          <span>
+                            <CheckCircle2 size={14} />
+                            Estado
+                            <strong>Completas</strong>
+                          </span>
+                          <span>
+                            <Database size={14} />
+                            Respuestas
+                            <strong>{smSurveyResponseLabel(item)}</strong>
+                          </span>
+                        </div>
+                        <div className="pulso-sm-scope-fields is-operational">
+                          <SmChannelSelect
+                            value={scope.channel}
+                            disabled={disabled || !!busy}
+                            onChange={(value) => updateScope(item.id, { channel: value })}
+                          />
                           <label className="pulso-sm-scope-field">
                             <span>Tipo de recojo</span>
                             <select
@@ -1648,40 +2628,13 @@ function IndependentSiblingsSurveyMonkeyWizard({
                               <option value="otro">Otro</option>
                             </select>
                           </label>
-                          <label className="pulso-sm-scope-field">
-                            <span>Collector IDs</span>
-                            <input
-                              value={scope.collectorIds}
-                              disabled={disabled || !!busy}
-                              placeholder="campo, recordatorio"
-                              onChange={(event) => updateScope(item.id, { collectorIds: event.target.value })}
-                            />
-                          </label>
-                          <label className="pulso-sm-scope-field">
-                            <span>Desde</span>
-                            <input
-                              value={scope.dateModifiedGte}
-                              disabled={disabled || !!busy}
-                              placeholder="2026-05-01T00:00:00+00:00"
-                              onChange={(event) => updateScope(item.id, { dateModifiedGte: event.target.value })}
-                            />
-                          </label>
-                          <label className="pulso-sm-scope-field">
-                            <span>Hasta</span>
-                            <input
-                              value={scope.dateModifiedLte}
-                              disabled={disabled || !!busy}
-                              placeholder="2026-05-30T01:27:45+00:00"
-                              onChange={(event) => updateScope(item.id, { dateModifiedLte: event.target.value })}
-                            />
-                          </label>
                         </div>
 
                         <div className="pulso-sm-extra-sources">
                           {scope.extraSources.map((source, sourceIndex) => {
                             const pickedSurvey = smSurveyById(surveys, source.surveyId);
                             const excludeIds = new Set([
-                              ...Array.from(selectedIds),
+                              ...Array.from(blockedSurveyIds),
                               ...scope.extraSources
                                 .filter((other) => other.key !== source.key)
                                 .map((other) => other.surveyId.trim())
@@ -1754,18 +2707,17 @@ function IndependentSiblingsSurveyMonkeyWizard({
                                       placeholder={pickedSurvey ? smSurveyDefaultAlias(pickedSurvey) : "Etiqueta opcional"}
                                       aria-label={`Etiqueta fuente adicional ${sourceIndex + 1}`}
                                       onChange={(event) => updateExtraSource(item.id, source.key, { label: event.target.value })}
+                                      onKeyDown={smTextShortcutGuard}
+                                      onCopy={smClipboardGuard}
+                                      onCut={smClipboardGuard}
+                                      onPaste={smClipboardGuard}
                                     />
                                   </label>
-                                  <label>
-                                    <span>Collectors</span>
-                                    <input
-                                      value={source.collectorIds}
-                                      disabled={disabled || !!busy}
-                                      placeholder="campo, recordatorio"
-                                      aria-label={`Collectors fuente adicional ${sourceIndex + 1}`}
-                                      onChange={(event) => updateExtraSource(item.id, source.key, { collectorIds: event.target.value })}
-                                    />
-                                  </label>
+                                  <SmChannelSelect
+                                    value={source.channel}
+                                    disabled={disabled || !!busy}
+                                    onChange={(value) => updateExtraSource(item.id, source.key, { channel: value })}
+                                  />
                                   <label>
                                     <span>Recojo</span>
                                     <select
@@ -1782,35 +2734,6 @@ function IndependentSiblingsSurveyMonkeyWizard({
                                       <option value="email">Correo</option>
                                       <option value="otro">Otro</option>
                                     </select>
-                                  </label>
-                                  <label>
-                                    <span>Desde</span>
-                                    <input
-                                      value={source.dateModifiedGte}
-                                      disabled={disabled || !!busy}
-                                      placeholder="2026-05-01T00:00"
-                                      aria-label={`Fecha desde fuente adicional ${sourceIndex + 1}`}
-                                      onChange={(event) => updateExtraSource(item.id, source.key, { dateModifiedGte: event.target.value })}
-                                    />
-                                  </label>
-                                  <label>
-                                    <span>Hasta</span>
-                                    <input
-                                      value={source.dateModifiedLte}
-                                      disabled={disabled || !!busy}
-                                      placeholder="2026-05-30T01:27"
-                                      aria-label={`Fecha hasta fuente adicional ${sourceIndex + 1}`}
-                                      onChange={(event) => updateExtraSource(item.id, source.key, { dateModifiedLte: event.target.value })}
-                                    />
-                                  </label>
-                                  <label className="pulso-sm-extra-check">
-                                    <input
-                                      type="checkbox"
-                                      checked={source.includePartial}
-                                      disabled={disabled || !!busy}
-                                      onChange={(event) => updateExtraSource(item.id, source.key, { includePartial: event.target.checked })}
-                                    />
-                                    Parciales
                                   </label>
                                 </div>
                               </div>
@@ -1850,11 +2773,15 @@ function IndependentSiblingsSurveyMonkeyWizard({
       <div className="pulso-sm-multibase-actions">
         <button type="button" className="pulso-sm-secondary" disabled={!selectedInputs.length || !!busy || disabled} onClick={runAudit}>
           {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
-          Auditar familia
+          Auditar nuevas bases
         </button>
         <button type="button" className="pulso-sm-primary" disabled={!canImport} onClick={runImport}>
-          <Layers size={14} />
-          Importar como bases hermanas independientes
+          {selectedMergeCampaignCount && !selectedInputs.length ? <GitMerge size={14} /> : <Layers size={14} />}
+          {selectedInputs.length && selectedMergeCampaignCount
+            ? "Importar y agregar campañas"
+            : selectedMergeCampaignCount
+              ? "Agregar como campañas/canales"
+              : "Importar como bases hermanas independientes"}
         </button>
       </div>
 
@@ -1865,9 +2792,9 @@ function IndependentSiblingsSurveyMonkeyWizard({
         <div className={`pulso-sm-logic-sync${logicSync.ok === false ? " is-warning" : ""}`}>
           <div className="pulso-sm-logic-sync-head">
             {logicSync.ok === false ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
-            <strong>{logicSync.ok === false ? "Importación hecha; lógica pendiente" : "Lógica de plantilla aplicada"}</strong>
+            <strong>{logicSync.ok === false ? "Importación hecha; lógica pendiente" : "Lógica XLSForm sincronizada"}</strong>
             <span>
-              Plantilla <code>{logicSync.template_base}</code> · {logicSync.n_updated_bases ?? 0}/{logicSync.n_targets ?? 0} bases actualizadas
+              Referencia <code>{logicSync.template_base}</code> · {logicSync.n_updated_bases ?? 0}/{logicSync.n_targets ?? 0} bases actualizadas
             </span>
           </div>
           {logicSync.error && <p>{logicSync.error}</p>}
@@ -1982,7 +2909,7 @@ function responseFilterLabel(filter?: Record<string, unknown> | null) {
   const sourceCount = filter.source_count == null || Number.isNaN(Number(filter.source_count))
     ? null
     : Number(filter.source_count);
-  if (kind === "uploaded_data") return kept == null ? "Data subida" : `Data subida · ${kept} filas`;
+  if (kind === "uploaded_data") return kept == null ? "Data subida" : `Data subida · ${kept} registros`;
   const parts: string[] = [];
   if (sourceCount && sourceCount > 1) parts.push(`${sourceCount} fuentes`);
   if (kept != null) parts.push(`${kept} filtradas`);
@@ -2516,7 +3443,7 @@ function BaseRow({
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Database size={12} />
             {base.n_filas != null && base.n_columnas != null
-              ? `${base.n_filas} filas · ${base.n_columnas} cols`
+              ? `${base.n_filas} registros · ${base.n_columnas} cols`
               : "Datos cargados"}
             {base.data_ext && ` · .${base.data_ext}`}
           </span>

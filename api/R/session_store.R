@@ -665,10 +665,13 @@ estudio_update_base_metadata <- function(sid, nombre, patch = list()) {
   if (!is.list(patch)) {
     stop_api(400, "E_BASE_META_INVALIDA", "La metadata de base debe ser un objeto.")
   }
-  allowed <- c("source_alias", "source_title", "source_kind", "survey_id", "response_filter")
+  allowed <- c(
+    "source_alias", "source_title", "source_channel", "source_kind", "survey_id",
+    "response_filter", "surveymonkey_source_spec", "consent_var"
+  )
   meta <- s$estudio$bases[[nombre]]
   for (key in intersect(names(patch), allowed)) {
-    if (identical(key, "response_filter")) {
+    if (key %in% c("response_filter", "surveymonkey_source_spec")) {
       meta[[key]] <- patch[[key]]
       next
     }

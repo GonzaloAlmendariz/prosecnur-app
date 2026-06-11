@@ -222,8 +222,21 @@ export type EstudioBase = {
   survey_id?: string | null;
   source_alias?: string | null;
   source_title?: string | null;
+  source_channel?: string | null;
+  consent_var?: string | null;
+  consent_candidates?: string[];
+  xlsform_variables?: Array<{
+    name: string;
+    label?: string | null;
+    type?: string | null;
+    choice_list?: string | null;
+    positive_choices?: Array<{ name: string; label?: string | null }>;
+  }>;
   sibling_family_id?: string | null;
   imported_at?: string | null;
+  surveymonkey_source_spec?: SurveyMonkeyMultibaseSurveyInput | null;
+  surveymonkey_refreshed_at?: string | null;
+  surveymonkey_last_refresh?: Record<string, unknown> | null;
   logic_template_base?: string | null;
   logic_template_applied_at?: string | null;
   logic_template_status?: "updated" | "unchanged" | string | null;
@@ -403,9 +416,12 @@ export async function apiEstudioUpdateBaseMetadata(
   payload: {
     source_alias?: string;
     source_title?: string;
+    source_channel?: string;
     source_kind?: string;
     survey_id?: string;
+    consent_var?: string;
     response_filter?: Record<string, unknown> | null;
+    surveymonkey_source_spec?: SurveyMonkeyMultibaseSurveyInput | null;
   },
 ) {
   return handle<EstudioPayload>(
@@ -574,6 +590,11 @@ export type SurveyMonkeyMultibaseSurveyInput = {
   label?: string;
   source_alias?: string;
   source_title?: string;
+  channel?: string;
+  canal?: string;
+  source_channel?: string;
+  consent_var?: string;
+  consentimiento_var?: string;
   data_file_id?: string;
   response_statuses?: string[];
   keep_missing_status?: boolean;
@@ -671,6 +692,91 @@ export type SurveyMonkeyMultibaseAudit = {
   company_positions: number[];
   company_variables: string[];
   diffs: SurveyMonkeyMultibaseDiff[];
+};
+
+export type SurveyMonkeyRefreshCampaignSuggestion = {
+  survey_id: string;
+  title: string;
+  nickname?: string | null;
+  label?: string;
+  channel?: string;
+  source_channel?: string;
+  date_modified?: string | null;
+  response_count?: number | null;
+  score: number;
+  preselected: boolean;
+  reason?: string;
+};
+
+export type SurveyMonkeyRefreshBasePlan = {
+  base_name: string;
+  source_alias?: string;
+  source_title?: string;
+  survey_id?: string;
+  source_count?: number;
+  existing_campaigns?: string[];
+  accepted_campaigns?: string[];
+  campaign_suggestions?: SurveyMonkeyRefreshCampaignSuggestion[];
+  current_rows?: number | null;
+  remote_rows?: number | null;
+  new_rows?: number | null;
+  edited_rows?: number | null;
+  edited_case_uids?: string[];
+  structure?: {
+    ok?: boolean;
+    n_blocking?: number;
+    n_review?: number;
+    diffs?: SurveyMonkeyMultibaseDiff[];
+  };
+  codificacion?: {
+    has_state?: boolean;
+  };
+  source_spec?: SurveyMonkeyMultibaseSurveyInput;
+  ok: boolean;
+  updateable: boolean;
+  refresh_action?: "update" | "noop" | "noop_structure_warning" | "blocked" | "error" | string;
+  needs_update?: boolean;
+  structure_warning_only?: boolean;
+  issues?: string[];
+};
+
+export type SurveyMonkeyRefreshPlan = {
+  ok: boolean;
+  bases: SurveyMonkeyRefreshBasePlan[];
+  campaign_suggestions?: Record<string, SurveyMonkeyRefreshCampaignSuggestion[]>;
+  catalog?: {
+    from_cache?: boolean;
+    cache_status?: string;
+    refresh_error?: string;
+    catalog_fetched_at?: string | null;
+  };
+  message?: string;
+};
+
+export type SurveyMonkeyRefreshSelection = {
+  base_name: string;
+  campaigns?: SurveyMonkeyMultibaseSurveyInput[];
+};
+
+export type SurveyMonkeyRefreshResult = {
+  ok: boolean;
+  results: Array<{
+    base_name: string;
+    ok: boolean;
+    skipped?: boolean;
+    noop?: boolean;
+    refresh_action?: string;
+    reason?: string;
+    n_new?: number;
+    current_rows_before?: number | null;
+    rows_after?: number | null;
+    edited_rows_reported?: number | null;
+    source_count?: number;
+    codificacion_job?: { ok?: boolean; job_id?: string; kind?: string; base_name?: string; error?: string } | null;
+  }>;
+  codificacion_jobs?: Array<{ ok?: boolean; job_id?: string; kind?: string; base_name?: string; error?: string }>;
+  plan: SurveyMonkeyRefreshPlan;
+  estudio: EstudioPayload;
 };
 
 export async function apiSurveyMonkeyMultibaseListSurveys(
@@ -825,6 +931,35 @@ export async function apiSurveyMonkeyMultibaseImportIndependent(payload: {
     xlsform_logic_sync?: EstudioLogicSyncResult | null;
   }>(
     await apiFetch("/api/surveymonkey/multibase/import-independent", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiSurveyMonkeyMultibaseRefreshPlan(payload: {
+  bases?: SurveyMonkeyRefreshSelection[];
+  months?: number;
+  force_refresh?: boolean;
+} = {}) {
+  return handle<SurveyMonkeyRefreshPlan>(
+    await apiFetch("/api/surveymonkey/multibase/refresh-plan", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiSurveyMonkeyMultibaseRefresh(payload: {
+  bases?: SurveyMonkeyRefreshSelection[];
+  months?: number;
+  force_refresh?: boolean;
+  reapply_codificacion?: boolean;
+}) {
+  return handle<SurveyMonkeyRefreshResult>(
+    await apiFetch("/api/surveymonkey/multibase/refresh", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
