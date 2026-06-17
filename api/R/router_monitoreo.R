@@ -11,7 +11,7 @@
   )
 }
 
-.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260617-field-occurrences-v2"
+.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260617-acreditacion-collector-daily-q0004-v1"
 
 .monitoreo_dashboard_config_json <- function(cfg) {
   tryCatch(

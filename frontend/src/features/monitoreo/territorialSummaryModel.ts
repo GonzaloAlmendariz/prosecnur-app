@@ -113,10 +113,12 @@ export function buildTerritorialExecutiveSummary({
   umpRows,
 }: TerritorialExecutiveSummaryInput): TerritorialExecutiveSummaryModel {
   const effectiveRows = effectiveTerritorialResponses(reports);
+  const sex = buildSexDistribution(reports, effectiveRows);
+  const age = buildAgeDistribution(reports, effectiveRows);
   return {
-    effectiveResponses: effectiveRows.length,
-    sex: buildSexDistribution(reports, effectiveRows),
-    age: buildAgeDistribution(reports, effectiveRows),
+    effectiveResponses: effectiveRows.length || Math.max(sex.total, age.total),
+    sex,
+    age,
     ump: buildUmpStack(umpRows),
     priorities: buildTerritorialPriorityGroups(districtRows, umpRows),
   };
@@ -247,6 +249,19 @@ function buildSexDistribution(
   });
 
   if (!rows.length) {
+    const quota = quotaProgressAchievedDistribution(reports, "sex");
+    if (quota.total > 0) {
+      return {
+        status: "ready",
+        message: "Distribución por sexo sobre válidas que cuentan en avance",
+        total: quota.total,
+        variable,
+        items: distributionItems(quota.counts, quota.total, configuredLabels.length ? configuredLabels : quota.labels),
+      };
+    }
+  }
+
+  if (!rows.length) {
     return emptyDistribution("empty", "Sin respuestas válidas para distribuir por sexo", variable);
   }
 
@@ -273,6 +288,16 @@ function buildAgeDistribution(
     return emptyDistribution("missing_ranges", "Rangos de edad no configurados", variable);
   }
   if (!rows.length) {
+    const quota = quotaProgressAchievedDistribution(reports, "age");
+    if (quota.total > 0) {
+      return {
+        status: "ready",
+        message: "Distribución por edad sobre válidas que cuentan en avance",
+        total: quota.total,
+        variable,
+        items: distributionItems(quota.counts, quota.total, ageLabels.length ? ageLabels : quota.labels),
+      };
+    }
     return {
       status: "empty",
       message: "Sin respuestas válidas para distribuir por edad",
@@ -324,6 +349,51 @@ function collectQuotaLabels(reports: MonitoreoTerritorialDashboard, kind: "sex" 
     (row[kind] ?? []).forEach((item) => add(item.label));
   });
   return out;
+}
+
+function quotaProgressAchievedDistribution(reports: MonitoreoTerritorialDashboard, kind: "sex" | "age") {
+  const districtRows = reports.route_quota_progress?.districts ?? [];
+  const blockRows = reports.route_quota_progress?.blocks ?? [];
+  const expectedTotal = positiveNumber(reports.kpis?.validas);
+  const districtTotal = quotaProgressRowsTotal(districtRows, kind);
+  const blockTotal = quotaProgressRowsTotal(blockRows, kind);
+  const rows = blockRows.length && (
+    !districtRows.length
+    || (expectedTotal > 0 && Math.abs(blockTotal - expectedTotal) <= Math.abs(districtTotal - expectedTotal))
+  )
+    ? blockRows
+    : districtRows;
+  const counts = new Map<string, number>();
+  const labels: string[] = [];
+  const addLabel = (label: string) => {
+    if (!label) return;
+    if (!labels.some((item) => normalizeKey(item) === normalizeKey(label))) labels.push(label);
+  };
+  rows.forEach((row) => {
+    (row[kind] ?? []).forEach((item) => {
+      const rawLabel = stringOrEmpty(item.label);
+      const label = kind === "sex" ? normalizeSexLabel(rawLabel) : rawLabel;
+      const value = positiveNumber(item.achieved);
+      addLabel(label);
+      if (value > 0) incrementBy(counts, label || EMPTY_LABEL, value);
+    });
+  });
+  return {
+    counts,
+    labels,
+    total: Array.from(counts.values()).reduce((sum, value) => sum + value, 0),
+  };
+}
+
+type QuotaProgressDistributionRow = {
+  sex?: Array<{ achieved?: number | null }>;
+  age?: Array<{ achieved?: number | null }>;
+};
+
+function quotaProgressRowsTotal(rows: QuotaProgressDistributionRow[] | undefined, kind: "sex" | "age") {
+  return (rows ?? []).reduce((sum, row) => (
+    sum + (row[kind] ?? []).reduce((rowSum, item) => rowSum + positiveNumber(item.achieved), 0)
+  ), 0);
 }
 
 function distributionItems(counts: Map<string, number>, total: number, preferredOrder: string[]): TerritorialExecutiveDistributionItem[] {
@@ -428,7 +498,11 @@ function titleCase(value: string) {
 }
 
 function increment(map: Map<string, number>, label: string) {
-  map.set(label, (map.get(label) ?? 0) + 1);
+  incrementBy(map, label, 1);
+}
+
+function incrementBy(map: Map<string, number>, label: string, value: number) {
+  map.set(label, (map.get(label) ?? 0) + value);
 }
 
 function pct(value: number, total: number) {

@@ -1337,6 +1337,51 @@ test_that("perfil acreditacion expone trazabilidad de cruce por columna", {
   expect_equal(outside$`Columna base`, "")
 })
 
+test_that("perfil acreditacion cruza codigo PUCP en pregunta SurveyMonkey generica etiquetada", {
+  data <- data.frame(
+    `Código PUCP` = c("20193331", "20192752", "", ""),
+    q0004 = c("", "", "20193331", "99999999"),
+    response_id = c("", "", "r-code", "r-outside"),
+    response_status = c("", "", "completed", "completed"),
+    date_modified = c("", "", "2026-06-01T10:00:00+00:00", "2026-06-01T11:00:00+00:00"),
+    .source_role = c("universo", "universo", "respuestas", "respuestas"),
+    .source_label = c("Base · Estudiantes", "Base · Estudiantes", "SurveyMonkey · Estudiantes · Web", "SurveyMonkey · Estudiantes · Web"),
+    .source_id = c("base-estudiantes", "base-estudiantes", "sm-estudiantes-web", "sm-estudiantes-web"),
+    dim_actor = c("Estudiantes", "Estudiantes", "Estudiantes", "Estudiantes"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  attr(data, "variable_labels") <- c(q0004 = "¿Cuál es su código PUCP ?")
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(
+      family = "acreditacion",
+      variant = "multi_actor",
+      units = list(list(id = "Estudiantes", label = "Estudiantes")),
+      key_rules = list(
+        universe_fields = c("Código PUCP"),
+        response_fields = c("Código PUCP"),
+        automatic_detection = TRUE
+      )
+    )
+  ), data)
+
+  reports <- monitoreo_build_dashboard(data, cfg)$acreditacion_reports
+  alert_sheet <- reports$sheets[[which(vapply(reports$sheets, `[[`, character(1), "id") == "alertas")]]
+  trace_block <- alert_sheet$blocks[[which(vapply(alert_sheet$blocks, `[[`, character(1), "id") == "trazabilidad_cruce")]]
+  trace <- do.call(rbind, lapply(trace_block$rows, as.data.frame, check.names = FALSE))
+
+  matched <- trace[trace$response_id == "r-code", , drop = FALSE]
+  expect_equal(matched$Resultado, "Cruzó")
+  expect_equal(matched$`Llave usada`, "codigo:20193331")
+  expect_equal(matched$`Columna respuesta`, "q0004")
+  expect_equal(matched$`Valor respuesta`, "20193331")
+
+  outside <- trace[trace$response_id == "r-outside", , drop = FALSE]
+  expect_equal(outside$Resultado, "Sin cruce")
+  expect_equal(outside$`Llave usada`, "codigo:99999999")
+  expect_equal(outside$`Columna respuesta`, "q0004")
+})
+
 test_that("perfil acreditacion permite decision auditada de incluir respuestas sin cruce", {
   data <- data.frame(
     CodPulso = c("A1", ""),
@@ -1901,6 +1946,8 @@ test_that("perfil acreditacion no usa canales como unidades cuando existe dim_ac
       "Correo completos · Egresados"
     ),
     .source_id = c("estudiantes-web", "egresados-telefono", "docentes-whatsapp", "administrativos-web", "egresados-correo"),
+    collector_id = c("web-estudiantes", "tel-egresados", "wsp-docentes", "web-admin", "correo-egresados"),
+    collector_name = c("Web estudiantes", "Llamadas Egresados", "WhatsApp docentes", "Administrativos web", "Correo egresados"),
     dim_actor = c("Estudiantes", "Egresados", "Docentes", "Administrativos", "Egresados"),
     dim_canal = c("Web", "Telefonico", "WhatsApp", "Web", "Web"),
     stringsAsFactors = FALSE,
@@ -1920,6 +1967,10 @@ test_that("perfil acreditacion no usa canales como unidades cuando existe dim_ac
   expect_false(any(c("Web", "Telefónico", "Personalizado") %in% units))
 
   survey_sheet <- reports$sheets[[which(vapply(reports$sheets, `[[`, character(1), "id") == "avance_encuesta")]]
+  survey_block <- survey_sheet$blocks[[which(vapply(survey_sheet$blocks, `[[`, character(1), "id") == "resumen_encuesta")]]
+  survey_df <- do.call(rbind, lapply(survey_block$rows, as.data.frame, check.names = FALSE))
+  expect_true("source_id" %in% names(survey_df))
+  expect_true("egresados-correo" %in% survey_df$source_id)
   source_daily <- survey_sheet$blocks[[which(vapply(survey_sheet$blocks, `[[`, character(1), "id") == "avance_fuente_dia")]]$rows
   source_df <- do.call(rbind, lapply(source_daily, as.data.frame, check.names = FALSE))
   expect_true(all(c("source_id", "Fuente", "Actor", "Canal", "Estado") %in% names(source_df)))
@@ -1930,6 +1981,12 @@ test_that("perfil acreditacion no usa canales como unidades cuando existe dim_ac
   )
   expect_equal(sum(source_df$Canal == "Correo" & source_df$Actor == "Egresados"), 1L)
   expect_equal(sum(source_df$Canal == "Telefónico" & source_df$Actor == "Egresados"), 1L)
+  collector_daily <- survey_sheet$blocks[[which(vapply(survey_sheet$blocks, `[[`, character(1), "id") == "avance_recopilador_dia")]]$rows
+  collector_df <- do.call(rbind, lapply(collector_daily, as.data.frame, check.names = FALSE))
+  expect_true(all(c("source_id", "Fuente", "Recopilador", "collector_id", "Estado") %in% names(collector_df)))
+  expect_true("Llamadas Egresados (tel-egresados)" %in% collector_df$Recopilador)
+  expect_true("Correo egresados (correo-egresados)" %in% collector_df$Recopilador)
+  expect_equal(sum(collector_df$Actor == "Egresados"), 2L)
 })
 
 test_that("reporte cliente usa solo efectivas y omite metadata operacional", {

@@ -137,6 +137,88 @@ function ump(overrides: Partial<TerritorialSummaryUmpRow>): TerritorialSummaryUm
 }
 
 describe("territorialSummaryModel", () => {
+  it("uses normalized route quota progress distributions when audit rows are absent", () => {
+    const summary = buildTerritorialExecutiveSummary({
+      reports: makeReports(),
+      districtRows: [],
+      umpRows: [],
+    });
+
+    expect(summary.effectiveResponses).toBe(2);
+    expect(summary.sex.total).toBe(2);
+    expect(summary.sex.items.find((item) => item.label === "Hombre")?.value).toBe(1);
+    expect(summary.sex.items.find((item) => item.label === "Mujer")?.value).toBe(1);
+    expect(summary.age.total).toBe(2);
+    expect(summary.age.items.find((item) => item.label === "18-29")?.value).toBe(1);
+    expect(summary.age.items.find((item) => item.label === "30-44")?.value).toBe(1);
+  });
+
+  it("prefers quota distribution rows that match the advance KPI", () => {
+    const base = makeReports();
+    const baseQuota = base.route_quota_progress!;
+    const baseDistrict = baseQuota.districts![0]!;
+    const summary = buildTerritorialExecutiveSummary({
+      reports: {
+        ...base,
+        kpis: {
+          ...base.kpis,
+          validas: 3,
+        },
+        route_quota_progress: {
+          ...baseQuota,
+          districts: [
+            {
+              ...baseDistrict,
+              validas: 4,
+              sex: [
+                { label: "Hombre", target: 2, achieved: 2, missing: 0 },
+                { label: "Mujer", target: 2, achieved: 2, missing: 0 },
+              ],
+              age: [
+                { label: "18-29", target: 2, achieved: 2, missing: 0 },
+                { label: "30-44", target: 2, achieved: 2, missing: 0 },
+              ],
+            },
+          ],
+          blocks: [
+            {
+              id_manzana: "150132-001",
+              ubigeo: baseDistrict.ubigeo,
+              distrito: "SAN JUAN DE LURIGANCHO",
+              zona: "10700",
+              manzana: "001",
+              tipo_manzana: "titular",
+              ump: 1,
+              configured: true,
+              status: "in_field",
+              target: 8,
+              validas: 3,
+              missing_total: 5,
+              sex: [
+                { label: "Hombre", target: 2, achieved: 1, missing: 1 },
+                { label: "Mujer", target: 2, achieved: 2, missing: 0 },
+              ],
+              age: [
+                { label: "18-29", target: 2, achieved: 1, missing: 1 },
+                { label: "30-44", target: 2, achieved: 2, missing: 0 },
+              ],
+              cross: [],
+              missing: [],
+            },
+          ],
+        },
+      },
+      districtRows: [],
+      umpRows: [],
+    });
+
+    expect(summary.effectiveResponses).toBe(3);
+    expect(summary.sex.total).toBe(3);
+    expect(summary.sex.items.find((item) => item.label === "Hombre")?.value).toBe(1);
+    expect(summary.sex.items.find((item) => item.label === "Mujer")?.value).toBe(2);
+    expect(summary.age.total).toBe(3);
+  });
+
   it("builds sex and age distributions only from advance-valid responses", () => {
     const summary = buildTerritorialExecutiveSummary({
       reports: makeReports({

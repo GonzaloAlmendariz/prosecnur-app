@@ -4434,6 +4434,8 @@ export type TerritorialInternalReviewCase = {
   phase?: MonitoreoTerritorialPhase | string;
   response_id?: string;
   row_index?: number | null;
+  age?: number | null;
+  sex?: string;
   district: string;
   ubigeo?: string;
   ump?: string;

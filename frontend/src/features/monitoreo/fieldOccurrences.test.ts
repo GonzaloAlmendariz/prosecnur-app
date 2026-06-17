@@ -254,10 +254,11 @@ describe("buildOccurrenceRouteUmpRows", () => {
 
     expect(invalid?.status).toBe("revisar_cruce");
     expect(invalid?.distrito).toBe("");
+    expect(invalid?.is_unreconciled).toBe(true);
     expect(invalid?.attention_reasons).toContain("ump_no_esperada");
     expect(invalid?.route_match_message).toContain("no está en las UMP esperadas");
     expect(expected?.status).toBe("sin_reporte");
-    expect(districts.find((row) => row.distrito === "Sin cruce UMP")?.ump_reportadas).toBe(1);
+    expect(districts.find((row) => row.distrito === "UMP sin conciliación")?.ump_reportadas).toBe(0);
     expect(districts.find((row) => row.distrito === "SAN MARTIN DE PORRES")?.ump_sin_reporte).toBe(1);
   });
 
