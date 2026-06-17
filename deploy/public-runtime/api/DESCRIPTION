@@ -1,0 +1,17 @@
+Package: prosecnurapp
+Type: Package
+Title: Prosecnur Public Artifact Runtime
+Version: 3.3.5
+Authors@R: person("Gonzalo", "Almendariz", email = "gonzaloalmendariz@gmail.com", role = c("aut", "cre"))
+Description: Runtime minimo read-only para artefactos publicos generados por Prosecnur.
+License: MIT
+Encoding: UTF-8
+Depends:
+    R (>= 4.1)
+Imports:
+    plumber (>= 1.2.0),
+    jsonlite,
+    zip,
+    httpuv,
+    mime
+RoxygenNote: 7.3.3
