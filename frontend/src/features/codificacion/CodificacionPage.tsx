@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, CheckCircle2, Database, FileSpreadsheet, Layers, Tags, Wand2 } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
@@ -10,17 +11,19 @@ import { PreguntasLanding } from "./PreguntasLanding";
 import { CodificarWizard } from "./CodificarWizard";
 import { AdaptarPane } from "./AdaptarPane";
 import { useCodifSource } from "./useCodifSource";
+import { CodingConfigActions } from "./CodingConfigActions";
 
 type Step = "organizar" | "codificar" | "adaptar";
 
 export default function CodificacionPage() {
-  const { state } = useSession();
+  const { state, refresh: refreshSession } = useSession();
   const location = useLocation();
   const navigate = useNavigate();
+  const [importRevision, setImportRevision] = useState(0);
   // Necesitamos el `active` para forzar remount de los hijos al cambiar
   // de base (ver comentario abajo en los key={codifActive}).
   const codifSource = useCodifSource();
-  const codifActive = codifSource.active ?? "default";
+  const codifActive = `${codifSource.active ?? "default"}:${importRevision}`;
 
   const prereqOk = !!state?.xlsform && !!state?.data;
 
@@ -77,6 +80,18 @@ export default function CodificacionPage() {
               <>
                 <ContextBarDivider />
                 <BaseSelector source={codifSource} />
+              </>
+            )}
+
+            {prereqOk && (
+              <>
+                <ContextBarDivider />
+                <CodingConfigActions
+                  onImported={() => {
+                    setImportRevision((n) => n + 1);
+                    void refreshSession();
+                  }}
+                />
               </>
             )}
           </ContextBar>

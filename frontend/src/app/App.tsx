@@ -22,6 +22,7 @@ import XlsformEditorPage from "../features/xlsformEditor/XlsformEditorPage";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import LogsPanel from "../components/LogsPanel";
 import { LoadingBlock } from "../components/States";
+import PublicArtifactApp from "./PublicArtifactApp";
 import { install as installLogSink, note as logNote } from "../lib/logSink";
 import { lazyWithReload } from "../lib/lazyWithReload";
 import { isPublicMode } from "../lib/runtime";
@@ -57,9 +58,7 @@ export default function App() {
         <SessionProvider>
           <SessionLostBanner />
           <div className="pulso-public-shell">
-            <Suspense fallback={<LoadingBlock label="Cargando dashboard…" />}>
-              <DashboardPage publicMode />
-            </Suspense>
+            <PublicArtifactApp />
             <footer className="pulso-public-footer">
               <span>Elaborado con Prosecnur</span>
               <span className="pulso-public-footer-dot" aria-hidden="true" />

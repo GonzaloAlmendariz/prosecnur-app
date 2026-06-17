@@ -382,7 +382,7 @@ function NativeBarChart({
             }}
             style={{
               display: "grid",
-              gridTemplateColumns: "minmax(180px, 0.42fr) minmax(160px, 1fr) auto",
+              gridTemplateColumns: "minmax(0, 0.55fr) minmax(80px, 1fr) minmax(28px, auto)",
               alignItems: "center",
               gap: 12,
               width: "100%",
@@ -478,59 +478,49 @@ function NativeHeatmap({ summary }: { summary: NativeHeatmapSummary }) {
   const rowsShown = activeRows.length ? activeRows : summary.y.map((label, index) => ({ label, index, total: 0 }));
   const hiddenColumns = Math.max(0, summary.x.length - columnsShown.length);
   const hiddenRows = Math.max(0, summary.y.length - rowsShown.length);
-  const gridColumns = `minmax(120px, 0.85fr) repeat(${columnsShown.length}, minmax(92px, 1fr))`;
 
   return (
-    <div style={{ display: "grid", gap: 14, minHeight: 220 }}>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: gridColumns,
-          gap: 8,
-          width: "100%",
-          minWidth: 0,
-        }}
-      >
-        <div />
-        {columnsShown.map((col) => (
+    <div style={{ display: "grid", gap: 14, minHeight: 220, minWidth: 0 }}>
+      <div style={{ display: "grid", gap: 10, minWidth: 0 }}>
+        {rowsShown.map((row) => (
+        <div
+          key={row.label}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(72px, 92px) minmax(0, 1fr)",
+            gap: 8,
+            minWidth: 0,
+            alignItems: "center",
+          }}
+        >
           <div
-            key={col.label}
-            title={col.label}
+            title={`${row.label}: ${row.total} casos`}
             style={{
               minWidth: 0,
-              padding: "8px 10px",
+              padding: "0 8px",
+              alignSelf: "stretch",
+              display: "flex",
+              alignItems: "center",
               borderRadius: 10,
-              background: "rgba(255,255,255,0.72)",
-              border: "1px solid rgba(216, 224, 239, 0.78)",
-              fontSize: 11,
-              lineHeight: 1.25,
-              fontWeight: 750,
-              color: "var(--pulso-text-soft)",
+              background: "rgba(248,250,255,0.84)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              fontSize: 11,
+              fontWeight: 800,
+              color: "var(--pulso-text)",
             }}
           >
-            {col.label}
+            {row.label}
           </div>
-        ))}
-        {rowsShown.map((row) => (
-          <div key={row.label} style={{ display: "contents" }}>
-            <div
-              title={row.label}
-              style={{
-                minWidth: 0,
-                alignSelf: "center",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                fontSize: 11,
-                fontWeight: 800,
-                color: "var(--pulso-text)",
-              }}
-            >
-              {row.label}
-            </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))",
+              gap: 8,
+              minWidth: 0,
+            }}
+          >
             {columnsShown.map((col) => {
               const value = summary.z[row.index]?.[col.index] ?? 0;
               const color = heatColor(value, max);
@@ -539,24 +529,50 @@ function NativeHeatmap({ summary }: { summary: NativeHeatmapSummary }) {
                   key={`${row.label}-${col.label}`}
                   title={`${row.label} × ${col.label}: ${value} casos`}
                   style={{
-                    minHeight: 54,
+                    minHeight: 58,
+                    minWidth: 0,
                     display: "grid",
-                    placeItems: "center",
-                    borderRadius: 14,
+                    gridTemplateRows: "auto 1fr",
+                    gap: 4,
+                    alignItems: "center",
+                    justifyItems: "center",
+                    padding: "8px 10px",
+                    borderRadius: 12,
                     border: `1px solid ${color.border}`,
                     background: color.bg,
                     color: color.fg,
-                    fontSize: value > 0 ? 16 : 12,
-                    fontWeight: 850,
-                    fontVariantNumeric: "tabular-nums",
-                    boxShadow: value > 0 ? "0 12px 24px rgba(15, 23, 42, 0.12)" : "none",
+                    boxShadow: value > 0 ? "0 10px 22px rgba(15, 23, 42, 0.12)" : "none",
                   }}
                 >
-                  {value > 0 ? value : ""}
+                  <span
+                    style={{
+                      maxWidth: "100%",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      fontSize: 10,
+                      lineHeight: 1.15,
+                      fontWeight: 750,
+                      opacity: value > 0 ? 0.92 : 0.72,
+                    }}
+                  >
+                    {col.label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: value > 0 ? 17 : 12,
+                      lineHeight: 1,
+                      fontWeight: 850,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {value > 0 ? value : ""}
+                  </span>
                 </div>
               );
             })}
           </div>
+        </div>
         ))}
       </div>
       {(hiddenColumns > 0 || hiddenRows > 0) && (

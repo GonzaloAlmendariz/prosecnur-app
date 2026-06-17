@@ -72,6 +72,7 @@ export function GenerateFooter({
   onGenerate, disabled, disabledHint,
   onJobDone, onJobError, onJobCancelled,
   perBase,
+  variant = "primary",
 }: {
   label: string;
   busy: boolean;
@@ -97,6 +98,7 @@ export function GenerateFooter({
     skipped?: boolean;
     reason?: string;
   }[];
+  variant?: "primary" | "secondary";
 }) {
   const running = busy || !!jobId;
   const multi = (perBase?.length ?? 0) > 1;
@@ -141,7 +143,7 @@ export function GenerateFooter({
     <>
       <div className="analitica-generate-footer">
         <button
-          className="pulso-primary"
+          className={variant === "secondary" ? "pulso-secondary" : "pulso-primary"}
           onClick={onGenerate}
           disabled={running || !!disabled}
         >

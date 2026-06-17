@@ -5,6 +5,7 @@ import {
   apiProjectSave,
   apiProjectStatus,
 } from "../../api/client";
+import { useSession } from "../../lib/SessionContext";
 import { useAnaliticaStore, AnaliticaConfig, DEFAULT_CONFIG, normalizeCrucesVars } from "./store";
 
 // Misma mecánica que el autosave de RespuestasCodificador en Fase 3:
@@ -93,6 +94,7 @@ function mergeWithDefaults(remote: unknown): AnaliticaConfig {
 }
 
 export function useAnaliticaAutosave() {
+  const { sessionId } = useSession();
   const config = useAnaliticaStore((s) => s.config);
   const dirty = useAnaliticaStore((s) => s.dirty);
   const hydrated = useAnaliticaStore((s) => s.hydrated);
@@ -104,6 +106,7 @@ export function useAnaliticaAutosave() {
   // activa. En independent_siblings el backend sirve una config distinta
   // por base; al cambiar cancelamos autosaves pendientes de la base anterior.
   useEffect(() => {
+    if (!sessionId) return;
     let cancelled = false;
 
     async function hydrateFromBackend() {
@@ -131,7 +134,7 @@ export function useAnaliticaAutosave() {
       window.removeEventListener("pulso:active-base-changed", rehydrateScopedConfig);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [sessionId]);
 
   // 2) Autosave debounced.
   const projectSaveChain = useRef<Promise<void>>(Promise.resolve());
@@ -154,7 +157,7 @@ export function useAnaliticaAutosave() {
   }, []);
 
   useEffect(() => {
-    if (!hydrated || !dirty) return;
+    if (!sessionId || !hydrated || !dirty) return;
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(async () => {
       try {
@@ -169,5 +172,5 @@ export function useAnaliticaAutosave() {
     return () => {
       if (timer.current) window.clearTimeout(timer.current);
     };
-  }, [config, dirty, hydrated, markClean, saveActivePulso]);
+  }, [config, dirty, hydrated, markClean, saveActivePulso, sessionId]);
 }

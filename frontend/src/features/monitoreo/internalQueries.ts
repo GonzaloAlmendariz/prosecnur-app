@@ -1,4 +1,6 @@
 import type {
+  MonitoreoAssistedReview,
+  MonitoreoAssistedReviewCandidate,
   MonitoreoInternalQueries,
   MonitoreoInternalQueryCase,
   MonitoreoInternalQueryIssue,
@@ -29,6 +31,7 @@ export type InternalQuerySummary = {
   partial: number;
   refusal: number;
   pending: number;
+  excluded: number;
   review: number;
   pendingExit: number;
   duplicates: number;
@@ -310,6 +313,7 @@ export function internalQueryOptions(cases: MonitoreoInternalQueryCase[]) {
     collectors: uniqueSorted(cases.map(internalQueryCollectorValue)),
     sources: uniqueSorted(cases.map((item) => item.source_label)),
     states: uniqueSorted([
+      ...(cases.some(internalCaseIsReviewable) ? ["reviewable"] : []),
       ...(cases.some((item) => item.advancement !== "effective") ? ["non_effective"] : []),
       ...cases.map((item) => item.advancement),
       ...cases.map((item) => item.platform_state),
@@ -327,11 +331,22 @@ export function summarizeInternalCases(cases: MonitoreoInternalQueryCase[]) {
       else if (item.advancement === "refusal") acc.refusal += 1;
       else if (item.advancement === "pending") acc.pending += 1;
       else acc.review += 1;
+      if (item.advancement === "excluded") acc.excluded += 1;
       if (boolish(item.pending_exit)) acc.pendingExit += 1;
       if (numberish(item.duplicate_count) > 1) acc.duplicates += 1;
       return acc;
     },
-    { total: 0, effective: 0, partial: 0, refusal: 0, pending: 0, review: 0, pendingExit: 0, duplicates: 0 },
+    {
+      total: 0,
+      effective: 0,
+      partial: 0,
+      refusal: 0,
+      pending: 0,
+      excluded: 0,
+      review: 0,
+      pendingExit: 0,
+      duplicates: 0,
+    },
   );
 }
 
@@ -499,11 +514,40 @@ export function internalCaseSearchText(item: MonitoreoInternalQueryCase) {
     item.base_source,
     item.base_status,
     item.decision,
-    item.issue_type,
-    item.rule,
-    item.advancement === "pending" || item.issue_type === "sin_respuesta" ? "sin respuesta pendiente base universo no respondio no respondió faltante" : "",
-    item.pending_exit ? "sale de pendientes faltantes barrido recuperado" : "",
-    item.recovery_collector ? "recopilador recuperacion faltantes presencial" : "",
+	    item.issue_type,
+	    item.rule,
+    item.assisted_review?.primary_key,
+    item.assisted_review?.declared_code,
+    item.assisted_review?.declared_email,
+    ...(item.assisted_review?.warnings ?? []),
+    ...(item.assisted_review?.candidates ?? []).flatMap((candidate) => [
+      candidate.person_label,
+      candidate.case_key,
+      candidate.base_record,
+      candidate.base_source,
+      candidate.match_label,
+      candidate.evidence_label,
+      candidate.evidence_level,
+      ...(candidate.evidence_fields ?? []),
+      candidate.current_status,
+    ]),
+    ...(item.assisted_review?.assignment_candidates ?? []).flatMap((candidate) => [
+      candidate.person_label,
+      candidate.case_key,
+      candidate.base_record,
+      candidate.base_source,
+      candidate.match_label,
+      candidate.evidence_label,
+      candidate.evidence_level,
+      ...(candidate.evidence_fields ?? []),
+      candidate.current_status,
+    ]),
+    item.assisted_review?.manual_decision?.assigned_person_label,
+    item.assisted_review?.manual_decision?.assigned_case_key,
+    item.assisted_review?.manual_decision?.note,
+	    item.advancement === "pending" || item.issue_type === "sin_respuesta" ? "sin respuesta pendiente base universo no respondio no respondió faltante" : "",
+	    item.pending_exit ? "sale de pendientes faltantes barrido recuperado" : "",
+	    item.recovery_collector ? "recopilador recuperacion faltantes presencial" : "",
   ].join(" ");
 }
 
@@ -533,6 +577,63 @@ function normalizeInternalCase(value: MonitoreoInternalQueryCase): MonitoreoInte
     recovery_collector: boolish(value.recovery_collector),
     response_row: numberish(value.response_row),
     duplicate_count: Math.max(1, numberish(value.duplicate_count, 1)),
+    assisted_review: normalizeAssistedReview(value.assisted_review),
+  };
+}
+
+function normalizeAssistedReview(value: MonitoreoAssistedReview | null | undefined): MonitoreoAssistedReview | null {
+  if (!value || typeof value !== "object") return null;
+  const normalizeCandidate = (candidate: MonitoreoAssistedReviewCandidate) => ({
+    candidate_id: cleanString(candidate.candidate_id),
+    person_label: cleanString(candidate.person_label),
+    case_key: cleanString(candidate.case_key),
+    base_record: cleanString(candidate.base_record),
+    base_source: cleanString(candidate.base_source),
+    base_row: numberish(candidate.base_row),
+    base_status: cleanString(candidate.base_status),
+    match_type: cleanString(candidate.match_type),
+    match_label: cleanString(candidate.match_label),
+    evidence_level: cleanString(candidate.evidence_level),
+    evidence_label: cleanString(candidate.evidence_label),
+    evidence_score: numberish(candidate.evidence_score),
+    evidence_fields: arrayOrEmpty(candidate.evidence_fields).map(cleanString).filter(Boolean),
+    current_status: cleanString(candidate.current_status),
+    already_effective: boolish(candidate.already_effective),
+    assignment_allowed: candidate.assignment_allowed == null ? undefined : boolish(candidate.assignment_allowed),
+    suggested: candidate.suggested == null ? undefined : boolish(candidate.suggested),
+  });
+  const candidateIsUseful = (candidate: MonitoreoAssistedReviewCandidate) => candidate.candidate_id || candidate.case_key || candidate.person_label;
+  const candidates = arrayOrEmpty(value.candidates).map(normalizeCandidate).filter(candidateIsUseful);
+  const assignmentCandidates = arrayOrEmpty(value.assignment_candidates).map(normalizeCandidate).filter(candidateIsUseful);
+  const manual = value.manual_decision && typeof value.manual_decision === "object" ? {
+    response_id: cleanString(value.manual_decision.response_id),
+    actor: cleanString(value.manual_decision.actor),
+    action: cleanString(value.manual_decision.action),
+    declared_code: cleanString(value.manual_decision.declared_code),
+    declared_email: cleanString(value.manual_decision.declared_email),
+    assigned_person_label: cleanString(value.manual_decision.assigned_person_label),
+    assigned_case_key: cleanString(value.manual_decision.assigned_case_key),
+    assigned_base_source: cleanString(value.manual_decision.assigned_base_source),
+    assigned_base_row: numberish(value.manual_decision.assigned_base_row),
+    match_type: cleanString(value.manual_decision.match_type),
+    previous_status: cleanString(value.manual_decision.previous_status),
+    new_status: cleanString(value.manual_decision.new_status),
+    note: cleanString(value.manual_decision.note),
+    decided_at: cleanString(value.manual_decision.decided_at),
+  } : null;
+  const warnings = arrayOrEmpty<string>(value.warnings).map(cleanString).filter(Boolean);
+  const hasPayload = boolish(value.eligible) || candidates.length || assignmentCandidates.length || warnings.length || manual ||
+    cleanString(value.primary_key) || cleanString(value.declared_code) || cleanString(value.declared_email);
+  if (!hasPayload) return null;
+  return {
+    eligible: boolish(value.eligible),
+    primary_key: cleanString(value.primary_key),
+    declared_code: cleanString(value.declared_code),
+    declared_email: cleanString(value.declared_email),
+    candidates,
+    assignment_candidates: assignmentCandidates,
+    warnings,
+    manual_decision: manual,
   };
 }
 
@@ -592,8 +693,27 @@ function matchesSearchTokens(text: string, normalizedQuery: string) {
 }
 
 function internalCaseMatchesState(item: MonitoreoInternalQueryCase, state: string) {
+  if (state === "reviewable") return internalCaseIsReviewable(item);
   if (state === "non_effective") return item.advancement !== "effective";
   return item.advancement === state || item.platform_state === state || item.issue_type === state;
+}
+
+function internalCaseIsReviewable(item: MonitoreoInternalQueryCase) {
+  const issueType = normalizeSearch(item.issue_type);
+  const baseResult = normalizeSearch(item.base_result);
+  const review = item.assisted_review;
+  return Boolean(
+    review?.eligible ||
+    review?.manual_decision ||
+    (review?.candidates?.length ?? 0) > 0 ||
+    (review?.assignment_candidates?.length ?? 0) > 0 ||
+    (review?.warnings?.length ?? 0) > 0 ||
+    issueType === "fuera base" ||
+    issueType === "sin llave" ||
+    issueType === "incluido con salvedad" ||
+    baseResult.includes("sin cruce") ||
+    baseResult.includes("sin llave"),
+  );
 }
 
 function dateSearchTokens(value: string) {

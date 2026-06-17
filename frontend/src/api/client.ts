@@ -236,8 +236,45 @@ export type EstudioBase = {
   sibling_family_id?: string | null;
   imported_at?: string | null;
   surveymonkey_source_spec?: SurveyMonkeyMultibaseSurveyInput | null;
+  surveymonkey_raw_snapshot_file_id?: string | null;
+  surveymonkey_effective_data_file_id?: string | null;
+  surveymonkey_workbook_file_id?: string | null;
+  surveymonkey_workbook_snapshot_file_id?: string | null;
+  surveymonkey_workbook_import?: {
+    version?: number;
+    imported_at?: string;
+    workbook_file_id?: string;
+    snapshot_file_id?: string;
+    sheet_name?: string;
+    n_rows?: number;
+    n_columns?: number;
+    warnings?: string[];
+    missing_variables?: string[];
+    unknown_headers?: string[];
+  } | null;
+  surveymonkey_sav_bundle_file_id?: string | null;
+  surveymonkey_sav_bundle_snapshot_file_id?: string | null;
+  surveymonkey_sav_bundle_import?: {
+    version?: number;
+    imported_at?: string;
+    bundle_file_id?: string;
+    snapshot_file_id?: string;
+    file_name?: string;
+    entry_name?: string;
+    n_rows?: number;
+    n_columns?: number;
+    warnings?: string[];
+    missing_variables?: string[];
+    all_empty_variables?: string[];
+    change_plan?: SurveyMonkeySavBundleChangePlan;
+  } | null;
+  surveymonkey_decision_policy?: SurveyMonkeyDecisionPolicy | null;
+  surveymonkey_decision_audit?: SurveyMonkeyDecisionAudit | null;
+  surveymonkey_decision_updated_at?: string | null;
   surveymonkey_refreshed_at?: string | null;
   surveymonkey_last_refresh?: Record<string, unknown> | null;
+  surveymonkey_source_summary?: SurveyMonkeyBaseSourceSummary | null;
+  surveymonkey_sources?: SurveyMonkeySourceSummary[];
   logic_template_base?: string | null;
   logic_template_applied_at?: string | null;
   logic_template_status?: "updated" | "unchanged" | string | null;
@@ -252,6 +289,46 @@ export type EstudioBase = {
     shared_logic_from?: string | null;
   } | null;
   multi_integrated?: EstudioMultiIntegrated | null;
+};
+
+export type SurveyMonkeySourceSummary = {
+  index?: number | null;
+  survey_id?: string | null;
+  source_alias?: string | null;
+  source_title?: string | null;
+  channel?: string | null;
+  channel_key?: string | null;
+  collection_strategy?: string | null;
+  collector_ids?: string[];
+  collector_count?: number | null;
+  consent_var?: string | null;
+  raw_records?: number | null;
+  completed_records?: number | null;
+  effective_records?: number | null;
+  included_records?: number | null;
+  valid_records?: number | null;
+  excluded_records?: number | null;
+  enters_data?: boolean | null;
+};
+
+export type SurveyMonkeyBaseSourceSummary = {
+  kind?: string;
+  source_count?: number | null;
+  main_survey_id?: string | null;
+  channel_label?: string | null;
+  channels?: string[];
+  has_phone?: boolean;
+  has_email?: boolean;
+  phone_active?: boolean;
+  email_active?: boolean;
+  total_raw_records?: number | null;
+  total_effective_records?: number | null;
+  total_included_records?: number | null;
+  total_valid_records?: number | null;
+  total_excluded_records?: number | null;
+  active_data_rows?: number | null;
+  active_data_columns?: number | null;
+  sources?: SurveyMonkeySourceSummary[];
 };
 
 export type EstudioMultiIntegratedOrigin = {
@@ -553,7 +630,7 @@ export async function apiCodifSourceSet(source: string) {
   );
 }
 
-export type UploadKind = "xlsform" | "data" | "sav" | "plan_limpieza" | "plantilla_codif" | "universo_muestra";
+export type UploadKind = "xlsform" | "data" | "sav" | "sav_bundle" | "plan_limpieza" | "plantilla_codif" | "universo_muestra";
 
 export function isSavLikeFileName(name: string) {
   return /\.sav(?:\s+\d+)?$/i.test(name.trim());
@@ -610,6 +687,129 @@ export type SurveyMonkeyMultibaseSurveyInput = {
   campaigns?: SurveyMonkeyMultibaseSurveyInput[];
 };
 
+export type SurveyMonkeyDecisionPolicy = {
+  version?: number;
+  edited?: boolean;
+  statuses?: string[];
+  collector_ids?: string[];
+  consent_var?: string;
+  consent_yes_values?: string[];
+  rejection_var?: string;
+  rejection_values?: string[];
+  include_partials?: boolean;
+  partial_min_answers?: number;
+  include_rejections?: boolean;
+  duplicate_key_vars?: string[];
+  include_duplicates?: boolean;
+  duplicate_keep?: "first" | "latest" | "most_answered" | string;
+  manual_include_case_uids?: string[];
+  saved_at?: string;
+};
+
+export type SurveyMonkeyDecisionCaseAudit = {
+  source_label?: string;
+  case_uid?: string;
+  survey_id?: string;
+  source_title?: string;
+  source_channel?: string;
+  collector_id?: string;
+  response_id?: string;
+  recipient_id?: string;
+  custom_value?: string;
+  cv_id?: string;
+  p4?: string;
+  response_status?: string;
+  date_created?: string;
+  date_modified?: string;
+  answered_questions_count?: string;
+  answered_required_count?: string;
+  answerable_required_count?: string;
+  answer_completion_ratio?: string;
+  answer_completion_label?: string;
+  near_complete?: string;
+  decision_class?: string;
+  decision_included?: string;
+  decision_manual_include?: string;
+  duplicate_status?: string;
+  duplicate_key_var?: string;
+  duplicate_key?: string;
+  duplicate_group_size?: string;
+  duplicate_rank?: string;
+  duplicate_kept_case_uid?: string;
+  duplicate_kept_response_id?: string;
+  duplicate_code_match?: string;
+  duplicate_career_match?: string;
+  duplicate_evidence?: string;
+  observed?: boolean;
+  observation_reason?: string;
+};
+
+export type SurveyMonkeyDecisionSourceAudit = {
+  source_label?: string;
+  survey_id?: string;
+  source_title?: string;
+  source_alias?: string;
+  raw_total?: number;
+  completed?: number;
+  completed_with_consent?: number;
+  partials_revisable?: number;
+  rejections?: number;
+  unclear_consent?: number;
+  duplicate_groups?: number;
+  duplicate_rows?: number;
+  duplicate_extra_rows?: number;
+  duplicates_excluded?: number;
+  duplicates_included?: number;
+  manual_included?: number;
+  near_complete_cases?: number;
+  observed_cases?: number;
+  included?: number;
+  excluded?: number;
+  collectors_included?: number;
+  partial_min_answers?: number;
+  consent_var?: string;
+  rejection_var?: string;
+  consent_available?: boolean;
+  duplicate_key_vars?: string[];
+  duplicate_keep?: string;
+  include_duplicates?: boolean;
+  status_counts?: Record<string, number>;
+  collector_counts?: Record<string, number>;
+  collectors?: Array<{
+    id?: string;
+    name?: string;
+    type?: string;
+    response_count?: number | null;
+  }>;
+  cases?: SurveyMonkeyDecisionCaseAudit[];
+  case_rows_omitted?: number;
+};
+
+export type SurveyMonkeyDecisionAudit = {
+  version?: number;
+  audited_at?: string;
+  raw_total?: number;
+  completed?: number;
+  completed_with_consent?: number;
+  partials_revisable?: number;
+  rejections?: number;
+  unclear_consent?: number;
+  duplicate_groups?: number;
+  duplicate_rows?: number;
+  duplicate_extra_rows?: number;
+  duplicates_excluded?: number;
+  duplicates_included?: number;
+  manual_included?: number;
+  near_complete_cases?: number;
+  observed_cases?: number;
+  case_rows_omitted?: number;
+  included?: number;
+  excluded?: number;
+  collectors_included?: number;
+  sources?: SurveyMonkeyDecisionSourceAudit[];
+  policy?: SurveyMonkeyDecisionPolicy;
+};
+
 export type SurveyMonkeyMultibaseListItem = {
   id: string;
   title: string;
@@ -617,6 +817,15 @@ export type SurveyMonkeyMultibaseListItem = {
   date_modified: string | null;
   pais_guess: string | null;
   response_count?: number | null;
+};
+
+export type SurveyMonkeyMultibaseCollector = {
+  id: string;
+  name: string;
+  type: string;
+  response_count: number | null;
+  date_created: string | null;
+  date_modified: string | null;
 };
 
 export type SurveyMonkeyMultibaseInspection = {
@@ -693,6 +902,160 @@ export type SurveyMonkeyMultibaseAudit = {
   company_positions: number[];
   company_variables: string[];
   diffs: SurveyMonkeyMultibaseDiff[];
+};
+
+export type SurveyMonkeyWorkbookMappedHeader = {
+  source: string;
+  kind: "metadata" | "question" | "select_multiple" | string;
+  variable?: string;
+  code?: string;
+  columns?: string[];
+};
+
+export type SurveyMonkeyWorkbookCellError = {
+  source: string;
+  kind: string;
+  variable?: string;
+  code?: string;
+  n_errors: number;
+  rows?: number[];
+};
+
+export type SurveyMonkeyWorkbookSheetInspection = {
+  sheet_name: string;
+  base_name?: string | null;
+  matched: boolean;
+  blocking: boolean;
+  n_rows: number;
+  n_columns: number;
+  n_output_columns?: number;
+  recognized_headers: number;
+  mapped_headers?: SurveyMonkeyWorkbookMappedHeader[];
+  unknown_headers: string[];
+  ambiguous_headers: string[];
+  missing_variables: string[];
+  blank_filled_variables?: string[];
+  cell_errors?: SurveyMonkeyWorkbookCellError[];
+  n_cell_errors?: number;
+  warnings: string[];
+};
+
+export type SurveyMonkeyWorkbookInspection = {
+  ok: boolean;
+  file_id: string;
+  filename: string;
+  n_sheets: number;
+  n_matched: number;
+  n_blocking: number;
+  blocking_sheets: string[];
+  sheets: SurveyMonkeyWorkbookSheetInspection[];
+  warnings: string[];
+};
+
+export type SurveyMonkeyWorkbookImportResult = {
+  ok: true;
+  file_id: string;
+  filename: string;
+  imported_bases: number;
+  results: Array<{
+    base_name: string;
+    sheet_name: string;
+    data_file_id: string;
+    snapshot_file_id: string;
+    n_rows: number;
+    n_columns: number;
+    warnings: string[];
+    base?: EstudioBase;
+  }>;
+  inspection: SurveyMonkeyWorkbookInspection;
+  estudio: EstudioPayload;
+};
+
+export type SurveyMonkeySavBundleChangePlan = {
+  action: "replace_data" | string;
+  base_name: string;
+  source_file: string;
+  current: {
+    n_rows?: number | null;
+    n_columns?: number | null;
+    data_file_id?: string;
+    xlsform_file_id?: string;
+  };
+  incoming: {
+    raw_rows: number;
+    raw_columns: number;
+    normalized_rows: number;
+    normalized_columns: number;
+  };
+  impact: {
+    rows_delta?: number | null;
+    columns_delta?: number | null;
+    expected_variables: number;
+    matched_variables: number;
+    missing_variables: string[];
+    blank_filled_variables: string[];
+    all_empty_variables: string[];
+    metadata_columns: string[];
+  };
+  effects: {
+    xlsform: "preserved" | string;
+    data: "replaced" | string;
+    invalidates: string[];
+  };
+};
+
+export type SurveyMonkeySavBundleFileInspection = {
+  file_name: string;
+  entry_name: string;
+  base_name?: string | null;
+  matched: boolean;
+  blocking: boolean;
+  action: "replace_data" | string;
+  n_rows: number;
+  n_columns: number;
+  n_output_columns: number;
+  expected_variables: number;
+  matched_variables: number;
+  missing_variables: string[];
+  blank_filled_variables: string[];
+  all_empty_variables: string[];
+  metadata_columns: string[];
+  warnings: string[];
+  change_plan: SurveyMonkeySavBundleChangePlan;
+};
+
+export type SurveyMonkeySavBundleInspection = {
+  ok: boolean;
+  file_id: string;
+  filename: string;
+  n_files: number;
+  n_matched: number;
+  n_blocking: number;
+  blocking_files: string[];
+  files: SurveyMonkeySavBundleFileInspection[];
+  change_plan: SurveyMonkeySavBundleFileInspection[];
+  warnings: string[];
+};
+
+export type SurveyMonkeySavBundleImportResult = {
+  ok: true;
+  file_id: string;
+  filename: string;
+  imported_bases: number;
+  results: Array<{
+    base_name: string;
+    file_name: string;
+    entry_name: string;
+    data_file_id: string;
+    snapshot_file_id: string;
+    n_rows: number;
+    n_columns: number;
+    warnings: string[];
+    change_plan: SurveyMonkeySavBundleChangePlan;
+    base?: EstudioBase;
+  }>;
+  inspection: SurveyMonkeySavBundleInspection;
+  estudio: EstudioPayload;
 };
 
 export type SurveyMonkeyRefreshCampaignSuggestion = {
@@ -773,6 +1136,20 @@ export type SurveyMonkeyRefreshResult = {
     rows_after?: number | null;
     edited_rows_reported?: number | null;
     source_count?: number;
+    raw_snapshot_regenerated?: boolean;
+    raw_snapshot_file_id?: string | null;
+    raw_snapshot_only?: boolean;
+    data_refresh_blocked?: boolean;
+    sources?: Array<{
+      index?: number;
+      survey_id?: string | null;
+      source_title?: string | null;
+      source_alias?: string | null;
+      channel?: string | null;
+      refreshed?: boolean;
+      status?: string | null;
+      reason?: string | null;
+    }>;
     codificacion_job?: { ok?: boolean; job_id?: string; kind?: string; base_name?: string; error?: string } | null;
   }>;
   codificacion_jobs?: Array<{ ok?: boolean; job_id?: string; kind?: string; base_name?: string; error?: string }>;
@@ -881,6 +1258,34 @@ export async function apiSurveyMonkeyMultibaseInspectSurvey(
   };
 }
 
+export async function apiSurveyMonkeyMultibaseCollectors(
+  survey_id: string,
+  base_url = "https://api.surveymonkey.com/v3",
+) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/surveymonkey/multibase/collectors", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ survey_id, base_url }),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const collectors = normalizeRecordArray(r.collectors).map((collector): SurveyMonkeyMultibaseCollector => ({
+    id: String(collector.id ?? ""),
+    name: String(collector.name ?? collector.id ?? ""),
+    type: String(collector.type ?? ""),
+    response_count: collector.response_count == null || collector.response_count === "NA" ? null : Number(collector.response_count),
+    date_created: collector.date_created == null || collector.date_created === "NA" ? null : String(collector.date_created),
+    date_modified: collector.date_modified == null || collector.date_modified === "NA" ? null : String(collector.date_modified),
+  }));
+  return {
+    ok: true as const,
+    survey_id: String(r.survey_id ?? survey_id),
+    total: Number(r.total ?? collectors.length),
+    collectors,
+  };
+}
+
 export async function apiSurveyMonkeyMultibaseAudit(
   surveys: SurveyMonkeyMultibaseSurveyInput[],
   canonical_xlsform_file_id = "",
@@ -939,6 +1344,286 @@ export async function apiSurveyMonkeyMultibaseImportIndependent(payload: {
   );
 }
 
+function normalizeWorkbookStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item ?? "")).filter(Boolean);
+}
+
+function normalizeWorkbookNumberArray(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => Number(item)).filter((item) => Number.isFinite(item));
+}
+
+function normalizeWorkbookInspection(raw: unknown): SurveyMonkeyWorkbookInspection {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const sheets = normalizeRecordArray(r.sheets).map((sheet): SurveyMonkeyWorkbookSheetInspection => ({
+    sheet_name: String(sheet.sheet_name ?? ""),
+    base_name: sheet.base_name == null || sheet.base_name === "NA" ? null : String(sheet.base_name),
+    matched: Boolean(sheet.matched),
+    blocking: Boolean(sheet.blocking),
+    n_rows: Number(sheet.n_rows ?? 0),
+    n_columns: Number(sheet.n_columns ?? 0),
+    n_output_columns: sheet.n_output_columns == null || sheet.n_output_columns === "NA" ? undefined : Number(sheet.n_output_columns),
+    recognized_headers: Number(sheet.recognized_headers ?? 0),
+    mapped_headers: normalizeRecordArray(sheet.mapped_headers).map((header): SurveyMonkeyWorkbookMappedHeader => ({
+      source: String(header.source ?? ""),
+      kind: String(header.kind ?? ""),
+      variable: header.variable == null || header.variable === "NA" ? undefined : String(header.variable),
+      code: header.code == null || header.code === "NA" ? undefined : String(header.code),
+      columns: normalizeWorkbookStringArray(header.columns),
+    })),
+    unknown_headers: normalizeWorkbookStringArray(sheet.unknown_headers),
+    ambiguous_headers: normalizeWorkbookStringArray(sheet.ambiguous_headers),
+    missing_variables: normalizeWorkbookStringArray(sheet.missing_variables),
+    blank_filled_variables: normalizeWorkbookStringArray(sheet.blank_filled_variables),
+    cell_errors: normalizeRecordArray(sheet.cell_errors).map((err): SurveyMonkeyWorkbookCellError => ({
+      source: String(err.source ?? ""),
+      kind: String(err.kind ?? ""),
+      variable: err.variable == null || err.variable === "NA" ? undefined : String(err.variable),
+      code: err.code == null || err.code === "NA" ? undefined : String(err.code),
+      n_errors: Number(err.n_errors ?? 0),
+      rows: normalizeWorkbookNumberArray(err.rows),
+    })),
+    n_cell_errors: sheet.n_cell_errors == null || sheet.n_cell_errors === "NA" ? undefined : Number(sheet.n_cell_errors),
+    warnings: normalizeWorkbookStringArray(sheet.warnings),
+  }));
+  return {
+    ok: Boolean(r.ok),
+    file_id: String(r.file_id ?? ""),
+    filename: String(r.filename ?? ""),
+    n_sheets: Number(r.n_sheets ?? sheets.length),
+    n_matched: Number(r.n_matched ?? sheets.filter((sheet) => sheet.matched && !sheet.blocking).length),
+    n_blocking: Number(r.n_blocking ?? sheets.filter((sheet) => sheet.blocking).length),
+    blocking_sheets: normalizeWorkbookStringArray(r.blocking_sheets),
+    sheets,
+    warnings: normalizeWorkbookStringArray(r.warnings),
+  };
+}
+
+export async function apiSurveyMonkeyMultibaseWorkbookInspect(payload: {
+  file_id: string;
+  sheet_base_map?: Record<string, string>;
+  missing_required_policy?: "fill_blank_warn" | string;
+}) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/surveymonkey/multibase/workbook/inspect", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  return normalizeWorkbookInspection(raw);
+}
+
+export async function apiSurveyMonkeyMultibaseWorkbookImport(payload: {
+  file_id: string;
+  sheet_base_map?: Record<string, string>;
+  missing_required_policy?: "fill_blank_warn" | string;
+}) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/surveymonkey/multibase/workbook/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ok: Boolean(r.ok) as true,
+    file_id: String(r.file_id ?? payload.file_id),
+    filename: String(r.filename ?? ""),
+    imported_bases: Number(r.imported_bases ?? 0),
+    results: normalizeRecordArray(r.results).map((row) => ({
+      base_name: String(row.base_name ?? ""),
+      sheet_name: String(row.sheet_name ?? ""),
+      data_file_id: String(row.data_file_id ?? ""),
+      snapshot_file_id: String(row.snapshot_file_id ?? ""),
+      n_rows: Number(row.n_rows ?? 0),
+      n_columns: Number(row.n_columns ?? 0),
+      warnings: normalizeWorkbookStringArray(row.warnings),
+      base: row.base as EstudioBase | undefined,
+    })),
+    inspection: normalizeWorkbookInspection(r.inspection),
+    estudio: r.estudio as EstudioPayload,
+  } satisfies SurveyMonkeyWorkbookImportResult;
+}
+
+function nullableNumber(value: unknown): number | null {
+  if (value == null || value === "NA") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeSavBundleChangePlan(raw: unknown): SurveyMonkeySavBundleChangePlan {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const current = (r.current ?? {}) as Record<string, unknown>;
+  const incoming = (r.incoming ?? {}) as Record<string, unknown>;
+  const impact = (r.impact ?? {}) as Record<string, unknown>;
+  const effects = (r.effects ?? {}) as Record<string, unknown>;
+  return {
+    action: String(r.action ?? "replace_data"),
+    base_name: String(r.base_name ?? ""),
+    source_file: String(r.source_file ?? ""),
+    current: {
+      n_rows: nullableNumber(current.n_rows),
+      n_columns: nullableNumber(current.n_columns),
+      data_file_id: String(current.data_file_id ?? ""),
+      xlsform_file_id: String(current.xlsform_file_id ?? ""),
+    },
+    incoming: {
+      raw_rows: Number(incoming.raw_rows ?? 0),
+      raw_columns: Number(incoming.raw_columns ?? 0),
+      normalized_rows: Number(incoming.normalized_rows ?? 0),
+      normalized_columns: Number(incoming.normalized_columns ?? 0),
+    },
+    impact: {
+      rows_delta: nullableNumber(impact.rows_delta),
+      columns_delta: nullableNumber(impact.columns_delta),
+      expected_variables: Number(impact.expected_variables ?? 0),
+      matched_variables: Number(impact.matched_variables ?? 0),
+      missing_variables: normalizeWorkbookStringArray(impact.missing_variables),
+      blank_filled_variables: normalizeWorkbookStringArray(impact.blank_filled_variables),
+      all_empty_variables: normalizeWorkbookStringArray(impact.all_empty_variables),
+      metadata_columns: normalizeWorkbookStringArray(impact.metadata_columns),
+    },
+    effects: {
+      xlsform: String(effects.xlsform ?? "preserved"),
+      data: String(effects.data ?? "replaced"),
+      invalidates: normalizeWorkbookStringArray(effects.invalidates),
+    },
+  };
+}
+
+function normalizeSavBundleInspection(raw: unknown): SurveyMonkeySavBundleInspection {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const files = normalizeRecordArray(r.files).map((file): SurveyMonkeySavBundleFileInspection => ({
+    file_name: String(file.file_name ?? ""),
+    entry_name: String(file.entry_name ?? ""),
+    base_name: file.base_name == null || file.base_name === "NA" ? null : String(file.base_name),
+    matched: Boolean(file.matched),
+    blocking: Boolean(file.blocking),
+    action: String(file.action ?? "replace_data"),
+    n_rows: Number(file.n_rows ?? 0),
+    n_columns: Number(file.n_columns ?? 0),
+    n_output_columns: Number(file.n_output_columns ?? 0),
+    expected_variables: Number(file.expected_variables ?? 0),
+    matched_variables: Number(file.matched_variables ?? 0),
+    missing_variables: normalizeWorkbookStringArray(file.missing_variables),
+    blank_filled_variables: normalizeWorkbookStringArray(file.blank_filled_variables),
+    all_empty_variables: normalizeWorkbookStringArray(file.all_empty_variables),
+    metadata_columns: normalizeWorkbookStringArray(file.metadata_columns),
+    warnings: normalizeWorkbookStringArray(file.warnings),
+    change_plan: normalizeSavBundleChangePlan(file.change_plan),
+  }));
+  return {
+    ok: Boolean(r.ok),
+    file_id: String(r.file_id ?? ""),
+    filename: String(r.filename ?? ""),
+    n_files: Number(r.n_files ?? files.length),
+    n_matched: Number(r.n_matched ?? files.filter((file) => file.matched && !file.blocking).length),
+    n_blocking: Number(r.n_blocking ?? files.filter((file) => file.blocking).length),
+    blocking_files: normalizeWorkbookStringArray(r.blocking_files),
+    files,
+    change_plan: files,
+    warnings: normalizeWorkbookStringArray(r.warnings),
+  };
+}
+
+export async function apiSurveyMonkeyMultibaseSavBundleInspect(payload: {
+  file_id: string;
+  file_base_map?: Record<string, string>;
+  missing_required_policy?: "fill_blank_warn" | string;
+}) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/surveymonkey/multibase/sav-bundle/inspect", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  return normalizeSavBundleInspection(raw);
+}
+
+export async function apiSurveyMonkeyMultibaseSavBundleImport(payload: {
+  file_id: string;
+  file_base_map?: Record<string, string>;
+  missing_required_policy?: "fill_blank_warn" | string;
+}) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/surveymonkey/multibase/sav-bundle/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    ok: Boolean(r.ok) as true,
+    file_id: String(r.file_id ?? payload.file_id),
+    filename: String(r.filename ?? ""),
+    imported_bases: Number(r.imported_bases ?? 0),
+    results: normalizeRecordArray(r.results).map((row) => ({
+      base_name: String(row.base_name ?? ""),
+      file_name: String(row.file_name ?? ""),
+      entry_name: String(row.entry_name ?? ""),
+      data_file_id: String(row.data_file_id ?? ""),
+      snapshot_file_id: String(row.snapshot_file_id ?? ""),
+      n_rows: Number(row.n_rows ?? 0),
+      n_columns: Number(row.n_columns ?? 0),
+      warnings: normalizeWorkbookStringArray(row.warnings),
+      change_plan: normalizeSavBundleChangePlan(row.change_plan),
+      base: row.base as EstudioBase | undefined,
+    })),
+    inspection: normalizeSavBundleInspection(r.inspection),
+    estudio: r.estudio as EstudioPayload,
+  } satisfies SurveyMonkeySavBundleImportResult;
+}
+
+export async function apiSurveyMonkeyMultibaseDecisionPreview(payload: {
+  base_name: string;
+  policy?: SurveyMonkeyDecisionPolicy | null;
+}) {
+  return handle<{
+    ok: true;
+    base_name: string;
+    policy: SurveyMonkeyDecisionPolicy;
+    audit: SurveyMonkeyDecisionAudit;
+    n_filas_preview: number;
+    n_columnas_preview: number;
+  }>(
+    await apiFetch("/api/surveymonkey/multibase/decision-preview", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiSurveyMonkeyMultibaseDecisionApply(payload: {
+  base_name: string;
+  policy?: SurveyMonkeyDecisionPolicy | null;
+  regenerate_data?: boolean;
+  force_replace_adapted?: boolean;
+}) {
+  return handle<{
+    ok: true;
+    base_name: string;
+    policy: SurveyMonkeyDecisionPolicy;
+    audit: SurveyMonkeyDecisionAudit;
+    generated_file_id?: string | null;
+    replaced_active?: boolean;
+    kept_adapted_data?: boolean;
+    kept_downstream_data?: boolean;
+    estudio: EstudioPayload;
+  }>(
+    await apiFetch("/api/surveymonkey/multibase/decision-apply", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
 export async function apiSurveyMonkeyMultibaseRefreshPlan(payload: {
   bases?: SurveyMonkeyRefreshSelection[];
   months?: number;
@@ -958,6 +1643,8 @@ export async function apiSurveyMonkeyMultibaseRefresh(payload: {
   months?: number;
   force_refresh?: boolean;
   reapply_codificacion?: boolean;
+  regenerate_raw_snapshot?: boolean;
+  raw_snapshot_only?: boolean;
 }) {
   return handle<SurveyMonkeyRefreshResult>(
     await apiFetch("/api/surveymonkey/multibase/refresh", {
@@ -2704,7 +3391,8 @@ export type MonitoreoSourceRole =
   | "respuestas"
   | "avance_interno"
   | "reporte_cliente"
-  | "hoja_ruta";
+  | "hoja_ruta"
+  | "ocurrencias_campo";
 
 export type MonitoreoIntegrationMode = "file" | "connected_read" | "controlled_write";
 
@@ -2733,11 +3421,21 @@ export type MonitoreoSource = {
   dimensions?: Record<string, string>;
   created_at?: string;
   last_sync_at?: string;
+  last_sync_mode?: "full" | "incremental" | string;
+  sync_cursor?: {
+    kobo_max_id?: number;
+    updated_at?: string;
+    mode?: string;
+    fetched_count?: number;
+    remote_total?: number;
+    [key: string]: unknown;
+  };
 };
 
 export type MonitoreoKoboAssetItem = {
   uid: string;
   name: string;
+  version_id?: string;
   date_modified: string | null;
   deployment_active: boolean;
 };
@@ -2995,22 +3693,132 @@ export type MonitoreoAcreditacion = {
   };
 };
 
-export type MonitoreoTerritorialConfig = {
-  schema_version: string;
-  active_route_phase: "pilot" | "field";
+export type MonitoreoTerritorialPhase = "pilot" | "field";
+
+export type MonitoreoTerritorialPhaseCoherenceStatus =
+  | "source_not_applied"
+  | "source_applied_not_synced"
+  | "source_synced_with_rows"
+  | "source_synced_zero_rows"
+  | "dashboard_stale"
+  | "source_snapshot_mismatch"
+  | "sync_error"
+  | string;
+
+export type MonitoreoTerritorialPhaseCoherenceItem = {
+  phase: MonitoreoTerritorialPhase;
+  label: string;
+  status: MonitoreoTerritorialPhaseCoherenceStatus;
+  message: string;
+  source_applied: boolean;
+  source_exists: boolean;
+  asset_uid: string;
+  version_id: string;
+  asset_name: string;
+  source_id: string;
+  source_asset_uid?: string;
+  local_rows: number;
+  dashboard_rows?: number | null;
+  snapshot_total_rows: number;
+  snapshot_synced_at: string;
+  last_sync_at: string;
+  snapshot_has_source: boolean;
+  snapshot_matches_source: boolean;
+  dashboard_active_phase: boolean;
+  dashboard_matches_source?: boolean | null;
+};
+
+export type MonitoreoTerritorialPhaseCoherence = {
+  schema: "monitoreo_territorial_phase_coherence_v1" | string;
+  generated_at: string;
+  active_route_phase: MonitoreoTerritorialPhase;
+  snapshot_total_rows: number;
+  snapshot_synced_at: string;
+  phases: Record<MonitoreoTerritorialPhase, MonitoreoTerritorialPhaseCoherenceItem>;
+  active: MonitoreoTerritorialPhaseCoherenceItem;
+};
+
+export type MonitoreoTerritorialPhaseSource = {
   asset_uid: string;
   kobo_version_id: string;
   kobo_asset_name: string;
   source_id: string;
   inspected_at: string;
-  snapshot_hash: string;
+  base_url?: string;
+  connection_profile_id?: string;
+};
+
+export type MonitoreoTerritorialPhaseWindow = {
+  start_at: string;
+};
+
+export type MonitoreoTerritorialVariableRef = {
+  name?: string;
+  original_name?: string;
+  normalized_name?: string;
+  path?: string;
+  xpath?: string;
+  label?: string;
+  type?: string;
+  group?: string;
+};
+
+export type MonitoreoTerritorialVariableRefs = Partial<Record<
+  "district" | "ump" | "geo" | "age" | "sex" | "enumerator_pulso_code" | "valid_filter_question",
+  MonitoreoTerritorialVariableRef
+>>;
+
+export type MonitoreoTerritorialPhaseMapping = {
   district_var: string;
+  ump_var: string;
+  pulso_code_var: string;
   gps_var: string;
   consent_var: string;
   age_var: string;
+  sex_var: string;
   status_var: string;
+  territorial_status_var: string;
+  coherence_status_var: string;
   id_var: string;
   submitted_by_var: string;
+  supervisor_var: string;
+  kobo_user_var: string;
+  submission_time_var: string;
+  start_var: string;
+  end_var: string;
+  duration_var: string;
+  platform_effective_var: string;
+  platform_effective_values: string[];
+  variable_refs?: MonitoreoTerritorialVariableRefs;
+  valid_statuses: string[];
+};
+
+export type MonitoreoTerritorialConfig = {
+  schema_version: string;
+  active_route_phase: MonitoreoTerritorialPhase;
+  asset_uid: string;
+  kobo_version_id: string;
+  kobo_asset_name: string;
+  source_id: string;
+  inspected_at: string;
+  phase_sources?: Record<MonitoreoTerritorialPhase, MonitoreoTerritorialPhaseSource>;
+  phase_windows?: Record<MonitoreoTerritorialPhase, MonitoreoTerritorialPhaseWindow>;
+  phase_mappings?: Record<MonitoreoTerritorialPhase, MonitoreoTerritorialPhaseMapping>;
+  snapshot_hash: string;
+  district_var: string;
+  ump_var: string;
+  pulso_code_var: string;
+  gps_var: string;
+  consent_var: string;
+  age_var: string;
+  sex_var: string;
+  status_var: string;
+  territorial_status_var: string;
+  coherence_status_var: string;
+  id_var: string;
+  submitted_by_var: string;
+  supervisor_var: string;
+  kobo_user_var: string;
   submission_time_var: string;
   start_var: string;
   end_var: string;
@@ -3024,7 +3832,123 @@ export type MonitoreoTerritorialConfig = {
   max_duration_seconds: number;
   high_age_review: number;
   count_review_in_official_progress: boolean;
+  enumerator_roster?: MonitoreoTerritorialEnumeratorRoster;
+  enumerator_code_reconciliation?: Partial<Record<MonitoreoTerritorialPhase, MonitoreoTerritorialCodeReconciliation[]>>;
+  ump_reconciliation?: Partial<Record<MonitoreoTerritorialPhase, MonitoreoTerritorialUmpReconciliation[]>>;
   validation_decisions: MonitoreoTerritorialValidationDecisions;
+  field_occurrences?: MonitoreoFieldOccurrenceConfig;
+};
+
+export type MonitoreoTerritorialCodeReconciliation = {
+  response_id?: string;
+  response_id_field?: string;
+  raw_code: string;
+  normalized_code: string;
+  assigned_code: string;
+  assigned_name?: string;
+  ump?: string;
+  district?: string;
+  phase?: MonitoreoTerritorialPhase;
+  note?: string;
+  created_at?: string;
+  scope?: "response" | "code_legacy" | string;
+};
+
+export type MonitoreoTerritorialUmpReconciliation = {
+  response_id?: string;
+  response_id_field?: string;
+  raw_ump: string;
+  assigned_block_id: string;
+  assigned_ump: string;
+  assigned_district?: string;
+  assigned_ubigeo?: string;
+  phase?: MonitoreoTerritorialPhase;
+  note?: string;
+  created_at?: string;
+  scope?: "response" | "ump_value" | string;
+};
+
+export type MonitoreoTerritorialReconciliationBatchChange =
+  | { client_id: string; kind: "code"; reconciliation: MonitoreoTerritorialCodeReconciliation }
+  | { client_id: string; kind: "ump"; reconciliation: MonitoreoTerritorialUmpReconciliation };
+
+export type MonitoreoTerritorialReconciliationBatchFailure = {
+  client_id: string;
+  kind: "code" | "ump" | string;
+  code: string;
+  message: string;
+};
+
+export type MonitoreoTerritorialReconciliationBatchApplied = {
+  client_id: string;
+  kind: "code" | "ump" | string;
+  reconciliation: MonitoreoTerritorialCodeReconciliation | MonitoreoTerritorialUmpReconciliation;
+};
+
+export type MonitoreoTerritorialEnumeratorReconciliationResponse = {
+  row_index: number;
+  response_id: string;
+  response_id_field?: string;
+  raw_code: string;
+  normalized_code: string;
+  code?: string;
+  ump?: string;
+  ump_status?: "ok" | "not_configured" | "unresolved" | string;
+  district?: string;
+  district_code?: string;
+  ubigeo?: string;
+  assigned_code?: string;
+  assigned_name?: string;
+  reconciled?: boolean;
+  status?: "pending" | "reconciled" | string;
+  geo_estado?: string;
+  source_filter_missing?: boolean;
+};
+
+export type MonitoreoTerritorialEnumeratorAssignment = {
+  codigo_pulso: string;
+  nombre: string;
+  nombre_normalizado?: string;
+  dni?: string;
+  source_row?: number;
+};
+
+export type MonitoreoTerritorialEnumeratorRoster = {
+  enabled: boolean;
+  generated_at: string;
+  uploaded_at: string;
+  file_name: string;
+  source_file_id: string;
+  total: number;
+  code_format: string;
+  code_var: string;
+  ump_var: string;
+  assignments: MonitoreoTerritorialEnumeratorAssignment[];
+};
+
+export type MonitoreoFieldOccurrenceConfig = {
+  enabled: boolean;
+  form_title: string;
+  form_id: string;
+  asset_uid: string;
+  asset_name: string;
+  version_id: string;
+  source_id: string;
+  base_url: string;
+  survey_url: string;
+  asset_url: string;
+  connection_profile_id: string;
+  status: "not_configured" | "generated" | "deployed" | "synced" | string;
+  generated_at: string;
+  uploaded_at: string;
+  last_sync_at: string;
+  xlsform_file_id: string;
+  xlsform_filename: string;
+  code_var: string;
+  start_time_var: string;
+  end_time_var: string;
+  route_phase: "pilot" | "field" | string;
+  route_choices?: MonitoreoRow[];
 };
 
 export type MonitoreoTerritorialValidationDecisions = {
@@ -3058,6 +3982,54 @@ export type MonitoreoConfig = {
   territorial: MonitoreoTerritorialConfig;
 };
 
+export type MonitoreoManualCaseReconciliation = {
+  response_id: string;
+  actor: string;
+  action: "keep_excluded" | "include_with_caveat" | string;
+  declared_code: string;
+  declared_email: string;
+  assigned_person_label: string;
+  assigned_case_key: string;
+  assigned_base_source: string;
+  assigned_base_row: number;
+  match_type: string;
+  previous_status: string;
+  new_status: string;
+  note: string;
+  decided_at: string;
+};
+
+export type MonitoreoAssistedReviewCandidate = {
+  candidate_id: string;
+  person_label: string;
+  case_key: string;
+  base_record: string;
+  base_source: string;
+  base_row: number;
+  base_status: string;
+  match_type: string;
+  match_label: string;
+  evidence_level?: string;
+  evidence_label?: string;
+  evidence_score?: number;
+  evidence_fields?: string[];
+  current_status: string;
+  already_effective: boolean | string;
+  assignment_allowed?: boolean | string;
+  suggested?: boolean | string;
+};
+
+export type MonitoreoAssistedReview = {
+  eligible?: boolean | string;
+  primary_key?: string;
+  declared_code?: string;
+  declared_email?: string;
+  candidates?: MonitoreoAssistedReviewCandidate[];
+  assignment_candidates?: MonitoreoAssistedReviewCandidate[];
+  warnings?: string[];
+  manual_decision?: MonitoreoManualCaseReconciliation | null;
+};
+
 export type MonitoreoProfile = {
   family: "acreditacion" | "territorial" | "telefonico" | "digital_general";
   variant: "multi_actor" | "segmentada_por_carrera";
@@ -3082,6 +4054,7 @@ export type MonitoreoProfile = {
   reconciliation_decisions?: {
     include_response_ids?: string[];
     exclude_response_ids?: string[];
+    manual_case_reconciliations?: Record<string, MonitoreoManualCaseReconciliation>;
   };
 };
 
@@ -3151,6 +4124,96 @@ export type MonitoreoClientReport = {
   sheets?: MonitoreoReportSheet[];
 };
 
+export type PublicArtifactKind = "dashboard" | "monitoreo" | string;
+
+export type PublicArtifactDescriptor = {
+  kind: PublicArtifactKind;
+  title: string;
+  module: string;
+  public_scope: string;
+  profile_family?: "acreditacion" | "territorial" | string;
+  report_scope?: string;
+  published_at?: string;
+};
+
+export type MonitoreoLastDeploy = {
+  repo_id: string;
+  space_name: string;
+  hf_username?: string;
+  url: string;
+  app_url: string;
+  published_at: string;
+  private?: boolean;
+  artifact_kind?: "monitoreo" | string;
+  public_scope?: string;
+  profile_family?: "acreditacion" | "territorial" | string;
+  report_scope?: string;
+};
+
+export type MonitoreoPublishRequest = {
+  hf_username: string;
+  hf_token: string;
+  space_name: string;
+  private?: boolean;
+};
+
+export type MonitoreoPublishResponse = {
+  ok: true;
+  repo_id: string;
+  space_name: string;
+  url: string;
+  app_url: string;
+  published_at: string;
+  private?: boolean;
+  artifact_kind: "monitoreo" | string;
+  public_scope?: string;
+  profile_family?: "acreditacion" | "territorial" | string;
+  report_scope?: string;
+  files_uploaded: number;
+  total_bytes: number;
+  project_size: number;
+  uploaded: Array<{ path: string; size: number }>;
+};
+
+export type MonitoreoPublicReportPayload = {
+  ok: true;
+  generated_at: string;
+  synced_at: string;
+  n_rows?: number;
+  profile: {
+    family: "acreditacion" | "territorial" | string;
+    variant?: string;
+    status?: string;
+  };
+  accreditation?: {
+    schema: string;
+    title: string;
+    generated_at: string;
+    has_targets: boolean;
+    summary: MonitoreoRow[];
+    actors: MonitoreoRow[];
+    daily_general: MonitoreoRow[];
+    daily_actor: MonitoreoRow[];
+    sources: MonitoreoRow[];
+  };
+  territorial?: {
+    schema: string;
+    generated_at: string;
+    active_route_phase: "pilot" | "field" | string;
+    phase_note?: string;
+    kpis: MonitoreoRow | Record<string, string | number | boolean | null>;
+    advance: MonitoreoRow | Record<string, string | number | boolean | null>;
+    district_progress: MonitoreoRow[];
+    daily: MonitoreoRow[];
+    route_quota_progress?: {
+      configured: boolean;
+      summary?: Record<string, string | number | boolean | null> | null;
+      district_summary?: Record<string, string | number | boolean | null> | null;
+      districts?: MonitoreoRow[];
+    };
+  };
+};
+
 export type MonitoreoInternalQueryCase = {
   actor: string;
   person_label: string;
@@ -3176,6 +4239,7 @@ export type MonitoreoInternalQueryCase = {
   recovery_collector: boolean | string;
   response_row: number;
   duplicate_count: number;
+  assisted_review?: MonitoreoAssistedReview | null;
 };
 
 export type MonitoreoInternalQueryTotal = {
@@ -3258,6 +4322,7 @@ export type TerritorialBlockProgress = {
   poblacion?: number | null;
   territorio_muestral?: string;
   metodo?: string;
+  responsable?: string;
   orden_seleccion?: number | null;
   hoja_num?: number | null;
   rango_inicio?: number | null;
@@ -3307,9 +4372,19 @@ export type TerritorialResponseAuditRow = {
   ubigeo: string;
   consent: string;
   age: number | null;
+  sex?: string;
   status: string;
   submitted_by: string;
+  pulso_code?: string;
+  pulso_code_raw?: string;
+  pulso_code_normalized?: string;
+  enumerator_assigned?: string;
+  responsible_display?: string;
+  pulso_code_recognized?: boolean;
+  pulso_code_reconciled?: boolean;
+  pulso_code_range_warning?: boolean;
   submission_time: string;
+  submission_time_source?: string;
   submission_date_iso?: string;
   submission_date?: string;
   submission_hour?: string;
@@ -3326,6 +4401,17 @@ export type TerritorialResponseAuditRow = {
   nearest_block_id: string;
   nearest_block_type: string;
   geometry_match?: string;
+  declared_ump_raw?: string;
+  declared_ump_normalized?: string;
+  advance_block_id?: string;
+  advance_block_ump?: string;
+  advance_block_ubigeo?: string;
+  advance_block_distrito?: string;
+  advance_block_zona?: string;
+  advance_block_manzana?: string;
+  advance_block_type?: string;
+  advance_block_match?: boolean;
+  advance_block_match_status?: "recognized" | "reconciled" | "review" | "missing" | string;
   advance_valid?: boolean;
   advance_status?: "validada" | "revision" | "no_defendible" | string;
   advance_date?: string;
@@ -3335,22 +4421,507 @@ export type TerritorialResponseAuditRow = {
   validation_decision_reason?: string;
   validation_decision_at?: string;
   validation_status: "validada" | "revision" | "no_defendible" | string;
+  source_effective?: boolean;
+  source_filter_missing?: boolean;
   issues: string;
+};
+
+export type TerritorialInternalReviewCase = {
+  id: string;
+  type: "record" | "gps" | "duration" | "ump" | string;
+  reason: string;
+  action: "record" | "map" | "duration" | "ump" | string;
+  phase?: MonitoreoTerritorialPhase | string;
+  response_id?: string;
+  row_index?: number | null;
+  district: string;
+  ubigeo?: string;
+  ump?: string;
+  block_id?: string;
+  block_type?: string;
+  zona?: string;
+  manzana?: string;
+  responsible: string;
+  submitted_by?: string;
+  pulso_code?: string;
+  pulso_code_raw?: string;
+  pulso_code_recognized?: boolean;
+  pulso_code_reconciled?: boolean;
+  submission_date_iso?: string;
+  submission_date?: string;
+  submission_hour?: string;
+  submission_datetime?: string;
+  duration_seconds?: number | null;
+  duration_status?: string;
+  distance_m?: number | null;
+  geo_estado?: string;
+  validas?: number | null;
+  meta?: number | null;
+  observation_status?: string;
+  validation_status?: string;
+  validation_decision?: string;
+  advance_valid?: boolean;
+  source_effective?: boolean;
+  status?: "sin_observacion" | "pendiente" | "en_observacion" | "visto_bueno" | string;
+  issues?: string;
+};
+
+export type MonitoreoTerritorialMapCacheLayerStatus = "valid" | "stale" | "missing" | "refreshing" | string;
+
+export type MonitoreoTerritorialMapCacheLayerMeta = {
+  layer?: "route_geometry" | "gps_points" | string;
+  status: MonitoreoTerritorialMapCacheLayerStatus;
+  hash?: string;
+  expected_hash?: string;
+  route_hash?: string;
+  expected_route_hash?: string;
+  created_at?: string;
+  invalidated_at?: string;
+  invalidated_reason?: string;
+  stale?: boolean;
+  usable?: boolean;
+  bounds?: Record<string, number | string | null>;
+  counts?: Record<string, number | string | null>;
+};
+
+export type MonitoreoTerritorialMapPhaseCacheMeta = {
+  phase: "pilot" | "field" | string;
+  route_geometry?: MonitoreoTerritorialMapCacheLayerMeta;
+  gps_points?: MonitoreoTerritorialMapCacheLayerMeta;
+};
+
+export type MonitoreoTerritorialMapCacheMeta = {
+  schema: string;
+  generated_at?: string;
+  active_route_phase?: "pilot" | "field" | string;
+  phases?: Partial<Record<"pilot" | "field", MonitoreoTerritorialMapPhaseCacheMeta>>;
+  active?: MonitoreoTerritorialMapPhaseCacheMeta;
+};
+
+export type MonitoreoTerritorialReportCacheMeta = {
+  schema?: string;
+  status?: "hit" | "miss" | string;
+  cache_hit?: boolean;
+  cache_source?: "session" | "snapshot" | "project" | "build" | string;
+  key?: string;
+  phase?: "pilot" | "field" | string;
+  source_id?: string;
+  report_scope?: "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "full" | string;
+  snapshot_hash?: string;
+  route_hash?: string;
+  config_hash?: string;
+  backend_ms?: number;
+  total_ms?: number;
+  payload_size?: number;
+  created_at?: string;
+};
+
+export type MonitoreoTerritorialPrewarmScopeResult = {
+  scope: "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "full" | string;
+  status: "ready" | "error" | "stale" | string;
+  cache_hit?: boolean;
+  cache_source?: "session" | "snapshot" | "project" | "build" | "error" | string;
+  backend_ms?: number | null;
+  total_ms?: number | null;
+  payload_size?: number | null;
+  error?: string;
+};
+
+export type MonitoreoTerritorialPrewarmResult = {
+  ok: true;
+  phase: "pilot" | "field" | string;
+  scopes: MonitoreoTerritorialPrewarmScopeResult[];
+  map_cache?: MonitoreoTerritorialMapCacheMeta | { error?: string } | null;
+  state?: MonitoreoState | null;
+};
+
+export type MonitoreoPerformanceMeta = {
+  view?: string;
+  phase?: string;
+  source_id?: string;
+  report_scope?: string;
+  cache_hit?: boolean;
+  cache_source?: string;
+  backend_ms?: number;
+  total_ms?: number;
+  payload_size?: number;
 };
 
 export type TerritorialMapPayload = {
   phase: "pilot" | "field" | string;
   blocks: TerritorialBlockProgress[];
-  points: Array<Pick<TerritorialResponseAuditRow, "response_id" | "submitted_by" | "submission_date" | "submission_hour" | "submission_datetime" | "ubigeo" | "distrito" | "lat" | "lon" | "geo_estado" | "distance_m" | "nearest_block_id" | "advance_valid" | "observation_status" | "observation_reasons" | "validation_status" | "issues">>;
+  points: Array<Pick<TerritorialResponseAuditRow, "response_id" | "submitted_by" | "pulso_code" | "pulso_code_raw" | "pulso_code_normalized" | "enumerator_assigned" | "responsible_display" | "pulso_code_recognized" | "pulso_code_reconciled" | "pulso_code_range_warning" | "submission_time_source" | "submission_date_iso" | "submission_date" | "submission_hour" | "submission_datetime" | "ubigeo" | "distrito" | "age" | "sex" | "lat" | "lon" | "gps_parseable" | "geo_estado" | "distance_m" | "nearest_block_id" | "nearest_block_type" | "declared_ump_raw" | "declared_ump_normalized" | "advance_block_id" | "advance_block_ump" | "advance_block_ubigeo" | "advance_block_distrito" | "advance_block_zona" | "advance_block_manzana" | "advance_block_type" | "advance_block_match" | "advance_block_match_status" | "advance_valid" | "observation_status" | "observation_reasons" | "validation_status" | "issues">>;
+  cache?: MonitoreoTerritorialMapPhaseCacheMeta | null;
   alerts: Array<{ severity: string; code: string; message: string }>;
   legend: Array<{ key: string; label: string }>;
 };
 
+export type TerritorialDeclaredUmpStatus = "recognized" | "reconciled" | "review" | "missing" | string;
+
+export type TerritorialDeclaredUmpRow = {
+  raw_ump: string;
+  normalized_ump: string;
+  response_count: number;
+  route_match: boolean | null;
+  response_id?: string;
+  response_id_field?: string;
+  assigned_block_id?: string;
+  assigned_ump?: string;
+  assigned_district?: string;
+  assigned_ubigeo?: string;
+  reconciliation_scope?: "response" | "ump_value" | string;
+  route_block_count?: number | null;
+  route_blocks?: Array<{
+    route_ump?: string;
+    id_manzana?: string;
+    distrito?: string;
+    ubigeo?: string;
+    zona?: string;
+    manzana?: string;
+    tipo_manzana?: string;
+    responsable?: string;
+    label?: string;
+  }>;
+  responsible?: string;
+  responsible_source?: "route" | "codigo_pulso" | string;
+  status: TerritorialDeclaredUmpStatus;
+  status_label?: string;
+};
+
+export type TerritorialDeclaredUmpSummary = {
+  schema: string;
+  phase: "pilot" | "field" | string;
+  field: string;
+  field_resolved?: string;
+  configured: boolean;
+  route_ump_count: number;
+  metrics: {
+    recognized_ump_count: number;
+    review_ump_count: number;
+    responses_with_ump: number;
+    responses_without_ump: number;
+    reconciled_ump_count?: number;
+  };
+  route_options?: Array<{
+    route_ump?: string;
+    id_manzana?: string;
+    distrito?: string;
+    ubigeo?: string;
+    zona?: string;
+    manzana?: string;
+    tipo_manzana?: string;
+    responsable?: string;
+    label?: string;
+  }>;
+  rows: TerritorialDeclaredUmpRow[];
+};
+
+export type MonitoreoFieldOccurrenceSummary = {
+  total_records: number;
+  days_reported: number;
+  responsables: number;
+  manzanas_reportadas: number;
+  efectivas: number;
+  no_efectivas: number;
+  intentos: number;
+  tasa_no_efectiva: number | null;
+};
+
+export type MonitoreoFieldOccurrenceRecord = MonitoreoRow & {
+  row_id: string;
+  codigo_pulso: string;
+  date: string;
+  date_label: string;
+  hora_inicio: string;
+  hora_final: string;
+  hora_label: string;
+  datetime_label: string;
+  phase: string;
+  responsable: string;
+  distrito: string;
+  ubigeo: string;
+  zona: string;
+  manzana: string;
+  manzana_key: string;
+  tipo_manzana: string;
+  ump: string;
+  route_label: string;
+  route_match_status?: string;
+  route_match_message?: string;
+  total_manzanas_recorridas: number;
+  no_efectivas: number;
+  efectivas: number;
+  intentos: number;
+  tasa_no_efectiva: number | null;
+  observaciones: string;
+};
+
+export type MonitoreoFieldOccurrenceUmpSummary = {
+  key: string;
+  ump: string;
+  manzana: string;
+  manzana_key: string;
+  route_label: string;
+  distrito: string;
+  zona: string;
+  responsable: string;
+  route_match_status?: string;
+  route_match_message?: string;
+  has_report?: boolean;
+  estado_consolidado?: "sin_reporte" | "reportada_efectiva" | "reportada_no_efectiva" | "revisar_cruce" | string;
+  motivo_principal?: string;
+  reportes: number;
+  efectivas: number;
+  no_efectivas: number;
+  intentos: number;
+  tasa_no_efectiva: number | null;
+  ultimo_reporte: string;
+  outcomes: Array<{ key: string; label: string; total: number }>;
+};
+
+export type MonitoreoFieldOccurrenceDistrictSummary = {
+  distrito: string;
+  ump_reportadas: number;
+  ump_sin_reporte: number;
+  efectivas: number;
+  no_efectivas: number;
+  intentos: number;
+  outcomes: Array<{ key: string; label: string; total: number }>;
+  motivo_principal: string;
+  tasa_no_efectiva: number | null;
+};
+
+export type MonitoreoFieldOccurrenceDashboard = {
+  schema: string;
+  generated_at: string;
+  config: MonitoreoFieldOccurrenceConfig;
+  snapshot?: {
+    synced_at: string;
+    n_rows: number;
+    source_id: string;
+    asset_uid: string;
+  };
+  history?: MonitoreoTerritorialUpdateHistoryEntry[];
+  summary: MonitoreoFieldOccurrenceSummary;
+  by_outcome: Array<{ key: string; label: string; total: number }>;
+  by_day: Array<{ date: string; date_label: string; intentos: number; efectivas: number; no_efectivas: number }>;
+  by_responsable: Array<{
+    responsable: string;
+    reportes: number;
+    manzanas: number;
+    efectivas: number;
+    no_efectivas: number;
+    intentos: number;
+    ultimo_codigo_pulso: string;
+    ultimo_reporte: string;
+    route_labels: string[];
+  }>;
+  by_ump?: MonitoreoFieldOccurrenceUmpSummary[];
+  by_district?: MonitoreoFieldOccurrenceDistrictSummary[];
+  records: MonitoreoFieldOccurrenceRecord[];
+  alerts: {
+    missing_blocks: MonitoreoRow[];
+    high_non_effective: MonitoreoFieldOccurrenceRecord[];
+    observations: MonitoreoFieldOccurrenceRecord[];
+    outside_route: MonitoreoFieldOccurrenceRecord[];
+  };
+};
+
+export type MonitoreoFieldOccurrenceFieldCheckItem = {
+  key: string;
+  label: string;
+  required: boolean;
+  ok: boolean;
+  found_name: string;
+  found_type: string;
+  expected: string[];
+  note?: string;
+};
+
+export type MonitoreoFieldOccurrenceFieldCheck = {
+  status: "ready" | "missing_required" | string;
+  ok: boolean;
+  required_ok: boolean;
+  message: string;
+  field_count: number;
+  missing_required: string[];
+  items: MonitoreoFieldOccurrenceFieldCheckItem[];
+};
+
+export type MonitoreoFieldOccurrenceInspectResult = {
+  ok: true;
+  asset_uid: string;
+  base_url: string;
+  inspected_at: string;
+  schema: {
+    asset_uid: string;
+    name: string;
+    version_id: string;
+    deployment_active: boolean;
+    survey_count: number;
+    choices_count: number;
+    survey_fields?: Array<{ name: string; type: string; label?: string; xpath?: string; list_name?: string }>;
+    all_fields?: Array<{ name: string; type: string; label?: string; xpath?: string; list_name?: string }>;
+    [key: string]: unknown;
+  };
+  field_check: MonitoreoFieldOccurrenceFieldCheck;
+};
+
+export type MonitoreoFieldOccurrenceUploadResult = {
+  ok: true;
+  file?: { file_id: string; original_name: string; size: number; ext?: string };
+  download_url?: string;
+  upload?: { asset_uid: string; version_id: string; survey_url?: string; asset_url?: string; deployment?: unknown };
+  source?: MonitoreoSource;
+  config?: MonitoreoConfig;
+  field_occurrences: MonitoreoFieldOccurrenceDashboard;
+  state: MonitoreoState;
+};
+
+export type TerritorialQuotaProgressItem = {
+  label: string;
+  target: number;
+  achieved: number;
+  missing: number;
+};
+
+export type TerritorialQuotaObservedCrossCell = {
+  label: string;
+  age?: string;
+  value: number;
+};
+
+export type TerritorialQuotaObservedCrossRow = {
+  label: string;
+  target?: number;
+  total: number;
+  cells: TerritorialQuotaObservedCrossCell[];
+};
+
+export type TerritorialQuotaObservedCrossColumn = {
+  label: string;
+  target?: number;
+  total: number;
+};
+
+export type TerritorialQuotaObservedCross = {
+  schema?: string;
+  source?: string;
+  total?: number;
+  total_consentido?: number;
+  rows: TerritorialQuotaObservedCrossRow[];
+  columns: TerritorialQuotaObservedCrossColumn[];
+  note?: string;
+};
+
+export type TerritorialQuotaProgressBlock = {
+  id_manzana: string;
+  ubigeo?: string;
+  distrito?: string;
+  zona?: string;
+  manzana?: string;
+  tipo_manzana?: string;
+  ump?: string | number | null;
+  responsable?: string;
+  responsible?: string;
+  configured: boolean;
+  status: "complete" | "in_field" | "pending" | "partial" | "missing" | "exceeded" | "not_configured" | string;
+  target: number;
+  validas: number;
+  missing_total: number;
+  sex_missing_total?: number;
+  age_missing_total?: number;
+  demographic_missing_total?: number;
+  last_response_date_iso?: string;
+  last_response_date_label?: string;
+  has_field_activity?: boolean;
+  activity_status?: "today" | "previous" | "none" | string;
+  sex: TerritorialQuotaProgressItem[];
+  age: TerritorialQuotaProgressItem[];
+  cross: TerritorialQuotaProgressItem[];
+  observed_cross?: TerritorialQuotaObservedCross | null;
+  missing: TerritorialQuotaProgressItem[];
+};
+
+export type TerritorialQuotaProgressDistrict = {
+  ubigeo?: string;
+  distrito?: string;
+  configured: boolean;
+  status: "complete" | "in_field" | "pending" | "partial" | "missing" | "exceeded" | "not_configured" | string;
+  target: number;
+  validas: number;
+  missing_total: number;
+  sex_missing_total?: number;
+  age_missing_total?: number;
+  demographic_missing_total?: number;
+  last_response_date_iso?: string;
+  last_response_date_label?: string;
+  has_field_activity?: boolean;
+  activity_status?: "today" | "previous" | "none" | string;
+  ump_complete?: number;
+  ump_in_field?: number;
+  ump_pending?: number;
+  ump_missing?: number;
+  ump_exceeded?: number;
+  ump_not_configured?: number;
+  sex: TerritorialQuotaProgressItem[];
+  age: TerritorialQuotaProgressItem[];
+  missing: TerritorialQuotaProgressItem[];
+  source?: string;
+};
+
+export type TerritorialQuotaProgressPayload = {
+  schema: "monitoreo_territorial_quota_progress_v1" | string;
+  configured: boolean;
+  reason?: string;
+  variables?: {
+    age_var?: string;
+    sex_var?: string;
+    age_available?: boolean;
+    sex_available?: boolean;
+  };
+  summary?: {
+    total: number;
+    complete: number;
+    in_field?: number;
+    pending?: number;
+    partial: number;
+    missing: number;
+    exceeded: number;
+    not_configured: number;
+    sex_missing_total?: number;
+    age_missing_total?: number;
+    demographic_missing_total?: number;
+    districts_with_gap?: number;
+  };
+  blocks: TerritorialQuotaProgressBlock[];
+  districts?: TerritorialQuotaProgressDistrict[];
+  district_summary?: {
+    total: number;
+    complete: number;
+    in_field?: number;
+    pending?: number;
+    partial: number;
+    missing: number;
+    exceeded: number;
+    not_configured: number;
+    sex_missing_total?: number;
+    age_missing_total?: number;
+    demographic_missing_total?: number;
+    districts_with_gap?: number;
+  };
+  alerts?: Array<{ level?: string; code?: string; id_manzana?: string; message?: string }>;
+};
+
 export type MonitoreoTerritorialDashboard = {
   schema: string;
+  report_scope?: "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "full" | string;
   generated_at: string;
   active_route_phase: "pilot" | "field" | string;
   phase_note: string;
+  phase_source_status?: "configured" | "missing_source" | string;
+  phase_source_message?: string;
+  phase_coherence?: MonitoreoTerritorialPhaseCoherence | null;
   kpis: {
     total_respuestas: number;
     consentidas: number;
@@ -3399,6 +4970,7 @@ export type MonitoreoTerritorialDashboard = {
   };
   source_validity: {
     field: string;
+    field_resolved?: string;
     field_label?: string;
     values: string[];
     effective_count: number | null;
@@ -3406,6 +4978,43 @@ export type MonitoreoTerritorialDashboard = {
     missing_count: number | null;
     total_responses: number;
     options: Array<{ value: string; label: string; count?: number }>;
+  };
+  ump_declared_summary?: TerritorialDeclaredUmpSummary;
+  enumerator_code_summary?: {
+    field: string;
+    field_resolved?: string;
+    ump_field?: string;
+    ump_field_resolved?: string;
+    configured: boolean;
+    roster_total: number;
+    response_with_code_count?: number;
+    response_code_count: number;
+    recognized_code_count: number;
+    auto_recognized_code_count?: number;
+    reconciled_code_count?: number;
+    unrecognized_code_count: number;
+    recognized_response_count: number;
+    auto_recognized_response_count?: number;
+    reconciled_response_count?: number;
+    unrecognized_response_count: number;
+    missing_response_count: number;
+    top_unrecognized?: Array<{ code: string; raw_code?: string; normalized_code?: string; count: number }>;
+    unrecognized_codes?: Array<{ code: string; raw_code?: string; normalized_code?: string; count: number }>;
+    unrecognized_responses?: MonitoreoTerritorialEnumeratorReconciliationResponse[];
+    reconciliation_responses?: MonitoreoTerritorialEnumeratorReconciliationResponse[];
+    assigned_summary?: Array<{
+      code: string;
+      name: string;
+      response_count: number;
+      auto_response_count?: number;
+      reconciled_response_count?: number;
+      appears_in_base?: boolean;
+      last_record?: string;
+      status?: string;
+    }>;
+    reconciliation_entries?: MonitoreoTerritorialCodeReconciliation[];
+    response_examples?: string[];
+    roster_examples?: string[];
   };
   route_overview?: {
     phase: string;
@@ -3443,17 +5052,45 @@ export type MonitoreoTerritorialDashboard = {
     n_cells?: number;
     alerts?: Array<Record<string, unknown>>;
   };
+  route_quota_progress?: TerritorialQuotaProgressPayload;
+  route_quota_marginals?: {
+    blocks: Array<{
+      id_manzana?: string;
+      ubigeo?: string;
+      distrito?: string;
+      zona?: string;
+      manzana?: string;
+      territorio?: string;
+      tipo_manzana?: string;
+      ump?: string | number | null;
+      rango?: string;
+      rango_inicio?: number | null;
+      rango_fin?: number | null;
+      total: number;
+      age_totals: Array<{ label: string; value: number; order?: number }>;
+      sex_totals: Array<{ label: string; value: number; order?: number }>;
+      source?: string;
+    }>;
+    n_blocks?: number;
+    alerts?: Array<Record<string, unknown>>;
+  };
   district_progress: TerritorialDistrictProgress[];
   block_progress: TerritorialBlockProgress[];
+  operational_preview?: TerritorialResponseAuditRow[];
   response_audit: TerritorialResponseAuditRow[];
-  team: Array<{ submitted_by: string; total: number; validas: number; revision: number; no_defendibles: number; duration_median: number | null }>;
+  team: Array<{ submitted_by: string; raw_submitted_by?: string; total: number; validas: number; revision: number; no_defendibles: number; duration_median: number | null; duration_p95?: number | null; duration_very_short?: number; duration_review?: number; last_record?: string }>;
   daily: Array<{ date: string; date_label?: string; total: number; validas: number; revision: number }>;
+  map_cache?: MonitoreoTerritorialMapPhaseCacheMeta | MonitoreoTerritorialMapCacheMeta | null;
   map: TerritorialMapPayload;
   internal_queries: {
     incomplete_blocks: TerritorialBlockProgress[];
+    exceeded_blocks?: TerritorialBlockProgress[];
     far_gps: TerritorialMapPayload["points"];
+    duration_review?: TerritorialMapPayload["points"];
     lagging_districts: TerritorialDistrictProgress[];
+    review_cases?: TerritorialInternalReviewCase[];
   };
+  field_occurrences?: MonitoreoFieldOccurrenceDashboard | null;
 };
 
 export type MonitoreoDashboard = {
@@ -3476,7 +5113,14 @@ export type MonitoreoState = {
   n_rows: number;
   variables: MonitoreoVariable[];
   dashboard: MonitoreoDashboard | null;
+  territorial_phase_coherence?: MonitoreoTerritorialPhaseCoherence | null;
+  territorial_map_cache?: MonitoreoTerritorialMapCacheMeta | null;
+  territorial_report_cache?: MonitoreoTerritorialReportCacheMeta | null;
+  monitoreo_perf?: MonitoreoPerformanceMeta | null;
   territorial_update_history?: MonitoreoTerritorialUpdateHistoryEntry[];
+  publication?: {
+    last_deploy?: MonitoreoLastDeploy | null;
+  };
   acreditacion: MonitoreoAcreditacion;
   errors: { source_id?: string; source_label?: string; message: string }[];
 };
@@ -3567,12 +5211,46 @@ export type MonitoreoAcreditacionSeguimientoPayload = {
   bolsa_operativa?: MonitoreoAcreditacionBolsa[];
 };
 
-export async function apiMonitoreoState(options: { includeReports?: boolean } = {}) {
-  const path = options.includeReports == null
-    ? "/api/monitoreo/state"
-    : `/api/monitoreo/state?include_reports=${options.includeReports ? "1" : "0"}`;
+export async function apiMonitoreoState(options: { includeReports?: boolean; reportScope?: string } = {}) {
+  const params = new URLSearchParams();
+  if (options.includeReports != null) params.set("include_reports", options.includeReports ? "1" : "0");
+  if (options.reportScope) params.set("report_scope", options.reportScope);
+  const query = params.toString();
+  const path = query ? `/api/monitoreo/state?${query}` : "/api/monitoreo/state";
   return handle<MonitoreoState>(
     await apiFetch(path, { headers: headers() }),
+  );
+}
+
+export async function apiPublicArtifact() {
+  return handle<PublicArtifactDescriptor>(
+    await apiFetch("/api/public/artifact", { headers: headers() }),
+  );
+}
+
+export async function apiMonitoreoPublicReport() {
+  return handle<MonitoreoPublicReportPayload>(
+    await apiFetch("/api/monitoreo/public-report", { headers: headers() }),
+  );
+}
+
+export async function apiMonitoreoPublish(payload: MonitoreoPublishRequest) {
+  return handle<MonitoreoPublishResponse>(
+    await apiFetch("/api/monitoreo/publish", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialPrewarm(options: { phase?: string; scopes?: string[] } = {}) {
+  return handle<JobStart>(
+    await apiFetch("/api/monitoreo/territorial/prewarm", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(options),
+    }),
   );
 }
 
@@ -3708,6 +5386,7 @@ export async function apiMonitoreoKoboAssets(
       .map((item): MonitoreoKoboAssetItem => ({
         uid: String(item.uid ?? ""),
         name: String(item.name ?? item.uid ?? ""),
+        version_id: item.version_id == null || item.version_id === "NA" ? "" : String(item.version_id),
         date_modified: item.date_modified == null || item.date_modified === "NA" ? null : String(item.date_modified),
         deployment_active: item.deployment_active === true,
       }))
@@ -3744,6 +5423,7 @@ export async function apiMonitoreoTerritorialInspectKobo(payload: {
   asset_uid?: string;
   base_url?: string;
   connection_profile_id?: string;
+  phase?: MonitoreoTerritorialPhase;
   config?: Partial<MonitoreoConfig>;
 } = {}) {
   return handle<MonitoreoTerritorialKoboInspection>(
@@ -3756,7 +5436,7 @@ export async function apiMonitoreoTerritorialInspectKobo(payload: {
 }
 
 export async function apiMonitoreoTerritorialConfig(territorial: Partial<MonitoreoTerritorialConfig>) {
-  return handle<{ ok: true; config: MonitoreoConfig; state: MonitoreoState }>(
+  return handle<{ ok: true; config: MonitoreoConfig; state: MonitoreoState; saved_project?: boolean }>(
     await apiFetch("/api/monitoreo/territorial/config", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -3765,13 +5445,252 @@ export async function apiMonitoreoTerritorialConfig(territorial: Partial<Monitor
   );
 }
 
-export async function apiMonitoreoTerritorialMap(options: { phase?: "pilot" | "field"; ubigeo?: string } = {}) {
+export async function apiMonitoreoTerritorialEnumeratorCodeReconciliation(entry: MonitoreoTerritorialCodeReconciliation) {
+  return handle<{
+    ok: true;
+    reconciliation: MonitoreoTerritorialCodeReconciliation;
+    config: MonitoreoConfig;
+    state: MonitoreoState;
+    saved_project?: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/enumerators/reconcile-code", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(entry),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialUmpReconciliation(entry: MonitoreoTerritorialUmpReconciliation) {
+  return handle<{
+    ok: true;
+    reconciliation: MonitoreoTerritorialUmpReconciliation;
+    config: MonitoreoConfig;
+    state: MonitoreoState;
+    saved_project?: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/umps/reconcile", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(entry),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialReconciliationBatch(changes: MonitoreoTerritorialReconciliationBatchChange[]) {
+  return handle<{
+    ok: true;
+    applied: MonitoreoTerritorialReconciliationBatchApplied[];
+    failed: MonitoreoTerritorialReconciliationBatchFailure[];
+    config: MonitoreoConfig;
+    state?: MonitoreoState | null;
+    saved_project?: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/reconciliation/batch", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ changes }),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialPhase(activeRoutePhase: MonitoreoTerritorialPhase) {
+  return handle<{
+    ok: true;
+    config: MonitoreoConfig;
+    active_route_phase: MonitoreoTerritorialPhase;
+    phase_source_status: "configured" | "missing_source" | string;
+    message: string;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/phase", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ active_route_phase: activeRoutePhase }),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialSource(payload: {
+  phase: MonitoreoTerritorialPhase;
+  asset_uid: string;
+  name?: string;
+  version_id?: string;
+  base_url?: string;
+  connection_profile_id?: string;
+  source_id?: string;
+}) {
+  return handle<{
+    ok: true;
+    source: MonitoreoSource;
+    config: MonitoreoConfig;
+    state: MonitoreoState;
+    active_route_phase: MonitoreoTerritorialPhase;
+    phase_source_status: "configured" | "missing_source" | string;
+    message: string;
+    saved_project?: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/source", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialEnumeratorsUpload(
+  file: File,
+  options: { code_var?: string; ump_var?: string; code_format?: string } = {},
+) {
+  const fd = new FormData();
+  fd.append("file", file);
+  if (options.code_var) fd.append("code_var", options.code_var);
+  if (options.ump_var) fd.append("ump_var", options.ump_var);
+  if (options.code_format) fd.append("code_format", options.code_format);
+  return handle<{
+    ok: true;
+    enumerator_roster: MonitoreoTerritorialEnumeratorRoster;
+    config: MonitoreoConfig;
+    state: MonitoreoState;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/enumerators/upload", {
+      method: "POST",
+      headers: headers(),
+      body: fd,
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialEnumeratorsTemplate() {
+  const result = await handle<{
+    ok: true;
+    file_id: string;
+    filename: string;
+    size: number;
+    rows: number;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/enumerators/template", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({}),
+    }),
+  );
+  return { ...result, download_url: downloadUrl(result.file_id) };
+}
+
+export async function apiMonitoreoTerritorialEnumeratorsCodes() {
+  const result = await handle<{
+    ok: true;
+    file_id: string;
+    filename: string;
+    size: number;
+    rows: number;
+  }>(
+    await apiFetch("/api/monitoreo/territorial/enumerators/codes", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({}),
+    }),
+  );
+  return { ...result, download_url: downloadUrl(result.file_id) };
+}
+
+export async function apiMonitoreoTerritorialMap(options: {
+  phase?: "pilot" | "field";
+  ubigeo?: string;
+  layer?: "route_geometry" | "gps_points" | "full";
+  hash?: string;
+  allowStale?: boolean;
+  prepare?: boolean;
+} = {}) {
   const params = new URLSearchParams();
   if (options.phase) params.set("phase", options.phase);
   if (options.ubigeo) params.set("ubigeo", options.ubigeo);
+  if (options.layer) params.set("layer", options.layer);
+  if (options.hash) params.set("hash", options.hash);
+  if (typeof options.allowStale === "boolean") params.set("allow_stale", options.allowStale ? "1" : "0");
+  if (typeof options.prepare === "boolean") params.set("prepare", options.prepare ? "1" : "0");
   const qs = params.toString();
-  return handle<{ ok: true; payload: TerritorialMapPayload }>(
+  return handle<{
+    ok: true;
+    layer?: "route_geometry" | "gps_points" | "full" | string;
+    not_modified?: boolean;
+    cache?: MonitoreoTerritorialMapCacheLayerMeta | MonitoreoTerritorialMapPhaseCacheMeta;
+    payload: TerritorialMapPayload & {
+      features?: unknown[];
+      bounds?: Record<string, number | string | null>;
+      ump_index?: Array<Record<string, unknown>>;
+    };
+  }>(
     await apiFetch(`/api/monitoreo/territorial/map${qs ? `?${qs}` : ""}`, { headers: headers() }),
+  );
+}
+
+export async function apiMonitoreoTerritorialMapPrepare(options: {
+  phase?: "pilot" | "field";
+  layers?: Array<"route_geometry" | "gps_points">;
+  force?: boolean;
+} = {}) {
+  return handle<{ ok: true; phase: "pilot" | "field" | string; layers: string[]; map_cache: MonitoreoTerritorialMapCacheMeta }>(
+    await apiFetch("/api/monitoreo/territorial/map/prepare", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        phase: options.phase,
+        layers: options.layers,
+        force: options.force,
+      }),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialOccurrencesConfig(config: Partial<MonitoreoFieldOccurrenceConfig>) {
+  return handle<{ ok: true; config: MonitoreoConfig; field_occurrences: MonitoreoFieldOccurrenceDashboard; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/territorial/occurrences/config", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ field_occurrences: config }),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialOccurrencesInspect(payload: Partial<MonitoreoFieldOccurrenceConfig> = {}) {
+  return handle<MonitoreoFieldOccurrenceInspectResult>(
+    await apiFetch("/api/monitoreo/territorial/occurrences/inspect", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialOccurrencesXlsform(payload: Partial<MonitoreoFieldOccurrenceConfig> = {}) {
+  const result = await handle<MonitoreoFieldOccurrenceUploadResult>(
+    await apiFetch("/api/monitoreo/territorial/occurrences/xlsform", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  return result.file?.file_id ? { ...result, download_url: downloadUrl(result.file.file_id) } : result;
+}
+
+export async function apiMonitoreoTerritorialOccurrencesUploadKobo(payload: Partial<MonitoreoFieldOccurrenceConfig> = {}) {
+  return handle<MonitoreoFieldOccurrenceUploadResult>(
+    await apiFetch("/api/monitoreo/territorial/occurrences/upload-kobo", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiMonitoreoTerritorialOccurrencesSync(payload: { source_id?: string; asset_uid?: string } = {}) {
+  return handle<{ ok: true; synced_at: string; n_rows: number; field_occurrences: MonitoreoFieldOccurrenceDashboard; state: MonitoreoState }>(
+    await apiFetch("/api/monitoreo/territorial/occurrences/sync", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
   );
 }
 
@@ -3801,6 +5720,27 @@ export async function apiMonitoreoConfig(config: Partial<MonitoreoConfig>) {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ config }),
+    }),
+  );
+}
+
+export async function apiMonitoreoAcreditacionCaseReconciliation(payload: {
+  response_id: string;
+  action: "keep_excluded" | "include_with_caveat";
+  candidate_id?: string;
+  note?: string;
+}) {
+  return handle<{
+    ok: true;
+    decision: MonitoreoManualCaseReconciliation;
+    config: MonitoreoConfig;
+    state: MonitoreoState;
+    saved_project?: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/acreditacion/case-reconciliation", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
     }),
   );
 }
@@ -3869,12 +5809,15 @@ export async function apiMonitoreoCierre(options: { plan_refuerzo?: string; apro
   );
 }
 
-export async function apiMonitoreoSync(config?: Partial<MonitoreoConfig>) {
+export async function apiMonitoreoSync(config?: Partial<MonitoreoConfig>, sourceIds: string[] = []) {
   return handle<JobStart>(
     await apiFetch("/api/monitoreo/sync", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify(config ? { config } : {}),
+      body: JSON.stringify({
+        ...(config ? { config } : {}),
+        ...(sourceIds.length ? { source_ids: sourceIds } : {}),
+      }),
     }),
   );
 }
@@ -4640,6 +6583,19 @@ export type HojasRutaJobResult = {
   mapas_faltantes: number;
 };
 
+export type HojasRutaWorkbookResult = {
+  ok: true;
+  file_id: string;
+  filename: string;
+  size: number;
+  n_blocks: number;
+  n_replacement_blocks: number;
+  total_entrevistas: number;
+  total_replacement_interviews?: number;
+  frame_version: string;
+  alerts: HojasRutaAlert[];
+};
+
 export type HojasRutaManualReplacementResult = {
   ok: true;
   file_id: string;
@@ -4839,6 +6795,19 @@ export async function apiHojasRutaGenerate(
 ) {
   return handle<JobStart>(
     await apiFetch("/api/hojas-ruta/generate", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config, sample }),
+    }),
+  );
+}
+
+export async function apiHojasRutaRouteWorkbook(
+  config: Partial<HojasRutaIntegratedConfig>,
+  sample?: HojasRutaSamplePreview | null,
+) {
+  return handle<HojasRutaWorkbookResult>(
+    await apiFetch("/api/hojas-ruta/route-workbook", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ config, sample }),
@@ -7231,28 +9200,184 @@ export async function apiCodifPlanAdaptacion() {
   );
 }
 
-// ---- Export / Import JSON (paso 2) ----------------------------------------
-// Permite guardar el estado completo de la codificación a disco y restaurarlo
-// en otra sesión, similar al "Guardar/Cargar JSON" del plan de Gráficos.
+// ---- Export / Import JSON de configuración --------------------------------
+// Exporta configuración portable versionada. Importar siempre pasa por preview
+// antes de aplicar cambios sobre el estado de codificación del .pulso.
 
-export type CodifJsonBundle = {
+export type CodifConfigStatus = "compatible" | "needs_confirmation" | "conflict" | "missing";
+export type CodifConfigConfidence = "strong" | "medium" | "weak" | "none";
+export type CodifConfigImportStrategy = "keep" | "merge_missing" | "replace" | "duplicate";
+
+export type CodifConfigOption = {
+  code: string;
+  label: string;
+};
+
+export type CodifConfigCategory = {
+  code: string;
+  label: string;
+  description?: string;
+  origin?: string;
+};
+
+export type CodifConfigVariable = {
+  id: string;
+  role: string;
+  base_id: string;
+  base_label?: string;
+  scope?: string;
+  name: string;
+  label: string;
+  type: string;
+  list_norm?: string;
+  parent_col?: string;
+  text_col?: string;
+  mode_so?: string;
+  fingerprint?: string;
+  options_fingerprint?: string;
+  options?: CodifConfigOption[];
+  categories?: CodifConfigCategory[];
+  rules?: unknown[];
+  recodes?: unknown[];
+  bins?: unknown[];
+  configuration?: unknown;
+};
+
+export type CodifConfigBundle = {
   ok: true;
-  version: string;
+  schema_version: "prosecnur.coding_config.v1" | string;
   exported_at: string;
-  familias_draft: { rows: unknown[]; source?: string | null; updated_at?: string };
-  grupos_recod: Record<string, unknown>;
-  marcadas: Record<string, unknown>;
-  respuestas_recod: Record<string, unknown>;
+  app_version: string;
+  project_label: string;
+  mode: "unibase" | "multibase" | string;
+  processing_mode?: string;
+  suggested_filename?: string;
+  variables: CodifConfigVariable[];
+  metadata?: {
+    source?: string;
+    notes?: string;
+    exported_bases?: string[];
+    contains_case_rows?: boolean;
+    contains_response_match_values?: boolean;
+  };
+};
+
+export type CodifImportPreviewItem = {
+  match_id: string;
+  source: {
+    id: string;
+    base_id: string;
+    name: string;
+    label: string;
+    type: string;
+  };
+  target: {
+    base_id: string;
+    name: string;
+    label: string;
+    type: string;
+    fingerprint?: string;
+  };
+  status: CodifConfigStatus;
+  confidence: CodifConfigConfidence;
+  existing_state: boolean;
+  reason: string;
+  changes: {
+    categories_new: number;
+    categories_overwrite: number;
+    rules_add: number;
+    recodes_add: number;
+  };
+  default_strategy: CodifConfigImportStrategy;
+  can_apply: boolean;
+};
+
+export type CodifImportPreview = {
+  ok: true;
+  schema_version: string;
+  file_name?: string;
+  source: {
+    project_label?: string;
+    exported_at?: string;
+    mode?: string;
+    variables: number;
+  };
+  target: {
+    project_label?: string;
+    mode?: string;
+    bases: string[];
+  };
+  items: CodifImportPreviewItem[];
+  summary: {
+    compatible: string[];
+    needs_confirmation: string[];
+    missing: string[];
+    conflicts: string[];
+    n_compatible: number;
+    n_needs_confirmation: number;
+    n_missing: number;
+    n_conflicts: number;
+  };
+  requires_confirmation: boolean;
+};
+
+export type CodifImportSelection = {
+  match_id: string;
+  strategy?: CodifConfigImportStrategy;
+  note?: string;
+};
+
+export type CodifImportApplyResult = {
+  ok: true;
+  imported: CodifImportPreviewItem[];
+  versioned: CodifImportPreviewItem[];
+  skipped: string[];
+  audit: {
+    event: "coding_config_import";
+    imported_at: string;
+    file_name: string;
+    schema_version: string;
+    variables_imported: number;
+    variables_versioned: number;
+    variables_skipped: number;
+    conflicts: number;
+  };
+  summary: {
+    variables_imported: number;
+    variables_versioned: number;
+    variables_skipped: number;
+    conflicts: number;
+  };
 };
 
 export async function apiCodifExportJson() {
-  return handle<CodifJsonBundle>(
+  return handle<CodifConfigBundle>(
     await apiFetch("/api/codificacion/export-json", { headers: headers() })
   );
 }
 
+export async function apiCodifImportJsonPreview(bundle: unknown, fileName?: string) {
+  return handle<CodifImportPreview>(
+    await apiFetch("/api/codificacion/import-json/preview", {
+      method: "POST",
+      headers: { ...headers(), "Content-Type": "application/json" },
+      body: JSON.stringify({ bundle, file_name: fileName ?? "" }),
+    })
+  );
+}
+
+export async function apiCodifImportJsonApply(bundle: unknown, selections: CodifImportSelection[], fileName?: string) {
+  return handle<CodifImportApplyResult>(
+    await apiFetch("/api/codificacion/import-json/apply", {
+      method: "POST",
+      headers: { ...headers(), "Content-Type": "application/json" },
+      body: JSON.stringify({ bundle, selections, file_name: fileName ?? "" }),
+    })
+  );
+}
+
 export async function apiCodifImportJson(bundle: unknown) {
-  return handle<{ ok: true; n_rows: number; n_preguntas_con_grupos: number; n_marcadas: number }>(
+  return handle<CodifImportPreview>(
     await apiFetch("/api/codificacion/import-json", {
       method: "POST",
       headers: { ...headers(), "Content-Type": "application/json" },
@@ -7272,6 +9397,7 @@ import type {
   LimpiezaDecision,
   LimpiezaBeforeAfterPreview,
   InstrumentoEstado,
+  InstrumentoVariablesExcluidas,
   ExploradorVariablesList,
   ReglasCustomList,
 } from "../features/validacion/types";
@@ -7375,6 +9501,27 @@ export async function apiV2InstrumentoEstado(baseNombre?: string | null) {
   return handle<InstrumentoEstado>(
     await apiFetch("/api/validacion/v2/instrumento/estado", {
       headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2InstrumentoVariablesExcluidas(baseNombre?: string | null) {
+  return handle<InstrumentoVariablesExcluidas>(
+    await apiFetch("/api/validacion/v2/instrumento/variables-excluidas", {
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+export async function apiV2InstrumentoVariablesExcluidasSave(
+  variables: string[],
+  baseNombre?: string | null,
+) {
+  return handle<InstrumentoVariablesExcluidas>(
+    await apiFetch("/api/validacion/v2/instrumento/variables-excluidas", {
+      method: "POST",
+      headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
+      body: JSON.stringify({ variables }),
     }),
   );
 }
