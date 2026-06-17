@@ -726,33 +726,42 @@
 
       # --- Tamaños (pt) ---------------------------------------------------
       list(name = "size_titulo",       label = "Tamaño del título",      tipo_input = "number", grupo = "estilo",
-           default = 12,
-           descripcion = "Tamaño de fuente del título del gráfico (pt). Valores típicos: 10-14."),
+           default = 14,
+           descripcion = "Tamaño de fuente del título del gráfico (pt). Valor base Pulso: 14; títulos de slide se controlan desde la plantilla."),
+      list(name = "size_titulo_slide", label = "Tamaño título PPT",      tipo_input = "number", grupo = "estilo",
+           default = 24,
+           descripcion = "Tamaño del título de una lámina PPT estructural (pt)."),
       list(name = "size_subtitulo",    label = "Tamaño del subtítulo",   tipo_input = "number", grupo = "estilo",
-           default = 9),
+           default = 14),
+      list(name = "size_subtitulo_slide", label = "Tamaño subtítulo PPT", tipo_input = "number", grupo = "estilo",
+           default = 16,
+           descripcion = "Tamaño del subtítulo de una lámina PPT estructural (pt)."),
+      list(name = "size_cuerpo_slide", label = "Tamaño cuerpo PPT",      tipo_input = "number", grupo = "estilo",
+           default = 14,
+           descripcion = "Tamaño del cuerpo de texto en láminas PPT estructurales (pt)."),
       list(name = "size_leyenda",      label = "Tamaño de la leyenda",   tipo_input = "number", grupo = "estilo",
-           default = 10),
+           default = 10.5),
       list(name = "size_ejes",         label = "Tamaño de los ejes",     tipo_input = "number", grupo = "estilo",
-           default = 10,
+           default = 10.5,
            descripcion = "Tamaño de las etiquetas de los ejes X e Y (pt)."),
       list(name = "size_nota_pie",     label = "Tamaño de la nota al pie", tipo_input = "number", grupo = "estilo",
-           default = 8),
+           default = 10),
       list(name = "size_texto_barras", label = "Tamaño del texto de barras", tipo_input = "number", grupo = "estilo",
-           default = 4,
+           default = 4.2,
            descripcion = "Tamaño de los valores numéricos que se escriben DENTRO de las barras (ej. los %). Nota: en ggplot/cowplot no es pt exacto, son unidades relativas."),
 
       # --- Colores de texto ----------------------------------------------
       list(name = "color_titulo",      label = "Color del título",       tipo_input = "color", grupo = "estilo",
-           default = "#222222",
-           descripcion = "Hex del color del texto del título (ej. '#39588B' para azul institucional)."),
+           default = "#CA5651",
+           descripcion = "Hex del color del texto del título. Default Pulso PUCP: rojo principal."),
       list(name = "color_subtitulo",   label = "Color del subtítulo",    tipo_input = "color", grupo = "estilo",
-           default = "#222222"),
+           default = "#85BB85"),
       list(name = "color_leyenda",     label = "Color de la leyenda",    tipo_input = "color", grupo = "estilo",
-           default = "#222222"),
+           default = "#081F5C"),
       list(name = "color_ejes",        label = "Color de los ejes",      tipo_input = "color", grupo = "estilo",
-           default = "#222222"),
+           default = "#081F5C"),
       list(name = "color_nota_pie",    label = "Color de la nota al pie", tipo_input = "color", grupo = "estilo",
-           default = "#222222"),
+           default = "#081F5C"),
 
       # --- Negritas -------------------------------------------------------
       # `base` expone el universo completo de tokens. Los presets tipo
@@ -792,7 +801,7 @@
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo",
            descripcion = "Añade una barra adicional a la derecha con Top2Box, Bottom2Box o N. Se configura con 'Preset de la barra extra' del graficador."),
       list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "color", grupo = "estilo",
-           descripcion = "Hex del color de la barra extra. Ej. '#39588B'."),
+           descripcion = "Hex del color de la barra extra. Ej. '#081F5C'."),
       list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo"),
       list(name = "barra_extra_preset",   label = "Qué muestra la barra extra", tipo_input = "choice", grupo = "estilo",
            choices = list(
@@ -1487,11 +1496,24 @@
 # Cuando el analista entra por primera vez a Gráficos (sin config persistida),
 # el store se hidrata con estos presets. Vienen extraídos del QMD de
 # referencia (prueba_plan_ppt.qmd) y reflejan el estilo institucional Pulso:
-# azul #39588B, fuente Arial, base 'Base: %s', Likert con mostrar_valores,
+# paleta Pulso PUCP, fuente Arial, base 'Base: %s', Likert con mostrar_valores,
 # barras_apiladas con barra_extra, radar_tabla con Top Two Box.
 #
 # Así el analista NO arranca con un canvas vacío — los gráficos ya se ven
 # bien desde el primer export, y él solo ajusta lo que necesite cambiar.
+
+.PULSO_PPT_COLORS <- list(
+  azul = "#081F5C",
+  rojo = "#CA5651",
+  verde = "#85BB85",
+  amarillo = "#EFD25E",
+  gris = "#BFBFBF",
+  naranja = "#E4A34C",
+  azul_secundario = "#7594CC",
+  morado = "#9688D3",
+  gris_secundario = "#D8D8D8",
+  blanco = "#FFFFFF"
+)
 
 .PRESETS_DEFAULT_PULSO <- list(
 
@@ -1499,26 +1521,29 @@
     formato           = "Base: %s",
     sufijo_auto       = "respuestas",
 
-    size_titulo       = 12,
-    size_subtitulo    = 9,
-    size_leyenda      = 10,
-    size_ejes         = 10,
-    size_nota_pie     = 8,
-    size_texto_barras = 4,
+    size_titulo       = 14,
+    size_titulo_slide = 24,
+    size_subtitulo    = 14,
+    size_subtitulo_slide = 16,
+    size_cuerpo_slide = 14,
+    size_leyenda      = 10.5,
+    size_ejes         = 10.5,
+    size_nota_pie     = 10,
+    size_texto_barras = 4.2,
 
-    color_titulo      = "#39588B",
-    color_subtitulo   = "#39588B",
-    color_leyenda     = "#39588B",
-    color_ejes        = "#39588B",
-    color_nota_pie    = "#39588B",
+    color_titulo      = .PULSO_PPT_COLORS$rojo,
+    color_subtitulo   = .PULSO_PPT_COLORS$verde,
+    color_leyenda     = .PULSO_PPT_COLORS$azul,
+    color_ejes        = .PULSO_PPT_COLORS$azul,
+    color_nota_pie    = .PULSO_PPT_COLORS$azul,
 
-    textos_negrita    = c("titulo", "leyenda", "barra_extra", "eje_y", "valores"),
+    textos_negrita    = c("titulo", "subtitulo", "leyenda", "barra_extra", "eje_y", "valores"),
 
     font_family       = "Arial"
   ),
 
   barras_apiladas = list(
-    color_barra_extra        = "#39588B",
+    color_barra_extra        = .PULSO_PPT_COLORS$azul,
 
     canvas_w_etiquetas       = 0.12,
     canvas_w_buf_etq_bars    = 0.02,
@@ -1547,13 +1572,13 @@
     legend_espaciado         = 15,
     legend_n_por_fila        = 6,
 
-    size_barra_extra         = 10,
-    size_titulo_extra        = 10,
+    size_barra_extra         = 10.5,
+    size_titulo_extra        = 10.5,
     ancho_max_eje_y          = 15,
     prefijo_barra_extra      = "",
 
     color_texto_barras       = "white",
-    size_titulos_grupo       = 10,
+    size_titulos_grupo       = 10.5,
     repeler_etiquetas_peq    = TRUE
   ),
 
@@ -1579,7 +1604,7 @@
     legend_n_por_fila        = 6,
 
     color_texto_barras       = "white",
-    size_titulos_grupo       = 10
+    size_titulos_grupo       = 10.5
   ),
 
   barras_agrupadas = list(
@@ -1610,8 +1635,8 @@
 	    orden_barras             = "instrumento",
 	    invertir_barras          = TRUE,
 
-    size_barra_extra         = 9,
-    colores_series           = list(Porcentaje = "#39588B")
+    size_barra_extra         = 10,
+    colores_series           = list(Porcentaje = .PULSO_PPT_COLORS$azul)
   ),
 
   barras_numericas = list(
@@ -1630,8 +1655,8 @@
     mostrar_n_sobre_barras   = TRUE,
     prefijo_n_sobre_barras   = "N = ",
     size_n_sobre_barras      = 3.6,
-    color_n_sobre_barras     = "#0B3A67",
-    colores_series           = list(Media = "#0B3A67")
+    color_n_sobre_barras     = .PULSO_PPT_COLORS$azul,
+    colores_series           = list(Media = .PULSO_PPT_COLORS$azul)
   ),
 
   pie = list(
@@ -1643,7 +1668,7 @@
     etiquetas_negrita        = TRUE,
 
     leyenda_posicion         = "abajo",
-    size_leyenda             = 11,
+    size_leyenda             = 10.5,
     tamano_key_cm            = 0.45,
     espaciado_vertical_cm    = 0.30,
     ncol_leyenda_bajo        = 2,
@@ -1655,7 +1680,7 @@
     canvas_pad_top           = 0.00,
 
     pos_titulo               = "centro",
-    size_titulo              = 13,
+    size_titulo              = 14,
 
     ordenar_categorias       = "asc"
   ),
@@ -1665,7 +1690,7 @@
     donut_hole               = 0.60,
 
     leyenda_posicion         = "derecha",
-    size_leyenda             = 11.5,
+    size_leyenda             = 10.5,
     tamano_key_cm            = 0.48,
     espaciado_vertical_cm    = 0.50,
 
@@ -1680,7 +1705,7 @@
     canvas_w_legend_right    = 0.30,
 
     pos_titulo               = "centro",
-    size_titulo              = 13
+    size_titulo              = 14
   ),
 
   radar_tabla = list(
@@ -1699,8 +1724,8 @@
     legend_n_por_fila        = 3,
     legend_key_cm            = 0.60,
     legend_espaciado         = 20,
-    size_leyenda             = 12,
-    size_ejes                = 10,
+    size_leyenda             = 10.5,
+    size_ejes                = 10.5,
     size_linea               = 1.2,
     textos_negrita           = c("ejes", "leyenda"),
 
@@ -1710,18 +1735,18 @@
     tabla_digits             = 0,
     tabla_padding_mm         = 10,
 
-    tabla_header_fill        = "#062A63",
+    tabla_header_fill        = .PULSO_PPT_COLORS$azul,
     tabla_body_fill          = "#F2F2F2",
     tabla_grid_col           = "white",
-    tabla_text_blue          = "#062A63",
+    tabla_text_blue          = .PULSO_PPT_COLORS$azul,
 
     tabla_ph_ancho           = 0.46,
     tabla_ph_gap             = 0.01,
     tabla_ph_margin_top      = 0.001,
     tabla_ph_margin_bot      = 0.001,
 
-    tabla_header_size        = 8,
-    tabla_body_size          = 7,
+    tabla_header_size        = 10,
+    tabla_body_size          = 9,
     tabla_firstcol_bold      = TRUE,
     tabla_auto_fit           = FALSE,
 

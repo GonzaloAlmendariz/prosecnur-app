@@ -1335,17 +1335,53 @@ test_that("tabla B llena solo marginales por edad y sexo", {
 
   block$entrevistas <- 5L
   quota_odd <- .hojas_ruta_reference_quota_data(block, NULL, cfg)
-  age <- hojas_ruta_inei_age_simple()
-  age <- age[as.character(age$ubigeo) == "150110", , drop = FALSE]
-  in_scope <- .hojas_ruta_age_in_defs(as.integer(age$edad), cfg$age_ranges)
-  h_pop <- sum(age$poblacion[in_scope & age$sexo == "Hombre"], na.rm = TRUE)
-  m_pop <- sum(age$poblacion[in_scope & age$sexo == "Mujer"], na.rm = TRUE)
-  winner_row <- if (m_pop > h_pop) 3L else 2L
-  other_row <- if (winner_row == 2L) 3L else 2L
-  expect_equal(as.integer(quota_odd[winner_row, ncol(quota_odd)]), 3L)
-  expect_equal(as.integer(quota_odd[other_row, ncol(quota_odd)]), 2L)
+  block_df <- as.data.frame(block, stringsAsFactors = FALSE, optional = TRUE)
+  h_pop <- 0
+  m_pop <- 0
+  for (def in cfg$age_ranges) {
+    h_pop <- h_pop + sum(.hojas_ruta_age_population(block_df, def, "Hombre"), na.rm = TRUE)
+    m_pop <- m_pop + sum(.hojas_ruta_age_population(block_df, def, "Mujer"), na.rm = TRUE)
+  }
+  block_h <- if ("poblacion_h" %in% names(block_df)) suppressWarnings(as.numeric(block_df$poblacion_h[[1]])) else NA_real_
+  block_m <- if ("poblacion_m" %in% names(block_df)) suppressWarnings(as.numeric(block_df$poblacion_m[[1]])) else NA_real_
+  sex_weights <- if (sum(c(block_h, block_m), na.rm = TRUE) > 0) {
+    c(Hombre = if (is.finite(block_h)) block_h else 0, Mujer = if (is.finite(block_m)) block_m else 0)
+  } else {
+    c(Hombre = h_pop, Mujer = m_pop)
+  }
+  expected_h <- 2L + as.integer(sex_weights[["Hombre"]] >= sex_weights[["Mujer"]])
+  expected_m <- 2L + as.integer(sex_weights[["Mujer"]] > sex_weights[["Hombre"]])
+  expect_equal(as.integer(quota_odd[2L, ncol(quota_odd)]), expected_h)
+  expect_equal(as.integer(quota_odd[3L, ncol(quota_odd)]), expected_m)
   expect_equal(sum(as.integer(quota_odd[4, age_cols])), 5L)
   expect_equal(as.integer(quota_odd[4, ncol(quota_odd)]), 5L)
+})
+
+test_that("tabla B usa poblacion etaria de cada manzana y sexo balanceado", {
+  block <- list(
+    ubigeo = "",
+    entrevistas = 8L,
+    pob_18_24_h = 100, pob_18_24_m = 20,
+    pob_25_34_h = 25, pob_25_34_m = 5,
+    pob_35_44_h = 15, pob_35_44_m = 5,
+    pob_45_54_h = 8, pob_45_54_m = 2,
+    pob_55_64_h = 1, pob_55_64_m = 4,
+    pob_65_plus_h = 1, pob_65_plus_m = 4
+  )
+  cfg <- hojas_ruta_integrada_normalize_config(list(
+    age_range_mode = "manual",
+    entrevistas_por_manzana = 8,
+    age_ranges = .hojas_ruta_age_defs_default()
+  ))
+
+  marginals <- .hojas_ruta_reference_quota_marginals(block, cfg)
+
+  expect_equal(sum(marginals$age_totals), 8L)
+  expect_equal(sum(c(marginals$hombre_total, marginals$mujer_total)), 8L)
+  expect_gt(max(marginals$age_totals), min(marginals$age_totals))
+  expect_equal(as.integer(marginals$hombre_total), 4L)
+  expect_equal(as.integer(marginals$mujer_total), 4L)
+  expect_equal(as.integer(marginals$age_totals[[1]]), 5L)
 })
 
 test_that("hojas_ruta_generar_zip_integrado produce entrega operativa plana", {
@@ -1365,7 +1401,7 @@ test_that("hojas_ruta_generar_zip_integrado produce entrega operativa plana", {
   expect_true(file.exists(out_zip))
   expect_equal(res$total_entrevistas, 24L)
   entries <- zip::zip_list(out_zip)$filename
-  expect_true("hojas_ruta_seleccionadas.xlsx" %in% entries)
+  expect_true("hojas_ruta_operativo.xlsx" %in% entries)
   expect_true("PDF_unificados/hojas_ruta_titulares_unificado.pdf" %in% entries)
   expect_true("PDF_unificados/hojas_ruta_reemplazos_unificado.pdf" %in% entries)
   expect_true(any(grepl("^Titulares/HojaRuta_INEI2017_.*[.]pdf$", entries)))
@@ -1378,20 +1414,18 @@ test_that("hojas_ruta_generar_zip_integrado produce entrega operativa plana", {
   expect_true(res$n_zones > 0L)
 
   exdir <- tempfile("hojas_ruta_zip_")
-  utils::unzip(out_zip, files = "hojas_ruta_seleccionadas.xlsx", exdir = exdir)
-  report_path <- file.path(exdir, "hojas_ruta_seleccionadas.xlsx")
+  utils::unzip(out_zip, files = "hojas_ruta_operativo.xlsx", exdir = exdir)
+  report_path <- file.path(exdir, "hojas_ruta_operativo.xlsx")
   expect_true(file.exists(report_path))
-  expect_true("Hojas_de_ruta" %in% openxlsx::getSheetNames(report_path))
-  report <- openxlsx::read.xlsx(report_path, sheet = "Hojas_de_ruta")
+  expect_setequal(openxlsx::getSheetNames(report_path), c("Resumen", "Hojas_de_ruta", "Cuotas"))
+  report <- openxlsx::read.xlsx(report_path, sheet = "Hojas_de_ruta", startRow = 6)
   expect_equal(nrow(report), res$n_blocks + res$n_replacement_blocks)
-  expect_setequal(unique(report$Tipo.de.ruta), c("TITULAR", "REEMPLAZO"))
-  replacement_report <- report[report$Tipo.de.ruta == "REEMPLAZO", , drop = FALSE]
-  expect_true(all(!is.na(replacement_report$Numero.inicio)))
-  expect_true(all(!is.na(replacement_report$Numero.fin)))
-  expect_true(any(grepl("^Remplazo de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacement_report$Etiqueta.reemplazo)))
-  zone_report <- openxlsx::read.xlsx(report_path, sheet = "Resumen_zonas")
-  expect_true(any(zone_report$manzanas_reemplazo > 0L))
-  expect_true(any(zone_report$manzanas_reemplazo > 0L & zone_report$manzanas_titulares == 0L))
+  expect_setequal(unique(report$Tipo), c("Titular", "Reemplazo"))
+  expect_true(all(!is.na(report$Rango.encuestas)))
+  expect_true(all(report$Estado == "Pendiente"))
+  replacement_report <- report[report$Tipo == "Reemplazo", , drop = FALSE]
+  expect_true(all(nzchar(replacement_report$Reemplaza.a)))
+  expect_true(any(grepl("^UMP [0-9]+ - [A-Za-z0-9_-]+$", replacement_report$Reemplaza.a)))
 })
 
 test_that("hojas_ruta_rows_df tolera NULL serializados desde frontend", {
@@ -1432,6 +1466,7 @@ test_that("hojas_ruta_write_integrated_workbook tolera metadata opcional vacia",
     NA
   )
   expect_true(file.exists(out_xlsx))
+  expect_true(all(c("Fuente", "Parametros", "Hojas_ruta_tecnica") %in% openxlsx::getSheetNames(out_xlsx)))
   fuente <- openxlsx::read.xlsx(out_xlsx, sheet = "Fuente")
   params <- openxlsx::read.xlsx(out_xlsx, sheet = "Parametros")
   expect_true(all(c("campo", "valor") %in% names(fuente)))

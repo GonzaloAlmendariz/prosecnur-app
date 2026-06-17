@@ -634,6 +634,7 @@ hojas_ruta_contexto_curado_path <- function() {
 }
 
 .hojas_ruta_inei_frame_cache <- new.env(parent = emptyenv())
+.hojas_ruta_inei_age_simple_cache <- new.env(parent = emptyenv())
 
 #' Leer el marco territorial empaquetado para hojas de ruta
 #'
@@ -651,7 +652,7 @@ hojas_ruta_inei_frame <- function(source = "current") {
     normalizePath(path, mustWork = FALSE),
     info$size %||% 0,
     as.numeric(info$mtime %||% 0),
-    "frame-v3-nse",
+    "frame-v4-nse-id-lookup",
     sep = "|"
   )
   cached <- .hojas_ruta_inei_frame_cache[[key]]
@@ -677,6 +678,8 @@ hojas_ruta_inei_frame <- function(source = "current") {
   num_cols <- grep("^(viviendas|poblacion|pob_|lat|lon)", names(df), value = TRUE)
   df <- .hojas_ruta_numeric_cols(df, num_cols)
   df <- .hojas_ruta_add_frame_ids(df)
+  df$id_manzana_strip <- sub("0$", "", trimws(as.character(df$id_manzana %||% "")))
+  df$id_manzana_norm_strip <- sub("0$", "", trimws(as.character(df$id_manzana_norm %||% df$id_manzana %||% "")))
   nse <- tryCatch(hojas_ruta_nse_inei(), error = function(e) data.frame())
   if (nrow(nse) && "id_manzana_norm" %in% names(nse) && "id_manzana_norm" %in% names(df)) {
     keep <- intersect(
@@ -702,6 +705,16 @@ hojas_ruta_inei_age_simple <- function(required = FALSE) {
     }
     return(data.frame())
   }
+  info <- file.info(path)
+  key <- paste(
+    normalizePath(path, mustWork = FALSE),
+    info$size %||% 0,
+    as.numeric(info$mtime %||% 0),
+    "age-simple-v1",
+    sep = "|"
+  )
+  cached <- .hojas_ruta_inei_age_simple_cache[[key]]
+  if (!is.null(cached)) return(cached)
   df <- utils::read.csv(
     path,
     stringsAsFactors = FALSE,
@@ -721,7 +734,9 @@ hojas_ruta_inei_age_simple <- function(required = FALSE) {
   sexo_norm <- tolower(trimws(as.character(df$sexo)))
   df$sexo <- ifelse(substr(sexo_norm, 1L, 1L) == "h" | sexo_norm %in% c("1", "male"),
                     "Hombre", "Mujer")
-  df[!is.na(df$edad) & df$edad >= 0L & !is.na(df$poblacion), , drop = FALSE]
+  df <- df[!is.na(df$edad) & df$edad >= 0L & !is.na(df$poblacion), , drop = FALSE]
+  .hojas_ruta_inei_age_simple_cache[[key]] <- df
+  df
 }
 
 .hojas_ruta_checksum <- function(path) {
@@ -6971,8 +6986,88 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
 
   age_weights <- rep(0, length(defs))
   sex_pop <- c(Hombre = 0, Mujer = 0)
+  sex_from_block <- FALSE
+  block_df <- tryCatch({
+    values <- lapply(block %||% list(), function(value) {
+      if (is.null(value) || !length(value)) return(NA)
+      if (is.data.frame(value)) return(NA)
+      if (is.list(value) && !is.atomic(value)) return(NA)
+      value[[1]]
+    })
+    as.data.frame(values, stringsAsFactors = FALSE, optional = TRUE)
+  }, error = function(e) data.frame())
+  age_sources <- .hojas_ruta_age_sources()
+  age_source_cols <- unique(c(age_sources$h_col, age_sources$m_col))
+  block_age_cols <- intersect(age_source_cols, names(block_df))
+  has_block_age <- length(block_age_cols) > 0L &&
+    sum(suppressWarnings(as.numeric(unlist(block_df[block_age_cols], use.names = FALSE))), na.rm = TRUE) > 0
+  block_h <- if ("poblacion_h" %in% names(block_df)) suppressWarnings(as.numeric(block_df$poblacion_h[[1]])) else NA_real_
+  block_m <- if ("poblacion_m" %in% names(block_df)) suppressWarnings(as.numeric(block_df$poblacion_m[[1]])) else NA_real_
+  if (sum(c(block_h, block_m), na.rm = TRUE) > 0) {
+    sex_pop["Hombre"] <- if (is.finite(block_h)) block_h else 0
+    sex_pop["Mujer"] <- if (is.finite(block_m)) block_m else 0
+    sex_from_block <- TRUE
+  }
+  if (has_block_age) {
+    sex_pop[] <- 0
+    sex_from_block <- TRUE
+    for (i in seq_along(defs)) {
+      age_weights[[i]] <- sum(.hojas_ruta_age_population(block_df, defs[[i]], "Total"), na.rm = TRUE)
+      sex_pop["Hombre"] <- sex_pop["Hombre"] + sum(.hojas_ruta_age_population(block_df, defs[[i]], "Hombre"), na.rm = TRUE)
+      sex_pop["Mujer"] <- sex_pop["Mujer"] + sum(.hojas_ruta_age_population(block_df, defs[[i]], "Mujer"), na.rm = TRUE)
+    }
+  }
+
+  frame <- data.frame()
+  if (sum(age_weights, na.rm = TRUE) <= 0) {
+    frame <- tryCatch(hojas_ruta_inei_frame(), error = function(e) data.frame())
+    block_id <- trimws(as.character(block$id_manzana %||% ""))
+    block_id_norm <- ""
+    if (nzchar(ubigeo)) {
+      block_id_norm <- tryCatch(
+        .hojas_ruta_normalize_id_manzana(ubigeo, block$zona %||% "", block$manzana %||% ""),
+        error = function(e) ""
+      )
+    }
+    id_variants <- unique(c(block_id, sub("0$", "", block_id), block_id_norm, sub("0$", "", block_id_norm)))
+    id_variants <- id_variants[!is.na(id_variants) & nzchar(id_variants)]
+    if (nrow(frame) && length(id_variants)) {
+      id_cols <- intersect(c("id_manzana", "id_manzana_norm", "id_manzana_strip", "id_manzana_norm_strip"), names(frame))
+      frame_block <- data.frame()
+      for (col in id_cols) {
+        hit <- match(id_variants, as.character(frame[[col]]), nomatch = 0L)
+        hit <- hit[hit > 0L]
+        if (length(hit)) {
+          frame_block <- frame[hit[[1]], , drop = FALSE]
+          break
+        }
+      }
+      if (nrow(frame_block)) {
+        frame_h <- if ("poblacion_h" %in% names(frame_block)) suppressWarnings(as.numeric(frame_block$poblacion_h[[1]])) else NA_real_
+        frame_m <- if ("poblacion_m" %in% names(frame_block)) suppressWarnings(as.numeric(frame_block$poblacion_m[[1]])) else NA_real_
+        if (sum(c(frame_h, frame_m), na.rm = TRUE) > 0) {
+          sex_pop["Hombre"] <- if (is.finite(frame_h)) frame_h else 0
+          sex_pop["Mujer"] <- if (is.finite(frame_m)) frame_m else 0
+          sex_from_block <- TRUE
+        }
+        if (length(intersect(age_source_cols, names(frame_block))) > 0L &&
+            sum(suppressWarnings(as.numeric(unlist(frame_block[intersect(age_source_cols, names(frame_block))], use.names = FALSE))), na.rm = TRUE) > 0) {
+          sex_pop[] <- 0
+          sex_from_block <- TRUE
+        }
+        for (i in seq_along(defs)) {
+          age_weights[[i]] <- sum(.hojas_ruta_age_population(frame_block, defs[[i]], "Total"), na.rm = TRUE)
+          if (sum(age_weights, na.rm = TRUE) > 0) {
+            sex_pop["Hombre"] <- sex_pop["Hombre"] + sum(.hojas_ruta_age_population(frame_block, defs[[i]], "Hombre"), na.rm = TRUE)
+            sex_pop["Mujer"] <- sex_pop["Mujer"] + sum(.hojas_ruta_age_population(frame_block, defs[[i]], "Mujer"), na.rm = TRUE)
+          }
+        }
+      }
+    }
+  }
+
   age <- tryCatch(hojas_ruta_inei_age_simple(), error = function(e) data.frame())
-  if (nrow(age) && nzchar(ubigeo) && ubigeo %in% as.character(age$ubigeo)) {
+  if (sum(age_weights, na.rm = TRUE) <= 0 && nrow(age) && nzchar(ubigeo) && ubigeo %in% as.character(age$ubigeo)) {
     age_district <- age[as.character(age$ubigeo) == ubigeo, , drop = FALSE]
     for (i in seq_along(defs)) {
       req_min <- as.integer(defs[[i]]$min %||% 0L)
@@ -6985,17 +7080,22 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
         na.rm = TRUE
       )
     }
-    in_scope <- .hojas_ruta_age_in_defs(as.integer(age_district$edad), defs)
-    sex_pop["Hombre"] <- sum(age_district$poblacion[in_scope & age_district$sexo == "Hombre"], na.rm = TRUE)
-    sex_pop["Mujer"] <- sum(age_district$poblacion[in_scope & age_district$sexo == "Mujer"], na.rm = TRUE)
-  } else {
-    frame <- tryCatch(hojas_ruta_inei_frame(), error = function(e) data.frame())
+    if (!isTRUE(sex_from_block)) {
+      sex_pop[] <- 0
+      in_scope <- .hojas_ruta_age_in_defs(as.integer(age_district$edad), defs)
+      sex_pop["Hombre"] <- sum(age_district$poblacion[in_scope & age_district$sexo == "Hombre"], na.rm = TRUE)
+      sex_pop["Mujer"] <- sum(age_district$poblacion[in_scope & age_district$sexo == "Mujer"], na.rm = TRUE)
+    }
+  } else if (sum(age_weights, na.rm = TRUE) <= 0) {
     if (nrow(frame) && nzchar(ubigeo)) frame <- frame[as.character(frame$ubigeo) == ubigeo, , drop = FALSE]
     if (nrow(frame)) {
+      if (!isTRUE(sex_from_block)) sex_pop[] <- 0
       for (i in seq_along(defs)) {
         age_weights[[i]] <- sum(.hojas_ruta_age_population(frame, defs[[i]], "Total"), na.rm = TRUE)
-        sex_pop["Hombre"] <- sex_pop["Hombre"] + sum(.hojas_ruta_age_population(frame, defs[[i]], "Hombre"), na.rm = TRUE)
-        sex_pop["Mujer"] <- sex_pop["Mujer"] + sum(.hojas_ruta_age_population(frame, defs[[i]], "Mujer"), na.rm = TRUE)
+        if (!isTRUE(sex_from_block)) {
+          sex_pop["Hombre"] <- sex_pop["Hombre"] + sum(.hojas_ruta_age_population(frame, defs[[i]], "Hombre"), na.rm = TRUE)
+          sex_pop["Mujer"] <- sex_pop["Mujer"] + sum(.hojas_ruta_age_population(frame, defs[[i]], "Mujer"), na.rm = TRUE)
+        }
       }
     }
   }
@@ -7005,8 +7105,11 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   hombre_total <- entrevistas %/% 2L
   mujer_total <- entrevistas %/% 2L
   if (entrevistas %% 2L == 1L) {
-    if (sex_pop[["Mujer"]] > sex_pop[["Hombre"]]) mujer_total <- mujer_total + 1L
-    else hombre_total <- hombre_total + 1L
+    if (sum(sex_pop, na.rm = TRUE) > 0 && sex_pop[["Mujer"]] > sex_pop[["Hombre"]]) {
+      mujer_total <- mujer_total + 1L
+    } else {
+      hombre_total <- hombre_total + 1L
+    }
   }
   list(
     defs = defs,
@@ -8724,40 +8827,502 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   )
 }
 
+.hojas_ruta_prepare_delivery_sample <- function(config = list(), sample_override = NULL) {
+  sample <- if (!is.null(sample_override) && is.list(sample_override)) {
+    sample_override
+  } else {
+    hojas_ruta_sample_preview_integrado(config)
+  }
+  sample$config <- hojas_ruta_integrada_normalize_config(sample$config %||% config)
+  blocks_prepared <- .hojas_ruta_add_operational_values(
+    .hojas_ruta_rows_df(sample$blocks %||% list()),
+    sample$config
+  )
+  blocks_prepared <- .hojas_ruta_blocks_with_route_ranges(blocks_prepared)
+  replacement_blocks_prepared <- .hojas_ruta_add_operational_values(
+    .hojas_ruta_rows_df(sample$replacement_blocks %||% list()),
+    sample$config
+  )
+  replacement_blocks_prepared <- .hojas_ruta_apply_replacement_route_ranges(
+    replacement_blocks_prepared,
+    blocks_prepared
+  )
+  replacement_blocks_prepared <- .hojas_ruta_order_replacements(replacement_blocks_prepared)
+  sample$blocks <- .hojas_ruta_df_rows(blocks_prepared)
+  sample$replacement_blocks <- .hojas_ruta_df_rows(replacement_blocks_prepared)
+  sample
+}
+
+.hojas_ruta_require_delivery_sample <- function(sample) {
+  if (!isTRUE(sample$ok)) {
+    blocking <- Filter(function(x) identical(x$level, "error"), sample$alerts %||% list())
+    message <- if (length(blocking)) {
+      as.character(blocking[[1]]$message %||% "La seleccion de manzanas no esta lista para generar hojas de ruta.")
+    } else {
+      "La seleccion de manzanas no esta lista para generar hojas de ruta."
+    }
+    stop(message, call. = FALSE)
+  }
+  validation <- .hojas_ruta_validate_delivery_sample(sample)
+  if (!isTRUE(validation$ok)) {
+    sample$alerts <- c(sample$alerts %||% list(), validation$alerts)
+    first <- validation$alerts[[1]]
+    stop(as.character(first$message %||% "La validacion integral de hojas de ruta fallo."), call. = FALSE)
+  }
+  sample
+}
+
+.hojas_ruta_col <- function(df, name, default = NA) {
+  if (is.null(df) || !nrow(df)) return(vector(typeof(default), 0L))
+  if (name %in% names(df)) return(df[[name]])
+  rep(default, nrow(df))
+}
+
+.hojas_ruta_clean_text <- function(x, default = "") {
+  if (is.null(x) || !length(x)) return(default)
+  value <- x[[1]]
+  if (is.null(value) || !length(value) || is.na(value)) return(default)
+  value <- trimws(as.character(value))
+  if (!nzchar(value)) default else value
+}
+
+.hojas_ruta_clean_int <- function(x, default = NA_integer_) {
+  value <- suppressWarnings(as.integer(x))
+  if (!length(value) || is.na(value[[1]])) return(as.integer(default))
+  as.integer(value[[1]])
+}
+
+.hojas_ruta_clean_num <- function(x, default = NA_real_) {
+  value <- suppressWarnings(as.numeric(x))
+  if (!length(value) || is.na(value[[1]])) return(as.numeric(default))
+  as.numeric(value[[1]])
+}
+
+.hojas_ruta_range_text <- function(start, end) {
+  start <- .hojas_ruta_clean_int(start)
+  end <- .hojas_ruta_clean_int(end)
+  if (is.na(start) && is.na(end)) return("")
+  if (is.na(end) || identical(start, end)) return(as.character(start))
+  sprintf("%d-%d", start, end)
+}
+
+.hojas_ruta_workbook_method_label <- function(method) {
+  method <- .hojas_ruta_clean_text(method)
+  switch(
+    method,
+    pps = "PPS",
+    sistematico = "Sistematico",
+    conglomerado_fijo = "Conglomerado fijo",
+    method
+  )
+}
+
+.hojas_ruta_workbook_replacement_policy_label <- function(policy) {
+  policy <- .hojas_ruta_clean_text(policy)
+  switch(
+    policy,
+    paired_by_titular_zone = "Misma zona que el titular",
+    alternate_zone_same_district = "Otra zona del mismo distrito",
+    policy
+  )
+}
+
+.hojas_ruta_workbook_route_start <- function(block) {
+  esquina <- .hojas_ruta_clean_text(block$esquina_coordenada %||% block$esquina_inicio)
+  recorrido <- .hojas_ruta_clean_text(block$sentido_recorrido)
+  parts <- character(0)
+  if (nzchar(esquina)) parts <- c(parts, paste("Esquina", esquina))
+  if (nzchar(recorrido)) parts <- c(parts, paste("Recorrido", recorrido))
+  paste(parts, collapse = " / ")
+}
+
+.hojas_ruta_workbook_ump_number <- function(block, tipo = c("titular", "reemplazo")) {
+  tipo <- match.arg(tipo)
+  if (identical(tipo, "reemplazo")) {
+    ump <- .hojas_ruta_clean_int(block$titular_hoja_num)
+    if (!is.na(ump)) return(ump)
+  }
+  .hojas_ruta_clean_int(block$hoja_num %||% block$orden_seleccion)
+}
+
+.hojas_ruta_workbook_replaces_label <- function(block) {
+  titular_id <- .hojas_ruta_clean_text(block$titular_id_manzana)
+  titular_ump <- .hojas_ruta_clean_int(block$titular_hoja_num)
+  if (!nzchar(titular_id) && is.na(titular_ump)) return("")
+  parts <- character(0)
+  if (!is.na(titular_ump)) parts <- c(parts, sprintf("UMP %d", titular_ump))
+  if (nzchar(titular_id)) parts <- c(parts, titular_id)
+  paste(parts, collapse = " - ")
+}
+
+.hojas_ruta_workbook_row <- function(block, tipo = c("titular", "reemplazo")) {
+  tipo <- match.arg(tipo)
+  ump <- .hojas_ruta_workbook_ump_number(block, tipo)
+  data.frame(
+    Ruta = ump,
+    Distrito = .hojas_ruta_title_case(.hojas_ruta_clean_text(block$distrito)),
+    Zona = .hojas_ruta_clean_text(block$zona),
+    Manzana = .hojas_ruta_clean_text(block$manzana),
+    `Codigo manzana` = .hojas_ruta_clean_text(block$id_manzana),
+    Tipo = if (identical(tipo, "reemplazo")) "Reemplazo" else "Titular",
+    `Reemplaza a` = if (identical(tipo, "reemplazo")) .hojas_ruta_workbook_replaces_label(block) else "",
+    `Rango encuestas` = .hojas_ruta_range_text(block$rango_inicio, block$rango_fin),
+    Encuestas = .hojas_ruta_clean_int(block$entrevistas),
+    UMP = if (!is.na(ump)) sprintf("UMP %d", ump) else "",
+    Aplicador = "",
+    Estado = "Pendiente",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+}
+
+.hojas_ruta_operational_route_table <- function(sample) {
+  blocks <- .hojas_ruta_rows_df(sample$blocks %||% list())
+  replacements <- .hojas_ruta_order_replacements(.hojas_ruta_rows_df(sample$replacement_blocks %||% list()))
+  if (!nrow(blocks)) return(data.frame())
+  ord <- order(
+    as.character(.hojas_ruta_col(blocks, "ubigeo", "")),
+    as.character(.hojas_ruta_col(blocks, "zona", "")),
+    suppressWarnings(as.integer(.hojas_ruta_col(blocks, "rango_inicio", .Machine$integer.max))),
+    suppressWarnings(as.integer(.hojas_ruta_col(blocks, "hoja_num", .Machine$integer.max))),
+    as.character(.hojas_ruta_col(blocks, "id_manzana", ""))
+  )
+  blocks <- blocks[ord, , drop = FALSE]
+  rows <- list()
+  attached_replacements <- rep(FALSE, nrow(replacements))
+  for (i in seq_len(nrow(blocks))) {
+    block <- as.list(blocks[i, , drop = FALSE])
+    block[] <- lapply(block, function(x) x[[1]])
+    rows[[length(rows) + 1L]] <- .hojas_ruta_workbook_row(block, "titular")
+    if (nrow(replacements) && "titular_id_manzana" %in% names(replacements)) {
+      idx <- which(as.character(replacements$titular_id_manzana) == as.character(block$id_manzana))
+      if (length(idx)) {
+        for (j in idx) {
+          repl <- as.list(replacements[j, , drop = FALSE])
+          repl[] <- lapply(repl, function(x) x[[1]])
+          rows[[length(rows) + 1L]] <- .hojas_ruta_workbook_row(repl, "reemplazo")
+        }
+        attached_replacements[idx] <- TRUE
+      }
+    }
+  }
+  if (nrow(replacements) && any(!attached_replacements)) {
+    for (j in which(!attached_replacements)) {
+      repl <- as.list(replacements[j, , drop = FALSE])
+      repl[] <- lapply(repl, function(x) x[[1]])
+      rows[[length(rows) + 1L]] <- .hojas_ruta_workbook_row(repl, "reemplazo")
+    }
+  }
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  survey_count <- max(1L, .hojas_ruta_route_size(sample$config))
+  encuestas <- suppressWarnings(as.integer(out$Encuestas))
+  encuestas[is.na(encuestas)] <- 0L
+  for (slot in seq_len(survey_count)) {
+    out[[sprintf("Encuesta %d", slot)]] <- ifelse(encuestas >= slot, "Pendiente", "")
+  }
+  out
+}
+
+.hojas_ruta_workbook_district_summary <- function(sample) {
+  blocks <- .hojas_ruta_rows_df(sample$blocks %||% list())
+  replacements <- .hojas_ruta_rows_df(sample$replacement_blocks %||% list())
+  districts <- unique(c(
+    as.character(.hojas_ruta_col(blocks, "distrito", "")),
+    as.character(.hojas_ruta_col(replacements, "distrito", ""))
+  ))
+  districts <- districts[nzchar(districts)]
+  if (!length(districts)) return(data.frame())
+  rows <- lapply(districts, function(district) {
+    b <- blocks[as.character(.hojas_ruta_col(blocks, "distrito", "")) == district, , drop = FALSE]
+    r <- replacements[as.character(.hojas_ruta_col(replacements, "distrito", "")) == district, , drop = FALSE]
+    zonas <- unique(c(
+      paste(as.character(.hojas_ruta_col(b, "ubigeo", "")), as.character(.hojas_ruta_col(b, "zona", "")), sep = "-"),
+      paste(as.character(.hojas_ruta_col(r, "ubigeo", "")), as.character(.hojas_ruta_col(r, "zona", "")), sep = "-")
+    ))
+    zonas <- zonas[nzchar(gsub("[-[:space:]]", "", zonas))]
+    data.frame(
+      Distrito = .hojas_ruta_title_case(district),
+      Titulares = as.integer(nrow(b)),
+      Reemplazos = as.integer(nrow(r)),
+      `Encuestas titulares` = as.integer(sum(suppressWarnings(as.integer(.hojas_ruta_col(b, "entrevistas", 0L))), na.rm = TRUE)),
+      `Encuestas reemplazo` = as.integer(sum(suppressWarnings(as.integer(.hojas_ruta_col(r, "entrevistas", 0L))), na.rm = TRUE)),
+      Zonas = as.integer(length(zonas)),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  })
+  out <- do.call(rbind, rows)
+  out <- out[order(out$Distrito), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+.hojas_ruta_workbook_zone_count <- function(blocks, replacements) {
+  zonas <- unique(c(
+    paste(as.character(.hojas_ruta_col(blocks, "ubigeo", "")), as.character(.hojas_ruta_col(blocks, "zona", "")), sep = "-"),
+    paste(as.character(.hojas_ruta_col(replacements, "ubigeo", "")), as.character(.hojas_ruta_col(replacements, "zona", "")), sep = "-")
+  ))
+  zonas <- zonas[nzchar(gsub("[-[:space:]]", "", zonas))]
+  length(zonas)
+}
+
+.hojas_ruta_workbook_quota_table <- function(sample) {
+  quota_table <- .hojas_ruta_rows_df(sample$quota$table %||% list())
+  if (!nrow(quota_table)) return(quota_table)
+  rename <- c(
+    territorio = "Territorio",
+    sexo = "Sexo",
+    TOTAL = "Total"
+  )
+  for (old in intersect(names(rename), names(quota_table))) {
+    names(quota_table)[names(quota_table) == old] <- rename[[old]]
+  }
+  quota_table
+}
+
+.hojas_ruta_workbook_alerts <- function(sample) {
+  alerts <- .hojas_ruta_rows_df(sample$alerts %||% list())
+  if (!nrow(alerts)) {
+    return(data.frame(Estado = "Sin alertas", Mensaje = "La seleccion no tiene alertas bloqueantes.", stringsAsFactors = FALSE))
+  }
+  keep <- intersect(c("level", "code", "message"), names(alerts))
+  alerts <- alerts[, keep, drop = FALSE]
+  names(alerts) <- c(level = "Nivel", code = "Codigo", message = "Mensaje")[names(alerts)]
+  alerts
+}
+
+.hojas_ruta_workbook_source <- function(sample) {
+  meta <- .hojas_ruta_key_value_table(sample$frame_meta, drop = "methods")
+  keep <- meta$campo %in% c("source", "year", "version", "packaged_at", "checksum", "coverage", "granularity")
+  meta <- meta[keep, , drop = FALSE]
+  labels <- c(
+    source = "Fuente",
+    year = "Anio",
+    version = "Version",
+    packaged_at = "Empaquetado",
+    checksum = "Checksum",
+    coverage = "Cobertura",
+    granularity = "Granularidad"
+  )
+  meta$campo <- ifelse(meta$campo %in% names(labels), labels[meta$campo], meta$campo)
+  names(meta) <- c("Campo", "Valor")
+  meta
+}
+
+.hojas_ruta_workbook_styles <- function() {
+  list(
+    title = openxlsx::createStyle(fontSize = 16, textDecoration = "bold", fontColour = "#002457"),
+    subtitle = openxlsx::createStyle(fontSize = 10, fontColour = "#5F6B7A", wrapText = TRUE),
+    header = openxlsx::createStyle(
+      fgFill = "#002457", fontColour = "#FFFFFF", textDecoration = "bold",
+      halign = "center", valign = "center", wrapText = TRUE,
+      border = "TopBottomLeftRight", borderColour = "#B7C5D8"
+    ),
+    body = openxlsx::createStyle(
+      valign = "top", wrapText = TRUE,
+      border = "TopBottomLeftRight", borderColour = "#D9E2EF"
+    ),
+    titular = openxlsx::createStyle(
+      fgFill = "#DCEEFF", valign = "top", wrapText = TRUE,
+      border = "TopBottomLeftRight", borderColour = "#B7C5D8"
+    ),
+    replacement = openxlsx::createStyle(
+      fgFill = "#FFF2CC", valign = "top", wrapText = TRUE,
+      border = "TopBottomLeftRight", borderColour = "#E7C968"
+    ),
+    bold = openxlsx::createStyle(textDecoration = "bold"),
+    number = openxlsx::createStyle(numFmt = "#,##0"),
+    legend_titular = openxlsx::createStyle(fgFill = "#DCEEFF", textDecoration = "bold", border = "TopBottomLeftRight", borderColour = "#B7C5D8"),
+    legend_replacement = openxlsx::createStyle(fgFill = "#FFF2CC", textDecoration = "bold", border = "TopBottomLeftRight", borderColour = "#E7C968")
+  )
+}
+
+.hojas_ruta_style_table <- function(wb, sheet, df, start_row, styles,
+                                    titular_rows = integer(0), replacement_rows = integer(0),
+                                    widths = "auto", freeze = TRUE) {
+  if (!ncol(df)) return(invisible(NULL))
+  openxlsx::writeData(wb, sheet, df, startRow = start_row, withFilter = nrow(df) > 0L)
+  openxlsx::addStyle(wb, sheet, styles$header, rows = start_row, cols = seq_len(ncol(df)), gridExpand = TRUE, stack = TRUE)
+  if (nrow(df)) {
+    body_rows <- seq(start_row + 1L, start_row + nrow(df))
+    openxlsx::addStyle(wb, sheet, styles$body, rows = body_rows, cols = seq_len(ncol(df)), gridExpand = TRUE, stack = TRUE)
+    if (length(titular_rows)) {
+      openxlsx::addStyle(wb, sheet, styles$titular, rows = titular_rows, cols = seq_len(ncol(df)), gridExpand = TRUE, stack = TRUE)
+    }
+    if (length(replacement_rows)) {
+      openxlsx::addStyle(wb, sheet, styles$replacement, rows = replacement_rows, cols = seq_len(ncol(df)), gridExpand = TRUE, stack = TRUE)
+    }
+    numeric_cols <- which(vapply(df, is.numeric, logical(1)))
+    if (length(numeric_cols)) {
+      openxlsx::addStyle(wb, sheet, styles$number, rows = body_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
+    }
+  }
+  if (isTRUE(freeze)) openxlsx::freezePane(wb, sheet, firstActiveRow = start_row + 1L)
+  if (length(widths) == 1L && identical(widths, "auto")) {
+    openxlsx::setColWidths(wb, sheet, cols = seq_len(ncol(df)), widths = "auto")
+  } else {
+    openxlsx::setColWidths(wb, sheet, cols = seq_len(min(ncol(df), length(widths))), widths = widths[seq_len(min(ncol(df), length(widths)))])
+    if (ncol(df) > length(widths)) {
+      openxlsx::setColWidths(wb, sheet, cols = (length(widths) + 1L):ncol(df), widths = "auto")
+    }
+  }
+  invisible(NULL)
+}
+
+.hojas_ruta_add_status_validation <- function(wb, sheet, df, start_row) {
+  if (is.null(df) || !nrow(df) || !"Estado" %in% names(df)) return(invisible(NULL))
+  estado_col <- match("Estado", names(df))
+  body_rows <- seq(start_row + 1L, start_row + nrow(df))
+  tryCatch(
+    openxlsx::dataValidation(
+      wb,
+      sheet,
+      cols = estado_col,
+      rows = body_rows,
+      type = "list",
+      value = '"Pendiente,Finalizado,Reemplazado"'
+    ),
+    error = function(e) NULL
+  )
+  invisible(NULL)
+}
+
+.hojas_ruta_add_survey_validation <- function(wb, sheet, df, start_row) {
+  if (is.null(df) || !nrow(df)) return(invisible(NULL))
+  survey_cols <- grep("^Encuesta [0-9]+$", names(df))
+  if (!length(survey_cols)) return(invisible(NULL))
+  body_rows <- seq(start_row + 1L, start_row + nrow(df))
+  for (col in survey_cols) {
+    tryCatch(
+      openxlsx::dataValidation(
+        wb,
+        sheet,
+        cols = col,
+        rows = body_rows,
+        type = "list",
+        value = '"Pendiente,Listo"'
+      ),
+      error = function(e) NULL
+    )
+  }
+  invisible(NULL)
+}
+
 .hojas_ruta_write_integrated_workbook <- function(sample, path, technical = FALSE,
                                                  route_report = NULL) {
-  wb <- openxlsx::createWorkbook()
-  route_report <- .hojas_ruta_rows_df(route_report %||% list())
-  if (nrow(route_report)) {
-    openxlsx::addWorksheet(wb, "Hojas_de_ruta")
-    openxlsx::writeData(wb, "Hojas_de_ruta", route_report, withFilter = TRUE)
-  }
-  meta <- .hojas_ruta_key_value_table(sample$frame_meta, drop = "methods")
-  openxlsx::addWorksheet(wb, "Fuente")
-  openxlsx::writeData(wb, "Fuente", meta, withFilter = TRUE)
-  quota_cells <- .hojas_ruta_rows_df(sample$quota$cells)
-  quota_table <- .hojas_ruta_rows_df(sample$quota$table)
-  blocks <- .hojas_ruta_rows_df(sample$blocks)
+  wb <- openxlsx::createWorkbook(creator = "Prosecnur")
+  styles <- .hojas_ruta_workbook_styles()
+  blocks <- .hojas_ruta_rows_df(sample$blocks %||% list())
   replacement_blocks <- .hojas_ruta_rows_df(sample$replacement_blocks %||% list())
-  zone_summary <- .hojas_ruta_zone_summary(sample)
-  alerts <- .hojas_ruta_rows_df(sample$alerts)
-  openxlsx::addWorksheet(wb, "Cuotas")
-  openxlsx::writeData(wb, "Cuotas", quota_table)
-  openxlsx::addWorksheet(wb, "Cuotas_detalle")
-  openxlsx::writeData(wb, "Cuotas_detalle", quota_cells)
-  openxlsx::addWorksheet(wb, "Manzanas")
-  openxlsx::writeData(wb, "Manzanas", blocks)
-  openxlsx::addWorksheet(wb, "Reemplazos")
-  if (nrow(replacement_blocks)) {
-    openxlsx::writeData(wb, "Reemplazos", replacement_blocks)
-  } else {
-    openxlsx::writeData(wb, "Reemplazos", "Sin manzanas de reemplazo configuradas.")
+  routes <- .hojas_ruta_operational_route_table(sample)
+  district_summary <- .hojas_ruta_workbook_district_summary(sample)
+  quota_table <- .hojas_ruta_workbook_quota_table(sample)
+  generated_at <- format(Sys.time(), "%Y-%m-%d %H:%M")
+  route_size <- .hojas_ruta_route_size(sample$config)
+  route_sheet_cols <- max(12L + route_size, ncol(routes))
+
+  openxlsx::addWorksheet(wb, "Resumen", gridLines = FALSE)
+  openxlsx::writeData(wb, "Resumen", "Excel operativo de hojas de ruta", startRow = 1, startCol = 1)
+  openxlsx::mergeCells(wb, "Resumen", cols = 1:6, rows = 1)
+  openxlsx::addStyle(wb, "Resumen", styles$title, rows = 1, cols = 1, stack = TRUE)
+  openxlsx::writeData(
+    wb,
+    "Resumen",
+    sprintf("Titulares en azul, reemplazos en amarillo. Generado: %s.", generated_at),
+    startRow = 2,
+    startCol = 1
+  )
+  openxlsx::mergeCells(wb, "Resumen", cols = 1:6, rows = 2)
+  openxlsx::addStyle(wb, "Resumen", styles$subtitle, rows = 2, cols = 1, stack = TRUE)
+  metrics <- data.frame(
+    Indicador = c(
+      "Titulares",
+      "Reemplazos",
+      "Encuestas titulares",
+      "Encuestas de reemplazo",
+      "Distritos",
+      "Zonas",
+      "Encuestas por UMP",
+      "Primer tramo",
+      "Segundo tramo"
+    ),
+    Valor = c(
+      as.character(nrow(blocks)),
+      as.character(nrow(replacement_blocks)),
+      as.character(sum(suppressWarnings(as.integer(.hojas_ruta_col(blocks, "entrevistas", 0L))), na.rm = TRUE)),
+      as.character(sum(suppressWarnings(as.integer(.hojas_ruta_col(replacement_blocks, "entrevistas", 0L))), na.rm = TRUE)),
+      as.character(length(unique(as.character(.hojas_ruta_col(blocks, "ubigeo", ""))))),
+      as.character(.hojas_ruta_workbook_zone_count(blocks, replacement_blocks)),
+      as.character(route_size),
+      sprintf("UMP 1: encuestas 1-%d", route_size),
+      sprintf("UMP 2: encuestas %d-%d", route_size + 1L, route_size * 2L)
+    ),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  .hojas_ruta_style_table(wb, "Resumen", metrics, 4L, styles, widths = c(28, 34), freeze = FALSE)
+  if (nrow(district_summary)) {
+    openxlsx::writeData(wb, "Resumen", "Resumen por distrito", startRow = 18, startCol = 1)
+    openxlsx::addStyle(wb, "Resumen", styles$title, rows = 18, cols = 1, stack = TRUE)
+    .hojas_ruta_style_table(wb, "Resumen", district_summary, 20L, styles, widths = c(24, 12, 12, 20, 20, 10), freeze = FALSE)
   }
-  openxlsx::addWorksheet(wb, "Resumen_zonas")
-  openxlsx::writeData(wb, "Resumen_zonas", zone_summary)
-  openxlsx::addWorksheet(wb, "Alertas")
-  if (nrow(alerts)) openxlsx::writeData(wb, "Alertas", alerts) else openxlsx::writeData(wb, "Alertas", "Sin alertas.")
+
+  openxlsx::addWorksheet(wb, "Hojas_de_ruta", gridLines = FALSE)
+  openxlsx::writeData(wb, "Hojas_de_ruta", "Hojas de ruta para campo", startRow = 1, startCol = 1)
+  openxlsx::mergeCells(wb, "Hojas_de_ruta", cols = seq_len(route_sheet_cols), rows = 1)
+  openxlsx::addStyle(wb, "Hojas_de_ruta", styles$title, rows = 1, cols = 1, stack = TRUE)
+  openxlsx::writeData(
+    wb,
+    "Hojas_de_ruta",
+    sprintf(
+      "%d titulares · %d reemplazos · %d encuestas por UMP · use Estado para marcar Pendiente, Finalizado o Reemplazado.",
+      nrow(blocks),
+      nrow(replacement_blocks),
+      route_size
+    ),
+    startRow = 2,
+    startCol = 1
+  )
+  openxlsx::mergeCells(wb, "Hojas_de_ruta", cols = seq_len(route_sheet_cols), rows = 2)
+  openxlsx::addStyle(wb, "Hojas_de_ruta", styles$subtitle, rows = 2, cols = 1, stack = TRUE)
+  openxlsx::writeData(wb, "Hojas_de_ruta", data.frame(Titular = "Titular", Reemplazo = "Reemplazo", stringsAsFactors = FALSE), startRow = 4, startCol = 1, colNames = FALSE)
+  openxlsx::addStyle(wb, "Hojas_de_ruta", styles$legend_titular, rows = 4, cols = 1, stack = TRUE)
+  openxlsx::addStyle(wb, "Hojas_de_ruta", styles$legend_replacement, rows = 4, cols = 2, stack = TRUE)
+  if (nrow(routes)) {
+    start_row <- 6L
+    titular_rows <- which(routes$Tipo == "Titular") + start_row
+    replacement_rows <- which(routes$Tipo == "Reemplazo") + start_row
+    .hojas_ruta_style_table(
+      wb,
+      "Hojas_de_ruta",
+      routes,
+      start_row,
+      styles,
+      titular_rows = titular_rows,
+      replacement_rows = replacement_rows,
+      widths = c(8, 18, 10, 12, 24, 13, 24, 16, 11, 11, 18, 15, rep(13, route_size))
+    )
+    .hojas_ruta_add_status_validation(wb, "Hojas_de_ruta", routes, start_row)
+    .hojas_ruta_add_survey_validation(wb, "Hojas_de_ruta", routes, start_row)
+  } else {
+    openxlsx::writeData(wb, "Hojas_de_ruta", "Sin manzanas seleccionadas.", startRow = 6, startCol = 1)
+  }
+
+  openxlsx::addWorksheet(wb, "Cuotas", gridLines = FALSE)
+  if (nrow(quota_table)) {
+    openxlsx::writeData(wb, "Cuotas", "Cuotas por perfil", startRow = 1, startCol = 1)
+    openxlsx::addStyle(wb, "Cuotas", styles$title, rows = 1, cols = 1, stack = TRUE)
+    .hojas_ruta_style_table(wb, "Cuotas", quota_table, 3L, styles)
+  } else {
+    openxlsx::writeData(wb, "Cuotas", "Sin cuotas calculadas.", startRow = 1, startCol = 1)
+  }
+
   if (isTRUE(technical)) {
+    route_report <- .hojas_ruta_rows_df(route_report %||% list())
+    quota_cells <- .hojas_ruta_rows_df(sample$quota$cells %||% list())
+    zone_summary <- tryCatch(.hojas_ruta_zone_summary(sample), error = function(e) data.frame())
+    sample_size <- sample$config$sample_size %||% list()
     param_values <- list(
       n_objetivo = sample$config$n_objetivo,
       metodo = sample$config$sampling_method,
@@ -8779,13 +9344,13 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       base_rangos_edad = sample$config$age_range_scope %||% "selected",
       asignacion_zonas = sample$config$zone_allocation %||% "proportional",
       modo_tamano_muestra = sample$config$sample_size_mode,
-      confianza = sample$config$sample_size$confidence_level,
-      margen_total = sample$config$sample_size$margin_total,
-      margen_distrito = sample$config$sample_size$margin_district,
-      proporcion_esperada = sample$config$sample_size$expected_proportion,
-      efecto_diseno = sample$config$sample_size$design_effect,
-      respuesta_esperada = sample$config$sample_size$response_rate,
-      ajuste_poblacion_finita = sample$config$sample_size$apply_fpc
+      confianza = sample_size$confidence_level,
+      margen_total = sample_size$margin_total,
+      margen_distrito = sample_size$margin_district,
+      proporcion_esperada = sample_size$expected_proportion,
+      efecto_diseno = sample_size$design_effect,
+      respuesta_esperada = sample_size$response_rate,
+      ajuste_poblacion_finita = sample_size$apply_fpc
     )
     params <- data.frame(
       parametro = names(param_values),
@@ -8793,14 +9358,47 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       stringsAsFactors = FALSE,
       check.names = FALSE
     )
-    openxlsx::addWorksheet(wb, "Parametros")
-    openxlsx::writeData(wb, "Parametros", params)
-  }
-  for (sh in names(wb)) {
-    openxlsx::setColWidths(wb, sh, cols = 1:40, widths = "auto")
+    fuente <- .hojas_ruta_key_value_table(sample$frame_meta, drop = "methods")
+    technical_sheets <- list(
+      Fuente = fuente,
+      Parametros = params,
+      Hojas_ruta_tecnica = route_report,
+      Cuotas_detalle = quota_cells,
+      Manzanas_raw = blocks,
+      Reemplazos_raw = replacement_blocks,
+      Resumen_zonas_raw = zone_summary
+    )
+    for (sheet_name in names(technical_sheets)) {
+      openxlsx::addWorksheet(wb, sheet_name, gridLines = FALSE)
+      df <- technical_sheets[[sheet_name]]
+      if (nrow(df)) {
+        .hojas_ruta_style_table(wb, sheet_name, df, 1L, styles)
+      } else {
+        openxlsx::writeData(wb, sheet_name, "Sin datos.", startRow = 1, startCol = 1)
+      }
+    }
   }
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path
+}
+
+hojas_ruta_generar_excel_operativo_integrado <- function(config = list(), result_path,
+                                                         sample_override = NULL) {
+  sample <- .hojas_ruta_prepare_delivery_sample(config, sample_override)
+  sample <- .hojas_ruta_require_delivery_sample(sample)
+  .hojas_ruta_write_integrated_workbook(sample, result_path, technical = FALSE)
+  blocks <- .hojas_ruta_rows_df(sample$blocks %||% list())
+  replacement_blocks <- .hojas_ruta_rows_df(sample$replacement_blocks %||% list())
+  list(
+    ok = TRUE,
+    path = result_path,
+    n_blocks = as.integer(nrow(blocks)),
+    n_replacement_blocks = as.integer(nrow(replacement_blocks)),
+    total_entrevistas = as.integer(sum(blocks$entrevistas, na.rm = TRUE)),
+    total_replacement_interviews = as.integer(sum(replacement_blocks$entrevistas, na.rm = TRUE)),
+    frame_version = sample$frame_meta$version,
+    alerts = sample$alerts
+  )
 }
 
 .hojas_ruta_delivery_report_row <- function(block, tipo_ruta = c("TITULAR", "REEMPLAZO"),
@@ -8980,40 +9578,8 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
     function(...) invisible(NULL)
   }
   report("preview", percent = 2, message = "Preparando seleccion de manzanas...")
-  sample <- if (!is.null(sample_override) && is.list(sample_override)) {
-    sample_override
-  } else {
-    hojas_ruta_sample_preview_integrado(config)
-  }
-  sample$config <- sample$config %||% hojas_ruta_integrada_normalize_config(config)
-  blocks_prepared <- .hojas_ruta_add_operational_values(.hojas_ruta_rows_df(sample$blocks %||% list()), sample$config)
-  blocks_prepared <- .hojas_ruta_blocks_with_route_ranges(blocks_prepared)
-  replacement_blocks_prepared <- .hojas_ruta_add_operational_values(
-    .hojas_ruta_rows_df(sample$replacement_blocks %||% list()),
-    sample$config
-  )
-  replacement_blocks_prepared <- .hojas_ruta_apply_replacement_route_ranges(
-    replacement_blocks_prepared,
-    blocks_prepared
-  )
-  replacement_blocks_prepared <- .hojas_ruta_order_replacements(replacement_blocks_prepared)
-  sample$blocks <- .hojas_ruta_df_rows(blocks_prepared)
-  sample$replacement_blocks <- .hojas_ruta_df_rows(replacement_blocks_prepared)
-  if (!isTRUE(sample$ok)) {
-    blocking <- Filter(function(x) identical(x$level, "error"), sample$alerts %||% list())
-    message <- if (length(blocking)) {
-      as.character(blocking[[1]]$message %||% "La seleccion de manzanas no esta lista para generar hojas de ruta.")
-    } else {
-      "La seleccion de manzanas no esta lista para generar hojas de ruta."
-    }
-    stop(message, call. = FALSE)
-  }
-  validation <- .hojas_ruta_validate_delivery_sample(sample)
-  if (!isTRUE(validation$ok)) {
-    sample$alerts <- c(sample$alerts %||% list(), validation$alerts)
-    first <- validation$alerts[[1]]
-    stop(as.character(first$message %||% "La validacion integral del ZIP fallo."), call. = FALSE)
-  }
+  sample <- .hojas_ruta_prepare_delivery_sample(config, sample_override)
+  sample <- .hojas_ruta_require_delivery_sample(sample)
   stage <- tempfile("hojas_ruta_inei_stage_")
   dir.create(stage, recursive = TRUE, showWarnings = FALSE)
   on.exit(unlink(stage, recursive = TRUE, force = TRUE), add = TRUE)
@@ -9230,12 +9796,12 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
   archive_files <- c(archive_files, unified_files)
 
   report("workbook", percent = 94, message = "Generando Excel de reporte...")
-  reporte_rel <- "hojas_ruta_seleccionadas.xlsx"
+  reporte_rel <- "hojas_ruta_operativo.xlsx"
   reporte_path <- file.path(stage, reporte_rel)
   .hojas_ruta_write_integrated_workbook(
     sample,
     reporte_path,
-    technical = TRUE,
+    technical = FALSE,
     route_report = route_report
   )
   archive_files <- c(archive_files, reporte_rel)

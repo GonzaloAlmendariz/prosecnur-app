@@ -170,6 +170,19 @@ shutdown_requested <- function() isTRUE(.shutdown_flag$value)
   stop_api(400, "E_BAD_DATA_EXT", sprintf("Extensión no soportada: %s", ext))
 }
 
+.public_artifact_descriptor <- function(sid) {
+  s <- session_get(sid)
+  artifact <- .public_artifact_normalize(
+    s$public_artifact %||% list(kind = "dashboard", module = "dashboard"),
+    s$estudio$nombre %||% s$dashboard_config$titulo %||% "Prosecnur"
+  )
+  out <- artifact
+  if (!nzchar(out$title %||% "")) {
+    out$title <- s$estudio$nombre %||% s$dashboard_config$titulo %||% "Prosecnur"
+  }
+  out
+}
+
 mount_sistema <- function(pr) {
   pr |>
     plumber::pr_get("/api/system/health", wrap_endpoint(function(req, res) {
@@ -201,6 +214,14 @@ mount_sistema <- function(pr) {
         Sys.setenv(PULSO_BOOTSTRAP_SID = "")
       }
       list(sid = sid)
+    })) |>
+    plumber::pr_get("/api/public/artifact", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
+        bootstrap_sid <- Sys.getenv("PULSO_BOOTSTRAP_SID", "")
+        if (nzchar(bootstrap_sid)) sid <- bootstrap_sid
+      }
+      .public_artifact_descriptor(sid)
     })) |>
     # Reporta el estado de las dependencias opcionales del sistema (Quarto,
     # paquetes R secundarios). El frontend usa esto para deshabilitar

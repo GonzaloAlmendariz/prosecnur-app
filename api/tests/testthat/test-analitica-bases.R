@@ -252,6 +252,117 @@ test_that("export unificado ordena variantes y dummies por pregunta", {
       "p14_1", "p14_5", "p19___1", "p19_other", "p27___3", "p27___9"
     )
   )
+  expect_equal(
+    .analitica_unified_order_cols(
+      c(cols, "id_enlace_sm"),
+      c("base_hermana", "registro_origen_id", "registro_unificado_id", "id_enlace_sm")
+    )[1:4],
+    c("base_hermana", "registro_origen_id", "registro_unificado_id", "id_enlace_sm")
+  )
+})
+
+test_that("export unificado crea id_enlace_sm sin mezclarlo con Codigo Pulso", {
+  skip_if_not(exists(".analitica_unified_link_id_values", mode = "function"))
+
+  telefono <- data.frame(
+    response_id = "r1",
+    case_uid = "survey-a:r1",
+    cv_id = "1003",
+    p36 = "P316",
+    stringsAsFactors = FALSE
+  )
+  tel_id <- .analitica_unified_link_id_values(telefono)
+  expect_equal(as.character(tel_id), "1003")
+  expect_equal(telefono$p36, "P316")
+  expect_equal(attr(tel_id, "label", exact = TRUE), "ID enlace SurveyMonkey")
+
+  correo <- data.frame(
+    response_id = "r2",
+    custom_value = "texto_no_numerico",
+    p36 = "P940",
+    stringsAsFactors = FALSE
+  )
+  mail_id <- .analitica_unified_link_id_values(correo)
+  expect_equal(as.character(mail_id), "")
+  expect_equal(correo$p36, "P940")
+})
+
+test_that("export unificado recupera id_enlace_sm desde snapshot por case_uid", {
+  skip_if_not(exists(".analitica_unified_link_id_values", mode = "function"))
+  skip_if_not(exists(".analitica_unified_link_id_lookup_from_snapshot", mode = "function"))
+
+  snapshot <- list(
+    sources = list(
+      list(
+        survey_id = "survey-a",
+        responses = list(
+          list(id = "r1", custom_variables = list(ID = "1003")),
+          list(id = "r2", custom_value = "texto_no_numerico")
+        )
+      )
+    )
+  )
+  lookup <- .analitica_unified_link_id_lookup_from_snapshot(snapshot)
+  df <- data.frame(
+    case_uid = c("survey-a:r1", "survey-a:r2"),
+    response_id = c("r1", "r2"),
+    p36 = c("P316", "P940"),
+    stringsAsFactors = FALSE
+  )
+  out <- .analitica_unified_link_id_values(df, lookup = lookup)
+
+  expect_equal(as.character(out), c("1003", ""))
+  expect_equal(df$p36, c("P316", "P940"))
+  expect_false("id" %in% names(df))
+})
+
+test_that("export efectivo ignora filtros operativos y conserva marcas de observacion", {
+  skip_if_not(exists(".analitica_unified_effective_export_policy", mode = "function"))
+  skip_if_not(exists(".analitica_unified_apply_observation_metadata", mode = "function"))
+
+  policy <- .analitica_unified_effective_export_policy(list(
+    collector_ids = list("collector-esperado"),
+    include_partials = TRUE,
+    include_rejections = TRUE
+  ))
+  expect_identical(.as_chr_vec(policy$collector_ids), character(0))
+  expect_false(isTRUE(policy$include_partials))
+  expect_false(isTRUE(policy$include_rejections))
+
+  df <- data.frame(
+    survey_id = c("survey-a", "survey-a"),
+    collector_id = c("collector-esperado", "collector-fuera"),
+    date_modified = c("2026-05-27T10:00:00+00:00", "2026-05-29T10:00:00+00:00"),
+    id_enlace_sm = c("1001", "1002"),
+    p36 = c("P001", "P002"),
+    stringsAsFactors = FALSE
+  )
+  base_meta <- list(
+    response_filter = list(
+      survey_id = "survey-a",
+      collector_ids = list("collector-esperado"),
+      date_modified_lte = "2026-05-28T00:00:00+00:00"
+    )
+  )
+  snapshot <- list(
+    sources = list(list(
+      collectors = list(
+        list(id = "collector-esperado", name = "Collector esperado"),
+        list(id = "collector-fuera", name = "Collector fuera")
+      )
+    ))
+  )
+
+  out <- .analitica_unified_apply_observation_metadata(df, base_meta, snapshot)
+
+  expect_false(out$posterior_corte[1])
+  expect_true(out$posterior_corte[2])
+  expect_false(out$collector_fuera_scope[1])
+  expect_true(out$collector_fuera_scope[2])
+  expect_match(out$observacion_export[2], "posterior al corte")
+  expect_match(out$observacion_export[2], "Collector fuera")
+  expect_true("id_enlace_sm" %in% names(out))
+  expect_true("p36" %in% names(out))
 })
 
 test_that("export unificado omite metadatos operativos e identificadores directos", {
@@ -259,8 +370,8 @@ test_that("export unificado omite metadatos operativos e identificadores directo
 
   inst <- list(
     survey = data.frame(
-      name = c("p1", "p3", "p4", "p5", "p21", "p25", "p26_3", "p31", "p39"),
-      type = rep("text", 9),
+      name = c("p1", "p3", "p4", "p5", "p21", "p25", "p26_3", "p31", "p36", "p39"),
+      type = rep("text", 10),
       label = c(
         "Edad",
         "Correo electrónico que más utiliza (no laboral):",
@@ -270,6 +381,7 @@ test_that("export unificado omite metadatos operativos e identificadores directo
         "¿Sería posible que nos brinde los datos de su jefe directo?",
         "Cargo",
         "¿Cuál es su ingreso mensual aproximado? (en soles)",
+        "Código Pulso",
         "Enumerador"
       ),
       stringsAsFactors = FALSE
@@ -279,6 +391,17 @@ test_that("export unificado omite metadatos operativos e identificadores directo
   df <- data.frame(
     response_id = "r1",
     source_title = "Encuesta",
+    collector_id = "collector-fuera",
+    date_modified = "2026-05-29T10:00:00+00:00",
+    posterior_corte = TRUE,
+    fecha_corte_referencia = "2026-05-28T00:00:00+00:00",
+    collector_fuera_scope = TRUE,
+    collector_label = "Collector fuera",
+    observacion_export = "Incluida en base efectiva.",
+    id_enlace_sm = "1001",
+    cv_id = "1001",
+    cv_token_extra = "x",
+    recipient_cv_id = "1001",
     p1 = 25,
     p3 = "a@b.com",
     p4 = "123",
@@ -287,6 +410,7 @@ test_that("export unificado omite metadatos operativos e identificadores directo
     p25 = "Sí",
     p26_3 = "Gerente",
     p31 = 5000,
+    p36 = "P316",
     p39 = "Enum 1",
     stringsAsFactors = FALSE
   )
@@ -294,8 +418,18 @@ test_that("export unificado omite metadatos operativos e identificadores directo
   excl <- .analitica_unified_exclusions(df, inst)
 
   expect_true(all(c("response_id", "source_title", "p3", "p4", "p5", "p21", "p25", "p26_3", "p39") %in% excl))
+  expect_true(all(c("cv_id", "cv_token_extra", "recipient_cv_id") %in% excl))
+  expect_false("collector_id" %in% excl)
+  expect_false("date_modified" %in% excl)
+  expect_false("posterior_corte" %in% excl)
+  expect_false("fecha_corte_referencia" %in% excl)
+  expect_false("collector_fuera_scope" %in% excl)
+  expect_false("collector_label" %in% excl)
+  expect_false("observacion_export" %in% excl)
+  expect_false("id_enlace_sm" %in% excl)
   expect_false("p1" %in% excl)
   expect_false("p31" %in% excl)
+  expect_false("p36" %in% excl)
 })
 
 # ============================================================================

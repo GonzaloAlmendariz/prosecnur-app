@@ -1,0 +1,35 @@
+test_that("variables excluidas filtran reglas objetivo sin ocultar otras inconsistencias", {
+  inst <- list(
+    survey = data.frame(
+      type = c("text", "text"),
+      name = c("p3", "p8"),
+      label = c("Correo personal", "Empleador actual"),
+      required = c("yes", "yes"),
+      relevant = c("", ""),
+      constraint = c("", ""),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(stringsAsFactors = FALSE)
+  )
+  datos <- data.frame(
+    p3 = c("", ""),
+    p8 = c("", "Empresa SAC"),
+    stringsAsFactors = FALSE
+  )
+
+  bundle <- build_validation_bundle(
+    instrumento = inst,
+    incluir = list(required = TRUE, relevant = FALSE, constraint = FALSE)
+  )
+  ev <- evaluate_validation_bundle(bundle, datos, strict = FALSE)
+  expect_equal(sum(ev$resumen$n_inconsistencias, na.rm = TRUE), 3L)
+
+  filtrado <- .validacion_filter_bundle_excluded_vars(bundle, "p3")
+  targets <- unlist(lapply(filtrado$rules, .validacion_rule_target_vars), use.names = FALSE)
+  expect_false("p3" %in% targets)
+  expect_true("p8" %in% targets)
+  expect_equal(filtrado$excluded_validation_vars, list("p3"))
+
+  ev_filtrado <- evaluate_validation_bundle(filtrado, datos, strict = FALSE)
+  expect_equal(sum(ev_filtrado$resumen$n_inconsistencias, na.rm = TRUE), 1L)
+})

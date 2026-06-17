@@ -23,6 +23,13 @@
 #   - s$estudio$bases[[*]]$validacion$explorador_cache — hashes de views
 #   - s$dashboard_rp_inst / s$dashboard_rp_data — caches del dashboard,
 #       derivables de s$dashboard_source$(xlsform|data)_file_id
+# Excepción deliberada:
+#   - s$monitoreo_territorial_map_cache — cache compacta de geometría de ruta
+#     y GPS clasificado por fase. Viaja en el .pulso para evitar recomputar
+#     cruces sf costosos al reabrir proyectos territoriales.
+#   - s$monitoreo_snapshot$territorial_report_cache — reportes territoriales
+#     derivados por fase/fuente/scope. Viajan en el .pulso para que Hojas,
+#     Consultas y Validación reabran desde el estado local ya preparado.
 # Esto evita serializar objetos gordos (tibbles con 50k filas) que son
 # derivables de los file_id que sí están en el zip.
 
@@ -56,6 +63,10 @@
   s$monitoreo_dashboard_cache_token <- NULL
   s$monitoreo_dashboard_light_cache <- NULL
   s$monitoreo_dashboard_light_cache_token <- NULL
+  # No limpiar s$monitoreo_territorial_map_cache ni
+  # s$monitoreo_snapshot$territorial_report_cache: son caches persistentes,
+  # versionadas y acotadas para acelerar Monitoreo territorial al abrir un
+  # .pulso.
   # Catálogos externos cacheados durante la sesión. Son metadata regenerable
   # desde la integración y no deben viajar como contrato persistente del .pulso.
   s$surveymonkey_survey_catalog <- NULL
@@ -1111,6 +1122,24 @@
       if (!is.null(b$original_data_file_id) && nzchar(b$original_data_file_id)) {
         out <- c(out, b$original_data_file_id)
       }
+      if (!is.null(b$surveymonkey_raw_snapshot_file_id) && nzchar(b$surveymonkey_raw_snapshot_file_id)) {
+        out <- c(out, b$surveymonkey_raw_snapshot_file_id)
+      }
+      if (!is.null(b$surveymonkey_effective_data_file_id) && nzchar(b$surveymonkey_effective_data_file_id)) {
+        out <- c(out, b$surveymonkey_effective_data_file_id)
+      }
+      if (!is.null(b$surveymonkey_workbook_file_id) && nzchar(b$surveymonkey_workbook_file_id)) {
+        out <- c(out, b$surveymonkey_workbook_file_id)
+      }
+      if (!is.null(b$surveymonkey_workbook_snapshot_file_id) && nzchar(b$surveymonkey_workbook_snapshot_file_id)) {
+        out <- c(out, b$surveymonkey_workbook_snapshot_file_id)
+      }
+      if (!is.null(b$surveymonkey_sav_bundle_file_id) && nzchar(b$surveymonkey_sav_bundle_file_id)) {
+        out <- c(out, b$surveymonkey_sav_bundle_file_id)
+      }
+      if (!is.null(b$surveymonkey_sav_bundle_snapshot_file_id) && nzchar(b$surveymonkey_sav_bundle_snapshot_file_id)) {
+        out <- c(out, b$surveymonkey_sav_bundle_snapshot_file_id)
+      }
       multi <- b$multi_integrated %||% list()
       if (!is.null(multi$guide_xlsform_file_id) && nzchar(multi$guide_xlsform_file_id)) {
         out <- c(out, multi$guide_xlsform_file_id)
@@ -1151,6 +1180,30 @@
     if (!is.null(s$dashboard_source$data_file_id) &&
         nzchar(s$dashboard_source$data_file_id)) {
       out <- c(out, s$dashboard_source$data_file_id)
+    }
+  }
+  # Monitoreo territorial: algunos insumos nacen dentro de Monitoreo, pero
+  # luego son referencia canónica del proyecto. Si no viajan en el .pulso,
+  # al reabrir quedan referencias colgantes aunque la configuración exista.
+  if (!is.null(s$monitoreo_config) && is.list(s$monitoreo_config)) {
+    add_mon_fid <- function(value) {
+      value <- as.character(value %||% "")
+      value <- value[nzchar(value)]
+      if (length(value)) out <<- c(out, value)
+    }
+    territorial <- s$monitoreo_config$territorial %||% list()
+    roster <- territorial$enumerator_roster %||%
+      territorial$encuestadores_pulso %||%
+      territorial$encuestadores %||%
+      list()
+    if (is.list(roster)) {
+      add_mon_fid(roster$source_file_id %||% roster$sourceFileId)
+    }
+    occurrences <- territorial$field_occurrences %||%
+      territorial$ocurrencias_campo %||%
+      list()
+    if (is.list(occurrences)) {
+      add_mon_fid(occurrences$xlsform_file_id %||% occurrences$xlsformFileId)
     }
   }
   # Borrador del flujo "integrar instrumentos hermanos". Antes de importar,
@@ -1435,12 +1488,32 @@ load_pulso <- function(src_path) {
   s_saved$dashboard_dim_ctx <- NULL
   .session_env[[new_sid]] <- s_saved
 
+  public_kind <- as.character(s_saved$public_artifact$kind %||% "")[1]
+  if (
+    isTRUE(is_public_mode()) &&
+    identical(public_kind, "monitoreo") &&
+    is.list(s_saved$public_artifact_payload$monitoreo_report %||% NULL)
+  ) {
+    return(list(
+      ok            = TRUE,
+      session_id    = new_sid,
+      project_path  = s_saved$project_path,
+      manifest      = manifest
+    ))
+  }
+
   # 7) Rebuild de caches dashboard (rp_inst / rp_data) a partir de los
   #    file_ids persistidos en dashboard_source. No falla si no hay fuente.
   .dashboard_rebuild_after_load(new_sid)
   .pulso_repair_multibase_variant_xlsforms(new_sid)
   .pulso_repair_parent_recod_columns(new_sid)
   .pulso_rebuild_estudio_runtime_sources(new_sid)
+  if (exists("estudio_sync_shared_xlsform_logic_if_needed", mode = "function")) {
+    tryCatch(
+      estudio_sync_shared_xlsform_logic_if_needed(new_sid),
+      error = function(e) NULL
+    )
+  }
   .pulso_renormalize_after_load(new_sid)
 
   list(

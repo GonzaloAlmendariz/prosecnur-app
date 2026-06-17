@@ -30,6 +30,37 @@ test_that("complete_select_multiple_hierarchy completa tokens de variable madre"
   expect_equal(out$impact$cells_changed, 2L)
 })
 
+test_that("complete_select_multiple_hierarchy ignora filas survey vacias al ordenar opciones", {
+  inst <- list(
+    survey = data.frame(
+      type = c(NA, "select_multiple lst_p7"),
+      type_base = c(NA, "select_multiple"),
+      name = c(NA, "p7"),
+      list_name = c(NA, "lst_p7"),
+      label = c(NA, "P7"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = rep("lst_p7", 3),
+      name = as.character(1:3),
+      label = paste("Opcion", 1:3),
+      stringsAsFactors = FALSE
+    )
+  )
+  df <- data.frame(p7 = "2", stringsAsFactors = FALSE)
+
+  out <- complete_select_multiple_hierarchy(
+    data = df,
+    target_variable = "p7",
+    hierarchy_map = list("2" = "1"),
+    rows = TRUE,
+    instrumento = inst
+  )
+
+  expect_equal(as.character(out$data$p7), "1 2")
+  expect_equal(nrow(out$trace), 1L)
+})
+
 test_that("complete_select_multiple_hierarchy completa columnas dummy existentes", {
   inst <- list(
     survey = data.frame(

@@ -388,6 +388,40 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$titulo_tabla, "TOP 2 BOX")
 })
 
+test_that("preset Pulso PPT usa paleta y escala de texto institucional", {
+  expect_equal(.PULSO_PPT_COLORS$azul, "#081F5C")
+  expect_equal(.PULSO_PPT_COLORS$rojo, "#CA5651")
+  expect_equal(.PULSO_PPT_COLORS$verde, "#85BB85")
+  expect_equal(.PULSO_PPT_COLORS$amarillo, "#EFD25E")
+  expect_equal(.PULSO_PPT_COLORS$gris, "#BFBFBF")
+
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$font_family, "Arial")
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_titulo, 14)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_titulo_slide, 24)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_subtitulo, 14)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_subtitulo_slide, 16)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_cuerpo_slide, 14)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_leyenda, 10.5)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_ejes, 10.5)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_nota_pie, 10)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_titulo, .PULSO_PPT_COLORS$rojo)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_subtitulo, .PULSO_PPT_COLORS$verde)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_leyenda, .PULSO_PPT_COLORS$azul)
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_numericas$colores_series$Media, .PULSO_PPT_COLORS$azul)
+  expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$tabla_header_fill, .PULSO_PPT_COLORS$azul)
+
+  fallback <- .reporte_plan_pulso_palette_for_levels(c("1", "2", "3", "4"))
+  expect_equal(unname(fallback), c("#CA5651", "#EFD25E", "#85BB85", "#081F5C"))
+
+  choices <- data.frame(
+    list_name = rep("likert", 2),
+    name = c("1", "2"),
+    label = c("Nada", "Mucho"),
+    stringsAsFactors = FALSE
+  )
+  expect_equal(.reporte_plan_labels_for_levels("likert", c("1", "2"), choices), c("Nada", "Mucho"))
+})
+
 test_that("metadata principal no expone editores tecnicos JSON", {
   registry <- .graficos_registry_payload()
   exposed <- unlist(lapply(registry$graficadores, function(g) {

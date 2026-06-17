@@ -143,6 +143,41 @@ job_submit <- function(sid,
   job_id
 }
 
+job_submit_completed <- function(sid,
+                                 kind,
+                                 result_data = list(),
+                                 status = "done",
+                                 error = NULL) {
+  sess <- session_get(sid)
+  jobs_dir <- file.path(sess$dir, "jobs")
+  dir.create(jobs_dir, showWarnings = FALSE, recursive = TRUE)
+
+  job_id <- uuid::UUIDgenerate()
+  progress_path <- file.path(jobs_dir, paste0(job_id, ".progress"))
+  tryCatch(
+    writeLines('{"phase":"done","percent":100}', progress_path),
+    error = function(e) NULL
+  )
+  now <- Sys.time()
+  if (!status %in% c("done", "error", "cancelled")) status <- "done"
+  .jobs[[job_id]] <- list(
+    id = job_id,
+    sid = sid,
+    kind = kind,
+    rx = NULL,
+    started_at = now,
+    finished_at = now,
+    status = status,
+    result_path = NULL,
+    progress_path = progress_path,
+    result_data = result_data,
+    result_public = result_data,
+    on_complete = NULL,
+    error = error
+  )
+  job_id
+}
+
 job_read_progress <- function(progress_path) {
   if (is.null(progress_path) || !nzchar(progress_path) || !file.exists(progress_path)) {
     return(NULL)

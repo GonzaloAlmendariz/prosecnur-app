@@ -79,7 +79,9 @@
     return(empty)
   }
 
-  row <- survey[as.character(survey$name %||% "") == as.character(target_variable), , drop = FALSE]
+  survey_names <- as.character(survey$name %||% "")
+  survey_names[is.na(survey_names)] <- ""
+  row <- survey[survey_names == as.character(target_variable), , drop = FALSE]
   if (!nrow(row)) return(empty)
   type_raw <- trimws(as.character(row$type[1] %||% ""))
   type_base <- trimws(as.character(row$type_base[1] %||% sub("\\s+.*$", "", type_raw)))
